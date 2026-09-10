@@ -14,7 +14,18 @@
  * because it is the part that was never about where the rows came from.
  */
 
-export type SearchResultKind = "conversation" | "message" | "project" | "output";
+/**
+ * WHAT SEARCH CAN FIND.
+ *
+ * Tasks and memories were absent, and their absence was invisible: searching
+ * for a task by its title returned nothing, which reads as "you never wrote
+ * that down" rather than as "this box does not look there". They are part of
+ * the same account graph as a conversation or an artifact, and `PLAN.md`
+ * Phase 11 asks for one connected workspace rather than islands with their own
+ * search boxes.
+ */
+export type SearchResultKind =
+  "conversation" | "message" | "project" | "output" | "task" | "memory";
 
 export interface SearchResult {
   key: string;
@@ -24,6 +35,8 @@ export interface SearchResult {
   createdAt?: string;
   /** Where to send the user. A result you cannot open is a result you did not find. */
   conversationId?: string;
+  /** Where a non-conversation result lives, when it is not a conversation. */
+  to?: string;
   /** Higher is better. */
   score: number;
 }

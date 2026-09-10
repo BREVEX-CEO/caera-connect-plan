@@ -299,9 +299,18 @@ export function useOcadeRuntime(options: RuntimeOptions) {
             }
           },
           /*
-           * `source: "imported"` because OCADE inferred it rather than being
-           * told it. The distinction is visible in Privacy settings, where a
-           * person deciding what to delete deserves to know which is which.
+           * `source: "inferred"`, which is what this is: OCADE worked it out
+           * from a conversation rather than being told it. The row said
+           * "imported" — the word for a memory the PERSON brought in from
+           * somewhere else — so the review list in Privacy settings, which
+           * prints the source verbatim, told everybody who checked that they
+           * had imported a fact OCADE had inferred. The schema has carried all
+           * three values since the table was created; only the writer was
+           * wrong.
+           *
+           * The distinction is the point of the column. Somebody deciding what
+           * to delete deserves to know which memories they chose and which
+           * OCADE chose for them.
            *
            * A refusal is an ordinary answer here, not an error: the server
            * declines when memory is switched off, and note-taking must not
@@ -309,7 +318,7 @@ export function useOcadeRuntime(options: RuntimeOptions) {
            */
           save: async (content) => {
             try {
-              await addMemory({ data: { content, source: "imported" } });
+              await addMemory({ data: { content, source: "inferred" } });
               return true;
             } catch {
               return false;

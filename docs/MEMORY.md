@@ -118,42 +118,41 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 10 (production Code) is complete. Most of it was already built — intake
-with limits, a file tree, text/symbol/reference search, dependency diagnostics,
-exact patches with an exercised inverse and both hashes, a history that records
-what was verified, and a command contract that refuses to call an
-acknowledgement a result. What was missing was the question a person asks before
-handing work to anybody: what has changed?
+Phase 11 (Projects, Tasks, Artifacts, Search and Memory) is complete. Four of the
+five were built and connected; what the phase found was three holes in the graph
+and one row that lied about itself.
 
-Every patch rewrites the working files, so the workspace could describe the last
-edit and nothing about the session. It now keeps the repository exactly as taken
-in, and status and diff compare the two — an observation of two things OCADE
-holds, needing no checkout, host or credentials, and unable to disagree with the
-files on screen. Undoing every change returns to that baseline exactly.
+A task could not be filed with the work it belonged to. Chats, files, Code
+sessions, artifacts and memory all carry `project_id`; `ocade_tasks` did not, so
+the one record representing work in progress was the one that could not join the
+project graph. The column is `ON DELETE SET NULL` — deleting a project must not
+delete the work — indexed for the only question anybody asks of it, with a
+rollback that records each filing in the task's own step text before dropping
+it, and a verification that proves against real PostgreSQL that a deleted
+project leaves the task alive and unfiled.
 
-Branch, worktree, commit, push, pull request and CI are claims about a
-repository a browser does not have, so they go through `GitHost`, whose value is
-its four refusals: no host, an unauthorised operation, a host that threw, and a
-host that reported success without watching it finish. A non-zero exit is a real
-answer and is reported as one. The screen says this once, in the host's own
-words, and names what still works.
+Quick add recorded every task as immediate work, so a task meant for Friday sat
+in Queued looking overdue and one that needed an answer looked ready to start.
+The board now asks which kind — now, scheduled, waiting for me — stores the
+schedule as an instant rather than the wall clock somebody typed, and shows it
+on the card. Recurring and monitoring work stays with the automation form that
+owns it.
 
-Sessions no longer destroy each other — a second intake used to replace the
-first workspace's baseline, changes and history — and the session diff can be
-kept in Artifacts with real provenance.
+Search could not find a task or a memory, which reads as "you never wrote that
+down". Both are in now, through the same typed filters, bounds and RLS scoping,
+and each result opens where the row lives.
 
-LSP, a dev server, a preview and browser verification of a running app all need
-a process on a real machine, and there is no customer-facing desktop product in
-this release. The contracts they would arrive through exist; the unavailability
-is stated in the product rather than hidden. That is the honest scope, recorded
-in `docs/mission/OCADE_EXECUTION_STATE.md`.
+Session extraction wrote `source: "imported"` — the word for a memory the person
+brought in from another product — for facts OCADE had inferred on its own. The
+review list prints the value verbatim, so everybody who checked was told they
+had imported facts they had never seen. The schema and the panel were already
+right; only the writer was wrong.
 
 `ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
 1, deliberately.
 
-Next is Phase 11 — Projects, Tasks, Artifacts, Search and Memory. Gate: one
-connected workspace graph with no disconnected admin shells or local duplicate
-stores.
+Next is Phase 12 — Agents, tools, skills, plugins and connectors. Gate:
+extensions cannot bypass identity, usage, permission or tenant boundaries.
 
 One known external item remains from Phase 3: `auth_leaked_password_protection`
 is disabled in Supabase Auth. It is a dashboard setting with no repository path,

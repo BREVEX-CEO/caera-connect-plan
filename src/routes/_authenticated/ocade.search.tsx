@@ -1,7 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileOutput, FolderKanban, Loader2, MessageSquare, Search } from "lucide-react";
+import {
+  Brain,
+  FileOutput,
+  FolderKanban,
+  ListChecks,
+  Loader2,
+  MessageSquare,
+  Search,
+} from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Input } from "@/components/ui/input";
@@ -51,6 +59,8 @@ async function searchAccount(raw: string): Promise<SearchResult[]> {
     projectsByInstructions,
     outputsByTitle,
     outputsByContent,
+    tasks,
+    memories,
   ] = await Promise.all([
     supabase
       .from("ocade_conversations")
@@ -82,6 +92,24 @@ async function searchAccount(raw: string): Promise<SearchResult[]> {
       .select("id, title, content, kind, created_at")
       .ilike("content", pattern)
       .limit(20),
+    /*
+     * TASKS AND MEMORIES ARE PART OF THE SAME ACCOUNT.
+     *
+     * Searching for a task by its title used to return nothing, which reads as
+     * "you never wrote that down" rather than "this box does not look there" —
+     * and a memory, which is the most personal thing OCADE holds, was equally
+     * unfindable. Same typed filters, same RLS scoping, same bounds.
+     */
+    supabase
+      .from("ocade_tasks")
+      .select("id, title, request, status, updated_at")
+      .ilike("title", pattern)
+      .limit(20),
+    supabase
+      .from("ocade_memory")
+      .select("id, content, scope, updated_at")
+      .ilike("content", pattern)
+      .limit(20),
   ]);
 
   const responses = [
@@ -91,6 +119,8 @@ async function searchAccount(raw: string): Promise<SearchResult[]> {
     projectsByInstructions,
     outputsByTitle,
     outputsByContent,
+    tasks,
+    memories,
   ];
   const firstError = responses.find((response) => response.error)?.error;
   if (firstError) throw firstError;
@@ -130,6 +160,26 @@ async function searchAccount(raw: string): Promise<SearchResult[]> {
       excerpt: row.instructions ? snippetAround(row.instructions, q) : undefined,
       createdAt: row.updated_at,
       score: scoreMatch(row.name ?? "", row.instructions ?? "", q),
+    })),
+    ...(tasks.data ?? []).map((row) => ({
+      key: `task:${row.id}`,
+      kind: "task" as const,
+      title: row.title,
+      excerpt: row.request ? snippetAround(row.request, q) : undefined,
+      createdAt: row.updated_at,
+      to: "/ocade/tasks",
+      score: scoreMatch(row.title ?? "", row.request ?? "", q),
+    })),
+    ...(memories.data ?? []).map((row) => ({
+      key: `memory:${row.id}`,
+      kind: "memory" as const,
+      // The memory IS the content, so the title is the snippet rather than a
+      // heading invented for it.
+      title: snippetAround(row.content ?? "", q, 80),
+      excerpt: row.scope === "project" ? "Project memory" : "Account memory",
+      createdAt: row.updated_at,
+      to: "/settings/memory",
+      score: scoreMatch("", row.content ?? "", q),
     })),
     ...[...outputs.values()].map((row) => ({
       key: `output:${row.id}`,
@@ -175,7 +225,7 @@ function SearchPage() {
       <PageHeader
         eyebrow="OCADE"
         title="Search"
-        description="Search your actual conversations, message text, projects and saved outputs. Results are protected by the same RLS rules as the source records."
+        description="Search your conversations, message text, projects, saved outputs, tasks and memories. Results are protected by the same RLS rules as the records themselves."
       />
       <div className="mt-6 max-w-3xl">
         <div className="relative">
@@ -222,19 +272,29 @@ function SearchPage() {
   );
 }
 
+const ICONS: Record<SearchResult["kind"], typeof MessageSquare> = {
+  project: FolderKanban,
+  output: FileOutput,
+  task: ListChecks,
+  memory: Brain,
+  conversation: MessageSquare,
+  message: MessageSquare,
+};
+
 function ResultRow({ result }: { result: SearchResult }) {
-  const Icon =
-    result.kind === "project"
-      ? FolderKanban
-      : result.kind === "output"
-        ? FileOutput
-        : MessageSquare;
+  const Icon = ICONS[result.kind];
+  /*
+   * WHERE THE ROW LIVES. A task and a memory carry their own destination,
+   * because neither is in Chat and dropping the reader at the top of it is the
+   * same failure as not finding the row at all.
+   */
   const to =
-    result.kind === "project"
+    result.to ??
+    (result.kind === "project"
       ? "/ocade/projects"
       : result.kind === "output"
         ? "/ocade/artifacts"
-        : "/ocade";
+        : "/ocade");
 
   /*
    * A result you cannot open is a result you did not find. Conversation and

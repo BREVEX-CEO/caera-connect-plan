@@ -8,6 +8,7 @@
  * what these tests pin.
  */
 
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -203,5 +204,36 @@ describe("the imported policy itself", () => {
   it("will not start a second extraction while one is running", () => {
     const state = { ...createSessionMemoryState(), extracting: true };
     expect(shouldExtract(state, 1_000_000)).toBe(false);
+  });
+});
+
+describe("where an inferred memory says it came from", () => {
+  const runtime = readFileSync("src/lib/runtime/use-ocade-runtime.ts", "utf8");
+
+  it("records what OCADE worked out as inferred, not as imported", () => {
+    /*
+     * The three sources mean three different things to the person reading the
+     * review list: `user` is what they typed, `imported` is what they brought
+     * in from another product, and `inferred` is what OCADE decided to keep on
+     * its own. Session extraction wrote "imported", so Privacy settings told
+     * everybody who looked that they had imported facts they had never seen.
+     *
+     * The list prints the value verbatim, which is why this is a correctness
+     * bug and not a wording one.
+     */
+    const learn = runtime.slice(runtime.indexOf("const learn = useCallback"));
+    const save = learn.slice(learn.indexOf("save: async (content)"));
+    expect(save).toContain('source: "inferred"');
+    expect(save).not.toContain('source: "imported"');
+  });
+
+  it("still refuses to learn anything from an incognito conversation", () => {
+    // The guard sits before the counter, because the counter is itself a
+    // record of the conversation having happened.
+    const learn = runtime.slice(runtime.indexOf("const learn = useCallback"));
+    const guard = learn.indexOf("mayRemember(");
+    const counter = learn.indexOf("noteWork(");
+    expect(guard).toBeGreaterThan(-1);
+    expect(counter).toBeGreaterThan(guard);
   });
 });

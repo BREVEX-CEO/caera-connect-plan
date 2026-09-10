@@ -10,12 +10,14 @@ import {
   Save,
   MessageSquare,
   FileOutput,
+  ListChecks,
   Download,
   X,
   Paperclip,
   FolderPlus,
 } from "lucide-react";
 import { toast } from "sonner";
+import { listTasks, type UnifiedTask } from "@/lib/tasks/unified-task";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { EmptyState } from "@/components/shell/EmptyState";
@@ -115,6 +117,14 @@ function ProjectsPage() {
   const [conversations, setConversations] = useState<OcadeConversationRow[] | null>(null);
   const [unfiled, setUnfiled] = useState<OcadeConversationRow[] | null>(null);
   const [outputs, setOutputs] = useState<OutputRow[] | null>(null);
+  /*
+   * The work in progress, which the graph was missing.
+   *
+   * A project could show the conversation where a piece of work was agreed and
+   * the artifact it eventually produced, and nothing about the task in between
+   * — because `ocade_tasks` had no project link at all until this phase.
+   */
+  const [projectTasks, setProjectTasks] = useState<UnifiedTask[] | null>(null);
   const [projectFiles, setProjectFiles] = useState<OcadeProjectFile[] | null>(null);
   const [projectFolders, setProjectFolders] = useState<OcadeProjectFolder[] | null>(null);
   const [projectFileError, setProjectFileError] = useState<string | null>(null);
@@ -177,6 +187,7 @@ function ProjectsPage() {
     if (!selected) {
       setConversations(null);
       setOutputs(null);
+      setProjectTasks(null);
       setProjectFiles(null);
       setProjectFolders(null);
       return;
@@ -197,11 +208,12 @@ function ProjectsPage() {
          * trips to render one screen. `PLAN.md` Phase 18 names serialised
          * startup requests as one of the silent speed killers.
          */
-        const [files, folders, allConversations, projectOutputs] = await Promise.all([
+        const [files, folders, allConversations, projectOutputs, allTasks] = await Promise.all([
           listProjectFiles({ data: { projectId: selected.id } }),
           listProjectFolders({ data: { projectId: selected.id } }),
           listConversations(),
           listOutputs({ data: { projectId: selected.id } }),
+          listTasks(),
         ]);
         if (!live) return;
         setProjectFiles(files as OcadeProjectFile[]);
@@ -211,6 +223,7 @@ function ProjectsPage() {
         setConversations(rows.filter((row) => row.project_id === selected.id));
         setUnfiled(rows.filter((row) => !row.project_id));
         setOutputs(projectOutputs as unknown as OutputRow[]);
+        setProjectTasks(allTasks.filter((task) => task.projectId === selected.id));
       } catch (e) {
         if (!live) return;
         setProjectFiles(null);
@@ -221,6 +234,7 @@ function ProjectsPage() {
         setConversations([]);
         setOutputs([]);
         setUnfiled([]);
+        setProjectTasks([]);
       }
     })();
     return () => {
@@ -898,6 +912,52 @@ function ProjectsPage() {
                         >
                           <Trash2 className="h-3.5 w-3.5" aria-hidden />
                         </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </GlassPanel>
+
+              {/*
+                Tasks. The middle of the graph: what is being done, between the
+                conversation where it was agreed and the artifact it produces.
+                Read-only here on purpose — the board owns editing a task, and a
+                second place to change status is a second thing to keep right.
+              */}
+              <GlassPanel className="p-4">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold">
+                    <ListChecks className="h-4 w-4" aria-hidden /> Tasks
+                  </h3>
+                  <Link
+                    to="/ocade/tasks"
+                    className="text-[11px] text-muted-foreground hover:text-foreground"
+                  >
+                    Open the board
+                  </Link>
+                </div>
+                {projectTasks === null ? (
+                  <p className="text-xs text-muted-foreground">Loading…</p>
+                ) : projectTasks.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Nothing filed here yet. Open a task on the board and file it under this project.
+                  </p>
+                ) : (
+                  <ul className="flex flex-col gap-1">
+                    {projectTasks.map((task) => (
+                      <li
+                        key={task.id}
+                        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px]"
+                      >
+                        <span className="truncate">{task.title}</span>
+                        <span className="text-[10px] uppercase text-muted-foreground">
+                          {task.status.replaceAll("_", " ").toLowerCase()}
+                        </span>
+                        {task.scheduledFor ? (
+                          <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+                            {new Date(task.scheduledFor).toLocaleString()}
+                          </span>
+                        ) : null}
                       </li>
                     ))}
                   </ul>

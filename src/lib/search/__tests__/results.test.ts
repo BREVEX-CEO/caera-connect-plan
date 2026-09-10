@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { scoreMatch, snippetAround, sortResults, type SearchResult } from "../results";
 
@@ -82,5 +83,46 @@ describe("ordering", () => {
     const rows = [result({ key: "a", score: 1 }), result({ key: "b", score: 2 })];
     sortResults(rows);
     expect(rows.map((row) => row.key)).toEqual(["a", "b"]);
+  });
+});
+
+describe("what the account search is able to find", () => {
+  const page = readFileSync("src/routes/_authenticated/ocade.search.tsx", "utf8");
+
+  it("looks in tasks and memories, not only in chat and files", () => {
+    /*
+     * `PLAN.md` Phase 11 asks for one connected workspace graph. Searching for
+     * a task by its title used to return nothing, which reads as "you never
+     * wrote that down" rather than "this box does not look there" — and a
+     * memory, the most personal thing OCADE holds, was equally unfindable.
+     */
+    expect(page).toContain('.from("ocade_tasks")');
+    expect(page).toContain('.from("ocade_memory")');
+  });
+
+  it("keeps the person's text as data in the new queries too", () => {
+    /*
+     * `.or()` takes raw PostgREST grammar, so interpolating a person's search
+     * text into it lets punctuation alter the filter expression even with LIKE
+     * wildcards escaped. Every query on this page uses a typed `.ilike`
+     * instead. Comments explaining that rule are stripped before the check, so
+     * the rule is measured against the code and not against its documentation.
+     */
+    const code = page.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    expect(code).not.toContain(".or(");
+    const ilikes = page.match(/\.ilike\(/g) ?? [];
+    expect(ilikes.length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("bounds every one of them", () => {
+    const limits = page.match(/\.limit\(\d+\)/g) ?? [];
+    expect(limits.length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("sends a task and a memory result somewhere they exist", () => {
+    expect(page).toContain('to: "/ocade/tasks"');
+    expect(page).toContain('to: "/settings/memory"');
+    // And the row honours it rather than dropping the reader into Chat.
+    expect(page).toContain("result.to ??");
   });
 });

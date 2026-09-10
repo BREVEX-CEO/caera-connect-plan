@@ -857,12 +857,73 @@ when the host watched it finish, and status and diff are comparisons of two
 states OCADE holds rather than a story assembled from a change log.
 
 
+## Phase 11 — Projects, Tasks, Artifacts, Search and Memory (COMPLETE)
+
+Four of the five were built and connected. What this phase found was three
+places where the graph had a hole and one where a row lied about itself.
+
+### A task could not be filed with the work it belonged to
+
+`docs/APP_FLOW.md` describes a project as the thing that connects chats, files,
+Code sessions, tasks, artifacts, memory, permissions and activity — by typed
+relationships, not copies. Six of those carried `project_id`. `ocade_tasks` did
+not, so the one record that represents work IN PROGRESS was the one that could
+not join the graph: a project workspace could show the conversation where a
+piece of work was agreed and the artifact it eventually produced, and nothing
+about the task in between.
+
+The column is `ON DELETE SET NULL`, deliberately: deleting a project must not
+delete the work, exactly as conversations are kept and unfiled. It is indexed,
+because "what belongs to this project" is the only question anybody asks of it.
+The rollback records each filing in the task's own step text before dropping the
+column, so rolling the feature back does not make somebody's filing
+unrecoverable. The verification proves all three claims against real PostgreSQL,
+including that deleting a project leaves the task alive and unfiled.
+
+### Quick add wrote every task down as immediate work
+
+The same document says a task can be immediate, scheduled, recurring,
+monitoring-style, action-required or Dispatch work, and that the creation flow
+captures only what the chosen type needs. Everything was recorded as immediate,
+so a task meant for Friday sat in Queued looking overdue from the moment it was
+written, and one that needed somebody's answer looked like something OCADE was
+about to start. Three kinds are asked for now — now, scheduled, waiting for me —
+because three are what this list owns; recurring and monitoring work is an
+automation with a schedule, created by the form that owns it on the same screen.
+The date is stored as an instant, not the wall clock somebody typed, and it is
+shown on the card, which is the only place the difference can appear.
+
+### Search could not find a task or a memory
+
+Conversations, messages, projects and outputs were searchable; tasks and
+memories were not, and their absence read as "you never wrote that down" rather
+than "this box does not look there". Both are in now, through the same typed
+filters — `.or()` takes raw PostgREST grammar and a person's text must stay data
+— with the same bounds and the same RLS scoping, and each result opens where the
+row actually lives.
+
+### A memory said it had been imported when OCADE had inferred it
+
+`ocade_memory.source` has carried `user`, `inferred` and `imported` since the
+table was created, and the review list in Privacy settings prints it verbatim.
+Session extraction — OCADE deciding on its own to keep something — wrote
+`imported`, the word for a memory the PERSON brought in from another product. So
+everybody who checked was told they had imported facts they had never seen. Only
+the writer was wrong; the schema and the panel were already right.
+
+### Gate
+
+One connected workspace graph: a project now reaches chats, files, outputs,
+memory AND tasks; a task can be filed and unfiled from the board; search reaches
+every one of those record types; and there is still exactly one store behind
+each — no admin shell with its own copy, no local duplicate. The
+content-storage gate confirms nothing persistent moved back into the browser.
+
+84 routes × 2 viewports signed out and signed in at 926/926 checks each, 20/20
+customer-journey stages, 8,242 tests across 511 files, 94 migrations applied,
+verified and rolled back against real PostgreSQL, performance budget green.
+
+
 ## Next action
 
-Phase 11 — Projects, Tasks, Artifacts, Search and Memory. Projects as the shared
-context graph; Tasks as the unified home for missions, schedules, automations,
-monitors, action-required, inbox, runs and Dispatch; Artifacts as the versioned
-provenance output library; Search as authorized bounded server-side search plus
-Cmd/Ctrl+K; Memory as Supabase-backed, scoped, sourced, reviewable, editable,
-deletable and Incognito-excluded. Gate: one connected workspace graph with no
-disconnected admin shells or local duplicate stores.
+Phase 12 — Agents, tools, skills, plugins and connectors.

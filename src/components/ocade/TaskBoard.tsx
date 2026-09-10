@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { listProjects } from "@/lib/ocade-projects.functions";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,6 +45,34 @@ export function TaskBoard() {
   const [tasks, setTasks] = useState<UnifiedTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
+  /*
+   * WHAT KIND OF TASK THIS IS, ASKED ONCE AND ONLY WHEN IT MATTERS.
+   *
+   * `docs/APP_FLOW.md`: "A task can be immediate, scheduled, recurring,
+   * monitoring-style, action-required or remote Dispatch work. The creation
+   * flow captures only the information required for the chosen task type."
+   * Quick add wrote every one of them down as immediate work, so a task a
+   * person meant for Friday sat in Queued looking overdue from the moment it
+   * was created, and one that needed somebody's answer looked like something
+   * OCADE was about to start.
+   *
+   * Three kinds are answered here because three are all this list owns:
+   * recurring and monitoring work is an automation with a schedule, and it is
+   * created below, on the same screen, by the form that owns it.
+   */
+  const [kind, setKind] = useState<"now" | "scheduled" | "action">("now");
+  /*
+   * The projects a task can be filed under, read from the account rather than
+   * typed. Cached, because opening a task twice is the normal case and the list
+   * changes about as often as somebody starts a project.
+   */
+  const projectQuery = useQuery({
+    queryKey: ["task-board", "projects"],
+    queryFn: () => listProjects(),
+    staleTime: 60_000,
+  });
+  const projects = projectQuery.data ?? [];
+  const [when, setWhen] = useState("");
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<UnifiedTaskSource | "all">("all");
   const [sort, setSort] = useState<TaskBoardSort>("updated");
@@ -125,18 +155,48 @@ export function TaskBoard() {
 
   async function addTask() {
     if (!draft.trim()) return;
-    const task = createUnifiedTask({ source: "work", title: draft.trim() });
+    if (kind === "scheduled" && !when) {
+      toast.error("A scheduled task needs a date and time.");
+      return;
+    }
+    const task = createUnifiedTask({
+      source: "work",
+      title: draft.trim(),
+      /*
+       * Stored as an instant, converted from the local time the person typed.
+       * The column is a timestamptz and the board is read on other devices in
+       * other zones; keeping the wall-clock string would make "Friday 9am"
+       * mean a different moment on each of them.
+       */
+      ...(kind === "scheduled" ? { scheduledFor: new Date(when).toISOString() } : {}),
+    });
+    /*
+     * A task that is waiting for a person is WAITING_USER from the start.
+     * Leaving it CREATED would put it in Queued, where the board means "ready
+     * to start" — and nothing here is ready until somebody answers.
+     */
+    const created =
+      kind === "action"
+        ? { ...task, status: "WAITING_USER" as const, currentStep: "Waiting for you" }
+        : task;
     try {
-      await persistTask(task);
+      await persistTask(created);
     } catch (error) {
       // The task is NOT added to the list. Showing it would be the board saying
       // the work is recorded when nothing recorded it.
       toast.error(error instanceof Error ? error.message : "That task could not be saved.");
       return;
     }
-    setTasks((current) => [task, ...current]);
+    setTasks((current) => [created, ...current]);
     setDraft("");
-    toast.success("Task added to Queued.");
+    setWhen("");
+    toast.success(
+      kind === "scheduled"
+        ? `Scheduled for ${new Date(when).toLocaleString()}.`
+        : kind === "action"
+          ? "Added, waiting for you."
+          : "Task added to Queued.",
+    );
   }
 
   async function move(task: UnifiedTask, destination: TaskBoardColumn) {
@@ -157,6 +217,30 @@ export function TaskBoard() {
     await persistTask(task);
     setTasks((current) => current.map((item) => (item.id === task.id ? task : item)));
     setSelected((current) => (current?.id === task.id ? task : current));
+  }
+
+  /**
+   * File a task under a project, or unfile it.
+   *
+   * Persisted before the screen changes, like every other edit here: a board
+   * that shows the new filing and then fails to save it has told the person
+   * their work is somewhere it is not.
+   */
+  async function fileUnder(task: UnifiedTask, projectId: string | null) {
+    try {
+      await saveTask({
+        ...task,
+        projectId: projectId ?? undefined,
+        updatedAt: new Date().toISOString(),
+      });
+      toast.success(
+        projectId
+          ? `Filed under ${projects.find((project) => project.id === projectId)?.name ?? "the project"}.`
+          : "Unfiled.",
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "That task could not be filed.");
+    }
   }
 
   async function editSelectedTitle() {
@@ -200,6 +284,18 @@ export function TaskBoard() {
           <span className="mt-1 block text-[11px] uppercase tracking-wide text-muted-foreground">
             {task.source} · {task.status.replaceAll("_", " ").toLowerCase()}
           </span>
+          {/*
+            WHEN IT IS FOR, WHERE THE PERSON IS LOOKING. A scheduled task that
+            reads exactly like an immediate one is a scheduled task nobody can
+            plan around — and it sits in the same column, so the card is the
+            only place the difference can appear. Rendered in the reader's own
+            zone, from the instant the account holds.
+          */}
+          {task.scheduledFor ? (
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              Scheduled for {new Date(task.scheduledFor).toLocaleString()}
+            </span>
+          ) : null}
           {task.currentStep ? (
             <span className="mt-2 block line-clamp-2 text-xs text-muted-foreground">
               {task.currentStep}
@@ -226,7 +322,7 @@ export function TaskBoard() {
           </p>
         </div>
         <form
-          className="flex w-full max-w-md gap-2"
+          className="flex w-full max-w-md flex-wrap gap-2"
           onSubmit={(event) => {
             event.preventDefault();
             void addTask();
@@ -237,7 +333,28 @@ export function TaskBoard() {
             onChange={(event) => setDraft(event.target.value)}
             placeholder="Quick add a task"
             aria-label="Quick add a task"
+            className="min-w-[12rem] flex-1"
           />
+          <select
+            value={kind}
+            onChange={(event) => setKind(event.target.value as typeof kind)}
+            aria-label="Task type"
+            className="min-h-10 rounded-md border border-border/60 bg-background px-2 text-sm text-foreground"
+          >
+            <option value="now">Now</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="action">Waiting for me</option>
+          </select>
+          {/* Only the field the chosen type needs, and only then. */}
+          {kind === "scheduled" ? (
+            <Input
+              type="datetime-local"
+              value={when}
+              onChange={(event) => setWhen(event.target.value)}
+              aria-label="Scheduled for"
+              className="min-w-[13rem]"
+            />
+          ) : null}
           <Button type="submit" disabled={!draft.trim()}>
             <Plus className="mr-1 h-4 w-4" />
             Add
@@ -498,6 +615,35 @@ export function TaskBoard() {
               <dl className="grid grid-cols-[7rem_1fr] gap-2">
                 <dt className="text-muted-foreground">Source</dt>
                 <dd>{selected.source}</dd>
+                {selected.scheduledFor ? (
+                  <>
+                    <dt className="text-muted-foreground">Scheduled for</dt>
+                    <dd>{new Date(selected.scheduledFor).toLocaleString()}</dd>
+                  </>
+                ) : null}
+                {/*
+                  WHICH PROJECT THIS BELONGS TO, AND A WAY TO CHANGE IT.
+                  A project is the shared context graph, and a task was the one
+                  record that could not join it: the workspace could show the
+                  conversation where work was agreed and the artifact it
+                  eventually produced, and nothing about the task in between.
+                */}
+                <dt className="text-muted-foreground">Project</dt>
+                <dd>
+                  <select
+                    aria-label="Project"
+                    value={selected.projectId ?? ""}
+                    onChange={(event) => void fileUnder(selected, event.target.value || null)}
+                    className="min-h-9 w-full rounded-md border border-border/60 bg-background px-2 text-sm"
+                  >
+                    <option value="">Unfiled</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                </dd>
                 <dt className="text-muted-foreground">Status</dt>
                 <dd>{selected.status.replaceAll("_", " ")}</dd>
                 <dt className="text-muted-foreground">Updated</dt>

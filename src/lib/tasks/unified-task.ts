@@ -37,6 +37,15 @@ export interface UnifiedTask {
   finishedAt?: string;
   lastError?: string;
   scheduledFor?: string;
+  /**
+   * The project this task belongs to, or absent when it is unfiled.
+   *
+   * A project is the shared context graph — chats, files, Code sessions,
+   * artifacts and memory all carry the link. A task did not, so the one record
+   * that represents work IN PROGRESS was the one that could not be filed with
+   * the work it belonged to.
+   */
+  projectId?: string;
   dependencyTaskIds?: string[];
 }
 
@@ -204,7 +213,7 @@ export function taskFromAutomationRun(run: AutomationRunLike, title: string): Un
  * pure, and they are tested without a database; only the storage moved.
  */
 
-interface TaskRow {
+export interface TaskRow {
   id: string;
   source: UnifiedTaskSource;
   source_ref: string | null;
@@ -223,6 +232,7 @@ interface TaskRow {
   retry_count: number;
   last_error: string | null;
   scheduled_for: string | null;
+  project_id: string | null;
   started_at: string | null;
   finished_at: string | null;
   created_at: string;
@@ -230,14 +240,23 @@ interface TaskRow {
 }
 
 const TASK_COLUMNS =
-  "id, source, source_ref, title, request, current_step, status, progress, device_id, agent, permission_requirements, input_refs, output_refs, receipts, dependency_task_ids, retry_count, last_error, scheduled_for, started_at, finished_at, created_at, updated_at";
+  "id, source, source_ref, title, request, current_step, status, progress, device_id, agent, permission_requirements, input_refs, output_refs, receipts, dependency_task_ids, retry_count, last_error, scheduled_for, project_id, started_at, finished_at, created_at, updated_at";
 
 /** Undefined rather than null on the way out: the task type uses optionals. */
 function optional<T>(value: T | null): T | undefined {
   return value ?? undefined;
 }
 
-function toTask(row: TaskRow): UnifiedTask {
+/**
+ * Exported for the tests that hold the column mapping.
+ *
+ * The pair is the only place a task's shape and the table's shape meet, so a
+ * field that is written and never read back — a schedule, say — is invisible
+ * everywhere else until somebody notices their scheduled task behaving like an
+ * immediate one. A round trip through both is the cheapest proof that cannot
+ * be satisfied by a mock.
+ */
+export function toTask(row: TaskRow): UnifiedTask {
   return {
     id: row.id,
     source: row.source,
@@ -257,6 +276,7 @@ function toTask(row: TaskRow): UnifiedTask {
     retryCount: row.retry_count,
     lastError: optional(row.last_error),
     scheduledFor: optional(row.scheduled_for),
+    projectId: optional(row.project_id),
     startedAt: optional(row.started_at),
     finishedAt: optional(row.finished_at),
     createdAt: row.created_at,
@@ -264,7 +284,7 @@ function toTask(row: TaskRow): UnifiedTask {
   };
 }
 
-function toRow(task: UnifiedTask, userId: string) {
+export function toRow(task: UnifiedTask, userId: string) {
   return {
     id: task.id,
     user_id: userId,
@@ -285,6 +305,7 @@ function toRow(task: UnifiedTask, userId: string) {
     retry_count: task.retryCount,
     last_error: task.lastError ?? null,
     scheduled_for: task.scheduledFor ?? null,
+    project_id: task.projectId ?? null,
     started_at: task.startedAt ?? null,
     finished_at: task.finishedAt ?? null,
     created_at: task.createdAt,

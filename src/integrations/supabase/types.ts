@@ -3884,6 +3884,7 @@ export type Database = {
           output_refs: string[]
           permission_requirements: string[]
           progress: number | null
+          project_id: string | null
           receipts: string[]
           request: string | null
           retry_count: number
@@ -3909,6 +3910,7 @@ export type Database = {
           output_refs?: string[]
           permission_requirements?: string[]
           progress?: number | null
+          project_id?: string | null
           receipts?: string[]
           request?: string | null
           retry_count?: number
@@ -3934,6 +3936,7 @@ export type Database = {
           output_refs?: string[]
           permission_requirements?: string[]
           progress?: number | null
+          project_id?: string | null
           receipts?: string[]
           request?: string | null
           retry_count?: number
@@ -3946,7 +3949,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ocade_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pack_reviews: {
         Row: {
