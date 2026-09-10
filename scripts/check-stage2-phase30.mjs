@@ -6,7 +6,10 @@ const ledger = json("release/OCADE_STAGE_2_PHASE_30.json");
 const workflow = read("src/lib/creative/creative-workflow.ts");
 const tests = read("src/lib/__tests__/creative-workflow.test.ts");
 const panel = read("src/components/ocade/CreativeControlPanel.tsx");
-const studio = read("src/routes/_authenticated/ocade.studio.tsx");
+// PLAN.md §4 folded Studio into Artifacts; the creative control panel went
+// with it, so the surface this gate inspects is the section rather than the
+// page that used to hold it.
+const studio = read("src/components/ocade/artifacts/WhatOcadeCanProduce.tsx");
 const packs = read("src/lib/skills/pack-registry.ts");
 const media = read("src/lib/media/inspect.ts");
 const gltf = read("src/lib/vision3d/gltf.ts");
@@ -126,7 +129,7 @@ includesAll(
   ],
   "honest Studio panel",
 );
-check(studio.includes("CreativeControlPanel"), "Studio production integration");
+check(studio.includes("CreativeControlPanel"), "creative control reachable from Artifacts");
 includesAll(
   packs,
   [

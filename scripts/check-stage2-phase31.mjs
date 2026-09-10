@@ -6,7 +6,8 @@ const ledger = json("release/OCADE_STAGE_2_PHASE_31.json");
 const workflow = read("src/lib/engineering/engineering-workflow.ts");
 const tests = read("src/lib/__tests__/engineering-workflow.test.ts");
 const panel = read("src/components/ocade/EngineeringControlPanel.tsx");
-const studio = read("src/routes/_authenticated/ocade.lab.tsx");
+// PLAN.md §4 folded the Lab into Customize, where it loads on request.
+const studio = read("src/components/ocade/customize/EngineeringLab.tsx");
 const packs = read("src/lib/skills/pack-registry.ts");
 const failures = [];
 let checks = 0;
@@ -132,7 +133,7 @@ includesAll(
   ],
   "honest Studio panel",
 );
-check(studio.includes("EngineeringControlPanel"), "Studio production integration");
+check(studio.includes("EngineeringControlPanel"), "engineering control reachable from Customize");
 includesAll(
   packs,
   [

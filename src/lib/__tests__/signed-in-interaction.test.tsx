@@ -69,6 +69,14 @@ const NO_COMPONENT: Record<string, string> = {
     "CANIA is hidden from OCADE. Its historical deep link redirects before rendering an unavailable product.",
   "_authenticated/ficia.tsx":
     "FICIA is hidden from OCADE. Its historical deep link redirects before rendering an unavailable product.",
+  "_authenticated/ocade.automations.tsx":
+    "PLAN.md §4 folded Automations into /ocade/tasks; this is the forwarding address, so it redirects in beforeLoad and never renders. The screen it used to be is covered where it now lives.",
+  "_authenticated/ocade.monitors.tsx":
+    "PLAN.md §4 folded Monitors into /ocade/tasks; this is the forwarding address, so it redirects in beforeLoad and never renders. The screen it used to be is covered where it now lives.",
+  "_authenticated/ocade.studio.tsx":
+    "PLAN.md §4 folded Studio into /ocade/artifacts; this is the forwarding address, so it redirects in beforeLoad and never renders. The screen it used to be is covered where it now lives.",
+  "_authenticated/ocade.models.tsx":
+    "PLAN.md §4 folded the model control centre into Settings › Local engine; this is the forwarding address, so it redirects in beforeLoad and never renders. The screen it used to be is covered where it now lives.",
   "_authenticated/madee.tsx":
     "MADEE is hidden from OCADE. Its historical deep link redirects before rendering an unavailable product.",
 };
@@ -79,12 +87,8 @@ const SIGNED_IN_ROUTES = [
   "_authenticated/ocade.cowork.tsx",
   "_authenticated/ocade.customize.tsx",
   "_authenticated/ocade.artifacts.tsx",
-  "_authenticated/ocade.automations.tsx",
   "_authenticated/ocade.code.tsx",
-  "_authenticated/ocade.models.tsx",
-  "_authenticated/ocade.monitors.tsx",
   "_authenticated/ocade.projects.tsx",
-  "_authenticated/ocade.studio.tsx",
   "_authenticated/access-denied.tsx",
   "_authenticated/admin.launch-gate.tsx",
   "_authenticated/admin.payments-checklist.tsx",
@@ -314,7 +318,7 @@ describe("every signed-in route exposes a component to audit", () => {
   });
 
   it("keeps the component-less list short, specific and justified", () => {
-    expect(Object.keys(NO_COMPONENT)).toHaveLength(7);
+    expect(Object.keys(NO_COMPONENT)).toHaveLength(11);
     for (const [name, reason] of Object.entries(NO_COMPONENT)) {
       expect(componentFor(name), `${name} is excluded but now HAS a component`).toBeUndefined();
       expect(reason.length, `${name} is excluded without a reason`).toBeGreaterThan(40);

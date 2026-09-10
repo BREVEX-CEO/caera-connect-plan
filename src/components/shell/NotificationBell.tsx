@@ -37,7 +37,7 @@ export function NotificationBell({ signedIn }: { signedIn: boolean }) {
 
   return (
     <Link
-      to="/ocade/notifications"
+      to="/ocade/tasks"
       aria-label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
       className={cn(
         "relative inline-flex h-8 w-8 items-center justify-center rounded-md",

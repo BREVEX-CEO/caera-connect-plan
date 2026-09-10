@@ -140,8 +140,8 @@
       "module": "_authenticated/ocade.models",
       "path": "/ocade/models",
       "disposition": "MIGRATE",
-      "movesTo": "/settings/data",
-      "reason": "§4: 'Models, devices, permissions, connectors, health, system, activity, knowledge, and labs into Settings or Customize.' Models are Offline Intelligence, which Settings › Storage owns."
+      "movesTo": "/settings/$section",
+      "reason": "§4: 'Models, devices, permissions, connectors, health, system, activity, knowledge, and labs into Settings or Customize.' It moves to Settings › Local engine rather than Settings › Data: that section already rendered this page's two panels, from the same modules, while Data is about exporting and deleting what the account holds. An engine is not account data."
     },
     {
       "module": "_authenticated/ocade.devices",
@@ -197,7 +197,7 @@
       "path": "/ocade/lab",
       "disposition": "MIGRATE",
       "movesTo": "/ocade/customize",
-      "reason": "§4: labs into Settings or Customize."
+      "reason": "§4: labs into Settings or Customize. It opens from Customize on request rather than loading with it — twelve panels, several probing runtimes on mount, do not belong in the bundle of a screen somebody opened to change a theme."
     },
     {
       "module": "_authenticated/organization",

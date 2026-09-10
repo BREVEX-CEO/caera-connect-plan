@@ -137,7 +137,11 @@ function computerControl(s: CapabilitySignals): CapabilityReport {
       label: "Computer control",
       status: "NEEDS_APPROVAL",
       detail: "The companion is connected but has no approved permissions yet.",
-      action: { label: "Review permissions", to: "/ocade/permissions" },
+      action: {
+        label: "Review permissions",
+        to: "/settings/$section",
+        params: { section: "permissions" },
+      },
       evidence: "Companion connected, permissions not granted.",
     };
   }
@@ -260,7 +264,11 @@ function vision(s: CapabilitySignals): CapabilityReport {
     label: "Image understanding",
     status: "NOT_CONFIGURED",
     detail: "No available engine accepts images, so attachments cannot be interpreted.",
-    action: { label: "Model connections", to: "/ocade/models" },
+    action: {
+      label: "Local engine",
+      to: "/settings/$section",
+      params: { section: "local-engine" },
+    },
     evidence: s.vision ? "No engine advertises image input." : NOT_OBSERVED,
   };
 }
@@ -274,7 +282,7 @@ function automationRunner(s: CapabilitySignals): CapabilityReport {
       status: "NOT_CONFIGURED",
       detail:
         "No runner is attached, so scheduled automations will not execute on their own. Saved schedules are kept.",
-      action: { label: "Automations", to: "/ocade/automations" },
+      action: { label: "Tasks", to: "/ocade/tasks" },
       evidence: r ? "Runner reported unavailable." : NOT_OBSERVED,
     };
   }
@@ -284,7 +292,7 @@ function automationRunner(s: CapabilitySignals): CapabilityReport {
       label: "Automation runner",
       status: "WORKING",
       detail: `${r.running} automation${r.running === 1 ? "" : "s"} running now.`,
-      action: { label: "Automations", to: "/ocade/automations" },
+      action: { label: "Tasks", to: "/ocade/tasks" },
       evidence: "Runner reported in-flight work.",
     };
   }
@@ -293,7 +301,7 @@ function automationRunner(s: CapabilitySignals): CapabilityReport {
     label: "Automation runner",
     status: "READY",
     detail: "A runner is attached and idle.",
-    action: { label: "Automations", to: "/ocade/automations" },
+    action: { label: "Tasks", to: "/ocade/tasks" },
     evidence: "Runner reported available.",
   };
 }
@@ -306,7 +314,7 @@ function monitors(s: CapabilitySignals): CapabilityReport {
       label: "Monitors",
       status: "NOT_CONFIGURED",
       detail: "Monitors have not been checked yet.",
-      action: { label: "Monitors", to: "/ocade/monitors" },
+      action: { label: "Monitors", to: "/ocade/tasks" },
       evidence: NOT_OBSERVED,
     };
   }
@@ -324,7 +332,7 @@ function monitors(s: CapabilitySignals): CapabilityReport {
         m.configuredCount > 0
           ? `${m.configuredCount} monitor${m.configuredCount === 1 ? " is" : "s are"} defined, but nothing is polling them — no checks are running.`
           : "No monitors are defined, and no runner is attached to poll them.",
-      action: { label: "Monitors", to: "/ocade/monitors" },
+      action: { label: "Monitors", to: "/ocade/tasks" },
       evidence: "No runner attached.",
     };
   }
@@ -334,7 +342,7 @@ function monitors(s: CapabilitySignals): CapabilityReport {
       label: "Monitors",
       status: "READY",
       detail: "A runner is attached. No monitors are defined yet.",
-      action: { label: "Monitors", to: "/ocade/monitors" },
+      action: { label: "Monitors", to: "/ocade/tasks" },
       evidence: "Runner attached, zero monitors.",
     };
   }
@@ -343,7 +351,7 @@ function monitors(s: CapabilitySignals): CapabilityReport {
     label: "Monitors",
     status: "READY",
     detail: `${m.configuredCount} monitor${m.configuredCount === 1 ? "" : "s"} being polled.`,
-    action: { label: "Monitors", to: "/ocade/monitors" },
+    action: { label: "Monitors", to: "/ocade/tasks" },
     evidence: "Runner attached with defined monitors.",
   };
 }

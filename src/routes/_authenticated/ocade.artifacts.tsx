@@ -26,6 +26,9 @@ import {
   purgeExpiredArtifacts,
   type Artifact,
 } from "@/lib/artifacts/store";
+import { TemplatesSection } from "@/components/ocade/artifacts/TemplatesSection";
+import { WhatOcadeCanProduce } from "@/components/ocade/artifacts/WhatOcadeCanProduce";
+import { SharingBoundary } from "@/components/ocade/artifacts/SharingBoundary";
 import {
   groupIntoLineages,
   restoreVersion,
@@ -329,6 +332,18 @@ function ArtifactsPage() {
           </ul>
         )}
       </div>
+      {/*
+        WHAT USED TO BE THREE MORE DESTINATIONS.
+
+        §4: "Studio, templates, generated outputs, and live outputs into
+        Artifacts." Studio, Templates and Shared were each a page holding a
+        handful of cards about this one, so each cost a rail entry, a page load
+        and a journey back. They are sections now, below the artifacts they
+        describe.
+      */}
+      <WhatOcadeCanProduce />
+      <TemplatesSection />
+      <SharingBoundary />
     </>
   );
 }

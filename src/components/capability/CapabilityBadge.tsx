@@ -41,6 +41,7 @@ export function CapabilityCard({ report }: { report: CapabilityReport }) {
       {report.action?.to ? (
         <Link
           to={report.action.to}
+          params={report.action.params}
           className="mt-3 inline-flex text-xs font-medium text-[color:var(--accent-ocade)] underline-offset-4 hover:underline"
         >
           {report.action.label}

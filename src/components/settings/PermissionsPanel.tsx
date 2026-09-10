@@ -146,7 +146,14 @@ export function PermissionsPanel() {
           OCADE does not invent app identities or grants. Site permissions and known adapter
           coverage remain inspectable now.
         </p>
-        <div className="mt-3 flex flex-wrap gap-3 text-xs">
+        {/*
+          REAL TOUCH TARGETS. These three shipped as bare underlined text and
+          measured 16px tall, which the phone-width route audit failed once
+          `/ocade/permissions` started forwarding here and this panel became
+          the audited screen. A link nobody can hit on a phone is a dead end
+          dressed as navigation.
+        */}
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs [&>a]:inline-flex [&>a]:min-h-11 [&>a]:items-center">
           <Link to="/settings/browser" className="underline underline-offset-4">
             Browser site permissions
           </Link>
@@ -162,6 +169,25 @@ export function PermissionsPanel() {
           </Link>
         </div>
       </GlassPanel>
+
+      {/*
+        THE RULE THE OLD `/ocade/permissions` PAGE EXISTED TO STATE.
+
+        §4 folded that page into Settings. It was a read-only overview of
+        capability statuses — which Settings › Diagnostics now shows, from the
+        same registry — plus this one sentence, which is the whole permission
+        model in a line and had nowhere else to live.
+      */}
+      <GlassPanel className="mt-4 p-4">
+        <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <Lock className="h-4 w-4" aria-hidden /> The default rule
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Connection is not permission, and permission is not proof of execution. OCADE verifies an
+          action&rsquo;s result before presenting it as completed.
+        </p>
+      </GlassPanel>
+
       <PermissionRules />
     </>
   );

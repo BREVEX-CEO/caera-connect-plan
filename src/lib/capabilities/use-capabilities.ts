@@ -172,7 +172,7 @@ export function useCapabilityReports(): CapabilityReport[] {
           "Automation source and queue logic are installed, but the global status has no live worker heartbeat. Saved schedules are not described as running until the worker itself proves it.",
         evidence:
           "No dedicated automation-worker heartbeat is wired into the global capability probe yet.",
-        action: { label: "Automations", to: "/ocade/automations" },
+        action: { label: "Tasks", to: "/ocade/tasks" },
       };
     }
 

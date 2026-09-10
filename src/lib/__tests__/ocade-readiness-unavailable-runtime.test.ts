@@ -45,7 +45,9 @@ describe("OCADE 77 — unavailable runtime boundaries", () => {
      * authority, the unconfigured branch still says so in words, and each
      * channel's own reason is shown rather than one blanket sentence.
      */
-    expectAll("src/routes/_authenticated/ocade.notifications.tsx", [
+    // §4: "notifications into Tasks. Preferences remain in Settings, which is
+    // a choice." The history and its honesty about delivery moved together.
+    expectAll("src/components/ocade/tasks/NotificationsSection.tsx", [
       /deploymentChannelConfiguration\(\)/,
       /CapabilityBadge status=\{anyPush \? "READY" : "NOT_CONFIGURED"\}/,
       /No web-push, APNs, FCM or email channel is configured by this build/,
@@ -96,7 +98,8 @@ describe("OCADE 77 — unavailable runtime boundaries", () => {
       /monitors: \{ configuredCount: configuredMonitors, runnerAvailable: false \}/,
       /no dedicated monitor-runner heartbeat/i,
     ]);
-    expectAll("src/routes/_authenticated/ocade.monitors.tsx", [
+    // §4: "monitors into Tasks." The claim it refuses to make moved with it.
+    expectAll("src/components/ocade/tasks/MonitorsSection.tsx", [
       /No monitor runner is polling these definitions/,
       /will not claim that checks or alerts are running until a real runner heartbeat is available/i,
     ]);

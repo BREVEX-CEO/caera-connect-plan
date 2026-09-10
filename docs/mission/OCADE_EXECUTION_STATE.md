@@ -1238,6 +1238,74 @@ real PostgreSQL, the Edge Function rollback target rebuilt from git and hashing
 identically, and the runbook itself held to the repository by a test.
 
 
+## Phase 17 — Final OCADE UI/UX consolidation
+
+### The consolidation was a ledger entry, not a change
+
+`route-dispositions.ts` marked fifteen routes MIGRATE, each naming the screen
+it moved into. Fifteen full screens were still shipping at the old addresses.
+The rail had already shrunk to seven, so the product read as consolidated —
+while the command palette still listed twenty destinations, the bundle still
+carried every page, and several of them were second surfaces over the same
+data. `/ocade/inbox` ran its own query against the runs `/ocade/tasks` was
+already reading, which is the shape that makes two Stop buttons disagree.
+
+Now: Automations, Monitors, Inbox and Notifications are sections of Tasks.
+Studio, Templates and Shared are sections of Artifacts. Models, Devices,
+Permissions, Connectors, Health and Activity are Settings. Knowledge is a
+paragraph in Projects. The Lab opens from Customize. Every old address forwards
+in `beforeLoad` so no frame of the old screen renders.
+
+The two heavy ones load lazily rather than inline: the automation builder starts
+a companion worker host, and the Lab mounts twelve diagnostic panels. Neither
+belongs in the bundle of somebody checking whether last night's run finished.
+
+### The gate that makes a disposition mean something
+
+`route-dispositions.test.ts` now reads each MIGRATE entry against the module on
+disk: it must be a `beforeLoad` redirect, and it must forward to the path the
+ledger names. Proven by breaking it — replacing one redirect with a component
+fails with "still renders a screen at /ocade/monitors".
+
+### More is gone
+
+§17: "remove old More". Customize was `/ocade/system` renamed — a directory of
+twenty links, which existed because the consolidation above had not happened.
+It is now four cards for what actually changes how OCADE behaves for a person,
+and the rail entry says Customize rather than More.
+
+### Two claims that had gone stale, found by moving the pages that made them
+
+`/ocade/models` told people their words "are not sent to any AI company — not to
+a third party, and not to us. There is no code left in OCADE that could reach
+one." Phase 5 added online intelligence, and Chat uses it whenever the chosen
+engine is not local-only and the conversation is not sealed. The corrected
+statement — local stays local, an online engine sends the message being
+answered, a sealed conversation never goes out, and the keys are never in the
+browser — moved to Settings › Local engine.
+
+`/ocade/shared` said this build has no share-link service, which stopped being
+true when Chat gained revocable, expiring conversation links. The section that
+replaced it states the boundary that does hold: an artifact has no public URL.
+
+### What the browser found
+
+Two phone-width defects, both real and both mine to fix: the new "Build one
+below" control measured 105x20, and the three links at the foot of Settings ›
+Permissions measured 16px — the second only became audited once
+`/ocade/permissions` started forwarding there. The offline-transition audit also
+navigated by clicking the notification bell's old href, which the fold had
+changed; it follows the link that now exists.
+
+### Gate
+
+84 routes × 2 viewports, 926/926 checks passed against the production build,
+682 controls pressed. Settings audit: every stage passed, including 13/13
+offline transitions. Customer journey: 20/20 stages. 8,068 unit tests across 502
+files, 256 database tests, typecheck, lint and format clean, performance budget
+green with the eager bundle at 394 KiB of 450 KiB.
+
+
 ## Next action
 
-Phase 17 — Final OCADE UI/UX consolidation.
+Phase 18 — Localization, accessibility, performance and defect cleanup.

@@ -16,6 +16,8 @@ type ConnectorState = {
   available: boolean;
   detail: string;
   to: string;
+  /** Route params, for the sections that take one. */
+  params?: Record<string, string>;
   action: string;
   icon: typeof Plug;
 };
@@ -99,7 +101,8 @@ export function ConnectorsPanel() {
           "On-device routing, health checks and model setup without public-cloud inference.",
         available: true,
         detail: "The model control centre reports the health of local runtimes on this device.",
-        to: "/ocade/models",
+        to: "/settings/$section",
+        params: { section: "local-engine" },
         action: "Model control centre",
         icon: Bot,
       },
@@ -158,6 +161,7 @@ export function ConnectorsPanel() {
                   <p className="mt-2 text-xs">{row.detail}</p>
                   <Link
                     to={row.to}
+                    params={row.params}
                     className="mt-2 inline-flex text-xs underline underline-offset-4"
                   >
                     {row.action}

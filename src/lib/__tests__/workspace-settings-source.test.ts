@@ -87,7 +87,7 @@ describe("the unified settings workspace", () => {
       "desktop actions": source("src/components/ocade/CopilotPanel.tsx"),
       "browser actions": source("src/routes/_authenticated/settings.browser.tsx"),
       "mobile actions": source("src/routes/_authenticated/settings.mobile.tsx"),
-      "background automations": source("src/routes/_authenticated/ocade.automations.tsx"),
+      "background automations": source("src/components/ocade/tasks/AutomationsWorkspace.tsx"),
     };
     expect(consumers["desktop actions"]).toContain('computerUseChannelDecision("thisComputer")');
     expect(consumers["browser actions"]).toContain('computerUseChannelDecision("webControl")');

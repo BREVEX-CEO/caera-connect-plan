@@ -1,4 +1,4 @@
-import { globSync, readFileSync } from "node:fs";
+import { existsSync, globSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   CANONICAL_ROUTES,
@@ -74,6 +74,43 @@ describe("the route-disposition ledger", () => {
       expect(entry.movesTo, entry.module).toBeTruthy();
       expect([...paths], `${entry.module} → ${entry.movesTo}`).toContain(entry.movesTo);
     }
+  });
+
+  it("actually forwards every migrated route, rather than planning to", () => {
+    /*
+     * THE GATE THAT MAKES A DISPOSITION MEAN SOMETHING.
+     *
+     * For most of this mission `MIGRATE` was an intention: fifteen routes were
+     * marked as moving into Chat, Tasks, Artifacts, Settings or Customize, and
+     * fifteen full screens were still shipping at the old addresses. The rail
+     * had shrunk, so they read as consolidated — but the command palette still
+     * listed them, the bundle still carried them, and each was a second place
+     * the same data could be shown and disagree.
+     *
+     * So the ledger is now checked against the module on disk. A route that
+     * says it moved must be a `beforeLoad` redirect to where it says it moved
+     * — `beforeLoad`, because a component that navigates in an effect renders
+     * the old screen first, and a prefetch, a crawler and a screen reader all
+     * see it.
+     */
+    const problems: string[] = [];
+    for (const entry of ROUTE_DISPOSITIONS) {
+      if (entry.disposition !== "MIGRATE" && entry.disposition !== "ABSORB") continue;
+      const file = `src/routes/${entry.module}.tsx`;
+      if (!existsSync(file)) {
+        problems.push(`${entry.module}: no module on disk`);
+        continue;
+      }
+      const source = readFileSync(file, "utf8");
+      if (!source.includes("beforeLoad")) {
+        problems.push(`${entry.module}: still renders a screen at ${entry.path}`);
+        continue;
+      }
+      if (!source.includes(`to: "${entry.movesTo}"`)) {
+        problems.push(`${entry.module}: does not forward to ${entry.movesTo}`);
+      }
+    }
+    expect(problems).toEqual([]);
   });
 
   it("has retired the demo entirely, which §5 requires", () => {

@@ -9,6 +9,10 @@ import { useDevicePolicy } from "@/lib/use-device-policy";
 import { useOnline } from "@/lib/use-online";
 import { routeTask, PerfLedger } from "@/lib/local/router-policy";
 import { ErrorJournalPanel } from "./ErrorJournalPanel";
+import { CapabilityBadge, CapabilityCard } from "@/components/capability/CapabilityBadge";
+import { useCapabilityReports } from "@/lib/capabilities/use-capabilities";
+import { worstStatus } from "@/lib/capabilities/registry";
+import { CAPABILITY_ORDER } from "@/lib/capabilities/types";
 
 /**
  * Advanced diagnostics.
@@ -33,6 +37,21 @@ export function DiagnosticsSettingsPanel() {
   const engine = useLocalEngine(undefined, true);
   const device = useDevicePolicy();
   const online = useOnline();
+
+  /*
+   * CAPABILITY HEALTH, WHICH USED TO BE `/ocade/health`.
+   *
+   * §4: "health into Settings." It answered "what can this actually do right
+   * now?", which is the same question this page answers about the engine — and
+   * a person debugging something needs both halves in front of them rather
+   * than in two places. Every row still comes from the shared capability
+   * registry, so it cannot disagree with the badge on the feature itself.
+   */
+  const capabilities = useCapabilityReports();
+  const byCapabilityId = new Map(capabilities.map((report) => [report.id, report]));
+  const orderedCapabilities = CAPABILITY_ORDER.map((id) => byCapabilityId.get(id)).filter(
+    (report): report is NonNullable<typeof report> => Boolean(report),
+  );
 
   const generalRoute = routeTask("general", engine.models, previewLedger, device.policy);
   const visionRoute = routeTask("vision", engine.models, previewLedger, device.policy);
@@ -160,6 +179,24 @@ export function DiagnosticsSettingsPanel() {
             ) : null}
           </GlassPanel>
         ))}
+
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-foreground">What OCADE can do here</h2>
+            <CapabilityBadge status={worstStatus(capabilities)} />
+          </div>
+          <p className="mb-3 max-w-[70ch] text-xs leading-relaxed text-muted-foreground">
+            Measured on this device, in this browser, each time this page is opened. &ldquo;Setup
+            required&rdquo; means the capability could work here once something is connected;
+            &ldquo;Not available here&rdquo; means it cannot exist in this environment at all.
+            Neither is a fault, and neither is presented as working.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {orderedCapabilities.map((report) => (
+              <CapabilityCard key={report.id} report={report} />
+            ))}
+          </div>
+        </div>
 
         <div>
           <h2 className="mb-2 text-sm font-semibold text-foreground">Error triage</h2>

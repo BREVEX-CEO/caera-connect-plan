@@ -41,7 +41,17 @@ const START_ROUTE = STATE ? "/ocade" : "/";
  * because there was no notification history to point at yet. There is now, and
  * one click is a better test of the warm router than two.
  */
-const SETTINGS_ROUTE = STATE ? "/ocade/notifications" : "/pricing";
+/*
+ * THE SECOND PAGE THIS WALKS TO WHILE OFFLINE.
+ *
+ * It was `/ocade/notifications`, reached by clicking the bell. `PLAN.md` §4
+ * folded the notification history into Tasks — "notifications into Tasks.
+ * Preferences remain in Settings, which is a choice." — so the bell points at
+ * `/ocade/tasks` and the old href is not in the document to click. The check
+ * is about the app router working with the network down, not about which
+ * screen it lands on, so it follows the link that now exists.
+ */
+const SETTINGS_ROUTE = STATE ? "/ocade/tasks" : "/pricing";
 const SURFACE = STATE ? "authenticated workspace" : "public site";
 
 const results = [];

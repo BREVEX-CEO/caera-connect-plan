@@ -23,25 +23,30 @@ import { MODULE_CONTEXT } from "../shell-nav";
 const research = () => renderToStaticMarkup(<ResearchPanel />);
 const scene = () => renderToStaticMarkup(<ScenePanel />);
 
-describe("the Studio route is reachable, not orphaned", () => {
-  it("is reachable from OCADE, on the rail or under More", () => {
-    /*
-     * THIS USED TO REQUIRE A SIDEBAR ENTRY. The rail went from twelve
-     * destinations to seven, which is the point of the change: a list of twelve
-     * rooms is a sitemap, not a place to work. What must stay true is that the
-     * screen has a route to it, and that is what is checked now — the rail, the
-     * More page, or the command palette, any of which a person can actually
-     * follow.
-     */
-    const onRail = MODULE_CONTEXT.ocade.some((item) => item.to === "/ocade/studio");
-    const underMore = readFileSync(
-      "src/routes/_authenticated/ocade.customize.tsx",
-      "utf8",
-    ).includes('"/ocade/studio"');
-    const inPalette = readFileSync("src/components/shell/CommandPalette.tsx", "utf8").includes(
-      '"/ocade/studio"',
-    );
-    expect(onRail || underMore || inPalette).toBe(true);
+describe("Studio after the consolidation", () => {
+  /*
+   * THIS USED TO REQUIRE A ROUTE. Studio was a destination, and the assertion
+   * was that a person could reach it from the rail, the More page or the
+   * palette. `PLAN.md` §4 folded it into Artifacts — "Studio, templates,
+   * generated outputs, and live outputs into Artifacts" — and §17 removed the
+   * More directory it was listed on, so the requirement is now about the
+   * section rather than the screen: what Studio told people has to still be
+   * told, where the outputs it described actually live.
+   */
+  it("renders inside Artifacts", () => {
+    const artifacts = readFileSync("src/routes/_authenticated/ocade.artifacts.tsx", "utf8");
+    expect(artifacts).toContain("WhatOcadeCanProduce");
+  });
+
+  it("keeps the creative control panel with it", () => {
+    const section = readFileSync("src/components/ocade/artifacts/WhatOcadeCanProduce.tsx", "utf8");
+    expect(section).toContain("CreativeControlPanel");
+  });
+
+  it("forwards its old address rather than answering with a 404", () => {
+    const route = readFileSync("src/routes/_authenticated/ocade.studio.tsx", "utf8");
+    expect(route).toContain("beforeLoad");
+    expect(route).toContain('to: "/ocade/artifacts"');
   });
 });
 

@@ -194,7 +194,7 @@ export function OcadeContextualSidebar(props: {
             <SidebarLink icon={FileCode2} label="Code" to="/ocade/code" />
             <SidebarLink icon={FolderOpen} label="Projects" to="/ocade/projects" />
             <SidebarLink icon={FileOutput} label="Files" to="/ocade/artifacts" />
-            <SidebarLink icon={Workflow} label="Automations" to="/ocade/automations" />
+            <SidebarLink icon={Workflow} label="Tasks" to="/ocade/tasks" />
             {listView === "active" ? (
               <>
                 <StaticRow
@@ -248,8 +248,7 @@ function SidebarLink({
 }: {
   icon: typeof FolderOpen;
   label: string;
-  to:
-    "/ocade/cowork" | "/ocade/code" | "/ocade/projects" | "/ocade/artifacts" | "/ocade/automations";
+  to: "/ocade/cowork" | "/ocade/code" | "/ocade/projects" | "/ocade/artifacts" | "/ocade/tasks";
 }) {
   return (
     <Link

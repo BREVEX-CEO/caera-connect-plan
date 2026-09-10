@@ -3,31 +3,48 @@ import { describe, it, expect } from "vitest";
 import { MODULE_CONTEXT } from "../shell-nav";
 
 /**
- * The Monitors surface must be a reachable, distinct destination — the §5.3
- * world-scan feature wired into navigation, not an orphaned route.
+ * MONITORS IS STILL REACHABLE, AND IS NO LONGER A DESTINATION.
+ *
+ * This asserted that `/ocade/monitors` was a distinct destination wired into
+ * navigation — the §5.3 world-scan feature, not an orphaned route. `PLAN.md`
+ * §4 then folded monitors into Tasks: "Automations, monitors, inbox,
+ * notifications, and schedules into Tasks." The requirement underneath the old
+ * assertion survives the move — a person can still get to it — but the thing
+ * that must be true changed shape, so the test changed with it rather than
+ * being deleted.
  */
-describe("the Monitors route is wired into navigation", () => {
-  it("is reachable from OCADE, on the rail or under More", () => {
-    /*
-     * THIS USED TO REQUIRE A SIDEBAR ENTRY. The rail went from twelve
-     * destinations to seven, which is the point of the change: a list of twelve
-     * rooms is a sitemap, not a place to work. What must stay true is that the
-     * screen has a route a person can follow — the rail, the More page, or the
-     * command palette.
-     */
-    const onRail = MODULE_CONTEXT.ocade.some((item) => item.to === "/ocade/monitors");
-    const underMore = readFileSync(
-      "src/routes/_authenticated/ocade.customize.tsx",
-      "utf8",
-    ).includes('"/ocade/monitors"');
-    const inPalette = readFileSync("src/components/shell/CommandPalette.tsx", "utf8").includes(
-      '"/ocade/monitors"',
-    );
-    expect(onRail || underMore || inPalette).toBe(true);
+describe("Monitors after the consolidation", () => {
+  it("renders inside the Tasks screen", () => {
+    const tasks = readFileSync("src/components/ocade/TasksWorkspace.tsx", "utf8");
+    expect(tasks).toContain("MonitorsSection");
   });
 
-  it("does not collide with another destination", () => {
-    const targets = MODULE_CONTEXT.ocade.map((i) => i.to);
+  it("keeps the section that defines and revokes a monitor", () => {
+    const section = readFileSync("src/components/ocade/tasks/MonitorsSection.tsx", "utf8");
+    for (const call of ["createMonitor", "setMonitorState", "revokeMonitor", "listMonitors"]) {
+      expect(section, call).toContain(call);
+    }
+  });
+
+  it("still refuses to imply that anything is polling", () => {
+    /*
+     * The most important line the old page carried. Saving a monitor stores a
+     * definition; no runner checks it. A consolidation that lost this would
+     * have turned an honest screen into a promise of surveillance OCADE does
+     * not perform.
+     */
+    const section = readFileSync("src/components/ocade/tasks/MonitorsSection.tsx", "utf8");
+    expect(section).toMatch(/no monitor runner is polling/i);
+  });
+
+  it("forwards its old address rather than answering with a 404", () => {
+    const route = readFileSync("src/routes/_authenticated/ocade.monitors.tsx", "utf8");
+    expect(route).toContain("beforeLoad");
+    expect(route).toContain('to: "/ocade/tasks"');
+  });
+
+  it("does not collide with another rail destination", () => {
+    const targets = MODULE_CONTEXT.ocade.map((item) => item.to);
     expect(new Set(targets).size).toBe(targets.length);
   });
 });

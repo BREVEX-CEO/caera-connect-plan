@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertCircle, Loader2, Pause, Play, RefreshCw, Square, ListChecks } from "lucide-react";
@@ -7,6 +7,9 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { StatusBadge } from "@/components/shell/StatusBadge";
 import { TaskBoard } from "@/components/ocade/TaskBoard";
+import { MonitorsSection } from "@/components/ocade/tasks/MonitorsSection";
+import { NeedsAttentionSection } from "@/components/ocade/tasks/NeedsAttentionSection";
+import { NotificationsSection } from "@/components/ocade/tasks/NotificationsSection";
 import { useSession } from "@/lib/session";
 import {
   listAutomations,
@@ -34,6 +37,21 @@ import { describeStaleness, fetchWithMirror } from "@/lib/offline/mirror";
 
 const LIVE = new Set(["queued", "running", "awaiting_approval", "paused"]);
 
+/*
+ * THE BUILDER LOADS WHEN IT IS OPENED, NOT WHEN TASKS IS.
+ *
+ * `AutomationsWorkspace` starts a companion worker host and loads the Supabase
+ * client to do it. Most visits to this screen are somebody checking whether
+ * last night's run finished, and they should not pay for a builder they did not
+ * open. `PLAN.md` Phase 18 names giant eager bundles as one of the five silent
+ * speed killers; this is the shape that avoids becoming one.
+ */
+const AutomationsWorkspace = lazy(() =>
+  import("@/components/ocade/tasks/AutomationsWorkspace").then((module) => ({
+    default: module.AutomationsWorkspace,
+  })),
+);
+
 export function TasksWorkspace({ backTo, backLabel }: { backTo: string; backLabel: string }) {
   const { user } = useSession();
   const qc = useQueryClient();
@@ -59,6 +77,16 @@ export function TasksWorkspace({ backTo, backLabel }: { backTo: string; backLabe
    * taken — a stale schedule presented as current is worse than none.
    */
   const [staleAt, setStaleAt] = useState<number | null>(null);
+
+  /*
+   * ONE OBVIOUS PRIMARY ACTION, AND THE BUILDER BEHIND IT.
+   *
+   * `PLAN.md` §4 folded Automations into Tasks, and §17 asks for one obvious
+   * primary action with the rest disclosed contextually. Building an automation
+   * is the thing a person comes here to DO; everything else on the screen is
+   * something they came here to READ.
+   */
+  const [buildingAutomation, setBuildingAutomation] = useState(false);
 
   const automations = useQuery({
     queryKey: ["settings-tasks", "automations", user?.id],
@@ -172,7 +200,39 @@ export function TasksWorkspace({ backTo, backLabel }: { backTo: string; backLabe
         </div>
       ) : null}
 
+      {/*
+        THE INBOX, WHICH USED TO BE A PAGE OF ITS OWN. It reads the runs this
+        screen already fetched rather than fetching them again: two lists of the
+        same runs that can disagree is what made a Stop button a guess.
+      */}
+      {runs.data && runs.data.length > 0 ? (
+        <NeedsAttentionSection runs={runs.data} nameOf={nameOf} />
+      ) : null}
+
       <TaskBoard />
+
+      {/* Automations: one primary action, and the builder behind it. */}
+      <div className="mt-6">
+        {buildingAutomation ? (
+          <Suspense
+            fallback={
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Opening the automation
+                builder…
+              </div>
+            }
+          >
+            <AutomationsWorkspace />
+          </Suspense>
+        ) : (
+          <button
+            onClick={() => setBuildingAutomation(true)}
+            className="inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            <ListChecks className="h-4 w-4" aria-hidden /> Build or edit an automation
+          </button>
+        )}
+      </div>
 
       {/* Automations */}
       <GlassPanel className="mt-6 p-5">
@@ -201,9 +261,19 @@ export function TasksWorkspace({ backTo, backLabel }: { backTo: string; backLabe
         ) : automations.data.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">
             No automations yet.{" "}
-            <Link to="/ocade/automations" className="text-foreground underline underline-offset-2">
-              Create one in OCADE
-            </Link>
+            <button
+              onClick={() => setBuildingAutomation(true)}
+              /*
+               * A REAL TOUCH TARGET. This shipped as bare underlined text and
+               * measured 105x20, which the phone-width route audit failed —
+               * correctly: it is the control somebody uses when they have no
+               * automations at all, so missing it leaves them with an empty
+               * screen and no way forward.
+               */
+              className="inline-flex min-h-11 items-center text-foreground underline underline-offset-2"
+            >
+              Build one below
+            </button>
             .
           </p>
         ) : (
@@ -337,6 +407,20 @@ export function TasksWorkspace({ backTo, backLabel }: { backTo: string; backLabe
           </ul>
         )}
       </GlassPanel>
+
+      {/*
+        MONITORS AND NOTIFICATIONS, WHICH USED TO BE PAGES OF THEIR OWN.
+
+        §4: "Automations, monitors, inbox, notifications, and schedules into
+        Tasks." Each was a separate destination for a part of the same question
+        — what is OCADE doing for me, and what does it need from me — and a
+        person had to know which of five screens held the half they wanted.
+      */}
+      <div className="mt-6">
+        <MonitorsSection />
+      </div>
+
+      <NotificationsSection />
     </>
   );
 }

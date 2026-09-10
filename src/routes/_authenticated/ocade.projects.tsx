@@ -1132,6 +1132,21 @@ function ProjectsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/*
+        WHAT `/ocade/knowledge` EXISTED TO SAY.
+
+        §4: "knowledge into Settings or Customize. Project files ARE the
+        knowledge a person adds, so it belongs with Projects rather than beside
+        it." The page itself was one honest paragraph and three links to
+        screens that already exist; this is the paragraph, where the files it
+        is about actually live.
+      */}
+      <p className="mt-8 max-w-[70ch] text-xs leading-relaxed text-muted-foreground">
+        OCADE keeps no always-on index across every file and conversation you own. A project&rsquo;s
+        instructions and its files are what a conversation in that project can draw on, and Search
+        looks through what you have written — neither is a hidden retrieval service reading
+        everything in the background.
+      </p>
     </>
   );
 }

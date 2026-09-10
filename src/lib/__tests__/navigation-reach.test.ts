@@ -10,16 +10,23 @@ import { ROUTE_DISPOSITIONS } from "@/lib/release/route-dispositions";
  * it looks worse — it is that a screen quietly stops having a route to it and
  * nobody notices until a customer asks where their automations went. So this
  * enumerates the OCADE routes that actually exist and insists each one is
- * reachable: from the rail, from More, or from the command palette.
+ * reachable: from the rail, from Customize, or from the command palette.
  *
  * THE RAIL NOW LEADS WITH THE THREE PRIMARY MODES, which is what PLAN.md §4
  * calls Chat, Cowork and Code. Two of them were not in it: Cowork was here
- * under its old name and path, and Code was only in More — so a person who
- * never opened More never learned that OCADE writes code.
+ * under its old name and path, and Code was only in the old More directory —
+ * so a person who never opened it never learned that OCADE writes code.
  */
 
 const MORE = readFileSync("src/routes/_authenticated/ocade.customize.tsx", "utf8");
-const PALETTE = readFileSync("src/components/shell/CommandPalette.tsx", "utf8");
+/*
+ * THE PALETTE'S DESTINATIONS LIVE IN `command-entries.ts`, NOT IN THE DIALOG.
+ *
+ * Reading the dialog component made this test pass for the wrong reason:
+ * `/ocade/search` was counted as reachable because the old More directory
+ * listed it, and the palette entry that actually reaches it was never read.
+ */
+const PALETTE = readFileSync("src/components/shell/command-entries.ts", "utf8");
 const MOBILE = readFileSync("src/components/shell/OcadeMobileBottomNav.tsx", "utf8");
 
 /** Every /ocade/* screen, read off the filesystem rather than a hand-kept list. */
@@ -64,8 +71,13 @@ describe("the rail", () => {
     expect(PALETTE.length).toBeGreaterThan(500);
   });
 
-  it("ends in the door to everything else", () => {
-    expect(MODULE_CONTEXT.ocade.at(-1)?.label).toBe("More");
+  it("ends in Customize, which is no longer a directory of everything", () => {
+    /*
+     * §17: "remove old More". The last rail entry used to open a list of twenty
+     * screens; it now opens the four things that change how OCADE behaves for
+     * this person, so the label says Customize rather than More.
+     */
+    expect(MODULE_CONTEXT.ocade.at(-1)?.label).toBe("Customize");
   });
 });
 
@@ -95,21 +107,28 @@ describe("nothing became unreachable", () => {
     expect(unreachable).toEqual([]);
   });
 
-  it("lists the screens that left the rail at the top of More", () => {
+  it("keeps the words people search for pointing at the screens that absorbed them", () => {
     /*
-     * Position matters here and is worth asserting. Somebody who used
-     * Automations yesterday and cannot find it today needs it above the fold,
-     * not below Health.
+     * THIS USED TO ASSERT A DIRECTORY. It required Automations, Inbox,
+     * Monitors and Studio to appear near the top of the More page, because
+     * that page was where a screen went when it left the rail.
+     *
+     * §4 finished the job those routes were waiting on: Automations, Inbox and
+     * Monitors ARE Tasks now, and Studio IS Artifacts. There is no directory to
+     * be near the top of. What has to stay true is the thing the old assertion
+     * was protecting — somebody who used Automations yesterday can still find
+     * it today — so the palette entry for each destination must carry the words
+     * they will type.
      */
-    const moved = ["/ocade/automations", "/ocade/inbox", "/ocade/monitors", "/ocade/studio"];
-    const positions = moved.map((route) => MORE.indexOf(`"${route}"`));
-    for (const position of positions) expect(position).toBeGreaterThan(-1);
-    expect(Math.max(...positions)).toBeLessThan(MORE.indexOf('"/ocade/health"'));
+    const palette = readFileSync("src/components/shell/command-entries.ts", "utf8");
+    for (const word of ["automations", "monitors", "inbox", "studio", "templates"]) {
+      expect(palette.toLowerCase(), word).toContain(word);
+    }
   });
 });
 
 describe("mobile", () => {
-  it("keeps the rest one tap away behind More", () => {
+  it("keeps the rest one tap away behind Customize", () => {
     expect(MOBILE).toContain('to: "/ocade/customize"');
     for (const route of ["/ocade", "/ocade/projects", "/ocade/tasks"]) {
       expect(MOBILE).toContain(`to: "${route}"`);

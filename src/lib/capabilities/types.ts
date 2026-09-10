@@ -84,7 +84,11 @@ export interface CapabilityReport {
   /** One sentence, plainly true. Shown next to the badge. */
   detail: string;
   /** What the user can do about it, when there is something. */
-  action?: { label: string; to?: string; href?: string };
+  /**
+   * Where to go about it. `params` exists because §4 folded several of these
+   * destinations into `/settings/$section`, which takes one.
+   */
+  action?: { label: string; to?: string; params?: Record<string, string>; href?: string };
   /** Where the status came from, for the health page and bug reports. */
   evidence?: string;
 }

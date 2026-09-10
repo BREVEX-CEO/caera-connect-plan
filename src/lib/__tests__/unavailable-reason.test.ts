@@ -84,7 +84,7 @@ describe("a raw exception message never becomes user-facing prose", () => {
  */
 describe("no route splices an error message into SetupRequiredState copy", () => {
   const ROUTES = [
-    "src/routes/_authenticated/ocade.automations.tsx",
+    "src/components/ocade/tasks/AutomationsWorkspace.tsx",
     "src/routes/_authenticated/settings.usage.tsx",
   ];
 

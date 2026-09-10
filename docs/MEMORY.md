@@ -118,45 +118,39 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 16 (monitoring, backup, restore and rollback) is complete.
+Phase 17 (final OCADE UI/UX consolidation) is complete.
 
-Recovery is now demonstrated rather than described. `npm run recovery:prove`
-takes a backup from a live database holding two accounts' data, throws it away
-into a second empty PostgreSQL, rebuilds the schema from `supabase/migrations/`
-alone, restores the rows, and then proves the restore is the same product:
-identical digests per table, every foreign key re-validated, sequences usable,
-RLS back with the data, and one account still unable to read the other's rows.
-It rolls the newest migration back and re-applies it, and writes
-`release/OCADE_RECOVERY_REHEARSAL.json`.
+§4's route consolidation had been a ledger entry rather than a change: fifteen
+routes were marked MIGRATE and fifteen full screens were still shipping at the
+old addresses. Automations, Monitors, Inbox and Notifications are now sections
+of Tasks; Studio, Templates and Shared are sections of Artifacts; Models,
+Devices, Permissions, Connectors, Health and Activity are Settings; Knowledge
+is a paragraph in Projects; the Lab opens from Customize. Every old address
+forwards in `beforeLoad`, and a test now reads the ledger against the modules on
+disk, so a disposition that says a route moved must actually redirect there.
 
-Building it found two real defects a written procedure had hidden. A backup
-scoped to `public` alone orphaned every user-owned row, because `auth.users` was
-never in scope; `storage.objects` has the same property for files. And a schema
-rebuilt from migrations is not empty — several migrations insert reference data
-— so a restore must replace rather than append. The Phase 15 migration also had
-to become re-appliable over what its own rollback deliberately keeps.
+Customize stopped being the old More directory of twenty links — §17 asks for
+exactly that — and is now the four things that change how OCADE behaves for
+this person, plus the Lab behind a lazy disclosure. The rail entry is labelled
+Customize, and the command palette lost seven entries that pointed at screens
+which no longer exist as destinations.
 
-Structured diagnostics are `src/lib/telemetry/operation-health.ts`, feeding the
-existing consent, allow-list and queue in `failure-telemetry.ts` rather than a
-second telemetry stack. Every field is enumerated at build time, so an
-unrecognised value is replaced rather than passed through: a caller cannot put a
-prompt, an email address or a key into an error class. Latency is a bucket, and
-the provider slot is an ordinal, never a key. The Edge Function emits exactly
-one such record per request, wrapped around the handler so none of its fourteen
-exits can forget.
+Two live truthfulness defects surfaced while folding pages in. `/ocade/models`
+claimed replies "are not sent to any AI company — not to a third party, and not
+to us", which Phase 5's online intelligence made untrue; the corrected statement
+moved to Settings › Local engine. `/ocade/shared` claimed the build had no
+share-link service at all, which stopped being true when Chat gained revocable
+conversation links.
 
-Edge Function rollback had no answer at all and now has a ledger:
-`release/OCADE_EDGE_FUNCTION_RELEASES.json` records which source each deployed
-version was. `npm run edge:rollback-prove` reconstructs it from git and
-re-hashes it. That exposed a live fact worth knowing: deployed version 2 is
-commit `5b96773`, which predates most of this mission — single key, old model,
-no slot failover. Recorded in `docs/deployment/PRODUCTION_STATE.md`; Phase 20
-owns the controlled deployment that replaces it.
+Two real phone-width defects were found by the route audit and fixed: the new
+"Build one below" control measured 105x20, and the three links at the foot of
+Settings › Permissions measured 16px tall — the latter only became audited once
+`/ocade/permissions` started forwarding there.
 
 `ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
 1, deliberately.
 
-Next is Phase 17 — final OCADE UI/UX consolidation.
+Next is Phase 18 — localization, accessibility, performance and defect cleanup.
 
 Two known external items remain: `auth_leaked_password_protection` is disabled
 in Supabase Auth, and the Windows control journey needs Windows hardware. Both

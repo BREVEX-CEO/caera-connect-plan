@@ -7,6 +7,7 @@ import { LocalModelLifecyclePanel } from "@/components/ocade/LocalModelLifecycle
 import { useDevicePolicy, describeDeviceSource } from "@/lib/use-device-policy";
 import { PairedComputerPanel } from "@/components/settings/PairedComputerPanel";
 import { GestureControlPanel } from "@/components/settings/GestureControlPanel";
+import { ocadeIntro } from "@/lib/ocade-identity";
 
 /**
  * OCADE Local Engine settings.
@@ -191,6 +192,47 @@ export function LocalEngineSettingsPanel() {
               the internet.
             </li>
           </ul>
+        </GlassPanel>
+
+        {/*
+          WHERE YOUR WORDS GO, CORRECTED.
+
+          `/ocade/models` carried this section and said replies "are not sent to
+          any AI company — not to a third party, and not to us. There is no code
+          left in OCADE that could reach one." That was true when it was
+          written and is not true now: `PLAN.md` Phase 5 added online
+          intelligence, and Chat uses it whenever the chosen engine is not
+          local-only and the conversation is not sealed. §4 folded that page
+          into Settings, so the claim comes with it — as the rule that actually
+          governs rather than the one that used to.
+        */}
+        <GlassPanel className="p-5">
+          <h2 className="text-sm font-semibold text-foreground">Where your words go</h2>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] text-muted-foreground">
+            <li>
+              With Local Intelligence chosen, generation happens on this device and nothing you
+              write leaves it for a reply.
+            </li>
+            <li>
+              With an online engine chosen, the message being answered goes to OCADE&rsquo;s own
+              server and on to the pinned provider. A sealed conversation never does, whatever is
+              chosen.
+            </li>
+            <li>
+              Provider keys live on the server. This browser has never held one and cannot reach a
+              provider directly.
+            </li>
+            <li>
+              Other network use is ordinary and separate: downloading the engine, looking something
+              up when a question needs it, and keeping your account in sync.
+            </li>
+          </ul>
+          <p className="mt-3 text-[13px] text-muted-foreground">
+            In conversation OCADE introduces itself as{" "}
+            <span className="text-foreground">{ocadeIntro()}</span> and refers to its engine by
+            capability rather than by file name. Asked directly which engine is answering, it
+            answers truthfully — the details stay on this page rather than in every reply.
+          </p>
         </GlassPanel>
       </div>
     </>

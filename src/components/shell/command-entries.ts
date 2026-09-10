@@ -23,23 +23,25 @@ export const COMMAND_ENTRIES: CommandEntry[] = [
   },
   { to: "/ocade/code", label: "Code", group: "Primary", keywords: "terminal shell repository" },
   {
-    to: "/ocade/automations",
-    label: "Automations",
-    group: "Tools",
-    keywords: "schedule recurring",
-  },
-  {
     to: "/ocade/artifacts",
     label: "Files & artifacts",
     group: "Tools",
-    keywords: "outputs exports files",
+    keywords: "outputs exports files studio templates prompts shared sharing creative",
   },
-  { to: "/ocade/tasks", label: "Tasks", group: "Tools", keywords: "runs queue pause stop" },
   {
-    to: "/ocade/inbox",
-    label: "Inbox",
+    to: "/ocade/tasks",
+    /*
+     * ONE ENTRY FOR ALL OF IT.
+     *
+     * Automations, Monitors and Inbox each had a line here, and each was a
+     * slower way to reach part of what this one reaches. `PLAN.md` §4 folded
+     * them into Tasks; the keywords keep the words people actually type, so
+     * searching "inbox" or "monitor" still lands somewhere useful.
+     */
+    label: "Tasks",
     group: "Tools",
-    keywords: "approvals outcomes notifications",
+    keywords:
+      "runs queue pause stop automations schedule recurring monitors watch alerts inbox approvals outcomes notifications",
   },
   {
     to: "/ocade/search",
@@ -47,49 +49,26 @@ export const COMMAND_ENTRIES: CommandEntry[] = [
     group: "Tools",
     keywords: "messages projects outputs universal",
   },
-  { to: "/ocade/monitors", label: "Monitors", group: "Tools", keywords: "watch alerts sources" },
+  /*
+   * SETTINGS, NOT SEVEN SETTINGS SCREENS.
+   *
+   * Models, Devices, Connectors, Permissions, Activity, Health and Lab each had
+   * a line here. §4 folded all seven into Settings and Customize, so the
+   * palette names the destinations that exist and keeps the words people type
+   * to find them.
+   */
   {
-    to: "/ocade/studio",
-    label: "Studio",
-    group: "Tools",
-    keywords: "creative documents reports apps",
+    to: "/settings",
+    label: "Settings",
+    group: "System",
+    keywords:
+      "preferences account models local engine offline intelligence devices connectors permissions activity audit health diagnostics privacy security billing",
   },
   {
-    to: "/ocade/models",
-    label: "Models",
+    to: "/ocade/customize",
+    label: "Customize",
     group: "System",
-    keywords: "local intelligence engines providers",
-  },
-  {
-    to: "/ocade/devices",
-    label: "Devices",
-    group: "System",
-    keywords: "approved revoke machine phone",
-  },
-  {
-    to: "/ocade/connectors",
-    label: "Connectors",
-    group: "System",
-    keywords: "browser cloud sync integrations",
-  },
-  {
-    to: "/ocade/permissions",
-    label: "Permissions",
-    group: "System",
-    keywords: "approval privacy access",
-  },
-  { to: "/ocade/activity", label: "Activity", group: "System", keywords: "logs audit history" },
-  {
-    to: "/ocade/health",
-    label: "Health",
-    group: "System",
-    keywords: "status capability diagnostics",
-  },
-  {
-    to: "/ocade/lab",
-    label: "Lab",
-    group: "System",
-    keywords: "engineering diagnostics research sandbox",
+    keywords: "appearance theme voice skills how ocade talks lab engineering diagnostics",
   },
   {
     to: "/organization",
@@ -97,7 +76,6 @@ export const COMMAND_ENTRIES: CommandEntry[] = [
     group: "System",
     keywords: "team members invitations roles groups workspace owner admin",
   },
-  { to: "/settings", label: "Settings", group: "System", keywords: "preferences account" },
 ];
 
 export function filterCommands(entries: CommandEntry[], query: string): CommandEntry[] {

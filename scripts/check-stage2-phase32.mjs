@@ -6,7 +6,8 @@ const ledger = json("release/OCADE_STAGE_2_PHASE_32.json");
 const runtime = read("src/lib/skills/resource-governor-runtime.ts");
 const tests = read("src/lib/__tests__/resource-governor-runtime.test.ts");
 const panel = read("src/components/ocade/ResourceGovernorPanel.tsx");
-const studio = read("src/routes/_authenticated/ocade.lab.tsx");
+// PLAN.md §4 folded the Lab into Customize, where it loads on request.
+const studio = read("src/components/ocade/customize/EngineeringLab.tsx");
 const failures = [];
 let checks = 0;
 
@@ -126,7 +127,7 @@ includesAll(
   ],
   "honest Studio panel",
 );
-check(studio.includes("ResourceGovernorPanel"), "Studio production integration");
+check(studio.includes("ResourceGovernorPanel"), "resource governor reachable from Customize");
 
 if (failures.length > 0) {
   console.error(`OCADE Stage 2 Phase 32 gate failed (${failures.length}/${checks} checks):`);

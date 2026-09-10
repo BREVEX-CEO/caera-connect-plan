@@ -47,7 +47,6 @@ const OFFLINE_NAVIGATION_ROUTES = [
   "/ocade/tasks",
   "/ocade/artifacts",
   "/settings",
-  "/ocade/notifications",
 ] as const;
 
 /** Browser-only, best-effort route warm-up. Never throws. */
