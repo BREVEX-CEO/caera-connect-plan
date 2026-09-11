@@ -54,6 +54,19 @@ const START_ROUTE = STATE ? "/ocade" : "/";
 const SETTINGS_ROUTE = STATE ? "/ocade/tasks" : "/pricing";
 const SURFACE = STATE ? "authenticated workspace" : "public site";
 
+/**
+ * The two public pages the signed-out walk warms, and the order matters.
+ *
+ * Signed out there is no shell to return to: the root sends a RETURNING
+ * visitor to Sign in, so `goBack()` landed on `/auth` and the offline click
+ * found no link at all. The walk warms a pair instead, and the pair is chosen
+ * because the second genuinely links to the first — the public header on
+ * `/about` carries "Contact", which is `/support`. A crossing whose link does
+ * not exist reports an unreachable page when nothing was ever clicked.
+ */
+const WARM_TARGET = "/support";
+const WARM_ORIGIN = "/about";
+
 const results = [];
 const check = (name, ok, detail = "") => {
   results.push({ name, ok, detail });
@@ -119,7 +132,25 @@ async function watchEvents() {
   await page.addInitScript(WATCHER);
   await page.evaluate(WATCHER);
 }
-const seenEvents = () => page.evaluate(() => JSON.parse(sessionStorage.getItem("__net") ?? "[]"));
+/*
+ * A DOCUMENT THAT FAILED TO LOAD HAS NO READABLE STORAGE.
+ *
+ * `chrome-error://chromewebdata/` is an opaque origin, so reading
+ * `sessionStorage` there throws `SecurityError` — which killed this run with an
+ * uncaught exception AFTER a check had already failed, hiding the rest of the
+ * journey behind a stack trace about storage. The failure is worth reporting;
+ * the crash is not.
+ */
+const seenEvents = () =>
+  page
+    .evaluate(() => {
+      try {
+        return JSON.parse(sessionStorage.getItem("__net") ?? "[]");
+      } catch {
+        return [];
+      }
+    })
+    .catch(() => []);
 
 try {
   await page.addInitScript(WATCHER);
@@ -135,6 +166,62 @@ try {
     onlineBody.length > 200,
     `${onlineBody.length} characters: ${JSON.stringify(onlineBody.slice(0, 120))}`,
   );
+
+  /*
+   * VISIT THE SECOND PAGE WHILE THE NETWORK IS STILL THERE.
+   *
+   * Its route chunk is content-hashed and lazily loaded, so the service worker
+   * holds it only after it has been fetched once — which is exactly the state a
+   * person is in before their connection drops. Coming back here offline then
+   * tests the runtime cache rather than testing whether a page nobody has
+   * opened was precached.
+   */
+  if (STATE) {
+    await page
+      .locator(`a[href="${SETTINGS_ROUTE}"]`)
+      .first()
+      .click({ timeout: 10000 })
+      .catch(() => {});
+    await page.waitForTimeout(1800);
+    await clearModals();
+    check(
+      `${SETTINGS_ROUTE} loads online first, so the offline visit is a warm one`,
+      new URL(page.url()).pathname === SETTINGS_ROUTE,
+      page.url(),
+    );
+  }
+  /*
+   * NO `goBack()` HERE, AND THE REASON IS A PRODUCT RULE.
+   *
+   * `PLAN.md`: a returning, previously-seen, signed-out visitor at the root
+   * goes to Sign in. So going back landed on `/auth`, which carries no link to
+   * `/pricing`, the offline click hit nothing, and the check reported the page
+   * as unreachable when it had never been asked for. The signed-out walk stays
+   * on the public pages instead: warm a second one, and cross between them
+   * offline.
+   */
+  if (!STATE) {
+    /*
+     * Warmed by navigating, not by clicking: warming only has to FETCH the
+     * route's chunk, and the offline crossing below is the part that must go
+     * through the app router.
+     */
+    for (const route of [WARM_TARGET, WARM_ORIGIN]) {
+      await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 60000 });
+      await page.waitForTimeout(1500);
+      await clearModals();
+      check(
+        `${route} loads online first, so the offline visit is a warm one`,
+        new URL(page.url()).pathname === route,
+        page.url(),
+      );
+    }
+  } else {
+    await page.goBack({ waitUntil: "domcontentloaded" }).catch(() => {});
+    await page.waitForTimeout(1500);
+    await clearModals();
+  }
+  await watchEvents();
 
   /* ------------------------------------------------------------ offline -- */
   await context.setOffline(true);
@@ -153,38 +240,41 @@ try {
     `${offlineText} characters`,
   );
 
-  // A client-side route change must not need the network. Use the product's
-  // real link; page.goto() would perform a document navigation and test only
-  // the service worker's fallback rather than the warm app router.
-  if (STATE) {
-    // The bell, by href rather than by name: its accessible name carries the
-    // unread count, so matching on text would break the day somebody has one.
-    await page
-      .locator(`a[href="${SETTINGS_ROUTE}"]`)
-      .first()
-      .click({ timeout: 10000 })
-      .catch(() => {});
-  } else {
-    /*
-     * By href, not by accessible name. This clicked a link called "Settings",
-     * which existed in the removed demo shell and does not exist on the public
-     * site — so the click silently missed, the page never moved, and the check
-     * failed for a reason that had nothing to do with being offline.
-     */
-    await page
-      .locator(`a[href="${SETTINGS_ROUTE}"]`)
-      .first()
-      .click({ timeout: 10000 })
-      .catch(() => {});
-  }
-  await page.waitForTimeout(1200);
+  /*
+   * A CLIENT-SIDE ROUTE CHANGE MUST NOT NEED THE NETWORK — for a route this
+   * browser has already loaded. Use the product's real link; `page.goto()`
+   * would perform a document navigation and test the service worker's fallback
+   * rather than the warm app router.
+   *
+   * WARM IS THE WHOLE CLAIM, and signed out this check was making a different
+   * one. Route chunks are content-hashed and lazily loaded, so the worker
+   * caches one only after it has been fetched once; a public page the visitor
+   * has NEVER opened cannot be there, and the navigation failed to
+   * `chrome-error://chromewebdata/` — reported as "offline navigation is
+   * broken" when what it had found was "a page nobody has visited is not in the
+   * cache". Precaching every public route to satisfy it would make every first
+   * visit pay for pages most people never open.
+   *
+   * So the second page is visited ONLINE first, which is what a person does
+   * before losing their connection, and the offline navigation then proves the
+   * thing worth proving: a route this browser has seen is served from the cache
+   * with no network at all. The signed-in path was already warm — the rail's
+   * destinations load with the shell — and behaves identically.
+   */
+  const crossingTo = STATE ? SETTINGS_ROUTE : WARM_TARGET;
+  await page
+    .locator(`a[href="${crossingTo}"]`)
+    .first()
+    .click({ timeout: 10000 })
+    .catch(() => {});
+  await page.waitForTimeout(1500);
   await clearModals();
   const settingsBody = (await page.evaluate(() => document.body.innerText))
     .replace(/\s+/g, " ")
     .trim();
   check(
     "a second page is reachable offline from a warm one, through the app router",
-    page.url().endsWith(SETTINGS_ROUTE) && settingsBody.length > 200,
+    new URL(page.url()).pathname === crossingTo && settingsBody.length > 200,
     `${page.url()} — ${settingsBody.length} characters: ${JSON.stringify(settingsBody.slice(0, 120))}`,
   );
 

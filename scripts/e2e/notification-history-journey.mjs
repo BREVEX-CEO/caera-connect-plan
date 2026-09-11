@@ -177,17 +177,46 @@ try {
     }
   }
 
-  console.log("\nSTEP 5 — the bell links to the history rather than to the audit log");
+  console.log("\nSTEP 5 — the bell reaches the history where the history now lives");
+  /*
+   * `/ocade/notifications` WAS THE HISTORY AND IS NOW A REDIRECT.
+   *
+   * Phase 17 carried out §4's "notifications into Tasks": the history renders
+   * inside the Tasks workspace and the old address forwards there, so the rail
+   * points at `/ocade/tasks`. This step used to demand the old href and would
+   * have failed the consolidation for doing exactly what the plan asked.
+   *
+   * What still has to hold is the thing the step was written for: the bell
+   * reaches the HISTORY — the notification that was just recorded — rather
+   * than an audit log or a dead end. So it follows the link and looks.
+   */
   const bell = page.getByRole("link", { name: /^notifications/i });
   if ((await bell.count()) === 0) {
     fail("the shell offers no route to the notification history");
   } else {
     const href = await bell.first().getAttribute("href");
-    if (href !== "/ocade/notifications") {
-      fail(`the bell points at ${href} rather than the notification history`);
+    await bell.first().click({ timeout: 15000 });
+    await settle(3500);
+    const landed = new URL(page.url()).pathname;
+    if (landed !== "/ocade/tasks") {
+      fail(`the bell led to ${landed} rather than the workspace holding the history`);
+    } else if ((await page.getByText(/signed out/i).count()) === 0) {
+      fail(`the bell reached ${landed} but the recorded notification is not on it`);
     } else {
-      note("the bell points at the history");
+      note(`the bell (${href}) reaches the history, with the notification on it`);
     }
+  }
+
+  /* And the old address still forwards, for a link somebody sent last month. */
+  await page.goto(`${BASE}/ocade/notifications`, {
+    waitUntil: "domcontentloaded",
+    timeout: 60000,
+  });
+  await settle(3000);
+  if (new URL(page.url()).pathname !== "/ocade/tasks") {
+    fail(`the retired notification address did not forward: ${page.url()}`);
+  } else {
+    note("the retired address forwards rather than 404ing");
   }
   await secondContext.close();
 } catch (error) {
