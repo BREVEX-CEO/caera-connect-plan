@@ -19,6 +19,7 @@
  */
 import type { SkillCapability, SkillPack } from "../skill-pack";
 
+import { formatNumber } from "@/lib/locale/format";
 const CAPABILITIES: SkillCapability[] = [
   {
     id: "geo.parse",
@@ -407,7 +408,7 @@ export function polygonArea(feature: GeoFeature): GeoOutcome<AreaResult> {
     data: { squareMetres, hectares: squareMetres / 10000, rings: feature.rings.length },
     evidence:
       squareMetres >= 1_000_000
-        ? `${(squareMetres / 1_000_000).toFixed(3)} km² (${Math.round(squareMetres).toLocaleString("en-GB")} m²), measured on the Earth's surface.`
-        : `${Math.round(squareMetres).toLocaleString("en-GB")} m², measured on the Earth's surface.`,
+        ? `${(squareMetres / 1_000_000).toFixed(3)} km² (${formatNumber(Math.round(squareMetres))} m²), measured on the Earth's surface.`
+        : `${formatNumber(Math.round(squareMetres))} m², measured on the Earth's surface.`,
   };
 }

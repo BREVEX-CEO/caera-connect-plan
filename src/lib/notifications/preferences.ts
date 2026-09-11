@@ -157,6 +157,8 @@ function validHour(value: unknown, fallback: number): number {
 function validTimeZone(value: unknown): string {
   if (typeof value !== "string" || !value.trim()) return DEFAULT_QUIET_HOURS.timeZone;
   try {
+    // locale-independent: the formatter is only used to make the runtime accept
+    // or reject the zone name. Nothing it produces is shown to anybody.
     new Intl.DateTimeFormat("en-GB", { timeZone: value });
     return value;
   } catch {
@@ -167,6 +169,8 @@ function validTimeZone(value: unknown): string {
 /** The hour of day at `now`, in the given zone. */
 export function hourInZone(now: Date, timeZone: string): number {
   try {
+    // locale-independent: a 24-hour number parsed back with `parseInt`, never
+    // rendered. A reader's locale would change the digits and break the parse.
     const formatted = new Intl.DateTimeFormat("en-GB", {
       hour: "2-digit",
       hour12: false,

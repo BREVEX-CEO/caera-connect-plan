@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, Clock3, Inbox, XCircle } from "lucide-react";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { taskFromAutomationRun, type AutomationRunLike } from "@/lib/tasks/unified-task";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 /**
  * THE INBOX, INSIDE TASKS.
@@ -32,6 +33,7 @@ export function NeedsAttentionSection({
   runs: readonly AutomationRunLike[];
   nameOf: (automationId: string) => string;
 }) {
+  const formatters = useFormatters();
   const tasks = runs.map((run) => taskFromAutomationRun(run, nameOf(run.automation_id)));
   const pending = tasks.filter((task) => PENDING.has(task.status));
   const outcomes = tasks.filter((task) => !PENDING.has(task.status)).slice(0, RECENT_OUTCOMES);
@@ -94,7 +96,7 @@ export function NeedsAttentionSection({
                   <p className="truncate text-sm font-medium text-foreground">{task.title}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {task.status.toLowerCase()} ·{" "}
-                    {new Date(task.finishedAt ?? task.updatedAt).toLocaleString()}
+                    {formatters.dateTime(task.finishedAt ?? task.updatedAt)}
                   </p>
                   {task.lastError ? (
                     <p className="mt-1 text-xs text-destructive">{task.lastError}</p>

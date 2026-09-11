@@ -59,13 +59,19 @@ function toPaired(row: DeviceRow): PairedDevice {
 }
 
 /** Every device, including revoked tombstones. */
+/** Approved devices, newest first. Beyond this the answer is revocation. */
+const PAIRED_DEVICE_CAP = 200;
+
 export async function listDevices(): Promise<PairedDevice[]> {
   try {
     const supabase = await loadSupabaseClient();
     const { data, error } = await supabase
       .from("devices")
       .select(COLUMNS)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      // A person's approved devices, newest first. More than this and the
+      // answer is revocation, not a longer list.
+      .limit(PAIRED_DEVICE_CAP);
     if (error) throw new Error(error.message);
     return (data as DeviceRow[] | null)?.map(toPaired) ?? [];
   } catch {

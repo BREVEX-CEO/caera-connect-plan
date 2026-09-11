@@ -18,6 +18,7 @@ import {
 } from "@/lib/ocade-projects.functions";
 import { useSession } from "@/lib/session";
 import { buildMemoryExport, planMemoryImport, readMemoryExport } from "@/lib/memory/portable";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 /**
  * OCADE memory review (Plan §19, decision #31).
@@ -35,6 +36,7 @@ import { buildMemoryExport, planMemoryImport, readMemoryExport } from "@/lib/mem
  * somewhere else.
  */
 export function MemoryPanel() {
+  const formatters = useFormatters();
   const { user } = useSession();
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [rows, setRows] = useState<OcadeMemoryRow[] | null>(null);
@@ -539,7 +541,7 @@ export function MemoryPanel() {
                         from {row.source}
                       </span>
                       {row.expires_at ? (
-                        <span>expires {new Date(row.expires_at).toLocaleDateString()}</span>
+                        <span>expires {formatters.date(row.expires_at)}</span>
                       ) : null}
                       <div className="ml-auto flex items-center gap-1">
                         <button

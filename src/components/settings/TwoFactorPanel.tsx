@@ -15,6 +15,7 @@ import {
 } from "@/lib/security/mfa";
 import { issueRecoveryCodes, readRecoveryCodeStatus } from "@/lib/security/mfa.functions";
 import { recordAction } from "@/lib/actions";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 /**
  * TWO-STEP SIGN-IN, ON THE SECURITY PAGE.
@@ -35,6 +36,7 @@ import { recordAction } from "@/lib/actions";
  * written them down is a product failing them at the moment they needed it.
  */
 export function TwoFactorPanel() {
+  const formatters = useFormatters();
   const [factors, setFactors] = useState<SecondFactor[] | null>(null);
   const [assurance, setAssurance] = useState<"aal1" | "aal2" | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -199,7 +201,7 @@ export function TwoFactorPanel() {
                     <span className="block truncate text-foreground">{factor.name}</span>
                     {factor.createdAt ? (
                       <span className="text-xs text-muted-foreground">
-                        Added {new Date(factor.createdAt).toLocaleDateString()}
+                        Added {formatters.date(factor.createdAt)}
                       </span>
                     ) : null}
                   </span>

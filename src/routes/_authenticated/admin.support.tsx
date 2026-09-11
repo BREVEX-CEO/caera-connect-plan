@@ -11,6 +11,7 @@ import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { requireAdminRole } from "@/lib/admin/route-gate";
 import { cn } from "@/lib/utils";
 import { LIST_CAP } from "@/lib/supabase/read-all";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 /** One message, as `ocade_read_support_case` returns it. */
 type SupportCaseMessage = {
@@ -41,6 +42,7 @@ export const Route = createFileRoute("/_authenticated/admin/support")({
 });
 
 function AdminSupportPage() {
+  const formatters = useFormatters();
   const qc = useQueryClient();
   const [filter, setFilter] = useState("active");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -277,7 +279,7 @@ function AdminSupportPage() {
               {openCase.data ? (
                 <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-card/40 px-3 py-2 text-[11px] text-muted-foreground">
                   <span>
-                    Case open until {new Date(openCase.data.expires_at).toLocaleTimeString()} ·{" "}
+                    Case open until {formatters.time(openCase.data.expires_at)} ·{" "}
                     {openCase.data.reason}
                   </span>
                   <button
@@ -328,7 +330,7 @@ function AdminSupportPage() {
                   >
                     <p>{message.body}</p>
                     <p className="mt-2 text-[10px] text-muted-foreground">
-                      {message.author_role} · {new Date(message.created_at).toLocaleString()}
+                      {message.author_role} · {formatters.dateTime(message.created_at)}
                     </p>
                   </article>
                 ))}

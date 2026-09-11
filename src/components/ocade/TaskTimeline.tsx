@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { scheduleTask, timelineDays } from "@/lib/tasks/task-insights";
 import type { UnifiedTask } from "@/lib/tasks/unified-task";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 export function TaskTimeline({
   tasks,
@@ -9,6 +10,7 @@ export function TaskTimeline({
   tasks: UnifiedTask[];
   onChange: (task: UnifiedTask) => void;
 }) {
+  const formatters = useFormatters();
   const [dragged, setDragged] = useState<string | null>(null);
   const [anchor] = useState(() => new Date());
   const days = useMemo(() => timelineDays(anchor), [anchor]);
@@ -36,11 +38,9 @@ export function TaskTimeline({
                 key={day.toISOString()}
                 className={`p-2 text-center ${day.toDateString() === today ? "bg-primary/10 font-medium" : ""}`}
               >
-                <span className="block">
-                  {day.toLocaleDateString(undefined, { weekday: "short" })}
-                </span>
+                <span className="block">{formatters.date(day, { weekday: "short" })}</span>
                 <span className="text-muted-foreground">
-                  {day.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  {formatters.date(day, { month: "short", day: "numeric" })}
                 </span>
                 {day.toDateString() === today ? (
                   <span className="block text-[10px] text-primary">Today</span>
@@ -102,10 +102,7 @@ export function TaskTimeline({
                           >
                             {days.map((option, index) => (
                               <option key={option.toISOString()} value={index}>
-                                {option.toLocaleDateString(undefined, {
-                                  month: "short",
-                                  day: "numeric",
-                                })}
+                                {formatters.date(option, { month: "short", day: "numeric" })}
                               </option>
                             ))}
                           </select>

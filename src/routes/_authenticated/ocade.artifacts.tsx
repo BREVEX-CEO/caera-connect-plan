@@ -35,6 +35,7 @@ import {
   type ArtifactVersion,
   type Lineage,
 } from "@/lib/artifacts/versioning";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 export const Route = createFileRoute("/_authenticated/ocade/artifacts")({
   head: () => ({
@@ -56,6 +57,7 @@ export const Route = createFileRoute("/_authenticated/ocade/artifacts")({
  * gone.
  */
 function ArtifactsPage() {
+  const formatters = useFormatters();
   const [artifacts, setArtifacts] = useState<Artifact[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [integrity, setIntegrity] = useState<Record<string, "checking" | "intact" | "changed">>({});
@@ -220,13 +222,12 @@ function ArtifactsPage() {
                   </div>
 
                   <p className="mt-1 font-mono text-[10px] text-muted-foreground">
-                    {a.kind} · sha256 {a.sha256.slice(0, 16)}… ·{" "}
-                    {new Date(a.createdAt).toLocaleString("en-GB")}
+                    {a.kind} · sha256 {a.sha256.slice(0, 16)}… · {formatters.dateTime(a.createdAt)}
                   </p>
                   <p className="mt-1 text-[10px] text-muted-foreground">
                     Retention:{" "}
                     {a.expiresAt
-                      ? `eligible for deletion after ${new Date(a.expiresAt).toLocaleString("en-GB")}`
+                      ? `eligible for deletion after ${formatters.dateTime(a.expiresAt)}`
                       : "keep until deleted"}
                   </p>
                   <p className="mt-1 text-[10px] text-muted-foreground">

@@ -31,6 +31,7 @@ import {
   type IncidentState,
   type StatusIncident,
 } from "@/lib/status/incidents";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 /**
  * ADMINISTRATOR INCIDENT CONTROLS — PLAN.md §K, and §G's status management.
@@ -417,6 +418,7 @@ function IncidentList({
   run: Run;
   readOnly?: boolean;
 }) {
+  const formatters = useFormatters();
   return (
     <GlassPanel className="mt-4 p-5">
       <h2 className="text-base font-semibold">{title}</h2>
@@ -429,7 +431,7 @@ function IncidentList({
               <h3 className="text-sm font-medium text-foreground">{incident.title}</h3>
               <p className="mt-1 text-xs text-muted-foreground">
                 {IMPACT_LABEL[incident.impact]} · {STATE_LABEL[incident.state]} ·{" "}
-                {new Date(incident.startedAt).toLocaleString()} · {incident.updates.length} update
+                {formatters.dateTime(incident.startedAt)} · {incident.updates.length} update
                 {incident.updates.length === 1 ? "" : "s"}
               </p>
               {readOnly ? null : (

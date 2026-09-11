@@ -27,6 +27,7 @@ import {
   type ChecklistStepResult,
 } from "@/lib/payments/checklist";
 import { runPaymentsChecklist, fastForwardTestRenewal } from "@/utils/payments-readiness.functions";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 export const Route = createFileRoute("/_authenticated/admin/payments-checklist")({
   ssr: false,
@@ -41,6 +42,7 @@ export const Route = createFileRoute("/_authenticated/admin/payments-checklist")
 });
 
 function PaymentsChecklistPage() {
+  const formatters = useFormatters();
   const { user } = useSession();
   const environment = getPaddleEnvironment();
   const { openCheckout, loading: checkoutLoading, error: checkoutError } = usePaddleCheckout();
@@ -69,7 +71,7 @@ function PaymentsChecklistPage() {
     try {
       const result = await fastForwardTestRenewal({ data: { environment } });
       setNotice(
-        `Next billing moved to ${new Date(result.nextBilledAt).toLocaleTimeString()} for ${result.subscriptionId}. The renewal runs shortly after that — re-run the checklist then to confirm the new state reached this app.`,
+        `Next billing moved to ${formatters.time(result.nextBilledAt)} for ${result.subscriptionId}. The renewal runs shortly after that — re-run the checklist then to confirm the new state reached this app.`,
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "The renewal could not be fast-forwarded.");
@@ -213,7 +215,7 @@ function PaymentsChecklistPage() {
 
       {run ? (
         <p className="text-[11px] text-muted-foreground">
-          Last run {new Date(run.ranAt).toLocaleString()} against the{" "}
+          Last run {formatters.dateTime(run.ranAt)} against the{" "}
           {run.environment === "sandbox" ? "test" : "live"} environment.
         </p>
       ) : null}

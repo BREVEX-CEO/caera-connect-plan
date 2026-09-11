@@ -33,6 +33,7 @@ import {
   writeSamples,
   type UptimeSample,
 } from "@/lib/status/uptime";
+import { useFormatters, type Formatters } from "@/lib/locale/use-formatters";
 
 export const Route = createFileRoute("/status")({
   head: () => ({
@@ -81,56 +82,66 @@ interface StatusRow {
   uptime: string;
 }
 
-const COLUMNS: readonly OcadeTableColumn<StatusRow>[] = [
-  {
-    key: "name",
-    label: "Component",
-    required: true,
-    value: (row) => row.name,
-    render: (row) => (
-      <>
-        <span className="font-medium text-foreground">{row.name}</span>
-        <span className="block text-muted-foreground">{row.description}</span>
-      </>
-    ),
-  },
-  {
-    key: "state",
-    label: "State",
-    value: (row) => STATE_LABEL[row.state],
-    render: (row) => (
-      <span className="inline-flex items-center gap-1.5">
-        {/*
-         * The dot carries no meaning on its own — the word beside it does.
-         * Colour alone would leave the state unreadable to anybody who cannot
-         * separate these hues, which is the "no colour-only meaning" rule the
-         * accessibility section of the plan asks for.
-         */}
-        <span aria-hidden className={`h-2 w-2 rounded-full ${STATE_DOT[row.state]}`} />
-        {STATE_LABEL[row.state]}
-      </span>
-    ),
-  },
-  { key: "detail", label: "Observation", value: (row) => row.detail },
-  {
-    key: "uptime",
-    label: "Checks in this browser",
-    value: (row) => row.uptime,
-    sort: false,
-  },
-  {
-    key: "observedAt",
-    label: "Checked",
-    sort: "date",
-    value: (row) => (row.observedAt ? new Date(row.observedAt) : null),
-    render: (row) =>
-      row.observedAt ? (
-        <time dateTime={row.observedAt}>{new Date(row.observedAt).toLocaleTimeString()}</time>
-      ) : (
-        "—"
+/*
+ * BUILT PER LOCALE, NOT AT MODULE SCOPE.
+ *
+ * A column defined out here cannot use a hook, which is how this table came to
+ * format observation times in whatever the browser was set to rather than the
+ * locale the reader chose. `useMemo` in the page below keeps the array identity
+ * stable between renders so the table does not re-infer its sort kinds.
+ */
+function statusColumns(formatters: Formatters): readonly OcadeTableColumn<StatusRow>[] {
+  return [
+    {
+      key: "name",
+      label: "Component",
+      required: true,
+      value: (row) => row.name,
+      render: (row) => (
+        <>
+          <span className="font-medium text-foreground">{row.name}</span>
+          <span className="block text-muted-foreground">{row.description}</span>
+        </>
       ),
-  },
-];
+    },
+    {
+      key: "state",
+      label: "State",
+      value: (row) => STATE_LABEL[row.state],
+      render: (row) => (
+        <span className="inline-flex items-center gap-1.5">
+          {/*
+           * The dot carries no meaning on its own — the word beside it does.
+           * Colour alone would leave the state unreadable to anybody who cannot
+           * separate these hues, which is the "no colour-only meaning" rule the
+           * accessibility section of the plan asks for.
+           */}
+          <span aria-hidden className={`h-2 w-2 rounded-full ${STATE_DOT[row.state]}`} />
+          {STATE_LABEL[row.state]}
+        </span>
+      ),
+    },
+    { key: "detail", label: "Observation", value: (row) => row.detail },
+    {
+      key: "uptime",
+      label: "Checks in this browser",
+      value: (row) => row.uptime,
+      sort: false,
+    },
+    {
+      key: "observedAt",
+      label: "Checked",
+      sort: "date",
+      value: (row) => (row.observedAt ? new Date(row.observedAt) : null),
+      render: (row) =>
+        row.observedAt ? (
+          <time dateTime={row.observedAt}>{formatters.time(row.observedAt)}</time>
+        ) : (
+          "—"
+        ),
+    },
+  ];
+}
 
 /*
  * The dot's colour, from OCADE's own state tokens rather than from Tailwind's
@@ -171,24 +182,25 @@ const PUBLISHING_SINCE = "4 September 2026";
  * if they want to know how it developed.
  */
 function IncidentEntry({ incident }: { incident: StatusIncident }) {
+  const formatters = useFormatters();
   const updates = [...incident.updates].reverse();
   return (
     <article className="mt-4 rounded-md border border-border/50 p-4">
       <h4 className="text-sm font-semibold text-foreground">{incident.title}</h4>
       <p className="mt-1 text-xs text-muted-foreground">
         {IMPACT_LABEL[incident.impact]} · {INCIDENT_STATE_LABEL[incident.state]} · started{" "}
-        {new Date(incident.startedAt).toLocaleString()}
+        {formatters.dateTime(incident.startedAt)}
         {incident.resolvedAt
-          ? ` · resolved ${new Date(incident.resolvedAt).toLocaleString()}`
+          ? ` · resolved ${formatters.dateTime(incident.resolvedAt)}`
           : incident.scheduledEnd
-            ? ` · until ${new Date(incident.scheduledEnd).toLocaleString()}`
+            ? ` · until ${formatters.dateTime(incident.scheduledEnd)}`
             : ""}
       </p>
       <ol className="mt-3 space-y-2">
         {updates.map((update) => (
           <li key={update.id} className="text-sm">
             <span className="text-xs text-muted-foreground">
-              {new Date(update.createdAt).toLocaleString()} · {INCIDENT_STATE_LABEL[update.state]}
+              {formatters.dateTime(update.createdAt)} · {INCIDENT_STATE_LABEL[update.state]}
             </span>
             <p className="mt-0.5 whitespace-pre-line text-foreground">{update.body}</p>
           </li>
@@ -199,6 +211,8 @@ function IncidentEntry({ incident }: { incident: StatusIncident }) {
 }
 
 function StatusPage() {
+  const formatters = useFormatters();
+  const columns = useMemo(() => statusColumns(formatters), [formatters]);
   const [observations, setObservations] = useState<ComponentObservation[] | null>(null);
   /*
    * Null until the read finishes, and null forever on a deployment with no
@@ -351,7 +365,7 @@ function StatusPage() {
         <OcadeDataTable<StatusRow>
           caption="OCADE component status"
           tableId="public-status"
-          columns={COLUMNS}
+          columns={columns}
           rows={rows}
           defaultPageSize={10}
           pageSizeOptions={[5, 10, 25]}

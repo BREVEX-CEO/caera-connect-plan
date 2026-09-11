@@ -75,6 +75,7 @@ export function createFakeDeviceStore(userId = "user-1"): FakeDeviceStore {
   function query(kind: "select" | "update" | "delete" | "upsert", payload?: Partial<DeviceRow>) {
     const filters: Filter[] = [];
     let returning = false;
+    let capped: number | null = null;
 
     const runner = {
       eq(column: keyof DeviceRow, value: unknown) {
@@ -86,6 +87,16 @@ export function createFakeDeviceStore(userId = "user-1"): FakeDeviceStore {
         return runner;
       },
       order() {
+        return runner;
+      },
+      /*
+       * The store caps its list since Phase 18's bounded-read gate, and a fake
+       * that did not answer `.limit()` turned every read into `undefined`.
+       * Honouring it here also keeps the fake honest: a cap the real client
+       * applies is a cap these tests should see.
+       */
+      limit(count: number) {
+        capped = count;
         return runner;
       },
       select() {
@@ -101,7 +112,8 @@ export function createFakeDeviceStore(userId = "user-1"): FakeDeviceStore {
 
         if (kind === "select") {
           const found = rows.filter((row) => matches(row, filters));
-          return Promise.resolve({ data: single ? (found[0] ?? null) : found, error: null });
+          const bounded = capped === null ? found : found.slice(0, capped);
+          return Promise.resolve({ data: single ? (bounded[0] ?? null) : bounded, error: null });
         }
         if (kind === "delete") {
           const kept = rows.filter((row) => !matches(row, filters));

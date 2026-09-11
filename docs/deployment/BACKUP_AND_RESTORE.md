@@ -31,7 +31,7 @@ restore must replace rather than append.
 
 | Layer               | Where it lives                                               | Recoverable?                        |
 | ------------------- | ------------------------------------------------------------ | ----------------------------------- |
-| Schema              | `supabase/migrations/` — 95 files, applied in filename order | **Yes**, from this repository alone |
+| Schema              | `supabase/migrations/` — 96 files, applied in filename order | **Yes**, from this repository alone |
 | Schema verification | `supabase/verification/` — one per migration                 | **Yes**                             |
 | Schema rollback     | `supabase/rollback/` — one per migration                     | **Yes**                             |
 | Row data            | Supabase managed backups for project `sazhgaisyhkdbrooycdv`  | **Depends on the plan** — see below |
@@ -41,7 +41,7 @@ restore must replace rather than append.
 
 The schema is fully reproducible from this repository with no backup at all.
 `npx vitest run --project database src/lib/__tests__/db-twin.test.ts` applies
-all 95 migrations to real PostgreSQL, runs each verification script immediately
+all 96 migrations to real PostgreSQL, runs each verification script immediately
 after its own migration, then rolls every one back in reverse against the full
 schema.
 

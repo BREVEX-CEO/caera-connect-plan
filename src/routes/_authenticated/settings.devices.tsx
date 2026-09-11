@@ -25,6 +25,7 @@ import { canRegisterDevice, entitlementState } from "@/lib/ocade-allowance";
 import { getEntitlement } from "@/lib/ocade-usage.functions";
 import { executeAction, recordAction, ActionConfirmationError } from "@/lib/actions";
 import { useSession } from "@/lib/session";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 export const Route = createFileRoute("/_authenticated/settings/devices")({
   head: () => ({
@@ -34,6 +35,7 @@ export const Route = createFileRoute("/_authenticated/settings/devices")({
 });
 
 function DevicesPage() {
+  const formatters = useFormatters();
   const { user } = useSession();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -239,8 +241,7 @@ function DevicesPage() {
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <StatusBadge status={d.revoked_at ? "planned" : "active"} />
                       <span>
-                        Last active{" "}
-                        {d.last_active_at ? new Date(d.last_active_at).toLocaleString() : "—"}
+                        Last active {d.last_active_at ? formatters.dateTime(d.last_active_at) : "—"}
                       </span>
                     </div>
                   </div>

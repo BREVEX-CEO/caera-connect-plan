@@ -22,6 +22,7 @@ import { TwoFactorPanel } from "@/components/settings/TwoFactorPanel";
 import { AccountSessionsPanel } from "@/components/settings/AccountSessionsPanel";
 import { SignInMethodsPanel } from "@/components/settings/SignInMethodsPanel";
 import { proveIdentityWithPassword } from "@/lib/security/reauthentication";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 export const Route = createFileRoute("/_authenticated/settings/security")({
   head: () => ({
@@ -74,6 +75,7 @@ const inputCls =
   "w-full rounded-md border border-border/60 bg-background/50 px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/70 focus:border-primary/60";
 
 function SecurityPage() {
+  const formatters = useFormatters();
   const { user } = useSession();
   const navigate = useNavigate();
 
@@ -299,7 +301,7 @@ function SecurityPage() {
             </Row>
             <Row label="Last sign-in">
               {identities.data.lastSignInAt
-                ? new Date(identities.data.lastSignInAt).toLocaleString()
+                ? formatters.dateTime(identities.data.lastSignInAt)
                 : "—"}
             </Row>
           </dl>
@@ -470,7 +472,7 @@ function SecurityPage() {
                 <span className="text-foreground">{e.action}</span>
                 <span className="text-xs text-muted-foreground">
                   {e.source === "compliance" ? "compliance · " : ""}
-                  {new Date(e.created_at).toLocaleString()}
+                  {formatters.dateTime(e.created_at)}
                 </span>
               </li>
             ))}

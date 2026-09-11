@@ -66,6 +66,7 @@ import {
 } from "@/lib/automation-worker-host";
 import { AutomationWorkerCompanionSession } from "@/lib/automation-worker-session";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 /**
  * THE AUTOMATION BUILDER, INSIDE TASKS.
@@ -170,6 +171,7 @@ function describeTrigger(t: AutomationRow["trigger"]): string {
 }
 
 export function AutomationsWorkspace() {
+  const formatters = useFormatters();
   const [rows, setRows] = useState<AutomationRow[] | null>(null);
   const [unavailable, setUnavailable] = useState<string | null>(null);
   const [workerStatus, setWorkerStatus] = useState<string | null>(null);
@@ -1012,7 +1014,7 @@ export function AutomationsWorkspace() {
                           </span>
                         ) : null}
                         <span className="text-xs text-muted-foreground">
-                          {new Date(r.created_at).toLocaleString()}
+                          {formatters.dateTime(r.created_at)}
                         </span>
                         {r.blocked_reason ? (
                           <span className="text-xs text-destructive">{r.blocked_reason}</span>
@@ -1031,7 +1033,7 @@ export function AutomationsWorkspace() {
                               return (
                                 <span className="text-xs text-muted-foreground">
                                   {retry.retry && retry.readyAt
-                                    ? `Retrying after ${retry.readyAt.toLocaleTimeString()}`
+                                    ? `Retrying after ${formatters.time(retry.readyAt)}`
                                     : retry.reason}
                                 </span>
                               );

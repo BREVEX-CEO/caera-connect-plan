@@ -28,6 +28,18 @@ export interface CurrentDeviceIdentity {
 
 const CURRENT_DEVICE_CACHE = "ocade:current-device:v1";
 
+/*
+ * CAPS, SO A READ CANNOT GROW WITHOUT ANYBODY DECIDING IT SHOULD.
+ *
+ * `PLAN.md` Phase 18 names unbounded reads as one of the five silent speed
+ * killers. Neither of these lists is expected to be long — one browser install
+ * holds one grant, and a person approves a handful of machines — which is
+ * exactly why an unbounded read here would never be noticed until an account
+ * that had accumulated thousands of rows tried to open Settings.
+ */
+const MAX_GRANTS_PER_INSTALL = 20;
+const MAX_DEVICES_LISTED = 200;
+
 function cacheCurrentDeviceIdentity(identity: CurrentDeviceIdentity): CurrentDeviceIdentity {
   try {
     window.localStorage?.setItem(CURRENT_DEVICE_CACHE, JSON.stringify(identity));
@@ -121,7 +133,10 @@ export async function registerDeviceForCurrentSession(): Promise<void> {
     .select("id, device_id, revoked_at, created_at")
     .eq("user_id", user.id)
     .eq("browser_install_id", installId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    // One browser install has one grant; the cap is here because a duplicate
+    // from an older deployment must not turn this into an unbounded read.
+    .limit(MAX_GRANTS_PER_INSTALL);
   if (grantReadError) throw grantReadError;
 
   if ((grants ?? []).some((grant) => Boolean(grant.revoked_at))) return;
@@ -260,7 +275,8 @@ export async function getCurrentDeviceIdentity(): Promise<CurrentDeviceIdentity 
     .select("device_id, revoked_at, devices!inner(revoked_at)")
     .eq("user_id", auth.user.id)
     .eq("browser_install_id", browserInstallId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(MAX_GRANTS_PER_INSTALL);
   if (error) throw error;
   const active = (grants ?? []).find((grant) => {
     const device = grant.devices as unknown as { revoked_at: string | null } | null;
@@ -291,7 +307,10 @@ export async function listDevicesForCurrentUser(): Promise<DeviceRow[]> {
   const { data, error } = await supabase
     .from("devices")
     .select("id, kind, name, user_agent, physical_pc_id, last_active_at, revoked_at, created_at")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    // A person with more approved devices than this has a problem the list
+    // cannot solve; the screen offers revocation rather than infinite scroll.
+    .limit(MAX_DEVICES_LISTED);
   if (error) throw error;
   return data ?? [];
 }

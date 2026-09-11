@@ -9,6 +9,7 @@ import {
   readErrorJournal,
   type JournalEntry,
 } from "@/lib/diagnostics/error-journal";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 /**
  * The errors this browser actually hit.
@@ -23,6 +24,7 @@ import {
  * the clipboard and the person decides who sees it.
  */
 export function ErrorJournalPanel() {
+  const formatters = useFormatters();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -91,7 +93,7 @@ export function ErrorJournalPanel() {
               <li key={key} className="rounded-lg border border-border/50 p-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2 text-[11px] text-muted-foreground">
                   <span className="font-mono">{entry.where}</span>
-                  <time dateTime={entry.at}>{new Date(entry.at).toLocaleString()}</time>
+                  <time dateTime={entry.at}>{formatters.dateTime(entry.at)}</time>
                 </div>
                 <p className="mt-1 break-words text-[13px] text-foreground">{entry.message}</p>
                 <p className="mt-1 font-mono text-[11px] text-muted-foreground">{entry.route}</p>

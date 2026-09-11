@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPage } from "@/components/public/PublicPage";
 import { PrelaunchSubscription } from "@/components/public/PrelaunchSubscription";
 import { filterPublicArticles, PUBLIC_ARTICLES } from "@/lib/public-content";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 export const Route = createFileRoute("/blog/")({
   component: BlogPage,
@@ -11,6 +12,7 @@ export const Route = createFileRoute("/blog/")({
 const TAGS = ["All", ...new Set(PUBLIC_ARTICLES.flatMap((article) => article.tags))];
 
 function BlogPage() {
+  const formatters = useFormatters();
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState("All");
   const articles = useMemo(() => filterPublicArticles(query, tag), [query, tag]);
@@ -85,10 +87,10 @@ function BlogPage() {
                   <p className="mt-1 text-sm text-muted-foreground">{article.description}</p>
                   <p className="mt-3 text-xs text-muted-foreground">
                     {article.author} ·{" "}
-                    {new Intl.DateTimeFormat("en-IN", {
+                    {formatters.date(new Date(`${article.published}T00:00:00Z`), {
                       dateStyle: "long",
                       timeZone: "UTC",
-                    }).format(new Date(`${article.published}T00:00:00Z`))}
+                    })}
                   </p>
                 </div>
               </article>

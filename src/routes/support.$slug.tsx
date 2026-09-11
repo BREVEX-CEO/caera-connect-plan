@@ -9,6 +9,7 @@ import { useSupportCatalogue } from "@/lib/support/use-catalogue";
 import { articleForLocale, describeFallback } from "@/lib/support/article-locales";
 import { describeLocale } from "@/lib/locale/supported-locales";
 import { useLocale } from "@/lib/locale/use-locale";
+import { formatDate } from "@/lib/locale/format";
 import {
   escalationDraft,
   readAnsweredArticles,
@@ -237,9 +238,7 @@ function ArticlePage() {
             <dt className="text-muted-foreground">Answer last changed</dt>
             <dd>
               <time dateTime={article.lastUpdated}>
-                {new Date(article.lastUpdated).toLocaleDateString(undefined, {
-                  dateStyle: "long",
-                })}
+                {formatDate(article.lastUpdated, locale, { dateStyle: "long" })}
               </time>
             </dd>
           </div>

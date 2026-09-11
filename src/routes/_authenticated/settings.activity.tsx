@@ -9,6 +9,7 @@ import { useSession } from "@/lib/session";
 import { executeAction, getAction, ActionConfirmationError } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 import { listOutputActivity, type OutputActivity } from "@/lib/artifacts/chat-output-flow";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 export const Route = createFileRoute("/_authenticated/settings/activity")({
   head: () => ({
@@ -50,6 +51,7 @@ function windowStart(w: WindowKey): string | null {
 }
 
 function ActivityPage() {
+  const formatters = useFormatters();
   const { user } = useSession();
   const [tab, setTab] = useState<Tab>("operational");
   const [win, setWin] = useState<WindowKey>("30");
@@ -335,7 +337,7 @@ function ActivityPage() {
                     </p>
                   </div>
                   <time className="text-[11px] text-muted-foreground">
-                    {new Date(row.at).toLocaleString()}
+                    {formatters.dateTime(row.at)}
                   </time>
                 </li>
               ))}
@@ -377,7 +379,7 @@ function ActivityPage() {
                       </div>
                     </div>
                     <div className="text-right text-xs text-muted-foreground">
-                      {new Date(r.created_at).toLocaleString()}
+                      {formatters.dateTime(r.created_at)}
                     </div>
                   </li>
                 );
@@ -424,7 +426,7 @@ function ActivityPage() {
                     ) : null}
                   </div>
                   <div className="text-right text-xs text-muted-foreground">
-                    {new Date(r.created_at).toLocaleString()}
+                    {formatters.dateTime(r.created_at)}
                   </div>
                 </li>
               );

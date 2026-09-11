@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { BlockerResolutionPolicy } from "@/components/admin/BlockerResolutionPolicy";
 import { StakeholderResearchBoundary } from "@/components/admin/StakeholderResearchBoundary";
 import { LaunchAuthorityBoundary } from "@/components/admin/LaunchAuthorityBoundary";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 type Status =
   "not_started" | "in_progress" | "pending_review" | "evidence_required" | "complete" | "waived";
@@ -58,6 +59,15 @@ const STATUS_OPTIONS: Status[] = [
 
 const STAGE_OPTIONS: Stage[] = ["demo", "private_alpha", "beta", "ga"];
 
+/*
+ * CAPS ON THE ADMIN READS. `PLAN.md` Phase 18 names unbounded reads as a
+ * silent speed killer, and an admin console is where they hide longest: the
+ * tables are small in development and nobody notices until a year of history
+ * has accumulated.
+ */
+const GATE_LIST_CAP = 500;
+const GATE_HISTORY_CAP = 100;
+
 export const Route = createFileRoute("/_authenticated/admin/launch-gate")({
   ssr: false,
   head: () => ({
@@ -88,7 +98,10 @@ function LaunchGatePage() {
         .from("launch_gate_items")
         .select("*")
         .order("category")
-        .order("title");
+        .order("title")
+        // A fixed checklist, not a feed. The cap exists so a table that grows
+        // unexpectedly degrades into a truncated list rather than a stall.
+        .limit(GATE_LIST_CAP);
       if (error) throw error;
       return (data ?? []) as unknown as Item[];
     },
@@ -98,7 +111,11 @@ function LaunchGatePage() {
     queryKey: ["feature_flags_admin"],
     queryFn: async () => {
       const supabase = await loadSupabaseClient();
-      const { data, error } = await supabase.from("feature_flags").select("*").order("id");
+      const { data, error } = await supabase
+        .from("feature_flags")
+        .select("*")
+        .order("id")
+        .limit(GATE_LIST_CAP);
       if (error) throw error;
       return (data ?? []) as unknown as Flag[];
     },
@@ -229,6 +246,7 @@ function SummaryCard({
 }
 
 function ItemRow({ item, onSaved }: { item: Item; onSaved: () => void }) {
+  const formatters = useFormatters();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>(item.status);
   const [owner, setOwner] = useState(item.owner ?? "");
@@ -258,7 +276,10 @@ function ItemRow({ item, onSaved }: { item: Item; onSaved: () => void }) {
       .from("launch_gate_history")
       .select("id, from_status, to_status, changed_at, note, evidence_url")
       .eq("item_id", item.id)
-      .order("changed_at", { ascending: false });
+      .order("changed_at", { ascending: false })
+      // The newest changes are the ones anybody reads; an item edited daily for
+      // a year must not turn opening its history into a download.
+      .limit(GATE_HISTORY_CAP);
     setHistory((data ?? []) as never);
   }
 
@@ -461,10 +482,8 @@ function ItemRow({ item, onSaved }: { item: Item; onSaved: () => void }) {
               ) : (
                 (history ?? []).map((h) => (
                   <li key={h.id} className="text-muted-foreground">
-                    <span className="text-foreground">
-                      {new Date(h.changed_at).toLocaleString()}
-                    </span>{" "}
-                    — {h.from_status ?? "∅"} → {h.to_status}
+                    <span className="text-foreground">{formatters.dateTime(h.changed_at)}</span> —{" "}
+                    {h.from_status ?? "∅"} → {h.to_status}
                     {h.note ? ` · ${h.note}` : ""}
                   </li>
                 ))
@@ -559,6 +578,7 @@ function FeatureFlagsPanel({ flags, onSaved }: { flags: Flag[]; onSaved: () => v
 }
 
 function FlagRow({ flag, onSaved }: { flag: Flag; onSaved: () => void }) {
+  const formatters = useFormatters();
   const [stage, setStage] = useState<Stage>(flag.stage);
   const [enabled, setEnabled] = useState(flag.enabled);
   const [modules, setModules] = useState(flag.applicable_modules.join(","));
@@ -605,7 +625,7 @@ function FlagRow({ flag, onSaved }: { flag: Flag; onSaved: () => void }) {
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-foreground">{flag.id}</div>
           <div className="text-[11px] text-muted-foreground">
-            Updated {new Date(flag.updated_at).toLocaleString()}
+            Updated {formatters.dateTime(flag.updated_at)}
           </div>
         </div>
         <label className="text-xs">

@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { scoreMatch, snippetAround, sortResults, type SearchResult } from "@/lib/search/results";
 import { useSession } from "@/lib/session";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 export const Route = createFileRoute("/_authenticated/ocade/search")({
   head: () => ({ meta: [{ title: "Search — OCADE" }, { name: "robots", content: "noindex" }] }),
@@ -282,6 +283,7 @@ const ICONS: Record<SearchResult["kind"], typeof MessageSquare> = {
 };
 
 function ResultRow({ result }: { result: SearchResult }) {
+  const formatters = useFormatters();
   const Icon = ICONS[result.kind];
   /*
    * WHERE THE ROW LIVES. A task and a memory carry their own destination,
@@ -320,7 +322,7 @@ function ResultRow({ result }: { result: SearchResult }) {
           ) : null}
           <span className="mt-1 block text-[10px] uppercase tracking-wide text-muted-foreground/70">
             {result.kind}
-            {result.createdAt ? ` · ${new Date(result.createdAt).toLocaleString()}` : ""}
+            {result.createdAt ? ` · ${formatters.dateTime(result.createdAt)}` : ""}
           </span>
         </span>
       </Link>

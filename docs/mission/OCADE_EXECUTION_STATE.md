@@ -1306,6 +1306,79 @@ files, 256 database tests, typecheck, lint and format clean, performance budget
 green with the eager bundle at 394 KiB of 450 KiB.
 
 
+## Phase 18 — Localization, accessibility, performance and defect cleanup
+
+### The locale authority nobody was calling
+
+`src/lib/locale/format.ts` exists because the product had three answers to
+"which locale?" at once, and its header says so: `toLocaleString()` with no
+argument in fifty-one places, `toLocaleDateString(undefined, …)` in twelve
+more, a hard-coded `"en-GB"` in seven. The module was written, shipped — and
+called by two support pages out of seventy-one sites. A shared authority nobody
+calls is a file.
+
+It was written to take the locale explicitly, which is right for a module and
+is exactly why nothing used it: a screen had to call `useLocale()`, destructure
+it, and remember to pass it every time. `useFormatters()` binds them once, so
+the easy thing is now the correct thing. Every call site is converted, and a
+gate fails on a new raw call or a new hard-coded tag.
+
+Three formatters legitimately do not want a reader's locale — validating a time
+zone, pulling a 24-hour number back with `parseInt`, inspecting a price's
+trailing digits against a rule. Each is marked `locale-independent:` with the
+reason, so the exemption is a sentence somebody wrote rather than a silence.
+
+### Unbounded reads, the third silent speed killer
+
+`npm run reads:check` walks every `.from(…).select(…)` in the product and
+requires a cap, a single-row request, or a written exemption. Nine reads had
+none: the launch-gate checklist and its history, feature flags, the admin role
+join, paired devices twice, browser grants twice, and the mobile device list.
+All capped, each with the reason beside it.
+
+Building the gate found two false positives worth fixing rather than
+tolerating, because a gate that cries wolf gets switched off: a `;` inside a
+comment truncated the query chain, and `field.select()` on an input is not a
+database read.
+
+The repository already had `unbounded-queries.test.ts`, which exempted six
+tables on the reasoning that they cannot grow. That list is now empty — "this
+table cannot grow" is a prediction, `.limit()` is a fact — and the exemption
+mechanism stays for a genuine fixed catalogue.
+
+### One index, on evidence rather than instinct
+
+Supabase's performance advisor named exactly one unindexed foreign key:
+`ocade_support_access_events.admin_id`. Migration 96 covers it and is applied
+live. The reads that will run against that table are "what did this admin read"
+and "who read this ticket"; the second had an index and the first was a
+sequential scan over the whole audit history — the query somebody runs while
+already investigating an incident.
+
+The advisor's other 110 findings are unused indexes, which is what a pre-launch
+project with no traffic looks like. Dropping them on that evidence would be
+removing the indexes the product was built to need.
+
+### The regression the budget caught
+
+Routing the Help Center's dates through the locale module pulled the formatter
+into the `help-articles` chunk, so the entry graph — which formats a date on
+nearly every screen — had to import twenty-seven kilobytes of help prose to
+reach it. Exactly the shape the budget gate's own comment describes from the
+last time it happened. `locale-formatting` is a chunk group now, claimed before
+`help-articles`.
+
+### Gate
+
+Zero known accessibility blockers: 38/38 signed out and 24/24 signed in on the
+runtime accessibility journey, 204/204 responsive checks across six widths,
+12/12 web vitals, and the static keyboard/screen-reader gate clean. 84 routes ×
+2 viewports at 926/926 signed out and signed in against the production build.
+Performance margin: 627.9 KiB of 850 KiB eager JavaScript, the largest eager
+chunk 394.4 KiB of 450 KiB, CSS 136.2 KiB of 145 KiB, every on-device engine
+lazy. 8,066 unit tests, 256 database tests, typecheck, lint and format clean.
+
+
 ## Next action
 
-Phase 18 — Localization, accessibility, performance and defect cleanup.
+Phase 19 — Payments, refunds, disputes and Admin grants (LAST).

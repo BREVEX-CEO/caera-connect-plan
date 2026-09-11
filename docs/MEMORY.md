@@ -118,39 +118,42 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 17 (final OCADE UI/UX consolidation) is complete.
+Phase 18 (localization, accessibility, performance and defect cleanup) is
+complete.
 
-§4's route consolidation had been a ledger entry rather than a change: fifteen
-routes were marked MIGRATE and fifteen full screens were still shipping at the
-old addresses. Automations, Monitors, Inbox and Notifications are now sections
-of Tasks; Studio, Templates and Shared are sections of Artifacts; Models,
-Devices, Permissions, Connectors, Health and Activity are Settings; Knowledge
-is a paragraph in Projects; the Lab opens from Customize. Every old address
-forwards in `beforeLoad`, and a test now reads the ledger against the modules on
-disk, so a disposition that says a route moved must actually redirect there.
+`src/lib/locale` had been written to be the single answer to "which locale?"
+and its own header explained why — fifty-one `toLocaleString()` calls reading
+the browser, twelve more spelled `toLocaleDateString(undefined, …)`, seven
+hard-coded `"en-GB"`. Then almost nothing used it: two support pages out of
+seventy-one call sites. Every one now goes through `useFormatters()`, a hook
+bound to the chosen locale, and a test fails the build if a new raw call
+appears. Formatters that exist to make a decision rather than be read — a
+time-zone validation, a 24-hour number parsed back with `parseInt`, a price
+inspected for its trailing digits — carry `locale-independent:` with the
+reason.
 
-Customize stopped being the old More directory of twenty links — §17 asks for
-exactly that — and is now the four things that change how OCADE behaves for
-this person, plus the Lab behind a lazy disclosure. The rail entry is labelled
-Customize, and the command palette lost seven entries that pointed at screens
-which no longer exist as destinations.
+Unbounded reads are gone. `npm run reads:check` walks every database read in
+the product and requires a `.limit()`, a `.range()`, a single-row request or a
+written `bounded-read:` exemption; nine reads had none and now have caps.
+The older `unbounded-queries.test.ts` had exempted six tables on the reasoning
+that they cannot grow — that list is empty, because "this table cannot grow" is
+a prediction and `.limit()` is a fact.
 
-Two live truthfulness defects surfaced while folding pages in. `/ocade/models`
-claimed replies "are not sent to any AI company — not to a third party, and not
-to us", which Phase 5's online intelligence made untrue; the corrected statement
-moved to Settings › Local engine. `/ocade/shared` claimed the build had no
-share-link service at all, which stopped being true when Chat gained revocable
-conversation links.
+Supabase's own performance advisor named one unindexed foreign key
+(`ocade_support_access_events.admin_id`); migration 96 covers it, applied live.
+Its 110 "unused index" findings are what a pre-launch project with no traffic
+looks like, not a defect.
 
-Two real phone-width defects were found by the route audit and fixed: the new
-"Build one below" control measured 105x20, and the three links at the foot of
-Settings › Permissions measured 16px tall — the latter only became audited once
-`/ocade/permissions` started forwarding there.
+The asset budget then caught a regression the locale work caused: the formatter
+module was swallowed into the Help Center's chunk, so the entry graph had to
+pull twenty-seven kilobytes of help prose to format a date. `locale-formatting`
+is its own chunk group now, claimed before `help-articles`.
 
 `ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
 1, deliberately.
 
-Next is Phase 18 — localization, accessibility, performance and defect cleanup.
+Next is Phase 19 — payments, refunds, disputes and Admin grants, which
+`PLAN.md` marks LAST.
 
 Two known external items remain: `auth_leaked_password_protection` is disabled
 in Supabase Auth, and the Windows control journey needs Windows hardware. Both

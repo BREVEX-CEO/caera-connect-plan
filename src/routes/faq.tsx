@@ -5,6 +5,7 @@ import { PublicPage } from "@/components/public/PublicPage";
 import { faqView, type SupportArticle } from "@/lib/support/articles";
 import { faqViewMatching } from "@/lib/support/search";
 import { useSupportCatalogue } from "@/lib/support/use-catalogue";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 /**
  * Public FAQ — A VIEW OF THE HELP CENTER, NOT A SECOND SET OF ANSWERS.
@@ -199,6 +200,7 @@ export function FaqDirectory() {
 }
 
 function FaqRow({ article, id }: { article: SupportArticle; id: string }) {
+  const formatters = useFormatters();
   const [open, setOpen] = useState(false);
   const answerId = `${id}-answer`;
   return (
@@ -242,9 +244,7 @@ function FaqRow({ article, id }: { article: SupportArticle; id: string }) {
             <span>
               Answer last changed{" "}
               <time dateTime={article.lastUpdated}>
-                {new Date(article.lastUpdated).toLocaleDateString(undefined, {
-                  dateStyle: "medium",
-                })}
+                {formatters.date(article.lastUpdated, { dateStyle: "medium" })}
               </time>
             </span>
           </p>

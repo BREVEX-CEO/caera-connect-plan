@@ -29,6 +29,7 @@ import {
 import { diagnose, type Diagnostics } from "./dependency-graph";
 import { findReferences, type ReferenceReport } from "./references";
 import type { EvidenceReceipt } from "../skills/skill-pack";
+import { formatNumber } from "@/lib/locale/format";
 
 export type WorkspaceOutcome<T> =
   { ok: true; data: T; evidence: string } | { ok: false; reason: string };
@@ -231,14 +232,14 @@ export function createCodeWorkspace(input: {
     if (file.content.length > MAX_FILE_CHARACTERS) {
       return {
         ok: false,
-        reason: `${path.data} exceeds the ${MAX_FILE_CHARACTERS.toLocaleString()}-character on-device file limit.`,
+        reason: `${path.data} exceeds the ${formatNumber(MAX_FILE_CHARACTERS)}-character on-device file limit.`,
       };
     }
     totalCharacters += file.content.length;
     if (totalCharacters > MAX_TOTAL_CHARACTERS) {
       return {
         ok: false,
-        reason: `The selected files exceed the ${MAX_TOTAL_CHARACTERS.toLocaleString()}-character on-device repository limit.`,
+        reason: `The selected files exceed the ${formatNumber(MAX_TOTAL_CHARACTERS)}-character on-device repository limit.`,
       };
     }
     seen.add(path.data);

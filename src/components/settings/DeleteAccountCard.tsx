@@ -16,6 +16,7 @@ import {
 } from "@/lib/account.functions";
 import { deleteLocalData } from "@/lib/device/local-data";
 import { organizationsBlockingAccountDeletion } from "@/lib/organizations/authority";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 /**
  * Delete account.
@@ -25,6 +26,7 @@ import { organizationsBlockingAccountDeletion } from "@/lib/organizations/author
  * goes, so nobody discovers the scope afterwards.
  */
 export function DeleteAccountCard() {
+  const formatters = useFormatters();
   const navigate = useNavigate();
   const deleteAccount = useServerFn(deleteMyAccount);
   const [armed, setArmed] = useState(false);
@@ -108,9 +110,7 @@ export function DeleteAccountCard() {
           <div className="flex flex-wrap gap-2">
             <dt className="text-muted-foreground">Completed</dt>
             <dd>
-              <time dateTime={receipt.completedAt}>
-                {new Date(receipt.completedAt).toLocaleString()}
-              </time>
+              <time dateTime={receipt.completedAt}>{formatters.dateTime(receipt.completedAt)}</time>
             </dd>
           </div>
           <div className="flex flex-wrap gap-2">

@@ -13,6 +13,7 @@ import {
   type AccountDataClass,
   type AccountDataClassId,
 } from "@/lib/account/data-classes";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 /**
  * ACCESS AND ERASURE, ON THE SCREEN — PLAN.md §O.
@@ -36,6 +37,7 @@ import {
  * for the life of the document, which for a large account is real memory.
  */
 export function AccountDataPanel() {
+  const formatters = useFormatters();
   const runExport = useServerFn(exportMyAccountData);
   const runDelete = useServerFn(deleteMyAccountDataClass);
   const [exporting, setExporting] = useState(false);
@@ -102,7 +104,7 @@ export function AccountDataPanel() {
         </Button>
         {exported ? (
           <p role="status" className="text-xs text-muted-foreground">
-            {exported.rowCount.toLocaleString()} record
+            {formatters.number(exported.rowCount)} record
             {exported.rowCount === 1 ? "" : "s"} across {exported.classes.length} kinds
             {exported.partial ? " — some tables could not be read; the file says which." : "."}
           </p>
@@ -116,8 +118,8 @@ export function AccountDataPanel() {
         >
           <strong className="text-foreground">{receipt.label} cleared.</strong>{" "}
           {receipt.cleared.length} table{receipt.cleared.length === 1 ? "" : "s"} emptied at{" "}
-          {new Date(receipt.completedAt).toLocaleString()}. Offline Intelligence on this device was
-          not touched.
+          {formatters.dateTime(receipt.completedAt)}. Offline Intelligence on this device was not
+          touched.
         </p>
       ) : null}
 

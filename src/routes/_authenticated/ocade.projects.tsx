@@ -63,6 +63,7 @@ import {
 import { useSession } from "@/lib/session";
 import { deleteAttachment, describeSite, type DeletionPorts } from "@/lib/attachments/deletion";
 import { forgetCitationsForSource } from "@/lib/ocade.functions";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 /**
  * How this screen reaches the places a deleted file left a trace.
@@ -100,6 +101,7 @@ interface OutputRow {
 type OutputKind = "document" | "export" | "visual" | "transcript" | "other";
 
 function ProjectsPage() {
+  const formatters = useFormatters();
   const { user } = useSession();
   const userId = user?.id ?? "";
   const [projects, setProjects] = useState<OcadeProject[] | null>(null);
@@ -955,7 +957,7 @@ function ProjectsPage() {
                         </span>
                         {task.scheduledFor ? (
                           <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
-                            {new Date(task.scheduledFor).toLocaleString()}
+                            {formatters.dateTime(task.scheduledFor)}
                           </span>
                         ) : null}
                       </li>
@@ -1012,7 +1014,7 @@ function ProjectsPage() {
                         ) : null}
                         {o.expires_at ? (
                           <span className="text-[9px] text-muted-foreground">
-                            expires {new Date(o.expires_at).toLocaleDateString()}
+                            expires {formatters.date(o.expires_at)}
                           </span>
                         ) : null}
                         <button

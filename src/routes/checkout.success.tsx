@@ -6,6 +6,7 @@ import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Button } from "@/components/ui/button";
 import { getPaddleEnvironment, isCheckoutConfigured } from "@/lib/paddle";
 import { getMySubscription, type SubscriptionRecord } from "@/utils/payments.functions";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 export const Route = createFileRoute("/checkout/success")({
   /*
@@ -38,6 +39,7 @@ export const Route = createFileRoute("/checkout/success")({
  * congratulating someone who has not paid.
  */
 function CheckoutSuccessPage() {
+  const formatters = useFormatters();
   const [subscription, setSubscription] = useState<SubscriptionRecord | null>(null);
   const [state, setState] = useState<"checking" | "confirmed" | "pending" | "error">("checking");
   const [message, setMessage] = useState<string | null>(null);
@@ -102,9 +104,7 @@ function CheckoutSuccessPage() {
             <p className="mt-2 text-sm text-muted-foreground">
               Your plan is active on this account
               {subscription.currentPeriodEnd
-                ? ` until ${new Date(subscription.currentPeriodEnd).toLocaleDateString(undefined, {
-                    dateStyle: "medium",
-                  })}`
+                ? ` until ${formatters.date(subscription.currentPeriodEnd, { dateStyle: "medium" })}`
                 : ""}
               .{" "}
               {subscription.environment === "sandbox"

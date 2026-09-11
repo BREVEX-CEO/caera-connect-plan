@@ -422,6 +422,26 @@ export default defineOcadeConfig({
                         priority: 80,
                       },
 
+                      /*
+                       * The locale authority, claimed BEFORE the help articles —
+                       * the same shape of mistake as `commerce-catalogue` above,
+                       * and found the same way.
+                       *
+                       * Phase 18 routed every date and number through
+                       * `src/lib/locale`, and the Help Center was one of the
+                       * screens that started calling it. Without a home of its
+                       * own the formatter module was swallowed into the help
+                       * chunk, so the entry — which formats a date on almost
+                       * every screen — had to import twenty-seven kilobytes of
+                       * help prose to read one. It is small, shared by
+                       * everything, and belongs with the code that loads first.
+                       */
+                      {
+                        name: "locale-formatting",
+                        test: (id) => id.includes("/src/lib/locale/"),
+                        priority: 80,
+                      },
+
                       {
                         name: "help-articles",
                         test: (id) => id.includes("/src/lib/support/"),

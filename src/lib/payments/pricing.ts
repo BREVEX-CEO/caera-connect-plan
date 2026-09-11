@@ -240,6 +240,9 @@ export function checkPrice(amountMinor: number, currency: CurrencyCode = "USD"):
   if (amountMinor === 0) return { valid: true, reason: "Free." };
 
   const amount = amountMinor / 100;
+  // locale-independent: this renders the amount only to inspect its trailing
+  // digits against the pricing rule. Grouping is off and the string is never
+  // shown; a reader's locale would change the separators and the test with it.
   const text = new Intl.NumberFormat("en-US", {
     useGrouping: false,
     minimumFractionDigits: amountMinor % 100 === 0 ? 0 : 2,

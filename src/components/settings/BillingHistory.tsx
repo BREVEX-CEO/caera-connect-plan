@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Download, FileText, ReceiptText } from "lucide-react";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 function money(amountMinor: number, currency: string): string {
   return new Intl.NumberFormat(undefined, {
@@ -11,6 +12,7 @@ function money(amountMinor: number, currency: string): string {
   }).format(amountMinor / 100);
 }
 export function BillingHistory() {
+  const formatters = useFormatters();
   const history = useQuery({
     queryKey: ["billing-history", "mine"],
     queryFn: async () => {
@@ -70,7 +72,7 @@ export function BillingHistory() {
                   </div>
                   <p className="mt-1 text-muted-foreground">
                     {event.provider} · {event.kind} · {event.plan_id} ·{` `}
-                    {new Date(event.occurred_at).toLocaleString()}
+                    {formatters.dateTime(event.occurred_at)}
                   </p>
                 </article>
               ))}
@@ -110,7 +112,7 @@ export function BillingHistory() {
                   <p className="mt-1 text-muted-foreground">
                     {money(Number(invoice.amount_minor), invoice.currency)} · tax{` `}
                     {money(Number(invoice.tax_minor), invoice.currency)} · {invoice.status} ·{` `}
-                    {new Date(invoice.issued_at).toLocaleDateString()}
+                    {formatters.date(invoice.issued_at)}
                   </p>
                 </article>
               ))}

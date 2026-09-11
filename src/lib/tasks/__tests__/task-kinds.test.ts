@@ -61,7 +61,9 @@ describe("what the board asks for, and what it then shows", () => {
   });
 
   it("shows the schedule on the card, where the person is looking", () => {
-    expect(BOARD).toContain("Scheduled for {new Date(task.scheduledFor).toLocaleString()}");
+    // Through the locale authority since Phase 18: the same sentence, in the
+    // reader's own date order rather than the browser's.
+    expect(BOARD).toContain("Scheduled for {formatters.dateTime(task.scheduledFor)}");
   });
 });
 

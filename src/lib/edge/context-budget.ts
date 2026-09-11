@@ -22,6 +22,7 @@
  * looking number it cannot stand behind.
  */
 
+import { formatNumber } from "@/lib/locale/format";
 export type DropReason =
   "older_turn" | "middle_of_document" | "low_relevance" | "duplicate" | "attachment_unreadable";
 
@@ -109,7 +110,7 @@ export function planBudget(items: readonly BudgetItem[], limitTokens: number): B
       limitTokens,
       complete: false,
       impossible: true,
-      summary: `This message is too long for the engine on its own — about ${pinnedTokens.toLocaleString()} tokens against a limit of ${limitTokens.toLocaleString()}. Shorten the question or use an engine with more room.`,
+      summary: `This message is too long for the engine on its own — about ${formatNumber(pinnedTokens)} tokens against a limit of ${formatNumber(limitTokens)}. Shorten the question or use an engine with more room.`,
     };
   }
 
@@ -154,7 +155,7 @@ export function planBudget(items: readonly BudgetItem[], limitTokens: number): B
     complete,
     impossible: false,
     summary: complete
-      ? `Everything fits — about ${used.toLocaleString()} of ${limitTokens.toLocaleString()} tokens used.`
+      ? `Everything fits — about ${formatNumber(used)} of ${formatNumber(limitTokens)} tokens used.`
       : describeDropped(dropped, used, limitTokens),
   };
 }
@@ -176,7 +177,7 @@ function describeDropped(dropped: readonly DroppedItem[], used: number, limit: n
    * Says it plainly. The tempting phrasing — "context optimised" — is how this
    * gets hidden, and hiding it is the entire problem being solved.
    */
-  return `${what} did not fit and were left out of this answer. About ${used.toLocaleString()} of ${limit.toLocaleString()} tokens were used.`;
+  return `${what} did not fit and were left out of this answer. About ${formatNumber(used)} of ${formatNumber(limit)} tokens were used.`;
 }
 
 /**

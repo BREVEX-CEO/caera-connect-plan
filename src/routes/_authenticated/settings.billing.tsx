@@ -25,6 +25,7 @@ import {
   cancelMySubscription,
   type SubscriptionRecord,
 } from "@/utils/payments.functions";
+import { useFormatters, type Formatters } from "@/lib/locale/use-formatters";
 
 export const Route = createFileRoute("/_authenticated/settings/billing")({
   /*
@@ -46,9 +47,17 @@ export const Route = createFileRoute("/_authenticated/settings/billing")({
 });
 
 /** Statuses that still grant access, in the words a customer would use. */
-function describeStatus(sub: SubscriptionRecord): { label: string; tone: string; detail: string } {
+function describeStatus(
+  sub: SubscriptionRecord,
+  formatters: Formatters,
+): { label: string; tone: string; detail: string } {
+  /*
+   * The formatters come in rather than being reached for: this runs at module
+   * scope, where a hook cannot, and a renewal date read in the wrong order is
+   * a customer misreading when they will next be charged.
+   */
   const ends = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
-  const endsText = ends ? ends.toLocaleDateString(undefined, { dateStyle: "medium" }) : "—";
+  const endsText = ends ? formatters.date(ends, { dateStyle: "medium" }) : "—";
 
   switch (sub.status) {
     case "trialing":
@@ -89,6 +98,7 @@ function describeStatus(sub: SubscriptionRecord): { label: string; tone: string;
 }
 
 function BillingPage() {
+  const formatters = useFormatters();
   const { user } = useSession();
   const environment = getPaddleEnvironment();
   const { openCheckout, loading: checkoutLoading, error: checkoutError } = usePaddleCheckout();
@@ -276,8 +286,8 @@ function BillingPage() {
               </div>
               <div>
                 <dt className="text-muted-foreground">Status</dt>
-                <dd className={`font-medium ${describeStatus(subscription).tone}`}>
-                  {describeStatus(subscription).label}
+                <dd className={`font-medium ${describeStatus(subscription, formatters).tone}`}>
+                  {describeStatus(subscription, formatters).label}
                 </dd>
               </div>
               <div>
@@ -290,7 +300,7 @@ function BillingPage() {
               </div>
             </dl>
             <p className="mt-3 text-xs text-muted-foreground">
-              {describeStatus(subscription).detail}
+              {describeStatus(subscription, formatters).detail}
             </p>
 
             <div className="mt-3 flex flex-wrap gap-2">

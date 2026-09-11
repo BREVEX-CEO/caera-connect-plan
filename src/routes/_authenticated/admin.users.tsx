@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Users, LifeBuoy } from "lucide-react";
@@ -9,6 +9,7 @@ import { OcadeDataTable, type OcadeTableColumn } from "@/components/ui/ocade-dat
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { useSession } from "@/lib/session";
 import { requireAdminRole } from "@/lib/admin/route-gate";
+import { useFormatters, type Formatters } from "@/lib/locale/use-formatters";
 
 type ProfileRow = {
   id: string;
@@ -30,6 +31,9 @@ type TicketRow = {
   last_message_at: string;
 };
 
+/** Role rows read alongside the capped account page above. */
+const ROLE_ROWS_CAP = 2_000;
+
 export const Route = createFileRoute("/_authenticated/admin/users")({
   ssr: false,
   head: () => ({
@@ -39,13 +43,15 @@ export const Route = createFileRoute("/_authenticated/admin/users")({
   component: AdminUsersPage,
 });
 
-function formatDate(value: string | null) {
+/*
+ * TAKES THE FORMATTERS RATHER THAN ASKING THE BROWSER.
+ *
+ * A helper at module scope cannot use a hook, which is how this table came to
+ * ignore the locale the admin chose. The caller passes them down.
+ */
+function formatDate(value: string | null, formatters: Formatters) {
   if (!value) return "—";
-  return new Date(value).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return formatters.date(value, { year: "numeric", month: "short", day: "numeric" });
 }
 
 type AccountRow = ProfileRow & { roles: string[] };
@@ -58,30 +64,39 @@ type AccountRow = ProfileRow & { roles: string[] };
  * values it holds, and a fresh array every render would redo that work on every
  * keystroke in the search box.
  */
-const ACCOUNT_COLUMNS: readonly OcadeTableColumn<AccountRow>[] = [
-  {
-    key: "display_name",
-    label: "Person",
-    // The identifying column: it is what the row IS, so it is never hidden and
-    // it is the one that stays put when a narrow window scrolls sideways.
-    required: true,
-    value: (row) => row.display_name ?? "",
-  },
-  { key: "email", label: "Email", value: (row) => row.email ?? "" },
-  { key: "phone", label: "Phone", value: (row) => row.phone ?? "" },
-  { key: "country", label: "Country", value: (row) => row.country ?? "" },
-  { key: "roles", label: "Roles", value: (row) => row.roles.join(", ") },
-  {
-    key: "created_at",
-    label: "Joined",
-    sort: "date",
-    value: (row) => (row.created_at ? new Date(row.created_at) : null),
-    render: (row) => formatDate(row.created_at),
-  },
-];
+/*
+ * Built per locale rather than at module scope, so the Joined column follows
+ * the admin's chosen locale instead of the browser's. `useMemo` below keeps the
+ * array identity stable between renders.
+ */
+function accountColumns(formatters: Formatters): readonly OcadeTableColumn<AccountRow>[] {
+  return [
+    {
+      key: "display_name",
+      label: "Person",
+      // The identifying column: it is what the row IS, so it is never hidden and
+      // it is the one that stays put when a narrow window scrolls sideways.
+      required: true,
+      value: (row) => row.display_name ?? "",
+    },
+    { key: "email", label: "Email", value: (row) => row.email ?? "" },
+    { key: "phone", label: "Phone", value: (row) => row.phone ?? "" },
+    { key: "country", label: "Country", value: (row) => row.country ?? "" },
+    { key: "roles", label: "Roles", value: (row) => row.roles.join(", ") },
+    {
+      key: "created_at",
+      label: "Joined",
+      sort: "date",
+      value: (row) => (row.created_at ? new Date(row.created_at) : null),
+      render: (row) => formatDate(row.created_at, formatters),
+    },
+  ];
+}
 
 function AdminUsersPage() {
   const { user } = useSession();
+  const formatters = useFormatters();
+  const columns = useMemo(() => accountColumns(formatters), [formatters]);
 
   const accounts = useQuery({
     queryKey: ["admin", "accounts"],
@@ -93,7 +108,13 @@ function AdminUsersPage() {
           .select("id, display_name, email, phone, country, created_at")
           .order("created_at", { ascending: false })
           .limit(500),
-        supabase.from("user_roles").select("user_id, role"),
+        supabase
+          .from("user_roles")
+          .select("user_id, role")
+          // Paired with the 500-account page above: reading every role row for
+          // an account list this read has already capped would be a second,
+          // larger query answering a smaller question.
+          .limit(ROLE_ROWS_CAP),
       ]);
       if (profiles.error) throw profiles.error;
       if (roles.error) throw roles.error;
@@ -161,7 +182,7 @@ function AdminUsersPage() {
             caption="Registered accounts"
             tableId="admin-accounts"
             preferenceScope={user?.id ?? "device"}
-            columns={ACCOUNT_COLUMNS}
+            columns={columns}
             rows={accounts.data ?? []}
             loading={accounts.isLoading}
             error={
@@ -209,7 +230,7 @@ function AdminUsersPage() {
                 <li key={t.id} className="rounded-md border border-border/50 bg-background/40 p-2">
                   <p className="text-xs font-medium text-foreground">{t.subject}</p>
                   <p className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                    {t.status} · {t.priority} · {formatDate(t.last_message_at)}
+                    {t.status} · {t.priority} · {formatDate(t.last_message_at, formatters)}
                   </p>
                 </li>
               ))}

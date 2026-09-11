@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessageView, MessageActions } from "./chat-types";
+import { useFormatters, type Formatters } from "@/lib/locale/use-formatters";
 
 /**
  * One turn of the conversation.
@@ -154,6 +155,7 @@ export const MessageBubble = memo(function MessageBubble({
    */
   isLatest?: boolean;
 }) {
+  const formatters = useFormatters();
   const isUser = message.role === "user";
   /*
    * THE ROLE DECIDES WHICH CONTROLS EXIST, AND IT DECIDES IT HERE.
@@ -170,7 +172,7 @@ export const MessageBubble = memo(function MessageBubble({
    * cannot act must not be offered. The handlers keep their guards, because
    * they are also the defence against a caller that passes the wrong thing.
    */
-  const time = showTimestamp ? formatTime(message.createdAt) : null;
+  const time = showTimestamp ? formatTime(message.createdAt, formatters) : null;
   const [touchActionsOpen, setTouchActionsOpen] = useState(false);
   const gestureRef = useRef<{ x: number; y: number } | null>(null);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -431,10 +433,13 @@ export const MessageBubble = memo(function MessageBubble({
 });
 
 /** Local time, or nothing. "Invalid Date" in a transcript looks like a crash. */
-function formatTime(iso: string): string | null {
+function formatTime(iso: string, formatters: Formatters): string | null {
+  // The formatters come in: this is module scope, where a hook cannot run, and
+  // a transcript timestamped in the browser's locale rather than the reader's
+  // is the same message shown two different ways on two devices.
   const ms = Date.parse(iso);
   if (!Number.isFinite(ms)) return null;
-  return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return formatters.time(ms) || null;
 }
 
 function deliveryLabel(state: NonNullable<ChatMessageView["deliveryState"]>): string {

@@ -75,6 +75,7 @@ import {
   MOBILE_MISSION_COMMAND_KINDS,
   MOBILE_MISSION_RUNTIME_BOUNDARY,
 } from "@/lib/mobile/mission-control";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 export const Route = createFileRoute("/_authenticated/settings/mobile")({
   head: () => ({
@@ -98,6 +99,7 @@ function describeIntent(intent: MobileIntent): string {
 }
 
 function MobilePage() {
+  const formatters = useFormatters();
   const online = useOnline();
   const [challenge, setChallenge] = useState<PairingChallenge | null>(null);
   /* Set only after the user compares the pairing digits on both devices. */
@@ -727,7 +729,7 @@ function MobilePage() {
                 >
                   <span className="min-w-0 flex-1">{describeIntent(q.payload)}</span>
                   <span className="text-[11px] text-muted-foreground">
-                    {new Date(q.queuedAt).toLocaleTimeString()}
+                    {formatters.time(q.queuedAt)}
                   </span>
                   {q.attempts > 0 ? (
                     <span className="text-[10px] uppercase text-[color:var(--state-warning)]">

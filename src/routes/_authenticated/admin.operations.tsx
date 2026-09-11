@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, BellRing, Gauge, ScrollText } from "lucide-react";
@@ -17,6 +18,7 @@ import {
   type DeliveryRow,
   type UsageWindowRow,
 } from "@/lib/admin/operations";
+import { useFormatters, type Formatters } from "@/lib/locale/use-formatters";
 
 /**
  * OPERATIONS — the usage, audit and delivery half of PLAN.md §G.
@@ -62,61 +64,73 @@ export const Route = createFileRoute("/_authenticated/admin/operations")({
  * Declared out here so the array identity is stable across renders: the table
  * infers each column's sort kind from the values it holds, and a fresh array
  * every render would redo that on every keystroke in the search box.
+ *
+ * THE DATE COLUMNS TAKE THE FORMATTERS RATHER THAN CALLING `toLocaleString()`.
+ * A column defined at module scope cannot use a hook, which is precisely how
+ * three admin tables ended up formatting dates in whatever the browser was set
+ * to instead of the locale the person chose. They are built once per locale by
+ * `useMemo` in the component below.
  */
-const USAGE_COLUMNS: readonly OcadeTableColumn<UsageWindowRow>[] = [
-  { key: "userId", label: "Account", required: true, value: (row) => row.userId },
-  { key: "windowKind", label: "Window", value: (row) => row.windowKind },
-  {
-    key: "windowStart",
-    label: "Opened",
-    sort: "date",
-    value: (row) => row.windowStart,
-    render: (row) => new Date(row.windowStart).toLocaleString(),
-  },
-  {
-    key: "used",
-    label: "Spent",
-    sort: "number",
-    value: (row) => row.used,
-    // Two decimals because the ledger keeps hundredths, and rounding to whole
-    // numbers here would show a spent window as untouched.
-    render: (row) => row.used.toFixed(2),
-  },
-  {
-    key: "updatedAt",
-    label: "Last spent",
-    sort: "date",
-    value: (row) => row.updatedAt,
-    render: (row) => new Date(row.updatedAt).toLocaleString(),
-  },
-];
+function usageColumns(formatters: Formatters): readonly OcadeTableColumn<UsageWindowRow>[] {
+  return [
+    { key: "userId", label: "Account", required: true, value: (row) => row.userId },
+    { key: "windowKind", label: "Window", value: (row) => row.windowKind },
+    {
+      key: "windowStart",
+      label: "Opened",
+      sort: "date",
+      value: (row) => row.windowStart,
+      render: (row) => formatters.dateTime(row.windowStart),
+    },
+    {
+      key: "used",
+      label: "Spent",
+      sort: "number",
+      value: (row) => row.used,
+      // Two decimals because the ledger keeps hundredths, and rounding to whole
+      // numbers here would show a spent window as untouched.
+      render: (row) => row.used.toFixed(2),
+    },
+    {
+      key: "updatedAt",
+      label: "Last spent",
+      sort: "date",
+      value: (row) => row.updatedAt,
+      render: (row) => formatters.dateTime(row.updatedAt),
+    },
+  ];
+}
 
-const AUDIT_COLUMNS: readonly OcadeTableColumn<AuditEventRow>[] = [
-  {
-    key: "organizationName",
-    label: "Organization",
-    required: true,
-    value: (row) => row.organizationName ?? "",
-    render: (row) => row.organizationName ?? "—",
-  },
-  { key: "event", label: "Event", value: (row) => row.event },
-  {
-    key: "createdAt",
-    label: "When",
-    sort: "date",
-    value: (row) => row.createdAt,
-    render: (row) => new Date(row.createdAt).toLocaleString(),
-  },
-  { key: "actorId", label: "Actor", value: (row) => row.actorId ?? "" },
-  { key: "subjectId", label: "About", value: (row) => row.subjectId ?? "" },
-];
+function auditColumns(formatters: Formatters): readonly OcadeTableColumn<AuditEventRow>[] {
+  return [
+    {
+      key: "organizationName",
+      label: "Organization",
+      required: true,
+      value: (row) => row.organizationName ?? "",
+      render: (row) => row.organizationName ?? "—",
+    },
+    { key: "event", label: "Event", value: (row) => row.event },
+    {
+      key: "createdAt",
+      label: "When",
+      sort: "date",
+      value: (row) => row.createdAt,
+      render: (row) => formatters.dateTime(row.createdAt),
+    },
+    { key: "actorId", label: "Actor", value: (row) => row.actorId ?? "" },
+    { key: "subjectId", label: "About", value: (row) => row.subjectId ?? "" },
+  ];
+}
 
-const DELIVERY_COLUMNS: readonly OcadeTableColumn<DeliveryRow>[] = [
-  { key: "category", label: "Category", required: true, value: (row) => row.category },
-  { key: "channel", label: "Channel", value: (row) => row.channel },
-  { key: "state", label: "State", value: (row) => row.state },
-  { key: "occurrences", label: "Count", sort: "number", value: (row) => row.occurrences },
-];
+function deliveryColumns(formatters: Formatters): readonly OcadeTableColumn<DeliveryRow>[] {
+  return [
+    { key: "category", label: "Category", required: true, value: (row) => row.category },
+    { key: "channel", label: "Channel", value: (row) => row.channel },
+    { key: "state", label: "State", value: (row) => row.state },
+    { key: "occurrences", label: "Count", sort: "number", value: (row) => row.occurrences },
+  ];
+}
 
 function Truncated({ what, cap }: { what: string; cap: number }) {
   return (
@@ -128,6 +142,16 @@ function Truncated({ what, cap }: { what: string; cap: number }) {
 
 function AdminOperationsPage() {
   const { user } = useSession();
+  const formatters = useFormatters();
+
+  /*
+   * Rebuilt only when the locale changes, so the table still sees a stable
+   * array identity between renders and does not re-infer its sort kinds on
+   * every keystroke in the search box.
+   */
+  const usageTable = useMemo(() => usageColumns(formatters), [formatters]);
+  const auditTable = useMemo(() => auditColumns(formatters), [formatters]);
+  const deliveryTable = useMemo(() => deliveryColumns(formatters), [formatters]);
 
   const usage = useQuery({ queryKey: ["admin", "usage-windows"], queryFn: loadUsageWindows });
   const audit = useQuery({ queryKey: ["admin", "audit-events"], queryFn: loadAuditEvents });
@@ -156,7 +180,7 @@ function AdminOperationsPage() {
           caption="Commercial usage windows"
           tableId="admin-usage-windows"
           preferenceScope={user?.id ?? "device"}
-          columns={USAGE_COLUMNS}
+          columns={usageTable}
           rows={usage.data?.rows ?? []}
           loading={usage.isLoading}
           error={
@@ -201,7 +225,7 @@ function AdminOperationsPage() {
           caption="Organization audit log"
           tableId="admin-audit-log"
           preferenceScope={user?.id ?? "device"}
-          columns={AUDIT_COLUMNS}
+          columns={auditTable}
           rows={audit.data?.rows ?? []}
           loading={audit.isLoading}
           error={
@@ -247,7 +271,7 @@ function AdminOperationsPage() {
           caption="Notification delivery"
           tableId="admin-notification-delivery"
           preferenceScope={user?.id ?? "device"}
-          columns={DELIVERY_COLUMNS}
+          columns={deliveryTable}
           rows={delivery.data?.rows ?? []}
           loading={delivery.isLoading}
           error={

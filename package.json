@@ -83,6 +83,7 @@
     "launch:prove": "node scripts/launch-prove.mjs",
     "launch:prove:defer-windows": "node scripts/launch-prove.mjs --defer-windows",
     "application-lifecycle:check": "node scripts/check-lifecycle-policy.mjs",
+    "reads:check": "node scripts/check-bounded-reads.mjs",
     "recovery:prove": "vitest run --project database src/lib/recovery/__tests__/recovery-rehearsal.test.ts",
     "edge:release-check": "node scripts/edge-function-release.mjs",
     "edge:rollback-prove": "node scripts/edge-function-release.mjs --prove-rollback",

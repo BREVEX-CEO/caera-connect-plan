@@ -15,6 +15,7 @@ import {
   markNotificationRead,
   type NotificationRecord,
 } from "@/lib/notifications/history";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 /**
  * NOTIFICATION HISTORY, INSIDE TASKS.
@@ -31,6 +32,7 @@ import {
  */
 
 export function NotificationsSection() {
+  const formatters = useFormatters();
   const { user } = useSession();
   const queryClient = useQueryClient();
   const [problem, setProblem] = useState<string | null>(null);
@@ -178,7 +180,7 @@ export function NotificationsSection() {
                     <p className="mt-1 text-xs text-muted-foreground">
                       {category?.title ?? record.category} ·{" "}
                       <time dateTime={record.createdAt}>
-                        {new Date(record.createdAt).toLocaleString()}
+                        {formatters.dateTime(record.createdAt)}
                       </time>
                     </p>
                   </div>

@@ -65,6 +65,7 @@ import {
   inviteExpiry,
   inviteLink,
 } from "@/lib/organizations/invite-token";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 export const Route = createFileRoute("/_authenticated/organization")({
   head: () => ({
@@ -500,6 +501,7 @@ function OrganizationDetail({
   busy: string | null;
   run: Run;
 }) {
+  const formatters = useFormatters();
   const { organization, role, members, invites, groups, events, truncated } = snapshot;
   const administers = canAdminister(role);
   const owner = role === "owner";
@@ -628,7 +630,7 @@ function OrganizationDetail({
               <li key={event.id} className="flex flex-wrap items-baseline gap-2">
                 <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{event.event}</code>
                 <span className="text-muted-foreground">
-                  {new Date(event.createdAt).toLocaleString()}
+                  {formatters.dateTime(event.createdAt)}
                 </span>
               </li>
             ))}
@@ -678,6 +680,7 @@ function PolicyPanel({
   busy: string | null;
   run: Run;
 }) {
+  const formatters = useFormatters();
   const policy = useQuery({
     queryKey: ["organization-policy", organizationId],
     queryFn: () => loadOrganizationPolicy(organizationId),
@@ -821,7 +824,7 @@ function PolicyPanel({
                 <span className="text-xs text-muted-foreground">Not saved yet.</span>
               ) : stored?.updatedAt ? (
                 <span className="text-xs text-muted-foreground">
-                  Last changed {new Date(stored.updatedAt).toLocaleString()}.
+                  Last changed {formatters.dateTime(stored.updatedAt)}.
                 </span>
               ) : null}
             </div>
@@ -1036,6 +1039,7 @@ function InvitationsPanel({
   busy: string | null;
   run: Run;
 }) {
+  const formatters = useFormatters();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<OrganizationRole>("member");
   const [link, setLink] = useState<string | null>(null);
@@ -1178,7 +1182,7 @@ function InvitationsPanel({
             <div className="min-w-0">
               <p className="truncate text-sm">{invite.email}</p>
               <p className="text-xs text-muted-foreground">
-                {invite.role} · expires {new Date(invite.expiresAt).toLocaleDateString()}
+                {invite.role} · expires {formatters.date(invite.expiresAt)}
               </p>
             </div>
             <div className="flex items-center gap-2">

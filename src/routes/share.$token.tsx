@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, MessageSquare } from "lucide-react";
 import { readSharedConversation, type SharedConversation } from "@/lib/chat/conversation-sharing";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 /**
  * A SHARED CONVERSATION, READ BY SOMEBODY WITH NO ACCOUNT — PLAN.md §8.
@@ -173,7 +174,8 @@ function SharedConversationPage() {
  * under hydration.
  */
 function SnapshotTime({ iso }: { iso: string }) {
+  const formatters = useFormatters();
   const ms = Date.parse(iso);
   if (!Number.isFinite(ms)) return <span>an unknown date</span>;
-  return <time dateTime={iso}>{new Date(ms).toLocaleString()}</time>;
+  return <time dateTime={iso}>{formatters.dateTime(ms)}</time>;
 }

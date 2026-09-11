@@ -2,12 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPage } from "@/components/public/PublicPage";
 import { PrelaunchSubscription } from "@/components/public/PrelaunchSubscription";
 import { findPublicArticle, PUBLIC_ARTICLES } from "@/lib/public-content";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 export const Route = createFileRoute("/blog/$slug")({
   component: ArticlePage,
 });
 
 function ArticlePage() {
+  const formatters = useFormatters();
   const { slug } = Route.useParams();
   const article = findPublicArticle(slug);
   if (!article)
@@ -48,9 +50,10 @@ function ArticlePage() {
       <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
         <span>By {article.author}</span>
         <time dateTime={article.published}>
-          {new Intl.DateTimeFormat("en-IN", { dateStyle: "long", timeZone: "UTC" }).format(
-            new Date(`${article.published}T00:00:00Z`),
-          )}
+          {formatters.date(new Date(`${article.published}T00:00:00Z`), {
+            dateStyle: "long",
+            timeZone: "UTC",
+          })}
         </time>
         {article.tags.map((tag) => (
           <span key={tag} className="rounded-full border border-border/70 px-2 py-0.5">

@@ -30,6 +30,7 @@ import {
   type TaskBoardSort,
 } from "@/lib/tasks/task-board";
 import { reconcileInterruptedRuns, subscribeToRuns } from "@/lib/tasks/runs";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 const SOURCES: Array<UnifiedTaskSource | "all"> = [
   "all",
@@ -42,6 +43,7 @@ const SOURCES: Array<UnifiedTaskSource | "all"> = [
 ];
 
 export function TaskBoard() {
+  const formatters = useFormatters();
   const [tasks, setTasks] = useState<UnifiedTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
@@ -192,7 +194,7 @@ export function TaskBoard() {
     setWhen("");
     toast.success(
       kind === "scheduled"
-        ? `Scheduled for ${new Date(when).toLocaleString()}.`
+        ? `Scheduled for ${formatters.dateTime(when)}.`
         : kind === "action"
           ? "Added, waiting for you."
           : "Task added to Queued.",
@@ -293,7 +295,7 @@ export function TaskBoard() {
           */}
           {task.scheduledFor ? (
             <span className="mt-1 block text-[11px] text-muted-foreground">
-              Scheduled for {new Date(task.scheduledFor).toLocaleString()}
+              Scheduled for {formatters.dateTime(task.scheduledFor)}
             </span>
           ) : null}
           {task.currentStep ? (
@@ -488,7 +490,7 @@ export function TaskBoard() {
                     <h4 className="mt-1 text-sm font-medium">{task.title}</h4>
                   </div>
                   <time dateTime={task.updatedAt} className="text-xs text-muted-foreground">
-                    {new Date(task.updatedAt).toLocaleString()}
+                    {formatters.dateTime(task.updatedAt)}
                   </time>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
@@ -618,7 +620,7 @@ export function TaskBoard() {
                 {selected.scheduledFor ? (
                   <>
                     <dt className="text-muted-foreground">Scheduled for</dt>
-                    <dd>{new Date(selected.scheduledFor).toLocaleString()}</dd>
+                    <dd>{formatters.dateTime(selected.scheduledFor)}</dd>
                   </>
                 ) : null}
                 {/*
@@ -647,7 +649,7 @@ export function TaskBoard() {
                 <dt className="text-muted-foreground">Status</dt>
                 <dd>{selected.status.replaceAll("_", " ")}</dd>
                 <dt className="text-muted-foreground">Updated</dt>
-                <dd>{new Date(selected.updatedAt).toLocaleString()}</dd>
+                <dd>{formatters.dateTime(selected.updatedAt)}</dd>
                 <dt className="text-muted-foreground">Request</dt>
                 <dd>{selected.request || "No task description."}</dd>
                 <dt className="text-muted-foreground">Receipts</dt>

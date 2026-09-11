@@ -20,6 +20,7 @@
  * two were the exception.
  */
 
+import { formatNumber } from "@/lib/locale/format";
 /** Total decoded characters a single streamed reply may accumulate. */
 export const MAX_STREAM_CHARS = 2_000_000;
 
@@ -52,7 +53,7 @@ export function assertStreamWithinLimit(
 ): void {
   if (chars > limit) {
     throw new StreamLimitError(
-      `The streamed ${what} exceeded ${limit.toLocaleString()} characters and was stopped. ` +
+      `The streamed ${what} exceeded ${formatNumber(limit)} characters and was stopped. ` +
         `OCADE will not keep buffering a response that does not end.`,
     );
   }

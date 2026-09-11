@@ -23,6 +23,7 @@
  * Pure and offline. It advises; running the job is a separate, gated step.
  */
 
+import { formatNumber } from "@/lib/locale/format";
 export type JobKind = "local_inference" | "render" | "build" | "video_export" | "simulation";
 
 export type ThermalState = "nominal" | "warm" | "hot" | "critical";
@@ -145,7 +146,7 @@ export function estimateJob(spec: JobSpec): ResourceOutcome<Estimate> {
       durationMs,
       storageBytes,
       approximate: true,
-      basis: `Based on ${spec.workUnits.toLocaleString("en-GB")} units at ~${formatBytes(spec.bytesPerUnit)}/unit and ~${spec.msPerUnit} ms/unit${fixed > 0 ? `, plus ${formatBytes(fixed)} fixed` : ""}. This is an estimate, not a measurement.`,
+      basis: `Based on ${formatNumber(spec.workUnits)} units at ~${formatBytes(spec.bytesPerUnit)}/unit and ~${spec.msPerUnit} ms/unit${fixed > 0 ? `, plus ${formatBytes(fixed)} fixed` : ""}. This is an estimate, not a measurement.`,
     },
     evidence: `~${formatBytes(peakMemoryBytes)} peak, ~${formatDuration(durationMs)}, ${storageBytes > 0 ? `~${formatBytes(storageBytes)} output` : "no output written"}.`,
   };
@@ -218,7 +219,7 @@ export function governResources(
       return rec({
         action: "downgrade",
         suggestedWorkUnits: fits,
-        reason: `At ${spec.workUnits.toLocaleString("en-GB")} units this needs ~${formatBytes(estimate.peakMemoryBytes)}, over the ~${formatBytes(usableRam)} safely available. It would fit at about ${fits.toLocaleString("en-GB")} units — run it smaller, or in batches.`,
+        reason: `At ${formatNumber(spec.workUnits)} units this needs ~${formatBytes(estimate.peakMemoryBytes)}, over the ~${formatBytes(usableRam)} safely available. It would fit at about ${formatNumber(fits)} units — run it smaller, or in batches.`,
         estimate,
       });
     }

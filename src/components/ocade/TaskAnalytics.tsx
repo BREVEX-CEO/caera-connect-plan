@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { taskAnalytics, type TaskAnalyticsRange } from "@/lib/tasks/task-insights";
 import type { UnifiedTask } from "@/lib/tasks/unified-task";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 export function TaskAnalytics({ tasks }: { tasks: UnifiedTask[] }) {
+  const formatters = useFormatters();
   const [range, setRange] = useState<TaskAnalyticsRange>("30");
   const data = taskAnalytics(tasks, range);
   const max = Math.max(1, ...data.byStatus.map((item) => item.count));
@@ -87,7 +89,7 @@ export function TaskAnalytics({ tasks }: { tasks: UnifiedTask[] }) {
             </ul>
           </section>
           <p className="mt-3 text-xs text-muted-foreground">
-            Last updated {data.lastUpdated ? new Date(data.lastUpdated).toLocaleString() : "—"}
+            Last updated {data.lastUpdated ? formatters.dateTime(data.lastUpdated) : "—"}
           </p>
         </>
       ) : (

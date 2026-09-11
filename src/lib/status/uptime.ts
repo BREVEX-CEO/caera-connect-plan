@@ -20,6 +20,7 @@
 
 import type { ComponentState } from "./state";
 
+import { formatDateTime } from "@/lib/locale/format";
 export interface UptimeSample {
   /** ISO instant of the observation. */
   at: string;
@@ -96,9 +97,7 @@ export function describeWindow(window: UptimeWindow): string {
   if (!window.samples || window.percentage === null) {
     return "No checks recorded in this browser yet.";
   }
-  const since = window.firstObservedAt
-    ? new Date(window.firstObservedAt).toLocaleString()
-    : "an unknown time";
+  const since = window.firstObservedAt ? formatDateTime(window.firstObservedAt) : "an unknown time";
   return `${window.percentage}% over ${window.samples} check${
     window.samples === 1 ? "" : "s"
   } made in this browser since ${since}. This is not a fleet-wide uptime history.`;

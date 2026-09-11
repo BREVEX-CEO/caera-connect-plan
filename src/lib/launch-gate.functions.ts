@@ -70,6 +70,9 @@ async function assertAdmin(supabase: AdminRoleQuery, userId: string) {
   }
 }
 
+/** The launch-gate checklist is fixed; the cap is a guard, not a page size. */
+const GATE_ITEM_CAP = 500;
+
 export const updateLaunchGateItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) => updateItemInput.parse(input))
@@ -195,7 +198,10 @@ export const upsertFeatureFlag = createServerFn({ method: "POST" })
 
     const { data: gateRows, error: gatesError } = await supabaseAdmin
       .from("launch_gate_items")
-      .select("key,status,blocker,owner,reviewer,evidence_url,applicable_modules");
+      .select("key,status,blocker,owner,reviewer,evidence_url,applicable_modules")
+      // The gate list is a fixed checklist; the cap keeps a corrupted or
+      // unexpectedly large table from turning verification into a stall.
+      .limit(GATE_ITEM_CAP);
     if (gatesError) {
       return {
         ok: false as const,

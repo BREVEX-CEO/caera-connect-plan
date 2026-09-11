@@ -260,6 +260,7 @@ import { memoryContextFrom } from "@/lib/memory/portable";
 import { classifyFreshness } from "@/lib/research/freshness-classifier";
 import { retrieveCurrentInformation } from "@/lib/research.functions";
 import type { CurrentInformationPacket } from "@/lib/research/current-information";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 export const Route = createFileRoute("/_authenticated/ocade/")({
   head: () => ({
@@ -989,6 +990,7 @@ function ChatSurface(props: {
   onInitialMessageHandled: (id: string) => void;
   onOpenConversation: (id: string) => void;
 }) {
+  const formatters = useFormatters();
   const {
     conversation,
     messages,
@@ -4180,9 +4182,7 @@ function ChatSurface(props: {
                             <span className="ml-1 text-[10px] text-muted-foreground/80">
                               {c.publishedAt ? `as of ${c.publishedAt}` : ""}
                               {c.publishedAt && c.retrievedAt ? " · " : ""}
-                              {c.retrievedAt
-                                ? `read ${new Date(c.retrievedAt).toLocaleString()}`
-                                : ""}
+                              {c.retrievedAt ? `read ${formatters.dateTime(c.retrievedAt)}` : ""}
                             </span>
                           ) : null}
                           {c.snippet ? (

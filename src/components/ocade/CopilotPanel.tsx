@@ -50,6 +50,7 @@ import {
   computerUseChannelDecision,
   computerUsePermissionDecision,
 } from "@/lib/computer-use-settings";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 /**
  * Registers the Copilot panel with the surrounding WorkspaceShell so the shell
@@ -190,6 +191,7 @@ function ScreenUnderstanding() {
  * — it never renders a control that would silently do nothing.
  */
 export function CopilotPanel() {
+  const formatters = useFormatters();
   const online = useOnline();
   const [status, setStatus] = useState<CompanionStatus | null>(null);
   const [checking, setChecking] = useState(true);
@@ -260,6 +262,23 @@ export function CopilotPanel() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+  /*
+   * A CALLBACK, BECAUSE THE TIMESTAMP NOW FOLLOWS THE READER'S LOCALE.
+   *
+   * It used to call `toLocaleTimeString()`, which reads the browser rather than
+   * the locale this person chose. Taking it from the bound formatters makes
+   * this function's identity depend on the locale, so the effect that uses it
+   * depends on it too rather than closing over a copy that would keep stamping
+   * times in the previous one.
+   */
+  const appendLog = useCallback(
+    (text: string, ok: boolean) => {
+      setLog((l) =>
+        [{ at: formatters.time(Date.now()), text: redactForAudit(text), ok }, ...l].slice(0, 20),
+      );
+    },
+    [formatters],
+  );
 
   // Live progress straight from the host, so the panel reflects what is actually
   // happening rather than only what this tab initiated.
@@ -277,13 +296,7 @@ export function CopilotPanel() {
       offEnd();
       offStop();
     };
-  }, []);
-
-  function appendLog(text: string, ok: boolean) {
-    setLog((l) =>
-      [{ at: new Date().toLocaleTimeString(), text: redactForAudit(text), ok }, ...l].slice(0, 20),
-    );
-  }
+  }, [appendLog]);
 
   /** Preview an action: risk-check it before anything is proposed to the user. */
   async function propose(action: CompanionAction) {
@@ -831,9 +844,7 @@ export function CopilotPanel() {
                   ) : (
                     <XCircle className="mt-0.5 h-3 w-3 shrink-0 text-destructive" aria-hidden />
                   )}
-                  <span className="text-muted-foreground">
-                    {new Date(e.at * 1000).toLocaleTimeString()}
-                  </span>
+                  <span className="text-muted-foreground">{formatters.time(e.at * 1000)}</span>
                   <span className="flex-1">{e.detail}</span>
                 </li>
               ))}

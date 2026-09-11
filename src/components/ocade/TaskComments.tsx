@@ -13,8 +13,10 @@ import {
   toggleTaskCommentReaction,
   type TaskComment,
 } from "@/lib/comments/task-comments";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 export function TaskComments({ taskId }: { taskId: string }) {
+  const formatters = useFormatters();
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -176,7 +178,7 @@ export function TaskComments({ taskId }: { taskId: string }) {
             {comment.resolvedAt ? " · resolved" : ""}
             {comment.archivedAt ? " · archived" : ""}
           </span>
-          <time dateTime={comment.updatedAt}>{new Date(comment.updatedAt).toLocaleString()}</time>
+          <time dateTime={comment.updatedAt}>{formatters.dateTime(comment.updatedAt)}</time>
         </div>
         <p className="mt-2 whitespace-pre-wrap text-sm">{comment.body}</p>
         {mentions.length ? (

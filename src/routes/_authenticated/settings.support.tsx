@@ -10,6 +10,7 @@ import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { preflight } from "@/lib/edge/preflight";
 import { cn } from "@/lib/utils";
 import { LIST_CAP } from "@/lib/supabase/read-all";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 type Ticket = {
   id: string;
@@ -42,6 +43,7 @@ function unsafeSupportDetail(text: string): string | null {
 }
 
 function SupportPage() {
+  const formatters = useFormatters();
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -256,7 +258,7 @@ function SupportPage() {
                     <p>{message.body}</p>
                     <p className="mt-2 text-[10px] text-muted-foreground">
                       {message.author_role === "support" ? "OCADE Support" : "You"} ·{` `}
-                      {new Date(message.created_at).toLocaleString()}
+                      {formatters.dateTime(message.created_at)}
                     </p>
                   </article>
                 ))}

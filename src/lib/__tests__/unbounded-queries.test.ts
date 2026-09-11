@@ -18,15 +18,18 @@ import { describe, expect, it } from "vitest";
  * mistake is invisible at the size everything is tested at.
  */
 
-/** Tables whose row count is fixed by something other than user behaviour. */
-const NATURALLY_BOUNDED: Record<string, string> = {
-  feature_flags: "deployment configuration, not user data",
-  launch_gate_items: "the launch checklist, a fixed list",
-  launch_gate_history: "admin-only audit of that fixed list",
-  user_roles: "roles held, which is a handful even for an administrator",
-  devices: "devices a person has paired",
-  browser_grants: "one per paired browser",
-};
+/**
+ * Tables whose row count is fixed by something other than user behaviour.
+ *
+ * EMPTY SINCE PHASE 18, AND THAT IS THE POINT. Six tables were exempt here on
+ * the reasoning that they cannot grow — feature flags, the launch checklist and
+ * its history, roles, devices, browser grants. Every one of those reads now
+ * carries an explicit cap instead, because "this table cannot grow" is a
+ * prediction and `.limit()` is a fact. The exemption mechanism stays: a genuine
+ * fixed catalogue may be listed again, with its reason, and the test below
+ * still insists something actually reads it.
+ */
+const NATURALLY_BOUNDED: Record<string, string> = {};
 
 function sourceFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -95,12 +98,19 @@ describe("no query reads a growing table without a bound", () => {
     expect(described).toEqual([]);
   });
 
-  it.each(Object.entries(NATURALLY_BOUNDED))(
-    "%s is exempt for a stated reason: %s",
-    (table, reason) => {
-      expect(reason.length).toBeGreaterThan(10);
-      // An exemption for a table nothing reads is an exemption nobody checked.
-      expect(findings.some((f) => f.table === table)).toBe(true);
-    },
-  );
+  it("keeps no exemption for a table nothing actually reads", () => {
+    /*
+     * An exemption that outlives its query is an exemption nobody checked, and
+     * it is how a list like this turns into a place to put things. Written as
+     * one test over the entries rather than `it.each`, so an empty list is a
+     * passing assertion about nothing rather than zero tests.
+     */
+    for (const [table, reason] of Object.entries(NATURALLY_BOUNDED)) {
+      expect(reason.length, table).toBeGreaterThan(10);
+      expect(
+        findings.some((finding) => finding.table === table),
+        `${table} is exempt but no unbounded read of it remains`,
+      ).toBe(true);
+    }
+  });
 });

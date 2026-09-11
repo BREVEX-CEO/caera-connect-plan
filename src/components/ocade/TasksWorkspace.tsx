@@ -20,6 +20,7 @@ import {
   resumeAutomationRun,
 } from "@/lib/ocade-automations.functions";
 import { describeStaleness, fetchWithMirror } from "@/lib/offline/mirror";
+import { useFormatters } from "@/lib/locale/use-formatters";
 
 /**
  * The tasks surface, shared by `/ocade/tasks` and `/settings/tasks`.
@@ -53,6 +54,7 @@ const AutomationsWorkspace = lazy(() =>
 );
 
 export function TasksWorkspace({ backTo, backLabel }: { backTo: string; backLabel: string }) {
+  const formatters = useFormatters();
   const { user } = useSession();
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
@@ -288,8 +290,7 @@ export function TasksWorkspace({ backTo, backLabel }: { backTo: string; backLabe
                       <StatusBadge status={a.enabled && !a.paused ? "active" : "planned"} />
                       <span>{a.dry_run ? "dry run" : "live"}</span>
                       <span>
-                        Next{" "}
-                        {a.next_run_at ? new Date(a.next_run_at).toLocaleString() : "on demand"}
+                        Next {a.next_run_at ? formatters.dateTime(a.next_run_at) : "on demand"}
                       </span>
                     </div>
                   </div>
@@ -356,7 +357,7 @@ export function TasksWorkspace({ backTo, backLabel }: { backTo: string; backLabe
                         {r.status}
                       </span>
                       <span>attempt {r.attempt}</span>
-                      <span>{new Date(r.created_at).toLocaleString()}</span>
+                      <span>{formatters.dateTime(r.created_at)}</span>
                       {r.error ? (
                         <span className="text-destructive">{r.error}</span>
                       ) : r.blocked_reason ? (
