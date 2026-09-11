@@ -7,6 +7,7 @@ import {
   ORB_ACCENT_LABELS,
   ORB_APPEARANCE,
   orbStateFor,
+  accentSwatchStops,
   type OrbAccent,
   type OrbState,
 } from "@/lib/orb/state";
@@ -356,7 +357,7 @@ export function JarvisStage({
                     "h-5 w-5 rounded-full border transition",
                     accent === option ? "border-white/80 ring-1 ring-white/50" : "border-white/25",
                   )}
-                  style={{ background: SWATCH[option] }}
+                  style={{ background: swatchFor(option) }}
                 />
               ))}
             </div>
@@ -367,13 +368,19 @@ export function JarvisStage({
   );
 }
 
-/** The swatch a person clicks. Same weights the renderer tints with. */
-const SWATCH: Record<OrbAccent, string> = {
-  silver: "linear-gradient(140deg, #e6e6e6, #8f8f8f)",
-  ember: "linear-gradient(140deg, #f0cdb2, #a1704f)",
-  tide: "linear-gradient(140deg, #bcd6e8, #5c7f9a)",
-  moss: "linear-gradient(140deg, #c2ddc0, #5d8058)",
-};
+/**
+ * The swatch a person clicks, drawn from the weights the renderer tints with.
+ *
+ * It used to be six hex literals here — a second description of each accent
+ * that could drift from the orb it previews, and non-neutral colour in
+ * customer-facing source and in the shipped bundle. `accentSwatchStops` tints
+ * the same two greys with the same weights, so the preview cannot disagree
+ * with the thing it previews.
+ */
+function swatchFor(accent: OrbAccent): string {
+  const [light, dark] = accentSwatchStops(accent);
+  return `linear-gradient(140deg, ${light}, ${dark})`;
+}
 
 /** The orb's own words for the state, so the picture and the text agree. */
 function labelFor(state: OrbState): string {

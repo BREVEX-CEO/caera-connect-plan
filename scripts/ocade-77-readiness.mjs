@@ -201,20 +201,30 @@ export const OCADE_77_READINESS = [
     classification: "source+test",
     evidence: ["src/routes/_authenticated/ocade.artifacts.tsx", "src/lib/artifacts"],
   },
+  /*
+   * ITEMS 30 AND 31 WERE WRITTEN FOR THE PRE-SUPABASE PRODUCT, and both their
+   * requirement text and their evidence paths outlived it. "Durable
+   * device-authoritative scoped records" and "reads device records first and
+   * merges private sync" describe the browser-vault architecture that Phase 2
+   * replaced: ordinary user content is Supabase-authoritative now, and
+   * `local-projects.ts` and `local-search.ts` were deleted with the stores they
+   * named. Restated against the authorities that exist, so the contract checks
+   * the product rather than its history.
+   */
   {
     id: 30,
-    requirement: "Projects use durable device-authoritative scoped records",
+    requirement: "Projects are scoped, server-authoritative records the account owns",
     classification: "source+test",
     evidence: [
       "src/routes/_authenticated/ocade.projects.tsx",
-      "src/lib/projects/local-projects.ts",
+      "src/lib/ocade-projects.functions.ts",
     ],
   },
   {
     id: 31,
-    requirement: "Universal Search reads device records first and merges private sync",
+    requirement: "Universal Search reads the account's own records and ranks them consistently",
     classification: "source-inspected",
-    evidence: ["src/routes/_authenticated/ocade.search.tsx", "src/lib/search/local-search.ts"],
+    evidence: ["src/routes/_authenticated/ocade.search.tsx", "src/lib/search/results.ts"],
   },
   {
     id: 32,

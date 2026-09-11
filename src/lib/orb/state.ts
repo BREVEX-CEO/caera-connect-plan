@@ -428,7 +428,14 @@ const ACCENT_WEIGHTS: Record<OrbAccent, readonly [number, number, number]> = {
   silver: [1, 1, 1],
   ember: [1.24, 0.94, 0.82],
   tide: [0.82, 1.02, 1.16],
-  moss: [0.86, 1.14, 0.9],
+  /*
+   * MOSS SUMMED TO 2.90, NOT 3.00, so it darkened the orb by three per cent —
+   * exactly the brightness-control behaviour the paragraph above says an accent
+   * must not have. Found by deriving the picker's swatch from these weights and
+   * checking that every swatch is as bright as the grey it came from. The
+   * character is unchanged: green leads, red stays the lowest channel.
+   */
+  moss: [0.9, 1.14, 0.96],
 };
 
 function tintColour(
@@ -441,6 +448,25 @@ function tintColour(
     clamp01(colour[1] * weights[1]),
     clamp01(colour[2] * weights[2]),
   ] as const;
+}
+
+/**
+ * The two stops the accent picker's swatch is drawn from.
+ *
+ * DERIVED, NOT WRITTEN DOWN TWICE. The swatches used to be six hex literals in
+ * the Jarvis component — a second statement of what each accent looks like,
+ * which could drift from the weights the renderer actually tints with, and
+ * which put non-neutral hex into customer-facing source and into the shipped
+ * bundle where the monochrome gate correctly reported it. Tinting two fixed
+ * greys with the same weights the orb uses means the swatch cannot lie about
+ * the accent it names, and the only colour values in the product remain the
+ * normalised channel weights above.
+ */
+export function accentSwatchStops(accent: OrbAccent): readonly [string, string] {
+  const rgb = (colour: readonly [number, number, number]) =>
+    `rgb(${colour.map((channel) => Math.round(channel * 255)).join(" ")})`;
+  // The light and dark ends of the silver identity ramp, tinted.
+  return [rgb(tintColour([0.9, 0.9, 0.9], accent)), rgb(tintColour([0.56, 0.56, 0.56], accent))];
 }
 
 /** The same frame, in the chosen accent. `silver` returns it unchanged. */

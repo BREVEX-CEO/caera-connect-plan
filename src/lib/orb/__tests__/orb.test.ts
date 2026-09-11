@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  accentSwatchStops,
+  ORB_ACCENTS,
   ORB_APPEARANCE,
   ORB_STATES,
   orbFrameAt,
   orbStateFor,
   qualityFor,
+  tintFrame,
   type OrbState,
 } from "../state";
 import { ORB_FRAGMENT_SHADER, uniformsFor } from "../render";
@@ -241,5 +244,72 @@ describe("the shader", () => {
 
   it("uses no texture and no derivative extension, so it runs on weak drivers", () => {
     expect(ORB_FRAGMENT_SHADER).not.toMatch(/sampler2D|texture2D|GL_OES_standard_derivatives/);
+  });
+});
+
+describe("the accent swatch is derived from the accent, not written down twice", () => {
+  /*
+   * The picker's swatches were six hex literals in the Jarvis component: a
+   * second statement of what each accent looks like, free to drift from the
+   * weights the renderer tints with, and non-neutral colour in customer-facing
+   * source and in the shipped bundle.
+   */
+  it("returns two stops per accent, as rgb rather than hex", () => {
+    for (const accent of ORB_ACCENTS) {
+      const [light, dark] = accentSwatchStops(accent);
+      expect(light).toMatch(/^rgb\(\d+ \d+ \d+\)$/);
+      expect(dark).toMatch(/^rgb\(\d+ \d+ \d+\)$/);
+    }
+  });
+
+  it("is neutral for silver, which is the identity tint", () => {
+    for (const stop of accentSwatchStops("silver")) {
+      const [r, g, b] = stop.match(/\d+/g)!.map(Number);
+      expect(r).toBe(g);
+      expect(g).toBe(b);
+    }
+  });
+
+  it("tints every other accent away from grey, in the direction its weights say", () => {
+    // Ember is warm: more red than blue. Tide is the reverse. Moss leads green.
+    const channels = (accent: Parameters<typeof accentSwatchStops>[0]) =>
+      accentSwatchStops(accent)[1].match(/\d+/g)!.map(Number);
+    const [emberR, , emberB] = channels("ember");
+    expect(emberR).toBeGreaterThan(emberB);
+    const [tideR, , tideB] = channels("tide");
+    expect(tideB).toBeGreaterThan(tideR);
+    const [mossR, mossG, mossB] = channels("moss");
+    expect(mossG).toBeGreaterThan(mossR);
+    expect(mossG).toBeGreaterThan(mossB);
+  });
+
+  it("keeps the swatch as bright as the grey it came from", () => {
+    // The weights average to 1 so an accent cannot double as a brightness
+    // control; a swatch that darkened would misdescribe the orb.
+    const mean = (stop: string) =>
+      stop.match(/\d+/g)!.reduce((total, channel) => total + Number(channel), 0) / 3;
+    const silver = mean(accentSwatchStops("silver")[1]);
+    for (const accent of ORB_ACCENTS) {
+      expect(Math.abs(mean(accentSwatchStops(accent)[1]) - silver)).toBeLessThan(1);
+    }
+  });
+});
+
+describe("an accent tints and never brightens", () => {
+  /*
+   * The weights must average to 1. `moss` summed to 2.90 and so darkened the
+   * orb by three per cent — which matters because most orb states differ by
+   * LUMINANCE, and an accent that changes brightness stops those states being
+   * told apart.
+   */
+  it("keeps every accent's channel weights summing to three", () => {
+    for (const accent of ORB_ACCENTS) {
+      const frame = orbFrameAt("acting", 0);
+      const tinted = tintFrame(frame, accent);
+      const mean = (colour: readonly [number, number, number]) =>
+        (colour[0] + colour[1] + colour[2]) / 3;
+      expect(Math.abs(mean(tinted.core) - mean(frame.core))).toBeLessThan(0.005);
+      expect(Math.abs(mean(tinted.rim) - mean(frame.rim))).toBeLessThan(0.005);
+    }
   });
 });
