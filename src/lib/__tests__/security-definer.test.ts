@@ -33,6 +33,7 @@ interface Definer {
 }
 
 let definers: Definer[] = [];
+let helpers: (readonly [string, string])[] = [];
 
 const ALICE = "a1a1a1a1-1111-4111-8111-a1a1a1a1a1a1";
 const BOB = "b0b0b0b0-2222-4222-8222-b0b0b0b0b0b0";
@@ -51,6 +52,19 @@ beforeAll(async () => {
       join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'public' and p.prosecdef
      order by p.proname`);
+
+  /*
+   * The `private` helpers come too, though none of them is browser-reachable.
+   * Authorization in this schema is resolved through them — a function that
+   * calls `private.ocade_is_support_admin()` IS bound to its caller — and a
+   * scope computed without their bodies would call such a function blind.
+   */
+  helpers = (
+    await twin.asSuperuser<{ name: string; body: string }>(`
+      select p.proname as name, pg_get_functiondef(p.oid) as body
+        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'private' and p.prokind = 'f'`)
+  ).map((row) => [row.name, row.body] as const);
 
   await twin.execSuperuser(`
     insert into auth.users (id, email) values
@@ -83,7 +97,9 @@ describe("elevated functions", () => {
      * subsystem whose shared authorization helpers the text search could not
      * see.
      */
-    const scoped = callerScopedFunctions(new Map(definers.map((d) => [d.name, d.body])));
+    const scoped = callerScopedFunctions(
+      new Map([...helpers, ...definers.map((d) => [d.name, d.body] as const)]),
+    );
     const blind = definers
       .filter((d) => d.authed)
       .filter((d) => !scoped.has(d.name) && !TOKEN_AUTHORIZED_FUNCTIONS.has(d.name))

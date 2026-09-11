@@ -5,10 +5,10 @@
 
 ## Summary
 
-- Route modules: 98
-- Ledger records: 98
+- Route modules: 99
+- Ledger records: 99
 - Canonical areas: 10
-- Canonical: 33
+- Canonical: 34
 - Supporting: 42
 - Migrate: 23
 - Absorb: 0
@@ -67,6 +67,7 @@
 | `_authenticated/admin.help`               | `/admin/help`                  | CANONICAL   | —                    | §L's admin publishing workflow and §G's help-content management, over the one article authority.                                                                                                                                                                                                                                                                                                        |
 | `_authenticated/admin.status`             | `/admin/status`                | CANONICAL   | —                    | §K's administrator incident controls and §G's status/incidents management, against the one incident authority.                                                                                                                                                                                                                                                                                          |
 | `_authenticated/admin.operations`         | `/admin/operations`            | CANONICAL   | —                    | §G's usage overview, commercial-usage windows, audit log and notification delivery status, in one place.                                                                                                                                                                                                                                                                                                |
+| `_authenticated/admin.billing`            | `/admin/billing`               | CANONICAL   | —                    | §G's billing and seat overview and payment-event state, plus the audited entitlement grants §H requires. Held until Phase 19 gave the deployment one subscription authority to point it at.                                                                                                                                                                                                             |
 | `_authenticated/admin.launch-gate`        | `/admin/launch-gate`           | CANONICAL   | —                    | §4 Administration.                                                                                                                                                                                                                                                                                                                                                                                      |
 | `_authenticated/admin.payments-checklist` | `/admin/payments-checklist`    | CANONICAL   | —                    | §4 Administration.                                                                                                                                                                                                                                                                                                                                                                                      |
 | `_authenticated/access-denied`            | `/access-denied`               | SUPPORTING  | —                    | Where an unauthorised navigation lands. Not a destination anybody chooses.                                                                                                                                                                                                                                                                                                                              |

@@ -88,6 +88,18 @@ export interface UpdateInstruction {
   paddleSubscriptionId: string;
   patch: {
     status?: string;
+    /*
+     * PRESENT ONLY WHEN THE PLAN ITSELF CHANGED.
+     *
+     * An upgrade or a downgrade arrives as `subscription.updated` carrying a
+     * different item, and the price id is what decides the tier — so a patch
+     * that carried only the period would leave somebody who upgraded to Max
+     * paying for Max and using Pro, and somebody who downgraded still holding
+     * the larger allowance. Optional rather than always sent: an event with no
+     * catalogue ids must not blank the ones on the row.
+     */
+    price_id?: string;
+    product_id?: string;
     current_period_start?: string | null;
     current_period_end?: string | null;
     cancel_at_period_end?: boolean;
@@ -243,11 +255,23 @@ export function decide(
       }
       const period = asRecord(pick(data, "currentBillingPeriod", "current_billing_period"));
       const change = asRecord(pick(data, "scheduledChange", "scheduled_change"));
+      /*
+       * AN UPGRADE OR A DOWNGRADE IS THIS EVENT, carrying a different item.
+       *
+       * The tier is resolved from `price_id`, so leaving it alone would mean a
+       * customer who upgraded kept the smaller allowance they had just paid to
+       * leave — and one who downgraded kept the larger one they had stopped
+       * paying for. The ids are only carried when the event actually names
+       * them: a `subscription.updated` that reports a period change and no
+       * items must not blank the plan on the row.
+       */
+      const { priceId, productId } = catalogueIds(firstItem(data));
       return {
         action: "update",
         paddleSubscriptionId: id,
         patch: {
           ...(typeof data["status"] === "string" ? { status: data["status"] as string } : {}),
+          ...(priceId && productId ? { price_id: priceId, product_id: productId } : {}),
           current_period_start: (pick(period ?? {}, "startsAt", "starts_at") as string) ?? null,
           current_period_end: (pick(period ?? {}, "endsAt", "ends_at") as string) ?? null,
           cancel_at_period_end: change?.["action"] === "cancel",

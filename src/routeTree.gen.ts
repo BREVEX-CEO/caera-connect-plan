@@ -54,6 +54,7 @@ import { Route as SupportIndexRouteImport } from './routes/support.index'
 import { Route as SupportSlugRouteImport } from './routes/support.$slug'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authenticated/admin.billing'
 import { Route as AuthenticatedAdminHelpRouteImport } from './routes/_authenticated/admin.help'
 import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_authenticated/admin.launch-gate'
 import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_authenticated/admin.operations'
@@ -333,6 +334,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminBillingRoute =
+  AuthenticatedAdminBillingRouteImport.update({
+    id: '/admin/billing',
+    path: '/admin/billing',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminHelpRoute = AuthenticatedAdminHelpRouteImport.update({
   id: '/admin/help',
   path: '/admin/help',
@@ -680,6 +687,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/support/': typeof SupportIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/help': typeof AuthenticatedAdminHelpRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsRoute
@@ -775,6 +783,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/support': typeof SupportIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/help': typeof AuthenticatedAdminHelpRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsRoute
@@ -875,6 +884,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/support/': typeof SupportIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/_authenticated/admin/help': typeof AuthenticatedAdminHelpRoute
   '/_authenticated/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRoute
@@ -975,6 +985,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/support/'
     | '/.lovable/oauth/consent'
+    | '/admin/billing'
     | '/admin/help'
     | '/admin/launch-gate'
     | '/admin/operations'
@@ -1070,6 +1081,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/support'
     | '/.lovable/oauth/consent'
+    | '/admin/billing'
     | '/admin/help'
     | '/admin/launch-gate'
     | '/admin/operations'
@@ -1169,6 +1181,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/support/'
     | '/.lovable/oauth/consent'
+    | '/_authenticated/admin/billing'
     | '/_authenticated/admin/help'
     | '/_authenticated/admin/launch-gate'
     | '/_authenticated/admin/operations'
@@ -1575,6 +1588,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/billing': {
+      id: '/_authenticated/admin/billing'
+      path: '/admin/billing'
+      fullPath: '/admin/billing'
+      preLoaderRoute: typeof AuthenticatedAdminBillingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/help': {
@@ -2059,6 +2079,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedOrganizationRoute: typeof AuthenticatedOrganizationRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
+  AuthenticatedAdminBillingRoute: typeof AuthenticatedAdminBillingRoute
   AuthenticatedAdminHelpRoute: typeof AuthenticatedAdminHelpRoute
   AuthenticatedAdminLaunchGateRoute: typeof AuthenticatedAdminLaunchGateRoute
   AuthenticatedAdminOperationsRoute: typeof AuthenticatedAdminOperationsRoute
@@ -2080,6 +2101,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedOrganizationRoute: AuthenticatedOrganizationRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
+  AuthenticatedAdminBillingRoute: AuthenticatedAdminBillingRoute,
   AuthenticatedAdminHelpRoute: AuthenticatedAdminHelpRoute,
   AuthenticatedAdminLaunchGateRoute: AuthenticatedAdminLaunchGateRoute,
   AuthenticatedAdminOperationsRoute: AuthenticatedAdminOperationsRoute,

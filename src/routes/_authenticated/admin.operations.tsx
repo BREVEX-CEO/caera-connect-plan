@@ -36,15 +36,15 @@ import { useFormatters, type Formatters } from "@/lib/locale/use-formatters";
  * whole of §G's "authorized exports": the authorisation is the read, and the
  * export is a copy of it.
  *
- * WHAT IS DELIBERATELY NOT HERE. §G also asks for a billing and seat overview
- * and for payment-event state. The deployment currently carries TWO
- * subscription tables written by two different paths — `subscriptions`, which
- * the provider webhook writes, and `ocade_subscriptions`, which the entitlement
- * resolver reads — and an operator screen that picked one of them would be
- * asserting an answer to the question the payments work exists to settle. It is
- * recorded in the execution state and held with that work rather than guessed
- * at here, because a billing screen that is confidently wrong is worse than one
- * that does not exist yet.
+ * WHAT IS DELIBERATELY NOT HERE. §G's billing and seat overview and its
+ * payment-event state live on `/admin/billing`, not here. They were held back
+ * while the deployment carried two subscription tables written by two
+ * different paths, because an operator screen that picked one of them would
+ * have asserted an answer to the question the payments work existed to settle.
+ * Phase 19 settled it, and the screen was built there rather than folded in
+ * here: money and allowances are different questions asked by different people
+ * on different days, and one console answering both is how each half gets
+ * harder to find.
  *
  * NOTIFICATION DELIVERY IS COUNTS. Answering "is email working?" from raw rows
  * would put every title and body in the deployment in front of an operator, and

@@ -140,8 +140,14 @@ async function handleWebhook(req: Request, env: PaddleEnv) {
       row?.paddle_subscription_id ??
       (instruction.action === "update" ? instruction.paddleSubscriptionId : null),
     p_paddle_customer_id: row?.paddle_customer_id ?? null,
-    p_product_id: row?.product_id ?? null,
-    p_price_id: row?.price_id ?? null,
+    /*
+     * AN UPGRADE OR A DOWNGRADE CHANGES THE PLAN ON AN EXISTING ROW, so the
+     * catalogue ids are sent for an update too. The function coalesces them,
+     * and `decide` only puts them in a patch when the event actually named
+     * them — so an ordinary period update still leaves the plan alone.
+     */
+    p_product_id: row?.product_id ?? patch?.product_id ?? null,
+    p_price_id: row?.price_id ?? patch?.price_id ?? null,
     p_status: row?.status ?? patch?.status ?? null,
     p_current_period_start: row?.current_period_start ?? patch?.current_period_start ?? null,
     p_current_period_end: row?.current_period_end ?? patch?.current_period_end ?? null,

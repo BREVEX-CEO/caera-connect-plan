@@ -2435,6 +2435,48 @@ export type Database = {
           },
         ]
       }
+      ocade_entitlement_grants: {
+        Row: {
+          created_at: string
+          ends_at: string
+          granted_by: string
+          id: string
+          reason: string
+          revoked_at: string | null
+          revoked_by: string | null
+          revoked_reason: string | null
+          starts_at: string
+          tier: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          granted_by: string
+          id?: string
+          reason: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          revoked_reason?: string | null
+          starts_at?: string
+          tier: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          granted_by?: string
+          id?: string
+          reason?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          revoked_reason?: string | null
+          starts_at?: string
+          tier?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_generation_permits: {
         Row: {
           charged_hundredths: number | null
@@ -3548,6 +3590,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ocade_retired_subscriptions: {
+        Row: {
+          catalogue_version: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          plan_id: string
+          retired_at: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          catalogue_version?: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          plan_id: string
+          retired_at?: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Update: {
+          catalogue_version?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          plan_id?: string
+          retired_at?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_status_incident_updates: {
         Row: {
           body: string
@@ -3628,41 +3709,50 @@ export type Database = {
         }
         Relationships: []
       }
-      ocade_subscriptions: {
+      ocade_support_access_events: {
         Row: {
-          catalogue_version: string
-          created_at: string
-          expires_at: string
+          admin_id: string
+          grant_id: string
           id: string
-          plan_id: string
-          started_at: string
-          status: string
-          updated_at: string
-          user_id: string
+          object_id: string
+          object_kind: string
+          read_at: string
+          ticket_id: string
         }
         Insert: {
-          catalogue_version?: string
-          created_at?: string
-          expires_at: string
+          admin_id: string
+          grant_id: string
           id?: string
-          plan_id: string
-          started_at?: string
-          status?: string
-          updated_at?: string
-          user_id: string
+          object_id: string
+          object_kind: string
+          read_at?: string
+          ticket_id: string
         }
         Update: {
-          catalogue_version?: string
-          created_at?: string
-          expires_at?: string
+          admin_id?: string
+          grant_id?: string
           id?: string
-          plan_id?: string
-          started_at?: string
-          status?: string
-          updated_at?: string
-          user_id?: string
+          object_id?: string
+          object_kind?: string
+          read_at?: string
+          ticket_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ocade_support_access_events_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_support_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocade_support_access_events_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ocade_support_article_revisions: {
         Row: {
@@ -3742,86 +3832,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ocade_support_messages: {
-        Row: {
-          author_id: string
-          author_role: string
-          body: string
-          created_at: string
-          id: string
-          ticket_id: string
-        }
-        Insert: {
-          author_id: string
-          author_role: string
-          body: string
-          created_at?: string
-          id?: string
-          ticket_id: string
-        }
-        Update: {
-          author_id?: string
-          author_role?: string
-          body?: string
-          created_at?: string
-          id?: string
-          ticket_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ocade_support_messages_ticket_id_fkey"
-            columns: ["ticket_id"]
-            isOneToOne: false
-            referencedRelation: "ocade_support_tickets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ocade_support_access_events: {
-        Row: {
-          admin_id: string
-          grant_id: string
-          id: string
-          object_id: string
-          object_kind: string
-          read_at: string
-          ticket_id: string
-        }
-        Insert: {
-          admin_id: string
-          grant_id: string
-          id?: string
-          object_id: string
-          object_kind: string
-          read_at?: string
-          ticket_id: string
-        }
-        Update: {
-          admin_id?: string
-          grant_id?: string
-          id?: string
-          object_id?: string
-          object_kind?: string
-          read_at?: string
-          ticket_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ocade_support_access_events_grant_id_fkey"
-            columns: ["grant_id"]
-            isOneToOne: false
-            referencedRelation: "ocade_support_grants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ocade_support_access_events_ticket_id_fkey"
-            columns: ["ticket_id"]
-            isOneToOne: false
-            referencedRelation: "ocade_support_tickets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ocade_support_grants: {
         Row: {
           admin_id: string
@@ -3853,6 +3863,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ocade_support_grants_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_support_messages: {
+        Row: {
+          author_id: string
+          author_role: string
+          body: string
+          created_at: string
+          id: string
+          ticket_id: string
+        }
+        Insert: {
+          author_id: string
+          author_role: string
+          body: string
+          created_at?: string
+          id?: string
+          ticket_id: string
+        }
+        Update: {
+          author_id?: string
+          author_role?: string
+          body?: string
+          created_at?: string
+          id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_support_messages_ticket_id_fkey"
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "ocade_support_tickets"
@@ -4758,6 +4803,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      ocade_active_entitlement_grant: {
+        Args: { target_user: string }
+        Returns: {
+          ends_at: string
+          reason: string
+          starts_at: string
+          tier: string
+        }[]
+      }
       ocade_admin_notification_delivery: {
         Args: { p_since: string }
         Returns: {
@@ -4765,6 +4819,17 @@ export type Database = {
           channel: string
           occurrences: number
           state: string
+        }[]
+      }
+      ocade_admin_seat_overview: {
+        Args: never
+        Returns: {
+          admins: number
+          created_at: string
+          organization_id: string
+          organization_name: string
+          pending_invites: number
+          seats: number
         }[]
       }
       ocade_allocate_offline_usage: {
@@ -4840,6 +4905,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      ocade_close_support_case: { Args: { grant_id: string }; Returns: boolean }
       ocade_complete_automation_run: {
         Args: {
           p_claim_token: string
@@ -4989,6 +5055,33 @@ export type Database = {
           outcome: string
         }[]
       }
+      ocade_grant_entitlement: {
+        Args: {
+          days?: number
+          grant_reason: string
+          grant_tier: string
+          target_user: string
+        }
+        Returns: {
+          created_at: string
+          ends_at: string
+          granted_by: string
+          id: string
+          reason: string
+          revoked_at: string | null
+          revoked_by: string | null
+          revoked_reason: string | null
+          starts_at: string
+          tier: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ocade_entitlement_grants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       ocade_heartbeat_automation_run: {
         Args: { p_claim_token: string; p_run_id: string }
         Returns: boolean
@@ -5020,6 +5113,15 @@ export type Database = {
         Args: { p_notification_id: string }
         Returns: number
       }
+      ocade_my_entitlement_grant: {
+        Args: never
+        Returns: {
+          ends_at: string
+          reason: string
+          starts_at: string
+          tier: string
+        }[]
+      }
       ocade_my_organizations_blocking_deletion: {
         Args: never
         Returns: {
@@ -5039,6 +5141,24 @@ export type Database = {
           p_title: string
         }
         Returns: string
+      }
+      ocade_open_support_case: {
+        Args: { case_reason: string; minutes?: number; target_ticket: string }
+        Returns: {
+          admin_id: string
+          expires_at: string
+          granted_at: string
+          id: string
+          reason: string
+          revoked_at: string | null
+          ticket_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ocade_support_grants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       ocade_org_active_owners: {
         Args: { p_excluding: string; p_organization_id: string }
@@ -5102,18 +5222,14 @@ export type Database = {
           week_window_start: string
         }[]
       }
-      ocade_close_support_case: { Args: { grant_id: string }; Returns: boolean }
-      ocade_open_support_case: {
-        Args: { case_reason: string; minutes?: number; target_ticket: string }
+      ocade_read_shared_conversation: {
+        Args: { p_token: string }
         Returns: {
-          admin_id: string
-          expires_at: string
-          granted_at: string
-          id: string
-          reason: string
-          revoked_at: string | null
-          ticket_id: string
-        }
+          message_count: number
+          messages: Json
+          snapshot_at: string
+          title: string
+        }[]
       }
       ocade_read_support_case: {
         Args: { target_ticket: string }
@@ -5123,16 +5239,6 @@ export type Database = {
           created_at: string
           id: string
           ticket_id: string
-        }[]
-      }
-      ocade_support_grant_active: { Args: { target_ticket: string }; Returns: boolean }
-      ocade_read_shared_conversation: {
-        Args: { p_token: string }
-        Returns: {
-          message_count: number
-          messages: Json
-          snapshot_at: string
-          title: string
         }[]
       }
       ocade_recent_proof_window: { Args: never; Returns: string }
@@ -5244,6 +5350,10 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: number
       }
+      ocade_revoke_entitlement: {
+        Args: { grant_id: string; revoke_reason: string }
+        Returns: boolean
+      }
       ocade_revoke_organization_invite: {
         Args: { p_invite_id: string }
         Returns: number
@@ -5302,6 +5412,10 @@ export type Database = {
       ocade_share_conversation: {
         Args: { p_conversation_id: string; p_expires_at?: string }
         Returns: string
+      }
+      ocade_support_grant_active: {
+        Args: { target_ticket: string }
+        Returns: boolean
       }
       ocade_suspend_automation_run: {
         Args: {

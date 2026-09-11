@@ -1379,6 +1379,90 @@ chunk 394.4 KiB of 450 KiB, CSS 136.2 KiB of 145 KiB, every on-device engine
 lazy. 8,066 unit tests, 256 database tests, typecheck, lint and format clean.
 
 
+## Phase 19 — Payments, refunds, disputes and Admin grants
+
+### Money arrived and access did not
+
+The deployment carried two subscription tables written by different code. The
+signature-verified Paddle webhook writes `public.subscriptions`, through an RPC
+with idempotency by event id and ordering by the provider's own timestamp.
+`entitlement-resolver.ts` read `public.ocade_subscriptions`. Nothing wrote it.
+
+So a customer could complete a real payment, have it verified, recorded and
+audited, and still be on Free — with every record in the deployment saying the
+purchase succeeded. That is not a missing feature; it is money taken for access
+not granted, and it is what `ADMIN-002` called "the defect underneath" its
+missing screen.
+
+All four payment tables were empty on the live project, so the merge destroyed
+no history. The rows `ocade_subscriptions` would have held name plans from a
+retired catalogue (`trial_2d`, `std_8d`) that no current price sells, so they
+are copied verbatim into `ocade_retired_subscriptions` rather than translated:
+rewriting one into a provider subscription would invent a payment that never
+happened.
+
+### A grant is recorded as the thing it is
+
+`ocade_entitlement_grants` holds who gave it, to whom, why, for how long and
+whether it was revoked. `ocade_grant_entitlement` is the only way one is ever
+created, and it checks the support-admin role, an `aal2` claim, a reason of at
+least ten characters, a window of one to 366 days, and that the target is not
+the account granting it — in the database, not only in the application, because
+a server function that forgets its middleware is a bug and a database that
+trusts the application to have remembered is a design. No policy lets a client
+write the table directly.
+
+`ocade_revoke_entitlement` sets state and keeps the row. Deleting it would erase
+the evidence that access was given, which is the half a dispute needs.
+
+The resolver takes the STRONGER of the paid tier and the granted tier. Taking
+whichever was read first would make the tier depend on query order; taking the
+subscription always would quietly cancel a support grant given to somebody who
+also pays.
+
+### The screen §G asked for, and could not have
+
+`/admin/billing` shows subscriptions, payment events, invoices, seats per
+organization and the grant audit, with the grant and revoke controls. The admin
+reads are policies on the data rather than a gate in the browser, every one
+`FOR SELECT`: an operator who could edit a subscription could grant paid access
+by hand and leave a record that looks like a payment. Seats are an aggregate
+function, so answering "how many seats is this workspace using" never hands an
+operator the membership of every workspace in the deployment.
+
+### The defect the phase turned up on the way
+
+`apply_payment_webhook_event` applied status, period and cancellation on an
+update and left `price_id` and `product_id` alone. The tier is resolved FROM the
+price id, so an upgrade left somebody paying for Max and using Pro, and a
+downgrade left them using the allowance they had stopped paying for — in both
+directions, with the event recorded as applied. Migration 98 coalesces the
+catalogue ids on update, and `decide` only carries them when the event names
+them, so a period-only update still leaves the plan alone. Both halves are
+proven in the twin: an upgrade reaches the row, and a period update does not
+blank it.
+
+### The gate that could not see a private helper
+
+`ocade_admin_seat_overview` authorizes through `private.ocade_is_support_admin()`,
+which is the pattern the security hardening established — and both gates that
+check "does this browser-reachable definer function bind its caller?" computed
+their fixpoint over `public` alone. They reported a correctly scoped function as
+blind, and the fix for that report would have been an exemption asserting the
+opposite of the truth. They read the `private` bodies now; the reachability
+query is unchanged, because only `public` functions are callable from a browser.
+
+### Gate
+
+97 and 98 applied live and proven in the twin, 98 migrations with paired
+rollback and verification. The browser journey drives the console as an
+ordinary account, as an administrator with no second factor, and as one with a
+verified factor: the refusal is the database's own sentence and no row is
+written, the grant then lands with its reason, and revoking keeps it. Both
+halves of that proof were confirmed by disabling the fixture's check and
+watching them fail.
+
+
 ## Next action
 
-Phase 19 — Payments, refunds, disputes and Admin grants (LAST).
+Phase 20 — Final reachability, disposal and documentation reconciliation.

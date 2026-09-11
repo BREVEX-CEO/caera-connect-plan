@@ -10,10 +10,12 @@ import { cn } from "@/lib/utils";
 import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
 import {
+  allowancePlanForTier,
   entitlementState,
   offlineEntitlementValid,
   OFFLINE_GRACE_DAYS,
   type Entitlement,
+  type PlanId,
 } from "@/lib/ocade-allowance";
 import { getEntitlement } from "@/lib/ocade-usage.functions";
 import { PlanComparison } from "@/components/settings/PlanComparison";
@@ -32,6 +34,16 @@ function UsagePage() {
   const online = useOnline();
   const local = useLocalEngine();
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
+  /*
+   * THE PLAN THAT WAS BOUGHT, WHICH IS NOT ALWAYS THE PLAN IN FORCE.
+   *
+   * An audited admin grant gives a tier without a purchase, and the allowance
+   * below is looked up from that tier. The comparison must not then mark a plan
+   * as the current one: nobody chose a cadence and nobody was charged, and
+   * highlighting a paid plan would tell somebody they are paying for something
+   * they are not.
+   */
+  const [purchasedPlan, setPurchasedPlan] = useState<PlanId | null>(null);
   const [unavailable, setUnavailable] = useState<string | null>(null);
   const [lastVerified, setLastVerified] = useState<Date | null>(null);
 
@@ -42,10 +54,13 @@ function UsagePage() {
         const ent = await getEntitlement();
         if (!live) return;
         setLastVerified(new Date());
+        setPurchasedPlan(ent?.planId ?? null);
         setEntitlement(
           ent
             ? {
-                planId: ent.planId,
+                // A grant names no purchased plan; its allowance comes from
+                // the tier it gave.
+                planId: ent.planId ?? allowancePlanForTier(ent.tier),
                 startedAt: new Date(ent.startedAt),
                 expiresAt: ent.expiresAt ? new Date(ent.expiresAt) : undefined,
               }
@@ -78,7 +93,7 @@ function UsagePage() {
         <CommercialUsagePanel />
 
         {/* Customer-visible plans and verified billing evidence only. */}
-        <PlanComparison currentPlan={entitlement?.planId ?? null} />
+        <PlanComparison currentPlan={purchasedPlan} />
         <BillingHistory />
 
         {/* Model readiness is separate from the account-wide usage gate. */}

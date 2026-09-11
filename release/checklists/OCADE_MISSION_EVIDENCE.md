@@ -12,8 +12,8 @@ Individual PLAN records inherit section progress and proof. This accounts for ev
 - PLAN semantic requirements: 29
 - PLAN sections: 21 (0 complete, 1 partial, 20 not started)
 - Current-reference parity capabilities: 31
-- Route dispositions: 98
-- Remaining applicable gaps: 19 (1 MISSING)
+- Route dispositions: 99
+- Remaining applicable gaps: 19 (0 MISSING)
 - Donor dispositions: 2,126 (schema upgrade owned by Block 3)
 
 ## Section continuation map

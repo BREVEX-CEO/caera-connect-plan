@@ -13,7 +13,11 @@
  * Pure and deterministic so it is fully unit-testable without a database.
  */
 
-import { PLANS as PRICING_PLANS, type PlanId as PricingPlanId } from "./payments/pricing";
+import {
+  PLANS as PRICING_PLANS,
+  type PlanId as PricingPlanId,
+  type PlanTier,
+} from "./payments/pricing";
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -51,6 +55,31 @@ export const PLANS: Record<PlanId, PlanDef> = Object.fromEntries(
     },
   ]),
 ) as Record<PlanId, PlanDef>;
+
+/**
+ * The plan whose allowance a tier carries.
+ *
+ * An audited admin grant gives a TIER, not a purchase: nobody chose a cadence
+ * and nobody was charged, so there is no plan id to report and the plan
+ * comparison shows none selected. The device allowance still has to come from
+ * somewhere, and within a tier every cadence carries the same one — which is
+ * what makes this a lookup rather than a guess. `allowance-is-per-tier` in the
+ * tests holds that true.
+ *
+ * Named for what it is FOR. Calling it `planForTier` would invite somebody to
+ * use it as "the plan this person is on", which for a grant is a sentence with
+ * no true answer.
+ */
+export function allowancePlanForTier(tier: PlanTier): PlanId {
+  switch (tier) {
+    case "max":
+      return "max_monthly";
+    case "pro":
+      return "pro_monthly";
+    default:
+      return "free";
+  }
+}
 
 /* ----------------------------------------------------------- entitlement -- */
 

@@ -2,12 +2,26 @@
  * WHICH PLAN AN ACCOUNT IS ON, AND WHEN ITS WINDOWS TURN OVER.
  *
  * Server-side and authoritative. The tier decides an allowance, so it is
- * resolved from rows the account cannot write: a subscription created by a
- * verified provider event, never a profile field the person can edit and never
- * anything the browser sent.
+ * resolved from rows the account cannot write: a subscription written by the
+ * signature-verified provider webhook, or an audited grant an admin recorded —
+ * never a profile field the person can edit and never anything the browser
+ * sent.
+ *
+ * ONE SUBSCRIPTION AUTHORITY, SINCE PHASE 19. This module used to read
+ * `ocade_subscriptions` while the webhook wrote `public.subscriptions`. Nothing
+ * wrote the table this read, so a customer could complete a real payment, have
+ * it verified, recorded and audited — and still be on Free. It reads the
+ * provider table now; the old one is archived as history that grants nothing.
+ *
+ * A GRANT IS NOT A PAYMENT, AND IS RESOLVED SEPARATELY. `PLAN.md` Phase 19:
+ * "Admin grants are separate entitlements, never fake payments." So they come
+ * from their own table, through a function that required a role, a second
+ * factor and a written reason, and the stronger of the two answers wins — a
+ * customer who paid for Pro and was given Max for a support case gets Max, and
+ * the record still shows exactly one payment.
  *
  * FREE IS THE ANSWER TO EVERY UNCERTAINTY. No subscription, an expired one, a
- * row naming a plan from a retired catalogue, a read that failed — all of them
+ * row naming a price from a retired catalogue, a read that failed — all of them
  * resolve to Free. That is the fail-closed direction: the cost of being wrong
  * is that somebody who paid is briefly limited to the free allowance and can
  * say so, rather than that somebody who did not pay is silently given ten times
@@ -20,14 +34,15 @@
  * place in their own day. It is immutable, which matters: an anchor that moved
  * would let somebody shift their window to refill early.
  */
-import { isPlanId, planById, type PlanTier } from "@/lib/payments/pricing";
+import { sellablePlanByPriceId } from "@/lib/payments/paddle-plans";
+import { planById, type PlanTier } from "@/lib/payments/pricing";
 
 export interface ResolvedEntitlement {
   tier: PlanTier;
   /** Immutable instant the account's usage windows are anchored to. */
   anchoredAt: number;
   /** Why this tier, for an operator reading an audit line. */
-  source: "provider_subscription" | "free_default" | "expired" | "unreadable";
+  source: "provider_subscription" | "admin_grant" | "free_default" | "expired" | "unreadable";
 }
 
 const FREE_FALLBACK = (anchoredAt: number, source: ResolvedEntitlement["source"]) => ({
@@ -35,6 +50,20 @@ const FREE_FALLBACK = (anchoredAt: number, source: ResolvedEntitlement["source"]
   anchoredAt,
   source,
 });
+
+/**
+ * Provider statuses that mean access is live right now.
+ *
+ * `past_due` is deliberately absent: a failed renewal is a payment problem the
+ * customer can still fix, and continuing to serve paid capacity while the
+ * charge is unpaid is a decision nobody made. `canceled` is absent for the
+ * obvious reason, and a cancelled-at-period-end subscription stays `active`
+ * until its period ends, which is what `current_period_end` is for.
+ */
+const LIVE_STATUSES = new Set(["active", "trialing"]);
+
+/** Tiers in order, so "the stronger answer" is a comparison rather than an if. */
+const TIER_RANK: Record<PlanTier, number> = { free: 0, pro: 1, max: 2 };
 
 /**
  * Resolve the account's tier and window anchor.
@@ -45,34 +74,93 @@ const FREE_FALLBACK = (anchoredAt: number, source: ResolvedEntitlement["source"]
  * spend it.
  */
 export async function resolveTierFor(userId: string): Promise<ResolvedEntitlement> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const anchoredAt = await accountAnchorFor(userId);
+  const subscription = await providerTierFor(userId);
+  const granted = await grantedTierFor(userId);
+
+  if (!subscription && !granted) return FREE_FALLBACK(anchoredAt, "free_default");
+
+  /*
+   * THE STRONGER ANSWER WINS, AND IT IS A COMPARISON.
+   *
+   * Taking whichever was read first would make the tier depend on query order;
+   * taking the subscription always would quietly cancel a support grant given
+   * to somebody who also pays. Neither is a decision anybody would defend out
+   * loud.
+   */
+  const best =
+    subscription && granted
+      ? TIER_RANK[granted.tier] > TIER_RANK[subscription.tier]
+        ? granted
+        : subscription
+      : (subscription ?? granted)!;
+
+  return { tier: best.tier, anchoredAt, source: best.source };
+}
+
+interface TierAnswer {
+  tier: PlanTier;
+  source: ResolvedEntitlement["source"];
+}
+
+/** The tier a verified provider subscription currently grants, or null. */
+async function providerTierFor(userId: string): Promise<TierAnswer | null> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const { data, error } = await supabaseAdmin
-    .from("ocade_subscriptions")
-    .select("plan_id, status, expires_at")
+    .from("subscriptions")
+    .select("price_id, status, current_period_end")
     .eq("user_id", userId)
-    .eq("status", "active")
-    .order("expires_at", { ascending: false })
+    .in("status", [...LIVE_STATUSES])
+    .order("current_period_end", { ascending: false, nullsFirst: false })
     .limit(1)
     .maybeSingle();
 
-  if (error) return FREE_FALLBACK(anchoredAt, "unreadable");
-  if (!data) return FREE_FALLBACK(anchoredAt, "free_default");
+  if (error) return { tier: "free", source: "unreadable" };
+  if (!data) return null;
 
-  const planId = String(data.plan_id);
-  // A row naming a plan from a retired catalogue is history, not an offer, and
-  // it grants nothing today.
-  if (!isPlanId(planId)) return FREE_FALLBACK(anchoredAt, "expired");
-
-  const expiresAt = data.expires_at ? Date.parse(String(data.expires_at)) : null;
-  if (expiresAt !== null && Number.isFinite(expiresAt) && expiresAt <= Date.now()) {
-    return FREE_FALLBACK(anchoredAt, "expired");
+  /*
+   * A PERIOD THAT HAS ENDED GRANTS NOTHING, whatever the status column says.
+   *
+   * The status is the provider's last word, and the last word can be stale: a
+   * cancellation webhook that never arrived, or a renewal that failed after
+   * the period closed, both leave `active` next to a date in the past.
+   */
+  const endsAt = data.current_period_end ? Date.parse(String(data.current_period_end)) : null;
+  if (endsAt !== null && Number.isFinite(endsAt) && endsAt <= Date.now()) {
+    return { tier: "free", source: "expired" };
   }
 
-  const plan = planById(planId);
-  if (!plan) return FREE_FALLBACK(anchoredAt, "expired");
-  return { tier: plan.tier, anchoredAt, source: "provider_subscription" };
+  // A row naming a price from a retired catalogue is history, not an offer, and
+  // it grants nothing today.
+  const sellable = sellablePlanByPriceId(String(data.price_id));
+  const plan = sellable ? planById(sellable.planId) : undefined;
+  if (!plan) return { tier: "free", source: "expired" };
+
+  return { tier: plan.tier, source: "provider_subscription" };
+}
+
+/** The tier an audited admin grant currently gives, or null. */
+async function grantedTierFor(userId: string): Promise<TierAnswer | null> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  /*
+   * Through the function rather than the table, so "which grant counts" is
+   * decided once, in the database, by the same expression the admin surface
+   * and any future job will use. A second copy of that rule in TypeScript is a
+   * second chance for the two to disagree about who is paying for what.
+   */
+  const { data, error } = await supabaseAdmin.rpc("ocade_active_entitlement_grant", {
+    target_user: userId,
+  });
+
+  if (error) return { tier: "free", source: "unreadable" };
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return null;
+
+  const tier = String((row as { tier?: unknown }).tier ?? "");
+  if (tier !== "pro" && tier !== "max") return null;
+  return { tier, source: "admin_grant" };
 }
 
 /**

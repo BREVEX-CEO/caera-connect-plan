@@ -133,6 +133,7 @@
     "audit:mfa": "node scripts/e2e/run-mfa-journey.mjs",
     "audit:incognito": "node scripts/e2e/run-incognito-and-memory-journey.mjs",
     "audit:admin-operations": "node scripts/e2e/run-admin-operations-journey.mjs",
+    "audit:admin-billing": "node scripts/e2e/run-admin-billing-journey.mjs",
     "audit:organization": "node scripts/e2e/run-organization-journey.mjs",
     "audit:notifications": "node scripts/e2e/run-notification-journey.mjs",
     "audit:routes:focused": "node scripts/e2e/run-route-qa-focused.mjs",

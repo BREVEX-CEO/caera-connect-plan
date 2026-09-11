@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "rehearsedAt": "2026-09-11T00:35:12.227Z",
+  "rehearsedAt": "2026-09-11T02:02:37.983Z",
   "release": "0.1.0",
-  "migrationCount": 96,
+  "migrationCount": 98,
   "inventory": [
     {
       "table": "auth.mfa_amr_claims",
@@ -27,7 +27,7 @@
     {
       "table": "auth.users",
       "rowCount": 2,
-      "digest": "f3d0e41061b0a942"
+      "digest": "0e1dcf3d662ffed6"
     },
     {
       "table": "public.access_requests",
@@ -37,27 +37,27 @@
     {
       "table": "public.activity_log",
       "rowCount": 2,
-      "digest": "524f2f1b0a34fcb1"
+      "digest": "18eeecb46273a75c"
     },
     {
       "table": "public.browser_grants",
       "rowCount": 2,
-      "digest": "f103b02e056ed1a0"
+      "digest": "748010648e4d43f6"
     },
     {
       "table": "public.cania_alert_prefs",
       "rowCount": 2,
-      "digest": "584274c1f42a2343"
+      "digest": "1b63d718e0339896"
     },
     {
       "table": "public.cania_saved_topics",
       "rowCount": 2,
-      "digest": "1d8a0c7d1793ef41"
+      "digest": "7a5a0ec9e7494f31"
     },
     {
       "table": "public.cania_settings",
       "rowCount": 2,
-      "digest": "ddf52635b3bb594b"
+      "digest": "3edcc3d07d4912e3"
     },
     {
       "table": "public.company_obligations",
@@ -67,32 +67,32 @@
     {
       "table": "public.compliance_audit_log",
       "rowCount": 2,
-      "digest": "3e1b0a786e7f0b5b"
+      "digest": "4764b8937f98490e"
     },
     {
       "table": "public.compliance_events",
       "rowCount": 12,
-      "digest": "1b944820b39bd172"
+      "digest": "fd56aafbfd48d99d"
     },
     {
       "table": "public.country_pack_versions",
       "rowCount": 1,
-      "digest": "f95a7d376e9a25a6"
+      "digest": "75f914a393c5d283"
     },
     {
       "table": "public.country_packs",
       "rowCount": 8,
-      "digest": "9e11fa7d45c60ad6"
+      "digest": "8b9c50dffd92fd32"
     },
     {
       "table": "public.data_class_privacy",
       "rowCount": 2,
-      "digest": "adfba9968a7e0df6"
+      "digest": "36b31b9d41a9be24"
     },
     {
       "table": "public.devices",
       "rowCount": 2,
-      "digest": "e5c1414253fd635d"
+      "digest": "f67670e74dd2d18a"
     },
     {
       "table": "public.feature_flags",
@@ -117,7 +117,7 @@
     {
       "table": "public.ficia_custom_roles",
       "rowCount": 16,
-      "digest": "91d713a5206e2b37"
+      "digest": "ccdf643eabd697a8"
     },
     {
       "table": "public.ficia_departments",
@@ -127,7 +127,7 @@
     {
       "table": "public.ficia_employments",
       "rowCount": 2,
-      "digest": "d9dce8356416e4ad"
+      "digest": "971bd6ebc88542f8"
     },
     {
       "table": "public.ficia_locations",
@@ -137,7 +137,7 @@
     {
       "table": "public.ficia_role_grants",
       "rowCount": 2,
-      "digest": "e2fdfb0d76f9b86d"
+      "digest": "c85400bf2b0161db"
     },
     {
       "table": "public.ficia_teams",
@@ -147,7 +147,7 @@
     {
       "table": "public.historical_test_cases",
       "rowCount": 7,
-      "digest": "64beb71e0290c4c2"
+      "digest": "cfe70710e7423137"
     },
     {
       "table": "public.launch_gate_history",
@@ -157,22 +157,22 @@
     {
       "table": "public.launch_gate_items",
       "rowCount": 34,
-      "digest": "6e9524868ff7cdd5"
+      "digest": "a10333c1d7a79a63"
     },
     {
       "table": "public.legal_consent_receipts",
       "rowCount": 2,
-      "digest": "37e20fa49a02f279"
+      "digest": "0936482043a8fc7e"
     },
     {
       "table": "public.madee_resume_projects",
       "rowCount": 2,
-      "digest": "e0b879e89fd98d89"
+      "digest": "760d1e15a54fe4cc"
     },
     {
       "table": "public.madee_resume_versions",
       "rowCount": 2,
-      "digest": "51bfbd60735c770f"
+      "digest": "b75b5a47d494c917"
     },
     {
       "table": "public.msg_attachments",
@@ -197,7 +197,7 @@
     {
       "table": "public.msg_messages",
       "rowCount": 2,
-      "digest": "d52f405ddfd8a5ac"
+      "digest": "40c8d50daf432c86"
     },
     {
       "table": "public.msg_pins",
@@ -207,52 +207,52 @@
     {
       "table": "public.msg_reactions",
       "rowCount": 2,
-      "digest": "56da59d6985c5acf"
+      "digest": "925da99bee7df8ce"
     },
     {
       "table": "public.msg_read_receipts",
       "rowCount": 2,
-      "digest": "3e3bdfe1d05658fb"
+      "digest": "3075178e23ec4ec8"
     },
     {
       "table": "public.msg_thread_members",
       "rowCount": 2,
-      "digest": "0f9877e643cf4aed"
+      "digest": "1d5f1d5f5d8774a6"
     },
     {
       "table": "public.msg_threads",
       "rowCount": 2,
-      "digest": "20b9202cfd799f81"
+      "digest": "4afd1736631c8ed0"
     },
     {
       "table": "public.ocade_approvals",
       "rowCount": 2,
-      "digest": "165d51ecc6b2ffae"
+      "digest": "7bc707f746094a45"
     },
     {
       "table": "public.ocade_automation_runs",
       "rowCount": 2,
-      "digest": "4fcccc1e91a0ba15"
+      "digest": "b71a43fc00a5ac5e"
     },
     {
       "table": "public.ocade_automation_step_receipts",
       "rowCount": 2,
-      "digest": "ac070c15d8b29c6f"
+      "digest": "6db0333ef121a729"
     },
     {
       "table": "public.ocade_automations",
       "rowCount": 2,
-      "digest": "e70e73006d564ac5"
+      "digest": "dfd3631e3d1d365d"
     },
     {
       "table": "public.ocade_browser_site_policy",
       "rowCount": 2,
-      "digest": "73ada8896191f62b"
+      "digest": "195445567e3a9518"
     },
     {
       "table": "public.ocade_commercial_usage",
       "rowCount": 2,
-      "digest": "38f353fed0baa667"
+      "digest": "5b810149e88a9d1e"
     },
     {
       "table": "public.ocade_conversation_shares",
@@ -262,72 +262,77 @@
     {
       "table": "public.ocade_conversations",
       "rowCount": 2,
-      "digest": "faac7348c85ec9ca"
+      "digest": "c23c7ce35a99c4d1"
     },
     {
       "table": "public.ocade_device_usage_keys",
       "rowCount": 2,
-      "digest": "e61e957242a34193"
+      "digest": "8a7b1d67dbb8644a"
     },
     {
       "table": "public.ocade_device_usage_leases",
       "rowCount": 2,
-      "digest": "a972196b4de707c7"
+      "digest": "6e111c8d58db163f"
+    },
+    {
+      "table": "public.ocade_entitlement_grants",
+      "rowCount": 2,
+      "digest": "1f1006dcbc3df3c1"
     },
     {
       "table": "public.ocade_generation_permits",
       "rowCount": 2,
-      "digest": "b98b9a48c61675d3"
+      "digest": "6249960619b4ef8d"
     },
     {
       "table": "public.ocade_invoices",
       "rowCount": 1,
-      "digest": "e804c90a9c53523d"
+      "digest": "21e967b57965f506"
     },
     {
       "table": "public.ocade_memory",
       "rowCount": 2,
-      "digest": "e798c6ad179bfe32"
+      "digest": "33ae5ca46dd2796a"
     },
     {
       "table": "public.ocade_messages",
       "rowCount": 2,
-      "digest": "c2ce17b843d38a8c"
+      "digest": "89e315bb5b77316e"
     },
     {
       "table": "public.ocade_mfa_recovery_attempts",
       "rowCount": 2,
-      "digest": "82937f5e535a5ee2"
+      "digest": "a852f4d87fd32276"
     },
     {
       "table": "public.ocade_mfa_recovery_codes",
       "rowCount": 2,
-      "digest": "2bbe70f1874f8248"
+      "digest": "b5b6535c9e920174"
     },
     {
       "table": "public.ocade_monitors",
       "rowCount": 2,
-      "digest": "a4d80710a18a1bcf"
+      "digest": "1d68c56a220e3884"
     },
     {
       "table": "public.ocade_notification_preferences",
       "rowCount": 2,
-      "digest": "a3a10ecc2b0e08bc"
+      "digest": "b9018ef3dbd182d1"
     },
     {
       "table": "public.ocade_notifications",
       "rowCount": 2,
-      "digest": "b708f90c67e72cc2"
+      "digest": "953e82cde6960d1d"
     },
     {
       "table": "public.ocade_offline_usage_allocations",
       "rowCount": 2,
-      "digest": "85c36fd42db6960d"
+      "digest": "75320fb1aff4ff1d"
     },
     {
       "table": "public.ocade_offline_usage_events",
       "rowCount": 2,
-      "digest": "4a1546cf35fb96a2"
+      "digest": "4759b069f881ff81"
     },
     {
       "table": "public.ocade_organization_events",
@@ -352,7 +357,7 @@
     {
       "table": "public.ocade_organization_members",
       "rowCount": 1,
-      "digest": "2e6057812d40a005"
+      "digest": "a7fdccdff53470d8"
     },
     {
       "table": "public.ocade_organization_policies",
@@ -362,47 +367,52 @@
     {
       "table": "public.ocade_organizations",
       "rowCount": 1,
-      "digest": "c539ab1555489d9c"
+      "digest": "2b243f5ff7c3db08"
     },
     {
       "table": "public.ocade_outputs",
       "rowCount": 2,
-      "digest": "40028b054643ea62"
+      "digest": "7464c371cfb36528"
     },
     {
       "table": "public.ocade_payment_events",
       "rowCount": 1,
-      "digest": "a0d70d2da9da1620"
+      "digest": "f3ae53242e892282"
     },
     {
       "table": "public.ocade_project_files",
       "rowCount": 2,
-      "digest": "50cb7d675f4e361a"
+      "digest": "9d9810348597c268"
     },
     {
       "table": "public.ocade_project_folders",
       "rowCount": 2,
-      "digest": "5fc852e012375e31"
+      "digest": "b21d82cd2c3c14c3"
     },
     {
       "table": "public.ocade_project_items",
       "rowCount": 2,
-      "digest": "2534be1a6c47736a"
+      "digest": "c2250e9c06ac0f96"
     },
     {
       "table": "public.ocade_projects",
       "rowCount": 2,
-      "digest": "2733ca59ab28e6c8"
+      "digest": "dbfa044bcfffa967"
     },
     {
       "table": "public.ocade_provider_events",
       "rowCount": 2,
-      "digest": "b76ef891992b86ab"
+      "digest": "42735d3d3be34c75"
     },
     {
       "table": "public.ocade_provider_prefs",
       "rowCount": 2,
-      "digest": "b523401432263ec8"
+      "digest": "9a5e29bca6b6e836"
+    },
+    {
+      "table": "public.ocade_retired_subscriptions",
+      "rowCount": 2,
+      "digest": "f69d94a125b1b980"
     },
     {
       "table": "public.ocade_status_incident_updates",
@@ -413,11 +423,6 @@
       "table": "public.ocade_status_incidents",
       "rowCount": 0,
       "digest": "cbf29ce484222325"
-    },
-    {
-      "table": "public.ocade_subscriptions",
-      "rowCount": 2,
-      "digest": "835762c7ee9bedc1"
     },
     {
       "table": "public.ocade_support_access_events",
@@ -447,17 +452,17 @@
     {
       "table": "public.ocade_support_tickets",
       "rowCount": 2,
-      "digest": "4c489730dd140654"
+      "digest": "31da4843d35a7c57"
     },
     {
       "table": "public.ocade_task_comments",
       "rowCount": 2,
-      "digest": "c2b5481ea4c9258a"
+      "digest": "782446a159b5f6ba"
     },
     {
       "table": "public.ocade_tasks",
       "rowCount": 2,
-      "digest": "326d751304e3bc97"
+      "digest": "b0c7caeb0de6723e"
     },
     {
       "table": "public.pack_reviews",
@@ -467,17 +472,17 @@
     {
       "table": "public.payment_webhook_events",
       "rowCount": 1,
-      "digest": "18e00ef19b61deb3"
+      "digest": "aed119d57d0d1795"
     },
     {
       "table": "public.profiles",
       "rowCount": 2,
-      "digest": "826ea6ec0ccbdfa1"
+      "digest": "06b0a91dc2249009"
     },
     {
       "table": "public.rule_sources",
       "rowCount": 7,
-      "digest": "9eae10798cd3b961"
+      "digest": "749cdcd3292adce0"
     },
     {
       "table": "public.storage_tombstones",
@@ -487,37 +492,37 @@
     {
       "table": "public.subscriptions",
       "rowCount": 1,
-      "digest": "689404e4cd49b258"
+      "digest": "3e1cf4ba39884ecf"
     },
     {
       "table": "public.tenant_members",
       "rowCount": 2,
-      "digest": "d5a783669edef7bb"
+      "digest": "db3d14f4f8249ac7"
     },
     {
       "table": "public.tenants",
       "rowCount": 2,
-      "digest": "2847bc16e6bdc31d"
+      "digest": "cfdb96333fa52025"
     },
     {
       "table": "public.user_private_records",
       "rowCount": 2,
-      "digest": "0a57f5688668ae47"
+      "digest": "743c3977b389a9d7"
     },
     {
       "table": "public.user_roles",
       "rowCount": 2,
-      "digest": "8e0a3901c2995ed3"
+      "digest": "7a22c6300f42b32c"
     },
     {
       "table": "public.user_settings",
       "rowCount": 2,
-      "digest": "9be77f8ead647353"
+      "digest": "0661676e53e83903"
     },
     {
       "table": "public.vault_config",
       "rowCount": 2,
-      "digest": "ea333ff5bfd63e97"
+      "digest": "a81526ad2b7d97cf"
     },
     {
       "table": "storage.buckets",
@@ -527,39 +532,39 @@
     {
       "table": "storage.objects",
       "rowCount": 2,
-      "digest": "d79c0a5d04582ccd"
+      "digest": "65383f3dc0ef08f2"
     }
   ],
   "steps": [
     {
       "step": "schema applied to the live database",
       "status": "passed",
-      "detail": "96 migration(s) of 96"
+      "detail": "98 migration(s) of 98"
     },
     {
       "step": "two accounts seeded with data",
       "status": "passed",
-      "detail": "107 row(s) planted across owned tables"
+      "detail": "109 row(s) planted across owned tables"
     },
     {
       "step": "backup taken",
       "status": "passed",
-      "detail": "206 row(s) across 105 table(s)"
+      "detail": "208 row(s) across 106 table(s)"
     },
     {
       "step": "schema rebuilt in an isolated database",
       "status": "passed",
-      "detail": "96 migration(s), from this repository alone"
+      "detail": "98 migration(s), from this repository alone"
     },
     {
       "step": "rows restored",
       "status": "passed",
-      "detail": "206 row(s) inserted, parents before children"
+      "detail": "208 row(s) inserted, parents before children"
     },
     {
       "step": "every row came back, byte for byte",
       "status": "passed",
-      "detail": "105 table digest(s) match the backup"
+      "detail": "106 table digest(s) match the backup"
     },
     {
       "step": "referential integrity survived the restore",
@@ -574,7 +579,7 @@
     {
       "step": "row-level security came back with the data",
       "status": "passed",
-      "detail": "187 policy(ies) across 98 table(s)"
+      "detail": "193 policy(ies) across 99 table(s)"
     },
     {
       "step": "one account cannot read the other in the restored database",
@@ -584,12 +589,12 @@
     {
       "step": "the newest migration rolled back",
       "status": "passed",
-      "detail": "20260910170000_index_the_support_access_foreign_key_rollback.sql"
+      "detail": "20260911120000_a_plan_change_reaches_the_subscription_row_rollback.sql"
     },
     {
       "step": "the newest migration re-applied and verified",
       "status": "passed",
-      "detail": "20260910170000_index_the_support_access_foreign_key.sql then 20260910170000_index_the_support_access_foreign_key_verify.sql"
+      "detail": "20260911120000_a_plan_change_reaches_the_subscription_row.sql then 20260911120000_a_plan_change_reaches_the_subscription_row_verify.sql"
     }
   ],
   "recovered": true

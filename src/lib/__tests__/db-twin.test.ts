@@ -55,8 +55,8 @@ describe("every migration applies in the declared order", () => {
    * Loosening this to a range would defeat the point: an exact count is what
    * catches a migration going missing.
    */
-  it("finds all 96 migrations", () => {
-    expect(DatabaseTwin.migrationFiles()).toHaveLength(96);
+  it("finds all 98 migrations", () => {
+    expect(DatabaseTwin.migrationFiles()).toHaveLength(98);
   });
 
   /**
@@ -90,7 +90,7 @@ describe("every migration applies in the declared order", () => {
       failed.map((f) => `${f.file}: ${f.error}`),
       "a migration failed against real PostgreSQL",
     ).toEqual([]);
-    expect(applied).toHaveLength(96);
+    expect(applied).toHaveLength(98);
   });
 
   it("rebuilds the whole schema from zero, including the tables defined after the old break", async () => {
@@ -211,12 +211,23 @@ describe("a SECURITY DEFINER function reachable from a browser binds its caller"
   });
 
   it("scopes every one of them to auth.uid()", async () => {
+    /*
+     * THE DEFINITIONS INCLUDE `private`, AND THE REACHABILITY QUERY DOES NOT.
+     *
+     * Only `public` functions are callable from a browser, so only they are
+     * candidates. But several of them resolve authorization through a helper in
+     * `private` — `private.ocade_is_support_admin()` is the pattern the security
+     * hardening established — and a fixpoint computed over `public` alone
+     * cannot see that the helper binds `auth.uid()`. It would report a
+     * correctly scoped function as blind, and the fix for that report would be
+     * an exemption asserting the opposite of the truth.
+     */
     const definitions = new Map(
       (
         await twin.asSuperuser<{ proname: string; definition: string }>(`
           select p.proname, pg_get_functiondef(p.oid) as definition
           from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-          where n.nspname = 'public' and p.prokind = 'f'
+          where n.nspname in ('public', 'private') and p.prokind = 'f'
         `)
       ).map((row) => [row.proname, row.definition] as const),
     );

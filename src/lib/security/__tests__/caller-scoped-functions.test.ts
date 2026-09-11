@@ -71,3 +71,38 @@ describe("which functions bind their caller", () => {
     expect(scoped.has("spaced")).toBe(true);
   });
 });
+
+describe("a helper in another schema", () => {
+  /*
+   * Authorization in this schema is resolved through `private` helpers, and
+   * both gates now hand those bodies in alongside the public ones. The point of
+   * doing so is that the ANSWER follows the helper rather than the schema it
+   * lives in: a private helper that binds the caller scopes everything above
+   * it, and one that does not, does not.
+   */
+  it("scopes a public function that authorizes through a caller-bound private helper", () => {
+    const scoped = callerScopedFunctions(
+      new Map([
+        [
+          "ocade_is_support_admin",
+          "SELECT EXISTS (SELECT 1 FROM user_roles WHERE user_id = (SELECT auth.uid()))",
+        ],
+        [
+          "ocade_admin_seat_overview",
+          "BEGIN IF NOT private.ocade_is_support_admin() THEN RAISE; END IF; END",
+        ],
+      ]),
+    );
+    expect(scoped.has("ocade_admin_seat_overview")).toBe(true);
+  });
+
+  it("does not scope one whose private helper never asks who is calling", () => {
+    const scoped = callerScopedFunctions(
+      new Map([
+        ["some_private_helper", "SELECT true"],
+        ["reads_anything", "BEGIN IF NOT private.some_private_helper() THEN RAISE; END IF; END"],
+      ]),
+    );
+    expect(scoped.has("reads_anything")).toBe(false);
+  });
+});

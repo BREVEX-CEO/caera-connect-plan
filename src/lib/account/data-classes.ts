@@ -180,7 +180,12 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
     label: "Billing records",
     description: "Subscriptions, invoices and the payment events behind them.",
     tables: [
-      { table: "ocade_subscriptions", owner: "user_id" },
+      // The provider's own subscription record, and the history of the
+      // retired second table that Phase 19 archived. Both are the customer's
+      // and both belong in their export; neither is theirs to delete.
+      { table: "subscriptions", owner: "user_id" },
+      { table: "ocade_retired_subscriptions", owner: "user_id" },
+      { table: "ocade_entitlement_grants", owner: "user_id" },
       { table: "ocade_invoices", owner: "user_id" },
       { table: "ocade_payment_events", owner: "user_id" },
     ],

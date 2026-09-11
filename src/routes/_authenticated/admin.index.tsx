@@ -3,6 +3,7 @@ import {
   BookOpen,
   Building2,
   ClipboardCheck,
+  CreditCard,
   Gauge,
   LifeBuoy,
   Rocket,
@@ -59,6 +60,13 @@ const AREAS = [
     icon: Gauge,
     detail:
       "Allowance windows, the organization audit log, and whether notifications are arriving.",
+  },
+  {
+    to: "/admin/billing",
+    label: "Billing",
+    icon: CreditCard,
+    detail:
+      "Subscriptions, payment events, invoices, seats per organization, and audited entitlement grants.",
   },
   {
     to: "/admin/status",

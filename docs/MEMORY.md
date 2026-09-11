@@ -118,42 +118,49 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 18 (localization, accessibility, performance and defect cleanup) is
-complete.
+Phase 19 (payments, refunds, disputes and Admin grants — the last
+implementation phase) is complete.
 
-`src/lib/locale` had been written to be the single answer to "which locale?"
-and its own header explained why — fifty-one `toLocaleString()` calls reading
-the browser, twelve more spelled `toLocaleDateString(undefined, …)`, seven
-hard-coded `"en-GB"`. Then almost nothing used it: two support pages out of
-seventy-one call sites. Every one now goes through `useFormatters()`, a hook
-bound to the chosen locale, and a test fails the build if a new raw call
-appears. Formatters that exist to make a decision rather than be read — a
-time-zone validation, a 24-hour number parsed back with `parseInt`, a price
-inspected for its trailing digits — carry `locale-independent:` with the
-reason.
+The deployment carried TWO subscription tables written by different code. The
+signature-verified Paddle webhook wrote `public.subscriptions`;
+`entitlement-resolver.ts` read `ocade_subscriptions`, and nothing wrote it. A
+customer could complete a real payment, have it verified, recorded and audited,
+and still be on Free. Migration 97 archives that table into
+`ocade_retired_subscriptions` — history that grants nothing — drops it, and
+points the resolver, the plan screen and the device screen at the one authority.
 
-Unbounded reads are gone. `npm run reads:check` walks every database read in
-the product and requires a `.limit()`, a `.range()`, a single-row request or a
-written `bounded-read:` exemption; nine reads had none and now have caps.
-The older `unbounded-queries.test.ts` had exempted six tables on the reasoning
-that they cannot grow — that list is empty, because "this table cannot grow" is
-a prediction and `.limit()` is a fact.
+Admin grants are their own table, their own functions and their own panel.
+`ocade_grant_entitlement` requires the support-admin role, an `aal2` claim, a
+reason of at least ten characters and a window of one to 366 days, and refuses
+an admin granting to their own account. `ocade_revoke_entitlement` sets state
+and keeps the row, because the record that access WAS given is the half a
+dispute needs. The resolver takes the stronger of the paid tier and the granted
+tier, so somebody who pays for Pro and is given Max for a support case gets Max
+and the books still show one payment.
 
-Supabase's own performance advisor named one unindexed foreign key
-(`ocade_support_access_events.admin_id`); migration 96 covers it, applied live.
-Its 110 "unused index" findings are what a pre-launch project with no traffic
-looks like, not a defect.
+`/admin/billing` closes ADMIN-002: subscriptions, payment events, invoices,
+seats per organization and the grant audit, with the grant and revoke controls.
+The admin reads are policies on the data, not a gate in the browser; seats are
+an aggregate so an operator never receives the membership of every workspace.
+Nothing on that screen writes a subscription, an invoice or a payment event.
 
-The asset budget then caught a regression the locale work caused: the formatter
-module was swallowed into the Help Center's chunk, so the entry graph had to
-pull twenty-seven kilobytes of help prose to format a date. `locale-formatting`
-is its own chunk group now, claimed before `help-articles`.
+One more defect surfaced while tracing the phase: `apply_payment_webhook_event`
+applied status and period on an update and left `price_id` alone, so an upgrade
+or a downgrade never reached the row the tier is resolved from. Migration 98
+coalesces the catalogue ids on update; `decide` only carries them when the
+event names them, so an ordinary period update still leaves the plan alone.
+
+Both migrations are applied live, and the two security gates that read
+`SECURITY DEFINER` bodies now read the `private` helpers too — a function
+authorized through `private.ocade_is_support_admin()` is bound to its caller,
+and a fixpoint computed over `public` alone could not see it.
 
 `ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
 1, deliberately.
 
-Next is Phase 19 — payments, refunds, disputes and Admin grants, which
-`PLAN.md` marks LAST.
+Next is Phase 20 — final reachability, disposal and documentation
+reconciliation, then the exhaustive final matrix, safe `main` integration and
+controlled deployment.
 
 Two known external items remain: `auth_leaked_password_protection` is disabled
 in Supabase Auth, and the Windows control journey needs Windows hardware. Both

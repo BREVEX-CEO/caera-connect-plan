@@ -21,7 +21,7 @@ import {
   renameDevice,
   type DeviceRow,
 } from "@/lib/devices";
-import { canRegisterDevice, entitlementState } from "@/lib/ocade-allowance";
+import { allowancePlanForTier, canRegisterDevice, entitlementState } from "@/lib/ocade-allowance";
 import { getEntitlement } from "@/lib/ocade-usage.functions";
 import { executeAction, recordAction, ActionConfirmationError } from "@/lib/actions";
 import { useSession } from "@/lib/session";
@@ -72,7 +72,9 @@ function DevicesPage() {
   const entitlement = entitlementState(
     ent
       ? {
-          planId: ent.planId,
+          // A grant names no purchased plan; its allowance comes from the
+          // tier it gave.
+          planId: ent.planId ?? allowancePlanForTier(ent.tier),
           startedAt: new Date(ent.startedAt),
           expiresAt: ent.expiresAt ? new Date(ent.expiresAt) : undefined,
         }

@@ -308,6 +308,13 @@ export const ROUTE_DISPOSITIONS: readonly RouteEntry[] = [
       "§G's usage overview, commercial-usage windows, audit log and notification delivery status, in one place.",
   },
   {
+    module: "_authenticated/admin.billing",
+    path: "/admin/billing",
+    disposition: "CANONICAL",
+    reason:
+      "§G's billing and seat overview and payment-event state, plus the audited entitlement grants §H requires. Held until Phase 19 gave the deployment one subscription authority to point it at.",
+  },
+  {
     module: "_authenticated/admin.launch-gate",
     path: "/admin/launch-gate",
     disposition: "CANONICAL",

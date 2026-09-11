@@ -1045,6 +1045,25 @@ export function startStubSupabase({ port = 0, seed } = {}) {
       const notifications = (tables.ocade_notifications ??= []);
       const me = identity.id;
 
+      /**
+       * The assurance level the caller's own token carries.
+       *
+       * The entitlement functions check this in the DATABASE rather than only
+       * in the application, so the fixture reads it from the presented token
+       * the same way: a screen that had lost its second-factor step would
+       * otherwise pass a browser run against a fixture that never asked.
+       */
+      const claimedAal = () => {
+        const payload = String(req.headers.authorization ?? "").split(".")[1];
+        try {
+          return payload
+            ? (JSON.parse(Buffer.from(payload, "base64url").toString("utf8")).aal ?? "aal1")
+            : "aal1";
+        } catch {
+          return "aal1";
+        }
+      };
+
       if (rpcMatch[1] === "ocade_record_notification") {
         const existing = notifications.find(
           (row) => row.user_id === args.p_user_id && row.idempotency_key === args.p_idempotency_key,
@@ -1644,6 +1663,136 @@ export function startStubSupabase({ port = 0, seed } = {}) {
               return { category, channel, state, occurrences };
             })
             .sort((a, b) => b.occurrences - a.occurrences),
+        );
+      }
+
+      /*
+       * ENTITLEMENT GRANTS — PLAN.md §H, modelled in the same order the
+       * database checks them: the role, then the second factor, then the
+       * reason, then the window, then the refusal to grant to oneself. A
+       * fixture that skipped straight to the insert would let a screen that
+       * had lost one of those checks pass a browser run.
+       */
+      if (rpcMatch[1] === "ocade_grant_entitlement") {
+        const isAdmin = (tables.user_roles ?? []).some(
+          (row) => row.user_id === me && row.role === "admin",
+        );
+        if (!isAdmin) {
+          return send(403, { message: "Only support admins may grant an entitlement." });
+        }
+        if (claimedAal() !== "aal2") {
+          return send(403, { message: "Granting an entitlement needs a recent second factor." });
+        }
+        const reason = String(args.grant_reason ?? "").trim();
+        if (reason.length < 10) {
+          return send(400, { message: "new row violates check constraint on reason" });
+        }
+        const days = Number(args.days ?? 30);
+        if (!Number.isInteger(days) || days < 1 || days > 366) {
+          return send(400, { message: "A grant runs for between 1 and 366 days." });
+        }
+        if (args.target_user === me) {
+          return send(403, {
+            message: "An entitlement cannot be granted to the account granting it.",
+          });
+        }
+        const now = Date.now();
+        const row = {
+          id: randomUUID(),
+          user_id: args.target_user,
+          granted_by: me,
+          tier: args.grant_tier,
+          reason,
+          starts_at: new Date(now).toISOString(),
+          ends_at: new Date(now + days * 86400000).toISOString(),
+          revoked_at: null,
+          revoked_by: null,
+          revoked_reason: null,
+          created_at: new Date(now).toISOString(),
+        };
+        (tables.ocade_entitlement_grants ??= []).push(row);
+        return send(200, row);
+      }
+
+      if (rpcMatch[1] === "ocade_revoke_entitlement") {
+        const isAdmin = (tables.user_roles ?? []).some(
+          (row) => row.user_id === me && row.role === "admin",
+        );
+        if (!isAdmin) {
+          return send(403, { message: "Only support admins may revoke an entitlement." });
+        }
+        if (claimedAal() !== "aal2") {
+          return send(403, { message: "Revoking an entitlement needs a recent second factor." });
+        }
+        const grant = (tables.ocade_entitlement_grants ?? []).find(
+          (row) => row.id === args.grant_id && !row.revoked_at,
+        );
+        if (!grant) return send(200, false);
+        grant.revoked_at = new Date().toISOString();
+        grant.revoked_by = me;
+        grant.revoked_reason = String(args.revoke_reason ?? "");
+        return send(200, true);
+      }
+
+      /* The strongest grant the CALLER holds. It can only ever mean them. */
+      if (rpcMatch[1] === "ocade_my_entitlement_grant") {
+        const now = Date.now();
+        const mine = (tables.ocade_entitlement_grants ?? [])
+          .filter(
+            (row) =>
+              row.user_id === me &&
+              !row.revoked_at &&
+              Date.parse(row.starts_at) <= now &&
+              Date.parse(row.ends_at) > now,
+          )
+          .sort(
+            (a, b) =>
+              (b.tier === "max" ? 2 : 1) - (a.tier === "max" ? 2 : 1) ||
+              Date.parse(b.ends_at) - Date.parse(a.ends_at),
+          );
+        return send(
+          200,
+          mine.slice(0, 1).map((row) => ({
+            tier: row.tier,
+            starts_at: row.starts_at,
+            ends_at: row.ends_at,
+            reason: row.reason,
+          })),
+        );
+      }
+
+      /* Seats, as counts. The membership rows themselves are never returned. */
+      if (rpcMatch[1] === "ocade_admin_seat_overview") {
+        const isAdmin = (tables.user_roles ?? []).some(
+          (row) => row.user_id === me && row.role === "admin",
+        );
+        if (!isAdmin) {
+          return send(403, { message: "Only a support admin may read the seat overview." });
+        }
+        const members = tables.ocade_organization_members ?? [];
+        const invites = tables.ocade_organization_invites ?? [];
+        const now = Date.now();
+        return send(
+          200,
+          (tables.ocade_organizations ?? []).map((organization) => {
+            const own = members.filter(
+              (row) => row.organization_id === organization.id && row.state === "active",
+            );
+            return {
+              organization_id: organization.id,
+              organization_name: organization.name,
+              created_at: organization.created_at,
+              seats: own.length,
+              admins: own.filter((row) => row.role === "owner" || row.role === "admin").length,
+              pending_invites: invites.filter(
+                (row) =>
+                  row.organization_id === organization.id &&
+                  !row.accepted_at &&
+                  !row.revoked_at &&
+                  Date.parse(row.expires_at ?? "") > now,
+              ).length,
+            };
+          }),
         );
       }
 

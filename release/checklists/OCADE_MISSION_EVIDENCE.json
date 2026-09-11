@@ -14,9 +14,9 @@
     "partialSections": 1,
     "notStartedSections": 20,
     "parityCapabilities": 31,
-    "routeRecords": 98,
+    "routeRecords": 99,
     "remainingGapRecords": 19,
-    "applicableMissingGaps": 1
+    "applicableMissingGaps": 0
   },
   "sections": [
     {
@@ -828,6 +828,7 @@
         "_authenticated/admin.help",
         "_authenticated/admin.status",
         "_authenticated/admin.operations",
+        "_authenticated/admin.billing",
         "_authenticated/admin.launch-gate",
         "_authenticated/admin.payments-checklist",
         "_authenticated/access-denied",

@@ -33,7 +33,8 @@ The generated `src/integrations/supabase/types.ts` on current `main` confirms a 
 - `ocade_organization_group_members`
 - `ocade_organization_policies`
 - `ocade_organization_events`
-- `ocade_subscriptions`
+- `ocade_retired_subscriptions`
+- `ocade_entitlement_grants`
 - `ocade_payment_events`
 - `ocade_provider_events`
 - `ocade_provider_prefs`
@@ -214,7 +215,7 @@ Session list/revocation behavior derives from authenticated identity and must no
 
 ## Billing, Subscription and Entitlement Domain
 
-Current physical families include `ocade_subscriptions`, `ocade_payment_events` and provider/commercial event state. The final billing implementation occurs last and must reconcile all historical payment/subscription authorities before adding new schema.
+There is ONE subscription authority: `public.subscriptions`, written only by the signature-verified provider webhook through `apply_payment_webhook_event` and read by the entitlement resolver, the customer plan surfaces and the admin billing console. The historical `ocade_subscriptions` table was archived into `ocade_retired_subscriptions` and dropped: those rows name plans from a retired catalogue, so they are kept verbatim as readable history that grants no entitlement. `ocade_payment_events`, `ocade_invoices` and `payment_webhook_events` hold the normalized event and invoice record. `ocade_entitlement_grants` is separate on purpose — an entitlement OCADE decided to give is never written into the provider table, because a support decision recorded as a completed payment is a false financial record.
 
 ### Immutable normalized billing events
 

@@ -80,7 +80,7 @@ describe("OCADE Supabase application package", () => {
         new RegExp(`GRANT ALL ON (?:TABLE )?public\\.${table} TO service_role`),
       );
     }
-    for (const table of ["ocade_subscriptions", "ocade_cloud_usage"]) {
+    for (const table of ["ocade_cloud_usage"]) {
       expect(usage).toMatch(
         new RegExp(`REVOKE ALL ON (?:TABLE )?public\\.${table} FROM PUBLIC, anon`),
       );
@@ -180,7 +180,18 @@ describe("OCADE Supabase application package", () => {
 
   it("keeps the usage server surface entitlement-read-only", () => {
     expect(usageFunctions).toContain("export const getEntitlement");
-    expect(usageFunctions).toContain('.from("ocade_subscriptions")');
+    /*
+     * THE ONE SUBSCRIPTION AUTHORITY, NAMED. This read used to be pointed at
+     * `ocade_subscriptions`, a second table nothing wrote — so a verified
+     * payment landed in `subscriptions` and this screen still said Free. The
+     * archived table grants nothing and must never be read for an entitlement
+     * again.
+     */
+    expect(usageFunctions).toContain('.from("subscriptions")');
+    // The read, not the word: the module's header explains what it used to
+    // point at, and a comment about a defect is not the defect.
+    expect(usageFunctions).not.toContain('.from("ocade_subscriptions")');
+    expect(usageFunctions).not.toContain('.from("ocade_retired_subscriptions")');
     expect(usageFunctions).not.toContain("supabaseAdmin");
     expect(usageFunctions).not.toContain("client.server");
     expect(usageFunctions).not.toContain("ocade_consume_cloud_use");

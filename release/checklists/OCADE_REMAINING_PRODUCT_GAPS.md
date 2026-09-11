@@ -10,10 +10,10 @@ Authority: `PLAN.md` §P.
 
 | Status | Count |
 | --- | --- |
-| MISSING (applicable) | 1 |
+| MISSING (applicable) | 0 |
 | IMPLEMENTED | 0 |
 | TESTED | 1 |
-| RUNTIME-PROVEN | 12 |
+| RUNTIME-PROVEN | 13 |
 | EXTERNALLY-BLOCKED | 5 |
 | NOT-APPLICABLE | 0 |
 | **Total** | **19** |
@@ -234,15 +234,15 @@ Authority: `PLAN.md` §P.
 
 ### ADMIN-002 — Admin billing and payment-event surfaces (PLAN §G)
 
-- **Status**: MISSING
+- **Status**: RUNTIME-PROVEN
 - **Disposition**: FIX
 - **Requirement**: The admin panel must show a billing and seat overview and payment-event state.
-- **Discovered from**: The rest of §G's list is served by /admin/operations. These two are not, and the reason is a defect underneath them rather than a missing screen: the deployment carries TWO subscription tables written by two different paths. `subscriptions` is what the Paddle webhook and `payments.functions.ts` write; `ocade_subscriptions` is what `entitlement-resolver.ts` reads to decide a tier. A billing overview has to read one of them, and picking one asserts an answer to the question §H's payments work exists to settle — so a screen built now would either be confidently wrong or would have to be rebuilt immediately.
+- **Discovered from**: The rest of §G's list is served by /admin/operations. These two were not, and the reason was a defect underneath them rather than a missing screen: the deployment carried TWO subscription tables written by two different paths. `subscriptions` is what the Paddle webhook and `payments.functions.ts` write; `ocade_subscriptions` is what `entitlement-resolver.ts` read to decide a tier. Nothing wrote the table the resolver read, so a customer could complete a real payment, have it verified, recorded and audited, and still be on Free. Phase 19 merged them — the history is archived into `ocade_retired_subscriptions` and grants nothing, the resolver reads the provider table, and the admin reads §G asks for were granted at the data rather than in the browser. Seats are an aggregate rather than a policy on the membership rows, for the same reason notification delivery is: the operational question does not need the identity of every member of every workspace.
 - **Existing authority**: `src/lib/commercial/entitlement-resolver.ts`
-- **Implementation evidence**: `supabase/migrations/20260904170000_admin_operations_read_surfaces.sql`
-- **Test evidence**: `supabase/verification/20260904170000_admin_operations_read_surfaces_verify.sql`
-- **Runtime evidence**: —
-- **Last verified**: 2026-09-04
+- **Implementation evidence**: `supabase/migrations/20260911090000_one_entitlement_authority_and_admin_grants.sql`, `src/lib/commercial/entitlement-resolver.ts`, `src/lib/ocade-usage.functions.ts`, `src/lib/admin/billing.ts`, `src/routes/_authenticated/admin.billing.tsx`, `src/lib/release/route-dispositions.ts`
+- **Test evidence**: `supabase/verification/20260911090000_one_entitlement_authority_and_admin_grants_verify.sql`, `src/lib/commercial/__tests__/entitlement-resolver.test.ts`, `src/lib/admin/__tests__/billing.test.ts`, `src/lib/__tests__/db-twin.test.ts`
+- **Runtime evidence**: `scripts/e2e/admin-billing-journey.mjs`
+- **Last verified**: 2026-09-11
 
 ### CHAT-001 — Chat parity (PLAN §8)
 

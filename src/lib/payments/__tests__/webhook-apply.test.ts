@@ -230,6 +230,70 @@ describe("money that went back stays back", () => {
   });
 });
 
+describe("an upgrade and a downgrade reach the row, not only the audit", () => {
+  /*
+   * THE TIER IS RESOLVED FROM `price_id`. An update that carried only the
+   * period would leave somebody who upgraded to Max paying for Max and using
+   * Pro, and somebody who downgraded still holding the larger allowance —
+   * money and access disagreeing, with the event recorded as applied.
+   */
+  const maxItem = {
+    price: { import_meta: { external_id: "ocade_max_monthly" } },
+    product: { import_meta: { external_id: "ocade_max" } },
+  };
+  const existing = {
+    paddleSubscriptionId: "sub_1",
+    status: "active",
+    providerEventAt: T0,
+    environment: "sandbox",
+  };
+
+  function updated(over: Record<string, unknown> = {}) {
+    return envelope({
+      eventType: "subscription.updated",
+      data: {
+        id: "sub_1",
+        status: "active",
+        current_billing_period: { starts_at: T0, ends_at: T1 },
+        ...over,
+      },
+    });
+  }
+
+  it("carries the new plan when the event names a different item", () => {
+    const result = decide(updated({ items: [maxItem] }), existing);
+    expect(result.action).toBe("update");
+    if (result.action !== "update") return;
+    expect(result.patch.price_id).toBe("ocade_max_monthly");
+    expect(result.patch.product_id).toBe("ocade_max");
+  });
+
+  it("carries a downgrade the same way, in the other direction", () => {
+    const result = decide(updated({ items: [weeklyItem] }), existing);
+    if (result.action !== "update") throw new Error("a downgrade was not applied");
+    expect(result.patch.price_id).toBe("ocade_pro_weekly");
+  });
+
+  it("leaves the plan alone when the event carries no items at all", () => {
+    /*
+     * Most `subscription.updated` events report a period change and nothing
+     * else. Sending the fields as null would blank the plan on the row and
+     * resolve a paying account to Free on its next read.
+     */
+    const result = decide(updated(), existing);
+    if (result.action !== "update") throw new Error("a period update was not applied");
+    expect(result.patch.price_id).toBeUndefined();
+    expect(result.patch.product_id).toBeUndefined();
+  });
+
+  it("still refuses to touch a terminal record, plan change or not", () => {
+    expect(decide(updated({ items: [maxItem] }), { ...existing, status: "refunded" })).toEqual({
+      action: "ignore",
+      reason: "terminal_state",
+    });
+  });
+});
+
 describe("provider refund and dispute adjustments", () => {
   const existing = {
     paddleSubscriptionId: "sub_1",
