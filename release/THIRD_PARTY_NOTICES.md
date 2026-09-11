@@ -6612,7 +6612,7 @@ THE SOFTWARE.
 
 </details>
 
-### js-yaml@4.3.1
+### js-yaml@4.3.2
 
 - Licence: MIT
 - Author: Vladimir Zapparov <dervus.grim@gmail.com>

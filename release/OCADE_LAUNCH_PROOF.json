@@ -1,8 +1,13 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-24T15:10:17.790Z",
-  "testedCommit": "dcc0f14d122dbc09bca6017646ae2856b6d4dc97",
-  "startingChanges": [],
+  "generatedAt": "2026-09-11T04:30:24.362Z",
+  "testedCommit": "3c4323d4d655697034d52b2e293fb8c511df089e",
+  "startingChanges": [
+    "M package-lock.json",
+    " M release/OCADE_LAUNCH_PROOF.json",
+    " M release/OCADE_RECOVERY_REHEARSAL.json",
+    " M release/THIRD_PARTY_NOTICES.md"
+  ],
   "classification": "SOURCE-FIXED AND EXECUTED; WINDOWS DEFERRED / NOT FINAL-PROVEN; LAUNCH EXTERNALLY BLOCKED",
   "readyToMerge": true,
   "readyToLaunch": false,
@@ -24,7 +29,7 @@
         "description": "TypeScript and generated routes",
         "status": "executed_pass",
         "exitCode": 0,
-        "durationMs": 29813,
+        "durationMs": 29935,
         "evidence": {
           "stdoutTail": "> caera-cadane-ocade@0.1.0 typecheck\n> npm run routes:generate && tsc --noEmit\n\n\n> caera-cadane-ocade@0.1.0 routes:generate\n> node scripts/generate-routes.mjs",
           "stderrTail": ""
@@ -35,9 +40,9 @@
         "description": "Lint with zero errors",
         "status": "executed_pass",
         "exitCode": 0,
-        "durationMs": 44477,
+        "durationMs": 33835,
         "evidence": {
-          "stdoutTail": "rrent␍⏎··········workstreams·and·explains·when·a·role·can·be·published.␍⏎········</p>␍⏎········<Link·to=\"/careers\"·className=\"text-foreground·underline\">␍⏎··········View·careers␍⏎········</Link>␍⏎······`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  prettier/prettier\n\n✖ 354 problems (0 errors, 354 warnings)\n  0 errors and 339 warnings potentially fixable with the `--fix` option.",
+          "stdoutTail": "> caera-cadane-ocade@0.1.0 lint\n> eslint .",
           "stderrTail": ""
         }
       },
@@ -46,10 +51,10 @@
         "description": "Full unit, integration, auth, payment and PostgreSQL-twin suite",
         "status": "executed_pass",
         "exitCode": 0,
-        "durationMs": 103143,
+        "durationMs": 145893,
         "evidence": {
-          "stdoutTail": "c/lib/__tests__/browser-media-and-ads.test.ts (12 tests) 115ms\n ✓ src/lib/__tests__/shell-hardening.test.ts (7 tests) 18ms\n ✓ src/lib/__tests__/depth-scene.test.tsx (5 tests) 260ms\n ✓ src/lib/__tests__/chat-mobile-interactions.test.tsx (2 tests) 232ms\n ✓ src/lib/__tests__/message-list-a11y.test.tsx (2 tests) 261ms\n ✓ src/lib/__tests__/message-feedback.test.ts (5 tests) 14ms\n ✓ src/lib/storage/__tests__/sync-queue-privacy.test.ts (2 tests) 9ms\n ✓ src/lib/__tests__/settings-interaction.test.tsx (61 tests) 4946ms\n   ✓ the audit as a whole is not inert > presses a meaningful number of controls across the settings surface  844ms\n ✓ src/lib/__tests__/signed-in-interaction.test.tsx (49 tests) 4642ms\n   ✓ every enabled control on a signed-in route can be pressed > _authenticated/ocade.work.tsx survives pressing everything  1784ms\n   ✓ every enabled control on a signed-in route can be pressed > _authenticated/ocade.automations.tsx survives pressing everything  756ms\n\n Test Files  383 passed | 2 skipped (385)\n      Tests  6268 passed | 8 skipped (6276)\n   Start at  20:35:22\n   Duration  101.71s (transform 43.91s, setup 0ms, collect 117.54s, tests 153.70s, environment 45.42s, prepare 127.35s)",
-          "stderrTail": "-the-ocade-codex-master-directive\\work\\ocade-main-fresh-20260824-1949\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:15832:11)\n    at recursivelyTraverseReconnectPassiveEffects (C:\\Users\\haans\\Documents\\Codex\\2026-08-24\\read-the-ocade-codex-master-directive\\work\\ocade-main-fresh-20260824-1949\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:15784:9)\n    at reconnectPassiveEffects (C:\\Users\\haans\\Documents\\Codex\\2026-08-24\\read-the-ocade-codex-master-directive\\work\\ocade-main-fresh-20260824-1949\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:15824:11) {\n  [stack]: [Getter/Setter],\n  [message]: 'Missing Supabase environment variable(s): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY. Connect Supabase in Lovable Cloud.'\n}\n\nThe above error occurred in the <PaymentsChecklistPage> component.\n\nReact will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl.\n\nWarning: The following error wasn't caught by any route! At the very least, consider setting an 'errorComponent' in your RootRoute!\nWarning: Missing Supabase environment variable(s): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY. Connect Supabase in Lovable Cloud."
+          "stdoutTail": "atabase| src/lib/chat/__tests__/conversation-share-schema.test.ts (13 tests) 2523ms\n ✓ |database| src/lib/commercial/__tests__/ledger-against-postgres.test.ts (20 tests) 2605ms\n ✓ |database| src/lib/__tests__/security-definer.test.ts (24 tests) 2565ms\n ✓ |database| src/lib/organizations/__tests__/organization-assurance.test.ts (22 tests) 2793ms\n ✓ |database| src/lib/admin/__tests__/admin-operations-schema.test.ts (8 tests) 2450ms\n ✓ |database| src/lib/status/__tests__/status-incident-schema.test.ts (12 tests) 2329ms\n ✓ |database| src/lib/commercial/__tests__/offline-capacity-against-postgres.test.ts (9 tests) 2377ms\n ✓ |database| src/lib/commercial/__tests__/gate-against-postgres.test.ts (7 tests) 2507ms\n ✓ |database| src/lib/notifications/__tests__/notification-schema.test.ts (16 tests) 2410ms\n ✓ |database| src/lib/chat/__tests__/conversation-trash-schema.test.ts (8 tests) 2266ms\n ✓ |database| src/lib/support/__tests__/support-publishing-schema.test.ts (14 tests) 2338ms\n\n Test Files  519 passed (519)\n      Tests  8327 passed | 3 skipped (8330)\n   Start at  04:24:31\n   Duration  145.21s (transform 15.57s, setup 0ms, collect 36.05s, tests 169.37s, environment 11.39s, prepare 28.86s)",
+          "stderrTail": "fatal: path 'supabase/functions/ocade-intelligence/index.ts' exists on disk, but not in '0000000000000000000000000000000000000000'"
         }
       },
       {
@@ -57,10 +62,10 @@
         "description": "Shuffled-file isolation stress",
         "status": "executed_pass",
         "exitCode": 0,
-        "durationMs": 92958,
+        "durationMs": 147919,
         "evidence": {
-          "stdoutTail": "s\n ✓ src/lib/__tests__/cowork-extension-gate.test.tsx (7 tests) 693ms\n ✓ src/lib/__tests__/message-list-a11y.test.tsx (2 tests) 259ms\n ✓ src/lib/storage/__tests__/sync-queue-privacy.test.ts (2 tests) 11ms\n ✓ src/lib/__tests__/browser-media-and-ads.test.ts (12 tests) 90ms\n ✓ src/lib/__tests__/composer-drop-wiring.test.tsx (9 tests) 246ms\n ✓ src/lib/__tests__/settings-interaction.test.tsx (61 tests) 5198ms\n   ✓ every enabled control in settings can be pressed > ComputerUsePanel survives pressing everything  355ms\n   ✓ the audit as a whole is not inert > presses a meaningful number of controls across the settings surface  957ms\n ✓ src/lib/__tests__/signed-in-interaction.test.tsx (49 tests) 4582ms\n   ✓ every enabled control on a signed-in route can be pressed > _authenticated/ocade.work.tsx survives pressing everything  1728ms\n   ✓ every enabled control on a signed-in route can be pressed > _authenticated/ocade.automations.tsx survives pressing everything  693ms\n\n Test Files  383 passed | 2 skipped (385)\n      Tests  6268 passed | 8 skipped (6276)\n   Start at  20:37:05\n   Duration  91.68s (transform 39.15s, setup 0ms, collect 111.52s, tests 130.47s, environment 44.12s, prepare 118.41s)",
-          "stderrTail": "-the-ocade-codex-master-directive\\work\\ocade-main-fresh-20260824-1949\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:15832:11)\n    at recursivelyTraverseReconnectPassiveEffects (C:\\Users\\haans\\Documents\\Codex\\2026-08-24\\read-the-ocade-codex-master-directive\\work\\ocade-main-fresh-20260824-1949\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:15784:9)\n    at reconnectPassiveEffects (C:\\Users\\haans\\Documents\\Codex\\2026-08-24\\read-the-ocade-codex-master-directive\\work\\ocade-main-fresh-20260824-1949\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:15824:11) {\n  [stack]: [Getter/Setter],\n  [message]: 'Missing Supabase environment variable(s): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY. Connect Supabase in Lovable Cloud.'\n}\n\nThe above error occurred in the <PaymentsChecklistPage> component.\n\nReact will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl.\n\nWarning: The following error wasn't caught by any route! At the very least, consider setting an 'errorComponent' in your RootRoute!\nWarning: Missing Supabase environment variable(s): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY. Connect Supabase in Lovable Cloud."
+          "stdoutTail": "2 tests) 2317ms\n ✓ |database| src/lib/account/__tests__/data-rights-map.test.ts (8 tests) 2156ms\n ✓ |database| src/lib/__tests__/db-twin.test.ts (27 tests) 8616ms\n   ✓ verification and rollback are executed, not merely present > runs every verification script immediately after its own migration  3198ms\n   ✓ verification and rollback are executed, not merely present > rolls every migration back, in reverse, against the full schema  2797ms\n ✓ |database| src/lib/commercial/__tests__/gate-against-postgres.test.ts (7 tests) 2550ms\n ✓ |database| src/lib/commercial/__tests__/offline-capacity-against-postgres.test.ts (9 tests) 2473ms\n ✓ |database| src/lib/support/__tests__/support-publishing-schema.test.ts (14 tests) 2273ms\n ✓ |database| src/lib/recovery/__tests__/recovery-rehearsal.test.ts (1 test) 7248ms\n   ✓ a total loss, recovered > rebuilds the schema, restores the rows and keeps every guarantee  7247ms\n ✓ |database| src/lib/__tests__/user-isolation.test.ts (9 tests) 3597ms\n\n Test Files  519 passed (519)\n      Tests  8327 passed | 3 skipped (8330)\n   Start at  04:26:57\n   Duration  147.28s (transform 17.75s, setup 0ms, collect 39.89s, tests 170.09s, environment 11.71s, prepare 28.22s)",
+          "stderrTail": "fatal: path 'supabase/functions/ocade-intelligence/index.ts' exists on disk, but not in '0000000000000000000000000000000000000000'"
         }
       },
       {
@@ -68,10 +73,10 @@
         "description": "Production web and Worker build",
         "status": "executed_pass",
         "exitCode": 0,
-        "durationMs": 22943,
+        "durationMs": 15283,
         "evidence": {
-          "stdoutTail": "  192.10 kB │ gzip:  35.05 kB\n.output/server/_ssr/ocade.lab-B0F5Y3H8.mjs                           195.13 kB │ gzip:  53.87 kB\n.output/server/_libs/jszip+[...].mjs                                 273.47 kB │ gzip:  60.98 kB\n.output/server/_libs/supabase__auth-js.mjs                           302.11 kB │ gzip:  60.25 kB\n.output/server/_ssr/wllama-0Jo7yQto.mjs                              337.15 kB │ gzip: 138.29 kB\n.output/server/_ssr/ocade.index-BDLFW3Et.mjs                         431.88 kB │ gzip: 129.24 kB\n.output/server/_libs/@tanstack/react-router+[...].mjs                659.20 kB │ gzip: 138.75 kB\n.output/server/_libs/pdfjs-dist.mjs                                  760.42 kB │ gzip: 169.99 kB\n.output/server/_libs/@lovable.dev/mcp-js+[...].mjs                   950.95 kB │ gzip: 201.01 kB\n.output/server/_libs/three.mjs                                     1,186.53 kB │ gzip: 239.63 kB\n\n✓ built in 1.86s\ni Generated .output/server/wrangler.json\ni Generated .wrangler/deploy/config.json\ni Generated .output/public/_headers\ni Generated .output/nitro.json\n\n[nitro] √ You can preview this build using npx vite preview\n[nitro] √ You can deploy this build using npx nitro deploy --prebuilt",
-          "stderrTail": "The plugin \"vite-tsconfig-paths\" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.\n\u001b[33m[PLUGIN_TIMINGS] \u001b[0mYour build spent significant time in plugins. Here is a breakdown:\n  - vite-tsconfig-paths (69%)\n  - tanstack-start-core:import-protection (19%)\n  - tanstack-start-core:import-protection-transform-cache (9%)\nSee https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.\n\n\u001b[33m[PLUGIN_TIMINGS] \u001b[0mYour build spent significant time in plugins. Here is a breakdown:\n  - vite-tsconfig-paths (41%)\n  - tanstack-start-core:import-protection (34%)\n  - tanstack-start-core:import-protection-transform-cache (12%)\n  - tanstack-router:code-splitter:compile-reference-file (6%)\n  - tanstack-router:code-splitter:compile-virtual-file (3%)\nSee https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.\n\n\n WARN  inlineDynamicImports option is ignored because the codeSplitting option is specified.\n\n\n[nitro]  WARN  [cloudflare] Wrangler config assets is overridden and will be ignored."
+          "stdoutTail": "   165.90 kB │ gzip:  49.93 kB\n.output/server/_libs/mdast-util-from-markdown+[...].mjs              191.23 kB │ gzip:  36.40 kB\n.output/server/_ssr/EngineeringLab-BNzjHS5o.mjs                      195.04 kB │ gzip:  53.87 kB\n.output/server/_ssr/settings._section-aHzQ07tW.mjs                   282.68 kB │ gzip:  66.33 kB\n.output/server/_libs/supabase__auth-js.mjs                           311.86 kB │ gzip:  62.66 kB\n.output/server/_ssr/wllama-0Jo7yQto.mjs                              337.15 kB │ gzip: 138.29 kB\n.output/server/_ssr/ocade.index-DTKOwdeq.mjs                         607.33 kB │ gzip: 181.86 kB\n.output/server/_libs/@tanstack/react-router+[...].mjs                659.63 kB │ gzip: 138.79 kB\n.output/server/_libs/pdfjs-dist.mjs                                  760.40 kB │ gzip: 169.97 kB\n.output/server/_libs/three.mjs                                     1,186.41 kB │ gzip: 239.56 kB\n\n✓ built in 1.36s\ni Generated .output/public/_headers\ni Generated .output/nitro.json\n\n[nitro] √ You can preview this build using npx vite preview\n[nitro] √ You can deploy this build using npx nitro deploy --prebuilt\nGenerated .output/server/wrangler.json from the checked-in deployment authority.",
+          "stderrTail": "\u001b[33m[PLUGIN_TIMINGS] \u001b[0mYour build spent significant time in plugins. Here is a breakdown:\n  - tanstack-start-core:import-protection (60%)\n  - tanstack-start-core:import-protection-transform-cache (23%)\n  - tanstack-router:code-splitter:compile-reference-file (6%)\n  - tanstack-start-core::server-fn:ssr (3%)\n  - tanstack-router:code-splitter:compile-virtual-file (3%)\nSee https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details."
         }
       },
       {
@@ -79,9 +84,9 @@
         "description": "Production asset budgets",
         "status": "executed_pass",
         "exitCode": 0,
-        "durationMs": 407,
+        "durationMs": 199,
         "evidence": {
-          "stdoutTail": "> caera-cadane-ocade@0.1.0 performance:budget\n> node scripts/check-asset-budgets.mjs\n\nPerformance budget: 171/250 assets\nsource maps 0 (must be 0)\n4279.1 KiB/4296.9 KiB total\n4148.4 KiB/4150.4 KiB JavaScript\n859.9 KiB/976.6 KiB eager JavaScript (5 chunks)\nlargest eager index-xYayBAtb.js 472.1 KiB/507.8 KiB\n130.8 KiB/146.5 KiB CSS\nlargest JS SolarSystem-C9kTWTzq.js 538.9 KiB/585.9 KiB\nlazy PDF chunks 1\non-device engines 7768.3 KiB/20507.8 KiB (all lazy: true)",
+          "stdoutTail": "> caera-cadane-ocade@0.1.0 performance:budget\n> node scripts/check-asset-budgets.mjs\n\nPerformance budget: 212/250 assets\noversized deployment assets 0 (must be 0)\nsource maps 0 (must be 0)\n4284.9 KiB/4345.7 KiB total\n4148.9 KiB/4200.0 KiB JavaScript\n628.8 KiB/850.0 KiB eager JavaScript (8 chunks)\nlargest eager index-4nnbtsqV.js 395.3 KiB/450.0 KiB\n136.0 KiB/145.0 KiB CSS\nlargest JS SolarSystem-DJZ7h_Ph.js 539.0 KiB/585.9 KiB\nlazy PDF chunks 1\non-device engines 7768.3 KiB/20507.8 KiB (all lazy: true)",
           "stderrTail": ""
         }
       },
@@ -90,9 +95,9 @@
         "description": "Rendered-control dead-path scan",
         "status": "executed_pass",
         "exitCode": 0,
-        "durationMs": 493,
+        "durationMs": 208,
         "evidence": {
-          "stdoutTail": "> caera-cadane-ocade@0.1.0 controls:check\n> node scripts/check-dead-controls.mjs\n\nNo-Dead-Button audit: scanned 224 component and route files\nNo dead controls found.",
+          "stdoutTail": "> caera-cadane-ocade@0.1.0 controls:check\n> node scripts/check-dead-controls.mjs\n\nNo-Dead-Button audit: scanned 254 component and route files\nNo dead controls found.",
           "stderrTail": ""
         }
       },
@@ -101,7 +106,7 @@
         "description": "Safety mutation campaign",
         "status": "executed_pass",
         "exitCode": 0,
-        "durationMs": 71159,
+        "durationMs": 42204,
         "evidence": {
           "stdoutTail": "> caera-cadane-ocade@0.1.0 test:mutation\n> node scripts/mutation-safety.mjs\n\ncaught    privacy: cloud approval is reported as a possible inference path\ncaught    privacy: on-device inference is treated as consuming paid allowance\ncaught    provenance: privacy reported from the setting, not the measurement\ncaught    provenance: an unmeasured window is reported as private\ncaught    preflight: AWS access keys are no longer detected\ncaught    preflight: the Luhn check is dropped, so any digit run is a card\ncaught    ledger: entries no longer link to the one before them\ncaught    sealed mode: sendBeacon is allowed through the seal\ncaught    sealed mode: a sealed conversation never installs its barrier\ncaught    sealed mode: the page seal lets any origin through\ncaught    sealed mode: overlapping seals take the loosest policy, not the strictest\ncaught    deletion: the database row is dropped before the stored object\ncaught    service worker: the /api/ cache exclusion is removed\ncaught    RLS: any authenticated user may read any conversation\ncaught    RLS: row-level security is disabled on conversations\n\n15/15 caught",
           "stderrTail": ""
@@ -112,9 +117,9 @@
         "description": "OCADE 77-item and production-wiring source gate",
         "status": "executed_pass",
         "exitCode": 0,
-        "durationMs": 718,
+        "durationMs": 287,
         "evidence": {
-          "stdoutTail": "rc/lib/providers/free-tool-adapters.ts\n  src/routes/_authenticated/ocade.lab.tsx -> src/components/ocade/AppCoveragePanel.tsx -> src/lib/providers/tool-prober.ts -> src/lib/providers/free-tool-adapters.ts\nwired: src/lib/code/generated-sandbox-node.ts\n  src/routes/_authenticated/ocade.code.tsx -> src/components/ocade/CodeWorkspacePanel.tsx -> src/lib/sandbox.functions.ts -> src/lib/code/generated-sandbox-node.ts\nreplaced/retired: src/lib/packaging/update-signature.ts\n  production owner: Tauri native updater signature verification\n  public desktop distribution remains disabled until external signing/device proof exists\ntracked CI owner: .github/workflows/ci.yml\ntracked CI owner: .github/workflows/platforms.yml\ntracked CI owner: .github/workflows/ocade-77-readiness.yml\nOCADE Phase-5 production wiring OK\n- production entry points scanned: 96\n- production source modules reachable: 587\n- historical modules directly/transitively production-wired: 9/10\n- historical modules replaced/retired with production proof: 1/10\n- historical Phase-5 dispositions materially resolved: 10/10\n- runtime availability, signed public release, hardware success and hosted CI are NOT inferred by this source gate",
+          "stdoutTail": "icated/ocade.customize.tsx -> src/components/ocade/customize/EngineeringLab.tsx -> src/components/ocade/AppCoveragePanel.tsx -> src/lib/providers/tool-prober.ts -> src/lib/providers/free-tool-adapters.ts\nwired: src/lib/code/generated-sandbox-node.ts\n  src/routes/_authenticated/ocade.code.tsx -> src/components/ocade/CodeWorkspacePanel.tsx -> src/lib/sandbox.functions.ts -> src/lib/code/generated-sandbox-node.ts\nreplaced/retired: src/lib/packaging/update-signature.ts\n  production owner: Tauri native updater signature verification\n  public desktop distribution remains disabled until external signing/device proof exists\ntracked CI owner: .github/workflows/ci.yml\ntracked CI owner: .github/workflows/platforms.yml\ntracked CI owner: .github/workflows/ocade-77-readiness.yml\nOCADE Phase-5 production wiring OK\n- production entry points scanned: 103\n- production source modules reachable: 762\n- historical modules directly/transitively production-wired: 9/10\n- historical modules replaced/retired with production proof: 1/10\n- historical Phase-5 dispositions materially resolved: 10/10\n- runtime availability, signed public release, hardware success and hosted CI are NOT inferred by this source gate",
           "stderrTail": ""
         }
       },
@@ -123,9 +128,9 @@
         "description": "Release source and blocker-honesty gate",
         "status": "executed_pass",
         "exitCode": 0,
-        "durationMs": 453,
+        "durationMs": 203,
         "evidence": {
-          "stdoutTail": "> caera-cadane-ocade@0.1.0 release:source-check\n> node scripts/check-release-source.mjs\n\nOCADE release source gate: 92/92 checks passed\nSTATUS: SOURCE READY; PRODUCTION RELEASE EXTERNALLY BLOCKED (8 areas)\nThis source gate does not itself sign, publish to stores, mutate a database, or install on a device; executed external evidence is recorded separately.",
+          "stdoutTail": "> caera-cadane-ocade@0.1.0 release:source-check\n> node scripts/check-release-source.mjs\n\nOCADE release source gate: 105/105 checks passed\nSTATUS: SOURCE READY; PRODUCTION RELEASE EXTERNALLY BLOCKED (9 areas)\nThis source gate does not itself sign, publish to stores, mutate a database, or install on a device; executed external evidence is recorded separately.",
           "stderrTail": ""
         }
       },
@@ -134,7 +139,7 @@
         "description": "Fixed local-model distribution gate",
         "status": "executed_pass",
         "exitCode": 0,
-        "durationMs": 389,
+        "durationMs": 146,
         "evidence": {
           "stdoutTail": "> caera-cadane-ocade@0.1.0 model:distribution-check\n> node scripts/check-model-distribution.mjs\n\nmodel distribution: SOURCE-FIXED AND EXECUTED; DISTRIBUTION EXTERNALLY BLOCKED\n  EXECUTED 2 · SOURCE-FIXED 8 · EXTERNALLY BLOCKED 5\n  EXTERNAL: same-origin browser weight is absent: public/models/qwen2.5-1.5b-instruct-q4_k_m.gguf\n  EXTERNAL: the optional same-origin WebGPU model/library mirror is not populated\n  EXTERNAL: desktop publishing is intentionally disabled\n  EXTERNAL: control-engine provenance review remains open\n  EXTERNAL: the runtime registry licence is not machine-classified (Qwen RESEARCH LICENSE AGREEMENT)",
           "stderrTail": ""
@@ -145,9 +150,9 @@
         "description": "Generated third-party notices are current",
         "status": "executed_pass",
         "exitCode": 0,
-        "durationMs": 598,
+        "durationMs": 192,
         "evidence": {
-          "stdoutTail": "> caera-cadane-ocade@0.1.0 licences:check\n> node scripts/generate-licence-notices.mjs --check\n\nLicence notices are current: 373 production packages.",
+          "stdoutTail": "> caera-cadane-ocade@0.1.0 licences:check\n> node scripts/generate-licence-notices.mjs --check\n\nLicence notices are current: 257 production packages.",
           "stderrTail": ""
         }
       },
@@ -156,9 +161,9 @@
         "description": "Database types match the migration surface",
         "status": "executed_pass",
         "exitCode": 0,
-        "durationMs": 437,
+        "durationMs": 204,
         "evidence": {
-          "stdoutTail": "> caera-cadane-ocade@0.1.0 supabase:types-check\n> node scripts/check-supabase-types.mjs\n\nSupabase types cover all 68 migrated tables (68 declared in types).",
+          "stdoutTail": "> caera-cadane-ocade@0.1.0 supabase:types-check\n> node scripts/check-supabase-types.mjs\n\nSupabase types cover all 99 migrated tables (99 declared in types) and all 1005 columns this gate can read.",
           "stderrTail": ""
         }
       },
@@ -167,7 +172,7 @@
         "description": "Launch authority remains fail-closed",
         "status": "executed_pass",
         "exitCode": 0,
-        "durationMs": 410,
+        "durationMs": 150,
         "evidence": {
           "stdoutTail": "> caera-cadane-ocade@0.1.0 launch-authority:check\n> node scripts/launch-authority.mjs\n\nLaunch-authority gate: four dependency-ordered stages remain externally blocked.\n- signing: EXTERNALLY_BLOCKED\n- deployment: EXTERNALLY_BLOCKED\n- support_readiness: EXTERNALLY_BLOCKED\n- announcement: EXTERNALLY_BLOCKED",
           "stderrTail": ""
@@ -178,7 +183,7 @@
         "description": "Production dependency vulnerability audit",
         "status": "executed_pass",
         "exitCode": 0,
-        "durationMs": 2244,
+        "durationMs": 520,
         "evidence": {
           "stdoutTail": "found 0 vulnerabilities",
           "stderrTail": ""
@@ -221,6 +226,7 @@
       "id": "web-cloudflare-runtime",
       "area": "web",
       "requiredEvidence": [
+        "Deploy a production build with VITE_AUTH_GOOGLE_ENABLED=true after an authorized Cloudflare configuration change; localhost proof does not change the locked build",
         "Post-gate authentication and critical-route smoke tests after the authorized launch opening"
       ]
     },
@@ -228,10 +234,11 @@
       "id": "supabase-apply-and-rls",
       "area": "supabase",
       "requiredEvidence": [
-        "Google OAuth web client ID and secret, exact callback registration, provider enablement, and real sign-in/sign-out proof",
+        "Repair and execute signed-in profile reads: production currently returns HTTP 403 because authenticated cannot execute public.has_role even though profiles RLS invokes it",
         "Custom SMTP credentials and real signup confirmation login logout and recovery delivery proof to a non-team address",
         "Real signed-in Storage API upload download and deletion proof",
-        "Production-domain email-template verification; redirect configuration itself is already observed"
+        "Production-domain email-template verification; redirect configuration itself is already observed",
+        "Enable leaked-password protection for the email provider in the Supabase dashboard; it is an auth configuration toggle with no repository representation"
       ]
     },
     {
@@ -290,6 +297,15 @@
         "Populate and independently hash the same-origin browser model mirrors",
         "Resolve the desktop-model licence and control-engine provenance reviews for the exact release commit",
         "Signed clean-machine desktop distribution and supported browser/mobile device matrix"
+      ]
+    },
+    {
+      "id": "github-actions-cannot-obtain-a-runner",
+      "area": "ci",
+      "requiredEvidence": [
+        "Owner action at https://github.com/settings/billing: confirm whether the included Actions minutes for the current cycle are exhausted",
+        "If they are, either raise the Actions spending limit above zero with a valid payment method at https://github.com/settings/billing/spending_limit, or make the repository public so Actions minutes are unmetered, or register a self-hosted runner under repository Settings then Actions then Runners",
+        "After that, a green Runner probe run is the proof; CI, OCADE 77 Readiness and CodeQL follow from it"
       ]
     }
   ],
