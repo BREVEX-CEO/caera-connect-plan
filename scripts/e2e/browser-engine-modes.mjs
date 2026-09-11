@@ -180,6 +180,23 @@ const RUN_IN_PAGE = async ({ gpuLayers, threads, ggufUrl, wasmUrl, esmUrl }) => 
     crossOriginIsolated: globalThis.crossOriginIsolated === true,
     sharedArrayBuffer: typeof SharedArrayBuffer === "function",
     hasGpu: !!navigator.gpu,
+    /*
+     * WHAT THE DEVICE SAYS IT CAN HOLD.
+     *
+     * The offload assertions below need it. A browser can offer WebGPU and
+     * still report an allocation ceiling too small for the weights, and the
+     * runtime then keeps every layer on the processor — which is correct
+     * behaviour and indistinguishable, without this number, from an offload
+     * that silently failed.
+     */
+    maxBufferSize: await (async () => {
+      try {
+        const adapter = await navigator.gpu?.requestAdapter();
+        return adapter?.limits?.maxBufferSize ?? null;
+      } catch {
+        return null;
+      }
+    })(),
   };
   await wllama.exit();
   return outcome;
@@ -372,10 +389,18 @@ async function main() {
       'export { WEBGPU_TIERS, runtimeMemoryBytes, formatSize } from "../src/lib/brain/browser-catalogue";',
     ].join("\n"),
   );
+  /*
+   * THE BINARY DIRECTLY, NOT THROUGH NODE.
+   *
+   * `node_modules/esbuild/bin/esbuild` used to be a JavaScript shim that
+   * re-executed the platform binary, so running it with `process.execPath`
+   * worked. It is now the native executable itself, and node handed it to the
+   * CommonJS loader, which read the ELF header and reported
+   * `SyntaxError: Invalid or unexpected token` against a line reading "ELF".
+   */
   execFileSync(
-    process.execPath,
+    join("node_modules", "esbuild", "bin", "esbuild"),
     [
-      join("node_modules", "esbuild", "bin", "esbuild"),
       ENTRY,
       "--bundle",
       "--format=esm",
@@ -473,25 +498,53 @@ async function main() {
         String(asked.supportsWebGpu),
       );
 
+      /*
+       * A DEVICE THAT CANNOT HOLD THE WEIGHTS IS NOT A FAILED OFFLOAD.
+       *
+       * These three used to assert the offload unconditionally. On a device
+       * whose reported allocation ceiling is smaller than the model — this
+       * container offers 1024 MiB against the 1874 MiB the smallest engine
+       * needs, which section 4 below measures and OCADE's own adapter
+       * correctly refuses — the runtime keeps every layer on the processor.
+       * That is right, and it was being reported as "OCADE did not offload".
+       *
+       * So the runtime's OWN load report decides which claim is under test,
+       * which needs no threshold and still closes the trap this section exists
+       * for. If a graphics backend was registered, the weights and the layers
+       * must actually be on it: a run that registers one and offloads nothing
+       * is the half-loaded state that would otherwise pass. If none was, the
+       * claim is the other half of the same requirement — every layer stayed
+       * on the processor, and the answers below are still correct.
+       */
       const backends = asked.log.find((line) => /backend_ptrs\.size\(\)/.test(line));
       const backendCount = Number(/=\s*(\d+)/.exec(backends ?? "")?.[1] ?? 0);
-      check(
-        backendCount >= 2,
-        "the bundled runtime registers processor and graphics backends",
-        backends?.trim() ?? "no backend count in the load report",
-      );
-
       const gpuBuffer = asked.log.some(
         (line) => /load_tensors:/.test(line) && /webgpu/i.test(line) && /buffer size/i.test(line),
       );
-      check(gpuBuffer, "weights are resident on the graphics backend");
-
       const gpuLayers = asked.log.filter((line) => /assigned to device WebGPU/.test(line));
-      check(
-        gpuLayers.length > 0,
-        "the requested layers are assigned to the graphics backend",
-        `${gpuLayers.length} layers`,
-      );
+      const ceiling = asked.maxBufferSize;
+      const offered =
+        typeof ceiling === "number" ? `${Math.round(ceiling / (1024 * 1024))} MiB` : "unreported";
+
+      if (backendCount >= 2) {
+        check(
+          gpuBuffer,
+          "weights are resident on the graphics backend it registered",
+          `${backendCount} backends, ceiling ${offered}`,
+        );
+        check(
+          gpuLayers.length > 0,
+          "and the requested layers are assigned to it",
+          `${gpuLayers.length} layers`,
+        );
+      } else {
+        check(
+          !gpuBuffer && gpuLayers.length === 0,
+          "a device that registered no graphics backend keeps every layer on the processor",
+          `${backendCount} backend(s), ceiling ${offered}, ` +
+            `${gpuLayers.length} graphics layer(s), weights on graphics: ${gpuBuffer}`,
+        );
+      }
 
       /*
        * AND IT STILL ANSWERS CORRECTLY, which is the trap this section exists

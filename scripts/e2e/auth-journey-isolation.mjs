@@ -227,16 +227,40 @@ async function main() {
       if (/install|model|wllama|webllm|huggingface/i.test(url)) modelActivity.push(url);
     });
 
-    /* --------------------- 1. signed-out pages never start model transfer */
+    /* ------------------ 1. preparation begins before anybody signs in */
 
-    console.log("\n1. Preparation waits for a successful authenticated sign-in");
+    /*
+     * THIS STEP ASSERTED THE OPPOSITE, AND THE OPPOSITE IS THE OLD PRODUCT.
+     *
+     * It required a signed-out page to make zero model-weight requests and
+     * write zero bytes — "preparation waits for a successful authenticated
+     * sign-in". `PLAN.md` decided the other way: "Offline Intelligence starts
+     * preparing in the background on first visit where supported", and
+     * `useInstallationBootstrap` is mounted at the application ROOT for exactly
+     * that reason, because a gigabyte that starts when somebody types their
+     * first message starts at the worst possible moment.
+     *
+     * So the step now checks the requirement that replaced it. The isolation
+     * this journey exists to prove is unchanged and is still checked below:
+     * what was transferred before sign-in must be REUSED after it, never
+     * fetched again, and never carried into another account's session.
+     */
+    console.log("\n1. Preparation begins on the first visit, before anybody signs in");
     await page.goto(`${base}/auth`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(1500);
     await acceptConsent(page);
-    await page.waitForTimeout(2500);
+    await page.waitForTimeout(6000);
     const anonymous = await page.evaluate(DURABLE_STATE);
-    check(ranges.length === 0, "the signed-out page made zero model-weight requests");
-    check(anonymous.bytes === 0, "the signed-out page wrote zero model bytes to OPFS");
+    check(
+      ranges.length > 0,
+      "the signed-out page starts fetching model weights",
+      `${ranges.length} range request(s)`,
+    );
+    check(
+      anonymous.bytes > 0,
+      "and writes them to OPFS, where signing in will find them",
+      `${anonymous.bytes} byte(s)`,
+    );
 
     /* ------------------------------------------- 2. auth is not isolated */
 
