@@ -118,8 +118,11 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 19 (payments, refunds, disputes and Admin grants — the last
-implementation phase) is complete.
+Phase 20 (final reachability, disposal and documentation reconciliation) is
+complete. Phase 19 (payments, refunds, disputes and Admin grants) completed
+before it; both are on `claude/plan-implementation-n3yjkn`.
+
+### Phase 19 — one commercial authority
 
 The deployment carried TWO subscription tables written by different code. The
 signature-verified Paddle webhook wrote `public.subscriptions`;
@@ -127,40 +130,56 @@ signature-verified Paddle webhook wrote `public.subscriptions`;
 customer could complete a real payment, have it verified, recorded and audited,
 and still be on Free. Migration 97 archives that table into
 `ocade_retired_subscriptions` — history that grants nothing — drops it, and
-points the resolver, the plan screen and the device screen at the one authority.
+points the resolver, the plan screen, the device screen and the account data map
+at the one authority.
 
-Admin grants are their own table, their own functions and their own panel.
+Admin grants are their own table and their own functions.
 `ocade_grant_entitlement` requires the support-admin role, an `aal2` claim, a
 reason of at least ten characters and a window of one to 366 days, and refuses
 an admin granting to their own account. `ocade_revoke_entitlement` sets state
-and keeps the row, because the record that access WAS given is the half a
-dispute needs. The resolver takes the stronger of the paid tier and the granted
-tier, so somebody who pays for Pro and is given Max for a support case gets Max
-and the books still show one payment.
+and keeps the row. The resolver takes the stronger of the paid and granted
+tiers. `/admin/billing` closes `ADMIN-002`: subscriptions, payment events,
+invoices, seats per organization and the grant audit, with the grant and revoke
+controls; seats are an aggregate, so an operator never receives the membership
+of every workspace.
 
-`/admin/billing` closes ADMIN-002: subscriptions, payment events, invoices,
-seats per organization and the grant audit, with the grant and revoke controls.
-The admin reads are policies on the data, not a gate in the browser; seats are
-an aggregate so an operator never receives the membership of every workspace.
-Nothing on that screen writes a subscription, an invoice or a payment event.
+Migration 98 fixed a second defect found while tracing the phase:
+`apply_payment_webhook_event` applied status and period on an update and left
+`price_id` alone, so an upgrade or a downgrade never reached the row the tier is
+resolved from.
 
-One more defect surfaced while tracing the phase: `apply_payment_webhook_event`
-applied status and period on an update and left `price_id` alone, so an upgrade
-or a downgrade never reached the row the tier is resolved from. Migration 98
-coalesces the catalogue ids on update; `decide` only carries them when the
-event names them, so an ordinary period update still leaves the plan alone.
+### Phase 20 — what reachability tracing found
 
-Both migrations are applied live, and the two security gates that read
-`SECURITY DEFINER` bodies now read the `private` helpers too — a function
-authorized through `private.ocade_is_support_admin()` is bound to its caller,
-and a fixpoint computed over `public` alone could not see it.
+`npm run reachability:check` walks every product module from the routes, the
+framework entries and the workers. Twenty-three modules were in the tree and in
+nobody's graph, and the two that mattered were not dead code: they were the
+Remove and Install controls for Offline Intelligence. Removal was offered ONLY
+as a remedy on the corner panel that appears when preparation FAILS, and that
+panel renders nothing once the model is ready — so an account with Offline
+Intelligence installed had no way to remove it, against `PLAN.md`'s "only
+explicit Remove Offline Intelligence deletes it". Both are now mounted in
+Settings › Local engine and browser-proven there.
+
+Disposed after their unique value was preserved: a second freshness classifier
+(its finished-year rule and a plural gap it exposed went into the one the router
+calls), a second evidence-packet builder (its injection scan went into the
+shipped retrieval path, which had been labelling web evidence without scanning
+it), a dead failure panel, an uncalled Node probe runner and an unused palette.
+The payment twin and the release ledgers are declared as entered elsewhere, each
+with a stated reason, and a stale exemption fails the gate.
+
+The web-vitals audit then caught `/pricing` at 0.2059 cumulative layout shift on
+a loaded run, having measured 0.0000 on three quiet runs of the same build. It
+was the font race: `font-display: swap` reflows every line when a face arrives
+late, and a face requested by the stylesheet cannot be known about until the CSS
+has parsed. The two above-the-fold faces are preloaded now, and all three public
+routes measure 0.0000.
 
 `ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
 1, deliberately.
 
-Next is Phase 20 — final reachability, disposal and documentation
-reconciliation, then the exhaustive final matrix, safe `main` integration and
-controlled deployment.
+Next is the exhaustive final verification matrix, then safe `main` integration
+and controlled deployment.
 
 Two known external items remain: `auth_leaked_password_protection` is disabled
 in Supabase Auth, and the Windows control journey needs Windows hardware. Both

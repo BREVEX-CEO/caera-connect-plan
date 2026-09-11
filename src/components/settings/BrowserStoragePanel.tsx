@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { HardDrive, ShieldCheck, ShieldAlert, RefreshCw, Loader2, Trash2 } from "lucide-react";
+import { HardDrive, ShieldCheck, ShieldAlert, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { StatusBadge } from "@/components/shell/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { modelStore } from "@/lib/brain/model-store";
 import { modelVault, type InstallationView } from "@/lib/brain/model-vault";
-import { clearBenchmarks } from "@/lib/brain/tier-benchmark-store";
 
 type ProductStorageView = InstallationView & {
   supported: boolean;
@@ -65,23 +64,6 @@ export function BrowserStoragePanel() {
         granted
           ? "This browser will keep OCADE Intelligence between visits."
           : "The browser may clear OCADE Intelligence when this device runs low on space.",
-      );
-      setView(await readView());
-    } finally {
-      setBusy(null);
-    }
-  }, [readView]);
-
-  const remove = useCallback(async () => {
-    setBusy("remove");
-    try {
-      const { installationAuthority } = await import("@/lib/brain/installation-browser");
-      const { removed } = await installationAuthority().uninstall();
-      clearBenchmarks();
-      toast.success(
-        removed === 0
-          ? "OCADE Intelligence was not stored on this device."
-          : "OCADE Intelligence was removed from this device.",
       );
       setView(await readView());
     } finally {
@@ -166,22 +148,16 @@ export function BrowserStoragePanel() {
         </div>
       ) : null}
 
-      {view?.stored ? (
-        <Button
-          size="sm"
-          variant="outline"
-          className="mt-4"
-          onClick={() => void remove()}
-          disabled={busy !== null}
-        >
-          {busy === "remove" ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Trash2 className="mr-2 h-4 w-4" />
-          )}
-          Remove OCADE Intelligence
-        </Button>
-      ) : null}
+      {/*
+        REMOVAL IS NOT OFFERED HERE, DELIBERATELY.
+
+        There is one uninstall operation and one button for it, in
+        `LocalIntelligenceControl` directly above this panel — which also states
+        the consequence before doing it and offers the install back afterwards.
+        A second Remove here would be a second chance for the two to disagree
+        about what "remove" covers, and the one that removed too much would be
+        discovered by somebody losing their conversations.
+      */}
     </GlassPanel>
   );
 }

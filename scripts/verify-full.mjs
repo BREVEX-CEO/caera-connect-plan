@@ -37,6 +37,7 @@ const commands = [
   "browser-safety:check",
   "content-storage:check",
   "reads:check",
+  "reachability:check",
   "monochrome:check",
   "a11y:check",
   "licences:check",

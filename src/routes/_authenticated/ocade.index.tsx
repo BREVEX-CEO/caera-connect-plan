@@ -2382,6 +2382,22 @@ function ChatSurface(props: {
               retrievedAt: source.retrievedAt,
             }));
             sourceIndexRef.current = [...sourceIndexRef.current, ...webSources];
+
+            /*
+             * A PAGE THAT TRIED TO HIJACK THE ASSISTANT IS SOMETHING THE
+             * READER IS OWED.
+             *
+             * The defence is that the evidence is quoted as data and the model
+             * is told not to obey it. The disclosure is separate and matters on
+             * its own: an answer built on a page that tried this is a reason to
+             * distrust the PAGE, and somebody deciding whether to act on the
+             * answer cannot weigh that if nobody tells them.
+             */
+            if (retrieved.packet.injectionAttempted && retrieved.packet.injectionNotice) {
+              toast.warning("A source tried to give OCADE instructions", {
+                description: retrieved.packet.injectionNotice,
+              });
+            }
           } else {
             currentInformationUnavailable = `Current verification was required but retrieval failed: ${retrieved.reason} Say that clearly, then give only timeless background supported by local knowledge.`;
           }

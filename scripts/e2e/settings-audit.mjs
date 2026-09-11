@@ -351,6 +351,107 @@ for (const section of SECTIONS) {
   );
 }
 
+/*
+ * OFFLINE INTELLIGENCE CAN BE REMOVED, AND PUT BACK — PLAN.md §6.
+ *
+ * "Only explicit Remove Offline Intelligence deletes it. Deliberate removal
+ * suppresses auto-reinstall until the user explicitly chooses Install."
+ *
+ * Both controls were built, tested and mounted on NO route. Removal was offered
+ * only as a remedy on the corner panel that appears when preparation FAILS, and
+ * that panel renders nothing once the model is ready — so an account with
+ * Offline Intelligence installed had no way to remove it. A generic control
+ * census cannot notice that: it counts what is on the page, and this was the
+ * absence of a page. So this names the control.
+ */
+/*
+ * SIGNED IN ONLY. Signed out, `/settings/local-engine` is an authentication
+ * redirect, so asserting the control there would report a missing control for
+ * the one reason that is not a defect.
+ */
+if (SIGNED_IN) {
+  await page.goto(`${BASE}/settings/local-engine`, {
+    waitUntil: "domcontentloaded",
+    timeout: 60000,
+  });
+  await page.waitForTimeout(2500);
+  await clearModals();
+
+  const intelligenceControl = page.locator("[data-testid=local-intelligence-control]");
+  check(
+    "local-engine: the Offline Intelligence remove-and-install control is on the page",
+    (await intelligenceControl.count()) > 0,
+    `${await intelligenceControl.count()} found`,
+  );
+  if ((await intelligenceControl.count()) > 0) {
+    const control = intelligenceControl.first();
+    /*
+     * SCOPED TO THE CONTROL, NOT THE PAGE.
+     *
+     * A page-wide count reported two buttons and was right to: on a device
+     * where preparation FAILED, the corner status panel offers removal as a
+     * REMEDY as well. That is not a duplicate authority — both call the same
+     * `uninstall()` on the installation authority — and it is the right place
+     * for it, next to the failure it answers. What must hold is that the
+     * settings control offers ONE of the two, so the person is never asked to
+     * choose between two buttons that mean the same thing in the same panel.
+     */
+    const remove = control.getByRole("button", { name: /^Remove OCADE Intelligence$/ });
+    const install = control.getByRole("button", { name: /^Reinstall OCADE$/ });
+    const removeCount = await remove.count();
+    const installCount = await install.count();
+    check(
+      "local-engine: the control offers exactly one of remove or install",
+      removeCount + installCount === 1,
+      `remove=${removeCount} install=${installCount}`,
+    );
+    const stage = await control.getAttribute("data-stage");
+    check(
+      "local-engine: the control reports which install stage this device reached",
+      Boolean(stage),
+      String(stage),
+    );
+
+    if (removeCount === 1) {
+      /*
+       * PRESSING REMOVE STATES THE CONSEQUENCE BEFORE DOING ANYTHING. A
+       * destructive control that acts on the first press is the one people
+       * regret; one that only asks "are you sure" says nothing useful either.
+       */
+      await remove.first().click({ timeout: 15000 });
+      await page.waitForTimeout(900);
+      const consequence = await page.getByText(/stop working without a connection here/i).count();
+      check(
+        "local-engine: removal states what will be lost before it happens",
+        consequence > 0,
+        `${consequence} consequence statements`,
+      );
+      const keepIt = page.getByRole("button", { name: /^Keep it$/ });
+      if ((await keepIt.count()) > 0) {
+        await keepIt.first().click({ timeout: 15000 });
+        await page.waitForTimeout(600);
+        check(
+          "local-engine: declining removal leaves the intelligence alone",
+          (await page.getByText(/stop working without a connection here/i).count()) === 0,
+          "the confirmation closed",
+        );
+      }
+    } else {
+      /*
+       * NOTHING IS INSTALLED HERE, which is the ordinary state of a sandbox
+       * with no room for a model. The install path is what has to be offered
+       * then, and `PLAN.md` requires exactly that: a deliberate removal
+       * suppresses automatic reinstallation until the person chooses Install.
+       */
+      check(
+        "local-engine: with nothing stored, the install is offered instead",
+        installCount === 1,
+        `install=${installCount}`,
+      );
+    }
+  }
+}
+
 check("no settings link points nowhere", deadLinks.length === 0, deadLinks.slice(0, 5).join("; "));
 check(
   "every section rendered controls",

@@ -144,6 +144,42 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         costs a wasted round trip on every navigation.
       */
       ...(appCss ? [{ rel: "stylesheet", href: appCss }] : []),
+      /*
+        THE TWO FACES THAT ARE ON SCREEN BEFORE ANYTHING ELSE, PRELOADED.
+
+        `font-display: swap` renders text immediately in a fallback and replaces
+        it when the real face arrives. That is the right trade for a first
+        impression — a blank page waiting on a font is worse — but the
+        REPLACEMENT reflows every line it touches, and on a page of stacked text
+        the layout shift is real. `/pricing` measured 0.2059 cumulative layout
+        shift on a run where the fonts arrived late under load, against a 0.1
+        budget, having measured 0.0000 on three quiet runs of the same build:
+        the intermittency is the font race, not the page.
+
+        Discovered because a font is requested by the STYLESHEET, so the browser
+        cannot know it needs one until the CSS has downloaded and parsed and the
+        text has been laid out once. Preloading moves both requests onto the
+        first round trip, which is the whole of the fix.
+
+        Only the two faces used above the fold: the interface face and the
+        display serif. The mono face appears in code and command output and the
+        italic serif in prose, and preloading either would spend bandwidth
+        before first paint to prevent a shift that first paint does not contain.
+      */
+      {
+        rel: "preload",
+        href: "/fonts/inter-latin.woff2",
+        as: "font",
+        type: "font/woff2",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "preload",
+        href: "/fonts/instrument-serif-latin.woff2",
+        as: "font",
+        type: "font/woff2",
+        crossOrigin: "anonymous",
+      },
       { rel: "icon", href: "/favicon.ico", sizes: "any" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
       // Makes OCADE installable as its own window (HWE-35). Without it the

@@ -98,6 +98,16 @@ export function LocalIntelligenceControl({
     try {
       const { installationAuthority } = await import("@/lib/brain/installation-browser");
       const result = await installationAuthority().uninstall();
+      /*
+       * THE BENCHMARKS GO WITH THE MODEL.
+       *
+       * They are measurements of an engine that is no longer on this device, so
+       * keeping them would size the next install against a run that never
+       * happened here. Imported on use, like the authority itself, so the
+       * landing page's footer does not pull the benchmark store.
+       */
+      const { clearBenchmarks } = await import("@/lib/brain/tier-benchmark-store");
+      clearBenchmarks();
       await refresh();
       setConfirming(false);
       toast.success("OCADE Intelligence removed from this device.", {

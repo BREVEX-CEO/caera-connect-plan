@@ -25,7 +25,9 @@ const EXPLICIT_CURRENT = [
 
 const REALTIME_SUBJECT = [
   /\b(?:weather|forecast|temperature|air quality|traffic|train status|flight status|outage|service status)\b/i,
-  /\b(?:score|standings|fixture|match result|election result|poll results?)\b/i,
+  // Plurals are named, because `\b` after "result" refuses "results" — so
+  // "who won the election results" read as a timeless question.
+  /\b(?:scores?|standings|fixtures?|match results?|election results?|poll results?)\b/i,
   /\b(?:stock|share|crypto|bitcoin|exchange rate|market price|price of|trading at)\b/i,
 ];
 
@@ -50,7 +52,10 @@ function matches(patterns: RegExp[], text: string): string[] {
   return [...new Set(found)];
 }
 
-export function classifyFreshness(query: string): FreshnessDecision {
+/** A four-digit year, so "in 2019" can be read as history rather than news. */
+const YEAR = /\b(19|20)\d{2}\b/;
+
+export function classifyFreshness(query: string, now: Date = new Date()): FreshnessDecision {
   const text = query.trim();
   if (!text) {
     return { route: "local", volatility: "stable", reason: "The prompt is empty.", matched: [] };
@@ -66,6 +71,30 @@ export function classifyFreshness(query: string): FreshnessDecision {
       volatility: realtime.length > 0 ? "realtime" : "hourly",
       reason: "The question explicitly asks for information that may have changed.",
       matched: [...explicit, ...realtime, ...changeable],
+    };
+  }
+
+  /*
+   * A FINISHED YEAR SETTLES IT, AND IT IS CHECKED BEFORE THE VOLATILE
+   * SUBJECTS RATHER THAN AFTER.
+   *
+   * "What was the stock price of Apple in 2019" matches `stock` and was sent
+   * to the network to look up a number that has not changed in years. Naming a
+   * year that has ended is the person saying which reading they want, and that
+   * is more specific than the subject being a moving one.
+   *
+   * It sits BELOW the explicit-freshness check for the mirror-image reason:
+   * "since 2019, what is the latest guidance" names a past year and is still a
+   * question about today. A future or current year settles nothing — the
+   * answer may not exist yet, or may still be changing.
+   */
+  const year = YEAR.exec(text);
+  if (year && Number(year[0]) < now.getUTCFullYear()) {
+    return {
+      route: "local",
+      volatility: "stable",
+      reason: `The question is about ${year[0]}, which has finished.`,
+      matched: [year[0]],
     };
   }
 

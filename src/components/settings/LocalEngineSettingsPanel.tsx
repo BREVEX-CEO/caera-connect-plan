@@ -5,6 +5,8 @@ import { StatusBadge } from "@/components/shell/StatusBadge";
 import { LocalEngineControl } from "@/components/ocade/LocalEngineControl";
 import { LocalModelLifecyclePanel } from "@/components/ocade/LocalModelLifecyclePanel";
 import { useDevicePolicy, describeDeviceSource } from "@/lib/use-device-policy";
+import { BrowserStoragePanel } from "@/components/settings/BrowserStoragePanel";
+import { LocalIntelligenceControl } from "@/components/ocade/setup/LocalIntelligenceControl";
 import { PairedComputerPanel } from "@/components/settings/PairedComputerPanel";
 import { GestureControlPanel } from "@/components/settings/GestureControlPanel";
 import { ocadeIntro } from "@/lib/ocade-identity";
@@ -167,6 +169,38 @@ export function LocalEngineSettingsPanel() {
           <div className="mt-5" />
           <LocalModelLifecyclePanel />
         </GlassPanel>
+
+        {/*
+          OFFLINE INTELLIGENCE, AND THE ONE PLACE IT CAN BE REMOVED.
+
+          `PLAN.md`: "Only explicit Remove Offline Intelligence deletes it.
+          Deliberate removal suppresses auto-reinstall until the user
+          explicitly chooses Install." Both controls existed and neither was
+          mounted anywhere: removal was offered ONLY as a remedy on the corner
+          panel that appears when preparation FAILS, and that panel renders
+          nothing once the model is ready. So an account with Offline
+          Intelligence successfully installed had no way to remove it, and
+          nothing to press to put it back.
+
+          Two panels rather than one because they answer different questions.
+          `LocalIntelligenceControl` owns remove and install — one uninstall
+          operation, one button, so no second surface can remove a slightly
+          different set of things. `BrowserStoragePanel` owns what the BROWSER
+          is doing with it: whether the storage is persistent, and the request
+          that makes it so. A browser that may evict the model is exactly the
+          case the no-redownload promise has to survive.
+        */}
+        <GlassPanel className="p-5">
+          <h2 className="text-sm font-semibold text-foreground">Offline Intelligence</h2>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            The intelligence OCADE stores in this browser, so it can answer with no connection.
+          </p>
+          <div className="mt-4">
+            <LocalIntelligenceControl />
+          </div>
+        </GlassPanel>
+
+        <BrowserStoragePanel />
 
         <PairedComputerPanel />
 

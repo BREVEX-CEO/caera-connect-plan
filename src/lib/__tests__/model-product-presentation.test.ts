@@ -2,6 +2,23 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const SETTINGS = readFileSync("src/components/settings/BrowserStoragePanel.tsx", "utf8");
+/*
+ * The one uninstall button, which lives here rather than on the storage panel.
+ *
+ * Both surfaces existed and NEITHER was mounted: removal was offered only as a
+ * remedy on the corner panel that appears when preparation fails, and that
+ * panel renders nothing once the model is ready — so an account with Offline
+ * Intelligence installed had no way to remove it. Settings › Local engine
+ * mounts this control; the storage panel below it owns persistence only.
+ */
+const REMOVAL_CONTROL = readFileSync(
+  "src/components/ocade/setup/LocalIntelligenceControl.tsx",
+  "utf8",
+);
+const LOCAL_ENGINE_SETTINGS = readFileSync(
+  "src/components/settings/LocalEngineSettingsPanel.tsx",
+  "utf8",
+);
 const RENDERED_SETTINGS = SETTINGS.replace(/\/\*[\s\S]*?\*\//g, "");
 const PROGRESS = readFileSync("src/components/ocade/setup/OfflineIntelligenceProgress.tsx", "utf8");
 /*
@@ -23,7 +40,11 @@ describe("ordinary OCADE Intelligence presentation", () => {
   it("shows only product language, never model implementation details", () => {
     expect(RENDERED_SETTINGS).toContain("OCADE Intelligence");
     expect(RENDERED_SETTINGS).toContain("Stored securely on this device");
-    expect(RENDERED_SETTINGS).toContain("Remove OCADE Intelligence");
+    // One uninstall operation, one button, and it is not this panel's.
+    expect(REMOVAL_CONTROL).toContain("Remove OCADE Intelligence");
+    expect(RENDERED_SETTINGS.replace(/\{\/\*[\s\S]*?\*\/\}/g, "")).not.toContain(
+      "Remove OCADE Intelligence",
+    );
     expect(RENDERED_SETTINGS).not.toMatch(
       /Qwen|GGUF|quantisation|fingerprint verified|not verified/i,
     );
@@ -106,5 +127,25 @@ describe("ordinary OCADE Intelligence presentation", () => {
     // And it still never invents a number.
     expect(PROGRESS).toContain("The percentage is measured");
     expect(PROGRESS_CODE).toMatch(/state\.fraction === null \? null/);
+  });
+});
+
+describe("the offline intelligence controls are actually mounted", () => {
+  /*
+   * A CONTROL NOBODY CAN REACH IS NOT A CONTROL. `PLAN.md`: "Only explicit
+   * Remove Offline Intelligence deletes it. Deliberate removal suppresses
+   * auto-reinstall until the user explicitly chooses Install." Both halves were
+   * built and neither was rendered on any route.
+   */
+  it("mounts the remove-and-install control on the local engine settings page", () => {
+    expect(LOCAL_ENGINE_SETTINGS).toContain("<LocalIntelligenceControl />");
+  });
+
+  it("mounts the browser storage panel beside it, for persistence", () => {
+    expect(LOCAL_ENGINE_SETTINGS).toContain("<BrowserStoragePanel />");
+  });
+
+  it("offers the install back after a deliberate removal", () => {
+    expect(REMOVAL_CONTROL).toContain("Reinstall OCADE");
   });
 });
