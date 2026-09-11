@@ -6,8 +6,8 @@
     "total": 19,
     "missing": 0,
     "implemented": 0,
-    "tested": 1,
-    "runtimeProven": 13,
+    "tested": 0,
+    "runtimeProven": 14,
     "externallyBlocked": 5,
     "notApplicable": 0,
     "applicableMissing": 0
@@ -220,7 +220,7 @@
       "discoveredFrom": "Repository inspection while building the preference authority: preferences were stored on the device, and there was no record of what was delivered. The preference half is now synchronised through the account; the history half has a schema and no producer.",
       "existingAuthority": "src/lib/notifications/preference-sync.ts",
       "disposition": "COMPLETE",
-      "status": "TESTED",
+      "status": "RUNTIME-PROVEN",
       "implementationEvidence": [
         "supabase/migrations/20260904090000_notification_preferences_and_history.sql",
         "src/lib/notifications/preference-sync.ts",
@@ -232,8 +232,10 @@
         "src/lib/notifications/__tests__/notification-schema.test.ts",
         "src/lib/notifications/__tests__/notification-preferences.test.ts"
       ],
-      "runtimeEvidence": [],
-      "lastVerifiedAt": "2026-09-04"
+      "runtimeEvidence": [
+        "scripts/e2e/notification-history-journey.mjs"
+      ],
+      "lastVerifiedAt": "2026-09-11"
     },
     {
       "id": "NOTIFY-003",

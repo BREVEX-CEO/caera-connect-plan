@@ -1796,6 +1796,39 @@ export function startStubSupabase({ port = 0, seed } = {}) {
         );
       }
 
+      /*
+       * NOTIFICATION PREFERENCES, WHICH BELONG TO THE ACCOUNT.
+       *
+       * Modelled because the product's own claim is that a preference set on
+       * one device reaches the others — and without the function here that
+       * request 404s, the save reports failure, and a browser run cannot tell
+       * a working sync from a device-local store. The revision behaves as the
+       * real function's does: one on insert, one more on every update, which
+       * is what the reader uses to decide whether its copy is stale.
+       */
+      if (rpcMatch[1] === "ocade_save_notification_preferences") {
+        const rows = (tables.ocade_notification_preferences ??= []);
+        const existing = rows.find((row) => row.user_id === me);
+        const now = new Date().toISOString();
+        if (existing) {
+          existing.mute_optional = args.p_mute_optional;
+          existing.quiet_hours = args.p_quiet_hours;
+          existing.categories = args.p_categories;
+          existing.updated_at = now;
+          existing.revision = Number(existing.revision ?? 0) + 1;
+          return send(200, existing.revision);
+        }
+        rows.push({
+          user_id: me,
+          mute_optional: args.p_mute_optional,
+          quiet_hours: args.p_quiet_hours,
+          categories: args.p_categories,
+          updated_at: now,
+          revision: 1,
+        });
+        return send(200, 1);
+      }
+
       if (rpcMatch[1] === "ocade_set_organization_policy") {
         if (!administers(args.p_organization_id)) {
           return refuse("Only an owner or admin may change what this organization allows.");

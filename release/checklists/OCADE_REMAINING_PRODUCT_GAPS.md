@@ -12,8 +12,8 @@ Authority: `PLAN.md` §P.
 | --- | --- |
 | MISSING (applicable) | 0 |
 | IMPLEMENTED | 0 |
-| TESTED | 1 |
-| RUNTIME-PROVEN | 13 |
+| TESTED | 0 |
+| RUNTIME-PROVEN | 14 |
 | EXTERNALLY-BLOCKED | 5 |
 | NOT-APPLICABLE | 0 |
 | **Total** | **19** |
@@ -130,15 +130,15 @@ Authority: `PLAN.md` §P.
 
 ### NOTIFY-001 — Notifications (PLAN §D)
 
-- **Status**: TESTED
+- **Status**: RUNTIME-PROVEN
 - **Disposition**: COMPLETE
 - **Requirement**: Cross-device synchronisation of notification preferences, notification history with read state, delivery state, duplicate collapse and dead-letter handling.
 - **Discovered from**: Repository inspection while building the preference authority: preferences were stored on the device, and there was no record of what was delivered. The preference half is now synchronised through the account; the history half has a schema and no producer.
 - **Existing authority**: `src/lib/notifications/preference-sync.ts`
 - **Implementation evidence**: `supabase/migrations/20260904090000_notification_preferences_and_history.sql`, `src/lib/notifications/preference-sync.ts`, `src/lib/notifications/supabase-backend.ts`, `src/components/settings/NotificationPreferencesPanel.tsx`
 - **Test evidence**: `src/lib/notifications/__tests__/preference-sync.test.ts`, `src/lib/notifications/__tests__/notification-schema.test.ts`, `src/lib/notifications/__tests__/notification-preferences.test.ts`
-- **Runtime evidence**: —
-- **Last verified**: 2026-09-04
+- **Runtime evidence**: `scripts/e2e/notification-history-journey.mjs`
+- **Last verified**: 2026-09-11
 
 ### NOTIFY-003 — Notifications (PLAN §D)
 

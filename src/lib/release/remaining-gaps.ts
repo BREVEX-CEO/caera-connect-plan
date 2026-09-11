@@ -412,7 +412,16 @@ export const REMAINING_PRODUCT_GAPS: readonly RemainingProductGap[] = [
       "Repository inspection while building the preference authority: preferences were stored on the device, and there was no record of what was delivered. The preference half is now synchronised through the account; the history half has a schema and no producer.",
     existingAuthority: "src/lib/notifications/preference-sync.ts",
     disposition: "COMPLETE",
-    status: "TESTED",
+    /*
+     * RUNTIME-PROVEN ONCE A BROWSER ACTUALLY WATCHED IT CROSS. This sat at
+     * TESTED because the unit tests covered the sync authority and nothing had
+     * ever seen a preference set in one browser appear in another — the half a
+     * device-local store passes every unit test and still gets wrong. The
+     * notification journey now changes one on a signed-in device and reads it
+     * back on a second, separately signed-in browser context whose only route
+     * to the value is the account.
+     */
+    status: "RUNTIME-PROVEN",
     implementationEvidence: [
       "supabase/migrations/20260904090000_notification_preferences_and_history.sql",
       "src/lib/notifications/preference-sync.ts",
@@ -424,8 +433,8 @@ export const REMAINING_PRODUCT_GAPS: readonly RemainingProductGap[] = [
       "src/lib/notifications/__tests__/notification-schema.test.ts",
       "src/lib/notifications/__tests__/notification-preferences.test.ts",
     ],
-    runtimeEvidence: [],
-    lastVerifiedAt: "2026-09-04",
+    runtimeEvidence: ["scripts/e2e/notification-history-journey.mjs"],
+    lastVerifiedAt: "2026-09-11",
   },
   {
     id: "NOTIFY-003",

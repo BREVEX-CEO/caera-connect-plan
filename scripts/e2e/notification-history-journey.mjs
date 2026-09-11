@@ -20,7 +20,7 @@
  * belongs.
  */
 import { chromium } from "playwright-core";
-import { signInWithPassword } from "./sign-in.mjs";
+import { clearModals, signInWithPassword } from "./sign-in.mjs";
 
 const BASE = process.env.OCADE_BASE_URL ?? "http://127.0.0.1:8080";
 const STATE = process.env.OCADE_STORAGE_STATE;
@@ -218,6 +218,76 @@ try {
   } else {
     note("the retired address forwards rather than 404ing");
   }
+  /*
+   * STEP 6 — A PREFERENCE SET ON ONE DEVICE IS THE ACCOUNT'S, NOT THE DEVICE'S.
+   *
+   * `PLAN.md` §D asks for "cross-device synchronisation of notification
+   * preferences", and the ledger carried that requirement as TESTED rather
+   * than runtime-proven: the unit tests cover the sync authority, and nothing
+   * had ever watched a preference set in one browser appear in another. That
+   * is the half a device-local store passes every unit test and still gets
+   * wrong.
+   *
+   * The second browser context here has its own storage and its own session,
+   * so it can only learn the new value from the account.
+   */
+  console.log("\nSTEP 6 — a preference set on one device reaches the other");
+  await page.goto(`${BASE}/settings/notifications`, {
+    waitUntil: "domcontentloaded",
+    timeout: 60000,
+  });
+  await settle(3000);
+  const mute = page.getByRole("checkbox", { name: /mute optional notifications/i });
+  if ((await mute.count()) === 0) {
+    fail("the notification settings offer no preference to change");
+  } else {
+    const before = await mute.first().isChecked();
+    await mute.first().setChecked(!before);
+    // The save is a round trip to the account, not a local write.
+    await settle(3500);
+
+    /*
+     * A THIRD CONTEXT, BECAUSE STEP 2 ENDED THE SECOND ONE'S SESSION.
+     *
+     * "Sign out everywhere else" is exactly what it says, so `second` is no
+     * longer signed in and would have read the signed-out default — a false
+     * that looks like a preference that did not travel. This one signs in
+     * after the sign-out, with its own storage, so the only place it can learn
+     * the new value is the account.
+     */
+    const thirdContext = await browser.newContext();
+    const third = await thirdContext.newPage();
+    await signInWithPassword(third, {
+      baseUrl: BASE,
+      email: process.env.OCADE_AUDIT_EMAIL ?? "audit@ocade.test",
+      password: process.env.OCADE_AUDIT_PASSWORD ?? "AuditPassword123!",
+    });
+    await third.waitForTimeout(2500);
+    await clearModals(third);
+    await third.goto(`${BASE}/settings/notifications`, {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
+    });
+    await third.waitForTimeout(3500);
+    await clearModals(third);
+    const there = third.getByRole("checkbox", { name: /mute optional notifications/i });
+    if ((await there.count()) === 0) {
+      fail("the second device cannot reach the notification settings");
+    } else {
+      const arrived = await there.first().isChecked();
+      if (arrived !== !before) {
+        fail(`the preference did not reach the second device — ${before} then ${arrived}`);
+      } else {
+        note(`the preference crossed devices through the account — now ${arrived}`);
+      }
+    }
+
+    /* Put it back, so a re-run starts where this one did. */
+    await mute.first().setChecked(before);
+    await settle(2500);
+    await thirdContext.close();
+  }
+
   await secondContext.close();
 } catch (error) {
   fail(`the journey threw: ${error instanceof Error ? error.message : String(error)}`);

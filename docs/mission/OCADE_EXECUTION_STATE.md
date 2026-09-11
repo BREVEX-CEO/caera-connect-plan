@@ -1529,6 +1529,50 @@ report. Every ledger regenerated. `ALL SETTINGS AUDIT STAGES PASSED`, including
 85/85 responsive, 12/12 web vitals and 13/13 offline transitions.
 
 
+## Final verification matrix
+
+### Every reachable gate, together
+
+`verify:full` passes 36 portable gates on the branch tree; `launch:prove`
+reports 15/15 local gates and SOURCE MERGE READY. The gap ledger is 14
+runtime-proven, 5 externally blocked, 0 missing, 0 merely tested — the last
+`TESTED` entry was NOTIFY-001, promoted only after a browser watched a
+preference set on one signed-in device appear on a second, separately
+signed-in one.
+
+### What the matrix caught, and what it was
+
+Four gates were asserting a superseded product, and each was corrected to the
+requirement that replaced it rather than loosened. The notification bell was
+required to point at `/ocade/notifications`, which §4 retired into Tasks. The
+offline walk required a public route the browser had never loaded to be served
+from cache, which would mean precaching every public route for pages most
+visitors never open. The auth journey required a signed-out page to fetch no
+model weights, the opposite of "preparation starts on first visit". Three
+WebGPU assertions required an offload from a device reporting 1024 MiB against
+1874 MiB needed — the same numbers the run's own next section uses to prove
+OCADE correctly refuses it.
+
+Three were real defects. The OCADE 77 contract listed `local-projects.ts` and
+`local-search.ts`, deleted with the browser vault, and its requirement text
+described that architecture too. `moss` summed to 2.90 rather than 3.00 and so
+darkened the orb by three per cent, which the module's own paragraph says an
+accent must never do. js-yaml 4.3.1 carried GHSA-2883-xcg3-v3hh; 4.3.2
+satisfies the existing range.
+
+One was a fixture gap that mattered: the stub modelled neither the notification
+preferences table nor `ocade_save_notification_preferences`, so the save 404ed
+and no browser run could tell a working cross-device sync from a device-local
+store.
+
+### Gate
+
+8,322 unit and database tests, typecheck, lint, format, every generated ledger
+current, the production build inside every budget, and the browser journeys
+listed in `docs/MEMORY.md`. Windows control and screen-reader verification stay
+deferred for hardware, and deployment stays externally blocked.
+
+
 ## Next action
 
-The exhaustive final verification matrix, then safe `main` integration and controlled deployment.
+Reconcile `origin/main`, fast-forward the verified tree, and verify the remote SHA. Deployment remains externally blocked.

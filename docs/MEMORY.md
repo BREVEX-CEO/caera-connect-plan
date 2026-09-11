@@ -118,72 +118,55 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 20 (final reachability, disposal and documentation reconciliation) is
-complete. Phase 19 (payments, refunds, disputes and Admin grants) completed
-before it; both are on `claude/plan-implementation-n3yjkn`.
+The implementation phases of `PLAN.md` are complete through Phase 20, and the
+final verification matrix passes on branch `claude/plan-implementation-n3yjkn`.
 
-### Phase 19 — one commercial authority
+### What the final matrix reports
 
-The deployment carried TWO subscription tables written by different code. The
-signature-verified Paddle webhook wrote `public.subscriptions`;
-`entitlement-resolver.ts` read `ocade_subscriptions`, and nothing wrote it. A
-customer could complete a real payment, have it verified, recorded and audited,
-and still be on Free. Migration 97 archives that table into
-`ocade_retired_subscriptions` — history that grants nothing — drops it, and
-points the resolver, the plan screen, the device screen and the account data map
-at the one authority.
+`npm run verify:full` passes 36 portable gates. `npm run launch:prove` reports
+15/15 local gates and SOURCE MERGE READY. The remaining-gap ledger holds 19
+gaps: 14 runtime-proven, 5 externally blocked, none missing and none merely
+tested.
 
-Admin grants are their own table and their own functions.
-`ocade_grant_entitlement` requires the support-admin role, an `aal2` claim, a
-reason of at least ten characters and a window of one to 366 days, and refuses
-an admin granting to their own account. `ocade_revoke_entitlement` sets state
-and keeps the row. The resolver takes the stronger of the paid and granted
-tiers. `/admin/billing` closes `ADMIN-002`: subscriptions, payment events,
-invoices, seats per organization and the grant audit, with the grant and revoke
-controls; seats are an aggregate, so an operator never receives the membership
-of every workspace.
+Browser-proven on the production build: every route at 937/937 signed out and
+937/937 signed in across two viewports with 1,644 controls pressed; the deployed
+Worker shape at 937/937; the customer journey at 20/20; the settings sweep with
+85/85 responsive checks, 12/12 web vitals and 13/13 offline transitions; the
+admin operations and billing consoles; organizations; MFA enrolment;
+notifications including cross-device preference sync; incognito and memory;
+signed-out offline at 15/15; the Cowork extension; 27/27 browser runtime modes
+with verified model output; and the model install proof over real transfer
+including uninstall and reinstall.
 
-Migration 98 fixed a second defect found while tracing the phase:
-`apply_payment_webhook_event` applied status and period on an update and left
-`price_id` alone, so an upgrade or a downgrade never reached the row the tier is
-resolved from.
+### The last defects the matrix found
 
-### Phase 20 — what reachability tracing found
+Four gates were testing a product that no longer exists, and each was corrected
+to the requirement that replaced it rather than relaxed: the notification bell's
+address (§4 moved the history into Tasks), the offline walk's assumption that a
+never-visited public route is cached, the auth journey's demand that a
+signed-out page make no model request (`PLAN.md` starts preparation on first
+visit), and three WebGPU offload assertions that ignored a device whose
+allocation ceiling is smaller than the weights.
 
-`npm run reachability:check` walks every product module from the routes, the
-framework entries and the workers. Twenty-three modules were in the tree and in
-nobody's graph, and the two that mattered were not dead code: they were the
-Remove and Install controls for Offline Intelligence. Removal was offered ONLY
-as a remedy on the corner panel that appears when preparation FAILS, and that
-panel renders nothing once the model is ready — so an account with Offline
-Intelligence installed had no way to remove it, against `PLAN.md`'s "only
-explicit Remove Offline Intelligence deletes it". Both are now mounted in
-Settings › Local engine and browser-proven there.
-
-Disposed after their unique value was preserved: a second freshness classifier
-(its finished-year rule and a plural gap it exposed went into the one the router
-calls), a second evidence-packet builder (its injection scan went into the
-shipped retrieval path, which had been labelling web evidence without scanning
-it), a dead failure panel, an uncalled Node probe runner and an unused palette.
-The payment twin and the release ledgers are declared as entered elsewhere, each
-with a stated reason, and a stale exemption fails the gate.
-
-The web-vitals audit then caught `/pricing` at 0.2059 cumulative layout shift on
-a loaded run, having measured 0.0000 on three quiet runs of the same build. It
-was the font race: `font-display: swap` reflows every line when a face arrives
-late, and a face requested by the stylesheet cannot be known about until the CSS
-has parsed. The two above-the-fold faces are preloaded now, and all three public
-routes measure 0.0000.
+Three were real: the OCADE 77 contract named two deleted modules; `moss`
+darkened the orb by three per cent because its channel weights summed to 2.90
+rather than 3.00; and js-yaml 4.3.1 carried a high-severity advisory.
 
 `ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
 1, deliberately.
 
-Next is the exhaustive final verification matrix, then safe `main` integration
-and controlled deployment.
+### What remains, and it is not repository work
 
-Two known external items remain: `auth_leaked_password_protection` is disabled
-in Supabase Auth, and the Windows control journey needs Windows hardware. Both
-are recorded in `docs/deployment/PRODUCTION_STATE.md`.
+Five gaps are externally blocked and named as such: NVDA and VoiceOver
+verification, and four surfaces that need a live deployment to observe.
+`launch:prove` lists nine external blocker areas — Cloudflare runtime, Supabase
+apply, desktop and mobile signing, the extension store, the real device matrix,
+model distribution and a CI runner — and four authority gates: signing identity,
+observed production deployment, on-call and announcement approval.
+
+Two known external items stay recorded in `docs/deployment/PRODUCTION_STATE.md`:
+`auth_leaked_password_protection` is disabled in Supabase Auth, and the Windows
+control journey needs Windows hardware.
 
 ## Things to Be Careful About
 
