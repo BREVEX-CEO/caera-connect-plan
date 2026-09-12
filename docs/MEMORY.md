@@ -327,6 +327,58 @@ Appearance, Notifications, Data Controls, Billing, Advanced.
 Supabase Auth rather than the loopback stub; and the assurance refusal path, which
 needs an account with a verified second factor.
 
+### Phase 10 — Supabase cleanup and reduction — DONE
+
+**99 tables to 29, and 159 functions to 89.** Every table in the schema was traced
+against every string literal in `src/` and in the Edge Function; the 70 that appear
+in neither belong to products this rebuild removed — FICIA (8), CANIA (3), MADEE (2),
+compliance packs (8), messenger (10), organizations (7), projects and tasks (6),
+automations (3), the support desk (6), the status page (2), plus approvals, monitors,
+conversation shares, browser site policy, provider preferences, launch gates, feature
+flags, tenants, the vault config, the retired-subscriptions archive and OCADE memory.
+69 functions whose bodies read those tables went with them, and the messenger bucket
+with its objects.
+
+**What the cascade took that the product still needed, and how it was caught.**
+`own_conversations` had been rewritten in August to also check a conversation's
+`project_id` against the projects table — so the policy DEPENDED on that table, and
+dropping it dropped the policy. The result was a table with row-level security on and
+no policy: nobody could read their own conversations. `conversation-trash-schema.test.ts`
+failed immediately, reading as an ordinary signed-in account and getting an empty list.
+The migration now restores the rule without the product — a conversation is the
+account's — and drops the `project_id` column and the two orphaned `tenant_id` columns.
+
+**The rollback refuses to lie.** It does not recreate seventy empty tables: this
+migration deletes rows, and a "successful rollback" that restored names without data
+would be worse than an honest refusal. It names the two real routes — a point-in-time
+restore, or re-applying the original migrations, all of which are still in the tree —
+and reverses the one thing that is genuinely reversible, the conversations policy.
+
+**The verification has two halves,** because removal is only half the claim: every
+retired table is gone, no function still names one, the messenger bucket is gone — and
+the product that stays still works, proved by inserting a conversation and reading it
+back as `authenticated`.
+
+- Application code followed the schema: account deletion no longer asks about
+  organizations or support tickets and now clears the Library; the data-class map lost
+  Memory, Automations, Support and the retired-subscriptions archive; the caller-scoped
+  helper list lost the two tenant oracles; and `TOKEN_AUTHORIZED_FUNCTIONS` is empty,
+  because conversation sharing was its only entry — nothing in OCADE is now reachable
+  by a stranger holding a token.
+- `src/integrations/supabase/types.ts` lost 70 table blocks and 50 function blocks;
+  the types gate reports 29 of 29 tables covered.
+- **Measured:** 544 files, 72,621 lines. Gates: all 14 in `verify:full`, plus eight
+  browser journeys — shell 23, auth 10, chat 14, online 12, offline 12, library 18,
+  settings 19, usage 12.
+
+**Named as unproven, and deliberately not done:** the live project still has all 99
+tables. Applying this to `sazhgaisyhkdbrooycdv` now would break the deployed build,
+which is the OLD product and still reads them. **Phase 12 deployment obligation:**
+apply `20260912090000` (Library) and `20260912120000` (the reduction) together with
+the merged application, in that order, and redeploy the Edge Function with the three
+Gemini secrets set. The retired tables hold seed and config rows of dead products, not
+customer data — verified in the live project before this was written.
+
 ## New final product
 
 Primary customer destinations:
@@ -414,15 +466,11 @@ Ponytail controls engineering behavior. Caveman compresses chat output only. Cor
 
 ## Next action
 
-`PLAN.md` Phase 10 — Supabase cleanup and reduction. Final reachability is now
-known (151 of 151 modules reached), so trace every remaining database object to a
-caller and remove the ones used only by retired products — Projects, Tasks,
-Artifacts, Automations, Approvals, Monitors, the messenger tables, the FICIA and
-CANIA and MADEE tables, the compliance packs — with reversible migrations and
-verification. Keep identities/profiles/security, conversations/messages, Library,
-settings/preferences/notifications, usage/entitlements/offline reconciliation,
-billing, hidden Admin authority and the minimum PLAN2 seam. Regenerate types and
-keep RLS/least privilege. Gate: source and live schema agree and no final caller
-references a removed object.
+`PLAN.md` Phase 11 — polish, accessibility and performance. Only useful polish: the
+light/dark handling as designed, the mobile drawer, keyboard shortcuts, hover and
+focus states, restrained motion, scrollbars, copy controls, skeletons, skip-to-content,
+OpenGraph metadata, clean empty states and toasts. Meet WCAG AA intent, reduced-motion
+expectations and keyboard/screen-reader semantics, and avoid heavy GPU work. Gate:
+responsive, browser, accessibility and performance audits pass.
 
 Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.

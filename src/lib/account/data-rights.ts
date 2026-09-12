@@ -139,8 +139,8 @@ async function readTable(
 /**
  * A cascaded child is owned through its parent, not by a `user_id` of its own.
  *
- * `ocade_messages` has `conversation_id`, `ocade_project_items` has
- * `project_id`. Reading them by parent id keeps the export complete without
+ * `ocade_messages` has `conversation_id` and no `user_id` of its own. Reading
+ * such a table by parent id keeps the export complete without
  * assuming a column the schema does not have — and the parent ids are already
  * in hand from the read above, so this costs no extra query to find them.
  */
@@ -176,10 +176,6 @@ const CASCADE_PARENT_COLUMN: Partial<
   Record<AccountTable, { parent: AccountTable; column: string }>
 > = {
   ocade_messages: { parent: "ocade_conversations", column: "conversation_id" },
-  ocade_project_items: { parent: "ocade_projects", column: "project_id" },
-  ocade_support_messages: { parent: "ocade_support_tickets", column: "ticket_id" },
-  ocade_automation_runs: { parent: "ocade_automations", column: "automation_id" },
-  ocade_automation_step_receipts: { parent: "ocade_automation_runs", column: "run_id" },
 };
 
 /** The `id` column of every row that has one, for the cascaded reads below. */

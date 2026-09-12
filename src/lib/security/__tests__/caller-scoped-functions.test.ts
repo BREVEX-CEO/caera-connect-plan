@@ -26,15 +26,7 @@ describe("which functions bind their caller", () => {
         ["deepest", "select deeper()"],
       ]),
     );
-    expect([...scoped].sort()).toEqual([
-      "deeper",
-      "deepest",
-      "has_role",
-      "has_tenant_role",
-      "helper",
-      "is_tenant_member",
-      "mutation",
-    ]);
+    expect([...scoped].sort()).toEqual(["deeper", "deepest", "has_role", "helper", "mutation"]);
   });
 
   it("leaves a function that binds nobody unscoped", () => {

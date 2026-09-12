@@ -76,7 +76,12 @@ afterAll(async () => {
 
 describe("the account data map", () => {
   it("found a schema to check against, so an empty read cannot pass", () => {
-    expect(tables.size).toBeGreaterThan(30);
+    /*
+     * The reduced schema. Phase 10 removed seventy tables belonging to products
+     * OCADE no longer is, so the floor is what the final product actually has —
+     * high enough that an empty read still cannot pass.
+     */
+    expect(tables.size).toBeGreaterThan(20);
     expect(foreignKeys.length).toBeGreaterThan(20);
   });
 
@@ -160,16 +165,7 @@ describe("what may and may not be erased", () => {
 
   it("offers every other class for erasure", () => {
     const deletable = deletableAccountDataClasses().map((entry) => entry.id);
-    expect(deletable).toEqual([
-      "conversations",
-      "library",
-      "memory",
-      "automations",
-      "support",
-      "activity",
-      "devices",
-      "settings",
-    ]);
+    expect(deletable).toEqual(["conversations", "library", "activity", "devices", "settings"]);
   });
 
   it("exports every class, including the ones it will not delete", () => {
@@ -187,13 +183,7 @@ describe("what may and may not be erased", () => {
      * table the export silently omits — somebody downloads their data, deletes
      * their account, and finds afterwards that a class was never in the file.
      */
-    const deletionPath = [
-      "ocade_support_tickets",
-      "ocade_conversations",
-      "user_settings",
-      "devices",
-      "profiles",
-    ];
+    const deletionPath = ["ocade_conversations", "user_settings", "devices", "profiles"];
     const covered = new Set(ACCOUNT_DATA_CLASSES.flatMap((entry) => exportedTablesFor(entry)));
     for (const table of deletionPath) expect([...covered], table).toContain(table);
   });

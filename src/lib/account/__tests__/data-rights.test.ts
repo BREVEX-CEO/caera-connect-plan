@@ -110,12 +110,12 @@ describe("exporting an account", () => {
 
   it("says which table failed instead of pretending the class is empty", async () => {
     const result = await buildAccountExport(
-      fakeDatabase({ rows: { ocade_memory: manyRows(3) }, failOn: "ocade_memory" }),
+      fakeDatabase({ rows: { activity_log: manyRows(3) }, failOn: "activity_log" }),
       "account-1",
     );
     const table = result.classes
       .flatMap((entry) => entry.tables)
-      .find((entry) => entry.table === "ocade_memory");
+      .find((entry) => entry.table === "activity_log");
     expect(table?.unavailable).toBe("permission denied");
     expect(result.partial).toBe(true);
     expect(result.notes.join(" ")).toMatch(/could not be read/i);
@@ -185,20 +185,20 @@ describe("clearing one class", () => {
     const deleted: AccountTable[] = [];
     await expect(
       clearAccountDataClass(fakeDatabase({ deleted }), "account-1", {
-        dataClass: "memory",
+        dataClass: "activity",
         confirmation: "yes",
       }),
-    ).rejects.toThrow(/Type Memory exactly/);
+    ).rejects.toThrow(/Type Activity exactly/);
     expect(deleted).toEqual([]);
   });
 
   it("accepts the label in any case, because a phrase is consent and not a password", async () => {
     const deleted: AccountTable[] = [];
     await clearAccountDataClass(fakeDatabase({ deleted }), "account-1", {
-      dataClass: "memory",
-      confirmation: "  memory ",
+      dataClass: "activity",
+      confirmation: "  activity ",
     });
-    expect(deleted).toEqual(["ocade_memory"]);
+    expect(deleted).toEqual(["activity_log"]);
   });
 
   it("refuses a class that does not exist", async () => {

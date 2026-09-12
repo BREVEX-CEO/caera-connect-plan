@@ -239,5 +239,18 @@
     "trackedSourceFiles": 539,
     "trackedSourceLines": 72115,
     "reductionFromBaselinePercent": 81.9
+  },
+  "afterPhase10": {
+    "trackedSourceFiles": 544,
+    "trackedSourceLines": 72621,
+    "reductionFromBaselinePercent": 81.8,
+    "databaseTables": {
+      "before": 99,
+      "after": 29
+    },
+    "databaseFunctions": {
+      "before": 159,
+      "after": 89
+    }
   }
 }

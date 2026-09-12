@@ -38,8 +38,11 @@ const BINDS_CALLER = /auth\s*\.\s*uid\s*\(\s*\)/i;
  * text search cannot see it. This list is small and closed on purpose: adding
  * to it asserts that a function IS caller-scoped, which is the opposite of an
  * exemption.
+ *
+ * It was three while there were tenants. `has_tenant_role` and
+ * `is_tenant_member` went with that product in Phase 10.
  */
-const CALLER_ORACLES = ["has_role", "has_tenant_role", "is_tenant_member"];
+const CALLER_ORACLES = ["has_role"];
 
 /**
  * The set of public functions that bind their caller, directly or through
@@ -81,9 +84,11 @@ export function callerScopedFunctions(
  * There is exactly one legitimate reason for a `SECURITY DEFINER` function to
  * be reachable anonymously and to ignore `auth.uid()`: it is opened by a
  * capability — an unguessable token that the caller either has or does not.
- * `ocade_read_shared_conversation` is that: a shared conversation link is meant
- * to work for somebody with no account, which is the entire point of sharing
- * one, and `auth.uid()` is NULL for that visitor.
+ *
+ * THE MAP IS EMPTY, and that is the current truth rather than an oversight.
+ * `ocade_read_shared_conversation` was the only entry, and conversation sharing
+ * went with the products Phase 10 removed. Nothing in OCADE is now reachable by
+ * a stranger holding a token.
  *
  * THIS IS NOT AN EXEMPTION LIST, and the distinction is the whole reason it is
  * a separate export. A name here does not get to skip the question; it gets
@@ -91,14 +96,5 @@ export function callerScopedFunctions(
  * token parameter, must filter on it, must return no account identifier, and an
  * unknown token must return nothing. A function that cannot pass those fails
  * whether or not it is named here.
- *
- * Adding a name is asserting all four. The bar for doing so is that the
- * capability is the only thing that could authorize the read — not that the
- * gate was inconvenient.
  */
-export const TOKEN_AUTHORIZED_FUNCTIONS: ReadonlyMap<string, string> = new Map([
-  [
-    "ocade_read_shared_conversation",
-    "A conversation share link is for somebody with no account; the token is the authorization, and the reader returns the snapshot, its size and its time — no owner, no conversation id, no share id.",
-  ],
-]);
+export const TOKEN_AUTHORIZED_FUNCTIONS: ReadonlyMap<string, string> = new Map();

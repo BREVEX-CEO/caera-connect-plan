@@ -49,7 +49,12 @@ BEGIN
 
   -- AS THE OWNER: one row, and it is theirs.
   SET LOCAL ROLE authenticated;
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', mine, 'role', 'authenticated')::text, true);
+  -- Both names, because a Supabase deployment reads `request.jwt.claim.sub`
+  -- and a PostgREST one reads the whole `request.jwt.claims` object; setting
+  -- only one makes `auth.uid()` null and the check pass for the wrong reason.
+  PERFORM set_config('request.jwt.claim.sub', mine::text, true);
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', mine, 'role', 'authenticated')::text, true);
   SELECT count(*) INTO visible FROM public.ocade_library_items;
   IF visible <> 1 THEN
     RAISE EXCEPTION 'an account can see % library rows instead of its own one', visible;

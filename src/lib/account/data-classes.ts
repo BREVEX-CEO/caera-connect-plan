@@ -69,9 +69,6 @@ export interface AccountDataTable {
 export type AccountDataClassId =
   | "conversations"
   | "library"
-  | "memory"
-  | "automations"
-  | "support"
   | "activity"
   | "devices"
   | "settings"
@@ -115,35 +112,6 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
     retention: null,
   },
   {
-    id: "memory",
-    label: "Memory",
-    description: "What OCADE has been allowed to remember about you between conversations.",
-    tables: [{ table: "ocade_memory", owner: "user_id" }],
-    retention: null,
-  },
-  {
-    id: "automations",
-    label: "Automations",
-    description: "Saved automations, every run of them, and the receipts each step produced.",
-    tables: [
-      {
-        table: "ocade_automations",
-        owner: "user_id",
-        cascades: ["ocade_automation_runs", "ocade_automation_step_receipts"],
-      },
-    ],
-    retention: null,
-  },
-  {
-    id: "support",
-    label: "Support cases",
-    description: "Cases you have opened with OCADE support, and the messages on them.",
-    tables: [
-      { table: "ocade_support_tickets", owner: "user_id", cascades: ["ocade_support_messages"] },
-    ],
-    retention: null,
-  },
-  {
     id: "activity",
     label: "Activity",
     description: "The record of actions taken on this account, kept for your own security review.",
@@ -183,11 +151,9 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
     label: "Billing records",
     description: "Subscriptions, invoices and the payment events behind them.",
     tables: [
-      // The provider's own subscription record, and the history of the
-      // retired second table that Phase 19 archived. Both are the customer's
-      // and both belong in their export; neither is theirs to delete.
+      // The provider's own subscription record. It is the customer's and
+      // belongs in their export; it is not theirs to delete.
       { table: "subscriptions", owner: "user_id" },
-      { table: "ocade_retired_subscriptions", owner: "user_id" },
       { table: "ocade_entitlement_grants", owner: "user_id" },
       { table: "ocade_invoices", owner: "user_id" },
       { table: "ocade_payment_events", owner: "user_id" },

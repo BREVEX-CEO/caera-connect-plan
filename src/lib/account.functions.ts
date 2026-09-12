@@ -100,49 +100,14 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     /*
-     * ORGANIZATION OWNERSHIP IS CHECKED BEFORE ANYTHING IS DESTROYED — §O.
+     * THE ORGANIZATION CHECK IS GONE WITH ORGANIZATIONS.
      *
-     * `ocade_organization_members.user_id` is ON DELETE CASCADE, so deleting
-     * the identity removes the membership with no code involved. If this
-     * account is the last active owner of an organization, that leaves a
-     * workspace nobody can administer, and there is no way back into it from
-     * inside the product. A trigger on the membership table refuses that, which
-     * is the real protection — but the trigger fires at
-     * `auth.admin.deleteUser`, which is the LAST step here, after the profile,
-     * the devices, the conversations and the tickets are already gone.
+     * It asked, before destroying anything, whether this account was the last
+     * owner of a workspace — a real protection while team accounts existed.
+     * `PLAN.md` Phase 10 removed those tables, so there is no workspace to
+     * strand and no question to ask.
      *
-     * So the same question is asked first, while there is still an account to
-     * act on, and the answer is a sentence naming the organizations. §O asks
-     * for ownership to be transferred BEFORE owner deletion; this is what makes
-     * that possible rather than merely required.
      */
-    const { data: blocking } = await supabaseAdmin.rpc("ocade_organizations_blocking_deletion", {
-      p_user_id: userId,
-    });
-    const blockers = (blocking ?? []) as Array<{ name: string; solo: boolean }>;
-    if (blockers.length > 0) {
-      /*
-       * Two different instructions, because they need different actions: an
-       * organization with other people in it can be handed over, and one with
-       * nobody else in it can only be deleted. Telling somebody to transfer
-       * ownership to nobody is advice they cannot follow.
-       */
-      const transfer = blockers.filter((row) => !row.solo).map((row) => row.name);
-      const remove = blockers.filter((row) => row.solo).map((row) => row.name);
-      const instructions = [
-        transfer.length > 0
-          ? `Transfer ownership of ${transfer.join(", ")} to somebody else.`
-          : null,
-        remove.length > 0
-          ? `Delete ${remove.join(", ")} — you are the only person in ${
-              remove.length === 1 ? "it" : "them"
-            }.`
-          : null,
-      ].filter(Boolean);
-      throw new Error(
-        `You are the last owner of an organization, and deleting your account would leave it with nobody who can administer it. ${instructions.join(" ")}`,
-      );
-    }
 
     /*
      * EVERY OTHER SESSION ENDS BEFORE ANYTHING IS DESTROYED.
@@ -151,7 +116,7 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
      * reasons, and the second is the one that is easy to miss:
      *
      *   A second browser writing rows while this runs recreates data behind the
-     *   deletion — a message posted mid-scrub lands in a table already cleared,
+     *   deletion — a message sent mid-scrub lands in a table already cleared,
      *   and the account ends up half-deleted with no error anywhere.
      *
      *   And whoever holds that other session keeps holding it. Deleting the
@@ -176,30 +141,18 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
     /*
      * DELETE THE PARENT AND LET THE CONSTRAINT DO THE REST.
      *
-     * This used to read every ticket id and every conversation id, then delete
-     * the children with `.in(ids)`. Both halves of that were unsafe at size and
-     * neither was necessary:
+     * This used to read every conversation id and delete the children with
+     * `.in(ids)`. The read was unbounded — PostgREST silently returns the first
+     * thousand — and the delete put every id in the URL, which proxies refuse
+     * long before an account is unusual. `ocade_messages.conversation_id` is
+     * ON DELETE CASCADE, so removing the conversation removes its messages in
+     * one statement, with no list to truncate.
      *
-     *   - The read was unbounded, and PostgREST silently returns only the first
-     *     `db-max-rows` (1,000 by default). An account past that had the rest of
-     *     its ids simply not appear, so those children were never named.
-     *   - The delete put every id into the request URL. A few thousand UUIDs is
-     *     tens of kilobytes of query string, which proxies and PostgREST refuse
-     *     long before the account is unusual.
-     *
-     * And it was redundant: `ocade_messages.conversation_id` and
-     * `ocade_support_messages.ticket_id` are both declared ON DELETE CASCADE,
-     * so removing the parent removes them, completely, in one statement, with
-     * no list to truncate.
-     *
-     * Support messages get one extra pass. `ocade_support_messages.author_id`
-     * references `auth.users` ON DELETE RESTRICT, so a message this person
-     * wrote on a ticket they do not own would block the identity deletion at
-     * the very last step, after everything else was already gone.
+     * A library row's own trigger tombstones its object, so the bytes in the
+     * private bucket are chased even though nothing here touches storage.
      */
-    await supabaseAdmin.from("ocade_support_tickets").delete().eq("user_id", userId);
-    await supabaseAdmin.from("ocade_support_messages").delete().eq("author_id", userId);
     await supabaseAdmin.from("ocade_conversations").delete().eq("user_id", userId);
+    await supabaseAdmin.from("ocade_library_items").delete().eq("user_id", userId);
 
     // Account-scoped records. Anything with an ON DELETE CASCADE to auth.users
     // is removed by the identity deletion below; these are listed explicitly so
@@ -221,7 +174,7 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
       removed: [
         "profile",
         "conversations and messages",
-        "support cases and messages",
+        "library files and images",
         "settings and private records",
         "devices",
         "roles",
