@@ -1,155 +1,215 @@
-# OCADE Testing
+# OCADE Testing Authority
 
-## Principle
+## Rule
 
-Test the final product like a real customer, not only as isolated modules.
+A feature is not complete because code exists. It is complete only when the real path is proven at the correct layer.
 
-Every release candidate must pass static/unit/database checks and real-browser journeys on the exact production build.
+Every `PLAN.md` phase runs the smallest relevant gate set during implementation, then the complete gate set at final verification.
 
-## Core commands
+## Core static gates
 
-Use the repository's current npm scripts where still relevant. As cleanup removes retired systems, simplify the script matrix instead of preserving obsolete gates.
+Run as applicable:
 
-Minimum core gates:
-
-- install/build;
-- typecheck;
-- lint;
-- format check;
-- unit tests;
-- database/migration/RLS tests;
+- TypeScript typecheck;
+- ESLint;
+- formatting check;
+- production build;
+- dead import/module scan;
 - secret scan;
-- dependency/security audit appropriate to the project;
-- generated route/type stability;
-- final reachability/dead-code check.
+- customer-visible provider/model leak scan.
 
-## Chat/browser matrix
+No new warning/error may be dismissed simply because the old repository already had warnings.
 
-Test signed-out and signed-in:
+## Unit/integration tests
 
-- `/` Chat;
-- new conversation;
-- Send triggers auth when signed out;
-- Google-ready state;
-- Email OTP;
-- Phone country picker/OTP;
-- history/search/archive/trash/restore/delete-all;
-- attachments;
-- mobile/desktop widths;
-- back/forward/deep-link/session recovery;
-- usage remaining/reset and exhaustion;
-- online response;
-- Offline response;
-- Auto routing/fallback;
-- one-line error states;
-- no fake Export/Save controls when no answer exists.
+Required subjects include:
 
-Press every reachable customer control at least once in the browser audit.
+- usage policy and reset windows;
+- generation permit idempotency;
+- no double-charge on retries/fallback;
+- Free/Pro/Max exact allowances;
+- entitlement resolution;
+- pricing catalogue/signature;
+- safe auth redirects;
+- email/phone formatting and OTP state;
+- attachment validation;
+- New Chat behavior;
+- edit/regenerate accounting;
+- offline install state machine;
+- explicit `user_uninstalled` persistence;
+- adaptive download/resume/repair;
+- online→offline fallback before output only;
+- offline zero-provider-traffic rule;
+- local sync/idempotency.
 
-## Offline Intelligence proof
+## Database tests
 
-Must prove with real transfer/storage behavior:
+Use a real Postgres/Supabase-compatible environment for DB behavior.
 
-1. first preparation/download;
-2. bounded parallel chunking;
-3. interrupted download resumes;
-4. corruption repairs only affected chunks;
-5. verified model starts;
-6. refresh reuses it;
-7. browser restart/revisit reuses it;
-8. sign-out/sign-in reuses it;
-9. account deletion does not silently erase model bytes unless policy explicitly requires removal;
-10. a new OCADE build/service worker/commit/merged-main deployment reuses the same compatible model;
-11. explicit Remove deletes model bytes;
-12. deliberate removal prevents immediate automatic reinstall until explicit Install;
-13. browser eviction is detected/reported honestly;
-14. `Offline` produces zero provider traffic.
+Prove:
 
-Scan customer DOM/bundle/copy for forbidden raw internal model/provider identifiers.
+- migrations apply cleanly;
+- rollback/verification where provided;
+- RLS isolation;
+- generation permit concurrency;
+- shared account-wide allowance;
+- offline lease reconciliation;
+- entitlement grants;
+- subscription/entitlement resolution;
+- Library private access;
+- retired schema removal has no final caller;
+- auth/account tables are untouched by cleanup migrations.
 
-## Usage proof
+After final migrations regenerate types and run Supabase security/performance advisors.
 
-Use real/concurrent account scenarios:
+## Browser journeys
 
-- Free starts with 28 successful uses in one 388-minute window;
-- PC usage is immediately reflected on another online device;
-- offline reconciliation cannot exceed authoritative capacity;
-- two concurrent devices cannot double-spend remaining uses;
-- one user request counts once despite internal retry/tool/substeps;
-- exhausted usage blocks both online and offline AI generation;
-- history/Library/Settings/Billing remain available.
+Browser proof must run against the production build, not only component mocks.
 
-## Library proof
+Required journeys:
 
-- upload image/file;
-- generated output appears;
-- All/Images/Files filters;
-- search;
-- private authorization;
-- cross-device visibility;
-- preview/download/delete;
-- delete-all through Data Controls;
-- account data export.
+### Shell/routes
 
-## Settings proof
+- every supported route signed out;
+- every supported route signed in;
+- deep-link refresh;
+- retired routes return intended 404;
+- no console/page errors.
 
-- compact desktop modal and mobile sheet;
-- appearance/preferences persist correctly;
-- notification preferences sync;
-- Offline Intelligence state truthful;
-- Advanced hides technical detail from normal surfaces;
-- Billing reflects server-authoritative state.
+### Auth
 
-## UI/accessibility/performance
+- Google-ready path;
+- email OTP flow;
+- phone OTP formatting/verification path;
+- sign-out;
+- session recovery;
+- protected Send;
+- MFA/assurance where required.
 
-Cover at least 320, 375, 768, 1024, 1440 and 1920 widths where practical.
+### Chat
 
-Verify:
+- real Send;
+- New Chat;
+- refresh/persistence;
+- recent history;
+- Copy;
+- Edit;
+- Regenerate;
+- Delete;
+- Stop;
+- Retry failure;
+- Markdown/table/link/code rendering;
+- attachment upload/progress/retry/remove/reorder/preview/download;
+- 100 MB boundary behavior;
+- mobile/tablet composer.
 
-- keyboard navigation/focus;
-- skip-to-content;
-- semantic labels/headings;
-- reduced motion;
-- 200% zoom usability;
-- virtual keyboard/safe-area;
-- no major layout shift;
-- no continuous heavy GPU use outside explicit Jarvis visuals;
-- skeleton/empty/error/toast behavior;
-- OpenGraph/public metadata.
+### Usage
 
-NVDA/VoiceOver/native proofs require actual supported hardware/software and are never faked.
+- Free starts at 28;
+- one successful answer decrements exactly one;
+- failed request costs zero;
+- fallback costs one total;
+- Edit→success costs one;
+- Regenerate→success costs one;
+- account-wide state matches across two browser/device contexts;
+- exhaustion blocks online/offline generation;
+- history/Library/Settings/Pricing remain usable;
+- reset countdown is correct;
+- Pro/Max session+week caps are correct.
 
-## PLAN2 Cowork/Jarvis proof
+### Online OCADE
 
-After core is green, test:
+- real Edge Function answer;
+- auth/JWT behavior;
+- primary secret path;
+- allowed pre-output failover;
+- 429 no quota-evasion rotation;
+- no key/client exposure;
+- provider errors sanitized.
 
-- normal Cowork and Jarvis reach the same runtime;
-- browser actions;
-- computer/native actions on supported hardware;
-- files;
-- permissions/approvals;
-- pre-observation and postcondition verification;
-- Pause/Take over/Stop;
-- voice STT/TTS;
-- wake-word/hands-free enable/disable;
-- microphone state/revocation;
-- Gemini-only Jarvis offline refusal;
-- the action registry and every capability it exposes;
-- Library output flow;
-- one request = one usage unit.
+### Offline Intelligence
 
-## LOC measurement
+- first install;
+- WebGPU-first path where supported;
+- WASM fallback;
+- Fast/Thinking UI behavior;
+- private authorised artifact delivery;
+- adaptive parallel download;
+- pause/resume;
+- tab minimise;
+- browser restart;
+- connection interruption;
+- one corrupt shard repaired without full redownload;
+- OPFS persistence;
+- compatible app update causes no redownload;
+- explicit Remove sets persistent suppression;
+- sign-out/in after explicit Remove does not reinstall;
+- explicit Install clears suppression;
+- no Internet + never-installed gives connect-once guidance;
+- Offline mode makes zero provider requests.
 
-Run at three checkpoints: baseline, PLAN complete, PLAN2 complete.
+### PWA/whole-site offline
 
-Prefer `cloc` over the Git-tracked source tree. Exclude:
+- normal website works without PWA install;
+- PWA install path is optional;
+- airplane mode then reopen;
+- shell loads;
+- Offline Chat works when model ready;
+- local/cached history and pages work as designed;
+- Pricing information loads from cache;
+- checkout/payment refuses offline;
+- reconnect sync is idempotent.
 
-- `node_modules` and dependency/vendor directories;
-- generated build output/cache;
-- binary/model archives;
-- design/reference images;
-- generated route/types only if excluded consistently at every checkpoint.
+### Pricing/Billing
 
-If `cloc` is unavailable, use a checked deterministic script that counts newline-delimited source files by approved extensions. Record exact command, included extensions, exclusions, total files and total LOC in `docs/MEMORY.md`.
+- Free/Pro/Max;
+- weekly/monthly toggle;
+- USD/EUR/GBP/INR;
+- manual currency selector;
+- checkout Internet requirement;
+- real entitlement update where provider configured;
+- manual Admin grant/revoke;
+- allowance changes immediately from entitlement.
 
-Never invent a LOC number.
+### Library/Settings/Admin
+
+- private upload/read/delete;
+- Data Controls delete/export flows;
+- Offline install/remove state;
+- notifications/settings persistence;
+- user search/grant/revoke in hidden Admin;
+- no direct auth-user mutation.
+
+## Responsive matrices
+
+At minimum prove representative widths for:
+
+- desktop;
+- tablet;
+- phone.
+
+Official environment focus:
+
+- Windows Chrome;
+- macOS Chrome;
+- Android Chrome;
+- iPhone/iPad Chrome/WebKit where supported.
+
+Linux is not a certified target.
+
+## Final release gate
+
+Before merge, run all current tracked gates plus the complete browser journey set on the exact reconciled tree.
+
+After merge/deploy, production smoke test must include:
+
+- auth;
+- one real online answer;
+- one exact usage decrement;
+- one offline answer/fallback;
+- one Library upload/delete;
+- Pricing/Billing;
+- sign-out/sign-in recovery;
+- customer-visible provider/model leak scan.
+
+The final remote `main` SHA/tree must match the tree that passed verification.
