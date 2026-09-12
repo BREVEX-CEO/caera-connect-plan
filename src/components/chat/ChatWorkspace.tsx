@@ -12,7 +12,7 @@
  * shows only Auto, OCADE and Offline. Everything it knows comes from
  * `useChat`; this file renders and does not decide.
  */
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Mic, Plus, Square } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
@@ -60,6 +60,28 @@ export function ChatWorkspace() {
       /* Storage can be blocked; the composer still works. */
     }
   }, [user]);
+
+  /*
+   * NEW CHAT ACTUALLY STARTS ONE.
+   *
+   * The sidebar link navigates to `/?new=true`, and nothing was listening: the
+   * URL changed, the open conversation stayed on screen, and the next message
+   * was appended to it. `useChat` had `newConversation` the whole time and no
+   * caller. Found by the online journey, which needed a clean transcript to
+   * tell a refusal apart from the answer above it.
+   *
+   * The parameter is consumed and removed, so a reload is not a second reset.
+   */
+  const startNew = useRouterState({
+    select: (state) => (state.location.search as { new?: unknown }).new === true,
+  });
+  const newConversation = chat.newConversation;
+  useEffect(() => {
+    if (!startNew) return;
+    newConversation();
+    setDraft("");
+    void navigate({ to: "/", search: {}, replace: true });
+  }, [startNew, newConversation, navigate]);
 
   function grow() {
     const element = textarea.current;

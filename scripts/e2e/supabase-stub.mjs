@@ -401,6 +401,9 @@ function handleRpc(name, args, userId) {
 
 /* ------------------------------------------------------------- the server -- */
 
+/** What the online boundary answers with next, and what it last received. */
+const onlineBoundary = { status: 200, lastRequest: null };
+
 const server = createServer((request, response) => {
   const url = new URL(request.url, `http://127.0.0.1:${PORT}`);
   let body = "";
@@ -424,6 +427,21 @@ const server = createServer((request, response) => {
     if (request.method === "OPTIONS") return send(204);
 
     /* --- fixtures -------------------------------------------------------- */
+
+    if (url.pathname === "/__fixture/online-boundary") {
+      /*
+       * What the online boundary should do next, and what it last saw.
+       *
+       * POST sets a status the boundary answers with — 503 for an unavailable
+       * provider, 429 for a project quota — so the browser's TRUTHFUL FAILURE
+       * can be proved without breaking anything real. GET returns the last
+       * request body the boundary received, which is how the journey checks
+       * that the browser carried a permit rather than merely believing it had.
+       */
+      if (request.method === "GET") return send(200, onlineBoundary.lastRequest ?? {});
+      onlineBoundary.status = Number(JSON.parse(body || "{}").status ?? 200);
+      return send(200, { ok: true });
+    }
 
     if (url.pathname === "/__fixture/spend-allowance") {
       /*
@@ -597,7 +615,36 @@ const server = createServer((request, response) => {
        * end to end. It is not Gemini: an answer from here proves the browser's
        * transport, the permit ordering and the transcript, and nothing about
        * the model.
+       *
+       * It enforces the two things the real boundary enforces that the BROWSER
+       * is responsible for getting right — a bearer token and a permit in the
+       * body — because a stub that accepts anything cannot prove the client
+       * sent anything.
        */
+      const parsed = (() => {
+        try {
+          return JSON.parse(body || "{}");
+        } catch {
+          return {};
+        }
+      })();
+      onlineBoundary.lastRequest = {
+        authorized: /^Bearer\s+\S+$/i.test(request.headers.authorization ?? ""),
+        permitId: parsed.permit?.id ?? null,
+        generationId: parsed.generationId ?? null,
+        idempotencyKey: parsed.idempotencyKey ?? null,
+        surface: parsed.surface ?? null,
+        permitSource: parsed.permit?.source ?? null,
+      };
+      if (!onlineBoundary.lastRequest.authorized) {
+        return send(401, { error: "authentication_required" });
+      }
+      if (!parsed.permit?.id || parsed.permit.source !== "server") {
+        return send(400, { error: "invalid_request" });
+      }
+      if (onlineBoundary.status !== 200) {
+        return send(onlineBoundary.status, { error: "provider_unavailable" });
+      }
       const answer = "This is a stubbed OCADE answer for the browser proof.";
       response.writeHead(200, {
         "content-type": "text/event-stream",

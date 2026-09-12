@@ -51,31 +51,12 @@ import {
  * was not using the product.
  */
 export type ServerLimitKind =
-  /** Outbound web search. Consumes a third party's quota. */
-  | "research"
-  /** Reading subscription state. Cheap, but a free loop against the provider. */
-  | "billing_read"
-  /** Anything that could begin a purchase. */
+  /** Anything that could begin a purchase, including a provider webhook. */
   | "billing_write"
   /** Password reset and one-time-code sends. Consumes sender reputation. */
   | "auth_mail";
 
 const POLICIES: Record<ServerLimitKind, LimitPolicy> = {
-  research: {
-    windows: [
-      { id: "burst", durationMs: 5 * HOUR, quota: 120, label: "this session" },
-      { id: "day", durationMs: 8 * HOUR, quota: 200, label: "today" },
-      { id: "rolling", durationMs: 28 * HOUR, quota: 400, label: "the last day" },
-    ],
-    warnings: { burst: [{ utilization: 0.9, timePct: 0.72 }] },
-  },
-  billing_read: {
-    windows: [
-      { id: "burst", durationMs: 5 * HOUR, quota: 200, label: "this session" },
-      { id: "rolling", durationMs: 28 * HOUR, quota: 600, label: "the last day" },
-    ],
-    warnings: {},
-  },
   billing_write: {
     /*
      * Deliberately tight. Nothing legitimate starts twenty purchases in five

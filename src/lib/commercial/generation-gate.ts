@@ -61,7 +61,8 @@ import {
  * Artifacts were separate products; those surfaces are gone, and a surface
  * nothing can emit is a value every gate downstream still has to handle.
  */
-export type GenerationSurface = "chat" | "cowork";
+export const GENERATION_SURFACES = ["chat", "cowork"] as const;
+export type GenerationSurface = (typeof GENERATION_SURFACES)[number];
 
 export type DurablePermitOutcome =
   | "granted"

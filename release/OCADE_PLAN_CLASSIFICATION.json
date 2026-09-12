@@ -219,5 +219,10 @@
     "reductionFromBaselinePercent": 82.6,
     "fileReductionFromBaselinePercent": 72.3,
     "note": "Final aggressive cleanup before PLAN.md Phase 6. Same command as the baseline: node scripts/measure-loc.mjs"
+  },
+  "afterPhase6": {
+    "trackedSourceFiles": 528,
+    "trackedSourceLines": 69615,
+    "reductionFromBaselinePercent": 82.6
   }
 }

@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.110.7";
 import { handleOnlineIntelligence } from "../../../src/lib/intelligence/edge-handler.ts";
 import {
   DEFAULT_ONLINE_MODEL,
+  PROVIDER_KEY_ENVIRONMENT,
   PROVIDER_KEY_SLOTS,
   type ProviderKeySlot,
 } from "../../../src/lib/intelligence/online-models.ts";
@@ -43,14 +44,15 @@ const SUPABASE_SERVICE_ROLE_KEY =
  * handler is told WHICH SLOT to use and nothing more, so the policy lives in
  * one tested place and the secrets live in none of it.
  *
- * `GEMINI_API_KEY` is still read as the primary. It is what earlier deployments
- * set, and a rename that silently turned online intelligence off would be a
- * worse outcome than carrying one alias.
+ * THREE NAMES, AND NO FOURTH. `PLAN.md` Phase 6 says "exactly three Supabase
+ * Edge Function secrets", so the unprefixed `GEMINI_API_KEY` alias an earlier
+ * deployment set is no longer read. A fourth accepted name is a fourth place a
+ * key can be set, and the one nobody rotates.
  */
 const PROVIDER_KEYS: Record<ProviderKeySlot, string> = {
-  primary: Deno.env.get("GEMINI_API_KEY_PRIMARY") ?? Deno.env.get("GEMINI_API_KEY") ?? "",
-  secondary: Deno.env.get("GEMINI_API_KEY_SECONDARY") ?? "",
-  tertiary: Deno.env.get("GEMINI_API_KEY_TERTIARY") ?? "",
+  primary: Deno.env.get(PROVIDER_KEY_ENVIRONMENT.primary) ?? "",
+  secondary: Deno.env.get(PROVIDER_KEY_ENVIRONMENT.secondary) ?? "",
+  tertiary: Deno.env.get(PROVIDER_KEY_ENVIRONMENT.tertiary) ?? "",
 };
 const CONFIGURED_SLOTS = PROVIDER_KEY_SLOTS.filter((slot) => PROVIDER_KEYS[slot].length > 0);
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? DEFAULT_ONLINE_MODEL;

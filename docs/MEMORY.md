@@ -141,6 +141,50 @@ only their presentation moved.
   journeys pass 59 checks against the production build — shell 23, auth 10, chat 14,
   usage 12. Chat and Auth behave exactly as they did before the pass.
 
+### Phase 6 — online OCADE through Gemini — DONE
+
+- **Three secrets, and no fourth.** The Edge Function read an unprefixed
+  `GEMINI_API_KEY` as the primary for compatibility with an earlier deployment.
+  `PLAN.md` says exactly three, so the alias is gone and all three slots are read
+  through `PROVIDER_KEY_ENVIRONMENT` rather than retyped strings — one place says
+  what the server may read.
+- **The boundary accepts only the surfaces the product has.** It validated against
+  eight, six of which belong to deleted products. `GENERATION_SURFACES` is now a
+  runtime list and `online-boundary.test.ts` fails if the Edge Function's copy
+  (Deno cannot follow the `@/` alias) ever disagrees with it.
+- The failover rules were already implemented and are proven against a fake
+  provider in `edge-handler.test.ts`: primary first, 401/403 moves to the next
+  slot without retrying, 5xx and transport failures retry then move on, 429 retries
+  and then answers 429 rather than rotating to evade a project quota, and nothing
+  fails over once output has begun.
+- **Re-authored the limits server-wiring test** deleted in Phase 2, for the reduced
+  surface: every policy has a caller, the one-time-code sender and the payment
+  webhook are both behind one, and the webhook keys by its source rather than by an
+  account an unauthenticated caller supplied. The `research` and `billing_read`
+  policies had no caller left and are deleted.
+- **`npm run audit:online` proves 12 checks in a real browser:** an online answer
+  streams through OCADE's own boundary; the request carries the person's identity
+  and a server-issued permit naming the same generation and surface; a refused
+  boundary produces a truthful sentence and no invented answer; a refused request
+  costs nothing; and no key name, provider host or model identifier reaches the
+  page or any script the browser downloaded.
+- **A defect the journey found:** the sidebar's New chat navigated to `/?new=true`
+  and nothing listened. `useChat` had `newConversation` and no caller, so the open
+  conversation stayed on screen and the next message was appended to it. Wired, and
+  the parameter is consumed so a reload is not a second reset.
+- **Measured:** 528 files, 69,615 lines. Gates: all 14 in `verify:full`, plus five
+  browser journeys — shell 23, auth 10, chat 14, online 12, usage 12.
+
+**Named as unproven:** that Gemini itself answers, and that the three secrets are
+set on the live project. This environment has no egress to `sazhgaisyhkdbrooycdv`
+and the Supabase MCP exposes no secret listing. The live Edge Function is at
+version 2 and is the OLD code: one `GEMINI_API_KEY`, model `gemini-3.7-flash`, no
+failover, eight surfaces. **Phase 12 deployment obligation:** set
+`GEMINI_API_KEY_PRIMARY` (and optionally `SECONDARY`/`TERTIARY`) on the project,
+redeploy `ocade-intelligence` from the merged tree, and verify a real answer —
+without the primary secret the new function reports itself unavailable rather than
+falling back to the old name.
+
 ## New final product
 
 Primary customer destinations:
@@ -228,6 +272,14 @@ Ponytail controls engineering behavior. Caveman compresses chat output only. Cor
 
 ## Next action
 
-`PLAN.md` Phase 6 — online OCADE through Gemini. Confirm the three Edge secrets exist and are server-only, prove primary-first failover (401/403 before output may rotate, 429 must not, nothing after output begins), scan the client bundle for key exposure, and re-author the limits server-wiring test deleted in Phase 2.
+`PLAN.md` Phase 7 — Offline Intelligence rebuild. Mount the four modules
+`AWAITING_MOUNT` owes Phase 7 (`ocade-model-presentation`, `brain/use-brain`,
+`commercial/offline-lease.server`, `commercial/offline-usage.functions`) or delete
+them, register `public/sw.js` so background model fetch has a worker to resume
+through, give the model lifecycle its customer-facing surface — automatic first-visit
+preparation, Preparing/Downloading/Verifying/Ready/Repairing/Removed and an explicit
+Remove and Install — and prove install, parallelism, interruption/resume, corruption
+repair, revisit, sign-out/in, a new app build and explicit removal without an
+unnecessary full redownload. The internal model is never named to a customer.
 
 Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.

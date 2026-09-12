@@ -22,6 +22,21 @@ import {
   type ProviderSlot,
 } from "../telemetry/operation-health.ts";
 
+/**
+ * THE SURFACES THIS BOUNDARY WILL ACCEPT A REQUEST FROM.
+ *
+ * Restated here rather than imported because Deno runs this file from
+ * `supabase/functions` and cannot follow the `@/` alias the product uses.
+ * `surfaces-agree.test.ts` fails if this list and `GENERATION_SURFACES` ever
+ * disagree, so the duplication cannot drift into a second opinion.
+ *
+ * It listed eight while Code, Tasks, Automations, background agents, Voice and
+ * Artifacts were separate products. Six of those cannot emit a request any
+ * more, and a value nothing can send is a value this validator was accepting
+ * from anybody who asked.
+ */
+const ALLOWED_SURFACES: readonly string[] = ["chat", "cowork"];
+
 const MAX_BODY_BYTES = 1_048_576;
 const MAX_MESSAGES = 256;
 const MAX_TOOLS = 128;
@@ -132,16 +147,7 @@ function parseBody(value: unknown): OnlineRequestBody | null {
     permit.idempotencyKey !== value.idempotencyKey ||
     permit.surface !== value.surface ||
     typeof value.surface !== "string" ||
-    ![
-      "chat",
-      "cowork",
-      "code",
-      "task",
-      "automation",
-      "background_agent",
-      "voice",
-      "artifact",
-    ].includes(value.surface) ||
+    !ALLOWED_SURFACES.includes(value.surface) ||
     !Array.isArray(value.messages) ||
     value.messages.length === 0 ||
     value.messages.length > MAX_MESSAGES ||
