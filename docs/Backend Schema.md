@@ -1,117 +1,141 @@
-# OCADE Backend Schema
+# OCADE Backend Schema Authority
 
-## Authority
+## Live project
 
-This document defines the logical final backend. Supabase migrations and generated types are the physical schema authority during implementation.
+Production Supabase project: `sazhgaisyhkdbrooycdv`.
 
-Do not recreate the database blindly. Migrate from the live project safely, remove retired objects only after dependency tracing and verify source/live schema effect.
+Always re-verify the project id before migrations or destructive cleanup.
 
-## Required logical domains
+## Protected account/auth data
 
-### Identity and security
+Database cleanup must never delete or truncate the Supabase Auth account/session system.
 
-Keep only structures needed for:
+Protected categories include:
 
-- user/profile identity;
-- roles/hidden Admin where required;
-- session/device/security records;
-- MFA/recent assurance where required for dangerous actions;
-- legal acceptance/audit facts that must remain durable.
+- `auth.users`;
+- `auth.identities`;
+- `auth.sessions`;
+- `auth.refresh_tokens`;
+- MFA/auth-flow state;
+- real profiles;
+- real user roles/settings required by OCADE;
+- real subscriptions/payment evidence;
+- legal consent evidence;
+- real customer conversations/messages/Library data unless explicitly deleted by the customer.
+
+Do not edit `auth.users` to grant product access.
+
+## Final application data domains
+
+The target live schema should contain only tables/functions/policies required by these domains:
+
+### Account and security
+
+- profiles;
+- user settings/preferences;
+- user roles/admin state;
+- notification preferences/history where required;
+- MFA recovery/security state where required.
 
 ### Chat
 
-Need durable concepts for:
-
-- conversation;
-- message;
-- archive/trash/deleted state;
-- share/export only if retained by final Chat;
-- message feedback/citations only if final UI/runtime still uses them.
+- conversations;
+- messages;
+- any minimal attachment relationship metadata required by the canonical Chat/Library architecture.
 
 ### Library
 
-Need:
+- Library metadata;
+- private Storage bucket/object policies;
+- storage tombstone/reconciliation metadata only where required.
 
-- library item metadata;
-- owner/account scope;
-- type: file/image/generated output;
-- private Storage object reference where applicable;
-- origin metadata where needed for recovery/audit;
-- created/updated/deleted state.
+### Usage
 
-No separate customer Artifacts store after consolidation.
+- commercial usage windows;
+- durable generation permits/idempotency;
+- signed offline device keys/leases/allocations/events required for account-wide offline enforcement.
 
-### Settings and notifications
-
-Keep account-scoped preferences for:
-
-- appearance;
-- notification preferences;
-- privacy/data choices;
-- deliberate Offline Intelligence removal preference if account-scoped behavior needs it;
-- other final Settings values.
-
-### Usage and entitlements
-
-Keep the existing secure concepts required for:
-
-- plan/tier;
-- 388-minute usage window;
-- successful-request counter;
-- server generation permits;
-- signed offline entitlement/usage reconciliation;
-- idempotency/concurrency protection;
-- authoritative reset state.
-
-One account across multiple devices shares capacity.
+All tiers count successful logical requests rather than weighted work.
 
 ### Billing
 
-Keep the single canonical subscription/entitlement authority plus required payment/refund/dispute/Admin-grant audit state. Do not reintroduce overlapping subscription tables.
+- subscriptions;
+- sanitized payment webhook/event evidence;
+- invoices/receipts where required;
+- entitlement grants;
+- any retired financial history that must remain readable for audit but must not grant current access.
 
-### Cowork/Jarvis
+### Manual entitlement grants
 
-During `PLAN.md`, preserve only minimal schema seams proven necessary for future integration.
+A single canonical grant table/function must support:
 
-During `PLAN2.md`, add/retain only durable Cowork state actually required by the OCADE JARVIS runtime. Internal step/task concepts must not automatically recreate the old standalone Tasks product.
+- user id;
+- tier;
+- created by admin;
+- reason;
+- optional starts/ends;
+- revoked state/actor/time.
 
-### Hidden Admin
+The entitlement resolver combines paid subscription + manual grant + Free default.
 
-`user_roles` and the admin route are the whole of it: one role check, one hidden screen, never in customer navigation.
+### Legal
 
-Organizations, tenants, groups, invites, policies and the support queue are gone. They existed for team accounts and a ticket desk that OCADE no longer has, and a boundary nothing enforces is a boundary that misleads whoever reads the schema next.
+Keep append-only legal consent receipts where required.
 
-## Retired domains
+## Retired schema/data
 
-Remove tables/functions/policies/types dedicated only to retired standalone:
+Remove objects used only by retired product families after source/dependency tracing.
 
-- Projects;
-- Tasks;
-- Artifacts;
-- Code/coding workspace;
-- old device/control dashboards;
-- organizations, tenants and the support desk;
-- messaging, and the compliance, HR, news and resume products;
-- obsolete legacy runtime state.
+Examples of categories expected to be removed if no final caller remains:
 
-Done in Phase 10: 99 tables to 29 and 159 functions to 89, every one traced against every string literal in the source before it went.
+- old Cania data;
+- old Madee data;
+- old Ficia data;
+- old messaging product tables;
+- old Projects/Tasks/Automations product tables;
+- old organization/team product tables;
+- retired status/support article systems;
+- obsolete launch-gate tables;
+- obsolete provider preference/event tables;
+- old browser/control product policy tables;
+- stale test/compliance packs not used by final OCADE.
 
-Removal requires:
+Do not delete a table simply because its row count is zero; remove it only after proving that final source, functions, policies and migrations no longer require it.
 
-1. caller/search proof;
-2. reversible migration or explicit safe rollback plan;
-3. data disposition decision;
-4. verification query;
-5. regenerated types;
-6. RLS/grant verification.
+## Application logs and stale data
 
-## RLS
+The owner wants the live project clean.
 
-Every customer table is fail-closed and owner/tenant scoped. Elevated functions validate `auth.uid()`/role/assurance explicitly and expose only necessary columns/actions.
+Clear stale development/launch/test rows only when proven not to be:
 
-## Server secrets
+- account/auth evidence;
+- payment/subscription evidence;
+- legal consent evidence;
+- security/audit evidence;
+- customer content;
+- current entitlement evidence.
 
-These are **not database columns**:
+Where an operational log remains useful, enforce bounded retention rather than indefinite accumulation.
+
+Never wipe Supabase platform-managed Auth data/logs simply to make the project look empty.
+
+## Auth provider configuration
+
+Required Supabase Auth methods:
+
+- Google;
+- email OTP;
+- phone OTP.
+
+Phone OTP must have a real SMS provider configured before production is marked ready.
+
+If credentials are required for the SMS provider, request only the exact missing credentials at that implementation boundary and store them in the correct secure Supabase/provider settings, never normal tables.
+
+## Gemini Edge Function
+
+One Edge Function: `ocade-intelligence`.
+
+Exactly three secrets:
 
 ```text
 GEMINI_API_KEY_PRIMARY
@@ -119,8 +143,38 @@ GEMINI_API_KEY_SECONDARY
 GEMINI_API_KEY_TERTIARY
 ```
 
-Store them as Supabase Edge Function/server secrets. Never return them through RPC, API, logs or generated types.
+At the online-intelligence deployment phase, ask the owner for exactly three Gemini API keys as secrets. Add them securely through Supabase secret management where tooling permits. Never commit or echo the values.
 
-## Current live project
+## Storage
 
-The last verified live project before this redesign was project ref `sazhgaisyhkdbrooycdv`. Re-verify before applying any migration because this document records intent, not live-state proof.
+Library bucket must remain private and protected by RLS/policies.
+
+Offline model artifacts do not live in Supabase Storage; they are delivered from private OCADE-controlled Cloudflare R2 and stored on-device through OPFS.
+
+## Migration rules
+
+- use versioned migrations for DDL;
+- trace all callers before drops;
+- include verification queries;
+- use reversible migrations/rollback strategy where practical;
+- regenerate TypeScript types after schema changes;
+- run Supabase security and performance advisors;
+- never apply a destructive migration before the compatible app version is ready.
+
+## Access-grant operations
+
+Hidden Admin must offer a safe user-access workflow rather than requiring SQL.
+
+Admin flow:
+
+```text
+search user by email/id
+→ inspect current entitlement
+→ choose Free / Pro / Max
+→ optional start/end
+→ reason
+→ grant
+→ audit row created
+```
+
+Revocation must be equally simple and auditable.
