@@ -1,6 +1,6 @@
 {
   "document": "OCADE PLAN.md Phase 0 classification and deletion map",
-  "generatedFor": "PLAN.md Phase 0 — baseline, total read and isolated branch",
+  "generatedFor": "PLAN.md Phase 0 \u2014 baseline, total read and isolated branch",
   "baselineCommit": "36df21d692ab22181b9637d7d4b6770d3b801405",
   "branch": "claude/ecstatic-goldberg-4nycdu",
   "locMethod": "node scripts/measure-loc.mjs --by-dir",
@@ -212,5 +212,12 @@
     "trackedSourceFiles": 579,
     "trackedSourceLines": 73911,
     "reductionFromBaselinePercent": 81.5
+  },
+  "afterCleanup": {
+    "trackedSourceFiles": 528,
+    "trackedSourceLines": 69604,
+    "reductionFromBaselinePercent": 82.6,
+    "fileReductionFromBaselinePercent": 72.3,
+    "note": "Final aggressive cleanup before PLAN.md Phase 6. Same command as the baseline: node scripts/measure-loc.mjs"
   }
 }

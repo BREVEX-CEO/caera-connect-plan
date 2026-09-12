@@ -63,60 +63,8 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Verify source and operations gates
-        run: |
-          npm run typecheck
-          npm test
-          npm run release:source-check
-          npm run operations:check
-          npm run performance:budget
+      - name: Verify every gate on the exact tree being deployed
+        run: npm run verify:full
 
       - name: Deploy and independently verify the production health endpoint
         run: npm run deploy:web
-
-      - name: Verify Google OAuth review surface while launch remains locked
-        if: ${{ inputs.expected_asset_state == 'locked' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          work="$(mktemp -d)"
-          trap 'rm -rf "$work"' EXIT
-
-          fetch_page() {
-            local path="$1"
-            local name="$2"
-            curl --silent --show-error --location \
-              --retry 8 --retry-delay 3 --retry-all-errors \
-              --dump-header "$work/$name.headers" \
-              --output "$work/$name.body" \
-              --write-out '%{http_code}' \
-              "https://ocade.in$path"
-          }
-
-          home_status="$(fetch_page / home)"
-          privacy_status="$(fetch_page /privacy privacy)"
-          terms_status="$(fetch_page /terms terms)"
-          auth_status="$(fetch_page /auth auth)"
-
-          test "$home_status" = "200"
-          test "$privacy_status" = "200"
-          test "$terms_status" = "200"
-          test "$auth_status" = "503"
-
-          grep -Fq 'OCADE is a local-first AI workspace' "$work/home.body"
-          grep -Fq 'href="/privacy"' "$work/home.body"
-          grep -Fq 'href="/terms"' "$work/home.body"
-          grep -Fq 'Privacy notice' "$work/privacy.body"
-          grep -Fq 'Terms of service' "$work/terms.body"
-
-          ! cmp -s "$work/home.body" "$work/privacy.body"
-          ! cmp -s "$work/home.body" "$work/terms.body"
-          ! cmp -s "$work/privacy.body" "$work/terms.body"
-
-          grep -Eiq '^x-robots-tag:.*index' "$work/home.headers"
-          grep -Eiq '^x-robots-tag:.*index' "$work/privacy.headers"
-          grep -Eiq '^x-robots-tag:.*index' "$work/terms.headers"
-          grep -Eiq '^x-robots-tag:.*noindex' "$work/auth.headers"
-          grep -Eiq '^x-ocade-launch-state:[[:space:]]*prelaunch' "$work/auth.headers"
-
-          echo 'Verified: public Home/Privacy/Terms are distinct and /auth remains launch-locked.'

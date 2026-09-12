@@ -61,21 +61,17 @@ const ALLOWED = new Map([
 
   // --- device preferences and per-device UI state -------------------------
   ["src/lib/appearance.tsx", "Theme, motion and contrast, which are per-device choices."],
-  ["src/lib/use-chat-prefs.ts", "Send key and other per-device chat preferences."],
   ["src/lib/browser-install-id.ts", "An opaque per-browser id, carrying no content."],
   [
     "src/lib/commercial/device-identity.ts",
     "This device's own identity, cached so an offline lease survives a restart.",
   ],
   ["src/lib/auth/throttle.ts", "Sign-in attempt throttling, which must survive a reload."],
-  ["src/lib/legal/consent-receipts.ts", "Consent receipts, which are evidence about this device."],
   ["src/lib/time/trusted-clock.ts", "Clock drift measured on this device."],
-  ["src/lib/limits/use-limits.ts", "A cached view of the server's own usage answer."],
   [
     "src/lib/commercial/offline-counter.ts",
     "A signed offline allowance, which is device-bound by design.",
   ],
-  ["src/components/legal/LegalConsentGate.tsx", "Which legal version this device accepted."],
   [
     "src/components/chat/ChatWorkspace.tsx",
     "A message typed before signing in, held in this TAB so the sign-in does not discard it and sent once afterwards.",
@@ -84,11 +80,6 @@ const ALLOWED = new Map([
     "src/lib/security/isolation-upgrade.ts",
     "One reload attempt, remembered for this tab so a failed upgrade cannot loop.",
   ],
-
-  // --- Cache Storage, which holds code rather than content ----------------
-  ["src/lib/offline/mirror.ts", "The application shell in Cache Storage, which is code."],
-  ["src/lib/offline/measure-readiness.ts", "Measures how much of that shell is present."],
-  ["src/lib/offline/storage-report.ts", "Reports and clears that shell."],
 ]);
 
 /** What a file must not touch unless it is listed above. */

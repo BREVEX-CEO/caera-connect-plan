@@ -86,7 +86,7 @@ Supabase owns Auth, PostgreSQL, private Storage, Edge Functions/secrets and serv
 
 ## Cowork/Jarvis
 
-`PLAN2.md` extracts the OCADE JARVIS donor and makes it the single Cowork runtime. The browser UI does not gain a second desktop application. Native helpers are scoped infrastructure only.
+`PLAN2.md` writes one Cowork runtime in OCADE's own architecture — there is no donor tree. The browser UI does not gain a second desktop application, and native helpers, if any prove necessary, are scoped infrastructure rather than a product.
 
 ## Removed architecture
 

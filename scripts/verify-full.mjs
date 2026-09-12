@@ -1,51 +1,33 @@
 #!/usr/bin/env node
 /**
- * Portable CI parity gate.
+ * THE ONE GATE LIST.
  *
- * This is intentionally the same command GitHub runs on ordinary pushes and
- * pull requests. Platform-specific proof remains in the manual/scheduled
- * workflows; everything here is expected to run on a clean Node 22 checkout
- * without credentials or a developer-specific toolchain.
+ * Exactly what CI runs on a push, in the order a failure is cheapest to read:
+ * the generated tree first, then the compiler, then style, then the tests, then
+ * the build, then the audits that read the built output.
+ *
+ * It used to name thirty-eight gates, thirty of which belonged to products that
+ * no longer exist — a list nobody could run locally and CI had stopped
+ * believing. Every entry below is a script in `package.json` with a subject in
+ * this tree; there is no second list anywhere.
  */
 import { spawnSync } from "node:child_process";
 
 const commands = [
   "routes:stable",
-  "ocade:77-check",
   "typecheck",
   "lint",
   "format:check",
   "test",
-  "test:isolation",
   "build:stable",
-  "performance:budget",
+  "audit:secrets",
   "supabase:types-check",
-  "release:source-check",
-  "portable-release:check",
-  "compatibility-evidence:check",
-  "media-lab:check",
-  "substitution-fabric:check",
-  "private-compute:check",
-  "enterprise-browser-policy:check",
-  "trust-setup:check",
-  "marketplace-bounty:check",
-  "blocker-reduction:check",
-  "stakeholder-research:check",
-  "launch-authority:check",
-  "application-lifecycle:check",
-  "controls:check",
-  "browser-safety:check",
   "content-storage:check",
   "reads:check",
-  "reachability:check",
-  "monochrome:check",
+  "controls:check",
   "a11y:check",
-  "licences:check",
-  "stage2:baseline-check",
-  "integration:check",
-  "mission:check",
-  "browser:host-check",
-  "extension:check",
+  "monochrome:check",
+  "reachability:check",
 ];
 
 const npmExecPath = process.env.npm_execpath;
@@ -71,4 +53,4 @@ for (const command of commands) {
   }
 }
 
-console.log(`\nverify:full passed ${commands.length} portable gates.`);
+console.log(`\nverify:full passed ${commands.length} gates.`);

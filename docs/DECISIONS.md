@@ -52,12 +52,12 @@ These decisions supersede older product-shape decisions unless a later explicit 
 ## Cowork/Jarvis
 
 30. `PLAN.md` must complete before OCADE JARVIS integration.
-31. `.incoming/OCADE_JARVIS.zip` is the donor archive for `PLAN2.md`.
-32. OCADE JARVIS becomes the canonical Cowork runtime.
+31. There is no donor tree. The `.incoming/` archive is deleted and will not return; Cowork is written for OCADE.
+32. One Cowork runtime, written in OCADE's own architecture, with capabilities built in order: browser actions, files, voice, then computer actions.
 33. Normal Cowork and Jarvis share runtime, permissions, usage, tools and persistence.
 34. Jarvis is voice-first/hands-free and online Gemini only for this release.
-35. Donor coding/dev capabilities may exist inside Cowork; no standalone Code product returns.
-36. Old Cowork/Jarvis/desktop-Copilot/control runtimes are deleted once replaced and proven.
+35. Coding capabilities may exist inside Cowork; no standalone Code product returns.
+36. Old Cowork/Jarvis/desktop-Copilot/control runtimes are deleted, and nothing restores them.
 
 ## Process
 

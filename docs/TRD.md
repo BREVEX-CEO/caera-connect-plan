@@ -87,7 +87,7 @@ Metadata and authorization live in PostgreSQL; file/image bytes use private Stor
 
 ## Cowork/Jarvis
 
-Not implemented during `PLAN.md`. `PLAN2.md` integrates the OCADE JARVIS donor as one runtime. Native/browser helpers are infrastructure only, not a separate desktop product.
+Not implemented during `PLAN.md`. `PLAN2.md` writes one Cowork runtime in OCADE's own architecture; there is no donor tree. Native and browser helpers are infrastructure only, never a separate desktop product.
 
 ## Security
 

@@ -7,9 +7,8 @@ on:
     branches: ["main"]
   workflow_dispatch:
 
-# One portable job is the ordinary push/PR authority. Hardware- and
-# platform-specific proof lives in platforms.yml and windows-proof.yml, where
-# it is manual or deliberately scheduled rather than multiplying every push.
+# One job, one gate list. `npm run verify:full` is the same command a
+# contributor runs locally, so a red CI is reproducible in one line.
 permissions:
   contents: read
 
@@ -48,7 +47,5 @@ jobs:
           name: ocade-portable-core-failure-${{ github.run_id }}
           path: |
             .output/server/wrangler.json
-            release/OCADE_RELEASE_BLOCKERS.json
-            docs/mission/OCADE_MISSION_EVIDENCE.json
           if-no-files-found: ignore
           retention-days: 3

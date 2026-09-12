@@ -1,180 +1,100 @@
-# PLAN2 — OCADE Cowork + Jarvis Replacement
+# PLAN2 — OCADE Cowork and Jarvis
 
 ## Preconditions
 
 Do not start this plan until every `PLAN.md` gate is green and the core product has a verified checkpoint.
 
-`PLAN2.md` replaces Cowork/Jarvis. It does not reopen or duplicate the core Chat, auth, usage, Library, Settings or Offline Intelligence authorities.
+`PLAN2.md` builds Cowork. It does not reopen or duplicate the core Chat, auth, usage, Library, Settings or Offline Intelligence authorities.
 
-## Source donor
+## There is no donor
 
-Canonical donor archive:
+Cowork is written for OCADE, in OCADE's own architecture. The `.incoming/` donor archive is deleted and will not return; nothing in this plan waits for it, extracts it, or preserves its structure.
 
-```text
-.incoming/OCADE_JARVIS.zip
-```
+That is a decision, not an omission. A donor tree is a second architecture arriving with its own runtime, its own registries and its own idea of permissions, and the whole point of the `PLAN.md` rebuild was to stop having two of anything. What survives from the original intent is the CAPABILITY LIST below, which is what the owner actually wanted — not the code that once implemented it.
 
-The archive is preserved as donor provenance. Extract its implementation into the repository only when this plan begins.
+## What Cowork is
 
-The donor currently contains the OCADE JARVIS capability set, including voice/wake-word, Gemini Live, browser/computer actions, screen/camera, files, memory, reminders, monitoring, messaging, search, weather, flight lookup, YouTube/system actions, plugins/actions, code-helper/dev-agent capabilities, undo/confirmation, audio devices, remote dashboard and proactive behavior.
+One runtime, two presentations:
 
-The owner wants the donor feature set retained. Standalone Code product UI remains removed; coding/dev features may exist only as Cowork/Jarvis capabilities.
+- **Cowork** — a prompt/task composer that looks related to Chat.
+- **Jarvis** — the voice-first, hands-free presentation of the same runtime.
 
-## Phase 0 — Extract and inspect
+They share session state, permissions and approvals, the action registry, the online intelligence boundary, the usage permit, verification receipts, cancellation state and the Library output path. They must never diverge into two engines.
 
-- Extract `.incoming/OCADE_JARVIS.zip` into one canonical source area, preferably `src/ocade-jarvis/`, preserving donor structure and provenance.
-- Inventory all donor files, imports, Python/runtime requirements, action registration, secrets, network calls, filesystem/process access and platform assumptions.
-- Scan for hard-coded credentials, unsafe command construction, unrestricted filesystem/process access, unbounded loops and duplicate authority.
-- Map each donor capability to the final Cowork permission/runtime contract.
-- Do not create parallel OCADE and donor Cowork engines.
+One successful user request consumes one usage unit. Internal steps do not multiply the charge.
 
-**Gate:** complete donor map with no unknown reachable action.
+## Capability order
+
+Build in this order, and ship nothing that cannot be proven:
+
+1. **Browser actions** — navigate, read, fill, click, extract, with observation before acting and re-observation after.
+2. **Files** — read and write inside scoped, approved locations, into Library where the output is the person's.
+3. **Voice** — speech in, speech out, explicit microphone state, text fallback always present.
+4. **Computer actions** — only on hardware where they can be genuinely verified, and only behind an explicit capability grant.
+
+Anything not yet built is absent from the interface rather than present and disabled with a promise.
 
 ## Phase 1 — One Cowork runtime
 
-Make OCADE JARVIS the canonical Cowork execution runtime.
+Write the runtime: session/task state, a typed action registry, permissions and approvals, bounded execution, postcondition verification, cancellation/pause/takeover, and one path for outputs into Library.
 
-Both presentations use the same:
+It reaches intelligence through `ocadeIntelligence()` and takes its permit through `beginBilledRequest` — the same two authorities Chat uses, not copies of them.
 
-- session/task state;
-- permissions/approvals;
-- browser/computer/file tools;
-- action/plugin registry;
-- Gemini online intelligence boundary;
-- usage permit;
-- receipts/postcondition verification;
-- cancellation/pause/takeover state;
-- Library output path.
+**Gate:** the same requested operation reaches the same runtime from both presentations.
 
-Normal Cowork and Jarvis must not diverge into separate engines.
+## Phase 2 — Cowork UI
 
-One successful user request consumes one usage unit; internal donor steps do not multiply usage.
-
-**Gate:** identical requested operation reaches the same runtime from normal and Jarvis modes.
-
-## Phase 2 — Delete superseded runtime
-
-After donor-equivalent paths are proven, delete the old OCADE Cowork/Jarvis/desktop-Copilot/computer-control implementations that are no longer canonical.
-
-Keep only minimal native/browser helpers actually required by the new runtime. There must be one authority per action type.
-
-Remove the old moon/solar-system Jarvis UI completely.
-
-**Gate:** no caller can reach an old competing runtime.
-
-## Phase 3 — Normal Cowork UI
-
-Cowork uses the same calm shell language as Chat and `docs/design-references/grok/` is the sole visual reference set. Do not introduce a separate Stitch/3D design language.
+Cowork uses the same shell language as Chat, with `docs/design-references/grok/` as the sole visual reference.
 
 Empty state:
 
 ```text
-Cowork
 What should OCADE do?
 [ composer ]
 Recent work
 ```
 
-During work show only:
+During work show only: a concise goal, a short verified step list, a meaningful approval request, Pause, Take over and Stop. Receipts live behind a contextual Details view, never as permanent panels.
 
-- concise goal;
-- short verified step/checklist;
-- meaningful approval request;
-- Pause;
-- Take over;
-- Stop.
+**Gate:** a real browser journey proves start → observe → act → re-observe → verified result, plus pause, take over and stop.
 
-Detailed logs/receipts are behind a contextual Details/Advanced view, not permanent panels.
+## Phase 3 — Jarvis inside Cowork
 
-Cowork can use browser, computer/device actions and files according to permissions and platform availability.
-
-**Gate:** real browser journey proves start → observe → act → re-observe → verified result, plus pause/takeover/stop.
-
-## Phase 4 — Jarvis inside Cowork
-
-Jarvis is a mode inside Cowork, never a separate primary navigation destination.
+Jarvis is a mode inside Cowork, never a separate primary destination.
 
 ```text
 Cowork
 [ Cowork | Jarvis ]
 ```
 
-Jarvis is the voice-first/hands-free presentation of the same runtime and inherits the same simplified OCADE/Grok-derived visual system.
+For this release Jarvis is online only and uses OCADE's own server boundary. Continuous microphone state is explicit, visible and revocable. A small original OCADE audio indicator is the only visual addition; there is no cinematic scene. Text remains a complete alternative to speech.
 
-For this release:
+**Gate:** voice and text commands produce the same verified semantics.
 
-- Jarvis is online-only;
-- Jarvis uses OCADE's Gemini server boundary;
-- preserve donor wake-word/hands-free behavior where safe and supported;
-- continuous microphone state is explicit and user-controlled;
-- show a small original OCADE audio/orb indicator only;
-- no giant moon, solar system, Stitch-style 3D scene or empty cinematic dashboard;
-- text fallback is always available;
-- permission/recording state is visible and revocable.
+## Phase 4 — Permissions and safety
 
-**Gate:** voice/hands-free and text commands produce the same verified Cowork semantics.
+Every state-changing action requires a scoped capability permission, observation before acting where applicable, approval at sensitive or destructive boundaries, bounded execution, postcondition re-observation, and a truthful failure when the result cannot be proven.
 
-## Phase 5 — Permissions and control safety
+Stop cancels active work. Take over hands control back and invalidates stale observations.
 
-Every state-changing browser/computer/file action requires:
-
-- scoped capability permission;
-- observation before action where applicable;
-- approval for sensitive/destructive boundaries;
-- bounded execution;
-- postcondition re-observation;
-- truthful failure if the action cannot be proven.
-
-Emergency Stop cancels active work. Take over hands control back to the user and invalidates stale observations.
-
-Do not expose a desktop/Copilot product UI. Native helpers exist only as infrastructure for Cowork/Jarvis.
+No desktop or Copilot product UI returns. Native helpers, if any are needed, are infrastructure for Cowork and are never a second product.
 
 **Gate:** unsafe, unapproved and unsupported actions fail closed.
 
-## Phase 6 — Library and persistence
+## Phase 5 — Persistence
 
-Cowork/Jarvis generated files/images/outputs flow into the existing Library authority.
+Cowork outputs flow into the existing Library authority. Persist only the durable Cowork state that recovery, audit or security actually needs; execution detail stays transient.
 
-Persist only required durable Cowork state in Supabase. Do not recreate old Tasks/Artifacts/Projects products merely because the donor has internal task concepts.
+Do not recreate Tasks, Artifacts or Projects as products because the runtime has internal task concepts.
 
-Temporary execution details remain transient unless needed for audit/recovery/security.
+**Gate:** Cowork outputs appear in Library with no second store.
 
-**Gate:** Cowork outputs appear in Library without a second artifact store.
+## Phase 6 — Final verification
 
-## Phase 7 — Final cleanup
+Test the exact production build as a real user: Chat, Library, Cowork, Jarvis, Account and Settings; signed out and signed in; desktop, tablet and phone widths; usage shared across every surface and device; browser actions; files; approvals; pause, take over and stop; voice in and out and microphone revocation; provider failures; postcondition verification; Library outputs; reload and recovery; and the security and secret scans.
 
-- Remove unused donor adapters only if doing so does not remove a donor capability the owner required.
-- Keep the original donor archive under `.incoming/`.
-- Remove obsolete old runtimes, dependencies, routes, tests and build scripts.
-- Ensure no standalone Code/Task/Artifact/Project product returns through donor wiring.
-- Re-run dead-code/reachability scans.
-- Update `docs/MEMORY.md` and `docs/DECISIONS.md` with proven final authority.
-
-**Gate:** one small customer UI, one Cowork runtime, no competing control paths.
-
-## Phase 8 — Full product verification
-
-Test the exact production build as a real user:
-
-- Chat, Library, Cowork normal, Jarvis, Account/Settings;
-- signed-out and signed-in;
-- desktop/mobile/tablet widths;
-- usage accounting shared across Chat/Cowork/Jarvis and devices;
-- browser control;
-- native computer control on supported real hardware;
-- files;
-- approvals;
-- Pause/Take over/Stop;
-- voice input/output;
-- wake-word/hands-free state and microphone revocation;
-- Gemini failures;
-- permissions and postcondition verification;
-- Library outputs;
-- recovery/reload;
-- security/no-secret scans.
-
-Run the same tracked source LOC measurement used in `PLAN.md`, record the final whole-product LOC and the reduction from the original Phase 0 baseline.
+Run the same tracked-source LOC measurement `PLAN.md` uses, and record the final figure and the reduction from the original baseline.
 
 ## Definition of PLAN2 complete
 
-OCADE exposes only Chat, Library and Cowork in its primary product shell. Cowork and Jarvis are two simple presentations over the OCADE JARVIS runtime. The old broad product and duplicate control/runtime stacks are removed, and the complete final tree is proven before integration to main.
+OCADE exposes Chat, Library and Cowork. Cowork and Jarvis are two presentations over one OCADE-written runtime. There is no donor tree, no second control stack and no standalone Code, Tasks or Artifacts product, and the complete final tree is proven before it reaches `main`.

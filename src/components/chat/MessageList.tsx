@@ -35,7 +35,7 @@ export function MessageList({
 
   return (
     <div className="ocade-scroll flex-1 overflow-y-auto px-5 pt-8">
-      <div className="mx-auto w-full max-w-2xl space-y-6">
+      <div className="mx-auto w-full max-w-3xl space-y-6">
         {loading ? (
           <p className="text-sm text-muted-foreground" role="status">
             Opening this conversation…
@@ -47,7 +47,7 @@ export function MessageList({
         ))}
 
         {streaming ? (
-          <div className="text-sm leading-7 text-foreground">
+          <div className="text-[15px] leading-7 text-foreground">
             <Prose text={streaming} />
           </div>
         ) : null}
@@ -64,7 +64,7 @@ function Turn({ message }: { message: ChatMessageRecord }) {
       <div className="flex justify-end">
         <div
           className={cn(
-            "max-w-[85%] whitespace-pre-wrap rounded-xl bg-secondary px-3.5 py-2.5 text-sm leading-6 text-secondary-foreground",
+            "max-w-[85%] whitespace-pre-wrap rounded-2xl bg-secondary px-4 py-2.5 text-[15px] leading-6 text-secondary-foreground",
             message.unsynced && "opacity-70",
           )}
         >
@@ -80,7 +80,7 @@ function Turn({ message }: { message: ChatMessageRecord }) {
   }
 
   return (
-    <div className="group text-sm leading-7 text-foreground">
+    <div className="group text-[15px] leading-7 text-foreground">
       <Prose text={message.content} />
       <button
         type="button"

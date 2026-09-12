@@ -98,16 +98,14 @@ function SettingsDialog({
         onClick={onClose}
       />
 
-      <div className="glass-strong relative flex h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-xl sm:h-[min(34rem,86vh)] sm:flex-row sm:rounded-xl">
+      <div className="glass-strong relative flex h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl sm:h-[min(40rem,88vh)] sm:flex-row sm:rounded-2xl">
         <nav
-          className="ocade-scroll shrink-0 overflow-y-auto border-b border-border/60 p-3 sm:w-52 sm:border-b-0 sm:border-r"
+          className="ocade-scroll shrink-0 overflow-y-auto border-b border-border/60 p-3 sm:w-[12.5rem] sm:border-b-0 sm:border-r"
           aria-label="Settings categories"
         >
           {groups.map((group) => (
             <div key={group} className="mb-2">
-              <p className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                {group}
-              </p>
+              <p className="px-2.5 pb-1 pt-2 text-[13px] text-muted-foreground">{group}</p>
               {CATEGORIES.filter((entry) => entry.group === group).map(
                 ({ id, label, icon: Icon }) => (
                   <button
@@ -116,7 +114,7 @@ function SettingsDialog({
                     onClick={() => onCategoryChange(id)}
                     aria-current={category === id ? "true" : undefined}
                     className={cn(
-                      "flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors",
+                      "flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-[15px] transition-colors",
                       category === id
                         ? "bg-accent text-foreground"
                         : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",

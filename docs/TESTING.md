@@ -134,7 +134,7 @@ After core is green, test:
 - wake-word/hands-free enable/disable;
 - microphone state/revocation;
 - Gemini-only Jarvis offline refusal;
-- donor action registry/features;
+- the action registry and every capability it exposes;
 - Library output flow;
 - one request = one usage unit.
 

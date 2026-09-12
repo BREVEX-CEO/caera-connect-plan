@@ -37,7 +37,7 @@ At the start of any implementation session read, in order:
 13. `docs/MEMORY.md`
 14. `docs/DECISIONS.md`
 
-Read `PLAN2.md` only after every `PLAN.md` gate is complete. `PLAN.md` rebuilds the core product first. `PLAN2.md` then replaces Cowork/Jarvis with the OCADE JARVIS donor runtime.
+Read `PLAN2.md` only after every `PLAN.md` gate is complete. `PLAN.md` rebuilds the core product first. `PLAN2.md` then writes Cowork and Jarvis. There is no donor tree: the `.incoming/` archive is deleted and will not return, and nothing may wait for it.
 
 ## Mandatory workflow
 
@@ -84,12 +84,10 @@ Do not integrate OCADE JARVIS while `PLAN.md` is incomplete.
 
 Only after `PLAN.md` passes:
 
-- extract `.incoming/OCADE_JARVIS.zip`;
-- make its runtime the canonical Cowork/Jarvis implementation;
-- preserve its donor feature set;
-- wire normal Cowork and voice-first Jarvis as two presentations over one runtime;
-- remove superseded old Cowork/Jarvis/computer-control implementations;
-- prove browser/computer/file/voice execution and permissions.
+- write one Cowork runtime in OCADE's own architecture;
+- wire normal Cowork and voice-first Jarvis as two presentations over it;
+- build capabilities in order: browser actions, files, voice, then computer actions;
+- prove execution, permissions and postcondition verification before shipping any of them.
 
 ## Non-negotiable product rules
 

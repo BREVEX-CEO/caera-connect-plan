@@ -116,7 +116,7 @@ function Sidebar({ className, children }: { className?: string; children?: React
 
   return (
     <aside className={cn("flex-col bg-background/60", className)}>
-      <div className="flex h-14 items-center justify-between px-3">
+      <div className="flex h-14 items-center justify-between px-4">
         <Link to="/" aria-label="OCADE home" className="rounded-md p-1">
           <BrandMark />
         </Link>
@@ -125,13 +125,13 @@ function Sidebar({ className, children }: { className?: string; children?: React
         </span>
       </div>
 
-      <nav className="px-2" aria-label="Primary">
+      <nav className="px-3" aria-label="Primary">
         <Link
           to="/"
           search={{ new: true }}
-          className="mb-1 flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          className="mb-0.5 flex h-10 items-center gap-3 rounded-lg px-2.5 text-[15px] font-medium text-foreground transition-colors hover:bg-accent"
         >
-          <PenSquare className="h-4 w-4 text-muted-foreground" aria-hidden />
+          <PenSquare className="h-[18px] w-[18px] text-muted-foreground" aria-hidden />
           New chat
         </Link>
         {DESTINATIONS.map(({ to, label, icon: Icon }) => {
@@ -142,20 +142,20 @@ function Sidebar({ className, children }: { className?: string; children?: React
               to={to}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors",
+                "mb-0.5 flex h-10 items-center gap-3 rounded-lg px-2.5 text-[15px] transition-colors",
                 active
                   ? "bg-accent text-foreground"
                   : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
               )}
             >
-              <Icon className="h-4 w-4" aria-hidden />
+              <Icon className="h-[18px] w-[18px]" aria-hidden />
               {label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="ocade-scroll mt-4 min-h-0 flex-1 overflow-y-auto px-2">{children}</div>
+      <div className="ocade-scroll mt-4 min-h-0 flex-1 overflow-y-auto px-3">{children}</div>
 
       <AccountRow />
     </aside>
@@ -264,12 +264,12 @@ function AccountRow() {
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent"
+        className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-accent"
       >
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
           {initial}
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm text-foreground">{name}</span>
+        <span className="min-w-0 flex-1 truncate text-[15px] text-foreground">{name}</span>
       </button>
     </div>
   );

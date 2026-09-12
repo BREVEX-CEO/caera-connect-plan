@@ -88,6 +88,59 @@ Phase 0 decisions: one offline runtime backend (WASM GGUF, `@wllama/wllama`) bec
 
 **Named as unproven:** two devices racing for the last use is PostgreSQL's row lock, proven in the database tests rather than in the browser; and the loopback stub mirrors the ledger's arithmetic, not its concurrency.
 
+### Cleanup checkpoint — final aggressive pass before Phase 6 — DONE
+
+Owner instruction, on top of the phase order: one more destructive pass over
+everything outside the protected Chat and Auth foundations, then rebuild the
+visible UI against the Grok reference. Chat and Auth logic were not rewritten —
+only their presentation moved.
+
+- **Donors are gone for good.** `.incoming/` and `OCADE JARVIS.zip` deleted;
+  `CLAUDE.md`, `PLAN.md`, `PLAN2.md`, `docs/ARCHITECTURE.md`, `docs/Backend Schema.md`,
+  `docs/DECISIONS.md`, `docs/PRD.md`, `docs/TESTING.md`, `docs/TRD.md` and this file
+  no longer expect one to arrive. `PLAN2.md` now writes one Cowork runtime for OCADE.
+  The historical "what was deleted" lines stay, because they are the record.
+- **Deleted outside the foundations:** the unmounted legal-consent cluster, the whole
+  `src/components/ui` shadcn set, `src/components/shell/{EmptyState,GlassPanel,shell-context,use-shell}`,
+  20+ dead `src/lib` modules, the customer-checkout cluster with no surface
+  (`hooks/usePaddleCheckout`, `lib/paddle.ts`, `utils/payments.functions`,
+  `payments/checkout-availability`, `payments/entitlements`), the orphaned
+  `ocade-injection-guard` + `security/unicode-sanitization`, `lib/stream-limits`,
+  the six-module `src/lib/offline` readiness cluster that duplicated what
+  `public/sw.js` already does alone, `components.json` and `.lovable/`.
+  The server-side billing hook is kept: the webhook route, `webhook-apply`,
+  `paddle-plans`, `paddle.server` and `entitlement-resolver` are how a paid tier
+  ever becomes true.
+- **Dependencies:** 7 `@radix-ui` packages, `class-variance-authority`,
+  `tw-animate-css`, `@testing-library/dom`, `@testing-library/react`, `jsdom` and
+  `@webgpu/types` removed. 15 runtime dependencies remain.
+- **Markdown:** only the fourteen authorities named in `CLAUDE.md` remain; the three
+  strays (`public/fonts/README.md`, `public/models/README.md`, `supabase/APPLY_ORDER.md`) are gone.
+- **`verify:full` is honest again.** It named 38 gates, 30 of which belonged to
+  products that no longer exist. It names the 14 that have a subject in this tree,
+  and CI and the production deploy workflow both run that one list. The deploy
+  workflow's launch-lock verification — which asserted the old landing copy and a
+  503 from `/auth` — is deleted; it contradicted the product.
+- **Two gates were repaired at the root, not silenced.** `check-reachability.mjs`
+  now treats an `ENTERED_ELSEWHERE` module as an ENTRY, so what the Edge Function
+  imports is no longer reported as dead; and a stale exemption is judged by a
+  second walk that excludes those entries. It also carries `AWAITING_MOUNT`: 15
+  modules that reach nobody yet, each with the unfinished phase that owes them a
+  surface (4 for Phase 7, 11 for Phase 9). `PLAN.md` Phase 12 requires that list
+  to be empty, and an entry that is deleted or mounted is reported as stale debt.
+- **UI rebuilt to the reference proportions** (`docs/design-references/grok/`, measured
+  off the screenshots): 256px sidebar with 40px nav rows at 15px, sentence-case section
+  labels, an empty state that centres the question and the composer together as one
+  group, a 768px composer at ~100px tall with a 16px radius, a 15px transcript, and a
+  896×640 settings modal with a 200px category pane. Near-black ground, one hairline,
+  no cards, no gradients.
+
+- **Measured:** 528 tracked source files, 69,604 lines — 72.3% fewer files and 82.6%
+  fewer lines than the Phase 0 baseline of 1,904 / 398,999, same command.
+- **Gates:** `npm run verify:full` passes all 14 on this tree, and the four browser
+  journeys pass 59 checks against the production build — shell 23, auth 10, chat 14,
+  usage 12. Chat and Auth behave exactly as they did before the pass.
+
 ## New final product
 
 Primary customer destinations:
@@ -105,7 +158,7 @@ Retired as standalone customer products: Code, Projects, Tasks, Artifacts, Custo
 
 1. `PLAN.md`: read/scan, aggressive cleanup, read again, then rebuild Chat/Auth/Usage/Gemini/Offline Intelligence/Library/Settings/Supabase core.
 2. Prove the core completely.
-3. `PLAN2.md`: extract `.incoming/OCADE_JARVIS.zip`, make it the canonical Cowork/Jarvis runtime, delete superseded old runtimes, then prove full product.
+3. `PLAN2.md`: write one Cowork runtime in OCADE's own architecture, with Jarvis as its voice-first presentation, then prove the full product. There is no donor tree.
 
 Do not start PLAN2 early.
 
@@ -151,11 +204,16 @@ Last verified live project before redesign: `sazhgaisyhkdbrooycdv`. Re-verify be
 
 The redesign will remove database objects dedicated only to retired standalone products after final dependency tracing. RLS/least privilege and the single subscription/usage authorities remain mandatory.
 
-## OCADE JARVIS donor
+## Cowork and Jarvis
 
-Archive: `.incoming/OCADE_JARVIS.zip`.
+There is no donor archive. `.incoming/` is deleted and will not return: a donor
+tree is a second architecture with its own runtime, registries and permission
+model, which is the thing the whole rebuild exists to remove.
 
-The owner wants its donor feature set retained when PLAN2 begins. It becomes the single Cowork runtime. Normal Cowork is prompt/task UI; Jarvis is online-Gemini voice/hands-free presentation over the same runtime.
+`PLAN2.md` writes one Cowork runtime for OCADE. Normal Cowork is a prompt/task
+presentation; Jarvis is the voice-first presentation of the same runtime.
+Capabilities are built in order — browser actions, files, voice, then computer
+actions — and anything not yet built is absent rather than present and disabled.
 
 ## Agent defaults
 

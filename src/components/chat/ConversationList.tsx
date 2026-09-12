@@ -72,9 +72,7 @@ export function ConversationList({
 
   return (
     <>
-      <p className="px-2.5 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-        Recent
-      </p>
+      <p className="px-2.5 pb-1 pt-3 text-[13px] text-muted-foreground">Recent</p>
       <ul>
         {visible.map((row) => (
           <li key={row.id} className="group relative">
@@ -94,7 +92,7 @@ export function ConversationList({
                 onClick={() => onOpen(row.id)}
                 aria-current={activeId === row.id ? "true" : undefined}
                 className={cn(
-                  "flex h-8 w-full items-center rounded-md pl-2.5 pr-8 text-left text-[13px] transition-colors",
+                  "flex h-9 w-full items-center rounded-lg pl-2.5 pr-8 text-left text-[14px] transition-colors",
                   activeId === row.id
                     ? "bg-accent text-foreground"
                     : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
@@ -114,7 +112,7 @@ export function ConversationList({
                 event.preventDefault();
                 setMenuFor((current) => (current === row.id ? null : row.id));
               }}
-              className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+              className="absolute right-1 top-1.5 grid h-6 w-6 place-items-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
             >
               <MoreHorizontal className="h-4 w-4" aria-hidden />
             </button>
@@ -228,7 +226,7 @@ function RenameField({
         if (event.key === "Escape") onCancel();
       }}
       aria-label="Conversation name"
-      className="h-8 w-full rounded-md border border-border bg-transparent px-2.5 text-[13px] text-foreground outline-none focus-visible:border-ring"
+      className="h-9 w-full rounded-lg border border-border bg-transparent px-2.5 text-[14px] text-foreground outline-none focus-visible:border-ring"
     />
   );
 }

@@ -88,7 +88,7 @@ Remove tables/functions/policies/types dedicated only to retired standalone:
 - Artifacts;
 - Code/coding workspace;
 - old device/control dashboards;
-- obsolete donor/legacy runtime state.
+- obsolete legacy runtime state.
 
 Removal requires:
 

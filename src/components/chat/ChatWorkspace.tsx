@@ -112,11 +112,13 @@ export function ChatWorkspace() {
       }
     >
       <div className="flex h-[calc(100vh-3rem)] flex-col md:h-screen">
-        {empty ? (
-          <div className="flex flex-1 items-center justify-center px-5">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Ask OCADE</h1>
-          </div>
-        ) : (
+        {/*
+          EMPTY IS ONE CENTRED GROUP, NOT A HEADING ADRIFT FROM A COMPOSER PINNED
+          TO THE FLOOR. The reference puts the question and the thing you answer
+          it with together, slightly above the middle; once there is a
+          conversation the composer drops to the bottom where it belongs.
+        */}
+        {empty ? null : (
           <MessageList
             messages={chat.messages}
             streaming={chat.streaming}
@@ -124,9 +126,14 @@ export function ChatWorkspace() {
           />
         )}
 
-        <div className="px-5 pb-6">
-          <div className="mx-auto w-full max-w-2xl">
-            <div className="glass rounded-xl px-3 pb-2 pt-3">
+        <div className={cn("px-5", empty ? "flex flex-1 flex-col justify-center pb-24" : "pb-6")}>
+          <div className="mx-auto w-full max-w-3xl">
+            {empty ? (
+              <h1 className="mb-6 text-center text-[28px] font-semibold tracking-tight text-foreground">
+                Ask OCADE
+              </h1>
+            ) : null}
+            <div className="glass rounded-2xl px-4 pb-3 pt-4">
               <label className="sr-only" htmlFor="ocade-composer">
                 Message OCADE
               </label>
@@ -146,10 +153,10 @@ export function ChatWorkspace() {
                   }
                 }}
                 placeholder="Ask anything"
-                className="ocade-scroll max-h-60 w-full resize-none bg-transparent px-1 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground"
+                className="ocade-scroll max-h-60 w-full resize-none bg-transparent px-1 text-[15px] leading-6 text-foreground outline-none placeholder:text-muted-foreground"
               />
 
-              <div className="mt-1 flex items-center gap-1">
+              <div className="mt-2 flex items-center gap-1">
                 <IconButton
                   label="Add an attachment"
                   disabled

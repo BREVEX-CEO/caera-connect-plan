@@ -75,7 +75,7 @@ Library has `All`, `Images`, `Files`, search and a simple content grid/list. It 
 
 Owned by `PLAN2.md`.
 
-- OCADE JARVIS donor runtime becomes canonical Cowork runtime.
+- One Cowork runtime, written for OCADE. There is no donor tree.
 - Cowork normal is prompt/task oriented.
 - Jarvis is voice-first/hands-free inside Cowork.
 - Both use one runtime, one usage authority and one permission system.
