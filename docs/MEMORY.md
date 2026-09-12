@@ -2,577 +2,215 @@
 
 ## Current mission
 
-OCADE is executing the simplification/rebuild mission in `PLAN.md`. The previous broad implementation was completed and merged to `main` at commit `4424a15abfe0fcf6b0e5550a0ee27095e7522029`, but that architecture is now intentionally superseded by the product decisions in these rewritten authorities.
+The previous core rebuild completed and was merged to `main` at `f0510d7555274e528b4b70817b7f06967106b931`.
 
-Implementation branch: `claude/ecstatic-goldberg-4nycdu`, created from `origin/main` at `36df21d692ab22181b9637d7d4b6770d3b801405`.
+The owner then started a new **pre-Cowork production repair mission** because the live/current product still has important product/deployment gaps, including the visible Chat Send/usage verification failure, incomplete Pricing/Usage presentation, offline-model/runtime changes, page-loading bugs and UI work.
 
-## Progress
+`PLAN.md` has been completely replaced with the new mission.
 
-### Phase 0 — baseline, total read and isolated branch — DONE
+`PLAN2.md` has been deleted.
 
-- Baseline measured with `node scripts/measure-loc.mjs --by-dir` on the tracked source tree: **1904 files, 398,999 lines**.
-- Method: git-tracked files with source extensions (`.ts .tsx .mts .cts .js .jsx .mjs .cjs .css .sql .rs .py .java .kt .swift .html .sh`), excluding `node_modules/`, `dist/`, `build/`, `docs/design-references/`, `vendor/`, `*.d.ts`, `*.gen.ts`, `src/routeTree.gen.ts` and `src/integrations/supabase/types.ts`. The same command is used at every later checkpoint.
-- Top-level baseline: src 292,770 · scripts 43,935 · native 34,482 · supabase 22,259 · extension 2,213 · root 698 · ios 668 · mobile 629 · public 523 · android 504 · relay 318.
-- Full KEEP/REUSE/REPLACE/DELETE map recorded in `release/OCADE_PLAN_CLASSIFICATION.json`.
+Cowork/Jarvis implementation is blocked. Cowork may remain only as an unavailable placeholder until the current `PLAN.md` is fully complete and the owner explicitly starts a future mission.
 
-Traced final authorities that must survive: Supabase Auth/integration, `src/lib/security`, `src/lib/commercial` (usage), `src/lib/limits` (rate limiting only), `src/lib/intelligence` + `supabase/functions/ocade-intelligence` (Gemini boundary), `src/lib/brain` OPFS model lifecycle, `src/lib/ocade-chat-store.ts` + `ocade.functions.ts`, `src/lib/files`, account/notification settings, payments/entitlement authority, hidden admin gate, legal/founder content.
+## Default session modes
 
-Phase 0 decisions: one offline runtime backend (WASM GGUF, `@wllama/wllama`) because the stored model is a GGUF and an MLC/WebGPU backend would need a second model; `commercial` is the single usage authority; Supabase rows are the only chat storage.
-
-### Phase 1 — approximately 90% legacy cleanup — DONE
-
-- After cleanup: **582 files, 79,319 lines** — **80.1% removed** against the Phase 0 baseline of 398,999, same command.
-- By top level: src 48,831 · supabase 22,259 · scripts 7,008 · root 698 · public 523.
-- Still to come: `supabase/migrations` (22,259 lines) is reduced in Phase 10, and `src` falls further as the shell, `styles.css`, theme provider and settings are rebuilt in Phases 2–9. The honest figure at this checkpoint is 80.1%.
-- Deleted: every retired route (Code, Projects, Tasks, Artifacts, Customize, Devices, Search, activity/automations/connectors/health/inbox/knowledge/lab/models/monitors/notifications/permissions/shared/studio/system/templates/work, cania/ficia/madee/home/challenge/onboarding/organization, all `settings.*` routes, blog/careers/company/compare/data-rights/download/faq/invite/press/pricing/products/search/security/status/support/team, share, checkout.success, lovable OAuth consent, bridge and status APIs, the landing `/` and the 4,519-line `ocade.index` chat).
-- Deleted runtimes/libraries: agent, skills, work, tasks, code, artifacts, research, native, mobile, local, edge, runtime, memory, capabilities, provenance, reasoning, retrieval, recovery, packaging, release, launch, hardware, telemetry, diagnostics, landing, status, support, locale, prompt, entry, vision3d, orb, motion, voice, device, media, search, providers, organizations, attachments, comments, creative, engine, engineering, healing, messaging, the automation worker family and the donor `src/primary-logic` tree.
-- Deleted platform trees: `android/`, `ios/`, `mobile/`, `extension/`, `native/`, `relay/`, `vendor/`, `imports/`, `capacitor.config.json`, `docker-compose.yml`.
-- Deleted 383 of 395 flat `src/lib/__tests__` files and the brain tests bound to the removed vault; 12 authority tests kept. Deleted 179 of 205 scripts, all 118 stale `release/` evidence files and the five platform-specific workflows.
-- Dependencies removed (288 packages): capacitor ×4, lovable cloud-auth, @mlc-ai/web-llm, three + @types/three, chromium-bidi, playwright-core, qrcode-generator, pdfjs-dist, node-llama-cpp, @yao-pkg/pkg, @tauri-apps/cli, ffmpeg-static, ffprobe-static, fflate, esbuild. npm scripts cut from 130 to 30.
-- Reduced repository reread: a full import trace found 42 files with dangling imports. That list is the exact rewire scope for Phases 2–9 and is the reason the tree does not build at this checkpoint; Phase 2 rebuilds the shell and routing on top of it.
-
-### Phase 2 — minimal shell and routing — DONE
-
-- One shell (`src/components/shell/AppShell.tsx`): sidebar with OCADE, New chat, Chat, Library, Cowork and Account; Settings opens from Account as a compact panel; a drawer at phone width. Built from the Grok reference for structure and density only.
-- `/` is Chat (`src/components/chat/ChatWorkspace.tsx`): centred workspace, `Ask OCADE`, composer with attachment/microphone/send and the Auto | OCADE | Offline selector. Signed-out Send reaches `/auth` and the message is held in the tab rather than discarded.
-- Routes now: `/`, `/library`, `/cowork`, `/about` (About the Founder, absorbing the founder page), `/help` (new, absorbing faq/support), `/terms`, `/privacy`, `/auth` + callback/verify, `/reset-password`, `/admin` (one hidden screen), payments webhook, robots, sitemap. Everything retired returns 404.
-- Rebuilt rather than carried forward: `__root.tsx` (no depth scene, no locale boot, no landing entry), `styles.css` 1157 → 587 lines (no REAL theme, aurora, depth system, orb or companion animations), the appearance authority (`src/lib/appearance.tsx`, three preferences instead of cursor kinds, depth strength, trails and an rAF low-performance sampler), `GlassPanel`, `BrandMark`, `PublicPage`, `AuthShell`, the admin gate.
-- Offline runtime reduced to one backend: the WASM/GGUF adapter. WebGPU/MLC, the desktop bridge, the paired desktop, the shared-tab engine, the native companion handoff, the device-mode resolver, the brain router, the tier-benchmark promotion store and the two duplicate intelligence transports are gone. `browser-catalogue.ts` (4 tiers, 2 families) became `model-catalogue.ts` (one artifact).
-- Restored from the Phase 1 sweep after tracing proved they were required: `model-vault.ts` (versioned OPFS storage, atomic activation, rollback, removal), `install-telemetry.ts`, `telemetry/operation-health.ts` (the Edge health record), `diagnostics/error-journal.ts`, the health endpoint (`lib/health.ts`), the Unicode sanitizer (now `security/unicode-sanitization.ts`) and the device identity the offline allowance needs (now `commercial/device-identity.ts`).
-- Launch-gate removed from `server.ts` and `cloudflare-entry.ts`: the product is launched and a permanently open gate was a second authority deciding what the public may see.
-- Gates: typecheck clean, eslint 0 errors, prettier clean, 779 unit tests pass, production build succeeds, and `npm run audit:shell` proves 23 real-browser checks against the served build (routing, sidebar, composer, pending message, retired routes 404, phone drawer, no sideways scroll, no page errors, no provider/runtime identifier on screen).
-- Measurement: **562 files, 73,776 lines — 81.5% below the Phase 0 baseline.**
-
-**Tests deleted with their surfaces, to be re-authored by the phase that rebuilds each:** auth surfaces and account safety (Phase 3), every-AI-surface-is-gated and offline usage integration (Phase 5), limits server wiring (Phase 6), model product presentation and the offline shell mirror (Phase 7), notification settings and "nobody can be charged" (Phase 9), the public security claims page and the MFA challenge gate (Phase 3 decides whether the challenge screen returns; the assurance middleware on server functions is untouched and still fails closed).
-
-### Phase 3 — authentication rebuild — DONE
-
-- `/auth` rebuilt (821 → 372 lines): Continue with Google as the primary action, then one segmented Email | Phone choice that sends a six-digit code. Supabase Auth is the only identity authority; the third-party auth wrapper and the Apple/Microsoft buttons for providers nobody configured are gone, and `OAuthProvider` is now the single provider the product actually has.
-- New: `src/lib/auth/phone-numbers.ts` — an international country picker (28 calling codes) and one pure `toE164` resolver that drops a national trunk zero, lets an explicit `+` override the picker, and refuses what cannot be valid before a provider ever sees it.
-- The password is off the way in, by decision: it is optional, managed under Account, and `/reset-password` remains for accounts that have one. That screen was rebuilt in the product's current language and gained the password-visibility control the checklist asks for.
-- `/auth/verify` rebuilt: exactly six digits, the resend countdown as the control's own label, real backoff on wrong codes. The `intent` flag that decided `shouldCreateUser` is gone with the separate sign-in/create screens it existed for.
-- The second-factor gate is back, and one layer up: the challenge is `/auth/challenge` rather than `/_authenticated/challenge`, so the screen that completes signing in no longer sits behind the gate that requires signing in to be complete. `_authenticated` redirects an enrolled `aal1` session to it, fails open on an unreadable assurance answer, and re-throws the redirect — the server-side `requireAssurance` middleware is still the lock and still fails closed.
-- `DEFAULT_NEXT` is `/` (Chat). It pointed at `/ocade`, a route that no longer exists.
-- Re-authored the tests deleted in Phase 2: `auth-surfaces.test.ts` (one identity authority, one provider, no password on the way in, no provider text in a refusal, throttling present, every destination through `safeNext`) and a new `phone-numbers.test.ts`.
-- Gates: typecheck clean, eslint 0 errors, prettier clean, 803 unit tests pass, build succeeds, `npm run audit:auth` proves 10 real-browser checks and `npm run audit:shell` still proves 23.
-- **Not proven here, and named as unproven:** that Google, email delivery and SMS are configured on the live Supabase project. The browser proof runs against a local build whose readiness flags are set locally; production still fails closed until each `VITE_AUTH_*` flag is set against a verified live provider.
-
-### Phase 4 — Chat rebuilt — DONE
-
-- `src/lib/chat/use-chat.ts` is the one authority Chat renders from: conversations, transcript, send, streaming, persistence, rename, archive, trash, restore, delete-all. The send order is fixed and is the product's correctness — permit, conversation, question, answer, delivery, settle — so a refused request never leaves a question nobody answered, and a request that produced nothing releases rather than charges.
-- `ChatWorkspace` renders and decides nothing; `MessageList` shows a question as a compact bubble and an answer as prose with a Copy control that exists only on a finished answer; `ConversationList` owns Recent with rename/archive/delete behind a hover menu.
-- One transport per backend and one assembly point: `intelligence/offline-transport.ts` wraps the single WASM adapter, `intelligence/ocade-intelligence.ts` is the only construction of the router. The two duplicate local transports are gone.
-- Narrowed with the product: `IntelligenceBackend` 6 → 2, `GenerationSurface` 8 → 2, and the retired chat server functions (side threads, citations, reactions, citation forgetting) deleted.
-- Removed the Lovable preview auth storage — a generated module that brokered the session token to a parent frame over postMessage on a host-name match, and a second auth storage authority.
-
-**Three real defects the browser proof found, none of which a unit test could have:**
-
-1. `online-client.ts` stored the global `fetch` by reference and called it as `deps.fetch(...)`. Chromium refuses that — "Illegal invocation" — so every online request threw before leaving the page, the router read it as a transport failure, and Automatic fell silently through to the on-device engine. Online intelligence could never have worked in a browser, and the failure looked exactly like a device still preparing.
-2. The conversation menu closed on any `pointerdown` and exempted itself with `stopPropagation` in a React handler. React attaches listeners to the root container, so that does not stop a sibling listener on the same node — Rename, Archive and Delete all silently did nothing. Now it closes only on a pointer that landed outside the menu.
-3. Choosing Rename unmounted the menu, and removing the focused menu item moved focus to the body — arriving as a blur on the field that had just appeared, which committed the unchanged title and closed itself in the same frame. Focus is now taken on the next frame and an earlier blur is ignored.
-
-- Proof infrastructure: `scripts/e2e/supabase-stub.mjs`, a purpose-built loopback Supabase (auth, PostgREST, the usage RPCs, the Edge Function's SSE shape) replacing a 2,075-line donor stub that modelled organizations, support articles and status incidents. It proves OCADE's own wiring and is explicitly not RLS, not the ledger's concurrency and not the provider.
-- Gates: typecheck clean, eslint 0 errors, prettier clean, 797 unit tests, build, and three browser journeys — `audit:shell` 23, `audit:auth` 10, `audit:chat` 14.
-- Measurement: 579 files, 73,911 lines — 81.5% below baseline.
-
-**Named as unproven, not faked:** this sandbox has no egress to the hosted Supabase project (organization network policy), so no browser proof here touches the live project, real Gemini or real SMS/email delivery. A dedicated proof account `ocade-e2e@ocade.test` exists on the live project for when a networked environment is available; nothing else on that project was touched.
-
-### Phase 5 — account-wide usage authority — DONE
-
-- One authority confirmed and the duplicates removed: `src/lib/commercial` owns the allowance, `src/lib/limits` stays the request rate limiter, and the two unused parallel modules (`ocade-allowance.ts` device arithmetic, `ocade-usage.functions.ts` entitlement read) are deleted.
-- Settings gained a Billing category showing the allowance: plan, what is left in this session, when it returns, and the rule that one request counts once. Shaped on the server by tier — Free sees exact numbers, paid plans see a proportion — so a browser cannot ask for the equivalents behind a percentage.
-- The number is read fresh whenever it is opened and invalidated after every settled request, because a cached allowance is wrong in exactly the two cases that matter: just after sending here, and any time after sending on another device.
-- Re-authored `every-ai-surface-is-gated.test.ts` for the reduced product: one assembly point for the router, every surface takes a permit before it streams, an exhausted request never falls through to the on-device engine, every path settles, and delivery is recorded only when something was delivered.
-- `npm run audit:usage` proves 12 checks in a real browser: a free account starts at 28, a successful request costs exactly one, an exhausted allowance refuses with a truthful reset time and invents no answer, and history, Settings, Billing and Library all still open while it is exhausted.
-- Gates: typecheck, eslint 0 errors, prettier, 805 unit tests, build, and four browser journeys — shell 23, auth 10, chat 14, usage 12.
-
-**Named as unproven:** two devices racing for the last use is PostgreSQL's row lock, proven in the database tests rather than in the browser; and the loopback stub mirrors the ledger's arithmetic, not its concurrency.
-
-### Cleanup checkpoint — final aggressive pass before Phase 6 — DONE
-
-Owner instruction, on top of the phase order: one more destructive pass over
-everything outside the protected Chat and Auth foundations, then rebuild the
-visible UI against the Grok reference. Chat and Auth logic were not rewritten —
-only their presentation moved.
-
-- **Donors are gone for good.** `.incoming/` and `OCADE JARVIS.zip` deleted;
-  `CLAUDE.md`, `PLAN.md`, `PLAN2.md`, `docs/ARCHITECTURE.md`, `docs/Backend Schema.md`,
-  `docs/DECISIONS.md`, `docs/PRD.md`, `docs/TESTING.md`, `docs/TRD.md` and this file
-  no longer expect one to arrive. `PLAN2.md` now writes one Cowork runtime for OCADE.
-  The historical "what was deleted" lines stay, because they are the record.
-- **Deleted outside the foundations:** the unmounted legal-consent cluster, the whole
-  `src/components/ui` shadcn set, `src/components/shell/{EmptyState,GlassPanel,shell-context,use-shell}`,
-  20+ dead `src/lib` modules, the customer-checkout cluster with no surface
-  (`hooks/usePaddleCheckout`, `lib/paddle.ts`, `utils/payments.functions`,
-  `payments/checkout-availability`, `payments/entitlements`), the orphaned
-  `ocade-injection-guard` + `security/unicode-sanitization`, `lib/stream-limits`,
-  the six-module `src/lib/offline` readiness cluster that duplicated what
-  `public/sw.js` already does alone, `components.json` and `.lovable/`.
-  The server-side billing hook is kept: the webhook route, `webhook-apply`,
-  `paddle-plans`, `paddle.server` and `entitlement-resolver` are how a paid tier
-  ever becomes true.
-- **Dependencies:** 7 `@radix-ui` packages, `class-variance-authority`,
-  `tw-animate-css`, `@testing-library/dom`, `@testing-library/react`, `jsdom` and
-  `@webgpu/types` removed. 15 runtime dependencies remain.
-- **Markdown:** only the fourteen authorities named in `CLAUDE.md` remain; the three
-  strays (`public/fonts/README.md`, `public/models/README.md`, `supabase/APPLY_ORDER.md`) are gone.
-- **`verify:full` is honest again.** It named 38 gates, 30 of which belonged to
-  products that no longer exist. It names the 14 that have a subject in this tree,
-  and CI and the production deploy workflow both run that one list. The deploy
-  workflow's launch-lock verification — which asserted the old landing copy and a
-  503 from `/auth` — is deleted; it contradicted the product.
-- **Two gates were repaired at the root, not silenced.** `check-reachability.mjs`
-  now treats an `ENTERED_ELSEWHERE` module as an ENTRY, so what the Edge Function
-  imports is no longer reported as dead; and a stale exemption is judged by a
-  second walk that excludes those entries. It also carries `AWAITING_MOUNT`: 15
-  modules that reach nobody yet, each with the unfinished phase that owes them a
-  surface (4 for Phase 7, 11 for Phase 9). `PLAN.md` Phase 12 requires that list
-  to be empty, and an entry that is deleted or mounted is reported as stale debt.
-- **UI rebuilt to the reference proportions** (`docs/design-references/grok/`, measured
-  off the screenshots): 256px sidebar with 40px nav rows at 15px, sentence-case section
-  labels, an empty state that centres the question and the composer together as one
-  group, a 768px composer at ~100px tall with a 16px radius, a 15px transcript, and a
-  896×640 settings modal with a 200px category pane. Near-black ground, one hairline,
-  no cards, no gradients.
-
-- **Measured:** 528 tracked source files, 69,604 lines — 72.3% fewer files and 82.6%
-  fewer lines than the Phase 0 baseline of 1,904 / 398,999, same command.
-- **Gates:** `npm run verify:full` passes all 14 on this tree, and the four browser
-  journeys pass 59 checks against the production build — shell 23, auth 10, chat 14,
-  usage 12. Chat and Auth behave exactly as they did before the pass.
-
-### Phase 6 — online OCADE through Gemini — DONE
-
-- **Three secrets, and no fourth.** The Edge Function read an unprefixed
-  `GEMINI_API_KEY` as the primary for compatibility with an earlier deployment.
-  `PLAN.md` says exactly three, so the alias is gone and all three slots are read
-  through `PROVIDER_KEY_ENVIRONMENT` rather than retyped strings — one place says
-  what the server may read.
-- **The boundary accepts only the surfaces the product has.** It validated against
-  eight, six of which belong to deleted products. `GENERATION_SURFACES` is now a
-  runtime list and `online-boundary.test.ts` fails if the Edge Function's copy
-  (Deno cannot follow the `@/` alias) ever disagrees with it.
-- The failover rules were already implemented and are proven against a fake
-  provider in `edge-handler.test.ts`: primary first, 401/403 moves to the next
-  slot without retrying, 5xx and transport failures retry then move on, 429 retries
-  and then answers 429 rather than rotating to evade a project quota, and nothing
-  fails over once output has begun.
-- **Re-authored the limits server-wiring test** deleted in Phase 2, for the reduced
-  surface: every policy has a caller, the one-time-code sender and the payment
-  webhook are both behind one, and the webhook keys by its source rather than by an
-  account an unauthenticated caller supplied. The `research` and `billing_read`
-  policies had no caller left and are deleted.
-- **`npm run audit:online` proves 12 checks in a real browser:** an online answer
-  streams through OCADE's own boundary; the request carries the person's identity
-  and a server-issued permit naming the same generation and surface; a refused
-  boundary produces a truthful sentence and no invented answer; a refused request
-  costs nothing; and no key name, provider host or model identifier reaches the
-  page or any script the browser downloaded.
-- **A defect the journey found:** the sidebar's New chat navigated to `/?new=true`
-  and nothing listened. `useChat` had `newConversation` and no caller, so the open
-  conversation stayed on screen and the next message was appended to it. Wired, and
-  the parameter is consumed so a reload is not a second reset.
-- **Measured:** 528 files, 69,615 lines. Gates: all 14 in `verify:full`, plus five
-  browser journeys — shell 23, auth 10, chat 14, online 12, usage 12.
-
-**Named as unproven:** that Gemini itself answers, and that the three secrets are
-set on the live project. This environment has no egress to `sazhgaisyhkdbrooycdv`
-and the Supabase MCP exposes no secret listing. The live Edge Function is at
-version 2 and is the OLD code: one `GEMINI_API_KEY`, model `gemini-3.7-flash`, no
-failover, eight surfaces. **Phase 12 deployment obligation:** set
-`GEMINI_API_KEY_PRIMARY` (and optionally `SECONDARY`/`TERTIARY`) on the project,
-redeploy `ocade-intelligence` from the merged tree, and verify a real answer —
-without the primary secret the new function reports itself unavailable rather than
-falling back to the old name.
-
-### Phase 7 — Offline Intelligence rebuild — DONE
-
-The engine was already here and nobody could reach it. This phase gave it a
-surface, a signed allowance and the tests its gate asks for.
-
-- **The lifecycle had no screen.** `useInstallation` — watch, retry, pause,
-  uninstall, reinstall, repair — had no caller anywhere, so the control `PLAN.md`
-  insists on ("only explicit Remove deletes it") could not be pressed. Settings
-  now has a **Data Controls** category with Offline Intelligence: one honest state
-  line, a progress bar only while bytes are moving, Remove behind a confirmation,
-  Install afterwards, and Repair only when something is actually wrong.
-- **`describeInstall` speaks Phase 7's vocabulary exactly** — Preparing OCADE,
-  Downloading <percent>, Verifying, Ready, Repairing, Removed — and is still the
-  single authority for that line. Idle used to say "Starting OCADE…" even straight
-  after a removal, which was untrue in the one case somebody is looking. The
-  authority's two different "it is not installed" sentences are now one word.
-- **The service worker was never registered.** `public/sw.js` has been in the tree
-  the whole time with network-first navigation, an offline page and the
-  `backgroundfetch*` handlers the transfer resumes through, and nothing ever
-  called `register`. So the product that promises to work offline could not open
-  offline. Registered after load, at the root.
-- **The offline half of the allowance could not be spent.** The browser could
-  reserve against a signed lease and nothing had ever installed one, because
-  `allocateOfflineUsage` had no caller — a device with no network had no allowance
-  and Offline Intelligence could not answer at all. `offline-allowance.ts` is the
-  missing half: while there is a network it reconciles what was spent offline
-  first, then tops up only when the device is low. `trustedOfflineTimeNow` moved
-  into `offline-lease.ts` so the two callers share one notion of trusted time.
-- **`install-once.test.ts` drives the real transfer engine** — 921 lines that
-  nothing covered — against a fake ranged server: first install verifies, the plan's
-  parallelism is used, an interruption resumes and asks ONLY for what is missing,
-  a checkpoint from a different artifact is discarded rather than trusted, a failed
-  chunk is retried, a corrupted artifact is refused as `digest_mismatch` rather than
-  installed, an unverifiable one is never reported verified, and a complete
-  checkpoint makes not one request.
-- **Model identity is the artifact's, not the build's** — asserted now, including
-  that no engine module reaches for a build identifier.
-- **Deleted:** `use-brain.ts` (a hook with no caller) and `ocade-model-presentation.ts`
-  (customer names for four engine tiers that no longer exist).
-- **`npm run audit:offline` proves 12 checks in a real browser:** the screen is
-  reachable, it says only what Phase 7 allows, it names no model, format, publisher
-  or runtime anywhere in Settings or Chat, Remove asks first, Keep leaves it alone,
-  removal says so plainly, and a reload does not quietly start it downloading again.
-- **Measured:** 529 files, 70,009 lines. Gates: all 14 in `verify:full`, plus six
-  browser journeys — shell 23, auth 10, chat 14, online 12, offline 12, usage 12.
-
-**Named as unproven:** a real 1.1 GB install. The artifact is on a CDN this
-environment cannot reach, so the transfer is proven against the real engine with a
-fake ranged server rather than against the real source. Background-fetch resumption
-through the service worker is proven only as far as the worker being registered.
-
-### Phase 8 — Library rebuilt — DONE
-
-- **One table, one private bucket.** `ocade_library_items` replaces `ocade_outputs`,
-  which was the Artifacts product's table: a lineage id, a version, a parent output,
-  a verification flag, an evidence string and a project id — document versioning for
-  a product that no longer exists. The new table holds what Library needs and
-  nothing else, and the migration drops the old one (reversibly).
-- **Row-level security decides everything.** Four owner policies, `FORCE ROW LEVEL
-SECURITY`, and every server function runs as the CALLER — nothing here holds a
-  service-role client. `auth.uid()` is wrapped in a sub-select per the repository's
-  existing performance rule, and the trigger function's EXECUTE is revoked from
-  `authenticated`, because a trigger function is not an API.
-- **The bytes are chased.** Deleting a row tombstones its object through the same
-  mechanism attachments already use, so a cascade from an account deletion cannot
-  orphan bytes in the bucket. Objects are also removed directly, so a person does
-  not wait on the sweep.
-- **Uploads are one transaction in two systems.** The row is inserted, the object
-  uploaded, and the row deleted if the upload fails — so the only observable state
-  is "both" or "neither", never a row pointing at nothing.
-- **Chat's `+` works.** It was disabled with the note "Attachments arrive with
-  Library"; it now files the chosen file into Library against the open conversation
-  and says so. It does not claim the answer will have read the file, because it will
-  not yet.
-- **Data Controls gained the account half:** how many items are in the Library and
-  one confirmed Delete everything, beside the device half from Phase 7.
-- **Library became its own data class.** It used to be folded into Conversations, so
-  "delete my chats" would silently have taken the person's files too.
-- **`library-schema.test.ts` proves the gate against real PostgreSQL** under
-  `SET ROLE authenticated`: an account sees only its own items from any device,
-  cannot read, rename, delete or plant rows in another's, deleting leaves a
-  tombstone, delete-all empties the caller's library and nobody else's, an account
-  deletion takes the items and still tombstones the objects, a kind nothing can
-  render is refused, two rows cannot share one object, and deleting a conversation
-  keeps the files that came out of it.
-- **`npm run audit:library` proves 18 checks in a real browser:** adding, listing,
-  surviving a reload, All/Images/Files, search hits and misses, a token-bearing
-  signed link rather than a public address, no storage path or provenance on screen,
-  deleting one, and emptying it from Data Controls.
-- **Measured:** 533 files, 71,092 lines. Gates: all 14 in `verify:full`, plus seven
-  browser journeys — shell 23, auth 10, chat 14, online 12, offline 12, library 18,
-  usage 12.
-
-**Named as unproven:** the live project does not have this table, this bucket or
-these policies yet — the migration is in the repository and proven against the
-twin. **Phase 12 deployment obligation:** apply `20260912090000` to
-`sazhgaisyhkdbrooycdv` and confirm the bucket is private there. The browser proof
-runs against the loopback stub, whose object store models the contract and not
-Supabase's storage policies; those are the database test's half.
-
-### Phase 9 — Settings and Data Controls — DONE
-
-Six categories, and every one of them now has something behind it: Account,
-Appearance, Notifications, Data Controls, Billing, Advanced.
-
-- **Account** gained sign-in methods (change the email, unlink a provider, with
-  `canUnlink` refusing to remove the last way in) and account deletion, which is
-  typed rather than clicked. The server requires the exact phrase AND a recent
-  second factor; the screen is the convenience, the refusal is the protection.
-- **Notifications** got a screen for rules that had been built, tested and never
-  shown. Protected categories read "Always on" rather than offering a switch that
-  snaps back, a channel the deployment has not configured shows its reason instead
-  of a dead toggle, and every save says which of the three things happened — saved
-  to the account, applied here for now, or refused.
-- **The ten notification categories are four.** Approvals, Tasks, Automations,
-  Support, Organization and Status incidents cannot be emitted by anything in this
-  product; a category nothing can send is a row that does nothing when a person
-  changes it.
-- **Data Controls** now covers all four things `PLAN.md` names: delete all
-  conversations, empty the Library, export the account as a file, and remove or
-  reinstall Offline Intelligence.
-- **Advanced** shows where the account is signed in and can end the other sessions.
-  Reading the list needs nothing — discovering a session you did not start is how a
-  person learns they have been compromised — and revoking is the privileged half.
-  No engine, model, provider, key or build identifier appears anywhere in it.
-- **`AWAITING_MOUNT` is empty and the reachability gate is at 151 of 151.** Every
-  module in the tree is reached from a route, an entry or a worker; the eleven
-  Phase 9 owed are mounted, and nothing was left on the list.
-- **Three shared row shapes** (`rows.tsx`) replace the copy of the same row that had
-  appeared in four sections.
-- **`npm run audit:settings` proves 19 checks in a real browser**, including the two
-  halves of the phase gate: a notification setting survives a refresh AND appears on
-  a second browser context with its own storage (so it came from the account), and
-  no category exposes a secret, model, provider or runtime identifier.
-- **Measured:** 539 files, 72,115 lines. Gates: all 14 in `verify:full`, plus eight
-  browser journeys — shell 23, auth 10, chat 14, online 12, offline 12, library 18,
-  settings 19, usage 12.
-
-**Named as unproven:** a real email change and a real provider unlink, which need
-Supabase Auth rather than the loopback stub; and the assurance refusal path, which
-needs an account with a verified second factor.
-
-### Phase 10 — Supabase cleanup and reduction — DONE
-
-**99 tables to 29, and 159 functions to 89.** Every table in the schema was traced
-against every string literal in `src/` and in the Edge Function; the 70 that appear
-in neither belong to products this rebuild removed — FICIA (8), CANIA (3), MADEE (2),
-compliance packs (8), messenger (10), organizations (7), projects and tasks (6),
-automations (3), the support desk (6), the status page (2), plus approvals, monitors,
-conversation shares, browser site policy, provider preferences, launch gates, feature
-flags, tenants, the vault config, the retired-subscriptions archive and OCADE memory.
-69 functions whose bodies read those tables went with them, and the messenger bucket
-with its objects.
-
-**What the cascade took that the product still needed, and how it was caught.**
-`own_conversations` had been rewritten in August to also check a conversation's
-`project_id` against the projects table — so the policy DEPENDED on that table, and
-dropping it dropped the policy. The result was a table with row-level security on and
-no policy: nobody could read their own conversations. `conversation-trash-schema.test.ts`
-failed immediately, reading as an ordinary signed-in account and getting an empty list.
-The migration now restores the rule without the product — a conversation is the
-account's — and drops the `project_id` column and the two orphaned `tenant_id` columns.
-
-**The rollback refuses to lie.** It does not recreate seventy empty tables: this
-migration deletes rows, and a "successful rollback" that restored names without data
-would be worse than an honest refusal. It names the two real routes — a point-in-time
-restore, or re-applying the original migrations, all of which are still in the tree —
-and reverses the one thing that is genuinely reversible, the conversations policy.
-
-**The verification has two halves,** because removal is only half the claim: every
-retired table is gone, no function still names one, the messenger bucket is gone — and
-the product that stays still works, proved by inserting a conversation and reading it
-back as `authenticated`.
-
-- Application code followed the schema: account deletion no longer asks about
-  organizations or support tickets and now clears the Library; the data-class map lost
-  Memory, Automations, Support and the retired-subscriptions archive; the caller-scoped
-  helper list lost the two tenant oracles; and `TOKEN_AUTHORIZED_FUNCTIONS` is empty,
-  because conversation sharing was its only entry — nothing in OCADE is now reachable
-  by a stranger holding a token.
-- `src/integrations/supabase/types.ts` lost 70 table blocks and 50 function blocks;
-  the types gate reports 29 of 29 tables covered.
-- **Measured:** 544 files, 72,621 lines. Gates: all 14 in `verify:full`, plus eight
-  browser journeys — shell 23, auth 10, chat 14, online 12, offline 12, library 18,
-  settings 19, usage 12.
-
-**Named as unproven, and deliberately not done:** the live project still has all 99
-tables. Applying this to `sazhgaisyhkdbrooycdv` now would break the deployed build,
-which is the OLD product and still reads them. **Phase 12 deployment obligation:**
-apply `20260912090000` (Library) and `20260912120000` (the reduction) together with
-the merged application, in that order, and redeploy the Edge Function with the three
-Gemini secrets set. The retired tables hold seed and config rows of dead products, not
-customer data — verified in the live project before this was written.
-
-### Phase 11 — polish, accessibility and performance — DONE
-
-The gate is "responsive, browser, accessibility and performance audits pass", and
-every one of those four needs a rendered page. `npm run audit:polish` is that half,
-and it MEASURES rather than asserts.
-
-- **Contrast is computed from what the compositor resolved.** The first version read
-  `oklch(0.76 0 0)` as red-green-blue and reported 1.00:1 for perfectly legible text —
-  a failure so obviously wrong that the natural response is to ignore the audit. Every
-  colour is now painted into a canvas and read back as sRGB, and translucent glass is
-  composited down the ancestor chain the way the screen does it. The worst visible text
-  on the home screen is 9.01:1, well past AA.
-- **Two keyboard shortcuts, which did not exist.** `/` puts the cursor in the composer
-  and Ctrl/Cmd+Shift+O starts a new chat. Typing always wins — both are ignored while
-  the focus is in a field — and they are listed in Help, which is the only place a
-  person would look. `<kbd>` now renders as a key rather than as code.
-- **Proved and already true:** the first Tab lands on Skip to content and shows a real
-  focus ring; an emulated `prefers-reduced-motion` leaves nothing animating; nothing
-  spills sideways and no control is under 24px at 390, 820 or 1440; the first visit
-  downloads 934 KiB of JavaScript and 39 KiB of CSS, inside the plan's caps; and every
-  public route carries a title, a description and an OpenGraph title.
-- Back-to-top on the long public pages, the FAQ accordion on Help alone, password
-  visibility on the reset screen, and toasts were already in place and are left alone.
-  No cookie banner, because OCADE sets no optional cookies to consent to.
-- **Measured:** 547 files, 73,095 lines. Gates: all 14 in `verify:full`, plus nine
-  browser journeys — shell 23, auth 10, chat 14, online 12, offline 12, library 18,
-  settings 19, usage 12, polish 23.
-
-**Named as unproven:** screen-reader announcement order, which needs an actual
-assistive technology; and contrast in the light theme, which is measured only in the
-dark theme the product opens in.
-
-### Phase 12 — core final proof and final merge — DONE
-
-Run on the exact production build of this branch.
-
-- **Every gate:** `npm run verify:full` passes all 14 — routes, typecheck, lint, format,
-  790 tests across 59 files, the build, the bundle secret scan, the Supabase types gate,
-  content-storage, bounded reads, dead controls, accessibility, monochrome and
-  reachability (151 of 151 modules reached, nothing awaiting a phase).
-- **Every journey:** 176 browser checks across ten — shell 23, auth 10, chat 14,
-  online 12, offline 12, library 18, settings 19, usage 12, polish 23, final 33.
-  `audit:final` is the Phase 12 sweep itself: every route signed out and signed in and
-  at phone width, every reachable control pressed, nothing thrown and no 5xx.
-- **Retired routes are gone, not hidden.** `/pricing`, `/ocade`, `/settings`,
-  `/projects`, `/tasks`, `/code`, `/artifacts`, `/customize`, `/devices`, `/search`,
-  `/copilot`, `/jarvis`, `/automations`, `/organizations`, `/support` and `/status` all
-  answer 404 from the production worker.
-- **One provider name was still travelling.** The intelligence backends were called
-  `gemini_online` and `wasm_local`, and the Edge Function puts the backend into every
-  status and final event it streams — so a provider's name reached the browser on every
-  request and sat in the client bundle. They are `online` and `on_device`; no provider
-  identifier now exists on the browser side of the boundary at all.
-- **What the bundle still contains, honestly:** the model's own artifact id
-  (`qwen2.5-1.5b-instruct-q4_k_m`) in the engine chunk, because install-once needs a
-  stable name for the file it stores and verifies; `gguf` inside the WASM runtime's own
-  code; and `sb_secret_` inside the Supabase SDK, which is its guard against a secret
-  key being used in a browser. None is rendered, and the offline and settings journeys
-  scan the screen for every one of them.
-
-**FINAL MEASUREMENT** — same command as Phase 0, `node scripts/measure-loc.mjs`:
-
-|                  | files | lines   |
-| ---------------- | ----- | ------- |
-| Phase 0 baseline | 1,904 | 398,999 |
-| Final            | 549   | 73,509  |
-
-- **81.6% fewer lines overall**, and 71.2% fewer files.
-- **86.6% fewer lines of application code** — everything except `supabase/`.
-- **85.7% fewer lines in `src/`** alone: 292,770 to 41,951.
-- **70.7% fewer database tables**: 99 to 29, and 159 functions to 89.
-
-The overall figure falls short of 90% for one reason, and `PLAN.md` anticipates it:
-`supabase/` is an append-only history. A migration is never rewritten, so the directory
-that RECORDS this cleanup is the one directory that can only grow — it went from 22,259
-to 23,025 lines, and 23,025 of the final 73,509 lines are SQL nobody may delete. The
-plan's instruction in that case is explicit: "keep the required code and document the
-exact result and reason rather than weakening security or correctness." That is what
-these numbers are.
-
-## New final product
-
-Primary customer destinations:
-
-- Chat
-- Library
-- Cowork, with Cowork/Jarvis modes inside it
-- Account → Settings
-
-Public retained pages: About, Help, Terms, Privacy.
-
-Retired as standalone customer products: Code, Projects, Tasks, Artifacts, Customize, Devices, Search dashboard, pricing, old landing, desktop/Copilot and old Jarvis/Cowork UI.
-
-## Execution order
-
-1. `PLAN.md`: read/scan, aggressive cleanup, read again, then rebuild Chat/Auth/Usage/Gemini/Offline Intelligence/Library/Settings/Supabase core.
-2. Prove the core completely.
-3. `PLAN2.md`: write one Cowork runtime in OCADE's own architecture, with Jarvis as its voice-first presentation, then prove the full product. There is no donor tree.
-
-Do not start PLAN2 early.
-
-## UI references
-
-The only visual UI reference set is:
-
-- `docs/design-references/grok/` — primary and sole layout/density/UI reference.
-
-Use `docs/UI_REFERENCE_CHECKLIST.md` for the lightweight production checklist.
-
-The former Stitch/Jarvis 3D reference folder/archive is removed and must not be treated as a design source. Build original OCADE UI; references do not authorize proprietary asset/copy cloning.
-
-## Offline Intelligence
-
-Internal model: Qwen 2.5 1.5B, never customer-facing by real name.
-
-Customer terms: OCADE / Offline / Offline Intelligence.
-
-Required lifecycle: automatic first-visit preparation, OPFS, adaptive parallel chunks, resume, integrity verify, repair only missing/corrupt chunks, install once, reuse across refresh/sign-in/out/service-worker/deploy/commit/main merges. Model identity is independent of app SHA.
-
-## Online Intelligence
-
-Use exactly these Supabase server/Edge secrets:
-
-- `GEMINI_API_KEY_PRIMARY`
-- `GEMINI_API_KEY_SECONDARY`
-- `GEMINI_API_KEY_TERTIARY`
-
-Never put them in normal tables/browser bundles.
-
-## Usage
-
-Free: 28 successful user requests / 388 minutes, account-wide across devices and online/offline. One successful user request counts once even when Cowork later performs many internal steps.
-
-## Auth
-
-Supabase Auth remains authority. Primary Google, plus email OTP and phone OTP with country picker. Optional password may live under Account. Production provider availability must match actual configured delivery/provider state.
-
-## Supabase
-
-Last verified live project before redesign: `sazhgaisyhkdbrooycdv`. Re-verify before migrations.
-
-The redesign will remove database objects dedicated only to retired standalone products after final dependency tracing. RLS/least privilege and the single subscription/usage authorities remain mandatory.
-
-## Cowork and Jarvis
-
-There is no donor archive. `.incoming/` is deleted and will not return: a donor
-tree is a second architecture with its own runtime, registries and permission
-model, which is the thing the whole rebuild exists to remove.
-
-`PLAN2.md` writes one Cowork runtime for OCADE. Normal Cowork is a prompt/task
-presentation; Jarvis is the voice-first presentation of the same runtime.
-Capabilities are built in order — browser actions, files, voice, then computer
-actions — and anything not yet built is absent rather than present and disabled.
-
-## Agent defaults
-
-Always:
+Every implementation session starts with:
 
 ```text
-/ponytail full
-/caveman full
+/ponytail ultra
+/caveman ultra
 ```
 
-Ponytail controls engineering behavior. Caveman compresses chat output only. Correctness/PLAN authority always wins over compression.
+These remain the default modes unless the owner changes them.
 
-### The merge
+## New mission authorities
 
-`origin/main` was at `36df21d` and the completion branch descended from it, so the
-reconciliation was a fast-forward: the merged tree is byte-identical to the tree every
-gate ran against — `fe05d9b1e52e759aaaaf3dd8f34cfeb6e41a1249`, verified on both sides.
+Read in this order:
 
-Every gate and all ten journeys were rerun on the merged `main` checkout before the
-push, not only on the branch. `main` and the completion branch both point at
-`03c741f54d5f2b9f6d8d6a4e0bb9aa6ba0e3d2be`, confirmed against the remote. Nothing was
-forced and no history was rewritten.
+1. `CLAUDE.md`
+2. `PLAN.md`
+3. `docs/PRD.md`
+4. `docs/TRD.md`
+5. `docs/APP_FLOW.md`
+6. `docs/UI UX Brief.md`
+7. `docs/DESIGN.md`
+8. `docs/UI_REFERENCE_CHECKLIST.md`
+9. `docs/ARCHITECTURE.md`
+10. `docs/Backend Schema.md`
+11. `docs/RULES.md`
+12. `docs/TESTING.md`
+13. `docs/MEMORY.md`
+14. `docs/DECISIONS.md`
 
-## Next action
+There is no second plan.
 
-**The deployment sequence, which has not run.** OCADE is merged; it is not deployed.
-The live project and the live worker are still the old product.
+## Owner decisions locked for this mission
 
-**Then, and only then, the deployment sequence** — recorded with the phases that
-created each obligation:
+### Usage
 
-1. Set `GEMINI_API_KEY_PRIMARY` (and optionally SECONDARY/TERTIARY) on
-   `sazhgaisyhkdbrooycdv`. The deployed Edge Function is still the old single-key code
-   reading `GEMINI_API_KEY`; without the new names the new function reports itself
-   unavailable rather than falling back.
-2. Redeploy `ocade-intelligence` from the merged tree.
-3. Apply migration `20260912090000` (Library), then `20260912120000` (the reduction),
-   together with the merged application and never before it: the live build is still
-   the old product and still reads the tables the second migration drops.
-4. Verify a real answer end to end, and that the `library` bucket is private.
+- Free: 28 successful requests / 6h28m, no weekly cap.
+- Pro: 140 / 6h28m and 700/week.
+- Max: 1,400 / 6h28m and 7,000/week.
+- Max is exactly 10× Pro.
+- One successful answer = one use.
+- Failed generations/internal retries do not add uses.
+- Edit→successful regenerate and Regenerate→successful answer each cost one new use.
+- Allowance is shared account-wide across supported devices and online/offline paths.
 
-After that, `PLAN2.md` — Cowork and Jarvis over one OCADE-written runtime.
+### Pricing
 
-Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.
+| Tier | Weekly | Monthly |
+| --- | --- | --- |
+| Free | Free | Free |
+| Pro | $8 / €8 / £8 / ₹288 | $28 / €28 / £28 / ₹1,888 |
+| Max | $28 / €28 / £28 / ₹1,888 | $88 / €88 / £88 / ₹5,888 |
+
+Public `/pricing` must return.
+
+### Auth
+
+Supabase Auth only:
+
+- Google;
+- email 6-digit OTP;
+- phone 6-digit OTP + international country picker;
+- optional password where deliberately supported;
+- MFA/assurance where required.
+
+Do not delete existing accounts/logged-in users/sessions during cleanup.
+
+### Gemini
+
+Exactly three Supabase secret names:
+
+```text
+GEMINI_API_KEY_PRIMARY
+GEMINI_API_KEY_SECONDARY
+GEMINI_API_KEY_TERTIARY
+```
+
+When the Gemini deployment phase is reached, explicitly ask the owner for exactly three Gemini API keys as secrets. The owner has said they will provide them.
+
+### Customer identity
+
+Normal customer-facing AI identity is always **OCADE**.
+
+Do not expose raw provider/model/runtime names in normal UI/responses/errors.
+
+### Offline Intelligence
+
+Use the owner-approved private OCADE 0.6B runtime.
+
+- WebGPU-first where verified;
+- WASM fallback;
+- Fast default + optional Thinking;
+- one artifact downloaded initially;
+- private OCADE-controlled Cloudflare R2 distribution;
+- opaque authorised shards;
+- adaptive parallel downloading;
+- OPFS/persistent storage;
+- no customer browser fetch from Hugging Face/public model host.
+
+If the user intentionally uninstalls Offline Intelligence, set durable `user_uninstalled` suppression. Normal site updates/deploys/browser restarts/sign-in cycles must never redownload automatically. Show that the user uninstalled it and offer **Install Offline**. Only explicit Install clears suppression.
+
+If never installed and offline, show connect-once guidance and remember install intent.
+
+### Routing
+
+```text
+Internet + online OCADE healthy → online OCADE
+online provider fails before output + Offline ready → local fallback
+no Internet + Offline ready → Offline Intelligence
+no Internet + Offline absent → install/connect-once guidance
+```
+
+Offline mode creates zero provider traffic. Successful fallback costs one use total.
+
+Images require online OCADE. Textual files may be locally extracted only where safely supported.
+
+### Whole-site offline
+
+Normal `ocade.in` works without requiring PWA installation and should also be optionally installable as a PWA.
+
+When Internet is absent, cached/local-capable OCADE pages and Offline Chat should continue honestly. Payment and cloud-only mutations require Internet.
+
+Official focus:
+
+- Windows Chrome;
+- macOS Chrome;
+- Android Chrome;
+- iPhone/iPad Chrome/WebKit where supported.
+
+Linux is not advertised/certified.
+
+### Chat
+
+Required modern Chat features include attachment `+`, drag/drop/paste, mic, Send/Stop, upload progress/retry, remove/reorder attachments, Copy, Edit, Regenerate, Delete, Retry, code-block Copy, Markdown/tables/links and preview/download.
+
+Up to 100 MB per intentionally supported attachment.
+
+New Chat creates no empty DB conversation before first Send.
+
+### UI
+
+Near-black/charcoal, medium glassmorphism on high-value surfaces, restrained motion, Grok references + owner repair screenshots for structure/density, intentional desktop/tablet/mobile layouts.
+
+## Live Supabase snapshot at documentation reset
+
+Project: `sazhgaisyhkdbrooycdv`
+
+Status when checked: `ACTIVE_HEALTHY`.
+
+Observed live auth state at that check:
+
+- `auth.users`: 4 rows;
+- `auth.sessions`: 6 rows;
+- `auth.refresh_tokens`: 32 rows;
+- `auth.identities`: 3 rows.
+
+These are protected and must not be wiped.
+
+The live public schema still contains many retired product tables even though the repository plan previously reduced the target schema. This confirms that the new Supabase-cleanup phase must compare source/migrations to the **live** database before destructive work.
+
+Examples of currently visible retired families include old Cania, Madee, Ficia, messaging, Projects/Tasks/Automations, organizations/status/support and launch/provider/event tables. Do not blindly drop them; trace callers and preserve legal/financial/security/customer evidence.
+
+The live project currently has an active `ocade-intelligence` Edge Function. Re-fetch its current version before redeployment.
+
+## Supabase cleanup policy
+
+Never delete/truncate:
+
+- auth users;
+- identities;
+- sessions;
+- refresh tokens;
+- active auth/MFA state;
+- real profiles/settings/roles required by the product;
+- real subscriptions/payment evidence;
+- legal consent evidence;
+- real customer conversations/messages/Library data unless explicitly deleted by the customer.
+
+Clean stale development/launch/test application logs only when proven non-authoritative. Use bounded retention for operational logs that remain useful.
+
+Hidden Admin must make manual Free/Pro/Max entitlement grants/revocations easy and auditable without editing `auth.users`.
+
+## Previous completed core evidence
+
+The prior core mission had reached a merged, verified tree at `f0510d7555274e528b4b70817b7f06967106b931` with the then-current tracked tests/browser checks green. That evidence is historical context only; the new plan supersedes the previous product/deployment assumptions.
+
+Do not repeat old phases just because they appear in Git history. Reproduce current failures and follow the new `PLAN.md` from Phase 0.
+
+## Exact next action
+
+Start **Phase 0 of the new `PLAN.md`**:
+
+1. fetch latest `origin/main` after this documentation reset;
+2. create one isolated implementation branch;
+3. record branch/SHA/tree here;
+4. read the complete current repository and live Supabase state;
+5. reproduce the current Send/usage failure and other broken routes;
+6. map canonical authorities;
+7. verify Cowork is frozen/unavailable and no `PLAN2.md` remains;
+8. checkpoint/push/verify the Phase 0 branch before continuing.
+
+Do not begin implementation of Cowork/Jarvis.
