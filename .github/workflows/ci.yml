@@ -2,13 +2,24 @@ name: CI
 
 on:
   push:
-    branches: ["feat/ocade-implementation", "main", "claude/**"]
+    branches: ["main"]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - ".github/workflows/**"
   pull_request:
     branches: ["main"]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
   workflow_dispatch:
 
 # One job, one gate list. `npm run verify:full` is the same command a
 # contributor runs locally, so a red CI is reproducible in one line.
+#
+# Do not burn GitHub-hosted minutes for documentation-only commits or every
+# temporary implementation/checkpoint branch. Real code reaching main, PRs,
+# and explicit manual runs still execute the complete gate.
 permissions:
   contents: read
 
