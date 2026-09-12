@@ -24,8 +24,8 @@ This document records the lightweight production UI details to preserve during t
 ## OCADE rebuild design rules
 
 - Keep customer-facing UI extremely simple: Chat, Library, Cowork with Jarvis mode, Account/Settings.
-- Use the uploaded Grok screenshots as the primary reference for density, spacing, left-sidebar position, compact settings, near-black/grey/white palette, restrained glass morphism, small/medium radii and minimal visible text.
-- Use the Stitch Jarvis reference only as a visual/reference source for the Cowork/Jarvis redesign; do not treat its code as product authority.
+- `docs/design-references/grok/` is the sole visual UI/UX reference set. Use its density, spacing, left-sidebar position, compact settings, near-black/grey/white palette, restrained glassmorphism, small/medium radii and minimal visible text.
+- Do not use or recreate the removed Stitch/Jarvis 3D reference structure. Cowork and Jarvis must follow the same simplified OCADE/Grok-derived visual language.
 - Keep OCADE branding and original product assets. References are for structure, spacing and interaction quality, not copied third-party branding/assets.
 - Hide technical model/provider/runtime names from normal customers. Offline model details remain internal; customer-facing labels are OCADE / Offline Intelligence only.
 - Prefer progressive disclosure: advanced diagnostics, device/runtime details and developer information stay inside Advanced settings.

@@ -4,7 +4,9 @@
 
 OCADE should feel almost empty until the user needs something.
 
-The visual benchmark is the supplied Grok-style reference set under `design/reference/grok/`: narrow left sidebar, large clean workspace, compact controls, minimal copy and compact settings. Use the reference for structure/density/behavior, not proprietary logos, copy or pixel-for-pixel trade dress.
+The sole visual benchmark is the supplied Grok-style reference set under `docs/design-references/grok/`: narrow left sidebar, large clean workspace, compact controls, minimal copy and compact settings. Use the reference for structure/density/behavior, not proprietary logos, copy or pixel-for-pixel trade dress.
+
+The former Stitch/Jarvis 3D reference is removed. Cowork and Jarvis use the same simplified OCADE visual language.
 
 OCADE remains independently branded.
 
@@ -95,7 +97,7 @@ During run: concise goal, short verified checklist, meaningful approvals, Pause/
 
 Jarvis lives inside Cowork. It is voice-first/hands-free over the same runtime.
 
-Remove the old giant moon/solar-system scene. Use a small original OCADE audio/orb indicator in or near the composer. Microphone/listening state must be obvious and controllable.
+Remove the old giant moon/solar-system scene. Use a small original OCADE audio/orb indicator in or near the composer. Microphone/listening state must be obvious and controllable. Do not introduce a separate cinematic/3D design system.
 
 ## Settings
 
@@ -122,7 +124,7 @@ Use skeletons where layout is known. Empty states contain one concise explanatio
 
 ## Reference checklist
 
-The checklist image under `design/reference/checklists/` is guidance, not a reason to add unnecessary UI.
+`docs/UI_REFERENCE_CHECKLIST.md` is guidance, not a reason to add unnecessary UI.
 
 Use when relevant: dark/light handling, mobile menu, shortcuts, hover/focus, scrollbar polish, copy, skeletons, sticky shell, skip-to-content, OpenGraph, empty states, toasts, password visibility.
 

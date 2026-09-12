@@ -2,12 +2,12 @@
 
 ## References
 
-Primary structural references:
+Primary structural reference:
 
-- `design/reference/grok/` — layout, density, spacing, sidebar/top-bar/settings proportions.
-- `design/reference/jarvis/stitch-jarvis-reference.png` — optional Jarvis visual direction only.
-- `design/reference/checklists/website-essentials-checklist.jpeg` — implementation checklist.
-- `design/legacy/` — old OCADE screenshots showing the card-heavy/technical UI being removed.
+- `docs/design-references/grok/` — sole visual reference set for layout, density, spacing, sidebar/top-bar/settings proportions and overall simplicity.
+- `docs/UI_REFERENCE_CHECKLIST.md` — lightweight production UI checklist.
+
+The former Stitch/Jarvis 3D reference is removed and must not be treated as a design source. Cowork and Jarvis use the same simplified OCADE visual language derived from the Grok reference set.
 
 References are not source code or a license to copy proprietary assets/text/trade dress. Build original OCADE components.
 
@@ -100,7 +100,7 @@ One visual anchor. Default visible actions: attachment, microphone, send. Intell
 
 Normal mode shares Chat's composer language. Runtime progress is a short list, not a dashboard.
 
-Jarvis uses a small OCADE audio/orb visual only. Listening/thinking/speaking/working states may animate subtly but must preserve text status and reduced-motion equivalence.
+Jarvis is the voice-first/hands-free mode inside Cowork and follows the same simplified shell. Use only a small original OCADE audio/orb indicator where useful. Listening/thinking/speaking/working states may animate subtly but must preserve text status and reduced-motion equivalence.
 
 ## Interaction
 

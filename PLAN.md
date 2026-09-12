@@ -66,7 +66,7 @@ After deletion, read the smaller repository again and update the dependency map.
 
 ## Phase 2 — Minimal shell and routing
 
-Build the simple shell using `design/reference/grok/` as the structural/density reference and OCADE's own branding.
+Build the simple shell using `docs/design-references/grok/` as the sole structural/density reference and OCADE's own branding.
 
 Desktop:
 
@@ -88,6 +88,7 @@ Account
 - Remove pricing and landing-page routing.
 - Mobile uses a compact chat-first drawer.
 - Use near-black/grey/white, restrained 1px borders, small/medium radii and light glassmorphism.
+- Do not introduce any alternate Stitch/Jarvis 3D visual reference; Cowork/Jarvis later inherit the same simplified OCADE design language.
 
 **Gate:** desktop and mobile routing contains no duplicate navigation hierarchy.
 

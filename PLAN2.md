@@ -64,7 +64,7 @@ Remove the old moon/solar-system Jarvis UI completely.
 
 ## Phase 3 — Normal Cowork UI
 
-Cowork uses the same calm shell language as Chat.
+Cowork uses the same calm shell language as Chat and `docs/design-references/grok/` is the sole visual reference set. Do not introduce a separate Stitch/3D design language.
 
 Empty state:
 
@@ -99,7 +99,7 @@ Cowork
 [ Cowork | Jarvis ]
 ```
 
-Jarvis is the voice-first/hands-free presentation of the same runtime.
+Jarvis is the voice-first/hands-free presentation of the same runtime and inherits the same simplified OCADE/Grok-derived visual system.
 
 For this release:
 
@@ -108,7 +108,7 @@ For this release:
 - preserve donor wake-word/hands-free behavior where safe and supported;
 - continuous microphone state is explicit and user-controlled;
 - show a small original OCADE audio/orb indicator only;
-- no giant moon, solar system or empty cinematic dashboard;
+- no giant moon, solar system, Stitch-style 3D scene or empty cinematic dashboard;
 - text fallback is always available;
 - permission/recording state is visible and revocable.
 

@@ -15,7 +15,7 @@ These decisions supersede older product-shape decisions unless a later explicit 
 
 ## UI
 
-9. Supplied Grok-style screenshots are the primary structural/density reference; OCADE remains independently branded and implemented.
+9. Supplied Grok-style screenshots under `docs/design-references/grok/` are the sole visual structural/density reference; the Stitch/Jarvis 3D reference is removed and must not return. OCADE remains independently branded and implemented.
 10. Ordinary UI uses near-black/grey/white, light glassmorphism, small/medium radii, minimal borders/cards and short copy.
 11. Old giant Jarvis moon/solar-system UI is deleted.
 12. Advanced diagnostics/runtime plumbing is hidden under Advanced, not normal customer surfaces.
@@ -64,5 +64,5 @@ These decisions supersede older product-shape decisions unless a later explicit 
 37. Default agent modes are `/ponytail full` and `/caveman full` across fresh sessions, Auto Continue, compaction and usage resets.
 38. Ponytail governs engineering work; Caveman governs only response compression. Safety/correctness and plan authority outrank both.
 39. Implementation order is read → trace/scan → aggressive clean → read again → build → test → browser-prove.
-40. Only `CLAUDE.md`, `PLAN.md`, `PLAN2.md` and the eleven canonical docs in `docs/` may remain as Markdown.
+40. Only `CLAUDE.md`, `PLAN.md`, `PLAN2.md`, the canonical docs listed in `CLAUDE.md`, and `docs/UI_REFERENCE_CHECKLIST.md` may remain as Markdown authorities.
 41. Source LOC is measured at baseline, PLAN completion and PLAN2 completion using one consistent deterministic method; LOC is evidence, not a correctness target.

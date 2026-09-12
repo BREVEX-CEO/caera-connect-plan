@@ -29,14 +29,13 @@ Do not start PLAN2 early.
 
 ## UI references
 
-Use these repository assets after this authority update:
+The only visual UI reference set is:
 
-- `design/reference/grok/` — primary layout/density/UI reference;
-- `design/reference/jarvis/stitch-jarvis-reference.png` — Jarvis visual reference;
-- `design/reference/checklists/website-essentials-checklist.jpeg` — useful website checklist;
-- `design/legacy/` — old UI screenshots to help identify clutter being removed.
+- `docs/design-references/grok/` — primary and sole layout/density/UI reference.
 
-Build original OCADE UI; references do not authorize proprietary asset/copy cloning.
+Use `docs/UI_REFERENCE_CHECKLIST.md` for the lightweight production checklist.
+
+The former Stitch/Jarvis 3D reference folder/archive is removed and must not be treated as a design source. Build original OCADE UI; references do not authorize proprietary asset/copy cloning.
 
 ## Offline Intelligence
 

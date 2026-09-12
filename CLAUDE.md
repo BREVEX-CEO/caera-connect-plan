@@ -47,12 +47,13 @@ At the start of any implementation session read, in order:
 5. `docs/APP_FLOW.md`
 6. `docs/UI UX Brief.md`
 7. `docs/DESIGN.md`
-8. `docs/ARCHITECTURE.md`
-9. `docs/Backend Schema.md`
-10. `docs/RULES.md`
-11. `docs/TESTING.md`
-12. `docs/MEMORY.md`
-13. `docs/DECISIONS.md`
+8. `docs/UI_REFERENCE_CHECKLIST.md`
+9. `docs/ARCHITECTURE.md`
+10. `docs/Backend Schema.md`
+11. `docs/RULES.md`
+12. `docs/TESTING.md`
+13. `docs/MEMORY.md`
+14. `docs/DECISIONS.md`
 
 Read `PLAN2.md` only after every `PLAN.md` gate is complete. `PLAN.md` rebuilds the core product first. `PLAN2.md` then replaces Cowork/Jarvis with the OCADE JARVIS donor runtime.
 
@@ -122,7 +123,9 @@ Only after `PLAN.md` passes:
 
 ## UI rule
 
-The files under `design/reference/` are visual references. Use their simplicity, density, layout proportions, spacing and light glass treatment while keeping OCADE branding, copy and implementation original.
+`docs/design-references/grok/` is the sole visual UI/UX reference set. Use its simplicity, density, layout proportions, spacing and light glass treatment while keeping OCADE branding, copy and implementation original.
+
+The former Stitch/Jarvis 3D reference is removed and must not be used or recreated as a design authority.
 
 The target is near-black, grey and white, small/medium radii, very light glassmorphism, minimal cards, short labels, restrained motion and large usable workspace. Do not reproduce proprietary logos/assets or pixel-copy trade dress.
 
@@ -138,6 +141,7 @@ The only Markdown authorities allowed are:
 - `docs/APP_FLOW.md`
 - `docs/UI UX Brief.md`
 - `docs/DESIGN.md`
+- `docs/UI_REFERENCE_CHECKLIST.md`
 - `docs/ARCHITECTURE.md`
 - `docs/Backend Schema.md`
 - `docs/RULES.md`
@@ -147,7 +151,7 @@ The only Markdown authorities allowed are:
 
 Do not create additional Markdown. Fold durable information into the correct authority instead.
 
-Generated evidence may use JSON or machine-readable formats. Design references use images/assets, not extra prose documents.
+Generated evidence may use JSON or machine-readable formats. Design references use Grok images/assets only, not extra prose documents or alternate visual reference systems.
 
 ## Git and checkpoints
 
