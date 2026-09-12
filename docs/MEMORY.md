@@ -77,6 +77,17 @@ Phase 0 decisions: one offline runtime backend (WASM GGUF, `@wllama/wllama`) bec
 
 **Named as unproven, not faked:** this sandbox has no egress to the hosted Supabase project (organization network policy), so no browser proof here touches the live project, real Gemini or real SMS/email delivery. A dedicated proof account `ocade-e2e@ocade.test` exists on the live project for when a networked environment is available; nothing else on that project was touched.
 
+### Phase 5 — account-wide usage authority — DONE
+
+- One authority confirmed and the duplicates removed: `src/lib/commercial` owns the allowance, `src/lib/limits` stays the request rate limiter, and the two unused parallel modules (`ocade-allowance.ts` device arithmetic, `ocade-usage.functions.ts` entitlement read) are deleted.
+- Settings gained a Billing category showing the allowance: plan, what is left in this session, when it returns, and the rule that one request counts once. Shaped on the server by tier — Free sees exact numbers, paid plans see a proportion — so a browser cannot ask for the equivalents behind a percentage.
+- The number is read fresh whenever it is opened and invalidated after every settled request, because a cached allowance is wrong in exactly the two cases that matter: just after sending here, and any time after sending on another device.
+- Re-authored `every-ai-surface-is-gated.test.ts` for the reduced product: one assembly point for the router, every surface takes a permit before it streams, an exhausted request never falls through to the on-device engine, every path settles, and delivery is recorded only when something was delivered.
+- `npm run audit:usage` proves 12 checks in a real browser: a free account starts at 28, a successful request costs exactly one, an exhausted allowance refuses with a truthful reset time and invents no answer, and history, Settings, Billing and Library all still open while it is exhausted.
+- Gates: typecheck, eslint 0 errors, prettier, 805 unit tests, build, and four browser journeys — shell 23, auth 10, chat 14, usage 12.
+
+**Named as unproven:** two devices racing for the last use is PostgreSQL's row lock, proven in the database tests rather than in the browser; and the loopback stub mirrors the ledger's arithmetic, not its concurrency.
+
 ## New final product
 
 Primary customer destinations:
@@ -159,6 +170,6 @@ Ponytail controls engineering behavior. Caveman compresses chat output only. Cor
 
 ## Next action
 
-`PLAN.md` Phase 5 — account-wide usage authority. Prove one server-authoritative allowance across devices and both surfaces: 28 successful requests per 388 minutes on Free, one request counted once, exhaustion blocking generation everywhere while history, Library, Settings and Billing stay usable, and signed offline reconciliation that cannot exceed capacity. Re-author the `every-ai-surface-is-gated` and offline usage integration tests deleted in Phase 2.
+`PLAN.md` Phase 6 — online OCADE through Gemini. Confirm the three Edge secrets exist and are server-only, prove primary-first failover (401/403 before output may rotate, 429 must not, nothing after output begins), scan the client bundle for key exposure, and re-author the limits server-wiring test deleted in Phase 2.
 
 Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.

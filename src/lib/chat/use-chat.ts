@@ -23,6 +23,7 @@
  * routing does inside it — `docs/DECISIONS.md` #23.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   createConversation,
   deleteAllConversations,
@@ -86,6 +87,7 @@ export interface ChatActions {
 
 export function useChat(): ChatState & ChatActions {
   const { user } = useSession();
+  const queryClient = useQueryClient();
   const [conversations, setConversations] = useState<OcadeConversationRow[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessageRecord[]>([]);
@@ -244,6 +246,12 @@ export function useChat(): ChatState & ChatActions {
         billed.recordDelivery({ prompt: text, answer });
         await settle();
         void refreshConversations();
+        /*
+         * The allowance the person is shown must reflect what they just spent.
+         * Settings reads it through the same query key, so one invalidation
+         * keeps every surface honest rather than each caching its own answer.
+         */
+        void queryClient.invalidateQueries({ queryKey: ["usage", "commercial"] });
       } catch (cause) {
         setProblem(describeStorageError(cause));
         await settle();
@@ -253,7 +261,7 @@ export function useChat(): ChatState & ChatActions {
         abort.current = null;
       }
     },
-    [busy, conversationId, messages, refreshConversations],
+    [busy, conversationId, messages, queryClient, refreshConversations],
   );
 
   const stop = useCallback(() => {

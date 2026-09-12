@@ -19,12 +19,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Monitor, Moon, User, X } from "lucide-react";
+import { CreditCard, Monitor, Moon, User, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppearance } from "@/lib/appearance";
 import { useSession } from "@/lib/session";
+import { UsageSection } from "./UsageSection";
 
-export type SettingsCategory = "account" | "appearance";
+export type SettingsCategory = "account" | "appearance" | "billing";
 
 interface SettingsPanelValue {
   open: (category?: SettingsCategory) => void;
@@ -69,6 +70,7 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
 const CATEGORIES: { id: SettingsCategory; label: string; group: string; icon: typeof User }[] = [
   { id: "account", label: "Account", group: "General", icon: User },
   { id: "appearance", label: "Appearance", group: "General", icon: Monitor },
+  { id: "billing", label: "Billing", group: "Account", icon: CreditCard },
 ];
 
 function SettingsDialog({
@@ -146,6 +148,7 @@ function SettingsDialog({
 
           {category === "account" ? <AccountSettings /> : null}
           {category === "appearance" ? <AppearanceSettings /> : null}
+          {category === "billing" ? <UsageSection /> : null}
         </div>
       </div>
     </div>

@@ -299,6 +299,9 @@ function handleRpc(name, args, userId) {
         id: randomUUID(),
         idempotencyKey: args.p_idempotency_key,
         reserved,
+        // The tier is stored at acquire because finalize prices by it, exactly
+        // as the migration does.
+        tier: args.p_tier,
         settled: false,
       };
       permits.push(permit);
@@ -323,7 +326,16 @@ function handleRpc(name, args, userId) {
         (entry) => entry.idempotencyKey === args.p_idempotency_key,
       );
       if (!permit) return [{ outcome: "missing", charged_hundredths: 0 }];
-      const charged = Number(args.p_cost_hundredths) || 0;
+      /*
+       * FREE IS EXACTLY ONE USE, CLAMPED HERE AS THE MIGRATION CLAMPS IT.
+       *
+       * `ocade_finalize_generation_permit` prices by the tier stored on the
+       * permit — `CASE WHEN tier = 'free' THEN 100` — because on Free a use IS
+       * the unit and a fraction of one does not exist. Without the same clamp
+       * the stub charged the weighted measurement, 0.25 of a use, and the
+       * allowance appeared to go down by a quarter per request.
+       */
+      const charged = permit.tier === "free" ? 100 : Number(args.p_cost_hundredths) || 0;
       const difference = charged - permit.reserved;
       addUsage(userId, "session", session.startsAt, difference);
       addUsage(userId, "week", week.startsAt, difference);
@@ -411,6 +423,34 @@ const server = createServer((request, response) => {
 
     if (request.method === "OPTIONS") return send(204);
 
+    /* --- fixtures -------------------------------------------------------- */
+
+    if (url.pathname === "/__fixture/spend-allowance") {
+      /*
+       * Spend an account's session allowance down to whatever is asked for,
+       * so exhaustion can be proved without sending twenty-eight messages.
+       *
+       * It writes the LEDGER, not the product: everything the browser then
+       * does — the refusal, the sentence, the untouched transcript — is
+       * OCADE's own behaviour reacting to an allowance that is genuinely gone.
+       */
+      const parsed = JSON.parse(body || "{}");
+      const userId = idForEmail(parsed.email ?? "proof@ocade.test");
+      const session = windowFor("session", Date.now());
+      const week = windowFor("week", Date.now());
+      const remaining = Number(parsed.remainingUses ?? 0);
+      const capHundredths = Number(parsed.allowanceUses ?? 28) * 100;
+      tablesFor(userId).__usage = [
+        {
+          kind: "session",
+          startsAt: session.startsAt,
+          usedHundredths: capHundredths - remaining * 100,
+        },
+        { kind: "week", startsAt: week.startsAt, usedHundredths: 0 },
+      ];
+      return send(200, { ok: true, userId });
+    }
+
     /* --- auth ------------------------------------------------------------ */
 
     if (url.pathname === "/auth/v1/token") {
@@ -461,6 +501,9 @@ const server = createServer((request, response) => {
     if (rpc) {
       const args = JSON.parse(body || "{}");
       const userId = callerFrom(request, body);
+      if (process.env.OCADE_STUB_TRACE) {
+        process.stdout.write(`rpc ${rpc[1]} ${JSON.stringify(args)}\n`);
+      }
       const result = handleRpc(rpc[1], args, userId ?? "anonymous");
       if (result && typeof result === "object" && "__error" in result) {
         return send(400, result.__error);
@@ -485,6 +528,9 @@ const server = createServer((request, response) => {
       const single = (request.headers.accept ?? "").includes("vnd.pgrst.object");
 
       if (request.method === "GET") {
+        if (process.env.OCADE_STUB_TRACE) {
+          process.stdout.write(`get ${name} ${url.search} rows=${stored.length}\n`);
+        }
         let found = stored.filter((row) => matches(row, params));
         found = applyOrder(found, url.searchParams.get("order"));
         const limit = Number(url.searchParams.get("limit") ?? 0);

@@ -42,7 +42,8 @@
     "audit:shell": "node scripts/e2e/shell-journey.mjs",
     "audit:auth": "node scripts/e2e/auth-journey.mjs",
     "audit:chat": "node scripts/e2e/chat-journey.mjs",
-    "stub:supabase": "node scripts/e2e/supabase-stub.mjs"
+    "stub:supabase": "node scripts/e2e/supabase-stub.mjs",
+    "audit:usage": "node scripts/e2e/usage-journey.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
