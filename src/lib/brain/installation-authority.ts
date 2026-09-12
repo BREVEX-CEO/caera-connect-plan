@@ -62,7 +62,7 @@ import {
 } from "./model-transfer";
 import { ModelVault, type ModelFileWriter, type VersionMeta } from "./model-vault";
 import { recordInstallEvent, type InstallTelemetry } from "./install-telemetry";
-import { publishInstallState } from "./installation-state";
+import { publishInstallState, REMOVED_DETAIL } from "./installation-state";
 
 /**
  * Every state the installation can be in.
@@ -414,7 +414,9 @@ export class ModelInstallationAuthority {
       if (this.uninstallIntentActive()) {
         this.publish({
           stage: "idle",
-          detail: "OCADE Intelligence is not installed on this device.",
+          // The same word the removal itself published. Two sentences for one
+          // state is two states as far as anybody reading the screen knows.
+          detail: REMOVED_DETAIL,
           problem: null,
           remedies: [],
           fraction: null,
@@ -1001,10 +1003,7 @@ export class ModelInstallationAuthority {
     // Recorded BEFORE the state is published, so nothing observing the change
     // can race ahead and start an automatic install between the two.
     this.recordUninstallIntent();
-    this.publish({
-      ...INITIAL,
-      detail: "OCADE Intelligence has been removed from this device.",
-    });
+    this.publish({ ...INITIAL, detail: REMOVED_DETAIL });
     this.emit({ kind: "uninstalled", removed: result.versionsRemoved + result.legacyRemoved });
     return { ok: true, removed: result.versionsRemoved + result.legacyRemoved };
   }

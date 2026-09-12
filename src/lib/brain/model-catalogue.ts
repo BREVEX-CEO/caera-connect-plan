@@ -17,8 +17,8 @@
  *
  * THE MODEL'S NAME IS NOT A CUSTOMER-FACING FACT. `label` is what a person may
  * see; the repository, the file name, the quantisation and the digest are
- * implementation detail and `ocade-model-presentation.ts` is what keeps them
- * out of ordinary UI.
+ * implementation detail. `describeInstall` is the one place a line about the
+ * model reaches a person, and it names none of them.
  */
 
 import catalogueJson from "../../../release/OCADE_MODEL_CATALOGUE.json";

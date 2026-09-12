@@ -185,6 +185,57 @@ redeploy `ocade-intelligence` from the merged tree, and verify a real answer —
 without the primary secret the new function reports itself unavailable rather than
 falling back to the old name.
 
+### Phase 7 — Offline Intelligence rebuild — DONE
+
+The engine was already here and nobody could reach it. This phase gave it a
+surface, a signed allowance and the tests its gate asks for.
+
+- **The lifecycle had no screen.** `useInstallation` — watch, retry, pause,
+  uninstall, reinstall, repair — had no caller anywhere, so the control `PLAN.md`
+  insists on ("only explicit Remove deletes it") could not be pressed. Settings
+  now has a **Data Controls** category with Offline Intelligence: one honest state
+  line, a progress bar only while bytes are moving, Remove behind a confirmation,
+  Install afterwards, and Repair only when something is actually wrong.
+- **`describeInstall` speaks Phase 7's vocabulary exactly** — Preparing OCADE,
+  Downloading <percent>, Verifying, Ready, Repairing, Removed — and is still the
+  single authority for that line. Idle used to say "Starting OCADE…" even straight
+  after a removal, which was untrue in the one case somebody is looking. The
+  authority's two different "it is not installed" sentences are now one word.
+- **The service worker was never registered.** `public/sw.js` has been in the tree
+  the whole time with network-first navigation, an offline page and the
+  `backgroundfetch*` handlers the transfer resumes through, and nothing ever
+  called `register`. So the product that promises to work offline could not open
+  offline. Registered after load, at the root.
+- **The offline half of the allowance could not be spent.** The browser could
+  reserve against a signed lease and nothing had ever installed one, because
+  `allocateOfflineUsage` had no caller — a device with no network had no allowance
+  and Offline Intelligence could not answer at all. `offline-allowance.ts` is the
+  missing half: while there is a network it reconciles what was spent offline
+  first, then tops up only when the device is low. `trustedOfflineTimeNow` moved
+  into `offline-lease.ts` so the two callers share one notion of trusted time.
+- **`install-once.test.ts` drives the real transfer engine** — 921 lines that
+  nothing covered — against a fake ranged server: first install verifies, the plan's
+  parallelism is used, an interruption resumes and asks ONLY for what is missing,
+  a checkpoint from a different artifact is discarded rather than trusted, a failed
+  chunk is retried, a corrupted artifact is refused as `digest_mismatch` rather than
+  installed, an unverifiable one is never reported verified, and a complete
+  checkpoint makes not one request.
+- **Model identity is the artifact's, not the build's** — asserted now, including
+  that no engine module reaches for a build identifier.
+- **Deleted:** `use-brain.ts` (a hook with no caller) and `ocade-model-presentation.ts`
+  (customer names for four engine tiers that no longer exist).
+- **`npm run audit:offline` proves 12 checks in a real browser:** the screen is
+  reachable, it says only what Phase 7 allows, it names no model, format, publisher
+  or runtime anywhere in Settings or Chat, Remove asks first, Keep leaves it alone,
+  removal says so plainly, and a reload does not quietly start it downloading again.
+- **Measured:** 529 files, 70,009 lines. Gates: all 14 in `verify:full`, plus six
+  browser journeys — shell 23, auth 10, chat 14, online 12, offline 12, usage 12.
+
+**Named as unproven:** a real 1.1 GB install. The artifact is on a CDN this
+environment cannot reach, so the transfer is proven against the real engine with a
+fake ranged server rather than against the real source. Background-fetch resumption
+through the service worker is proven only as far as the worker being registered.
+
 ## New final product
 
 Primary customer destinations:
@@ -272,14 +323,9 @@ Ponytail controls engineering behavior. Caveman compresses chat output only. Cor
 
 ## Next action
 
-`PLAN.md` Phase 7 — Offline Intelligence rebuild. Mount the four modules
-`AWAITING_MOUNT` owes Phase 7 (`ocade-model-presentation`, `brain/use-brain`,
-`commercial/offline-lease.server`, `commercial/offline-usage.functions`) or delete
-them, register `public/sw.js` so background model fetch has a worker to resume
-through, give the model lifecycle its customer-facing surface — automatic first-visit
-preparation, Preparing/Downloading/Verifying/Ready/Repairing/Removed and an explicit
-Remove and Install — and prove install, parallelism, interruption/resume, corruption
-repair, revisit, sign-out/in, a new app build and explicit removal without an
-unnecessary full redownload. The internal model is never named to a customer.
+`PLAN.md` Phase 8 — rebuild Library. One `All | Images | Files` surface with search
+over uploaded files/images and generated outputs, preview, download and delete,
+delete-all through Data Controls, technical provenance kept out of the default UI,
+and cross-device data plus private object access proven through Supabase/RLS.
 
 Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.

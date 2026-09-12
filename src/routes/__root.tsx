@@ -213,6 +213,50 @@ function BrowserBootstrap() {
   const router = useRouter();
   useInstallationBootstrap();
 
+  /*
+   * REGISTER THE SERVICE WORKER, WHICH NOTHING WAS DOING.
+   *
+   * `public/sw.js` has been in the tree the whole time — network-first
+   * navigation, an offline page, and the `backgroundfetch*` handlers the model
+   * transfer resumes through — and no code ever called `register`. So the
+   * application could not open without a network on the very product whose
+   * point is that it can, and a download interrupted by a closed tab had no
+   * worker to carry on in.
+   *
+   * AFTER LOAD, DELIBERATELY. Registration competes with hydration and with the
+   * first paint, and the worker controls the NEXT navigation regardless, so
+   * there is nothing to gain by doing it sooner.
+   */
+  /*
+   * KEEP A SIGNED OFFLINE ALLOWANCE ON THE DEVICE WHILE THERE IS A NETWORK.
+   *
+   * Deferred, unawaited, and silent about every failure: it is background work
+   * on behalf of a session that has not started yet. `syncOfflineAllowance`
+   * reports anything spent offline before asking for more, and asks only when
+   * the device is running low.
+   */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const timer = setTimeout(() => {
+      void import("@/lib/commercial/offline-allowance").then((module) =>
+        module.syncOfflineAllowance(),
+      );
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    const register = () => {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
+        /* A browser that refuses it still gets the whole product, online. */
+      });
+    };
+    if (document.readyState === "complete") register();
+    else window.addEventListener("load", register, { once: true });
+    return () => window.removeEventListener("load", register);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;

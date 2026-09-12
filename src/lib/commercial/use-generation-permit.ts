@@ -46,7 +46,7 @@ import {
   reserveOfflineGeneration,
   type OfflineGenerationReservation,
 } from "./offline-counter";
-import { resolveTrustedOfflineTime, type TrustedOfflineTime } from "./offline-lease";
+import { trustedOfflineTimeNow } from "./offline-lease";
 import { costOf, type WorkMeasurement } from "./usage-policy";
 import type { GenerationSurface } from "./generation-gate";
 
@@ -222,21 +222,6 @@ function unavailablePermit(): null {
   return null;
 }
 
-function offlineTime(issuedAt: string): TrustedOfflineTime {
-  const wallNow = Date.now();
-  const monotonicNow =
-    typeof performance === "undefined" ? wallNow : performance.timeOrigin + performance.now();
-  const time = resolveTrustedOfflineTime({
-    wallNow,
-    monotonicNow,
-    serverTimeAtSync: Date.parse(issuedAt),
-    monotonicAtSync: monotonicNow,
-    durableHighWater: readTrustedClockHighWater(),
-  });
-  observeNow(time.now);
-  return time;
-}
-
 async function beginOfflineBilledRequest(input: {
   idempotencyKey: string;
   generationId: string;
@@ -266,7 +251,7 @@ async function beginOfflineBilledRequest(input: {
           idempotencyKey: input.idempotencyKey,
           surface: input.surface,
           keys: entry.verificationKeys,
-          time: offlineTime(entry.lease.payload.issuedAt),
+          time: trustedOfflineTimeNow(entry.lease.payload.issuedAt, readTrustedClockHighWater()),
         });
         selected = { reservation, entry };
         break;
@@ -291,7 +276,7 @@ async function beginOfflineBilledRequest(input: {
           accountId: identity.accountId,
           deviceId: identity.deviceId,
           keys: entry.verificationKeys,
-          time: offlineTime(entry.lease.payload.issuedAt),
+          time: trustedOfflineTimeNow(entry.lease.payload.issuedAt, readTrustedClockHighWater()),
           costHundredths: Math.round(costOf(entry.lease.payload.tier, measurement) * 100),
         });
         window.dispatchEvent(new Event("ocade:offline-usage-updated"));
@@ -302,7 +287,7 @@ async function beginOfflineBilledRequest(input: {
           accountId: identity.accountId,
           deviceId: identity.deviceId,
           keys: entry.verificationKeys,
-          time: offlineTime(entry.lease.payload.issuedAt),
+          time: trustedOfflineTimeNow(entry.lease.payload.issuedAt, readTrustedClockHighWater()),
         });
         window.dispatchEvent(new Event("ocade:offline-usage-updated"));
       },

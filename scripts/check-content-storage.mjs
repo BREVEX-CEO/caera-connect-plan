@@ -67,6 +67,10 @@ const ALLOWED = new Map([
     "This device's own identity, cached so an offline lease survives a restart.",
   ],
   ["src/lib/auth/throttle.ts", "Sign-in attempt throttling, which must survive a reload."],
+  [
+    "src/lib/commercial/offline-allowance.ts",
+    "Reads this device's signed allowance blocks, which are device-bound by design.",
+  ],
   ["src/lib/time/trusted-clock.ts", "Clock drift measured on this device."],
   [
     "src/lib/commercial/offline-counter.ts",

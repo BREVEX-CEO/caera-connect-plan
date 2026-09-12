@@ -39,10 +39,9 @@ vi.mock("@/lib/time/trusted-clock", () => ({
 }));
 
 vi.mock("../offline-lease", () => ({
-  resolveTrustedOfflineTime: ({ wallNow }: { wallNow: number }) => ({
-    now: wallNow,
-    rollbackDetected: false,
-  }),
+  // The one trusted-time authority, shared with `offline-allowance.ts`. Stubbed
+  // to the wall clock so a lease's validity window is not what is under test.
+  trustedOfflineTimeNow: () => ({ now: Date.now(), rollbackDetected: false }),
 }));
 
 import { beginBilledRequest } from "../use-generation-permit";

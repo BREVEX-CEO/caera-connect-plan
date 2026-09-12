@@ -90,6 +90,30 @@ export function resolveTrustedOfflineTime(input: TrustedOfflineTimeInput): Trust
   };
 }
 
+/**
+ * The trusted time as this device can best establish it, right now.
+ *
+ * Lived privately in `use-generation-permit.ts` while a second caller needed
+ * exactly the same combination of wall clock, monotonic clock and durable high
+ * water mark. Two copies of this is two devices' worth of disagreement about
+ * whether a lease has expired, so there is one.
+ */
+export function trustedOfflineTimeNow(
+  issuedAt: string,
+  durableHighWater: number,
+): TrustedOfflineTime {
+  const wallNow = Date.now();
+  const monotonicNow =
+    typeof performance === "undefined" ? wallNow : performance.timeOrigin + performance.now();
+  return resolveTrustedOfflineTime({
+    wallNow,
+    monotonicNow,
+    serverTimeAtSync: Date.parse(issuedAt),
+    monotonicAtSync: monotonicNow,
+    durableHighWater,
+  });
+}
+
 /** Fixed-order bytes used by both the signer and every verifier. */
 export function offlineLeaseSigningBytes(payload: OfflineUsageLeasePayload): Uint8Array {
   return new TextEncoder().encode(

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { OFFLINE_MODEL } from "../model-catalogue";
 
 /**
  * THE TWO LIFECYCLE EVENTS THAT COULD SILENTLY COST A GIGABYTE.
@@ -133,5 +134,37 @@ describe("a service-worker update", () => {
     const staging = SERVICE_WORKER.slice(SERVICE_WORKER.indexOf("MODEL_ROOT"));
     expect(staging).toContain("navigator.storage.getDirectory()");
     expect(SERVICE_WORKER).not.toMatch(/caches\.open\([^)]*model/i);
+  });
+});
+
+describe("what identifies the model", () => {
+  /*
+   * `PLAN.md` Phase 7: "Model identity/version is independent of website/app
+   * build SHA." A version derived from the build is a full redownload on every
+   * deploy, for weights that did not change — the most expensive way to ship a
+   * typo fix.
+   */
+  it("is the artifact's own version, not anything about this build", () => {
+    expect(OFFLINE_MODEL.version).toBe("qwen2.5-1.5b-instruct-q4_k_m");
+    expect(OFFLINE_MODEL.version).not.toMatch(/^[0-9a-f]{7,40}$/);
+  });
+
+  it("is not composed from a build identifier anywhere in the engine", () => {
+    for (const file of [
+      "src/lib/brain/model-catalogue.ts",
+      "src/lib/brain/model-vault.ts",
+      "src/lib/brain/installation-authority.ts",
+      "src/lib/brain/installation-browser.ts",
+    ]) {
+      const source = readFileSync(file, "utf8");
+      expect(source, `${file} reaches for a build identifier`).not.toMatch(
+        /BUILD_SHA|VITE_BUILD|COMMIT_SHA|__BUILD__/,
+      );
+    }
+  });
+
+  it("stores the weights under that version, so a new build finds them where it left them", () => {
+    const vault = readFileSync("src/lib/brain/model-vault.ts", "utf8");
+    expect(vault).toContain("export function versionPath(version: string, name: string)");
   });
 });

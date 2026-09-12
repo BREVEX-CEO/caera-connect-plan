@@ -66,45 +66,53 @@ export function publishInstallState(state: InstallState): void {
 }
 
 /**
- * One short sentence for a person, derived from the state.
+ * ONE SHORT LINE FOR A PERSON, DERIVED FROM THE STATE.
  *
- * PRODUCT LANGUAGE ONLY. Never a model name, a vendor, a file name, a
- * quantisation, a parameter count, a download size, or the words WebGPU or
+ * `PLAN.md` Phase 7 fixes the vocabulary a normal customer may see —
+ * `Preparing OCADE`, `Downloading <percent>`, `Verifying`, `Ready`,
+ * `Repairing`, `Removed` — and the words are chosen to describe what OCADE is
+ * doing rather than what is running. Never a model name, a vendor, a file name,
+ * a quantisation, a parameter count, a download size, or the words WebGPU or
  * WebAssembly. Somebody meeting OCADE for the first time is not debugging a
- * runtime, and a first-run screen that names a third party's model is telling
- * the user something about OCADE that OCADE does not want to say.
+ * runtime.
+ *
+ * The early stages all read `Preparing OCADE` on purpose: checking a device,
+ * checking storage, compiling a runtime and choosing a source are four things
+ * to an engineer and one thing to everybody else.
  */
 export function describeInstall(state: InstallState): string {
   if (state.problem && isErrorStage(state.stage)) return state.problem;
   switch (state.stage) {
     case "idle":
-      return "Starting OCADE…";
+      /*
+       * Idle means two different things, and only the detail tells them apart:
+       * nothing has started yet, or somebody removed it. It used to say
+       * "Starting OCADE…" for both, which is untrue in exactly the case where
+       * the person is looking at the screen to check it worked.
+       */
+      return state.detail ?? "Preparing OCADE";
     case "checking_device":
-      return "Preparing this device…";
     case "checking_storage":
-      return "Preparing this device…";
     case "preparing_runtime":
-      return "Optimising for this device…";
     case "waiting_for_source":
-      return "Preparing OCADE…";
+      return "Preparing OCADE";
     case "downloading": {
       const pct = state.fraction === null ? null : Math.round(state.fraction * 100);
-      return pct === null ? "Preparing OCADE…" : `Preparing OCADE — ${pct}%`;
+      return pct === null ? "Preparing OCADE" : `Downloading ${pct}%`;
     }
     case "paused":
-      return state.detail ?? "Preparation paused.";
+      return state.detail ?? "Paused";
     case "retrying":
-      return "Reconnecting — OCADE will carry on from where it stopped…";
+      return "Reconnecting — OCADE will carry on from where it stopped";
     case "verifying":
-      return "Securing local intelligence…";
+      return "Verifying";
     case "loading":
-      return "Starting OCADE…";
     case "warming":
-      return "Almost ready…";
+      return "Almost ready";
     case "ready":
-      return "OCADE is ready.";
+      return "Ready";
     case "repairing":
-      return "Checking this device…";
+      return "Repairing";
     case "insufficient_storage":
       return "OCADE needs more local storage on this device.";
     case "recoverable_error":
@@ -113,6 +121,9 @@ export function describeInstall(state: InstallState): string {
       return state.problem ?? "OCADE cannot run its intelligence on this device.";
   }
 }
+
+/** What a removal publishes, and the one line that says it happened. */
+export const REMOVED_DETAIL = "Removed";
 
 export function isErrorStage(stage: InstallStage): boolean {
   return (

@@ -8,8 +8,8 @@ export type IntelligenceMode = "automatic" | "online" | "local_only";
  *
  * Two backends, because the product has two: the online boundary and the
  * on-device engine. It listed six while there were a WebGPU engine, an Ollama
- * bridge, a native mobile runtime and a paired desktop; `ocade-model-presentation.ts`
- * is what turns whichever answered into `OCADE` or `Offline`.
+ * bridge, a native mobile runtime and a paired desktop. Which one answered is
+ * never a customer-facing fact: the interface says `OCADE` or `Offline`.
  */
 export type IntelligenceBackend = "gemini_online" | "wasm_local";
 

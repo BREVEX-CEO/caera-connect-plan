@@ -55,10 +55,6 @@ const ROOT = process.cwd();
  * reported as stale so the list cannot quietly outlive its subject.
  */
 const AWAITING_MOUNT = {
-  "src/lib/ocade-model-presentation.ts": 7,
-  "src/lib/brain/use-brain.ts": 7,
-  "src/lib/commercial/offline-lease.server.ts": 7,
-  "src/lib/commercial/offline-usage.functions.ts": 7,
   "src/lib/account-data.functions.ts": 9,
   "src/lib/account.functions.ts": 9,
   "src/lib/account/data-classes.ts": 9,
