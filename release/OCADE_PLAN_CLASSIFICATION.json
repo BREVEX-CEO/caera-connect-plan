@@ -123,8 +123,16 @@
       "src/components/shell/* (replaced by the new shell)"
     ],
     "retiredPlatformTrees": [
-      "android/", "ios/", "mobile/", "extension/", "native/", "relay/", "vendor/", "imports/",
-      "capacitor.config.json", "docker-compose.yml"
+      "android/",
+      "ios/",
+      "mobile/",
+      "extension/",
+      "native/",
+      "relay/",
+      "vendor/",
+      "imports/",
+      "capacitor.config.json",
+      "docker-compose.yml"
     ],
     "retiredEvidenceAndScripts": [
       "release/* stale evidence and the two non-canonical Markdown files inside it",
@@ -132,10 +140,24 @@
       ".github/workflows/ocade-77-readiness.yml, platforms.yml, release.yml, runner-probe.yml, windows-proof.yml"
     ],
     "retiredDependencies": [
-      "@capacitor/android", "@capacitor/core", "@capacitor/ios", "@capacitor/cli",
-      "@lovable.dev/cloud-auth-js", "@mlc-ai/web-llm", "three", "@types/three",
-      "chromium-bidi", "playwright-core", "qrcode-generator", "pdfjs-dist",
-      "node-llama-cpp", "@yao-pkg/pkg", "@tauri-apps/cli", "ffmpeg-static", "ffprobe-static", "fflate"
+      "@capacitor/android",
+      "@capacitor/core",
+      "@capacitor/ios",
+      "@capacitor/cli",
+      "@lovable.dev/cloud-auth-js",
+      "@mlc-ai/web-llm",
+      "three",
+      "@types/three",
+      "chromium-bidi",
+      "playwright-core",
+      "qrcode-generator",
+      "pdfjs-dist",
+      "node-llama-cpp",
+      "@yao-pkg/pkg",
+      "@tauri-apps/cli",
+      "ffmpeg-static",
+      "ffprobe-static",
+      "fflate"
     ],
     "retiredDatabaseObjects": "Phase 10, after final reachability is known: Projects, Tasks, Artifacts, Code, device/control and donor-runtime tables, RPCs and policies."
   },
@@ -155,5 +177,18 @@
       "decision": "Supabase rows are the only conversation/message authority; no device vault, no incognito branch.",
       "reason": "docs/RULES.md rule 8 and the existing store's own conclusion."
     }
-  ]
+  ],
+  "afterPhase1": {
+    "trackedSourceFiles": 582,
+    "trackedSourceLines": 79319,
+    "reductionFromBaselinePercent": 80.1,
+    "byTopLevel": {
+      "src": 48831,
+      "supabase": 22259,
+      "scripts": 7008,
+      "root": 698,
+      "public": 523
+    },
+    "note": "supabase/migrations (22,259 lines) is reduced in Phase 10; src shrinks further as the shell, styles and settings are rebuilt in Phases 2-9."
+  }
 }

@@ -19,6 +19,18 @@ Traced final authorities that must survive: Supabase Auth/integration, `src/lib/
 
 Phase 0 decisions: one offline runtime backend (WASM GGUF, `@wllama/wllama`) because the stored model is a GGUF and an MLC/WebGPU backend would need a second model; `commercial` is the single usage authority; Supabase rows are the only chat storage.
 
+### Phase 1 — approximately 90% legacy cleanup — DONE
+
+- After cleanup: **582 files, 79,319 lines** — **80.1% removed** against the Phase 0 baseline of 398,999, same command.
+- By top level: src 48,831 · supabase 22,259 · scripts 7,008 · root 698 · public 523.
+- Still to come: `supabase/migrations` (22,259 lines) is reduced in Phase 10, and `src` falls further as the shell, `styles.css`, theme provider and settings are rebuilt in Phases 2–9. The honest figure at this checkpoint is 80.1%.
+- Deleted: every retired route (Code, Projects, Tasks, Artifacts, Customize, Devices, Search, activity/automations/connectors/health/inbox/knowledge/lab/models/monitors/notifications/permissions/shared/studio/system/templates/work, cania/ficia/madee/home/challenge/onboarding/organization, all `settings.*` routes, blog/careers/company/compare/data-rights/download/faq/invite/press/pricing/products/search/security/status/support/team, share, checkout.success, lovable OAuth consent, bridge and status APIs, the landing `/` and the 4,519-line `ocade.index` chat).
+- Deleted runtimes/libraries: agent, skills, work, tasks, code, artifacts, research, native, mobile, local, edge, runtime, memory, capabilities, provenance, reasoning, retrieval, recovery, packaging, release, launch, hardware, telemetry, diagnostics, landing, status, support, locale, prompt, entry, vision3d, orb, motion, voice, device, media, search, providers, organizations, attachments, comments, creative, engine, engineering, healing, messaging, the automation worker family and the donor `src/primary-logic` tree.
+- Deleted platform trees: `android/`, `ios/`, `mobile/`, `extension/`, `native/`, `relay/`, `vendor/`, `imports/`, `capacitor.config.json`, `docker-compose.yml`.
+- Deleted 383 of 395 flat `src/lib/__tests__` files and the brain tests bound to the removed vault; 12 authority tests kept. Deleted 179 of 205 scripts, all 118 stale `release/` evidence files and the five platform-specific workflows.
+- Dependencies removed (288 packages): capacitor ×4, lovable cloud-auth, @mlc-ai/web-llm, three + @types/three, chromium-bidi, playwright-core, qrcode-generator, pdfjs-dist, node-llama-cpp, @yao-pkg/pkg, @tauri-apps/cli, ffmpeg-static, ffprobe-static, fflate, esbuild. npm scripts cut from 130 to 30.
+- Reduced repository reread: a full import trace found 42 files with dangling imports. That list is the exact rewire scope for Phases 2–9 and is the reason the tree does not build at this checkpoint; Phase 2 rebuilds the shell and routing on top of it.
+
 ## New final product
 
 Primary customer destinations:
@@ -101,8 +113,6 @@ Ponytail controls engineering behavior. Caveman compresses chat output only. Cor
 
 ## Next action
 
-`PLAN.md` Phase 1 — approximately 90% legacy cleanup. Execute the deletion map in
-`release/OCADE_PLAN_CLASSIFICATION.json`, remove the retired dependencies, remeasure with
-`node scripts/measure-loc.mjs --by-dir`, then reread the reduced repository before rebuilding.
+`PLAN.md` Phase 2 — rebuild the minimal shell and routing. Rewire the 42 files with dangling imports, rebuild `__root.tsx`, the shell, `/` as Chat, `/library`, `/cowork`, `/about`, `/help`, `/terms`, `/privacy`, the auth shell and the reduced admin surface, then bring typecheck, lint and build back to green.
 
 Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.

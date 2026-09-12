@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">OCADE</string>
-    <string name="title_activity_main">OCADE</string>
-    <string name="package_name">com.caeracadane.ocade</string>
-    <string name="custom_url_scheme">com.caeracadane.ocade</string>
-</resources>
