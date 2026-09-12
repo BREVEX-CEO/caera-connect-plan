@@ -40,7 +40,9 @@
     "deploy:rollback": "node scripts/deploy.mjs --rollback",
     "verify:full": "node scripts/verify-full.mjs",
     "audit:shell": "node scripts/e2e/shell-journey.mjs",
-    "audit:auth": "node scripts/e2e/auth-journey.mjs"
+    "audit:auth": "node scripts/e2e/auth-journey.mjs",
+    "audit:chat": "node scripts/e2e/chat-journey.mjs",
+    "stub:supabase": "node scripts/e2e/supabase-stub.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

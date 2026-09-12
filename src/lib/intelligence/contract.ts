@@ -3,14 +3,15 @@ import type { GenerationSurface } from "@/lib/commercial/generation-gate";
 /** The user-facing routing choice. Commercial permission is decided first. */
 export type IntelligenceMode = "automatic" | "online" | "local_only";
 
-/** Internal provenance. Product UI translates every value to OCADE wording. */
-export type IntelligenceBackend =
-  | "gemini_online"
-  | "webgpu_local"
-  | "wasm_local"
-  | "ollama_local"
-  | "native_local"
-  | "paired_local";
+/**
+ * Internal provenance, and the customer never sees any of it.
+ *
+ * Two backends, because the product has two: the online boundary and the
+ * on-device engine. It listed six while there were a WebGPU engine, an Ollama
+ * bridge, a native mobile runtime and a paired desktop; `ocade-model-presentation.ts`
+ * is what turns whichever answered into `OCADE` or `Offline`.
+ */
+export type IntelligenceBackend = "gemini_online" | "wasm_local";
 
 export interface IntelligencePermit {
   id: string;

@@ -57,6 +57,26 @@ Phase 0 decisions: one offline runtime backend (WASM GGUF, `@wllama/wllama`) bec
 - Gates: typecheck clean, eslint 0 errors, prettier clean, 803 unit tests pass, build succeeds, `npm run audit:auth` proves 10 real-browser checks and `npm run audit:shell` still proves 23.
 - **Not proven here, and named as unproven:** that Google, email delivery and SMS are configured on the live Supabase project. The browser proof runs against a local build whose readiness flags are set locally; production still fails closed until each `VITE_AUTH_*` flag is set against a verified live provider.
 
+### Phase 4 — Chat rebuilt — DONE
+
+- `src/lib/chat/use-chat.ts` is the one authority Chat renders from: conversations, transcript, send, streaming, persistence, rename, archive, trash, restore, delete-all. The send order is fixed and is the product's correctness — permit, conversation, question, answer, delivery, settle — so a refused request never leaves a question nobody answered, and a request that produced nothing releases rather than charges.
+- `ChatWorkspace` renders and decides nothing; `MessageList` shows a question as a compact bubble and an answer as prose with a Copy control that exists only on a finished answer; `ConversationList` owns Recent with rename/archive/delete behind a hover menu.
+- One transport per backend and one assembly point: `intelligence/offline-transport.ts` wraps the single WASM adapter, `intelligence/ocade-intelligence.ts` is the only construction of the router. The two duplicate local transports are gone.
+- Narrowed with the product: `IntelligenceBackend` 6 → 2, `GenerationSurface` 8 → 2, and the retired chat server functions (side threads, citations, reactions, citation forgetting) deleted.
+- Removed the Lovable preview auth storage — a generated module that brokered the session token to a parent frame over postMessage on a host-name match, and a second auth storage authority.
+
+**Three real defects the browser proof found, none of which a unit test could have:**
+
+1. `online-client.ts` stored the global `fetch` by reference and called it as `deps.fetch(...)`. Chromium refuses that — "Illegal invocation" — so every online request threw before leaving the page, the router read it as a transport failure, and Automatic fell silently through to the on-device engine. Online intelligence could never have worked in a browser, and the failure looked exactly like a device still preparing.
+2. The conversation menu closed on any `pointerdown` and exempted itself with `stopPropagation` in a React handler. React attaches listeners to the root container, so that does not stop a sibling listener on the same node — Rename, Archive and Delete all silently did nothing. Now it closes only on a pointer that landed outside the menu.
+3. Choosing Rename unmounted the menu, and removing the focused menu item moved focus to the body — arriving as a blur on the field that had just appeared, which committed the unchanged title and closed itself in the same frame. Focus is now taken on the next frame and an earlier blur is ignored.
+
+- Proof infrastructure: `scripts/e2e/supabase-stub.mjs`, a purpose-built loopback Supabase (auth, PostgREST, the usage RPCs, the Edge Function's SSE shape) replacing a 2,075-line donor stub that modelled organizations, support articles and status incidents. It proves OCADE's own wiring and is explicitly not RLS, not the ledger's concurrency and not the provider.
+- Gates: typecheck clean, eslint 0 errors, prettier clean, 797 unit tests, build, and three browser journeys — `audit:shell` 23, `audit:auth` 10, `audit:chat` 14.
+- Measurement: 579 files, 73,911 lines — 81.5% below baseline.
+
+**Named as unproven, not faked:** this sandbox has no egress to the hosted Supabase project (organization network policy), so no browser proof here touches the live project, real Gemini or real SMS/email delivery. A dedicated proof account `ocade-e2e@ocade.test` exists on the live project for when a networked environment is available; nothing else on that project was touched.
+
 ## New final product
 
 Primary customer destinations:
@@ -139,6 +159,6 @@ Ponytail controls engineering behavior. Caveman compresses chat output only. Cor
 
 ## Next action
 
-`PLAN.md` Phase 4 — rebuild Chat completely. Wire `ChatWorkspace` to the conversation store: send through the intelligence router, stream the answer, persist to Supabase, list recent conversations in the sidebar with rename/archive/trash/restore, route attachments to Library, show concise one-line failures, and never render answer controls when there is no answer.
+`PLAN.md` Phase 5 — account-wide usage authority. Prove one server-authoritative allowance across devices and both surfaces: 28 successful requests per 388 minutes on Free, one request counted once, exhaustion blocking generation everywhere while history, Library, Settings and Billing stay usable, and signed offline reconciliation that cannot exceed capacity. Re-author the `every-ai-surface-is-gated` and offline usage integration tests deleted in Phase 2.
 
 Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.

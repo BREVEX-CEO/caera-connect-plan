@@ -10,7 +10,6 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
-import { brokeredPreviewStorage } from "./previewAuthStorage";
 import { missingSupabaseConfigurationMessage } from "./configuration-message";
 import {
   getSupabaseBrowserConfiguration,
@@ -75,7 +74,15 @@ function createSupabaseClient() {
       fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),
     },
     auth: {
-      storage: brokeredPreviewStorage(),
+      /*
+       * Ordinary browser storage, and the library's own default key.
+       *
+       * A generated module used to broker the session to a Lovable editor over
+       * postMessage whenever the page was framed on one of that platform's
+       * preview domains. It was a second auth storage authority, tied to a
+       * platform this product does not deploy to, and it handed a session token
+       * to a parent frame on a host-name match.
+       */
       persistSession: true,
       autoRefreshToken: true,
     },

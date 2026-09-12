@@ -26,7 +26,23 @@ async function browserAccessToken(): Promise<string | null> {
 
 function defaults(): OnlineClientDependencies {
   return {
-    fetch,
+    /*
+     * WRAPPED, NOT PASSED BY REFERENCE, AND THAT IS THE WHOLE BUG.
+     *
+     * `fetch` here was a bare reference to the global. Stored on an object and
+     * called as `deps.fetch(...)`, its receiver becomes that object rather than
+     * `window`, and Chromium refuses it: "Failed to execute 'fetch' on
+     * 'Window': Illegal invocation". Every online request threw before it left
+     * the page, the router read the throw as a transport failure, and Automatic
+     * fell silently through to the on-device engine — which, on a device still
+     * preparing, answered "OCADE is still preparing this device."
+     *
+     * So online intelligence could never work in a browser, and the failure
+     * looked exactly like a device that was not ready yet. Found by pressing
+     * Send in a real browser; no unit test of this module would have caught it,
+     * because a test supplies its own `fetch`.
+     */
+    fetch: (input, init) => globalThis.fetch(input, init),
     getAccessToken: browserAccessToken,
     configuration: () => ({
       ...getSupabaseBrowserConfiguration(),

@@ -123,16 +123,7 @@ export const acquireGenerationPermit = createServerFn({ method: "POST" })
       if (key.length > 200) throw new Error("That request key is not valid.");
       const generationId = data.generationId?.trim() || key;
       if (generationId.length > 200) throw new Error("That generation identity is not valid.");
-      const allowedSurfaces: GenerationSurface[] = [
-        "chat",
-        "cowork",
-        "code",
-        "task",
-        "automation",
-        "background_agent",
-        "voice",
-        "artifact",
-      ];
+      const allowedSurfaces: GenerationSurface[] = ["chat", "cowork"];
       const surface = data.surface ?? "chat";
       if (!allowedSurfaces.includes(surface))
         throw new Error("That generation surface is not valid.");

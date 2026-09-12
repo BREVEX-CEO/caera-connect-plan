@@ -169,7 +169,7 @@ describe("the browser offline usage counter", () => {
       leaseId: payload.leaseId,
       generationId: "generation-release",
       idempotencyKey: "request-release",
-      surface: "code",
+      surface: "cowork",
       keys: [key],
       time,
     });

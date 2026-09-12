@@ -52,7 +52,7 @@ function final(backend: IntelligenceTransport["backend"], text = "answer"): Inte
 describe("OcadeIntelligence", () => {
   it("rejects a mismatched permit before probing either backend", async () => {
     const online = transport("gemini_online", [final("gemini_online")]);
-    const local = transport("webgpu_local", [final("webgpu_local")]);
+    const local = transport("wasm_local", [final("wasm_local")]);
     const intelligence = createOcadeIntelligence({ online, local });
     const invalid = request();
     invalid.permit.generationId = "somebody-else";
@@ -78,7 +78,7 @@ describe("OcadeIntelligence", () => {
 
   it("uses Online only when consent and a server permit are present", async () => {
     const online = transport("gemini_online", [final("gemini_online", "online")]);
-    const local = transport("webgpu_local", [final("webgpu_local", "local")]);
+    const local = transport("wasm_local", [final("wasm_local", "local")]);
     const intelligence = createOcadeIntelligence({ online, local });
 
     const denied = request("online");
@@ -105,7 +105,7 @@ describe("OcadeIntelligence", () => {
         retryable: true,
       },
     ]);
-    const local = transport("webgpu_local", [final("webgpu_local", "local")]);
+    const local = transport("wasm_local", [final("wasm_local", "local")]);
     online.stream.mockImplementation(async function* (input) {
       seen.push(input);
       yield {
@@ -117,7 +117,7 @@ describe("OcadeIntelligence", () => {
     });
     local.stream.mockImplementation(async function* (input) {
       seen.push(input);
-      yield final("webgpu_local", "local");
+      yield final("wasm_local", "local");
     });
 
     const result = await createOcadeIntelligence({ online, local }).generate(request());
@@ -132,7 +132,7 @@ describe("OcadeIntelligence", () => {
       { type: "token", text: "part" },
       { type: "refusal", code: "provider_failed", reason: "lost", retryable: true },
     ]);
-    const local = transport("webgpu_local", [final("webgpu_local", "duplicate")]);
+    const local = transport("wasm_local", [final("wasm_local", "duplicate")]);
     const result = await createOcadeIntelligence({ online, local }).generate(request());
 
     expect(result).toMatchObject({ ok: false, code: "provider_failed", partialText: "part" });
@@ -141,7 +141,7 @@ describe("OcadeIntelligence", () => {
 
   it("does not turn an explicit Online failure into a Local request", async () => {
     const online = transport("gemini_online", [], false);
-    const local = transport("webgpu_local", [final("webgpu_local")]);
+    const local = transport("wasm_local", [final("wasm_local")]);
     const result = await createOcadeIntelligence({ online, local }).generate(request("online"));
 
     expect(result).toMatchObject({ ok: false, code: "online_unavailable" });
@@ -154,7 +154,7 @@ describe("OcadeIntelligence", () => {
       start = resolve;
     });
     const online = transport("gemini_online", []);
-    const local = transport("webgpu_local", []);
+    const local = transport("wasm_local", []);
     online.stream.mockImplementation(async function* (input) {
       start();
       await new Promise<void>((resolve) =>

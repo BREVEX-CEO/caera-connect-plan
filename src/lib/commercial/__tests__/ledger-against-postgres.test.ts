@@ -201,16 +201,7 @@ describe("every surface and tier the types allow is one the database accepts", (
    * send. Listing them here means adding a surface to one side without the
    * other fails in this file rather than in production.
    */
-  const surfaces: GenerationSurface[] = [
-    "chat",
-    "cowork",
-    "code",
-    "task",
-    "automation",
-    "background_agent",
-    "voice",
-    "artifact",
-  ];
+  const surfaces: GenerationSurface[] = ["chat", "cowork"];
   const tiers: PlanTier[] = ["free", "pro", "max"];
 
   it.each(surfaces)("accepts the %s surface", async (surface) => {

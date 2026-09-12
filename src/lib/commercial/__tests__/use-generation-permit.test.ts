@@ -178,19 +178,19 @@ describe("the customer-side commercial permit boundary", () => {
       leaseId: "lease-1",
       generationId: "generation-1",
       idempotencyKey: "offline-1",
-      surface: "code",
+      surface: "cowork",
       reservedHundredths: 100,
     });
 
     const billed = await beginBilledRequest({
       idempotencyKey: "offline-1",
       generationId: "generation-1",
-      surface: "code",
+      surface: "cowork",
     });
     expect(mocks.acquire).not.toHaveBeenCalled();
     expect(billed?.permit).toMatchObject({
       generationId: "generation-1",
-      surface: "code",
+      surface: "cowork",
       source: "offline_lease",
     });
     billed!.recordDelivery({ prompt: "edit this", answer: "done" });
@@ -255,26 +255,26 @@ describe("the customer-side commercial permit boundary", () => {
       leaseId: "lease-1",
       generationId: "generation-fallback",
       idempotencyKey: "request-fallback",
-      surface: "artifact",
+      surface: "cowork",
       reservedHundredths: 100,
     });
 
     const billed = await beginBilledRequest({
       idempotencyKey: "request-fallback",
       generationId: "generation-fallback",
-      surface: "artifact",
+      surface: "cowork",
     });
     expect(billed?.permit).toMatchObject({
       generationId: "generation-fallback",
       idempotencyKey: "request-fallback",
-      surface: "artifact",
+      surface: "cowork",
       source: "offline_lease",
     });
     expect(mocks.reserveOffline).toHaveBeenCalledWith(
       expect.objectContaining({
         generationId: "generation-fallback",
         idempotencyKey: "request-fallback",
-        surface: "artifact",
+        surface: "cowork",
       }),
     );
 

@@ -68,10 +68,6 @@ const ALLOWED = new Map([
     "This device's own identity, cached so an offline lease survives a restart.",
   ],
   ["src/lib/auth/throttle.ts", "Sign-in attempt throttling, which must survive a reload."],
-  [
-    "src/integrations/supabase/previewAuthStorage.ts",
-    "The session token itself, which is per-browser by definition.",
-  ],
   ["src/lib/legal/consent-receipts.ts", "Consent receipts, which are evidence about this device."],
   ["src/lib/time/trusted-clock.ts", "Clock drift measured on this device."],
   ["src/lib/limits/use-limits.ts", "A cached view of the server's own usage answer."],

@@ -1,0 +1,170 @@
+/**
+ * Chat, signed in, in a real browser.
+ *
+ * The session is minted against the loopback stub and written into the same
+ * storage key the Supabase client reads, because there is no way to complete a
+ * provider handshake inside this sandbox. Everything after that is the real
+ * product: the composer, the permit, the transcript, persistence, a reload, a
+ * rename, a delete, and the refusal when the allowance runs out.
+ *
+ * WHAT THIS DOES NOT PROVE, and must never be read as proving: that Gemini
+ * answers, that row-level security holds, or that the hosted project behaves
+ * this way. The first is the provider's, the second is proven against real
+ * PostgreSQL in the database tests, and the third needs egress this sandbox
+ * does not have.
+ *
+ * Usage: node scripts/e2e/chat-journey.mjs [--base=…] [--supabase=…]
+ */
+import { chromium } from "playwright-core";
+
+const arg = (name, fallback) => {
+  const found = process.argv.find((entry) => entry.startsWith(`--${name}=`));
+  return found ? found.slice(name.length + 3) : fallback;
+};
+
+const BASE = arg("base", "http://127.0.0.1:8788");
+const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
+const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+
+const results = [];
+let failures = 0;
+
+function check(name, ok, detail = "") {
+  results.push({ name, ok, detail });
+  if (!ok) failures += 1;
+  process.stdout.write(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}\n`);
+}
+
+/**
+ * The storage key `@supabase/supabase-js` writes its session under.
+ *
+ * The library derives it from the first label of the host — the project ref on
+ * a hosted URL, and `127` against the loopback stub. Deriving it the same way
+ * here rather than hard-coding a string keeps this correct if the stub ever
+ * moves to a named host.
+ */
+function storageKey(url) {
+  return `sb-${new URL(url).hostname.split(".")[0]}-auth-token`;
+}
+
+/*
+ * A FRESH ACCOUNT PER RUN, because the stub keeps rows between runs and a
+ * proof that inherits the previous run's conversations is not proving what it
+ * claims. The address decides the account id, so a unique one is a blank slate.
+ */
+const EMAIL = `proof-${Date.now()}@ocade.test`;
+
+const session = await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ email: EMAIL, password: "proof" }),
+}).then((response) => response.json());
+
+const browser = await chromium.launch({ executablePath: EXECUTABLE, args: ["--no-sandbox"] });
+
+try {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await context.addInitScript(
+    ([key, value]) => {
+      try {
+        window.localStorage.setItem(key, value);
+      } catch {
+        /* Nothing to recover; the proof will fail visibly at the first check. */
+      }
+    },
+    [storageKey(SUPABASE), JSON.stringify(session)],
+  );
+
+  const page = await context.newPage();
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(String(error)));
+
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  check(
+    "a signed-in visitor sees their account, not a sign-in button",
+    (await page.locator('aside button[aria-haspopup="menu"]').count()) === 1,
+  );
+
+  // Send, and watch the answer arrive.
+  await page.fill("#ocade-composer", "What is OCADE?");
+  await page.click('button[aria-label="Send"]');
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  check("an answer streams into the transcript", true);
+  check(
+    "the question is in the transcript too",
+    (await page.locator("text=What is OCADE?").count()) >= 1,
+  );
+  check("the composer is cleared after sending", (await page.inputValue("#ocade-composer")) === "");
+
+  // The conversation is real: it is in the sidebar and survives a reload.
+  await page.waitForSelector('nav[aria-label="Primary"]');
+  await page.waitForTimeout(500);
+  check(
+    "the conversation appears under Recent",
+    (await page.locator("aside", { hasText: "Recent" }).count()) === 1,
+  );
+
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  const recent = page.locator("aside ul li button").first();
+  check("the conversation survives a reload", (await recent.count()) === 1);
+  await recent.click();
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  check("opening it reads the transcript back", true);
+
+  // Rename it, and see the new name.
+  await page.hover("aside ul li");
+  await page.click('aside ul li button[aria-label^="More options"]');
+  await page.click('role=menuitem[name="Rename"]');
+  await page.fill('input[aria-label="Conversation name"]', "Renamed by the proof");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(400);
+  check(
+    "a conversation can be renamed",
+    (await page.locator("aside", { hasText: "Renamed by the proof" }).count()) === 1,
+  );
+
+  // Copy is offered on an answer, and on nothing else.
+  check("an answer offers Copy", (await page.getByRole("button", { name: "Copy" }).count()) >= 1);
+
+  // Delete it, and see it go.
+  await page.hover("aside ul li");
+  await page.click('aside ul li button[aria-label^="More options"]');
+  await page.click('role=menuitem[name="Delete"]');
+  await page.waitForTimeout(500);
+  check("a conversation can be deleted", (await page.locator("aside ul li").count()) === 0);
+
+  // Phone width still works.
+  const phone = await browser.newContext({ viewport: { width: 375, height: 812 } });
+  await phone.addInitScript(
+    ([key, value]) => {
+      try {
+        window.localStorage.setItem(key, value);
+      } catch {
+        /* See above. */
+      }
+    },
+    [storageKey(SUPABASE), JSON.stringify(session)],
+  );
+  const small = await phone.newPage();
+  await small.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  await small.fill("#ocade-composer", "Hello from a phone");
+  await small.click('button[aria-label="Send"]');
+  await small.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  check("Chat works at phone width", true);
+  check(
+    "the phone layout does not scroll sideways",
+    await small.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
+  );
+
+  check(
+    "no provider or runtime identifier is on screen",
+    !/qwen|gguf|webgpu|wasm|gemini|wllama/i.test(await page.locator("body").innerText()),
+  );
+  check("no uncaught page errors", pageErrors.length === 0, pageErrors.join("; "));
+} finally {
+  await browser.close();
+}
+
+process.stdout.write(`\n${results.length - failures}/${results.length} checks passed\n`);
+process.exit(failures === 0 ? 0 : 1);

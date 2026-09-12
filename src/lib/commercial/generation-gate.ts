@@ -53,8 +53,15 @@ import {
   windowFor,
 } from "./usage-policy";
 
-export type GenerationSurface =
-  "chat" | "cowork" | "code" | "task" | "automation" | "background_agent" | "voice" | "artifact";
+/**
+ * Where a generation came from.
+ *
+ * Two, because the product has two: Chat today and Cowork after `PLAN2.md`.
+ * It listed eight while Code, Tasks, Automations, background agents, Voice and
+ * Artifacts were separate products; those surfaces are gone, and a surface
+ * nothing can emit is a value every gate downstream still has to handle.
+ */
+export type GenerationSurface = "chat" | "cowork";
 
 export type DurablePermitOutcome =
   | "granted"
