@@ -1,86 +1,110 @@
-# OCADE Engineering Rules
+# OCADE Non-Negotiable Rules
 
-## 1. Simplicity wins
+## Product scope
 
-If a final behavior can be delivered with fewer routes, stores, components or runtimes, use the smaller architecture.
+1. `PLAN.md` is the only active implementation plan.
+2. `PLAN2.md` is deleted.
+3. Cowork/Jarvis implementation is forbidden until the owner explicitly starts a future mission after `PLAN.md` is fully complete.
+4. Cowork may remain only as a clean unavailable placeholder.
 
-High-quality obsolete code is still obsolete. Delete it.
+## Identity and provider privacy
 
-## 2. Read before delete
+5. Normal customer-facing identity is always **OCADE**.
+6. Do not expose raw provider/model/runtime names in ordinary UI, assistant answers, progress, customer errors or exports.
+7. Sanitize provider errors before they reach the browser.
+8. Offline model vendor/model identity should not be persisted in new public tracked catalogues/customer-visible metadata where avoidable. Use opaque OCADE artifact ids.
+9. Do not claim that local model bytes are impossible for a determined device owner to discover; minimise disclosure instead.
 
-Aggressive cleanup is required, but every deletion first traces reachable callers, data dependencies, security implications and the final behavior that replaces it.
+## Gemini
 
-After the first cleanup, read the reduced repository again before rebuilding.
+10. Online OCADE uses one server-side Edge Function boundary.
+11. Exactly three Gemini secrets are allowed:
 
-## 3. No duplicate authorities
+```text
+GEMINI_API_KEY_PRIMARY
+GEMINI_API_KEY_SECONDARY
+GEMINI_API_KEY_TERTIARY
+```
 
-One identity authority. One usage authority. One Chat store. One Library authority. One online-intelligence boundary. One Offline Intelligence manager. One Cowork runtime after PLAN2.
+12. At the Gemini deployment phase, ask the owner for exactly three keys as secrets.
+13. Never commit, log, return or store those secret values in normal tables/client code.
+14. Never rotate keys to evade a shared 429 quota.
+15. Never fail over after provider output starts.
 
-Do not create `v2`, `new`, `replacement`, duplicate hooks/stores/routes when the canonical authority can be replaced directly.
+## Authentication
 
-## 4. Customer UI hides plumbing
+16. Supabase Auth is the only identity authority.
+17. Required methods: Google, email OTP, phone OTP.
+18. No custom password database.
+19. Supabase cleanup must not delete existing users, identities, sessions, refresh tokens or active MFA/auth state.
 
-Normal UI never displays the internal offline model name, provider/model identifiers, GGUF, hashes, WebGPU/WASM, key slots, process details or raw diagnostics.
+## Usage
 
-Customer terms: `OCADE`, `Auto`, `Offline`, `Offline Intelligence`.
+20. One successful logical user request = one use.
+21. Failed generations cost zero.
+22. Internal retries/fallback attempts do not add extra uses.
+23. Edit→successful regenerate and Regenerate→successful answer each cost one use.
+24. Free = 28 / 6h28m, no weekly cap.
+25. Pro = 140 / 6h28m and 700/week.
+26. Max = 1,400 / 6h28m and 7,000/week.
+27. Max is exactly 10× Pro.
+28. Usage is account-wide across all supported devices and online/offline paths.
+29. Exhaustion blocks all generation but not history, Library, Pricing, Billing or Settings.
+30. Offline use requires a signed/tamper-resistant lease; no unlimited offline bypass.
 
-## 5. Never redownload a valid model because app code changed
+## Pricing and payment
 
-Website SHA, deploy SHA, service-worker version, login state and account state are not model identities.
+31. Public `/pricing` must exist.
+32. Approved prices remain the catalogue defined in `PLAN.md`/`PRD.md`.
+33. Payment never succeeds or queues offline.
+34. Manual Admin access grants never modify `auth.users` and remain separate from payment evidence.
 
-Reuse a verified compatible OPFS model. Download only absent/incompatible bytes; repair only missing/corrupt chunks.
+## Offline Intelligence
 
-## 6. Secrets stay server-side
+35. Use the owner-approved private OCADE 0.6B runtime.
+36. WebGPU-first where proven; WASM fallback.
+37. Customer UI never exposes WebGPU/WASM/vendor/model terminology.
+38. Customer browser does not fetch model bytes from Hugging Face/public model hosts.
+39. Model distribution uses private OCADE-controlled Cloudflare R2 with opaque authorised artifact/shard delivery.
+40. Persist model data through OPFS/persistent browser storage where supported.
+41. Every completed model shard is checkpointed and verified; interruption must resume rather than restart from zero.
+42. Ordinary site updates, deploys, commits, browser restarts and sign-in cycles do not redownload a verified compatible model.
+43. If the user intentionally uninstalls Offline Intelligence, record that choice and NEVER auto-reinstall until the user explicitly requests Install.
+44. If it was never installed and the user is offline, explain the connect-once requirement and retain install intent.
 
-Gemini keys live only in server/Edge Function secret storage. Never expose them to browser code, normal database tables, source control, logs or artifacts.
+## Routing
 
-## 7. Usage cannot be bypassed
+45. Internet + healthy online OCADE → online OCADE.
+46. Provider failure before output + Offline ready → local fallback.
+47. No Internet + Offline ready → Offline Intelligence.
+48. Offline mode sends zero provider traffic.
+49. A successful fallback costs exactly one use total.
+50. Images require online OCADE; do not pretend the local text runtime can understand images offline.
 
-All AI-generating surfaces share the same account allowance. Offline is not a loophole. One successful user request counts once; internal execution steps do not multiply the charge.
+## Chat
 
-## 8. Persistent customer content belongs in Supabase
+51. `/` is Chat.
+52. New Chat does not create an empty DB conversation before first Send.
+53. Required controls/features are those listed in `PRD.md` and `PLAN.md`.
+54. Up to 100 MB per intentionally supported attachment, with bounded total message size.
 
-Normal durable chats/files/settings/account content → Supabase/PostgreSQL/private Storage.
+## Supabase
 
-OPFS → model data only.
+55. Retired schema/data/logs may be removed only after caller/evidence tracing.
+56. Never delete financial, legal, auth, security or real customer evidence as “old logs”.
+57. Use migrations for DDL and regenerate types after schema changes.
+58. Keep RLS/least privilege correct.
 
-RAM → transient execution/UI state.
+## UI
 
-## 9. Automation must be truthful
+59. Near-black/charcoal foundation.
+60. Medium glassmorphism on high-value surfaces, not every pixel.
+61. Restrained motion only; respect reduced-motion.
+62. No heavy cinematic/GPU decorative scene.
+63. Desktop/tablet/mobile layouts must each be intentional.
 
-No browser/computer/file action is reported complete before re-observation/postcondition verification. Unsupported/unavailable actions fail closed.
+## Release
 
-## 10. UI stays sparse
-
-Use the design references for simplicity and density, not copied branding/assets. Avoid card walls, long explanations, duplicate controls and permanent diagnostic panels.
-
-## 11. Accessibility and performance are requirements
-
-Keyboard, focus, screen-reader semantics, reduced motion, responsive layout and safe-area/virtual-keyboard behavior are mandatory. Heavy runtimes are lazy-loaded.
-
-## 12. Database cleanup is migration-safe
-
-Never drop a table/function merely because a page disappeared. Prove no final caller needs it, decide data disposition, migrate, verify RLS/grants/types and retain rollback capability.
-
-## 13. Plans are sequential
-
-`PLAN.md` must finish first. Do not integrate OCADE JARVIS early. `PLAN2.md` starts only after the core product is proven.
-
-## 14. Markdown is canonical and minimal
-
-Allowed Markdown files only:
-
-- `CLAUDE.md`
-- `PLAN.md`
-- `PLAN2.md`
-- the eleven canonical docs in `docs/`.
-
-Do not add more Markdown. Put generated evidence in machine-readable files.
-
-## 15. No fake green
-
-A skipped/unavailable hardware or deployment proof is named as external/unproven, never converted into a passing test.
-
-## 16. Measure the result
-
-Record tracked source LOC before cleanup, after PLAN and after PLAN2 using the same deterministic inclusion/exclusion rules. LOC is a measurement, not a target that overrides correctness.
+64. Every phase requires real tests and browser proof.
+65. No partial merge to `main`.
+66. The exact final merged tree must be the exact tree that passed final verification.
