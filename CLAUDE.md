@@ -18,6 +18,21 @@ A feature is not preserved because its implementation is impressive. Preserve on
 
 The core rebuild is intentionally destructive to obsolete legacy product structure. `PLAN.md` targets approximately 90% removal of legacy product code, routes, duplicate runtimes, stale UI, obsolete tests/dependencies/docs and retired Supabase objects where safe. Required final authorities remain, but anything retained must be cleaned, customized and made native to the final OCADE architecture rather than carried forward unchanged.
 
+## Default agent modes — mandatory at session start
+
+At the very start of every implementation session, before reading, planning, auditing, editing, testing or continuing prior work, enable and use **both Ponytail Ultra and Caveman Ultra**.
+
+They are the default operating modes for this repository and remain active for the whole session unless the owner explicitly says otherwise.
+
+Start every implementation session with both:
+
+```text
+/ponytail ultra
+/caveman ultra
+```
+
+Do not wait for the owner to request them again. Do not silently downgrade either mode. If the environment exposes equivalent skill names or invocation syntax, use the equivalent **Ponytail Ultra** and **Caveman Ultra** modes automatically before proceeding.
+
 ## Read order
 
 At the start of any implementation session read, in order:
