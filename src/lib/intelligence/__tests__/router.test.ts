@@ -51,8 +51,8 @@ function final(backend: IntelligenceTransport["backend"], text = "answer"): Inte
 
 describe("OcadeIntelligence", () => {
   it("rejects a mismatched permit before probing either backend", async () => {
-    const online = transport("gemini_online", [final("gemini_online")]);
-    const local = transport("wasm_local", [final("wasm_local")]);
+    const online = transport("online", [final("online")]);
+    const local = transport("on_device", [final("on_device")]);
     const intelligence = createOcadeIntelligence({ online, local });
     const invalid = request();
     invalid.permit.generationId = "somebody-else";
@@ -63,22 +63,22 @@ describe("OcadeIntelligence", () => {
   });
 
   it("makes Local only a zero-online-call path", async () => {
-    const online = transport("gemini_online", [final("gemini_online")]);
-    const local = transport("wasm_local", [
+    const online = transport("online", [final("online")]);
+    const local = transport("on_device", [
       { type: "token", text: "local" },
-      final("wasm_local", "local"),
+      final("on_device", "local"),
     ]);
     const result = await createOcadeIntelligence({ online, local }).generate(request("local_only"));
 
-    expect(result).toMatchObject({ ok: true, response: { text: "local", backend: "wasm_local" } });
+    expect(result).toMatchObject({ ok: true, response: { text: "local", backend: "on_device" } });
     expect(online.probe).not.toHaveBeenCalled();
     expect(online.stream).not.toHaveBeenCalled();
     expect(local.stream).toHaveBeenCalledTimes(1);
   });
 
   it("uses Online only when consent and a server permit are present", async () => {
-    const online = transport("gemini_online", [final("gemini_online", "online")]);
-    const local = transport("wasm_local", [final("wasm_local", "local")]);
+    const online = transport("online", [final("online", "online")]);
+    const local = transport("on_device", [final("on_device", "local")]);
     const intelligence = createOcadeIntelligence({ online, local });
 
     const denied = request("online");
@@ -91,13 +91,13 @@ describe("OcadeIntelligence", () => {
     expect(local.probe).not.toHaveBeenCalled();
 
     const allowed = await intelligence.generate(request("online"));
-    expect(allowed).toMatchObject({ ok: true, response: { backend: "gemini_online" } });
+    expect(allowed).toMatchObject({ ok: true, response: { backend: "online" } });
     expect(local.stream).not.toHaveBeenCalled();
   });
 
   it("falls back automatically with the same permit after a pre-output provider failure", async () => {
     const seen: IntelligenceRequest[] = [];
-    const online = transport("gemini_online", [
+    const online = transport("online", [
       {
         type: "refusal",
         code: "provider_rate_limited",
@@ -105,7 +105,7 @@ describe("OcadeIntelligence", () => {
         retryable: true,
       },
     ]);
-    const local = transport("wasm_local", [final("wasm_local", "local")]);
+    const local = transport("on_device", [final("on_device", "local")]);
     online.stream.mockImplementation(async function* (input) {
       seen.push(input);
       yield {
@@ -117,7 +117,7 @@ describe("OcadeIntelligence", () => {
     });
     local.stream.mockImplementation(async function* (input) {
       seen.push(input);
-      yield final("wasm_local", "local");
+      yield final("on_device", "local");
     });
 
     const result = await createOcadeIntelligence({ online, local }).generate(request());
@@ -128,11 +128,11 @@ describe("OcadeIntelligence", () => {
   });
 
   it("never duplicates partial online output by falling back", async () => {
-    const online = transport("gemini_online", [
+    const online = transport("online", [
       { type: "token", text: "part" },
       { type: "refusal", code: "provider_failed", reason: "lost", retryable: true },
     ]);
-    const local = transport("wasm_local", [final("wasm_local", "duplicate")]);
+    const local = transport("on_device", [final("on_device", "duplicate")]);
     const result = await createOcadeIntelligence({ online, local }).generate(request());
 
     expect(result).toMatchObject({ ok: false, code: "provider_failed", partialText: "part" });
@@ -140,8 +140,8 @@ describe("OcadeIntelligence", () => {
   });
 
   it("does not turn an explicit Online failure into a Local request", async () => {
-    const online = transport("gemini_online", [], false);
-    const local = transport("wasm_local", [final("wasm_local")]);
+    const online = transport("online", [], false);
+    const local = transport("on_device", [final("on_device")]);
     const result = await createOcadeIntelligence({ online, local }).generate(request("online"));
 
     expect(result).toMatchObject({ ok: false, code: "online_unavailable" });
@@ -153,8 +153,8 @@ describe("OcadeIntelligence", () => {
     const started = new Promise<void>((resolve) => {
       start = resolve;
     });
-    const online = transport("gemini_online", []);
-    const local = transport("wasm_local", []);
+    const online = transport("online", []);
+    const local = transport("on_device", []);
     online.stream.mockImplementation(async function* (input) {
       start();
       await new Promise<void>((resolve) =>

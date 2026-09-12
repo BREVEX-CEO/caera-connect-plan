@@ -247,7 +247,7 @@ function nextSseBoundary(buffer: string): { index: number; length: number } | nu
 
 function normalizeProviderChunk(
   value: unknown,
-  backend: "gemini_online",
+  backend: "online",
   toolIndex: { value: number },
 ): IntelligenceEvent[] {
   if (!isRecord(value)) return [];
@@ -306,7 +306,7 @@ function normalizedProviderStream(
       const toolIndex = { value: 0 };
       try {
         if (!provider.body) throw new Error("Provider returned no stream.");
-        controller.enqueue(sse({ type: "status", backend: "gemini_online", state: "generating" }));
+        controller.enqueue(sse({ type: "status", backend: "online", state: "generating" }));
         const reader = provider.body.pipeThrough(new TextDecoderStream()).getReader();
         let buffer = "";
         while (true) {
@@ -322,11 +322,7 @@ function normalizedProviderStream(
               if (!line.startsWith("data:")) continue;
               const raw = line.slice(5).trim();
               if (!raw || raw === "[DONE]") continue;
-              for (const event of normalizeProviderChunk(
-                JSON.parse(raw),
-                "gemini_online",
-                toolIndex,
-              )) {
+              for (const event of normalizeProviderChunk(JSON.parse(raw), "online", toolIndex)) {
                 if (event.type === "token") answer += event.text;
                 if (event.type === "tool_call") toolCalls.push(event.call);
                 if (event.type === "usage") usage = event.usage;
@@ -354,7 +350,7 @@ function normalizedProviderStream(
                 text: answer,
                 toolCalls,
                 toolResults: [],
-                backend: "gemini_online",
+                backend: "online",
                 ...(usage ? { usage } : {}),
                 stopReason: toolCalls.length > 0 ? "tool_use" : "end_turn",
               },

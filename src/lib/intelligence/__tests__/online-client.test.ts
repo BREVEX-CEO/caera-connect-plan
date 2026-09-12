@@ -53,7 +53,7 @@ describe("online intelligence client", () => {
                   text: "hello",
                   toolCalls: [],
                   toolResults: [],
-                  backend: "gemini_online",
+                  backend: "online",
                   stopReason: "end_turn",
                 },
               })}\n\n`,

@@ -411,6 +411,54 @@ and it MEASURES rather than asserts.
 assistive technology; and contrast in the light theme, which is measured only in the
 dark theme the product opens in.
 
+### Phase 12 — core final proof — DONE (merge pending)
+
+Run on the exact production build of this branch.
+
+- **Every gate:** `npm run verify:full` passes all 14 — routes, typecheck, lint, format,
+  790 tests across 59 files, the build, the bundle secret scan, the Supabase types gate,
+  content-storage, bounded reads, dead controls, accessibility, monochrome and
+  reachability (151 of 151 modules reached, nothing awaiting a phase).
+- **Every journey:** 176 browser checks across ten — shell 23, auth 10, chat 14,
+  online 12, offline 12, library 18, settings 19, usage 12, polish 23, final 33.
+  `audit:final` is the Phase 12 sweep itself: every route signed out and signed in and
+  at phone width, every reachable control pressed, nothing thrown and no 5xx.
+- **Retired routes are gone, not hidden.** `/pricing`, `/ocade`, `/settings`,
+  `/projects`, `/tasks`, `/code`, `/artifacts`, `/customize`, `/devices`, `/search`,
+  `/copilot`, `/jarvis`, `/automations`, `/organizations`, `/support` and `/status` all
+  answer 404 from the production worker.
+- **One provider name was still travelling.** The intelligence backends were called
+  `gemini_online` and `wasm_local`, and the Edge Function puts the backend into every
+  status and final event it streams — so a provider's name reached the browser on every
+  request and sat in the client bundle. They are `online` and `on_device`; no provider
+  identifier now exists on the browser side of the boundary at all.
+- **What the bundle still contains, honestly:** the model's own artifact id
+  (`qwen2.5-1.5b-instruct-q4_k_m`) in the engine chunk, because install-once needs a
+  stable name for the file it stores and verifies; `gguf` inside the WASM runtime's own
+  code; and `sb_secret_` inside the Supabase SDK, which is its guard against a secret
+  key being used in a browser. None is rendered, and the offline and settings journeys
+  scan the screen for every one of them.
+
+**FINAL MEASUREMENT** — same command as Phase 0, `node scripts/measure-loc.mjs`:
+
+|                  | files | lines   |
+| ---------------- | ----- | ------- |
+| Phase 0 baseline | 1,904 | 398,999 |
+| Final            | 549   | 73,509  |
+
+- **81.6% fewer lines overall**, and 71.2% fewer files.
+- **86.6% fewer lines of application code** — everything except `supabase/`.
+- **85.7% fewer lines in `src/`** alone: 292,770 to 41,951.
+- **70.7% fewer database tables**: 99 to 29, and 159 functions to 89.
+
+The overall figure falls short of 90% for one reason, and `PLAN.md` anticipates it:
+`supabase/` is an append-only history. A migration is never rewritten, so the directory
+that RECORDS this cleanup is the one directory that can only grow — it went from 22,259
+to 23,025 lines, and 23,025 of the final 73,509 lines are SQL nobody may delete. The
+plan's instruction in that case is explicit: "keep the required code and document the
+exact result and reason rather than weakening security or correctness." That is what
+these numbers are.
+
 ## New final product
 
 Primary customer destinations:
@@ -498,18 +546,22 @@ Ponytail controls engineering behavior. Caveman compresses chat output only. Cor
 
 ## Next action
 
-`PLAN.md` Phase 12 — core final proof and final merge. On the exact
-completion-branch production build: run every gate and every browser journey, press
-every reachable customer control, scan the client bundles for forbidden identifiers,
-scan for dead retired routes and dependencies, and measure final LOC with the Phase 0
-method. Then reread `PLAN.md` against the final tree, fetch and reconcile latest
-`origin/main` without force, rerun every gate on that exact reconciled tree, merge,
-push and verify the final remote SHA.
+Reconcile with the latest `origin/main`, rerun every gate and every journey on that
+exact reconciled tree, merge without force, push and verify the final remote SHA.
 
-**Deployment obligations carried to Phase 12**, all recorded with their phases above:
-set `GEMINI_API_KEY_PRIMARY` (and optionally SECONDARY/TERTIARY) on
-`sazhgaisyhkdbrooycdv` and redeploy `ocade-intelligence`, which is still the old
-single-key code; and apply migrations `20260912090000` (Library) then `20260912120000`
-(the reduction) together with the merged application, never before it.
+**Then, and only then, the deployment sequence** — recorded with the phases that
+created each obligation:
+
+1. Set `GEMINI_API_KEY_PRIMARY` (and optionally SECONDARY/TERTIARY) on
+   `sazhgaisyhkdbrooycdv`. The deployed Edge Function is still the old single-key code
+   reading `GEMINI_API_KEY`; without the new names the new function reports itself
+   unavailable rather than falling back.
+2. Redeploy `ocade-intelligence` from the merged tree.
+3. Apply migration `20260912090000` (Library), then `20260912120000` (the reduction),
+   together with the merged application and never before it: the live build is still
+   the old product and still reads the tables the second migration drops.
+4. Verify a real answer end to end, and that the `library` bucket is private.
+
+After that, `PLAN2.md` — Cowork and Jarvis over one OCADE-written runtime.
 
 Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.

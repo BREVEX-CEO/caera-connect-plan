@@ -75,9 +75,11 @@ During `PLAN.md`, preserve only minimal schema seams proven necessary for future
 
 During `PLAN2.md`, add/retain only durable Cowork state actually required by the OCADE JARVIS runtime. Internal step/task concepts must not automatically recreate the old standalone Tasks product.
 
-### Hidden organizations/Admin
+### Hidden Admin
 
-Keep only what is still required by real authorization, billing, support or tenant boundaries. Hide from normal customer navigation.
+`user_roles` and the admin route are the whole of it: one role check, one hidden screen, never in customer navigation.
+
+Organizations, tenants, groups, invites, policies and the support queue are gone. They existed for team accounts and a ticket desk that OCADE no longer has, and a boundary nothing enforces is a boundary that misleads whoever reads the schema next.
 
 ## Retired domains
 
@@ -88,7 +90,11 @@ Remove tables/functions/policies/types dedicated only to retired standalone:
 - Artifacts;
 - Code/coding workspace;
 - old device/control dashboards;
+- organizations, tenants and the support desk;
+- messaging, and the compliance, HR, news and resume products;
 - obsolete legacy runtime state.
+
+Done in Phase 10: 99 tables to 29 and 159 functions to 89, every one traced against every string literal in the source before it went.
 
 Removal requires:
 

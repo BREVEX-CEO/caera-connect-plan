@@ -47,6 +47,7 @@
     "audit:library": "node scripts/e2e/library-journey.mjs",
     "audit:settings": "node scripts/e2e/settings-journey.mjs",
     "audit:polish": "node scripts/e2e/polish-journey.mjs",
+    "audit:final": "node scripts/e2e/final-journey.mjs",
     "stub:supabase": "node scripts/e2e/supabase-stub.mjs",
     "audit:usage": "node scripts/e2e/usage-journey.mjs"
   },

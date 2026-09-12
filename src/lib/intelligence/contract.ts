@@ -11,7 +11,17 @@ export type IntelligenceMode = "automatic" | "online" | "local_only";
  * bridge, a native mobile runtime and a paired desktop. Which one answered is
  * never a customer-facing fact: the interface says `OCADE` or `Offline`.
  */
-export type IntelligenceBackend = "gemini_online" | "wasm_local";
+/*
+ * TWO BACKENDS, NAMED FOR WHERE THEY RUN RATHER THAN FOR WHO SUPPLIES THEM.
+ *
+ * They were `gemini_online` and `wasm_local`, and the first of those travelled:
+ * the Edge Function puts the backend into every status and final event it
+ * streams, so a provider's name reached the browser on every request and sat in
+ * the client bundle. `PLAN.md` says the customer interface never exposes a
+ * provider, model or runtime identifier, and the cheapest way to keep that true
+ * is for the identifier not to exist on this side of the boundary at all.
+ */
+export type IntelligenceBackend = "online" | "on_device";
 
 export interface IntelligencePermit {
   id: string;

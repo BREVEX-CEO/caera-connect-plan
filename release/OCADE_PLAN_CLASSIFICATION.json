@@ -257,5 +257,25 @@
     "trackedSourceFiles": 547,
     "trackedSourceLines": 73095,
     "reductionFromBaselinePercent": 81.7
+  },
+  "final": {
+    "trackedSourceFiles": 549,
+    "trackedSourceLines": 73509,
+    "reductionFromBaselinePercent": 81.6,
+    "byTopLevel": {
+      "src": 41951,
+      "supabase": 23025,
+      "scripts": 7312,
+      "root": 698,
+      "public": 523
+    },
+    "applicationCodeReductionPercent": 86.6,
+    "srcReductionPercent": 85.7,
+    "databaseTables": {
+      "before": 99,
+      "after": 29,
+      "reductionPercent": 70.7
+    },
+    "note": "Application code \u2014 everything except the append-only SQL history \u2014 fell 86.6%, and src/ alone 85.7%. The overall figure is 81.6% because supabase/ grew: a migration is never rewritten, so the directory that records the removal is the one directory that can only get bigger."
   }
 }

@@ -35,7 +35,7 @@ export function createOfflineIntelligenceTransport(
   adapter = authorityBackedAdapter(),
 ): IntelligenceTransport {
   return {
-    backend: "wasm_local",
+    backend: "on_device",
 
     async probe(): Promise<IntelligenceTransportStatus> {
       const availability = await adapter.probe();
@@ -65,7 +65,7 @@ export function createOfflineIntelligenceTransport(
     },
 
     async *stream(request: IntelligenceRequest): AsyncIterable<IntelligenceEvent> {
-      yield { type: "status", backend: "wasm_local", state: "starting" };
+      yield { type: "status", backend: "on_device", state: "starting" };
 
       /*
        * The adapter streams through a callback and this contract yields. The
@@ -139,7 +139,7 @@ export function createOfflineIntelligenceTransport(
           text,
           toolCalls: [],
           toolResults: [],
-          backend: "wasm_local",
+          backend: "on_device",
           stopReason: "end_turn",
         },
       };

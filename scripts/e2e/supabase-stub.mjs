@@ -756,7 +756,7 @@ const server = createServer((request, response) => {
         "cache-control": "no-store",
       });
       const emit = (event) => response.write(`data: ${JSON.stringify(event)}\n\n`);
-      emit({ type: "status", backend: "gemini_online", state: "streaming" });
+      emit({ type: "status", backend: "online", state: "streaming" });
       for (const word of answer.split(" ")) emit({ type: "token", text: `${word} ` });
       emit({
         type: "final",
@@ -764,7 +764,7 @@ const server = createServer((request, response) => {
           text: answer,
           toolCalls: [],
           toolResults: [],
-          backend: "gemini_online",
+          backend: "online",
           stopReason: "end_turn",
         },
       });

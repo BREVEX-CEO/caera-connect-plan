@@ -110,7 +110,7 @@ export function createOnlineIntelligenceTransport(
 ): IntelligenceTransport {
   const deps = { ...defaults(), ...overrides };
   return {
-    backend: "gemini_online",
+    backend: "online",
     async probe(): Promise<IntelligenceTransportStatus> {
       const config = deps.configuration();
       const available = config.configured && config.enabled === true && deps.online();
