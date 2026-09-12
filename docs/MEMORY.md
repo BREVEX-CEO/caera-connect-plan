@@ -411,7 +411,7 @@ and it MEASURES rather than asserts.
 assistive technology; and contrast in the light theme, which is measured only in the
 dark theme the product opens in.
 
-### Phase 12 — core final proof — DONE (merge pending)
+### Phase 12 — core final proof and final merge — DONE
 
 Run on the exact production build of this branch.
 
@@ -544,10 +544,21 @@ Always:
 
 Ponytail controls engineering behavior. Caveman compresses chat output only. Correctness/PLAN authority always wins over compression.
 
+### The merge
+
+`origin/main` was at `36df21d` and the completion branch descended from it, so the
+reconciliation was a fast-forward: the merged tree is byte-identical to the tree every
+gate ran against — `fe05d9b1e52e759aaaaf3dd8f34cfeb6e41a1249`, verified on both sides.
+
+Every gate and all ten journeys were rerun on the merged `main` checkout before the
+push, not only on the branch. `main` and the completion branch both point at
+`03c741f54d5f2b9f6d8d6a4e0bb9aa6ba0e3d2be`, confirmed against the remote. Nothing was
+forced and no history was rewritten.
+
 ## Next action
 
-Reconcile with the latest `origin/main`, rerun every gate and every journey on that
-exact reconciled tree, merge without force, push and verify the final remote SHA.
+**The deployment sequence, which has not run.** OCADE is merged; it is not deployed.
+The live project and the live worker are still the old product.
 
 **Then, and only then, the deployment sequence** — recorded with the phases that
 created each obligation:
