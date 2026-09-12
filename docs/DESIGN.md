@@ -1,116 +1,155 @@
 # OCADE Design System
 
-## References
+## Design principle
 
-Primary structural reference:
+Maximum usable workspace, minimum visual noise.
 
-- `docs/design-references/grok/` — sole visual reference set for layout, density, spacing, sidebar/top-bar/settings proportions and overall simplicity.
-- `docs/UI_REFERENCE_CHECKLIST.md` — lightweight production UI checklist.
+OCADE should look like a modern AI workspace rather than a dashboard, game UI or cinematic assistant.
 
-The former Stitch/Jarvis 3D reference is removed and must not be treated as a design source. Cowork and Jarvis use the same simplified OCADE visual language derived from the Grok reference set.
+## Foundations
 
-References are not source code or a license to copy proprietary assets/text/trade dress. Build original OCADE components.
+### Color
 
-## Palette
+Use a near-black/charcoal background with neutral grey surfaces and white/soft-grey text.
 
-Default dark surface family:
+Keep accent use restrained. Avoid broad saturated gradient fields.
 
-- canvas: near black;
-- raised/glass surfaces: near-black with low alpha/transparency;
-- primary text: soft white;
-- secondary text: neutral grey;
-- border: low-contrast grey/white alpha;
-- selected/hover: subtle luminance change;
-- danger: semantic red only;
-- success: semantic success treatment only where real state is verified.
+### Glass
 
-Keep the ordinary UI neutral. Brand color is restrained.
+Medium glassmorphism is the main surface treatment for interactive containers:
 
-## Glass
+- sidebar;
+- composer;
+- dialogs;
+- settings;
+- pricing cards;
+- menus;
+- attachment surfaces;
+- Offline progress.
 
-Use light glassmorphism, not glass-card walls:
+Glass should use:
 
-- slight transparency;
-- modest backdrop blur where supported;
-- one thin border;
-- tiny inner/highlight edge;
-- very low or no shadow.
+- semi-transparent neutral fill;
+- moderate backdrop blur;
+- thin low-contrast border;
+- restrained highlight;
+- little or no heavy shadow.
 
-Disable/reduce blur when it harms performance or contrast.
+### Radius
 
-## Geometry
+Use small/medium radii consistently. Avoid both sharp enterprise-box styling and oversized pill-everything styling.
 
-- small/medium radius;
-- avoid giant rounded rectangles;
-- buttons compact but accessible;
-- primary touch targets approximately 44px where practical;
-- layout uses spacing rather than borders to separate most content.
+### Typography
 
-## Typography
+Use simple, readable UI typography with clear hierarchy and no robotic/movie-title treatment.
 
-Keep the existing efficient interface font stack unless removal of a dependency makes the system stack smaller without visual regression.
+## Layout
 
-- short headings;
-- normal readable body;
-- muted supporting copy;
-- monospace only for genuinely technical/Advanced content.
+### Desktop
 
-## Shell
+- fixed/steady left sidebar;
+- centered Chat workspace;
+- generous negative space;
+- composer visually anchored near the main content area;
+- recent chats compact rather than card-heavy;
+- Account/usage at bottom-left.
 
-Desktop:
+### Tablet
 
-- fixed/narrow left sidebar;
-- optional compact top bar;
-- large main workspace;
-- Account at bottom left;
-- Settings as centered panel.
+- preserve Chat as primary workspace;
+- narrower drawer/sidebar behavior;
+- settings may become a wider sheet/modal;
+- controls keep touch-friendly targets.
 
-Mobile:
+### Phone
 
+- chat-first;
 - sidebar becomes drawer;
-- settings becomes full-height sheet;
-- composers respect keyboard and safe-area.
+- settings becomes full-height/sheet;
+- composer remains fully usable with attachments/mic/send;
+- no horizontal overflow.
 
-## Components
+## Chat
 
-Prefer:
+Message text should be easy to scan.
 
-- simple row/list;
-- menu;
-- compact segmented control;
-- minimal input/composer;
-- modal/sheet;
-- skeleton;
-- toast;
-- contextual detail drawer.
+User prompts may use a compact bubble/treatment. OCADE answers should favor readable prose rather than excessive cards.
 
-Avoid:
+Answer controls appear contextually:
 
-- permanent status-card grids;
-- repeated badges/pills;
-- explanatory paragraphs beside every control;
-- duplicate buttons for the same action;
-- decorative technical telemetry.
+- Copy;
+- Regenerate;
+- Retry;
+- Delete where applicable.
 
-## Chat composer
+Edit belongs on the user prompt.
 
-One visual anchor. Default visible actions: attachment, microphone, send. Intelligence selector is compact and optional. Project/tool/incognito-like advanced options, if retained at all, belong behind a contextual menu rather than equal visual weight.
+## Composer
 
-## Cowork
+The composer is a primary glass surface.
 
-Normal mode shares Chat's composer language. Runtime progress is a short list, not a dashboard.
+Required controls:
 
-Jarvis is the voice-first/hands-free mode inside Cowork and follows the same simplified shell. Use only a small original OCADE audio/orb indicator where useful. Listening/thinking/speaking/working states may animate subtly but must preserve text status and reduced-motion equivalence.
+- attachment `+`;
+- microphone;
+- Auto/OCADE/Offline selector;
+- Send/Stop.
 
-## Interaction
+Attachment chips appear inside/above the composer without forcing a second permanent toolbar.
 
-- hover/focus: subtle luminance/1–2 px response;
-- transition: short and restrained;
-- no continuous page movement;
-- no cursor trails;
-- keyboard focus is always visible;
-- every icon-only control has an accessible name/tooltip.
+## Usage meter
 
-## Content
+Small and informative, not dashboard-like.
 
-Normal screens never expose raw internal model/provider/file/runtime identifiers. Keep copy user-oriented and one line when possible.
+Example:
+
+```text
+18 of 28 left · 2h 14m
+```
+
+Add a thin progress indicator and Upgrade when relevant.
+
+## Pricing
+
+Three clean tier cards with weekly/monthly toggle.
+
+Current plan is obvious. Upgrade actions are clear. Avoid a huge feature-comparison wall unless a future requirement needs it.
+
+## Offline status
+
+Background preparation should not take over the whole product.
+
+Compact status near Account/sidebar. Detailed progress only after click.
+
+Intentional uninstall state is explicit and persistent:
+
+> You uninstalled OCADE Offline. Get it back to use OCADE without internet.
+
+## Motion
+
+Use subtle purposeful motion only:
+
+- hover/focus easing;
+- panel/dialog transitions;
+- streaming state;
+- progress state;
+- small Offline preparation animation.
+
+No infinite decorative orbit/scene.
+
+## Accessibility
+
+- visible focus states;
+- adequate contrast;
+- semantic controls;
+- keyboard support;
+- screen-reader labels;
+- `prefers-reduced-motion` honored;
+- readable type scale;
+- touch targets appropriate for phone/tablet.
+
+## Reference policy
+
+`docs/design-references/grok/` and owner-supplied repair screenshots define layout/density direction.
+
+Do not copy proprietary logos/assets or attempt a pixel-identical trade-dress clone. Preserve OCADE identity.
