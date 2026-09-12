@@ -1,68 +1,205 @@
-# OCADE Durable Decisions
+# OCADE Decisions
 
-These decisions supersede older product-shape decisions unless a later explicit owner decision replaces them.
+This file records durable owner-approved product decisions for the current pre-Cowork mission.
 
-## Product shape
+## Planning
 
-1. OCADE primary customer navigation is Chat, Library and Cowork.
-2. Jarvis is a mode inside Cowork, not a separate primary destination.
-3. Settings lives under Account.
-4. `/` opens Chat directly. Signed-out users may inspect it; Send requires authentication.
-5. Public retained pages are About, Help, Terms and Privacy.
-6. Pricing and the old marketing landing page are removed.
-7. Standalone Code, Projects, Tasks, Artifacts, Customize, Devices and Search-dashboard products are removed.
-8. High-quality obsolete code is deleted rather than preserved for its own sake.
+- `PLAN.md` is the only active execution plan.
+- `PLAN2.md` is removed.
+- Cowork/Jarvis implementation is blocked until `PLAN.md` is completely finished and the owner explicitly starts a new mission.
+- Cowork may remain only as an unavailable placeholder.
 
-## UI
+## Default agent modes
 
-9. Supplied Grok-style screenshots under `docs/design-references/grok/` are the sole visual structural/density reference; the Stitch/Jarvis 3D reference is removed and must not return. OCADE remains independently branded and implemented.
-10. Ordinary UI uses near-black/grey/white, light glassmorphism, small/medium radii, minimal borders/cards and short copy.
-11. Old giant Jarvis moon/solar-system UI is deleted.
-12. Advanced diagnostics/runtime plumbing is hidden under Advanced, not normal customer surfaces.
+Every implementation session starts with both:
 
-## Intelligence
+```text
+/ponytail ultra
+/caveman ultra
+```
 
-13. Online customer label is `OCADE`; Offline customer label is `Offline`/`Offline Intelligence`.
-14. Internal offline model is Qwen 2.5 1.5B but its real name/runtime/file/hash details are never normal customer UI.
-15. Offline model is stored in browser OPFS with a model-specific manifest independent of app/build SHA.
-16. A verified compatible model is reused across refresh, sign-in/out, account deletion, service-worker/app deployment, commits and merges; no redownload merely because OCADE updated.
-17. Offline download uses bounded adaptive parallel chunks, resume and targeted repair.
-18. Explicit Remove deletes model bytes and suppresses immediate auto reinstall until explicit Install.
+They remain the default session modes unless the owner changes them.
 
-## Gemini
+## Product surfaces
 
-19. Online intelligence uses one server boundary and exactly three server secret slots: primary, secondary, tertiary.
-20. Keys are Supabase server/Edge secrets, never ordinary DB rows or client values.
-21. Failover is primary-first and pre-output only; 429 is not rotated to evade shared quota; no failover after output begins.
+Keep:
+
+- Chat;
+- Library;
+- Pricing;
+- Account/Settings;
+- auth;
+- online OCADE;
+- Offline Intelligence;
+- usage/billing;
+- About, Help, Terms, Privacy;
+- hidden Admin for real operational work.
+
+Retired broad-product surfaces stay deleted/404.
+
+## Customer identity
+
+All customer-facing AI modes identify as **OCADE**.
+
+Normal UI/responses/errors must not reveal raw provider/model/runtime names.
+
+For Offline Intelligence, use opaque OCADE artifact ids and remove obsolete tracked public model-name/catalogue leakage. Do not claim impossible perfect secrecy from a determined device owner; minimise disclosure as strongly as possible.
+
+## Online provider
+
+Online OCADE uses Gemini behind one server/Edge boundary.
+
+Exactly three Supabase secrets:
+
+- `GEMINI_API_KEY_PRIMARY`
+- `GEMINI_API_KEY_SECONDARY`
+- `GEMINI_API_KEY_TERTIARY`
+
+When that phase begins, ask the owner for exactly three Gemini API keys as secrets. The owner intends to provide them.
+
+## Authentication
+
+Supabase Auth only.
+
+Required:
+
+- Google;
+- email OTP;
+- phone OTP;
+- optional password where deliberately supported;
+- MFA/assurance where required.
+
+Supabase cleanup must not delete existing accounts/logged-in users/sessions.
 
 ## Usage
 
-22. Free allowance remains 28 successful user requests per 388 minutes, account-wide and shared online/offline/devices.
-23. One successful user request counts once; internal Cowork/Jarvis tool/model steps do not multiply the user's usage charge.
-24. When allowance is exhausted, all AI generation locks; history/Library/Settings/Billing remain usable.
+Use simple successful-request counting for all tiers.
 
-## Data and auth
+- Free: 28 / 6h28m, no weekly cap.
+- Pro: 140 / 6h28m, 700/week.
+- Max: 1,400 / 6h28m, 7,000/week.
+- Max is exactly 10× Pro.
 
-25. Supabase Auth is the only identity authority.
-26. Primary auth is Google, plus email OTP and phone OTP with international country picker; optional password may be managed under Account.
-27. Supabase/PostgreSQL/private Storage is canonical persistent account content authority.
-28. OPFS stores Offline Intelligence model data only.
-29. Retired product-specific database objects are removed after safe dependency/data migration and RLS verification.
+One successful answer = one use.
 
-## Cowork/Jarvis
+Failed request/internal retry = zero extra uses.
 
-30. `PLAN.md` must complete before OCADE JARVIS integration.
-31. There is no donor tree. The `.incoming/` archive is deleted and will not return; Cowork is written for OCADE.
-32. One Cowork runtime, written in OCADE's own architecture, with capabilities built in order: browser actions, files, voice, then computer actions.
-33. Normal Cowork and Jarvis share runtime, permissions, usage, tools and persistence.
-34. Jarvis is voice-first/hands-free and online Gemini only for this release.
-35. Coding capabilities may exist inside Cowork; no standalone Code product returns.
-36. Old Cowork/Jarvis/desktop-Copilot/control runtimes are deleted, and nothing restores them.
+Edit→successful regenerate and Regenerate→successful answer each cost one use.
 
-## Process
+Usage is shared account-wide across devices and online/offline paths.
 
-37. Default agent modes are `/ponytail full` and `/caveman full` across fresh sessions, Auto Continue, compaction and usage resets.
-38. Ponytail governs engineering work; Caveman governs only response compression. Safety/correctness and plan authority outrank both.
-39. Implementation order is read → trace/scan → aggressive clean → read again → build → test → browser-prove.
-40. Only `CLAUDE.md`, `PLAN.md`, `PLAN2.md`, the canonical docs listed in `CLAUDE.md`, and `docs/UI_REFERENCE_CHECKLIST.md` may remain as Markdown authorities.
-41. Source LOC is measured at baseline, PLAN completion and PLAN2 completion using one consistent deterministic method; LOC is evidence, not a correctness target.
+## Pricing
+
+Approved catalogue:
+
+| Tier | Weekly | Monthly |
+| --- | --- | --- |
+| Free | Free | Free |
+| Pro | $8 / €8 / £8 / ₹288 | $28 / €28 / £28 / ₹1,888 |
+| Max | $28 / €28 / £28 / ₹1,888 | $88 / €88 / £88 / ₹5,888 |
+
+Public `/pricing` returns.
+
+Use regional currency plus manual override.
+
+Payment does not process or queue offline.
+
+## Manual user access
+
+Owner/admin must be able to grant/revoke Free/Pro/Max access easily through hidden Admin.
+
+Use a canonical auditable entitlement-grant authority. Never edit `auth.users` directly.
+
+## Offline runtime
+
+Use the owner-approved private OCADE 0.6B local runtime.
+
+- WebGPU-first where verified;
+- WASM fallback;
+- one artifact downloaded initially;
+- fallback artifact only when required;
+- Fast default + optional Thinking.
+
+Customer-facing product never exposes those internal runtime labels.
+
+## Model hosting/download
+
+- private OCADE-controlled Cloudflare R2;
+- not Hugging Face in customer browser;
+- opaque authorised artifact/shard ids;
+- private bucket/no public listing;
+- adaptive parallel download;
+- prefer highest measured stable throughput, not highest fixed concurrency;
+- shard checkpoint/resume/targeted repair;
+- OPFS/persistent browser storage.
+
+## Explicit uninstall
+
+If a user manually removes Offline Intelligence:
+
+- model bytes are deleted;
+- `user_uninstalled` persists across deploys, site updates, browser restarts and sign-in cycles;
+- no automatic redownload occurs;
+- UI says the user uninstalled it and offers **Install Offline**;
+- only explicit Install clears the suppression.
+
+If never installed and currently offline, explain connect-once installation and retain install intent.
+
+## Routing
+
+- Internet + online OCADE healthy → online OCADE.
+- Online provider fails before output + Offline ready → local fallback.
+- No Internet + Offline ready → local.
+- No Internet + Offline absent → install/connect-once guidance.
+- Offline mode makes zero provider requests.
+- Successful fallback costs one use total.
+
+Images require online OCADE. Offline local extraction may support textual file formats only where safely implemented.
+
+## Whole-site offline
+
+Normal `ocade.in` must work without requiring PWA installation and should also be optionally installable as a PWA.
+
+When Internet is absent, cached/local-capable OCADE pages and Offline Chat should still work honestly.
+
+Cloud-only mutations such as payment require Internet.
+
+Official target focus:
+
+- Windows Chrome;
+- macOS Chrome;
+- Android Chrome;
+- iPhone/iPad Chrome/WebKit where supported.
+
+Linux is not advertised/certified.
+
+## Chat feature decisions
+
+Required:
+
+- `+` attachment menu;
+- drag/drop;
+- paste;
+- microphone;
+- Send/Stop;
+- Copy;
+- Edit;
+- Regenerate;
+- Delete;
+- Retry;
+- code-block Copy;
+- Markdown/tables/links;
+- upload progress/retry;
+- attachment preview/download;
+- up to 100 MB per supported attachment.
+
+New Chat does not create an empty database conversation before first Send.
+
+## UI
+
+- near-black/charcoal;
+- medium glassmorphism on high-value surfaces;
+- restrained motion;
+- clean responsive desktop/tablet/mobile structure;
+- Grok references + owner repair screenshots for layout/density direction;
+- no heavy cinematic/3D scene.
