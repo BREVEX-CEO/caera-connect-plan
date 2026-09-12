@@ -379,6 +379,38 @@ the merged application, in that order, and redeploy the Edge Function with the t
 Gemini secrets set. The retired tables hold seed and config rows of dead products, not
 customer data — verified in the live project before this was written.
 
+### Phase 11 — polish, accessibility and performance — DONE
+
+The gate is "responsive, browser, accessibility and performance audits pass", and
+every one of those four needs a rendered page. `npm run audit:polish` is that half,
+and it MEASURES rather than asserts.
+
+- **Contrast is computed from what the compositor resolved.** The first version read
+  `oklch(0.76 0 0)` as red-green-blue and reported 1.00:1 for perfectly legible text —
+  a failure so obviously wrong that the natural response is to ignore the audit. Every
+  colour is now painted into a canvas and read back as sRGB, and translucent glass is
+  composited down the ancestor chain the way the screen does it. The worst visible text
+  on the home screen is 9.01:1, well past AA.
+- **Two keyboard shortcuts, which did not exist.** `/` puts the cursor in the composer
+  and Ctrl/Cmd+Shift+O starts a new chat. Typing always wins — both are ignored while
+  the focus is in a field — and they are listed in Help, which is the only place a
+  person would look. `<kbd>` now renders as a key rather than as code.
+- **Proved and already true:** the first Tab lands on Skip to content and shows a real
+  focus ring; an emulated `prefers-reduced-motion` leaves nothing animating; nothing
+  spills sideways and no control is under 24px at 390, 820 or 1440; the first visit
+  downloads 934 KiB of JavaScript and 39 KiB of CSS, inside the plan's caps; and every
+  public route carries a title, a description and an OpenGraph title.
+- Back-to-top on the long public pages, the FAQ accordion on Help alone, password
+  visibility on the reset screen, and toasts were already in place and are left alone.
+  No cookie banner, because OCADE sets no optional cookies to consent to.
+- **Measured:** 547 files, 73,095 lines. Gates: all 14 in `verify:full`, plus nine
+  browser journeys — shell 23, auth 10, chat 14, online 12, offline 12, library 18,
+  settings 19, usage 12, polish 23.
+
+**Named as unproven:** screen-reader announcement order, which needs an actual
+assistive technology; and contrast in the light theme, which is measured only in the
+dark theme the product opens in.
+
 ## New final product
 
 Primary customer destinations:
@@ -466,11 +498,18 @@ Ponytail controls engineering behavior. Caveman compresses chat output only. Cor
 
 ## Next action
 
-`PLAN.md` Phase 11 — polish, accessibility and performance. Only useful polish: the
-light/dark handling as designed, the mobile drawer, keyboard shortcuts, hover and
-focus states, restrained motion, scrollbars, copy controls, skeletons, skip-to-content,
-OpenGraph metadata, clean empty states and toasts. Meet WCAG AA intent, reduced-motion
-expectations and keyboard/screen-reader semantics, and avoid heavy GPU work. Gate:
-responsive, browser, accessibility and performance audits pass.
+`PLAN.md` Phase 12 — core final proof and final merge. On the exact
+completion-branch production build: run every gate and every browser journey, press
+every reachable customer control, scan the client bundles for forbidden identifiers,
+scan for dead retired routes and dependencies, and measure final LOC with the Phase 0
+method. Then reread `PLAN.md` against the final tree, fetch and reconcile latest
+`origin/main` without force, rerun every gate on that exact reconciled tree, merge,
+push and verify the final remote SHA.
+
+**Deployment obligations carried to Phase 12**, all recorded with their phases above:
+set `GEMINI_API_KEY_PRIMARY` (and optionally SECONDARY/TERTIARY) on
+`sazhgaisyhkdbrooycdv` and redeploy `ocade-intelligence`, which is still the old
+single-key code; and apply migrations `20260912090000` (Library) then `20260912120000`
+(the reduction) together with the merged application, never before it.
 
 Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.

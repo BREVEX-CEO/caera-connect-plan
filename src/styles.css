@@ -495,6 +495,25 @@
   outline-offset: 2px;
 }
 
+/*
+ * A KEY, DRAWN LIKE A KEY.
+ *
+ * `<kbd>` renders as monospace text and nothing else by default, which reads as
+ * code rather than as something to press. Help names two shortcuts and this is
+ * the only place in the product that shows one.
+ */
+kbd {
+  display: inline-block;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--secondary);
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  line-height: 1.5;
+  color: var(--foreground);
+}
+
 @utility glass {
   background-color: var(--surface-glass);
   border: 1px solid var(--surface-glass-border);

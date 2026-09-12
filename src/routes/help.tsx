@@ -97,6 +97,16 @@ const QUESTIONS: { question: string; answer: React.ReactNode }[] = [
     ),
   },
   {
+    question: "Are there keyboard shortcuts?",
+    answer: (
+      <p>
+        Two. Press <kbd>/</kbd> to put the cursor in the composer, and <kbd>Ctrl</kbd> or{" "}
+        <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd> to start a new chat. Typing always wins:
+        neither does anything while you are writing in a field.
+      </p>
+    ),
+  },
+  {
     question: "How do I delete my account?",
     answer: (
       <p>

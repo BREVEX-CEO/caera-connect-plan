@@ -252,5 +252,10 @@
       "before": 159,
       "after": 89
     }
+  },
+  "afterPhase11": {
+    "trackedSourceFiles": 547,
+    "trackedSourceLines": 73095,
+    "reductionFromBaselinePercent": 81.7
   }
 }

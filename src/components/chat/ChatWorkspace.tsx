@@ -19,6 +19,7 @@ import { ArrowUp, Mic, Plus, Square } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { useSession } from "@/lib/session";
 import { useChat, type IntelligenceChoice } from "@/lib/chat/use-chat";
+import { useChatShortcuts } from "@/lib/chat/use-shortcuts";
 import { ConversationList } from "./ConversationList";
 import { MessageList } from "./MessageList";
 import { cn } from "@/lib/utils";
@@ -81,6 +82,15 @@ export function ChatWorkspace() {
     select: (state) => (state.location.search as { new?: unknown }).new === true,
   });
   const newConversation = chat.newConversation;
+
+  useChatShortcuts({
+    composer: () => textarea.current,
+    onNewChat: () => {
+      newConversation();
+      setDraft("");
+    },
+  });
+
   useEffect(() => {
     if (!startNew) return;
     newConversation();
