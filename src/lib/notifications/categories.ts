@@ -20,17 +20,17 @@
  * hours — and none of that depends on the caller getting it right.
  */
 
-export type NotificationCategoryId =
-  | "approvals"
-  | "task_outcomes"
-  | "automation"
-  | "security"
-  | "account"
-  | "billing"
-  | "support"
-  | "organization"
-  | "product_updates"
-  | "status_incidents";
+/*
+ * FOUR, BECAUSE THE PRODUCT HAS FOUR THINGS TO SAY.
+ *
+ * It listed ten while there were Approvals, Tasks, Automations, Support cases,
+ * Organizations and a public status page. Six of those cannot emit a
+ * notification any more, and a category nothing can send is a row in a settings
+ * screen that does nothing when a person changes it. What remains is what the
+ * product actually sends today (security) and the three it sends about the
+ * account itself.
+ */
+export type NotificationCategoryId = "security" | "account" | "billing" | "product_updates";
 
 export interface NotificationCategory {
   id: NotificationCategoryId;
@@ -63,29 +63,6 @@ const EVERY_FREQUENCY: readonly NotificationFrequency[] = ["immediate", "grouped
 
 export const NOTIFICATION_CATEGORIES: readonly NotificationCategory[] = [
   {
-    id: "approvals",
-    title: "Approvals",
-    description: "OCADE is waiting for you to allow or refuse something it is about to do.",
-    // Optional, but only in the sense that somebody may decide not to be asked
-    // on this channel. The approval itself still blocks until answered.
-    optional: true,
-    frequencies: URGENT_ONLY,
-  },
-  {
-    id: "task_outcomes",
-    title: "Task outcomes",
-    description: "A long-running task finished, failed, or needs your attention.",
-    optional: true,
-    frequencies: EVERY_FREQUENCY,
-  },
-  {
-    id: "automation",
-    title: "Automations",
-    description: "A scheduled or triggered automation ran, or stopped running.",
-    optional: true,
-    frequencies: EVERY_FREQUENCY,
-  },
-  {
     id: "security",
     title: "Security",
     description:
@@ -108,38 +85,17 @@ export const NOTIFICATION_CATEGORIES: readonly NotificationCategory[] = [
     frequencies: URGENT_ONLY,
   },
   {
-    id: "support",
-    title: "Support",
-    description: "Replies on your support cases.",
-    optional: true,
-    frequencies: EVERY_FREQUENCY,
-  },
-  {
-    id: "organization",
-    title: "Organization",
-    description: "Invitations, role changes and organization policy.",
-    optional: true,
-    frequencies: EVERY_FREQUENCY,
-  },
-  {
     id: "product_updates",
     title: "Product updates",
     description: "New capabilities and changes worth knowing about.",
     optional: true,
     frequencies: ["grouped", "digest"],
   },
-  {
-    id: "status_incidents",
-    title: "Status incidents",
-    description: "Degraded service and outages that affect you.",
-    optional: true,
-    frequencies: URGENT_ONLY,
-  },
 ];
 
 const BY_ID = new Map(NOTIFICATION_CATEGORIES.map((category) => [category.id, category]));
 
-/** Is this one of the ten categories §D names? */
+/** Is this one of the four categories the product can send? */
 export function isNotificationCategory(value: unknown): value is NotificationCategoryId {
   return (
     typeof value === "string" && NOTIFICATION_CATEGORIES.some((category) => category.id === value)

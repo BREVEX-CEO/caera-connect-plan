@@ -234,5 +234,10 @@
     "trackedSourceFiles": 533,
     "trackedSourceLines": 71092,
     "reductionFromBaselinePercent": 82.2
+  },
+  "afterPhase9": {
+    "trackedSourceFiles": 539,
+    "trackedSourceLines": 72115,
+    "reductionFromBaselinePercent": 81.9
   }
 }

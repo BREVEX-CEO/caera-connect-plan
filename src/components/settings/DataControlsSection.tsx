@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useInstallation } from "@/lib/brain/use-installation";
 import { deleteAllLibraryItems, listLibraryItems } from "@/lib/library/library.functions";
+import { deleteAllConversations, listConversations } from "@/lib/ocade.functions";
+import { exportMyAccountData } from "@/lib/account-data.functions";
+import { Action, Confirm, Row } from "./rows";
 
 /**
  * DATA CONTROLS: WHAT THIS DEVICE HOLDS, AND WHAT THIS ACCOUNT HOLDS.
@@ -33,9 +36,91 @@ import { deleteAllLibraryItems, listLibraryItems } from "@/lib/library/library.f
 export function DataControlsSection() {
   return (
     <div>
-      <OfflineIntelligenceSection />
+      <ConversationsSection />
       <LibrarySection />
+      <ExportSection />
+      <OfflineIntelligenceSection />
     </div>
+  );
+}
+
+/** Every conversation, gone. The trash is not a reprieve from this one. */
+function ConversationsSection() {
+  const client = useQueryClient();
+  const [confirming, setConfirming] = useState(false);
+  const conversations = useQuery({
+    queryKey: ["conversations", "all"],
+    queryFn: () => listConversations(),
+  });
+  const empty = useMutation({
+    mutationFn: () => deleteAllConversations(),
+    onSuccess: () => {
+      setConfirming(false);
+      void client.invalidateQueries({ queryKey: ["conversations", "all"] });
+    },
+  });
+  const count = conversations.data?.length ?? 0;
+
+  return (
+    <Row
+      label="Conversations"
+      description={
+        count === 0
+          ? "You have no conversations."
+          : `${count} conversation${count === 1 ? "" : "s"}, with their messages. Deleting them cannot be undone.`
+      }
+    >
+      {count === 0 ? null : confirming ? (
+        <Confirm
+          label={empty.isPending ? "Deleting…" : "Delete everything"}
+          busy={empty.isPending}
+          onConfirm={() => empty.mutate()}
+          onCancel={() => setConfirming(false)}
+        />
+      ) : (
+        <Action label="Delete everything" onClick={() => setConfirming(true)} />
+      )}
+    </Row>
+  );
+}
+
+/**
+ * A copy of everything, as a file the person keeps.
+ *
+ * Downloaded rather than emailed: an export is the whole account in one place,
+ * and the safest thing to do with it is hand it straight to the person who
+ * asked and keep no copy.
+ */
+function ExportSection() {
+  const [problem, setProblem] = useState<string | null>(null);
+  const download = useMutation({
+    mutationFn: async () => {
+      const data = await exportMyAccountData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `ocade-account-export-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    },
+    onError: (error: Error) => setProblem(error.message),
+  });
+
+  return (
+    <Row
+      label="Export your data"
+      description={
+        problem ??
+        "A file containing everything on this account. It may ask you to confirm who you are first."
+      }
+    >
+      <Action
+        label={download.isPending ? "Preparing…" : "Export"}
+        busy={download.isPending}
+        onClick={() => download.mutate()}
+      />
+    </Row>
   );
 }
 
@@ -68,20 +153,12 @@ function LibrarySection() {
       }
     >
       {count === 0 ? null : confirming ? (
-        <div className="flex items-center gap-2">
-          <Action
-            label={empty.isPending ? "Deleting…" : "Delete everything"}
-            busy={empty.isPending}
-            onClick={() => empty.mutate()}
-          />
-          <button
-            type="button"
-            onClick={() => setConfirming(false)}
-            className="h-8 rounded-md px-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Keep
-          </button>
-        </div>
+        <Confirm
+          label={empty.isPending ? "Deleting…" : "Delete everything"}
+          busy={empty.isPending}
+          onConfirm={() => empty.mutate()}
+          onCancel={() => setConfirming(false)}
+        />
       ) : (
         <Action label="Delete everything" onClick={() => setConfirming(true)} />
       )}
@@ -141,25 +218,17 @@ function OfflineIntelligenceSection() {
             }}
           />
         ) : confirming ? (
-          <div className="flex items-center gap-2">
-            <Action
-              label="Remove"
-              busy={busy}
-              onClick={async () => {
-                setBusy(true);
-                await install.uninstall();
-                setBusy(false);
-                setConfirming(false);
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => setConfirming(false)}
-              className="h-8 rounded-md px-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Keep
-            </button>
-          </div>
+          <Confirm
+            label="Remove"
+            busy={busy}
+            onConfirm={async () => {
+              setBusy(true);
+              await install.uninstall();
+              setBusy(false);
+              setConfirming(false);
+            }}
+            onCancel={() => setConfirming(false)}
+          />
         ) : (
           <Action label="Remove" onClick={() => setConfirming(true)} />
         )}
@@ -179,49 +248,6 @@ function OfflineIntelligenceSection() {
           <Action label="Repair" onClick={install.repair} />
         </Row>
       ) : null}
-    </div>
-  );
-}
-
-function Action({
-  label,
-  onClick,
-  busy,
-}: {
-  label: string;
-  onClick: () => void | Promise<void>;
-  busy?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={busy}
-      onClick={() => void onClick()}
-      className="h-8 rounded-md border border-border px-3 text-sm text-foreground transition-colors hover:bg-accent disabled:opacity-50"
-    >
-      {label}
-    </button>
-  );
-}
-
-function Row({
-  label,
-  description,
-  children,
-}: {
-  label: string;
-  description?: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-6 border-b border-border/50 py-4 last:border-b-0">
-      <div className="min-w-0">
-        <p className="text-sm text-foreground">{label}</p>
-        {description ? (
-          <p className="mt-1 text-[13px] leading-5 text-muted-foreground">{description}</p>
-        ) : null}
-      </div>
-      {children ? <div className="shrink-0">{children}</div> : null}
     </div>
   );
 }

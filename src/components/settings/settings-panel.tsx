@@ -19,14 +19,20 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { CreditCard, Database, Monitor, Moon, User, X } from "lucide-react";
+import { Bell, CreditCard, Database, Monitor, Moon, ShieldCheck, User, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppearance } from "@/lib/appearance";
 import { useSession } from "@/lib/session";
+import { AdvancedSection } from "./AdvancedSection";
+import { SignInMethods } from "./SignInMethods";
 import { DataControlsSection } from "./DataControlsSection";
+import { NotificationsSection } from "./NotificationsSection";
 import { UsageSection } from "./UsageSection";
+import { Action } from "./rows";
+import { DELETE_CONFIRMATION, deleteMyAccount } from "@/lib/account.functions";
 
-export type SettingsCategory = "account" | "appearance" | "data" | "billing";
+export type SettingsCategory =
+  "account" | "appearance" | "notifications" | "data" | "billing" | "advanced";
 
 interface SettingsPanelValue {
   open: (category?: SettingsCategory) => void;
@@ -71,8 +77,10 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
 const CATEGORIES: { id: SettingsCategory; label: string; group: string; icon: typeof User }[] = [
   { id: "account", label: "Account", group: "General", icon: User },
   { id: "appearance", label: "Appearance", group: "General", icon: Monitor },
+  { id: "notifications", label: "Notifications", group: "General", icon: Bell },
   { id: "data", label: "Data Controls", group: "Data", icon: Database },
   { id: "billing", label: "Billing", group: "Account", icon: CreditCard },
+  { id: "advanced", label: "Advanced", group: "Account", icon: ShieldCheck },
 ];
 
 function SettingsDialog({
@@ -148,7 +156,9 @@ function SettingsDialog({
 
           {category === "account" ? <AccountSettings /> : null}
           {category === "appearance" ? <AppearanceSettings /> : null}
+          {category === "notifications" ? <NotificationsSection /> : null}
           {category === "data" ? <DataControlsSection /> : null}
+          {category === "advanced" ? <AdvancedSection /> : null}
           {category === "billing" ? <UsageSection /> : null}
         </div>
       </div>
@@ -212,26 +222,85 @@ function Toggle({
 
 function AccountSettings() {
   const { user } = useSession();
+  const [phrase, setPhrase] = useState("");
+  const [asking, setAsking] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   return (
     <div>
       <Row label="Signed in as" description={user?.email ?? user?.phone ?? "Not signed in"} />
+      <SignInMethods />
+      <Row label="Sign out" description="Ends this session on this device only.">
+        <button
+          type="button"
+          onClick={() =>
+            void import("@/integrations/supabase/on-demand").then(({ loadSupabaseClient }) =>
+              loadSupabaseClient().then((supabase) => supabase.auth.signOut()),
+            )
+          }
+          className="h-8 rounded-md border border-border px-3 text-sm text-foreground transition-colors hover:bg-accent"
+        >
+          Sign out
+        </button>
+      </Row>
+
+      {/*
+        DELETING AN ACCOUNT IS TYPED, NOT CLICKED.
+        The server requires the exact phrase AND a recent second factor, so this
+        screen is a convenience rather than the protection: refusing the request
+        is what changes what is possible, and the server does that.
+      */}
       <Row
-        label="Sign out"
-        description="Ends this session on this device only."
-        children={
-          <button
-            type="button"
-            onClick={() =>
-              void import("@/integrations/supabase/on-demand").then(({ loadSupabaseClient }) =>
-                loadSupabaseClient().then((supabase) => supabase.auth.signOut()),
-              )
-            }
-            className="h-8 rounded-md border border-border px-3 text-sm text-foreground transition-colors hover:bg-accent"
-          >
-            Sign out
-          </button>
+        label="Delete your account"
+        description={
+          receipt ??
+          problem ??
+          "Everything on this account goes, permanently. Offline Intelligence on your devices is left alone."
         }
-      />
+      >
+        {receipt ? null : asking ? (
+          <div className="flex items-center gap-2">
+            <input
+              value={phrase}
+              onChange={(event) => setPhrase(event.target.value)}
+              aria-label="Type DELETE MY ACCOUNT to confirm"
+              placeholder={DELETE_CONFIRMATION}
+              className="h-8 w-44 rounded-md border border-border bg-transparent px-2.5 text-sm text-foreground outline-none focus-visible:border-ring"
+            />
+            <Action
+              label={deleting ? "Deleting…" : "Delete"}
+              busy={deleting || phrase.trim().toUpperCase() !== DELETE_CONFIRMATION}
+              destructive
+              onClick={async () => {
+                setDeleting(true);
+                setProblem(null);
+                try {
+                  const result = await deleteMyAccount({ data: { confirmation: phrase } });
+                  setReceipt(`Deleted. Your reference is ${result.receipt.reference}.`);
+                } catch (error) {
+                  setProblem(error instanceof Error ? error.message : "That could not be done.");
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setAsking(false);
+                setPhrase("");
+              }}
+              className="h-8 rounded-md px-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Keep
+            </button>
+          </div>
+        ) : (
+          <Action label="Delete" destructive onClick={() => setAsking(true)} />
+        )}
+      </Row>
     </div>
   );
 }

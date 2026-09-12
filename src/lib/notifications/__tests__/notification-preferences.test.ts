@@ -36,15 +36,15 @@ const EVERY_CHANNEL: NotificationChannel[] = resolveChannels({
 const IN_APP_ONLY: NotificationChannel[] = resolveChannels({});
 
 const PROTECTED: NotificationCategoryId[] = ["security", "account", "billing"];
-const OPTIONAL: NotificationCategoryId[] = ["task_outcomes", "automation", "support"];
+const OPTIONAL: NotificationCategoryId[] = ["product_updates"];
 
 function muted(overrides: Partial<NotificationPreferences> = {}): NotificationPreferences {
   return { ...defaultPreferences(), muteOptional: true, ...overrides };
 }
 
 describe("the categories", () => {
-  it("are the ten PLAN.md §D names", () => {
-    expect(NOTIFICATION_CATEGORIES).toHaveLength(10);
+  it("are the four the product can actually send", () => {
+    expect(NOTIFICATION_CATEGORIES).toHaveLength(4);
     for (const category of NOTIFICATION_CATEGORIES) {
       expect(category.title.length).toBeGreaterThan(2);
       expect(category.description.length).toBeGreaterThan(20);
@@ -62,7 +62,7 @@ describe("the categories", () => {
 
   it("never offers a digest for something whose value is that it is now", () => {
     // "Daily digest of security alerts" is a contradiction.
-    for (const id of [...PROTECTED, "approvals", "status_incidents"] as NotificationCategoryId[]) {
+    for (const id of PROTECTED) {
       expect(findNotificationCategory(id)?.frequencies, id).toEqual(["immediate"]);
     }
   });
@@ -165,7 +165,7 @@ describe("an optional category obeys the person", () => {
     const preferences = defaultPreferences();
     preferences.quietHours = { enabled: true, fromHour: 22, toHour: 7, timeZone: "UTC" };
     const decision = decideDelivery({
-      category: "support",
+      category: "product_updates",
       preferences,
       channels: EVERY_CHANNEL,
       now: new Date("2026-09-03T12:00:00Z"),
@@ -175,9 +175,12 @@ describe("an optional category obeys the person", () => {
 
   it("never sends on a channel the deployment does not have", () => {
     const preferences = defaultPreferences();
-    preferences.categories.support = { channels: ["in_app", "email"], frequency: "immediate" };
+    preferences.categories.product_updates = {
+      channels: ["in_app", "email"],
+      frequency: "grouped",
+    };
     const decision = decideDelivery({
-      category: "support",
+      category: "product_updates",
       preferences,
       channels: IN_APP_ONLY,
     });
@@ -222,10 +225,10 @@ describe("stored preferences are validated, not trusted", () => {
 
   it("drops a channel this deployment does not have", () => {
     const normalised = normalisePreferences(
-      { categories: { support: { channels: ["in_app", "email"], frequency: "immediate" } } },
+      { categories: { product_updates: { channels: ["in_app", "email"], frequency: "grouped" } } },
       ["in_app"],
     );
-    expect(normalised.categories.support.channels).toEqual(["in_app"]);
+    expect(normalised.categories.product_updates.channels).toEqual(["in_app"]);
   });
 
   it("falls back to a frequency the category actually supports", () => {

@@ -285,6 +285,48 @@ twin. **Phase 12 deployment obligation:** apply `20260912090000` to
 runs against the loopback stub, whose object store models the contract and not
 Supabase's storage policies; those are the database test's half.
 
+### Phase 9 — Settings and Data Controls — DONE
+
+Six categories, and every one of them now has something behind it: Account,
+Appearance, Notifications, Data Controls, Billing, Advanced.
+
+- **Account** gained sign-in methods (change the email, unlink a provider, with
+  `canUnlink` refusing to remove the last way in) and account deletion, which is
+  typed rather than clicked. The server requires the exact phrase AND a recent
+  second factor; the screen is the convenience, the refusal is the protection.
+- **Notifications** got a screen for rules that had been built, tested and never
+  shown. Protected categories read "Always on" rather than offering a switch that
+  snaps back, a channel the deployment has not configured shows its reason instead
+  of a dead toggle, and every save says which of the three things happened — saved
+  to the account, applied here for now, or refused.
+- **The ten notification categories are four.** Approvals, Tasks, Automations,
+  Support, Organization and Status incidents cannot be emitted by anything in this
+  product; a category nothing can send is a row that does nothing when a person
+  changes it.
+- **Data Controls** now covers all four things `PLAN.md` names: delete all
+  conversations, empty the Library, export the account as a file, and remove or
+  reinstall Offline Intelligence.
+- **Advanced** shows where the account is signed in and can end the other sessions.
+  Reading the list needs nothing — discovering a session you did not start is how a
+  person learns they have been compromised — and revoking is the privileged half.
+  No engine, model, provider, key or build identifier appears anywhere in it.
+- **`AWAITING_MOUNT` is empty and the reachability gate is at 151 of 151.** Every
+  module in the tree is reached from a route, an entry or a worker; the eleven
+  Phase 9 owed are mounted, and nothing was left on the list.
+- **Three shared row shapes** (`rows.tsx`) replace the copy of the same row that had
+  appeared in four sections.
+- **`npm run audit:settings` proves 19 checks in a real browser**, including the two
+  halves of the phase gate: a notification setting survives a refresh AND appears on
+  a second browser context with its own storage (so it came from the account), and
+  no category exposes a secret, model, provider or runtime identifier.
+- **Measured:** 539 files, 72,115 lines. Gates: all 14 in `verify:full`, plus eight
+  browser journeys — shell 23, auth 10, chat 14, online 12, offline 12, library 18,
+  settings 19, usage 12.
+
+**Named as unproven:** a real email change and a real provider unlink, which need
+Supabase Auth rather than the loopback stub; and the assurance refusal path, which
+needs an account with a verified second factor.
+
 ## New final product
 
 Primary customer destinations:
@@ -372,12 +414,15 @@ Ponytail controls engineering behavior. Caveman compresses chat output only. Cor
 
 ## Next action
 
-`PLAN.md` Phase 9 — rebuild Settings and Data Controls. Categories are Account,
-Appearance, Notifications, Data Controls, Billing and Advanced. Data Controls owns
-delete-all conversations, delete uploaded images/files (done), export account data
-and Offline Intelligence state/removal (done); Advanced hides diagnostics, device
-and security details from normal customers. Mount or delete the eleven modules
-`AWAITING_MOUNT` owes Phase 9. Gate: account-scoped settings survive a refresh and a
-device change, and no raw secret, model or runtime identifier is exposed.
+`PLAN.md` Phase 10 — Supabase cleanup and reduction. Final reachability is now
+known (151 of 151 modules reached), so trace every remaining database object to a
+caller and remove the ones used only by retired products — Projects, Tasks,
+Artifacts, Automations, Approvals, Monitors, the messenger tables, the FICIA and
+CANIA and MADEE tables, the compliance packs — with reversible migrations and
+verification. Keep identities/profiles/security, conversations/messages, Library,
+settings/preferences/notifications, usage/entitlements/offline reconciliation,
+billing, hidden Admin authority and the minimum PLAN2 seam. Regenerate types and
+keep RLS/least privilege. Gate: source and live schema agree and no final caller
+references a removed object.
 
 Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.

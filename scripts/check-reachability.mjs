@@ -44,29 +44,16 @@ const ROOT = process.cwd();
 /**
  * MODULES A NAMED, UNFINISHED `PLAN.md` PHASE WILL MOUNT.
  *
- * This is a DEBT LIST, not an exemption list: every entry is a capability no
- * person can reach today, held only because the phase that gives it a surface
- * has not run yet. The phase number is the promise. `PLAN.md` Phase 12 forbids
- * dead retired code in the final tree, so this map must be empty by then —
- * either the phase mounted the module, or the phase decided it was not needed
- * and deleted it.
+ * A DEBT LIST, not an exemption list: every entry is a capability no person can
+ * reach today, held only because the phase that gives it a surface has not run
+ * yet. `PLAN.md` Phase 12 forbids dead retired code in the final tree, so this
+ * must be empty by then.
  *
- * An entry whose file is gone, or that something now reaches on its own, is
- * reported as stale so the list cannot quietly outlive its subject.
+ * It is empty now, and every module that was on it was either mounted by its
+ * phase or deleted. An entry whose file is gone, or that something now reaches
+ * on its own, is reported as stale so the list cannot outlive its subject.
  */
-const AWAITING_MOUNT = {
-  "src/lib/account-data.functions.ts": 9,
-  "src/lib/account.functions.ts": 9,
-  "src/lib/account/data-classes.ts": 9,
-  "src/lib/account/data-rights.ts": 9,
-  "src/lib/notifications/history.ts": 9,
-  "src/lib/notifications/preference-sync.ts": 9,
-  "src/lib/notifications/supabase-backend.ts": 9,
-  "src/lib/security/identity.ts": 9,
-  "src/lib/security/reauthentication.ts": 9,
-  "src/lib/security/sessions.functions.ts": 9,
-  "src/lib/security/user-agent.ts": 9,
-};
+const AWAITING_MOUNT = {};
 
 const ENTERED_ELSEWHERE = {
   "src/cloudflare-entry.ts":

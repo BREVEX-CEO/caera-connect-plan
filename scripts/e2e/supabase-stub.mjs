@@ -108,6 +108,9 @@ function shapedJwt(userId, email) {
     role: "authenticated",
     aud: "authenticated",
     aal: "aal1",
+    // Real tokens carry this, and Advanced reads it to tell "this device" from
+    // the others. Without it every session looks like somebody else's.
+    session_id: "session-current",
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + 3600,
   });
@@ -393,14 +396,56 @@ function handleRpc(name, args, userId) {
       return 0;
 
     case "ocade_list_account_sessions":
-      return [];
+      /*
+       * Two, because the interesting case is the second one: a person can only
+       * discover a session they did not start if the list shows more than
+       * "this device".
+       */
+      return [
+        {
+          session_id: "session-current",
+          created_at: new Date(now - 3_600_000).toISOString(),
+          last_seen_at: new Date(now - 60_000).toISOString(),
+          expires_at: null,
+          assurance: "aal1",
+          user_agent: "Mozilla/5.0 (X11; Linux x86_64) Chrome/140.0",
+          ip_address: null,
+        },
+        {
+          session_id: "session-other",
+          created_at: new Date(now - 86_400_000).toISOString(),
+          last_seen_at: new Date(now - 7_200_000).toISOString(),
+          expires_at: null,
+          assurance: "aal1",
+          user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0) Safari/605",
+          ip_address: null,
+        },
+      ];
 
     case "ocade_session_is_live":
       return true;
 
     case "ocade_record_notification":
-    case "ocade_save_notification_preferences":
       return null;
+
+    case "ocade_save_notification_preferences": {
+      /*
+       * WRITES THE ROW, because the property under test is that the choice is
+       * the ACCOUNT'S: a stub that acknowledged a save and stored nothing would
+       * make "survives a refresh" fail for a reason that is not the product's.
+       */
+      const held = rows(userId, "ocade_notification_preferences");
+      const revision = (held[0]?.revision ?? 0) + 1;
+      const row = {
+        user_id: userId,
+        mute_optional: args.p_mute_optional,
+        quiet_hours: args.p_quiet_hours,
+        categories: args.p_categories,
+        revision,
+      };
+      tablesFor(userId).ocade_notification_preferences = [row];
+      return revision;
+    }
 
     default:
       return { __unmodelled: name };
