@@ -2,9 +2,22 @@
 
 ## Current mission
 
-OCADE is beginning a new simplification/rebuild mission. The previous broad implementation was completed and merged to `main` at commit `4424a15abfe0fcf6b0e5550a0ee27095e7522029`, but that architecture is now intentionally superseded by the product decisions in these rewritten authorities.
+OCADE is executing the simplification/rebuild mission in `PLAN.md`. The previous broad implementation was completed and merged to `main` at commit `4424a15abfe0fcf6b0e5550a0ee27095e7522029`, but that architecture is now intentionally superseded by the product decisions in these rewritten authorities.
 
-This documentation update is planning/authority work. Until `PLAN.md` is implemented, much of the old code still exists and must not be mistaken for the new intended architecture.
+Implementation branch: `claude/ecstatic-goldberg-4nycdu`, created from `origin/main` at `36df21d692ab22181b9637d7d4b6770d3b801405`.
+
+## Progress
+
+### Phase 0 — baseline, total read and isolated branch — DONE
+
+- Baseline measured with `node scripts/measure-loc.mjs --by-dir` on the tracked source tree: **1904 files, 398,999 lines**.
+- Method: git-tracked files with source extensions (`.ts .tsx .mts .cts .js .jsx .mjs .cjs .css .sql .rs .py .java .kt .swift .html .sh`), excluding `node_modules/`, `dist/`, `build/`, `docs/design-references/`, `vendor/`, `*.d.ts`, `*.gen.ts`, `src/routeTree.gen.ts` and `src/integrations/supabase/types.ts`. The same command is used at every later checkpoint.
+- Top-level baseline: src 292,770 · scripts 43,935 · native 34,482 · supabase 22,259 · extension 2,213 · root 698 · ios 668 · mobile 629 · public 523 · android 504 · relay 318.
+- Full KEEP/REUSE/REPLACE/DELETE map recorded in `release/OCADE_PLAN_CLASSIFICATION.json`.
+
+Traced final authorities that must survive: Supabase Auth/integration, `src/lib/security`, `src/lib/commercial` (usage), `src/lib/limits` (rate limiting only), `src/lib/intelligence` + `supabase/functions/ocade-intelligence` (Gemini boundary), `src/lib/brain` OPFS model lifecycle, `src/lib/ocade-chat-store.ts` + `ocade.functions.ts`, `src/lib/files`, account/notification settings, payments/entitlement authority, hidden admin gate, legal/founder content.
+
+Phase 0 decisions: one offline runtime backend (WASM GGUF, `@wllama/wllama`) because the stored model is a GGUF and an MLC/WebGPU backend would need a second model; `commercial` is the single usage authority; Supabase rows are the only chat storage.
 
 ## New final product
 
@@ -88,13 +101,8 @@ Ponytail controls engineering behavior. Caveman compresses chat output only. Cor
 
 ## Next action
 
-Start `PLAN.md` Phase 0 on an isolated implementation branch:
-
-- fetch latest main;
-- measure baseline source LOC;
-- read/trace the whole current repository;
-- produce the final KEEP/REUSE/REPLACE/DELETE map;
-- begin aggressive cleanup;
-- read the reduced repository again before rebuilding.
+`PLAN.md` Phase 1 — approximately 90% legacy cleanup. Execute the deletion map in
+`release/OCADE_PLAN_CLASSIFICATION.json`, remove the retired dependencies, remeasure with
+`node scripts/measure-loc.mjs --by-dir`, then reread the reduced repository before rebuilding.
 
 Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.
