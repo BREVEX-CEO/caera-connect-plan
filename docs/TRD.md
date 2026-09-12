@@ -1,25 +1,53 @@
 # OCADE Technical Requirements
 
-## Core stack
+## Architectural principles
 
-Retain the current working web stack unless a smaller compatible implementation is proven better. The final product remains browser-first, Cloudflare-deployed and Supabase-backed.
+1. One canonical authority per responsibility.
+2. No duplicate auth, usage, intelligence, storage, payment or model-lifecycle systems.
+3. Browser-visible state is not the source of truth for security, billing or entitlement.
+4. Every network/provider failure is sanitized before reaching the customer.
+5. Offline capability must fail honestly when storage/runtime requirements are unavailable.
+6. Cowork/Jarvis implementation is forbidden during this mission.
 
-## Authorities
+## Web application
 
-There must be exactly one authority for each:
+The primary app remains the existing React/TanStack web application and Cloudflare deployment architecture.
 
-- identity/session → Supabase Auth;
-- persistent account content → Supabase PostgreSQL/private Storage;
-- AI usage/entitlement → server-authoritative usage permit system;
-- online intelligence → OCADE server/Edge Function Gemini boundary;
-- offline model bytes → browser OPFS;
-- Chat/history → one conversation/message repository;
-- Library → one file/output authority;
-- Cowork/Jarvis → OCADE JARVIS runtime after `PLAN2.md`.
+Required routes:
+
+- `/`
+- `/auth` and required callbacks/verification/challenge flows
+- `/library`
+- `/pricing`
+- `/about`
+- `/help`
+- `/terms`
+- `/privacy`
+- hidden `/admin` where required
+
+Deep-link refresh must work in production.
+
+## Authentication
+
+Use Supabase Auth only.
+
+Required providers/flows:
+
+- Google OAuth;
+- email OTP;
+- phone OTP;
+- optional password/account recovery;
+- MFA/assurance where required.
+
+No custom password database or reversible credential storage.
+
+Existing `auth.users`, identities, sessions, refresh tokens and MFA state are protected from cleanup migrations.
 
 ## Online intelligence
 
-Use exactly three server-side secret slots:
+One server-side Edge Function boundary owns online inference.
+
+Exactly three Gemini secrets:
 
 ```text
 GEMINI_API_KEY_PRIMARY
@@ -27,82 +55,132 @@ GEMINI_API_KEY_SECONDARY
 GEMINI_API_KEY_TERTIARY
 ```
 
-Secrets live in Supabase Edge Function/server secret storage, never a normal table or browser bundle.
+No secret in client bundles, normal DB rows or logs.
 
-Primary-first failover is allowed only before output and only for failures another key can reasonably fix. 429 must not rotate to evade project quota. Never restart/fail over after user-visible output begins.
-
-The configured online model is pinned to exactly one identifier, `gemini-3.1-flash-lite`. It is the only model the allowlist accepts; a client-supplied model is refused. Changing it requires an explicit owner decision with corresponding tests and documents. Normal UI says `OCADE`, never the provider/model identifier.
+Failover occurs only before output and only for allowed key-local/auth/transport failures. Shared quota 429s must not be bypassed by key rotation.
 
 ## Offline Intelligence
 
-The internal offline model is Qwen 2.5 1.5B, an implementation detail that must not appear in customer UI/copy.
+Use the owner-approved private OCADE 0.6B runtime.
 
-Storage contract:
+Tracked source should use opaque OCADE artifact ids rather than public vendor/model identifiers wherever possible.
 
-- OPFS contains model chunks/binaries and model-owned metadata only;
-- normal account content is not persisted there;
-- manifest contains model revision, chunk IDs/hashes, total integrity and runtime compatibility;
-- model revision is independent of application commit/build SHA.
+Runtime policy:
 
-Install algorithm:
+- WebGPU-first when actually supported;
+- WASM fallback;
+- customer UI hides runtime names;
+- one artifact installed initially;
+- fallback artifact acquired only after a real runtime need;
+- Fast default, Thinking optional.
 
-1. read local manifest;
-2. validate required chunks;
-3. reuse verified installation immediately;
-4. fetch missing chunks concurrently with bounded/adaptive parallelism;
-5. persist each completed chunk transactionally;
-6. resume after interruption;
-7. verify complete fingerprint;
-8. repair only bad/missing chunks;
-9. never full-redownload a valid unchanged model.
+## Model distribution
 
-Request persistent browser storage where supported. Detect eviction honestly. A new service worker/app deploy must not clear OPFS.
+Artifacts are distributed from OCADE-controlled private Cloudflare R2 infrastructure.
 
-Explicit Remove deletes the model and records user intent so automatic first-visit preparation does not immediately reinstall it until explicit Install.
+Requirements:
 
-## Routing
+- private bucket;
+- no public object listing;
+- opaque object/shard ids;
+- short-lived authorised delivery;
+- no R2 credentials in browser;
+- integrity hashes;
+- immutable shards;
+- range/chunk resume;
+- WAF/rate protection;
+- no browser fetch from Hugging Face/public model host.
 
-`Auto` chooses online OCADE when usable and may fall back to verified Offline Intelligence when policy permits. `Offline` performs zero provider traffic. All generation routes require the same account usage permit.
+Adaptive parallelism measures real throughput and chooses the fastest stable concurrency rather than forcing a fixed maximum.
 
-## Usage
+## Local storage
 
-Free: 28 successful user requests per 388 minutes.
+Use OPFS/persistent browser storage for model bytes and model-owned metadata where supported.
 
-Use one account-wide server ledger plus signed/bounded offline reconciliation. Concurrent devices must not each receive independent capacity. Count one successful user request once; internal tool/model steps are execution detail.
+Installation state must distinguish:
 
-## Authentication
+- never installed;
+- installing;
+- ready;
+- repair required;
+- user intentionally uninstalled;
+- browser/storage eviction;
+- incompatible model revision.
 
-Supabase Auth supports:
+`user_uninstalled` survives normal app updates, browser restarts and sign-in cycles. Automatic install is suppressed until the user explicitly requests Install.
 
-- Google OAuth;
-- email OTP;
-- phone OTP with E.164 normalized numbers/country picker;
-- optional password/account recovery when enabled.
+## PWA/offline shell
 
-Use anti-enumeration wording, resend/backoff controls and safe redirect validation. Production UI exposes a provider only when live Supabase/provider delivery is configured.
+Use a service worker/PWA cache strategy that lets the supported OCADE shell reopen without Internet.
 
-## Library
+Cache only what is safe and useful. Cloud-only mutations are never falsely completed offline.
 
-Metadata and authorization live in PostgreSQL; file/image bytes use private Storage where appropriate. Access is owner/account scoped with RLS/signed retrieval as required.
+Offline conversation changes use a deterministic local queue/sync path and reconcile when connectivity returns.
 
-## Cowork/Jarvis
+## Usage architecture
 
-Not implemented during `PLAN.md`. `PLAN2.md` writes one Cowork runtime in OCADE's own architecture; there is no donor tree. Native and browser helpers are infrastructure only, never a separate desktop product.
+One server-authoritative account-wide commercial policy:
 
-## Security
+- Free: 28 / 6h28m, no weekly cap;
+- Pro: 140 / 6h28m, 700/week;
+- Max: 1,400 / 6h28m, 7,000/week.
 
-- RLS on customer tables;
-- least-privilege RPCs/functions;
-- recent stronger authentication for dangerous account/Admin actions where applicable;
-- no server secret in browser, logs or generated artifacts;
-- no arbitrary native/process/filesystem access without scoped capability and validation;
-- all state-changing automation reports success only after postcondition verification.
+All tiers use simple successful-request counting.
 
-## Performance
+Use durable generation permits/idempotency so retries/fallback do not double-charge.
 
-- lazy-load route-specific heavy capabilities;
-- no local model/runtime bundle in first paint;
-- parallel model download is bounded by device/network safety;
-- avoid unbounded reads and N+1 queries;
-- paginate growing lists;
-- no continuous heavy GPU animation in ordinary UI.
+Offline generation requires a signed local lease and a tamper-evident local counter/event chain that reconciles to the server.
+
+## Billing and entitlements
+
+One final entitlement resolver combines:
+
+- Free default;
+- paid subscription;
+- manual Admin entitlement grant;
+- expiry/revocation.
+
+Manual access never modifies `auth.users`.
+
+Pricing/checkout cannot succeed offline.
+
+## Attachments and Library
+
+Supported attachment size is up to 100 MB per intentionally supported file, with a bounded total message size.
+
+Cloud files use private Supabase Storage and RLS. Library is the single customer file/output authority.
+
+Images require online OCADE for understanding. Offline document extraction may process textual formats only where safe, deterministic and tested.
+
+## Supabase cleanup
+
+Use migrations for schema changes, never ad-hoc destructive DDL.
+
+Preserve auth/account/customer/legal/financial evidence. Remove retired product tables/functions/policies only after dependency tracing.
+
+Stale development/launch/test logs may be deleted only when proven non-authoritative. Active operational logs should use bounded retention where appropriate.
+
+Regenerate TypeScript DB types after final schema changes and run Supabase security/performance advisors.
+
+## UI performance
+
+Target medium glassmorphism, restrained animation and reduced-motion support.
+
+Do not use heavy continuously animated GPU scenes. Offline model downloading/inference must not block basic UI responsiveness.
+
+## Verification
+
+Every phase must include the relevant combination of:
+
+- typecheck;
+- lint/format;
+- unit tests;
+- database tests;
+- migration verification;
+- secret scans;
+- security/RLS advisors;
+- production build;
+- real-browser tests;
+- offline/PWA tests;
+- multi-device usage tests;
+- customer-visible provider/model leak scans.
