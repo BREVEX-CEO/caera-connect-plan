@@ -131,24 +131,20 @@ export type InstallRemedy =
   | "free_storage"
   | "remove_local_intelligence"
   | "use_another_device"
-  | "pair_a_device"
   | "continue_without";
 
 /**
  * The ladder of ways this device might run OCADE, strongest first.
  *
+ * Two rungs, and they differ only in how many cores the same engine uses: the
+ * artifact, its digest and its storage are identical either way. A second
+ * backend would mean a second model to download and a second thing to verify,
+ * which is the one thing install-once cannot survive.
+ *
  * Never a dead end at the top. A device only reaches a refusal after every rung
- * has been tried and reported why it did not work, because "this browser cannot
- * run OCADE" said on the strength of one conservative capability number is a
- * refusal aimed at a device that would have worked.
+ * has been tried and reported why it did not work.
  */
-export type CapabilityPath =
-  | "desktop_bridge"
-  | "webgpu"
-  | "webgpu_reduced"
-  | "wasm_threaded"
-  | "wasm_single"
-  | "paired_device";
+export type CapabilityPath = "wasm_threaded" | "wasm_single";
 
 export interface CapabilityRung {
   path: CapabilityPath;
@@ -525,10 +521,7 @@ export class ModelInstallationAuthority {
        * about what was attempted rather than a guess from one capability flag.
        * The remedies are the ones that could actually change the outcome.
        */
-      return this.fail("fatal_error", this.refusalMessage(), [
-        "pair_a_device",
-        "use_another_device",
-      ]);
+      return this.fail("fatal_error", this.refusalMessage(), ["use_another_device"]);
     }
 
     /* 2. Walk the ladder. Each rung gets a real attempt before the next. */
@@ -752,7 +745,7 @@ export class ModelInstallationAuthority {
             "This browser will not let OCADE keep an engine between visits, so it cannot prepare one here.",
           stop: true,
           stage: "fatal_error",
-          remedies: ["use_another_device", "pair_a_device"],
+          remedies: ["use_another_device"],
         };
       }
 

@@ -31,6 +31,20 @@ Phase 0 decisions: one offline runtime backend (WASM GGUF, `@wllama/wllama`) bec
 - Dependencies removed (288 packages): capacitor ×4, lovable cloud-auth, @mlc-ai/web-llm, three + @types/three, chromium-bidi, playwright-core, qrcode-generator, pdfjs-dist, node-llama-cpp, @yao-pkg/pkg, @tauri-apps/cli, ffmpeg-static, ffprobe-static, fflate, esbuild. npm scripts cut from 130 to 30.
 - Reduced repository reread: a full import trace found 42 files with dangling imports. That list is the exact rewire scope for Phases 2–9 and is the reason the tree does not build at this checkpoint; Phase 2 rebuilds the shell and routing on top of it.
 
+### Phase 2 — minimal shell and routing — DONE
+
+- One shell (`src/components/shell/AppShell.tsx`): sidebar with OCADE, New chat, Chat, Library, Cowork and Account; Settings opens from Account as a compact panel; a drawer at phone width. Built from the Grok reference for structure and density only.
+- `/` is Chat (`src/components/chat/ChatWorkspace.tsx`): centred workspace, `Ask OCADE`, composer with attachment/microphone/send and the Auto | OCADE | Offline selector. Signed-out Send reaches `/auth` and the message is held in the tab rather than discarded.
+- Routes now: `/`, `/library`, `/cowork`, `/about` (About the Founder, absorbing the founder page), `/help` (new, absorbing faq/support), `/terms`, `/privacy`, `/auth` + callback/verify, `/reset-password`, `/admin` (one hidden screen), payments webhook, robots, sitemap. Everything retired returns 404.
+- Rebuilt rather than carried forward: `__root.tsx` (no depth scene, no locale boot, no landing entry), `styles.css` 1157 → 587 lines (no REAL theme, aurora, depth system, orb or companion animations), the appearance authority (`src/lib/appearance.tsx`, three preferences instead of cursor kinds, depth strength, trails and an rAF low-performance sampler), `GlassPanel`, `BrandMark`, `PublicPage`, `AuthShell`, the admin gate.
+- Offline runtime reduced to one backend: the WASM/GGUF adapter. WebGPU/MLC, the desktop bridge, the paired desktop, the shared-tab engine, the native companion handoff, the device-mode resolver, the brain router, the tier-benchmark promotion store and the two duplicate intelligence transports are gone. `browser-catalogue.ts` (4 tiers, 2 families) became `model-catalogue.ts` (one artifact).
+- Restored from the Phase 1 sweep after tracing proved they were required: `model-vault.ts` (versioned OPFS storage, atomic activation, rollback, removal), `install-telemetry.ts`, `telemetry/operation-health.ts` (the Edge health record), `diagnostics/error-journal.ts`, the health endpoint (`lib/health.ts`), the Unicode sanitizer (now `security/unicode-sanitization.ts`) and the device identity the offline allowance needs (now `commercial/device-identity.ts`).
+- Launch-gate removed from `server.ts` and `cloudflare-entry.ts`: the product is launched and a permanently open gate was a second authority deciding what the public may see.
+- Gates: typecheck clean, eslint 0 errors, prettier clean, 779 unit tests pass, production build succeeds, and `npm run audit:shell` proves 23 real-browser checks against the served build (routing, sidebar, composer, pending message, retired routes 404, phone drawer, no sideways scroll, no page errors, no provider/runtime identifier on screen).
+- Measurement: **562 files, 73,776 lines — 81.5% below the Phase 0 baseline.**
+
+**Tests deleted with their surfaces, to be re-authored by the phase that rebuilds each:** auth surfaces and account safety (Phase 3), every-AI-surface-is-gated and offline usage integration (Phase 5), limits server wiring (Phase 6), model product presentation and the offline shell mirror (Phase 7), notification settings and "nobody can be charged" (Phase 9), the public security claims page and the MFA challenge gate (Phase 3 decides whether the challenge screen returns; the assurance middleware on server functions is untouched and still fails closed).
+
 ## New final product
 
 Primary customer destinations:
@@ -113,6 +127,6 @@ Ponytail controls engineering behavior. Caveman compresses chat output only. Cor
 
 ## Next action
 
-`PLAN.md` Phase 2 — rebuild the minimal shell and routing. Rewire the 42 files with dangling imports, rebuild `__root.tsx`, the shell, `/` as Chat, `/library`, `/cowork`, `/about`, `/help`, `/terms`, `/privacy`, the auth shell and the reduced admin surface, then bring typecheck, lint and build back to green.
+`PLAN.md` Phase 3 — authentication rebuild. Rebuild `/auth` (821 lines) around Supabase Auth only: Continue with Google, email 6-digit OTP, phone OTP with an international country picker, safe redirects, enumeration-resistant errors, bounded resend/backoff. Decide whether the MFA challenge screen returns and re-author the auth surface tests deleted in Phase 2.
 
 Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.

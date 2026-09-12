@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PublicPage } from "@/components/public/PublicPage";
+import { PublicPage } from "@/components/shell/PublicPage";
 import { PrivacyContent } from "@/components/legal/LegalContent";
 import { PRIVACY_META } from "@/components/legal/legal-document-meta";
 
 export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
-      { title: "Privacy notice — OCADE" },
+      { title: "Privacy Policy — OCADE" },
       {
         name: "description",
-        content: "Current Privacy notice for OCADE by CARCC CADANE, effective 25 August 2026.",
+        content: "How OCADE by CARCC CADANE collects, stores and deletes your data.",
       },
     ],
   }),
@@ -18,12 +18,10 @@ export const Route = createFileRoute("/privacy")({
 
 function PrivacyPage() {
   return (
-    <PublicPage
-      eyebrow={PRIVACY_META.eyebrow}
-      title={PRIVACY_META.title}
-      summary={PRIVACY_META.summary}
-    >
-      <PrivacyContent />
+    <PublicPage title="Privacy Policy" intro={PRIVACY_META.summary} backToTop>
+      <div className="space-y-4 text-sm leading-6 text-muted-foreground [&_h2]:mt-8 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-foreground [&_h3]:mt-6 [&_h3]:text-sm [&_h3]:font-medium [&_h3]:text-foreground [&_li]:mt-1.5 [&_p]:mt-3 [&_ul]:list-disc [&_ul]:pl-5">
+        <PrivacyContent />
+      </div>
     </PublicPage>
   );
 }

@@ -86,7 +86,7 @@ When exhausted, block new AI generation everywhere, including Offline Intelligen
 
 ## Phase 6 — Online OCADE through Gemini
 
-Online Chat uses the pinned OCADE online model through one server boundary. Create/use exactly three Supabase Edge Function secrets: `GEMINI_API_KEY_PRIMARY`, `GEMINI_API_KEY_SECONDARY`, `GEMINI_API_KEY_TERTIARY`. Never put them in normal database tables, logs or client bundles.
+Online Chat uses the pinned OCADE online model — Gemini 3.1 Flash-Lite — through one server boundary. Create/use exactly three Supabase Edge Function secrets: `GEMINI_API_KEY_PRIMARY`, `GEMINI_API_KEY_SECONDARY`, `GEMINI_API_KEY_TERTIARY`. Never put them in normal database tables, logs or client bundles.
 
 Use primary-first routing. Key-local 401/403 may fail over before output, bounded pre-output transport/5xx retry/failover is allowed, 429 must not rotate to evade shared project quota, and no slot failover occurs after output begins. Customer UI calls the service only `OCADE`.
 

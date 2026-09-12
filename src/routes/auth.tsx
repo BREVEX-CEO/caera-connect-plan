@@ -11,7 +11,6 @@ import { Mail, Phone, KeyRound, Loader2, Eye, EyeOff } from "lucide-react";
  */
 import { getSupabaseBrowserConfiguration } from "@/integrations/supabase/configuration";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
-import { lovable } from "@/integrations/lovable";
 import { LegalDialog } from "@/components/legal/LegalDialog";
 import { AuthShell } from "@/components/shell/AuthShell";
 import { OTP_SENT_NOTICE, friendlyOtpError } from "@/lib/auth/otp";
@@ -110,20 +109,27 @@ function AuthPage() {
     setError(null);
     setErrorHint(null);
     try {
-      const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: `${window.location.origin}/auth/callback${
-          nextPath !== DEFAULT_NEXT ? `?next=${encodeURIComponent(nextPath)}` : ""
-        }`,
+      /*
+       * Supabase is the only identity authority — `docs/DECISIONS.md` #25.
+       * The provider handshake used to go through a third-party auth wrapper,
+       * which meant a second place that knew how to create a session.
+       */
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback${
+            nextPath !== DEFAULT_NEXT ? `?next=${encodeURIComponent(nextPath)}` : ""
+          }`,
+        },
       });
-      if (result.error) {
-        const friendly = describeOAuthError(provider, result.error.message);
+      if (oauthError) {
+        const friendly = describeOAuthError(provider, oauthError.message);
         setError(friendly.message);
         setErrorHint(friendly.hint ?? null);
         setBusy(false);
         return;
       }
-      if (result.redirected) return;
-      navigate({ to: nextPath, replace: true });
     } catch (e) {
       const friendly = describeOAuthError(provider, e);
       setError(friendly.message);
@@ -520,17 +526,6 @@ function AuthPage() {
             {notice}
           </div>
         ) : null}
-
-        <Link
-          to="/blog/$slug"
-          params={{ slug: "why-ocade-starts-local" }}
-          className="rounded-md border border-border/60 bg-background/35 px-3 py-2.5 text-xs hover:border-primary/35"
-        >
-          <span className="block font-medium text-foreground">Why OCADE starts local</span>
-          <span className="mt-1 block text-muted-foreground">
-            Read the product note before deciding whether to sign in or create an account.
-          </span>
-        </Link>
 
         {/*
           RETURNING OR JOINING — asked once, plainly, before anything is sent.

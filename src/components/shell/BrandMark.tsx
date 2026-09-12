@@ -1,40 +1,32 @@
 import { cn } from "@/lib/utils";
 
-/** Compact, accessible lockup built from the official supplied OCADE mark. */
+/** The supplied OCADE mark, optionally with its wordmark. */
 export function BrandMark({
   className,
-  showWordmark = true,
+  showWordmark = false,
 }: {
   className?: string;
-  /** Hide the text lockup where the mark stands alone (rail, compact header). */
+  /** The rail shows the mark alone; public pages show the full lockup. */
   showWordmark?: boolean;
 }) {
   return (
-    <div
-      className={cn("ocade-brand-lockup inline-flex items-center gap-2.5", className)}
+    <span
+      className={cn("inline-flex items-center gap-2.5", className)}
       aria-label="OCADE by CARCC CADANE"
     >
-      <span className="ocade-brand-mark relative grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-[10px]">
-        <img
-          src="/brand/ocade-carcc-mark.png"
-          alt=""
-          width={32}
-          height={32}
-          className="h-full w-full object-cover"
-          decoding="async"
-        />
-      </span>
-
+      <img
+        src="/brand/ocade-carcc-mark.png"
+        alt=""
+        width={28}
+        height={28}
+        className="h-7 w-7 shrink-0 rounded-md object-cover"
+        decoding="async"
+      />
       {showWordmark ? (
-        <div className="flex flex-col leading-none">
-          <span className="text-[15px] font-semibold uppercase tracking-[0.22em] text-foreground">
-            OCADE
-          </span>
-          <span className="mt-1 text-[8px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
-            By CARCC CADANE
-          </span>
-        </div>
+        <span className="text-[13px] font-semibold uppercase tracking-[0.2em] text-foreground">
+          OCADE
+        </span>
       ) : null}
-    </div>
+    </span>
   );
 }

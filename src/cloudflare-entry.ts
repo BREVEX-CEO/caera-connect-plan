@@ -3,8 +3,6 @@ import "#nitro/virtual/polyfills";
 import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import { useNitroApp as getNitroApp, useNitroHooks as getNitroHooks } from "nitro/app";
 
-import { evaluateLaunchGate } from "./lib/launch/launch-window";
-import { PRELAUNCH_PUBLIC_ASSET_PATHS, prelaunchResponse } from "./lib/launch/prelaunch-response";
 import { withPublicSecurityHeaders } from "./lib/security/public-response";
 
 type WaitUntilContext = {
@@ -56,44 +54,14 @@ function augmentRequest(
   runtimeRequest.waitUntil = context.waitUntil.bind(context);
 }
 
-function publicAssetResponse(response: Response, pathname: string): Response {
-  const headers = new Headers(response.headers);
-  headers.set("x-robots-tag", "index, follow, max-image-preview:large");
-  headers.set("x-ocade-launch-state", "prelaunch-public-information");
-  return withPublicSecurityHeaders(
-    new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    }),
-    pathname,
-  );
-}
-
-function lockedAssetResponse(
-  pathname: string,
-  gate: ReturnType<typeof evaluateLaunchGate>,
-): Response {
-  const response = prelaunchResponse(pathname, gate);
-  const headers = new Headers(response.headers);
-  headers.set("x-ocade-edge-gate", "asset-v1");
-  return withPublicSecurityHeaders(
-    new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    }),
-    pathname,
-  );
-}
-
 /**
  * Outermost Cloudflare entrypoint.
  *
- * While the launch gate is locked, this boundary owns every public request.
- * Only the explicit public information surface and deployment-health probe may
- * escape the lock. No authenticated route, application HTML or hashed bundle
- * may fall through to Nitro before launch.
+ * It answers static assets from the ASSETS binding and hands everything else to
+ * Nitro. It used to hold a launch gate in front of both, which answered every
+ * public request with a pre-launch page until a date and a readiness flag
+ * agreed. The product is launched; a gate that is permanently open is a branch
+ * nobody exercises and a second place that decides what the public may see.
  */
 
 /**
@@ -135,35 +103,13 @@ export default {
     augmentRequest(request, env, context);
 
     const url = new URL(request.url);
-    const gate = evaluateLaunchGate({
-      now: Date.now(),
-      hostname: url.hostname,
-      env,
-    });
-    const isGetOrHead = request.method === "GET" || request.method === "HEAD";
 
     if (env.ASSETS && isPublicAssetURL(url.pathname)) {
-      const mayReadPublicAsset = isGetOrHead && PRELAUNCH_PUBLIC_ASSET_PATHS.has(url.pathname);
-
-      if (!gate.open && !mayReadPublicAsset) {
-        return lockedAssetResponse(url.pathname, gate);
-      }
-
       const response = await env.ASSETS.fetch(request);
-      return gate.open
-        ? withPublicSecurityHeaders(withModelArtifactHeaders(url.pathname, response), url.pathname)
-        : publicAssetResponse(response, url.pathname);
-    }
-
-    if (!gate.open) {
-      // Keep the immutable deployment-health probe reachable while locked.
-      if (isGetOrHead && url.pathname === "/api/health") {
-        return nitroApp.fetch(request);
-      }
-
-      // Public Home/Privacy/Terms/company/founder/product/robots/sitemap are
-      // answered by prelaunchResponse; every other route receives 503.
-      return withPublicSecurityHeaders(prelaunchResponse(url.pathname, gate), url.pathname);
+      return withPublicSecurityHeaders(
+        withModelArtifactHeaders(url.pathname, response),
+        url.pathname,
+      );
     }
 
     return nitroApp.fetch(request);

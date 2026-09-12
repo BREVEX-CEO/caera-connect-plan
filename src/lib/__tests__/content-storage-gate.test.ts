@@ -72,7 +72,7 @@ describe("it catches a new browser store", () => {
 describe("what it deliberately does not flag", () => {
   it("passes a declared device store", () => {
     const root = tree({
-      "src/lib/theme-provider.tsx": 'export const t = () => localStorage.getItem("theme");',
+      "src/lib/appearance.tsx": 'export const t = () => localStorage.getItem("theme");',
     });
     const result = runGate(root);
     expect(result.status).toBe(0);

@@ -31,8 +31,8 @@
  * all come from the server, which clamps whatever arrives.
  */
 import { toast } from "sonner";
-import { estimateTokens } from "@/lib/prompt/compile";
-import { getOfflineCurrentDeviceIdentity } from "@/lib/devices";
+import { estimateTokens } from "./token-estimate";
+import { getOfflineCurrentDeviceIdentity } from "./device-identity";
 import { observeNow, readTrustedClockHighWater } from "@/lib/time/trusted-clock";
 import {
   acquireGenerationPermit,

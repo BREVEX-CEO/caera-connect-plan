@@ -22,7 +22,7 @@ vi.mock("sonner", () => ({
   toast: { error: mocks.toastError },
 }));
 
-vi.mock("@/lib/devices", () => ({
+vi.mock("../device-identity", () => ({
   getOfflineCurrentDeviceIdentity: mocks.offlineIdentity,
 }));
 

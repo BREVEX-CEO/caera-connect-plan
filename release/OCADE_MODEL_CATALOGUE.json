@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-24T14:07:10.352Z",
+  "generatedBy": "scripts/resolve-browser-catalogue.mjs",
+  "provenance": "Sizes and SHA-256 digests were READ from each publisher's own file index at the time above and committed here. Nothing is hand-typed. The digest protects against a truncated, corrupted or substituted transfer; it is not an independent attestation of the weights themselves, and pinning it at review time is what gives it force.",
+  "entries": [
+    {
+      "id": "wasm-qwen2.5-1.5b-instruct-q4_k_m",
+      "label": "OCADE Browser (compatibility)",
+      "repo": "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+      "path": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "sizeBytes": 1117320736,
+      "sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+      "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf?download=true"
+    }
+  ]
+}

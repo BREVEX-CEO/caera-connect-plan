@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { PublicSection } from "@/components/public/PublicPage";
+import { PublicSection } from "@/components/shell/PublicPage";
 
 export function TermsContent() {
   return (
@@ -348,8 +348,8 @@ export function TermsContent() {
         </p>
         <p>
           Visit the{" "}
-          <Link to="/support" className="text-foreground underline">
-            Support page
+          <Link to="/help" className="text-foreground underline">
+            Help page
           </Link>{" "}
           for the current contact status. Dedicated support, privacy, legal, security and investor
           domain email channels may be published later only after they are activated and verified.
@@ -536,8 +536,8 @@ export function PrivacyContent() {
           Privacy, security and grievance requests use the OCADE ticket system while dedicated
           domain email channels are being established. Dedicated email addresses will be published
           only after they are activated and verified. Visit the{" "}
-          <Link to="/support" className="text-foreground underline">
-            Support page
+          <Link to="/help" className="text-foreground underline">
+            Help page
           </Link>{" "}
           for current contact status.
         </p>

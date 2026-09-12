@@ -18,45 +18,45 @@
  *   node scripts/measure-loc.mjs --by-dir   # summary plus per top-level totals
  */
 
-import { execFileSync } from 'node:child_process';
-import { readFileSync, statSync } from 'node:fs';
-import path from 'node:path';
+import { execFileSync } from "node:child_process";
+import { readFileSync, statSync } from "node:fs";
+import path from "node:path";
 
 const INCLUDED_EXTENSIONS = new Set([
-  '.ts',
-  '.tsx',
-  '.mts',
-  '.cts',
-  '.js',
-  '.jsx',
-  '.mjs',
-  '.cjs',
-  '.css',
-  '.sql',
-  '.rs',
-  '.py',
-  '.java',
-  '.kt',
-  '.swift',
-  '.html',
-  '.sh',
+  ".ts",
+  ".tsx",
+  ".mts",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".css",
+  ".sql",
+  ".rs",
+  ".py",
+  ".java",
+  ".kt",
+  ".swift",
+  ".html",
+  ".sh",
 ]);
 
 const EXCLUDED_PATH_PREFIXES = [
-  'node_modules/',
-  'dist/',
-  'build/',
-  'docs/design-references/',
-  'vendor/',
+  "node_modules/",
+  "dist/",
+  "build/",
+  "docs/design-references/",
+  "vendor/",
 ];
 
-const EXCLUDED_FILES = new Set(['src/routeTree.gen.ts', 'src/integrations/supabase/types.ts']);
+const EXCLUDED_FILES = new Set(["src/routeTree.gen.ts", "src/integrations/supabase/types.ts"]);
 
-const EXCLUDED_SUFFIXES = ['.gen.ts', '.gen.tsx', '.d.ts'];
+const EXCLUDED_SUFFIXES = [".gen.ts", ".gen.tsx", ".d.ts"];
 
 function trackedFiles() {
-  const out = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8', maxBuffer: 1024 ** 3 });
-  return out.split('\0').filter(Boolean);
+  const out = execFileSync("git", ["ls-files", "-z"], { encoding: "utf8", maxBuffer: 1024 ** 3 });
+  return out.split("\0").filter(Boolean);
 }
 
 function isIncluded(file) {
@@ -75,7 +75,7 @@ function countLines(file) {
     return 0;
   }
   if (!stats.isFile()) return 0;
-  const text = readFileSync(file, 'utf8');
+  const text = readFileSync(file, "utf8");
   if (text.length === 0) return 0;
   let lines = 0;
   for (let i = 0; i < text.length; i += 1) {
@@ -92,7 +92,7 @@ let totalLines = 0;
 for (const file of files) {
   const lines = countLines(file);
   totalLines += lines;
-  const top = file.includes('/') ? file.slice(0, file.indexOf('/')) : '.';
+  const top = file.includes("/") ? file.slice(0, file.indexOf("/")) : ".";
   const entry = perDir.get(top) ?? { files: 0, lines: 0 };
   entry.files += 1;
   entry.lines += lines;
@@ -100,7 +100,7 @@ for (const file of files) {
 }
 
 const summary = {
-  method: 'git ls-files, approved source extensions, generated/vendor/reference excluded',
+  method: "git ls-files, approved source extensions, generated/vendor/reference excluded",
   extensions: [...INCLUDED_EXTENSIONS].sort(),
   excludedPrefixes: EXCLUDED_PATH_PREFIXES,
   excludedSuffixes: EXCLUDED_SUFFIXES,
@@ -109,17 +109,17 @@ const summary = {
   totalLines,
 };
 
-if (process.argv.includes('--json')) {
-  const byDir = Object.fromEntries(
-    [...perDir.entries()].sort((a, b) => b[1].lines - a[1].lines)
-  );
+if (process.argv.includes("--json")) {
+  const byDir = Object.fromEntries([...perDir.entries()].sort((a, b) => b[1].lines - a[1].lines));
   process.stdout.write(`${JSON.stringify({ ...summary, byDir }, null, 2)}\n`);
 } else {
   process.stdout.write(`files: ${summary.totalFiles}\nlines: ${summary.totalLines}\n`);
-  if (process.argv.includes('--by-dir')) {
+  if (process.argv.includes("--by-dir")) {
     const rows = [...perDir.entries()].sort((a, b) => b[1].lines - a[1].lines);
     for (const [dir, entry] of rows) {
-      process.stdout.write(`  ${dir.padEnd(24)} ${String(entry.files).padStart(6)} files ${String(entry.lines).padStart(9)} lines\n`);
+      process.stdout.write(
+        `  ${dir.padEnd(24)} ${String(entry.files).padStart(6)} files ${String(entry.lines).padStart(9)} lines\n`,
+      );
     }
   }
 }

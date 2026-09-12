@@ -8,18 +8,17 @@ import {
 } from "../adapter";
 import { BROWSER_SAMPLER } from "@/lib/brain/sampler-settings";
 import {
-  chooseBrowserTier,
+  OFFLINE_MODEL,
+  expectedSha256,
   formatSize,
-  ggufUrl,
-  sameOriginGgufUrl,
-  storageKeyFor,
-  sha256For,
-  resolvedFor,
-  type BrowserModelTier,
-} from "../browser-catalogue";
+  publisherUrl,
+  resolved,
+  sameOriginUrl,
+  storageKey,
+  type OfflineModel,
+} from "../model-catalogue";
 import { modelStore, ModelStore } from "../model-store";
 import { downloadModel, preferredWeightsUrl } from "../model-download";
-import { loadBenchmark, recordBenchmark, recordTierFailure } from "../tier-benchmark-store";
 import {
   planThreads,
   readThreadSignals,
@@ -74,7 +73,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
 
   private instance: WllamaInstance | null = null;
   private loadedRepo: string | null = null;
-  private cachedTier: BrowserModelTier | null = null;
+  private cachedModel: OfflineModel | null = null;
   private readonly onProgress?: (p: WasmProgress) => void;
   private readonly weightsProvider?: () => Promise<Blob | null>;
   private readonly preferThreads: boolean;
@@ -131,9 +130,9 @@ export class BrowserWasmAdapter implements BrainAdapter {
      * Storage, not memory, is the binding constraint for this engine: the
      * weights are cached so a reload does not re-download them. A browser that
      * refuses to say how much room it has is not treated as full — it is
-     * treated as unknown, and the smallest tier is used.
+     * treated as unknown, and preparation goes ahead.
      */
-    const { tier } = chooseBrowserTier("wasm", null, loadBenchmark("wasm"));
+    const model = OFFLINE_MODEL;
     let quotaBytes: number | null = null;
     try {
       const estimate = await navigator.storage?.estimate?.();
@@ -143,32 +142,32 @@ export class BrowserWasmAdapter implements BrainAdapter {
     } catch {
       quotaBytes = null;
     }
-    if (quotaBytes !== null && quotaBytes < tier.downloadBytes) {
+    if (quotaBytes !== null && quotaBytes < model.downloadBytes) {
       return unavailable(
         "insufficient_storage",
         `OCADE's compatibility engine needs about ${formatSize(
-          tier.downloadBytes,
+          model.downloadBytes,
         )} and this browser will only allow ${formatSize(quotaBytes)}.`,
         ["free_storage"],
       );
     }
 
-    this.cachedTier = tier;
+    this.cachedModel = model;
     return {
       available: true,
-      label: tier.label,
+      label: model.label,
       locality: "on_device",
-      modelId: storageKeyFor(tier),
-      thinkingSuitable: tier.thinkingSuitable,
+      modelId: storageKey(),
+      thinkingSuitable: model.thinkingSuitable,
       capabilities: { text: true, vision: false, imageGeneration: false, tools: false },
     };
   }
 
-  plan(): { tier: BrowserModelTier; downloadLabel: string; multiThreaded: boolean } | null {
-    if (!this.cachedTier) return null;
+  plan(): { model: OfflineModel; downloadLabel: string; multiThreaded: boolean } | null {
+    if (!this.cachedModel) return null;
     return {
-      tier: this.cachedTier,
-      downloadLabel: formatSize(this.cachedTier.downloadBytes),
+      model: this.cachedModel,
+      downloadLabel: formatSize(this.cachedModel.downloadBytes),
       /*
        * The real decision, not merely "SharedArrayBuffer exists". It can exist
        * on a page that is not isolated, where the threaded build cannot use it
@@ -199,7 +198,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
       if (!availability.available) return;
       const chosen = this.plan();
       if (!chosen) return;
-      await this.ensureLoaded(chosen.tier);
+      await this.ensureLoaded(chosen.model);
     } catch {
       /* A browser that cannot warm up can still be told so when it is used. */
     }
@@ -220,7 +219,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
     if (!availability.available) throw new Error(availability.reason);
     const chosen = this.plan();
     if (!chosen) throw new Error("No processor engine was selected for this device.");
-    await this.ensureLoaded(chosen.tier);
+    await this.ensureLoaded(chosen.model);
   }
 
   /**
@@ -288,8 +287,8 @@ export class BrowserWasmAdapter implements BrainAdapter {
     return this.threadOutcome;
   }
 
-  private async ensureLoaded(tier: BrowserModelTier): Promise<WllamaInstance> {
-    const key = storageKeyFor(tier);
+  private async ensureLoaded(model: OfflineModel): Promise<WllamaInstance> {
+    const key = storageKey();
     if (this.instance && this.loadedRepo === key) return this.instance;
     if (this.instance) await this.dispose();
 
@@ -354,9 +353,9 @@ export class BrowserWasmAdapter implements BrainAdapter {
      * transfer, and could not delete it from a settings page. Storage the
      * product cannot see is storage the product cannot be honest about.
      */
-    const url = ggufUrl(tier);
+    const url = publisherUrl();
     if (!key || !url) {
-      throw new Error("This browser tier has no model file configured.");
+      throw new Error("Offline Intelligence has no model file configured.");
     }
 
     /*
@@ -396,16 +395,16 @@ export class BrowserWasmAdapter implements BrainAdapter {
       const alreadyVerified = stored?.verified === true && (await modelStore.sizeOf(key)) > 0;
       const source = alreadyVerified
         ? { url, local: false }
-        : await preferredWeightsUrl(sameOriginGgufUrl(tier), url);
+        : await preferredWeightsUrl(sameOriginUrl(), url);
       const download = await downloadModel({
         key,
         url: source.url,
-        expectedBytes: tier.downloadBytes,
-        sha256: sha256For(tier),
+        expectedBytes: model.downloadBytes,
+        sha256: expectedSha256(),
         onProgress: (p) =>
           this.onProgress?.({
             fraction: p.fraction,
-            text: `Downloading ${tier.label}`,
+            text: `Downloading ${model.label}`,
           }),
       });
       if (!download.ok) throw new Error(download.reason);
@@ -417,8 +416,8 @@ export class BrowserWasmAdapter implements BrainAdapter {
     } else {
       // No OPFS: fall back to the library's own fetch so the engine still
       // works, accepting that it cannot be managed from Settings.
-      const entry = resolvedFor(tier);
-      if (!entry) throw new Error("This browser tier has no model file configured.");
+      const entry = resolved();
+      if (!entry) throw new Error("Offline Intelligence has no model file configured.");
       await instance.loadModelFromHF(
         { repo: entry.repo, file: entry.path },
         {
@@ -427,7 +426,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
           progressCallback: ({ loaded, total }: { loaded: number; total: number }) => {
             this.onProgress?.({
               fraction: total > 0 ? loaded / total : null,
-              text: `Downloading ${tier.label}`,
+              text: `Downloading ${model.label}`,
             });
           },
         },
@@ -457,14 +456,14 @@ export class BrowserWasmAdapter implements BrainAdapter {
     if (!availability.available) {
       return { ok: false, failure: "unavailable", reason: availability.reason };
     }
-    const tier = this.cachedTier;
-    if (!tier) {
+    const model = this.cachedModel;
+    if (!model) {
       return { ok: false, failure: "unavailable", reason: "No browser engine was selected." };
     }
 
     let instance: WllamaInstance;
     try {
-      instance = await this.ensureLoaded(tier);
+      instance = await this.ensureLoaded(model);
     } catch (error) {
       return {
         ok: false,
@@ -511,20 +510,12 @@ export class BrowserWasmAdapter implements BrainAdapter {
       if (handlers.signal?.aborted) {
         return { ok: false, failure: "cancelled", reason: "Stopped." };
       }
-      if (firstTokenMs !== null) recordBenchmark("wasm", tier.rank, firstTokenMs);
       return { ok: true, modelId: this.loadedRepo, firstTokenMs };
     } catch (error) {
       const name = error instanceof Error ? error.name : "";
       if (handlers.signal?.aborted || name === "WllamaAbortError" || name === "AbortError") {
         return { ok: false, failure: "cancelled", reason: "Stopped." };
       }
-      /*
-       * A tier that died here must not be offered again — see the matching
-       * note in browser-webgpu.ts. Rank 0 is exempt: there is nothing smaller
-       * to fall back to, and marking the only available engine as failed would
-       * leave the device with none.
-       */
-      if (tier.rank > 0) recordTierFailure("wasm", tier.rank);
       return {
         ok: false,
         failure: "error",

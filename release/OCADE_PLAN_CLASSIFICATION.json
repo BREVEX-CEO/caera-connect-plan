@@ -190,5 +190,17 @@
       "public": 523
     },
     "note": "supabase/migrations (22,259 lines) is reduced in Phase 10; src shrinks further as the shell, styles and settings are rebuilt in Phases 2-9."
+  },
+  "afterPhase2": {
+    "trackedSourceFiles": 562,
+    "trackedSourceLines": 73776,
+    "reductionFromBaselinePercent": 81.5,
+    "byTopLevel": {
+      "src": 43315,
+      "supabase": 22259,
+      "scripts": 6981,
+      "root": 698,
+      "public": 523
+    }
   }
 }

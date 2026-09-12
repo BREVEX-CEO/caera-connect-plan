@@ -31,7 +31,7 @@ Secrets live in Supabase Edge Function/server secret storage, never a normal tab
 
 Primary-first failover is allowed only before output and only for failures another key can reasonably fix. 429 must not rotate to evade project quota. Never restart/fail over after user-visible output begins.
 
-The configured online model remains the checked/pinned OCADE model. Normal UI says `OCADE`, not the provider/model identifier.
+The configured online model is pinned to exactly one identifier, `gemini-3.1-flash-lite`. It is the only model the allowlist accepts; a client-supplied model is refused. Changing it requires an explicit owner decision with corresponding tests and documents. Normal UI says `OCADE`, never the provider/model identifier.
 
 ## Offline Intelligence
 

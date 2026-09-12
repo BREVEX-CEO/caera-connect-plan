@@ -11,7 +11,7 @@
  * neutralised/labelled, but legitimate text is never silently discarded.
  */
 
-import { partiallySanitizeUnicode } from "@/primary-logic/text/sanitization";
+import { partiallySanitizeUnicode } from "@/lib/security/unicode-sanitization";
 
 export type InjectionRisk = "none" | "low" | "high";
 

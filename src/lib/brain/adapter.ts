@@ -1,11 +1,11 @@
 /**
  * The OCADE Brain adapter contract.
  *
- * ONE interface, five ways of running a model: the desktop engine behind an
- * authenticated bridge, a paired desktop reached over the network, WebGPU in
- * the browser, WebAssembly in the browser, and a native model on a phone.
- * The chat screen must not know which of those answered — if it does, every
- * future engine becomes a UI change too.
+ * ONE interface, one way of running a model: WebAssembly in the browser, over
+ * the artifact OCADE installs and verifies itself. It described five ways
+ * once — a desktop bridge, a paired desktop, WebGPU, WebAssembly and a native
+ * mobile engine — and four of them belonged to products that no longer exist.
+ * The interface survives because Chat must still not know what answered.
  *
  * WHAT AN ADAPTER MUST GUARANTEE
  *
@@ -23,22 +23,10 @@
  *    product's central promise expressed as a type.
  */
 
-export type AdapterId =
-  | "desktop_bridge"
-  | "paired_desktop"
-  | "browser_webgpu"
-  | "browser_wasm"
-  | "mobile_native"
-  | "cloud";
+export type AdapterId = "browser_wasm";
 
 /** Where computation physically happens. Drives the badge and the promise. */
-export type AdapterLocality =
-  /** This machine, this process. */
-  | "on_device"
-  /** Another machine the user owns, reached directly. Still not a service. */
-  | "paired_device"
-  /** Someone else's servers. */
-  | "remote";
+export type AdapterLocality = "on_device";
 
 export interface AdapterCapabilities {
   text: boolean;
@@ -53,7 +41,6 @@ export interface AdapterCapabilities {
 export type UnavailableCode =
   | "not_installed"
   | "not_running"
-  | "not_paired"
   | "unsupported_device"
   | "insufficient_memory"
   | "insufficient_storage"
@@ -62,13 +49,7 @@ export type UnavailableCode =
   | "probe_failed";
 
 /** A remedy the UI can render as a real button. */
-export type RemedyAction =
-  | "install_ocade"
-  | "pair_a_computer"
-  | "download_model"
-  | "start_engine"
-  | "free_storage"
-  | "enable_in_settings";
+export type RemedyAction = "download_model" | "free_storage" | "enable_in_settings";
 
 export interface AdapterUnavailable {
   available: false;
@@ -182,10 +163,7 @@ export function unavailable(
 
 /** Human sentence for a remedy, so every surface words it the same way. */
 export const REMEDY_LABELS: Record<RemedyAction, string> = {
-  install_ocade: "Install OCADE",
-  pair_a_computer: "Pair a computer",
-  download_model: "Download the engine",
-  start_engine: "Start the engine",
+  download_model: "Prepare Offline Intelligence",
   free_storage: "Free up storage",
-  enable_in_settings: "Enable in settings",
+  enable_in_settings: "Enable in Settings",
 };

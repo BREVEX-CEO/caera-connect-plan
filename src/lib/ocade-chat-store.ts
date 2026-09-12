@@ -19,15 +19,9 @@
  * — in this tab's memory, never on disk — is shown as unsynchronised, warns
  * before it is lost, and uploads exactly once when the connection returns.
  *
- * INCOGNITO WRITES NOTHING AT ALL, and that is decided here rather than at the
- * call sites. A privacy guarantee spread across nine `if`s holds until somebody
- * adds a tenth.
  */
 import { appendOcadeMessage, listMessages } from "./ocade.functions";
-import { mayPersist, type IncognitoAwarePersistTarget } from "./chat/incognito";
 import { rememberUnsyncedTurn, unsyncedTurns } from "./chat/unsynced-turns";
-import { citationsFrom, type Citation } from "./ocade-citations";
-import type { ChatReaction } from "@/components/ocade/chat/chat-types";
 
 export interface ChatAttachmentMeta {
   kind: "image" | "file";
@@ -46,15 +40,6 @@ export interface ChatMessageRecord {
   provider_id?: string | null;
   created_at: string;
   /**
-   * The evidence recorded for this answer, and the reader's own feedback on it.
-   *
-   * Both are carried on the message rather than looked up separately: they used
-   * to live in the browser with their own copies of the conversation and
-   * message ids, and a deleted conversation left them behind.
-   */
-  citations?: Citation[] | null;
-  reaction?: ChatReaction | null;
-  /**
    * True while this turn exists only in the open tab.
    *
    * Carried on the record so the transcript can mark it without a second
@@ -63,7 +48,16 @@ export interface ChatMessageRecord {
   unsynced?: boolean;
 }
 
-export type PersistTarget = IncognitoAwarePersistTarget;
+/**
+ * Where a turn ended up.
+ *
+ * `cloud` is saved; `unsynced` is held in this tab because the account could
+ * not be reached. There used to be a third, `not_stored`, for an incognito
+ * turn — the mode is gone with the privacy-mode question it answered, and the
+ * two remaining states still need different sentences: "it is saved" and "it
+ * is not saved yet and closing this tab discards it".
+ */
+export type PersistTarget = "cloud" | "unsynced";
 
 export interface PersistResult {
   stored: PersistTarget;
@@ -86,11 +80,8 @@ function newClientKey(): string {
 /**
  * Persist one message.
  *
- * Returns `not_stored` for an incognito turn, `cloud` when the row exists, and
- * `unsynced` when it is waiting in memory. None of the three is an error and
- * the interface must tell them apart: "we deliberately kept nothing", "it is
- * saved", and "it is not saved yet and you will lose it if you close this tab"
- * need three different sentences.
+ * Returns `cloud` when the row exists and `unsynced` when it is waiting in this
+ * tab's memory. Neither is an error, and the interface must tell them apart.
  */
 export async function persistChatMessage(input: {
   conversationId: string;
@@ -99,7 +90,6 @@ export async function persistChatMessage(input: {
   modelId?: string | null;
   providerId?: string | null;
   attachments?: ChatAttachmentMeta[];
-  incognito?: boolean;
 }): Promise<PersistResult> {
   const createdAt = new Date().toISOString();
   const clientKey = newClientKey();
@@ -113,15 +103,6 @@ export async function persistChatMessage(input: {
     provider_id: input.providerId ?? null,
     created_at: createdAt,
   };
-
-  if (!mayPersist(Boolean(input.incognito))) {
-    /*
-     * Returned, not written. The record is still built and handed back because
-     * the screen renders from it — the message is real, it is on screen, and it
-     * is nowhere else.
-     */
-    return { stored: "not_stored", record };
-  }
 
   try {
     const row = (await appendOcadeMessage({
@@ -167,27 +148,10 @@ export async function persistChatMessage(input: {
 export async function loadChatMessages(input: {
   conversationId: string;
 }): Promise<ChatMessageRecord[]> {
-  /*
-   * Narrowed on the way out. `citations` is a `jsonb` column and `reaction` is
-   * text, so both hold whatever was written to them — including a shape an
-   * older version of OCADE wrote. A malformed citation is dropped rather than
-   * rendered as a card with no source, and an unrecognised reaction reads as no
-   * feedback rather than as a control the interface cannot show.
-   */
-  const rows =
+  const remote =
     ((await listMessages({
       data: { conversationId: input.conversationId },
-    })) as unknown as Array<
-      Omit<ChatMessageRecord, "citations" | "reaction"> & {
-        citations?: unknown;
-        reaction?: unknown;
-      }
-    >) ?? [];
-  const remote: ChatMessageRecord[] = rows.map((row) => ({
-    ...row,
-    citations: row.citations ? citationsFrom(row.citations) : null,
-    reaction: row.reaction === "helpful" || row.reaction === "not_helpful" ? row.reaction : null,
-  }));
+    })) as unknown as ChatMessageRecord[]) ?? [];
 
   const waiting = unsyncedTurns()
     .filter((turn) => turn.conversationId === input.conversationId)

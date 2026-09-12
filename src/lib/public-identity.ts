@@ -23,7 +23,7 @@ export function organizationStructuredData(now: number = Date.now()) {
     "@id": "https://ocade.in/#organization",
     name: PUBLIC_IDENTITY.brand,
     alternateName: [PUBLIC_IDENTITY.brandAlternateName, PUBLIC_IDENTITY.tagline],
-    url: "https://ocade.in/company",
+    url: "https://ocade.in/about",
     logo: "https://ocade.in/brand/ocade-carcc-mark.png",
     image: "https://ocade.in/brand/ocade-carcc-wordmark.png",
     slogan: PUBLIC_IDENTITY.tagline,
@@ -36,7 +36,7 @@ export function organizationStructuredData(now: number = Date.now()) {
       name: PUBLIC_IDENTITY.founder,
       alternateName: PUBLIC_IDENTITY.founderAlternateName,
       jobTitle: PUBLIC_IDENTITY.founderRoles,
-      url: "https://ocade.in/founder/haans-antoni",
+      url: "https://ocade.in/about",
     },
   };
 }
@@ -50,7 +50,7 @@ export const FOUNDER_STRUCTURED_DATA = {
     name: PUBLIC_IDENTITY.founder,
     alternateName: PUBLIC_IDENTITY.founderAlternateName,
     jobTitle: PUBLIC_IDENTITY.founderRoles,
-    url: "https://ocade.in/founder/haans-antoni",
+    url: "https://ocade.in/about",
     worksFor: {
       "@type": "Organization",
       "@id": "https://ocade.in/#organization",
@@ -79,7 +79,7 @@ export const OCADE_STRUCTURED_DATA = {
   "@id": "https://ocade.in/#ocade",
   name: PUBLIC_IDENTITY.product,
   alternateName: "Ocade",
-  url: "https://ocade.in/products/ocade",
+  url: "https://ocade.in/",
   applicationCategory: "ProductivityApplication",
   operatingSystem: "Web, Windows, macOS, Android, iOS",
   author: {

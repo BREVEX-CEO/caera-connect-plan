@@ -44,7 +44,7 @@ const MODEL_DIRECTORY = "ocade-models";
 function signOutBlock(): string {
   const start = ROOT.indexOf('if (event === "SIGNED_OUT") {');
   expect(start, "the SIGNED_OUT branch was not found in the root shell").toBeGreaterThan(0);
-  const end = ROOT.indexOf('if (event !== "SIGNED_OUT")', start);
+  const end = ROOT.indexOf("router.invalidate()", start);
   expect(end, "the end of the SIGNED_OUT branch was not found").toBeGreaterThan(start);
   return ROOT.slice(start, end);
 }
@@ -54,7 +54,6 @@ describe("signing out", () => {
     const block = signOutBlock();
 
     // What it IS allowed to forget: this tab's own scratch state.
-    expect(block).toContain("forgetAllQueues()");
     expect(block).toContain("forgetAllUnsyncedTurns()");
 
     /*

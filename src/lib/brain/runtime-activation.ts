@@ -24,7 +24,7 @@ import type { CapabilityPath } from "./installation-authority";
 import type { BrainAdapter } from "./adapter";
 import { modelVault } from "./model-vault";
 import { recordInstallEvent } from "./install-telemetry";
-import { WASM_TIERS, WEBGPU_TIERS, type BrowserModelTier } from "./browser-catalogue";
+import { OFFLINE_MODEL } from "./model-catalogue";
 
 export interface RuntimeProgress {
   stage: "downloading" | "loading";
@@ -45,23 +45,6 @@ export function activeRuntime(): { path: CapabilityPath; adapter: BrainAdapter }
   return live ? { path: live.path, adapter: live.adapter } : null;
 }
 
-/**
- * How much of the standard context a reduced-context attempt keeps.
- *
- * Half, because the KV cache is the part that scales with context and it is
- * usually what a constrained device runs out of. It is a REAL retry at a
- * genuinely smaller working set, not the same attempt with a different label —
- * the alternative, declaring the device unsupported on one conservative
- * allocation limit, refuses devices that would have worked.
- */
-export const REDUCED_CONTEXT_FRACTION = 0.5;
-
-export function reducedContextTokens(tier: BrowserModelTier): number {
-  // Kept on a 256-token boundary so the number stays a sensible cache size.
-  const reduced = Math.floor((tier.contextTokens * REDUCED_CONTEXT_FRACTION) / 256) * 256;
-  return Math.max(1024, reduced);
-}
-
 /** Start the runtime for one path. Never starts two. */
 export async function activateRuntimeForPath(
   path: CapabilityPath,
@@ -80,70 +63,14 @@ export async function activateRuntimeForPath(
     live = null;
   }
 
-  switch (path) {
-    case "webgpu":
-    case "webgpu_reduced":
-      return startWebGpu(path, version, report);
-    case "wasm_threaded":
-    case "wasm_single":
-      return startWasm(path, version, report);
-    case "desktop_bridge":
-      return startDesktopBridge(version);
-    case "paired_device":
-      return startPairedDevice(version);
-  }
-}
-
-async function startWebGpu(
-  path: "webgpu" | "webgpu_reduced",
-  version: string,
-  report: (progress: RuntimeProgress) => void,
-): Promise<{ ok: true } | { ok: false; reason: string }> {
-  const tier = WEBGPU_TIERS[0];
-  if (!tier) return { ok: false, reason: "No graphics engine is configured." };
-
-  const { BrowserWebGpuAdapter } = await import("./adapters/browser-webgpu");
-  const { shareAcrossTabs } = await import("./adapters/shared-browser-engine");
-
-  const adapter = new BrowserWebGpuAdapter({
-    /*
-     * The runtime's own wording is deliberately NOT forwarded. Its progress
-     * text names shards and quantisation formats; a person preparing OCADE for
-     * the first time is not debugging a runtime, so the numbers travel and the
-     * vocabulary does not.
-     */
-    onProgress: (p) =>
-      report({
-        stage: p.fraction !== null && p.fraction >= 1 ? "loading" : "downloading",
-        fraction: p.fraction,
-      }),
-    contextTokensOverride: path === "webgpu_reduced" ? reducedContextTokens(tier) : undefined,
-  });
-
-  const probe = await adapter.probe();
-  if (!probe.available) return { ok: false, reason: probe.reason };
-
-  try {
-    const shared = shareAcrossTabs(adapter);
-    await shared.preload?.();
-    live = { path, adapter: shared, version };
-    return { ok: true };
-  } catch (error) {
-    return {
-      ok: false,
-      reason: error instanceof Error ? error.message : "The graphics engine could not start.",
-    };
-  }
+  return startWasm(path, version, report);
 }
 
 async function startWasm(
-  path: "wasm_threaded" | "wasm_single",
+  path: CapabilityPath,
   version: string,
   report: (progress: RuntimeProgress) => void,
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
-  const tier = WASM_TIERS[0];
-  if (!tier) return { ok: false, reason: "No processor engine is configured." };
-
   const { BrowserWasmAdapter } = await import("./adapters/browser-wasm");
 
   const adapter = new BrowserWasmAdapter({
@@ -199,68 +126,25 @@ async function startWasm(
   }
 }
 
-async function startDesktopBridge(
-  version: string,
-): Promise<{ ok: true } | { ok: false; reason: string }> {
-  const { DesktopBridgeAdapter } = await import("./adapters/desktop-bridge");
-  const { devicePolicySnapshot } = await import("../use-device-policy");
-  const adapter = new DesktopBridgeAdapter({ policy: devicePolicySnapshot });
-  const probe = await adapter.probe();
-  if (!probe.available) return { ok: false, reason: probe.reason };
-  try {
-    await adapter.preload?.();
-    live = { path: "desktop_bridge", adapter, version };
-    return { ok: true };
-  } catch (error) {
-    return {
-      ok: false,
-      reason: error instanceof Error ? error.message : "The local engine could not start.",
-    };
-  }
-}
-
-async function startPairedDevice(
-  version: string,
-): Promise<{ ok: true } | { ok: false; reason: string }> {
-  const { PairedDesktopAdapter } = await import("./adapters/paired-desktop");
-  const { pairedCredentials } = await import("./paired-credentials");
-  const adapter = new PairedDesktopAdapter({ credentials: pairedCredentials });
-  const probe = await adapter.probe();
-  if (!probe.available) return { ok: false, reason: probe.reason };
-  live = { path: "paired_device", adapter, version };
-  return { ok: true };
-}
-
 /**
  * An adapter that is whatever the authority has actually started.
  *
- * WHY ROUTING CANNOT JUST BUILD ITS OWN. `use-brain` used to construct a
- * `BrowserWebGpuAdapter` and a `BrowserWasmAdapter` inside a `useMemo` and hand
- * them to the router. The authority now constructs the one it actually starts.
- * Leaving both in place would mean two adapter instances per tab — and on the
- * WebGPU path that is two copies of the weights resident on the graphics card,
- * which is the exact defect `shared-browser-engine.ts` was written to fix
- * across tabs, reintroduced within a single one.
+ * WHY ROUTING CANNOT JUST BUILD ITS OWN. Chat used to construct an adapter of
+ * its own inside a `useMemo` and hand it to a router. That meant two adapter
+ * instances per tab and, on a device that had actually loaded weights, two
+ * copies of them resident at once.
  *
  * So routing gets this instead: a thin delegate holding no engine of its own.
  * When the authority has a live runtime it forwards to it; when it does not, it
  * reports unavailable with the reason the authority would give. There is
  * exactly one browser engine in a tab, and it is the one the authority chose.
  */
-export function authorityBackedAdapter(id: "browser_webgpu" | "browser_wasm"): BrainAdapter {
-  const matches = (path: CapabilityPath): boolean =>
-    id === "browser_webgpu"
-      ? path === "webgpu" || path === "webgpu_reduced"
-      : path === "wasm_threaded" || path === "wasm_single";
-
-  const current = (): BrainAdapter | null => {
-    const running = activeRuntime();
-    return running && matches(running.path) ? running.adapter : null;
-  };
+export function authorityBackedAdapter(): BrainAdapter {
+  const current = (): BrainAdapter | null => activeRuntime()?.adapter ?? null;
 
   return {
-    id,
-    displayName: id === "browser_webgpu" ? "OCADE Browser" : "OCADE Browser (compatibility)",
+    id: "browser_wasm",
+    displayName: "OCADE Offline Intelligence",
     async probe() {
       const adapter = current();
       if (adapter) return adapter.probe();

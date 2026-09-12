@@ -139,7 +139,7 @@ function ResetPasswordPage() {
       return;
     }
     setDone(true);
-    setTimeout(() => navigate({ to: "/ocade", replace: true }), 1200);
+    setTimeout(() => navigate({ to: "/", replace: true }), 1200);
   }
 
   return (
