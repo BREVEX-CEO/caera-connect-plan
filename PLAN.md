@@ -1,135 +1,351 @@
-# OCADE Final Production-Completion Plan
+# PLAN — OCADE Core Rebuild
 
-## Purpose and authority
+## Goal
 
-This is the sole OCADE implementation plan. It replaces earlier continuation/block plans and incorporates the still-valid requirements from the former `PLAN.md`, Codex plans, mission documents, donor evidence, payment/refund/Admin-grant specification and the current canonical documentation set. Product scope is in `docs/PRD.md`; implementation-level technical requirements in `docs/TRD.md`; routes/journeys in `docs/APP_FLOW.md`; concise experience intent in `docs/UI UX Brief.md`; detailed UI/UX in `docs/DESIGN.md`; system/API/deployment architecture in `docs/ARCHITECTURE.md`; the backend data contract in `docs/Backend Schema.md`; engineering constraints in `docs/RULES.md`; testing in `docs/TESTING.md`; current handoff in `docs/MEMORY.md`; durable decisions in `docs/DECISIONS.md`. Do not create another master plan.
+Replace the current broad product with a smaller OCADE core before touching Cowork/Jarvis.
 
-Work from a fresh fetch of `origin/main` on one isolated completion branch. Preserve unknown work. Do not reset/clean destructively, force-push or rewrite published history. `main` remains untouched until the exact reconciled final tree passes the complete final matrix. Focused phase checks run during implementation; the final merge uses the exact verified tree.
+Final visible core:
 
-Production completion means zero known reproducible repository-controlled defects, no duplicate canonical authorities, every shipped control reachable and truthful, externally unavailable capabilities hidden or precisely unavailable, and the exact tested commit merged and deployed.
+- Chat
+- Library
+- Account → Settings
+- About
+- Help
+- Terms
+- Privacy
 
-## Superseded assumptions
+Cowork remains unavailable/placeholder until this plan is complete. `PLAN2.md` owns its replacement.
 
-Persistent ordinary user content is no longer browser-local-first. IndexedDB, browser/PC vaults, localStorage content stores and persistent offline outboxes are not canonical for chats, projects, tasks, artifacts, memory, notifications or account files. Supabase PostgreSQL and private Supabase Storage become canonical. OPFS is model-only. Temporary unsynchronized local-inference turns may exist only in open-tab RAM with loss warnings and exactly-once sync on reconnection. There is no legacy customer-content migration because there is no production local dataset to preserve.
+## Operating rule
 
-First unseen browser/device visit shows the commercial landing page and may begin Offline Intelligence preparation immediately in the background. Returning authenticated root visits go directly to Chat; returning seen-but-signed-out root visits go to Sign in. There is no onboarding wizard or separate signed-in dashboard. Chat is home.
+Work in this order:
 
-Gemini 3.1 Flash-Lite is the pinned online model until the owner explicitly changes it. Exactly three optional server-side key slots are allowed. Normal and Jarvis Cowork are two presentations over one runtime. There is no separately marketed desktop application in this release; a Windows helper is supporting control infrastructure. Payments/refunds/disputes/Admin grants are implemented last.
+```text
+READ EVERYTHING → TRACE REQUIRED BEHAVIOR → DELETE OLD PRODUCT → READ CLEANED REPO → REBUILD SMALL → PROVE IT
+```
 
-## Final product and architecture constraints
+Do not preserve code because it is high quality. Preserve only final required behavior and the authorities needed to support it safely.
 
-OCADE is one browser-first workspace centered on Chat, Cowork and Code, supported by Projects, Tasks, Artifacts, Search, Customize, Settings, organizations/Admin, notifications, skills/plugins/connectors, browser control, supported Windows control, mobile/PWA/voice, Offline Intelligence and online intelligence. One canonical authority owns each subsystem. Search before creating; classify overlaps as KEEP, FIX, COMPLETE, MERGE, REPLACE or REMOVE; migrate callers before deletion; never create `new`, `v2`, parallel stores/routers/agent loops/payment stacks/native engines merely to avoid understanding current code.
+Do not target a cosmetic deletion percentage. The expected result is a very large deletion, potentially near the owner's 90% goal, but correctness decides what remains.
 
-The source tree converges incrementally toward `src/app`, `src/features`, `src/core`, `src/platform`, `src/data` and `src/shared` as described in `docs/ARCHITECTURE.md`. Moves must be dependency-closed and useful, not cosmetic.
+## Phase 0 — Baseline and total read
 
-The entire verified 2,126-file OCADE_PRIMARY_LOGIC donor must be re-evaluated after core boundaries stabilize. Maximize useful direct/adapted reuse, especially Chat session/query/context/rewind/resume, Cowork coordination/recovery, Code/coding-agent logic, agents/subagents, tasks, tools, file operations, Git, LSP/IDE, shell safety, permissions, memory/compaction, browser/computer control, approvals/progress/recovery and reusable UI behavior. Do not ship duplicate donor providers/servers/routers/stores/task managers/telemetry/terminal UI simply to increase reuse count.
+- Fetch latest `origin/main` and record SHA/tree.
+- Read all canonical authorities.
+- Inventory routes, runtime authorities, database objects, tests, dependencies, native helpers and donor remnants.
+- Trace every final behavior that must survive: auth, Chat, history, usage, online intelligence, Offline Intelligence, Library, settings, billing, Admin/security, About/Help/Terms/Privacy.
+- Produce a deletion map before deleting.
+- Measure baseline tracked source LOC with `cloc` if available; otherwise use a deterministic repository script. Exclude dependencies, generated build output, binary/model/design assets and vendor code. Record the exact command and result in `docs/MEMORY.md`.
 
-## Ordered implementation phases
+**Gate:** every old subsystem has KEEP/REUSE/REPLACE/DELETE disposition.
 
-### Phase 0 — Fresh baseline and evidence repair
+## Phase 1 — Aggressive cleanup
 
-Fetch current `origin/main`, inspect Git state and inventory routes, stores, adapters, migrations, Edge Functions, generated files, donor/evidence ledgers and shipped chunks. Repair stale generated evidence, formatting defects, failing tests and obsolete browser journeys before feature work. Regenerate one requirement-to-authority ledger. Gate: install, format, typecheck, zero-warning lint, full/shuffled tests, deterministic build and generator stability have no unexplained repository-controlled failure.
+Delete retired visible products and their unused implementation after caller tracing:
 
-### Phase 1 — Architecture cleanup and one authority per subsystem
+- standalone Code and old terminal/coding-agent product UI;
+- Projects UI;
+- Tasks UI and task-only runtime not needed by the final product;
+- Artifacts UI and artifact-only runtime replaced by Library;
+- Customize;
+- Devices page;
+- standalone Search/dashboard surfaces;
+- pricing and old landing page;
+- desktop/Copilot product UI;
+- old Cowork/Jarvis presentation/runtime paths reserved for replacement in `PLAN2.md`;
+- duplicate computer/browser-control stacks not required as temporary dependencies for `PLAN2.md`;
+- obsolete donor Primary Logic code/archive after proving nothing final needs it;
+- dead routes, components, stores, hooks, CSS, tests, scripts and dependencies;
+- obsolete documentation and stale evidence formats.
 
-Establish import/ownership boundaries, split materially mixed files such as the oversized Chat route, remove dead routes/components/future chunks and compatibility shims only after caller migration, and eliminate obsolete onboarding/local-storage-choice/More-dashboard/demo paths. Gate: one canonical owner per subsystem and no known dead shipped control/route.
+Preserve only the minimum staging seam required so `PLAN2.md` can replace Cowork safely.
 
-### Phase 2 — Supabase canonical persistence
+After deletion, read the smaller repository again and update the dependency map.
 
-Follow `docs/Backend Schema.md` and move conversations/messages, Projects, Tasks/runs/events/approvals, Artifacts/versions/provenance, Memory, settings, notifications and ordinary account data to typed Supabase repositories; use private Storage for files/artifact bodies. Add RAM-only unsynced turns with idempotent reconnect sync and close/reload/sign-out warnings. Incognito never persists. Add a static prohibition against ordinary content in IndexedDB/localStorage/OPFS/Cache Storage/browser vaults. Gate: ordinary user content has one persistent authority—Supabase/Storage.
+**Gate:** no retired primary destination is reachable or shipped as a normal customer surface.
 
-### Phase 3 — Supabase security, Auth, MFA and schema reconciliation
+## Phase 2 — Minimal shell and routing
 
-Using the data/RLS/migration contract in `docs/Backend Schema.md`, semantically reconcile source/live migrations before applying changes. Repair RLS, grants, Storage policies, privileged functions/search paths, indexes and generated types. Complete email/password, verification/OTP and configured Google OAuth, session restore/expiry/revocation, optional ordinary-user MFA and recent AAL2 for dangerous organization/Admin/support/billing actions. Gate: no client-controlled ownership, unintended elevated function or cross-tenant data path.
+Build the simple shell using `design/reference/grok/` as the structural/density reference and OCADE's own branding.
 
-### Phase 4 — Commercial usage and offline leases
+Desktop:
 
-Complete the existing server-authoritative generation permit: Free exactly 28 successful logical AI requests per 388-minute window; paid dual windows shown as percentage/reset; Max uses the same mechanism at higher capacity. Retries/tools/subagents/failover count once; pre-output failure/cancellation releases. Complete signed device-bound offline allocations with replay/clock rollback/cross-device reconciliation tests. Gate: possible consumption cannot exceed authoritative capacity.
+```text
+OCADE
++ New chat
+Chat
+Library
+Cowork
+Recent chats
+Account
+```
 
-### Phase 5 — OCADE Intelligence, Gemini and model lifecycle
+- Settings opens from Account.
+- Top bar: back/forward and chat search where useful.
+- `/` renders Chat immediately.
+- Signed-out users can inspect the shell; Send triggers authentication.
+- Keep `/about`, `/help`, `/terms`, `/privacy`.
+- Remove pricing and landing-page routing.
+- Mobile uses a compact chat-first drawer.
+- Use near-black/grey/white, restrained 1px borders, small/medium radii and light glassmorphism.
 
-Route every AI-generating surface through one `OcadeIntelligence` boundary after permit acquisition. Pin Gemini 3.1 Flash-Lite and exactly three server secret slots: primary, secondary, tertiary. Use primary-first health failover only before meaningful output; do not rotate to evade project-wide quota; Local-only performs zero provider DNS/fetch/preconnect/health traffic.
+**Gate:** desktop and mobile routing contains no duplicate navigation hierarchy.
 
-Start Offline Intelligence preparation on first visit without blocking landing/auth. Verify manifest/chunks/hashes before fetch, resume interrupted ranges, repair only missing/corrupt chunks, reuse content-addressed chunks across compatible releases, and keep model binaries in OPFS only. Reload, sign-in/out, account deletion, service-worker/application deployment and normal revisit must not reinstall or redownload a verified model. Only explicit Remove Offline Intelligence deletes it; deliberate removal suppresses automatic reinstall until explicit Install. Gate: one model authority and proven zero-unnecessary-redownload behavior.
+## Phase 3 — Authentication
 
-### Phase 6 — Complete donor re-evaluation
+Use Supabase Auth as the only identity authority.
 
-Reassess all 2,126 donor files against post-refactor authorities with deterministic dispositions: direct safe reuse, adapt, behavioral port, current OCADE stronger or reject/remove. Validate provenance, dependency closure, compatibility and runtime reachability for every merged behavior. Gate: maximum useful donor behavior with no parallel donor product architecture.
+Required entry choices:
 
-### Phase 7 — Production Chat
+1. Continue with Google — primary.
+2. Email → 6-digit OTP.
+3. Phone → international country picker + 6-digit OTP.
+4. Optional password may be configured/used through Account where supported.
 
-Complete conversation lifecycle, streaming/stop/retry/regenerate, branching/side conversations, attachments/private files, citations/web retrieval, tools, account/project memory, Incognito, sharing/revocation, archive/trash/restore/delete/export/search, cross-session/device persistence, usage/provider/model/session recovery, mobile/keyboard/a11y behavior. Gate: every visible Chat control works against canonical authorities and browser journeys show no unexplained console/network/storage error.
+Requirements:
 
-### Phase 8 — Normal Cowork
+- verified identity before full authenticated use;
+- preserve safe redirect/deep-link behavior;
+- enumeration-resistant errors and bounded resend/backoff;
+- production provider flags match actual Supabase provider readiness;
+- enable Supabase leaked-password protection before launch when password auth exists;
+- never create a second auth store.
 
-Complete one outcome-oriented task runtime with concise plan/current step, meaningful approvals, files/research/browser/supported computer operations, receipts/postcondition verification, pause/takeover/stop/emergency stop and crash/reload/reconnect recovery. The Command Center is a collapsible inspector, not a dashboard. Gate: work completes from observed state rather than simulated progress.
+**Gate:** real browser journeys prove Google-ready state, email OTP flow, phone formatting/OTP flow, sign-out/session recovery and protected Send behavior.
 
-### Phase 9 — Jarvis Cowork
+## Phase 4 — Chat
 
-Build Jarvis only as a view/controller over the same Cowork runtime. Implement the original liquid-glass/network orb, idle wave/breathing motion, microphone amplitude/frequency reactivity, distinct Listening/Speaking/Thinking/browser-action/computer-action states, user-selectable scoped accents, text fallback, reduced-motion/static fallback and contextual observation panels. Gate: Normal and Jarvis produce identical task history, permissions, usage and receipts.
+Chat is the product home.
 
-### Phase 10 — Production Code
+UI:
 
-Complete real repository intake/mapping, file tree/editing/search/symbols/diagnostics, exact patches/conflicts/review/undo, Git status/diff/branch/worktree/commit/push/PR when authorized, CI status, permissioned terminal/process/LSP/dev-server/preview/browser verification, parallel sessions/subagents and durable task/artifact outputs. Use strong donor coding-agent code where safe. Gate: every success is based on observed repository/tool postconditions.
+- centered reading area;
+- one simple history sidebar;
+- empty state `Ask OCADE`;
+- composer shows only attachment, microphone and send by default;
+- optional compact intelligence selector: `Auto`, `OCADE`, `Offline`;
+- no suggestion-chip wall;
+- no duplicate search/composer controls;
+- no model/vendor/runtime terminology;
+- contextual message actions only.
 
-### Phase 11 — Projects, Tasks, Artifacts, Search and Memory
+Behavior:
 
-Finish Projects as the shared context graph; Tasks as the unified home for missions/schedules/automations/monitors/action-required/inbox/runs/Dispatch; Artifacts as the versioned/provenance output library; Search as authorized bounded server-side search plus Cmd/Ctrl+K; Memory as Supabase-backed, scoped, sourced, reviewable/editable/deletable and Incognito-excluded. Gate: one connected workspace graph with no disconnected admin shells or local duplicate stores.
+- conversations/messages persist through Supabase;
+- rename/archive/trash/restore/delete-all remain simple and correct;
+- attachments route into Library/storage correctly;
+- usage/model/provider failures are one-line customer errors, not fake answer/artifact cards;
+- if no answer exists, do not offer Export/Save output controls.
 
-### Phase 12 — Agents, tools, skills, plugins and connectors
+**Gate:** Chat works signed-in across refresh, another browser/device, mobile widths, failure states and usage exhaustion.
 
-Consolidate one agent/subagent lifecycle and one tool/capability registry. Enforce manifest validation, bounded delegation, cancellation/recovery, permissions, usage, plugin isolation/unload, connector consent/scope/revocation/health and fail-closed hooks. Hide unconfigured integrations. Gate: extensions cannot bypass identity, usage, permission or tenant boundaries.
+## Phase 5 — Account-wide usage authority
 
-### Phase 13 — Browser extension and Windows host
+Keep one server-authoritative allowance across every device and AI surface.
 
-Complete extension pairing/scoping with minimized permissions, DOM/accessibility-first observation, context reacquisition after navigation/tab/window/stale-element/reconnect and postcondition re-observation. Consolidate PyWin32/UI Automation, Win32/native/Rust, vision and PyAutoGUI behind one Windows `RemoteExecutor`: semantic UIA/Win32/application APIs first, native APIs where appropriate, vision next, PyAutoGUI/coordinates only as guarded fallback. Preserve loopback/origin validation, pairing, protected-input refusal, cancellation and emergency stop. Remove competing engines after callers migrate. Gate: real Chrome/Edge and supported Windows journeys prove safe observed postconditions.
+Free policy remains:
 
-### Phase 14 — Mobile/PWA/voice
+- 28 successful user requests;
+- 388-minute / 6h 28m window;
+- online and offline combined;
+- one successful user request/turn = one use;
+- internal retries, tools and Cowork/Jarvis substeps do not multiply the user's charge.
 
-Complete Android Chrome/PWA and iPhone/iPad Safari/PWA layouts, safe areas, virtual keyboard/back/deep links/OAuth return, application-shell caching separated from model OPFS, remote task observation, voice permission/cancellation/route shutdown and real push channels only when delivery-proven. Gate: every visible platform feature has real proof or precise unavailable state.
+When exhausted:
 
-### Phase 15 — Organizations, Admin, notifications and public trust
+- block new AI generation everywhere;
+- do not bypass through Offline Intelligence;
+- keep history, Library, manual browsing/settings and Billing usable;
+- show exact remaining/reset state.
 
-Complete workspace switching, members/invitations/roles/groups/seats/policies/ownership safeguards, strict tenant isolation, usage/billing overview and immutable audit. Support-content inspection requires time-bound case-scoped read-only grant, recent AAL2, reason/expiry and per-object access events—never unrestricted raw DB browsing. Complete configured notifications and truthful Help/Status/Security/Responsible Disclosure/legal lifecycle states. Gate: server-enforced tenant/support boundaries and real provider truthfulness.
+Offline reconciliation must remain signed/tamper-resistant and account-wide.
 
-### Phase 16 — Monitoring, backup, restore and rollback
+**Gate:** concurrency and multi-device tests prove the same remaining count everywhere.
 
-Add privacy-safe structured diagnostics for release/operation/error class/latency/provider slot/task/Edge Function/webhook health without secrets or unnecessary content. Prove scheduled database/Storage backup, isolated restore rehearsal with RLS/integrity checks, versioned releases and previous application/Edge Function/Cloudflare rollback. Gate: recovery is demonstrated, not just documented.
+## Phase 6 — Gemini online intelligence
 
-### Phase 17 — Final OCADE UI/UX consolidation
+Online Chat uses the pinned OCADE online model through a server boundary.
 
-Only after logic/information architecture stabilizes, implement the experience intent in `docs/UI UX Brief.md` and the detailed design system in `docs/DESIGN.md` together. Use Claude as the primary interaction/information-architecture benchmark, ChatGPT for universal chat/composer polish and OpenClaw for transparent autonomy/control patterns, while keeping original OCADE branding/assets/code and avoiding pixel-for-pixel trade dress. Remove duplicate buttons/toolbars, keep one obvious primary action, move secondary actions contextually, remove old More, implement sparse Projects/Tasks/Artifacts/Customize, shared Chat/Cowork/Code shell, complete light/dark appearances and all empty/loading/error/recovery states. Jarvis is the expressive exception; ordinary surfaces remain calm. Gate: visual route/control matrix is coherent, responsive, reachable and distinctly OCADE.
+Create/use exactly three Supabase Edge Function secrets:
 
-### Phase 18 — Localization, accessibility, performance and defect cleanup
+- `GEMINI_API_KEY_PRIMARY`
+- `GEMINI_API_KEY_SECONDARY`
+- `GEMINI_API_KEY_TERTIARY`
 
-Complete required locales and locale-aware dates/currency/reset text; WCAG AA, keyboard/focus/dialog semantics, announcements, 44×44 targets, zoom and reduced motion/transparency. Explicitly eliminate the five silent speed killers: N+1 queries, missing evidence-backed indexes, unbounded reads, unoptimized media and giant eager bundles. Use query-plan evidence, cursor pagination for growing feeds, bounded admin pagination, optimized responsive media and lazy loading for editor/PDF/Jarvis/model/native/media tooling. Meet the budgets in `docs/TESTING.md`/current build authority with headroom. Gate: zero known accessibility blockers and meaningful performance margin.
+Never put these values in normal database tables or client bundles.
 
-### Phase 19 — Payments, refunds, disputes and Admin grants (LAST)
+Routing:
 
-Merge historical subscription/payment authorities into one server-authoritative billing-event/subscription/entitlement system while preserving history. Use server-created checkout intent and authoritative plan/cadence/currency/amount, provider-hosted payment, signed webhook/server reconciliation, normalized immutable events and idempotent atomic state application. Complete activation, renewal, upgrade/downgrade, cancellation/period-end, expiry/failure recovery, billing history, invoices/payment-method management, full/partial refunds, disputes, chargebacks/reversals, fraud/risk rejection and sandbox/live separation.
+- primary first;
+- key-local 401/403 may fail over before output;
+- bounded pre-output transport/5xx retry/failover is allowed;
+- 429 does not rotate to evade shared project quota;
+- no slot failover after output begins.
 
-Admin grants are separate entitlements, never fake payments. Email may locate an account; immutable Auth user ID is the mutation target. Require authorized role, recent AAL2, reason, start/end where applicable, immutable audit and revoke state for Free/Pro/Max/custom grants. A browser redirect, client amount, profile text or guessed provider ID never grants access. Gate: only authoritative server evidence can change commercial access; live charging stays disabled until provider/tax/legal/operational gates are genuine.
+Customer UI calls the result `OCADE`, not Gemini.
 
-### Phase 20 — Final reachability, disposal and documentation reconciliation
+**Gate:** secret scan, edge tests and real controlled responses prove no client key exposure and correct failover.
 
-Trace every visible route/control → feature use case → core policy → data repository/platform adapter → Supabase/RLS or approved executor → usage/permission/task receipt where applicable → observed postcondition. Rewire remaining disconnected callers. Remove dead modules, superseded local content stores, compatibility shims, duplicate routers/stores/bridges/agent loops/registries/native engines, dead routes/chunks, raw donor extractions, obsolete provider integrations, fake controls and stale contradictory docs after unique useful content is preserved. Regenerate route/donor/parity/gap/control/security/storage/database/release ledgers. Gate: every shipped capability is reachable and every removed authority has no required caller/provenance/legal role.
+## Phase 7 — Offline Intelligence
 
-## Checkpoints and verification
+Internal implementation uses the selected Qwen 2.5 1.5B model, but that identity is **never customer-facing**.
 
-Every phase records changed authorities, remaining callers, migration state, focused tests and runtime evidence. Do not merge partial implementation to `main`. Focused testing follows each phase; any failure returns to its owning phase and is fixed at root cause.
+Customer labels are only:
 
-After Phase 20, run the exhaustive final matrix from a fresh clean checkout: deterministic install, format, typecheck, zero-warning lint, generators, full/shuffled/isolation tests, concurrency/fault injection, production build, clean-tree proof, browser/server boundary, secrets, dependencies/SBOM/licences/release package; Supabase source/live parity, generated types, RLS/grants/security/performance advisors, auth/MFA/session/deletion, Storage ownership/quota, backup/restore/rollback; usage permits/offline leases; Gemini three-slot behavior, Automatic/Online/Local-only and zero-provider-network Local-only proof; first-visit model install, interrupted resume, corruption repair, content reuse, no-redownload across revisit/login/logout/account deletion/deployment/service-worker update, remove/reinstall; real browser journeys for landing/auth/Chat/Normal Cowork/Jarvis/extension/Windows/Code/Projects/Tasks/Artifacts/Search/Memory/agents/capabilities/org/Admin/notifications/trust/error states; Chrome/Edge/Safari/Firefox ordinary UI, Chrome/Edge extension, Android/iOS PWA where available, supported Windows, accessibility/responsive/performance; and commercial sandbox activation/renewal/cancel/refund/dispute/Admin-grant lifecycle where configured. Every browser journey inspects console, network, storage and postconditions.
+- `Offline`
+- `Offline Intelligence`
+- `Preparing OCADE`
+- `Downloading <percent>`
+- `Verifying`
+- `Ready`
+- `Repairing`
+- `Removed`
 
-No shipped-feature skip, blanket suppression, ignored rejection, unexplained stderr or hand-edited generated evidence is accepted. External configuration that is genuinely absent remains hidden/unavailable and is not counted as a pass.
+Lifecycle:
 
-## Git integration and deployment
+1. Start preparation automatically on first supported desktop/mobile/tablet visit.
+2. Before downloading, detect a verified existing model in OPFS.
+3. If verified, reuse it immediately.
+4. If missing, download content-addressed chunks in parallel using adaptive safe concurrency.
+5. Persist/resume completed chunks across interruption.
+6. Verify the complete manifest/fingerprint.
+7. Repair only missing or corrupt chunks.
+8. Request persistent browser storage where supported and report eviction honestly if the browser removes data.
 
-After the complete matrix passes, fetch latest `origin/main`, reconcile upstream without discarding valid work and rerun the complete matrix on that exact tree. Create the final verified product commit, fetch `origin/main` again, reconcile/reverify if it moved, then fast-forward `main` without force and verify the remote SHA/tree. Only then confirm backups/restore/rollback, apply reviewed forward-compatible Supabase migrations, deploy matching Edge Functions/secrets, stage the exact Cloudflare release, run staging smoke/critical journeys, promote that exact release, verify production journeys/monitoring/release SHA and roll back immediately on deployment regression.
+The model identity/version is independent from the website/app build SHA. Therefore a verified model must **not** redownload because of:
 
-## Final definition
+- page refresh;
+- browser restart;
+- sign-in/sign-out;
+- account deletion;
+- service-worker update;
+- normal site deployment;
+- a commit or merge to main;
+- compatible OCADE code updates.
 
-OCADE is complete only when the deployed verified release contains one coherent Chat/Cowork/Code workspace; Supabase-authoritative account/organization data; durable private files; complete Normal/Jarvis Cowork and Code; Projects/Tasks/Artifacts/Search/Customize/Settings; agents/capabilities; automatic persistent Offline Intelligence with verified no-redownload behavior; Gemini 3.1 Flash-Lite through one secure three-slot boundary; one usage authority; real browser/supported Windows control; responsive PWA/mobile/voice; Auth/MFA/org/Admin/audited support; truthful notifications/trust/legal states; monitoring/backup/restore/rollback; the final OCADE UI; production accessibility/performance; server-authoritative subscriptions/refunds/disputes/Admin grants; zero known reproducible repository-controlled failures; and one verified remote commit matching the tested/deployed tree.
+Only an explicit user removal, actual corruption/missing bytes, browser eviction or a deliberate incompatible model revision may require bytes again.
 
-## OPTIONAL FUTURE IMPROVEMENTS — DO NOT IMPLEMENT
+Explicit Remove deletes model data and suppresses automatic reinstall until the user explicitly installs again.
 
-Leave this section empty during implementation. Future suggestions may be written only after every mandatory requirement above has been implemented, wired, tested, merged and successfully deployed.
+`Auto` uses online OCADE when available and may truthfully fall back to verified Offline Intelligence when appropriate. `Offline` creates zero provider traffic.
+
+**Gate:** first-install, interruption/resume, corruption repair, revisit, sign-out/in, new app build and explicit-remove tests all pass without unnecessary full redownload.
+
+## Phase 8 — Library
+
+Single Library replaces Artifacts and scattered upload/output views.
+
+```text
+Library
+All | Images | Files
+Search
+[content grid]
+```
+
+Contains:
+
+- uploaded files;
+- uploaded images;
+- generated files/images/outputs from Chat and later Cowork;
+- provenance internally where required, not as default screen clutter.
+
+Support preview/download/delete, individual deletion and delete-all through Data Controls.
+
+**Gate:** cross-device Library data and private object access are proven through Supabase/RLS.
+
+## Phase 9 — Settings and Data Controls
+
+Desktop uses a compact centered settings modal; mobile uses a sheet/full-height equivalent.
+
+Categories:
+
+- Account
+- Appearance
+- Notifications
+- Data Controls
+- Billing
+- Advanced
+
+Data Controls owns:
+
+- delete all conversations;
+- delete all uploaded images/files;
+- export account data;
+- Offline Intelligence state/removal;
+- related privacy controls.
+
+Advanced hides diagnostics, device/security details and runtime information from normal customers.
+
+Keep copy short: labels and one-line explanations/errors.
+
+**Gate:** settings survive refresh/device change where account-scoped and never expose raw secrets/model identifiers.
+
+## Phase 10 — Supabase reduction
+
+After final core reachability is known, remove database objects used only by retired products.
+
+Keep only what final OCADE needs, including:
+
+- identities/profiles/security;
+- conversations/messages;
+- Library metadata/private storage;
+- settings/preferences/notifications;
+- usage/entitlements/offline reconciliation;
+- billing;
+- hidden Admin and organization authority only where still required;
+- minimal future Cowork/Jarvis persistent state if `PLAN2.md` explicitly requires it.
+
+Remove retired Projects/Tasks/Artifacts/Code-specific tables/RPCs/policies/functions only after dependency tracing and with reversible migrations/verification.
+
+Regenerate Supabase types. Maintain RLS/least privilege.
+
+**Gate:** source/live schema effect agrees and no final caller references removed objects.
+
+## Phase 11 — Polish, accessibility and performance
+
+Implement only useful product polish:
+
+- light/dark handling as designed;
+- mobile menu/drawer;
+- keyboard shortcuts;
+- hover/focus states;
+- restrained cursor-reactive motion;
+- scrollbar polish;
+- copy controls;
+- skeleton loaders;
+- sticky shell elements only where useful;
+- skip-to-content;
+- OpenGraph metadata;
+- clean empty states;
+- toasts;
+- password visibility;
+- FAQ accordion only in Help;
+- back-to-top only on long Help/legal pages;
+- cookie banner only if optional cookie use actually requires consent.
+
+Meet WCAG AA intent, reduced motion and keyboard/screen-reader semantics. Avoid heavy GPU work in ordinary UI.
+
+**Gate:** responsive/browser/accessibility/performance audits pass.
+
+## Phase 12 — Core final proof
+
+On the exact production build:
+
+- run typecheck, lint, format, unit/database tests and security gates;
+- test every remaining route signed-out and signed-in;
+- press every reachable customer control;
+- test mobile and desktop widths;
+- test real Chat responses and usage exhaustion;
+- test email/phone/auth recovery;
+- test Library upload/delete/delete-all;
+- test Settings/Data Controls/Billing shell;
+- test Offline Intelligence first download, parallelism, resume, repair and no-redownload across a new app build;
+- scan for forbidden model/provider identifiers in customer bundles/UI;
+- scan for dead retired routes/components/dependencies;
+- measure final core source LOC using the same Phase 0 method and record before/after/delta.
+
+Do not start `PLAN2.md` until this gate is green.
+
+## Definition of PLAN complete
+
+Core OCADE is smaller, understandable and independently usable. Chat, online intelligence, Offline Intelligence, auth, usage, Library and Settings work end to end. Retired surfaces are gone rather than hidden. The verified offline model survives ordinary application updates without redownload.

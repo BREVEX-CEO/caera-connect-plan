@@ -1,99 +1,155 @@
-# Testing Strategy
+# OCADE Testing
 
-## Testing Philosophy
+## Principle
 
-OCADE is complete only when the exact shipped tree is proven at the level appropriate to each capability. Source inspection, compilation, a unit test or a rendered control is not enough for browser journeys, Supabase/RLS, model lifecycle, usage, payments, browser/native control, accessibility or deployment behavior. Testing is used to prevent defects before deployment; monitoring is the final safety layer for unexpected production conditions, not a substitute for pre-release proof.
+Test the final product like a real customer, not only as isolated modules.
 
-Do not weaken, skip, broadly mock or silence a real regression merely to produce a green report. Any failure discovered during implementation returns to the owning subsystem/phase in `PLAN.md`, is repaired at root cause and is rerun with the exact failed check before broader verification.
+Every release candidate must pass static/unit/database checks and real-browser journeys on the exact production build.
 
-## Test Stack
+## Core commands
 
-The current repository uses Vitest for unit/integration/domain tests, TypeScript `tsc --noEmit`, ESLint with zero-warning expectation, Prettier, TanStack/Vite route generation and production builds, custom Chromium/Playwright-core-style browser journeys, extension E2E, Windows/native proof scripts, model-install/runtime proof, route/control/browser-safety/accessibility/responsive/web-vitals checks, Supabase types/schema/RLS/security/performance checks, donor/integration ledgers, secret scans, build budgets, deterministic build/release checks and launch/deployment controllers. Use the actual current `package.json` as the command source of truth.
+Use the repository's current npm scripts where still relevant. As cleanup removes retired systems, simplify the script matrix instead of preserving obsolete gates.
 
-Common current commands include `npm ci`, `npm run format:check`, `npm run typecheck`, `npm run lint`, `npm test`, `npm run test:isolation`, `npm run build`, `npm run build:stable`, `npm run performance:budget`, `npm run browser-safety:check`, `npm run content-storage:check`, `npm run reads:check`, `npm run reachability:check`, `npm run controls:check`, `npm run supabase:types-check`, `npm run integration:check`, `npm run mission:check`, `npm run audit:journey`, `npm run audit:routes:prod`, `npm run audit:a11y-runtime`, `npm run audit:responsive`, `npm run audit:web-vitals`, `npm run extension:e2e`, `npm run windows:prove`, `npm run model:install-proof`, `npm run launch:prove` and `npm run deploy:check` where applicable.
+Minimum core gates:
 
-## Unit Testing
+- install/build;
+- typecheck;
+- lint;
+- format check;
+- unit tests;
+- database/migration/RLS tests;
+- secret scan;
+- dependency/security audit appropriate to the project;
+- generated route/type stability;
+- final reachability/dead-code check.
 
-Unit tests protect pure/core invariants: task state transitions, permission/risk rules, generation-permit accounting, idempotency, usage-window math, model-manifest/hash/chunk selection, search cursor encoding, billing-event normalization, entitlement calculation, schema validation and other deterministic policies. Time, randomness and provider responses are controlled where needed, but tests must preserve the real invariant rather than test a mock's implementation.
+## Chat/browser matrix
 
-## Integration Testing
+Test signed-out and signed-in:
 
-Integration tests exercise boundaries between feature/core/data/platform authorities: Supabase repositories, Auth/session state, task/event/receipt persistence, model vault, intelligence routing, provider failover, file upload/quota lifecycle, agent/tool registration, connector permission/revocation, extension bridge and Windows executor contracts. They must include failure/retry/duplicate/cancellation cases, not only successful paths.
+- `/` Chat;
+- new conversation;
+- Send triggers auth when signed out;
+- Google-ready state;
+- Email OTP;
+- Phone country picker/OTP;
+- history/search/archive/trash/restore/delete-all;
+- attachments;
+- mobile/desktop widths;
+- back/forward/deep-link/session recovery;
+- usage remaining/reset and exhaustion;
+- online response;
+- Offline response;
+- Auto routing/fallback;
+- one-line error states;
+- no fake Export/Save controls when no answer exists.
 
-## End-to-End Testing
+Press every reachable customer control at least once in the browser audit.
 
-Real browser journeys prove customer-visible flows and inspect visible state, console, network, storage and observed postconditions. Required journeys include first-visit landing → registration/verification → Chat; returning signed-in/signed-out root routing; complete Chat lifecycle; Normal Cowork; Jarvis Cowork with equivalent task state and voice states; browser extension control; supported Windows control; Code repository workflow; Projects/Tasks/Artifacts/Search/Memory; agents/tools/skills/plugins/connectors; organizations/Admin/support-access audit; notifications/trust/legal pages; all error/recovery/payment states; and final production smoke after deployment.
+## Offline Intelligence proof
 
-Every visible control reached in E2E must either perform its real behavior or produce the exact intentional unavailable/permission/error state. Blank panels, dead buttons, unexplained console errors, failed network calls or wrong postconditions fail the journey.
+Must prove with real transfer/storage behavior:
 
-## API Testing
+1. first preparation/download;
+2. bounded parallel chunking;
+3. interrupted download resumes;
+4. corruption repairs only affected chunks;
+5. verified model starts;
+6. refresh reuses it;
+7. browser restart/revisit reuses it;
+8. sign-out/sign-in reuses it;
+9. account deletion does not silently erase model bytes unless policy explicitly requires removal;
+10. a new OCADE build/service worker/commit/merged-main deployment reuses the same compatible model;
+11. explicit Remove deletes model bytes;
+12. deliberate removal prevents immediate automatic reinstall until explicit Install;
+13. browser eviction is detected/reported honestly;
+14. `Offline` produces zero provider traffic.
 
-Server/Edge Function APIs require authentication/authorization, validation, idempotency and failure-path tests. `OcadeIntelligence` tests cover one-permit behavior, Gemini primary/secondary/tertiary health failover, meaningful-output boundary, Automatic/Online/Local-only modes and zero provider DNS/fetch/preconnect/health traffic in Local-only. Webhook tests cover signature verification, replay, duplicates, stale/out-of-order/cross-environment events and canonical state convergence. Browser redirects/client values never count as entitlement proof.
+Scan customer DOM/bundle/copy for forbidden raw internal model/provider identifiers.
 
-## Database Testing
+## Usage proof
 
-Source/live migrations must be semantically reconciled before production apply. Test generated types, table/Storage RLS, grants, privileged functions/search paths, indexes and ownership using anonymous, owner, other-user, organization member/admin/owner, platform Admin/support-grant and service-role contexts as appropriate. Guessed IDs/object paths must not cross user/tenant boundaries.
+Use real/concurrent account scenarios:
 
-Growing queries require bounds/pagination tests and query-plan evidence where indexes matter. Backup/restore rehearsal must restore into an isolated target and verify data integrity, key relationships and RLS before being called successful.
+- Free starts with 28 successful uses in one 388-minute window;
+- PC usage is immediately reflected on another online device;
+- offline reconciliation cannot exceed authoritative capacity;
+- two concurrent devices cannot double-spend remaining uses;
+- one user request counts once despite internal retry/tool/substeps;
+- exhausted usage blocks both online and offline AI generation;
+- history/Library/Settings/Billing remain available.
 
-## Mocking Strategy
+## Library proof
 
-Mocks are acceptable for deterministic domain/unit boundaries and provider failure matrices, but a capability requiring browser/device/database/provider behavior also needs the closest real environment available. Do not claim physical-device delivery, provider payment, extension control or model transfer from a pure mock. Externally unavailable proof remains explicitly unavailable rather than being converted into a pass.
+- upload image/file;
+- generated output appears;
+- All/Images/Files filters;
+- search;
+- private authorization;
+- cross-device visibility;
+- preview/download/delete;
+- delete-all through Data Controls;
+- account data export.
 
-## Test Data
+## Settings proof
 
-Use isolated deterministic accounts, organizations, repositories, tasks, artifacts and billing/provider fixtures. Tests must clean their own untracked/sandbox data without deleting unrelated working-tree content. Cross-tenant tests need at least two users and two organizations where relevant. Payment tests use sandbox/non-charge configuration until live charging is explicitly authorized.
+- compact desktop modal and mobile sheet;
+- appearance/preferences persist correctly;
+- notification preferences sync;
+- Offline Intelligence state truthful;
+- Advanced hides technical detail from normal surfaces;
+- Billing reflects server-authoritative state.
 
-## Test Naming Conventions
+## UI/accessibility/performance
 
-Name tests after observable behavior and invariant, not internal method names alone. Safety/bug regression tests should make the prior failure understandable from the test name. Generated evidence/gate tests should state the claim they enforce and fail when the corresponding source/evidence drifts.
+Cover at least 320, 375, 768, 1024, 1440 and 1920 widths where practical.
 
-## Coverage Requirements
+Verify:
 
-There is no arbitrary line-percentage target that substitutes for risk coverage. Required coverage is behavior/risk based: every canonical state transition, permission boundary, security-sensitive mutation, usage/billing invariant, storage migration, model lifecycle edge, browser/native side effect and critical customer route must have deterministic or runtime evidence appropriate to the risk. A shipped path with no meaningful proof is incomplete even if overall line coverage is high.
+- keyboard navigation/focus;
+- skip-to-content;
+- semantic labels/headings;
+- reduced motion;
+- 200% zoom usability;
+- virtual keyboard/safe-area;
+- no major layout shift;
+- no continuous heavy GPU use outside explicit Jarvis visuals;
+- skeleton/empty/error/toast behavior;
+- OpenGraph/public metadata.
 
-## Five Silent Speed Killers
+NVDA/VoiceOver/native proofs require actual supported hardware/software and are never faked.
 
-Performance verification explicitly targets five recurring problems identified in the supplied performance guide.
+## PLAN2 Cowork/Jarvis proof
 
-**N+1 queries:** no per-item database/network fetch loops for related rows. Batch with joins, `.in()` or server-side aggregation and test request/query counts with realistic list sizes.
+After core is green, test:
 
-**Missing indexes:** add indexes only for measured WHERE/JOIN/ORDER BY/search patterns. Inspect `EXPLAIN (ANALYZE, BUFFERS)` or equivalent query-plan evidence before/after; avoid redundant indexes that increase write/storage cost.
+- normal Cowork and Jarvis reach the same runtime;
+- browser actions;
+- computer/native actions on supported hardware;
+- files;
+- permissions/approvals;
+- pre-observation and postcondition verification;
+- Pause/Take over/Stop;
+- voice STT/TTS;
+- wake-word/hands-free enable/disable;
+- microphone state/revocation;
+- Gemini-only Jarvis offline refusal;
+- donor action registry/features;
+- Library output flow;
+- one request = one usage unit.
 
-**Unbounded lists:** every growing conversations/messages/tasks/artifacts/activity/search/admin feed has a maximum page size. Prefer stable cursor/keyset pagination for continuously changing feeds; bounded offset pagination is allowed for suitable stable admin tables.
+## LOC measurement
 
-**Unoptimized media:** responsive/lazy-load noncritical images and use appropriate modern formats when quality/function allows. Do not ship huge source-resolution images into small UI slots. Model binaries and artifact originals are governed by their own integrity/quality constraints rather than destructive image optimization.
+Run at three checkpoints: baseline, PLAN complete, PLAN2 complete.
 
-**Giant eager bundles:** lazy-load heavy Code editor/LSP/terminal UI, PDF, Jarvis/Three.js/audio visualizer, local model runtimes, native/platform and media tooling. Route/component splitting must preserve deterministic loading/error states and keep first paint/navigation within the active budgets.
+Prefer `cloc` over the Git-tracked source tree. Exclude:
 
-These are deployment blockers, not optional cleanup recommendations.
+- `node_modules` and dependency/vendor directories;
+- generated build output/cache;
+- binary/model archives;
+- design/reference images;
+- generated route/types only if excluded consistently at every checkpoint.
 
-## Required Production Pages and States
+If `cloc` is unavailable, use a checked deterministic script that counts newline-delimited source files by approved extensions. Record exact command, included extensions, exclusions, total files and total LOC in `docs/MEMORY.md`.
 
-Testing must include applicable public/legal/customer-lifecycle states rather than only happy paths. Required trust/lifecycle coverage includes landing, Sign in/register/verification/recovery/reset, account/settings/data export/deletion, Privacy, Terms, Cookie Policy/preferences only if non-essential cookies exist, Refund, Cancellation, Disclaimer, Accessibility Statement, DPA, Acceptable Use, Security, Responsible Disclosure, Help and real Status. Community Guidelines are required only if a community capability ships; physical Shipping/Return pages are not applicable to this software-only product unless the business changes.
-
-Intentional UX states include 403, 404, 500, Maintenance, Offline, Loading, Empty, No Results, Success, generic Error, Session Expired, Permission Required/Denied, Usage Exhausted, provider unavailable, model preparation, Payment Success, Payment Pending and Payment Failed. Cowork additionally tests extension/Windows-host unavailable, disconnected executor, expired approval, stale context, takeover/pause/emergency stop/partial success/recovery; Jarvis tests microphone denial/revocation and reduced-motion/static fallback. Code tests repository/terminal/patch/conflict/diagnostic/dev-server/preview/CI/host-loss states. Tasks/Artifacts/Projects test their complete lifecycle states.
-
-## Accessibility and Responsive Testing
-
-Target WCAG AA. Verify keyboard operation, visible focus, modal focus trap/return, screen-reader announcements for streaming/task/approval/usage/error states, 44×44 touch targets, 200% zoom, reduced-motion/transparency and no color-only meaning. Required viewport widths include 320, 375, 768, 1024, 1440 and 1920 CSS pixels. Ordinary UI is tested across supported Chrome/Edge/Safari/Firefox where possible; extension control only in genuinely supported environments; Android/iPhone/iPad PWA behavior requires platform-appropriate proof where available.
-
-## Performance Gates
-
-Final budgets must have meaningful safety margin. The current plan targets total JavaScript ≤4,100 KiB, eager JavaScript ≤800 KiB, largest eager chunk ≤425 KiB, CSS ≤135 KiB, LCP <2.5 s, CLS <0.1 and TBT <200 ms unless a later evidence-backed decision updates the canonical budget. Passing by a few bytes without headroom is not considered healthy.
-
-## CI Testing
-
-Portable CI should run deterministic install and the repository's canonical full/portable verification. Platform-specific Windows/mobile/extension evidence runs in the appropriate environment. CI must not mark unavailable hardware/provider proof as passed. Failure artifacts/logs must be privacy-safe and contain no secrets/customer content.
-
-## Required Checks Before a Task Is Complete
-
-Run the smallest focused tests that directly prove the changed authority, then type/lint/build or phase-specific gates as relevant. Database changes require migration/type/RLS tests. UI changes require affected route/browser/a11y/responsive checks. Model/intelligence changes require network/permit/model lifecycle proof. Browser/native changes require postcondition journeys. Payment/Admin changes require signature/idempotency/AAL2/audit/sandbox tests.
-
-## Final Verification
-
-After every `PLAN.md` phase is complete, run the exhaustive matrix from a fresh clean checkout of the exact reconciled tree: deterministic installs; format/type/lint/generators; full/shuffled/isolation/concurrency/fault tests; production build/clean-tree/browser-boundary/secret/dependency/SBOM/licence/release inspection; Supabase source/live/RLS/security/performance/backup/restore; usage/offline leases; Gemini and Local-only isolation; complete Offline Intelligence first-install/resume/corruption/no-redownload/remove/reinstall; all customer browser journeys; extension/Windows/mobile/voice; organizations/Admin/support; accessibility/responsive/performance; and payment/refund/dispute/Admin-grant sandbox lifecycle where configured. Any failure returns to its owning phase and the necessary final cycle is rerun.
-
-## Definition of Done
-
-A change is done when its behavior is wired to the canonical authority, tests appropriate to its risk pass, browser/device/database postconditions are observed where required, no dead/duplicate authority was introduced, generated evidence is current and documentation/memory is updated when the decision/state changed. OCADE production is done only when the exact tested tree is the remote `main` tree and the exact deployed release, with zero known reproducible repository-controlled failures at the final gate.
+Never invent a LOC number.

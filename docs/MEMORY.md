@@ -1,177 +1,101 @@
-# Project Memory
+# OCADE Project Memory
 
-## Current Status
+## Current mission
 
-OCADE is in a production-completion mission. The audited implementation baseline is `main` commit `5b967735267fb650df63d02d76788ba620353cc4` (`feat: integrate OCADE mission through Block 9`). That baseline consolidated prior Claude/Codex work through Block 9. The canonical implementation authority is root `PLAN.md`; later documentation-only commits may advance `main` without changing the implementation baseline described by the plan.
+OCADE is beginning a new simplification/rebuild mission. The previous broad implementation was completed and merged to `main` at commit `4424a15abfe0fcf6b0e5550a0ee27095e7522029`, but that architecture is now intentionally superseded by the product decisions in these rewritten authorities.
 
-The 2026-09-09 Markdown cleanup checkpoint at `5440321cb4ceb962f541e2b8ed994d8965234d7a` left 77 tracked Markdown files after three superseded ADR files were consolidated into `docs/DECISIONS.md` and removed. The protected authority set remained intact; later documentation-only authority repairs may advance `main` beyond that historical checkpoint.
+This documentation update is planning/authority work. Until `PLAN.md` is implemented, much of the old code still exists and must not be mistaken for the new intended architecture.
 
-The canonical documentation set is now intentionally role-specific: `docs/PRD.md`, `docs/TRD.md`, `docs/APP_FLOW.md`, `docs/UI UX Brief.md`, `docs/DESIGN.md`, `docs/ARCHITECTURE.md`, `docs/Backend Schema.md`, `docs/RULES.md`, `docs/TESTING.md`, this file and `docs/DECISIONS.md`. `CLAUDE.md` remains the single AI handbook and `PLAN.md` remains the sole implementation sequence. `AGENTS.md` is intentionally absent.
+## New final product
 
-This documentation refresh does not claim the product is production-complete. It records the current decisions and ordered remaining work so a new engineering session can continue without relying on old conversation history.
+Primary customer destinations:
 
-## Recently Completed
+- Chat
+- Library
+- Cowork, with Cowork/Jarvis modes inside it
+- Account → Settings
 
-Prior work established deterministic repository evidence, route/donor ledgers, local-model/runtime foundations, extension/native/mobile source, Supabase schema/security groundwork, commercial generation-permit foundations and a normalized intelligence path. The donor inventory accounts for 2,126 files and current production reachability evidence exists for adapted donor modules.
+Public retained pages: About, Help, Terms, Privacy.
 
-The product decisions were revised: Supabase becomes the canonical persistent authority for ordinary user/account data; first-visit Offline Intelligence preparation starts before authentication where supported; Chat is the signed-in home; no onboarding wizard or separate dashboard remains; Gemini 3.1 Flash-Lite is the pinned online model; exactly three server-side Gemini key slots are allowed; Cowork has Normal and Jarvis presentations over one runtime; no separately marketed desktop application is required; the final UI uses Claude as the primary structural benchmark with ChatGPT/OpenClaw as secondary references; payments/refunds/disputes/Admin grants are the final major implementation phase.
+Retired as standalone customer products: Code, Projects, Tasks, Artifacts, Customize, Devices, Search dashboard, pricing, old landing, desktop/Copilot and old Jarvis/Cowork UI.
 
-Repository branch housekeeping removed branches proven to be ancestors/duplicates of `main` while retaining branches with active PRs or unique/uncertain work. The Markdown inventory was then audited. Three standalone ADR files were merged into `docs/DECISIONS.md` and deleted; supporting acceptance/readiness, legal, breach/security, deployment/model/CDN, Windows/browser, donor provenance/licence and release-evidence Markdown remain supporting records rather than canonical product authority.
+## Execution order
 
-## Currently In Progress
+1. `PLAN.md`: read/scan, aggressive cleanup, read again, then rebuild Chat/Auth/Usage/Gemini/Offline Intelligence/Library/Settings/Supabase core.
+2. Prove the core completely.
+3. `PLAN2.md`: extract `.incoming/OCADE_JARVIS.zip`, make it the canonical Cowork/Jarvis runtime, delete superseded old runtimes, then prove full product.
 
-The next engineering mission starts at Phase 0 of `PLAN.md`: refresh the exact implementation baseline, repair stale evidence/failing checks, and then proceed through architecture cleanup, Supabase persistence/security, usage/intelligence/model lifecycle, full donor re-evaluation, Chat, Normal Cowork, Jarvis Cowork, Code, Projects/Tasks/Artifacts/Search/Memory, agents/capabilities, browser/Windows/mobile, organizations/Admin/trust, monitoring/backup/rollback, final UI/UX, localization/accessibility/performance, payments/Admin grants, final reachability cleanup, exhaustive verification, safe main integration and controlled deployment.
+Do not start PLAN2 early.
 
-## Known Problems
+## UI references
 
-The implementation plan's audited baseline recorded stale mission evidence/hash assumptions, a formatting defect, at least one suite failure tied to stale mission authority and skipped tests requiring review. Existing browser journeys still encode obsolete onboarding/local-first behavior. Chat remains oversized/mixed-responsibility. Old and future route chunks remain in the production graph. Supabase source/live migration histories differ and require semantic reconciliation. Live Supabase security/performance findings include elevated functions/policy issues and index findings that must be resolved from current evidence rather than blindly applied. Gemini currently requires migration to the pinned three-key model boundary. Offline model preparation still needs first-visit/no-redownload behavior proven end to end. Payments/subscriptions retain historical overlapping authorities and are intentionally completed last.
+Use these repository assets after this authority update:
 
-Treat this list as a starting pointer only: rerun the actual current commands and update this file when evidence changes.
+- `design/reference/grok/` — primary layout/density/UI reference;
+- `design/reference/jarvis/stitch-jarvis-reference.png` — Jarvis visual reference;
+- `design/reference/checklists/website-essentials-checklist.jpeg` — useful website checklist;
+- `design/legacy/` — old UI screenshots to help identify clutter being removed.
 
-## Important Context
+Build original OCADE UI; references do not authorize proprietary asset/copy cloning.
 
-Persistent ordinary customer content must end in Supabase PostgreSQL/private Storage. Incognito stays RAM-only. Temporary unsynchronized local-inference turns may exist only in current-tab memory with loss warnings and exactly-once sync. OPFS stores Offline Intelligence model binaries/chunks/model-owned metadata only.
+## Offline Intelligence
 
-Offline Intelligence begins preparing in the background on the first device/browser visit when supported, including the landing page. A verified installed model is reused across revisit, sign-in/out, account deletion, service-worker/application deployment and compatible upgrades. Only explicit Remove Offline Intelligence deletes it; deliberate removal suppresses automatic reinstall until explicit Install.
+Internal model: Qwen 2.5 1.5B, never customer-facing by real name.
 
-All AI-generating surfaces use one OCADE Intelligence/commercial-permit path. Gemini 3.1 Flash-Lite uses primary/secondary/tertiary server secret slots with primary-first pre-output health failover; Local-only must create zero provider traffic.
+Customer terms: OCADE / Offline / Offline Intelligence.
 
-Cowork Normal and Jarvis share the same task/agent/permission/usage/runtime. Jarvis is the immersive liquid-glass/network orb presentation with audio-reactive states. Browser and Windows actions require observation/re-observation/postcondition verification. Windows control converges PyWin32/UIA/Win32/native, vision and PyAutoGUI behind one RemoteExecutor, with coordinates only as guarded fallback.
+Required lifecycle: automatic first-visit preparation, OPFS, adaptive parallel chunks, resume, integrity verify, repair only missing/corrupt chunks, install once, reuse across refresh/sign-in/out/service-worker/deploy/commit/main merges. Model identity is independent of app SHA.
 
-The 2,126-file donor is re-evaluated for maximum useful behavior, especially Chat/Cowork/Code/coding-agent/tasks/tools/files/Git/LSP/permissions/memory/recovery. Do not import duplicate donor architecture merely to increase file reuse.
+## Online Intelligence
 
-## Recent Decisions
+Use exactly these Supabase server/Edge secrets:
 
-- Supabase/Storage, not browser-local content stores, is the persistent user-data authority — implemented, and enforced by `content-storage:check`.
-- A device revocation and a site permission are account facts, not browser facts. Signing out clears what a tab was holding and never the account's own records.
-- An approval decision is a single conditional statement in the database, so two devices answering at once cannot both believe they decided it.
-- Claude is the primary UI structure/interaction benchmark; ChatGPT and OpenClaw are secondary behavioral references; OCADE remains independently branded/implemented.
-- Chat/Cowork/Code are the primary workspace surfaces; Projects/Tasks/Artifacts/Search/Customize/Settings support them.
-- The old More dashboard is removed after useful behavior is rewired.
-- Payments, refunds, disputes, chargebacks and audited Admin grants are mandatory but implemented last.
-- `PLAN.md` is the only implementation plan. `CLAUDE.md` is the only AI handbook. `AGENTS.md` and the former `docs/mission/*` instruction bundle are intentionally removed.
-- Separate `TRD.md`, `UI UX Brief.md` and `Backend Schema.md` are now part of the canonical role-specific documentation set while `DESIGN.md` and `ARCHITECTURE.md` remain separate detailed authorities.
-- The former standalone ADR decisions now live in `docs/DECISIONS.md`; the three superseded ADR files were removed after their unique decisions were preserved.
-- Supporting historical/evidence Markdown is deleted only when proven unreferenced and valueless for legal/provenance/audit/operations; cleanup must never break package scripts, tests or recovery evidence.
+- `GEMINI_API_KEY_PRIMARY`
+- `GEMINI_API_KEY_SECONDARY`
+- `GEMINI_API_KEY_TERTIARY`
 
-## Current State
+Never put them in normal tables/browser bundles.
 
-Branch `claude/plan-implementation-n3yjkn`, cut from `origin/main` at `a7a99e3`.
+## Usage
 
-`PLAN.md` Phase 0 (baseline and evidence repair), Phase 2 (Supabase canonical persistence) and
-Phase 3 (Supabase security, Auth, MFA and schema reconciliation) are complete. Phase 1 is complete
-except for splitting `ChatSurface`, which is carried forward.
+Free: 28 successful user requests / 388 minutes, account-wide across devices and online/offline. One successful user request counts once even when Cowork later performs many internal steps.
 
-Phase 2 in one line: ordinary user content now has ONE persistent authority. Memory, artifacts and
-their activity ledger, citations, message feedback, notification preferences, paired devices,
-approvals, tasks, task comments, monitors and browser site permissions all moved from
-`localStorage`/IndexedDB into the account. `npm run content-storage:check` fails the build if
-content returns to browser storage; 40 device/model stores are declared with a written reason each.
+## Auth
 
-Two of those were safety-critical rather than merely inconvenient. A device revocation and a site
-permission each lived in one browser, so revoking a lost phone from a laptop left it trusted on
-every other machine. Both are account rows now, and signing out no longer clears devices or
-approvals — that was safe while they were local and destructive once they were not.
+Supabase Auth remains authority. Primary Google, plus email OTP and phone OTP with country picker. Optional password may live under Account. Production provider availability must match actual configured delivery/provider state.
 
-Phase 3 in one line: source and live agree, and the acts that hand out access ask who you are.
-Source declares 96 tables (two renamed away by later migrations) and live now holds exactly those
-96; the reconciliation was done by schema effect, which is how three "missing" migrations turned out
-to be already applied. Seven previously-unapplied migrations were applied, and five new ones repaired
-what the reconciliation exposed:
+## Supabase
 
-- `ocade_organization_policies` still constrained capabilities to `privateSync`, so withholding
-  account storage would have been refused by a CHECK constraint with nothing on screen to explain it.
-- `ocade_share_conversation` still refused unless `privacy_mode = 'private_sync'` — a rule that read
-  as enforced, was unreachable because nothing set the column, and would have started refusing real
-  conversations the moment anything wrote the old value back. Gate and column both removed.
-- `privacyMode` was still a required field on `EngineContext` that nothing read, and
-  `assemble.ts` printed it into the system prompt, telling the model about a storage mode the product
-  does not have.
-- Four tables ran two permissive SELECT policies for the same role, so every read also called
-  `has_role` on rows already admitted. Merged. Support articles deliberately keep two, because `anon`
-  cannot execute `has_role` and a merged policy would break the signed-out help centre.
-- Twenty-two foreign keys had no covering index. The cost lands on DELETE of the parent, under lock —
-  and twenty of them are on the account-deletion and device-revocation paths.
-- Inviting an address, re-issuing its invitation link and reactivating a suspended member asked for no
-  recent strong authentication, so an unlocked laptop could add an owner. Now gated. Deactivation
-  stays ungated on purpose; organization groups stay ungated because they grant nothing.
+Last verified live project before redesign: `sazhgaisyhkdbrooycdv`. Re-verify before migrations.
 
-Regenerating the types caught real drift rather than noise, including four RPC arguments the newer
-generator types as non-nullable; three are omitted now and two go through
-`src/lib/supabase/rpc-null.ts`. `supabase/config.toml` pointed at the wrong project and now names
-`sazhgaisyhkdbrooycdv`.
+The redesign will remove database objects dedicated only to retired standalone products after final dependency tracing. RLS/least privilege and the single subscription/usage authorities remain mandatory.
 
-Twelve migrations were added across Phases 2 and 3, each with its rollback and verification; the
-database twin applies, verifies and rolls back all 92 against real PostgreSQL. Live security advisors
-report no mutable function search path; live performance advisors report no unindexed foreign keys and
-no duplicated permissive policies. The full record, including what was audited and deliberately left
-alone, is in `docs/mission/OCADE_EXECUTION_STATE.md`.
+## OCADE JARVIS donor
 
-The browser proofs found three more defects and one stale harness. A status panel was covering the
-Account menu at the same corner and z-index as the sidebar, permanently on a device that fails for
-storage — so signing out was unreachable. Four "Retry" controls measured 30x16, below the touch
-minimum, on exactly the screens somebody reaches after a failure. The route harness measured one
-document while the product had already replaced it, which produced a blank-page report for a route
-that passes ten times out of ten. And three customer-journey stages still asserted the browser vault
-Phase 2 removed; they now assert what has to hold instead — an unreachable account says so, and the
-work made online must NOT be readable offline.
+Archive: `.incoming/OCADE_JARVIS.zip`.
 
-## Next Steps
+The owner wants its donor feature set retained when PLAN2 begins. It becomes the single Cowork runtime. Normal Cowork is prompt/task UI; Jarvis is online-Gemini voice/hands-free presentation over the same runtime.
 
-The implementation phases of `PLAN.md` are complete through Phase 20, and the
-final verification matrix passes on branch `claude/plan-implementation-n3yjkn`.
+## Agent defaults
 
-### What the final matrix reports
+Always:
 
-`npm run verify:full` passes 36 portable gates. `npm run launch:prove` reports
-15/15 local gates and SOURCE MERGE READY. The remaining-gap ledger holds 19
-gaps: 14 runtime-proven, 5 externally blocked, none missing and none merely
-tested.
+```text
+/ponytail full
+/caveman full
+```
 
-Browser-proven on the production build: every route at 937/937 signed out and
-937/937 signed in across two viewports with 1,644 controls pressed; the deployed
-Worker shape at 937/937; the customer journey at 20/20; the settings sweep with
-85/85 responsive checks, 12/12 web vitals and 13/13 offline transitions; the
-admin operations and billing consoles; organizations; MFA enrolment;
-notifications including cross-device preference sync; incognito and memory;
-signed-out offline at 15/15; the Cowork extension; 27/27 browser runtime modes
-with verified model output; and the model install proof over real transfer
-including uninstall and reinstall.
+Ponytail controls engineering behavior. Caveman compresses chat output only. Correctness/PLAN authority always wins over compression.
 
-### The last defects the matrix found
+## Next action
 
-Four gates were testing a product that no longer exists, and each was corrected
-to the requirement that replaced it rather than relaxed: the notification bell's
-address (§4 moved the history into Tasks), the offline walk's assumption that a
-never-visited public route is cached, the auth journey's demand that a
-signed-out page make no model request (`PLAN.md` starts preparation on first
-visit), and three WebGPU offload assertions that ignored a device whose
-allocation ceiling is smaller than the weights.
+Start `PLAN.md` Phase 0 on an isolated implementation branch:
 
-Three were real: the OCADE 77 contract named two deleted modules; `moss`
-darkened the orb by three per cent because its channel weights summed to 2.90
-rather than 3.00; and js-yaml 4.3.1 carried a high-severity advisory.
+- fetch latest main;
+- measure baseline source LOC;
+- read/trace the whole current repository;
+- produce the final KEEP/REUSE/REPLACE/DELETE map;
+- begin aggressive cleanup;
+- read the reduced repository again before rebuilding.
 
-`ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
-1, deliberately.
-
-### What remains, and it is not repository work
-
-Five gaps are externally blocked and named as such: NVDA and VoiceOver
-verification, and four surfaces that need a live deployment to observe.
-`launch:prove` lists nine external blocker areas — Cloudflare runtime, Supabase
-apply, desktop and mobile signing, the extension store, the real device matrix,
-model distribution and a CI runner — and four authority gates: signing identity,
-observed production deployment, on-call and announcement approval.
-
-Two known external items stay recorded in `docs/deployment/PRODUCTION_STATE.md`:
-`auth_leaked_password_protection` is disabled in Supabase Auth, and the Windows
-control journey needs Windows hardware.
-
-## Things to Be Careful About
-
-Do not assume old local-first README/architecture text is current. Do not reintroduce cloud/provider bypasses around the commercial permit. Do not persist normal content locally. Do not redownload a valid model because the site updated. Do not make Jarvis a second Cowork engine. Do not treat issued automation actions as success before re-observation. Do not merge duplicate payment/subscription tables without preserving history. Do not expose real secrets. Do not remove donor/provenance/legal/evidence/runbook documents required for compliance, scripts or recovery merely to reduce Markdown count. Do not deploy a tree different from the one verified.
-
-## Session Handoff
-
-A new AI coding session should read `CLAUDE.md`, `docs/PRD.md`, `docs/TRD.md`, `PLAN.md`, `docs/APP_FLOW.md`, `docs/UI UX Brief.md`, `docs/DESIGN.md`, `docs/ARCHITECTURE.md`, `docs/Backend Schema.md`, `docs/RULES.md`, `docs/TESTING.md`, this file and `docs/DECISIONS.md`, then inspect the live repository rather than asking the owner to restate the mission. Update this file after meaningful implementation sessions with the exact current branch/SHA, completed phase/checkpoint, new known problems and next action. Keep it concise and remove obsolete handoff material when the state changes.
+Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.
