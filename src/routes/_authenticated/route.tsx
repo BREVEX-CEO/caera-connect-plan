@@ -1,4 +1,11 @@
-import { createFileRoute, Outlet, redirect, useRouter, Link } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  isRedirect,
+  Outlet,
+  redirect,
+  useRouter,
+  Link,
+} from "@tanstack/react-router";
 import { useEffect } from "react";
 /*
  * ON DEMAND, and this one module is why the whole public site used to pay for
@@ -60,6 +67,50 @@ export const Route = createFileRoute("/_authenticated")({
         // A same-origin path — safeNext() accepts absolute and relative alike.
         search: { next: location.pathname + location.searchStr },
       });
+    }
+
+    /*
+     * THE SECOND FACTOR, WHERE AN ENROLLED ACCOUNT HAS ONE.
+     *
+     * Supabase will happily leave a session at `aal1` — raising it is the
+     * application's job, and an application that never asks has MFA as an
+     * ornament: the factor exists, and a stolen credential reaches every
+     * screen.
+     *
+     * ONLY WHEN A VERIFIED FACTOR EXISTS. `next` is `aal2` exactly when this
+     * session COULD complete a challenge, so an account without a factor is
+     * untouched and cannot be trapped by a prompt it is unable to answer.
+     *
+     * THROUGH THE SHARED AUTHORITY, not `supabase.auth.mfa` directly.
+     * `currentAssurance` passes the access token so the factor list is read
+     * from the ACCOUNT rather than from this browser's stored session — which
+     * is frozen at sign-in and would report "no factor" on every device except
+     * the one that enrolled.
+     *
+     * FAILS OPEN ON AN UNREADABLE ANSWER, deliberately: an outage must not
+     * become an account lockout. The server-side `requireAssurance` middleware
+     * is what actually protects the dangerous operations, and it fails CLOSED.
+     * This gate is the prompt, not the lock.
+     */
+    try {
+      const { currentAssurance } = await import("@/lib/security/mfa");
+      const level = await currentAssurance();
+      if (level.next === "aal2" && level.current !== "aal2") {
+        throw redirect({
+          to: "/auth/challenge",
+          search: { next: location.pathname + location.searchStr },
+        });
+      }
+    } catch (cause) {
+      /*
+       * THE REDIRECT MUST GET OUT OF HERE. TanStack signals a redirect by
+       * THROWING it, so without re-throwing, this catch silently swallows the
+       * gate it exists to fail open around. `isRedirect` rather than a
+       * hand-rolled shape check: the thrown value is a `Response` carrying its
+       * navigation options under `.options`, with no `to` at the top level, so
+       * `"to" in error` is false for every redirect and the gate never fires.
+       */
+      if (isRedirect(cause)) throw cause;
     }
 
     return { user };

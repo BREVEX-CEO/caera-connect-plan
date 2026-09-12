@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { KeyRound, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { friendlyOtpError } from "@/lib/auth/otp";
 import { AuthShell } from "@/components/shell/AuthShell";
@@ -10,10 +10,10 @@ export const Route = createFileRoute("/reset-password")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Choose a new password — CARCC CADANE" },
+      { title: "Choose a new password — OCADE" },
       {
         name: "description",
-        content: "Set a new password for your CARCC CADANE account from your reset link.",
+        content: "Set a new password for your OCADE account from your reset link.",
       },
       { name: "robots", content: "noindex" },
     ],
@@ -30,6 +30,10 @@ function ResetPasswordPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  /** Password visibility, which the accessibility checklist asks for wherever
+   * a password field exists: somebody typing a long passphrase on a phone has
+   * no other way to catch a mistyped character. */
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,7 +53,7 @@ function ResetPasswordPage() {
      * has to arrive in the URL and survive `readRecoveryEvidence`.
      *
      * Somebody who is signed in and wants a new password is not stuck — they
-     * are sent to Settings › Security, where the current password is required.
+     * change it in Settings, where the current password is required first.
      */
     /*
      * The listener attaches once the client arrives. Loaded on demand rather
@@ -145,7 +149,7 @@ function ResetPasswordPage() {
   return (
     <AuthShell
       title="Choose a new password"
-      subtitle="Set a new password for your CARCC CADANE account."
+      subtitle="Set a new password for your OCADE account."
       footer={
         <>
           Changed your mind?{" "}
@@ -157,81 +161,84 @@ function ResetPasswordPage() {
       }
     >
       {!ready ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Checking your reset link…
-        </div>
+        <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Checking your reset link…
+        </p>
       ) : done ? (
-        <div className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
-          Password updated. Taking you to your workspace…
-        </div>
+        <p className="text-sm text-foreground" role="status">
+          Password updated. Opening Chat…
+        </p>
       ) : !linkValid ? (
-        <div className="flex flex-col gap-3">
-          <div
-            role="alert"
-            className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
-          >
-            <p className="font-medium">This reset link is no longer valid.</p>
-            <p className="mt-1 text-destructive/85">
-              {error ??
-                "Open this page from the link in your reset email. Reset links expire quickly and can only be used once."}
-            </p>
-            <p className="mt-1 text-destructive/85">
-              Already signed in and just want a new password? Change it in Settings › Security,
-              where OCADE asks for your current one first.
-            </p>
-          </div>
+        <div className="space-y-3">
+          <p role="alert" className="text-sm text-foreground">
+            This reset link is no longer valid.
+          </p>
+          <p className="text-[13px] leading-5 text-muted-foreground">
+            {error ??
+              "Open this page from the link in your reset email. Reset links expire quickly and can only be used once."}
+          </p>
+          <p className="text-[13px] leading-5 text-muted-foreground">
+            Already signed in and just want a new password? Change it in Settings, where OCADE asks
+            for your current one first.
+          </p>
           <Link
             to="/auth"
-            className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground"
+            className="flex h-10 items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
             Request a new link
           </Link>
         </div>
       ) : (
-        <form onSubmit={submit} className="flex flex-col gap-3">
-          <label htmlFor="new-password" className="text-xs font-medium text-muted-foreground">
-            New password
+        <form onSubmit={submit} className="space-y-3">
+          <label className="block">
+            <span className="sr-only">New password</span>
+            <span className="relative block">
+              <input
+                id="new-password"
+                type={visible ? "text" : "password"}
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="New password, at least 8 characters"
+                className="h-10 w-full rounded-md border border-border bg-transparent pl-3 pr-10 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+              />
+              <button
+                type="button"
+                onClick={() => setVisible((value) => !value)}
+                aria-label={visible ? "Hide password" : "Show password"}
+                className="absolute right-1 top-1 grid h-8 w-8 place-items-center rounded text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {visible ? (
+                  <EyeOff className="h-4 w-4" aria-hidden />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden />
+                )}
+              </button>
+            </span>
           </label>
-          <div className="flex items-center gap-2 border-b border-border/70 bg-transparent px-0.5 transition-colors focus-within:border-foreground/70">
-            <KeyRound className="h-4 w-4 text-muted-foreground" aria-hidden />
-            <input
-              id="new-password"
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
-              className="flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-muted-foreground"
-            />
-          </div>
-          <label htmlFor="confirm-password" className="text-xs font-medium text-muted-foreground">
-            Confirm new password
-          </label>
-          <div className="flex items-center gap-2 border-b border-border/70 bg-transparent px-0.5 transition-colors focus-within:border-foreground/70">
-            <KeyRound className="h-4 w-4 text-muted-foreground" aria-hidden />
+          <label className="block">
+            <span className="sr-only">Confirm new password</span>
             <input
               id="confirm-password"
-              type="password"
+              type={visible ? "text" : "password"}
               autoComplete="new-password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              placeholder="Confirm new password"
+              className="h-10 w-full rounded-md border border-border bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
             />
-          </div>
+          </label>
           {error ? (
-            <div
-              role="alert"
-              className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
-            >
+            <p role="alert" className="text-[13px] text-foreground">
               {error}
-            </div>
+            </p>
           ) : null}
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex items-center justify-center gap-2 rounded-none bg-primary px-4 py-3 text-[13px] font-medium uppercase tracking-[0.18em] text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+            className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
           >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
             Update password
           </button>
         </form>

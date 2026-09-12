@@ -202,5 +202,10 @@
       "root": 698,
       "public": 523
     }
+  },
+  "afterPhase3": {
+    "trackedSourceFiles": 576,
+    "trackedSourceLines": 75562,
+    "reductionFromBaselinePercent": 81.1
   }
 }

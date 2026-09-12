@@ -3,7 +3,14 @@
  * Provider/internal codes are never shown to the user; they are mapped here.
  */
 
-export type OAuthProvider = "google" | "apple" | "microsoft";
+/**
+ * The provider OCADE actually offers.
+ *
+ * It was a union of three. Apple and Microsoft were never configured, and a
+ * type that lists a provider the product cannot use is how a button for it
+ * eventually appears.
+ */
+export type OAuthProvider = "google";
 
 export type FriendlyAuthError = {
   /** Short headline, sentence case. */
@@ -18,8 +25,6 @@ export type FriendlyAuthError = {
 
 const providerLabel: Record<string, string> = {
   google: "Google",
-  apple: "Apple",
-  microsoft: "Microsoft",
 };
 
 function label(provider: string) {

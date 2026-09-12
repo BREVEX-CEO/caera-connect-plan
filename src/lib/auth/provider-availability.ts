@@ -1,6 +1,5 @@
 export type AuthProviderAvailability = {
   google: boolean;
-  apple: boolean;
   phone: boolean;
   emailDelivery: boolean;
 };
@@ -31,7 +30,6 @@ export function resolveAuthProviderAvailability(
   const developmentFallback = !production;
   return {
     google: booleanFlag(environment.VITE_AUTH_GOOGLE_ENABLED, developmentFallback),
-    apple: booleanFlag(environment.VITE_AUTH_APPLE_ENABLED, developmentFallback),
     phone: booleanFlag(environment.VITE_AUTH_PHONE_ENABLED, developmentFallback),
     emailDelivery: booleanFlag(environment.VITE_AUTH_EMAIL_DELIVERY_READY, developmentFallback),
   };

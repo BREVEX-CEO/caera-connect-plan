@@ -21,7 +21,7 @@ export const Route = createFileRoute("/auth/callback")({
   ssr: false,
   validateSearch: searchSchema,
   head: () => ({
-    meta: [{ title: "Signing you in — CARCC CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Signing you in — OCADE" }, { name: "robots", content: "noindex" }],
   }),
   component: CallbackPage,
 });

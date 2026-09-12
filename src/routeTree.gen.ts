@@ -23,6 +23,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedCoworkRouteImport } from './routes/_authenticated/cowork'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as AuthChallengeRouteImport } from './routes/auth.challenge'
 import { Route as AuthVerifyRouteImport } from './routes/auth.verify'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
@@ -95,6 +96,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/callback',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthChallengeRoute = AuthChallengeRouteImport.update({
+  id: '/challenge',
+  path: '/challenge',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthVerifyRoute = AuthVerifyRouteImport.update({
   id: '/verify',
   path: '/verify',
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/cowork': typeof AuthenticatedCoworkRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/challenge': typeof AuthChallengeRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/cowork': typeof AuthenticatedCoworkRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/challenge': typeof AuthChallengeRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/_authenticated/cowork': typeof AuthenticatedCoworkRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/challenge': typeof AuthChallengeRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -176,6 +185,7 @@ export interface FileRouteTypes {
     | '/cowork'
     | '/library'
     | '/auth/callback'
+    | '/auth/challenge'
     | '/auth/verify'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
     | '/cowork'
     | '/library'
     | '/auth/callback'
+    | '/auth/challenge'
     | '/auth/verify'
     | '/api/public/payments/webhook'
   id:
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cowork'
     | '/_authenticated/library'
     | '/auth/callback'
+    | '/auth/challenge'
     | '/auth/verify'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
@@ -329,6 +341,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/auth/challenge': {
+      id: '/auth/challenge'
+      path: '/challenge'
+      fullPath: '/auth/challenge'
+      preLoaderRoute: typeof AuthChallengeRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/auth/verify': {
       id: '/auth/verify'
       path: '/verify'
@@ -363,11 +382,13 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface AuthRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthChallengeRoute: typeof AuthChallengeRoute
   AuthVerifyRoute: typeof AuthVerifyRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
+  AuthChallengeRoute: AuthChallengeRoute,
   AuthVerifyRoute: AuthVerifyRoute,
 }
 

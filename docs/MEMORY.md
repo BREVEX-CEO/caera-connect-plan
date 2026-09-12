@@ -45,6 +45,18 @@ Phase 0 decisions: one offline runtime backend (WASM GGUF, `@wllama/wllama`) bec
 
 **Tests deleted with their surfaces, to be re-authored by the phase that rebuilds each:** auth surfaces and account safety (Phase 3), every-AI-surface-is-gated and offline usage integration (Phase 5), limits server wiring (Phase 6), model product presentation and the offline shell mirror (Phase 7), notification settings and "nobody can be charged" (Phase 9), the public security claims page and the MFA challenge gate (Phase 3 decides whether the challenge screen returns; the assurance middleware on server functions is untouched and still fails closed).
 
+### Phase 3 — authentication rebuild — DONE
+
+- `/auth` rebuilt (821 → 372 lines): Continue with Google as the primary action, then one segmented Email | Phone choice that sends a six-digit code. Supabase Auth is the only identity authority; the third-party auth wrapper and the Apple/Microsoft buttons for providers nobody configured are gone, and `OAuthProvider` is now the single provider the product actually has.
+- New: `src/lib/auth/phone-numbers.ts` — an international country picker (28 calling codes) and one pure `toE164` resolver that drops a national trunk zero, lets an explicit `+` override the picker, and refuses what cannot be valid before a provider ever sees it.
+- The password is off the way in, by decision: it is optional, managed under Account, and `/reset-password` remains for accounts that have one. That screen was rebuilt in the product's current language and gained the password-visibility control the checklist asks for.
+- `/auth/verify` rebuilt: exactly six digits, the resend countdown as the control's own label, real backoff on wrong codes. The `intent` flag that decided `shouldCreateUser` is gone with the separate sign-in/create screens it existed for.
+- The second-factor gate is back, and one layer up: the challenge is `/auth/challenge` rather than `/_authenticated/challenge`, so the screen that completes signing in no longer sits behind the gate that requires signing in to be complete. `_authenticated` redirects an enrolled `aal1` session to it, fails open on an unreadable assurance answer, and re-throws the redirect — the server-side `requireAssurance` middleware is still the lock and still fails closed.
+- `DEFAULT_NEXT` is `/` (Chat). It pointed at `/ocade`, a route that no longer exists.
+- Re-authored the tests deleted in Phase 2: `auth-surfaces.test.ts` (one identity authority, one provider, no password on the way in, no provider text in a refusal, throttling present, every destination through `safeNext`) and a new `phone-numbers.test.ts`.
+- Gates: typecheck clean, eslint 0 errors, prettier clean, 803 unit tests pass, build succeeds, `npm run audit:auth` proves 10 real-browser checks and `npm run audit:shell` still proves 23.
+- **Not proven here, and named as unproven:** that Google, email delivery and SMS are configured on the live Supabase project. The browser proof runs against a local build whose readiness flags are set locally; production still fails closed until each `VITE_AUTH_*` flag is set against a verified live provider.
+
 ## New final product
 
 Primary customer destinations:
@@ -127,6 +139,6 @@ Ponytail controls engineering behavior. Caveman compresses chat output only. Cor
 
 ## Next action
 
-`PLAN.md` Phase 3 — authentication rebuild. Rebuild `/auth` (821 lines) around Supabase Auth only: Continue with Google, email 6-digit OTP, phone OTP with an international country picker, safe redirects, enumeration-resistant errors, bounded resend/backoff. Decide whether the MFA challenge screen returns and re-author the auth surface tests deleted in Phase 2.
+`PLAN.md` Phase 4 — rebuild Chat completely. Wire `ChatWorkspace` to the conversation store: send through the intelligence router, stream the answer, persist to Supabase, list recent conversations in the sidebar with rename/archive/trash/restore, route attachments to Library, show concise one-line failures, and never render answer controls when there is no answer.
 
 Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.

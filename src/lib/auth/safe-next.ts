@@ -30,12 +30,12 @@
 /**
  * The default when there is no usable destination.
  *
- * Chat, not `/home`. `docs/APP_FLOW.md` makes `/ocade` the signed-in home and
- * leaves `/home` as a forwarding address; defaulting to the forwarder sent
- * every sign-in, verification and password reset through an extra navigation
- * to arrive at the same screen.
+ * Chat, which is `/`. It used to be `/ocade`, a workspace route that no longer
+ * exists; before that it was `/home`, a forwarding address that sent every
+ * sign-in, verification and password reset through an extra navigation to
+ * arrive at the same screen.
  */
-export const DEFAULT_NEXT = "/ocade";
+export const DEFAULT_NEXT = "/";
 
 /**
  * Resolve a `next` parameter to a path OCADE may navigate to, or null.

@@ -39,7 +39,8 @@
     "deploy:web": "node scripts/deploy.mjs --execute",
     "deploy:rollback": "node scripts/deploy.mjs --rollback",
     "verify:full": "node scripts/verify-full.mjs",
-    "audit:shell": "node scripts/e2e/shell-journey.mjs"
+    "audit:shell": "node scripts/e2e/shell-journey.mjs",
+    "audit:auth": "node scripts/e2e/auth-journey.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

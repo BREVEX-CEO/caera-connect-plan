@@ -24,30 +24,19 @@ const searchSchema = z.object({
   channel: z.enum(["phone", "email"]),
   identifier: z.string().min(1),
   next: z.string().optional(),
-  /*
-   * WHY THE INTENT TRAVELS WITH THE USER.
-   *
-   * `resend()` called `signInWithOtp` with no options, which defaults to
-   * creating an account. Somebody who pressed "Sign in", mistyped a character
-   * and then pressed Resend would have a brand-new empty account made for the
-   * address they did not mean to type — and would then be signed into it,
-   * wondering where their conversations went. The intent the person actually
-   * expressed on the previous screen has to survive the navigation.
-   */
-  intent: z.enum(["signin", "signup"]).optional(),
 });
 
 export const Route = createFileRoute("/auth/verify")({
   ssr: false,
   validateSearch: searchSchema,
   head: () => ({
-    meta: [{ title: "Enter your code — CARCC CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Enter your code — OCADE" }, { name: "robots", content: "noindex" }],
   }),
   component: VerifyPage,
 });
 
 function VerifyPage() {
-  const { channel, identifier, next, intent } = Route.useSearch();
+  const { channel, identifier, next } = Route.useSearch();
   const navigate = useNavigate();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -111,7 +100,7 @@ function VerifyPage() {
     const parsed = z
       .string()
       .trim()
-      .regex(/^\d{4,8}$/, "Enter the numeric code we sent you.")
+      .regex(/^\d{6}$/, "Enter the six-digit code we sent you.")
       .safeParse(code);
     if (!parsed.success) {
       setError(parsed.error.issues[0].message);
@@ -159,11 +148,20 @@ function VerifyPage() {
      * the original problem.
      */
     setLastSentAt(Date.now());
-    const options = { shouldCreateUser: intent === "signup" };
+    /*
+     * The same call the previous screen made, with the same defaults.
+     *
+     * There used to be an `intent` in the URL deciding `shouldCreateUser`,
+     * because the product had a separate Sign in and Create account screen and
+     * a resend from the wrong one silently made an empty account for a mistyped
+     * address. There is one way in now — a code to an address or a number —
+     * and the provider decides whether that identity already exists, so there
+     * is no intent to carry and no way for the two calls to disagree.
+     */
     const { error: err } =
       channel === "phone"
-        ? await supabase.auth.signInWithOtp({ phone: identifier, options })
-        : await supabase.auth.signInWithOtp({ email: identifier, options });
+        ? await supabase.auth.signInWithOtp({ phone: identifier })
+        : await supabase.auth.signInWithOtp({ email: identifier });
     setResending(false);
     if (err) setError(friendlyOtpError(err.message));
     else setResent(true);
@@ -183,8 +181,8 @@ function VerifyPage() {
       }
     >
       <form onSubmit={verify} className="flex flex-col gap-4">
-        <label htmlFor="code" className="text-xs font-medium text-muted-foreground">
-          One-time code
+        <label htmlFor="code" className="sr-only">
+          Six-digit code
         </label>
         <input
           id="code"
@@ -192,17 +190,17 @@ function VerifyPage() {
           inputMode="numeric"
           autoComplete="one-time-code"
           value={code}
-          onChange={(e) => setCode(e.target.value)}
-          className="border-b border-border/70 bg-transparent px-1 py-3 text-center font-mono text-2xl tracking-[0.5em] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors focus:border-foreground/70"
-          placeholder="••••••"
-          maxLength={8}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          className="h-12 rounded-md border border-border bg-transparent text-center font-mono text-xl tracking-[0.4em] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring"
+          placeholder="000000"
+          maxLength={6}
         />
         <button
           type="submit"
           disabled={busy || wait > 0}
-          className="inline-flex items-center justify-center gap-2 rounded-none bg-primary px-4 py-3 text-[13px] font-medium uppercase tracking-[0.18em] text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+          className="flex h-10 items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
         >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
           {/*
             The countdown is ON the button, not only in the error. A control
             that has silently stopped working is a bug as far as the person
@@ -220,7 +218,7 @@ function VerifyPage() {
            * button with the reason somewhere else is a button that, to a screen
            * reader, simply stopped working.
            */
-          className="inline-flex min-h-[24px] items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-70"
+          className="flex min-h-6 items-center justify-center gap-2 text-[13px] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-70"
         >
           {resending ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
           {describeResend(cooldown)}
@@ -229,25 +227,13 @@ function VerifyPage() {
           {resent ? "A new code has been sent." : ""}
         </p>
         {resent ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[13px] text-muted-foreground">
             A new code is on its way. The previous one no longer works.
           </p>
         ) : null}
         {error ? (
-          <div
-            role="alert"
-            className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
-          >
+          <p role="alert" className="text-[13px] text-foreground">
             {error}
-          </div>
-        ) : null}
-        {intent === "signin" ? (
-          <p className="text-xs text-muted-foreground">
-            No code arriving? If you have not created an OCADE account yet,{" "}
-            <Link to="/auth" className="text-foreground underline underline-offset-4">
-              create one
-            </Link>{" "}
-            — signing in only works for an address that already has one.
           </p>
         ) : null}
       </form>
