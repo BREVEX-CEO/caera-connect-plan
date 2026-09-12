@@ -1,93 +1,160 @@
 # OCADE Architecture
 
-## Target shape
+## System shape
+
+OCADE is one web product with one authority per domain.
 
 ```text
 Browser / PWA
-  │
-  ├─ Shell
-  │   ├─ Chat
-  │   ├─ Library
-  │   ├─ Cowork (PLAN2)
-  │   └─ Account / Settings
-  │
-  ├─ Auth authority ─────────────→ Supabase Auth
-  ├─ Persistent content ─────────→ Supabase PostgreSQL / private Storage
-  ├─ Usage authority ────────────→ server permits + offline reconciliation
-  └─ Intelligence router
-      ├─ Online OCADE ───────────→ Supabase Edge Function → Gemini
-      └─ Offline Intelligence ───→ browser runtime → OPFS model
+├─ App shell + routing
+├─ Chat UI
+├─ Library UI
+├─ Pricing / Billing UI
+├─ Settings / Account UI
+├─ Offline runtime + OPFS
+└─ Service worker / offline cache
+
+Server / Supabase
+├─ Supabase Auth
+├─ conversations/messages
+├─ Library metadata/private Storage
+├─ commercial usage + generation permits
+├─ subscriptions/payment evidence
+├─ manual entitlement grants
+├─ settings/notifications
+├─ security/admin state
+└─ ocade-intelligence Edge Function
+
+Cloudflare
+├─ web deployment
+└─ private R2 model distribution
 ```
 
-After `PLAN2.md`:
+Cowork/Jarvis runtime is absent during this mission.
+
+## Canonical authorities
+
+### Identity
+
+Supabase Auth only.
+
+### Chat persistence
+
+Supabase conversations/messages are the cloud authority. Local offline work may be queued/cached for later sync, but it must reconcile into the same conversation authority rather than creating a second permanent chat database.
+
+### Usage
+
+One commercial policy and ledger own all usage across online/offline/devices.
+
+Generation sequence:
 
 ```text
-Cowork UI ─┐
-           ├─→ one OCADE JARVIS runtime → browser/computer/files/actions
-Jarvis UI ─┘
+acquire durable permit
+→ choose intelligence route
+→ stream/produce output
+→ deliver answer
+→ finalize permit once
 ```
 
-## One-authority rule
+Failures release/no-charge according to the policy.
 
-Do not keep competing old/new implementations. Migration may temporarily need adapters, but the final tree has one authority for identity, usage, online intelligence, offline model lifecycle, Library, Chat and Cowork.
+### Online intelligence
 
-## Storage boundaries
+One Edge Function boundary owns provider access. Browser never owns Gemini keys.
 
-### Supabase
+### Offline Intelligence
 
-Canonical persistent account content:
+One product capability with two internal runtime forms:
 
-- profiles/security/account preferences;
-- conversations/messages;
-- Library metadata/files/images/outputs;
-- usage/entitlements/offline reconciliation;
-- notifications/settings;
-- billing;
-- required hidden Admin/org state;
-- minimal Cowork persistence after PLAN2.
+- WebGPU-first where verified;
+- WASM fallback.
 
-### Browser RAM
+The customer sees only Offline/Offline Intelligence.
 
-Transient in-flight UI/runtime state. Incognito-like temporary work, if retained, cannot silently become durable account content.
+### Model storage
 
-### OPFS
+Private OCADE R2 delivery → resumable verified shards → OPFS.
 
-Offline Intelligence model chunks/binaries and model-owned metadata only.
+The app build version is independent from the model artifact version.
 
-The website build/version must never be used as the model-cache identity.
+### Files
 
-## Online intelligence
+Library is the only customer-visible file/output authority. Cloud content lives in private Supabase Storage with RLS. Local cached copies are optional/offline helpers, not a second customer file system.
 
-The browser calls a server/Edge Function boundary. The function reads exactly three optional server secrets. No key enters the client.
+### Entitlement
 
-## Offline intelligence
+One final entitlement resolver combines free default, paid subscription and manual Admin grant.
 
-The model manager owns:
+Manual grants are not payment records and never edit `auth.users`.
 
-- device/support detection;
-- persistent-storage request;
-- manifest/version resolution;
-- bounded parallel chunk download;
-- resume;
-- hash/integrity verification;
-- repair;
-- explicit remove state;
-- runtime startup.
+## Online/offline routing
 
-Customer-facing UI subscribes to a small state machine and never needs the raw model name.
+```text
+Auto / OCADE
+  internet + provider healthy → online OCADE
+  provider failure before output + local ready → Offline Intelligence
+  no internet + local ready → Offline Intelligence
+  no internet + local absent → install/connect-once guidance
 
-## Cloudflare
+Offline
+  provider traffic = 0
+  local runtime only
+```
 
-Cloudflare serves the web/PWA production build and edge gate/health behavior as applicable. Deployment must publish the exact verified tree and preserve OPFS/model data across normal releases.
+Fallback never creates multiple usage charges.
 
-## Supabase
+## Private offline-model delivery
 
-Supabase owns Auth, PostgreSQL, private Storage, Edge Functions/secrets and server-authoritative account state. Schema changes are migration-driven and verified before/after.
+The tracked repository should not expose a public model catalogue/name where avoidable.
 
-## Cowork/Jarvis
+The browser obtains authorised opaque artifact/shard metadata from OCADE-controlled infrastructure. R2 credentials never reach the browser.
 
-`PLAN2.md` writes one Cowork runtime in OCADE's own architecture — there is no donor tree. The browser UI does not gain a second desktop application, and native helpers, if any prove necessary, are scoped infrastructure rather than a product.
+Use immutable shards and integrity checks. Persist verified pieces immediately so a killed browser resumes rather than restarts.
 
-## Removed architecture
+Explicit user uninstall is represented by durable local preference and suppresses future automatic reinstall until the user requests Install.
 
-The final architecture does not preserve standalone product authorities for Code, Projects, Tasks, Artifacts, Customize, Devices, Search dashboard or old desktop/Copilot merely for backwards compatibility.
+## PWA/offline architecture
+
+The service worker caches the app shell and stable public/static assets required for honest offline operation.
+
+Do not cache secrets or server-authoritative account state as if it were permanent truth.
+
+Local offline conversations/changes use a deterministic queue and sync process with idempotency/conflict handling.
+
+Payment and other cloud-only mutations are never reported successful while offline.
+
+## Security boundaries
+
+- secrets stay server-side;
+- RLS guards user-owned cloud content;
+- service-role operations stay server-side;
+- admin/manual grants require admin authorization;
+- provider errors are sanitized;
+- local allowance lease is signed/tamper-resistant;
+- storage/model hashes detect corruption/substitution;
+- customer-visible diagnostics do not leak private provider/model details unnecessarily.
+
+## Supported deployment targets
+
+- Windows Chrome
+- macOS Chrome
+- Android Chrome
+- iPhone/iPad Chrome/WebKit where browser capabilities permit
+
+Linux is not an advertised/certified target.
+
+## No duplicate-system rule
+
+Do not add a second:
+
+- auth store;
+- chat database;
+- usage meter;
+- entitlement resolver;
+- intelligence router;
+- offline model lifecycle;
+- settings store;
+- Library store;
+- payment catalogue.
+
+Repair or replace the canonical authority in place.
