@@ -86,15 +86,27 @@ Always:
 
 Ponytail controls engineering behavior. Caveman compresses chat output only. Correctness/PLAN authority always wins over compression.
 
+## Implementation state
+
+Completion branch: `claude/admiring-albattani-8gpkf3`, created from `origin/main` at `d9fa8360f56f13a1e57667634a54d8b9fbba43d4`.
+
+### Baseline measurement (Phase 0)
+
+Deterministic method, reused unchanged for every later measurement:
+
+```bash
+git ls-files | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|css|sql|py|rs|java|kt|swift|html)$' | xargs wc -l
+```
+
+- tracked source files: 1870
+- tracked source LOC: 397619
+
+### Phase log
+
+- **Phase 0 — DONE.** Baseline recorded, whole repository read and traced, KEEP/REPLACE/DELETE map written to `release/OCADE_PLAN_CLEANUP_MAP.json`, isolated completion branch in place.
+
 ## Next action
 
-Start `PLAN.md` Phase 0 on an isolated implementation branch:
+`PLAN.md` Phase 1 — execute the approximately 90% legacy deletion described by `release/OCADE_PLAN_CLEANUP_MAP.json`, remeasure with the Phase 0 command, record the real reduction here, then reread the reduced repository before rebuilding.
 
-- fetch latest main;
-- measure baseline source LOC;
-- read/trace the whole current repository;
-- produce the final KEEP/REUSE/REPLACE/DELETE map;
-- begin aggressive cleanup;
-- read the reduced repository again before rebuilding.
-
-Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.
+Update this file after every verified phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.
