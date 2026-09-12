@@ -1,33 +1,90 @@
-# UI Reference Checklist
+# OCADE UI Reference Checklist
 
-This document records the lightweight production UI details to preserve during the simplified OCADE rebuild. Apply items only where they are useful; do not add controls just to satisfy the checklist.
+Use this during browser review on desktop, tablet and phone.
 
-## Core checklist
+## Shell
 
-- [ ] Dark mode toggle
-- [ ] Cookie banner only if optional cookies/tracking require consent
-- [ ] Back-to-top control only on long Help/About/Terms/Privacy content
-- [ ] Mobile menu / chat-first drawer
-- [ ] Keyboard shortcuts
-- [ ] Clear hover and focus states
-- [ ] Polished, unobtrusive scrollbar
-- [ ] Copy buttons where users commonly copy text/code/links
-- [ ] Skeleton loaders for real loading states
-- [ ] Sticky header/shell only where it improves navigation
-- [ ] Skip-to-content accessibility link
-- [ ] OpenGraph/social preview metadata
-- [ ] Clean empty states
-- [ ] Expandable FAQs only on Help/About content where useful
-- [ ] Toast notifications for short success/error feedback
-- [ ] Password visibility control wherever password fields exist
+- near-black/charcoal foundation;
+- left sidebar feels light and compact;
+- OCADE / New Chat / Chat / Library / Cowork placeholder hierarchy is obvious;
+- recent chats do not dominate;
+- Account stays at bottom;
+- compact usage meter is visible but not distracting;
+- no retired navigation appears.
 
-## OCADE rebuild design rules
+## Glass treatment
 
-- Keep customer-facing UI extremely simple: Chat, Library, Cowork with Jarvis mode, Account/Settings.
-- `docs/design-references/grok/` is the sole visual UI/UX reference set. Use its density, spacing, left-sidebar position, compact settings, near-black/grey/white palette, restrained glassmorphism, small/medium radii and minimal visible text.
-- Do not use or recreate the removed Stitch/Jarvis 3D reference structure. Cowork and Jarvis must follow the same simplified OCADE/Grok-derived visual language.
-- Keep OCADE branding and original product assets. References are for structure, spacing and interaction quality, not copied third-party branding/assets.
-- Hide technical model/provider/runtime names from normal customers. Offline model details remain internal; customer-facing labels are OCADE / Offline Intelligence only.
-- Prefer progressive disclosure: advanced diagnostics, device/runtime details and developer information stay inside Advanced settings.
-- Every visible control must work, be intentionally disabled with a short truthful reason, or be removed.
-- Prioritize performance: batch independent fetches, maintain required database indexes, cap unbounded reads, optimize images and split oversized bundles/routes where beneficial.
+- sidebar uses medium neutral glass;
+- composer uses medium glass;
+- settings/dialogs/pricing cards/menus/attachment surfaces use consistent glass;
+- blur is visible but not foggy;
+- borders are thin and restrained;
+- no giant neon/gradient surfaces;
+- content area is not a wall of cards.
+
+## Chat
+
+- empty state centers `Ask OCADE` and the composer cleanly;
+- composer has `+`, microphone, Auto/OCADE/Offline and Send/Stop;
+- attachments show useful chips/previews;
+- messages have readable width/spacing;
+- OCADE answers render prose, Markdown, tables, links and code cleanly;
+- Copy/Edit/Regenerate/Delete/Retry controls appear where appropriate;
+- no provider/model/runtime terminology leaks.
+
+## Usage
+
+- compact `x of y left · reset` display;
+- thin progress indicator;
+- Upgrade appears when useful;
+- exhausted state is clear without breaking Library/Settings/Pricing.
+
+## Offline Intelligence
+
+- background preparation does not block online Chat;
+- progress is compact until opened;
+- detailed panel shows progress/speed/status and Pause/Resume/Cancel;
+- intentional uninstall shows the persistent reinstall message/button;
+- no raw model/vendor/runtime names.
+
+## Pricing
+
+- Free/Pro/Max cards are clean and balanced;
+- weekly/monthly toggle is obvious;
+- currency can be changed manually;
+- current plan/upgrade state is clear;
+- payment action clearly requires Internet when offline.
+
+## Settings
+
+- compact desktop modal;
+- mobile sheet/full-height behavior;
+- categories: Account, Appearance, Notifications, Data Controls, Billing, Advanced;
+- no technical clutter in normal categories.
+
+## Responsive
+
+- no horizontal scroll;
+- sidebar becomes intentional drawer on smaller widths;
+- touch targets are usable;
+- composer remains fully functional;
+- dialogs/sheets fit viewport;
+- pricing stacks cleanly;
+- attachment chips wrap/scroll appropriately.
+
+## Motion/accessibility
+
+- motion is short and purposeful;
+- reduced-motion works;
+- focus states are visible;
+- contrast remains strong;
+- keyboard/screen-reader behavior is correct.
+
+## Reject if
+
+- UI looks like a dashboard instead of a chat workspace;
+- glass is applied to every block;
+- large decorative gradients/scenes return;
+- provider/model names appear;
+- desktop layout is merely squeezed onto mobile;
+- disabled/fake controls are visible without truthful explanation.
