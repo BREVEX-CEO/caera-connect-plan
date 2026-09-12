@@ -1,107 +1,131 @@
-# OCADE UI UX Brief
+# OCADE UI/UX Brief
 
-## Experience goal
+## Goal
 
-OCADE should feel almost empty until the user needs something.
+OCADE should feel fast, calm, premium and focused on the current task. The interface is chat-first, not dashboard-first.
 
-The sole visual benchmark is the supplied Grok-style reference set under `docs/design-references/grok/`: narrow left sidebar, large clean workspace, compact controls, minimal copy and compact settings. Use the reference for structure/density/behavior, not proprietary logos, copy or pixel-for-pixel trade dress.
+Use the Grok reference images under `docs/design-references/grok/` and the owner-provided repair screenshots as structural/density references only. Keep OCADE branding, copy and implementation original.
 
-The former Stitch/Jarvis 3D reference is removed. Cowork and Jarvis use the same simplified OCADE visual language.
+## Visual language
 
-OCADE remains independently branded.
+- near-black/charcoal base;
+- clean white/grey typography;
+- medium glassmorphism on high-value surfaces;
+- subtle blur/transparency;
+- thin neutral borders;
+- restrained highlights;
+- minimal shadow;
+- small/medium radii;
+- no giant gradients;
+- no cinematic 3D scene;
+- no neon-heavy styling;
+- no cluttered card grids.
 
-## Visual character
+## Where glass belongs
 
-- near-black background;
-- white/soft-grey text;
-- subtle neutral borders;
-- light glassmorphism only: slight transparency, soft blur, tiny highlight, almost no shadow;
-- small/medium corner radius;
-- very few cards;
-- one primary action per decision;
-- short labels and one-line errors;
-- generous empty space;
-- subtle hover/cursor response and fast transitions;
-- no neon walls, giant gradients or continuous decorative motion.
+Use medium glass treatment on:
 
-## Desktop shell
+- sidebar;
+- composer;
+- settings modal/sheet;
+- dialogs;
+- pricing cards;
+- menus/dropdowns;
+- attachment previews;
+- Offline preparation/progress panel.
 
-Left:
+Do not turn every content block into a glass card.
 
-```text
-OCADE
-+ New chat
-Chat
-Library
-Cowork
-Recent chats
-...
-Account
-```
+## Motion
 
-Top bar may contain back/forward and chat search. The workspace takes most of the viewport.
+Allowed motion:
 
-Settings opens as a compact centered panel from Account.
+- smooth panel open/close;
+- subtle hover movement;
+- short opacity/blur transitions;
+- gentle streaming indicator;
+- model download/progress movement;
+- small Offline preparation animation.
 
-## Mobile
+Respect `prefers-reduced-motion` and remove unnecessary motion when requested.
 
-Use a Chat-first drawer pattern. The composer remains reachable above the virtual keyboard. Preserve safe-area insets and touch targets. Do not invent a different mobile product.
+## Main shell
 
-## Chat
+Desktop sidebar:
 
-Chat is `/`.
+- OCADE brand;
+- New chat;
+- Chat;
+- Library;
+- Cowork placeholder;
+- recent chats;
+- compact usage meter near Account;
+- Account at bottom.
 
-Empty state:
+Pricing should be reachable from Upgrade/Billing and public navigation where appropriate, but should not clutter the primary Chat sidebar.
+
+Mobile/tablet use a compact drawer/sheet while preserving the same information hierarchy.
+
+## Chat empty state
+
+Centered, spacious, minimal:
 
 ```text
 Ask OCADE
+[ composer ]
 ```
 
-Composer default controls:
+No suggestion-chip wall.
 
-- attachment `+`;
-- microphone;
-- send.
+Composer includes attachment, microphone, Send/Stop and compact Auto/OCADE/Offline selector.
 
-Intelligence is automatic. A compact optional selector may show only:
+## Usage
 
-- Auto
-- OCADE
-- Offline
-
-Never show the internal offline model name, provider names, file hashes, GGUF, WebGPU/WASM or runtime plumbing in normal UI.
-
-Do not show prompt suggestion chips by default. Do not show duplicate chat search or duplicate sidebars. Contextual actions appear on hover/menu.
-
-Failures are concise. A request that produced no answer must not be rendered as a fake response/artifact with Export/Save buttons.
-
-## Library
+Near Account/sidebar show a compact meter, for example:
 
 ```text
-Library
-All | Images | Files
-Search
+18 of 28 left · 2h 14m
 ```
 
-Use a simple grid/list with preview and title. Technical provenance stays behind Details if needed.
+Low allowance may show subtly near Send with Upgrade.
 
-## Cowork
+Billing shows the full allowance/session/week details.
 
-Normal mode should look related to Chat, not like an engineering command center.
+## Offline preparation
 
-Before run: one composer and recent work.
+Installation runs without blocking normal online Chat.
 
-During run: concise goal, short verified checklist, meaningful approvals, Pause/Take over/Stop. Detailed receipts are secondary.
+Show compact status:
 
-## Jarvis
+```text
+Preparing OCADE Offline · 43%
+```
 
-Jarvis lives inside Cowork. It is voice-first/hands-free over the same runtime.
+Clicking opens a glass progress panel with percentage, speed/status and Pause/Resume/Cancel.
 
-Remove the old giant moon/solar-system scene. Use a small original OCADE audio/orb indicator in or near the composer. Microphone/listening state must be obvious and controllable. Do not introduce a separate cinematic/3D design system.
+If intentionally uninstalled:
+
+> You uninstalled OCADE Offline. Get it back to use OCADE without internet.
+
+Show **Install Offline**.
+
+## Pricing
+
+`/pricing` contains clean Free/Pro/Max glass cards with:
+
+- weekly/monthly switch;
+- regional currency + manual selector;
+- concise allowance summary;
+- Upgrade/Current plan action;
+- no overlong comparison matrix.
 
 ## Settings
 
-Compact categories:
+Desktop: compact centered modal.
+
+Mobile: sheet/full-height layout.
+
+Categories:
 
 - Account
 - Appearance
@@ -110,22 +134,33 @@ Compact categories:
 - Billing
 - Advanced
 
-Advanced hides diagnostics/native/runtime detail.
+## Attachments
 
-Data Controls keeps delete-all conversations, delete uploaded files/images, export and Offline Intelligence controls.
+Before Send:
 
-## Motion
+- thumbnail/file chip;
+- upload state;
+- remove;
+- reorder;
+- retry failed upload.
 
-Use subtle hover luminance, 1–2 px movement at most, soft focus and short transitions. Respect reduced motion. No cursor trails or large always-running 3D animation.
+After Send:
 
-## Loading and state
+- preview where supported;
+- download;
+- clear file metadata.
 
-Use skeletons where layout is known. Empty states contain one concise explanation/action. Toast only for transient confirmation. Preserve distinct offline, reconnecting, auth-expired, usage-exhausted and permission-denied states.
+## Accessibility
 
-## Reference checklist
+- WCAG AA intent;
+- visible focus;
+- keyboard navigation;
+- semantic controls;
+- screen-reader labels;
+- reduced-motion support;
+- no information conveyed by color alone;
+- no sideways overflow at phone/tablet widths.
 
-`docs/UI_REFERENCE_CHECKLIST.md` is guidance, not a reason to add unnecessary UI.
+## Responsive quality bar
 
-Use when relevant: dark/light handling, mobile menu, shortcuts, hover/focus, scrollbar polish, copy, skeletons, sticky shell, skip-to-content, OpenGraph, empty states, toasts, password visibility.
-
-Conditional: cookie consent only when optional cookies require it; FAQ accordion only in Help; back-to-top only on long Help/legal pages.
+Desktop, tablet and phone each require deliberate spacing/controls. Do not merely shrink the desktop layout.
