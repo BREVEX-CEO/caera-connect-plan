@@ -44,6 +44,7 @@
     "audit:chat": "node scripts/e2e/chat-journey.mjs",
     "audit:online": "node scripts/e2e/online-journey.mjs",
     "audit:offline": "node scripts/e2e/offline-journey.mjs",
+    "audit:library": "node scripts/e2e/library-journey.mjs",
     "stub:supabase": "node scripts/e2e/supabase-stub.mjs",
     "audit:usage": "node scripts/e2e/usage-journey.mjs"
   },

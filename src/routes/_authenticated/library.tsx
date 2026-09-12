@@ -1,7 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRef, useState } from "react";
+import { Download, FileText, ImageIcon, Search, Trash2, Upload } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
+import {
+  addLibraryItem,
+  deleteLibraryItem,
+  listLibraryItems,
+  signLibraryItem,
+  LIBRARY_MAX_BYTES,
+  type LibraryItemRow,
+} from "@/lib/library/library.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/library")({
@@ -17,34 +26,111 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: "files", label: "Files" },
 ];
 
-export interface LibraryItem {
-  id: string;
-  name: string;
-  kind: "image" | "file";
-}
-
 /**
- * Library replaces Artifacts and the scattered upload views.
+ * LIBRARY: EVERYTHING A PERSON KEEPS, IN ONE PLACE.
  *
- * The shape is fixed by `docs/PRD.md`: All | Images | Files, a search box and
- * one content list. Phase 8 connects it to its Supabase table and private
- * storage bucket; the structure lands here with the rest of the routing so
- * that navigation is complete and there is one place for that work to go.
+ * `docs/PRD.md` fixes the shape — All | Images | Files, a search box, one list —
+ * and this is the first version with anything behind it. It replaces Artifacts,
+ * the project file views and the scattered upload panes.
+ *
+ * WHAT IS DELIBERATELY NOT HERE. No provenance column, no version history, no
+ * lineage, no verification badge: `PLAN.md` Phase 8 says to keep technical
+ * provenance out of the default UI, and the answer to "where did this come
+ * from" is the name and the date for almost everybody who asks.
+ *
+ * SEARCH FILTERS WHAT IS LOADED rather than asking the server again. A library
+ * is tens of items; a round trip per keystroke would be slower and would tell
+ * the server what somebody is looking for.
  */
 function LibraryPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
-  const items: LibraryItem[] = useMemo(() => [], []);
+  const [problem, setProblem] = useState<string | null>(null);
+  const picker = useRef<HTMLInputElement>(null);
+  const client = useQueryClient();
 
-  const visible = items.filter((item) => {
+  const items = useQuery<LibraryItemRow[]>({
+    queryKey: ["library", "items"],
+    queryFn: () => listLibraryItems(),
+  });
+
+  const refresh = () => client.invalidateQueries({ queryKey: ["library", "items"] });
+
+  const upload = useMutation({
+    mutationFn: async (file: File) => {
+      if (file.size > LIBRARY_MAX_BYTES) {
+        throw new Error("That file is larger than OCADE can keep in your library.");
+      }
+      const buffer = new Uint8Array(await file.arrayBuffer());
+      let binary = "";
+      // In chunks, because `String.fromCharCode(...bytes)` on a large file
+      // overflows the argument list and throws where the file is biggest.
+      for (let at = 0; at < buffer.length; at += 8192) {
+        binary += String.fromCharCode(...buffer.subarray(at, at + 8192));
+      }
+      return addLibraryItem({
+        data: {
+          name: file.name,
+          mime: file.type || "application/octet-stream",
+          kind: file.type.startsWith("image/") ? "image" : "file",
+          source: "upload",
+          contentBase64: btoa(binary),
+        },
+      });
+    },
+    onSuccess: () => {
+      setProblem(null);
+      void refresh();
+    },
+    onError: (error: Error) => setProblem(error.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteLibraryItem({ data: { id } }),
+    onSuccess: () => void refresh(),
+    onError: (error: Error) => setProblem(error.message),
+  });
+
+  async function open(item: LibraryItemRow) {
+    try {
+      const { url } = await signLibraryItem({ data: { id: item.id } });
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : "That could not be opened.");
+    }
+  }
+
+  const visible = (items.data ?? []).filter((item) => {
     if (filter !== "all" && (filter === "images") !== (item.kind === "image")) return false;
     return item.name.toLowerCase().includes(query.trim().toLowerCase());
   });
 
   return (
     <AppShell>
-      <div className="mx-auto w-full max-w-4xl px-5 py-8">
-        <h1 className="text-lg font-semibold tracking-tight text-foreground">Library</h1>
+      <div className="mx-auto w-full max-w-3xl px-5 py-8">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-lg font-semibold tracking-tight text-foreground">Library</h1>
+          <button
+            type="button"
+            onClick={() => picker.current?.click()}
+            disabled={upload.isPending}
+            className="flex h-8 items-center gap-2 rounded-md border border-border px-3 text-sm text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+          >
+            <Upload className="h-4 w-4" aria-hidden />
+            {upload.isPending ? "Adding…" : "Add"}
+          </button>
+          <input
+            ref={picker}
+            type="file"
+            className="hidden"
+            aria-label="Add a file to your library"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) upload.mutate(file);
+            }}
+          />
+        </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <div className="flex rounded-md border border-border p-0.5" role="tablist">
@@ -82,17 +168,57 @@ function LibraryPage() {
           </label>
         </div>
 
-        {visible.length === 0 ? (
+        {problem ? (
+          <p className="mt-4 text-[13px] text-foreground" role="alert">
+            {problem}
+          </p>
+        ) : null}
+
+        {items.isPending ? (
+          <p className="mt-10 text-sm text-muted-foreground" role="status">
+            Opening your library…
+          </p>
+        ) : visible.length === 0 ? (
           <p className="mt-10 text-sm text-muted-foreground">
-            {items.length === 0
-              ? "Nothing here yet. Files and images you attach in Chat, and the ones OCADE produces, appear here."
+            {(items.data ?? []).length === 0
+              ? "Nothing here yet. Files and images you add, and the ones OCADE produces, appear here."
               : "No matches."}
           </p>
         ) : (
           <ul className="mt-6 divide-y divide-border/50 border-y border-border/50">
             {visible.map((item) => (
-              <li key={item.id} className="flex items-center gap-3 py-3 text-sm text-foreground">
-                {item.name}
+              <li key={item.id} className="group flex items-center gap-3 py-3">
+                {item.kind === "image" ? (
+                  <ImageIcon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                ) : (
+                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                )}
+                <button
+                  type="button"
+                  onClick={() => void open(item)}
+                  className="min-w-0 flex-1 truncate text-left text-sm text-foreground hover:underline"
+                >
+                  {item.name}
+                </button>
+                <span className="shrink-0 text-[13px] text-muted-foreground">
+                  {describeSize(item.size_bytes)}
+                </span>
+                <button
+                  type="button"
+                  aria-label={`Download ${item.name}`}
+                  onClick={() => void open(item)}
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                >
+                  <Download className="h-4 w-4" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Delete ${item.name}`}
+                  onClick={() => remove.mutate(item.id)}
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                </button>
               </li>
             ))}
           </ul>
@@ -100,4 +226,11 @@ function LibraryPage() {
       </div>
     </AppShell>
   );
+}
+
+/** "2.4 MB" — a size somebody can judge, not a byte count. */
+function describeSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

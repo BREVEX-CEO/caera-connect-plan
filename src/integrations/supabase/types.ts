@@ -2605,6 +2605,45 @@ export type Database = {
           },
         ]
       }
+      ocade_library_items: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          mime: string
+          name: string
+          size_bytes: number
+          source: string
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          mime: string
+          name: string
+          size_bytes: number
+          source: string
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          mime?: string
+          name?: string
+          size_bytes?: number
+          source?: string
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_memory: {
         Row: {
           content: string
@@ -3234,94 +3273,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      ocade_outputs: {
-        Row: {
-          content: string | null
-          content_sha256: string | null
-          context: Json | null
-          conversation_id: string | null
-          created_at: string
-          evidence: string | null
-          expires_at: string | null
-          id: string
-          kind: string
-          lineage_id: string
-          mime: string | null
-          parent_output_id: string | null
-          produced_by: string | null
-          project_id: string | null
-          size_bytes: number
-          title: string
-          user_id: string
-          verified: boolean
-          version: number
-        }
-        Insert: {
-          content?: string | null
-          content_sha256?: string | null
-          context?: Json | null
-          conversation_id?: string | null
-          created_at?: string
-          evidence?: string | null
-          expires_at?: string | null
-          id?: string
-          kind: string
-          lineage_id?: string
-          mime?: string | null
-          parent_output_id?: string | null
-          produced_by?: string | null
-          project_id?: string | null
-          size_bytes?: number
-          title: string
-          user_id: string
-          verified?: boolean
-          version?: number
-        }
-        Update: {
-          content?: string | null
-          content_sha256?: string | null
-          context?: Json | null
-          conversation_id?: string | null
-          created_at?: string
-          evidence?: string | null
-          expires_at?: string | null
-          id?: string
-          kind?: string
-          lineage_id?: string
-          mime?: string | null
-          parent_output_id?: string | null
-          produced_by?: string | null
-          project_id?: string | null
-          size_bytes?: number
-          title?: string
-          user_id?: string
-          verified?: boolean
-          version?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ocade_outputs_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "ocade_conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ocade_outputs_parent_output_id_fkey"
-            columns: ["parent_output_id"]
-            isOneToOne: false
-            referencedRelation: "ocade_outputs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ocade_outputs_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "ocade_projects"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       ocade_payment_events: {
         Row: {
@@ -4692,6 +4643,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ocade_delete_all_library_items: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       apply_payment_webhook_event: {
         Args: {
           p_action: string

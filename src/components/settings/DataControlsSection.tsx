@@ -1,7 +1,17 @@
 import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useInstallation } from "@/lib/brain/use-installation";
+import { deleteAllLibraryItems, listLibraryItems } from "@/lib/library/library.functions";
 
 /**
+ * DATA CONTROLS: WHAT THIS DEVICE HOLDS, AND WHAT THIS ACCOUNT HOLDS.
+ *
+ * Two things a person may want to get rid of, and they are genuinely different:
+ * Offline Intelligence is bytes on THIS device that cost nothing to fetch again,
+ * and a Library is content on the ACCOUNT that nothing can bring back. They sit
+ * on one screen because that is where somebody looks for either, and their
+ * confirmations are separate because their consequences are.
+ *
  * OFFLINE INTELLIGENCE, AS THE PERSON WHO OWNS THE DEVICE SEES IT.
  *
  * Until now nobody could see it. The whole lifecycle was built, tested and
@@ -20,7 +30,66 @@ import { useInstallation } from "@/lib/brain/use-installation";
  * away something that took a while to fetch; and afterwards nothing reinstalls
  * automatically until the person presses Install.
  */
-export function OfflineIntelligenceSection() {
+export function DataControlsSection() {
+  return (
+    <div>
+      <OfflineIntelligenceSection />
+      <LibrarySection />
+    </div>
+  );
+}
+
+/**
+ * Emptying the Library, which is the only irreversible control in Settings.
+ *
+ * It says how many things it is about to remove, because "delete everything" is
+ * a different decision when it is four files and when it is four hundred.
+ */
+function LibrarySection() {
+  const client = useQueryClient();
+  const [confirming, setConfirming] = useState(false);
+  const items = useQuery({ queryKey: ["library", "items"], queryFn: () => listLibraryItems() });
+  const empty = useMutation({
+    mutationFn: () => deleteAllLibraryItems(),
+    onSuccess: () => {
+      setConfirming(false);
+      void client.invalidateQueries({ queryKey: ["library", "items"] });
+    },
+  });
+  const count = items.data?.length ?? 0;
+
+  return (
+    <Row
+      label="Library"
+      description={
+        count === 0
+          ? "Nothing is in your Library."
+          : `${count} item${count === 1 ? "" : "s"}. Deleting them cannot be undone, on any device.`
+      }
+    >
+      {count === 0 ? null : confirming ? (
+        <div className="flex items-center gap-2">
+          <Action
+            label={empty.isPending ? "Deleting…" : "Delete everything"}
+            busy={empty.isPending}
+            onClick={() => empty.mutate()}
+          />
+          <button
+            type="button"
+            onClick={() => setConfirming(false)}
+            className="h-8 rounded-md px-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Keep
+          </button>
+        </div>
+      ) : (
+        <Action label="Delete everything" onClick={() => setConfirming(true)} />
+      )}
+    </Row>
+  );
+}
+
+function OfflineIntelligenceSection() {
   const install = useInstallation();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);

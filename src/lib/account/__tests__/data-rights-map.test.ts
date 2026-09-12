@@ -162,7 +162,7 @@ describe("what may and may not be erased", () => {
     const deletable = deletableAccountDataClasses().map((entry) => entry.id);
     expect(deletable).toEqual([
       "conversations",
-      "projects",
+      "library",
       "memory",
       "automations",
       "support",

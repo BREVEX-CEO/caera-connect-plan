@@ -68,7 +68,7 @@ export interface AccountDataTable {
 
 export type AccountDataClassId =
   | "conversations"
-  | "projects"
+  | "library"
   | "memory"
   | "automations"
   | "support"
@@ -98,17 +98,20 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
     id: "conversations",
     label: "Conversations",
     description: "Every OCADE chat you have kept, and the messages inside them.",
-    tables: [
-      { table: "ocade_conversations", owner: "user_id", cascades: ["ocade_messages"] },
-      { table: "ocade_outputs", owner: "user_id" },
-    ],
+    tables: [{ table: "ocade_conversations", owner: "user_id", cascades: ["ocade_messages"] }],
     retention: null,
   },
   {
-    id: "projects",
-    label: "Projects",
-    description: "Projects, the files and notes attached to them, and their instructions.",
-    tables: [{ table: "ocade_projects", owner: "user_id", cascades: ["ocade_project_items"] }],
+    /*
+     * Its own class, not part of Conversations. A file somebody uploaded is
+     * theirs whether or not the chat it arrived in still exists — folding it
+     * into Conversations would mean "delete my chats" silently took their
+     * files with it.
+     */
+    id: "library",
+    label: "Library",
+    description: "Files and images you uploaded, and the ones OCADE produced for you.",
+    tables: [{ table: "ocade_library_items", owner: "user_id" }],
     retention: null,
   },
   {

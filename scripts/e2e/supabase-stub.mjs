@@ -238,6 +238,14 @@ function handleRpc(name, args, userId) {
   const week = windowFor("week", now);
 
   switch (name) {
+    case "ocade_delete_all_library_items": {
+      const held = rows(userId, "ocade_library_items");
+      const removed = held.length;
+      for (const row of held) objects.delete(row.storage_path);
+      tablesFor(userId).ocade_library_items = [];
+      return removed;
+    }
+
     case "ocade_active_entitlement_grant":
     case "ocade_my_entitlement_grant":
       // No grant: the account is on Free, which is what the allowance tests want.
@@ -404,6 +412,19 @@ function handleRpc(name, args, userId) {
 /** What the online boundary answers with next, and what it last received. */
 const onlineBoundary = { status: 200, lastRequest: null };
 
+/**
+ * The private bucket, in memory.
+ *
+ * Enough to prove the product's half of the contract: a row and an object are
+ * created together, a link is minted per request rather than being a permanent
+ * public URL, and a delete removes both. It models no policy — the RLS that
+ * keeps one account out of another's objects is proven against real PostgreSQL
+ * in `library-schema.test.ts`, which is the only place it can be.
+ *
+ * Bodies are accumulated as text by this stub, so the proofs upload text.
+ */
+const objects = new Map();
+
 const server = createServer((request, response) => {
   const url = new URL(request.url, `http://127.0.0.1:${PORT}`);
   let body = "";
@@ -511,6 +532,44 @@ const server = createServer((request, response) => {
     if (url.pathname === "/auth/v1/factors") {
       // No enrolled factor: the assurance gate must leave this account alone.
       return send(200, { all: [], totp: [] });
+    }
+
+    /* --- private object storage ------------------------------------------ */
+
+    const sign = /^\/storage\/v1\/object\/sign\/library\/(.+)$/.exec(url.pathname);
+    if (sign && request.method === "POST") {
+      const path = decodeURIComponent(sign[1]);
+      if (!objects.has(path)) return send(404, { message: "Object not found" });
+      return send(200, {
+        signedURL: `/object/library/${path}?token=stub-${Date.now()}`,
+      });
+    }
+
+    const download = /^\/storage\/v1\/object\/library\/(.+)$/.exec(url.pathname);
+    if (download && request.method === "GET") {
+      const path = decodeURIComponent(download[1]);
+      const held = objects.get(path);
+      if (held === undefined) return send(404, { message: "Object not found" });
+      response.writeHead(200, {
+        "content-type": "application/octet-stream",
+        "access-control-allow-origin": "*",
+      });
+      response.end(held);
+      return;
+    }
+
+    if (download && request.method === "POST") {
+      objects.set(decodeURIComponent(download[1]), body);
+      return send(200, { Key: `library/${decodeURIComponent(download[1])}` });
+    }
+
+    if (url.pathname === "/storage/v1/object/library" && request.method === "DELETE") {
+      const { prefixes = [] } = JSON.parse(body || "{}");
+      for (const prefix of prefixes) objects.delete(prefix);
+      return send(
+        200,
+        prefixes.map((name) => ({ name })),
+      );
     }
 
     /* --- rpc ------------------------------------------------------------- */

@@ -23,7 +23,7 @@ import { CreditCard, Database, Monitor, Moon, User, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppearance } from "@/lib/appearance";
 import { useSession } from "@/lib/session";
-import { OfflineIntelligenceSection } from "./OfflineIntelligenceSection";
+import { DataControlsSection } from "./DataControlsSection";
 import { UsageSection } from "./UsageSection";
 
 export type SettingsCategory = "account" | "appearance" | "data" | "billing";
@@ -148,7 +148,7 @@ function SettingsDialog({
 
           {category === "account" ? <AccountSettings /> : null}
           {category === "appearance" ? <AppearanceSettings /> : null}
-          {category === "data" ? <OfflineIntelligenceSection /> : null}
+          {category === "data" ? <DataControlsSection /> : null}
           {category === "billing" ? <UsageSection /> : null}
         </div>
       </div>

@@ -161,7 +161,7 @@ describe("clearing one class", () => {
       dataClass: "conversations",
       confirmation: "Conversations",
     });
-    expect(deleted).toEqual(["ocade_conversations", "ocade_outputs"]);
+    expect(deleted).toEqual(["ocade_conversations"]);
     // The cascaded child is named on the receipt even though it is never
     // deleted directly: the person is owed a true account of what went.
     expect(receipt.cleared).toContain("ocade_messages");
@@ -216,10 +216,10 @@ describe("clearing one class", () => {
      * trust: the person believes their conversations are gone and they are not.
      */
     await expect(
-      clearAccountDataClass(fakeDatabase({ failOn: "ocade_outputs" }), "account-1", {
-        dataClass: "conversations",
-        confirmation: "Conversations",
+      clearAccountDataClass(fakeDatabase({ failOn: "ocade_library_items" }), "account-1", {
+        dataClass: "library",
+        confirmation: "Library",
       }),
-    ).rejects.toThrow(/ocade_outputs could not be cleared/);
+    ).rejects.toThrow(/ocade_library_items could not be cleared/);
   });
 });

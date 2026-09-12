@@ -236,6 +236,55 @@ environment cannot reach, so the transfer is proven against the real engine with
 fake ranged server rather than against the real source. Background-fetch resumption
 through the service worker is proven only as far as the worker being registered.
 
+### Phase 8 — Library rebuilt — DONE
+
+- **One table, one private bucket.** `ocade_library_items` replaces `ocade_outputs`,
+  which was the Artifacts product's table: a lineage id, a version, a parent output,
+  a verification flag, an evidence string and a project id — document versioning for
+  a product that no longer exists. The new table holds what Library needs and
+  nothing else, and the migration drops the old one (reversibly).
+- **Row-level security decides everything.** Four owner policies, `FORCE ROW LEVEL
+SECURITY`, and every server function runs as the CALLER — nothing here holds a
+  service-role client. `auth.uid()` is wrapped in a sub-select per the repository's
+  existing performance rule, and the trigger function's EXECUTE is revoked from
+  `authenticated`, because a trigger function is not an API.
+- **The bytes are chased.** Deleting a row tombstones its object through the same
+  mechanism attachments already use, so a cascade from an account deletion cannot
+  orphan bytes in the bucket. Objects are also removed directly, so a person does
+  not wait on the sweep.
+- **Uploads are one transaction in two systems.** The row is inserted, the object
+  uploaded, and the row deleted if the upload fails — so the only observable state
+  is "both" or "neither", never a row pointing at nothing.
+- **Chat's `+` works.** It was disabled with the note "Attachments arrive with
+  Library"; it now files the chosen file into Library against the open conversation
+  and says so. It does not claim the answer will have read the file, because it will
+  not yet.
+- **Data Controls gained the account half:** how many items are in the Library and
+  one confirmed Delete everything, beside the device half from Phase 7.
+- **Library became its own data class.** It used to be folded into Conversations, so
+  "delete my chats" would silently have taken the person's files too.
+- **`library-schema.test.ts` proves the gate against real PostgreSQL** under
+  `SET ROLE authenticated`: an account sees only its own items from any device,
+  cannot read, rename, delete or plant rows in another's, deleting leaves a
+  tombstone, delete-all empties the caller's library and nobody else's, an account
+  deletion takes the items and still tombstones the objects, a kind nothing can
+  render is refused, two rows cannot share one object, and deleting a conversation
+  keeps the files that came out of it.
+- **`npm run audit:library` proves 18 checks in a real browser:** adding, listing,
+  surviving a reload, All/Images/Files, search hits and misses, a token-bearing
+  signed link rather than a public address, no storage path or provenance on screen,
+  deleting one, and emptying it from Data Controls.
+- **Measured:** 533 files, 71,092 lines. Gates: all 14 in `verify:full`, plus seven
+  browser journeys — shell 23, auth 10, chat 14, online 12, offline 12, library 18,
+  usage 12.
+
+**Named as unproven:** the live project does not have this table, this bucket or
+these policies yet — the migration is in the repository and proven against the
+twin. **Phase 12 deployment obligation:** apply `20260912090000` to
+`sazhgaisyhkdbrooycdv` and confirm the bucket is private there. The browser proof
+runs against the loopback stub, whose object store models the contract and not
+Supabase's storage policies; those are the database test's half.
+
 ## New final product
 
 Primary customer destinations:
@@ -323,9 +372,12 @@ Ponytail controls engineering behavior. Caveman compresses chat output only. Cor
 
 ## Next action
 
-`PLAN.md` Phase 8 — rebuild Library. One `All | Images | Files` surface with search
-over uploaded files/images and generated outputs, preview, download and delete,
-delete-all through Data Controls, technical provenance kept out of the default UI,
-and cross-device data plus private object access proven through Supabase/RLS.
+`PLAN.md` Phase 9 — rebuild Settings and Data Controls. Categories are Account,
+Appearance, Notifications, Data Controls, Billing and Advanced. Data Controls owns
+delete-all conversations, delete uploaded images/files (done), export account data
+and Offline Intelligence state/removal (done); Advanced hides diagnostics, device
+and security details from normal customers. Mount or delete the eleven modules
+`AWAITING_MOUNT` owes Phase 9. Gate: account-scoped settings survive a refresh and a
+device change, and no raw secret, model or runtime identifier is exposed.
 
 Update this file after every verified major phase with current branch/SHA, completed gate, exact next action and LOC checkpoints when measured.

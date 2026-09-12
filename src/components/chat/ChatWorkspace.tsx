@@ -13,6 +13,7 @@
  * `useChat`; this file renders and does not decide.
  */
 import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Mic, Plus, Square } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
@@ -42,6 +43,10 @@ export function ChatWorkspace() {
   const [draft, setDraft] = useState("");
   const [choice, setChoice] = useState<IntelligenceChoice>("auto");
   const textarea = useRef<HTMLTextAreaElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
+  const [attaching, setAttaching] = useState(false);
+  const [attached, setAttached] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   /*
    * A held message comes back to the composer on every visit, not only after a
@@ -82,6 +87,44 @@ export function ChatWorkspace() {
     setDraft("");
     void navigate({ to: "/", search: {}, replace: true });
   }, [startNew, newConversation, navigate]);
+
+  /*
+   * `+` PUTS THE FILE IN THE LIBRARY, which is where the person will look for
+   * it later. It was disabled with the note "Attachments arrive with Library";
+   * Library is here, so it does.
+   *
+   * The file is not sent to intelligence yet — that needs the model to accept
+   * one and the usage rules to say what it costs — so the interface says what
+   * actually happened rather than implying the answer will have read it.
+   */
+  async function attach(file: File) {
+    setAttaching(true);
+    setAttached(null);
+    try {
+      const { addLibraryItem } = await import("@/lib/library/library.functions");
+      const buffer = new Uint8Array(await file.arrayBuffer());
+      let binary = "";
+      for (let at = 0; at < buffer.length; at += 8192) {
+        binary += String.fromCharCode(...buffer.subarray(at, at + 8192));
+      }
+      await addLibraryItem({
+        data: {
+          name: file.name,
+          mime: file.type || "application/octet-stream",
+          kind: file.type.startsWith("image/") ? "image" : "file",
+          source: "upload",
+          conversationId: chat.conversationId,
+          contentBase64: btoa(binary),
+        },
+      });
+      setAttached(`${file.name} is in your Library.`);
+      void queryClient.invalidateQueries({ queryKey: ["library", "items"] });
+    } catch (error) {
+      setAttached(error instanceof Error ? error.message : "That could not be added.");
+    } finally {
+      setAttaching(false);
+    }
+  }
 
   function grow() {
     const element = textarea.current;
@@ -180,12 +223,24 @@ export function ChatWorkspace() {
 
               <div className="mt-2 flex items-center gap-1">
                 <IconButton
-                  label="Add an attachment"
-                  disabled
-                  title="Attachments arrive with Library"
+                  label="Add a file"
+                  disabled={attaching || !user}
+                  title={user ? "Add a file to your Library" : "Sign in to add a file"}
+                  onClick={() => picker.current?.click()}
                 >
                   <Plus className="h-4 w-4" aria-hidden />
                 </IconButton>
+                <input
+                  ref={picker}
+                  type="file"
+                  className="hidden"
+                  aria-label="Add a file to your Library"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (file) void attach(file);
+                  }}
+                />
 
                 <div className="ml-auto flex items-center gap-1">
                   <div className="mr-1 flex rounded-md border border-border p-0.5">
@@ -244,6 +299,10 @@ export function ChatWorkspace() {
               <p className="mt-3 text-center text-[13px] text-foreground" role="alert">
                 {chat.problem}
               </p>
+            ) : attached ? (
+              <p className="mt-3 text-center text-[13px] text-muted-foreground" role="status">
+                {attached}
+              </p>
             ) : signedOut ? (
               <p className="mt-3 text-center text-[13px] text-muted-foreground">
                 Sending needs an account. Your message is kept while you sign in.
@@ -261,18 +320,21 @@ function IconButton({
   children,
   disabled,
   title,
+  onClick,
 }: {
   label: string;
   children: React.ReactNode;
   disabled?: boolean;
   title?: string;
+  onClick?: () => void;
 }) {
   return (
     <button
       type="button"
       aria-label={label}
-      title={disabled ? title : label}
+      title={title ?? label}
       disabled={disabled}
+      onClick={onClick}
       className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
     >
       {children}
