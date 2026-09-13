@@ -33,7 +33,6 @@ function deps(fetchImpl: typeof fetch) {
       url: "https://project.supabase.co",
       publishableKey: "sb_publishable_test",
       configured: true,
-      enabled: true,
     }),
     online: () => true,
   };
@@ -100,6 +99,46 @@ describe("online intelligence client", () => {
       }
     };
     await expect(consume()).rejects.toThrow(/incomplete stream event/);
+  });
+
+  /*
+   * A CONFIGURED PROJECT AND A CONNECTION ARE THE WHOLE CONDITION.
+   *
+   * The default transport used to require `VITE_OCADE_ONLINE_INTELLIGENCE` to
+   * equal "enabled" as well, and nothing anywhere set it. Online intelligence
+   * was therefore unavailable in every build that shipped, Automatic fell
+   * through to the on-device engine, and Send looked like a broken device
+   * rather than a feature switched off by a variable nobody had heard of.
+   *
+   * This calls `createOnlineIntelligenceTransport()` with NO overrides, so it
+   * exercises the real defaults an unconfigured build environment produces —
+   * which is the only way the original would have been caught, because every
+   * other test here supplies its own configuration.
+   */
+  it("is available on a configured, connected device without any further build flag", async () => {
+    const probe = await createOnlineIntelligenceTransport({
+      configuration: () => ({
+        url: "https://project.supabase.co",
+        publishableKey: "sb_publishable_test",
+        configured: true,
+      }),
+      online: () => true,
+    }).probe();
+
+    expect(probe).toMatchObject({ available: true, state: "ready" });
+  });
+
+  it("says the device is offline rather than blaming the deployment", async () => {
+    const probe = await createOnlineIntelligenceTransport({
+      configuration: () => ({
+        url: "https://project.supabase.co",
+        publishableKey: "sb_publishable_test",
+        configured: true,
+      }),
+      online: () => false,
+    }).probe();
+
+    expect(probe).toMatchObject({ available: false, reason: "This device is offline." });
   });
 
   it("parses CRLF events even when the boundary is split across network chunks", async () => {

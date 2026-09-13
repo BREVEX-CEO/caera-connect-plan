@@ -13,7 +13,6 @@ export interface OnlineClientDependencies {
     url?: string;
     publishableKey?: string;
     configured: boolean;
-    enabled?: boolean;
   };
   online(): boolean;
 }
@@ -44,10 +43,27 @@ function defaults(): OnlineClientDependencies {
      */
     fetch: (input, init) => globalThis.fetch(input, init),
     getAccessToken: browserAccessToken,
-    configuration: () => ({
-      ...getSupabaseBrowserConfiguration(),
-      enabled: import.meta.env.VITE_OCADE_ONLINE_INTELLIGENCE === "enabled",
-    }),
+    /*
+     * NO SECOND SWITCH OVER WHETHER THE PRODUCT WORKS, AND THAT WAS THE OTHER
+     * WHOLE BUG.
+     *
+     * This used to carry `enabled: import.meta.env
+     * .VITE_OCADE_ONLINE_INTELLIGENCE === "enabled"`. Nothing set that
+     * variable — not the production deployment workflow, not any document, not
+     * a local `.env` — so `probe()` reported online intelligence unavailable in
+     * every build that was ever shipped. Automatic fell through to the
+     * on-device engine, and a device still preparing answered "OCADE is still
+     * preparing this device." Pressing Send on ocade.in did that, and the
+     * reported "OCADE could not verify your usage allowance" is the same
+     * failure on the path where the fallback also fails.
+     *
+     * Availability is now exactly what it is: the project is configured and
+     * this device has a connection. Whether the boundary is deployed and keyed
+     * is the BOUNDARY's answer, given at request time as a sanitized refusal —
+     * which is honest, rather than a build-time flag that silently decides the
+     * product does not have its main feature.
+     */
+    configuration: getSupabaseBrowserConfiguration,
     online: () => typeof navigator === "undefined" || navigator.onLine,
   };
 }
@@ -113,25 +129,25 @@ export function createOnlineIntelligenceTransport(
     backend: "online",
     async probe(): Promise<IntelligenceTransportStatus> {
       const config = deps.configuration();
-      const available = config.configured && config.enabled === true && deps.online();
+      const available = config.configured && deps.online();
       return {
         available,
         state: available ? "ready" : "unavailable",
         reason: available
           ? undefined
-          : config.configured && config.enabled === true
+          : config.configured
             ? "This device is offline."
-            : "Online Intelligence is not active in this build.",
+            : "OCADE is not configured on this deployment.",
         capabilities: { text: available, tools: available, vision: available },
       };
     },
     async *stream(request): AsyncIterable<IntelligenceEvent> {
       const config = deps.configuration();
-      if (!config.configured || config.enabled !== true || !config.url || !config.publishableKey) {
+      if (!config.configured || !config.url || !config.publishableKey) {
         yield {
           type: "refusal",
           code: "online_unavailable",
-          reason: "Online Intelligence is not active in this build.",
+          reason: "OCADE is not configured on this deployment.",
           retryable: true,
         };
         return;

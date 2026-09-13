@@ -293,11 +293,45 @@ product works, separate from whether the boundary and its secrets exist, and
 - The live public schema still carries retired organization, automation,
   support and status families — Phase 3.
 
+## Phase 1 result — Send repaired at its root
+
+The `VITE_OCADE_ONLINE_INTELLIGENCE` gate is deleted, not set. A build flag
+deciding whether the product has its main feature is a second authority over
+availability, and the plan forbids that. Online intelligence is now available
+exactly when the project is configured and the device has a connection.
+Whether the boundary is deployed and keyed is the boundary's own answer, given
+at request time as a sanitized refusal — which is honest, where the flag was
+silent.
+
+Two tests were added that would have caught it: they call
+`createOnlineIntelligenceTransport()` with only configuration and connectivity
+supplied, so they exercise the defaults a real build produces. Every other test
+in that file supplies its own configuration, which is why the original passed.
+
+Browser proof on this tree, against a served production build:
+
+- an answer streams into the transcript and the conversation survives a reload;
+- a successful request costs exactly one use (28 → 27);
+- an exhausted allowance refuses, says when it returns, and leaves history,
+  Library, Settings and Billing usable;
+- a refused request costs nothing (27 before, 27 after);
+- the request carries a server-issued permit, and no client script carries a
+  key name or the provider endpoint.
+
+All 10 journeys pass (176 checks). `verify:full` passes all 14 gates.
+
+Nothing else on the swept routes is broken: signed out, signed in and at phone
+width, every supported route answers 200 and every control on it can be pressed
+without throwing. The remaining gaps are the ones listed above, each owned by a
+later phase.
+
 ## Exact next action
 
-Start **Phase 1**: delete the `VITE_OCADE_ONLINE_INTELLIGENCE` kill switch so
-online OCADE is available whenever Supabase is configured and the device has a
-connection, then prove Send end to end in a browser and sweep the remaining
-routes and controls.
+Start **Phase 2**: make Supabase Auth the only authority over which sign-in
+methods exist. `resolveAuthProviderAvailability` currently reads three
+`VITE_AUTH_*` build flags that default to `false` in production, so the shipped
+sign-in surface can offer less than the live project actually supports — the
+same class of defect as the Phase 1 kill switch. Verify what the live project
+has enabled before changing the surface.
 
 Do not begin implementation of Cowork/Jarvis.
