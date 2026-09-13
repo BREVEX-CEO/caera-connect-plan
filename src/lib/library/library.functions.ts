@@ -40,8 +40,14 @@ export interface LibraryItemRow {
 const COLUMNS =
   "id, kind, source, name, mime, size_bytes, storage_path, conversation_id, created_at";
 
-/** Fifty megabytes, matching the bucket. Anything larger is refused up front. */
-export const LIBRARY_MAX_BYTES = 50 * 1024 * 1024;
+/**
+ * A hundred megabytes, matching the bucket's own ceiling.
+ *
+ * `PLAN.md` and `docs/TRD.md` both name that figure for one intentionally
+ * supported attachment. Refusing it here as well means a person is told before
+ * spending the upload rather than after it.
+ */
+export const LIBRARY_MAX_BYTES = 100 * 1024 * 1024;
 
 /** The whole library for this account, newest first. */
 export const listLibraryItems = createServerFn({ method: "GET" })

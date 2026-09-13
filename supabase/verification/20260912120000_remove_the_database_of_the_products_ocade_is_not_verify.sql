@@ -102,9 +102,23 @@ BEGIN
     RAISE EXCEPTION 'a function still reads a table that no longer exists';
   END IF;
 
-  -- And the messenger bucket went with its tables.
-  IF EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'messenger') THEN
-    RAISE EXCEPTION 'the messenger bucket outlived the product that used it';
+  /*
+   * And the messenger bucket is unreachable.
+   *
+   * NOT "deleted", because SQL cannot delete it: Supabase refuses direct
+   * deletion from the storage tables and points at the Storage API instead.
+   * This asserted the bucket was gone, which no migration could ever have
+   * made true.
+   *
+   * What the migration can do — and what actually protects anybody — is leave
+   * it with no policy. A bucket no role can read, write or list is inert
+   * whether or not its shell is still in the catalogue.
+   */
+  IF EXISTS (
+    SELECT 1 FROM pg_policies
+     WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname LIKE 'messenger%'
+  ) THEN
+    RAISE EXCEPTION 'the messenger bucket is still reachable: a policy survived its product';
   END IF;
 
   -- HALF TWO: the product that stays still works. A table with row-level

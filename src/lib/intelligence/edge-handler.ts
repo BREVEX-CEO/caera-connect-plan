@@ -52,9 +52,7 @@ interface OnlineRequestBody {
   tools: NormalizedToolDefinition[];
   attachments: NormalizedAttachment[];
   privacy: IntelligencePrivacyPolicy;
-  projectId?: string;
   conversationId?: string;
-  taskId?: string;
 }
 
 export interface OnlineHandlerDependencies {

@@ -149,8 +149,12 @@ COMMENT ON FUNCTION public.ocade_delete_all_library_items() IS
 -- The bucket, private, owner-scoped by path
 -- ---------------------------------------------------------------------------
 
+-- 100 MB, which is the figure `PLAN.md` and `docs/TRD.md` both name for a
+-- single intentionally supported attachment. The bucket is where that ceiling
+-- is actually enforced; `LIBRARY_MAX_BYTES` refuses the same size up front so
+-- a person is told before the upload rather than after it.
 INSERT INTO storage.buckets (id, name, public, file_size_limit)
-VALUES ('library', 'library', false, 52428800)
+VALUES ('library', 'library', false, 104857600)
 ON CONFLICT (id) DO UPDATE
   SET public = false,
       file_size_limit = EXCLUDED.file_size_limit;
@@ -176,8 +180,13 @@ CREATE POLICY ocade_library_objects_delete_own
 
 -- `ocade_outputs` belonged to Artifacts. Nothing in the final product reads or
 -- writes it, and leaving it would leave two answers to "where does a thing a
--- person kept live". The rollback recreates it; its one test row is not
--- customer data.
+-- person kept live".
+--
+-- ITS ONE LIVE ROW WAS READ BEFORE THIS WAS APPLIED, rather than assumed to be
+-- test data. It is attached to a real account, and its content is the notice
+-- OCADE showed when the Send failure this mission opened with refused to issue
+-- a permit: "OCADE has not answered this request." It is a saved copy of a
+-- failure, not work anybody would miss. The rollback recreates the table.
 DROP TABLE IF EXISTS public.ocade_outputs CASCADE;
 
 COMMIT;

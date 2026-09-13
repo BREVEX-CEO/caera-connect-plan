@@ -400,11 +400,103 @@ sign-in screen shows exactly what the project reports.
 
 Both will be put to the owner together with the three Gemini keys at Phase 4.
 
+## Phase 3 result — the live database is the final app's database
+
+### Library did not exist in production
+
+The most important finding. `ocade_library_items` was absent from the live
+project and there was no `library` storage bucket — only `messenger`, from the
+retired product. Every Library upload, listing and deletion in production was
+addressing a table and a bucket that were not there.
+
+The cause was two repository migrations that had never been applied. The live
+project's last migration was `20260911015207`; the tree carried two beyond it.
+Both are applied now:
+
+- `one_library_for_everything_a_person_keeps` — the table, its four owner
+  policies, the tombstone trigger, `ocade_delete_all_library_items`, and a
+  private `library` bucket. The bucket's ceiling is **100 MB**, raised from the
+  50 MB the migration carried, because that is the figure `PLAN.md` and
+  `docs/TRD.md` both name for one attachment; `LIBRARY_MAX_BYTES` matches it so
+  a person is told before spending the upload.
+- `remove_the_database_of_the_products_ocade_is_not` — 70 tables and 70
+  functions belonging to FICIA, Cania, Madee, the compliance packs, messenger,
+  organizations, projects/tasks, automations, the support desk and the status
+  page.
+
+**99 public tables became 29.** Auth came through untouched: 4 users, 6
+sessions, 32 refresh tokens, 3 identities, and profiles, roles, settings and
+the two legal consent receipts all still there.
+
+Every non-empty table that was dropped was read first rather than assumed.
+`compliance_events` held a seeded catalogue of Indian tax filing deadlines with
+no user column; `country_packs`, `rule_sources`, `launch_gate_items` and the
+rest were the same shape. The one row with a real account attached was in
+`ocade_outputs`, and its content was the notice OCADE showed when the Send
+failure this mission opened with refused to issue a permit — a saved copy of a
+failure, not work anybody would miss. That is recorded in the migration itself.
+
+### Two statements in that migration could never have run
+
+`DELETE FROM storage.objects` and `DELETE FROM storage.buckets` are refused by
+Supabase: `storage.protect_delete()` raises 42501 and points at the Storage
+API. The migration, its rollback and its verification all asserted a bucket
+deletion that SQL cannot perform. All three now do what SQL can — drop every
+messenger policy, so no role can read, write or list it — and say plainly that
+removing the shell is a dashboard action. The bucket held no objects.
+
+### Regenerating the types caught a stale write
+
+`ocade_conversations.project_id` went with the Projects product, and
+`ocade.functions.ts` was still writing it on every new conversation. An upsert
+naming a column that does not exist is a failed Send, not a warning.
+`projectId` and `taskId` are gone from the intelligence contract for the same
+reason.
+
+### Manual access grants work, and are proven
+
+`ocade_grant_entitlement` and `ocade_revoke_entitlement` already existed with
+the admin check, the AAL2 requirement, the self-grant refusal, the 1–366 day
+bound and full attribution. What did not exist was any way to call them: the
+hidden Admin screen was read-only, so the one operational task Phase 3 names
+was a SQL console job.
+
+`src/lib/admin/access.functions.ts` adds no authority. The two writes go
+through the caller's own Supabase client so Postgres still decides; only the
+READ uses the admin client, because `ocade_entitlement_grants` has RLS on with
+no policy and nothing a browser holds can see a grant.
+
+Proven against the live database inside a transaction that rolls back: a
+non-admin is refused, an admin without a second factor is refused, a grant
+resolves to `max` through `ocade_active_entitlement_grant`, a self-grant is
+refused, 400 days is refused, and revoking returns the account to no grant.
+Nothing was left behind — 0 grants, 0 admins afterwards.
+
+### Advisors
+
+Security advisors are clean of anything unintended. Seven `rls_enabled_no_policy`
+INFO notices are the server-only tables (permits, leases, MFA recovery, offline
+usage) failing closed on purpose. The `SECURITY DEFINER` warnings are functions
+that each check the caller inside — except two that did not:
+`ocade_org_can_administer` and `ocade_org_is_owner` survived the organizations
+product because they depend on a dropped FUNCTION rather than a dropped table,
+and every signed-in browser could call them. Dropped, with a verification that
+asserts the rule rather than the instance: no definer function reachable by
+`authenticated` may fail to bind its caller.
+
+### Owner actions this phase cannot complete
+
+3. **No account has the `admin` role.** All four live accounts are `user`, so
+   the hidden Admin screen is unreachable and no grant can be made by anybody.
+   Which account becomes an admin is the owner's decision, not one to guess.
+4. **Leaked password protection is off** on Supabase Auth (advisor WARN). One
+   toggle.
+
 ## Exact next action
 
-Start **Phase 3**: Supabase cleanup. Compare the live `public` schema against
-what the final app actually reads, trace callers before removing anything, and
-build the manual entitlement-grant workflow — hidden Admin is read-only today
-and can show accounts and roles but cannot grant or revoke anything.
+Start **Phase 4**: online OCADE through Gemini. Stop and ask the owner for the
+three keys, and put the four accumulated owner actions to them at the same
+time — SMTP for email codes, an SMS provider for phone codes, which account
+becomes an admin, and leaked password protection.
 
 Do not begin implementation of Cowork/Jarvis.

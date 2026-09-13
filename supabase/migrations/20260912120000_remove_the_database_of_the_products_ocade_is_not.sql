@@ -191,15 +191,26 @@ DROP TABLE IF EXISTS public.rule_sources CASCADE;
 DROP TABLE IF EXISTS public.tenant_members CASCADE;
 DROP TABLE IF EXISTS public.tenants CASCADE;
 DROP TABLE IF EXISTS public.vault_config CASCADE;
--- The messenger bucket goes with the messenger tables. Its objects are the
--- attachments of a product that no longer exists; the bucket is emptied and
--- removed rather than left private and unreachable.
-DELETE FROM storage.objects WHERE bucket_id = 'messenger';
-DELETE FROM storage.buckets WHERE id = 'messenger';
-
+/*
+ * The messenger bucket belonged to the messenger tables above.
+ *
+ * THIS CANNOT DELETE IT, AND SAYING SO IS THE POINT. Supabase refuses direct
+ * deletion from `storage.objects` and `storage.buckets` — `storage
+ * .protect_delete()` raises 42501, "Use the Storage API instead" — so the two
+ * DELETE statements that stood here could never have run. Removing a bucket is
+ * a Storage API call or one action in the dashboard, not SQL.
+ *
+ * What SQL can do is take away every way to reach it, and that is done here:
+ * with no policy, no role can read, write or list the bucket. It held no
+ * objects when this was applied, so nothing is stranded — an empty bucket with
+ * no policies is inert, and deleting the shell itself is tidying rather than
+ * cleanup.
+ */
 DROP POLICY IF EXISTS messenger_read ON storage.objects;
 DROP POLICY IF EXISTS messenger_insert ON storage.objects;
 DROP POLICY IF EXISTS messenger_delete_own ON storage.objects;
+
+UPDATE storage.buckets SET public = false WHERE id = 'messenger';
 
 -- One straggler the table sweep cannot reach: a wrapper whose body names a
 -- dropped table but which nothing dropped, because it depends on the FUNCTION

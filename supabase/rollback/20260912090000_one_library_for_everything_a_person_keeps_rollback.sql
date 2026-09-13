@@ -22,7 +22,21 @@ DROP TRIGGER IF EXISTS ocade_library_items_tombstone_storage ON public.ocade_lib
 DROP FUNCTION IF EXISTS public.tombstone_deleted_library_item();
 DROP TABLE IF EXISTS public.ocade_library_items;
 
-DELETE FROM storage.buckets WHERE id = 'library';
+/*
+ * THE BUCKET IS NOT DELETED HERE, AND IT CANNOT BE.
+ *
+ * `DELETE FROM storage.buckets` stood here and could never have run: Supabase
+ * refuses direct deletion from the storage tables — `storage.protect_delete()`
+ * raises 42501, "Use the Storage API instead" — so a rollback that claimed to
+ * remove the bucket would have failed at this line and left everything above
+ * it rolled back too.
+ *
+ * Removing a bucket is a Storage API call or one action in the dashboard. What
+ * this file can do, and does above, is take away every policy that reaches it:
+ * with none, no role can read, write or list it. The objects stay where they
+ * are, which is the safer direction — bytes a person kept are not deleted by a
+ * schema rollback.
+ */
 
 CREATE TABLE IF NOT EXISTS public.ocade_outputs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

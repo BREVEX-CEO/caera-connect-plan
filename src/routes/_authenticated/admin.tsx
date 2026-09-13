@@ -1,9 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/shell/AppShell";
-import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { requireAdminRole } from "@/lib/admin/route-gate";
+import {
+  grantAccountAccess,
+  listAccountAccess,
+  revokeAccountAccess,
+  type AdminAccountRow,
+} from "@/lib/admin/access.functions";
 
 /**
  * THE WHOLE OF ADMINISTRATION: ONE HIDDEN SCREEN.
@@ -11,11 +17,19 @@ import { requireAdminRole } from "@/lib/admin/route-gate";
  * It was nine routes — a directory, accounts, billing, operations, support,
  * help publishing, status, a launch gate and a payments checklist — each with
  * its own data layer. `docs/PRD.md` keeps admin only where the service still
- * requires it and keeps it out of customer navigation entirely, and what the
- * service actually requires is the ability to look an account up and see the
- * roles attached to it. Operational history lives in the database, where an
- * operator reads it with the database's own tools rather than through a
- * dashboard OCADE has to maintain.
+ * requires it and keeps it out of customer navigation entirely.
+ *
+ * What the service requires is two things, and until now it could only do one.
+ * Looking an account up and seeing its roles was here. GIVING somebody access,
+ * which `PLAN.md` Phase 3 asks for by name — search, current tier, grant
+ * Free/Pro/Max, an end time, a reason, revoke, told apart from a payment, and
+ * audited — was not, so the one operational task the plan names was a SQL
+ * console job. It is here now, through the database functions that already
+ * enforce the admin role, a recent second factor and a written reason.
+ *
+ * Operational history still lives in the database, where an operator reads it
+ * with the database's own tools rather than through a dashboard OCADE has to
+ * maintain.
  */
 export const Route = createFileRoute("/_authenticated/admin")({
   ssr: false,
@@ -26,50 +40,41 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-/** The page is capped rather than paginated: an operator searches, not browses. */
-const ACCOUNT_LIMIT = 200;
-const ROLE_LIMIT = 1_000;
-
-interface AccountRow {
-  id: string;
-  email: string | null;
-  displayName: string | null;
-  createdAt: string;
-  roles: string[];
-}
+const DEFAULT_DAYS = 30;
 
 function AdminPage() {
   const [query, setQuery] = useState("");
+  const [open, setOpen] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const accounts = useQuery({
-    queryKey: ["admin", "accounts"],
-    queryFn: async (): Promise<AccountRow[]> => {
-      const supabase = await loadSupabaseClient();
-      const [profiles, roles] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("id, display_name, email, created_at")
-          .order("created_at", { ascending: false })
-          .limit(ACCOUNT_LIMIT),
-        supabase.from("user_roles").select("user_id, role").limit(ROLE_LIMIT),
-      ]);
-      if (profiles.error) throw profiles.error;
-      if (roles.error) throw roles.error;
+    queryKey: ["admin", "access"],
+    queryFn: () => listAccountAccess(),
+  });
 
-      const byUser = new Map<string, string[]>();
-      for (const row of roles.data ?? []) {
-        const list = byUser.get(row.user_id) ?? [];
-        list.push(row.role);
-        byUser.set(row.user_id, list);
-      }
-      return (profiles.data ?? []).map((row) => ({
-        id: row.id,
-        email: row.email,
-        displayName: row.display_name,
-        createdAt: row.created_at,
-        roles: byUser.get(row.id) ?? [],
-      }));
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin", "access"] });
+
+  const grant = useMutation({
+    mutationFn: (input: { userId: string; tier: "pro" | "max"; days: number; reason: string }) =>
+      grantAccountAccess({ data: input }),
+    onSuccess: async () => {
+      toast.success("Access granted.");
+      setOpen(null);
+      await refresh();
     },
+    onError: (error: unknown) => toast.error(messageOf(error)),
+  });
+
+  const revoke = useMutation({
+    mutationFn: (input: { grantId: string; reason: string }) =>
+      revokeAccountAccess({ data: input }),
+    onSuccess: async (result) => {
+      toast[result.revoked ? "success" : "error"](
+        result.revoked ? "Access revoked." : "That grant was already revoked.",
+      );
+      await refresh();
+    },
+    onError: (error: unknown) => toast.error(messageOf(error)),
   });
 
   const term = query.trim().toLowerCase();
@@ -77,7 +82,8 @@ function AdminPage() {
     (row) =>
       term.length === 0 ||
       (row.email ?? "").toLowerCase().includes(term) ||
-      (row.displayName ?? "").toLowerCase().includes(term),
+      (row.displayName ?? "").toLowerCase().includes(term) ||
+      row.id === term,
   );
 
   return (
@@ -85,7 +91,7 @@ function AdminPage() {
       <div className="mx-auto w-full max-w-4xl px-5 py-8">
         <h1 className="text-lg font-semibold tracking-tight text-foreground">Administration</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          The {ACCOUNT_LIMIT} most recent accounts and the roles on them.
+          The 200 most recent accounts, their roles, and the access given to them by hand.
         </p>
 
         <label className="mt-5 block">
@@ -93,7 +99,7 @@ function AdminPage() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by email or name"
+            placeholder="Search by email, name or account id"
             className="h-8 w-full max-w-sm rounded-md border border-border bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
           />
         </label>
@@ -109,18 +115,55 @@ function AdminPage() {
         ) : (
           <ul className="mt-6 divide-y divide-border/50 border-y border-border/50">
             {visible.map((row) => (
-              <li key={row.id} className="flex items-center justify-between gap-4 py-3">
-                <span className="min-w-0">
-                  <span className="block truncate text-sm text-foreground">
-                    {row.displayName ?? row.email ?? row.id}
+              <li key={row.id} className="py-3">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm text-foreground">
+                      {row.displayName ?? row.email ?? row.id}
+                    </span>
+                    <span className="block truncate text-[13px] text-muted-foreground">
+                      {row.email ?? "No email"}
+                    </span>
                   </span>
-                  <span className="block truncate text-[13px] text-muted-foreground">
-                    {row.email ?? "No email"}
+                  <span className="flex shrink-0 items-center gap-3 text-[13px]">
+                    <AccessBadge row={row} />
+                    {row.roles.length > 0 ? (
+                      <span className="text-muted-foreground">{row.roles.join(", ")}</span>
+                    ) : null}
+                    {row.grant ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const reason = window.prompt("Why is this access being taken back?");
+                          if (reason && reason.trim().length >= 3) {
+                            revoke.mutate({ grantId: row.grant!.id, reason: reason.trim() });
+                          }
+                        }}
+                        disabled={revoke.isPending}
+                        className="h-7 rounded-md border border-border px-2 text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+                      >
+                        Revoke
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setOpen(open === row.id ? null : row.id)}
+                        aria-expanded={open === row.id}
+                        className="h-7 rounded-md border border-border px-2 text-foreground transition-colors hover:bg-accent"
+                      >
+                        Give access
+                      </button>
+                    )}
                   </span>
-                </span>
-                <span className="shrink-0 text-[13px] text-muted-foreground">
-                  {row.roles.length > 0 ? row.roles.join(", ") : "—"}
-                </span>
+                </div>
+
+                {open === row.id ? (
+                  <GrantForm
+                    busy={grant.isPending}
+                    onCancel={() => setOpen(null)}
+                    onSubmit={(values) => grant.mutate({ userId: row.id, ...values })}
+                  />
+                ) : null}
               </li>
             ))}
             {visible.length === 0 ? (
@@ -131,4 +174,111 @@ function AdminPage() {
       </div>
     </AppShell>
   );
+}
+
+/**
+ * A GRANT AND A PAYMENT ARE NEVER THE SAME BADGE.
+ *
+ * `docs/RULES.md` #34 keeps manual access separate from payment evidence, and
+ * an operator deciding whether to revoke something needs to know which of the
+ * two they are looking at before they press anything.
+ */
+function AccessBadge({ row }: { row: AdminAccountRow }) {
+  if (row.grant) {
+    return (
+      <span
+        className="rounded border border-border px-1.5 py-0.5 text-foreground"
+        title={`Given by hand${row.grant.reason ? `: ${row.grant.reason}` : ""}`}
+      >
+        {row.grant.tier === "max" ? "Max" : "Pro"} · given until{" "}
+        {new Date(row.grant.endsAt).toLocaleDateString()}
+      </span>
+    );
+  }
+  if (row.paid) return <span className="text-muted-foreground">Paid subscription</span>;
+  return <span className="text-muted-foreground">Free</span>;
+}
+
+function GrantForm({
+  busy,
+  onCancel,
+  onSubmit,
+}: {
+  busy: boolean;
+  onCancel: () => void;
+  onSubmit: (values: { tier: "pro" | "max"; days: number; reason: string }) => void;
+}) {
+  const [tier, setTier] = useState<"pro" | "max">("pro");
+  const [days, setDays] = useState(String(DEFAULT_DAYS));
+  const [reason, setReason] = useState("");
+  const parsedDays = Number(days);
+  const valid =
+    Number.isInteger(parsedDays) &&
+    parsedDays >= 1 &&
+    parsedDays <= 366 &&
+    reason.trim().length >= 3;
+
+  return (
+    <form
+      // `preventDefault` before anything else: a handler that awaits first has
+      // already returned, and the browser submits the form itself.
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (valid) onSubmit({ tier, days: parsedDays, reason: reason.trim() });
+      }}
+      className="mt-3 flex flex-wrap items-end gap-2 rounded-md border border-border p-3"
+    >
+      <label className="text-[13px] text-muted-foreground">
+        <span className="mb-1 block">Tier</span>
+        <select
+          value={tier}
+          onChange={(event) => setTier(event.target.value as "pro" | "max")}
+          className="h-8 rounded-md border border-border bg-background px-2 text-sm text-foreground outline-none focus-visible:border-ring"
+        >
+          <option value="pro">Pro</option>
+          <option value="max">Max</option>
+        </select>
+      </label>
+      <label className="text-[13px] text-muted-foreground">
+        <span className="mb-1 block">Days</span>
+        <input
+          type="number"
+          min={1}
+          max={366}
+          value={days}
+          onChange={(event) => setDays(event.target.value)}
+          className="h-8 w-20 rounded-md border border-border bg-transparent px-2 text-sm text-foreground outline-none focus-visible:border-ring"
+        />
+      </label>
+      <label className="min-w-[12rem] flex-1 text-[13px] text-muted-foreground">
+        <span className="mb-1 block">Reason</span>
+        <input
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          placeholder="Why this account is being given access"
+          className="h-8 w-full rounded-md border border-border bg-transparent px-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+        />
+      </label>
+      <button
+        type="submit"
+        disabled={!valid || busy}
+        className="h-8 rounded-md bg-primary px-3 text-sm text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+      >
+        Give access
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="h-8 rounded-md border border-border px-3 text-sm text-foreground transition-colors hover:bg-accent"
+      >
+        Cancel
+      </button>
+    </form>
+  );
+}
+
+/** A server function rejects with a Response; its body is the sentence. */
+function messageOf(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  return "That change was not applied.";
 }

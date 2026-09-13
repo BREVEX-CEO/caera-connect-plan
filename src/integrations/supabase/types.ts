@@ -21,7 +21,6 @@ export type Database = {
           feature_id: string | null
           id: string
           metadata: Json
-          tenant_id: string | null
           user_id: string
         }
         Insert: {
@@ -30,7 +29,6 @@ export type Database = {
           feature_id?: string | null
           id?: string
           metadata?: Json
-          tenant_id?: string | null
           user_id: string
         }
         Update: {
@@ -39,18 +37,9 @@ export type Database = {
           feature_id?: string | null
           id?: string
           metadata?: Json
-          tenant_id?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "activity_log_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       browser_grants: {
         Row: {
@@ -118,7 +107,6 @@ export type Database = {
           preview: Json | null
           result: Json | null
           row_hash: string | null
-          tenant_id: string | null
           user_agent: string | null
           user_id: string | null
         }
@@ -133,7 +121,6 @@ export type Database = {
           preview?: Json | null
           result?: Json | null
           row_hash?: string | null
-          tenant_id?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
@@ -148,19 +135,10 @@ export type Database = {
           preview?: Json | null
           result?: Json | null
           row_hash?: string | null
-          tenant_id?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "audit_log_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       data_class_privacy: {
         Row: {
@@ -287,7 +265,6 @@ export type Database = {
           id: string
           model_id: string | null
           pinned: boolean
-          project_id: string | null
           provider_id: string | null
           title: string
           updated_at: string
@@ -300,7 +277,6 @@ export type Database = {
           id?: string
           model_id?: string | null
           pinned?: boolean
-          project_id?: string | null
           provider_id?: string | null
           title?: string
           updated_at?: string
@@ -313,21 +289,12 @@ export type Database = {
           id?: string
           model_id?: string | null
           pinned?: boolean
-          project_id?: string | null
           provider_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "ocade_conversations_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "ocade_projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       ocade_device_usage_keys: {
         Row: {
@@ -660,7 +627,15 @@ export type Database = {
           storage_path?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ocade_library_items_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ocade_messages: {
         Row: {
@@ -1327,10 +1302,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      ocade_delete_all_library_items: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
       apply_payment_webhook_event: {
         Args: {
           p_action: string
@@ -1451,7 +1422,6 @@ export type Database = {
           week_window_start: string
         }[]
       }
-      ocade_cancel_all_automation_runs: { Args: never; Returns: Json }
       ocade_claim_generation_transport: {
         Args: {
           p_generation_id: string
@@ -1462,7 +1432,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      ocade_close_support_case: { Args: { grant_id: string }; Returns: boolean }
       ocade_consume_commercial_work: {
         Args: {
           p_cost_hundredths: number
@@ -1492,6 +1461,7 @@ export type Database = {
           total: number
         }[]
       }
+      ocade_delete_all_library_items: { Args: never; Returns: number }
       ocade_expire_commercial_permits: {
         Args: { p_now?: string; p_user_id: string }
         Returns: number
@@ -1572,7 +1542,6 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: boolean
       }
-      ocade_org_role: { Args: { p_organization_id: string }; Returns: string }
       ocade_purge_expired_conversation_trash: { Args: never; Returns: number }
       ocade_read_commercial_usage: {
         Args: { p_user_id: string }

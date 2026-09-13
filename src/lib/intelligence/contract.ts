@@ -93,9 +93,7 @@ export interface IntelligenceRequest {
   tools: NormalizedToolDefinition[];
   attachments: NormalizedAttachment[];
   privacy: IntelligencePrivacyPolicy;
-  projectId?: string;
   conversationId?: string;
-  taskId?: string;
   /** Internal continuation that must not replace the user-visible engine state. */
   background?: boolean;
   signal?: AbortSignal;

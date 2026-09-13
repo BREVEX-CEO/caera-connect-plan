@@ -15,9 +15,13 @@ const uuid = z.string().uuid();
 /**
  * One conversation row, as every surface reads it.
  *
- * Named rather than inferred at each call site: Chat, Projects and Search all
- * render the same row, and three inferred shapes drift the moment a column is
- * added.
+ * Named rather than inferred at each call site, so the shape does not drift the
+ * moment a column changes.
+ *
+ * `project_id` is gone from it. The column was dropped with the Projects
+ * product's tables, and the regenerated database types are what caught this
+ * still writing to it — an upsert naming a column that no longer exists is a
+ * failed Send, not a warning.
  */
 export interface OcadeConversationRow {
   id: string;
@@ -25,7 +29,6 @@ export interface OcadeConversationRow {
   pinned: boolean;
   archived: boolean;
   model_id: string | null;
-  project_id: string | null;
   updated_at: string;
   created_at: string;
   /** When this was moved to trash. `null` means it is not in the trash. */
@@ -33,7 +36,7 @@ export interface OcadeConversationRow {
 }
 
 const CONVERSATION_COLUMNS =
-  "id, title, pinned, archived, model_id, project_id, updated_at, created_at, deleted_at";
+  "id, title, pinned, archived, model_id, updated_at, created_at, deleted_at";
 
 export const listConversations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -142,7 +145,6 @@ export const createConversation = createServerFn({ method: "POST" })
         id: uuid.optional(),
         title: z.string().max(200).optional(),
         modelId: z.string().max(200).optional(),
-        projectId: uuid.nullable().optional(),
       })
       .parse(i),
   )
@@ -155,7 +157,6 @@ export const createConversation = createServerFn({ method: "POST" })
           user_id: context.userId,
           title: data.title ?? "New chat",
           model_id: data.modelId ?? null,
-          ...(data.projectId !== undefined ? { project_id: data.projectId } : {}),
         },
         { onConflict: "id" },
       )
