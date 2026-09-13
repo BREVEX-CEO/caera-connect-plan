@@ -325,13 +325,86 @@ width, every supported route answers 200 and every control on it can be pressed
 without throwing. The remaining gaps are the ones listed above, each owned by a
 later phase.
 
+## Phase 2 result — authentication, and two defects that made it unusable
+
+### The sign-in surface asks the project
+
+`resolveAuthProviderAvailability` read three `VITE_AUTH_*` build flags, each
+defaulting to `false` in production. That is a second authority over what
+authentication exists, beside the only real one, and it could drift in both
+directions: the live project has Google configured and working, and a
+production build with the variable unset offered no Google button at all.
+
+The flags are gone from the code and from both deployment workflows. The screen
+asks GoTrue at `/auth/v1/settings` — public, and the same source the dashboard
+reflects — in the route loader, and renders only what comes back. A failed read
+offers everything, because a sign-in screen that cannot be used is worse than
+one that offers a method the project refuses out loud in a second.
+
+The loader deliberately runs on the server as well. A first attempt skipped the
+call during SSR; the server's loader result is the one that ships, so the screen
+showed every method regardless of what the project said — the same defect in
+different clothes. The browser journey catches that now: it turns providers off
+at the project and requires them to leave the page.
+
+### `/auth/verify`, `/auth/callback` and `/auth/challenge` were unreachable
+
+`auth.tsx` was the flat-routing PARENT of all three, and its component rendered
+no `<Outlet/>`, so every child rendered the sign-in form instead of itself. The
+child's `head` still applied, so `/auth/verify` served a document titled "Enter
+your code" whose body was the sign-in form. Every route answered 200 and every
+title was right, which is why nothing caught it.
+
+Nobody who asked for an email or phone code could enter one, and no Google
+handshake could complete. `/auth` is now a leaf (`auth.index.tsx`) and the three
+flows are siblings. `route-parents-render-children.test.ts` keeps it that way.
+
+### Entering a code destroyed the screen it was entered on
+
+Underneath that, `verify()` called `e.preventDefault()` AFTER
+`await loadSupabaseClient()`. An `await` yields, the handler returns, the
+browser treats the submit as unhandled and navigates to the form's action —
+this page with an empty query string. `channel` and `identifier` live in that
+query string, so the reloaded route failed `validateSearch` and the error
+boundary replaced the screen with "Something stopped working". Right code or
+wrong, the screen was gone.
+
+`reset-password.tsx` had the same ordering. Both fixed, and
+`check-dead-controls.mjs` now reports `late-preventdefault` — a control that
+undoes itself is a dead control. Verified against the defect: reintroducing the
+old ordering fails the gate.
+
+### Proof
+
+The auth journey drives the whole way in against a served production build:
+Google present, both code channels, the country picker, a short number refused
+without naming a provider, providers turned off at the project disappearing and
+coming back, a deep link carried through, a code requested, the code screen
+reached, a wrong code refused in OCADE's words with no provider and no account
+named, and the right code signing in and landing on `/library` with the account
+on screen. 19 checks. All 10 journeys pass (181 checks); `verify:full` passes
+all 14 gates.
+
+### Owner actions this phase cannot complete
+
+Neither is a code change, and the product is honest in either state — the
+sign-in screen shows exactly what the project reports.
+
+1. **Email OTP delivery.** Supabase's built-in email sender is rate-limited to
+   a handful of messages an hour and is not a production sender. Custom SMTP
+   must be configured on the project.
+2. **Phone OTP.** Supabase Auth cannot send SMS without an external provider
+   (Twilio, MessageBird, Vonage or Textlocal). The provider account and its
+   credentials are the owner's to supply. Until then, phone OTP must stay off
+   at the project rather than be faked.
+
+Both will be put to the owner together with the three Gemini keys at Phase 4.
+
 ## Exact next action
 
-Start **Phase 2**: make Supabase Auth the only authority over which sign-in
-methods exist. `resolveAuthProviderAvailability` currently reads three
-`VITE_AUTH_*` build flags that default to `false` in production, so the shipped
-sign-in surface can offer less than the live project actually supports — the
-same class of defect as the Phase 1 kill switch. Verify what the live project
-has enabled before changing the surface.
+Start **Phase 3**: Supabase cleanup. Compare the live `public` schema against
+what the final app actually reads, trace callers before removing anything, and
+build the manual entitlement-grant workflow — hidden Admin is read-only today
+and can show accounts and roles but cannot grant or revoke anything.
 
 Do not begin implementation of Cowork/Jarvis.

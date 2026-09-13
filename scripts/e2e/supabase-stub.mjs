@@ -457,6 +457,12 @@ function handleRpc(name, args, userId) {
 /** What the online boundary answers with next, and what it last received. */
 const onlineBoundary = { status: 200, lastRequest: null };
 
+/** The only code `/auth/v1/verify` accepts. Nothing is sent anywhere. */
+const OTP_CODE = "123456";
+
+/** What `/auth/v1/settings` reports. `/__fixture/auth-providers` changes it. */
+const authProviders = { google: true, email: true, phone: true };
+
 /**
  * The private bucket, in memory.
  *
@@ -507,6 +513,19 @@ const server = createServer((request, response) => {
       if (request.method === "GET") return send(200, onlineBoundary.lastRequest ?? {});
       onlineBoundary.status = Number(JSON.parse(body || "{}").status ?? 200);
       return send(200, { ok: true });
+    }
+
+    if (url.pathname === "/__fixture/auth-providers") {
+      /*
+       * Which providers the project reports at `/auth/v1/settings`.
+       *
+       * The sign-in screen asks the project rather than a build flag, so this
+       * is how a journey proves the screen follows the answer: turn a provider
+       * off here, reload, and the way in that no longer exists is gone from
+       * the page rather than present and refusing.
+       */
+      Object.assign(authProviders, JSON.parse(body || "{}"));
+      return send(200, { ok: true, external: authProviders });
     }
 
     if (url.pathname === "/__fixture/spend-allowance") {
@@ -571,7 +590,31 @@ const server = createServer((request, response) => {
     }
 
     if (url.pathname === "/auth/v1/settings") {
-      return send(200, { external: { google: true, email: true, phone: true } });
+      return send(200, { external: authProviders });
+    }
+
+    if (url.pathname === "/auth/v1/otp") {
+      /*
+       * A code was requested. No code is generated and none is delivered —
+       * `OTP_CODE` is the one this stub accepts, and it is a constant so the
+       * journey can type it. What IS real is everything OCADE does around it:
+       * the throttle, the cooldown, the navigation to the code screen.
+       */
+      const parsed = JSON.parse(body || "{}");
+      const channel = parsed.phone ? "phone" : "email";
+      if (!authProviders[channel === "phone" ? "phone" : "email"]) {
+        return send(422, { error_code: "provider_disabled", msg: "Signups not allowed for otp" });
+      }
+      return send(200, {});
+    }
+
+    if (url.pathname === "/auth/v1/verify") {
+      const parsed = JSON.parse(body || "{}");
+      if (String(parsed.token) !== OTP_CODE) {
+        return send(403, { error_code: "otp_invalid", msg: "Token is invalid" });
+      }
+      const identity = parsed.email ?? parsed.phone ?? "proof@ocade.test";
+      return send(200, openSession(identity));
     }
 
     if (url.pathname === "/auth/v1/factors") {

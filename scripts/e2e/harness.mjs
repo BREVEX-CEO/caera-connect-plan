@@ -60,25 +60,32 @@ if (unknown.length > 0) {
 /**
  * The stub answers as the project, so the build must be compiled against it.
  *
- * The three `VITE_AUTH_*` flags are on because the journeys prove the sign-in
- * surface the product is meant to offer. What the hosted project actually has
- * enabled is a deployment fact and is checked against Supabase itself, not
- * here.
+ * Which sign-in methods appear is not set here. The product asks the project
+ * at `/auth/v1/settings`, and the stub answers that call — so the journeys
+ * exercise the same path production does rather than a build flag standing in
+ * for it.
  */
 const BUILD_ENVIRONMENT = {
   VITE_SUPABASE_URL: SUPABASE_URL,
   VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_loopback_stub",
-  VITE_AUTH_GOOGLE_ENABLED: "true",
-  VITE_AUTH_PHONE_ENABLED: "true",
-  VITE_AUTH_EMAIL_DELIVERY_READY: "true",
 };
 
 const children = [];
 
+/**
+ * Kill the GROUP, not the process.
+ *
+ * `wrangler dev` spawns `workerd`, which outlives a SIGTERM sent only to
+ * wrangler. A surviving `workerd` holds port 8788 with the PREVIOUS build's
+ * asset manifest, so the next run's server silently fails to bind and every
+ * hashed chunk 404s against the old one — which reads as a product whose
+ * controls are all disabled. Each child is therefore its own process group and
+ * the negative pid takes the whole tree with it.
+ */
 function stopEverything() {
   for (const child of children) {
     try {
-      child.kill("SIGTERM");
+      process.kill(-child.pid, "SIGKILL");
     } catch {
       /* Already gone. */
     }
@@ -130,6 +137,7 @@ console.log("=== supabase stub ===");
 children.push(
   spawn(process.execPath, ["scripts/e2e/supabase-stub.mjs", String(SUPABASE_PORT)], {
     stdio: "inherit",
+    detached: true,
   }),
 );
 await waitForPort(`${SUPABASE_URL}/auth/v1/settings`, "the Supabase stub");
@@ -148,7 +156,7 @@ children.push(
       "--port",
       String(WEB_PORT),
     ],
-    { stdio: ["ignore", "inherit", "inherit"] },
+    { stdio: ["ignore", "inherit", "inherit"], detached: true },
   ),
 );
 await waitForPort(BASE, "the served build");

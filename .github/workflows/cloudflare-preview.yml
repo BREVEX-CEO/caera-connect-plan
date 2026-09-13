@@ -52,8 +52,6 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_AUTH_GOOGLE_ENABLED: ${{ vars.VITE_AUTH_GOOGLE_ENABLED }}
-          VITE_AUTH_EMAIL_DELIVERY_READY: ${{ vars.VITE_AUTH_EMAIL_DELIVERY_READY }}
         run: npm run build
 
       - name: Refuse to publish if this config carries a production route

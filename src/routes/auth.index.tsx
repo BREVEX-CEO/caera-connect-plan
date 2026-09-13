@@ -24,7 +24,10 @@ import {
 } from "@/lib/auth/throttle";
 import { DEFAULT_NEXT, safeNext } from "@/lib/auth/safe-next";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
-import { authProviderAvailability } from "@/lib/auth/provider-availability";
+import {
+  fetchAuthProviderAvailability,
+  type AuthProviderAvailability,
+} from "@/lib/auth/provider-availability";
 import {
   CALLING_COUNTRIES,
   DEFAULT_CALLING_COUNTRY,
@@ -42,7 +45,7 @@ const searchSchema = z.object({
   provider: z.string().optional(),
 });
 
-export const Route = createFileRoute("/auth")({
+export const Route = createFileRoute("/auth/")({
   validateSearch: searchSchema,
   beforeLoad: async ({ search }) => {
     if (typeof window === "undefined") return;
@@ -51,6 +54,20 @@ export const Route = createFileRoute("/auth")({
     const { data } = await supabase.auth.getSession();
     if (data.session) throw redirect({ to: safeNext(search.next) ?? DEFAULT_NEXT });
   },
+  /*
+   * Asked of the project before the screen renders, so the buttons are the
+   * ones that work rather than the ones a build flag believed in. It resolves
+   * rather than rejects, so a project that cannot be reached still gets a
+   * usable sign-in screen.
+   *
+   * RUN ON THE SERVER TOO, DELIBERATELY. A first attempt skipped the call
+   * during SSR and returned `ASSUME_AVAILABLE` there. The server's loader
+   * result is the one that ships — the client does not re-run it on hydration
+   * — so the screen showed every method regardless of what the project said,
+   * which is the defect this replaced wearing different clothes.
+   */
+  loader: (): Promise<AuthProviderAvailability> =>
+    fetchAuthProviderAvailability(getSupabaseBrowserConfiguration()),
   head: () => ({
     meta: [
       { title: "Sign in — OCADE" },
@@ -87,6 +104,7 @@ type Channel = "email" | "phone";
 function AuthPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
+  const availability = Route.useLoaderData();
   const nextPath = safeNext(search.next) ?? DEFAULT_NEXT;
   const configured = getSupabaseBrowserConfiguration().configured;
 
@@ -98,9 +116,11 @@ function AuthPage() {
     ? describeOAuthError("google", inbound.code, inbound.description)
     : null;
 
-  const [channel, setChannel] = useState<Channel>(
-    authProviderAvailability.emailDelivery ? "email" : "phone",
-  );
+  const channels: Channel[] = [
+    ...(availability.emailDelivery ? (["email"] as const) : []),
+    ...(availability.phone ? (["phone"] as const) : []),
+  ];
+  const [channel, setChannel] = useState<Channel>(channels[0] ?? "email");
   const [email, setEmail] = useState("");
   const [country, setCountry] = useState(DEFAULT_CALLING_COUNTRY);
   const [phone, setPhone] = useState("");
@@ -122,7 +142,7 @@ function AuthPage() {
   }
 
   async function continueWithGoogle() {
-    if (!authProviderAvailability.google) {
+    if (!availability.google) {
       setError("Google sign-in is not available yet.");
       setHint("Use a code sent to your email address or phone number instead.");
       return;
@@ -168,7 +188,7 @@ function AuthPage() {
       setError("Enter your email address.");
       return;
     }
-    if (!authProviderAvailability.emailDelivery) {
+    if (!availability.emailDelivery) {
       setError("Email codes are not available yet.");
       setHint("Continue with Google instead.");
       return;
@@ -209,7 +229,7 @@ function AuthPage() {
 
   async function sendPhoneCode(event: React.FormEvent) {
     event.preventDefault();
-    if (!authProviderAvailability.phone) {
+    if (!availability.phone) {
       setError("Phone codes are not available yet.");
       setHint("Continue with Google, or use your email address instead.");
       return;
@@ -280,7 +300,7 @@ function AuthPage() {
         </>
       }
     >
-      {authProviderAvailability.google ? (
+      {availability.google ? (
         <>
           <button
             type="button"
@@ -299,25 +319,36 @@ function AuthPage() {
         </>
       ) : null}
 
-      <div className="mb-4 flex rounded-md border border-border p-0.5" role="tablist">
-        {(["email", "phone"] as const).map((id) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={channel === id}
-            onClick={() => setChannel(id)}
-            className={cn(
-              "h-8 flex-1 rounded text-sm capitalize transition-colors",
-              channel === id ? "bg-accent text-foreground" : "text-muted-foreground",
-            )}
-          >
-            {id}
-          </button>
-        ))}
-      </div>
+      {/*
+       * Only the channels the project actually has. A tab for a channel that
+       * is turned off is a control whose whole behaviour is to refuse, and a
+       * row of one tab is a decoration rather than a choice.
+       */}
+      {channels.length > 1 ? (
+        <div className="mb-4 flex rounded-md border border-border p-0.5" role="tablist">
+          {channels.map((id) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={channel === id}
+              onClick={() => setChannel(id)}
+              className={cn(
+                "h-8 flex-1 rounded text-sm capitalize transition-colors",
+                channel === id ? "bg-accent text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {id}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
-      {channel === "email" ? (
+      {channels.length === 0 ? (
+        <p className="text-[13px] text-muted-foreground">
+          Codes are not available on this deployment yet.
+        </p>
+      ) : channel === "email" ? (
         <form onSubmit={sendEmailCode} className="space-y-3">
           <label className="block">
             <span className="sr-only">Email address</span>

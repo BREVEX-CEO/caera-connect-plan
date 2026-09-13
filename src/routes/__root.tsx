@@ -260,12 +260,35 @@ function BrowserBootstrap() {
   useEffect(() => {
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
+    /*
+     * WHO IS SIGNED IN, so an event that does not change the answer does not
+     * re-match every route.
+     *
+     * Supabase emits `SIGNED_OUT` for its own housekeeping as well as for a
+     * person signing out — a failed `verifyOtp` emits one while nobody was
+     * signed in to begin with. Invalidating on that dragged the router through
+     * a re-match of the screen the person was standing on, and on
+     * `/auth/verify` — whose search carries the channel and the address the
+     * code went to — the re-match came back without them and threw. Entering a
+     * wrong code replaced the screen with "Something stopped working", so the
+     * only recovery from a typo was to start again.
+     *
+     * An event that leaves the same account signed in, or nobody signed in,
+     * now changes nothing.
+     */
+    let signedIn: string | null = null;
     void import("@/integrations/supabase/client").then(
       ({ getSupabaseBrowserConfiguration, supabase }) => {
         if (cancelled || !getSupabaseBrowserConfiguration().configured) return;
-        const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+        void supabase.auth.getSession().then(({ data }) => {
+          if (!cancelled) signedIn = data.session?.user.id ?? null;
+        });
+        const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
           if (cancelled) return;
           if (!["SIGNED_IN", "SIGNED_OUT", "USER_UPDATED"].includes(event)) return;
+          const nowSignedIn = session?.user.id ?? null;
+          if (nowSignedIn === signedIn && event !== "USER_UPDATED") return;
+          signedIn = nowSignedIn;
           if (event === "SIGNED_OUT") {
             /*
              * What signing out clears is what this TAB was holding, never the

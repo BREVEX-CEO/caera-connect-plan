@@ -115,6 +115,35 @@ for (const file of files) {
     }
   }
 
+  /*
+   * 3b. Submit handlers that let the browser submit the form anyway.
+   *
+   * `preventDefault` after an `await` is too late. The handler has already
+   * returned, the browser treats the submit as unhandled, and it navigates to
+   * the form's action — a full page load that discards the route's search
+   * parameters along with everything the screen was holding.
+   *
+   * `/auth/verify` did exactly this: entering a code, right or wrong, reloaded
+   * the page without the `channel` and `identifier` it needs, so the screen
+   * replaced itself with "Something stopped working" and the code could never
+   * be entered at all. `reset-password` had the same ordering.
+   *
+   * A control that undoes itself is a dead control, so it is reported here.
+   */
+  for (const m of source.matchAll(/function\s+\w+\s*\(\s*(\w+)\s*:\s*React\.FormEvent/g)) {
+    const body = source.slice(m.index, m.index + 1200);
+    const prevented = body.indexOf(`${m[1]}.preventDefault()`);
+    const awaited = body.search(/\bawait\b/);
+    if (prevented >= 0 && awaited >= 0 && awaited < prevented) {
+      findings.push({
+        file,
+        line: lineAt(m.index + awaited),
+        kind: "late-preventdefault",
+        detail: "await runs before preventDefault(); the browser submits the form",
+      });
+    }
+  }
+
   // 4. PERMANENTLY disabled controls that never say why.
   //
   // Only a CONSTANT `disabled` counts. A reactive one (`disabled={busy}`,

@@ -88,8 +88,24 @@ function VerifyPage() {
   const target = safeNext(next) ?? DEFAULT_NEXT;
 
   async function verify(e: React.FormEvent) {
-    const supabase = await loadSupabaseClient();
+    /*
+     * BEFORE THE FIRST `await`, AND THAT IS THE WHOLE BUG.
+     *
+     * This used to load the Supabase client first and call `preventDefault`
+     * after it. An `await` yields to the event loop, the handler returns, and
+     * the browser treats the submit as unhandled — so it did the default thing
+     * and navigated to the form's action, which is this page with an empty
+     * query string. `channel` and `identifier` live in that query string, so
+     * the reloaded route failed `validateSearch` and the error boundary
+     * replaced the screen with "Something stopped working".
+     *
+     * Entering a code — right or wrong — therefore destroyed the screen it was
+     * entered on, and the only way back was to start again. Nothing caught it
+     * because the screen was unreachable at all: `auth.tsx` was a parent route
+     * with no `<Outlet/>`, so `/auth/verify` rendered the sign-in form.
+     */
     e.preventDefault();
+    const supabase = await loadSupabaseClient();
     const remaining = secondsUntilAllowed(throttle, Date.now());
     if (remaining > 0) {
       setError(describeWait(remaining));

@@ -112,8 +112,11 @@ function ResetPasswordPage() {
   }, []);
 
   async function submit(e: React.FormEvent) {
-    const supabase = await loadSupabaseClient();
+    // Before the first `await`. After one, the handler has already returned
+    // and the browser submits the form itself — see the note in
+    // `auth.verify.tsx`, where the same ordering destroyed the screen.
     e.preventDefault();
+    const supabase = await loadSupabaseClient();
     setError(null);
     if (password.length < 8) {
       setError("Your new password needs at least 8 characters.");

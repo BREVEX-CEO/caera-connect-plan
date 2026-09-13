@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
  * is before they ship.
  */
 
-const SIGN_IN = readFileSync("src/routes/auth.tsx", "utf8");
+const SIGN_IN = readFileSync("src/routes/auth.index.tsx", "utf8");
 const VERIFY = readFileSync("src/routes/auth.verify.tsx", "utf8");
 const CALLBACK = readFileSync("src/routes/auth.callback.tsx", "utf8");
 const RESET = readFileSync("src/routes/reset-password.tsx", "utf8");
