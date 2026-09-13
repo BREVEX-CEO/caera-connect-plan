@@ -66,8 +66,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         crossOrigin: "anonymous",
       },
       { rel: "icon", href: "/favicon.ico", sizes: "any" },
-      { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
-      { rel: "manifest", href: "/manifest.webmanifest" },
+      /*
+       * NO WEB APP MANIFEST, AND NO APPLE TOUCH ICON. OCADE IS A WEBSITE.
+       *
+       * Those two links were the whole of the product's install promotion, and
+       * neither is passive: a manifest with `display: standalone` is precisely
+       * what makes Chrome offer "Install app" in the address bar and in its
+       * menu, and `apple-touch-icon` is what dresses an "Add to Home Screen"
+       * shortcut up as an application on iOS. OCADE is reached at ocade.in in a
+       * browser; nobody is asked to install anything.
+       *
+       * The service worker stays and is untouched. It is what makes the shell
+       * open without a connection, and it needs no manifest to do that —
+       * offline caching and installability are separate browser features that
+       * happen to be described in the same tutorials.
+       *
+       * The manifest was also broken: its `start_url` was `/ocade`, a route
+       * that answers 404, so anybody who did install it got an error page.
+       */
     ],
   }),
   shellComponent: RootShell,

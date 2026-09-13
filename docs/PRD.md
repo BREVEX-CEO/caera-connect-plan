@@ -198,7 +198,7 @@ Manual grants and paid subscriptions remain separate evidence sources resolving 
 
 ## Whole-site offline
 
-`ocade.in` works normally in Chrome without PWA installation and is optionally installable as a PWA.
+`ocade.in` is a website, used in a browser, and is never offered as an application to install. Nothing in the product promotes installing it.
 
 When Internet is unavailable, the cached shell must still open and honestly provide local functionality: Offline Chat when installed, locally available history/Library content, Account/Settings shell, Pricing information and public/legal pages.
 

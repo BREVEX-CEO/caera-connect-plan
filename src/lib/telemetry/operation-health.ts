@@ -32,7 +32,9 @@
  * not change that.
  */
 
-import { OCADE_RELEASE_VERSION } from "@/lib/health";
+// Relative and extensioned: this module is bundled into the Supabase Edge
+// Function, where the "@/" alias does not exist.
+import { OCADE_RELEASE_VERSION } from "../release.ts";
 
 /** The part of the product a record is about. */
 export const HEALTH_COMPONENTS = [

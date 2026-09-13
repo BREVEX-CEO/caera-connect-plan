@@ -23,7 +23,7 @@
  */
 
 const SHELL_CACHE_PREFIX = "ocade-shell-v";
-const VERSION = `${SHELL_CACHE_PREFIX}11`;
+const VERSION = `${SHELL_CACHE_PREFIX}12`;
 const OFFLINE_URL = "/offline.html";
 
 /**
@@ -34,25 +34,24 @@ const OFFLINE_URL = "/offline.html";
  * require this file to be generated. They are picked up by the runtime cache
  * below once they have been fetched successfully at least once.
  */
-const REQUIRED_PRECACHE = ["/", OFFLINE_URL, "/manifest.webmanifest"];
+const REQUIRED_PRECACHE = ["/", OFFLINE_URL];
 
 const OPTIONAL_PRECACHE = [
   "/favicon.ico",
   /*
-   * EXACTLY THE ICONS THE MANIFEST ASKS FOR.
+   * EXACTLY WHAT SOMETHING STILL REFERENCES.
    *
-   * This listed 128 and 192. The manifest declares 192 and 512 -- 512 twice,
-   * once as `maskable` -- and never mentions 128 at all. So offline, Chrome
-   * read the cached manifest, went looking for an icon that had never been
-   * stored, and logged "Download error or resource isn't a valid image"
-   * against a file that is a perfectly valid PNG sitting in public/icons.
+   * This once listed the manifest's icon set, and before that a size the
+   * manifest never mentioned -- so offline, Chrome read the cached manifest,
+   * went looking for an icon that had never been stored, and logged "Download
+   * error or resource isn't a valid image" against a perfectly valid PNG.
    *
-   * Caching a file nothing references while missing one that is referenced
-   * twice is the kind of mismatch that only shows up with the network off,
-   * which is the one condition nobody tests by hand.
+   * There is no manifest now: OCADE is a website and is never offered as an
+   * app to install. The 192 survives because Background Fetch shows it while a
+   * download runs in the background, which is a browser capability rather than
+   * an install prompt.
    */
   "/icons/ocade-192.png",
-  "/icons/ocade-512.png",
   "/brand/ocade-carcc-mark.png",
   "/brand/ocade-carcc-wordmark.png",
 ];

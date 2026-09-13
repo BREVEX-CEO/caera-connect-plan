@@ -1,5 +1,5 @@
-/** Version shared by every OCADE source package in this release candidate. */
-export const OCADE_RELEASE_VERSION = "0.1.0";
+export { OCADE_RELEASE_VERSION } from "./release";
+import { OCADE_RELEASE_VERSION } from "./release";
 
 const HEALTH_PATH = "/api/health";
 const LOCAL_DEPLOYMENT_ID = "local";

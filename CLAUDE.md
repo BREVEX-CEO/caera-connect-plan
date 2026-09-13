@@ -248,9 +248,11 @@ Up to 100 MB per attachment where the format is intentionally supported.
 
 New Chat should not create an empty database conversation until first Send.
 
-## Whole-site offline/PWA rule
+## Whole-site offline rule
 
-`ocade.in` must work as a normal Chrome website without requiring PWA installation and should also be installable as a PWA.
+`ocade.in` is a website and is never offered as an application to install. No install button, install prompt, desktop or native app promotion, app-store listing, "add to home screen" wording, or web app manifest.
+
+The service worker and the offline shell stay: a site opens without a connection whether or not it can be installed, and only one of those two is wanted here.
 
 When Chrome has no Internet, the cached shell must still open and provide all honestly local functionality. Payment and other cloud-only mutations require Internet and must never be falsely queued as success.
 

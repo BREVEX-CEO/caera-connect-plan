@@ -148,10 +148,10 @@ Required journeys:
 - no Internet + never-installed gives connect-once guidance;
 - Offline mode makes zero provider requests.
 
-### PWA/whole-site offline
+### Whole-site offline
 
-- normal website works without PWA install;
-- PWA install path is optional;
+- the website works with no install step of any kind;
+- nothing offers to install OCADE, and no web app manifest is served;
 - airplane mode then reopen;
 - shell loads;
 - Offline Chat works when model ready;

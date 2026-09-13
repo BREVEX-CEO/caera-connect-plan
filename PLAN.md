@@ -528,11 +528,13 @@ Textual documents may be locally extracted where safely supported and their text
 
 ---
 
-# Phase 11 — Whole OCADE usable offline in Chrome/PWA
+# Phase 11 — Whole OCADE usable offline in Chrome
 
-OCADE must work as a normal Chrome website without requiring installation, and it should also be installable as a PWA for a stronger app-like experience.
+OCADE is a website, reached at `ocade.in` in a browser, and is never offered as an application to install.
 
-Never force PWA installation.
+No install button, no install prompt, no promotion of a desktop or native app, no app-store listing, no "add to home screen" wording, and no web app manifest — a manifest with `display: standalone` is itself what makes Chrome offer to install a site, so there is none.
+
+The service worker stays. Offline caching and installability are separate browser features that only look related; the shell opens without a connection either way.
 
 When Chrome has no Internet, the cached OCADE shell must still open and provide all functionality that can honestly work locally:
 

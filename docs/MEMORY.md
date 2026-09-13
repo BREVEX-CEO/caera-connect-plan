@@ -130,7 +130,7 @@ Images require online OCADE. Textual files may be locally extracted only where s
 
 ### Whole-site offline
 
-Normal `ocade.in` works without requiring PWA installation and should also be optionally installable as a PWA.
+`ocade.in` is a website and is never offered as an application to install. The owner replaced the earlier "optionally installable as a PWA" decision with this one: no install button, no install prompt, no desktop or native app, no app-store listing, no "add to home screen" wording and no web app manifest. The service worker and the offline shell stay.
 
 When Internet is absent, cached/local-capable OCADE pages and Offline Chat should continue honestly. Payment and cloud-only mutations require Internet.
 
@@ -492,11 +492,85 @@ asserts the rule rather than the instance: no definer function reachable by
 4. **Leaked password protection is off** on Supabase Auth (advisor WARN). One
    toggle.
 
+## Phase 4 (partial) — the boundary is deployable, the keys are not mine to set
+
+### OCADE is a website, not an app
+
+New owner decision, applied across the tree. There was no install button to
+remove — and Chrome offered to install OCADE anyway, because a web app manifest
+with `display: standalone` IS the install offer. `public/manifest.webmanifest`
+and the `apple-touch-icon` link are gone, with the icons only they used; the
+manifest's `start_url` was `/ocade`, a route that answers 404, so anybody who
+did install it got an error page.
+
+The service worker is untouched and the offline shell still works: offline
+caching and installability are separate browser features that only appear
+related. `ocade-is-a-website.test.ts` holds both halves of that line.
+
+The legal pages named app stores in four places — distribution, refunds,
+third-party services and data sharing. They no longer do.
+
+### The Edge Function in this tree could not be deployed at all
+
+`edge-handler.ts` imports `operation-health.ts`, which imported
+`OCADE_RELEASE_VERSION` from `@/lib/health` — a VALUE import through the `@/`
+alias, which Deno cannot resolve and cannot erase. The constant now lives in
+`src/lib/release.ts`, one line with no runtime of its own, so the Cloudflare
+liveness handler and the Deno boundary can both read it without importing each
+other's world. `contract.ts` had the same shape as a type-only import; it is
+relative now too.
+
+### What is deployed is four iterations behind
+
+The live `ocade-intelligence` (version 2) reads a singular `GEMINI_API_KEY`,
+defaults to `gemini-3.7-flash`, has no slot failover at all, and requires a
+`privacy.storageMode` field the current client does not send. Even with the
+three secrets set it would read none of them. Redeploying is mandatory and is
+held until the keys exist, so it happens once rather than twice.
+
+The failover policy itself is correct and covered by 20 tests in
+`edge-handler.test.ts`, including the two rules that matter: a 429 is answered
+rather than rotated around, and no other key is reached for once output has
+started.
+
+### The keys cannot be set from here
+
+There is no MCP tool that writes Supabase secrets, so the owner must set them.
+Asking for the values in chat would put them in a transcript for no gain.
+
+## Owner actions, with exact steps
+
+1. **Three Gemini secrets.** Supabase dashboard → Project `sazhgaisyhkdbrooycdv`
+   → Edge Functions → Secrets → Add new secret, three times:
+   `GEMINI_API_KEY_PRIMARY`, `GEMINI_API_KEY_SECONDARY`,
+   `GEMINI_API_KEY_TERTIARY`. Keys come from Google AI Studio
+   (aistudio.google.com → Get API key). Secondary and tertiary are optional to
+   the code — one key works, and failover is simply not invented for it.
+2. **`OCADE_ALLOWED_ORIGINS`**, same screen: `https://ocade.in,https://www.ocade.in`.
+   Without it every request is refused `origin_not_allowed` before anything else.
+3. **Which account is the owner/admin.** Name one of
+   `caeracadane28@gmail.com`, `customhaans@gmail.com`, `haansantoni2@gmail.com`
+   and the role is granted here. Nobody holds it today, so Admin is unreachable
+   by everybody.
+4. **Email codes** need custom SMTP: Authentication → Emails → SMTP Settings.
+   Supabase's built-in sender is rate-limited to a few messages an hour and is
+   not a production sender. Any provider works (Resend, Postmark, SES, Mailgun);
+   it wants host, port, username, password and a From address on a domain you
+   control.
+5. **Phone codes** need an SMS provider: Authentication → Sign In / Providers →
+   Phone → enable, then choose Twilio, MessageBird, Vonage or Textlocal and
+   paste that provider's credentials. Twilio wants an Account SID, an Auth Token
+   and a Message Service SID.
+6. **Leaked password protection**: Authentication → Sign In / Providers →
+   Password → enable "Prevent use of leaked passwords". Advisor reports it off.
+
+Until 4 and 5 are done, the sign-in screen shows exactly what the project
+reports and no more — it never claims a code was sent when it was not.
+
 ## Exact next action
 
-Start **Phase 4**: online OCADE through Gemini. Stop and ask the owner for the
-three keys, and put the four accumulated owner actions to them at the same
-time — SMTP for email codes, an SMS provider for phone codes, which account
-becomes an admin, and leaked password protection.
+Redeploy `ocade-intelligence` the moment the secrets exist, then prove a real
+production answer and a failover. Meanwhile continue with **Phase 5**, the
+account-wide allowance, which needs nothing external.
 
 Do not begin implementation of Cowork/Jarvis.

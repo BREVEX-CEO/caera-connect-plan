@@ -188,7 +188,7 @@ export function TermsContent() {
         <p>
           Before a paid purchase, the checkout must display the applicable price, taxes where
           required, duration or renewal rule, cancellation information and any purchase-specific
-          conditions. Payment providers and app stores may impose their own terms.
+          conditions. Payment providers may impose their own terms.
         </p>
       </PublicSection>
 
@@ -204,16 +204,16 @@ export function TermsContent() {
           billing or payment-processing error, non-delivery, unauthorized transaction where law
           provides protection, material service defect or deficiency, or another non-waivable
           consumer right. Nothing in these Terms removes a refund or remedy that applicable law
-          requires CARCC CADANE, an app store or a payment provider to provide.
+          requires CARCC CADANE or a payment provider to provide.
         </p>
       </PublicSection>
 
       <PublicSection title="15. Third-party services and external information">
         <p>
-          OCADE may depend on services supplied by Google, Supabase, Cloudflare, app stores, payment
-          providers, network operators, cited websites, search or retrieval sources and other third
-          parties. CARCC CADANE does not control those services and cannot guarantee their
-          availability, accuracy, security, content, pricing, policies or continued operation.
+          OCADE may depend on services supplied by Google, Supabase, Cloudflare, payment providers,
+          network operators, cited websites, search or retrieval sources and other third parties.
+          CARCC CADANE does not control those services and cannot guarantee their availability,
+          accuracy, security, content, pricing, policies or continued operation.
         </p>
         <p>
           Third-party outages, policy changes, data errors, rate limits, account restrictions,
@@ -441,8 +441,8 @@ export function PrivacyContent() {
       <PublicSection title="6. Service providers and sharing">
         <p>
           Depending on the feature, recipients may include Supabase, Cloudflare, Google or another
-          authentication provider, cited source websites, app stores, payment providers and other
-          processors or services necessary to deliver the feature you request.
+          authentication provider, cited source websites, payment providers and other processors or
+          services necessary to deliver the feature you request.
         </p>
         <p>
           OCADE does not sell personal information to advertisers. Information is not shared merely

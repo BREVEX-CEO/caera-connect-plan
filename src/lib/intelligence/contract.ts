@@ -1,4 +1,4 @@
-import type { GenerationSurface } from "@/lib/commercial/generation-gate";
+import type { GenerationSurface } from "../commercial/generation-gate.ts";
 
 /** The user-facing routing choice. Commercial permission is decided first. */
 export type IntelligenceMode = "automatic" | "online" | "local_only";

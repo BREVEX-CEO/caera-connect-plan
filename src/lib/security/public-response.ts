@@ -61,7 +61,6 @@ const APP_CSP = [
    * agree about media hosts in BOTH directions, so neither can drift again.
    */
   "media-src 'self' blob: data:",
-  "manifest-src 'self'",
   "upgrade-insecure-requests",
 ].join("; ");
 

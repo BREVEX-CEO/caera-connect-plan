@@ -158,7 +158,7 @@ Images require online OCADE. Offline local extraction may support textual file f
 
 ## Whole-site offline
 
-Normal `ocade.in` must work without requiring PWA installation and should also be optionally installable as a PWA.
+`ocade.in` is a website and is never offered as an application to install. No install prompt, no desktop or native app, no app-store listing, no web app manifest. The service worker and offline shell stay.
 
 When Internet is absent, cached/local-capable OCADE pages and Offline Chat should still work honestly.
 
