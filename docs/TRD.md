@@ -57,6 +57,12 @@ GEMINI_API_KEY_TERTIARY
 
 No secret in client bundles, normal DB rows or logs.
 
+The boundary is pinned to exactly one provider model identifier,
+`gemini-3.1-flash-lite`, and the allowlist accepts nothing else. This file is
+the only document that carries the identifier: it is trusted server-side
+deployment configuration, it never reaches a customer surface, and changing it
+requires an owner decision plus the corresponding code and tests.
+
 Failover occurs only before output and only for allowed key-local/auth/transport failures. Shared quota 429s must not be bypassed by key rotation.
 
 ## Offline Intelligence

@@ -10,11 +10,12 @@ export const Route = createFileRoute("/_authenticated/cowork")({
 /**
  * Cowork is honest about not being here yet.
  *
- * `PLAN2.md` owns it: the OCADE JARVIS runtime becomes the single Cowork
- * implementation, with Jarvis as its voice-first mode. Shipping a Cowork
- * screen with controls that cannot do anything would be the one thing
- * `docs/RULES.md` #9 forbids, so the destination exists, says what it is, and
- * offers nothing it cannot do.
+ * Nothing owns it yet. `docs/RULES.md` #3 forbids implementing Cowork or
+ * Jarvis until the current `PLAN.md` mission is finished and the owner starts
+ * a new one, and #4 allows exactly this: a placeholder. Shipping a Cowork
+ * screen with controls that cannot do anything would be worse than shipping
+ * none, so the destination exists, says what it is, and offers nothing it
+ * cannot do.
  */
 function CoworkPage() {
   return (

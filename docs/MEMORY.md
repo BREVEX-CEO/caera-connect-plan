@@ -59,11 +59,11 @@ There is no second plan.
 
 ### Pricing
 
-| Tier | Weekly | Monthly |
-| --- | --- | --- |
-| Free | Free | Free |
-| Pro | $8 / €8 / £8 / ₹288 | $28 / €28 / £28 / ₹1,888 |
-| Max | $28 / €28 / £28 / ₹1,888 | $88 / €88 / £88 / ₹5,888 |
+| Tier | Weekly                   | Monthly                  |
+| ---- | ------------------------ | ------------------------ |
+| Free | Free                     | Free                     |
+| Pro  | $8 / €8 / £8 / ₹288      | $28 / €28 / £28 / ₹1,888 |
+| Max  | $28 / €28 / £28 / ₹1,888 | $88 / €88 / £88 / ₹5,888 |
 
 Public `/pricing` must return.
 
@@ -200,17 +200,104 @@ The prior core mission had reached a merged, verified tree at `f0510d7555274e528
 
 Do not repeat old phases just because they appear in Git history. Reproduce current failures and follow the new `PLAN.md` from Phase 0.
 
+## Phase 0 result — audit, baseline and reproduction
+
+Implementation branch: `claude/happy-shannon-ox0ho6`, created from `origin/main`
+at `30cbf0dd94bc7cc5fc86f86e4a5061f41dc952ac` (`ci: stop wasting runners on
+docs and checkpoint pushes`).
+
+### Baseline gates on the starting tree
+
+- `npm run typecheck` — clean.
+- `npm run lint` — clean, two pre-existing `react-refresh` warnings.
+- `npm test` — 789 passed, **1 failed**: `pinned-model.test.ts` asserted that
+  `PLAN.md` names "Gemini 3.1 Flash-Lite", and the documentation reset removed
+  it. Repaired in Phase 0: `docs/TRD.md` is now the single document carrying
+  the identifier, which is where trusted deployment configuration belongs.
+- `npm run build` — succeeds.
+
+### Sandbox limits that shape every proof in this mission
+
+Outbound HTTPS to `ocade.in` and to `sazhgaisyhkdbrooycdv.supabase.co` is
+refused by the egress policy. Production cannot be driven directly from here.
+The live database IS reachable through the Supabase MCP tools, so schema,
+policy and RPC facts are checked against the real project; everything in a
+browser is proved against a served production build and the loopback stub.
+
+### The browser proof harness was itself broken
+
+Every signed-in journey failed before any product code was read, for two
+harness reasons, both of which imitate product bugs:
+
+- a build compiled without `VITE_SUPABASE_URL` ships a browser client pointed
+  at nothing, so the journeys stop at the sign-in screen;
+- a server left running across a rebuild keeps the previous asset manifest, so
+  every hashed chunk 404s, nothing hydrates, and every control reads as
+  permanently disabled.
+
+`scripts/e2e/harness.mjs` (`npm run audit:browser`) now builds, serves and runs
+the journeys as one step, so neither is possible. With it, shell, auth,
+offline, library, settings, polish and final all pass on the starting tree.
+
+### The real Send failure, reproduced and root-caused
+
+Reproduced in a real browser: Send takes a permit, writes the conversation and
+the message, then releases the permit and answers **"OCADE is still preparing
+this device."**
+
+The permit path is healthy end to end — `ocade_acquire_generation_permit`,
+`ocade_release_generation_permit` and the rest all exist in the live project,
+are granted to `service_role`, and return `granted` when called directly.
+
+The cause is one line in `src/lib/intelligence/online-client.ts`:
+
+```ts
+enabled: import.meta.env.VITE_OCADE_ONLINE_INTELLIGENCE === "enabled",
+```
+
+Nothing sets that variable — not the production deployment workflow, not any
+document. So `probe()` reports online intelligence unavailable in every build
+ever shipped, Automatic falls through to the on-device engine, and a device
+that has not finished preparing answers with that message. The toast the owner
+reported is the same failure on the path where the fallback also fails.
+
+Repairing it is Phase 1 work: the flag is a second authority over whether the
+product works, separate from whether the boundary and its secrets exist, and
+`docs/RULES.md` forbids exactly that.
+
+### Canonical authority map
+
+| Domain               | Authority                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------ |
+| Identity             | Supabase Auth via `src/integrations/supabase/auth-middleware.ts`                           |
+| Chat persistence     | `src/lib/ocade-chat-store.ts` + `ocade.functions.ts`                                       |
+| Usage/permits        | `commercial/generation-gate.ts` over `supabase-ledger.ts`, exposed by `usage.functions.ts` |
+| Entitlement          | `commercial/entitlement-resolver.ts` (subscription + admin grant, stronger wins)           |
+| Online intelligence  | `intelligence/online-client.ts` → `functions/v1/ocade-intelligence`                        |
+| Offline intelligence | `brain/` — `installation-authority.ts`, `model-vault.ts`, `adapter.ts`                     |
+| Routing              | `intelligence/router.ts`                                                                   |
+| Library              | `library/library.functions.ts` over private Supabase Storage                               |
+| Payments             | `payments/` + `routes/api/public/payments/webhook.ts`                                      |
+| Settings             | `components/settings/settings-panel.tsx`                                                   |
+
+### Known gaps carried into later phases
+
+- `/pricing` returns 404 and `shell-journey.mjs` asserts it must — Phase 6.
+- `VITE_AUTH_GOOGLE_ENABLED`, `VITE_AUTH_PHONE_ENABLED` and
+  `VITE_AUTH_EMAIL_DELIVERY_READY` default to `false` in the production
+  workflow, so the shipped sign-in surface offers less than Supabase does.
+  Build flags are a second authority over what auth exists — Phase 2.
+- Dictation is rendered permanently disabled — Phase 12.
+- R2 is not enabled on the Cloudflare account; `r2_buckets_list` answers
+  "Please enable R2 through the Cloudflare Dashboard" — Phase 8 owner action.
+- The live public schema still carries retired organization, automation,
+  support and status families — Phase 3.
+
 ## Exact next action
 
-Start **Phase 0 of the new `PLAN.md`**:
-
-1. fetch latest `origin/main` after this documentation reset;
-2. create one isolated implementation branch;
-3. record branch/SHA/tree here;
-4. read the complete current repository and live Supabase state;
-5. reproduce the current Send/usage failure and other broken routes;
-6. map canonical authorities;
-7. verify Cowork is frozen/unavailable and no `PLAN2.md` remains;
-8. checkpoint/push/verify the Phase 0 branch before continuing.
+Start **Phase 1**: delete the `VITE_OCADE_ONLINE_INTELLIGENCE` kill switch so
+online OCADE is available whenever Supabase is configured and the device has a
+connection, then prove Send end to end in a browser and sweep the remaining
+routes and controls.
 
 Do not begin implementation of Cowork/Jarvis.

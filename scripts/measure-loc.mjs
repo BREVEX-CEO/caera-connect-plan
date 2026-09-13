@@ -3,7 +3,7 @@
  * Deterministic tracked-source LOC measurement for OCADE.
  *
  * The same command is used at every checkpoint required by docs/TESTING.md:
- * baseline (PLAN Phase 0), PLAN completion and PLAN2 completion.
+ * the PLAN Phase 0 baseline and PLAN completion.
  *
  * Method:
  *   - enumerate git-tracked files only (`git ls-files -z`);

@@ -131,11 +131,11 @@ Offline usage uses a signed/tamper-resistant lease and reconciles later.
 
 Public `/pricing` is required.
 
-| Tier | Weekly | Monthly |
-| --- | --- | --- |
-| Free | Free | Free |
-| Pro | $8 / €8 / £8 / ₹288 | $28 / €28 / £28 / ₹1,888 |
-| Max | $28 / €28 / £28 / ₹1,888 | $88 / €88 / £88 / ₹5,888 |
+| Tier | Weekly                   | Monthly                  |
+| ---- | ------------------------ | ------------------------ |
+| Free | Free                     | Free                     |
+| Pro  | $8 / €8 / £8 / ₹288      | $28 / €28 / £28 / ₹1,888 |
+| Max  | $28 / €28 / £28 / ₹1,888 | $88 / €88 / £88 / ₹5,888 |
 
 Use regional currency with manual override. Pricing connects to real checkout, subscription/entitlement and allowance. Payment never processes or queues offline.
 

@@ -1,0 +1,173 @@
+#!/usr/bin/env node
+/**
+ * ONE COMMAND THAT STANDS THE PRODUCT UP AND PROVES IT IN A BROWSER.
+ *
+ * The journeys in this directory all want the same two things running: the
+ * loopback Supabase stub, and a served production build that was compiled
+ * against it. Standing those up by hand is three commands with two ways to be
+ * silently wrong, and both of them produce FAILING CHECKS THAT LOOK LIKE
+ * PRODUCT BUGS:
+ *
+ *   - a build compiled without `VITE_SUPABASE_URL` ships a browser client
+ *     pointed at nothing, so every signed-in journey stops at the sign-in
+ *     screen and reads as "the account menu is missing";
+ *   - a server left running across a rebuild keeps the previous build's asset
+ *     manifest, so every hashed chunk 404s, nothing hydrates, and every
+ *     control reads as permanently disabled.
+ *
+ * Both cost an investigation before they were recognised as harness faults.
+ * Neither is possible here: the build and the server are one step, and the
+ * server is always newer than the build it serves.
+ *
+ * Usage:
+ *   node scripts/e2e/harness.mjs                 # every journey
+ *   node scripts/e2e/harness.mjs chat usage      # only those
+ *   node scripts/e2e/harness.mjs --no-build chat # reuse the current build
+ */
+import { spawn, spawnSync } from "node:child_process";
+import { writeFileSync, mkdirSync } from "node:fs";
+import path from "node:path";
+
+const WEB_PORT = 8788;
+const SUPABASE_PORT = 54321;
+const SUPABASE_URL = `http://127.0.0.1:${SUPABASE_PORT}`;
+const BASE = `http://127.0.0.1:${WEB_PORT}`;
+const OUTPUT = path.join(process.cwd(), ".output", "server");
+
+const ALL = [
+  "shell",
+  "auth",
+  "chat",
+  "usage",
+  "online",
+  "offline",
+  "library",
+  "settings",
+  "polish",
+  "final",
+];
+
+const requested = process.argv.slice(2).filter((value) => !value.startsWith("--"));
+const journeys = requested.length > 0 ? requested : ALL;
+const skipBuild = process.argv.includes("--no-build");
+
+const unknown = journeys.filter((name) => !ALL.includes(name));
+if (unknown.length > 0) {
+  console.error(`Unknown journey: ${unknown.join(", ")}. Known: ${ALL.join(", ")}`);
+  process.exit(2);
+}
+
+/**
+ * The stub answers as the project, so the build must be compiled against it.
+ *
+ * The three `VITE_AUTH_*` flags are on because the journeys prove the sign-in
+ * surface the product is meant to offer. What the hosted project actually has
+ * enabled is a deployment fact and is checked against Supabase itself, not
+ * here.
+ */
+const BUILD_ENVIRONMENT = {
+  VITE_SUPABASE_URL: SUPABASE_URL,
+  VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_loopback_stub",
+  VITE_AUTH_GOOGLE_ENABLED: "true",
+  VITE_AUTH_PHONE_ENABLED: "true",
+  VITE_AUTH_EMAIL_DELIVERY_READY: "true",
+};
+
+const children = [];
+
+function stopEverything() {
+  for (const child of children) {
+    try {
+      child.kill("SIGTERM");
+    } catch {
+      /* Already gone. */
+    }
+  }
+}
+
+process.on("exit", stopEverything);
+for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => process.exit(130));
+
+async function waitForPort(url, name, timeoutMs = 90_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      await fetch(url);
+      return;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+  }
+  throw new Error(`${name} did not answer on ${url} within ${timeoutMs}ms.`);
+}
+
+if (!skipBuild) {
+  console.log("=== build (compiled against the loopback stub) ===");
+  const built = spawnSync(process.execPath, [process.env.npm_execpath ?? "npm", "run", "build"], {
+    stdio: "inherit",
+    env: { ...process.env, ...BUILD_ENVIRONMENT },
+  });
+  if (built.status !== 0) process.exit(built.status ?? 1);
+}
+
+/*
+ * The server functions read the same three names the Worker reads in
+ * production. `.dev.vars` rather than the parent environment, because
+ * `wrangler dev` does not forward the latter into the Worker.
+ */
+mkdirSync(OUTPUT, { recursive: true });
+writeFileSync(
+  path.join(OUTPUT, ".dev.vars"),
+  [
+    `SUPABASE_URL=${SUPABASE_URL}`,
+    `SUPABASE_PUBLISHABLE_KEY=${BUILD_ENVIRONMENT.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    "SUPABASE_SERVICE_ROLE_KEY=sb_secret_loopback_stub",
+    "",
+  ].join("\n"),
+);
+
+console.log("=== supabase stub ===");
+children.push(
+  spawn(process.execPath, ["scripts/e2e/supabase-stub.mjs", String(SUPABASE_PORT)], {
+    stdio: "inherit",
+  }),
+);
+await waitForPort(`${SUPABASE_URL}/auth/v1/settings`, "the Supabase stub");
+
+console.log("=== served production build ===");
+children.push(
+  spawn(
+    process.execPath,
+    [
+      path.join("node_modules", "wrangler", "bin", "wrangler.js"),
+      "dev",
+      "--config",
+      ".output/server/wrangler.json",
+      "--ip",
+      "127.0.0.1",
+      "--port",
+      String(WEB_PORT),
+    ],
+    { stdio: ["ignore", "inherit", "inherit"] },
+  ),
+);
+await waitForPort(BASE, "the served build");
+
+let failed = 0;
+for (const journey of journeys) {
+  console.log(`\n=== ${journey} ===`);
+  const result = spawnSync(
+    process.execPath,
+    [`scripts/e2e/${journey}-journey.mjs`, `--base=${BASE}`, `--supabase=${SUPABASE_URL}`],
+    { stdio: "inherit" },
+  );
+  if (result.status !== 0) failed += 1;
+}
+
+stopEverything();
+console.log(
+  failed === 0
+    ? `\nAll ${journeys.length} browser journeys passed.`
+    : `\n${failed} of ${journeys.length} browser journeys failed.`,
+);
+process.exit(failed === 0 ? 0 : 1);

@@ -18,24 +18,23 @@ import { DEFAULT_ONLINE_MODEL, ONLINE_MODEL_CATALOG, isAllowedOnlineModel } from
  * against a copy of the value. A future change has to move both, which is what
  * "corresponding tests and docs" means in practice.
  *
+ * ONLY `docs/TRD.md` CARRIES IT NOW. The identifier used to be asserted in
+ * `PLAN.md` too, under its product name. `PLAN.md` is a customer-product
+ * document and `docs/RULES.md` #6 keeps raw provider identity off customer
+ * surfaces, so the technical authority is the one place that names it — which
+ * is also the one place an operator would look.
+ *
  * The KEY SLOTS used to be asserted here too. They live in
  * `online-boundary.test.ts` with the rest of the boundary's shape, so there is
  * one place that says what the server may read.
  */
 
 const TRD = readFileSync("docs/TRD.md", "utf8");
-const PLAN = readFileSync("PLAN.md", "utf8");
 const EDGE_FUNCTION = readFileSync("supabase/functions/ocade-intelligence/index.ts", "utf8");
 
 describe("the pinned online model", () => {
   it("is the exact identifier docs/TRD.md names", () => {
-    /*
-     * The TRD carries the API identifier; PLAN.md and the rest carry the
-     * product name. Both are checked, because the product name is what a reader
-     * recognises and the identifier is what the request actually uses.
-     */
     expect(TRD).toContain(`\`${DEFAULT_ONLINE_MODEL}\``);
-    expect(PLAN).toContain("Gemini 3.1 Flash-Lite");
     expect(DEFAULT_ONLINE_MODEL).toBe("gemini-3.1-flash-lite");
   });
 

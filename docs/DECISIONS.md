@@ -92,11 +92,11 @@ Usage is shared account-wide across devices and online/offline paths.
 
 Approved catalogue:
 
-| Tier | Weekly | Monthly |
-| --- | --- | --- |
-| Free | Free | Free |
-| Pro | $8 / €8 / £8 / ₹288 | $28 / €28 / £28 / ₹1,888 |
-| Max | $28 / €28 / £28 / ₹1,888 | $88 / €88 / £88 / ₹5,888 |
+| Tier | Weekly                   | Monthly                  |
+| ---- | ------------------------ | ------------------------ |
+| Free | Free                     | Free                     |
+| Pro  | $8 / €8 / £8 / ₹288      | $28 / €28 / £28 / ₹1,888 |
+| Max  | $28 / €28 / £28 / ₹1,888 | $88 / €88 / £88 / ₹5,888 |
 
 Public `/pricing` returns.
 
