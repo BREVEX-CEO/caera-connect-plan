@@ -857,14 +857,55 @@ was scoped rather than weakened: the two build-time artifact scripts are
 excluded, with the reason, because they never ship and must speak the runtime's
 own language. Every shipped surface is still covered.
 
-### The one thing still missing for the release
+### The release is wired
 
-The owner supplied the release id (`ocr-2dc0ee44eb397906`), the byte length
-(484,220,160) and the object path, but not the **full SHA-256**. The release id
-is only its first sixteen characters. The manifest validator requires all
-sixty-four because that digest is the end-to-end integrity check the installer
-verifies against, and a truncated or invented one is not a check. One line from
-the owner completes the manifest.
+`release/OCADE_OFFLINE_RELEASE.json` carries `ocr-2dc0ee44eb397906`,
+484,220,160 bytes and the full owner-verified digest. Offline Intelligence
+moved from "not available in this version" to preparing. The browser journey
+asks the delivery handler directly and proves what it refuses: an unsigned
+request, a made-up signature, an expired one, and an id shaped to reach for
+another object.
+
+## Debloat pass
+
+Before: 45,226 src LOC across 221 files, 15 prod + 22 dev dependencies.
+After: 42,749 src LOC across 213 files, same dependencies (none were unused).
+Removed: 2,477 lines, 8 files.
+
+**Four systems that could never run.**
+
+1. _Recovery codes._ Redeemable but never issuable — `issueRecoveryCodes` and
+   `readRecoveryCodeStatus` had no caller, so "I have lost my phone" led to a
+   screen asking for a code the product had no way to give anybody. Deleted the
+   generator, the pepper, `mfa.functions.ts`, both tests and the screen.
+2. _The error journal._ One writer, no reader; its own comment named a Settings
+   screen that does not exist. With it gone `runtime-error-reporting.ts` only
+   forwarded to two globals belonging to the editor that scaffolded this
+   project, so it went too. The error boundaries still render the error page.
+3. _Background Fetch._ ~270 lines across the app and the service worker waiting
+   for an event nothing could raise: `startBackgroundFetch` had no caller. The
+   installer already resumes from its checkpoint. The service worker now
+   touches the shell and nothing else, which is a stronger property than the
+   test used to assert, and the test says so.
+4. _The `auth_mail` rate limit._ Lost its last caller with the recovery
+   functions, and could not have worked: a browser asks Supabase Auth for a
+   code directly, so the request never passes through this Worker. Supabase
+   enforces it. A policy with no caller is a claim the product cannot keep.
+
+Also removed four server functions with no callers (per-conversation export,
+hard delete, two trash reads) and about twenty unused exports.
+
+**Rejected as churn.** A scripted pass that stripped `export` from 203 symbols
+nothing imported. It reduced a number, not complexity, and broke type inference
+in a way that needed bisecting. Reverted whole. Deleting systems is the work;
+shuffling keywords is not.
+
+## Chat completed
+
+Dictation works, through `SpeechRecognition` — no dependency, no recorder, no
+upload. Where the browser has no recogniser the control is ABSENT rather than
+inert, and the journey asserts its presence matches the browser's capability.
+Attachment chips lead to Library, which already owns preview and download.
 
 ## Exact next action
 
