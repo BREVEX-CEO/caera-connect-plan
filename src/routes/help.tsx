@@ -50,8 +50,8 @@ const QUESTIONS: { question: string; answer: React.ReactNode }[] = [
     question: "How do I sign in?",
     answer: (
       <p>
-        Continue with Google, or use a six-digit code sent to your email address or phone number.
-        There is no password to remember unless you choose to add one.
+        Continue with Google, or use a six-digit code sent to your email address. There is no
+        password to remember unless you choose to add one.
       </p>
     ),
   },

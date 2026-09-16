@@ -21,8 +21,7 @@ import {
 } from "@/lib/auth/throttle";
 
 const searchSchema = z.object({
-  channel: z.enum(["phone", "email"]),
-  identifier: z.string().min(1),
+  identifier: z.string().email(),
   next: z.string().optional(),
 });
 
@@ -36,7 +35,7 @@ export const Route = createFileRoute("/auth/verify")({
 });
 
 function VerifyPage() {
-  const { channel, identifier, next } = Route.useSearch();
+  const { identifier, next } = Route.useSearch();
   const navigate = useNavigate();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -95,7 +94,7 @@ function VerifyPage() {
      * after it. An `await` yields to the event loop, the handler returns, and
      * the browser treats the submit as unhandled — so it did the default thing
      * and navigated to the form's action, which is this page with an empty
-     * query string. `channel` and `identifier` live in that query string, so
+     * query string. `identifier` lives in that query string, so
      * the reloaded route failed `validateSearch` and the error boundary
      * replaced the screen with "Something stopped working".
      *
@@ -123,10 +122,11 @@ function VerifyPage() {
       setBusy(false);
       return;
     }
-    const { error: err } =
-      channel === "phone"
-        ? await supabase.auth.verifyOtp({ phone: identifier, token: parsed.data, type: "sms" })
-        : await supabase.auth.verifyOtp({ email: identifier, token: parsed.data, type: "email" });
+    const { error: err } = await supabase.auth.verifyOtp({
+      email: identifier,
+      token: parsed.data,
+      type: "email",
+    });
     if (err) {
       const next = recordFailure(throttle, Date.now());
       setThrottle(next);
@@ -152,11 +152,13 @@ function VerifyPage() {
   }
 
   async function resend() {
-    const supabase = await loadSupabaseClient();
+    // Guard BEFORE the await. Loading the client first left a window in which
+    // two fast clicks both passed the cooldown check and sent two codes.
     if (cooldown > 0 || resending) return;
+    setResending(true);
+    const supabase = await loadSupabaseClient();
     setError(null);
     setResent(false);
-    setResending(true);
     /*
      * The clock starts on the ATTEMPT, not on the success. A failed send that
      * left the button live is how somebody hammers a provider into rate
@@ -170,14 +172,11 @@ function VerifyPage() {
      * There used to be an `intent` in the URL deciding `shouldCreateUser`,
      * because the product had a separate Sign in and Create account screen and
      * a resend from the wrong one silently made an empty account for a mistyped
-     * address. There is one way in now — a code to an address or a number —
-     * and the provider decides whether that identity already exists, so there
-     * is no intent to carry and no way for the two calls to disagree.
+     * address. There is one way in now — a code to an email address — and the
+     * provider decides whether that identity already exists, so there is no
+     * intent to carry and no way for the two calls to disagree.
      */
-    const { error: err } =
-      channel === "phone"
-        ? await supabase.auth.signInWithOtp({ phone: identifier })
-        : await supabase.auth.signInWithOtp({ email: identifier });
+    const { error: err } = await supabase.auth.signInWithOtp({ email: identifier });
     setResending(false);
     if (err) setError(friendlyOtpError(err.message));
     else setResent(true);
@@ -189,7 +188,7 @@ function VerifyPage() {
       subtitle={`We sent a one-time code to ${identifier}.`}
       footer={
         <>
-          Wrong {channel === "phone" ? "number" : "address"}?{" "}
+          Wrong address?{" "}
           <Link to="/auth" className="text-foreground underline-offset-4 hover:underline">
             Go back
           </Link>

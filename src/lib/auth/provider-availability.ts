@@ -1,10 +1,9 @@
 /**
  * WHICH WAYS IN EXIST — ASKED OF SUPABASE, NOT OF THE BUILD.
  *
- * This module used to answer from three build flags:
+ * This module used to answer from build flags:
  *
  *   VITE_AUTH_GOOGLE_ENABLED
- *   VITE_AUTH_PHONE_ENABLED
  *   VITE_AUTH_EMAIL_DELIVERY_READY
  *
  * each defaulting to `false` in production. That is a second authority over
@@ -31,14 +30,12 @@
 
 export type AuthProviderAvailability = {
   google: boolean;
-  phone: boolean;
   emailDelivery: boolean;
 };
 
 /** Offered when the project cannot be asked. See the note above. */
 export const ASSUME_AVAILABLE: AuthProviderAvailability = {
   google: true,
-  phone: true,
   emailDelivery: true,
 };
 
@@ -57,7 +54,6 @@ export function readAuthProviderAvailability(settings: unknown): AuthProviderAva
   const flag = (name: string): boolean => external[name] === undefined || external[name] === true;
   return {
     google: flag("google"),
-    phone: flag("phone"),
     emailDelivery: flag("email"),
   };
 }

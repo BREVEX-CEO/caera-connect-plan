@@ -23,9 +23,10 @@ const CONFIGURED = {
 
 describe("what the project reports it offers", () => {
   it("reads each provider from GoTrue's own settings", () => {
-    expect(
-      readAuthProviderAvailability({ external: { google: true, email: true, phone: false } }),
-    ).toEqual({ google: true, emailDelivery: true, phone: false });
+    expect(readAuthProviderAvailability({ external: { google: false, email: true } })).toEqual({
+      google: false,
+      emailDelivery: true,
+    });
   });
 
   it("offers a provider GoTrue does not report rather than hiding it", () => {
@@ -43,13 +44,12 @@ describe("what the project reports it offers", () => {
 describe("asking the project", () => {
   it("sends the publishable key to the project's settings endpoint", async () => {
     const fetcher = vi.fn<typeof fetch>(async () =>
-      Response.json({ external: { google: true, email: true, phone: false } }),
+      Response.json({ external: { google: true, email: false } }),
     );
 
     expect(await fetchAuthProviderAvailability(CONFIGURED, fetcher)).toEqual({
       google: true,
-      emailDelivery: true,
-      phone: false,
+      emailDelivery: false,
     });
     const [url, init] = fetcher.mock.calls[0];
     expect(String(url)).toBe("https://project.supabase.co/auth/v1/settings");

@@ -461,7 +461,7 @@ const onlineBoundary = { status: 200, lastRequest: null };
 const OTP_CODE = "123456";
 
 /** What `/auth/v1/settings` reports. `/__fixture/auth-providers` changes it. */
-const authProviders = { google: true, email: true, phone: true };
+const authProviders = { google: true, email: true };
 
 /**
  * The private bucket, in memory.
@@ -600,9 +600,7 @@ const server = createServer((request, response) => {
        * journey can type it. What IS real is everything OCADE does around it:
        * the throttle, the cooldown, the navigation to the code screen.
        */
-      const parsed = JSON.parse(body || "{}");
-      const channel = parsed.phone ? "phone" : "email";
-      if (!authProviders[channel === "phone" ? "phone" : "email"]) {
+      if (!authProviders.email) {
         return send(422, { error_code: "provider_disabled", msg: "Signups not allowed for otp" });
       }
       return send(200, {});
@@ -613,7 +611,7 @@ const server = createServer((request, response) => {
       if (String(parsed.token) !== OTP_CODE) {
         return send(403, { error_code: "otp_invalid", msg: "Token is invalid" });
       }
-      const identity = parsed.email ?? parsed.phone ?? "proof@ocade.test";
+      const identity = parsed.email ?? "proof@ocade.test";
       return send(200, openSession(identity));
     }
 

@@ -35,7 +35,6 @@ Required providers/flows:
 
 - Google OAuth;
 - email OTP;
-- phone OTP;
 - optional password/account recovery;
 - MFA/assurance where required.
 

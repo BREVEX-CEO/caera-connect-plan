@@ -44,15 +44,23 @@ describe("Supabase is the only identity authority", () => {
 });
 
 describe("the ways in", () => {
-  it("are Google, an email code and a phone code", () => {
+  it("are Google and an email code, and nothing else", () => {
     expect(SIGN_IN).toContain("Continue with Google");
     expect(SIGN_IN).toContain("signInWithOtp({ email");
-    expect(SIGN_IN).toContain("signInWithOtp({ phone");
   });
 
-  it("normalise a phone number through the one resolver", () => {
-    expect(SIGN_IN).toContain("toE164(");
-    expect(SIGN_IN).toContain("CALLING_COUNTRIES");
+  /*
+   * PHONE IS GONE, AND THE SCREEN MUST NOT GROW IT BACK.
+   *
+   * Sending SMS needs an external provider account OCADE does not have, so a
+   * phone tab could only refuse. A method that cannot authenticate is worse
+   * than an absent one: it is the one somebody reaches for when the others give
+   * them trouble.
+   */
+  it("offer no phone code, because OCADE cannot send one", () => {
+    const rendered = SIGN_IN.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+    expect(rendered).not.toMatch(/phone|sms|tel|e164|calling/i);
+    expect(VERIFY).not.toMatch(/type: "sms"/);
   });
 
   it("keep the password off the first screen", () => {

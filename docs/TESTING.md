@@ -31,7 +31,7 @@ Required subjects include:
 - entitlement resolution;
 - pricing catalogue/signature;
 - safe auth redirects;
-- email/phone formatting and OTP state;
+- email formatting and OTP state;
 - attachment validation;
 - New Chat behavior;
 - edit/regenerate accounting;
@@ -80,7 +80,6 @@ Required journeys:
 
 - Google-ready path;
 - email OTP flow;
-- phone OTP formatting/verification path;
 - sign-out;
 - session recovery;
 - protected Send;

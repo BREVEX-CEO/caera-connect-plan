@@ -1,11 +1,10 @@
 /**
  * The way in, proved in a real browser.
  *
- * What a unit test cannot answer: whether the three methods are actually on
- * screen, whether the country picker carries real calling codes, whether a
- * refused phone number produces one OCADE sentence rather than a provider's
- * own text, and whether a deep link into the signed-in product comes back
- * after authentication rather than being dropped.
+ * What a unit test cannot answer: whether the two methods are actually on
+ * screen, whether a refused address produces one OCADE sentence rather than a
+ * provider's own text, and whether a deep link into the signed-in product
+ * comes back after authentication rather than being dropped.
  *
  * DELIVERING a real code is deliberately NOT attempted. That needs a live
  * provider and a real inbox, and a test that pretends otherwise is fake green.
@@ -67,9 +66,13 @@ try {
     (await page.getByRole("button", { name: "Continue with Google" }).count()) === 1,
   );
   check(
-    "a code can be sent to an email address or a phone number",
-    (await page.getByRole("tab", { name: "email" }).count()) === 1 &&
-      (await page.getByRole("tab", { name: "phone" }).count()) === 1,
+    "a code can be sent to an email address",
+    (await page.locator('input[type="email"]').count()) === 1,
+  );
+  check(
+    "no phone number is offered, because OCADE cannot send an SMS",
+    (await page.locator('input[type="tel"]').count()) === 0 &&
+      (await page.getByRole("tab", { name: "phone" }).count()) === 0,
   );
   check(
     "there is no password field on the way in",
@@ -81,56 +84,50 @@ try {
       (await page.locator('a[href="/privacy"]').count()) >= 1,
   );
 
-  // Email: an empty address is refused in OCADE's words.
-  await page.getByRole("tab", { name: "email" }).click();
+  // An empty address is refused in OCADE's words, naming no provider.
   await page.getByRole("button", { name: "Send code" }).click();
   const emailProblem = await page.getByRole("alert").innerText();
   check("an empty email address is refused clearly", emailProblem.includes("Enter your email"));
-
-  // Phone: the picker is real, and a short number never reaches a provider.
-  await page.getByRole("tab", { name: "phone" }).click();
-  const options = await page.locator("select option").allTextContents();
-  check(
-    "the country picker carries real calling codes",
-    options.length > 10 && options.some((entry) => entry.includes("+91")),
-  );
-  await page.fill('input[type="tel"]', "12");
-  await page.getByRole("button", { name: "Send code" }).click();
-  const phoneProblem = await page.getByRole("alert").innerText();
-  check("a number that cannot be valid is refused here", phoneProblem.includes("too short"));
   check(
     "no provider is named in a refusal",
-    !/supabase|twilio|gotrue/i.test(phoneProblem),
-    phoneProblem,
+    !/supabase|gotrue|resend|smtp/i.test(emailProblem),
+    emailProblem,
   );
 
   /*
    * THE SCREEN FOLLOWS THE PROJECT, NOT A BUILD FLAG.
    *
-   * Three `VITE_AUTH_*` flags used to decide this, each defaulting to `false`
+   * `VITE_AUTH_*` flags used to decide this, each defaulting to `false`
    * in production, and nothing kept them in step with the live project: a
    * correct build could hide a working provider, and a stale one could offer a
    * provider that had been turned off. The screen asks the project now, so
    * turning a provider off at the project has to remove it from the page.
    */
-  await reportProviders({ google: false, email: true, phone: false });
+  await reportProviders({ google: false, email: true });
   await page.goto(`${BASE}/auth`, { waitUntil: "networkidle" });
   check(
     "a provider the project has turned off is gone, not present and refusing",
-    (await page.getByRole("button", { name: "Continue with Google" }).count()) === 0 &&
-      (await page.getByRole("tab", { name: "phone" }).count()) === 0,
+    (await page.getByRole("button", { name: "Continue with Google" }).count()) === 0,
   );
   check(
-    "the one channel it does have is still offered",
+    "the channel it does have is still offered",
     (await page.locator('input[type="email"]').count()) === 1,
   );
 
-  await reportProviders({ google: true, email: true, phone: true });
+  await reportProviders({ google: true, email: false });
+  await page.goto(`${BASE}/auth`, { waitUntil: "networkidle" });
+  check(
+    "and a channel it has turned off says so instead of pretending",
+    (await page.locator('input[type="email"]').count()) === 0 &&
+      (await page.locator("body").innerText()).includes("not available"),
+  );
+
+  await reportProviders({ google: true, email: true });
   await page.goto(`${BASE}/auth`, { waitUntil: "networkidle" });
   check(
     "turning them back on restores them",
     (await page.getByRole("button", { name: "Continue with Google" }).count()) === 1 &&
-      (await page.getByRole("tab", { name: "phone" }).count()) === 1,
+      (await page.locator('input[type="email"]').count()) === 1,
   );
 
   // A deep link into the signed-in product survives the redirect.
@@ -153,7 +150,6 @@ try {
    */
   const address = `code-${Date.now()}@ocade.test`;
   await page.goto(`${BASE}/auth?next=%2Flibrary`, { waitUntil: "networkidle" });
-  await page.getByRole("tab", { name: "email" }).click();
   await page.fill('input[type="email"]', address);
   await page.getByRole("button", { name: "Send code" }).click();
   await page.waitForURL(/\/auth\/verify/, { timeout: 15_000 });

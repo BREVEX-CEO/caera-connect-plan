@@ -147,7 +147,6 @@ Required:
 
 - Google;
 - email 6-digit OTP;
-- phone 6-digit OTP with international country picker;
 - optional password where deliberately supported;
 - MFA/assurance for sensitive actions where required.
 

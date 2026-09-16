@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 /*
@@ -20,7 +20,6 @@ import {
   recordSuccess,
   saveThrottle,
   secondsUntilAllowed,
-  type ThrottledAction,
 } from "@/lib/auth/throttle";
 import { DEFAULT_NEXT, safeNext } from "@/lib/auth/safe-next";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
@@ -28,14 +27,6 @@ import {
   fetchAuthProviderAvailability,
   type AuthProviderAvailability,
 } from "@/lib/auth/provider-availability";
-import {
-  CALLING_COUNTRIES,
-  DEFAULT_CALLING_COUNTRY,
-  describePhoneProblem,
-  flagFor,
-  toE164,
-} from "@/lib/auth/phone-numbers";
-import { cn } from "@/lib/utils";
 
 const searchSchema = z.object({
   next: z.string().optional(),
@@ -79,13 +70,14 @@ export const Route = createFileRoute("/auth/")({
 });
 
 /**
- * THE WAY IN, AND THERE ARE THREE OF THEM.
+ * THE WAY IN, AND THERE ARE TWO OF THEM.
  *
- * Continue with Google, a six-digit code to an email address, a six-digit code
- * to a phone number. `docs/APP_FLOW.md` names exactly those, and the screen
- * that this replaced offered Apple and Microsoft buttons for providers nobody
- * had configured, a password field beside the code field, and 821 lines of
- * branching between them.
+ * Continue with Google, or a six-digit code to an email address. It was three:
+ * a code to a phone number was the third, and the owner removed it. Sending SMS
+ * needs an external provider account OCADE does not have, so the phone tab
+ * could only ever refuse — and an authentication method that cannot
+ * authenticate is worse than one that is absent, because it is the one somebody
+ * picks when the others give them trouble.
  *
  * THE PASSWORD IS NOT HERE, AND THAT IS THE DECISION RATHER THAN AN OMISSION.
  * A password is optional and managed under Account; `/reset-password` remains
@@ -99,8 +91,6 @@ export const Route = createFileRoute("/auth/")({
  * the difference between them is exactly what somebody probing a list of
  * addresses is trying to learn.
  */
-type Channel = "email" | "phone";
-
 function AuthPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
@@ -116,35 +106,16 @@ function AuthPage() {
     ? describeOAuthError("google", inbound.code, inbound.description)
     : null;
 
-  const channels: Channel[] = [
-    ...(availability.emailDelivery ? (["email"] as const) : []),
-    ...(availability.phone ? (["phone"] as const) : []),
-  ];
-  const [channel, setChannel] = useState<Channel>(channels[0] ?? "email");
   const [email, setEmail] = useState("");
-  const [country, setCountry] = useState(DEFAULT_CALLING_COUNTRY);
-  const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(inboundFriendly?.message ?? null);
   const [hint, setHint] = useState<string | null>(inboundFriendly?.hint ?? null);
   const [notice, setNotice] = useState<string | null>(search.message ?? null);
 
-  useEffect(() => {
-    setError(null);
-    setHint(null);
-  }, [channel]);
-
-  /** One place to refuse a request that is arriving too fast. */
-  function blockedBy(action: ThrottledAction, identifier: string): string | null {
-    const state = loadThrottle(action, identifier);
-    const wait = secondsUntilAllowed(state, Date.now());
-    return wait > 0 ? describeWait(wait) : null;
-  }
-
   async function continueWithGoogle() {
     if (!availability.google) {
       setError("Google sign-in is not available yet.");
-      setHint("Use a code sent to your email address or phone number instead.");
+      setHint("Use a code sent to your email address instead.");
       return;
     }
     setBusy(true);
@@ -182,6 +153,8 @@ function AuthPage() {
   }
 
   async function sendEmailCode(event: React.FormEvent) {
+    // Before the first `await`. After one the handler has already returned and
+    // the browser submits the form itself — see the note in `auth.verify.tsx`.
     event.preventDefault();
     const address = email.trim().toLowerCase();
     if (!address) {
@@ -193,9 +166,10 @@ function AuthPage() {
       setHint("Continue with Google instead.");
       return;
     }
-    const blocked = blockedBy("otp_send", address);
-    if (blocked) {
-      setError(blocked);
+    const state = loadThrottle("otp_send", address);
+    const wait = secondsUntilAllowed(state, Date.now());
+    if (wait > 0) {
+      setError(describeWait(wait));
       return;
     }
 
@@ -206,11 +180,7 @@ function AuthPage() {
       const supabase = await loadSupabaseClient();
       const { error: sendError } = await supabase.auth.signInWithOtp({ email: address });
       if (sendError) {
-        saveThrottle(
-          "otp_send",
-          address,
-          recordFailure(loadThrottle("otp_send", address), Date.now()),
-        );
+        saveThrottle("otp_send", address, recordFailure(state, Date.now()));
         setError(friendlyOtpError(sendError.message));
         setBusy(false);
         return;
@@ -219,53 +189,7 @@ function AuthPage() {
       setNotice(OTP_SENT_NOTICE);
       void navigate({
         to: "/auth/verify",
-        search: { channel: "email", identifier: address, next: nextPath },
-      });
-    } catch {
-      setError("OCADE could not send a code just now. Try again in a moment.");
-      setBusy(false);
-    }
-  }
-
-  async function sendPhoneCode(event: React.FormEvent) {
-    event.preventDefault();
-    if (!availability.phone) {
-      setError("Phone codes are not available yet.");
-      setHint("Continue with Google, or use your email address instead.");
-      return;
-    }
-    const normalised = toE164(phone, country);
-    if (!normalised.ok) {
-      setError(describePhoneProblem(normalised.reason));
-      return;
-    }
-    const blocked = blockedBy("otp_send", normalised.e164);
-    if (blocked) {
-      setError(blocked);
-      return;
-    }
-
-    setBusy(true);
-    setError(null);
-    setHint(null);
-    try {
-      const supabase = await loadSupabaseClient();
-      const { error: sendError } = await supabase.auth.signInWithOtp({ phone: normalised.e164 });
-      if (sendError) {
-        saveThrottle(
-          "otp_send",
-          normalised.e164,
-          recordFailure(loadThrottle("otp_send", normalised.e164), Date.now()),
-        );
-        setError(friendlyOtpError(sendError.message));
-        setBusy(false);
-        return;
-      }
-      saveThrottle("otp_send", normalised.e164, recordSuccess());
-      setNotice(OTP_SENT_NOTICE);
-      void navigate({
-        to: "/auth/verify",
-        search: { channel: "phone", identifier: normalised.e164, next: nextPath },
+        search: { identifier: address, next: nextPath },
       });
     } catch {
       setError("OCADE could not send a code just now. Try again in a moment.");
@@ -292,7 +216,7 @@ function AuthPage() {
   return (
     <AuthShell
       title="Sign in to OCADE"
-      subtitle="Continue with Google, or have a six-digit code sent to you."
+      subtitle="Continue with Google, or have a six-digit code sent to your email."
       footer={
         <>
           By continuing you accept the <Link to="/terms">Terms &amp; Conditions</Link> and the{" "}
@@ -319,36 +243,7 @@ function AuthPage() {
         </>
       ) : null}
 
-      {/*
-       * Only the channels the project actually has. A tab for a channel that
-       * is turned off is a control whose whole behaviour is to refuse, and a
-       * row of one tab is a decoration rather than a choice.
-       */}
-      {channels.length > 1 ? (
-        <div className="mb-4 flex rounded-md border border-border p-0.5" role="tablist">
-          {channels.map((id) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={channel === id}
-              onClick={() => setChannel(id)}
-              className={cn(
-                "h-8 flex-1 rounded text-sm capitalize transition-colors",
-                channel === id ? "bg-accent text-foreground" : "text-muted-foreground",
-              )}
-            >
-              {id}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {channels.length === 0 ? (
-        <p className="text-[13px] text-muted-foreground">
-          Codes are not available on this deployment yet.
-        </p>
-      ) : channel === "email" ? (
+      {availability.emailDelivery ? (
         <form onSubmit={sendEmailCode} className="space-y-3">
           <label className="block">
             <span className="sr-only">Email address</span>
@@ -365,37 +260,9 @@ function AuthPage() {
           <SubmitButton busy={busy}>Send code</SubmitButton>
         </form>
       ) : (
-        <form onSubmit={sendPhoneCode} className="space-y-3">
-          <div className="flex gap-2">
-            <label className="shrink-0">
-              <span className="sr-only">Country calling code</span>
-              <select
-                value={country}
-                onChange={(event) => setCountry(event.target.value)}
-                className="h-10 rounded-md border border-border bg-background px-2 text-sm text-foreground outline-none focus-visible:border-ring"
-              >
-                {CALLING_COUNTRIES.map((entry) => (
-                  <option key={entry.code} value={entry.code}>
-                    {flagFor(entry.code)} {entry.code} +{entry.dial}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="min-w-0 flex-1">
-              <span className="sr-only">Phone number</span>
-              <input
-                type="tel"
-                autoComplete="tel-national"
-                inputMode="tel"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                placeholder="Phone number"
-                className="h-10 w-full rounded-md border border-border bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
-              />
-            </label>
-          </div>
-          <SubmitButton busy={busy}>Send code</SubmitButton>
-        </form>
+        <p className="text-[13px] text-muted-foreground">
+          Email codes are not available on this deployment yet.
+        </p>
       )}
 
       {error ? (

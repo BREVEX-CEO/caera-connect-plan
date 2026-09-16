@@ -157,17 +157,14 @@ Required sign-in methods:
 
 1. Google;
 2. email 6-digit OTP;
-3. phone 6-digit OTP with international country picker;
-4. optional account password only where deliberately supported;
-5. MFA/assurance flow where required for sensitive operations.
+3. optional account password only where deliberately supported;
+4. MFA/assurance flow where required for sensitive operations.
 
-Enable email and phone sign-in in the Supabase project. Do not create custom password storage. Preserve safe redirects, enumeration-resistant messaging, resend cooldown/backoff, session recovery and sign-out.
+Enable email sign-in in the Supabase project. Phone sign-in is removed by owner decision: sending SMS needs an external provider OCADE does not have, and a sign-in method that can only refuse is worse than one that is absent. Do not create custom password storage. Preserve safe redirects, enumeration-resistant messaging, resend cooldown/backoff, session recovery and sign-out.
 
 Do not delete or mutate existing users, identities, active sessions, refresh tokens or MFA state during database cleanup.
 
-If the live Supabase Auth project requires an external SMS provider before phone OTP can work, stop only at that external credential boundary and ask the owner for the exact provider credential/configuration required. Do not fake phone readiness.
-
-**Gate:** Google-ready state, email OTP, phone OTP formatting/verification, session recovery, sign-out and protected Chat Send all pass real-browser proof without creating a second auth authority.
+**Gate:** Google-ready state, email OTP, session recovery, sign-out and protected Chat Send all pass real-browser proof without creating a second auth authority.
 
 ---
 
@@ -705,7 +702,7 @@ Before merge, run the complete local/CI gate set on the exact completion-branch 
 - Offline Intelligence tests;
 - usage concurrency/multi-device tests;
 - Pricing/checkout/entitlement tests;
-- auth/email/phone tests;
+- auth and email OTP tests;
 - Library/uploads;
 - Settings/Data Controls;
 - manual Admin access grants;
@@ -718,7 +715,6 @@ Then verify production prerequisites:
 2. current `ocade-intelligence` Edge Function deployed;
 3. required Supabase migrations applied in the correct app-compatible order;
 4. email login enabled;
-5. phone login enabled with real SMS provider configuration;
 6. private Library bucket/policies correct;
 7. private offline-model R2 delivery configured;
 8. production site/service worker/PWA updated.
@@ -737,7 +733,7 @@ This plan is complete only when all of the following are true together:
 
 - the current Send/usage failure is fixed at its root;
 - all required pages load;
-- Google/email/phone auth works;
+- Google and email OTP auth works;
 - existing accounts/logged-in users survived Supabase cleanup;
 - stale retired schema/data/logs are removed safely;
 - manual user access grants are easy and auditable;

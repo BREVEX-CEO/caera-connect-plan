@@ -19,7 +19,6 @@ Continue with Google
 or
 Email → 6-digit OTP
 or
-Phone → country picker → 6-digit OTP
 ```
 
 After successful authentication:

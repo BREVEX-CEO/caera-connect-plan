@@ -105,7 +105,6 @@ Required customer auth:
 
 - Google;
 - email 6-digit OTP;
-- phone 6-digit OTP with country picker;
 - optional password where deliberately supported;
 - MFA/assurance for sensitive actions where required.
 

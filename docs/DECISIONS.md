@@ -65,7 +65,6 @@ Required:
 
 - Google;
 - email OTP;
-- phone OTP;
 - optional password where deliberately supported;
 - MFA/assurance where required.
 

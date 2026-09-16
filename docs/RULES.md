@@ -34,7 +34,7 @@ GEMINI_API_KEY_TERTIARY
 ## Authentication
 
 16. Supabase Auth is the only identity authority.
-17. Required methods: Google, email OTP, phone OTP.
+17. Required methods: Google and email OTP. Phone OTP is removed: sending SMS needs an external provider OCADE does not have, and a method that can only refuse is worse than an absent one.
 18. No custom password database.
 19. Supabase cleanup must not delete existing users, identities, sessions, refresh tokens or active MFA/auth state.
 

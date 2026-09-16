@@ -146,11 +146,16 @@ export function SignInMethods() {
   );
 }
 
-/** A provider name a person recognises, never an internal id. */
+/**
+ * A provider name a person recognises, never an internal id.
+ *
+ * Only the two OCADE offers are named. An identity from anything else is
+ * capitalised as-is rather than hidden: an account that somehow carries one
+ * should show it, and inventing a label for a provider nobody can sign in with
+ * is how a list ends up describing a way in that does not exist.
+ */
 function label(provider: string): string {
   if (provider === "google") return "Google";
-  if (provider === "apple") return "Apple";
   if (provider === "email") return "Email";
-  if (provider === "phone") return "Phone";
   return provider.charAt(0).toUpperCase() + provider.slice(1);
 }
