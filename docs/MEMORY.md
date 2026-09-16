@@ -767,10 +767,40 @@ forbade. The runtime decision is sited in one place (`loadParams`,
 `probeBrowserCapabilities`) so a GPU-capable build of the same engine family
 turns it on without a second lifecycle.
 
+## Phase 12 progress — the transcript got its controls
+
+**Edit, Regenerate and Retry are one operation.** `resend(questionId, choice,
+newText?)` drops that question and everything after it, from the account as
+well as the screen, then asks it. Edit supplies different words, Regenerate
+supplies none, Retry is Regenerate on the last question when no answer came.
+Three implementations would have been three ways to truncate the history
+differently; the browser journey proves the replaced question does not come
+back on reload.
+
+**A real bug this surfaced.** `send` built the history it posted from a
+`messages` closure. Fine while Send was the only caller, wrong the moment
+anything changed the transcript and sent in the same tick — which is exactly
+what Regenerate does, so it would have sent the dropped turns back to the
+model. The transcript is now a ref that `setMessages` keeps in step, and `send`
+reads it synchronously.
+
+Also added: Delete on a single turn (the `deleteMessage` server function had no
+caller at all), code-block Copy that reads the rendered node rather than the
+Markdown source, table styling, drag-and-drop and clipboard-paste attachment.
+
+Verified: `verify:full` 15 gates; all 11 browser journeys, chat now 21 checks.
+
+### Still open in Phase 12
+
+Attachments reach Library but not the model — that needs the artifact work
+finished for the offline side and a decision about extraction for the online
+side. Dictation is still honestly disabled. Upload progress, remove/reorder
+before send, and attachment preview/download in the transcript are not built.
+
 ## Exact next action
 
 Unblock the artifact (see above), then: publish the release, commit the
-manifest, prove delivery in a browser, and finish Phases 9–10. Phases 11–14 do
-not depend on it.
+manifest, prove delivery in a browser, and finish Phases 9–10. The rest of
+Phase 12, and Phases 11, 13 and 14, do not depend on it.
 
 Do not begin implementation of Cowork/Jarvis.

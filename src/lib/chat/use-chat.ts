@@ -27,6 +27,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   createConversation,
   deleteAllConversations,
+  deleteMessage,
   listConversations,
   setConversationTrashed,
   updateConversation,
@@ -75,6 +76,9 @@ export interface ChatState {
 
 export interface ChatActions {
   send(message: string, choice: IntelligenceChoice): Promise<void>;
+  /** Edit, Regenerate and Retry, which are the same operation. */
+  resend(userMessageId: string, choice: IntelligenceChoice, newText?: string): Promise<void>;
+  removeMessage(id: string): Promise<void>;
   stop(): void;
   openConversation(id: string | null): void;
   newConversation(): void;
@@ -91,7 +95,25 @@ export function useChat(): ChatState & ChatActions {
   const queryClient = useQueryClient();
   const [conversations, setConversations] = useState<OcadeConversationRow[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessageRecord[]>([]);
+  /*
+   * ONE TRANSCRIPT, READ SYNCHRONOUSLY.
+   *
+   * `send` builds the history it sends from this. Reading it out of a closure
+   * meant the array `send` saw was the one from the render it was created in —
+   * fine while Send was the only caller, and wrong the moment anything changed
+   * the transcript and then sent in the same tick. Regenerate does exactly
+   * that: it drops the turns after a question and re-asks it, and a stale
+   * closure would send the dropped turns back to the model.
+   */
+  const transcript = useRef<ChatMessageRecord[]>([]);
+  const [messages, publishMessages] = useState<ChatMessageRecord[]>([]);
+  const setMessages = useCallback(
+    (next: ChatMessageRecord[] | ((current: ChatMessageRecord[]) => ChatMessageRecord[])) => {
+      transcript.current = typeof next === "function" ? next(transcript.current) : next;
+      publishMessages(transcript.current);
+    },
+    [],
+  );
   const [streaming, setStreaming] = useState("");
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -140,7 +162,7 @@ export function useChat(): ChatState & ChatActions {
     return () => {
       cancelled = true;
     };
-  }, [conversationId]);
+  }, [conversationId, setMessages]);
 
   const send = useCallback(
     async (message: string, choice: IntelligenceChoice) => {
@@ -186,7 +208,7 @@ export function useChat(): ChatState & ChatActions {
         });
         setMessages((current) => [...current, question.record]);
 
-        const history = [...messages, question.record].map((record) => ({
+        const history = [...transcript.current, question.record].map((record) => ({
           role: record.role === "system" ? ("assistant" as const) : record.role,
           content: record.content,
         }));
@@ -262,7 +284,50 @@ export function useChat(): ChatState & ChatActions {
         abort.current = null;
       }
     },
-    [busy, conversationId, messages, queryClient, refreshConversations],
+    [busy, conversationId, queryClient, refreshConversations, setMessages],
+  );
+
+  /**
+   * ASK A QUESTION AGAIN — WHICH IS ALSO EDIT, ALSO REGENERATE, ALSO RETRY.
+   *
+   * Three controls and one operation: drop this question and everything after
+   * it, then ask it. Edit supplies different words, Regenerate supplies none,
+   * and Retry is Regenerate on the last question when the answer never came.
+   * Three implementations of that would be three places for the history to be
+   * truncated differently.
+   *
+   * The dropped turns go from the account as well as the screen. Leaving them
+   * in the database would mean a reload resurrected the answer the person
+   * asked OCADE to replace.
+   */
+  const resend = useCallback(
+    async (userMessageId: string, choice: IntelligenceChoice, newText?: string) => {
+      if (busy) return;
+      const at = transcript.current.findIndex((record) => record.id === userMessageId);
+      if (at < 0) return;
+      const question = transcript.current[at]!;
+      const text = (newText ?? question.content).trim();
+      if (!text) return;
+
+      const dropped = transcript.current.slice(at);
+      setMessages(transcript.current.slice(0, at));
+      await Promise.all(
+        dropped
+          .filter((record) => !record.unsynced)
+          .map((record) => deleteMessage({ data: { id: record.id } }).catch(() => undefined)),
+      );
+      await send(text, choice);
+    },
+    [busy, send, setMessages],
+  );
+
+  /** Remove one turn, from the screen and from the account. */
+  const removeMessage = useCallback(
+    async (id: string) => {
+      setMessages((current) => current.filter((record) => record.id !== id));
+      await deleteMessage({ data: { id } }).catch(() => undefined);
+    },
+    [setMessages],
   );
 
   const stop = useCallback(() => {
@@ -306,7 +371,7 @@ export function useChat(): ChatState & ChatActions {
     setConversations([]);
     setConversationId(null);
     setMessages([]);
-  }, []);
+  }, [setMessages]);
 
   const openConversation = useCallback((id: string | null) => {
     setConversationId(id);
@@ -317,7 +382,7 @@ export function useChat(): ChatState & ChatActions {
     setConversationId(null);
     setMessages([]);
     setProblem(null);
-  }, []);
+  }, [setMessages]);
 
   return useMemo(
     () => ({
@@ -330,6 +395,8 @@ export function useChat(): ChatState & ChatActions {
       loadingConversations,
       loadingMessages,
       send,
+      resend,
+      removeMessage,
       stop,
       openConversation,
       newConversation,
@@ -350,6 +417,8 @@ export function useChat(): ChatState & ChatActions {
       loadingConversations,
       loadingMessages,
       send,
+      resend,
+      removeMessage,
       stop,
       openConversation,
       newConversation,

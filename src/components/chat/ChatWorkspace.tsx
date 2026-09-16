@@ -51,6 +51,7 @@ export function ChatWorkspace() {
   const textarea = useRef<HTMLTextAreaElement>(null);
   const picker = useRef<HTMLInputElement>(null);
   const [attaching, setAttaching] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [attached, setAttached] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -174,6 +175,8 @@ export function ChatWorkspace() {
 
   const empty = chat.messages.length === 0 && chat.streaming.length === 0;
   const signedOut = !loading && !user;
+  const lastQuestionId =
+    [...chat.messages].reverse().find((message) => message.role === "user")?.id ?? null;
 
   return (
     <AppShell
@@ -203,6 +206,9 @@ export function ChatWorkspace() {
             messages={chat.messages}
             streaming={chat.streaming}
             loading={chat.loadingMessages}
+            busy={chat.busy}
+            onResend={(id, text) => void chat.resend(id, choice, text)}
+            onRemove={(id) => void chat.removeMessage(id)}
           />
         )}
 
@@ -213,7 +219,24 @@ export function ChatWorkspace() {
                 Ask OCADE
               </h1>
             ) : null}
-            <div className="glass rounded-2xl px-4 pb-3 pt-4">
+            <div
+              className={cn(
+                "glass rounded-2xl px-4 pb-3 pt-4 transition-shadow",
+                dragging && "ring-1 ring-foreground/30",
+              )}
+              onDragOver={(event) => {
+                if (!user) return;
+                event.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(event) => {
+                event.preventDefault();
+                setDragging(false);
+                const file = event.dataTransfer.files?.[0];
+                if (file && user) void attach(file);
+              }}
+            >
               <label className="sr-only" htmlFor="ocade-composer">
                 Message OCADE
               </label>
@@ -230,6 +253,15 @@ export function ChatWorkspace() {
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
                     void send();
+                  }
+                }}
+                onPaste={(event) => {
+                  // A screenshot pasted into the composer is a file, and the
+                  // person expects it to become one rather than nothing.
+                  const file = event.clipboardData.files?.[0];
+                  if (file && user) {
+                    event.preventDefault();
+                    void attach(file);
                   }
                 }}
                 placeholder="Ask anything"
@@ -312,7 +344,22 @@ export function ChatWorkspace() {
             */}
             {chat.problem ? (
               <p className="mt-3 text-center text-[13px] text-foreground" role="alert">
-                {chat.problem}
+                {chat.problem}{" "}
+                {/*
+                  RETRY IS REGENERATE ON THE LAST QUESTION. A failed generation
+                  leaves the question in the transcript and no answer under it,
+                  so the thing to try again is already identified.
+                */}
+                {lastQuestionId ? (
+                  <button
+                    type="button"
+                    disabled={chat.busy}
+                    onClick={() => void chat.resend(lastQuestionId, choice)}
+                    className="text-foreground underline underline-offset-2 disabled:opacity-40"
+                  >
+                    Try again
+                  </button>
+                ) : null}
               </p>
             ) : attached ? (
               <p className="mt-3 text-center text-[13px] text-muted-foreground" role="status">

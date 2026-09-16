@@ -127,6 +127,54 @@ try {
   // Copy is offered on an answer, and on nothing else.
   check("an answer offers Copy", (await page.getByRole("button", { name: "Copy" }).count()) >= 1);
 
+  /* --- the three controls that are one operation -------------------------- */
+
+  const turns = () => page.locator(".group").filter({ hasText: "stubbed OCADE answer" });
+
+  check(
+    "an answer offers Regenerate",
+    (await page.getByRole("button", { name: "Regenerate" }).count()) >= 1,
+  );
+  await page.getByRole("button", { name: "Regenerate" }).first().click();
+  await page.waitForTimeout(1200);
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  check(
+    "Regenerate replaces the answer rather than stacking a second one",
+    (await turns().count()) === 1,
+    `${await turns().count()} answers`,
+  );
+  check(
+    "and the question is still there, asked once",
+    (await page.getByText("What is OCADE?", { exact: true }).count()) === 1,
+  );
+
+  await page.getByRole("button", { name: "Edit" }).first().click();
+  await page.fill('textarea[id^="edit-"]', "What is OCADE, in one line?");
+  await page.getByRole("button", { name: "Send edit" }).click();
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  check(
+    "editing a question replaces it rather than adding one",
+    (await page.getByText("What is OCADE?", { exact: true }).count()) === 0 &&
+      (await page.getByText("What is OCADE, in one line?", { exact: true }).count()) === 1,
+  );
+  check("and the edit is answered", (await turns().count()) === 1);
+
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  await page.locator("aside ul li button").first().click();
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  check(
+    "the replaced question does not come back on reload",
+    (await page.getByText("What is OCADE?", { exact: true }).count()) === 0,
+  );
+
+  /* --- deleting one turn, not the conversation ---------------------------- */
+
+  const before = await page.locator(".group").count();
+  await page.getByRole("button", { name: "Delete" }).last().click();
+  await page.waitForTimeout(600);
+  check("a single turn can be deleted", (await page.locator(".group").count()) < before);
+
   // Delete it, and see it go.
   await page.hover("aside ul li");
   await page.click('aside ul li button[aria-label^="More options"]');
