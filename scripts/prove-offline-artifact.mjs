@@ -83,37 +83,51 @@ window.__prove = async () => {
   );
 
   // The proof must not silently fetch compatibility runtime code from a CDN.
-  // Current Chromium supports JSPI + Memory64, so use the bundled OCADE WASM only.
   engine.setCompat(null);
 
   const threads = diagnostics.crossOriginIsolated && diagnostics.sharedArrayBuffer ? 2 : 1;
   diagnostics.threads = threads;
 
   try {
-    // Loading the already-fetched Blob avoids the ModelManager/cache download path
-    // and lets modern Wllama use async Blob reads instead of materializing a second
-    // full copy of the GGUF in browser/WASM memory.
     await engine.loadModel([modelBlob], {
-      n_ctx: 128,
-      n_batch: 32,
-      n_ubatch: 32,
+      // 128 tokens was too small for a modern Qwen3 chat template and could
+      // truncate the effective prompt. 512 remains tiny while leaving safe room.
+      n_ctx: 512,
+      n_batch: 64,
+      n_ubatch: 64,
       n_threads: threads,
       n_gpu_layers: 0,
       n_parallel: 1,
       reasoning: false,
+      reasoning_budget_tokens: 0,
+      default_template_kwargs: { enable_thinking: false },
       warmup: false,
       jinja: true,
+      seed: 42,
     });
+
+    diagnostics.hasChatTemplate = Boolean(engine.getChatTemplate());
+    if (!diagnostics.hasChatTemplate) {
+      throw new Error("The GGUF has no embedded chat template; refusing to treat raw generation as a chat proof.");
+    }
 
     const response = await engine.createChatCompletion({
       messages: [
         {
           role: "user",
-          content: "What is two plus two? Answer with the number only. /no_think",
+          content: "What is 2 + 2? Answer with the number only.",
         },
       ],
-      max_tokens: 24,
-      temperature: 0,
+      // Qwen3's official non-thinking guidance uses sampling rather than greedy
+      // decoding. Keep the proof deterministic with a fixed seed while following
+      // the model's intended non-thinking sampler family.
+      max_tokens: 16,
+      temperature: 0.7,
+      top_p: 0.8,
+      top_k: 20,
+      min_p: 0,
+      seed: 42,
+      chat_template_kwargs: { enable_thinking: false },
       stream: false,
     });
 
@@ -267,16 +281,16 @@ try {
   const text = String(result?.answer ?? "").trim();
   const d = result?.diagnostics ?? {};
   process.stdout.write(
-    `runtime: JSPI=${Boolean(d.jspi)} Memory64=${Boolean(d.memory64)} isolated=${Boolean(d.crossOriginIsolated)} threads=${d.threads ?? "?"} modelBytes=${d.modelBytes ?? "?"}\n`,
+    `runtime: JSPI=${Boolean(d.jspi)} Memory64=${Boolean(d.memory64)} isolated=${Boolean(d.crossOriginIsolated)} threads=${d.threads ?? "?"} chatTemplate=${Boolean(d.hasChatTemplate)} modelBytes=${d.modelBytes ?? "?"}\n`,
   );
   process.stdout.write(`answer: ${JSON.stringify(text.slice(0, 200))}\n`);
 
   if (!text) {
     failed = true;
     process.stderr.write("The engine loaded the artifact and produced nothing.\n");
-  } else if (!/\b(4|four)\b/i.test(text)) {
+  } else if (!/^4(?:\s|$)/i.test(text) && !/^four(?:\s|$)/i.test(text)) {
     failed = true;
-    process.stderr.write("The engine answered, but not correctly.\n");
+    process.stderr.write("The engine loaded and generated, but the basic arithmetic answer was not correct.\n");
   } else {
     process.stdout.write("PASS  the artifact loads and answers correctly\n");
   }
