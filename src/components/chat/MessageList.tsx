@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import Markdown from "react-markdown";
 import { Check, Copy, Paperclip, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import type { ChatMessageRecord } from "@/lib/ocade-chat-store";
@@ -158,12 +159,21 @@ function Turn({
           {message.attachments.length > 0 ? (
             <ul className="mb-1.5 flex flex-wrap gap-1" aria-label="Files sent with this message">
               {message.attachments.map((attachment) => (
-                <li
-                  key={`${attachment.name}-${attachment.sizeBytes}`}
-                  className="flex items-center gap-1 rounded border border-border/60 px-1.5 py-0.5 text-xs text-muted-foreground"
-                >
-                  <Paperclip className="h-3 w-3" aria-hidden />
-                  <span className="max-w-40 truncate">{attachment.name}</span>
+                <li key={`${attachment.name}-${attachment.sizeBytes}`}>
+                  {/*
+                    The chip leads to Library, which is the one place that owns
+                    a customer's files and already offers preview and download.
+                    A second downloader here would be a second copy of the file
+                    and a second set of permissions to get right.
+                  */}
+                  <Link
+                    to="/library"
+                    title={`Open ${attachment.name} in your Library`}
+                    className="flex items-center gap-1 rounded border border-border/60 px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <Paperclip className="h-3 w-3" aria-hidden />
+                    <span className="max-w-40 truncate">{attachment.name}</span>
+                  </Link>
                 </li>
               ))}
             </ul>

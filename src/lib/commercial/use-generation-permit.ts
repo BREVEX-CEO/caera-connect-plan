@@ -47,6 +47,7 @@ import {
 } from "./offline-counter";
 import { trustedOfflineTimeNow } from "./offline-lease";
 import { ONE_USE } from "./usage-policy";
+import { describeReset } from "./use-commercial-usage";
 import type { GenerationSurface } from "./generation-gate";
 
 export interface DeliveredWork {
@@ -77,14 +78,6 @@ function withTimeout<T>(work: Promise<T>, ms: number): Promise<T | "timed_out"> 
     work,
     new Promise<"timed_out">((resolve) => setTimeout(() => resolve("timed_out"), ms)),
   ]);
-}
-
-/** "in about 3 hours", for the sentence shown when an allowance runs out. */
-function describeReset(ms: number): string {
-  const minutes = Math.max(1, Math.round(ms / 60_000));
-  if (minutes < 60) return `in about ${minutes} minute${minutes === 1 ? "" : "s"}`;
-  const hours = Math.round(minutes / 60);
-  return `in about ${hours} hour${hours === 1 ? "" : "s"}`;
 }
 
 function formatResetAt(iso: string | undefined): string | null {

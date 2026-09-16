@@ -20,6 +20,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { useSession } from "@/lib/session";
 import { useChat, type IntelligenceChoice } from "@/lib/chat/use-chat";
 import { useChatShortcuts } from "@/lib/chat/use-shortcuts";
+import { useDictation } from "@/lib/chat/use-dictation";
 import {
   MAX_ATTACHMENTS,
   forRequest,
@@ -58,6 +59,15 @@ export function ChatWorkspace() {
   const picker = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<PendingAttachment[]>([]);
   const [dragging, setDragging] = useState(false);
+  /*
+   * Dictation appends rather than replaces, so speaking after typing continues
+   * the sentence. The composer grows to fit on the next frame the same way it
+   * does for a keystroke.
+   */
+  const dictation = useDictation((said) => {
+    setDraft((current) => (current ? `${current.trimEnd()} ${said}` : said));
+    window.setTimeout(grow, 0);
+  });
   const queryClient = useQueryClient();
 
   /*
@@ -355,9 +365,18 @@ export function ChatWorkspace() {
                     ))}
                   </div>
 
-                  <IconButton label="Dictate" disabled title="Dictation is not available yet">
-                    <Mic className="h-4 w-4" aria-hidden />
-                  </IconButton>
+                  {dictation.supported ? (
+                    <IconButton
+                      label={dictation.listening ? "Stop dictating" : "Dictate"}
+                      title={dictation.listening ? "Stop dictating" : "Dictate"}
+                      onClick={dictation.toggle}
+                    >
+                      <Mic
+                        className={cn("h-4 w-4", dictation.listening && "text-foreground")}
+                        aria-hidden
+                      />
+                    </IconButton>
+                  ) : null}
 
                   {chat.busy ? (
                     <button

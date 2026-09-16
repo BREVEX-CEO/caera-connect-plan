@@ -209,6 +209,19 @@ try {
     "no provider or runtime identifier is on screen",
     !/qwen|gguf|webgpu|wasm|gemini|wllama/i.test(await page.locator("body").innerText()),
   );
+  /*
+   * DICTATION EXISTS OR IT DOES NOT — it is never a button that does nothing.
+   * Headless Chromium has no recogniser, so the control is absent here; on a
+   * browser that has one it appears. Either way there is no inert microphone.
+   */
+  check(
+    "the microphone is present only where the browser can actually listen",
+    (await page.getByRole("button", { name: /Dictate/ }).count()) ===
+      (await page.evaluate(() =>
+        Number("SpeechRecognition" in window || "webkitSpeechRecognition" in window),
+      )),
+  );
+
   check("no uncaught page errors", pageErrors.length === 0, pageErrors.join("; "));
 } finally {
   await browser.close();
