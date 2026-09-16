@@ -37,6 +37,9 @@ export interface DeviceSignals {
   mobile?: boolean | null;
 }
 
+const KIB = 1024;
+const MIB = 1024 * KIB;
+
 export interface TransferPlan {
   /** Bytes per ranged request. Always a multiple of 64. */
   chunkBytes: number;
@@ -45,9 +48,6 @@ export interface TransferPlan {
   /** Why these numbers, for the diagnostic surface only. */
   because: string;
 }
-
-const KIB = 1024;
-const MIB = 1024 * KIB;
 
 /**
  * Bounds on concurrency, and the reasoning for both ends.
@@ -60,7 +60,52 @@ const MIB = 1024 * KIB;
  * for the same CPU.
  */
 export const MIN_CONCURRENCY = 1;
-export const MAX_CONCURRENCY = 8;
+export const MAX_CONCURRENCY = 32;
+
+/**
+ * The rungs concurrency is allowed to stand on.
+ *
+ * A LADDER RATHER THAN A ±1 WALK, because the interesting range is wide and the
+ * measurement window is not free. Climbing from four to thirty-two one stream at
+ * a time costs twenty-eight windows — minutes — and spends most of them within
+ * the noise floor of the step below. The rungs widen as they rise for the same
+ * reason: the difference between one and two streams is large, and the
+ * difference between twenty-four and twenty-five is not measurable.
+ *
+ * It is a ladder to climb, NOT a target. Every step up has to be paid for by a
+ * measured improvement, and a step that makes things worse is undone on the
+ * next window. Thirty-two streams is what a fast link on a capable machine can
+ * reach, not what anything starts at.
+ */
+export const CONCURRENCY_LADDER = [1, 2, 4, 8, 12, 16, 24, 32] as const;
+
+/**
+ * How many bytes may be in flight at once, across every stream.
+ *
+ * A chunk is held in memory from the moment it finishes until the hasher has
+ * consumed it, so peak memory is roughly `chunkBytes × concurrency`. Without a
+ * bound on the product, the ladder's top rung at the largest chunk size is half
+ * a gigabyte of buffers on a device that is already allocating for a model —
+ * which is a killed tab, not a fast download.
+ *
+ * So the ceiling on streams is derived from the chunk size rather than fixed:
+ * small chunks buy many streams, large chunks buy few, and either way the
+ * transfer holds the same modest amount of memory.
+ */
+export const MAX_IN_FLIGHT_BYTES = 64 * MIB;
+
+/** The highest rung this chunk size may climb to without exceeding the budget. */
+export function concurrencyCeiling(chunkBytes: number): number {
+  const affordable = Math.floor(MAX_IN_FLIGHT_BYTES / Math.max(1, chunkBytes));
+  return clamp(affordable, MIN_CONCURRENCY, MAX_CONCURRENCY);
+}
+
+/** The nearest rung at or below `value`. */
+function rungAtOrBelow(value: number): number {
+  let chosen: number = CONCURRENCY_LADDER[0];
+  for (const rung of CONCURRENCY_LADDER) if (rung <= value) chosen = rung;
+  return chosen;
+}
 
 /**
  * Chunk size bounds.
@@ -160,9 +205,12 @@ export function planTransfer(signals: DeviceSignals): TransferPlan {
     because += ", with data saving respected";
   }
 
+  const aligned = alignChunk(chunkBytes);
   return {
-    chunkBytes: alignChunk(chunkBytes),
-    concurrency: clamp(concurrency, MIN_CONCURRENCY, MAX_CONCURRENCY),
+    chunkBytes: aligned,
+    // Snapped to a rung so the first window is comparable with the next one,
+    // and held under the memory budget the chunk size implies.
+    concurrency: rungAtOrBelow(clamp(concurrency, MIN_CONCURRENCY, concurrencyCeiling(aligned))),
     because,
   };
 }
@@ -200,25 +248,46 @@ export function adaptConcurrency(
 ): number {
   const min = bounds?.min ?? MIN_CONCURRENCY;
   const max = bounds?.max ?? MAX_CONCURRENCY;
-  if (latest.ms <= 0 || latest.bytes <= 0) return clamp(current, min, max);
-  if (!previous || previous.ms <= 0) return clamp(current, min, max);
+  const settle = (value: number) => rungAtOrBelow(clamp(value, min, max));
+
+  if (latest.ms <= 0 || latest.bytes <= 0) return settle(current);
+  if (!previous || previous.ms <= 0) return settle(current);
 
   const now = latest.bytes / latest.ms;
   const before = previous.bytes / previous.ms;
-  if (before <= 0) return clamp(current, min, max);
+  if (before <= 0) return settle(current);
 
   const change = (now - before) / before;
   const direction = Math.sign(latest.concurrency - previous.concurrency);
 
-  if (Math.abs(change) < 0.05) return clamp(current, min, max);
+  /*
+   * A CHANGE THIS SMALL IS NOISE, AND CHASING IT COSTS MORE THAN IT WINS.
+   *
+   * Five per cent is inside the variation of a single window on any real
+   * connection. Treating it as evidence makes the transfer oscillate between
+   * two rungs forever, tearing down and reopening connections at every step.
+   */
+  if (Math.abs(change) < 0.05) return settle(current);
+
+  const at = Math.max(0, (CONCURRENCY_LADDER as readonly number[]).indexOf(settle(current)));
 
   if (change > 0) {
-    // Better. Continue in whichever direction produced it; with no previous
-    // direction (the first window), try one more stream.
-    return clamp(current + (direction === 0 ? 1 : direction), min, max);
+    /*
+     * Faster. Keep going the way that made it faster — up a rung if the last
+     * step was up, back down if the last step DOWN is what helped, and up one
+     * on the very first window because that is the direction worth testing.
+     */
+    const step = direction === 0 ? 1 : direction;
+    return settle(CONCURRENCY_LADDER[clamp(at + step, 0, CONCURRENCY_LADDER.length - 1)]);
   }
-  // Worse. Undo the last step; with no previous direction, back off.
-  return clamp(current - (direction === 0 ? 1 : direction), min, max);
+
+  /*
+   * Slower. Undo the last step rather than persisting: more streams past the
+   * point where they help is not neutral, it is connections competing with the
+   * hashing and the disk writes for the same processor.
+   */
+  const step = direction === 0 ? -1 : -direction;
+  return settle(CONCURRENCY_LADDER[clamp(at + step, 0, CONCURRENCY_LADDER.length - 1)]);
 }
 
 /** The byte ranges one artifact is fetched in. */

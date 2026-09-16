@@ -46,13 +46,21 @@ interface Server {
  */
 function rangedServer(
   bytes: Uint8Array,
-  options: { fail?: (index: number) => boolean; corruptFirstChunk?: boolean } = {},
+  options: {
+    fail?: (index: number) => boolean;
+    corruptFirstChunk?: boolean;
+    /** Links this server still honours. Anything else answers 410, as expired. */
+    liveUrls?: Set<string>;
+  } = {},
 ): Server {
   const server: Server = { fetch: null as never, ranges: [], peakConcurrency: 0 };
   let inFlight = 0;
   let requestIndex = 0;
-  server.fetch = (async (_url: string, init?: RequestInit) => {
+  server.fetch = (async (url: string, init?: RequestInit) => {
     const index = requestIndex++;
+    if (options.liveUrls && !options.liveUrls.has(String(url))) {
+      return new Response(null, { status: 410 });
+    }
     inFlight += 1;
     server.peakConcurrency = Math.max(server.peakConcurrency, inFlight);
     try {
@@ -327,5 +335,76 @@ describe("a revisit", () => {
     // NOT ONE REQUEST. This is what "does not redownload because of a refresh,
     // a sign-out or a new build" means at the transfer layer.
     expect(revisit.ranges).toHaveLength(0);
+  });
+});
+
+describe("a link that expires mid-transfer", () => {
+  it("mints a fresh one and carries on rather than failing the install", async () => {
+    /*
+     * THE PRICE OF AUTHORISED DELIVERY. The URL stops working after a few
+     * hours, and a transfer on a slow connection can outlive one. Without a
+     * refresh the expiry is indistinguishable from a refusal: attempts burned
+     * against a dead link, a failed install, and a person told the download
+     * broke when nothing was wrong with it.
+     */
+    const bytes = artifact(SIZE);
+    const live = new Set(["https://example.test/model?e=1"]);
+    const server = rangedServer(bytes, { liveUrls: live });
+    const writer = arrayWriter(SIZE);
+    let minted = 0;
+
+    const result = await transferModel(
+      {
+        sources: [{ url: "https://example.test/model?e=1", kind: "ocade" }],
+        totalBytes: SIZE,
+        sha256: await digestOf(bytes),
+        plan: PLAN,
+        refreshSources: async () => {
+          minted += 1;
+          const url = `https://example.test/model?e=${minted + 1}`;
+          live.clear();
+          live.add(url);
+          return [{ url, kind: "ocade" as const }];
+        },
+      },
+      {
+        fetchImpl: ((url: string, init?: RequestInit) => {
+          // The first link dies once a third of the artifact has moved.
+          if (server.ranges.length >= 5) live.delete("https://example.test/model?e=1");
+          return server.fetch(url as never, init as never);
+        }) as unknown as typeof fetch,
+        writer,
+        sleep: async () => {},
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.verified).toBe(true);
+    expect(writer.bytes).toEqual(bytes);
+    expect(minted).toBeGreaterThan(0);
+  });
+
+  it("stops with its progress intact when no fresh link can be minted", async () => {
+    // Offline, or signed out. Giving up is right; spinning against a dead link
+    // is not, and neither is throwing away what already landed.
+    const bytes = artifact(SIZE);
+    const server = rangedServer(bytes, { liveUrls: new Set() });
+    const writer = arrayWriter(SIZE);
+
+    const result = await transferModel(
+      {
+        sources: [{ url: "https://example.test/model?e=1", kind: "ocade" }],
+        totalBytes: SIZE,
+        sha256: await digestOf(bytes),
+        plan: PLAN,
+        refreshSources: async () => null,
+      },
+      { fetchImpl: server.fetch, writer, sleep: async () => {} },
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.retriable).toBe(true);
   });
 });

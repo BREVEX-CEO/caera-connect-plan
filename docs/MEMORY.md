@@ -684,8 +684,93 @@ requires business identity and bank verification, which only the owner can
 complete. Until those credentials exist, `/pricing` tells the truth and no
 checkout is offered. Nothing else in Phase 6 is waiting on it.
 
+## Phase 7/8 progress — identity removed, delivery rebuilt, artifact blocked
+
+### Done and pushed
+
+**The artifact has no public identity and no public source.** The committed
+catalogue carried the publisher's repository, the file name, the quantisation
+and a public download URL; a module spread the same strings into storage keys,
+progress text and network requests; and the adapter's last fallback handed the
+repository and file name to the library's own downloader, which fetched weights
+from a public model host in the customer's browser. All of it is gone. What
+replaces it is `release/OCADE_OFFLINE_RELEASE.json`: an opaque release id
+derived from the artifact's own digest, a length, that digest, and two runtime
+numbers. `scripts/check-model-identity.mjs` is a `verify:full` gate that reads
+the repository rather than the screen and fails on any tracked file naming the
+artifact; it assembles the banned strings from fragments so it does not fail
+itself.
+
+**One downloader.** The adapter's second transfer path is deleted along with
+`model-download.ts` (492 lines). The installation authority mints an authorised
+link, transfers in resumable adaptive ranges, checks the digest and stores the
+result; the adapter reads what is already on the device and starts an engine.
+
+**Authorised, expiring delivery.** `delivery-signature.ts` mints and verifies
+HMAC-signed paths (domain tag + release id + expiry, constant-time compare, 6h
+TTL) keyed on the existing server secret, so no new secret to provision.
+`/api/offline/bytes/$release` verifies, then streams from the `OCADE_MODELS` R2
+binding with full Range support; 403 for an unsigned request, 410 for a genuine
+link that ran out — the distinction the installer needs to refresh and resume
+rather than give up. Bucket `ocade-private-models` is bound in `wrangler.json`.
+
+**Adaptive download, finished.** Concurrency now climbs a ladder
+(1/2/4/8/12/16/24/32) instead of walking ±1 to a ceiling of 8, paid for by
+measured throughput with a 5% noise floor, and bounded by `MAX_IN_FLIGHT_BYTES`
+(64 MiB) so the ceiling falls out of the chunk size rather than being guessed.
+An expired link mid-transfer mints a fresh one and continues from the
+checkpoint, once per expiry however many streams noticed.
+
+**Honest empty state.** With no release published, `resolveInstallTarget`
+returns null and the authority says "Offline Intelligence is not available in
+this version of OCADE yet." A null target used to mean "this backend already
+holds the weights" — true of the desktop bridge and the paired computer, both
+long gone — which would have blamed the person's device for something OCADE had
+not shipped.
+
+Verified: `verify:full` 15 gates; 133 brain tests; all 11 browser journeys.
+
+### Blocked, and why — this session's egress policy
+
+The owner asked for the pipeline to run from this terminal rather than GitHub
+Actions. It cannot, and credentials would not change it. The agent proxy denies
+these hosts outright (403 to CONNECT, recorded in its own status endpoint):
+
+```text
+api.cloudflare.com          upload, bucket verification
+r2.cloudflarestorage.com    S3-compatible upload
+huggingface.co, cdn-lfs     upstream artifact
+modelscope.cn, ollama.com   alternative upstreams
+cdn.jsdelivr.net            alternative upstreams
+ocade.in                    production verification
+```
+
+Reachable: `api.github.com`, `github.com`, `objects.githubusercontent.com`,
+`registry.npmjs.org`, `pypi.org`, `generativelanguage.googleapis.com`.
+
+`wrangler` is unauthenticated here and `wrangler login` needs a browser. The
+proxy README is explicit that a 403 is an organisation egress denial and must be
+reported rather than routed around.
+
+**WebGPU cannot be proved here either.** This sandbox's Chromium exposes no
+`navigator.gpu` at all, with or without `--enable-unsafe-swiftshader`
+`--use-angle=swiftshader`. A real GPU generation test needs a machine with a
+browser that has one.
+
+**What the format question already answers.** The deleted `browser-webgpu.ts`
+(Phase 1, commit 1b20bd6) used `@mlc-ai/web-llm`, which consumes MLC-compiled
+weights plus a per-architecture compiled kernel library — not the container this
+artifact uses. The bundled engine ships one WASM binary with no GPU backend.
+So one artifact cannot serve both paths today without a second engine and a
+second artifact format, which is the duplicate model authority the owner
+forbade. The runtime decision is sited in one place (`loadParams`,
+`probeBrowserCapabilities`) so a GPU-capable build of the same engine family
+turns it on without a second lifecycle.
+
 ## Exact next action
 
-**Phase 7** — replace Offline Intelligence with the private OCADE 0.6B runtime.
+Unblock the artifact (see above), then: publish the release, commit the
+manifest, prove delivery in a browser, and finish Phases 9–10. Phases 11–14 do
+not depend on it.
 
 Do not begin implementation of Cowork/Jarvis.

@@ -40,6 +40,7 @@
 
 import {
   adaptConcurrency,
+  concurrencyCeiling,
   planChunks,
   retryDelayMs,
   type ChunkRange,
@@ -102,6 +103,19 @@ export interface TransferRequest {
   signal?: AbortSignal;
   /** Attempts per chunk before the whole transfer gives up. */
   maxAttemptsPerChunk?: number;
+  /**
+   * Mint a fresh link when the current one has expired.
+   *
+   * THE PRICE OF A LINK THAT EXPIRES. Authorised delivery means the URL stops
+   * working after a few hours, and a transfer on a slow connection can outlive
+   * one. Without this the expiry is indistinguishable from a refusal: five
+   * attempts against a dead URL, a failed install, and a person told the
+   * download broke when nothing was wrong with it.
+   *
+   * Returning null means the caller could not mint one — offline, signed out —
+   * and the transfer stops with its checkpoint intact rather than spinning.
+   */
+  refreshSources?: () => Promise<DownloadSource[] | null>;
 }
 
 export interface TransferMetrics {
@@ -201,12 +215,37 @@ export async function transferModel(
   }
 
   let sourceIndex = 0;
-  const source = () => request.sources[sourceIndex];
+  let sources = request.sources;
+  const source = () => sources[sourceIndex];
   const rotateSource = (): boolean => {
-    if (sourceIndex + 1 >= request.sources.length) return false;
+    if (sourceIndex + 1 >= sources.length) return false;
     sourceIndex += 1;
     metrics.sourceSwitches += 1;
     return true;
+  };
+
+  /**
+   * Replace an expired link with a fresh one and carry on from the checkpoint.
+   *
+   * Counted as a source switch because that is what it is from the transfer's
+   * point of view: the same bytes, reached a different way.
+   */
+  let refreshing: Promise<boolean> | null = null;
+  const refreshSource = async (): Promise<boolean> => {
+    // One refresh in flight, however many chunks noticed the expiry at once.
+    // Thirty streams discovering a dead link together must not mint thirty
+    // links.
+    refreshing ??= (async () => {
+      const minted = await request.refreshSources?.().catch(() => null);
+      if (!minted || minted.length === 0) return false;
+      sources = minted;
+      sourceIndex = 0;
+      metrics.sourceSwitches += 1;
+      return true;
+    })().finally(() => {
+      refreshing = null;
+    });
+    return refreshing;
   };
 
   /* ------------------------------------------------------------- sizing -- */
@@ -347,7 +386,15 @@ export async function transferModel(
         ms: elapsed,
         concurrency: state.concurrency,
       };
-      state.concurrency = adaptConcurrency(state.concurrency, previousSample, latest);
+      /*
+       * The ceiling is derived from the chunk size rather than fixed, so the
+       * ladder can climb without the buffers climbing with it. A chunk is held
+       * from the moment it lands until the hasher consumes it, and the product
+       * is what a device actually pays.
+       */
+      state.concurrency = adaptConcurrency(state.concurrency, previousSample, latest, {
+        max: concurrencyCeiling(request.plan.chunkBytes),
+      });
       metrics.finalConcurrency = state.concurrency;
       previousSample = latest;
       sampleStart = now();
@@ -512,6 +559,15 @@ export async function transferModel(
         }
 
         metrics.retries += 1;
+        /*
+         * AN EXPIRED LINK IS NOT A REFUSAL. Authorised delivery hands out URLs
+         * that stop working after a few hours, and a transfer on a slow
+         * connection can outlive one. Minting another and carrying on from the
+         * checkpoint is the difference between a pause and a failed install.
+         */
+        if (response.status === 401 || response.status === 403 || response.status === 410) {
+          if (await refreshSource()) continue;
+        }
         /*
          * A 5xx is the source having a bad moment; a 4xx is the source not
          * having this file. Only the second is worth moving away from
@@ -780,7 +836,7 @@ async function transferSequentially(input: {
 > {
   const { request, deps, chunks, hasher } = input;
   try {
-    const response = await deps.fetchImpl(request.sources[0].url, { signal: request.signal });
+    const response = await deps.fetchImpl(request.sources[0]!.url, { signal: request.signal });
     if (!response.ok || !response.body) {
       return {
         ok: false,

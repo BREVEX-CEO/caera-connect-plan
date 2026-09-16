@@ -781,6 +781,19 @@ export class ModelInstallationAuthority {
           plan,
           resume: checkpointFrom(meta, target.totalBytes),
           signal,
+          /*
+           * A LINK THAT EXPIRED MID-TRANSFER IS A PAUSE, NOT A FAILURE.
+           *
+           * Authorised delivery hands out URLs that stop working after a few
+           * hours. The target is resolved again — which mints a fresh one — and
+           * the transfer carries on from its checkpoint. A release that changed
+           * underneath is refused rather than spliced onto half of the old one.
+           */
+          refreshSources: async () => {
+            const fresh = await this.deps.resolveTarget(path);
+            if (!fresh || fresh.version !== target.version) return null;
+            return fresh.sources;
+          },
           onProgress: (progress) => this.reportProgress(progress),
           onCheckpoint: (checkpoint) => {
             /*
