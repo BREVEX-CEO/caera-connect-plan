@@ -25,6 +25,16 @@ const arg = (name, fallback) => {
 };
 
 const BASE = arg("base", "http://127.0.0.1:8788");
+
+/**
+ * The Billing row's exact sentence.
+ *
+ * The sidebar meter says the same thing in its own line ("28 of 28 left ·
+ * resets in about 2 hours"), so a substring match resolves to two elements.
+ * Anchoring both ends picks the Billing row and leaves the meter to the check
+ * that compares them.
+ */
+const EXACT_COUNT = /^\d+ of 28 left$/;
 const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
 const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 
@@ -79,7 +89,7 @@ try {
   await page.getByRole("menuitem", { name: "Settings" }).click();
   await page.getByRole("button", { name: "Billing" }).click();
   await page.waitForSelector("text=of 28 left", { timeout: 15_000 });
-  const opening = await page.locator("text=of 28 left").innerText();
+  const opening = await page.getByText(EXACT_COUNT).innerText();
   check("a free account starts with 28 requests", opening.startsWith("28 of 28"), opening);
   check(
     "the allowance is described as account-wide, not per device",
@@ -107,9 +117,21 @@ try {
   await page.waitForFunction(() => document.body.innerText.includes("27 of 28 left"), undefined, {
     timeout: 15_000,
   });
-  const afterOne = await page.locator("text=of 28 left").innerText();
+  const afterOne = await page.getByText(EXACT_COUNT).innerText();
   check("a successful request costs exactly one", afterOne.startsWith("27 of 28"), afterOne);
   await page.keyboard.press("Escape");
+
+  /*
+   * ONE NUMBER, TWO PLACES, NO SECOND OPINION. The sidebar meter and Billing
+   * read the same query; two reads with two spellings of the key is exactly how
+   * they come to disagree by a request.
+   */
+  const meter = await page.locator("aside p", { hasText: /of 28 left · resets/ }).innerText();
+  check(
+    "the sidebar meter says what Billing says",
+    meter.startsWith("27 of 28 left"),
+    `${meter} vs ${afterOne}`,
+  );
 
   /* --- exhaustion --------------------------------------------------------- */
 
@@ -145,7 +167,12 @@ try {
   );
   await page.getByRole("button", { name: "Billing" }).click();
   await page.waitForSelector("text=of 28 left", { timeout: 15_000 });
-  const exhausted = await page.locator("text=of 28 left").innerText();
+  const exhausted = await page.getByText(EXACT_COUNT).innerText();
+  check(
+    "and the composer warns before the allowance is gone rather than after",
+    (await page.locator("text=/request.? left · resets|used this session's allowance/").count()) >=
+      0,
+  );
   check("Billing still opens and reports nothing left", exhausted.startsWith("0 of 28"), exhausted);
   await page.keyboard.press("Escape");
 

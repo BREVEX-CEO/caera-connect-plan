@@ -28,6 +28,16 @@ const arg = (name, fallback) => {
 };
 
 const BASE = arg("base", "http://127.0.0.1:8788");
+
+/**
+ * The Billing row's exact sentence.
+ *
+ * The sidebar meter says the same thing in its own line ("28 of 28 left ·
+ * resets in about 2 hours"), so a substring match resolves to two elements.
+ * Anchoring both ends picks the Billing row and leaves the meter to the check
+ * that compares them.
+ */
+const EXACT_COUNT = /^\d+ of 28 left$/;
 const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
 const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 
@@ -168,7 +178,7 @@ try {
     await currentPage.getByRole("menuitem", { name: "Settings" }).click();
     await currentPage.getByRole("button", { name: "Billing" }).click();
     await currentPage.waitForSelector("text=of 28 left", { timeout: 15_000 });
-    const text = await currentPage.locator("text=of 28 left").innerText();
+    const text = await currentPage.getByText(EXACT_COUNT).innerText();
     await currentPage.keyboard.press("Escape");
     return Number(text.split(" ")[0]);
   }

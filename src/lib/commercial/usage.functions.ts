@@ -12,13 +12,13 @@
  *   finalizeGenerationPermit  once output has genuinely reached the person
  *   releaseGenerationPermit   on failure, or on cancellation before output
  *
- * THE CLIENT SUPPLIES THE MEASUREMENT, AND THE SERVER DECIDES WHAT IT COSTS.
- * That split is deliberate. On-device inference happens in the browser, so the
- * browser is the only thing that can count the tokens it produced — but it
- * never says what those tokens are worth. Weighting, the tier, the allowance
- * and the window all come from the server, so a tampered client can at worst
- * understate its own usage of an engine that costs OCADE nothing to run, and
- * can never grant itself a larger allowance or a plan it has not got.
+ * THE CLIENT REPORTS NOTHING THAT COSTS MONEY. It used to send a measurement —
+ * tokens in, tokens out, tool batches, side effects — which the server weighed
+ * into a fractional charge, and every field of it had to be clamped because a
+ * negative one would credit the account. A successful request costs one use on
+ * every tier, so the browser has nothing left to report and nothing left to get
+ * wrong. The tier, the allowance and the window were always server-side and
+ * still are.
  *
  * THE IDEMPOTENCY KEY IS BOUND TO THE ACCOUNT, not taken at face value. Two
  * people sending at the same moment with the same client-generated key must not
@@ -28,7 +28,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { CommercialGenerationGate, type GenerationSurface } from "./generation-gate";
 import { supabaseCommercialLedger } from "./supabase-ledger";
-import { ALLOWANCES, describeUsage, type WorkMeasurement } from "./usage-policy";
+import { ALLOWANCES, describeUsage } from "./usage-policy";
 import { resolveTierFor, type ResolvedEntitlement } from "./entitlement-resolver";
 
 /**
@@ -58,8 +58,6 @@ export interface PermitGranted {
   ok: true;
   permitId: string;
   tier: ResolvedEntitlement["tier"];
-  /** Exact use held on Free. Paid internal work units never cross to the UI. */
-  reserved?: number;
 }
 
 export interface PermitRefused {
@@ -161,42 +159,29 @@ export const acquireGenerationPermit = createServerFn({ method: "POST" })
       ok: true,
       permitId: result.permit.id,
       tier: entitlement.tier,
-      reserved: entitlement.tier === "free" ? result.permit.reserved : undefined,
     };
   });
 
-function measurementFrom(data: Partial<WorkMeasurement> | undefined): WorkMeasurement {
-  /*
-   * Clamped and coerced, because these numbers come from a browser. A negative
-   * count would credit the account; a NaN would poison the arithmetic. Neither
-   * is treated as an attack to reject — a truncated stream can produce either
-   * honestly — so both become zero and the request pays the floor.
-   */
-  const whole = (value: unknown): number => {
-    const parsed = typeof value === "number" ? value : Number(value);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-  };
-  return {
-    billableInputTokens: whole(data?.billableInputTokens),
-    visibleOutputTokens: whole(data?.visibleOutputTokens),
-    readToolBatches: whole(data?.readToolBatches),
-    sideEffectActions: whole(data?.sideEffectActions),
-    mediaWork: whole(data?.mediaWork),
-  };
-}
-
 /**
- * The answer reached the person. Charge what it actually cost.
+ * The answer reached the person. Charge the one use it reserved.
  *
  * Called only once output has genuinely been delivered — not when generation
  * started, and not when a stream opened.
+ *
+ * NOTHING IS MEASURED HERE ANY MORE, and that removed a whole trust boundary.
+ * This used to take a `WorkMeasurement` from the browser — input tokens, output
+ * tokens, read batches, side effects, media work — clamp every field because a
+ * negative one would credit the account and a NaN would poison the arithmetic,
+ * and weigh the result into a fractional cost. A successful request costs one
+ * use on every tier, so the browser has nothing left to report and nothing left
+ * to get wrong.
  */
 export const finalizeGenerationPermit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: { idempotencyKey: string; measurement?: Partial<WorkMeasurement> }) => {
+  .validator((data: { idempotencyKey: string }) => {
     const key = data?.idempotencyKey?.trim();
     if (!key) throw new Error("A request key is required.");
-    return { idempotencyKey: key, measurement: data.measurement };
+    return { idempotencyKey: key };
   })
   .handler(async ({ data, context }): Promise<{ charged: number }> => {
     const charged = await (
@@ -204,7 +189,6 @@ export const finalizeGenerationPermit = createServerFn({ method: "POST" })
     ).finalizePersisted({
       userId: context.userId,
       idempotencyKey: data.idempotencyKey,
-      measurement: measurementFrom(data.measurement),
     });
     return { charged };
   });
@@ -236,24 +220,23 @@ export const releaseGenerationPermit = createServerFn({ method: "POST" })
 export interface CommercialUsageView {
   tier: ResolvedEntitlement["tier"];
   /**
-   * What to show, already shaped by the tier's own rule: exact numbers on Free,
-   * proportions on Pro and Max. Shaped on the SERVER so a browser cannot ask for
-   * the raw equivalents behind a percentage.
+   * Exact counts, on every tier.
+   *
+   * This carried two shapes — raw numbers on Free, percentages on Pro and Max —
+   * because the paid tiers counted a weighted "Standard Work Equivalent" that
+   * was not a unit anybody could convert into their own work. The unit is now a
+   * successful request, so there is nothing left to hide behind a proportion
+   * and nothing left for two shapes to disagree about.
    */
   windows: {
     kind: "session" | "week";
-    display: "raw" | "percentage";
-    used?: number;
-    remaining?: number;
-    allowance?: number;
-    usedPercent?: number;
-    remainingPercent?: number;
-    /** Raw on Free; percentage-only on paid plans. */
-    onlineReserved?: number;
-    onlineReservedPercent?: number;
+    used: number;
+    remaining: number;
+    allowance: number;
+    /** Requests in flight right now, already held against the allowance. */
+    onlineReserved: number;
     /** Capacity already signed or being signed for disconnected devices. */
-    offlineAllocated?: number;
-    offlineAllocatedPercent?: number;
+    offlineAllocated: number;
     resetsInMs: number;
     resetsAt: string;
   }[];
@@ -262,11 +245,7 @@ export interface CommercialUsageView {
 /**
  * What this account has spent, and how much of it is left.
  *
- * READ-ONLY and shaped by the tier before it leaves the server. Free is shown
- * exact numbers because it has twenty-eight of something to plan around; Pro
- * and Max are shown proportions, because a Standard Work Equivalent is not a
- * unit anybody can convert into their own work and quoting it would invite
- * people to optimise against the unit rather than do the work.
+ * READ-ONLY, and the numbers are the ones the person is shown: "18 of 28 left".
  */
 export const readCommercialUsage = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -306,7 +285,6 @@ export const readCommercialUsage = createServerFn({ method: "GET" })
         )
         .reduce((sum, row) => sum + Number(row.pending_hundredths) / 100, 0);
       const shown = describeUsage(
-        entitlement.tier,
         {
           kind: window.kind,
           used: Math.max(0, serverWindow.used - offlineAllocated),
@@ -320,18 +298,8 @@ export const readCommercialUsage = createServerFn({ method: "GET" })
       if (shown) {
         windows.push({
           ...shown,
-          remainingPercent:
-            shown.display === "percentage" ? 100 - (shown.usedPercent ?? 0) : undefined,
-          onlineReserved: shown.display === "raw" ? Math.round(serverWindow.reserved) : undefined,
-          onlineReservedPercent:
-            shown.display === "percentage" && cap
-              ? Math.min(100, Math.round((serverWindow.reserved / cap) * 100))
-              : undefined,
-          offlineAllocated: shown.display === "raw" ? Math.round(offlineAllocated) : undefined,
-          offlineAllocatedPercent:
-            shown.display === "percentage" && cap
-              ? Math.min(100, Math.round((offlineAllocated / cap) * 100))
-              : undefined,
+          onlineReserved: Math.round(serverWindow.reserved),
+          offlineAllocated: Math.round(offlineAllocated),
           resetsAt: new Date(window.endsAt).toISOString(),
         });
       }

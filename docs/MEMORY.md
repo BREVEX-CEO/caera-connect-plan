@@ -570,9 +570,67 @@ and 0 admins left behind.
 - **Leaked password protection**: Authentication → Sign In / Providers →
   Password → enable "Prevent use of leaked passwords". Advisor reports it off.
 
+## Phase 5 result — one use, on every tier, everywhere
+
+The weighted-work model is gone. `usage-policy.ts` is now one counting model:
+`ONE_USE = 1`, `TierAllowance {session, week}`, a single-argument
+`checkAllowance`, and `describeUsage` returning exact counts. Deleted with it:
+`WorkMeasurement`, `weighWork`, `MINIMUM_WORK`, `costOf`, the `counting`/
+`display` shapes, `usedPercent`, and the whole of `token-estimate.ts`.
+
+What that removed beyond the arithmetic:
+
+- a trust boundary — the browser used to report tokens in, tokens out, read
+  batches and side effects, every field of which had to be clamped because a
+  negative one would credit the account. It reports nothing that costs money
+  now, so `finalizeGenerationPermit` takes only an idempotency key;
+- a reconciliation — the reservation IS the charge, so `finalize` settles and
+  moves nothing, and a permitted request can no longer overrun its allowance
+  the way a measured top-up could;
+- two answers to "how much have I used" — Pro and Max were shown a percentage
+  because the unit behind it was not one anybody could convert into their own
+  work. Every tier is shown exact counts;
+- `PermitGranted.reserved`, which had no consumer left.
+
+**The commercial rule for a partial or cancelled response**, in one place
+(`createBilledRequest`): output that reached the person is one use; nothing
+reaching them is zero. Pressing Stop after half an answer is a use, because
+half an answer arrived. Whitespace alone is not. Settling twice settles once.
+Three regression tests hold each case.
+
+**Bounding what one use may cost.** Everything going in was already bounded (1
+MiB body, 256 messages, 128 tools, 200k chars per message, 110s provider
+timeout, 3 attempts); nothing bounded what came back. The boundary now sends
+`generationConfig.maxOutputTokens = 8192`. That made `MAX_TOKENS` an ordinary
+ending, and exposed a real bug: every finish reason other than `STOP` became a
+refusal, so a capped answer would have put an error under text the person had
+just read and had the client release a permit for output it received. Fixed,
+with tests for the cap, for the truncated delivery, and for a genuine `SAFETY`
+stop still refusing.
+
+**Usage UI.** One `useCommercialUsage` hook and one query key shared by three
+surfaces. `PLAN.md` asks for a meter near the account, a subtle warning near
+Send and full detail under Billing: the sidebar meter sits above the account
+row, the composer says nothing until three requests remain, and Billing shows
+both windows. The browser journey proves the meter and Billing report the same
+number after a real send.
+
+Verified: `verify:full` 14 gates; 141 commercial tests including the real
+Postgres gate and ledger suites; all 10 browser journeys.
+
+### Carried forward
+
+- **Upgrade action on exhaustion** — `PLAN.md` Phase 5 asks for one, and
+  `/pricing` does not exist until Phase 6. Wire it when the route is real
+  rather than linking at a 404.
+- **Edge Function redeploy** — `maxOutputTokens` and the `MAX_TOKENS` fix are
+  in the tree but not in the deployed function. Phase 15 deploys the reconciled
+  tree and proves the versions belong together.
+
 ## Exact next action
 
-**Phase 5** — one simple account-wide allowance. Replace the weighted-work
-model with successful-request counting for every tier.
+**Phase 6** — restore Pricing, checkout and entitlements. `/pricing` is
+currently asserted to 404 by `shell-journey.mjs`; that assertion is what
+changes first.
 
 Do not begin implementation of Cowork/Jarvis.

@@ -6,7 +6,7 @@
  *     → a backend-neutral permit
  *     → OCADE Intelligence
  *     → agent and tools
- *     → success:                        permit.finalize(measurement)
+ *     → success:                        permit.finalize()
  *     → failure or cancel before output: permit.release(reason)
  *
  * NO SURFACE ROUTES WITHOUT A PERMIT, and the permit is acquired BEFORE
@@ -43,13 +43,10 @@
 import type { PlanTier } from "@/lib/payments/pricing";
 import {
   ALLOWANCES,
-  MINIMUM_WORK,
+  ONE_USE,
   type UsageWindow,
   type WindowUsage,
-  type WorkMeasurement,
   checkAllowance,
-  costOf,
-  weighWork,
   windowFor,
 } from "./usage-policy";
 
@@ -97,7 +94,7 @@ export interface DurableWindowUsage {
  * when the ledger refuses.
  */
 export interface CommercialUsageLedger {
-  /** What each window already holds, in equivalents. */
+  /** What each window already holds, in successful requests. */
   read(userId: string, windows: UsageWindow[]): Promise<Map<string, number>>;
   /** Add to one window atomically. Throws when it would exceed the allowance. */
   reserve(input: {
@@ -122,11 +119,7 @@ export interface CommercialUsageLedger {
     weekAllowance: number | null;
     reserved: number;
   }): Promise<DurablePermitAcquisition>;
-  finalizePermit?(input: {
-    userId: string;
-    idempotencyKey: string;
-    measuredCost: number;
-  }): Promise<number>;
+  finalizePermit?(input: { userId: string; idempotencyKey: string }): Promise<number>;
   releasePermit?(input: {
     userId: string;
     idempotencyKey: string;
@@ -153,10 +146,10 @@ export interface GenerationPermit {
   readonly generationId: string;
   readonly surface: GenerationSurface;
   readonly tier: PlanTier;
-  /** Equivalents currently held against the account. */
+  /** Uses currently held against the account. Always one, until settled. */
   readonly reserved: number;
-  /** Charge the real cost and settle the difference. */
-  finalize(measurement: WorkMeasurement): Promise<number>;
+  /** Charge the one use this request reserved. */
+  finalize(): Promise<number>;
   /** Give everything back. Safe to call twice. */
   release(reason: ReleaseReason): Promise<void>;
 }
@@ -215,7 +208,6 @@ export class CommercialGenerationGate {
     if (existing) return { ok: true, permit: existing };
 
     const allowance = ALLOWANCES[request.tier];
-    const upfront = allowance.counting === "uses" ? 1 : MINIMUM_WORK;
 
     if (this.ledger.acquirePermit) {
       const durable = await this.ledger.acquirePermit({
@@ -226,7 +218,7 @@ export class CommercialGenerationGate {
         tier: request.tier,
         sessionAllowance: allowance.session,
         weekAllowance: allowance.week,
-        reserved: upfront,
+        reserved: ONE_USE,
       });
       if (durable.outcome === "session_exhausted" || durable.outcome === "week_exhausted") {
         return {
@@ -270,17 +262,15 @@ export class CommercialGenerationGate {
     ];
 
     /*
-     * RESERVED AT THE MINIMUM, not at a guess.
+     * RESERVED AT WHAT IT COSTS, WHICH IS ALWAYS ONE.
      *
-     * What a request will cost is unknowable before it runs. Reserving the
-     * floor means an account with room starts immediately and an exhausted one
-     * is refused before any backend is touched; the true cost is settled at
-     * `finalize`, when it is measured rather than predicted.
-     *
-     * Free reserves a whole use, because on Free a use IS the unit and half of
-     * one does not exist.
+     * There is nothing to predict any more. A successful request costs one use
+     * on every tier, so the reservation IS the charge and `finalize` has
+     * nothing to reconcile. What this once did — reserve a quarter-equivalent
+     * floor, then top up or refund the difference against a weighted
+     * measurement the browser supplied — is gone with the weighting.
      */
-    const verdict = checkAllowance(usage, upfront);
+    const verdict = checkAllowance(usage);
     if (!verdict.allowed) {
       return {
         ok: false,
@@ -304,10 +294,10 @@ export class CommercialGenerationGate {
         await this.ledger.reserve({
           userId: request.userId,
           window: entry.window,
-          amount: upfront,
+          amount: ONE_USE,
           allowance: entry.allowance,
         });
-        reservedWindows.push({ window: entry.window, amount: upfront });
+        reservedWindows.push({ window: entry.window, amount: ONE_USE });
       }
     } catch (error) {
       /*
@@ -333,18 +323,17 @@ export class CommercialGenerationGate {
       throw error;
     }
 
-    const permit = this.createPermit(request, upfront, reservedWindows);
+    const permit = this.createPermit(request, reservedWindows);
     this.inFlight.set(request.idempotencyKey, permit);
     return { ok: true, permit };
   }
 
   private createPermit(
     request: AcquireRequest,
-    upfront: number,
     held: { window: UsageWindow; amount: number }[],
   ): GenerationPermit {
     let settled = false;
-    let reserved = upfront;
+    let reserved: number = ONE_USE;
 
     return {
       id: request.idempotencyKey,
@@ -356,45 +345,17 @@ export class CommercialGenerationGate {
         return reserved;
       },
 
-      finalize: async (measurement: WorkMeasurement): Promise<number> => {
+      finalize: async (): Promise<number> => {
         // Settling twice would charge the same answer twice.
         if (settled) return reserved;
         settled = true;
         this.inFlight.delete(request.idempotencyKey);
-
-        const total = costOf(request.tier, measurement);
-        const difference = total - reserved;
-        if (difference > 0) {
-          /*
-           * TOPPED UP WITHOUT A CEILING.
-           *
-           * The allowance was checked when the request was permitted; a
-           * request that was allowed to start must be allowed to finish and be
-           * charged honestly for what it did. Refusing the top-up would leave
-           * the person with an answer they received and did not pay for, and
-           * refusing it MID-ANSWER would be worse still. A request that
-           * overruns takes the next one below the line instead, which is where
-           * the refusal belongs.
-           */
-          for (const entry of held) {
-            await this.ledger.reserve({
-              userId: request.userId,
-              window: entry.window,
-              amount: difference,
-              allowance: null,
-            });
-          }
-        } else if (difference < 0) {
-          for (const entry of held) {
-            await this.ledger.release({
-              userId: request.userId,
-              window: entry.window,
-              amount: -difference,
-            });
-          }
-        }
-        reserved = total;
-        return total;
+        /*
+         * NOTHING TO RECONCILE. The one use was taken when the request was
+         * permitted and the answer costs exactly that, so finalising is only
+         * deciding not to give it back.
+         */
+        return reserved;
       },
 
       release: async (): Promise<void> => {
@@ -430,13 +391,12 @@ export class CommercialGenerationGate {
       get reserved() {
         return reserved;
       },
-      finalize: async (measurement) => {
+      finalize: async () => {
         if (settled) return reserved;
         settled = true;
         reserved = await this.finalizePersisted({
           userId: request.userId,
           idempotencyKey: request.idempotencyKey,
-          measurement,
         });
         return reserved;
       },
@@ -454,20 +414,13 @@ export class CommercialGenerationGate {
   }
 
   /** Settle a durable permit without relying on the process that acquired it. */
-  async finalizePersisted(input: {
-    userId: string;
-    idempotencyKey: string;
-    measurement: WorkMeasurement;
-  }): Promise<number> {
+  async finalizePersisted(input: { userId: string; idempotencyKey: string }): Promise<number> {
     if (!this.ledger.finalizePermit) {
       throw new Error("The commercial ledger has no durable permit authority.");
     }
     return this.ledger.finalizePermit({
       userId: input.userId,
       idempotencyKey: input.idempotencyKey,
-      // Postgres stores the acquired tier and forces Free to exactly one use.
-      // Paid tiers both use the same weighted schedule.
-      measuredCost: weighWork(input.measurement),
     });
   }
 

@@ -20,7 +20,7 @@ import {
   type CommercialUsageLedger,
   type DurablePermitOutcome,
 } from "./generation-gate";
-import type { UsageWindow } from "./usage-policy";
+import { ONE_USE, type UsageWindow } from "./usage-policy";
 
 /**
  * Equivalents to the integer hundredths the ledger stores.
@@ -166,11 +166,11 @@ export function supabaseCommercialLedger(admin: SupabaseClient<Database>): Comme
       };
     },
 
-    async finalizePermit({ userId, idempotencyKey, measuredCost }) {
+    async finalizePermit({ userId, idempotencyKey }) {
       const { data, error } = await admin.rpc("ocade_finalize_generation_permit", {
         p_user_id: userId,
         p_idempotency_key: idempotencyKey,
-        p_cost_hundredths: toHundredths(measuredCost),
+        p_cost_hundredths: toHundredths(ONE_USE),
       });
       if (error) throw new Error(`The usage ledger could not finalize a permit: ${error.message}`);
       const row = firstRow(data);

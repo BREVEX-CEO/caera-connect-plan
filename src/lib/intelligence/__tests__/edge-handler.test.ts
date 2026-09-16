@@ -461,4 +461,65 @@ describe("the health record this function leaves behind", () => {
     const response = await handleOnlineIntelligence(request(), dependencies());
     expect(response.status).toBe(200);
   });
+
+  it("caps what one use can cost by bounding the answer the provider may generate", async () => {
+    /*
+     * A successful request costs the customer exactly one use however long the
+     * answer is, so without a ceiling the cost of that one use to OCADE is
+     * whatever the provider feels like generating.
+     */
+    let sent: Record<string, unknown> | null = null;
+    await handleOnlineIntelligence(
+      request(),
+      dependencies({
+        callProvider: vi.fn(async ({ body: providerInput }) => {
+          sent = providerInput;
+          return provider([{ candidates: [{ content: { parts: [{ text: "ok" }] } }] }]);
+        }),
+      }),
+    );
+    expect(sent).toMatchObject({ generationConfig: { maxOutputTokens: expect.any(Number) } });
+    const cap = (sent as unknown as { generationConfig: { maxOutputTokens: number } })
+      .generationConfig.maxOutputTokens;
+    expect(cap).toBeGreaterThan(1_000);
+    expect(cap).toBeLessThanOrEqual(16_384);
+  });
+
+  it("delivers an answer that reached the length cap instead of calling it a failure", async () => {
+    /*
+     * The cap above makes `MAX_TOKENS` an ordinary ending. Treating it as a
+     * refusal would put an error under an answer the person had just read, and
+     * would have the client release a permit for output it received.
+     */
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({
+        callProvider: vi.fn(async () =>
+          provider([
+            {
+              candidates: [
+                { content: { parts: [{ text: "a long answer" }] }, finishReason: "MAX_TOKENS" },
+              ],
+            },
+          ]),
+        ),
+      }),
+    );
+    const stream = await response.text();
+    expect(stream).toContain('"type":"token","text":"a long answer"');
+    expect(stream).toContain('"type":"final"');
+    expect(stream).not.toContain('"type":"refusal"');
+  });
+
+  it("still refuses a genuine provider stop, such as a safety block", async () => {
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({
+        callProvider: vi.fn(async () =>
+          provider([{ candidates: [{ content: { parts: [] }, finishReason: "SAFETY" }] }]),
+        ),
+      }),
+    );
+    expect(await response.text()).toContain('"type":"refusal"');
+  });
 });

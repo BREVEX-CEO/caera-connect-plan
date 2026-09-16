@@ -31,7 +31,6 @@
  * all come from the server, which clamps whatever arrives.
  */
 import { toast } from "sonner";
-import { estimateTokens } from "./token-estimate";
 import { getOfflineCurrentDeviceIdentity } from "./device-identity";
 import { observeNow, readTrustedClockHighWater } from "@/lib/time/trusted-clock";
 import {
@@ -47,18 +46,12 @@ import {
   type OfflineGenerationReservation,
 } from "./offline-counter";
 import { trustedOfflineTimeNow } from "./offline-lease";
-import { costOf, type WorkMeasurement } from "./usage-policy";
+import { ONE_USE } from "./usage-policy";
 import type { GenerationSurface } from "./generation-gate";
 
 export interface DeliveredWork {
-  /** What OCADE was given to work from, as it was actually sent. */
-  prompt?: string;
   /** What the person actually received. Partial output still counts. */
   answer?: string;
-  /** Distinct verified read batches, when the request used tools. */
-  readToolBatches?: number;
-  /** Distinct verified actions that changed something outside OCADE. */
-  sideEffectActions?: number;
 }
 
 export interface BilledRequest {
@@ -205,8 +198,8 @@ export async function beginBilledRequest(options?: {
       surface,
       source: "server",
     },
-    settleSuccess: (measurement) =>
-      finalizeGenerationPermit({ data: { idempotencyKey, measurement } }).then(() => undefined),
+    settleSuccess: () =>
+      finalizeGenerationPermit({ data: { idempotencyKey } }).then(() => undefined),
     settleEmpty: () =>
       releaseGenerationPermit({
         data: { idempotencyKey, reason: "cancelled_before_output" },
@@ -270,14 +263,14 @@ async function beginOfflineBilledRequest(input: {
         surface: reservation.surface,
         source: "offline_lease",
       },
-      settleSuccess: async (measurement) => {
+      settleSuccess: async () => {
         await finalizeOfflineGeneration({
           reservation,
           accountId: identity.accountId,
           deviceId: identity.deviceId,
           keys: entry.verificationKeys,
           time: trustedOfflineTimeNow(entry.lease.payload.issuedAt, readTrustedClockHighWater()),
-          costHundredths: Math.round(costOf(entry.lease.payload.tier, measurement) * 100),
+          costHundredths: ONE_USE * 100,
         });
         window.dispatchEvent(new Event("ocade:offline-usage-updated"));
       },
@@ -307,34 +300,25 @@ async function beginOfflineBilledRequest(input: {
 
 function createBilledRequest(input: {
   permit: BilledRequest["permit"];
-  settleSuccess(measurement: WorkMeasurement): Promise<void>;
+  settleSuccess(): Promise<void>;
   settleEmpty(): Promise<void>;
 }): BilledRequest {
-  const delivered: Required<Omit<DeliveredWork, "prompt" | "answer">> & {
-    prompt: string;
-    answer: string;
-  } = { prompt: "", answer: "", readToolBatches: 0, sideEffectActions: 0 };
   let anythingDelivered = false;
   let settled = false;
 
   return {
     permit: input.permit,
     recordDelivery(work) {
-      // The longest text seen wins rather than the sum: a streaming path
-      // reports the accumulated answer repeatedly, and adding those up would
-      // charge for the same tokens once per frame.
-      if (work.prompt && work.prompt.length > delivered.prompt.length) {
-        delivered.prompt = work.prompt;
-      }
-      if (work.answer && work.answer.length > delivered.answer.length) {
-        delivered.answer = work.answer;
-      }
-      delivered.readToolBatches = Math.max(delivered.readToolBatches, work.readToolBatches ?? 0);
-      delivered.sideEffectActions = Math.max(
-        delivered.sideEffectActions,
-        work.sideEffectActions ?? 0,
-      );
-      if (delivered.answer.trim().length > 0) anythingDelivered = true;
+      /*
+       * ONE QUESTION: DID ANY OUTPUT REACH THEM?
+       *
+       * This used to keep the longest prompt and the longest answer seen, count
+       * read batches and side-effect actions, and estimate tokens from all of
+       * it to build a weighted measurement. A successful request costs one use
+       * on every tier now, so the only thing worth remembering is whether there
+       * was an answer at all.
+       */
+      if ((work.answer ?? "").trim().length > 0) anythingDelivered = true;
     },
 
     async settle() {
@@ -345,19 +329,13 @@ function createBilledRequest(input: {
           await input.settleEmpty();
           return;
         }
-        const measurement: WorkMeasurement = {
-          billableInputTokens: estimateTokens(delivered.prompt),
-          visibleOutputTokens: estimateTokens(delivered.answer),
-          readToolBatches: delivered.readToolBatches,
-          sideEffectActions: delivered.sideEffectActions,
-        };
-        await input.settleSuccess(measurement);
+        await input.settleSuccess();
       } catch {
         /*
          * Settling failed. Not surfaced: the person has their answer, and a
          * toast about OCADE's bookkeeping would be noise they can do nothing
-         * about. The reservation expires with its window, so the worst outcome
-         * is that a request is charged at the floor rather than in full.
+         * about. The reservation is already the charge, so the worst outcome
+         * is that it stays held until its window expires.
          */
       }
     },

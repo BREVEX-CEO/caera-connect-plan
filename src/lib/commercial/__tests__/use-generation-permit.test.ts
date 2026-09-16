@@ -64,7 +64,7 @@ describe("the customer-side commercial permit boundary", () => {
   });
 
   it("returns a billable request only after the server grants a permit", async () => {
-    mocks.acquire.mockResolvedValue({ ok: true, permitId: "request-1", tier: "free", reserved: 1 });
+    mocks.acquire.mockResolvedValue({ ok: true, permitId: "request-1", tier: "free" });
 
     const billed = await beginBilledRequest({ idempotencyKey: "request-1" });
     expect(billed).not.toBeNull();
@@ -75,7 +75,7 @@ describe("the customer-side commercial permit boundary", () => {
       source: "server",
     });
 
-    billed!.recordDelivery({ prompt: "hello", answer: "hello back" });
+    billed!.recordDelivery({ answer: "hello back" });
     await billed!.settle();
 
     expect(mocks.finalize).toHaveBeenCalledOnce();
@@ -83,7 +83,7 @@ describe("the customer-side commercial permit boundary", () => {
   });
 
   it("releases a granted permit when no output reached the user", async () => {
-    mocks.acquire.mockResolvedValue({ ok: true, permitId: "request-2", tier: "free", reserved: 1 });
+    mocks.acquire.mockResolvedValue({ ok: true, permitId: "request-2", tier: "free" });
 
     const billed = await beginBilledRequest({ idempotencyKey: "request-2" });
     await billed!.settle();
@@ -93,6 +93,45 @@ describe("the customer-side commercial permit boundary", () => {
     });
     expect(mocks.finalize).not.toHaveBeenCalled();
     expect(mocks.offlineIdentity).not.toHaveBeenCalled();
+  });
+
+  it("charges one use for a partial answer, because the person received one", async () => {
+    /*
+     * THE RULE FOR A PARTIAL OR CANCELLED RESPONSE, in one place: output that
+     * reached the person is a use, and nothing reaching them is not. A person
+     * who pressed Stop after reading half an answer got half an answer, and a
+     * length cap is the same case seen from OCADE's side.
+     */
+    mocks.acquire.mockResolvedValue({ ok: true, permitId: "request-partial", tier: "free" });
+
+    const billed = await beginBilledRequest({ idempotencyKey: "request-partial" });
+    billed!.recordDelivery({ answer: "half an ans" });
+    await billed!.settle();
+
+    expect(mocks.finalize).toHaveBeenCalledOnce();
+    expect(mocks.release).not.toHaveBeenCalled();
+  });
+
+  it("charges nothing when the only thing delivered was whitespace", async () => {
+    mocks.acquire.mockResolvedValue({ ok: true, permitId: "request-blank", tier: "free" });
+
+    const billed = await beginBilledRequest({ idempotencyKey: "request-blank" });
+    billed!.recordDelivery({ answer: "   \n  " });
+    await billed!.settle();
+
+    expect(mocks.finalize).not.toHaveBeenCalled();
+    expect(mocks.release).toHaveBeenCalledOnce();
+  });
+
+  it("settles a repeated settle exactly once, so a reconnect cannot charge twice", async () => {
+    mocks.acquire.mockResolvedValue({ ok: true, permitId: "request-twice", tier: "free" });
+
+    const billed = await beginBilledRequest({ idempotencyKey: "request-twice" });
+    billed!.recordDelivery({ answer: "an answer" });
+    await billed!.settle();
+    await billed!.settle();
+
+    expect(mocks.finalize).toHaveBeenCalledOnce();
   });
 
   it("refuses an exhausted account before returning anything that can run AI", async () => {
@@ -130,12 +169,7 @@ describe("the customer-side commercial permit boundary", () => {
 
   it("fails closed on timeout and releases a reservation that arrives late", async () => {
     vi.useFakeTimers();
-    let resolveAcquisition!: (value: {
-      ok: true;
-      permitId: string;
-      tier: "free";
-      reserved: number;
-    }) => void;
+    let resolveAcquisition!: (value: { ok: true; permitId: string; tier: "free" }) => void;
     mocks.acquire.mockReturnValue(
       new Promise((resolve) => {
         resolveAcquisition = resolve;
@@ -147,7 +181,7 @@ describe("the customer-side commercial permit boundary", () => {
     await expect(pending).resolves.toBeNull();
     expect(mocks.finalize).not.toHaveBeenCalled();
 
-    resolveAcquisition({ ok: true, permitId: "request-5", tier: "free", reserved: 1 });
+    resolveAcquisition({ ok: true, permitId: "request-5", tier: "free" });
     await vi.waitFor(() => {
       expect(mocks.release).toHaveBeenCalledWith({
         data: { idempotencyKey: "request-5", reason: "client_timeout" },
@@ -192,7 +226,7 @@ describe("the customer-side commercial permit boundary", () => {
       surface: "cowork",
       source: "offline_lease",
     });
-    billed!.recordDelivery({ prompt: "edit this", answer: "done" });
+    billed!.recordDelivery({ answer: "done" });
     await billed!.settle();
 
     expect(mocks.finalizeOffline).toHaveBeenCalledOnce();
@@ -277,7 +311,7 @@ describe("the customer-side commercial permit boundary", () => {
       }),
     );
 
-    billed!.recordDelivery({ prompt: "create it", answer: "created" });
+    billed!.recordDelivery({ answer: "created" });
     await billed!.settle();
     expect(mocks.finalize).not.toHaveBeenCalled();
     expect(mocks.finalizeOffline).toHaveBeenCalledOnce();

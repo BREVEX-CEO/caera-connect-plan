@@ -39,6 +39,7 @@ import {
   type ChatMessageRecord,
 } from "@/lib/ocade-chat-store";
 import { beginBilledRequest } from "@/lib/commercial/use-generation-permit";
+import { USAGE_QUERY_KEY } from "@/lib/commercial/use-commercial-usage";
 import { ocadeIntelligence } from "@/lib/intelligence/ocade-intelligence";
 import type { IntelligenceMode } from "@/lib/intelligence/contract";
 import { useSession } from "@/lib/session";
@@ -243,7 +244,7 @@ export function useChat(): ChatState & ChatActions {
           );
         }
 
-        billed.recordDelivery({ prompt: text, answer });
+        billed.recordDelivery({ answer });
         await settle();
         void refreshConversations();
         /*
@@ -251,7 +252,7 @@ export function useChat(): ChatState & ChatActions {
          * Settings reads it through the same query key, so one invalidation
          * keeps every surface honest rather than each caching its own answer.
          */
-        void queryClient.invalidateQueries({ queryKey: ["usage", "commercial"] });
+        void queryClient.invalidateQueries({ queryKey: USAGE_QUERY_KEY });
       } catch (cause) {
         setProblem(describeStorageError(cause));
         await settle();

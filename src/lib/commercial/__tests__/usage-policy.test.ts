@@ -2,29 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   ALLOWANCES,
   MAX_MULTIPLE_OF_PRO,
-  MINIMUM_WORK,
+  ONE_USE,
   SESSION_WINDOW_MS,
   WEEK_WINDOW_MS,
   checkAllowance,
-  costOf,
   describeUsage,
   millisecondsUntilReset,
-  weighWork,
   windowFor,
   type WindowUsage,
-  type WorkMeasurement,
 } from "@/lib/commercial/usage-policy";
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
-
-/** A measurement that weighs nothing, so each test can add one dimension. */
-const nothing: WorkMeasurement = {
-  billableInputTokens: 0,
-  visibleOutputTokens: 0,
-  readToolBatches: 0,
-  sideEffectActions: 0,
-};
 
 describe("the allowances are the approved ones", () => {
   it("gives Free exactly 28 uses per session and no weekly limit", () => {
@@ -32,14 +21,11 @@ describe("the allowances are the approved ones", () => {
     // Null, not a large number: a limit nobody can reach still has to be
     // explained to somebody.
     expect(ALLOWANCES.free.week).toBeNull();
-    expect(ALLOWANCES.free.counting).toBe("uses");
-    expect(ALLOWANCES.free.display).toBe("raw");
   });
 
   it("gives Pro 140 per session and 700 per week", () => {
     expect(ALLOWANCES.pro.session).toBe(140);
     expect(ALLOWANCES.pro.week).toBe(700);
-    expect(ALLOWANCES.pro.counting).toBe("weighted");
   });
 
   it("makes Max exactly ten times Pro, not approximately", () => {
@@ -50,10 +36,20 @@ describe("the allowances are the approved ones", () => {
     expect(ALLOWANCES.max.week).toBe(7000);
   });
 
-  it("shows raw numbers on Free and percentages on the paid tiers", () => {
-    expect(ALLOWANCES.free.display).toBe("raw");
-    expect(ALLOWANCES.pro.display).toBe("percentage");
-    expect(ALLOWANCES.max.display).toBe("percentage");
+  /*
+   * ONE COUNTING MODEL, AND THAT IS THE POINT OF PHASE 5.
+   *
+   * Free counted uses; Pro and Max counted a weighted "Standard Work
+   * Equivalent" built from input tokens, output tokens, read batches, side
+   * effects and a media schedule — a unit the customer was shown as a
+   * percentage because it was not one anybody could convert into their own
+   * work. Two models meant two answers to "how much have I used".
+   */
+  it("costs one use on every tier, with no second counting model", () => {
+    expect(ONE_USE).toBe(1);
+    for (const allowance of Object.values(ALLOWANCES)) {
+      expect(Object.keys(allowance).sort()).toEqual(["session", "week"]);
+    }
   });
 });
 
@@ -109,79 +105,6 @@ describe("the session window is six hours and twenty-eight minutes", () => {
   });
 });
 
-describe("weighted work", () => {
-  it("weighs each dimension at its stated rate", () => {
-    expect(weighWork({ ...nothing, billableInputTokens: 4000 })).toBe(1);
-    expect(weighWork({ ...nothing, visibleOutputTokens: 1000 })).toBe(1);
-    expect(weighWork({ ...nothing, readToolBatches: 8 })).toBe(1);
-    expect(weighWork({ ...nothing, sideEffectActions: 4 })).toBe(1);
-    expect(weighWork({ ...nothing, mediaWork: 1 })).toBe(1);
-  });
-
-  it("adds the dimensions together", () => {
-    expect(
-      weighWork({
-        billableInputTokens: 8000,
-        visibleOutputTokens: 2000,
-        readToolBatches: 8,
-        sideEffectActions: 8,
-        mediaWork: 0.5,
-      }),
-    ).toBe(2 + 2 + 1 + 2 + 0.5);
-  });
-
-  it("never charges less than a quarter equivalent for a successful request", () => {
-    expect(weighWork(nothing)).toBe(MINIMUM_WORK);
-    expect(weighWork({ ...nothing, visibleOutputTokens: 1 })).toBe(MINIMUM_WORK);
-  });
-
-  it("rounds UP to the nearest hundredth, so many small requests are not free", () => {
-    // 1001 output tokens is 1.001 equivalents. Rounded down, a thousand such
-    // requests would cost a thousand rather than 1010.
-    expect(weighWork({ ...nothing, visibleOutputTokens: 1001 })).toBe(1.01);
-    expect(weighWork({ ...nothing, visibleOutputTokens: 1000.5 })).toBe(1.01);
-  });
-
-  it("does not round a clean total up because of floating point", () => {
-    // 0.1 + 0.2 is 0.30000000000000004 in IEEE 754, and a naive ceil would
-    // charge 0.31 for it.
-    const clean = weighWork({ ...nothing, visibleOutputTokens: 100, mediaWork: 0.2 });
-    expect(clean).toBe(0.3);
-  });
-
-  it("survives a measurement that is not a number rather than charging NaN", () => {
-    expect(weighWork({ ...nothing, visibleOutputTokens: Number.NaN })).toBe(MINIMUM_WORK);
-    expect(weighWork({ ...nothing, billableInputTokens: Number.POSITIVE_INFINITY })).toBe(
-      MINIMUM_WORK,
-    );
-  });
-});
-
-describe("what a request costs on each tier", () => {
-  const heavy: WorkMeasurement = {
-    billableInputTokens: 40_000,
-    visibleOutputTokens: 10_000,
-    readToolBatches: 80,
-    sideEffectActions: 40,
-  };
-
-  it("charges Free exactly one use, however heavy the request", () => {
-    /*
-     * A free allowance that shrank when a question happened to be long would
-     * be impossible for anybody to plan around — and the raw numbers are shown
-     * to Free precisely so that it CAN be planned around.
-     */
-    expect(costOf("free", heavy)).toBe(1);
-    expect(costOf("free", nothing)).toBe(1);
-  });
-
-  it("charges Pro and Max the weighted work", () => {
-    expect(costOf("pro", heavy)).toBe(weighWork(heavy));
-    expect(costOf("max", heavy)).toBe(weighWork(heavy));
-    expect(costOf("pro", heavy)).toBeGreaterThan(1);
-  });
-});
-
 describe("whether a request may start", () => {
   const session = windowFor("session", 0, 0);
   const week = windowFor("week", 0, 0);
@@ -192,7 +115,7 @@ describe("whether a request may start", () => {
   ];
 
   it("allows a request with room to spare", () => {
-    const verdict = checkAllowance(windows(10), 1);
+    const verdict = checkAllowance(windows(10));
     expect(verdict.allowed).toBe(true);
     if (verdict.allowed) expect(verdict.remaining).toBe(130);
   });
@@ -202,12 +125,12 @@ describe("whether a request may start", () => {
      * Refusing it would make the last unit unusable and quietly turn an
      * allowance of 140 into an allowance of 139.
      */
-    const verdict = checkAllowance(windows(139), 1);
+    const verdict = checkAllowance(windows(139));
     expect(verdict.allowed).toBe(true);
   });
 
   it("refuses the one after that, and says when it returns", () => {
-    const verdict = checkAllowance(windows(140), 1);
+    const verdict = checkAllowance(windows(140));
     expect(verdict.allowed).toBe(false);
     if (!verdict.allowed) {
       expect(verdict.exhausted).toBe("session");
@@ -220,7 +143,7 @@ describe("whether a request may start", () => {
      * Answering from the session alone is how an account spends a week's
      * allowance in a day.
      */
-    const verdict = checkAllowance(windows(0, 700), 1);
+    const verdict = checkAllowance(windows(0, 700));
     expect(verdict.allowed).toBe(false);
     if (!verdict.allowed) {
       expect(verdict.exhausted).toBe("week");
@@ -229,31 +152,21 @@ describe("whether a request may start", () => {
   });
 
   it("reports the TIGHTEST remaining, not the most generous", () => {
-    const verdict = checkAllowance(
-      [
-        { kind: "session", used: 100, allowance: 140, window: session },
-        { kind: "week", used: 695, allowance: 700, window: week },
-      ],
-      1,
-    );
+    const verdict = checkAllowance([
+      { kind: "session", used: 100, allowance: 140, window: session },
+      { kind: "week", used: 695, allowance: 700, window: week },
+    ]);
     expect(verdict.allowed).toBe(true);
     if (verdict.allowed) expect(verdict.remaining).toBe(5);
   });
 
   it("ignores a window with no allowance, as Free's week has none", () => {
-    const verdict = checkAllowance(
-      [
-        { kind: "session", used: 27, allowance: 28, window: session },
-        { kind: "week", used: 1_000_000, allowance: null, window: week },
-      ],
-      1,
-    );
+    const verdict = checkAllowance([
+      { kind: "session", used: 27, allowance: 28, window: session },
+      { kind: "week", used: 1_000_000, allowance: null, window: week },
+    ]);
     expect(verdict.allowed).toBe(true);
     if (verdict.allowed) expect(verdict.remaining).toBe(1);
-  });
-
-  it("refuses a request larger than the whole allowance rather than part-serving it", () => {
-    expect(checkAllowance(windows(0), 141).allowed).toBe(false);
   });
 });
 
@@ -261,56 +174,34 @@ describe("what the customer is shown", () => {
   const session = windowFor("session", 0, 0);
   const week = windowFor("week", 0, 0);
 
-  it("gives Free exact numbers, because it has 28 of something to plan around", () => {
-    const shown = describeUsage(
-      "free",
-      { kind: "session", used: 5, allowance: 28, window: session },
-      0,
+  it("gives every tier exact numbers, which is the sentence the plan names", () => {
+    // "18 of 28 left · resets in 2h 14m" — PLAN.md Phase 5.
+    expect(describeUsage({ kind: "session", used: 10, allowance: 28, window: session }, 0)).toEqual(
+      { kind: "session", used: 10, remaining: 18, allowance: 28, resetsInMs: SESSION_WINDOW_MS },
     );
-    expect(shown).toMatchObject({ display: "raw", used: 5, remaining: 23, allowance: 28 });
-    expect(shown?.usedPercent).toBeUndefined();
   });
 
-  it("gives Pro and Max a percentage, and never the equivalents themselves", () => {
-    /*
-     * An equivalent is not a unit anybody can convert into their own work, and
-     * quoting it would invite people to optimise against the unit.
-     */
-    const shown = describeUsage(
-      "pro",
-      { kind: "session", used: 70, allowance: 140, window: session },
-      0,
-    );
-    expect(shown).toMatchObject({ display: "percentage", usedPercent: 50 });
-    expect(shown?.used).toBeUndefined();
-    expect(shown?.remaining).toBeUndefined();
-    expect(shown?.allowance).toBeUndefined();
+  it("gives Pro and Max the same shape, not a percentage", () => {
+    expect(
+      describeUsage({ kind: "session", used: 70, allowance: 140, window: session }, 0),
+    ).toMatchObject({ used: 70, remaining: 70, allowance: 140 });
   });
 
-  it("never reports more than a full allowance", () => {
-    // A request may finalise slightly above what it reserved; "103% used"
-    // reads as a fault rather than as a full allowance.
+  it("never reports more than a full allowance, or a negative remainder", () => {
     const shown = describeUsage(
-      "max",
       { kind: "session", used: 1450, allowance: 1400, window: session },
       0,
     );
-    expect(shown?.usedPercent).toBe(100);
+    expect(shown).toMatchObject({ used: 1400, remaining: 0 });
   });
 
   it("says nothing at all about a window that has no allowance", () => {
     // Free's week is not "100% remaining". It does not exist.
-    expect(
-      describeUsage("free", { kind: "week", used: 0, allowance: null, window: week }, 0),
-    ).toBeNull();
+    expect(describeUsage({ kind: "week", used: 0, allowance: null, window: week }, 0)).toBeNull();
   });
 
   it("counts down to the reset", () => {
-    const shown = describeUsage(
-      "free",
-      { kind: "session", used: 0, allowance: 28, window: session },
-      HOUR,
-    );
+    const shown = describeUsage({ kind: "session", used: 0, allowance: 28, window: session }, HOUR);
     expect(shown?.resetsInMs).toBe(SESSION_WINDOW_MS - HOUR);
   });
 });

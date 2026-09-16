@@ -5,7 +5,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { supabaseCommercialLedger, toHundredths } from "../supabase-ledger";
 import type { CommercialUsageLedger, GenerationSurface } from "../generation-gate";
 import type { PlanTier } from "@/lib/payments/pricing";
-import { ALLOWANCES, windowFor } from "../usage-policy";
+import { ALLOWANCES, ONE_USE, windowFor } from "../usage-policy";
 
 /**
  * THE BINDING'S OWN ARGUMENTS, AGAINST THE REAL FUNCTIONS.
@@ -215,7 +215,7 @@ describe("every surface and tier the types allow is one the database accepts", (
       tier: "pro",
       sessionAllowance: ALLOWANCES.pro.session,
       weekAllowance: ALLOWANCES.pro.week,
-      reserved: 0.25,
+      reserved: ONE_USE,
     });
     expect(outcome.outcome, `the database refused the ${surface} surface`).toBe("granted");
     expect(outcome.permitId).toBeTruthy();
@@ -232,7 +232,7 @@ describe("every surface and tier the types allow is one the database accepts", (
       tier,
       sessionAllowance: ALLOWANCES[tier].session,
       weekAllowance: ALLOWANCES[tier].week,
-      reserved: 0.25,
+      reserved: ONE_USE,
     });
     expect(outcome.outcome, `the database refused the ${tier} tier`).toBe("granted");
   });
@@ -251,10 +251,10 @@ describe("the binding's own calls settle in the real ledger", () => {
       tier: "pro",
       sessionAllowance: ALLOWANCES.pro.session,
       weekAllowance: ALLOWANCES.pro.week,
-      reserved: 0.25,
+      reserved: ONE_USE,
     });
     expect(granted.outcome).toBe("granted");
-    expect(granted.reserved).toBe(0.25);
+    expect(granted.reserved).toBe(ONE_USE);
     /*
      * Parsed, not merely present. A timestamp the binding cannot read comes
      * back as NaN and every reset countdown built on it renders "Invalid Date"
@@ -267,25 +267,24 @@ describe("the binding's own calls settle in the real ledger", () => {
     const before = await ledger.readCurrent(userId);
     expect(before.map((window) => window.kind).sort()).toEqual(["session", "week"]);
     const session = before.find((window) => window.kind === "session")!;
-    // Reserved work is held apart from spent work: an in-flight request is not
-    // yet a charge, and reporting it as one would make a cancelled request cost.
-    expect(session.reserved).toBe(0.25);
+    // A reservation is held apart from a charge: an in-flight request is not
+    // yet spent, and reporting it as one would make a cancelled request cost.
+    expect(session.reserved).toBe(ONE_USE);
     expect(session.used).toBe(0);
 
     const charged = await ledger.finalizePermit({
       userId,
       idempotencyKey: "settle-1",
-      measuredCost: 2.75,
     });
-    expect(charged).toBe(2.75);
+    expect(charged).toBe(ONE_USE);
 
     const after = await ledger.readCurrent(userId);
     const settled = after.find((window) => window.kind === "session")!;
-    expect(settled.used).toBe(2.75);
+    expect(settled.used).toBe(ONE_USE);
     expect(settled.reserved).toBe(0);
   });
 
-  it("charges Free exactly one use however much the request measured", async () => {
+  it("charges Free exactly one use, the same as every other tier", async () => {
     await reset();
     const ledger = productionLedger();
     await ledger.acquirePermit({
@@ -296,14 +295,13 @@ describe("the binding's own calls settle in the real ledger", () => {
       tier: "free",
       sessionAllowance: ALLOWANCES.free.session,
       weekAllowance: ALLOWANCES.free.week,
-      reserved: 1,
+      reserved: ONE_USE,
     });
     const charged = await ledger.finalizePermit({
       userId,
       idempotencyKey: "free-1",
-      measuredCost: 9.5,
     });
-    expect(charged, "Free was charged by weight rather than by use").toBe(1);
+    expect(charged, "a successful request did not cost exactly one use").toBe(ONE_USE);
   });
 
   it("gives the same permit back for a repeated key rather than reserving twice", async () => {
@@ -317,7 +315,7 @@ describe("the binding's own calls settle in the real ledger", () => {
       tier: "pro" as const,
       sessionAllowance: ALLOWANCES.pro.session,
       weekAllowance: ALLOWANCES.pro.week,
-      reserved: 0.25,
+      reserved: ONE_USE,
     };
     const first = await ledger.acquirePermit(request);
     const second = await ledger.acquirePermit(request);
@@ -328,7 +326,7 @@ describe("the binding's own calls settle in the real ledger", () => {
     expect(
       windows.find((window) => window.kind === "session")!.reserved,
       "a double-clicked send reserved twice",
-    ).toBe(0.25);
+    ).toBe(ONE_USE);
   });
 
   it("releases a reservation once, and says so the second time", async () => {
@@ -377,7 +375,7 @@ describe("the binding's own calls settle in the real ledger", () => {
       tier: "pro",
       sessionAllowance: ALLOWANCES.pro.session,
       weekAllowance: ALLOWANCES.pro.week,
-      reserved: 0.25,
+      reserved: ONE_USE,
     });
     const second = await ledger.acquirePermit({
       userId,
@@ -387,7 +385,7 @@ describe("the binding's own calls settle in the real ledger", () => {
       tier: "pro",
       sessionAllowance: ALLOWANCES.pro.session,
       weekAllowance: ALLOWANCES.pro.week,
-      reserved: 0.25,
+      reserved: ONE_USE,
     });
     expect(second.outcome).toBe("idempotency_conflict");
   });
@@ -447,7 +445,7 @@ describe("the binding's own calls settle in the real ledger", () => {
       tier: "pro",
       sessionAllowance: ALLOWANCES.pro.session,
       weekAllowance: ALLOWANCES.pro.week,
-      reserved: 0.25,
+      reserved: ONE_USE,
     });
     /*
      * `issued_at` moves with it. The table's own check requires

@@ -3,7 +3,7 @@ import { DatabaseTwin } from "../../../../scripts/db-twin.mts";
 import { CommercialGenerationGate, type CommercialUsageLedger } from "../generation-gate";
 import { AllowanceExhausted } from "../generation-gate";
 import { toHundredths } from "../supabase-ledger";
-import { ALLOWANCES, windowFor, type UsageWindow, type WorkMeasurement } from "../usage-policy";
+import { ALLOWANCES, ONE_USE, windowFor, type UsageWindow } from "../usage-policy";
 
 /**
  * THE GATE, THE LEDGER AND REAL POSTGRES, TOGETHER.
@@ -101,13 +101,6 @@ async function clearLedger(): Promise<void> {
 const ANCHOR = Date.parse("2026-01-01T00:00:00.000Z");
 const NOW = ANCHOR + 60_000;
 
-const nothing: WorkMeasurement = {
-  billableInputTokens: 0,
-  visibleOutputTokens: 0,
-  readToolBatches: 0,
-  sideEffectActions: 0,
-};
-
 beforeAll(async () => {
   twin = await DatabaseTwin.create();
   const applied = await twin.applyMigrations();
@@ -123,7 +116,7 @@ beforeAll(async () => {
 }, 120_000);
 
 describe("the gate settles against the real ledger", () => {
-  it("writes what it reserved, in hundredths, to both windows", async () => {
+  it("writes the one use, in hundredths, to both windows", async () => {
     await clearLedger();
     const gate = new CommercialGenerationGate(postgresLedger());
     const result = await gate.acquire({
@@ -135,12 +128,12 @@ describe("the gate settles against the real ledger", () => {
     });
     expect(result.ok).toBe(true);
 
-    // The floor, as integer hundredths, in the real column.
-    expect(await ledgerRow("session")).toBe(25);
-    expect(await ledgerRow("week")).toBe(25);
+    // One use, as integer hundredths, in the real column.
+    expect(await ledgerRow("session")).toBe(toHundredths(ONE_USE));
+    expect(await ledgerRow("week")).toBe(toHundredths(ONE_USE));
   });
 
-  it("tops up to the measured cost when the answer is delivered", async () => {
+  it("leaves the one use exactly where it was when the answer is delivered", async () => {
     await clearLedger();
     const gate = new CommercialGenerationGate(postgresLedger());
     const result = await gate.acquire({
@@ -152,10 +145,9 @@ describe("the gate settles against the real ledger", () => {
     });
     if (!result.ok) throw new Error("expected a permit");
 
-    // 4,000 visible output tokens is exactly four equivalents.
-    await result.permit.finalize({ ...nothing, visibleOutputTokens: 4000 });
-    expect(await ledgerRow("session")).toBe(400);
-    expect(await ledgerRow("week")).toBe(400);
+    await result.permit.finalize();
+    expect(await ledgerRow("session")).toBe(toHundredths(ONE_USE));
+    expect(await ledgerRow("week")).toBe(toHundredths(ONE_USE));
   });
 
   it("returns the ledger to where it started when nothing was delivered", async () => {
@@ -186,8 +178,8 @@ describe("the gate settles against the real ledger", () => {
       idempotencyKey: "proof-free",
     });
     if (!result.ok) throw new Error("expected a permit");
-    await result.permit.finalize({ ...nothing, visibleOutputTokens: 100_000 });
-    expect(await ledgerRow("session")).toBe(100);
+    await result.permit.finalize();
+    expect(await ledgerRow("session")).toBe(toHundredths(ONE_USE));
   });
 
   it("is refused by the DATABASE when the allowance is gone", async () => {
@@ -245,7 +237,7 @@ describe("the gate settles against the real ledger", () => {
       idempotencyKey: "proof-double",
     });
     expect(first.ok && second.ok).toBe(true);
-    expect(await ledgerRow("session")).toBe(25);
+    expect(await ledgerRow("session")).toBe(toHundredths(ONE_USE));
   });
 
   it("keeps the two windows apart, in separate rows carrying the same total", async () => {
@@ -266,7 +258,7 @@ describe("the gate settles against the real ledger", () => {
       idempotencyKey: "proof-windows",
     });
     if (!result.ok) throw new Error("expected a permit");
-    await result.permit.finalize({ ...nothing, visibleOutputTokens: 2000 });
+    await result.permit.finalize();
 
     const rows = await twin.asSuperuser<{
       window_kind: string;
@@ -278,8 +270,11 @@ describe("the gate settles against the real ledger", () => {
         where user_id = '${userId}' order by window_kind`,
     );
     expect(rows.map((row) => row.window_kind)).toEqual(["session", "week"]);
-    // The same work, charged once to each window — not twice to one of them.
-    expect(rows.map((row) => Number(row.used_hundredths))).toEqual([200, 200]);
+    // The same use, charged once to each window — not twice to one of them.
+    expect(rows.map((row) => Number(row.used_hundredths))).toEqual([
+      toHundredths(ONE_USE),
+      toHundredths(ONE_USE),
+    ]);
     // And each row is anchored to its OWN window, which is what stops the
     // week's total being read out of a row the session opened.
     expect(rows.map((row) => Date.parse(row.window_start))).toEqual([

@@ -20,6 +20,11 @@ import { AppShell } from "@/components/shell/AppShell";
 import { useSession } from "@/lib/session";
 import { useChat, type IntelligenceChoice } from "@/lib/chat/use-chat";
 import { useChatShortcuts } from "@/lib/chat/use-shortcuts";
+import {
+  describeReset,
+  tightestWindow,
+  useCommercialUsage,
+} from "@/lib/commercial/use-commercial-usage";
 import { ConversationList } from "./ConversationList";
 import { MessageList } from "./MessageList";
 import { cn } from "@/lib/utils";
@@ -317,11 +322,36 @@ export function ChatWorkspace() {
               <p className="mt-3 text-center text-[13px] text-muted-foreground">
                 Sending needs an account. Your message is kept while you sign in.
               </p>
-            ) : null}
+            ) : (
+              <LowAllowanceNotice signedIn={Boolean(user)} />
+            )}
           </div>
         </div>
       </div>
     </AppShell>
+  );
+}
+
+/**
+ * A QUIET WARNING BEFORE THE ALLOWANCE RUNS OUT, AND A TRUTHFUL ONE AFTER.
+ *
+ * Nothing at all until the last few requests, because a meter that shouts at
+ * twenty-eight remaining is a meter people stop reading by the time it matters.
+ * The full breakdown lives under Settings; this is one line.
+ */
+const LOW_ALLOWANCE = 3;
+
+function LowAllowanceNotice({ signedIn }: { signedIn: boolean }) {
+  const usage = useCommercialUsage(signedIn);
+  const window = tightestWindow(usage.data);
+  if (!window || window.remaining > LOW_ALLOWANCE) return null;
+
+  return (
+    <p className="mt-3 text-center text-[13px] text-muted-foreground" role="status">
+      {window.remaining === 0
+        ? `You have used this ${window.kind === "week" ? "week" : "session"}'s allowance. It resets ${describeReset(window.resetsInMs)}.`
+        : `${window.remaining} request${window.remaining === 1 ? "" : "s"} left · resets ${describeReset(window.resetsInMs)}`}
+    </p>
   );
 }
 

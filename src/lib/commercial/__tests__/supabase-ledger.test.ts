@@ -7,7 +7,7 @@ import {
   toHundredths,
 } from "@/lib/commercial/supabase-ledger";
 import { AllowanceExhausted } from "@/lib/commercial/generation-gate";
-import { windowFor } from "@/lib/commercial/usage-policy";
+import { ONE_USE, windowFor } from "@/lib/commercial/usage-policy";
 
 const ANCHOR = 1_700_000_000_000;
 const SESSION = windowFor("session", ANCHOR, ANCHOR);
@@ -63,8 +63,8 @@ describe("equivalents cross the boundary as integer hundredths", () => {
     /*
      * THE PROPERTY THAT MATTERS, rather than a hand-picked example.
      *
-     * `weighWork` always returns a whole number of hundredths, so the only
-     * thing crossing this boundary is float representation error — 0.1 + 0.2
+     * The policy only ever produces whole uses, so the only thing crossing
+     * this boundary is float representation error — 0.1 + 0.2
      * arriving as 0.30000000000000004. Rounding absorbs it; truncating would
      * lose a hundredth per request, systematically in the customer's favour,
      * which is still a ledger that does not add up.
@@ -294,15 +294,15 @@ describe("durable generation permits", () => {
   it("finalizes and releases through durable RPCs rather than process memory", async () => {
     const { client, rpcCalls } = fakeSupabase({
       rpcData: {
-        ocade_finalize_generation_permit: [{ charged_hundredths: 275, outcome: "succeeded" }],
+        ocade_finalize_generation_permit: [{ charged_hundredths: 100, outcome: "succeeded" }],
         ocade_release_generation_permit: true,
         ocade_expire_commercial_permits: 3,
       },
     });
     const ledger = supabaseCommercialLedger(client);
     await expect(
-      ledger.finalizePermit!({ userId: "user-1", idempotencyKey: "logical-1", measuredCost: 2.75 }),
-    ).resolves.toBe(2.75);
+      ledger.finalizePermit!({ userId: "user-1", idempotencyKey: "logical-1" }),
+    ).resolves.toBe(ONE_USE);
     await expect(
       ledger.releasePermit!({ userId: "user-1", idempotencyKey: "logical-2", reason: "failed" }),
     ).resolves.toBe(true);
@@ -324,7 +324,6 @@ describe("durable generation permits", () => {
       supabaseCommercialLedger(client).finalizePermit!({
         userId: "user-1",
         idempotencyKey: "lost-request",
-        measuredCost: 1,
       }),
     ).rejects.toThrow(/could not finalize that permit/i);
   });

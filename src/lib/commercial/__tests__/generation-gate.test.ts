@@ -7,11 +7,10 @@ import {
 } from "@/lib/commercial/generation-gate";
 import {
   ALLOWANCES,
-  MINIMUM_WORK,
+  ONE_USE,
   SESSION_WINDOW_MS,
   windowFor,
   type UsageWindow,
-  type WorkMeasurement,
 } from "@/lib/commercial/usage-policy";
 
 const key = (window: UsageWindow) => `${window.kind}:${window.startsAt}`;
@@ -61,13 +60,6 @@ function request(over: Partial<AcquireRequest> = {}): AcquireRequest {
   };
 }
 
-const nothing: WorkMeasurement = {
-  billableInputTokens: 0,
-  visibleOutputTokens: 0,
-  readToolBatches: 0,
-  sideEffectActions: 0,
-};
-
 describe("nothing routes without a permit", () => {
   it("reserves before answering, not after", () => {
     /*
@@ -82,27 +74,27 @@ describe("nothing routes without a permit", () => {
     });
   });
 
-  it("reserves the floor rather than guessing what the request will cost", async () => {
+  it("reserves exactly one use, whatever the request turns out to need", async () => {
     const { ledger, rows } = testLedger();
     const result = await new CommercialGenerationGate(ledger).acquire(request());
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.permit.reserved).toBe(MINIMUM_WORK);
-    expect(rows.get(key(SESSION))).toBe(MINIMUM_WORK);
+    if (result.ok) expect(result.permit.reserved).toBe(ONE_USE);
+    expect(rows.get(key(SESSION))).toBe(ONE_USE);
   });
 
-  it("reserves a whole use on Free, because half a use does not exist", async () => {
+  it("reserves the same one use on Free as on Pro", async () => {
     const { ledger, rows } = testLedger();
     const result = await new CommercialGenerationGate(ledger).acquire(request({ tier: "free" }));
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.permit.reserved).toBe(1);
-    expect(rows.get(key(SESSION))).toBe(1);
+    if (result.ok) expect(result.permit.reserved).toBe(ONE_USE);
+    expect(rows.get(key(SESSION))).toBe(ONE_USE);
   });
 
   it("holds the reservation against BOTH windows", async () => {
     const { ledger, rows } = testLedger();
     await new CommercialGenerationGate(ledger).acquire(request());
-    expect(rows.get(key(SESSION))).toBe(MINIMUM_WORK);
-    expect(rows.get(key(WEEK))).toBe(MINIMUM_WORK);
+    expect(rows.get(key(SESSION))).toBe(ONE_USE);
+    expect(rows.get(key(WEEK))).toBe(ONE_USE);
   });
 });
 
@@ -153,7 +145,7 @@ describe("an exhausted allowance is refused before any backend is touched", () =
      * Two requests can both read "one left" and both pass the advisory check.
      * The ledger's reserve is atomic and refuses the second.
      */
-    const { ledger } = testLedger({ [key(SESSION)]: ALLOWANCES.pro.session - MINIMUM_WORK });
+    const { ledger } = testLedger({ [key(SESSION)]: ALLOWANCES.pro.session - ONE_USE });
     const gate = new CommercialGenerationGate(ledger);
     const [first, second] = await Promise.all([
       gate.acquire(request({ idempotencyKey: "race-a" })),
@@ -179,7 +171,7 @@ describe("one logical request is charged once", () => {
     const second = await gate.acquire(request());
     expect(first.ok && second.ok).toBe(true);
     if (first.ok && second.ok) expect(second.permit).toBe(first.permit);
-    expect(rows.get(key(SESSION))).toBe(MINIMUM_WORK);
+    expect(rows.get(key(SESSION))).toBe(ONE_USE);
   });
 
   it("charges nothing at all for a failure", async () => {
@@ -213,10 +205,9 @@ describe("one logical request is charged once", () => {
     const { ledger, rows } = testLedger();
     const result = await new CommercialGenerationGate(ledger).acquire(request());
     if (!result.ok) throw new Error("expected a permit");
-    const measurement = { ...nothing, visibleOutputTokens: 2000 };
-    await result.permit.finalize(measurement);
+    await result.permit.finalize();
     const after = rows.get(key(SESSION));
-    await result.permit.finalize(measurement);
+    await result.permit.finalize();
     expect(rows.get(key(SESSION))).toBe(after);
   });
 
@@ -224,9 +215,9 @@ describe("one logical request is charged once", () => {
     const { ledger, rows } = testLedger();
     const result = await new CommercialGenerationGate(ledger).acquire(request());
     if (!result.ok) throw new Error("expected a permit");
-    await result.permit.finalize({ ...nothing, visibleOutputTokens: 2000 });
+    await result.permit.finalize();
     await result.permit.release("abandoned");
-    expect(rows.get(key(SESSION))).toBe(2);
+    expect(rows.get(key(SESSION))).toBe(ONE_USE);
   });
 
   it("frees the key once settled, so a genuinely new request is charged again", async () => {
@@ -237,57 +228,51 @@ describe("one logical request is charged once", () => {
     await first.permit.release("failed");
     const second = await gate.acquire(request());
     expect(second.ok).toBe(true);
-    expect(rows.get(key(SESSION))).toBe(MINIMUM_WORK);
+    expect(rows.get(key(SESSION))).toBe(ONE_USE);
   });
 });
 
-describe("settling against what was measured", () => {
-  it("tops the reservation up to the real cost", async () => {
+describe("settling charges the one use that was reserved, and never more", () => {
+  it("charges one for a long answer and one for a short one", async () => {
+    /*
+     * The whole point of the rule: a person can hold "a question costs one" in
+     * their head, and nothing about how hard OCADE worked changes it.
+     */
     const { ledger, rows } = testLedger();
-    const result = await new CommercialGenerationGate(ledger).acquire(request());
-    if (!result.ok) throw new Error("expected a permit");
-    const total = await result.permit.finalize({ ...nothing, visibleOutputTokens: 4000 });
-    expect(total).toBe(4);
-    expect(rows.get(key(SESSION))).toBe(4);
-    expect(rows.get(key(WEEK))).toBe(4);
+    const gate = new CommercialGenerationGate(ledger);
+    const short = await gate.acquire(request({ idempotencyKey: "short" }));
+    const long = await gate.acquire(request({ idempotencyKey: "long" }));
+    if (!short.ok || !long.ok) throw new Error("expected two permits");
+    expect(await short.permit.finalize()).toBe(ONE_USE);
+    expect(await long.permit.finalize()).toBe(ONE_USE);
+    expect(rows.get(key(SESSION))).toBe(2 * ONE_USE);
+    expect(rows.get(key(WEEK))).toBe(2 * ONE_USE);
   });
 
-  it("gives back the difference when the request cost less than the floor reserved", async () => {
-    // Nothing costs less than the floor, so this is the equal case: the
-    // reservation stands and nothing moves.
-    const { ledger, rows } = testLedger();
-    const result = await new CommercialGenerationGate(ledger).acquire(request());
-    if (!result.ok) throw new Error("expected a permit");
-    const total = await result.permit.finalize(nothing);
-    expect(total).toBe(MINIMUM_WORK);
-    expect(rows.get(key(SESSION))).toBe(MINIMUM_WORK);
-  });
-
-  it("charges Free one use however heavy the answer turned out to be", async () => {
+  it("charges Free one use, the same as every other tier", async () => {
     const { ledger, rows } = testLedger();
     const result = await new CommercialGenerationGate(ledger).acquire(request({ tier: "free" }));
     if (!result.ok) throw new Error("expected a permit");
-    await result.permit.finalize({ ...nothing, visibleOutputTokens: 100_000 });
-    expect(rows.get(key(SESSION))).toBe(1);
+    await result.permit.finalize();
+    expect(rows.get(key(SESSION))).toBe(ONE_USE);
   });
 
-  it("lets a permitted request finish even when it overruns the allowance", async () => {
+  it("cannot overrun the allowance, because settling moves nothing", async () => {
     /*
-     * A request that was allowed to start must be allowed to finish and be
-     * charged honestly. Refusing the top-up would leave the person with an
-     * answer they received and did not pay for; refusing it mid-answer would
-     * be worse. The overrun takes the NEXT request below the line instead.
+     * The reservation IS the charge now, so a permitted request can never take
+     * the account past its allowance the way a measured top-up could. The
+     * request that exactly exhausts the session is served; the next is refused.
      */
     const { ledger, rows } = testLedger({
-      [key(SESSION)]: ALLOWANCES.pro.session - MINIMUM_WORK,
+      [key(SESSION)]: ALLOWANCES.pro.session - ONE_USE,
     });
     const gate = new CommercialGenerationGate(ledger);
     const result = await gate.acquire(request());
     if (!result.ok) throw new Error("expected a permit");
-    await result.permit.finalize({ ...nothing, visibleOutputTokens: 10_000 });
-    expect(rows.get(key(SESSION))).toBeGreaterThan(ALLOWANCES.pro.session);
+    await result.permit.finalize();
+    expect(rows.get(key(SESSION))).toBe(ALLOWANCES.pro.session);
 
-    const next = await gate.acquire(request({ idempotencyKey: "after-overrun" }));
+    const next = await gate.acquire(request({ idempotencyKey: "after-the-last-one" }));
     expect(next.ok).toBe(false);
   });
 });
@@ -304,8 +289,8 @@ describe("windows", () => {
 
     const lateWindow = windowFor("session", ANCHOR, later);
     expect(lateWindow.startsAt).not.toBe(SESSION.startsAt);
-    expect(rows.get(key(SESSION))).toBe(MINIMUM_WORK);
-    expect(rows.get(key(lateWindow))).toBe(MINIMUM_WORK);
+    expect(rows.get(key(SESSION))).toBe(ONE_USE);
+    expect(rows.get(key(lateWindow))).toBe(ONE_USE);
   });
 
   it("records against Free's week even though it has no weekly allowance", async () => {
@@ -340,7 +325,7 @@ describe("the durable production permit lifecycle", () => {
           return {
             permitId: "durable-permit",
             outcome: "duplicate_completed",
-            reserved: 2,
+            reserved: ONE_USE,
             sessionResetAt: SESSION.endsAt,
             weekResetAt: WEEK.endsAt,
           };
@@ -349,7 +334,7 @@ describe("the durable production permit lifecycle", () => {
         return {
           permitId: "durable-permit",
           outcome: "granted",
-          reserved: MINIMUM_WORK,
+          reserved: ONE_USE,
           sessionResetAt: SESSION.endsAt,
           weekResetAt: WEEK.endsAt,
         };
@@ -357,7 +342,7 @@ describe("the durable production permit lifecycle", () => {
       async finalizePermit() {
         finalized += 1;
         status = "succeeded";
-        return 2;
+        return ONE_USE;
       },
       async releasePermit() {
         status = "empty";
@@ -375,7 +360,7 @@ describe("the durable production permit lifecycle", () => {
     const retry = await secondServer.acquire(request());
     expect(first.ok && retry.ok).toBe(true);
     if (!retry.ok) throw new Error("expected the durable retry to recover the permit");
-    await retry.permit.finalize({ ...nothing, visibleOutputTokens: 2_000 });
+    await retry.permit.finalize();
 
     const afterRestart = await new CommercialGenerationGate(shared.ledger).acquire(request());
     expect(afterRestart).toMatchObject({ ok: false, reason: "duplicate_completed" });

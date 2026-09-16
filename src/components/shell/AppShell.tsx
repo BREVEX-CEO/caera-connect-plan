@@ -27,6 +27,11 @@ import { BrandMark } from "./BrandMark";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/session";
 import { useSettingsPanel } from "@/components/settings/settings-panel";
+import {
+  describeReset,
+  tightestWindow,
+  useCommercialUsage,
+} from "@/lib/commercial/use-commercial-usage";
 
 interface Destination {
   to: string;
@@ -157,8 +162,44 @@ function Sidebar({ className, children }: { className?: string; children?: React
 
       <div className="ocade-scroll mt-4 min-h-0 flex-1 overflow-y-auto px-3">{children}</div>
 
+      <UsageMeter />
       <AccountRow />
     </aside>
+  );
+}
+
+/**
+ * WHAT IS LEFT, WHERE A PERSON ALREADY LOOKS FOR THEIR ACCOUNT.
+ *
+ * `PLAN.md` Phase 5 asks for "18 of 28 left · resets in 2h 14m" here, and the
+ * point of putting it above the account row rather than inside the menu is that
+ * running out should not be a surprise discovered by pressing Send.
+ *
+ * It renders nothing at all while signed out, still loading, or if the read
+ * fails: a meter that cannot say a true number should not invent one.
+ */
+function UsageMeter() {
+  const { user, loading } = useSession();
+  const usage = useCommercialUsage(Boolean(user) && !loading);
+  const window = tightestWindow(usage.data);
+  if (!window) return null;
+
+  const spent = Math.min(100, Math.round((window.used / window.allowance) * 100));
+  return (
+    <div className="shrink-0 px-4 pb-2 pt-1">
+      <div className="mb-1.5 h-1 overflow-hidden rounded-full bg-border/70">
+        <div
+          className={cn(
+            "h-full rounded-full transition-[width] duration-500",
+            window.remaining === 0 ? "bg-destructive" : "bg-foreground/45",
+          )}
+          style={{ width: `${spent}%` }}
+        />
+      </div>
+      <p className="text-[12px] leading-4 text-muted-foreground">
+        {window.remaining} of {window.allowance} left · resets {describeReset(window.resetsInMs)}
+      </p>
+    </div>
   );
 }
 
@@ -209,7 +250,7 @@ function AccountRow() {
     );
   }
 
-  const name = user.email ?? user.phone ?? "Account";
+  const name = user.email ?? "Account";
   const initial = name.trim().charAt(0).toUpperCase() || "O";
 
   return (

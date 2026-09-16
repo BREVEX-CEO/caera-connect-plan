@@ -40,6 +40,19 @@ const ALLOWED_SURFACES: readonly string[] = ["chat", "cowork"];
 const MAX_BODY_BYTES = 1_048_576;
 const MAX_MESSAGES = 256;
 const MAX_TOOLS = 128;
+/**
+ * THE CEILING ON WHAT ONE USE CAN COST.
+ *
+ * Everything going IN is already bounded — a megabyte of body, 256 messages,
+ * 128 tools — but nothing bounded what came back. One successful request costs
+ * the customer exactly one use whatever its length, so without a cap the price
+ * of that one use to OCADE is whatever the provider feels like generating, and
+ * a prompt that induces an endless answer is a bill rather than a bug.
+ *
+ * Generous enough that no ordinary answer meets it — a long technical reply
+ * with code is a few thousand tokens — and low enough that a runaway one stops.
+ */
+const MAX_OUTPUT_TOKENS = 8_192;
 const PROVIDER_TIMEOUT_MS = 110_000;
 const MAX_PROVIDER_ATTEMPTS = 3;
 
@@ -194,6 +207,7 @@ function providerBody(body: OnlineRequestBody): Record<string, unknown> {
     }));
   return {
     contents,
+    generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS },
     ...(system ? { system_instruction: { parts: [{ text: system }] } } : {}),
     ...(body.tools.length
       ? {
@@ -278,7 +292,22 @@ function normalizeProviderChunk(
     }
     events.push({ type: "usage", usage });
   }
-  if (first && typeof first.finishReason === "string" && first.finishReason !== "STOP") {
+  /*
+   * A LENGTH LIMIT IS NOT A FAILURE.
+   *
+   * Every finish reason other than STOP used to become a refusal, which was
+   * right while nothing bounded the answer. `MAX_OUTPUT_TOKENS` now stops a
+   * runaway answer, and that stop arrives as `MAX_TOKENS` — so the old rule
+   * would put an error under a complete-looking answer the person had just
+   * read, and the client would treat a delivered answer as a failure. The
+   * answer is real, it is charged, and it ends where it ends.
+   */
+  if (
+    first &&
+    typeof first.finishReason === "string" &&
+    first.finishReason !== "STOP" &&
+    first.finishReason !== "MAX_TOKENS"
+  ) {
     events.push({
       type: "refusal",
       code: "provider_failed",
