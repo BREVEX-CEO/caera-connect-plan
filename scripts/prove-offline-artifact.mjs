@@ -40,7 +40,7 @@ window.__prove = async () => {
     { "single-thread/wllama.wasm": wasm, default: wasm },
     { allowOffline: true },
   );
-  await engine.loadModelFromUrl("/artifact.bin", { n_ctx: 512, n_threads: 1 });
+  await engine.loadModelFromUrl("/artifact.gguf", { n_ctx: 512, n_threads: 1 });
   const answer = await engine.createCompletion(
     "<|im_start|>user\\nWhat is two plus two? Answer with the number only.<|im_end|>\\n<|im_start|>assistant\\n",
     { nPredict: 24, sampling: { temp: 0 } },
@@ -65,7 +65,7 @@ const server = createServer((request, response) => {
   }
 
   const file =
-    url.pathname === "/artifact.bin" ? ARTIFACT : path.join(ROOT, url.pathname.replace(/^\/+/, ""));
+    url.pathname === "/artifact.gguf" ? ARTIFACT : path.join(ROOT, url.pathname.replace(/^\/+/, ""));
   if (!file.startsWith(ROOT) && file !== ARTIFACT) {
     response.writeHead(403).end();
     return;
