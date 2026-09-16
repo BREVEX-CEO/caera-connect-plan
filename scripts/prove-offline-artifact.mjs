@@ -40,7 +40,15 @@ window.__prove = async () => {
     { "single-thread/wllama.wasm": wasm, default: wasm },
     { allowOffline: true },
   );
-  await engine.loadModelFromUrl("/artifact.gguf", { n_ctx: 512, n_threads: 1 });
+  // This proof is specifically the reliable WASM/CPU fallback proof. Wllama v3
+  // enables WebGPU offload by default when n_gpu_layers is omitted, which turns
+  // a fallback-artifact proof into a GPU test and can fail for reasons unrelated
+  // to the CPU path. WebGPU is proved separately on hardware that exposes it.
+  await engine.loadModelFromUrl("/artifact.gguf", {
+    n_ctx: 512,
+    n_threads: 1,
+    n_gpu_layers: 0,
+  });
   const answer = await engine.createCompletion(
     "<|im_start|>user\\nWhat is two plus two? Answer with the number only.<|im_end|>\\n<|im_start|>assistant\\n",
     { nPredict: 24, sampling: { temp: 0 } },
