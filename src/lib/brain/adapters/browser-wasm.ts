@@ -7,18 +7,7 @@ import {
   type BrainStreamResult,
 } from "../adapter";
 import { BROWSER_SAMPLER } from "@/lib/brain/sampler-settings";
-import {
-  OFFLINE_MODEL,
-  expectedSha256,
-  formatSize,
-  publisherUrl,
-  resolved,
-  sameOriginUrl,
-  storageKey,
-  type OfflineModel,
-} from "../model-catalogue";
-import { modelStore, ModelStore } from "../model-store";
-import { downloadModel, preferredWeightsUrl } from "../model-download";
+import { OFFLINE_LABEL, formatSize, offlineRelease, type OfflineRelease } from "../offline-release";
 import {
   planThreads,
   readThreadSignals,
@@ -72,8 +61,8 @@ export class BrowserWasmAdapter implements BrainAdapter {
   readonly displayName = "OCADE Browser (compatibility)";
 
   private instance: WllamaInstance | null = null;
-  private loadedRepo: string | null = null;
-  private cachedModel: OfflineModel | null = null;
+  private loadedRelease: string | null = null;
+  private cachedModel: OfflineRelease | null = null;
   private readonly onProgress?: (p: WasmProgress) => void;
   private readonly weightsProvider?: () => Promise<Blob | null>;
   private readonly preferThreads: boolean;
@@ -132,7 +121,13 @@ export class BrowserWasmAdapter implements BrainAdapter {
      * refuses to say how much room it has is not treated as full — it is
      * treated as unknown, and preparation goes ahead.
      */
-    const model = OFFLINE_MODEL;
+    const model = offlineRelease();
+    if (!model) {
+      return unavailable(
+        "no_model",
+        "Offline Intelligence is not available in this version of OCADE yet.",
+      );
+    }
     let quotaBytes: number | null = null;
     try {
       const estimate = await navigator.storage?.estimate?.();
@@ -142,11 +137,11 @@ export class BrowserWasmAdapter implements BrainAdapter {
     } catch {
       quotaBytes = null;
     }
-    if (quotaBytes !== null && quotaBytes < model.downloadBytes) {
+    if (quotaBytes !== null && quotaBytes < model.totalBytes) {
       return unavailable(
         "insufficient_storage",
-        `OCADE's compatibility engine needs about ${formatSize(
-          model.downloadBytes,
+        `Offline Intelligence needs about ${formatSize(
+          model.totalBytes,
         )} and this browser will only allow ${formatSize(quotaBytes)}.`,
         ["free_storage"],
       );
@@ -155,19 +150,21 @@ export class BrowserWasmAdapter implements BrainAdapter {
     this.cachedModel = model;
     return {
       available: true,
-      label: model.label,
+      label: OFFLINE_LABEL,
       locality: "on_device",
-      modelId: storageKey(),
+      // The opaque release id, never a model name. It reaches diagnostics and
+      // nothing else.
+      modelId: model.releaseId,
       thinkingSuitable: model.thinkingSuitable,
       capabilities: { text: true, vision: false, imageGeneration: false, tools: false },
     };
   }
 
-  plan(): { model: OfflineModel; downloadLabel: string; multiThreaded: boolean } | null {
+  plan(): { model: OfflineRelease; downloadLabel: string; multiThreaded: boolean } | null {
     if (!this.cachedModel) return null;
     return {
       model: this.cachedModel,
-      downloadLabel: formatSize(this.cachedModel.downloadBytes),
+      downloadLabel: formatSize(this.cachedModel.totalBytes),
       /*
        * The real decision, not merely "SharedArrayBuffer exists". It can exist
        * on a page that is not isolated, where the threaded build cannot use it
@@ -287,9 +284,25 @@ export class BrowserWasmAdapter implements BrainAdapter {
     return this.threadOutcome;
   }
 
-  private async ensureLoaded(model: OfflineModel): Promise<WllamaInstance> {
-    const key = storageKey();
-    if (this.instance && this.loadedRepo === key) return this.instance;
+  /**
+   * Load the artifact the installation authority already verified.
+   *
+   * ONE DOWNLOADER, AND IT IS NOT THIS ONE. This used to carry a second
+   * transfer path of its own — probe a same-origin copy, otherwise fetch the
+   * publisher's host, otherwise hand the repository and file name to the
+   * library's own downloader, which fetched them from a public model host in
+   * the customer's browser. Three ways to acquire one artifact, one of them
+   * publishing exactly the identity `CLAUDE.md` says a customer must never
+   * meet.
+   *
+   * The installation authority owns acquisition now: it mints an authorised
+   * link, transfers in resumable parallel ranges, checks the digest and stores
+   * the result. By the time this runs the bytes are on the device, so this
+   * reads them and starts an engine. Without a provider there is nothing to
+   * start, and saying so is the honest answer.
+   */
+  private async ensureLoaded(model: OfflineRelease): Promise<WllamaInstance> {
+    if (this.instance && this.loadedRelease === model.releaseId) return this.instance;
     if (this.instance) await this.dispose();
 
     const wllama: WllamaModule = await import("@wllama/wllama");
@@ -302,27 +315,6 @@ export class BrowserWasmAdapter implements BrainAdapter {
      */
     const unifiedWasm = (await import("@wllama/wllama/esm/wasm/wllama.wasm?url")).default;
 
-    /*
-     * THE MULTI-THREADED BUILD, WHEN THE PLATFORM ACTUALLY ALLOWS IT.
-     *
-     * wllama runs materially faster across several cores, which needs
-     * `SharedArrayBuffer`, which needs cross-origin isolation. The note that
-     * used to sit here said isolation was avoided because COOP `same-origin`
-     * severs `window.opener` and would break the sign-in popups — and that is
-     * no longer what this application does: `auth.tsx` signs in through a
-     * full-page redirect to `/auth/callback`, which COOP does not touch.
-     *
-     * What remains true is that isolation also requires COEP, and that is a
-     * deployment-wide constraint on every cross-origin subresource. So this
-     * does not turn isolation on; it USES it the moment the platform reports it
-     * is in force — in an installed app shell, a Capacitor build, or a
-     * deployment that has set the headers and proven them. `crossOriginIsolated`
-     * is the only honest test, because `SharedArrayBuffer` can exist and still
-     * be unusable by the threaded build without it.
-     *
-     * The single-threaded path is always underneath, so nothing here can leave
-     * a device without an engine.
-     */
     /*
      * ONE BINARY, AND `default` IS THE ONE THAT MATTERS.
      *
@@ -353,89 +345,18 @@ export class BrowserWasmAdapter implements BrainAdapter {
      * transfer, and could not delete it from a settings page. Storage the
      * product cannot see is storage the product cannot be honest about.
      */
-    const url = publisherUrl();
-    if (!key || !url) {
-      throw new Error("Offline Intelligence has no model file configured.");
+    if (!this.weightsProvider) {
+      throw new Error("Offline Intelligence has not been prepared on this device yet.");
     }
-
-    /*
-     * THE AUTHORITY'S BYTES WIN, AND NOTHING ELSE RUNS.
-     *
-     * When a provider is supplied the artifact has already been fetched,
-     * digest-checked and activated by the installation authority, so this
-     * returns without touching the network at all. That is not an optimisation:
-     * it is the property that makes "one canonical installation" true. Every
-     * path below is only reachable when there is no authority driving.
-     */
-    if (this.weightsProvider) {
-      const blob = await this.weightsProvider();
-      if (!blob) {
-        throw new Error("OCADE's prepared engine could not be read back from this device.");
-      }
-      await instance.loadModel([blob], this.loadParams());
-      this.recordThreads(instance);
-      this.instance = instance;
-      this.loadedRepo = key;
-      return instance;
+    const blob = await this.weightsProvider();
+    if (!blob) {
+      throw new Error("OCADE's prepared engine could not be read back from this device.");
     }
-
-    if (ModelStore.isSupported()) {
-      /*
-       * Weights this deployment serves itself win over the publisher's host,
-       * so an air-gapped or egress-restricted install can reach a working
-       * engine on first run without an external request. A deployment that
-       * does not self-host is unaffected — the probe 404s and `url` is used.
-       *
-       * SKIPPED ENTIRELY once the engine is on disk and verified. `downloadModel`
-       * would return from storage without fetching anything, so probing first
-       * would put a request on every single engine load — on the offline path,
-       * where the whole point is that nothing is requested at all.
-       */
-      const stored = await modelStore.readMeta(key);
-      const alreadyVerified = stored?.verified === true && (await modelStore.sizeOf(key)) > 0;
-      const source = alreadyVerified
-        ? { url, local: false }
-        : await preferredWeightsUrl(sameOriginUrl(), url);
-      const download = await downloadModel({
-        key,
-        url: source.url,
-        expectedBytes: model.downloadBytes,
-        sha256: expectedSha256(),
-        onProgress: (p) =>
-          this.onProgress?.({
-            fraction: p.fraction,
-            text: `Downloading ${model.label}`,
-          }),
-      });
-      if (!download.ok) throw new Error(download.reason);
-
-      const blob = await modelStore.readBlob(key);
-      if (!blob) throw new Error("The engine was downloaded but could not be read back.");
-      await instance.loadModel([blob], this.loadParams());
-      this.recordThreads(instance);
-    } else {
-      // No OPFS: fall back to the library's own fetch so the engine still
-      // works, accepting that it cannot be managed from Settings.
-      const entry = resolved();
-      if (!entry) throw new Error("Offline Intelligence has no model file configured.");
-      await instance.loadModelFromHF(
-        { repo: entry.repo, file: entry.path },
-        {
-          ...this.loadParams(),
-          useCache: true,
-          progressCallback: ({ loaded, total }: { loaded: number; total: number }) => {
-            this.onProgress?.({
-              fraction: total > 0 ? loaded / total : null,
-              text: `Downloading ${model.label}`,
-            });
-          },
-        },
-      );
-    }
+    await instance.loadModel([blob], this.loadParams());
     this.recordThreads(instance);
 
     this.instance = instance;
-    this.loadedRepo = key;
+    this.loadedRelease = model.releaseId;
     return instance;
   }
 
@@ -510,7 +431,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
       if (handlers.signal?.aborted) {
         return { ok: false, failure: "cancelled", reason: "Stopped." };
       }
-      return { ok: true, modelId: this.loadedRepo, firstTokenMs };
+      return { ok: true, modelId: this.loadedRelease, firstTokenMs };
     } catch (error) {
       const name = error instanceof Error ? error.name : "";
       if (handlers.signal?.aborted || name === "WllamaAbortError" || name === "AbortError") {
@@ -533,6 +454,6 @@ export class BrowserWasmAdapter implements BrainAdapter {
       // Tearing down an engine that already died must not throw.
     }
     this.instance = null;
-    this.loadedRepo = null;
+    this.loadedRelease = null;
   }
 }

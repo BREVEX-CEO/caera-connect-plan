@@ -242,7 +242,7 @@ describe("canonical installation view and cleanup", () => {
     await put("v2", 120);
     await vault.activate("v2");
 
-    backing.files.set("wasm/legacy-engine.gguf", new Uint8Array(80));
+    backing.files.set("wasm/legacy-engine.bin", new Uint8Array(80));
     backing.files.set(versionPath("v2", "stale.partial"), new Uint8Array(12));
     backing.files.set(versionPath("orphan", "orphan.bin"), new Uint8Array(20));
 
@@ -250,7 +250,7 @@ describe("canonical installation view and cleanup", () => {
 
     expect(removed).toEqual(
       expect.arrayContaining([
-        "wasm/legacy-engine.gguf",
+        "wasm/legacy-engine.bin",
         versionPath("v2", "stale.partial"),
         versionPath("orphan", "orphan.bin"),
       ]),
@@ -362,7 +362,7 @@ describe("listing sees files even when their metadata was lost", () => {
   it("ignores files outside the versioned layout", async () => {
     await put("v1", 100);
     // A pre-versioning artifact from an older install.
-    await backing.store.append("wasm/old/engine.gguf", new Uint8Array(10), 0);
+    await backing.store.append("wasm/old/engine.bin", new Uint8Array(10), 0);
     const versions = await vault.listVersions();
     expect(versions.map((v) => v.version)).toEqual(["v1"]);
   });
@@ -387,7 +387,7 @@ describe("uninstall removes the engine and only the engine", () => {
     // Somebody who installed before the layout was versioned has hundreds of
     // megabytes under the old keys. An uninstall that left them would report
     // "removed" over a full disk.
-    await backing.store.append("wasm/qwen/engine.gguf", new Uint8Array(500), 0);
+    await backing.store.append("wasm/legacy/engine.bin", new Uint8Array(500), 0);
     await put("v1", 100);
 
     const result = await vault.removeEverything();
@@ -411,7 +411,7 @@ describe("uninstall removes the engine and only the engine", () => {
 
 describe("adopting a pre-versioning install", () => {
   it("moves a verified legacy file in rather than re-downloading it", async () => {
-    const legacy = "wasm/qwen/engine.gguf";
+    const legacy = "wasm/legacy/engine.bin";
     await backing.store.append(legacy, new Uint8Array(400).fill(7), 0);
     await backing.store.writeMeta(legacy, {
       verified: true,
@@ -433,7 +433,7 @@ describe("adopting a pre-versioning install", () => {
   });
 
   it("REFUSES an unverified legacy file", async () => {
-    const legacy = "wasm/qwen/engine.gguf";
+    const legacy = "wasm/legacy/engine.bin";
     await backing.store.append(legacy, new Uint8Array(400), 0);
     await backing.store.writeMeta(legacy, { verified: false, expectedBytes: 400 });
 
@@ -444,7 +444,7 @@ describe("adopting a pre-versioning install", () => {
   });
 
   it("refuses a legacy file whose digest is for different weights", async () => {
-    const legacy = "wasm/qwen/engine.gguf";
+    const legacy = "wasm/legacy/engine.bin";
     await backing.store.append(legacy, new Uint8Array(400), 0);
     await backing.store.writeMeta(legacy, {
       verified: true,
@@ -459,7 +459,7 @@ describe("adopting a pre-versioning install", () => {
 
   it("does nothing when the version is already installed", async () => {
     await put("v1", 100);
-    const legacy = "wasm/qwen/engine.gguf";
+    const legacy = "wasm/legacy/engine.bin";
     await backing.store.append(legacy, new Uint8Array(400), 0);
     await backing.store.writeMeta(legacy, { verified: true, expectedBytes: 400 });
 

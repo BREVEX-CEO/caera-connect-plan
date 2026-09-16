@@ -24,7 +24,6 @@ import type { CapabilityPath } from "./installation-authority";
 import type { BrainAdapter } from "./adapter";
 import { modelVault } from "./model-vault";
 import { recordInstallEvent } from "./install-telemetry";
-import { OFFLINE_MODEL } from "./model-catalogue";
 
 export interface RuntimeProgress {
   stage: "downloading" | "loading";

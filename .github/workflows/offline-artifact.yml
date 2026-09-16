@@ -1,0 +1,73 @@
+name: Prepare an Offline Intelligence release
+
+# Builds one Offline Intelligence release, proves it answers a question in a
+# real browser, and puts it in OCADE's private bucket under an opaque id.
+#
+# WHY THE SOURCE IS A SECRET. Where the upstream weights are built from is
+# deployment configuration. It is not in tracked source, it is not an input
+# typed at dispatch time (which would land in this run's metadata forever), and
+# the build script never echoes it. The only thing this workflow leaves behind
+# is the opaque release id and its digest.
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: Type I_APPROVE_OCADE_OFFLINE_RELEASE
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ocade-offline-artifact
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Build, prove and privately publish one release
+    if: ${{ inputs.approval == 'I_APPROVE_OCADE_OFFLINE_RELEASE' }}
+    runs-on: ubuntu-latest
+    environment: cloudflare-production
+    timeout-minutes: 60
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      OCADE_OFFLINE_SOURCE_URL: ${{ secrets.OCADE_OFFLINE_SOURCE_URL }}
+      OCADE_MODELS_BUCKET: ocade-private-models
+    steps:
+      - name: Check out this branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Install a browser for the generation proof
+        run: npx playwright install --with-deps chromium
+
+      - name: Build the artifact and write the manifest
+        run: node scripts/build-offline-artifact.mjs --no-upload
+
+      - name: Prove the artifact actually answers
+        env:
+          PLAYWRIGHT_CHROMIUM: ""
+        run: |
+          PLAYWRIGHT_CHROMIUM="$(node -e "console.log(require('playwright-core').chromium.executablePath())")" \
+            node scripts/prove-offline-artifact.mjs
+
+      - name: Publish it privately
+        run: node scripts/build-offline-artifact.mjs
+
+      - name: Hand back the manifest to commit
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: offline-release-manifest
+          path: release/OCADE_OFFLINE_RELEASE.json
+          if-no-files-found: error

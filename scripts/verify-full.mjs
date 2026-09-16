@@ -27,6 +27,7 @@ const commands = [
   "controls:check",
   "a11y:check",
   "monochrome:check",
+  "identity:check",
   "reachability:check",
 ];
 

@@ -164,9 +164,14 @@ function isNeverCached(url) {
  *
  * Cross-origin weights are already excluded by the origin check below. This
  * covers weights served from our own origin, where that check does not help.
+ *
+ * Matched by PATH rather than by file extension. The artifact is reached
+ * through OCADE's authorised delivery route and has no name and no extension to
+ * match on, which is the point of it; the extension list this replaced also
+ * spelled out which formats OCADE runs, in a file every visitor downloads.
  */
 function isModelWeight(url) {
-  return /\.(gguf|bin|safetensors|onnx|params)$/.test(url.pathname);
+  return url.pathname.startsWith("/api/offline/");
 }
 
 /**

@@ -3,7 +3,6 @@ import {
   planTransfer,
   planChunks,
   adaptConcurrency,
-  sourceLadder,
   retryDelayMs,
   MIN_CONCURRENCY,
   MAX_CONCURRENCY,
@@ -162,31 +161,6 @@ describe("concurrency follows measured throughput, not optimism", () => {
   it("holds steady on a window that measured nothing", () => {
     const previous = { bytes: 1_000_000, ms: 1000, concurrency: 3 };
     expect(adaptConcurrency(3, previous, { bytes: 0, ms: 0, concurrency: 3 })).toBe(3);
-  });
-});
-
-describe("the source ladder", () => {
-  it("prefers OCADE's own distribution, then this origin, then the publisher", () => {
-    const ladder = sourceLadder({
-      cdnUrl: "https://cdn.ocade.example/m/v1.gguf",
-      sameOriginUrl: "/models/v1.gguf",
-      publisherUrl: "https://publisher.example/v1.gguf",
-    });
-    expect(ladder.map((s) => s.kind)).toEqual(["ocade_cdn", "same_origin", "publisher"]);
-  });
-
-  it("always ends with a usable source when nothing is configured", () => {
-    const ladder = sourceLadder({ publisherUrl: "https://publisher.example/v1.gguf" });
-    expect(ladder).toEqual([{ url: "https://publisher.example/v1.gguf", kind: "publisher" }]);
-  });
-
-  it("does not list the same URL twice", () => {
-    const ladder = sourceLadder({
-      cdnUrl: "https://same.example/v1.gguf",
-      sameOriginUrl: null,
-      publisherUrl: "https://same.example/v1.gguf",
-    });
-    expect(ladder).toHaveLength(1);
   });
 });
 

@@ -4,7 +4,7 @@
  * OPFS (the Origin Private File System) rather than IndexedDB or Cache
  * Storage, for reasons that matter at this size:
  *
- *  - It streams. A 400 MB GGUF can be written chunk by chunk and read back as
+ *  - It streams. A half-gigabyte artifact can be written chunk by chunk and read back as
  *    a Blob without ever holding the whole thing in memory. IndexedDB wants a
  *    value; Cache Storage wants a Response. Both push you toward materialising
  *    hundreds of megabytes at once, which is how a tab dies on a phone.
@@ -23,7 +23,7 @@
 const MODEL_DIRECTORY = "ocade-models";
 
 export interface StoredModel {
-  /** Stable key, e.g. "wasm/qwen2.5-1.5b-instruct-q4_k_m.gguf". */
+  /** Stable key. Opaque: derived from the release id, never from a name. */
   key: string;
   bytes: number;
   /** Set once the file has been verified against its expected digest. */

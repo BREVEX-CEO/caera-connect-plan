@@ -107,7 +107,7 @@ describe("the first install", () => {
 
     const result = await transferModel(
       {
-        sources: [{ url: "https://example.test/model", kind: "ocade_cdn" }],
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
         totalBytes: SIZE,
         sha256: await digestOf(bytes),
         plan: PLAN,
@@ -129,7 +129,7 @@ describe("the first install", () => {
 
     await transferModel(
       {
-        sources: [{ url: "https://example.test/model", kind: "ocade_cdn" }],
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
         totalBytes: SIZE,
         plan: PLAN,
       },
@@ -151,7 +151,7 @@ describe("an interruption", () => {
     let checkpoint: TransferCheckpoint | null = null;
     const stopping = await transferModel(
       {
-        sources: [{ url: "https://example.test/model", kind: "ocade_cdn" }],
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
         totalBytes: SIZE,
         sha256: await digestOf(bytes),
         plan: { ...PLAN, concurrency: 1 },
@@ -176,7 +176,7 @@ describe("an interruption", () => {
     const second = rangedServer(bytes);
     const resumed = await transferModel(
       {
-        sources: [{ url: "https://example.test/model", kind: "ocade_cdn" }],
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
         totalBytes: SIZE,
         sha256: await digestOf(bytes),
         plan: { ...PLAN, concurrency: 1 },
@@ -203,7 +203,7 @@ describe("an interruption", () => {
     const server = rangedServer(bytes);
     const result = await transferModel(
       {
-        sources: [{ url: "https://example.test/model", kind: "ocade_cdn" }],
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
         totalBytes: SIZE,
         sha256: await digestOf(bytes),
         plan: PLAN,
@@ -232,7 +232,7 @@ describe("what damage looks like", () => {
 
     const result = await transferModel(
       {
-        sources: [{ url: "https://example.test/model", kind: "ocade_cdn" }],
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
         totalBytes: SIZE,
         sha256: await digestOf(bytes),
         plan: PLAN,
@@ -253,7 +253,7 @@ describe("what damage looks like", () => {
 
     const result = await transferModel(
       {
-        sources: [{ url: "https://example.test/model", kind: "ocade_cdn" }],
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
         totalBytes: SIZE,
         sha256: await digestOf(bytes),
         plan: PLAN,
@@ -270,7 +270,7 @@ describe("what damage looks like", () => {
     const bytes = artifact(SIZE);
     const result = await transferModel(
       {
-        sources: [{ url: "https://example.test/model", kind: "ocade_cdn" }],
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
         totalBytes: SIZE,
         plan: PLAN,
       },
@@ -295,7 +295,7 @@ describe("a revisit", () => {
     let complete: TransferCheckpoint | null = null;
     await transferModel(
       {
-        sources: [{ url: "https://example.test/model", kind: "ocade_cdn" }],
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
         totalBytes: SIZE,
         sha256: await digestOf(bytes),
         plan: PLAN,
@@ -312,7 +312,7 @@ describe("a revisit", () => {
     const revisit = rangedServer(bytes);
     const again = await transferModel(
       {
-        sources: [{ url: "https://example.test/model", kind: "ocade_cdn" }],
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
         totalBytes: SIZE,
         sha256: await digestOf(bytes),
         plan: PLAN,

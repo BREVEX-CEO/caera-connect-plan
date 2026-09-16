@@ -267,43 +267,18 @@ export function planChunks(totalBytes: number, chunkBytes: number): ChunkRange[]
  * first run depend on one third-party host being reachable and fast. A
  * corporate egress policy, a regional outage or a rate limit at that host was
  * therefore an OCADE outage.
- *
- * The order encodes what is both fastest and most under OCADE's control:
- *
- *  1. **OCADE's own distribution**, when this deployment declares one. Object
- *     storage behind a CDN, served from the edge nearest the user, with
- *     immutable versioned paths that can be cached forever.
- *  2. **This origin**, for a self-hosted or air-gapped install that dropped the
- *     file into `public/models/`. No external request at all.
- *  3. **The publisher**, which is where the reviewed digest came from and is
- *     the fallback that keeps a plain deployment working with no configuration.
- *
- * Every source is held to the SAME digest. Failover changes where bytes come
- * from and never whether they are checked, so a compromised or misconfigured
- * mirror cannot promote itself into the active model — it can only fail.
+
+ * There is ONE source, and it is OCADE's own authorised link. This described a
+ * ladder — a configurable CDN, then a same-origin copy, then the publisher's
+ * public host — which is how a customer's browser came to fetch the weights
+ * from a public model host. What survives is the shape the transfer engine
+ * wants: a list it walks, so an expired link replaced mid-install is a list
+ * with a different entry rather than a different code path.
  */
 export interface DownloadSource {
   url: string;
   /** For telemetry and diagnostics. Never shown in ordinary UI. */
-  kind: "ocade_cdn" | "same_origin" | "publisher";
-}
-
-export function sourceLadder(input: {
-  cdnUrl?: string | null;
-  sameOriginUrl?: string | null;
-  publisherUrl: string;
-}): DownloadSource[] {
-  const out: DownloadSource[] = [];
-  const seen = new Set<string>();
-  const add = (url: string | null | undefined, kind: DownloadSource["kind"]) => {
-    if (!url || seen.has(url)) return;
-    seen.add(url);
-    out.push({ url, kind });
-  };
-  add(input.cdnUrl, "ocade_cdn");
-  add(input.sameOriginUrl, "same_origin");
-  add(input.publisherUrl, "publisher");
-  return out;
+  kind: "ocade";
 }
 
 /**

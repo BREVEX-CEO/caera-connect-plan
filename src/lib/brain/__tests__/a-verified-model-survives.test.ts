@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { OFFLINE_MODEL } from "../model-catalogue";
+import { offlineRelease } from "../offline-release";
 
 /**
  * THE TWO LIFECYCLE EVENTS THAT COULD SILENTLY COST A GIGABYTE.
@@ -144,14 +144,21 @@ describe("what identifies the model", () => {
    * deploy, for weights that did not change — the most expensive way to ship a
    * typo fix.
    */
-  it("is the artifact's own version, not anything about this build", () => {
-    expect(OFFLINE_MODEL.version).toBe("qwen2.5-1.5b-instruct-q4_k_m");
-    expect(OFFLINE_MODEL.version).not.toMatch(/^[0-9a-f]{7,40}$/);
+  it("is the artifact's own digest, not anything about this build", () => {
+    /*
+     * An opaque id derived from the bytes. It cannot be a build SHA, it cannot
+     * be a model name, and it changes exactly when the artifact does — which is
+     * what makes a deploy free and an upgrade honest.
+     */
+    const release = offlineRelease();
+    if (release) expect(release.releaseId).toMatch(/^ocr-[0-9a-f]{16}$/);
+    // Null is the state before a release is published, and it is not a failure.
+    expect(release === null || typeof release.releaseId === "string").toBe(true);
   });
 
   it("is not composed from a build identifier anywhere in the engine", () => {
     for (const file of [
-      "src/lib/brain/model-catalogue.ts",
+      "src/lib/brain/offline-release.ts",
       "src/lib/brain/model-vault.ts",
       "src/lib/brain/installation-authority.ts",
       "src/lib/brain/installation-browser.ts",

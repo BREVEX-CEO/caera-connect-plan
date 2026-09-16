@@ -50,7 +50,6 @@
 import {
   planTransfer,
   readDeviceSignals,
-  sourceLadder,
   type DownloadSource,
   type TransferPlan,
 } from "./download-plan";
@@ -555,14 +554,23 @@ export class ModelInstallationAuthority {
     const target = await this.deps.resolveTarget(path);
 
     /*
-     * A PATH WITH NOTHING TO DOWNLOAD IS STILL A PATH.
+     * NOTHING TO INSTALL MEANS THERE IS NOTHING TO INSTALL.
      *
-     * The desktop bridge and a paired computer already hold the weights. They
-     * go straight to activation, which is why "install" is the right verb for
-     * all of them and "download" would not be.
+     * This used to treat a null target as "this backend already holds the
+     * weights, go straight to activation", which was true of the desktop bridge
+     * and the paired computer. Both are gone. What null means now is that the
+     * deployment has published no release, and activating a path with no
+     * artifact behind it produces a runtime failure with a message about the
+     * device — blaming a person's machine for something OCADE has not shipped.
      */
     if (target === null) {
-      return this.activate(path, "local", signal);
+      return {
+        ok: false,
+        stop: true,
+        stage: "fatal_error",
+        reason: "Offline Intelligence is not available in this version of OCADE yet.",
+        remedies: [],
+      };
     }
 
     /* Already installed and verified? Then this is not a download at all. */

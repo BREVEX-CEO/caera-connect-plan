@@ -8,10 +8,11 @@
  * is proven against the real transfer engine in `install-once.test.ts`, where a
  * fake ranged server can be interrupted and corrupted on demand.
  *
- * WHAT THIS DOES NOT PROVE: a real 1.1 GB install. The artifact lives on a CDN
- * this environment cannot reach, and a proof that downloads nothing is not a
- * proof of downloading. What it does prove is that the surface exists, says
- * only what it is allowed to say, and that Remove is reachable and deliberate.
+ * WHAT THIS DOES NOT PROVE: a real install. The artifact is served from OCADE's
+ * private bucket, which this environment cannot reach, and a proof that
+ * downloads nothing is not a proof of downloading. What it does prove is that
+ * the surface exists, says only what it is allowed to say, and that Remove is
+ * reachable and deliberate.
  *
  * Usage: node scripts/e2e/offline-journey.mjs [--base=…] [--supabase=…]
  */
@@ -87,11 +88,12 @@ try {
   const panel = await page.getByRole("dialog", { name: "Settings" }).innerText();
   check(
     "it says what state this device is in, in OCADE's own words",
-    /(Preparing OCADE|Downloading \d+%|Verifying|Almost ready|Ready|Repairing|Removed|more local storage|could not|cannot run)/.test(
+    /(Preparing OCADE|Downloading \d+%|Verifying|Almost ready|Ready|Repairing|Removed|more local storage|not available|could not|cannot run)/.test(
       panel,
     ),
-    panel.split("\n").find((line) => /Preparing|Downloading|Ready|Removed|storage/.test(line)) ??
-      "",
+    panel
+      .split("\n")
+      .find((line) => /Preparing|Downloading|Ready|Removed|storage|not available/.test(line)) ?? "",
   );
   check(
     "it never names the model, its format, its publisher or the runtime",

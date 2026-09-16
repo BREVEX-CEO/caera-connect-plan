@@ -36,7 +36,7 @@ export type InstallTelemetry =
       bytes: number;
       resumedBytes: number;
       retries: number;
-      sourceKind: "ocade_cdn" | "same_origin" | "publisher";
+      sourceKind: "ocade";
       ranged: boolean;
       concurrency: number;
       bytesPerSecond: number | null;

@@ -28,52 +28,14 @@ import {
 } from "./installation-authority";
 import { modelVault } from "./model-vault";
 import { ModelStore, modelStore } from "./model-store";
-import { sourceLadder } from "./download-plan";
+
 import { planThreads, readThreadSignals } from "./wasm-threads";
 import { sha256OfBlobStreaming } from "./streaming-digest";
 import { onBackgroundFetchStaged } from "./background-fetch";
-import {
-  OFFLINE_MODEL,
-  expectedSha256,
-  publisherUrl,
-  resolved,
-  sameOriginUrl,
-  storageKey,
-} from "./model-catalogue";
+import { readOfflineRelease } from "./offline-release.functions";
 
 const INSTALL_LOCK = "ocade.model.install";
 const INSTALL_CHANNEL = "ocade.model.install.bus";
-
-/**
- * OCADE's own model distribution, when this deployment has one.
- *
- * Set to the base of an immutable, versioned object-storage path served through
- * a CDN — see `docs/MODEL_DISTRIBUTION.md` for the bucket layout and the cache
- * headers the artifacts must carry. Absent, the ladder simply starts one rung
- * lower and a plain deployment keeps working with no configuration, which is
- * what makes this safe to leave unset.
- */
-function ocadeCdnBase(): string | null {
-  try {
-    const configured = (import.meta.env?.VITE_OCADE_MODEL_CDN as string | undefined) ?? "";
-    const trimmed = configured.trim().replace(/\/+$/, "");
-    if (!trimmed) return null;
-    // Only ever https, and only ever an absolute origin. A relative or plain
-    // http value here would silently downgrade every first run.
-    const url = new URL(trimmed);
-    return url.protocol === "https:" ? trimmed : null;
-  } catch {
-    return null;
-  }
-}
-
-/** The CDN path for the artifact, versioned so it can be served immutable. */
-export function cdnUrl(): string | null {
-  const base = ocadeCdnBase();
-  const entry = resolved();
-  if (!base || !entry) return null;
-  return `${base}/models/${encodeURIComponent(OFFLINE_MODEL.version)}/${encodeURIComponent(entry.path)}`;
-}
 
 /* ------------------------------------------------------------- the ladder -- */
 
@@ -141,31 +103,33 @@ export async function probeBrowserCapabilities(): Promise<CapabilityRung[]> {
 /* ------------------------------------------------------------- the target -- */
 
 /**
- * What a path needs downloaded.
+ * What a path needs downloaded, and the authorised link to get it.
  *
- * Both rungs answer with the same artifact, which is the point: OCADE
+ * Every rung answers with the same artifact, which is the point: OCADE
  * distributes, sizes, digests and verifies one file, and the rung only decides
- * how many cores read it. A second backend would mean a second target, and
- * install-once cannot survive two.
+ * what runs it. A second artifact would mean a second target, and install-once
+ * cannot survive two.
+ *
+ * ONE SOURCE, AND IT IS OCADE'S. This used to build a ladder — a configurable
+ * CDN, then a same-origin copy, then the publisher's public host — which meant
+ * a customer's browser could and usually did fetch the weights straight from a
+ * public model host. The link is minted per person now, expires, and is the
+ * only way to the bytes.
+ *
+ * Null when the deployment has no published release, which is a real state:
+ * OCADE says Offline Intelligence is not available rather than starting an
+ * install that cannot finish.
  */
 export async function resolveInstallTarget(path: CapabilityPath): Promise<InstallTarget | null> {
   void path;
-  const entry = resolved();
-  const publisher = publisherUrl();
-  if (!entry || !publisher) return null;
+  const release = await readOfflineRelease().catch(() => null);
+  if (!release?.available) return null;
 
   return {
-    version: OFFLINE_MODEL.version,
-    totalBytes: entry.sizeBytes,
-    sha256: expectedSha256(),
-    sources: sourceLadder({
-      cdnUrl: cdnUrl(),
-      sameOriginUrl: sameOriginUrl(),
-      publisherUrl: publisher,
-    }),
-    // The key this artifact lived under before storage was versioned. A person
-    // who already downloaded it must not pay for it twice.
-    legacyKey: storageKey(),
+    version: release.releaseId,
+    totalBytes: release.totalBytes,
+    sha256: release.sha256,
+    sources: [{ url: release.url, kind: "ocade" }],
   };
 }
 
