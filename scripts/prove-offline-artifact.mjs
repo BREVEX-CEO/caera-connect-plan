@@ -287,7 +287,10 @@ try {
   const result = await Promise.race([
     page.evaluate(() => window.__prove()),
     new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Offline browser proof timed out after 10 minutes.")), PROOF_TIMEOUT_MS),
+      setTimeout(
+        () => reject(new Error("Offline browser proof timed out after 10 minutes.")),
+        PROOF_TIMEOUT_MS,
+      ),
     ),
   ]);
 
@@ -303,7 +306,9 @@ try {
     process.stderr.write("The engine loaded the artifact and produced nothing.\n");
   } else if (!isCorrectArithmeticAnswer(text)) {
     failed = true;
-    process.stderr.write("The engine loaded and generated, but the basic arithmetic answer was not correct.\n");
+    process.stderr.write(
+      "The engine loaded and generated, but the basic arithmetic answer was not correct.\n",
+    );
   } else {
     process.stdout.write("PASS  the artifact loads and answers correctly\n");
   }

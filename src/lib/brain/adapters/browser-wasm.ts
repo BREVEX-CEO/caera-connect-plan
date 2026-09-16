@@ -232,7 +232,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
    * Passing 1 is not "multithreaded with one thread": wllama hands 0 to its
    * worker at that point, which disables pthreads outright.
    */
-  private loadParams(): { n_threads: number; n_gpu_layers: number } {
+  private loadParams(): { n_threads: number } & Record<string, unknown> {
     const plan = planThreads({
       ...readThreadSignals(),
       // The ladder decides whether this rung is the threaded one at all; asking
@@ -242,6 +242,26 @@ export class BrowserWasmAdapter implements BrainAdapter {
     });
     return {
       n_threads: plan.threads,
+      /*
+       * SMALL BATCHES AND ONE SEQUENCE, BECAUSE THE DEVICE IS THE CONSTRAINT.
+       *
+       * wllama's defaults are sized for a machine with room to spare. On a
+       * phone they are the difference between an engine that starts and a tab
+       * the browser kills, which is a failure the person reads as OCADE being
+       * broken. `warmup` is off for the same reason: it is a full forward pass
+       * before anybody has asked anything.
+       */
+      n_batch: 64,
+      n_ubatch: 64,
+      n_parallel: 1,
+      warmup: false,
+      /*
+       * The artifact carries its own chat template. Using it is what makes the
+       * difference between a conversation and a completion that wanders off
+       * into inventing the next question.
+       */
+      jinja: true,
+      default_template_kwargs: { enable_thinking: false },
       /*
        * ZERO, EXPLICITLY, AND IT IS NOT REDUNDANT.
        *
@@ -337,6 +357,17 @@ export class BrowserWasmAdapter implements BrainAdapter {
     const instance = new wllama.Wllama(builds, { allowOffline: true });
 
     /*
+     * NO COMPATIBILITY RUNTIME FROM SOMEBODY ELSE'S CDN.
+     *
+     * wllama will fetch a compatibility shim from a public CDN when it decides
+     * the browser needs one. A local-first engine that reaches out to a third
+     * party to start is not local-first, it breaks on the plane, and it tells
+     * that third party when every OCADE customer opens the product. Null means
+     * this deployment's own binary or nothing.
+     */
+    instance.setCompat(null);
+
+    /*
      * Weights come from OCADE'S OWN STORE, not the library's internal cache.
      *
      * That is what makes pause, resume, digest verification, repair and
@@ -409,6 +440,16 @@ export class BrowserWasmAdapter implements BrainAdapter {
         // never applied is worse than no pin at all.
         temperature: BROWSER_SAMPLER.temperature,
         top_p: BROWSER_SAMPLER.topP,
+        top_k: BROWSER_SAMPLER.topK,
+        min_p: BROWSER_SAMPLER.minP,
+        /*
+         * DELIBERATING IS OFF, AND IT HAS TO BE ASKED FOR EXPLICITLY.
+         *
+         * This artifact's chat template emits a reasoning block unless told
+         * not to. On a device this size those tokens are minutes of waiting
+         * that never reach the person, and a page that looks hung.
+         */
+        chat_template_kwargs: { enable_thinking: false },
         messages: messages.map((m) => ({ role: m.role, content: m.content })),
       });
 

@@ -1,20 +1,21 @@
 /**
- * THE SAMPLING VALUES OCADE RUNS BROWSER ENGINES AT — DECIDED ONCE.
+ * THE SAMPLING VALUES OFFLINE INTELLIGENCE RUNS AT — DECIDED ONCE.
  *
- * These are not a preference. They are part of what an answer receipt PINS: a
- * repeat is only interpretable if the conditions it claims were the conditions
- * actually applied. When each adapter carried its own literal, a change to one
- * of them turned every pin on the other into a quiet lie — the receipt said
- * 0.2/0.9 and the runtime used something else.
+ * One place, read by the adapter and by the artifact proof, so the conditions
+ * a proof establishes are the conditions the product applies. When each caller
+ * carried its own literals, proving the artifact answered correctly proved it
+ * about settings nothing shipped with.
  *
- * So the adapters read these, and so does the pin. There is one number to
- * change, and changing it changes the receipt with it.
- *
- * LOW TEMPERATURE ON PURPOSE. The browser tiers are small models doing exact
- * and arithmetic work; sampling them loosely made them erratic on precisely
- * the prompts where being wrong is most obvious.
+ * THESE ARE THE ARTIFACT'S OWN RECOMMENDED VALUES, not a house preference. A
+ * previous engine was run at 0.2/0.9 on the reasoning that a small model doing
+ * arithmetic should be sampled tightly. That reasoning is sound and these
+ * weights were not tuned for it: at 0.2 this artifact repeats and stalls, which
+ * is how `scripts/prove-offline-artifact.mjs` came to need 0.7/0.8/20 before it
+ * would answer a sum correctly. The publisher's values win over the theory.
  */
 export const BROWSER_SAMPLER = {
-  temperature: 0.2,
-  topP: 0.9,
+  temperature: 0.7,
+  topP: 0.8,
+  topK: 20,
+  minP: 0,
 } as const;

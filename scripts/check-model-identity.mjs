@@ -45,14 +45,24 @@ const SEARCHED = [
 ];
 
 /**
- * The guards, which have to name what they are looking for.
+ * What is allowed to say these words, and why each one is.
  *
- * `docs/MEMORY.md` is excluded for a different reason: it is the record of what
- * was done and why, written for the next agent, and a history that cannot
- * describe what it removed is not a history.
+ * The guards have to name what they are looking for: this file, and the browser
+ * journeys under `scripts/e2e/` that assert no customer surface contains them.
+ *
+ * The two artifact scripts are build-time tools. They run on a maintainer's
+ * machine to prepare a release and are never bundled, never served and never
+ * reachable from the product; they have to speak the runtime's own language to
+ * validate a container and load it. Excluding them is narrower than weakening
+ * the check: every shipped surface is still covered.
+ *
+ * `docs/MEMORY.md` is the record of what was done and why, written for the next
+ * agent. A history that cannot describe what it removed is not a history.
  */
 const ALLOWED = new Set([
   "scripts/check-model-identity.mjs",
+  "scripts/build-offline-artifact.mjs",
+  "scripts/prove-offline-artifact.mjs",
   "docs/MEMORY.md",
   "package-lock.json",
 ]);

@@ -827,6 +827,45 @@ Dictation is honestly disabled. Attachment download from the transcript is not
 built (the file is in Library, which has one). PDF/Office reading needs a
 parser dependency and an owner decision.
 
+## The runtime now matches what the artifact actually needs
+
+The owner's six commits fixing `prove-offline-artifact.mjs` are evidence about
+the artifact, and the product was not running it the same way. Corrected:
+
+- **Sampling.** `BROWSER_SAMPLER` was 0.2/0.9, chosen on the sound reasoning
+  that a small model doing arithmetic should be sampled tightly. These weights
+  were not tuned for it — at 0.2 this artifact repeats and stalls, which is why
+  the proof needed 0.7/0.8/top_k 20/min_p 0 before it would answer a sum. The
+  publisher's values win over the theory, and `offline-release.test.ts` now
+  fails if the proof and the product drift apart.
+- **Deliberation off.** The chat template emits a reasoning block unless told
+  not to. On a device this size those are minutes nobody sees and a page that
+  looks hung. `enable_thinking: false` on both the load and the completion.
+- **The template is used at all.** `jinja: true`, so a conversation is a
+  conversation rather than a completion that wanders into inventing the next
+  question.
+- **Memory.** `n_batch`/`n_ubatch` 64, `n_parallel` 1, `warmup` false. The
+  defaults are sized for a machine with room to spare; on a phone they are the
+  difference between an engine that starts and a tab the browser kills.
+- **`setCompat(null)`.** wllama fetches a compatibility shim from a public CDN
+  when it decides the browser needs one. A local-first engine that reaches out
+  to a third party to start is not local-first, breaks on a plane, and tells
+  that third party when every customer opens OCADE.
+
+The identity gate caught the proof script reintroducing a container name and
+was scoped rather than weakened: the two build-time artifact scripts are
+excluded, with the reason, because they never ship and must speak the runtime's
+own language. Every shipped surface is still covered.
+
+### The one thing still missing for the release
+
+The owner supplied the release id (`ocr-2dc0ee44eb397906`), the byte length
+(484,220,160) and the object path, but not the **full SHA-256**. The release id
+is only its first sixteen characters. The manifest validator requires all
+sixty-four because that digest is the end-to-end integrity check the installer
+verifies against, and a truncated or invented one is not a check. One line from
+the owner completes the manifest.
+
 ## Exact next action
 
 Unblock the artifact (see above), then: publish the release, commit the

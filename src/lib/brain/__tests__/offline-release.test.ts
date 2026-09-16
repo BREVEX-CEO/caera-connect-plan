@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { OFFLINE_LABEL, formatSize, offlineRelease } from "@/lib/brain/offline-release";
+import { BROWSER_SAMPLER } from "@/lib/brain/sampler-settings";
 
 describe("the committed release record", () => {
   it("is either a valid release or honestly absent", () => {
@@ -61,5 +62,43 @@ describe("sizes a person can read", () => {
     expect(formatSize(512 * 1024 * 1024)).toBe("512 MB");
     expect(formatSize(1024 * 1024 * 1024)).toBe("1.00 GB");
     expect(formatSize(1_610_612_736)).toBe("1.50 GB");
+  });
+});
+
+describe("the proof and the product run the artifact the same way", () => {
+  /*
+   * A proof that the artifact answers correctly proves nothing if it answered
+   * under settings the product does not ship. These values came from getting
+   * the proof to work: at the previous 0.2/0.9 this artifact repeats and
+   * stalls. If somebody changes one side, this is what says so.
+   */
+  const proof = readFileSync("scripts/prove-offline-artifact.mjs", "utf8");
+
+  it("samples at the same values", () => {
+    expect(proof).toContain(`temperature: ${BROWSER_SAMPLER.temperature}`);
+    expect(proof).toContain(`top_p: ${BROWSER_SAMPLER.topP}`);
+    expect(proof).toContain(`top_k: ${BROWSER_SAMPLER.topK}`);
+    expect(proof).toContain(`min_p: ${BROWSER_SAMPLER.minP}`);
+  });
+
+  it("turns deliberation off on both sides", () => {
+    // The artifact's chat template emits a reasoning block unless told not to,
+    // which on a device this size is minutes nobody sees.
+    expect(proof).toContain("enable_thinking: false");
+    const adapter = readFileSync("src/lib/brain/adapters/browser-wasm.ts", "utf8");
+    expect(adapter).toContain("enable_thinking: false");
+  });
+
+  it("uses the artifact's own chat template rather than raw completion", () => {
+    const adapter = readFileSync("src/lib/brain/adapters/browser-wasm.ts", "utf8");
+    expect(adapter).toContain("jinja: true");
+    expect(adapter).toContain("createChatCompletion");
+  });
+
+  it("never lets the engine fetch a runtime from somebody else's CDN", () => {
+    // A local-first engine that reaches out to a third party to start is not
+    // local-first, and it tells that third party when every customer opens it.
+    const adapter = readFileSync("src/lib/brain/adapters/browser-wasm.ts", "utf8");
+    expect(adapter).toContain("setCompat(null)");
   });
 });
