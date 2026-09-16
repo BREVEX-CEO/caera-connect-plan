@@ -131,6 +131,29 @@ try {
 
   const turns = () => page.locator(".group").filter({ hasText: "stubbed OCADE answer" });
 
+  /*
+   * WAIT FOR THE TRANSCRIPT TO SETTLE, DO NOT SAMPLE IT.
+   *
+   * Regenerate removes the old answer and streams a new one, so for a frame or
+   * two both are on screen. Counting immediately after the new text appears
+   * reads that frame and fails about one run in ten — a flake in the test, not
+   * in the product, and the kind that teaches people to re-run rather than
+   * look.
+   */
+  const settledAnswers = async (expected) => {
+    await page
+      .waitForFunction(
+        (want) =>
+          [...document.querySelectorAll(".group")].filter((node) =>
+            node.textContent?.includes("stubbed OCADE answer"),
+          ).length === want,
+        expected,
+        { timeout: 20_000 },
+      )
+      .catch(() => undefined);
+    return turns().count();
+  };
+
   check(
     "an answer offers Regenerate",
     (await page.getByRole("button", { name: "Regenerate" }).count()) >= 1,
@@ -140,7 +163,7 @@ try {
   await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
   check(
     "Regenerate replaces the answer rather than stacking a second one",
-    (await turns().count()) === 1,
+    (await settledAnswers(1)) === 1,
     `${await turns().count()} answers`,
   );
   check(
@@ -157,7 +180,7 @@ try {
     (await page.getByText("What is OCADE?", { exact: true }).count()) === 0 &&
       (await page.getByText("What is OCADE, in one line?", { exact: true }).count()) === 1,
   );
-  check("and the edit is answered", (await turns().count()) === 1);
+  check("and the edit is answered", (await settledAnswers(1)) === 1, `${await turns().count()}`);
 
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(800);
