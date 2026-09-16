@@ -82,7 +82,7 @@ window.__prove = async () => {
     { allowOffline: true, suppressNativeLog: false },
   );
 
-  // The proof must not silently fetch compatibility runtime code from a CDN.
+  // Never fetch compatibility runtime code from an external CDN during proof.
   engine.setCompat(null);
 
   const threads = diagnostics.crossOriginIsolated && diagnostics.sharedArrayBuffer ? 2 : 1;
@@ -90,8 +90,6 @@ window.__prove = async () => {
 
   try {
     await engine.loadModel([modelBlob], {
-      // 128 tokens was too small for a modern Qwen3 chat template and could
-      // truncate the effective prompt. 512 remains tiny while leaving safe room.
       n_ctx: 512,
       n_batch: 64,
       n_ubatch: 64,
@@ -118,9 +116,6 @@ window.__prove = async () => {
           content: "What is 2 + 2? Answer with the number only.",
         },
       ],
-      // Qwen3's official non-thinking guidance uses sampling rather than greedy
-      // decoding. Keep the proof deterministic with a fixed seed while following
-      // the model's intended non-thinking sampler family.
       max_tokens: 16,
       temperature: 0.7,
       top_p: 0.8,
@@ -177,6 +172,24 @@ function parseRange(header, size) {
   }
 
   return { start, end: Math.min(end, size - 1) };
+}
+
+function isCorrectArithmeticAnswer(answer) {
+  const normalized = String(answer ?? "")
+    .toLowerCase()
+    .replace(/[`*_]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[.!]+$/g, "")
+    .trim();
+
+  // Accept only clearly correct forms. This deliberately rejects answers that
+  // merely contain the digit 4 somewhere in unrelated or contradictory text.
+  return (
+    /^(?:4|four)$/.test(normalized) ||
+    /^2\s*\+\s*2\s*=\s*(?:4|four)$/.test(normalized) ||
+    /^(?:the\s+)?answer\s+(?:is|=)\s*(?:4|four)$/.test(normalized)
+  );
 }
 
 const server = createServer((request, response) => {
@@ -288,7 +301,7 @@ try {
   if (!text) {
     failed = true;
     process.stderr.write("The engine loaded the artifact and produced nothing.\n");
-  } else if (!/^4(?:\s|$)/i.test(text) && !/^four(?:\s|$)/i.test(text)) {
+  } else if (!isCorrectArithmeticAnswer(text)) {
     failed = true;
     process.stderr.write("The engine loaded and generated, but the basic arithmetic answer was not correct.\n");
   } else {
