@@ -21,5 +21,3 @@ export const COMPANY_FACTS = {
   location: "Bengaluru, Karnataka, India",
   status: "launched",
 } as const;
-
-export type CompanyFacts = typeof COMPANY_FACTS;

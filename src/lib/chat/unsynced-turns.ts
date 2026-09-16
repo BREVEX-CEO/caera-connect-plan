@@ -62,93 +62,9 @@ export function unsyncedTurns(): UnsyncedTurn[] {
   return [...buffer.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-export function unsyncedCount(): number {
-  return buffer.size;
-}
-
-/** Forget one turn. Called when it is uploaded, or when its conversation goes. */
-export function forgetUnsyncedTurn(clientKey: string): void {
-  if (buffer.delete(clientKey)) announce();
-}
-
-/**
- * Drop every waiting turn for one conversation.
- *
- * Deleting a conversation must not leave its turns queued for upload into a
- * conversation that no longer exists — the flush would fail forever and the
- * warning would never clear.
- */
-export function forgetConversationTurns(conversationId: string): void {
-  let changed = false;
-  for (const [key, turn] of buffer) {
-    if (turn.conversationId !== conversationId) continue;
-    buffer.delete(key);
-    changed = true;
-  }
-  if (changed) announce();
-}
-
 /** Discard everything. Sign-out, after the user has been warned. */
 export function forgetAllUnsyncedTurns(): void {
   if (buffer.size === 0) return;
   buffer.clear();
   announce();
-}
-
-/** Watch the count, for the badge and the close warning. */
-export function subscribeUnsynced(listener: () => void): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-export interface FlushResult {
-  uploaded: number;
-  /** Still waiting: the database is still unreachable, or refused them. */
-  remaining: number;
-}
-
-/**
- * Upload everything waiting.
- *
- * The uploader is injected rather than imported so this module stays free of
- * the server-function graph, which is what lets it be tested without a network
- * and imported from anywhere.
- *
- * STOPS AT THE FIRST FAILURE, on purpose. The overwhelming cause of a failure
- * here is that the connection is still down, and marching through two hundred
- * turns to collect two hundred identical failures wastes the battery of a
- * machine that is probably on one. The next `online` event tries again.
- */
-export async function flushUnsyncedTurns(
-  upload: (turn: UnsyncedTurn) => Promise<void>,
-): Promise<FlushResult> {
-  let uploaded = 0;
-  for (const turn of unsyncedTurns()) {
-    if (inFlight.has(turn.clientKey)) continue;
-    inFlight.add(turn.clientKey);
-    try {
-      await upload(turn);
-      buffer.delete(turn.clientKey);
-      uploaded += 1;
-    } catch {
-      return { uploaded, remaining: buffer.size };
-    } finally {
-      inFlight.delete(turn.clientKey);
-    }
-  }
-  if (uploaded) announce();
-  return { uploaded, remaining: buffer.size };
-}
-
-/**
- * What to tell somebody who is about to lose them.
- *
- * Written here so the close warning, the sign-out confirmation and the badge
- * cannot drift into three different counts of the same thing.
- */
-export function describeUnsynced(count = unsyncedCount()): string | null {
-  if (count === 0) return null;
-  return count === 1
-    ? "One message has not reached your account yet. Leaving now discards it."
-    : `${count} messages have not reached your account yet. Leaving now discards them.`;
 }

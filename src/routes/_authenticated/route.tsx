@@ -19,7 +19,6 @@ import { useEffect } from "react";
  */
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { mayUseCachedSession, cachedSessionIsCurrent } from "@/lib/auth/session-failure";
-import { reportRuntimeError } from "@/lib/runtime-error-reporting";
 
 /**
  * The gate every signed-in destination inherits.
@@ -125,10 +124,6 @@ function AuthedLayout() {
 
 function AuthedError({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
-  useEffect(() => {
-    reportRuntimeError(error, { boundary: "authenticated_route" });
-  }, [error]);
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center" role="alert">

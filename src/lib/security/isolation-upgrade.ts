@@ -133,25 +133,3 @@ export function upgradeIsolationInBrowser(): IsolationOutcome {
     navigate: (to) => window.location.replace(to),
   });
 }
-
-/**
- * Should this link leave the current document?
- *
- * For a router integration and for ordinary anchors. Crossing the isolation
- * boundary in either direction needs a real navigation — see `isolation.ts` for
- * why leaving matters as much as entering.
- */
-export function linkNeedsFullNavigation(to: string): boolean {
-  if (typeof window === "undefined") return false;
-  return needsFullNavigation(window.location.pathname, to);
-}
-
-/** Forget the attempt. For tests, and for a deliberate retry from diagnostics. */
-export function resetIsolationAttempt(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.removeItem(ATTEMPT_KEY);
-  } catch {
-    /* Nothing to forget. */
-  }
-}

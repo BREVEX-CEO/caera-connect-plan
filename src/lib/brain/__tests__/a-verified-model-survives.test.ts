@@ -105,35 +105,28 @@ describe("a service-worker update", () => {
     expect(activate).toContain("k !== VERSION");
   });
 
-  it("never touches OPFS in the handlers that run on every update", () => {
+  it("never reaches OPFS at all, which is where the weights are", () => {
     /*
-     * `install` and `activate` run on every deployment. Model staging lives in
-     * the Background Fetch handlers instead, which run only when a transfer was
-     * explicitly handed to the service worker — so OPFS appearing in either of
-     * these two would be new, and would be the defect.
+     * Stronger than it used to be. This once asserted only that `install` and
+     * `activate` stayed out of OPFS, because the Background Fetch handlers
+     * wrote model bytes there — a second writer, in unbundled worker
+     * JavaScript, for a transfer nothing ever started. Both are gone, so the
+     * service worker touches the shell and nothing else.
      */
-    for (const handler of ["install", "activate"]) {
-      const start = SERVICE_WORKER.indexOf(`self.addEventListener("${handler}"`);
-      expect(start, `the ${handler} handler was not found`).toBeGreaterThan(0);
-      const body = SERVICE_WORKER.slice(start, SERVICE_WORKER.indexOf("});", start));
-      expect(body, `the ${handler} handler reaches OPFS, where the weights are`).not.toContain(
-        "getDirectory",
-      );
-      expect(body).not.toContain(MODEL_DIRECTORY);
-    }
+    expect(SERVICE_WORKER).not.toContain("getDirectory");
+    expect(SERVICE_WORKER).not.toContain(MODEL_DIRECTORY);
   });
 
   it("keeps the weights out of Cache Storage in the first place", () => {
     /*
-     * The structural half. Weights in Cache Storage would be inside the very
-     * thing `activate` prunes, and the prefix filter would be the only line
-     * standing between a deployment and a redownload. They are in OPFS
-     * instead, which `model-store.ts` owns and the service worker only writes
-     * to through Background Fetch.
+     * Weights in Cache Storage would be inside the very thing `activate`
+     * prunes, and the prefix filter would be the only line between a
+     * deployment and a redownload. The artifact is reached through OCADE's
+     * authorised delivery route, which this refuses to cache by path — it has
+     * no name and no extension to match on, which is the point of it.
      */
-    const staging = SERVICE_WORKER.slice(SERVICE_WORKER.indexOf("MODEL_ROOT"));
-    expect(staging).toContain("navigator.storage.getDirectory()");
-    expect(SERVICE_WORKER).not.toMatch(/caches\.open\([^)]*model/i);
+    expect(SERVICE_WORKER).toContain("/api/offline/");
+    expect(SERVICE_WORKER).not.toContain("CACHE_MODEL");
   });
 });
 

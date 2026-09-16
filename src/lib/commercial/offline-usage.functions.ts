@@ -32,18 +32,6 @@ export interface OfflineUsageLeaseView {
   signedLease?: SignedOfflineUsageLease;
 }
 
-export interface OfflineUsageView {
-  configured: boolean;
-  unavailableReason?: string;
-  verificationKeys: {
-    keyId: string;
-    publicKeyBase64: string;
-    notBefore: string;
-    expiresAt?: string;
-  }[];
-  leases: OfflineUsageLeaseView[];
-}
-
 function first<T>(value: T | T[] | null): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
@@ -206,67 +194,6 @@ export const allocateOfflineUsage = createServerFn({ method: "POST" })
     return { ok: true as const, lease: signed, verificationKeys: authority.verificationKeys };
   });
 
-export const readOfflineUsage = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<OfflineUsageView> => {
-    let authority;
-    try {
-      authority = await signingAuthority();
-    } catch (error) {
-      return {
-        configured: false,
-        unavailableReason: error instanceof Error ? error.message : "Offline usage is unavailable.",
-        verificationKeys: [],
-        leases: [],
-      };
-    }
-    const [{ supabaseAdmin }, entitlement] = await Promise.all([
-      import("@/integrations/supabase/client.server"),
-      resolveTierFor(context.userId),
-    ]);
-    const { data, error } = await supabaseAdmin.rpc("ocade_read_offline_usage", {
-      p_user_id: context.userId,
-    });
-    if (error) throw new Error(`Offline usage could not be read: ${error.message}`);
-    const paid = entitlement.tier !== "free";
-    return {
-      configured: true,
-      verificationKeys: authority.verificationKeys,
-      leases: (data ?? []).map((row) => {
-        const allocated = Number(row.allocated_hundredths) / 100;
-        const consumed = Number(row.consumed_hundredths) / 100;
-        const remaining = Math.max(0, allocated - consumed);
-        const usedPercent = allocated ? Math.min(100, Math.round((consumed / allocated) * 100)) : 0;
-        return {
-          leaseId: row.lease_id,
-          deviceId: row.device_id,
-          deviceName: row.device_name,
-          status: row.status,
-          tier: row.tier as "free" | "pro" | "max",
-          allocated: paid ? undefined : allocated,
-          consumed: paid ? undefined : consumed,
-          remaining: paid ? undefined : remaining,
-          usedPercent: paid ? usedPercent : undefined,
-          remainingPercent: paid ? 100 - usedPercent : undefined,
-          preissued: row.preissued,
-          sessionWindowStart: row.session_window_start,
-          sessionResetAt: row.session_reset_at,
-          weekWindowStart: row.week_window_start,
-          weekResetAt: row.week_reset_at,
-          notBefore: row.not_before,
-          expiresAt: row.expires_at,
-          signedLease:
-            row.signed_payload && row.server_signature
-              ? {
-                  payload: row.signed_payload as unknown as OfflineUsageLeasePayload,
-                  signature: row.server_signature,
-                }
-              : undefined,
-        };
-      }),
-    };
-  });
-
 export const reconcileOfflineUsage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: { deviceId: string; leaseId: string; events: SignedOfflineUsageEvent[] }) => {
@@ -319,21 +246,4 @@ export const reconcileOfflineUsage = createServerFn({ method: "POST" })
       throw new Error(`Offline usage could not be reconciled: ${reconcileError.message}`);
     }
     return { consumedHundredths: Number(consumed) };
-  });
-
-export const returnOfflineUsage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((data: { deviceId: string; leaseId: string }) => {
-    if (!data?.deviceId || !data.leaseId) throw new Error("An offline usage lease is required.");
-    return data;
-  })
-  .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: returned, error } = await supabaseAdmin.rpc("ocade_return_offline_usage", {
-      p_user_id: context.userId,
-      p_device_id: data.deviceId,
-      p_lease_id: data.leaseId,
-    });
-    if (error) throw new Error(`Offline usage could not be returned: ${error.message}`);
-    return { returnedHundredths: Number(returned ?? 0) };
   });

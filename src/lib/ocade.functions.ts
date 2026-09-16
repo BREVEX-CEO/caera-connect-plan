@@ -80,27 +80,6 @@ export const listConversations = createServerFn({ method: "GET" })
   });
 
 /**
- * The trash, newest first.
- *
- * Read separately rather than filtered out of the sidebar list, because the two
- * lists answer different questions and one of them is small. Swept first, so
- * nothing appears with a negative number of days left on it.
- */
-export const listTrashedConversations = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    await context.supabase.rpc("ocade_purge_expired_conversation_trash");
-    const { data, error } = await context.supabase
-      .from("ocade_conversations")
-      .select(CONVERSATION_COLUMNS)
-      .not("deleted_at", "is", null)
-      .order("deleted_at", { ascending: false })
-      .limit(LIST_CAP);
-    if (error) throw new Response(error.message, { status: 500 });
-    return data ?? [];
-  });
-
-/**
  * Move a conversation to the trash, or take it back out.
  *
  * SEPARATE FROM `updateConversation`, which patches whatever it is given. This
@@ -126,15 +105,6 @@ export const setConversationTrashed = createServerFn({ method: "POST" })
     if (error) throw new Response(error.message, { status: 500 });
     if (!row) throw new Response("That conversation no longer exists.", { status: 404 });
     return row;
-  });
-
-/** How many days a trashed conversation can still be restored. */
-export const conversationTrashDays = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase.rpc("ocade_conversation_trash_days");
-    if (error) throw new Response(error.message, { status: 500 });
-    return Number(data ?? 30);
   });
 
 export const createConversation = createServerFn({ method: "POST" })
@@ -187,15 +157,6 @@ export const updateConversation = createServerFn({ method: "POST" })
       .from("ocade_conversations")
       .update(patch as never)
       .eq("id", data.id);
-    if (error) throw new Response(error.message, { status: 500 });
-    return { ok: true as const };
-  });
-
-export const deleteConversation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((i) => z.object({ id: uuid }).parse(i))
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("ocade_conversations").delete().eq("id", data.id);
     if (error) throw new Response(error.message, { status: 500 });
     return { ok: true as const };
   });
@@ -415,43 +376,6 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
         .eq("id", data.conversationId);
     }
     return row;
-  });
-
-export const exportConversation = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .validator((i) => z.object({ conversationId: uuid }).parse(i))
-  .handler(async ({ data, context }) => {
-    const [{ data: conv }, { data: msgs }] = await Promise.all([
-      context.supabase
-        .from("ocade_conversations")
-        .select("id, title, model_id, created_at, updated_at")
-        .eq("id", data.conversationId)
-        .maybeSingle(),
-      // An export that stops at the row ceiling is a corrupt export, so this
-      // one pages until it genuinely runs out.
-      readAllPages<{
-        role: string;
-        content: string;
-        attachments: Json;
-        model_id: string | null;
-        provider_id: string | null;
-        created_at: string;
-      }>((from, to) =>
-        context.supabase
-          .from("ocade_messages")
-          .select("role, content, attachments, model_id, provider_id, created_at")
-          .eq("conversation_id", data.conversationId)
-          .order("created_at", { ascending: true })
-          .range(from, to),
-      ).then((rows) => ({ data: rows })),
-    ]);
-    if (!conv) throw new Response("Conversation not found", { status: 404 });
-    return {
-      conversation: conv,
-      messages: msgs ?? [],
-      exported_at: new Date().toISOString(),
-      exported_by: "OCADE by CARCC CADANE",
-    };
   });
 
 /*

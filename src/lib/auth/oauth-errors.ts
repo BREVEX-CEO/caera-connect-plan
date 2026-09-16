@@ -3,15 +3,6 @@
  * Provider/internal codes are never shown to the user; they are mapped here.
  */
 
-/**
- * The provider OCADE actually offers.
- *
- * It was a union of three. Apple and Microsoft were never configured, and a
- * type that lists a provider the product cannot use is how a button for it
- * eventually appears.
- */
-export type OAuthProvider = "google";
-
 export type FriendlyAuthError = {
   /** Short headline, sentence case. */
   message: string;

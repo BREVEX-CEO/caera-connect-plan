@@ -118,21 +118,6 @@ export async function requestEmailChange(
   return { pending: email };
 }
 
-/** Start linking another sign-in provider. Redirects away and comes back. */
-export async function linkProvider(
-  provider: "google" | "apple",
-  redirectTo: string,
-  override?: unknown,
-): Promise<void> {
-  const { error } = await (
-    await client(override)
-  ).auth.linkIdentity({
-    provider,
-    options: { redirectTo },
-  });
-  if (error) throw new Error(describeIdentityError(error));
-}
-
 /** Remove a sign-in provider. The caller checks `canUnlink` first. */
 export async function unlinkProvider(identityId: string, override?: unknown): Promise<void> {
   const supabaseClient = await client(override);

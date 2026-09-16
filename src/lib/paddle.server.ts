@@ -17,22 +17,6 @@ const getEnv = (key: string): string => {
   return value;
 };
 
-export const EventName = {
-  SubscriptionCreated: "subscription.created",
-  SubscriptionUpdated: "subscription.updated",
-  SubscriptionCanceled: "subscription.canceled",
-  SubscriptionPastDue: "subscription.past_due",
-  SubscriptionPaused: "subscription.paused",
-  SubscriptionResumed: "subscription.resumed",
-  AdjustmentCreated: "adjustment.created",
-  AdjustmentUpdated: "adjustment.updated",
-  /*
-   * The event a ONE-TIME purchase arrives on. It was absent, which is why the
-   * 8-day pass in the sellable catalogue could take money and create nothing.
-   */
-  TransactionCompleted: "transaction.completed",
-} as const;
-
 /** `sandbox` is the test environment; `live` takes real money. */
 export type PaddleEnv = "sandbox" | "live";
 
@@ -262,25 +246,5 @@ interface PortalSession {
   urls?: {
     general?: { overview?: string };
     subscriptions?: Array<{ cancelSubscription?: string }>;
-  };
-}
-
-/** The narrow slice of the provider API this app actually calls. */
-export function getPaddleClient(env: PaddleEnv) {
-  return {
-    customerPortalSessions: {
-      create: (customerId: string, subscriptionIds: string[]) =>
-        gatewayJson<PortalSession>(env, `/customers/${customerId}/portal-sessions`, {
-          method: "POST",
-          body: JSON.stringify({ subscription_ids: subscriptionIds }),
-        }),
-    },
-    subscriptions: {
-      cancel: (subscriptionId: string, options: { effectiveFrom: string }) =>
-        gatewayJson<unknown>(env, `/subscriptions/${subscriptionId}/cancel`, {
-          method: "POST",
-          body: JSON.stringify({ effective_from: options.effectiveFrom }),
-        }),
-    },
   };
 }

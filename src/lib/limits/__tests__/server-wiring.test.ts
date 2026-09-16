@@ -38,7 +38,7 @@ const SOURCES = sourceFiles("src")
   .filter((path) => !path.endsWith("lib/limits/server.ts"))
   .map((path) => ({ path, source: readFileSync(path, "utf8") }));
 
-const KINDS: ServerLimitKind[] = ["billing_write", "auth_mail"];
+const KINDS: ServerLimitKind[] = ["billing_write"];
 
 describe("every policy has a caller", () => {
   it.each(KINDS)("%s is enforced somewhere", (kind) => {
@@ -57,11 +57,6 @@ describe("every policy has a caller", () => {
 });
 
 describe("what must be behind a limit", () => {
-  it("sending a one-time code is, because it spends sender reputation", () => {
-    const mfa = readFileSync("src/lib/security/mfa.functions.ts", "utf8");
-    expect(mfa).toContain('checkServerLimit("auth_mail"');
-  });
-
   it("the payment webhook is, because anybody on the internet can post to it", () => {
     const webhook = readFileSync("src/routes/api/public/payments/webhook.ts", "utf8");
     expect(webhook).toContain('checkServerLimit("billing_write"');
@@ -73,15 +68,15 @@ describe("what must be behind a limit", () => {
 
 describe("the limit itself", () => {
   it("allows ordinary use and refuses a flood, per account", () => {
-    for (let i = 0; i < 10; i += 1) {
-      expect(checkServerLimit("auth_mail", "account-a").allowed).toBe(true);
+    for (let i = 0; i < 20; i += 1) {
+      expect(checkServerLimit("billing_write", "account-a").allowed).toBe(true);
     }
-    const refused = checkServerLimit("auth_mail", "account-a");
+    const refused = checkServerLimit("billing_write", "account-a");
     expect(refused.allowed).toBe(false);
     expect(refused.headers["retry-after"]).toBeDefined();
 
     // Another account is untouched: one person cannot lock out everybody.
-    expect(checkServerLimit("auth_mail", "account-b").allowed).toBe(true);
+    expect(checkServerLimit("billing_write", "account-b").allowed).toBe(true);
   });
 
   it("says when to come back rather than refusing blankly", () => {

@@ -50,11 +50,17 @@ import {
  * to stop a script, not to ration a feature. A person who trips one of these
  * was not using the product.
  */
-export type ServerLimitKind =
-  /** Anything that could begin a purchase, including a provider webhook. */
-  | "billing_write"
-  /** Password reset and one-time-code sends. Consumes sender reputation. */
-  | "auth_mail";
+/**
+ * ONE KIND, AND THE REASON THERE IS ONLY ONE.
+ *
+ * `auth_mail` was here for one-time-code sends, and it was removed with the
+ * last thing that called it. It could not have worked: a browser asks Supabase
+ * Auth for a code directly, so the request never passes through this Worker and
+ * there is nothing here to count. Supabase enforces that limit, which is the
+ * honest place for it. A policy with no caller is a claim the product cannot
+ * keep.
+ */
+export type ServerLimitKind = "billing_write";
 
 const POLICIES: Record<ServerLimitKind, LimitPolicy> = {
   billing_write: {
@@ -67,14 +73,6 @@ const POLICIES: Record<ServerLimitKind, LimitPolicy> = {
     windows: [
       { id: "burst", durationMs: 5 * HOUR, quota: 20, label: "this session" },
       { id: "rolling", durationMs: 28 * HOUR, quota: 40, label: "the last day" },
-    ],
-    warnings: {},
-  },
-  auth_mail: {
-    windows: [
-      { id: "burst", durationMs: 5 * HOUR, quota: 10, label: "this session" },
-      { id: "day", durationMs: 8 * HOUR, quota: 14, label: "today" },
-      { id: "rolling", durationMs: 28 * HOUR, quota: 20, label: "the last day" },
     ],
     warnings: {},
   },
@@ -135,20 +133,6 @@ export function checkServerLimit(
     }),
   );
   return { allowed: true, decision, headers: {} };
-}
-
-/**
- * Refuse a server function, in the shape its caller already handles.
- *
- * The message is the policy engine's, so the same limit reads identically
- * whether it was hit in the browser or at the endpoint.
- */
-export function limitError(result: ServerLimitResult): Error {
-  const error = new Error(
-    result.decision.message ?? "That has been asked for too many times. Try again shortly.",
-  ) as Error & { retryAfterSeconds?: number };
-  error.retryAfterSeconds = result.decision.retryAfterSeconds;
-  return error;
 }
 
 /** Test seam. Never called in production. */

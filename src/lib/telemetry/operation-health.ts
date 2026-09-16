@@ -196,48 +196,6 @@ export function buildHealthRecord(observation: HealthObservation): HealthRecord 
 }
 
 /**
- * Prove a record carries only enumerated values.
- *
- * Used by the tests and by the diagnostics screen, so "this cannot carry your
- * work" is a property somebody can check rather than a paragraph they have to
- * believe. A field added later that is not enumerated fails here.
- */
-export function healthRecordIsEnumerated(record: HealthRecord): {
-  ok: boolean;
-  offending: string[];
-} {
-  const enumerated: Record<string, readonly string[]> = {
-    component: HEALTH_COMPONENTS,
-    operation: HEALTH_OPERATIONS,
-    outcome: ["succeeded", "failed", "refused"],
-    errorClass: ERROR_CLASSES,
-    latencyBucket: LATENCY_BUCKETS,
-    providerSlot: PROVIDER_SLOTS,
-  };
-  const numeric = new Set(["schemaVersion", "attempts"]);
-  const free = new Set(["release"]);
-
-  const offending: string[] = [];
-  for (const [key, value] of Object.entries(record)) {
-    if (numeric.has(key)) {
-      if (typeof value !== "number") offending.push(key);
-      continue;
-    }
-    if (free.has(key)) {
-      // The release string is the one value not drawn from a list, so it is
-      // held to a shape instead: a version, and nothing that could be a name.
-      if (typeof value !== "string" || !/^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.]+)?$/.test(value)) {
-        offending.push(key);
-      }
-      continue;
-    }
-    const allowed = enumerated[key];
-    if (!allowed || typeof value !== "string" || !allowed.includes(value)) offending.push(key);
-  }
-  return { ok: offending.length === 0, offending };
-}
-
-/**
  * Roll records up into what an operator actually reads.
  *
  * Counts per component, operation and error class. This is what a status
@@ -254,33 +212,4 @@ export interface HealthRollup {
   refused: number;
   slowest: LatencyBucket;
   errorClasses: Partial<Record<ErrorClass, number>>;
-}
-
-export function rollUp(records: HealthRecord[]): HealthRollup[] {
-  const byKey = new Map<string, HealthRollup>();
-  for (const record of records) {
-    const key = `${record.component}:${record.operation}`;
-    const existing = byKey.get(key) ?? {
-      key,
-      component: record.component,
-      operation: record.operation,
-      total: 0,
-      failed: 0,
-      refused: 0,
-      slowest: "under_100ms" as LatencyBucket,
-      errorClasses: {},
-    };
-    existing.total += 1;
-    if (record.outcome === "failed") existing.failed += 1;
-    if (record.outcome === "refused") existing.refused += 1;
-    if (LATENCY_BUCKETS.indexOf(record.latencyBucket) > LATENCY_BUCKETS.indexOf(existing.slowest)) {
-      existing.slowest = record.latencyBucket;
-    }
-    if (record.errorClass !== "none") {
-      existing.errorClasses[record.errorClass] =
-        (existing.errorClasses[record.errorClass] ?? 0) + 1;
-    }
-    byKey.set(key, existing);
-  }
-  return [...byKey.values()].sort((a, b) => a.key.localeCompare(b.key));
 }

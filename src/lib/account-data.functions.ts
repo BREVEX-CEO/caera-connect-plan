@@ -53,36 +53,3 @@ export const deleteDataClassInput = z.object({
   dataClass: z.string(),
   confirmation: z.string(),
 });
-
-export const deleteMyAccountDataClass = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
-  .validator((data: unknown) => deleteDataClassInput.parse(data))
-  .handler(async ({ data, context }): Promise<DataClassDeletionReceipt> => {
-    const admin = await adminClient();
-    const receipt = await clearAccountDataClass(admin, context.userId, data);
-
-    /*
-     * The erasure is recorded, with the CLASS and never its contents — the same
-     * rule the account-deletion receipt follows. `compliance_audit_log.user_id`
-     * is ON DELETE SET NULL, so this line survives a later account deletion
-     * with the subject removed.
-     *
-     * Written AFTER the rows are gone, so it records what happened rather than
-     * what was about to. Failing to write it does not un-delete anything, and
-     * the person still receives their receipt.
-     */
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      await supabaseAdmin.from("compliance_audit_log").insert({
-        user_id: context.userId,
-        action: "account.data_class_deleted",
-        category: "deletion",
-        feature_id: "settings.privacy",
-        result: { data_class: receipt.dataClass, tables: receipt.cleared },
-      });
-    } catch {
-      /* The rows are gone whether or not the line was written. */
-    }
-
-    return receipt;
-  });

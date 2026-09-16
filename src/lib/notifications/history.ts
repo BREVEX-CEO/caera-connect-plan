@@ -65,31 +65,6 @@ export async function listNotifications(): Promise<HistoryOutcome<NotificationRe
   }
 }
 
-/**
- * How many are unread, counted by the database rather than by the page.
- *
- * `head: true` with an exact count reads no rows at all, and it uses the
- * partial index built for exactly this — so the badge on every screen costs a
- * count, not a scan of the history.
- */
-export async function countUnreadNotifications(): Promise<HistoryOutcome<number>> {
-  try {
-    const supabase = await loadSupabaseClient();
-    const { count, error } = await supabase
-      .from("ocade_notifications")
-      .select("id", { count: "exact", head: true })
-      .is("read_at", null);
-    if (error) return { ok: false, message: error.message };
-    return { ok: true, value: count ?? 0 };
-  } catch (cause) {
-    return { ok: false, message: describe(cause) };
-  }
-}
-
-export async function markNotificationRead(id: string): Promise<HistoryOutcome<number>> {
-  return call("ocade_mark_notification_read", { p_notification_id: id });
-}
-
 export async function markAllNotificationsRead(): Promise<HistoryOutcome<number>> {
   return call("ocade_mark_all_notifications_read", {});
 }

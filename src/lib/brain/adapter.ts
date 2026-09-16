@@ -160,10 +160,3 @@ export function unavailable(
 ): AdapterUnavailable {
   return { available: false, code, reason, remedies };
 }
-
-/** Human sentence for a remedy, so every surface words it the same way. */
-export const REMEDY_LABELS: Record<RemedyAction, string> = {
-  download_model: "Prepare Offline Intelligence",
-  free_storage: "Free up storage",
-  enable_in_settings: "Enable in Settings",
-};

@@ -25,8 +25,3 @@ export function ocadeIntelligence(): OcadeIntelligence {
   });
   return instance;
 }
-
-/** For tests, and for a deliberate teardown in a diagnostic surface. */
-export function resetOcadeIntelligenceForTests(): void {
-  instance = null;
-}

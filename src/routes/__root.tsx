@@ -11,7 +11,6 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportRuntimeError } from "@/lib/runtime-error-reporting";
 import { AppearanceProvider } from "@/lib/appearance";
 import { SettingsPanelProvider } from "@/components/settings/settings-panel";
 import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
@@ -146,25 +145,6 @@ function RootComponent() {
    * Async failures never reach a React boundary — an unhandled rejection in a
    * fetch or an event handler would otherwise vanish with no diagnostic at all.
    */
-  useEffect(() => {
-    const onRejection = (event: PromiseRejectionEvent) => {
-      const reason = event.reason;
-      reportRuntimeError(reason instanceof Error ? reason : new Error(String(reason)), {
-        boundary: "unhandled_rejection",
-      });
-    };
-    const onError = (event: ErrorEvent) => {
-      reportRuntimeError(event.error instanceof Error ? event.error : new Error(event.message), {
-        boundary: "window_error",
-      });
-    };
-    window.addEventListener("unhandledrejection", onRejection);
-    window.addEventListener("error", onError);
-    return () => {
-      window.removeEventListener("unhandledrejection", onRejection);
-      window.removeEventListener("error", onError);
-    };
-  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -356,9 +336,6 @@ function NotFoundComponent() {
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
-  useEffect(() => {
-    reportRuntimeError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">

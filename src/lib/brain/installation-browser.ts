@@ -31,7 +31,6 @@ import { ModelStore, modelStore } from "./model-store";
 
 import { planThreads, readThreadSignals } from "./wasm-threads";
 import { sha256OfBlobStreaming } from "./streaming-digest";
-import { onBackgroundFetchStaged } from "./background-fetch";
 import { readOfflineRelease } from "./offline-release.functions";
 
 const INSTALL_LOCK = "ocade.model.install";
@@ -230,20 +229,6 @@ export function installationAuthority(): ModelInstallationAuthority {
 
   const bus = createBus((state) => created.observe(state));
 
-  /*
-   * A COMPLETED BACKGROUND TRANSFER IS A REASON TO LOOK, NOT A REASON TO TRUST.
-   *
-   * The service worker writes the bytes and says so. It does not hash them and
-   * records nothing about them, so what arrives here is only "there is a file
-   * where you expected one". `install()` then finds a complete artifact with no
-   * proof beside it and streams a digest over it before anything is activated
-   * -- the same check a foreground download gets, in the same place.
-   */
-  onBackgroundFetchStaged((ok) => {
-    if (!ok) return;
-    void created.install({ reason: "resumed" });
-  });
-
   authority = created;
   return created;
 }
@@ -269,9 +254,4 @@ async function activateBrowserRuntime(
       reason: error instanceof Error ? error.message : "The engine could not be started.",
     };
   }
-}
-
-/** For tests, and for a deliberate teardown in a diagnostic surface. */
-export function resetInstallationAuthorityForTests(): void {
-  authority = null;
 }

@@ -70,18 +70,6 @@ export function offlineRelease(): OfflineRelease | null {
  */
 export const OFFLINE_LABEL = "Offline Intelligence";
 
-/** How much of the context window a system prompt may take. */
-export const SYSTEM_PROMPT_BUDGET_FRACTION = 0.35;
-
-/**
- * How much more than the published requirement the engine must be allowed.
- *
- * The published figure is the weights plus the KV cache at the configured
- * context. It is not the tab: the page, the compositor and whatever else the
- * browser is drawing share the same device.
- */
-export const MEMORY_HEADROOM_FRACTION = 0.15;
-
 /** Bytes → "512 MB", for the one line shown before a download starts. */
 export function formatSize(bytes: number): string {
   const MB = 1024 * 1024;

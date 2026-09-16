@@ -539,38 +539,3 @@ export async function readInstalledOfflineLeases(
     db.close();
   }
 }
-
-export async function clearOfflineUsageForAccount(accountId: string): Promise<void> {
-  if (typeof indexedDB === "undefined") return;
-  const db = await openDb();
-  try {
-    const leasesTx = db.transaction(LEASE_STORE, "readonly");
-    const leases = (await requestResult(leasesTx.objectStore(LEASE_STORE).getAll())) as LeaseRow[];
-    await transactionDone(leasesTx);
-    const owned = leases.filter((lease) => lease.accountId === accountId);
-    const keysTx = db.transaction(KEY_STORE, "readonly");
-    const deviceKeys = (await requestResult(
-      keysTx.objectStore(KEY_STORE).getAll(),
-    )) as DeviceKeyRow[];
-    await transactionDone(keysTx);
-    const transaction = db.transaction(
-      [KEY_STORE, LEASE_STORE, STATE_STORE, EVENT_STORE],
-      "readwrite",
-    );
-    for (const key of deviceKeys) {
-      if (key.accountId === accountId) transaction.objectStore(KEY_STORE).delete(key.identity);
-    }
-    for (const lease of owned) {
-      transaction.objectStore(LEASE_STORE).delete(lease.leaseId);
-      transaction.objectStore(STATE_STORE).delete(lease.leaseId);
-      const range = IDBKeyRange.bound([lease.leaseId, 0], [lease.leaseId, Number.MAX_SAFE_INTEGER]);
-      const eventKeys = await requestResult(
-        transaction.objectStore(EVENT_STORE).index("by_lease_sequence").getAllKeys(range),
-      );
-      for (const key of eventKeys) transaction.objectStore(EVENT_STORE).delete(key);
-    }
-    await transactionDone(transaction);
-  } finally {
-    db.close();
-  }
-}
