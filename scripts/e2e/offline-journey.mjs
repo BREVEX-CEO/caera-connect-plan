@@ -16,6 +16,7 @@
  *
  * Usage: node scripts/e2e/offline-journey.mjs [--base=…] [--supabase=…]
  */
+import { readFileSync } from "node:fs";
 import { chromium } from "playwright-core";
 
 const arg = (name, fallback) => {
@@ -149,6 +150,37 @@ try {
   check(
     "the only words for it are OCADE's own",
     (await page.getByRole("button", { name: "Offline", exact: true }).count()) === 1,
+  );
+
+  /* --- the only door to the artifact ------------------------------------- */
+
+  /*
+   * THE DELIVERY BOUNDARY, ASKED DIRECTLY. The bucket is private and has no
+   * public access, so this handler is the whole of the way in. What it must
+   * refuse is worth more than what it serves: an unsigned request, a request
+   * signed for a different release, and an id shaped to reach for another
+   * object.
+   */
+  const release = JSON.parse(readFileSync("release/OCADE_OFFLINE_RELEASE.json", "utf8")).releaseId;
+  const status = async (path) => (await page.request.get(`${BASE}${path}`)).status();
+
+  check(
+    "an unsigned request for the bytes is refused",
+    (await status(`/api/offline/bytes/${release}`)) === 403,
+  );
+  check(
+    "so is one carrying a signature somebody made up",
+    (await status(`/api/offline/bytes/${release}?e=${Date.now() + 60_000}&s=${"0".repeat(64)}`)) ===
+      403,
+  );
+  check(
+    "an expiry in the past is refused even with a signature-shaped parameter",
+    (await status(`/api/offline/bytes/${release}?e=1&s=${"0".repeat(64)}`)) === 403,
+  );
+  check(
+    "a release id that is not one does not reach for an object at all",
+    (await status("/api/offline/bytes/../../secret")) === 404 ||
+      (await status("/api/offline/bytes/ocr-nope")) === 404,
   );
 
   check("no uncaught page errors", pageErrors.length === 0, pageErrors.join("; "));

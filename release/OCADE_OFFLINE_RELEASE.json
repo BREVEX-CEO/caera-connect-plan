@@ -1,5 +1,9 @@
 {
   "schemaVersion": 2,
-  "releaseId": null,
-  "note": "Written by scripts/build-offline-artifact.mjs. A null releaseId means no Offline Intelligence release has been published yet, and OCADE says so rather than offering an install it cannot complete."
+  "releaseId": "ocr-2dc0ee44eb397906",
+  "totalBytes": 484220160,
+  "sha256": "2dc0ee44eb39790624623cf5e2a8cc21973c4839a67fed406dd3f9b2e6b7f800",
+  "contextTokens": 4096,
+  "requiredMemoryBytes": 943718400,
+  "thinkingSuitable": false
 }
