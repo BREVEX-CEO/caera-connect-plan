@@ -321,7 +321,7 @@ try {
 
   /* --- the metadata a link preview needs ---------------------------------- */
 
-  for (const path of ["/", "/about", "/help", "/terms", "/privacy"]) {
+  for (const path of ["/", "/pricing", "/about", "/help", "/terms", "/privacy"]) {
     await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded" });
     const meta = await page.evaluate(() => ({
       title: document.title,

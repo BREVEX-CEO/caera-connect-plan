@@ -627,10 +627,65 @@ Postgres gate and ledger suites; all 10 browser journeys.
   in the tree but not in the deployed function. Phase 15 deploys the reconciled
   tree and proves the versions belong together.
 
+## Phase 6 result — Pricing is public again, and honest about checkout
+
+`/pricing` exists, public, in the read frame rather than the workspace shell:
+somebody deciding whether to pay has not signed in yet. Weekly/monthly toggle,
+currency selector defaulting to the browser's own region (read after mount, so
+the server and the first paint cannot disagree about a price), three cards.
+
+**The numbers come from the two authorities, never from the page.** Amounts
+come from `payments/pricing.ts`, which refuses to format a price that breaks
+the numeric signature; allowance lines come from `commercial/usage-policy.ts`,
+so the page that sells the allowance and the gate that enforces it read the
+same number. `pricing.test.ts` restates the approved table by hand — a test
+that read the catalogue to check the catalogue would pass whatever it said.
+
+**Checkout is not pretended.** No payment provider is configured, so the paid
+cards say "Paid plans are not open yet" in one line. There is deliberately no
+button that refuses: a control whose only answer is no is worse than the
+sentence, because somebody has to press it to find out.
+
+**The way out of the limit, where the limit is met.** "See plans" sits in the
+composer notice when the allowance is low or gone, and in Billing's Plan row
+for anybody not already on Max. That closes Phase 5's carried-forward Upgrade
+action.
+
+**Deleted.** `payments/provider.ts` entirely — 264 lines of payment protocol,
+webhook HMAC verification and a `checkoutAllowed` guard with no caller, no
+test, and a reachability exemption naming a gate that no longer exists. Its
+verification was a second copy of `paddle.server.ts`, which is the one the real
+webhook route uses. Also `describeSellablePlan`, `sellablePlansByProductId`,
+`sellablePlanByPlanId`, `missingProductIds`, `sellablePlans`, `tierOf`,
+`isPlanId`, `isArchivedPlanId`, `ARCHIVED_PLAN_IDS`, `CATALOGUE_VERSION`, and
+the `name`, `periodMs`, `benefits`, `desktopDevices`, `mobileDevices`,
+`publiclyAvailable` and `productIdEnv` fields — every one unreferenced, and the
+device counts a claim nothing in the product enforces.
+
+**Harness bug fixed.** `harness.mjs` built with `node $npm_execpath run build`,
+and that variable is only set when npm runs the script — so the documented
+`node scripts/e2e/harness.mjs` died with MODULE_NOT_FOUND before building.
+
+Entitlement resolution was already whole and is unchanged: `subscriptions`
+(written only by the signature-verified webhook) and `ocade_entitlement_grants`
+(written only through the audited admin authority) resolve to one tier, the
+stronger answer winning, with Free as the answer to every uncertainty. Both
+tables and both functions survived the Phase 3 cleanup; there are no
+subscription rows, because nothing has been sold.
+
+Verified: `verify:full` 14 gates; 45 payment tests; all 11 browser journeys
+including the new pricing journey, which proves every approved price in all
+four currencies at both cadences.
+
+### Genuine external blocker
+
+**Paid checkout needs a payment provider account.** Paddle (or equivalent)
+requires business identity and bank verification, which only the owner can
+complete. Until those credentials exist, `/pricing` tells the truth and no
+checkout is offered. Nothing else in Phase 6 is waiting on it.
+
 ## Exact next action
 
-**Phase 6** — restore Pricing, checkout and entitlements. `/pricing` is
-currently asserted to 404 by `shell-journey.mjs`; that assertion is what
-changes first.
+**Phase 7** — replace Offline Intelligence with the private OCADE 0.6B runtime.
 
 Do not begin implementation of Cowork/Jarvis.

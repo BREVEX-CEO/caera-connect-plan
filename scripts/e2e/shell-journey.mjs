@@ -73,12 +73,12 @@ try {
     (await page.inputValue("#ocade-composer")).length > 0,
   );
 
-  for (const path of ["/about", "/help", "/terms", "/privacy"]) {
+  for (const path of ["/about", "/help", "/terms", "/privacy", "/pricing"]) {
     const response = await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded" });
     check(`${path} renders`, response?.status() === 200);
   }
 
-  for (const path of ["/pricing", "/ocade", "/settings", "/projects", "/search"]) {
+  for (const path of ["/ocade", "/settings", "/projects", "/search"]) {
     const response = await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded" });
     check(`${path} is gone`, response?.status() === 404, `status ${response?.status()}`);
   }

@@ -39,6 +39,7 @@ const ALL = [
   "auth",
   "chat",
   "usage",
+  "pricing",
   "online",
   "offline",
   "library",
@@ -110,7 +111,13 @@ async function waitForPort(url, name, timeoutMs = 90_000) {
 
 if (!skipBuild) {
   console.log("=== build (compiled against the loopback stub) ===");
-  const built = spawnSync(process.execPath, [process.env.npm_execpath ?? "npm", "run", "build"], {
+  /*
+   * `npm`, not `node $npm_execpath`. That variable is only set when this script
+   * is itself run by an npm script, so `node scripts/e2e/harness.mjs` — the
+   * documented usage at the top of this file — resolved to `node ./npm` and
+   * died with MODULE_NOT_FOUND before building anything.
+   */
+  const built = spawnSync("npm", ["run", "build"], {
     stdio: "inherit",
     env: { ...process.env, ...BUILD_ENVIRONMENT },
   });

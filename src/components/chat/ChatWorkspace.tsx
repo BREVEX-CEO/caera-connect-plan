@@ -12,7 +12,7 @@
  * shows only Auto, OCADE and Offline. Everything it knows comes from
  * `useChat`; this file renders and does not decide.
  */
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Mic, Plus, Square } from "lucide-react";
@@ -350,7 +350,12 @@ function LowAllowanceNotice({ signedIn }: { signedIn: boolean }) {
     <p className="mt-3 text-center text-[13px] text-muted-foreground" role="status">
       {window.remaining === 0
         ? `You have used this ${window.kind === "week" ? "week" : "session"}'s allowance. It resets ${describeReset(window.resetsInMs)}.`
-        : `${window.remaining} request${window.remaining === 1 ? "" : "s"} left · resets ${describeReset(window.resetsInMs)}`}
+        : `${window.remaining} request${window.remaining === 1 ? "" : "s"} left · resets ${describeReset(window.resetsInMs)}`}{" "}
+      {/* The way out of the limit, next to the limit. Nowhere else on this
+          screen would a person look for it. */}
+      <Link to="/pricing" className="text-foreground underline underline-offset-2">
+        See plans
+      </Link>
     </p>
   );
 }

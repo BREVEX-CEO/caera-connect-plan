@@ -13,6 +13,7 @@ import { ArrowUp } from "lucide-react";
 import { BrandMark } from "./BrandMark";
 
 const PUBLIC_LINKS = [
+  { to: "/pricing", label: "Pricing" },
   { to: "/about", label: "About" },
   { to: "/help", label: "Help" },
   { to: "/terms", label: "Terms" },
@@ -25,12 +26,16 @@ export function PublicPage({
   children,
   /** Long legal and help pages get the control; About does not need it. */
   backToTop = false,
+  /** Pricing lays three cards side by side and needs the room. */
+  wide = false,
 }: {
   title: string;
   intro?: string;
   children: ReactNode;
   backToTop?: boolean;
+  wide?: boolean;
 }) {
+  const column = wide ? "max-w-5xl" : "max-w-3xl";
   return (
     <div className="min-h-screen bg-background text-foreground">
       <a href="#content" className="skip-link">
@@ -38,7 +43,7 @@ export function PublicPage({
       </a>
 
       <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-5">
+        <div className={`mx-auto flex h-14 ${column} items-center justify-between px-5`}>
           <Link to="/" aria-label="OCADE home" className="rounded-md">
             <BrandMark showWordmark />
           </Link>
@@ -57,14 +62,16 @@ export function PublicPage({
         </div>
       </header>
 
-      <main id="content" className="mx-auto max-w-3xl px-5 py-12">
+      <main id="content" className={`mx-auto ${column} px-5 py-12`}>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
         {intro ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{intro}</p> : null}
         <div className="mt-8">{children}</div>
       </main>
 
       <footer className="border-t border-border/60">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-[13px] text-muted-foreground">
+        <div
+          className={`mx-auto flex ${column} flex-wrap items-center justify-between gap-3 px-5 py-6 text-[13px] text-muted-foreground`}
+        >
           <span>OCADE by CARCC CADANE</span>
           <Link to="/" className="transition-colors hover:text-foreground">
             Open Chat

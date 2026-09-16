@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import {
   describeReset,
   useCommercialUsage,
@@ -46,7 +47,13 @@ export function UsageSection() {
             ? "Free. Requests are shared across every device you sign in on."
             : `${usage.data.tier === "pro" ? "Pro" : "Max"}. Requests are shared across every device you sign in on.`
         }
-      />
+      >
+        {usage.data.tier === "max" ? null : (
+          <Link to="/pricing" className="text-sm text-foreground underline underline-offset-2">
+            See plans
+          </Link>
+        )}
+      </Row>
       {session ? <WindowRow label="This session" window={session} /> : null}
       {week ? <WindowRow label="This week" window={week} /> : null}
       <Row

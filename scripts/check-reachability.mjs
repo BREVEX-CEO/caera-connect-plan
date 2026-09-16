@@ -67,8 +67,6 @@ const ENTERED_ELSEWHERE = {
     "The Supabase Edge Function body. Deno runs it from `supabase/functions`; the browser never imports it.",
   "src/lib/security/caller-scoped-functions.ts":
     "Shared by two security gates that read `SECURITY DEFINER` bodies. It exists in `src/lib` precisely so there is not a second copy.",
-  "src/lib/payments/provider.ts":
-    "The payment protocol types and the `checkoutAllowed` decision, read by the gate that proves nobody can be charged.",
 };
 
 /**

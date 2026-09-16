@@ -11,14 +11,7 @@
  * and there is nothing to charge for it. A "sellable" free plan would mean a
  * checkout for zero, which is a payment flow with no payment in it.
  */
-import {
-  PLANS,
-  priceFor,
-  describePrice,
-  type CurrencyCode,
-  type PlanCadence,
-  type PlanId,
-} from "./pricing";
+import type { PlanCadence, PlanId } from "./pricing";
 
 export interface SellablePlan {
   planId: Exclude<PlanId, "free">;
@@ -65,10 +58,6 @@ export const SELLABLE_PLANS: SellablePlan[] = [
   },
 ];
 
-export function sellablePlanByPlanId(planId: string): SellablePlan | undefined {
-  return SELLABLE_PLANS.find((p) => p.planId === planId);
-}
-
 /**
  * The plan a price id names.
  *
@@ -78,26 +67,4 @@ export function sellablePlanByPlanId(planId: string): SellablePlan | undefined {
  */
 export function sellablePlanByPriceId(priceId: string): SellablePlan | undefined {
   return SELLABLE_PLANS.find((p) => p.priceId === priceId);
-}
-
-/**
- * Every plan sold under one provider product.
- *
- * Returns a list, because a product now carries both cadences. A caller that
- * needs one plan must say which cadence it means.
- */
-export function sellablePlansByProductId(productId: string): SellablePlan[] {
-  return SELLABLE_PLANS.filter((p) => p.productId === productId);
-}
-
-/** Name, summary, benefits and formatted price for a sellable plan. */
-export function describeSellablePlan(plan: SellablePlan, currency: CurrencyCode) {
-  const configured = PLANS.find((p) => p.id === plan.planId)!;
-  return {
-    ...plan,
-    name: configured.name,
-    summary: configured.summary,
-    benefits: configured.benefits,
-    price: describePrice(priceFor(configured, currency)),
-  };
 }
