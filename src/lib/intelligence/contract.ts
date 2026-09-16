@@ -34,8 +34,6 @@ export interface IntelligencePermit {
 export interface NormalizedMessage {
   role: "system" | "user" | "assistant";
   content: string;
-  /** Base64 payloads without data-URL prefixes. */
-  images?: string[];
 }
 
 export interface NormalizedToolDefinition {

@@ -780,6 +780,17 @@ const server = createServer((request, response) => {
         idempotencyKey: parsed.idempotencyKey ?? null,
         surface: parsed.surface ?? null,
         permitSource: parsed.permit?.source ?? null,
+        // What the browser said it was attaching, so a journey can prove a
+        // file reached the boundary rather than only the Library.
+        attachments: (parsed.attachments ?? []).map((attachment) => ({
+          name: attachment?.name ?? null,
+          mime: attachment?.mime ?? null,
+          carries: attachment?.image ? "image" : attachment?.text ? "text" : "nothing",
+          text: typeof attachment?.text === "string" ? attachment.text.slice(0, 200) : null,
+        })),
+        systemPrompts: (parsed.messages ?? [])
+          .filter((message) => message?.role === "system")
+          .map((message) => String(message.content).slice(0, 200)),
       };
       if (!onlineBoundary.lastRequest.authorized) {
         return send(401, { error: "authentication_required" });

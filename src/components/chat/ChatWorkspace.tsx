@@ -15,11 +15,17 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Mic, Plus, Square } from "lucide-react";
+import { ArrowUp, ArrowLeft, ArrowRight, Mic, Plus, Square, X } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { useSession } from "@/lib/session";
 import { useChat, type IntelligenceChoice } from "@/lib/chat/use-chat";
 import { useChatShortcuts } from "@/lib/chat/use-shortcuts";
+import {
+  MAX_ATTACHMENTS,
+  forRequest,
+  readAttachment,
+  type PendingAttachment,
+} from "@/lib/chat/attachments";
 import {
   describeReset,
   tightestWindow,
@@ -50,9 +56,8 @@ export function ChatWorkspace() {
   const [choice, setChoice] = useState<IntelligenceChoice>("auto");
   const textarea = useRef<HTMLTextAreaElement>(null);
   const picker = useRef<HTMLInputElement>(null);
-  const [attaching, setAttaching] = useState(false);
+  const [pending, setPending] = useState<PendingAttachment[]>([]);
   const [dragging, setDragging] = useState(false);
-  const [attached, setAttached] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   /*
@@ -105,41 +110,58 @@ export function ChatWorkspace() {
   }, [startNew, newConversation, navigate]);
 
   /*
-   * `+` PUTS THE FILE IN THE LIBRARY, which is where the person will look for
-   * it later. It was disabled with the note "Attachments arrive with Library";
-   * Library is here, so it does.
+   * `+` ATTACHES THE FILE TO THE QUESTION, AND KEEPS IT IN THE LIBRARY.
    *
-   * The file is not sent to intelligence yet — that needs the model to accept
-   * one and the usage rules to say what it costs — so the interface says what
-   * actually happened rather than implying the answer will have read it.
+   * It used to do only the second half: a person attached a spreadsheet, OCADE
+   * said it was saved, and the answer was written as though no file existed.
+   * The file now rides with the question — labelled, so the answer can say
+   * which file a figure came from — and it is still in Library afterwards,
+   * because that is where somebody looks for it later.
    */
-  async function attach(file: File) {
-    setAttaching(true);
-    setAttached(null);
-    try {
-      const { addLibraryItem } = await import("@/lib/library/library.functions");
-      const buffer = new Uint8Array(await file.arrayBuffer());
-      let binary = "";
-      for (let at = 0; at < buffer.length; at += 8192) {
-        binary += String.fromCharCode(...buffer.subarray(at, at + 8192));
-      }
-      await addLibraryItem({
-        data: {
-          name: file.name,
-          mime: file.type || "application/octet-stream",
-          kind: file.type.startsWith("image/") ? "image" : "file",
-          source: "upload",
-          conversationId: chat.conversationId,
-          contentBase64: btoa(binary),
-        },
-      });
-      setAttached(`${file.name} is in your Library.`);
-      void queryClient.invalidateQueries({ queryKey: ["library", "items"] });
-    } catch (error) {
-      setAttached(error instanceof Error ? error.message : "That could not be added.");
-    } finally {
-      setAttaching(false);
-    }
+  async function attach(files: File[]) {
+    const room = MAX_ATTACHMENTS - pending.length;
+    if (room <= 0) return;
+
+    const accepted = files.slice(0, room);
+    const reading: PendingAttachment[] = accepted.map((file, index) => ({
+      id: `${Date.now()}-${index}-${file.name}`,
+      name: file.name,
+      mime: file.type || "application/octet-stream",
+      sizeBytes: file.size,
+      state: "reading",
+    }));
+    setPending((current) => [...current, ...reading]);
+
+    await Promise.all(
+      accepted.map(async (file, index) => {
+        const id = reading[index]!.id;
+        const read = await readAttachment(file, id);
+        setPending((current) => current.map((entry) => (entry.id === id ? read : entry)));
+        if (read.state !== "ready") return;
+
+        /*
+         * Library is a copy, not the path to the model. It is best-effort on
+         * purpose: a Library write that fails must not stop a person asking
+         * their question about a file OCADE has already read.
+         */
+        try {
+          const { addLibraryItem } = await import("@/lib/library/library.functions");
+          await addLibraryItem({
+            data: {
+              name: file.name,
+              mime: read.mime,
+              kind: read.image ? "image" : "file",
+              source: "upload",
+              conversationId: chat.conversationId,
+              contentBase64: read.image ?? btoa(unescape(encodeURIComponent(read.text ?? ""))),
+            },
+          });
+          void queryClient.invalidateQueries({ queryKey: ["library", "items"] });
+        } catch {
+          /* The attachment still reaches the question. */
+        }
+      }),
+    );
   }
 
   function grow() {
@@ -170,13 +192,16 @@ export function ChatWorkspace() {
     } catch {
       /* Nothing to recover: the message is on its way. */
     }
-    await chat.send(message, choice);
+    const carried = forRequest(pending);
+    setPending([]);
+    await chat.send(message, choice, carried);
   }
 
   const empty = chat.messages.length === 0 && chat.streaming.length === 0;
   const signedOut = !loading && !user;
   const lastQuestionId =
     [...chat.messages].reverse().find((message) => message.role === "user")?.id ?? null;
+  const rejected = pending.find((attachment) => attachment.state === "rejected");
 
   return (
     <AppShell
@@ -233,10 +258,30 @@ export function ChatWorkspace() {
               onDrop={(event) => {
                 event.preventDefault();
                 setDragging(false);
-                const file = event.dataTransfer.files?.[0];
-                if (file && user) void attach(file);
+                const files = [...(event.dataTransfer.files ?? [])];
+                if (files.length > 0 && user) void attach(files);
               }}
             >
+              {pending.length > 0 ? (
+                <AttachmentTray
+                  attachments={pending}
+                  onRemove={(id) =>
+                    setPending((current) => current.filter((entry) => entry.id !== id))
+                  }
+                  onMove={(id, by) =>
+                    setPending((current) => {
+                      const at = current.findIndex((entry) => entry.id === id);
+                      const to = at + by;
+                      if (at < 0 || to < 0 || to >= current.length) return current;
+                      const next = [...current];
+                      const [moved] = next.splice(at, 1);
+                      next.splice(to, 0, moved!);
+                      return next;
+                    })
+                  }
+                />
+              ) : null}
+
               <label className="sr-only" htmlFor="ocade-composer">
                 Message OCADE
               </label>
@@ -258,10 +303,10 @@ export function ChatWorkspace() {
                 onPaste={(event) => {
                   // A screenshot pasted into the composer is a file, and the
                   // person expects it to become one rather than nothing.
-                  const file = event.clipboardData.files?.[0];
-                  if (file && user) {
+                  const files = [...(event.clipboardData.files ?? [])];
+                  if (files.length > 0 && user) {
                     event.preventDefault();
-                    void attach(file);
+                    void attach(files);
                   }
                 }}
                 placeholder="Ask anything"
@@ -270,9 +315,9 @@ export function ChatWorkspace() {
 
               <div className="mt-2 flex items-center gap-1">
                 <IconButton
-                  label="Add a file"
-                  disabled={attaching || !user}
-                  title={user ? "Add a file to your Library" : "Sign in to add a file"}
+                  label="Attach a file"
+                  disabled={!user || pending.length >= MAX_ATTACHMENTS}
+                  title={user ? "Attach a file to this question" : "Sign in to attach a file"}
                   onClick={() => picker.current?.click()}
                 >
                   <Plus className="h-4 w-4" aria-hidden />
@@ -280,12 +325,13 @@ export function ChatWorkspace() {
                 <input
                   ref={picker}
                   type="file"
+                  multiple
                   className="hidden"
-                  aria-label="Add a file to your Library"
+                  aria-label="Attach files"
                   onChange={(event) => {
-                    const file = event.target.files?.[0];
+                    const files = [...(event.target.files ?? [])];
                     event.target.value = "";
-                    if (file) void attach(file);
+                    if (files.length > 0) void attach(files);
                   }}
                 />
 
@@ -361,9 +407,9 @@ export function ChatWorkspace() {
                   </button>
                 ) : null}
               </p>
-            ) : attached ? (
+            ) : rejected ? (
               <p className="mt-3 text-center text-[13px] text-muted-foreground" role="status">
-                {attached}
+                {rejected.name}: {rejected.reason}
               </p>
             ) : signedOut ? (
               <p className="mt-3 text-center text-[13px] text-muted-foreground">
@@ -404,6 +450,93 @@ function LowAllowanceNotice({ signedIn }: { signedIn: boolean }) {
         See plans
       </Link>
     </p>
+  );
+}
+
+/**
+ * WHAT IS ABOUT TO GO WITH THE QUESTION.
+ *
+ * Order matters to the model, so it is something a person can change; a file
+ * OCADE cannot read says so here rather than after the answer comes back
+ * without it.
+ */
+function AttachmentTray({
+  attachments,
+  onRemove,
+  onMove,
+}: {
+  attachments: PendingAttachment[];
+  onRemove: (id: string) => void;
+  onMove: (id: string, by: -1 | 1) => void;
+}) {
+  return (
+    <ul className="mb-2 flex flex-wrap gap-1.5" aria-label="Attached files">
+      {attachments.map((attachment, at) => (
+        <li
+          key={attachment.id}
+          className={cn(
+            "flex items-center gap-1 rounded-md border border-border/60 py-1 pl-2 pr-1 text-xs",
+            attachment.state === "rejected" ? "text-muted-foreground" : "text-foreground",
+          )}
+        >
+          <span className="max-w-40 truncate" title={attachment.reason ?? attachment.name}>
+            {attachment.name}
+          </span>
+          {attachment.state === "reading" ? (
+            <span className="text-muted-foreground">reading…</span>
+          ) : null}
+          {attachment.state === "rejected" ? (
+            <span className="text-muted-foreground">can&rsquo;t read</span>
+          ) : null}
+          {attachments.length > 1 ? (
+            <>
+              <TrayButton
+                label={`Move ${attachment.name} earlier`}
+                disabled={at === 0}
+                onClick={() => onMove(attachment.id, -1)}
+              >
+                <ArrowLeft className="h-3 w-3" aria-hidden />
+              </TrayButton>
+              <TrayButton
+                label={`Move ${attachment.name} later`}
+                disabled={at === attachments.length - 1}
+                onClick={() => onMove(attachment.id, 1)}
+              >
+                <ArrowRight className="h-3 w-3" aria-hidden />
+              </TrayButton>
+            </>
+          ) : null}
+          <TrayButton label={`Remove ${attachment.name}`} onClick={() => onRemove(attachment.id)}>
+            <X className="h-3 w-3" aria-hidden />
+          </TrayButton>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function TrayButton({
+  label,
+  children,
+  onClick,
+  disabled,
+}: {
+  label: string;
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      disabled={disabled}
+      className="grid h-5 w-5 place-items-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+    >
+      {children}
+    </button>
   );
 }
 

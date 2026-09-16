@@ -40,6 +40,8 @@ import {
   type ChatMessageRecord,
 } from "@/lib/ocade-chat-store";
 import { beginBilledRequest } from "@/lib/commercial/use-generation-permit";
+import { citationInstruction } from "@/lib/chat/attachments";
+import type { NormalizedAttachment, NormalizedMessage } from "@/lib/intelligence/contract";
 import { USAGE_QUERY_KEY } from "@/lib/commercial/use-commercial-usage";
 import { ocadeIntelligence } from "@/lib/intelligence/ocade-intelligence";
 import type { IntelligenceMode } from "@/lib/intelligence/contract";
@@ -75,7 +77,11 @@ export interface ChatState {
 }
 
 export interface ChatActions {
-  send(message: string, choice: IntelligenceChoice): Promise<void>;
+  send(
+    message: string,
+    choice: IntelligenceChoice,
+    attachments?: NormalizedAttachment[],
+  ): Promise<void>;
   /** Edit, Regenerate and Retry, which are the same operation. */
   resend(userMessageId: string, choice: IntelligenceChoice, newText?: string): Promise<void>;
   removeMessage(id: string): Promise<void>;
@@ -165,7 +171,11 @@ export function useChat(): ChatState & ChatActions {
   }, [conversationId, setMessages]);
 
   const send = useCallback(
-    async (message: string, choice: IntelligenceChoice) => {
+    async (
+      message: string,
+      choice: IntelligenceChoice,
+      attachments: NormalizedAttachment[] = [],
+    ) => {
       const text = message.trim();
       if (!text || busy) return;
       setProblem(null);
@@ -205,13 +215,30 @@ export function useChat(): ChatState & ChatActions {
           conversationId: id,
           role: "user",
           content: text,
+          // Names and sizes only. The bytes are in Library, which is the one
+          // place that owns a customer's files.
+          attachments: attachments.map((attachment) => ({
+            kind: attachment.image ? ("image" as const) : ("file" as const),
+            name: attachment.name,
+            mime: attachment.mime,
+            sizeBytes: attachment.sizeBytes,
+          })),
         });
         setMessages((current) => [...current, question.record]);
 
-        const history = [...transcript.current, question.record].map((record) => ({
-          role: record.role === "system" ? ("assistant" as const) : record.role,
-          content: record.content,
-        }));
+        const turns: NormalizedMessage[] = [...transcript.current, question.record].map(
+          (record) => ({
+            role: record.role === "system" ? ("assistant" as const) : record.role,
+            content: record.content,
+          }),
+        );
+        // Only when there is something to cite: a standing instruction about
+        // files on every request is tokens spent on nothing, and a model told
+        // to cite sources that do not exist will invent one.
+        const instruction = citationInstruction(attachments);
+        const history = instruction
+          ? ([{ role: "system", content: instruction }, ...turns] as NormalizedMessage[])
+          : turns;
 
         let answer = "";
         let refusal: string | null = null;
@@ -224,7 +251,7 @@ export function useChat(): ChatState & ChatActions {
           mode: MODE_FOR[choice],
           messages: history,
           tools: [],
-          attachments: [],
+          attachments,
           privacy: {
             // `Offline` makes zero provider traffic — docs/PLAN.md Phase 7.
             onlineInferenceConsented: choice !== "offline",

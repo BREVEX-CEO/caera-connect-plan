@@ -23,12 +23,31 @@ import type {
   IntelligenceTransportStatus,
 } from "./contract";
 
+/**
+ * The transcript, as the local engine takes it.
+ *
+ * ATTACHMENTS ARE APPENDED AS TEXT, AND IMAGES ARE NOT SENT AT ALL. The local
+ * engine reads text; it cannot see. `PLAN.md` is explicit that an offline image
+ * request must fail clearly rather than pretend, and the adapter refuses one —
+ * so passing an image here would only move the refusal somewhere less honest.
+ */
 function toBrainMessages(request: IntelligenceRequest): BrainMessage[] {
-  return request.messages.map((message) => ({
+  const messages: BrainMessage[] = request.messages.map((message) => ({
     role: message.role,
     content: message.content,
-    ...(message.images?.length ? { images: message.images } : {}),
   }));
+
+  const readable = request.attachments.filter((attachment) => attachment.text);
+  const last = messages[messages.length - 1];
+  if (last && readable.length > 0) {
+    last.content += readable
+      .map(
+        (attachment) =>
+          `\n\n--- attached file: ${attachment.name} ---\n${attachment.text}\n--- end of ${attachment.name} ---`,
+      )
+      .join("");
+  }
+  return messages;
 }
 
 export function createOfflineIntelligenceTransport(

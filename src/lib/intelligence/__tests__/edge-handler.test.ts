@@ -511,6 +511,70 @@ describe("the health record this function leaves behind", () => {
     expect(stream).not.toContain('"type":"refusal"');
   });
 
+  it("actually sends an attachment to the provider, labelled with its name", async () => {
+    /*
+     * The boundary used to validate `attachments` and then never read them, so a
+     * file somebody attached reached here and went nowhere: the answer was
+     * written as though no file existed. The name rides with the text so an
+     * answer can say which file a figure came from.
+     */
+    let sent: Record<string, unknown> | null = null;
+    const withFiles = {
+      ...body(),
+      attachments: [
+        { name: "sales.csv", mime: "text/csv", sizeBytes: 9, text: "a,b\n1,2" },
+        { name: "shot.png", mime: "image/png", sizeBytes: 4, image: "Ynl0ZQ==" },
+      ],
+    };
+    await handleOnlineIntelligence(
+      request(withFiles),
+      dependencies({
+        callProvider: vi.fn(async ({ body: providerInput }) => {
+          sent = providerInput;
+          return provider([{ candidates: [{ content: { parts: [{ text: "ok" }] } }] }]);
+        }),
+      }),
+    );
+
+    const contents = (sent as unknown as { contents: { parts: unknown[] }[] }).contents;
+    const parts = JSON.stringify(contents[contents.length - 1]!.parts);
+    expect(parts).toContain("sales.csv");
+    expect(parts).toContain("a,b");
+    expect(parts).toContain("Ynl0ZQ==");
+    expect(parts).toContain("image/png");
+  });
+
+  it("refuses an attachment that is neither readable text nor an image", async () => {
+    // One of text or an image, never both and never neither: a request that
+    // cannot say what it is carrying is a request the boundary does not take.
+    for (const attachment of [
+      { name: "x", mime: "text/plain", sizeBytes: 1 },
+      { name: "x", mime: "text/plain", sizeBytes: 1, text: "a", image: "b" },
+      { name: "x", mime: "text/plain", sizeBytes: 1, image: "b" },
+      { name: "x", mime: "image/png", sizeBytes: 1, text: "a".repeat(200_001) },
+    ]) {
+      const response = await handleOnlineIntelligence(
+        request({ ...body(), attachments: [attachment] }),
+        dependencies(),
+      );
+      expect(response.status, JSON.stringify(attachment)).toBe(400);
+    }
+  });
+
+  it("refuses more attachments than one question may carry", async () => {
+    const many = Array.from({ length: 9 }, (_, at) => ({
+      name: `f${at}.txt`,
+      mime: "text/plain",
+      sizeBytes: 1,
+      text: "x",
+    }));
+    const response = await handleOnlineIntelligence(
+      request({ ...body(), attachments: many }),
+      dependencies(),
+    );
+    expect(response.status).toBe(400);
+  });
+
   it("still refuses a genuine provider stop, such as a safety block", async () => {
     const response = await handleOnlineIntelligence(
       request(),

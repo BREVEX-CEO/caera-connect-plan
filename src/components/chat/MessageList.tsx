@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
-import { Check, Copy, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Check, Copy, Paperclip, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import type { ChatMessageRecord } from "@/lib/ocade-chat-store";
 import { cn } from "@/lib/utils";
 
@@ -150,6 +150,24 @@ function Turn({
             message.unsynced && "opacity-70",
           )}
         >
+          {/*
+            WHAT THE ANSWER WAS ALLOWED TO READ, shown beside the question
+            rather than only in Library. An answer that cites a file is only
+            checkable if the transcript says which files went with it.
+          */}
+          {message.attachments.length > 0 ? (
+            <ul className="mb-1.5 flex flex-wrap gap-1" aria-label="Files sent with this message">
+              {message.attachments.map((attachment) => (
+                <li
+                  key={`${attachment.name}-${attachment.sizeBytes}`}
+                  className="flex items-center gap-1 rounded border border-border/60 px-1.5 py-0.5 text-xs text-muted-foreground"
+                >
+                  <Paperclip className="h-3 w-3" aria-hidden />
+                  <span className="max-w-40 truncate">{attachment.name}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {message.content}
           {message.unsynced ? (
             <span className="mt-1 block text-xs text-muted-foreground">

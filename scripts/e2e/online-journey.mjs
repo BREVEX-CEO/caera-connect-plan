@@ -116,6 +116,71 @@ try {
   );
   check("the request declares the surface it came from", sent.surface === "chat", sent.surface);
 
+  /* --- an attached file actually reaches intelligence ---------------------- */
+
+  /*
+   * THE CHECK THAT WAS MISSING. Attaching a file used to put it in the Library
+   * and nothing else: the boundary validated an `attachments` array it never
+   * read, and the answer was written as though no file existed.
+   */
+  await page.getByRole("link", { name: "New chat" }).first().click();
+  await page.waitForFunction(
+    () => !document.body.innerText.includes("stubbed OCADE answer"),
+    undefined,
+    { timeout: 10_000 },
+  );
+  await page.getByRole("button", { name: "OCADE", exact: true }).click();
+  await page.setInputFiles('input[type="file"]', {
+    name: "sales.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("region,total\nnorth,128\nsouth,64\n"),
+  });
+  await page.waitForSelector("text=sales.csv", { timeout: 10_000 });
+  check("an attached file is shown before it is sent", true);
+
+  await page.setInputFiles('input[type="file"]', {
+    name: "report.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.4 not really"),
+  });
+  await page.waitForTimeout(600);
+  check(
+    "a format OCADE cannot read says so rather than failing later",
+    /can.{0,3}t read/i.test(await page.locator("body").innerText()),
+  );
+  await page.getByRole("button", { name: "Remove report.pdf" }).click();
+  check(
+    "and it can be taken off the question",
+    (await page.getByText("report.pdf", { exact: true }).count()) === 0,
+  );
+
+  await page.fill("#ocade-composer", "Which region sold more?");
+  await page.click('button[aria-label="Send"]');
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+
+  const withFile = await lastBoundaryRequest();
+  check(
+    "the file reached the boundary, named and carrying its contents",
+    withFile.attachments.length === 1 &&
+      withFile.attachments[0].name === "sales.csv" &&
+      withFile.attachments[0].carries === "text" &&
+      withFile.attachments[0].text.includes("north,128"),
+    JSON.stringify(withFile.attachments),
+  );
+  check(
+    "the unreadable one did not go with it",
+    !JSON.stringify(withFile.attachments).includes("report.pdf"),
+  );
+  check(
+    "and OCADE was asked to say where an answer came from",
+    withFile.systemPrompts.some((prompt) => /which file/i.test(prompt)),
+    withFile.systemPrompts.join(" | ").slice(0, 120),
+  );
+  check(
+    "the transcript records what the answer was allowed to read",
+    (await page.getByText("sales.csv").count()) >= 1,
+  );
+
   /* --- what a refusal must look like -------------------------------------- */
 
   const before = await usageRemaining(page);

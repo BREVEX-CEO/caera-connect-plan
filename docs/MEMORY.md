@@ -790,12 +790,42 @@ Markdown source, table styling, drag-and-drop and clipboard-paste attachment.
 
 Verified: `verify:full` 15 gates; all 11 browser journeys, chat now 21 checks.
 
+### Attachments reach intelligence now
+
+`+`, drag-and-drop and paste all read the file before it is sent. Text,
+Markdown, CSV, TSV, JSON and source code are read natively (`File.text()`);
+images are carried whole for the online engine. PDFs, Word and Excel are
+refused with the reason and what to do instead — pulling the readable fragments
+out of a binary container and presenting them as the document would produce an
+answer that looks as complete as one built on the whole file.
+
+**The boundary was validating attachments and dropping them.** `parseBody`
+accepted the array and `providerBody` never read it, so a file reached the Edge
+Function and went nowhere. Attachments are now appended to the last question as
+labelled parts — an image as `inline_data`, text between `--- attached file:
+name ---` markers — and `NormalizedMessage.images` is deleted, because two ways
+to say "this question has a picture with it" is one too many.
+
+**Source references.** A system line is added only when something is attached,
+asking OCADE to say which file and where in it. Tabular text keeps its header
+row, so "row 3 of sales.csv" is checkable.
+
+**Bounds.** 8 attachments, 200k characters of extracted text each (truncation
+announced in the text, never silent), 5 MB per image, 20 MB total, and the body
+cap raised from 1 MiB to 24 MiB to fit them. Enforced on both sides.
+
+Composer: remove, reorder, per-file reading state and refusal reason. Transcript
+shows which files went with a question.
+
+Verified: `verify:full` 15 gates; 10 attachment tests; 3 new boundary tests; the
+online journey now proves a real CSV reaching the boundary with its contents,
+an unreadable file staying behind, and the citation instruction being sent.
+
 ### Still open in Phase 12
 
-Attachments reach Library but not the model — that needs the artifact work
-finished for the offline side and a decision about extraction for the online
-side. Dictation is still honestly disabled. Upload progress, remove/reorder
-before send, and attachment preview/download in the transcript are not built.
+Dictation is honestly disabled. Attachment download from the transcript is not
+built (the file is in Library, which has one). PDF/Office reading needs a
+parser dependency and an owner decision.
 
 ## Exact next action
 

@@ -37,9 +37,31 @@ import {
  */
 const ALLOWED_SURFACES: readonly string[] = ["chat", "cowork"];
 
-const MAX_BODY_BYTES = 1_048_576;
+/**
+ * THE CEILING ON ONE REQUEST.
+ *
+ * It was one mebibyte, which was right while a request was only text and wrong
+ * the moment an attachment could ride in one: a single photograph is several
+ * times that. Twenty-four is generous enough for the attachment budget below
+ * and small enough that an isolate cannot be exhausted by a flood of them.
+ */
+const MAX_BODY_BYTES = 24 * 1_048_576;
 const MAX_MESSAGES = 256;
 const MAX_TOOLS = 128;
+
+/**
+ * WHAT ONE USE MAY CARRY IN.
+ *
+ * `maxOutputTokens` bounds what a request can produce; these bound what it can
+ * consume, which is the other half of the same promise. A person pays one use
+ * whatever they attach, so without a ceiling the price of that one use is
+ * whatever they can drag onto the composer.
+ */
+const MAX_ATTACHMENTS = 8;
+/** Extracted text per attachment. Roughly fifty pages of prose. */
+const MAX_ATTACHMENT_TEXT = 200_000;
+/** Base64 image per attachment, before decoding. */
+const MAX_ATTACHMENT_IMAGE = 7 * 1_048_576;
 /**
  * THE CEILING ON WHAT ONE USE CAN COST.
  *
@@ -165,6 +187,7 @@ function parseBody(value: unknown): OnlineRequestBody | null {
     !Array.isArray(value.tools) ||
     value.tools.length > MAX_TOOLS ||
     !Array.isArray(value.attachments) ||
+    value.attachments.length > MAX_ATTACHMENTS ||
     privacy.onlineInferenceConsented !== true ||
     privacy.sealed !== false
   ) {
@@ -184,6 +207,26 @@ function parseBody(value: unknown): OnlineRequestBody | null {
         !boundedString(tool.name, 128) ||
         typeof tool.description !== "string" ||
         !isRecord(tool.inputSchema),
+    ) ||
+    /*
+     * ATTACHMENTS ARE VALIDATED LIKE EVERYTHING ELSE, and until now they were
+     * validated and then dropped: `parseBody` accepted the array and
+     * `providerBody` never read it, so a file a person attached reached the
+     * boundary and went nowhere. It carries one of text or an image, never
+     * both and never neither.
+     */
+    value.attachments.some(
+      (attachment) =>
+        !isRecord(attachment) ||
+        !boundedString(attachment.name, 256) ||
+        !boundedString(attachment.mime, 128) ||
+        typeof attachment.sizeBytes !== "number" ||
+        attachment.sizeBytes < 0 ||
+        (typeof attachment.text === "string") === (typeof attachment.image === "string") ||
+        (typeof attachment.text === "string" && attachment.text.length > MAX_ATTACHMENT_TEXT) ||
+        (typeof attachment.image === "string" &&
+          (attachment.image.length > MAX_ATTACHMENT_IMAGE ||
+            !attachment.mime.startsWith("image/"))),
     )
   ) {
     return null;
@@ -200,11 +243,30 @@ function providerBody(body: OnlineRequestBody): Record<string, unknown> {
     .filter((message) => message.role !== "system")
     .map((message) => ({
       role: message.role === "assistant" ? "model" : "user",
-      parts: [
-        { text: message.content },
-        ...(message.images ?? []).map((data) => ({ inline_data: { mime_type: "image/*", data } })),
-      ],
+      parts: [{ text: message.content }],
     }));
+
+  /*
+   * ATTACHMENTS RIDE WITH THE LAST QUESTION, AND THEY ARE LABELLED.
+   *
+   * The name goes in with the text so an answer can say which file a number
+   * came from, and so a person can check it. An unlabelled blob of extracted
+   * text is a citation nobody can follow.
+   */
+  const last = contents[contents.length - 1];
+  if (last) {
+    for (const attachment of body.attachments) {
+      if (attachment.image) {
+        last.parts.push({
+          inline_data: { mime_type: attachment.mime, data: attachment.image },
+        } as never);
+      } else if (attachment.text) {
+        last.parts.push({
+          text: `\n\n--- attached file: ${attachment.name} ---\n${attachment.text}\n--- end of ${attachment.name} ---`,
+        });
+      }
+    }
+  }
   return {
     contents,
     generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS },
