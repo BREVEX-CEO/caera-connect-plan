@@ -72,10 +72,13 @@ Public `/pricing` must return.
 Supabase Auth only:
 
 - Google;
-- email 6-digit OTP;
-- phone 6-digit OTP + international country picker;
+- email 6-digit OTP through the configured Resend SMTP;
 - optional password where deliberately supported;
 - MFA/assurance where required.
+
+Phone OTP was removed by the owner: sending SMS needs an external provider
+OCADE does not have, and a method that can only refuse is worse than an absent
+one.
 
 Do not delete existing accounts/logged-in users/sessions during cleanup.
 
@@ -492,85 +495,84 @@ asserts the rule rather than the instance: no definer function reachable by
 4. **Leaked password protection is off** on Supabase Auth (advisor WARN). One
    toggle.
 
-## Phase 4 (partial) — the boundary is deployable, the keys are not mine to set
+## Phase 4 — the boundary is deployed with the three keys
 
-### OCADE is a website, not an app
+The owner configured `GEMINI_API_KEY_PRIMARY`, `GEMINI_API_KEY_SECONDARY`,
+`GEMINI_API_KEY_TERTIARY` and `OCADE_ALLOWED_ORIGINS` in Supabase.
 
-New owner decision, applied across the tree. There was no install button to
-remove — and Chrome offered to install OCADE anyway, because a web app manifest
-with `display: standalone` IS the install offer. `public/manifest.webmanifest`
-and the `apple-touch-icon` link are gone, with the icons only they used; the
-manifest's `start_url` was `/ocade`, a route that answers 404, so anybody who
-did install it got an error page.
+`ocade-intelligence` is deployed at **version 6**, `verify_jwt: true`,
+`ezbr_sha256 819c06dc04a8889398c89e21f5d20ae27a01c4d97e01227ac9bd940d18889054`.
+Version 2 had been live: it read a singular `GEMINI_API_KEY`, defaulted to
+`gemini-3.7-flash`, had no slot failover, and required a `privacy.storageMode`
+field the current client does not send. It would have read none of the three
+secrets.
 
-The service worker is untouched and the offline shell still works: offline
-caching and installability are separate browser features that only appear
-related. `ocade-is-a-website.test.ts` holds both halves of that line.
+### What is proven, and what is not
 
-The legal pages named app stores in four places — distribution, refunds,
-third-party services and data sharing. They no longer do.
-
-### The Edge Function in this tree could not be deployed at all
-
-`edge-handler.ts` imports `operation-health.ts`, which imported
-`OCADE_RELEASE_VERSION` from `@/lib/health` — a VALUE import through the `@/`
-alias, which Deno cannot resolve and cannot erase. The constant now lives in
-`src/lib/release.ts`, one line with no runtime of its own, so the Cloudflare
-liveness handler and the Deno boundary can both read it without importing each
-other's world. `contract.ts` had the same shape as a type-only import; it is
-relative now too.
-
-### What is deployed is four iterations behind
-
-The live `ocade-intelligence` (version 2) reads a singular `GEMINI_API_KEY`,
-defaults to `gemini-3.7-flash`, has no slot failover at all, and requires a
-`privacy.storageMode` field the current client does not send. Even with the
-three secrets set it would read none of them. Redeploying is mandatory and is
-held until the keys exist, so it happens once rather than twice.
-
-The failover policy itself is correct and covered by 20 tests in
-`edge-handler.test.ts`, including the two rules that matter: a 429 is answered
-rather than rotated around, and no other key is reached for once output has
+Proven here: the failover policy, by 20 tests in `edge-handler.test.ts` —
+primary first; 401/403 moves to the next slot immediately; 5xx and a thrown
+transport error retry the slot then move on; a 429 retries the same slot and is
+then answered honestly rather than rotated around, which is the quota evasion
+`docs/RULES.md` #14 forbids; and nothing reaches for another key once output has
 started.
 
-### The keys cannot be set from here
+NOT proven here, and it must not be claimed: a real Gemini answer through the
+deployed function. This sandbox's egress policy refuses
+`sazhgaisyhkdbrooycdv.supabase.co` (`CONNECT tunnel failed, response 403`), so
+the function cannot be invoked from here at all. `generativelanguage.googleapis
+.com` IS reachable, but calling it directly would prove Google's availability
+rather than OCADE's boundary.
 
-There is no MCP tool that writes Supabase secrets, so the owner must set them.
-Asking for the values in chat would put them in a transcript for no gain.
+`function_edge_logs` is empty for the last 24 hours: nothing has invoked the
+function since the deploy.
 
-## Owner actions, with exact steps
+**One Send on ocade.in produces the proof.** Each request writes one
+`ocade.health` line — enumerated values only, no prompt, no key, no user id —
+carrying the outcome, the error class and which of the three slots served. Those
+lines are readable from here through the Supabase logs, so after a single real
+message the whole path can be confirmed, including which key answered.
 
-1. **Three Gemini secrets.** Supabase dashboard → Project `sazhgaisyhkdbrooycdv`
-   → Edge Functions → Secrets → Add new secret, three times:
-   `GEMINI_API_KEY_PRIMARY`, `GEMINI_API_KEY_SECONDARY`,
-   `GEMINI_API_KEY_TERTIARY`. Keys come from Google AI Studio
-   (aistudio.google.com → Get API key). Secondary and tertiary are optional to
-   the code — one key works, and failover is simply not invented for it.
-2. **`OCADE_ALLOWED_ORIGINS`**, same screen: `https://ocade.in,https://www.ocade.in`.
-   Without it every request is refused `origin_not_allowed` before anything else.
-3. **Which account is the owner/admin.** Name one of
-   `caeracadane28@gmail.com`, `customhaans@gmail.com`, `haansantoni2@gmail.com`
-   and the role is granted here. Nobody holds it today, so Admin is unreachable
-   by everybody.
-4. **Email codes** need custom SMTP: Authentication → Emails → SMTP Settings.
-   Supabase's built-in sender is rate-limited to a few messages an hour and is
-   not a production sender. Any provider works (Resend, Postmark, SES, Mailgun);
-   it wants host, port, username, password and a From address on a domain you
-   control.
-5. **Phone codes** need an SMS provider: Authentication → Sign In / Providers →
-   Phone → enable, then choose Twilio, MessageBird, Vonage or Textlocal and
-   paste that provider's credentials. Twilio wants an Account SID, an Auth Token
-   and a Message Service SID.
-6. **Leaked password protection**: Authentication → Sign In / Providers →
-   Password → enable "Prevent use of leaked passwords". Advisor reports it off.
+## Phase 2 revisited — phone authentication removed
 
-Until 4 and 5 are done, the sign-in screen shows exactly what the project
-reports and no more — it never claims a code was sent when it was not.
+Owner decision. OCADE signs somebody in two ways: Google, and a six-digit code
+to an email address through the configured Resend SMTP.
+
+Sending SMS needs an external provider account OCADE does not have, so a phone
+tab could only ever refuse, and a method that cannot authenticate is worse than
+an absent one — it is the one somebody reaches for when the others give them
+trouble. 437 lines deleted against 108 added: `phone-numbers.ts` and its test,
+the country picker, the channel tabs, the `channel` search parameter, the
+`phone` availability field, the `type: "sms"` verify branch, the "Phone"
+identity label, the stub's phone handling, and the phone assertions in the
+journey. Six documentation authorities no longer describe it.
+
+Two defects found while removing it:
+
+- `resend()` loaded the Supabase client BEFORE checking the cooldown, so two
+  fast clicks both passed the check and sent two codes.
+- `/auth/verify` accepted any non-empty `identifier`; it takes an email address.
+
+## Owner/admin
+
+`caeracadane28@gmail.com` holds the `admin` role. Admin stays hidden — a
+non-admin is returned to Chat rather than told the area exists, and
+`listAccountAccess` answers 404 rather than 403 for the same reason. Grant and
+revoke were proven against the live database in Phase 3 inside a rolled-back
+transaction: non-admin refused, admin without a second factor refused,
+self-grant refused, 400 days refused, a real grant resolving to `max` through
+`ocade_active_entitlement_grant` and back to none after revoke, with 0 grants
+and 0 admins left behind.
+
+### Owner actions still open
+
+- **Email codes**: custom SMTP is configured (Resend). Nothing further from
+  OCADE's side.
+- **Leaked password protection**: Authentication → Sign In / Providers →
+  Password → enable "Prevent use of leaked passwords". Advisor reports it off.
 
 ## Exact next action
 
-Redeploy `ocade-intelligence` the moment the secrets exist, then prove a real
-production answer and a failover. Meanwhile continue with **Phase 5**, the
-account-wide allowance, which needs nothing external.
+**Phase 5** — one simple account-wide allowance. Replace the weighted-work
+model with successful-request counting for every tier.
 
 Do not begin implementation of Cowork/Jarvis.
