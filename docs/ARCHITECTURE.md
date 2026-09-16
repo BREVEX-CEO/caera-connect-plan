@@ -1,160 +1,89 @@
-# OCADE Architecture
+# OCADE Architecture Authority
 
-## System shape
+## Architectural principle
 
-OCADE is one web product with one authority per domain.
+OCADE must have one clear authority for each responsibility. New work should simplify or strengthen an existing authority before creating another store, router, installer, hook, service, worker, or schema family.
 
-```text
-Browser / PWA
-├─ App shell + routing
-├─ Chat UI
-├─ Library UI
-├─ Pricing / Billing UI
-├─ Settings / Account UI
-├─ Offline runtime + OPFS
-└─ Service worker / offline cache
+## Customer surfaces
 
-Server / Supabase
-├─ Supabase Auth
-├─ conversations/messages
-├─ Library metadata/private Storage
-├─ commercial usage + generation permits
-├─ subscriptions/payment evidence
-├─ manual entitlement grants
-├─ settings/notifications
-├─ security/admin state
-└─ ocade-intelligence Edge Function
+The current product shell is intentionally small: Chat, Library, Cowork placeholder, Pricing/public legal/help pages, Settings, and hidden Admin. Cowork expansion is frozen until the Chat-first production mission is complete.
 
-Cloudflare
-├─ web deployment
-└─ private R2 model distribution
-```
+Chat is the root surface. Library is the private file/output surface. Settings contains Account, Appearance, Notifications, Data Controls, Usage & Limits, Billing, and Advanced. Hidden Admin exists only for authorized operational work such as entitlement grants.
 
-Cowork/Jarvis runtime is absent during this mission.
+## Identity authority
 
-## Canonical authorities
+Supabase Auth is the only identity authority. Active customer methods are Google and email OTP. The browser holds a normal Supabase session; privileged authorization is checked server-side/RLS rather than inferred from visible UI.
 
-### Identity
+Existing Auth users, identities, sessions, and refresh tokens are protected during schema cleanup. Admin entitlement operations never mutate `auth.users` to represent a product tier.
 
-Supabase Auth only.
+## Persistent account-data authority
 
-### Chat persistence
+Supabase PostgreSQL is canonical for durable conversations/messages, Library metadata, settings, entitlements, usage state, generation permits/events, and other account records used by the current product. Supabase Storage holds Library objects in a private bucket protected by ownership policies.
 
-Supabase conversations/messages are the cloud authority. Local offline work may be queued/cached for later sync, but it must reconcile into the same conversation authority rather than creating a second permanent chat database.
+Local browser persistence is narrowly scoped. OPFS stores Offline runtime artifacts and model-owned metadata. A pending disconnected-chat journal may temporarily hold unsynchronized operations with stable idempotency keys. Device/runtime security state may persist where needed for offline usage enforcement. None of these become competing canonical cloud-account stores.
 
-### Usage
+## Online intelligence authority
 
-One commercial policy and ledger own all usage across online/offline/devices.
+The browser never calls the provider with a customer-visible key. Online requests go to the single Supabase Edge Function `ocade-intelligence`.
 
-Generation sequence:
+The boundary verifies the Supabase JWT, validates the normalized request contract, claims the canonical usage permit, invokes the configured connected provider through server-side secrets, streams the response, and settles the logical generation. The current live function is version 6; repository source must be deployed/reconciled before production parity is claimed.
 
-```text
-acquire durable permit
-→ choose intelligence route
-→ stream/produce output
-→ deliver answer
-→ finalize permit once
-```
+Exactly three server-side key slots exist: `GEMINI_API_KEY_PRIMARY`, `GEMINI_API_KEY_SECONDARY`, and `GEMINI_API_KEY_TERTIARY`. Failover is bounded, health-driven, and only before provider output starts. Key rotation must not be used to evade shared quota.
 
-Failures release/no-charge according to the policy.
+## Commercial usage authority
 
-### Online intelligence
+One usage authority sits above every intelligence backend. A generation permit/idempotency key is acquired before work. Exactly one successful logical request settles one use; failure settles zero. Retries, duplicate clicks, multiple tabs, reconnect, key failover, and Online→Offline pre-output fallback must not produce duplicate charges.
 
-One Edge Function boundary owns provider access. Browser never owns Gemini keys.
+Offline usage relies on signed/tamper-resistant device allocation/lease state that reconciles to the same account-wide authority rather than becoming an unlimited local bypass.
 
-### Offline Intelligence
+## Intelligence-routing authority
 
-One product capability with two internal runtime forms:
+One router receives customer intent (`Auto`, `Online`, `Offline`) and live availability state.
 
-- WebGPU-first where verified;
-- WASM fallback.
+- Auto uses Online when connected intelligence is healthy, Offline when Internet is absent and local readiness is proven, and may use Offline after a pre-output Online failure.
+- Online uses connected intelligence only and is disabled when Internet is unavailable.
+- Offline uses the local runtime only and makes zero provider calls.
 
-The customer sees only Offline/Offline Intelligence.
+The UI may describe the route as OCADE Online/Offline but does not expose provider/model/runtime implementation names.
 
-### Model storage
+## Offline Intelligence authority
 
-Private OCADE R2 delivery → resumable verified shards → OPFS.
+The one approved release is `ocr-2dc0ee44eb397906`, length `484220160`, SHA-256 `2dc0ee44eb39790624623cf5e2a8cc21973c4839a67fed406dd3f9b2e6b7f800`.
 
-The app build version is independent from the model artifact version.
+Private OCADE-controlled Cloudflare R2 is the distribution authority. One installer/downloader manages authorized delivery metadata, adaptive ranged transfer, verified checkpointing, resume, authorization refresh, full digest verification, targeted repair, atomic activation, Remove, and reinstall.
 
-### Files
+OPFS stores the verified active runtime and model-owned assets. Compatible OCADE site deployments do not redownload it. Explicit Remove persists a `user_uninstalled` decision that only explicit Install Offline clears.
 
-Library is the only customer-visible file/output authority. Cloud content lives in private Supabase Storage with RLS. Local cached copies are optional/offline helpers, not a second customer file system.
+The execution preference is WebGPU where real generation succeeds, with WASM fallback before output. This is one lifecycle and one artifact, not two products.
 
-### Entitlement
+## Conversation and offline-sync authority
 
-One final entitlement resolver combines free default, paid subscription and manual Admin grant.
+Supabase conversations/messages are canonical when connected. A disconnected Offline turn is assigned stable client ids and placed in the minimal pending-sync journal required to survive practical browser interruptions. Reconnect uploads exactly once using idempotency and then retires the pending copy.
 
-Manual grants are not payment records and never edit `auth.users`.
+Temporary/incognito conversations remain memory-only and never synchronize.
 
-## Online/offline routing
+## Attachment and Library authority
 
-```text
-Auto / OCADE
-  internet + provider healthy → online OCADE
-  provider failure before output + local ready → Offline Intelligence
-  no internet + local ready → Offline Intelligence
-  no internet + local absent → install/connect-once guidance
+One ingestion pipeline serves Chat and Library. It authenticates the user, validates ownership, enforces file/message bounds, verifies declared/detected type, constrains archive/extraction behavior, stores objects privately, extracts supported content as untrusted data, and preserves source metadata.
 
-Offline
-  provider traffic = 0
-  local runtime only
-```
+The normalized attachment representation is passed to intelligence. There is no separate “uploaded but never read” path.
 
-Fallback never creates multiple usage charges.
+## UI state authority
 
-## Private offline-model delivery
+Each asynchronous feature owns a finite state machine rather than scattered booleans. Loading must resolve to success, empty, error/Retry, cancelled, or a genuine progress state. Permanent “Reading…”/“Loading…” screens are architectural defects.
 
-The tracked repository should not expose a public model catalogue/name where avoidable.
+## Deployment authority
 
-The browser obtains authorised opaque artifact/shard metadata from OCADE-controlled infrastructure. R2 credentials never reach the browser.
+A production release is a compatible tuple: Git commit, frontend build, Supabase Edge Function source/version, database migration/type state, and Offline release manifest. Release verification records these together and smoke-tests the actual deployed combination.
 
-Use immutable shards and integrity checks. Persist verified pieces immediately so a killed browser resumes rather than restarts.
+## Observability and privacy
 
-Explicit user uninstall is represented by durable local preference and suppresses future automatic reinstall until the user requests Install.
-
-## PWA/offline architecture
-
-The service worker caches the app shell and stable public/static assets required for honest offline operation.
-
-Do not cache secrets or server-authoritative account state as if it were permanent truth.
-
-Local offline conversations/changes use a deterministic queue and sync process with idempotency/conflict handling.
-
-Payment and other cloud-only mutations are never reported successful while offline.
+Internal diagnostics may record enumerated route/result/error categories needed to debug production, but must not log prompts, secrets, raw provider keys, sensitive attachment contents, or privileged customer data. Normal customer errors remain concise and sanitized.
 
 ## Security boundaries
 
-- secrets stay server-side;
-- RLS guards user-owned cloud content;
-- service-role operations stay server-side;
-- admin/manual grants require admin authorization;
-- provider errors are sanitized;
-- local allowance lease is signed/tamper-resistant;
-- storage/model hashes detect corruption/substitution;
-- customer-visible diagnostics do not leak private provider/model details unnecessarily.
+RLS/server checks protect user data. Admin operations require server-side authorization and auditable grants. File contents are hostile input. Client-provided entitlement, user id, usage count, MIME type, model readiness, payment state, and admin status are never trusted without authoritative verification.
 
-## Supported deployment targets
+## Simplicity rule
 
-- Windows Chrome
-- macOS Chrome
-- Android Chrome
-- iPhone/iPad Chrome/WebKit where browser capabilities permit
-
-Linux is not an advertised/certified target.
-
-## No duplicate-system rule
-
-Do not add a second:
-
-- auth store;
-- chat database;
-- usage meter;
-- entitlement resolver;
-- intelligence router;
-- offline model lifecycle;
-- settings store;
-- Library store;
-- payment catalogue.
-
-Repair or replace the canonical authority in place.
+When two implementations provide the same responsibility, trace callers and retain the stronger canonical implementation. Delete the weaker duplicate after tests prove no needed path depends on it. Architecture quality is measured by fewer authorities and clearer contracts, not by the number of modules.

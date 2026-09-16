@@ -1,141 +1,46 @@
 # OCADE Backend Schema Authority
 
-## Live project
+## Live authority
 
-Production Supabase project: `sazhgaisyhkdbrooycdv`.
+Production Supabase project: `sazhgaisyhkdbrooycdv`. Re-verify this id immediately before any migration or destructive operation.
 
-Always re-verify the project id before migrations or destructive cleanup.
+The current live project is healthy and contains the active `ocade-intelligence` Edge Function plus the production Auth, public, and Storage schemas. Existing Auth users, identities, sessions, refresh tokens, and real customer/account evidence are protected and must not be cleared during cleanup.
 
-## Protected account/auth data
+## Protected data
 
-Database cleanup must never delete or truncate the Supabase Auth account/session system.
+Never delete or truncate real authentication records, customer conversations/messages, private Library data, payment/subscription evidence, entitlement evidence, legal consent, security/audit evidence required for incident/account history, or current settings simply because the owner wants the project clean.
 
-Protected categories include:
+Never edit `auth.users` to represent Free/Pro/Max access. Product access is resolved through the canonical entitlement authority and audited Admin grants.
 
-- `auth.users`;
-- `auth.identities`;
-- `auth.sessions`;
-- `auth.refresh_tokens`;
-- MFA/auth-flow state;
-- real profiles;
-- real user roles/settings required by OCADE;
-- real subscriptions/payment evidence;
-- legal consent evidence;
-- real customer conversations/messages/Library data unless explicitly deleted by the customer.
+## Current application domains
 
-Do not edit `auth.users` to grant product access.
+The reduced product needs schema for account/profile state, conversations/messages, private Library metadata/storage, usage windows/permits/events, signed offline usage state, entitlement/subscription/manual grants, legal/account deletion/export evidence where required, and minimal notification/security state actually used by the final UI.
 
-## Final application data domains
+The live project currently still contains objects from older product families, including recovery-code, financial, sharing, notification, and other historical systems. Their presence does not prove they should remain. Their emptiness does not prove they are safe to drop. Phase 11 traces every source/RPC/policy/function caller before removal.
 
-The target live schema should contain only tables/functions/policies required by these domains:
+The live `library` Storage bucket is private and remains the canonical customer-file bucket. Any older/unused bucket is removed only after proving that no customer object or current caller depends on it.
 
-### Account and security
+## Chat and usage contract
 
-- profiles;
-- user settings/preferences;
-- user roles/admin state;
-- notification preferences/history where required;
-- MFA recovery/security state where required.
+Saved Chat uses `conversations` and `messages` as the durable cloud authority. Disconnected pending turns may live temporarily in a client sync journal with stable idempotency keys, but reconciliation writes exactly once to the canonical tables.
 
-### Chat
+Usage uses one account-wide commercial authority. Free receives 28 successful logical generations per 6h28m; Pro receives 140 per 6h28m and 700/week; Max receives 1,400 per 6h28m and 7,000/week. Failed logical generations consume zero. Internal retry/failover cannot create extra settlements.
 
-- conversations;
-- messages;
-- any minimal attachment relationship metadata required by the canonical Chat/Library architecture.
+The Edge Function and browser must call the exact current RPC signature used by the live schema. Any “could not verify your usage allowance” error is treated as a production contract defect and traced through RPC availability, permissions, argument names/types, RLS/security-definer behavior, generated types, and deployment parity.
 
-### Library
+## Entitlement and Admin contract
 
-- Library metadata;
-- private Storage bucket/object policies;
-- storage tombstone/reconciliation metadata only where required.
+The permanent OCADE owner/admin is `caeracadane28@gmail.com` through the existing audited admin-role/grant system, not a hard-coded browser bypass. Hidden Admin may search a user, inspect current access, grant Free/Pro/Max with reason and optional duration, and revoke the grant. Normal users cannot reach or call privileged grant paths successfully.
 
-### Usage
+## Auth contract
 
-- commercial usage windows;
-- durable generation permits/idempotency;
-- signed offline device keys/leases/allocations/events required for account-wide offline enforcement.
+Supabase Auth methods for this mission are Google and six-digit email OTP. Phone OTP and its product/provider configuration are removed. Custom SMTP is already configured externally; the application must never claim that an OTP was sent unless Supabase accepted the request.
 
-All tiers count successful logical requests rather than weighted work.
+Account-enumeration resistance, OTP abuse controls, redirect validation, session integrity, and server/RLS authorization remain mandatory. The current Supabase advisor warning for leaked-password protection is documented but is not a launch blocker for the passwordless Google/email-OTP product on the current plan.
 
-### Billing
+## Online intelligence contract
 
-- subscriptions;
-- sanitized payment webhook/event evidence;
-- invoices/receipts where required;
-- entitlement grants;
-- any retired financial history that must remain readable for audit but must not grant current access.
-
-### Manual entitlement grants
-
-A single canonical grant table/function must support:
-
-- user id;
-- tier;
-- created by admin;
-- reason;
-- optional starts/ends;
-- revoked state/actor/time.
-
-The entitlement resolver combines paid subscription + manual grant + Free default.
-
-### Legal
-
-Keep append-only legal consent receipts where required.
-
-## Retired schema/data
-
-Remove objects used only by retired product families after source/dependency tracing.
-
-Examples of categories expected to be removed if no final caller remains:
-
-- old Cania data;
-- old Madee data;
-- old Ficia data;
-- old messaging product tables;
-- old Projects/Tasks/Automations product tables;
-- old organization/team product tables;
-- retired status/support article systems;
-- obsolete launch-gate tables;
-- obsolete provider preference/event tables;
-- old browser/control product policy tables;
-- stale test/compliance packs not used by final OCADE.
-
-Do not delete a table simply because its row count is zero; remove it only after proving that final source, functions, policies and migrations no longer require it.
-
-## Application logs and stale data
-
-The owner wants the live project clean.
-
-Clear stale development/launch/test rows only when proven not to be:
-
-- account/auth evidence;
-- payment/subscription evidence;
-- legal consent evidence;
-- security/audit evidence;
-- customer content;
-- current entitlement evidence.
-
-Where an operational log remains useful, enforce bounded retention rather than indefinite accumulation.
-
-Never wipe Supabase platform-managed Auth data/logs simply to make the project look empty.
-
-## Auth provider configuration
-
-Required Supabase Auth methods:
-
-- Google;
-- email OTP;
-- phone OTP.
-
-Phone OTP must have a real SMS provider configured before production is marked ready.
-
-If credentials are required for the SMS provider, request only the exact missing credentials at that implementation boundary and store them in the correct secure Supabase/provider settings, never normal tables.
-
-## Gemini Edge Function
-
-One Edge Function: `ocade-intelligence`.
-
-Exactly three secrets:
+One active Edge Function: `ocade-intelligence`. Exactly three server-side secret slots are allowed:
 
 ```text
 GEMINI_API_KEY_PRIMARY
@@ -143,38 +48,18 @@ GEMINI_API_KEY_SECONDARY
 GEMINI_API_KEY_TERTIARY
 ```
 
-At the online-intelligence deployment phase, ask the owner for exactly three Gemini API keys as secrets. Add them securely through Supabase secret management where tooling permits. Never commit or echo the values.
+The values are already configured by the owner and must never be requested in chat, committed, logged, returned to the browser, or stored in normal tables. `OCADE_ALLOWED_ORIGINS` is also configured server-side.
 
-## Storage
+## Schema cleanup and advisor work
 
-Library bucket must remain private and protected by RLS/policies.
+Run the Supabase security and performance advisors after schema changes. Current performance findings include auth-RLS initialization patterns, multiple permissive policies, and indexes that have not yet been observed as used. Investigate them against real callers/workload before changing anything; do not blindly delete an index or merge policies solely because an advisor reports it.
 
-Offline model artifacts do not live in Supabase Storage; they are delivered from private OCADE-controlled Cloudflare R2 and stored on-device through OPFS.
+Retired recovery-code tables/functions are strong cleanup candidates because the product code removed that user flow, but they still require caller/policy/data verification before a migration drops them. Apply the same rule to every stale table, RPC, trigger, policy, index, bucket, and notification/payment artifact.
 
 ## Migration rules
 
-- use versioned migrations for DDL;
-- trace all callers before drops;
-- include verification queries;
-- use reversible migrations/rollback strategy where practical;
-- regenerate TypeScript types after schema changes;
-- run Supabase security and performance advisors;
-- never apply a destructive migration before the compatible app version is ready.
+Use versioned migrations for DDL, trace all callers before destructive changes, preserve real customer/auth/financial/legal/security evidence, include verification and rollback strategy where practical, regenerate TypeScript types after schema changes, and never deploy a destructive migration before the compatible application/Edge version is ready.
 
-## Access-grant operations
+## Release proof
 
-Hidden Admin must offer a safe user-access workflow rather than requiring SQL.
-
-Admin flow:
-
-```text
-search user by email/id
-→ inspect current entitlement
-→ choose Free / Pro / Max
-→ optional start/end
-→ reason
-→ grant
-→ audit row created
-```
-
-Revocation must be equally simple and auditable.
+Final release evidence records the exact Git SHA, applied migration set, generated types state, active Edge Function version, private Library policy state, and successful real Chat/usage/Admin/Library smoke tests together.

@@ -1,155 +1,57 @@
 # OCADE Design System
 
-## Design principle
+## Design outcome
 
-Maximum usable workspace, minimum visual noise.
+OCADE should feel like a polished premium AI product with maximum usable workspace and minimum visual noise. The current Chat-first mission must remove the unfinished/developer-dashboard feeling visible in permanent loaders, large empty panels, sharp boxes, and controls that describe capabilities that no longer exist.
 
-OCADE should look like a modern AI workspace rather than a dashboard, game UI or cinematic assistant.
+## Visual foundation
 
-## Foundations
+Use a near-black/charcoal background with neutral dark-grey surfaces and white/soft-grey text. Use accent color sparingly for state and focus rather than filling the interface with gradients.
 
-### Color
+Use restrained medium glassmorphism on high-value interactive surfaces such as the composer, Settings/dialogs, menus, attachment trays, Offline progress, and upgrade cards. Glass uses a semi-transparent neutral fill, moderate blur, thin low-contrast border, subtle highlight, and little or no heavy shadow.
 
-Use a near-black/charcoal background with neutral grey surfaces and white/soft-grey text.
+Corners are consistently soft and rounded. Avoid both sharp enterprise rectangles and oversized pill-everything styling.
 
-Keep accent use restrained. Avoid broad saturated gradient fields.
+Typography is simple, readable, and semantic. Headings, body, labels, captions, and code each have clear hierarchy, consistent line height, and responsive behavior. Do not use movie-title/robotic treatment.
 
-### Glass
+## Shell and navigation
 
-Medium glassmorphism is the main surface treatment for interactive containers:
+Desktop keeps a steady compact left sidebar with New Chat, Chat, Library, Cowork placeholder, recent/search, and Account. The Chat workspace remains centered and open rather than boxed into a dashboard.
 
-- sidebar;
-- composer;
-- dialogs;
-- settings;
-- pricing cards;
-- menus;
-- attachment surfaces;
-- Offline progress.
-
-Glass should use:
-
-- semi-transparent neutral fill;
-- moderate backdrop blur;
-- thin low-contrast border;
-- restrained highlight;
-- little or no heavy shadow.
-
-### Radius
-
-Use small/medium radii consistently. Avoid both sharp enterprise-box styling and oversized pill-everything styling.
-
-### Typography
-
-Use simple, readable UI typography with clear hierarchy and no robotic/movie-title treatment.
-
-## Layout
-
-### Desktop
-
-- fixed/steady left sidebar;
-- centered Chat workspace;
-- generous negative space;
-- composer visually anchored near the main content area;
-- recent chats compact rather than card-heavy;
-- Account/usage at bottom-left.
-
-### Tablet
-
-- preserve Chat as primary workspace;
-- narrower drawer/sidebar behavior;
-- settings may become a wider sheet/modal;
-- controls keep touch-friendly targets.
-
-### Phone
-
-- chat-first;
-- sidebar becomes drawer;
-- settings becomes full-height/sheet;
-- composer remains fully usable with attachments/mic/send;
-- no horizontal overflow.
+Tablet keeps the same product but narrows/collapses navigation. Phone turns the sidebar into a drawer and Settings into an appropriate full-height/sheet view. No horizontal overflow is permitted.
 
 ## Chat
 
-Message text should be easy to scan.
+The empty Chat state uses a small OCADE heading/greeting, a few subtle optional suggestions, and the composer. Do not fill the screen with marketing cards.
 
-User prompts may use a compact bubble/treatment. OCADE answers should favor readable prose rather than excessive cards.
+User prompts may use a compact bubble/treatment. OCADE answers favor open readable prose. Message actions stay contextual until hover/tap where possible. Generated text, tables, links, code, source references, and attachment chips must remain easy to scan.
 
-Answer controls appear contextually:
+The composer is the primary glass surface. It contains attachment `+`, growing text input, microphone, `Auto | Online | Offline`, optional Thinking, and Send/Stop. Attachment progress/chips belong inside or immediately above the composer rather than creating a second permanent toolbar.
 
-- Copy;
-- Regenerate;
-- Retry;
-- Delete where applicable.
+When Auto switches to Offline because connectivity is absent, use a subtle state/animation that communicates the route change without turning the composer into a status dashboard. When Online is unavailable, disable it clearly rather than allowing a predictable failure.
 
-Edit belongs on the user prompt.
+## Settings
 
-## Composer
+Settings contains Account, Appearance, Notifications, Data Controls, Usage & Limits, Billing, and Advanced in a compact responsive modal/sheet. Avoid huge blank areas. Rows use concise labels and one short supporting sentence only where it helps.
 
-The composer is a primary glass surface.
+Every data-loading surface uses a bounded skeleton/progress state and then success, empty, or error/Retry. Permanent “Reading your allowance…”, “Reading your sessions…”, or “Loading chats…” is visually and functionally unacceptable.
 
-Required controls:
+Offline Intelligence uses clear customer states such as Preparing, Installing, Verifying, Ready, Repairing, Removed, and Install Offline. Do not expose model/runtime implementation terminology.
 
-- attachment `+`;
-- microphone;
-- Auto/OCADE/Offline selector;
-- Send/Stop.
+Usage & Limits shows a small meter and exact reset state without becoming an analytics dashboard. Billing uses clean Free/Pro/Max cards and honest checkout availability.
 
-Attachment chips appear inside/above the composer without forcing a second permanent toolbar.
+## Library and attachments
 
-## Usage meter
-
-Small and informative, not dashboard-like.
-
-Example:
-
-```text
-18 of 28 left · 2h 14m
-```
-
-Add a thin progress indicator and Upgrade when relevant.
-
-## Pricing
-
-Three clean tier cards with weekly/monthly toggle.
-
-Current plan is obvious. Upgrade actions are clear. Avoid a huge feature-comparison wall unless a future requirement needs it.
-
-## Offline status
-
-Background preparation should not take over the whole product.
-
-Compact status near Account/sidebar. Detailed progress only after click.
-
-Intentional uninstall state is explicit and persistent:
-
-> You uninstalled OCADE Offline. Get it back to use OCADE without internet.
+Library keeps All, Images, Files, Search, and Add with a useful empty state. Upload/drop states provide visible progress and recovery. File cards/chips are compact; technical parser/security details appear only as short customer-safe errors when needed.
 
 ## Motion
 
-Use subtle purposeful motion only:
-
-- hover/focus easing;
-- panel/dialog transitions;
-- streaming state;
-- progress state;
-- small Offline preparation animation.
-
-No infinite decorative orbit/scene.
+Motion is subtle, fast, and purposeful: hover/focus easing, panel transitions, streaming, attachment progress, Auto→Offline indication, and Offline installation progress. Respect `prefers-reduced-motion` and never depend on animation to convey the only meaning.
 
 ## Accessibility
 
-- visible focus states;
-- adequate contrast;
-- semantic controls;
-- keyboard support;
-- screen-reader labels;
-- `prefers-reduced-motion` honored;
-- readable type scale;
-- touch targets appropriate for phone/tablet.
+Use semantic controls, visible focus, sufficient contrast, keyboard support, screen-reader labels, touch-friendly hit targets, reduced-motion support, and responsive text. Hover-only actions gain an equivalent tap/focus path on touch/keyboard devices.
 
 ## Reference policy
 
-`docs/design-references/grok/` and owner-supplied repair screenshots define layout/density direction.
-
-Do not copy proprietary logos/assets or attempt a pixel-identical trade-dress clone. Preserve OCADE identity.
+Owner-supplied screenshots and the existing Grok-like references guide density, spacing, hierarchy, and simplicity. They are references, not assets to clone pixel-for-pixel. Preserve OCADE branding and original implementation.

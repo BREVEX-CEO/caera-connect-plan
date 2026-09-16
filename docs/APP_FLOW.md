@@ -1,232 +1,93 @@
-# OCADE App Flow
+# OCADE Application Flow Authority
 
-## Signed-out entry
+## Public entry
 
-```text
-ocade.in
-→ Chat shell loads
-→ user may inspect Chat/Pricing/About/Help/Terms/Privacy
-→ Send or account-only action
-→ /auth
-```
+A visitor opening `ocade.in` enters Chat immediately. The signed-out shell is usable for inspection, but attempting to Send opens the authentication flow. Public Pricing, About, Help, Terms, and Privacy remain reachable without authentication.
 
-## Sign-in
+## Authentication flow
 
-Primary choices:
+The sign-in surface offers Continue with Google and six-digit email OTP. Phone OTP is absent. Email OTP follows request → generic confirmation state → six-digit verification → authenticated return to the intended Chat context. The UI must not reveal whether an email address already belongs to an account.
 
-```text
-Continue with Google
-or
-Email → 6-digit OTP
-or
-```
+After successful sign-in, the pending user intent is preserved and Chat becomes usable. On a device without an intentionally removed Offline installation, background Offline preparation begins automatically without blocking Online Chat.
 
-After successful authentication:
+## Empty Chat and New Chat
 
-```text
-restore intended destination
-→ load account usage/entitlement
-→ if Offline Intelligence is absent and the user has NOT intentionally uninstalled it and Internet exists
-   → begin background preparation automatically
-→ Chat is immediately usable online while preparation continues
-```
+`/` and New Chat show the same clean empty workspace: small OCADE heading/greeting, compact optional suggestions, and the composer. No empty database conversation is created at this point.
 
-## Chat routing
+The first accepted Send performs authentication check → usage permit → route selection → intelligence → settlement → persistence. Only then does the durable conversation appear in recent history. After the first exchange, OCADE generates a concise conversation title.
 
-```text
-User sends
-→ validate auth
-→ validate attachment/input
-→ acquire one account-wide usage permit
-→ choose route
-```
+## Composer flow
 
-### Auto / normal OCADE
+The composer contains attachment `+`, text input, microphone dictation, `Auto | Online | Offline`, optional Thinking, and Send. Enter sends and Shift+Enter inserts a newline. During generation, Send becomes Stop.
 
-```text
-Internet + online OCADE healthy
-→ online OCADE
+Attachments may be selected, dragged, or pasted. Pending items show progress and allow remove, retry, reorder, and preview where applicable. Unsafe/unsupported files fail before intelligence with a clear short error.
 
-online OCADE fails before output + Offline ready
-→ Offline Intelligence fallback
+Microphone dictation writes text into the composer. The customer reviews/edits and sends manually.
 
-no Internet + Offline ready
-→ Offline Intelligence
+## Routing flow
 
-no Internet + Offline absent
-→ explain install/connect-once requirement
-```
+### Auto
 
-Exactly one successful answer consumes one use.
+When the Internet and connected intelligence are healthy, Auto uses Online. If connectivity is absent and Offline is ready, Auto switches to Offline and shows a subtle Offline state. If Online fails before output begins and Offline is ready, Auto may fall back once without double-charging.
 
-### Offline mode
+### Online
 
-```text
-Offline selected
-→ zero provider traffic
-→ valid local allowance lease required
-→ local runtime
-→ successful answer
-→ local usage event
-→ reconcile later when Internet returns
-```
+Online uses connected OCADE only. When connectivity is absent, the selector option is disabled and explains that Online needs Internet rather than failing after Send.
 
-## Images and documents
+### Offline
 
-```text
-Image + Internet
-→ online OCADE
+Offline uses device intelligence only and sends zero provider traffic. If Offline is still preparing, show real progress. If the user explicitly removed it, show the removed state and Install Offline action. If it was never installed and the device currently lacks Internet, explain that one connected installation is required.
 
-Image + no Internet
-→ clear refusal: image understanding needs online OCADE
+## Response flow
 
-Typed/pasted text
-→ online or offline depending selected route
+Answers stream progressively. Stop ends the current generation according to the server-defined settlement rule. Successful answers expose compact contextual controls for Copy, Regenerate, Delete, source links where applicable, and code-block Copy. Failed generations expose Retry without losing the user prompt.
 
-Textual file offline
-→ extract locally only if format is safely supported
-→ otherwise require online OCADE
-```
+Editing a user message keeps the earlier conversation, changes that prompt, and regenerates from that point. Regenerate replaces/branches the answer according to the canonical conversation behavior rather than stacking accidental duplicate answers.
 
-## New Chat
+## Conversation history flow
 
-```text
-New chat clicked
-→ reset visible transcript/composer immediately
-→ do NOT create empty DB conversation
-→ first real Send
-→ create/persist conversation
-```
+The sidebar loads recent conversations with a bounded state: skeleton/loading → populated history, empty history, or error with Retry. Recent conversations are grouped by useful time periods. Search filters or queries history without creating a second conversation store.
 
-## Attachments
+Rename updates the existing conversation. Delete requires a short confirmation. Individual export is available. Temporary Chat is clearly marked and never enters Supabase history.
 
-```text
-+ / drag-drop / paste
-→ validate type/size
-→ preview chip
-→ upload progress when cloud upload is required
-→ user may remove/reorder before Send
-→ retry failed upload
-```
+## Offline conversation flow
 
-Maximum: 100 MB per intentionally supported attachment, subject to a bounded total-message limit.
+While disconnected, Offline Chat continues using the local runtime when ready. Unsynchronized messages receive stable client ids and are kept in the minimal pending-sync journal. The transcript makes the pending state understandable without turning into a technical dashboard.
 
-## Usage exhaustion
+When connectivity returns, pending operations reconcile to Supabase exactly once. Successful reconciliation clears the pending journal entry; retry/reconnect cannot duplicate messages or usage events. Conflicts are resolved through the one canonical conversation authority rather than silently overwriting remote history.
 
-```text
-remaining = 0
-→ block Auto/OCADE/Offline generation
-→ show reset countdown + Upgrade
-→ history remains readable
-→ Library remains usable
-→ Pricing/Billing/Settings remain usable
-```
+## Library flow
 
-## Pricing and upgrade
+Library shows All, Images, and Files with search and Add. It uses bounded loading/empty/error states. Chat attachments may be drawn from Library or uploaded directly through the same private storage authority.
 
-```text
-/pricing
-→ Free / Pro / Max
-→ weekly/monthly toggle
-→ regional currency + manual override
-→ Upgrade
-→ Internet required
-→ checkout
-→ payment confirmation
-→ subscription/entitlement
-→ allowance updates
-```
+A file that reaches intelligence is visibly associated with the relevant message. Generated/downloadable outputs may return to Library according to the existing product contract.
 
-No payment is processed or queued offline.
+## Settings flow
 
-## Manual access grant
+The Account menu opens a compact responsive Settings surface with Account, Appearance, Notifications, Data Controls, Usage & Limits, Billing, and Advanced.
 
-```text
-Hidden Admin
-→ search user by email/id
-→ view entitlement
-→ grant Free/Pro/Max
-→ optional start/end
-→ reason
-→ save
-→ entitlement resolver updates account tier
-```
+Account manages the active identity methods, sign-out, session/device controls that actually exist, and account deletion. Appearance manages theme, reduced motion, high contrast, and proven display preferences. Notifications shows only real notification capabilities. Data Controls handles export/deletion and Offline Intelligence install/remove. Usage & Limits explains allowance and reset state. Billing shows tier and upgrade information. Advanced exposes working session/device diagnostics and no permanent loaders.
 
-Revoke follows the same authority. Auth users are never edited directly.
+Every Settings read/action ends in success, empty, or error/Retry. “Reading your allowance…” and “Reading your sessions…” may not remain indefinitely.
 
-## Offline model preparation
+## Usage flow
 
-### First normal install
+Before generation, the customer sees a compact remaining-use indication and, when low, a subtle composer warning. At exhaustion, Send/generation is blocked with exact reset information and Upgrade while history, Library, Pricing, Billing, Settings, export, and account management remain usable.
 
-```text
-signed in
-+ Internet
-+ model absent
-+ no user_uninstalled flag
-→ background preparation starts automatically
-→ progress shown near Account/sidebar
-→ user can keep using online Chat
-```
+## Offline installation flow
 
-### Intentional uninstall
+After first successful sign-in, background preparation begins unless `user_uninstalled` is set. The detailed state transitions are Waiting → Downloading → Verifying → Activating → Ready, with Repairing when targeted recovery is needed.
 
-```text
-user chooses Remove Offline Intelligence
-→ delete local model artifacts
-→ set user_uninstalled
-→ no automatic reinstall on deploy/update/restart/sign-in
-→ show:
-   “You uninstalled OCADE Offline. Get it back for offline mode.”
-   [Install Offline]
-```
+Interrupted downloads resume from verified progress. Restart/reopen continues rather than restarting. A normal OCADE deploy does not redownload a compatible verified release. Remove deletes runtime bytes and sets persistent suppression. Install Offline is the only action that clears suppression and starts a fresh installation.
 
-Only explicit Install clears the suppression.
+## Web research flow
 
-### Offline but never installed
+After core Chat is stable, a research request remains a Chat request. The same conversation, usage, cancellation, persistence, and source-citation authorities invoke the bounded research tool path and return sourced results to the same transcript.
 
-```text
-no Internet + no model
-→ show connect-once explanation
-→ keep Install button/request visible
-→ remember request
-→ when Internet returns, start installation
-```
+## Error flow
 
-## Download flow
+Customer errors are short and actionable. Internal provider/database/stack information stays in protected diagnostics. Network loss preserves drafts and pending work. A route or async action must never trap the customer in an infinite loader or force a page reload when a bounded retry can recover.
 
-```text
-private OCADE model endpoint
-→ authorised opaque shard manifest
-→ adaptive parallel shard download
-→ persist every completed shard immediately
-→ verify each shard
-→ resume after interruption/restart
-→ repair only corrupt/missing shards
-→ atomic activation in OPFS
-→ Ready
-```
+## Responsive flow
 
-## Whole-site offline
-
-```text
-Internet disappears
-→ cached OCADE shell still opens
-→ local-capable pages render
-→ Offline Chat works when model ready
-→ cached/local history/Library content available where intentionally stored
-→ Pricing/About/Help/Terms/Privacy load from cache
-→ cloud-only actions say Internet required
-```
-
-## Cowork
-
-Cowork is not implemented during this mission.
-
-If visible:
-
-```text
-Cowork
-→ clean unavailable placeholder
-```
-
-No hidden Cowork runtime work is allowed before the owner starts a future mission.
+Desktop uses the steady left sidebar and centered workspace. Tablet narrows/collapses the sidebar. Phone uses a drawer and full-width composer. The same functional flows remain available without horizontal overflow, inaccessible hover-only controls, or tiny touch targets.

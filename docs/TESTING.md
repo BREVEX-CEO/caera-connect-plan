@@ -1,214 +1,67 @@
 # OCADE Testing Authority
 
-## Rule
+A capability is complete only when its real customer path is proven at the correct layer. Unit tests, a green build, a stubbed browser journey, and a live production smoke test are different evidence and must not be described as interchangeable.
 
-A feature is not complete because code exists. It is complete only when the real path is proven at the correct layer.
+## Core gates
 
-Every `PLAN.md` phase runs the smallest relevant gate set during implementation, then the complete gate set at final verification.
+Every phase runs the smallest relevant checks while implementing and the complete tracked verification at final release. At minimum use the current typecheck, lint, formatting, production build, route/reachability, bounded-read, dead-control, secret, model-identity, content-storage, Supabase-type, accessibility, unit/integration, database, and browser journey gates where applicable.
 
-## Core static gates
+No new error/warning is dismissed merely because an earlier tree had warnings. A flaky test is reproduced and fixed at its root rather than normalized through reruns.
 
-Run as applicable:
+## P0 production proof
 
-- TypeScript typecheck;
-- ESLint;
-- formatting check;
-- production build;
-- dead import/module scan;
-- secret scan;
-- customer-visible provider/model leak scan.
+Before feature expansion, reproduce the current real “OCADE could not verify your usage allowance” failure and trace the exact live session → permit/RPC → intelligence → settlement → persistence chain. The repair is accepted only when a real signed-in production request reaches the deployed intelligence boundary, streams an answer, consumes exactly one use, persists the transcript, and survives refresh.
 
-No new warning/error may be dismissed simply because the old repository already had warnings.
+Verify the deployed `ocade-intelligence` function is the source intended by the final Git tree. Record function version, Git SHA, migration state, and generated types together.
 
-## Unit/integration tests
+## Async-state proof
 
-Required subjects include:
+Exercise Chat history, Billing allowance, Advanced sessions, Library, account actions, Offline preparation, Usage & Limits, and every other reachable async surface under success, empty, delayed, network-failure, permission-failure, and retry conditions. No test may accept an indefinite “Loading…” or “Reading…” state.
 
-- usage policy and reset windows;
-- generation permit idempotency;
-- no double-charge on retries/fallback;
-- Free/Pro/Max exact allowances;
-- entitlement resolution;
-- pricing catalogue/signature;
-- safe auth redirects;
-- email formatting and OTP state;
-- attachment validation;
-- New Chat behavior;
-- edit/regenerate accounting;
-- offline install state machine;
-- explicit `user_uninstalled` persistence;
-- adaptive download/resume/repair;
-- online→offline fallback before output only;
-- offline zero-provider-traffic rule;
-- local sync/idempotency.
+## Auth and authorization proof
 
-## Database tests
+Prove Google auth readiness, real email-OTP request/verify, generic enumeration-resistant responses, resend/rate limiting, stale/replayed challenge rejection, duplicate-submit protection, safe redirects, sign-out/session recovery, normal-user/Admin separation, and preservation of existing accounts.
 
-Use a real Postgres/Supabase-compatible environment for DB behavior.
+Use Supabase RLS/server checks to prove cross-user isolation for conversations, messages, Library objects, entitlements, and privileged Admin operations.
 
-Prove:
+## Chat proof
 
-- migrations apply cleanly;
-- rollback/verification where provided;
-- RLS isolation;
-- generation permit concurrency;
-- shared account-wide allowance;
-- offline lease reconciliation;
-- entitlement grants;
-- subscription/entitlement resolution;
-- Library private access;
-- retired schema removal has no final caller;
-- auth/account tables are untouched by cleanup migrations.
+Prove New Chat without an empty DB row, first successful Send creating/persisting the conversation, generated title, rename, delete confirmation, search/grouped history, Copy, Edit, Regenerate, Retry, Stop, temporary chat, individual export, contextual Share only if real, Markdown/tables/links/code-copy, draft preservation, duplicate-Send suppression, Thinking, microphone dictation, and responsive composer behavior.
 
-After final migrations regenerate types and run Supabase security/performance advisors.
+Test cancellation and failures during streaming. Edit/Regenerate must not accidentally stack duplicate answers or double-charge.
 
-## Browser journeys
+## Attachment/security proof
 
-Browser proof must run against the production build, not only component mocks.
+Use real supported files plus malformed, mismatched-MIME, oversized, archive-bomb-shaped, deeply nested, prompt-injection, cross-user, and unsupported fixtures. Prove bounded extraction, private storage, no execution, no cross-user fetch, upload progress/retry/remove/reorder/preview/download, and that a real attached document actually changes the intelligence answer with useful source references.
 
-Required journeys:
+## Usage proof
 
-### Shell/routes
+Prove Free/Pro/Max exact limits, reset windows, weekly caps, one-success=one-use, failed=zero, internal retry/failover=zero extra, duplicate clicks/tabs/idempotency, Edit→success and Regenerate→success accounting, exhaustion behavior, sidebar/composer/Usage & Limits/Billing consistency, and account-wide state across multiple browser contexts.
 
-- every supported route signed out;
-- every supported route signed in;
-- deep-link refresh;
-- retired routes return intended 404;
-- no console/page errors.
+## Online intelligence proof
 
-### Auth
+Use the real Edge Function to prove JWT verification, allowed-origin behavior, the configured primary path, bounded pre-output failover, sanitized provider errors, no client key leakage, attachment forwarding, output limits, and no failover after output begins.
 
-- Google-ready path;
-- email OTP flow;
-- sign-out;
-- session recovery;
-- protected Send;
-- MFA/assurance where required.
+## Offline installation and inference proof
 
-### Chat
+Use the real private release `ocr-2dc0ee44eb397906` and verify authorized R2 delivery, exact byte length/full SHA, adaptive parallel transfer, interruption/resume, browser restart recovery, expired authorization refresh, corruption-targeted repair, OPFS persistence, compatible site update with zero redownload, explicit Remove suppression, explicit reinstall, and real Offline generation.
 
-- real Send;
-- New Chat;
-- refresh/persistence;
-- recent history;
-- Copy;
-- Edit;
-- Regenerate;
-- Delete;
-- Stop;
-- Retry failure;
-- Markdown/table/link/code rendering;
-- attachment upload/progress/retry/remove/reorder/preview/download;
-- 100 MB boundary behavior;
-- mobile/tablet composer.
+On supported GPU hardware, prove real WebGPU generation. Force the pre-output WebGPU failure path and prove automatic WASM fallback using the same artifact/lifecycle. Capability detection alone does not pass this gate.
 
-### Usage
+## Offline conversation/sync proof
 
-- Free starts at 28;
-- one successful answer decrements exactly one;
-- failed request costs zero;
-- fallback costs one total;
-- Edit→success costs one;
-- Regenerate→success costs one;
-- account-wide state matches across two browser/device contexts;
-- exhaustion blocks online/offline generation;
-- history/Library/Settings/Pricing remain usable;
-- reset countdown is correct;
-- Pro/Max session+week caps are correct.
+Enter airplane mode, create multiple Offline turns, preserve pending work through the intended browser lifecycle, reconnect, and prove exact-once Supabase synchronization. Repeat reconnect and refresh to prove no duplicate messages, duplicate usage events, or silent loss. Manual Offline must show zero provider traffic.
 
-### Online OCADE
+## Settings and UI proof
 
-- real Edge Function answer;
-- auth/JWT behavior;
-- primary secret path;
-- allowed pre-output failover;
-- 429 no quota-evasion rotation;
-- no key/client exposure;
-- provider errors sanitized.
+Exercise every Account, Appearance, Notifications, Data Controls, Usage & Limits, Billing, and Advanced control on desktop, tablet, and phone widths. Verify rounded layout, no horizontal overflow, visible keyboard focus, accessible labels, reduced-motion behavior, touch targets, truthful unavailable states, and absence of stale recovery-code/phone/dead-system UI.
 
-### Offline Intelligence
+## Performance and Supabase proof
 
-- first install;
-- WebGPU-first path where supported;
-- WASM fallback;
-- Fast/Thinking UI behavior;
-- private authorised artifact delivery;
-- adaptive parallel download;
-- pause/resume;
-- tab minimise;
-- browser restart;
-- connection interruption;
-- one corrupt shard repaired without full redownload;
-- OPFS persistence;
-- compatible app update causes no redownload;
-- explicit Remove sets persistent suppression;
-- sign-out/in after explicit Remove does not reinstall;
-- explicit Install clears suppression;
-- no Internet + never-installed gives connect-once guidance;
-- Offline mode makes zero provider requests.
-
-### Whole-site offline
-
-- the website works with no install step of any kind;
-- nothing offers to install OCADE, and no web app manifest is served;
-- airplane mode then reopen;
-- shell loads;
-- Offline Chat works when model ready;
-- local/cached history and pages work as designed;
-- Pricing information loads from cache;
-- checkout/payment refuses offline;
-- reconnect sync is idempotent.
-
-### Pricing/Billing
-
-- Free/Pro/Max;
-- weekly/monthly toggle;
-- USD/EUR/GBP/INR;
-- manual currency selector;
-- checkout Internet requirement;
-- real entitlement update where provider configured;
-- manual Admin grant/revoke;
-- allowance changes immediately from entitlement.
-
-### Library/Settings/Admin
-
-- private upload/read/delete;
-- Data Controls delete/export flows;
-- Offline install/remove state;
-- notifications/settings persistence;
-- user search/grant/revoke in hidden Admin;
-- no direct auth-user mutation.
-
-## Responsive matrices
-
-At minimum prove representative widths for:
-
-- desktop;
-- tablet;
-- phone.
-
-Official environment focus:
-
-- Windows Chrome;
-- macOS Chrome;
-- Android Chrome;
-- iPhone/iPad Chrome/WebKit where supported.
-
-Linux is not a certified target.
+Run realistic bounded-read/load scenarios for conversation history, Library, settings, usage, and file metadata. Review Supabase security/performance advisors after migrations. Investigate auth-RLS initialization, multiple permissive policies, and unused-index findings against real workloads before changing policies/indexes.
 
 ## Final release gate
 
-Before merge, run all current tracked gates plus the complete browser journey set on the exact reconciled tree.
+Reread `PLAN.md` against the exact reconciled tree. Run `npm run verify:full`, build and all relevant browser journeys, then smoke-test the actual deployed release. Record what was live versus simulated.
 
-After merge/deploy, production smoke test must include:
-
-- auth;
-- one real online answer;
-- one exact usage decrement;
-- one offline answer/fallback;
-- one Library upload/delete;
-- Pricing/Billing;
-- sign-out/sign-in recovery;
-- customer-visible provider/model leak scan.
-
-The final remote `main` SHA/tree must match the tree that passed verification.
+Final evidence must include the remote Git SHA, deployed frontend version/build, active Edge Function version/source, applied migration state, generated types state, Offline release id/hash, real Online answer, exact usage decrement, attachment-to-answer proof, Offline answer, WebGPU/WASM proof where hardware is available, no-redownload update proof, Remove/reinstall proof, Library isolation, auth recovery, and every genuine external blocker. Only the exact verified tree may fast-forward to `main` without force.

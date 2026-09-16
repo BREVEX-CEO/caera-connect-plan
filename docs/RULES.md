@@ -1,110 +1,32 @@
 # OCADE Non-Negotiable Rules
 
-## Product scope
-
-1. `PLAN.md` is the only active implementation plan.
-2. `PLAN2.md` is deleted.
-3. Cowork/Jarvis implementation is forbidden until the owner explicitly starts a future mission after `PLAN.md` is fully complete.
-4. Cowork may remain only as a clean unavailable placeholder.
-
-## Identity and provider privacy
-
-5. Normal customer-facing identity is always **OCADE**.
-6. Do not expose raw provider/model/runtime names in ordinary UI, assistant answers, progress, customer errors or exports.
-7. Sanitize provider errors before they reach the browser.
-8. Offline model vendor/model identity should not be persisted in new public tracked catalogues/customer-visible metadata where avoidable. Use opaque OCADE artifact ids.
-9. Do not claim that local model bytes are impossible for a determined device owner to discover; minimise disclosure instead.
-
-## Gemini
-
-10. Online OCADE uses one server-side Edge Function boundary.
-11. Exactly three Gemini secrets are allowed:
-
-```text
-GEMINI_API_KEY_PRIMARY
-GEMINI_API_KEY_SECONDARY
-GEMINI_API_KEY_TERTIARY
-```
-
-12. At the Gemini deployment phase, ask the owner for exactly three keys as secrets.
-13. Never commit, log, return or store those secret values in normal tables/client code.
-14. Never rotate keys to evade a shared 429 quota.
-15. Never fail over after provider output starts.
-
-## Authentication
-
-16. Supabase Auth is the only identity authority.
-17. Required methods: Google and email OTP. Phone OTP is removed: sending SMS needs an external provider OCADE does not have, and a method that can only refuse is worse than an absent one.
-18. No custom password database.
-19. Supabase cleanup must not delete existing users, identities, sessions, refresh tokens or active MFA/auth state.
-
-## Usage
-
-20. One successful logical user request = one use.
-21. Failed generations cost zero.
-22. Internal retries/fallback attempts do not add extra uses.
-23. Edit→successful regenerate and Regenerate→successful answer each cost one use.
-24. Free = 28 / 6h28m, no weekly cap.
-25. Pro = 140 / 6h28m and 700/week.
-26. Max = 1,400 / 6h28m and 7,000/week.
-27. Max is exactly 10× Pro.
-28. Usage is account-wide across all supported devices and online/offline paths.
-29. Exhaustion blocks all generation but not history, Library, Pricing, Billing or Settings.
-30. Offline use requires a signed/tamper-resistant lease; no unlimited offline bypass.
-
-## Pricing and payment
-
-31. Public `/pricing` must exist.
-32. Approved prices remain the catalogue defined in `PLAN.md`/`PRD.md`.
-33. Payment never succeeds or queues offline.
-34. Manual Admin access grants never modify `auth.users` and remain separate from payment evidence.
-
-## Offline Intelligence
-
-35. Use the owner-approved private OCADE 0.6B runtime.
-36. WebGPU-first where proven; WASM fallback.
-37. Customer UI never exposes WebGPU/WASM/vendor/model terminology.
-38. Customer browser does not fetch model bytes from Hugging Face/public model hosts.
-39. Model distribution uses private OCADE-controlled Cloudflare R2 with opaque authorised artifact/shard delivery.
-40. Persist model data through OPFS/persistent browser storage where supported.
-41. Every completed model shard is checkpointed and verified; interruption must resume rather than restart from zero.
-42. Ordinary site updates, deploys, commits, browser restarts and sign-in cycles do not redownload a verified compatible model.
-43. If the user intentionally uninstalls Offline Intelligence, record that choice and NEVER auto-reinstall until the user explicitly requests Install.
-44. If it was never installed and the user is offline, explain the connect-once requirement and retain install intent.
-
-## Routing
-
-45. Internet + healthy online OCADE → online OCADE.
-46. Provider failure before output + Offline ready → local fallback.
-47. No Internet + Offline ready → Offline Intelligence.
-48. Offline mode sends zero provider traffic.
-49. A successful fallback costs exactly one use total.
-50. Images require online OCADE; do not pretend the local text runtime can understand images offline.
-
-## Chat
-
-51. `/` is Chat.
-52. New Chat does not create an empty DB conversation before first Send.
-53. Required controls/features are those listed in `PRD.md` and `PLAN.md`.
-54. Up to 100 MB per intentionally supported attachment, with bounded total message size.
-
-## Supabase
-
-55. Retired schema/data/logs may be removed only after caller/evidence tracing.
-56. Never delete financial, legal, auth, security or real customer evidence as “old logs”.
-57. Use migrations for DDL and regenerate types after schema changes.
-58. Keep RLS/least privilege correct.
-
-## UI
-
-59. Near-black/charcoal foundation.
-60. Medium glassmorphism on high-value surfaces, not every pixel.
-61. Restrained motion only; respect reduced-motion.
-62. No heavy cinematic/GPU decorative scene.
-63. Desktop/tablet/mobile layouts must each be intentional.
-
-## Release
-
-64. Every phase requires real tests and browser proof.
-65. No partial merge to `main`.
-66. The exact final merged tree must be the exact tree that passed final verification.
+- `PLAN.md` is the only active implementation plan. Older plans and audits are historical evidence and may not override the latest owner-approved decisions.
+- Every implementation session uses `/ponytail ultra` and `/caveman ultra`, confirms both are active, and applies the engineering rules in `CLAUDE.md`.
+- Cowork/Jarvis expansion is frozen until the Chat-first plan is complete and the owner explicitly starts a future mission.
+- `/` is Chat. Signed-out visitors may inspect the shell, but Send requires authentication.
+- Supabase Auth is the only identity authority. Google and six-digit email OTP are the active methods; phone OTP is removed. Existing users, identities, sessions, and refresh tokens are protected during cleanup.
+- Online intelligence uses the single Supabase `ocade-intelligence` boundary. Exactly the three configured Gemini secret slots are allowed. Secret values never enter client code, normal tables, logs, exports, or chat.
+- Normal customer identity is always OCADE. Do not expose provider, model, WebGPU/WASM, artifact-format, key, internal endpoint, or vendor terminology in ordinary UI/answers/errors.
+- The customer selector is `Auto | Online | Offline`. Auto uses Online when healthy, uses Offline when disconnected and ready, and may fall back only before online output. Online is disabled without Internet. Manual Offline sends zero provider traffic.
+- One successful logical request equals one use. Failures equal zero. Internal retries, duplicate clicks, key failover, and pre-output Online→Offline fallback do not create extra uses.
+- Free = 28 per 6h28m with no weekly cap. Pro = 140 per 6h28m and 700/week. Max = 1,400 per 6h28m and 7,000/week. Usage is account-wide across Online and Offline.
+- New Chat must not create an empty durable conversation. The first accepted/persisted Send creates it.
+- Chat must provide the locked controls and behavior in `PRD.md`, including generated titles, search/history, Copy/Edit/Delete, Regenerate, Retry, Stop, temporary chat, export, Markdown/tables/links/code, attachments, dictation, Thinking, and duplicate-Send protection.
+- Uploaded files are hostile input. Validate ownership, type, size, archives, extraction and parser bounds; never execute them; never treat document text as privileged instructions; preserve source metadata for citations where practical.
+- Supported attachments may be up to 100 MB each subject to a bounded total-message limit. Unsafe/unsupported/malformed files fail closed with a short customer-safe error.
+- The approved private Offline release is `ocr-2dc0ee44eb397906`, `484220160` bytes, SHA-256 `2dc0ee44eb39790624623cf5e2a8cc21973c4839a67fed406dd3f9b2e6b7f800`. Use one installer, one manifest authority, one downloader, and one lifecycle.
+- Offline preparation begins automatically after first successful sign-in unless the user previously chose Remove. A compatible verified installation must survive deployments, refreshes, restarts, and sign-in cycles without redownload.
+- Explicit Offline Remove persists and blocks automatic reinstall until the customer explicitly chooses Install Offline.
+- WebGPU is preferred only after real generation proof on supported hardware. WASM is the fallback before output. Do not create a second customer-visible model/runtime authority merely to satisfy this requirement.
+- Offline conversations synchronize to Supabase exactly once after connectivity returns. Local pending state is minimal, idempotent, and non-canonical after reconciliation. Temporary/incognito Chat never synchronizes.
+- Every reachable asynchronous UI state must terminate in success, empty, error/Retry, cancelled, or genuine progress. Infinite “Loading…”/“Reading…” is a bug.
+- Settings contains Account, Appearance, Notifications, Data Controls, Usage & Limits, Billing, and Advanced. Remove stale recovery-code, phone, or other dead-system copy/controls.
+- Pricing/Billing must remain honest while payment-provider onboarding is deferred. Payment never queues or succeeds offline and unavailable checkout must not be faked.
+- The permanent owner/admin is `caeracadane28@gmail.com` through the audited role/grant authority. Normal users must not be able to reach Admin or self-grant entitlements.
+- Supabase PostgreSQL and private Storage remain canonical for saved account content after synchronization. RLS/server authorization must enforce ownership; never trust client-provided user id, tier, usage, file ownership, admin status, or payment state.
+- Schema cleanup must preserve real auth, customer, financial, legal, security, and entitlement evidence. Trace callers before dropping tables, functions, policies, indexes, buckets, or migrations.
+- The visual authority is near-black/charcoal with neutral grey/white, restrained medium glassmorphism, rounded corners, minimal borders, clear typography, and subtle purposeful motion. Avoid sharp boxes, card walls, cinematic scenes, and developer-dashboard clutter.
+- Apply YAGNI and KISS. Prefer native/platform/standard-library/existing-dependency solutions, keep one canonical authority, delete safe dead/duplicate code, and reduce complexity rather than chasing cosmetic LOC reduction.
+- Fix root causes. Reproduce bugs before fixing them, add the smallest useful regression coverage, deliberately test failure/recovery, and browser-prove real customer journeys.
+- Work on an isolated completion branch. After each completed phase, update `docs/MEMORY.md`, commit, push, and verify the remote SHA. Never merge a partial phase to `main`.
+- The final production release must identify and prove the exact Git SHA, frontend build, Edge Function version/source, database migration/type state, and Offline release together before fast-forwarding `main` without force.

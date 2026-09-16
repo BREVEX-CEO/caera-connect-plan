@@ -1,191 +1,96 @@
-# OCADE Technical Requirements
+# OCADE Technical Requirements Document
 
-## Architectural principles
+## Runtime and package authority
 
-1. One canonical authority per responsibility.
-2. No duplicate auth, usage, intelligence, storage, payment or model-lifecycle systems.
-3. Browser-visible state is not the source of truth for security, billing or entitlement.
-4. Every network/provider failure is sanitized before reaching the customer.
-5. Offline capability must fail honestly when storage/runtime requirements are unavailable.
-6. Cowork/Jarvis implementation is forbidden during this mission.
+OCADE is a TypeScript/React application built with Vite/TanStack and npm. `package.json` and `package-lock.json` are the only JavaScript package authority. The current runtime baseline is Node 22+, React 19, Supabase JS, TanStack Router/Query/Start, Tailwind CSS, and the existing Offline runtime package. Do not add another framework or runtime when the current stack already provides the needed primitive.
 
-## Web application
+## Canonical online architecture
 
-The primary app remains the existing React/TanStack web application and Cloudflare deployment architecture.
+The browser authenticates through Supabase Auth and sends online intelligence work only through the one `ocade-intelligence` Supabase Edge Function. Gemini keys remain server-side in exactly three optional slots named `GEMINI_API_KEY_PRIMARY`, `GEMINI_API_KEY_SECONDARY`, and `GEMINI_API_KEY_TERTIARY`. The browser never receives those values.
 
-Required routes:
+The Edge boundary verifies the JWT, validates the request contract, claims one generation permit through the canonical usage RPC, chooses the first healthy configured server-side key according to policy, streams output, and settles the permit exactly once. A provider failure before output may move to another configured key or Offline through the canonical router; a failure after output begins must not silently restart through a second authority.
 
-- `/`
-- `/auth` and required callbacks/verification/challenge flows
-- `/library`
-- `/pricing`
-- `/about`
-- `/help`
-- `/terms`
-- `/privacy`
-- hidden `/admin` where required
+The repository and deployed Edge Function must be version-compatible. A successful frontend build is insufficient evidence when the deployed function or database RPC contract is older.
 
-Deep-link refresh must work in production.
+## Canonical data authority
 
-## Authentication
+Supabase PostgreSQL is canonical for saved conversations/messages, Library metadata, account settings, entitlements, usage state, generation permits/events, and other durable account data. RLS and server-side authorization are mandatory for user-owned data.
 
-Use Supabase Auth only.
+Offline unsynchronized turns use only the minimum local pending-sync journal required to preserve work until reconnection. Each pending operation carries stable client identifiers/idempotency keys. Once successfully reconciled to Supabase, the pending local copy is retired. Local persistence must never become a second long-term cloud account-data authority.
 
-Required providers/flows:
+OPFS remains reserved for verified Offline runtime binaries/chunks, activation metadata, and model-owned runtime assets. Explicit uninstall deletes the runtime bytes but does not delete cloud account data.
 
-- Google OAuth;
-- email OTP;
-- optional password/account recovery;
-- MFA/assurance where required.
+## Offline release authority
 
-No custom password database or reversible credential storage.
-
-Existing `auth.users`, identities, sessions, refresh tokens and MFA state are protected from cleanup migrations.
-
-## Online intelligence
-
-One server-side Edge Function boundary owns online inference.
-
-Exactly three Gemini secrets:
+The approved release is:
 
 ```text
-GEMINI_API_KEY_PRIMARY
-GEMINI_API_KEY_SECONDARY
-GEMINI_API_KEY_TERTIARY
+release id: ocr-2dc0ee44eb397906
+byte length: 484220160
+sha256: 2dc0ee44eb39790624623cf5e2a8cc21973c4839a67fed406dd3f9b2e6b7f800
 ```
 
-No secret in client bundles, normal DB rows or logs.
+Delivery comes from the existing private OCADE-controlled Cloudflare R2 authority using opaque authorized object/release identifiers. The customer browser must not fetch the artifact from a public model host.
 
-The boundary is pinned to exactly one provider model identifier,
-`gemini-3.1-flash-lite`, and the allowlist accepts nothing else. This file is
-the only document that carries the identifier: it is trusted server-side
-deployment configuration, it never reaches a customer surface, and changing it
-requires an owner decision plus the corresponding code and tests.
+One installer controls discovery, download, checkpointing, integrity verification, repair, activation, removal, and reinstall. Do not create a second installer or manifest system for WebGPU or fallback.
 
-Failover occurs only before output and only for allowed key-local/auth/transport failures. Shared quota 429s must not be bypassed by key rotation.
+The downloader uses adaptive bounded parallel ranges, persists completed verified chunks immediately, resumes after interruption/restart, refreshes expired authorization, repairs only corrupted/missing ranges, verifies the full artifact digest before activation, and activates atomically.
 
-## Offline Intelligence
+A verified compatible release survives ordinary OCADE deployments, refreshes, browser restarts, and account sign-out/sign-in without redownload. `user_uninstalled` is durable device/runtime state and suppresses all automatic installation until explicit Install Offline.
 
-Use the owner-approved private OCADE 0.6B runtime.
+## Execution backends
 
-Tracked source should use opaque OCADE artifact ids rather than public vendor/model identifiers wherever possible.
+The preferred local execution path is WebGPU only where the existing runtime and the approved artifact genuinely generate successfully. WASM is the automatic fallback when WebGPU is unavailable or fails before output. Customer-facing code and UI use capability names such as OCADE Offline Ready/Installing/Repairing rather than exposing backend labels.
 
-Runtime policy:
+The same artifact, usage gate, installer, conversation path, and response contract serve both local execution backends. A second model authority is forbidden unless a future owner-approved mission proves it is unavoidable.
 
-- WebGPU-first when actually supported;
-- WASM fallback;
-- customer UI hides runtime names;
-- one artifact installed initially;
-- fallback artifact acquired only after a real runtime need;
-- Fast default, Thinking optional.
+## Routing contract
 
-## Model distribution
+The routing authority accepts the customer intent `Auto`, `Online`, or `Offline` plus live connectivity/runtime state.
 
-Artifacts are distributed from OCADE-controlled private Cloudflare R2 infrastructure.
+- Auto routes to Online when connectivity and the online boundary are healthy, to Offline when connectivity is absent and Offline is ready, and may fall back before online output if Offline is ready.
+- Online routes only to connected intelligence and is disabled when connectivity is absent.
+- Offline routes only to the local runtime and emits zero provider traffic.
+- All successful paths settle one logical use through the same commercial authority.
 
-Requirements:
+Routing decisions must be observable in internal diagnostics without exposing secret/provider identity to normal customers.
 
-- private bucket;
-- no public object listing;
-- opaque object/shard ids;
-- short-lived authorised delivery;
-- no R2 credentials in browser;
-- integrity hashes;
-- immutable shards;
-- range/chunk resume;
-- WAF/rate protection;
-- no browser fetch from Hugging Face/public model host.
+## Usage contract
 
-Adaptive parallelism measures real throughput and chooses the fastest stable concurrency rather than forcing a fixed maximum.
+A permit is claimed before intelligence starts. One successful logical response settles one use. Failure/cancellation policy is explicit and tested; failures do not become successful charges through retries. Idempotency prevents double charging from repeated clicks, refreshes, multiple tabs, network retry, key failover, or reconnect.
 
-## Local storage
+Offline use draws from a signed/tamper-resistant account allowance mechanism and reconciles to the same canonical account-wide usage state. Offline cannot become an unlimited bypass.
 
-Use OPFS/persistent browser storage for model bytes and model-owned metadata where supported.
+## Attachment ingestion contract
 
-Installation state must distinguish:
+The ingestion authority validates authentication/ownership, declared and detected file type, file size, total-message size, archive structure, decompression ratio, parser resource limits, and extraction bounds. Uploaded bytes are stored privately and are never executed.
 
-- never installed;
-- installing;
-- ready;
-- repair required;
-- user intentionally uninstalled;
-- browser/storage eviction;
-- incompatible model revision.
+Extracted document text is data, not trusted instructions. The intelligence layer separates system/tool authority from document content and preserves source metadata needed for file/page/section/row/cell references.
 
-`user_uninstalled` survives normal app updates, browser restarts and sign-in cycles. Automatic install is suppressed until the user explicitly requests Install.
+Images are sent only through connected intelligence paths that actually support them. Offline textual extraction is allowed only for formats the browser can parse safely within resource limits.
 
-## PWA/offline shell
+## Authentication contract
 
-Use a service worker/PWA cache strategy that lets the supported OCADE shell reopen without Internet.
+Supabase Auth is the sole identity authority. Launch methods are Google and six-digit email OTP. Phone auth is absent. Customer passwords are not required for the current flow.
 
-Cache only what is safe and useful. Cloud-only mutations are never falsely completed offline.
+Auth UI must resist useful email enumeration, rapid repeated OTP requests, replay, stale challenge state, duplicate native form submission, open redirects, and cross-account session confusion. Server/project rate limits and application controls are layered rather than treated as substitutes for each other.
 
-Offline conversation changes use a deterministic local queue/sync path and reconcile when connectivity returns.
+## Async-state contract
 
-## Usage architecture
+Every network/database/runtime operation exposed in UI has a finite state model with timeout/retry policy. `loading` can transition only to `success`, `empty`, `error`, `cancelled`, or a documented long-running progress state. A permanent “Reading…” or “Loading…” screen is a bug.
 
-One server-authoritative account-wide commercial policy:
+## Performance contract
 
-- Free: 28 / 6h28m, no weekly cap;
-- Pro: 140 / 6h28m, 700/week;
-- Max: 1,400 / 6h28m, 7,000/week.
+Prefer bounded reads, pagination, indexed queries, batched independent fetches, route/code splitting where justified, native browser APIs, and existing dependencies. Measure before adding optimization complexity. Review Supabase performance-advisor findings but trace real workload/callers before dropping indexes or policies.
 
-All tiers use simple successful-request counting.
+Offline installation must remain responsive on approximately 25 Mbps consumer connections and avoid unbounded memory by streaming/chunking verification rather than holding the entire artifact in memory.
 
-Use durable generation permits/idempotency so retries/fallback do not double-charge.
+## Security contract
 
-Offline generation requires a signed local lease and a tamper-evident local counter/event chain that reconciles to the server.
+Secrets stay in server/provider secret stores. RLS protects user-owned rows and Library objects. Admin grants use explicit audited database functions/roles rather than editing `auth.users`. Destructive operations require authorization and appropriate confirmation.
 
-## Billing and entitlements
+Never trust client-provided user ids, entitlement, usage, model readiness, file ownership, MIME type, or payment state. Sanitize provider/database/internal errors before returning them to normal customers.
 
-One final entitlement resolver combines:
+## Deployment contract
 
-- Free default;
-- paid subscription;
-- manual Admin entitlement grant;
-- expiry/revocation.
-
-Manual access never modifies `auth.users`.
-
-Pricing/checkout cannot succeed offline.
-
-## Attachments and Library
-
-Supported attachment size is up to 100 MB per intentionally supported file, with a bounded total message size.
-
-Cloud files use private Supabase Storage and RLS. Library is the single customer file/output authority.
-
-Images require online OCADE for understanding. Offline document extraction may process textual formats only where safe, deterministic and tested.
-
-## Supabase cleanup
-
-Use migrations for schema changes, never ad-hoc destructive DDL.
-
-Preserve auth/account/customer/legal/financial evidence. Remove retired product tables/functions/policies only after dependency tracing.
-
-Stale development/launch/test logs may be deleted only when proven non-authoritative. Active operational logs should use bounded retention where appropriate.
-
-Regenerate TypeScript DB types after final schema changes and run Supabase security/performance advisors.
-
-## UI performance
-
-Target medium glassmorphism, restrained animation and reduced-motion support.
-
-Do not use heavy continuously animated GPU scenes. Offline model downloading/inference must not block basic UI responsiveness.
-
-## Verification
-
-Every phase must include the relevant combination of:
-
-- typecheck;
-- lint/format;
-- unit tests;
-- database tests;
-- migration verification;
-- secret scans;
-- security/RLS advisors;
-- production build;
-- real-browser tests;
-- offline/PWA tests;
-- multi-device usage tests;
-- customer-visible provider/model leak scans.
+A release is a compatible set consisting of Git SHA, frontend bundle, Supabase Edge Function version/source, database migration state/generated types, and Offline manifest/release. Final production verification records all of them together.

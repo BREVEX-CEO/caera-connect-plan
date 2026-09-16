@@ -1,204 +1,26 @@
-# OCADE Decisions
-
-This file records durable owner-approved product decisions for the current pre-Cowork mission.
-
-## Planning
-
-- `PLAN.md` is the only active execution plan.
-- `PLAN2.md` is removed.
-- Cowork/Jarvis implementation is blocked until `PLAN.md` is completely finished and the owner explicitly starts a new mission.
-- Cowork may remain only as an unavailable placeholder.
-
-## Default agent modes
-
-Every implementation session starts with both:
-
-```text
-/ponytail ultra
-/caveman ultra
-```
-
-They remain the default session modes unless the owner changes them.
-
-## Product surfaces
-
-Keep:
-
-- Chat;
-- Library;
-- Pricing;
-- Account/Settings;
-- auth;
-- online OCADE;
-- Offline Intelligence;
-- usage/billing;
-- About, Help, Terms, Privacy;
-- hidden Admin for real operational work.
-
-Retired broad-product surfaces stay deleted/404.
-
-## Customer identity
-
-All customer-facing AI modes identify as **OCADE**.
-
-Normal UI/responses/errors must not reveal raw provider/model/runtime names.
-
-For Offline Intelligence, use opaque OCADE artifact ids and remove obsolete tracked public model-name/catalogue leakage. Do not claim impossible perfect secrecy from a determined device owner; minimise disclosure as strongly as possible.
-
-## Online provider
-
-Online OCADE uses Gemini behind one server/Edge boundary.
-
-Exactly three Supabase secrets:
-
-- `GEMINI_API_KEY_PRIMARY`
-- `GEMINI_API_KEY_SECONDARY`
-- `GEMINI_API_KEY_TERTIARY`
-
-When that phase begins, ask the owner for exactly three Gemini API keys as secrets. The owner intends to provide them.
-
-## Authentication
-
-Supabase Auth only.
-
-Required:
-
-- Google;
-- email OTP;
-- optional password where deliberately supported;
-- MFA/assurance where required.
-
-Supabase cleanup must not delete existing accounts/logged-in users/sessions.
-
-## Usage
-
-Use simple successful-request counting for all tiers.
-
-- Free: 28 / 6h28m, no weekly cap.
-- Pro: 140 / 6h28m, 700/week.
-- Max: 1,400 / 6h28m, 7,000/week.
-- Max is exactly 10× Pro.
-
-One successful answer = one use.
-
-Failed request/internal retry = zero extra uses.
-
-Edit→successful regenerate and Regenerate→successful answer each cost one use.
-
-Usage is shared account-wide across devices and online/offline paths.
-
-## Pricing
-
-Approved catalogue:
-
-| Tier | Weekly                   | Monthly                  |
-| ---- | ------------------------ | ------------------------ |
-| Free | Free                     | Free                     |
-| Pro  | $8 / €8 / £8 / ₹288      | $28 / €28 / £28 / ₹1,888 |
-| Max  | $28 / €28 / £28 / ₹1,888 | $88 / €88 / £88 / ₹5,888 |
-
-Public `/pricing` returns.
-
-Use regional currency plus manual override.
-
-Payment does not process or queue offline.
-
-## Manual user access
-
-Owner/admin must be able to grant/revoke Free/Pro/Max access easily through hidden Admin.
-
-Use a canonical auditable entitlement-grant authority. Never edit `auth.users` directly.
-
-## Offline runtime
-
-Use the owner-approved private OCADE 0.6B local runtime.
-
-- WebGPU-first where verified;
-- WASM fallback;
-- one artifact downloaded initially;
-- fallback artifact only when required;
-- Fast default + optional Thinking.
-
-Customer-facing product never exposes those internal runtime labels.
-
-## Model hosting/download
-
-- private OCADE-controlled Cloudflare R2;
-- not Hugging Face in customer browser;
-- opaque authorised artifact/shard ids;
-- private bucket/no public listing;
-- adaptive parallel download;
-- prefer highest measured stable throughput, not highest fixed concurrency;
-- shard checkpoint/resume/targeted repair;
-- OPFS/persistent browser storage.
-
-## Explicit uninstall
-
-If a user manually removes Offline Intelligence:
-
-- model bytes are deleted;
-- `user_uninstalled` persists across deploys, site updates, browser restarts and sign-in cycles;
-- no automatic redownload occurs;
-- UI says the user uninstalled it and offers **Install Offline**;
-- only explicit Install clears the suppression.
-
-If never installed and currently offline, explain connect-once installation and retain install intent.
-
-## Routing
-
-- Internet + online OCADE healthy → online OCADE.
-- Online provider fails before output + Offline ready → local fallback.
-- No Internet + Offline ready → local.
-- No Internet + Offline absent → install/connect-once guidance.
-- Offline mode makes zero provider requests.
-- Successful fallback costs one use total.
-
-Images require online OCADE. Offline local extraction may support textual file formats only where safely implemented.
-
-## Whole-site offline
-
-`ocade.in` is a website and is never offered as an application to install. No install prompt, no desktop or native app, no app-store listing, no web app manifest. The service worker and offline shell stay.
-
-When Internet is absent, cached/local-capable OCADE pages and Offline Chat should still work honestly.
-
-Cloud-only mutations such as payment require Internet.
-
-Official target focus:
-
-- Windows Chrome;
-- macOS Chrome;
-- Android Chrome;
-- iPhone/iPad Chrome/WebKit where supported.
-
-Linux is not advertised/certified.
-
-## Chat feature decisions
-
-Required:
-
-- `+` attachment menu;
-- drag/drop;
-- paste;
-- microphone;
-- Send/Stop;
-- Copy;
-- Edit;
-- Regenerate;
-- Delete;
-- Retry;
-- code-block Copy;
-- Markdown/tables/links;
-- upload progress/retry;
-- attachment preview/download;
-- up to 100 MB per supported attachment.
-
-New Chat does not create an empty database conversation before first Send.
-
-## UI
-
-- near-black/charcoal;
-- medium glassmorphism on high-value surfaces;
-- restrained motion;
-- clean responsive desktop/tablet/mobile structure;
-- Grok references + owner repair screenshots for layout/density direction;
-- no heavy cinematic/3D scene.
+# OCADE Durable Decisions
+
+This file records owner-approved decisions that override older contradictory planning material. `PLAN.md` remains the execution authority.
+
+- Chat is the current product mission and opens directly at `/`. Signed-out visitors may inspect the shell, but Send requires authentication.
+- Cowork remains a clean placeholder and may not expand until the current Chat-first plan is complete and the owner starts a separate mission.
+- Active authentication is Google plus six-digit email OTP through Supabase. Phone OTP is removed completely. Existing accounts/sessions are preserved.
+- Online intelligence remains behind the one Supabase `ocade-intelligence` boundary using the already-configured primary, secondary, and tertiary Gemini secret slots. Normal customers never see provider/model/key/runtime identity.
+- The customer intelligence selector is `Auto | Online | Offline`. Auto uses Online when available, uses Offline when connectivity is absent and Offline is ready, and may fall back before online output starts. Manual Offline makes zero provider requests.
+- Offline conversations ultimately synchronize to Supabase exactly once. The browser may keep only the minimum pending journal needed to preserve unsynchronized work; Supabase remains canonical after reconciliation.
+- Offline preparation begins automatically after first successful sign-in unless the user previously chose Remove. Explicit Remove persists and prevents every automatic redownload until the customer explicitly chooses Install Offline.
+- The approved private Offline release is `ocr-2dc0ee44eb397906`, length `484220160`, SHA-256 `2dc0ee44eb39790624623cf5e2a8cc21973c4839a67fed406dd3f9b2e6b7f800`, delivered through private OCADE-controlled R2 and persisted through the existing one installer/OPFS lifecycle.
+- WebGPU is preferred only when real generation succeeds on supported hardware; WASM is the automatic fallback before output. Both use the same artifact/lifecycle and are hidden behind the customer term OCADE Offline.
+- One successful logical request consumes one use across Online and Offline. Failures consume zero and internal retries/failover do not add uses. Free = 28/6h28m, Pro = 140/6h28m + 700/week, Max = 1,400/6h28m + 7,000/week.
+- Settings contains Account, Appearance, Notifications, Data Controls, Usage & Limits, Billing, and Advanced. Offline Intelligence lives within Data Controls/Intelligence rather than as a separate product surface.
+- Billing and Pricing remain useful even while live payment-provider checkout is owner-deferred. Unavailable checkout must be honest and must never block the non-payment mission.
+- Chat includes generated titles, rename, delete confirmation, search/grouped history, Copy/Edit/Delete, Regenerate, Retry, Stop, temporary chat, individual export, contextual Share only when real sharing exists, Markdown/tables/links/code copy, drafts, microphone dictation, Thinking, and duplicate-Send prevention.
+- Attachments support multiple files, up to 100 MB each for intentionally supported types, drag/drop/paste, progress, remove, retry, reorder, preview/download, source-linked answers, ownership validation, and hostile-file/parser/archive protection. Uploaded content is never executed and document text is untrusted data.
+- Offline image understanding is not claimed. Images require connected intelligence. Safe locally extracted text may feed Offline mode where supported.
+- Web research belongs inside the existing Chat intelligence/tool authority after core Chat is stable; it does not create another Chat engine.
+- Every asynchronous UI surface must leave loading and reach success, empty, error/Retry, cancelled, or genuine progress. Infinite “Loading…”/“Reading…” states are bugs.
+- The visual authority is near-black/charcoal, neutral grey/white, restrained medium glassmorphism, rounded corners, minimal borders, clean typography, subtle purposeful motion, and responsive desktop/tablet/phone behavior. Sharp enterprise boxes, card walls, and cinematic scenes are rejected.
+- Public/legal surfaces keep About, Help, Terms, Privacy, and Pricing. Native desktop apps and install-app promotion remain out of scope for this browser-first mission.
+- The permanent owner/admin is `caeracadane28@gmail.com` through the audited role/grant authority; ordinary users must not be able to reach or self-grant Admin/entitlements.
+- Supabase leaked-password protection is documented but is not a current launch blocker for the Google/email-OTP passwordless product on the owner’s current Supabase plan.
+- Every engineering session uses `/ponytail ultra` and `/caveman ultra`, applies YAGNI/KISS, prefers one canonical authority, deletes safe dead/duplicate code, and fixes root causes rather than adding layers of patches.
