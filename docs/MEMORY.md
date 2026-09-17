@@ -433,6 +433,35 @@ Every control was already backed by a real handler and a truthful result;
 `controls:check` and the dead-control gate cover that continuously, and the
 recovery-code and phone-sign-in remnants went in Phase 2.
 
+## Phase 11 — auth and isolation, proved against the live database
+
+Every finding was traced rather than treated as a to-do list, and all three
+advisor categories turn out to be the design working:
+
+- **`rls_enabled_no_policy` on seven tables (INFO).** Permits, device leases and
+  their keys, the offline usage ledger, and the recovery-code family. RLS on
+  with no policy denies everyone — and the live project closes them a second
+  time, more strongly: `authenticated` has **no table grant at all**. Proved
+  live: a customer role selecting from `ocade_generation_permits` is refused
+  with `42501` before RLS is consulted. `service-only-tables-stay-closed.test.ts`
+  now fails any migration that grants one of them to `authenticated` or `anon`,
+  so nobody "fixes" the advisory by opening what its absence protects.
+- **`authenticated_security_definer_function_executable` (9, WARN).** These are
+  the RPCs the admin surface must be able to call from a browser; they
+  authorize internally. `ocade_grant_entitlement` and `ocade_revoke_entitlement`
+  require a support-admin role AND `aal2`, and a grant to one's own account is
+  refused outright. Proved live: acting as an ordinary signed-in customer with
+  `aal2` claimed, the grant was refused.
+- **Leaked-password protection (WARN).** Not a blocker — OCADE has no customer
+  passwords on the Google + email-OTP path, and the feature is unavailable on
+  the current plan.
+
+Cross-account isolation proved live too: a customer role reading another
+account's conversations sees none.
+
+Nothing was dropped on an advisor's say-so. `PLAN.md` is explicit about tracing
+callers first, and every one of these findings had a caller and a reason.
+
 Still open for Phase 14: the deployed `ocade-intelligence` is version 6 and is
 materially older than this tree — its `edge-handler.ts` caps a request at 1 MiB
 where the repository caps it at 24 MiB, so attachments cannot work online until
