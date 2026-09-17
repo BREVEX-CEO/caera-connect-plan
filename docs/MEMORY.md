@@ -123,6 +123,33 @@ values the browser also holds. That is why a dead deployment went green.
 Proven: 793 unit/database tests, all 11 browser journeys, and a before/after
 browser run of the exact reproduction above.
 
+## Phase 2 — no wait without an ending, no control without a truth
+
+Every remaining indefinite wait was found and ended, and each one failed the
+same way: a read that threw left the screen exactly as it was.
+
+- Library and Admin showed "Nothing here yet" when the read had failed, so an
+  unreachable library was indistinguishable from an empty one. Both use
+  `Pending` now.
+- Opening a conversation emptied the transcript on failure, which read as a
+  conversation nobody had written in. `useChat` reports `messagesFailed` and
+  the transcript offers Retry. The read is also guarded against a slower answer
+  for a conversation the person has already navigated away from.
+- `/auth/challenge` set an error the spinner branch never rendered, so it span
+  forever, on a screen somebody reaches while trying to get in.
+- `/reset-password` set `ready` only after its first `await`, so a throw there
+  left "Checking your reset link…" permanently.
+
+Stale copy for systems that no longer exist is gone: the "Account and recovery"
+notification category no longer promises recovery codes, three OAuth failure
+hints no longer send people to phone sign-in, and Account no longer falls back
+to a phone number. Both are now asserted by tests.
+
+`scripts/check-dead-controls.mjs` gained rule 5b, `unbounded-wait`: a file that
+shows a waiting message must also contain an ending for it — an alert region,
+`Pending`, a `failed` state, or a stated `bounded-state:` reason. Verified to
+fire against the original defect's exact shape.
+
 Still open for Phase 14: the deployed `ocade-intelligence` is version 6 and is
 materially older than this tree — its `edge-handler.ts` caps a request at 1 MiB
 where the repository caps it at 24 MiB, so attachments cannot work online until

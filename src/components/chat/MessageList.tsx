@@ -21,6 +21,8 @@ export function MessageList({
   messages,
   streaming,
   loading,
+  failed,
+  onRetryLoad,
   busy,
   onResend,
   onRemove,
@@ -28,6 +30,9 @@ export function MessageList({
   messages: ChatMessageRecord[];
   streaming: string;
   loading: boolean;
+  /** The transcript read failed. An empty conversation is a different thing. */
+  failed: boolean;
+  onRetryLoad: () => void;
   busy: boolean;
   /** Edit, Regenerate and Retry all arrive here, naming the question to re-ask. */
   onResend: (userMessageId: string, newText?: string) => void;
@@ -48,6 +53,19 @@ export function MessageList({
           <p className="text-sm text-muted-foreground" role="status">
             Opening this conversation…
           </p>
+        ) : null}
+
+        {failed ? (
+          <div role="alert">
+            <p className="text-sm text-muted-foreground">This conversation could not be opened.</p>
+            <button
+              type="button"
+              onClick={onRetryLoad}
+              className="mt-1 text-sm text-foreground underline underline-offset-2"
+            >
+              Retry
+            </button>
+          </div>
         ) : null}
 
         {messages.map((message, at) => (

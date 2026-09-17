@@ -44,7 +44,7 @@ export function describeOAuthError(
   if (has("access_denied", "user_cancelled", "user_canceled", "cancelled", "canceled", "denied")) {
     return {
       message: `Sign-in with ${name} was cancelled.`,
-      hint: `You closed the ${name} window or declined the permission request. You can try again, or use phone or email instead.`,
+      hint: `You closed the ${name} window or declined the permission request. You can try again, or sign in with your email address instead.`,
       retryable: true,
       cancelled: true,
     };
@@ -62,7 +62,7 @@ export function describeOAuthError(
   if (has("unsupported provider", "provider is not enabled", "not enabled", "validation_failed")) {
     return {
       message: `${name} sign-in isn't available right now.`,
-      hint: "Please use phone or email sign-in for now. Our team has been notified.",
+      hint: "Please sign in with your email address for now. Our team has been notified.",
       retryable: false,
       cancelled: false,
     };
@@ -106,7 +106,7 @@ export function describeOAuthError(
 
   return {
     message: `We couldn't complete sign-in with ${name}.`,
-    hint: "Please try again, or use phone or email sign-in instead.",
+    hint: "Please try again, or sign in with your email address instead.",
     retryable: true,
     cancelled: false,
   };

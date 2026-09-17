@@ -76,6 +76,8 @@ export interface ChatState {
   /** The history read failed. Not the same as an account with no history. */
   conversationsFailed: boolean;
   loadingMessages: boolean;
+  /** The transcript read failed. Not the same as a conversation with no turns. */
+  messagesFailed: boolean;
 }
 
 export interface ChatActions {
@@ -101,6 +103,7 @@ export interface ChatActions {
   restore(id: string): Promise<void>;
   deleteEverything(): Promise<void>;
   reloadConversations(): Promise<void>;
+  reloadMessages(): Promise<void>;
   dismissProblem(): void;
 }
 
@@ -134,6 +137,9 @@ export function useChat(): ChatState & ChatActions {
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [conversationsFailed, setConversationsFailed] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [messagesFailed, setMessagesFailed] = useState(false);
+  /** Which conversation the in-flight transcript read belongs to. */
+  const opened = useRef<string | null>(null);
   const abort = useRef<AbortController | null>(null);
 
   const refreshConversations = useCallback(async () => {
@@ -164,27 +170,43 @@ export function useChat(): ChatState & ChatActions {
     void refreshConversations();
   }, [refreshConversations]);
 
+  /*
+   * A TRANSCRIPT THAT WOULD NOT LOAD IS NOT AN EMPTY CONVERSATION.
+   *
+   * The failure path emptied the transcript, so a conversation whose messages
+   * could not be read looked exactly like one nobody had written in — and the
+   * composer sat under it, ready to append to a history OCADE had not seen.
+   */
+  const openMessages = useCallback(
+    async (id: string) => {
+      // The conversation this read belongs to. Switching while one is in
+      // flight must not let the slower answer overwrite the newer transcript.
+      opened.current = id;
+      setLoadingMessages(true);
+      try {
+        const rows = await loadChatMessages({ conversationId: id });
+        if (opened.current !== id) return;
+        setMessages(rows);
+        setMessagesFailed(false);
+      } catch {
+        if (opened.current !== id) return;
+        setMessages([]);
+        setMessagesFailed(true);
+      } finally {
+        if (opened.current === id) setLoadingMessages(false);
+      }
+    },
+    [setMessages],
+  );
+
   useEffect(() => {
-    let cancelled = false;
     if (!conversationId) {
       setMessages([]);
+      setMessagesFailed(false);
       return;
     }
-    setLoadingMessages(true);
-    void loadChatMessages({ conversationId })
-      .then((rows) => {
-        if (!cancelled) setMessages(rows);
-      })
-      .catch(() => {
-        if (!cancelled) setMessages([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingMessages(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [conversationId, setMessages]);
+    void openMessages(conversationId);
+  }, [conversationId, openMessages, setMessages]);
 
   const send = useCallback(
     async (
@@ -433,6 +455,7 @@ export function useChat(): ChatState & ChatActions {
   }, []);
 
   const newConversation = useCallback(() => {
+    opened.current = null;
     setConversationId(null);
     setMessages([]);
     setProblem(null);
@@ -449,6 +472,7 @@ export function useChat(): ChatState & ChatActions {
       loadingConversations,
       conversationsFailed,
       loadingMessages,
+      messagesFailed,
       send,
       resend,
       removeMessage,
@@ -461,6 +485,9 @@ export function useChat(): ChatState & ChatActions {
       restore,
       deleteEverything,
       reloadConversations: refreshConversations,
+      reloadMessages: async () => {
+        if (conversationId) await openMessages(conversationId);
+      },
       dismissProblem: () => setProblem(null),
     }),
     [
@@ -473,6 +500,7 @@ export function useChat(): ChatState & ChatActions {
       loadingConversations,
       conversationsFailed,
       loadingMessages,
+      messagesFailed,
       send,
       resend,
       removeMessage,
@@ -485,6 +513,7 @@ export function useChat(): ChatState & ChatActions {
       restore,
       deleteEverything,
       refreshConversations,
+      openMessages,
     ],
   );
 }

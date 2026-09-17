@@ -63,6 +63,20 @@ describe("the ways in", () => {
     expect(VERIFY).not.toMatch(/type: "sms"/);
   });
 
+  /*
+   * AND NEITHER MAY THE FAILURE MESSAGES.
+   *
+   * Three OAuth hints offered "phone or email" as the way out of a failed
+   * Google sign-in, so the one moment a person was already having trouble was
+   * the moment OCADE sent them to a method it does not have.
+   */
+  it("never offer phone sign-in as the way out of a failed one", () => {
+    const copy = readFileSync("src/lib/auth/oauth-errors.ts", "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/\/\/[^\n]*/g, " ");
+    expect(copy).not.toMatch(/phone|sms/i);
+  });
+
   it("keep the password off the first screen", () => {
     // A password is optional and managed under Account; `/reset-password`
     // remains for the people who set one.

@@ -74,6 +74,24 @@ function ResetPasswordPage() {
     });
 
     void (async () => {
+      try {
+        await checkTheLink();
+      } catch (cause) {
+        /*
+         * A THROW HERE USED TO MEAN WAITING FOREVER.
+         *
+         * Nothing after the first `await` set `ready`, so a failed chunk load
+         * or a client that would not construct left "Checking your reset
+         * link…" on screen for good, on a page somebody reaches once, from an
+         * email, when they cannot get in.
+         */
+        if (cancelled) return;
+        setError(cause instanceof Error ? cause.message : "That link could not be checked.");
+        setReady(true);
+      }
+    })();
+
+    async function checkTheLink() {
       const supabase = await loadSupabaseClient();
       const evidence = readRecoveryEvidence(window.location.href);
 
@@ -103,7 +121,7 @@ function ResetPasswordPage() {
       if (cancelled) return;
       setLinkValid(opensResetForm(evidence));
       setReady(true);
-    })();
+    }
 
     return () => {
       cancelled = true;

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/shell/AppShell";
+import { Pending } from "@/components/settings/rows";
 import { requireAdminRole } from "@/lib/admin/route-gate";
 import {
   grantAccountAccess,
@@ -104,14 +105,14 @@ function AdminPage() {
           />
         </label>
 
-        {accounts.isPending ? (
-          <p className="mt-8 text-sm text-muted-foreground" role="status">
-            Loading accounts…
-          </p>
-        ) : accounts.isError ? (
-          <p className="mt-8 text-sm text-muted-foreground" role="alert">
-            Accounts could not be read.
-          </p>
+        {accounts.isPending || accounts.isError ? (
+          <div className="mt-6">
+            <Pending
+              query={accounts}
+              loading="Loading accounts…"
+              problem="Accounts could not be read."
+            />
+          </div>
         ) : (
           <ul className="mt-6 divide-y divide-border/50 border-y border-border/50">
             {visible.map((row) => (

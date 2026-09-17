@@ -213,6 +213,41 @@ for (const file of files) {
   }
 
   /*
+   * 5b. A WAIT WITH NO WAY OUT OF IT.
+   *
+   * `PLAN.md` Phase 2: every asynchronous surface ends in success, empty, or an
+   * error with Retry. Four screens did not. Billing sat on "Reading your
+   * allowance…", Advanced rendered nothing at all once its read failed, the
+   * second-factor challenge span while holding an error it never displayed, and
+   * the reset-password page waited forever if its first `await` threw. A
+   * permanent "Loading…" is not a slow screen — it is a screen that has already
+   * failed and is not saying so.
+   *
+   * So a file that shows somebody a WAITING message must also contain an ending
+   * for it: an alert region, the shared `Pending` state, or a stated
+   * `bounded-state:` reason on the line for the rare screen that genuinely
+   * cannot fail.
+   */
+  const waiting = [
+    ...source.matchAll(/(Loading|Reading|Opening|Checking|Preparing|Signing)\b[^<>{}\n]*…/g),
+  ].filter((m) => /role="status"/.test(source.slice(Math.max(0, m.index - 400), m.index)));
+  if (waiting.length > 0) {
+    const ends =
+      /role="alert"/.test(source) ||
+      /<Pending\b/.test(source) ||
+      /\bfailed\b/.test(source) ||
+      /bounded-state:/.test(source);
+    if (!ends) {
+      findings.push({
+        file,
+        line: lineAt(waiting[0].index),
+        kind: "unbounded-wait",
+        detail: waiting[0][0].trim().slice(0, 60),
+      });
+    }
+  }
+
+  /*
    * 6. SELECTION STATE CARRIED BY COLOUR ALONE.
    *
    * A button whose className switches on `x === selected` is a selection

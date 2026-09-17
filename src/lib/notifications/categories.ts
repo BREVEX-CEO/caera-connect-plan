@@ -73,7 +73,12 @@ export const NOTIFICATION_CATEGORIES: readonly NotificationCategory[] = [
   {
     id: "account",
     title: "Account and recovery",
-    description: "Email changes, recovery codes, and anything that affects getting back in.",
+    /*
+     * NOT "recovery codes". The application's recovery-code system was removed
+     * in the earlier debloat, so this told people about something OCADE cannot
+     * send them — on the screen where they decide what they need to be told.
+     */
+    description: "Email changes and anything else that affects getting back in.",
     optional: false,
     frequencies: URGENT_ONLY,
   },

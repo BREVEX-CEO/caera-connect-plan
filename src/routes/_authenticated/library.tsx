@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { Download, FileText, ImageIcon, Search, Trash2, Upload } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
+import { Pending } from "@/components/settings/rows";
 import {
   addLibraryItem,
   deleteLibraryItem,
@@ -174,10 +175,19 @@ function LibraryPage() {
           </p>
         ) : null}
 
-        {items.isPending ? (
-          <p className="mt-10 text-sm text-muted-foreground" role="status">
-            Opening your library…
-          </p>
+        {/*
+          A FAILED READ IS NOT AN EMPTY LIBRARY. "Nothing here yet" was shown
+          both when the account genuinely had nothing and when the read failed,
+          so somebody whose files were unreachable was told they had none.
+        */}
+        {items.isPending || items.isError ? (
+          <div className="mt-6">
+            <Pending
+              query={items}
+              loading="Opening your library…"
+              problem="Your library could not be opened just now."
+            />
+          </div>
         ) : visible.length === 0 ? (
           <p className="mt-10 text-sm text-muted-foreground">
             {(items.data ?? []).length === 0

@@ -52,6 +52,19 @@ describe("the categories", () => {
     }
   });
 
+  /*
+   * A CATEGORY MAY ONLY DESCRIBE WHAT THE PRODUCT CAN SEND.
+   *
+   * "Account and recovery" promised notifications about recovery codes after
+   * the application's recovery-code system was removed, on the screen where a
+   * person decides what they need to hear about.
+   */
+  it("describe nothing the product no longer has", () => {
+    for (const category of NOTIFICATION_CATEGORIES) {
+      expect(category.description).not.toMatch(/recovery code|phone|sms/i);
+    }
+  });
+
   it("marks security, account recovery and billing as un-mutable", () => {
     for (const id of PROTECTED) {
       expect(findNotificationCategory(id)?.optional, id).toBe(false);

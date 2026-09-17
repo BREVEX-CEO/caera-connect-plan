@@ -49,17 +49,27 @@ function ChallengePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    void (async () => {
-      try {
-        const verified = await listVerifiedFactors();
-        setFactors(verified);
-        setFactorId(verified[0]?.id ?? null);
-      } catch (cause) {
-        setError(cause instanceof Error ? cause.message : "Could not read this account.");
-      }
-    })();
+  /*
+   * A FAILED READ MUST END THE WAITING.
+   *
+   * The failure set an error the spinner branch never rendered, so the screen
+   * span forever and said nothing — on the one screen somebody reaches while
+   * they are trying to get into their account.
+   */
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const verified = await listVerifiedFactors();
+      setFactors(verified);
+      setFactorId(verified[0]?.id ?? null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not read this account.");
+    }
   }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   /*
    * `safeNext` is the same guard every other auth screen uses, and it is not
@@ -98,7 +108,18 @@ function ChallengePage() {
         </Link>
       }
     >
-      {factors === null ? (
+      {factors === null && error ? (
+        <div role="alert" className="space-y-2">
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="text-sm text-foreground underline underline-offset-2"
+          >
+            Retry
+          </button>
+        </div>
+      ) : factors === null ? (
         <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Reading this account…
         </p>

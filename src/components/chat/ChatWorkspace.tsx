@@ -255,6 +255,8 @@ export function ChatWorkspace() {
             messages={chat.messages}
             streaming={chat.streaming}
             loading={chat.loadingMessages}
+            failed={chat.messagesFailed}
+            onRetryLoad={() => void chat.reloadMessages()}
             busy={chat.busy}
             onResend={(id, text) => void chat.resend(id, choice, text)}
             onRemove={(id) => void chat.removeMessage(id)}

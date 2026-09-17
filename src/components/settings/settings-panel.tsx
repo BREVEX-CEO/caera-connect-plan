@@ -230,7 +230,8 @@ function AccountSettings() {
 
   return (
     <div>
-      <Row label="Signed in as" description={user?.email ?? user?.phone ?? "Not signed in"} />
+      {/* Google and email OTP are the only identities; phone sign-in is removed. */}
+      <Row label="Signed in as" description={user?.email ?? "Not signed in"} />
       <SignInMethods />
       <Row label="Sign out" description="Ends this session on this device only.">
         <button
