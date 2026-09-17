@@ -1534,14 +1534,6 @@ export type Database = {
           tier: string
         }[]
       }
-      ocade_org_can_administer: {
-        Args: { p_organization_id: string }
-        Returns: boolean
-      }
-      ocade_org_is_owner: {
-        Args: { p_organization_id: string }
-        Returns: boolean
-      }
       ocade_purge_expired_conversation_trash: { Args: never; Returns: number }
       ocade_read_commercial_usage: {
         Args: { p_user_id: string }
