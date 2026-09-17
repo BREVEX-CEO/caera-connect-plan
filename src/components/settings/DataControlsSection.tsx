@@ -4,6 +4,7 @@ import { useInstallation } from "@/lib/brain/use-installation";
 import { deleteAllLibraryItems, listLibraryItems } from "@/lib/library/library.functions";
 import { deleteAllConversations, listConversations } from "@/lib/ocade.functions";
 import { exportMyAccountData } from "@/lib/account-data.functions";
+import { saveFile } from "@/lib/utils";
 import { Action, Confirm, Row } from "./rows";
 
 /**
@@ -96,13 +97,10 @@ function ExportSection() {
   const download = useMutation({
     mutationFn: async () => {
       const data = await exportMyAccountData();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `ocade-account-export-${new Date().toISOString().slice(0, 10)}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
+      saveFile(
+        `ocade-account-export-${new Date().toISOString().slice(0, 10)}.json`,
+        new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }),
+      );
     },
     onError: (error: Error) => setProblem(error.message),
   });

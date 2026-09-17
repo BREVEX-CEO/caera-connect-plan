@@ -100,8 +100,8 @@ try {
   await page.waitForSelector('nav[aria-label="Primary"]');
   await page.waitForTimeout(500);
   check(
-    "the conversation appears under Recent",
-    (await page.locator("aside", { hasText: "Recent" }).count()) === 1,
+    "the conversation appears in the sidebar",
+    (await page.locator("aside ul li").count()) >= 1,
   );
 
   await page.reload({ waitUntil: "networkidle" });
@@ -198,12 +198,68 @@ try {
   await page.waitForTimeout(600);
   check("a single turn can be deleted", (await page.locator(".group").count()) < before);
 
-  // Delete it, and see it go.
+  /* --- recent history is grouped by when, not one flat run ---------------- */
+
+  check(
+    "recent history is grouped by when it happened",
+    (await page.locator("aside", { hasText: "Today" }).count()) >= 1,
+  );
+
+  /* --- one conversation, saved to a file ---------------------------------- */
+
+  await page.hover("aside ul li");
+  await page.click('aside ul li button[aria-label^="More options"]');
+  const [saved] = await Promise.all([
+    page.waitForEvent("download", { timeout: 15_000 }),
+    page.click('role=menuitem[name="Export"]'),
+  ]);
+  const exported = await saved.createReadStream().then(async (stream) => {
+    let text = "";
+    for await (const chunk of stream) text += chunk;
+    return text;
+  });
+  check(
+    "a single conversation exports what was actually said",
+    saved.suggestedFilename().endsWith(".md") &&
+      exported.includes("# Renamed by the proof") &&
+      exported.includes("What is OCADE, in one line?"),
+    saved.suggestedFilename(),
+  );
+
+  /* --- deleting a conversation asks first ---------------------------------- */
+
   await page.hover("aside ul li");
   await page.click('aside ul li button[aria-label^="More options"]');
   await page.click('role=menuitem[name="Delete"]');
+  await page.waitForTimeout(400);
+  check(
+    "one click on Delete asks rather than deletes",
+    (await page.locator("aside ul li").count()) >= 1 &&
+      (await page.getByRole("menuitem", { name: "Delete for good" }).count()) === 1,
+  );
+  await page.click('role=menuitem[name="Delete for good"]');
   await page.waitForTimeout(500);
-  check("a conversation can be deleted", (await page.locator("aside ul li").count()) === 0);
+  check("and confirming deletes it", (await page.locator("aside ul li").count()) === 0);
+
+  /* --- a temporary chat writes nothing, anywhere --------------------------- */
+
+  await page.getByRole("button", { name: "Temporary" }).click();
+  await page.fill("#ocade-composer", "Nothing about this is saved");
+  await page.click('button[aria-label="Send"]');
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  check("a temporary chat still answers", true);
+  check(
+    "and it never reaches the sidebar",
+    (await page.locator("aside ul li").count()) === 0,
+    `${await page.locator("aside ul li").count()} rows`,
+  );
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  check(
+    "and a reload finds no trace of it",
+    (await page.locator("aside ul li").count()) === 0 &&
+      !(await page.locator("body").innerText()).includes("Nothing about this is saved"),
+  );
 
   // Phone width still works.
   const phone = await browser.newContext({ viewport: { width: 375, height: 812 } });

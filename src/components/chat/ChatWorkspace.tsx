@@ -238,6 +238,7 @@ export function ChatWorkspace() {
             onOpen={chat.openConversation}
             onRename={chat.rename}
             onArchive={(id) => chat.setArchived(id, true)}
+            onExport={(id) => chat.exportConversation(id)}
             onTrash={chat.trash}
           />
         ) : null
@@ -339,7 +340,13 @@ export function ChatWorkspace() {
                 className="ocade-scroll max-h-60 w-full resize-none bg-transparent px-1 text-[15px] leading-6 text-foreground outline-none placeholder:text-muted-foreground"
               />
 
-              <div className="mt-2 flex items-center gap-1">
+              {/*
+                WRAPS RATHER THAN OVERFLOWS. At 375px the attach control, the
+                three-way selector, Temporary, the microphone and Send do not
+                fit on one line, and a composer that scrolls sideways puts Send
+                off the edge of a phone.
+              */}
+              <div className="mt-2 flex flex-wrap items-center gap-1">
                 <IconButton
                   label="Attach a file"
                   disabled={!user || pending.length >= MAX_ATTACHMENTS}
@@ -362,7 +369,11 @@ export function ChatWorkspace() {
                 />
 
                 <div className="ml-auto flex items-center gap-1">
-                  <div className="mr-1 flex rounded-md border border-border p-0.5">
+                  <div
+                    role="group"
+                    aria-label="Intelligence mode"
+                    className="mr-1 flex rounded-md border border-border p-0.5"
+                  >
                     {CHOICES.map((entry) => (
                       <button
                         key={entry.id}
@@ -380,6 +391,33 @@ export function ChatWorkspace() {
                       </button>
                     ))}
                   </div>
+
+                  {/*
+                    TEMPORARY CHAT, WHERE THE CHOICE IS MADE.
+                    `PLAN.md`: a temporary conversation is memory-only and
+                    never synchronises. It sits beside the mode selector
+                    because both answer the same question — what happens to
+                    this message — and it says so while it is on rather than
+                    hiding the state in a menu.
+                  */}
+                  <button
+                    type="button"
+                    onClick={() => chat.setTemporary(!chat.temporary)}
+                    aria-pressed={chat.temporary}
+                    title={
+                      chat.temporary
+                        ? "This chat is not being saved. Turn off to save chats again."
+                        : "Start a chat that is not saved"
+                    }
+                    className={cn(
+                      "mr-1 h-6 rounded-md border px-2 text-xs transition-colors",
+                      chat.temporary
+                        ? "border-border bg-accent text-foreground"
+                        : "border-transparent text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    Temporary
+                  </button>
 
                   {dictation.supported ? (
                     <IconButton

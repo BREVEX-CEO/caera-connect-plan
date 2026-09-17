@@ -46,6 +46,7 @@ import { USAGE_QUERY_KEY } from "@/lib/commercial/use-commercial-usage";
 import { ocadeIntelligence } from "@/lib/intelligence/ocade-intelligence";
 import type { IntelligenceMode } from "@/lib/intelligence/contract";
 import { useSession } from "@/lib/session";
+import { saveFile } from "@/lib/utils";
 
 /** The three words a customer sees, and the mode each one means. */
 export type IntelligenceChoice = "auto" | "ocade" | "offline";
@@ -63,6 +64,35 @@ export function titleFrom(message: string): string {
   return trimmed || "New chat";
 }
 
+/**
+ * A turn that exists only in this tab.
+ *
+ * Shaped exactly like a stored one so the transcript, Copy, Edit, Regenerate
+ * and Delete all work on it without learning about a second kind of message.
+ * `unsynced` is deliberately absent: that flag means "should have been saved
+ * and was not", and a temporary turn was never going to be saved.
+ */
+function temporaryRecord(
+  role: "user" | "assistant",
+  content: string,
+  attachments: NormalizedAttachment[],
+): ChatMessageRecord {
+  return {
+    id: crypto.randomUUID(),
+    conversation_id: "temporary",
+    role,
+    content,
+    attachments: attachments.map((attachment) => ({
+      kind: attachment.image ? ("image" as const) : ("file" as const),
+      name: attachment.name,
+      mime: attachment.mime,
+      sizeBytes: attachment.sizeBytes,
+    })),
+    model_id: null,
+    created_at: new Date().toISOString(),
+  };
+}
+
 export interface ChatState {
   conversations: OcadeConversationRow[];
   conversationId: string | null;
@@ -78,6 +108,8 @@ export interface ChatState {
   loadingMessages: boolean;
   /** The transcript read failed. Not the same as a conversation with no turns. */
   messagesFailed: boolean;
+  /** This conversation is being kept nowhere. Nothing about it is written. */
+  temporary: boolean;
 }
 
 export interface ChatActions {
@@ -104,6 +136,9 @@ export interface ChatActions {
   deleteEverything(): Promise<void>;
   reloadConversations(): Promise<void>;
   reloadMessages(): Promise<void>;
+  setTemporary(on: boolean): void;
+  /** Save one conversation to a file, whether or not it is the open one. */
+  exportConversation(id: string): Promise<void>;
   dismissProblem(): void;
 }
 
@@ -138,6 +173,7 @@ export function useChat(): ChatState & ChatActions {
   const [conversationsFailed, setConversationsFailed] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [messagesFailed, setMessagesFailed] = useState(false);
+  const [temporary, setTemporary] = useState(false);
   /** Which conversation the in-flight transcript read belongs to. */
   const opened = useRef<string | null>(null);
   const abort = useRef<AbortController | null>(null);
@@ -247,8 +283,17 @@ export function useChat(): ChatState & ChatActions {
       };
 
       try {
+        /*
+         * A TEMPORARY CHAT WRITES NOTHING, ANYWHERE.
+         *
+         * No conversation row, no message rows, no sync journal — the turns
+         * live in this tab's state and go when it does. That is the whole
+         * promise of the control, so it is kept by not calling the two
+         * functions that would break it rather than by a flag each of them
+         * checks and could forget.
+         */
         let id = conversationId;
-        if (!id) {
+        if (!id && !temporary) {
           const row = (await createConversation({
             data: { title: titleFrom(text) },
           })) as unknown as OcadeConversationRow;
@@ -257,19 +302,21 @@ export function useChat(): ChatState & ChatActions {
           setConversations((current) => [row, ...current]);
         }
 
-        const question = await persistChatMessage({
-          conversationId: id,
-          role: "user",
-          content: text,
-          // Names and sizes only. The bytes are in Library, which is the one
-          // place that owns a customer's files.
-          attachments: attachments.map((attachment) => ({
-            kind: attachment.image ? ("image" as const) : ("file" as const),
-            name: attachment.name,
-            mime: attachment.mime,
-            sizeBytes: attachment.sizeBytes,
-          })),
-        });
+        const question = temporary
+          ? { record: temporaryRecord("user", text, attachments), stored: "memory" as const }
+          : await persistChatMessage({
+              conversationId: id!,
+              role: "user",
+              content: text,
+              // Names and sizes only. The bytes are in Library, which is the one
+              // place that owns a customer's files.
+              attachments: attachments.map((attachment) => ({
+                kind: attachment.image ? ("image" as const) : ("file" as const),
+                name: attachment.name,
+                mime: attachment.mime,
+                sizeBytes: attachment.sizeBytes,
+              })),
+            });
         setMessages((current) => [...current, question.record]);
 
         const turns: NormalizedMessage[] = [...transcript.current, question.record].map(
@@ -303,7 +350,7 @@ export function useChat(): ChatState & ChatActions {
             onlineInferenceConsented: choice !== "offline",
             sealed: false,
           },
-          conversationId: id,
+          conversationId: id ?? undefined,
           signal: controller.signal,
         })) {
           if (event.type === "token") {
@@ -329,11 +376,13 @@ export function useChat(): ChatState & ChatActions {
           return true;
         }
 
-        const reply = await persistChatMessage({
-          conversationId: id,
-          role: "assistant",
-          content: answer,
-        });
+        const reply = temporary
+          ? { record: temporaryRecord("assistant", answer, []), stored: "memory" as const }
+          : await persistChatMessage({
+              conversationId: id!,
+              role: "assistant",
+              content: answer,
+            });
         setMessages((current) => [...current, reply.record]);
         if (reply.stored === "unsynced") {
           setProblem(
@@ -343,7 +392,7 @@ export function useChat(): ChatState & ChatActions {
 
         billed.recordDelivery({ answer });
         await settle();
-        void refreshConversations();
+        if (!temporary) void refreshConversations();
         /*
          * The allowance the person is shown must reflect what they just spent.
          * Settings reads it through the same query key, so one invalidation
@@ -360,7 +409,7 @@ export function useChat(): ChatState & ChatActions {
       }
       return true;
     },
-    [busy, conversationId, queryClient, refreshConversations, setMessages],
+    [busy, conversationId, queryClient, refreshConversations, setMessages, temporary],
   );
 
   /**
@@ -387,23 +436,28 @@ export function useChat(): ChatState & ChatActions {
 
       const dropped = transcript.current.slice(at);
       setMessages(transcript.current.slice(0, at));
-      await Promise.all(
-        dropped
-          .filter((record) => !record.unsynced)
-          .map((record) => deleteMessage({ data: { id: record.id } }).catch(() => undefined)),
-      );
+      // A temporary turn was never written, so there is nothing to delete and
+      // an authenticated call naming an id no row has ever carried.
+      if (!temporary) {
+        await Promise.all(
+          dropped
+            .filter((record) => !record.unsynced)
+            .map((record) => deleteMessage({ data: { id: record.id } }).catch(() => undefined)),
+        );
+      }
       await send(text, choice);
     },
-    [busy, send, setMessages],
+    [busy, send, setMessages, temporary],
   );
 
   /** Remove one turn, from the screen and from the account. */
   const removeMessage = useCallback(
     async (id: string) => {
       setMessages((current) => current.filter((record) => record.id !== id));
+      if (temporary) return; // Nothing was written, so nothing is deleted.
       await deleteMessage({ data: { id } }).catch(() => undefined);
     },
-    [setMessages],
+    [setMessages, temporary],
   );
 
   const stop = useCallback(() => {
@@ -450,9 +504,59 @@ export function useChat(): ChatState & ChatActions {
   }, [setMessages]);
 
   const openConversation = useCallback((id: string | null) => {
+    // Opening a saved conversation leaves temporary mode, and with it the
+    // temporary transcript. Staying in it would write the next turn nowhere
+    // while the person is looking at a conversation that is saved.
+    setTemporary(false);
     setConversationId(id);
     setProblem(null);
   }, []);
+
+  /**
+   * Turn temporary chat on or off.
+   *
+   * Either direction starts a clean transcript. Carrying turns across the
+   * boundary would either write something the person was told would not be
+   * written, or silently drop turns they could see.
+   */
+  const setTemporaryChat = useCallback(
+    (on: boolean) => {
+      opened.current = null;
+      setTemporary(on);
+      setConversationId(null);
+      setMessages([]);
+      setProblem(null);
+    },
+    [setMessages],
+  );
+
+  /**
+   * One conversation, saved to a file.
+   *
+   * Markdown rather than JSON: this is for a person who wants to keep, read or
+   * send what was said. The whole-account export under Data Controls is the
+   * machine-readable one.
+   */
+  const exportConversation = useCallback(
+    async (id: string) => {
+      const title = conversations.find((row) => row.id === id)?.title ?? "Conversation";
+      // The open conversation is already here; any other one is read the same
+      // way the transcript reads it, so Export works from the menu without
+      // opening the conversation first.
+      const rows =
+        id === conversationId && !temporary
+          ? transcript.current
+          : await loadChatMessages({ conversationId: id });
+      const body = rows
+        .map((row) => `## ${row.role === "user" ? "You" : "OCADE"}\n\n${row.content}`)
+        .join("\n\n");
+      saveFile(
+        `${title.replace(/[^\w- ]+/g, "").trim() || "conversation"}.md`,
+        new Blob([`# ${title}\n\n${body}\n`], { type: "text/markdown;charset=utf-8" }),
+      );
+    },
+    [conversations, conversationId, temporary],
+  );
 
   const newConversation = useCallback(() => {
     opened.current = null;
@@ -473,6 +577,7 @@ export function useChat(): ChatState & ChatActions {
       conversationsFailed,
       loadingMessages,
       messagesFailed,
+      temporary,
       send,
       resend,
       removeMessage,
@@ -488,6 +593,8 @@ export function useChat(): ChatState & ChatActions {
       reloadMessages: async () => {
         if (conversationId) await openMessages(conversationId);
       },
+      setTemporary: setTemporaryChat,
+      exportConversation,
       dismissProblem: () => setProblem(null),
     }),
     [
@@ -501,6 +608,7 @@ export function useChat(): ChatState & ChatActions {
       conversationsFailed,
       loadingMessages,
       messagesFailed,
+      temporary,
       send,
       resend,
       removeMessage,
@@ -514,6 +622,8 @@ export function useChat(): ChatState & ChatActions {
       deleteEverything,
       refreshConversations,
       openMessages,
+      setTemporaryChat,
+      exportConversation,
     ],
   );
 }

@@ -53,8 +53,9 @@ try {
   }
   check(
     "the intelligence selector shows only Auto, OCADE and Offline",
-    (await page.locator("button[aria-pressed]").allTextContents()).join("|") ===
-      "Auto|OCADE|Offline",
+    (
+      await page.locator('[role="group"][aria-label="Intelligence mode"] button').allTextContents()
+    ).join("|") === "Auto|OCADE|Offline",
   );
   check(
     "no provider or runtime identifier is on screen",

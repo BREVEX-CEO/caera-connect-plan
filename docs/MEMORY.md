@@ -183,6 +183,47 @@ shows a waiting message must also contain an ending for it — an alert region,
 `Pending`, a `failed` state, or a stated `bounded-state:` reason. Verified to
 fire against the original defect's exact shape.
 
+## Phase 3 — the rest of the Chat interaction contract
+
+Already present and re-proved: New Chat, generated title, rename, Copy, Edit
+with branch regeneration, Regenerate, Retry, Stop, drafts, duplicate-Send
+suppression, Markdown, tables, links, code-copy, Enter to send with
+Shift+Enter for a newline, and a composer that grows to a bounded maximum.
+
+Added this phase:
+
+- **Search**, as a filter over the rows already loaded. It appears only once
+  there are eight or more conversations, below which scrolling beats typing.
+  A server round trip per keystroke would be slower than the answer and would
+  need its own loading, empty and error states.
+- **Grouped recent history** — Today / Yesterday / Previous 7 days / Older,
+  bounded by the viewer's own local midnights so a chat from 23:50 last night
+  reads as Yesterday rather than "14 hours ago". An unparseable timestamp
+  groups as recent rather than being buried under Older.
+- **Deletion asks once.** The menu item becomes "Delete for good" and changes
+  tone; clicking away drops the half-made confirmation.
+- **Per-conversation export** to Markdown, from the menu, for any conversation
+  rather than only the open one. `saveFile` in `lib/utils.ts` is now the one
+  place that builds and revokes an object URL — the account export under Data
+  Controls uses it too.
+- **Temporary chat**, beside the mode selector. It writes nothing anywhere: no
+  conversation row, no message rows, no sync journal, and no delete calls for
+  turns that were never written. Switching either way starts a clean
+  transcript, because carrying turns across the boundary would either write
+  what was promised not to be written or silently drop what the person can see.
+
+**Thinking is deliberately not built.** `PLAN.md` asks for it beside the mode
+selector, but the intelligence contract has no thinking parameter and the
+approved artifact declares `thinkingSuitable: false`. A control shipped today
+could only do nothing, which the no-dead-control rule and the product truth
+rules both forbid. It needs the contract first.
+
+Two regressions the browser caught and that are fixed: the Temporary control
+pushed the composer's control row past 375px, so it wraps now rather than
+scrolling the page sideways; and the shell journey counted every
+`aria-pressed` button on the page as an intelligence mode, so the selector
+carries `role="group"` with a name and the assertion is scoped to it.
+
 Still open for Phase 14: the deployed `ocade-intelligence` is version 6 and is
 materially older than this tree — its `edge-handler.ts` caps a request at 1 MiB
 where the repository caps it at 24 MiB, so attachments cannot work online until
