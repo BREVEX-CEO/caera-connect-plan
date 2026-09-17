@@ -39,6 +39,9 @@ const ISOLATION_HEADERS = {
 const PAGE = `<!doctype html><meta charset="utf-8"><title>OCADE offline proof</title><script type="module">
 import { Wllama } from "/node_modules/@wllama/wllama/esm/index.js";
 
+const OPEN_TAG = "<think>";
+const CLOSE_TAG = "</think>";
+
 const supportsMemory64 = () => {
   try {
     new WebAssembly.Memory({ initial: 1n, address: "i64" });
@@ -189,8 +192,8 @@ window.__prove = async () => {
     );
 
     diagnostics.messageKeys = Object.keys(message);
-    diagnostics.thinkingOpened = raw.includes("<think>");
-    diagnostics.thinkingClosed = raw.includes("</think>");
+    diagnostics.thinkingOpened = raw.includes(OPEN_TAG);
+    diagnostics.thinkingClosed = raw.includes(CLOSE_TAG);
     diagnostics.reasoningContentChars = parsedReasoning.length;
     diagnostics.reasoningTokens = Number.isFinite(reasoningTokens) ? reasoningTokens : 0;
     diagnostics.thinkingChars = raw.length;
@@ -199,9 +202,23 @@ window.__prove = async () => {
       diagnostics.reasoningContentChars > 0 ||
       diagnostics.reasoningTokens > 0;
 
-    // What a person would see: the tags removed if they survived, and the
-    // parsed block was never in content to begin with.
-    const thinkingAnswer = raw.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+    /*
+     * NO REGULAR EXPRESSION, AND THAT IS THE POINT.
+     *
+     * This page is a template literal in a Node file, so every backslash in it
+     * is eaten before the browser sees it. An ordinary think-tag regex lost the
+     * backslash escaping its closing slash, so the literal ended early, and the
+     * page died with "Invalid regular expression flags" before window.__prove
+     * was ever defined. String indexes carry no backslashes at all, so there is
+     * nothing left for the outer literal to mangle.
+     */
+    const opened = raw.indexOf(OPEN_TAG);
+    const closed = raw.indexOf(CLOSE_TAG);
+    const thinkingAnswer = (
+      opened === -1 || closed === -1
+        ? raw
+        : raw.slice(0, opened) + raw.slice(closed + CLOSE_TAG.length)
+    ).trim();
 
     return { answer, thinkingAnswer, diagnostics };
   } finally {
@@ -209,6 +226,28 @@ window.__prove = async () => {
   }
 };
 </script>`;
+
+/*
+ * THE PAGE MUST SURVIVE THE LITERAL THAT CARRIES IT.
+ *
+ * `PAGE` is a template literal, so the browser receives it with every escape
+ * already processed: a backslash here is a backslash the browser never sees.
+ * That silently broke a regex into something unparseable, and the failure
+ * surfaced ten minutes later as "window.__prove is not a function" — a
+ * confusing symptom a long way from its cause.
+ *
+ * Checked at startup rather than discovered in a browser. If a backslash is
+ * ever genuinely needed, escape it as \\ and exempt it deliberately.
+ */
+const backslashes = (PAGE.match(/\\/g) ?? []).length;
+if (backslashes > 0) {
+  process.stderr.write(
+    `The embedded proof page contains ${backslashes} backslash(es). The template literal eats ` +
+      "them before the browser parses the script, which breaks regular expressions and string " +
+      "escapes in ways that surface far from the cause. Rewrite without them.\n",
+  );
+  process.exit(2);
+}
 
 function sendError(response, status, message, extraHeaders = {}) {
   const body = `${message}\n`;

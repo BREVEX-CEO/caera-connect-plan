@@ -253,6 +253,18 @@ the default parsing the tags never arrive. It stays as the guard for
 `reasoning_format: "none"` and for templates that emit tags outside the
 parser's expectations.
 
+**The proof page also could not run at all, for a second reason.** It died with
+`SyntaxError: Invalid regular expression flags` and then
+`window.__prove is not a function` — a symptom a long way from its cause. `PAGE`
+is a template literal in a Node file, so the browser receives it with every
+escape already processed: the backslash escaping the closing slash of a
+think-tag regex was eaten, the literal ended early, and the script never
+defined its entry point. The tag handling uses string indexes now, which carry
+no backslashes to mangle, and the script refuses to start if the embedded page
+contains a backslash at all. Browser-tested against a dummy file: the page
+parses, `__prove` runs, and it fails at the chat-template check, which is
+exactly where a non-GGUF should fail.
+
 **The flag stays `false` and no Thinking control ships**, because the corrected
 proof has not been run: the 484 MB artifact is not in this session and neither R2 (via
 `ocade.in`) nor any model host is reachable through this session's network
