@@ -252,12 +252,6 @@ function validateBuiltOutput(plan, cwd, env) {
  * A health probe proves the Worker answers; this proves the build it was
  * uploaded with is reachable, because a version whose entry asset 404s renders
  * a blank page while /api/health stays green.
- *
- * It used to ask a second question as well — whether the pre-launch gate was
- * holding or open, selected by `OCADE_DEPLOY_EXPECT_ASSET_STATE`. That gate was
- * removed from `cloudflare-entry.ts` when the product launched, so the "locked"
- * half had become unreachable and the build check for its header refused every
- * deployment outright.
  */
 async function probeAssetGateOnce(plan, fetcher, expectedDeploymentId) {
   try {
