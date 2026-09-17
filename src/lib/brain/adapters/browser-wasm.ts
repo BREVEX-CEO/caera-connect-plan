@@ -123,6 +123,8 @@ export class BrowserWasmAdapter implements BrainAdapter {
   private readonly onProgress?: (p: WasmProgress) => void;
   private readonly weightsProvider?: () => Promise<Blob | null>;
   private readonly preferThreads: boolean;
+  /** Layers to offload. 0 is the processor; the graphics rung asks for all. */
+  private readonly gpuLayers: number;
   /** What the runtime actually did, once a model is loaded. */
   private threadOutcome: ThreadOutcome = { multithreaded: false, threads: 1 };
 
@@ -155,10 +157,20 @@ export class BrowserWasmAdapter implements BrainAdapter {
      * headers were always the constraint.
      */
     preferThreads?: boolean;
+    /**
+     * How many layers to put on the graphics card.
+     *
+     * Zero on every processor rung, and it is not redundant: wllama defaults
+     * `n_gpu_layers` to 99999, so a binary that DOES register a graphics
+     * backend — and 3.5.1's does — would silently offload on the rung the
+     * ladder chose precisely because graphics was refused or had failed.
+     */
+    gpuLayers?: number;
   }) {
     this.onProgress = options?.onProgress;
     this.weightsProvider = options?.weightsProvider;
     this.preferThreads = options?.preferThreads ?? false;
+    this.gpuLayers = options?.gpuLayers ?? 0;
   }
 
   async probe(): Promise<AdapterAvailability> {
@@ -337,9 +349,11 @@ export class BrowserWasmAdapter implements BrainAdapter {
        * for one card is the defect `shared-browser-engine.ts` exists to
        * prevent, arrived at through a library default nobody set.
        *
-       * This rung is the compatibility engine. It runs on the processor.
+       * The ladder decides. Zero on every processor rung, all of them on the
+       * graphics rung — the same binary either way, which is what keeps this
+       * one artifact and one lifecycle rather than two products.
        */
-      n_gpu_layers: 0,
+      n_gpu_layers: this.gpuLayers,
     };
   }
 

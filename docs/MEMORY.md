@@ -334,6 +334,42 @@ only through `ocade.in`, which the network policy refuses. The delivery
 signature path IS proved in the browser — unsigned, forged, expired and
 malformed release ids are all refused.
 
+## Phase 7 — WebGPU is real, and the claim that it was not had gone stale
+
+A comment in this tree said the bundled binary was processor-only whatever it
+was asked for, citing a measurement script that no longer exists. That was true
+of an older wllama. The installed 3.5.1 `wllama.wasm` contains llama.cpp's full
+`ggml-webgpu` backend — the symbols are in the binary
+(`ggml-webgpu.cpp`, `webgpu_context_struct`, the shader decision tables) and
+Emscripten's WebGPU bindings are in the glue. The claim had outlived its
+evidence, and the ladder had no graphics rung at all.
+
+So there is one now, and it costs nothing in extra machinery, which is the only
+reason it is allowed: the SAME artifact runs on the card or the processor
+depending solely on `n_gpu_layers`. One file, one installer, one lifecycle, no
+second customer-visible product — exactly the constraint `PLAN.md` sets.
+
+- `CapabilityPath` gains `webgpu`, ahead of the two processor rungs.
+- The rung is available only when the browser actually hands over an adapter.
+  `navigator.gpu` existing is not the test; plenty of machines have it and no
+  usable adapter.
+- `n_gpu_layers` is the rung's decision, and zero on the processor rungs is not
+  redundant: wllama defaults it to 99999, so a binary that DOES register a
+  graphics backend would silently offload on the rung the ladder chose
+  precisely because graphics was refused or had failed.
+- Fallback needed no new code. A rung that will not start already moves the
+  ladder down, before any output.
+
+`scripts/prove-offline-artifact.mjs` now reports a graphics verdict and no
+longer launches with `--disable-gpu`, which would have made that verdict
+meaningless. `--cpu-only` reproduces the processor rung deliberately.
+
+**What remains external.** Real generation on a graphics card, and a forced
+WebGPU failure falling back to WASM, need both the artifact and GPU hardware.
+Neither is in this session. The owner's command is unchanged:
+`node scripts/prove-offline-artifact.mjs <artifact>` on a GPU machine, and
+`--cpu-only` for the fallback side.
+
 Still open for Phase 14: the deployed `ocade-intelligence` is version 6 and is
 materially older than this tree — its `edge-handler.ts` caps a request at 1 MiB
 where the repository caps it at 24 MiB, so attachments cannot work online until

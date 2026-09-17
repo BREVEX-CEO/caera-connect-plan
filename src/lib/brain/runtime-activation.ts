@@ -74,6 +74,9 @@ async function startWasm(
 
   const adapter = new BrowserWasmAdapter({
     onProgress: (p) => report({ stage: "loading", fraction: p.fraction }),
+    // The rung decides where the layers go. A failure to start here is not a
+    // refusal: the authority moves down the ladder to the processor.
+    gpuLayers: path === "webgpu" ? 99 : 0,
     /*
      * THE ADAPTER IS HANDED THE BYTES; IT DOES NOT GO AND GET THEM.
      *

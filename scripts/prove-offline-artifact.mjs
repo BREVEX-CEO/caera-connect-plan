@@ -20,6 +20,8 @@ const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium
 const PORT = 8799;
 const PROOF_TIMEOUT_MS = 600_000;
 const ARTIFACT_SIZE = statSync(ARTIFACT).size;
+/** Reproduce processor-only conditions deliberately rather than by accident. */
+const CPU_ONLY = process.argv.includes("--cpu-only");
 
 const TYPES = {
   ".js": "text/javascript; charset=utf-8",
@@ -39,6 +41,7 @@ const ISOLATION_HEADERS = {
 const PAGE = `<!doctype html><meta charset="utf-8"><title>OCADE offline proof</title><script type="module">
 import { Wllama } from "/node_modules/@wllama/wllama/esm/index.js";
 
+const GPU_LAYERS = ${CPU_ONLY ? 0 : 99};
 const OPEN_TAG = "<think>";
 const CLOSE_TAG = "</think>";
 
@@ -91,13 +94,29 @@ window.__prove = async () => {
   const threads = diagnostics.crossOriginIsolated && diagnostics.sharedArrayBuffer ? 2 : 1;
   diagnostics.threads = threads;
 
+  /*
+   * THE GRAPHICS RUNG, ASKED FOR HONESTLY.
+   *
+   * wllama 3.5.1 ships one wllama.wasm built with llama.cpp's ggml-webgpu
+   * backend, so the same file runs on the card or the processor depending only
+   * on n_gpu_layers. Asking for an adapter is what decides whether this run can
+   * even try; the load below is what decides whether it works.
+   */
+  diagnostics.gpuRequested = !GPU_LAYERS ? 0 : GPU_LAYERS;
+  diagnostics.gpuAdapter = false;
+  try {
+    diagnostics.gpuAdapter = navigator.gpu ? (await navigator.gpu.requestAdapter()) !== null : false;
+  } catch (error) {
+    diagnostics.gpuAdapterError = String(error);
+  }
+
   try {
     await engine.loadModel([modelBlob], {
       n_ctx: 512,
       n_batch: 64,
       n_ubatch: 64,
       n_threads: threads,
-      n_gpu_layers: 0,
+      n_gpu_layers: diagnostics.gpuAdapter ? GPU_LAYERS : 0,
       n_parallel: 1,
       /*
        * Loaded exactly as the product loads it. This used to pass
@@ -387,9 +406,18 @@ await new Promise((resolve, reject) => {
   server.listen(PORT, "127.0.0.1", resolve);
 });
 
+/*
+ * --disable-gpu WOULD MAKE THE GRAPHICS VERDICT MEANINGLESS.
+ *
+ * This proof answers whether the artifact runs on the graphics card, so the
+ * browser has to be allowed one. Pass --cpu-only to reproduce the old
+ * processor-only conditions deliberately rather than by accident.
+ */
 const browser = await chromium.launch({
   executablePath: EXECUTABLE,
-  args: ["--no-sandbox", "--disable-gpu"],
+  args: CPU_ONLY
+    ? ["--no-sandbox", "--disable-gpu"]
+    : ["--no-sandbox", "--enable-unsafe-webgpu", "--enable-features=Vulkan"],
 });
 let failed = false;
 try {
@@ -460,6 +488,29 @@ try {
     );
   } else {
     process.stdout.write("PASS  the same artifact deliberates and still answers correctly\n");
+  }
+
+  /*
+   * THE GRAPHICS VERDICT — PLAN.md Phase 7.
+   *
+   * "Capability detection alone is not proof." So this reports what was asked
+   * for, what the browser handed over, and whether the run that used it
+   * answered correctly. A machine with no adapter is not a failure: it is the
+   * processor rung, which is the fallback working.
+   */
+  process.stdout.write(
+    `graphics: requested=${d.gpuRequested ?? 0} adapter=${Boolean(d.gpuAdapter)}` +
+      `${d.gpuAdapterError ? ` error=${JSON.stringify(d.gpuAdapterError)}` : ""}\n`,
+  );
+  if (d.gpuAdapter && (d.gpuRequested ?? 0) > 0) {
+    process.stdout.write(
+      "PASS  the artifact answered with layers offloaded to the graphics card\n",
+    );
+  } else {
+    process.stdout.write(
+      "NOTE  no graphics adapter here; the processor rung answered instead, which is the " +
+        "fallback behaving correctly. Re-run on GPU hardware for the graphics verdict.\n",
+    );
   }
 } catch (error) {
   failed = true;

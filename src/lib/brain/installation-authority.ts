@@ -143,7 +143,16 @@ export type InstallRemedy =
  * Never a dead end at the top. A device only reaches a refusal after every rung
  * has been tried and reported why it did not work.
  */
-export type CapabilityPath = "wasm_threaded" | "wasm_single";
+/**
+ * Every way this device might run the one artifact, strongest first.
+ *
+ * `webgpu` is a real rung, not an aspiration: wllama's unified `wllama.wasm`
+ * is built with llama.cpp's `ggml-webgpu` backend compiled in, so the SAME file
+ * runs on the graphics card or on the processor depending only on how many
+ * layers it is asked to offload. One artifact, one installer, one lifecycle —
+ * which is the whole reason a graphics rung is allowed to exist here at all.
+ */
+export type CapabilityPath = "webgpu" | "wasm_threaded" | "wasm_single";
 
 export interface CapabilityRung {
   path: CapabilityPath;

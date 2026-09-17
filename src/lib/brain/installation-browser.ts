@@ -72,6 +72,36 @@ export async function probeBrowserCapabilities(): Promise<CapabilityRung[]> {
    * `crossOriginIsolated` is the whole of the test now, and it is a fact the
    * platform reports rather than something this code can talk itself into.
    */
+  /*
+   * THE GRAPHICS RUNG, MEASURED RATHER THAN ASSUMED.
+   *
+   * A comment in this tree used to say the bundled binary was processor-only
+   * whatever it was asked for. That was true of an older wllama; the installed
+   * 3.5.1 `wllama.wasm` carries llama.cpp's ggml-webgpu backend, so the claim
+   * had outlived its evidence. What decides it here is whether this browser
+   * actually hands over an adapter — not whether `navigator.gpu` exists, which
+   * is present and useless on plenty of machines.
+   *
+   * Asking for an adapter is cheap and does not create a device. If it fails,
+   * or if starting the engine on it fails later, the ladder simply moves down:
+   * a graphics rung that will not run is a reason to use the processor, never
+   * a reason to refuse.
+   */
+  let gpuWhy = "this browser has no graphics path OCADE can use";
+  let gpuOk = false;
+  const gpu = (navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } }).gpu;
+  if (gpu) {
+    try {
+      gpuOk = (await gpu.requestAdapter()) !== null;
+      gpuWhy = gpuOk
+        ? "this device offers a graphics adapter OCADE can try"
+        : "this browser offers graphics but no adapter for it";
+    } catch (error) {
+      gpuWhy = error instanceof Error ? error.message : "the graphics adapter could not be asked";
+    }
+  }
+  rungs.push({ path: "webgpu", available: wasmOk && gpuOk, why: wasmOk ? gpuWhy : wasmWhy });
+
   const threadPlan = planThreads(readThreadSignals());
   rungs.push({
     path: "wasm_threaded",
