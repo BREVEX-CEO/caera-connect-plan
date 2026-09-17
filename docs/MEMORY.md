@@ -370,6 +370,35 @@ Neither is in this session. The owner's command is unchanged:
 `node scripts/prove-offline-artifact.mjs <artifact>` on a GPU machine, and
 `--cpu-only` for the fallback side.
 
+## Phase 8 — offline turns never actually synchronised
+
+The pending journal had a writer and a reader and **nothing that drained it**.
+A turn produced while the database was unreachable was held in the tab, shown
+as unsynchronised, and lost when the tab closed. The module's own documentation
+described a flush and an in-flight guard; the guard was unused and the flush did
+not exist. The synchronisation this phase is about had never run.
+
+`flushUnsyncedTurns` uploads everything waiting, oldest first, and retires a
+turn only after the write returns — forgetting on failure would lose exactly
+the work the journal protects. It runs on the `online` event and on mount,
+because the common case is not a reconnect somebody watches: it is coming back
+to a tab that regained its network in the background.
+
+Exactly-once is the server's guarantee, not the drain's. Every turn carries the
+`clientKey` it was written with and `appendOcadeMessage` refuses a second row
+for that key, so a reconnect firing twice, two tabs draining together, and a
+request that timed out after the server applied it all end with one row. The
+in-flight claim only avoids duplicated effort. Tested against a mock that
+enforces the server's guard rather than against the drain's own bookkeeping.
+
+**The journal stays in memory, deliberately.** `CLAUDE.md` permits persisting
+it, but `check-content-storage.mjs` encodes a considered decision to keep
+conversation content out of browser storage on shared devices, and `PLAN.md`'s
+own gate hedges with "where the chosen browser storage permits". The product
+states the consequence instead of hiding it: the turn is marked unsynchronised,
+and closing or signing out warns first. Revisit only with a decision to encrypt
+at rest.
+
 Still open for Phase 14: the deployed `ocade-intelligence` is version 6 and is
 materially older than this tree — its `edge-handler.ts` caps a request at 1 MiB
 where the repository caps it at 24 MiB, so attachments cannot work online until

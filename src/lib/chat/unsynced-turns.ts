@@ -62,6 +62,33 @@ export function unsyncedTurns(): UnsyncedTurn[] {
   return [...buffer.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
+/**
+ * Retire one turn, because the database now holds it.
+ *
+ * Separate from `forgetAllUnsyncedTurns` on purpose: a drain that loses the
+ * turns it has not uploaded yet, because one of them succeeded, is worse than
+ * one that never ran.
+ */
+export function forgetUnsyncedTurn(clientKey: string): void {
+  if (buffer.delete(clientKey)) announce();
+}
+
+/**
+ * Claim a turn for uploading, or refuse because something already has it.
+ *
+ * The correctness argument is the idempotency key the server enforces; this
+ * only stops two drains doing the same pointless work at the same moment.
+ */
+export function claimUnsyncedTurn(clientKey: string): boolean {
+  if (inFlight.has(clientKey)) return false;
+  inFlight.add(clientKey);
+  return true;
+}
+
+export function releaseUnsyncedTurn(clientKey: string): void {
+  inFlight.delete(clientKey);
+}
+
 /** Discard everything. Sign-out, after the user has been warned. */
 export function forgetAllUnsyncedTurns(): void {
   if (buffer.size === 0) return;

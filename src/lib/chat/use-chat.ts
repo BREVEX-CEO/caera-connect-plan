@@ -35,6 +35,7 @@ import {
 } from "@/lib/ocade.functions";
 import {
   describeStorageError,
+  flushUnsyncedTurns,
   loadChatMessages,
   persistChatMessage,
   type ChatMessageRecord,
@@ -244,6 +245,34 @@ export function useChat(): ChatState & ChatActions {
     }
     void openMessages(conversationId);
   }, [conversationId, openMessages, setMessages]);
+
+  /*
+   * WHEN THE NETWORK COMES BACK, UPLOAD WHAT WAS WRITTEN WITHOUT IT.
+   *
+   * Turns produced while the database was unreachable were held and never sent:
+   * the buffer had a writer and a reader and nothing that drained it. Both
+   * triggers matter — the event catches a reconnect while the tab is open, and
+   * the mount catches the far more common case of somebody coming back to a tab
+   * that regained its network while it was in the background.
+   *
+   * Exactly-once is the server's, through the idempotency key each turn
+   * carries, so firing this more often than necessary is wasted work rather
+   * than a duplicate.
+   */
+  useEffect(() => {
+    if (!user) return;
+    const drain = () => {
+      void flushUnsyncedTurns().then(({ uploaded }) => {
+        if (uploaded > 0) {
+          void refreshConversations();
+          if (opened.current) void openMessages(opened.current);
+        }
+      });
+    };
+    drain();
+    window.addEventListener("online", drain);
+    return () => window.removeEventListener("online", drain);
+  }, [user, refreshConversations, openMessages]);
 
   const send = useCallback(
     async (

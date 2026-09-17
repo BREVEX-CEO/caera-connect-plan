@@ -21,7 +21,13 @@
  *
  */
 import { appendOcadeMessage, listMessages } from "./ocade.functions";
-import { rememberUnsyncedTurn, unsyncedTurns } from "./chat/unsynced-turns";
+import {
+  claimUnsyncedTurn,
+  forgetUnsyncedTurn,
+  releaseUnsyncedTurn,
+  rememberUnsyncedTurn,
+  unsyncedTurns,
+} from "./chat/unsynced-turns";
 
 export interface ChatAttachmentMeta {
   kind: "image" | "file";
@@ -168,6 +174,52 @@ export async function loadChatMessages(input: {
     }));
 
   return [...remote, ...waiting].sort((a, b) => a.created_at.localeCompare(b.created_at));
+}
+
+/**
+ * UPLOAD EVERYTHING THAT HAS BEEN WAITING. Nothing did this.
+ *
+ * The buffer had a writer and a reader and no drain, so a turn produced while
+ * the database was unreachable stayed in the tab until it was closed. The
+ * module's own documentation described a flush and an in-flight guard; the
+ * guard was unused and the flush did not exist. Offline work was never
+ * synchronised at all.
+ *
+ * EXACTLY ONCE IS THE SERVER'S GUARANTEE, NOT THIS FUNCTION'S. Every turn
+ * carries the `clientKey` it was written with, and `appendOcadeMessage` refuses
+ * a second row for the same key. So a reconnect that fires twice, two tabs
+ * draining together, and a request that timed out after the server applied it
+ * all end with one row. This only avoids the duplicated effort.
+ *
+ * Oldest first, and a turn is retired only after the write returns — a drain
+ * that forgot on failure would lose exactly the work it exists to protect.
+ */
+export async function flushUnsyncedTurns(): Promise<{ uploaded: number; waiting: number }> {
+  let uploaded = 0;
+  for (const turn of unsyncedTurns()) {
+    if (!claimUnsyncedTurn(turn.clientKey)) continue;
+    try {
+      await appendOcadeMessage({
+        data: {
+          conversationId: turn.conversationId,
+          role: turn.role,
+          content: turn.content,
+          modelId: turn.modelId,
+          providerId: turn.providerId,
+          clientKey: turn.clientKey,
+          attachments: turn.attachments,
+        },
+      });
+      forgetUnsyncedTurn(turn.clientKey);
+      uploaded += 1;
+    } catch {
+      // Still unreachable, or this turn cannot be written. It stays, and the
+      // next reconnect tries again.
+    } finally {
+      releaseUnsyncedTurn(turn.clientKey);
+    }
+  }
+  return { uploaded, waiting: unsyncedTurns().length };
 }
 
 /** Human-readable, actionable message for a failed write. */
