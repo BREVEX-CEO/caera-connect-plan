@@ -91,6 +91,13 @@ export function ChatWorkspace() {
    * switch that silently does nothing on the route the request actually takes.
    */
   const canThink = choice === "offline" && offlineRelease()?.thinkingSuitable === true;
+  const [research, setResearch] = useState(false);
+  /*
+   * Research is the connected engine's grounded search, so it is offered only
+   * where a request can actually reach it: not on manual Offline, which sends
+   * no provider traffic at all, and not without a network.
+   */
+  const canResearch = choice !== "offline" && online;
   const textarea = useRef<HTMLTextAreaElement>(null);
   const picker = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<PendingAttachment[]>([]);
@@ -261,7 +268,8 @@ export function ChatWorkspace() {
      * the person watched a toast fade and had nothing left to press Send on.
      * Nothing was sent, written or charged, so the work is still theirs.
      */
-    if (await chat.send(message, choice, carried, canThink && thinking)) return;
+    if (await chat.send(message, choice, carried, canThink && thinking, canResearch && research))
+      return;
     setDraft((current) => (current.length > 0 ? current : message));
     setPending((current) => (current.length > 0 ? current : held));
     window.setTimeout(grow, 0);
@@ -416,7 +424,13 @@ export function ChatWorkspace() {
                   }}
                 />
 
-                <div className="ml-auto flex items-center gap-1">
+                {/*
+                  The right-hand group wraps too. With Research and Thinking
+                  beside the three-way selector, the microphone and Send, this
+                  row is 49px too wide at 375px — and a composer that scrolls
+                  sideways puts Send off the edge of a phone.
+                */}
+                <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
                   <div
                     role="group"
                     aria-label="Intelligence mode"
@@ -458,6 +472,27 @@ export function ChatWorkspace() {
                     this message — and it says so while it is on rather than
                     hiding the state in a menu.
                   */}
+                  {canResearch ? (
+                    <button
+                      type="button"
+                      onClick={() => setResearch((current) => !current)}
+                      aria-pressed={research}
+                      title={
+                        research
+                          ? "OCADE looks things up and says where it found them."
+                          : "Look it up on the web first"
+                      }
+                      className={cn(
+                        "mr-1 h-6 rounded-md border px-2 text-xs transition-colors",
+                        research
+                          ? "border-border bg-accent text-foreground"
+                          : "border-transparent text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      Research
+                    </button>
+                  ) : null}
+
                   {canThink ? (
                     <button
                       type="button"

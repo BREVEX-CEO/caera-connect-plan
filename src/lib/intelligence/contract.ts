@@ -101,6 +101,16 @@ export interface IntelligenceRequest {
    * is why the control is offered only where it can be kept.
    */
   thinking?: boolean;
+  /**
+   * Look things up on the web before answering.
+   *
+   * Online only, and it is the provider's own grounded search rather than a
+   * crawler of OCADE's own: no second Chat engine, no fetch loop, no
+   * server-side request forgery surface, and the same auth, permit,
+   * cancellation and persistence as any other request. The sources come back
+   * with the answer and are shown with it.
+   */
+  research?: boolean;
   /** Internal continuation that must not replace the user-visible engine state. */
   background?: boolean;
   signal?: AbortSignal;

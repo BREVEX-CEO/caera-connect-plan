@@ -462,6 +462,35 @@ account's conversations sees none.
 Nothing was dropped on an advisor's say-so. `PLAN.md` is explicit about tracing
 callers first, and every one of these findings had a caller and a reason.
 
+## Phase 12 — research, without a second Chat engine
+
+OCADE does not crawl. Research is the connected provider's own grounded search,
+turned on for one request: no fetch loop to bound, no server-side request
+forgery surface pointed wherever a model asks, and no second Chat product. It
+inherits the existing auth, permit, cancellation and persistence unchanged —
+a researched answer costs exactly one use, proved in the browser.
+
+Sources travel with the answer, appended as Markdown links rather than carried
+in a new event type, so Copy, export, persistence and the transcript keep them
+without learning a second shape. Only `https` URIs are accepted from the
+grounding metadata.
+
+The control appears only where a request can reach the provider: not on manual
+Offline, which sends no provider traffic at all, and not without a network.
+Grounding is mutually exclusive with declared functions at the provider, so the
+boundary sends one or the other — OCADE declares none today.
+
+Three defects found on the way, all mine and all caught by the browser:
+
+- The stub's new `const body` shadowed the REQUEST body in the same scope, so
+  `JSON.parse(body)` hit a temporal dead zone and **every** boundary request
+  parsed as `{}` and was refused as invalid. The symptom was a chat that would
+  not answer at all.
+- The research proof ran after the section that deliberately leaves the
+  boundary failing, and did not reset it.
+- Research beside Thinking, Temporary and the selector made the composer 49px
+  too wide at 375px. The right-hand control group wraps now.
+
 Still open for Phase 14: the deployed `ocade-intelligence` is version 6 and is
 materially older than this tree — its `edge-handler.ts` caps a request at 1 MiB
 where the repository caps it at 24 MiB, so attachments cannot work online until

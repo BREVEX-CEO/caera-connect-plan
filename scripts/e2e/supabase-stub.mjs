@@ -788,6 +788,7 @@ const server = createServer((request, response) => {
           carries: attachment?.image ? "image" : attachment?.text ? "text" : "nothing",
           text: typeof attachment?.text === "string" ? attachment.text.slice(0, 200) : null,
         })),
+        research: parsed.research === true,
         systemPrompts: (parsed.messages ?? [])
           .filter((message) => message?.role === "system")
           .map((message) => String(message.content).slice(0, 200)),
@@ -812,6 +813,11 @@ const server = createServer((request, response) => {
       const attached = (parsed.attachments ?? []).find(
         (attachment) => typeof attachment?.text === "string" && attachment.text.length > 0,
       );
+      // A grounded answer carries its sources, the way the boundary appends them.
+      const sourced =
+        parsed.research === true
+          ? "\n\nSources\n\n- [Example source](https://example.com/a)\n"
+          : "";
       const answer = attached
         ? `This is a stubbed OCADE answer for the browser proof. From ${attached.name}: ${String(
             attached.text,
@@ -821,6 +827,10 @@ const server = createServer((request, response) => {
             .join(" / ")
             .slice(0, 120)}`
         : "This is a stubbed OCADE answer for the browser proof.";
+      // Not `body`: that name is the REQUEST body in this scope, and shadowing
+      // it put `JSON.parse(body)` above into a temporal dead zone — every
+      // boundary request then parsed as {} and was refused as invalid.
+      const streamed = `${answer}${sourced}`;
       response.writeHead(200, {
         "content-type": "text/event-stream",
         "access-control-allow-origin": "*",
@@ -828,7 +838,7 @@ const server = createServer((request, response) => {
       });
       const emit = (event) => response.write(`data: ${JSON.stringify(event)}\n\n`);
       emit({ type: "status", backend: "online", state: "streaming" });
-      for (const word of answer.split(" ")) emit({ type: "token", text: `${word} ` });
+      for (const word of streamed.split(" ")) emit({ type: "token", text: `${word} ` });
       emit({
         type: "final",
         response: {

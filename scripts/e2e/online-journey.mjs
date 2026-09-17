@@ -218,6 +218,47 @@ try {
     `${before} before, ${after} after`,
   );
 
+  /* --- research is the same request, and it cites where it looked --------- */
+
+  // The refusal section above left the boundary failing on purpose.
+  await setBoundary(200);
+  await page.goto(`${BASE}/?new=true`, { waitUntil: "networkidle" });
+  check(
+    "Research is offered on the connected engine",
+    (await page.getByRole("button", { name: "Research" }).count()) === 1,
+  );
+  await page.getByRole("button", { name: "Offline", exact: true }).click();
+  check(
+    "and never on manual Offline, which sends no provider traffic at all",
+    (await page.getByRole("button", { name: "Research" }).count()) === 0,
+  );
+  await page.getByRole("button", { name: "Auto", exact: true }).click();
+
+  const beforeResearch = await usageRemaining(page);
+  await page.getByRole("button", { name: "Research" }).click();
+  await page.fill("#ocade-composer", "What happened this week?");
+  await page.click('button[aria-label="Send"]');
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  await page.waitForTimeout(800);
+
+  const researched = await page.locator("body").innerText();
+  check(
+    "a researched answer shows where it looked",
+    /Sources/.test(researched) && /Example source/.test(researched),
+    researched.split("\n").find((line) => /Example source/.test(line)) ?? "",
+  );
+  // `lastBoundaryRequest()` returns the record itself, not a wrapper.
+  const researchRequest = await lastBoundaryRequest();
+  check(
+    "and it asked the boundary for research rather than running its own",
+    researchRequest.research === true,
+    String(researchRequest.research),
+  );
+  check(
+    "a researched answer costs exactly one use, like any other",
+    (await usageRemaining(page)) === beforeResearch - 1,
+  );
+
   /* --- losing the network changes what is offered, truthfully -------------- */
 
   await context.setOffline(true);

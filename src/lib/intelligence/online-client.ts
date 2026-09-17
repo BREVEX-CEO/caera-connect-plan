@@ -183,6 +183,7 @@ export function createOnlineIntelligenceTransport(
             attachments: request.attachments,
             privacy: request.privacy,
             conversationId: request.conversationId,
+            research: request.research === true,
           }),
           signal: request.signal,
         },

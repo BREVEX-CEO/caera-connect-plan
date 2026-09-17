@@ -88,6 +88,7 @@ interface OnlineRequestBody {
   attachments: NormalizedAttachment[];
   privacy: IntelligencePrivacyPolicy;
   conversationId?: string;
+  research?: boolean;
 }
 
 export interface OnlineHandlerDependencies {
@@ -270,8 +271,22 @@ function providerBody(body: OnlineRequestBody): Record<string, unknown> {
   return {
     contents,
     generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS },
+    /*
+     * RESEARCH IS THE PROVIDER'S OWN GROUNDED SEARCH.
+     *
+     * OCADE does not crawl. A browsing tool of its own would be a second Chat
+     * engine, a fetch loop to bound, and a server-side request forgery surface
+     * pointed at whatever a model asked for. Grounding keeps the one request,
+     * the one permit and the one cancellation, and returns the sources with
+     * the answer.
+     *
+     * It is mutually exclusive with declared functions, which is why this is an
+     * either/or rather than both: OCADE sends no function declarations today,
+     * and a request that carried both would be refused by the provider.
+     */
     ...(system ? { system_instruction: { parts: [{ text: system }] } } : {}),
-    ...(body.tools.length
+    ...(body.research ? { tools: [{ google_search: {} }] } : {}),
+    ...(!body.research && body.tools.length
       ? {
           tools: [
             {
@@ -344,6 +359,33 @@ function normalizeProviderChunk(
       events.push({ type: "tool_call", call });
     }
   }
+  /*
+   * SOURCES TRAVEL WITH THE ANSWER, NOT BESIDE IT.
+   *
+   * Grounded search returns where it looked. Appended to the text rather than
+   * carried in a new event type, so Copy, export, persistence and the
+   * transcript all keep them without learning a second shape — and a person
+   * reading the answer later can still check it. Markdown links already render.
+   */
+  if (first && isRecord(first.groundingMetadata)) {
+    const chunks = Array.isArray(first.groundingMetadata.groundingChunks)
+      ? first.groundingMetadata.groundingChunks
+      : [];
+    const sources: string[] = [];
+    for (const chunk of chunks) {
+      if (!isRecord(chunk) || !isRecord(chunk.web)) continue;
+      const uri = chunk.web.uri;
+      const title = chunk.web.title;
+      if (!boundedString(uri, 2_000) || !/^https:\/\//i.test(uri)) continue;
+      const label = boundedString(title, 200) ? title : uri;
+      const line = `- [${label.replace(/[[\]]/g, "")}](${uri})`;
+      if (!sources.includes(line)) sources.push(line);
+    }
+    if (sources.length > 0) {
+      events.push({ type: "token", text: `\n\nSources\n\n${sources.join("\n")}\n` });
+    }
+  }
+
   if (isRecord(value.usageMetadata)) {
     const usage: NormalizedUsage = {};
     if (typeof value.usageMetadata.promptTokenCount === "number") {
