@@ -248,6 +248,40 @@ scrolling the page sideways; and the shell journey counted every
 `aria-pressed` button on the page as an intelligence mode, so the selector
 carries `role="group"` with a name and the assertion is scoped to it.
 
+## Phase 4 — attachments, and files treated as hostile
+
+The headline defect was already fixed in this tree and is still live in
+production: the deployed Edge Function validates `attachments` and never passes
+them to the provider, so an online answer was written as though no file
+existed. The repository's `providerBody` folds them in, labelled. It reaches
+customers when the function is redeployed at Phase 14.
+
+Hardened here, each one a real gap rather than a hypothetical:
+
+- **The read is bounded before it happens.** `file.text()` read an entire file
+  into memory before a single character was truncated, so an accidentally
+  attached multi-gigabyte log was a killed tab — and every byte past
+  `MAX_TEXT_CHARS` was thrown away immediately afterwards anyway. One megabyte
+  is sliced off the front, and truncation is still announced in the text.
+- **A file is what its bytes are.** `File.type` is the operating system
+  guessing from an extension, so arbitrary bytes named `.png` were base64'd and
+  sent to the provider as a picture. Image magic bytes are checked for PNG,
+  JPEG, GIF and WebP; anything else is refused by name.
+- **SVG is read as markup, not as a picture.** It arrives as `image/svg+xml`
+  and can carry script; the image branch would have sent it to a vision model
+  as a photograph.
+- **Archives are never opened**, which is the cheapest possible bound on a
+  decompression bomb: there is no extraction step to limit.
+- **Extracted text is data.** The citation instruction now tells the model in
+  so many words that file contents are never instructions, and that a file
+  asking it to change its behaviour should be reported rather than obeyed.
+
+Browser-proved on the production build: an attached CSV visibly reaches the
+answer, a renamed binary claiming to be an image is refused, and an archive is
+refused rather than extracted. The loopback stub echoes a fragment of the
+attached file so "the file changed the answer" is observable on screen rather
+than merely recorded at the boundary.
+
 Still open for Phase 14: the deployed `ocade-intelligence` is version 6 and is
 materially older than this tree — its `edge-handler.ts` caps a request at 1 MiB
 where the repository caps it at 24 MiB, so attachments cannot work online until

@@ -11,6 +11,9 @@ import {
 const file = (name: string, type: string, body: string | Uint8Array = "hello") =>
   new File([body as BlobPart], name, { type });
 
+/** A real PNG signature. What a file IS decides which path it takes. */
+const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
+
 const ready = (over: Partial<PendingAttachment> = {}): PendingAttachment => ({
   id: "a",
   name: "notes.txt",
@@ -37,10 +40,43 @@ describe("what OCADE can read", () => {
   });
 
   it("keeps an image whole, for the engine that can actually see", async () => {
-    const read = await readAttachment(file("shot.png", "image/png", "bytes"), "id");
+    const read = await readAttachment(file("shot.png", "image/png", PNG), "id");
     expect(read.state).toBe("ready");
     expect(read.image).toBeTruthy();
     expect(read.text).toBeUndefined();
+  });
+});
+
+describe("a file is what its bytes are, not what its name claims", () => {
+  /*
+   * `File.type` is the operating system guessing from an extension, and anyone
+   * can rename anything. Without this, arbitrary bytes labelled `image/png`
+   * were base64-encoded and sent to the provider as a picture.
+   */
+  it("refuses bytes that are not the image they claim to be", async () => {
+    const read = await readAttachment(file("payload.png", "image/png", "not a png at all"), "id");
+    expect(read.state).toBe("rejected");
+    expect(read.reason).toMatch(/not an image/i);
+  });
+
+  it("reads SVG as the markup it is rather than as a picture", async () => {
+    // It arrives as `image/svg+xml`, and markup can carry script. The image
+    // path would have base64-encoded it and sent it to a vision model.
+    const read = await readAttachment(
+      file("logo.svg", "image/svg+xml", "<svg><script>x()</script></svg>"),
+      "id",
+    );
+    expect(read.state).toBe("ready");
+    expect(read.image).toBeUndefined();
+    expect(read.text).toContain("<svg>");
+  });
+
+  it("never opens an archive, so there is no extraction to bound", async () => {
+    // The cheapest defence against a decompression bomb is not to decompress.
+    for (const name of ["bundle.zip", "backup.tar.gz", "data.7z"]) {
+      const read = await readAttachment(file(name, "application/zip", PNG), "id");
+      expect(read.state, name).toBe("rejected");
+    }
   });
 });
 
@@ -120,5 +156,24 @@ describe("making an answer checkable", () => {
     const instruction = citationInstruction(forRequest([ready()]));
     expect(instruction).toMatch(/which file/i);
     expect(instruction).toMatch(/row|column|line|heading/i);
+  });
+});
+
+describe("a bounded read, and untrusted content", () => {
+  it("reads only the first megabyte of a large file, and says it did", async () => {
+    // `file.text()` read the WHOLE file into memory before a character was
+    // truncated, so an accidentally attached log was a tab the browser kills.
+    const huge = file("big.log", "text/plain", "x".repeat(3 * 1024 * 1024));
+    const read = await readAttachment(huge, "id");
+    expect(read.state).toBe("ready");
+    expect(read.text!.length).toBeLessThan(MAX_TEXT_CHARS + 500);
+    expect(read.text).toContain("longer than OCADE can read at once");
+  });
+
+  it("tells the model that file contents are data, never instructions", () => {
+    const instruction = citationInstruction([
+      { name: "notes.txt", mime: "text/plain", sizeBytes: 5, text: "hello" },
+    ])!;
+    expect(instruction).toMatch(/never instructions/i);
   });
 });

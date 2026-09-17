@@ -241,8 +241,62 @@ try {
   await page.waitForTimeout(500);
   check("and confirming deletes it", (await page.locator("aside ul li").count()) === 0);
 
+  /* --- an attached file reaches the answer, and hostile ones do not -------- */
+
+  await page
+    .getByRole("button", { name: "New chat" })
+    .first()
+    .click()
+    .catch(() => undefined);
+  await page.goto(`${BASE}/?new=true`, { waitUntil: "networkidle" });
+
+  await page.setInputFiles('input[aria-label="Attach files"]', {
+    name: "sales.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("region,total\nnorth,4210\n"),
+  });
+  await page.waitForTimeout(600);
+  await page.fill("#ocade-composer", "What is the north total?");
+  await page.click('button[aria-label="Send"]');
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  const withFile = await page.locator("body").innerText();
+  check(
+    "an attached file visibly reaches the answer",
+    withFile.includes("sales.csv") && withFile.includes("north,4210"),
+    withFile.split("\n").find((line) => line.includes("sales.csv")) ?? "",
+  );
+
+  // Bytes that are not the image they claim to be.
+  await page.goto(`${BASE}/?new=true`, { waitUntil: "networkidle" });
+  await page.setInputFiles('input[aria-label="Attach files"]', {
+    name: "payload.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("MZ\u0090 this is not a png"),
+  });
+  await page.waitForTimeout(600);
+  check(
+    "a renamed binary claiming to be an image is refused",
+    /not an image/i.test(await page.locator("body").innerText()),
+  );
+
+  // An archive is never opened, so there is no extraction to bound.
+  await page.goto(`${BASE}/?new=true`, { waitUntil: "networkidle" });
+  await page.setInputFiles('input[aria-label="Attach files"]', {
+    name: "bundle.zip",
+    mimeType: "application/zip",
+    buffer: Buffer.from("PK\u0003\u0004 lots of nested entries"),
+  });
+  await page.waitForTimeout(600);
+  check(
+    "an archive is refused rather than extracted",
+    /cannot read/i.test(await page.locator("body").innerText()),
+  );
+
   /* --- a temporary chat writes nothing, anywhere --------------------------- */
 
+  // Counted first: earlier sections leave real conversations behind, and what
+  // this proves is that a temporary one ADDS nothing, not that history is empty.
+  const savedBefore = await page.locator("aside ul li").count();
   await page.getByRole("button", { name: "Temporary" }).click();
   await page.fill("#ocade-composer", "Nothing about this is saved");
   await page.click('button[aria-label="Send"]');
@@ -250,14 +304,14 @@ try {
   check("a temporary chat still answers", true);
   check(
     "and it never reaches the sidebar",
-    (await page.locator("aside ul li").count()) === 0,
-    `${await page.locator("aside ul li").count()} rows`,
+    (await page.locator("aside ul li").count()) === savedBefore,
+    `${await page.locator("aside ul li").count()} rows against ${savedBefore}`,
   );
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   check(
     "and a reload finds no trace of it",
-    (await page.locator("aside ul li").count()) === 0 &&
+    (await page.locator("aside ul li").count()) === savedBefore &&
       !(await page.locator("body").innerText()).includes("Nothing about this is saved"),
   );
 

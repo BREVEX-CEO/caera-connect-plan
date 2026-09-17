@@ -801,7 +801,26 @@ const server = createServer((request, response) => {
       if (onlineBoundary.status !== 200) {
         return send(onlineBoundary.status, { error: "provider_unavailable" });
       }
-      const answer = "This is a stubbed OCADE answer for the browser proof.";
+      /*
+       * THE ANSWER REPEATS WHAT THE FILE SAID.
+       *
+       * A journey can otherwise only prove an attachment reached the boundary,
+       * not that it could have influenced the reply. Echoing a fragment makes
+       * "the file changed the answer" observable on screen, which is what
+       * PLAN.md Phase 4's gate actually asks for.
+       */
+      const attached = (parsed.attachments ?? []).find(
+        (attachment) => typeof attachment?.text === "string" && attachment.text.length > 0,
+      );
+      const answer = attached
+        ? `This is a stubbed OCADE answer for the browser proof. From ${attached.name}: ${String(
+            attached.text,
+          )
+            .split("\n")
+            .slice(0, 2)
+            .join(" / ")
+            .slice(0, 120)}`
+        : "This is a stubbed OCADE answer for the browser proof.";
       response.writeHead(200, {
         "content-type": "text/event-stream",
         "access-control-allow-origin": "*",
