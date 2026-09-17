@@ -520,6 +520,44 @@ export path (now one `saveFile`), the offline journal's unused in-flight guard
 stale processor-only claim that had kept a whole graphics rung out of the
 ladder.
 
+## Phase 14 — certification, and what is genuinely owner-only
+
+Verified on the exact merged tree: 826 unit and database tests, the 15-gate
+`verify:full` matrix, and all 11 browser journeys on the production build (263
+checks). `origin/main` is an ancestor of this branch, so the merge is a
+fast-forward with nothing to reconcile.
+
+**Supabase is current.** All 101 repository migrations are present in
+`sazhgaisyhkdbrooycdv`; one appears under a different ledger name and its
+objects were verified directly (`legal_consent_receipts`, both policies, both
+indexes). Generated types were stale — they declared two organization helpers
+the live project dropped — and are regenerated from the live database.
+
+**Two things this session cannot do, and both are one command each.**
+
+1. `supabase functions deploy ocade-intelligence --project-ref sazhgaisyhkdbrooycdv`
+   The deployed function is still version 6 and materially older than this tree:
+   it caps a request at 1 MiB where the repository caps 24 MiB, it validates
+   attachments and never forwards them, and it has no grounded research. The
+   Supabase MCP deploy tool takes file contents inline rather than paths, and
+   hand-transcribing 27 KB of `edge-handler.ts` into a production deploy risks
+   corrupting the boundary — the CLI copies the bytes exactly.
+2. `npm run deploy:web`
+   Needs `CLOUDFLARE_API_TOKEN`, which this session does not hold. The deployed
+   Worker is still a build from before Phase 1: the four defects in the original
+   report are live until it ships.
+
+Deploy the Edge Function and the frontend together — the plan requires one
+compatible release — then confirm with
+`curl -s https://ocade.in/api/health`, which must report all four of
+`supabasePublic`, `supabaseServer`, `modelDelivery` and `offlineLeases` true.
+
+Hardware-only proof that remains external, recorded rather than fabricated:
+real generation on a graphics card and a forced WebGPU failure falling back to
+WASM (`node scripts/prove-offline-artifact.mjs <artifact>`, and `--cpu-only`
+for the fallback side), and the private-object install, resume, repair and
+reinstall journey against the real 484 MB release.
+
 Still open for Phase 14: the deployed `ocade-intelligence` is version 6 and is
 materially older than this tree — its `edge-handler.ts` caps a request at 1 MiB
 where the repository caps it at 24 MiB, so attachments cannot work online until
