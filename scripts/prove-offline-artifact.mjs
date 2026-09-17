@@ -96,8 +96,13 @@ window.__prove = async () => {
       n_threads: threads,
       n_gpu_layers: 0,
       n_parallel: 1,
-      reasoning: false,
-      reasoning_budget_tokens: 0,
+      /*
+       * Loaded exactly as the product loads it. This used to pass
+       * reasoning:false and a zero reasoning budget, which suppressed
+       * deliberation at load time — so the proof could never have observed
+       * thinking even once it was asked for, and it proved the artifact under
+       * conditions the adapter does not apply.
+       */
       default_template_kwargs: { enable_thinking: false },
       warmup: false,
       jinja: true,
@@ -127,7 +132,42 @@ window.__prove = async () => {
     });
 
     const answer = String(response?.choices?.[0]?.message?.content ?? "").trim();
-    return { answer, diagnostics };
+
+    /*
+     * THE SAME WEIGHTS, DELIBERATING.
+     *
+     * Qwen3 carries both modes in one artifact and the chat template chooses
+     * between them, so this is the proof that enable_thinking:true genuinely
+     * produces a reasoning block on THIS file in THIS runtime — not an
+     * assumption from the model card. The manifest thinkingSuitable flag may
+     * only be set from this result.
+     *
+     * The budget is deliberately generous and the question deliberately small:
+     * what is being proven is that deliberation happens and still arrives at
+     * the right answer, not how fast it is on this machine.
+     */
+    const thinkingStartedAt = Date.now();
+    const deliberated = await engine.createChatCompletion({
+      messages: [{ role: "user", content: "What is 2 + 2? Answer with the number only." }],
+      max_tokens: 512,
+      temperature: 0.7,
+      top_p: 0.8,
+      top_k: 20,
+      min_p: 0,
+      seed: 42,
+      chat_template_kwargs: { enable_thinking: true },
+      stream: false,
+    });
+    const raw = String(deliberated?.choices?.[0]?.message?.content ?? "");
+    diagnostics.thinkingMs = Date.now() - thinkingStartedAt;
+    diagnostics.thinkingOpened = raw.includes("<think>");
+    diagnostics.thinkingClosed = raw.includes("</think>");
+    diagnostics.thinkingChars = raw.length;
+    // What a person would see, with the reasoning removed the way the adapter
+    // removes it.
+    const thinkingAnswer = raw.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+
+    return { answer, thinkingAnswer, diagnostics };
   } finally {
     await engine.exit();
   }
@@ -311,6 +351,37 @@ try {
     );
   } else {
     process.stdout.write("PASS  the artifact loads and answers correctly\n");
+  }
+
+  /*
+   * THINKING IS A SEPARATE CLAIM AND GETS A SEPARATE VERDICT.
+   *
+   * `release/OCADE_OFFLINE_RELEASE.json` may only carry `thinkingSuitable:
+   * true` on the strength of these three lines. Qwen3-0.6B carries both modes
+   * in one artifact, but "the model card says so" is not proof about this file
+   * in this runtime.
+   */
+  const thinking = String(result?.thinkingAnswer ?? "").trim();
+  process.stdout.write(
+    `thinking: opened=${Boolean(d.thinkingOpened)} closed=${Boolean(d.thinkingClosed)} ` +
+      `chars=${d.thinkingChars ?? "?"} ms=${d.thinkingMs ?? "?"}\n`,
+  );
+  process.stdout.write(`thinking answer: ${JSON.stringify(thinking.slice(0, 200))}\n`);
+
+  if (!d.thinkingOpened || !d.thinkingClosed) {
+    failed = true;
+    process.stderr.write(
+      "Asked to deliberate, the artifact produced no complete reasoning block. " +
+        "Do not set thinkingSuitable on this release.\n",
+    );
+  } else if (!isCorrectArithmeticAnswer(thinking)) {
+    failed = true;
+    process.stderr.write(
+      "The artifact deliberated but the answer left after the reasoning was not correct. " +
+        "Do not set thinkingSuitable on this release.\n",
+    );
+  } else {
+    process.stdout.write("PASS  the same artifact deliberates and still answers correctly\n");
   }
 } catch (error) {
   failed = true;

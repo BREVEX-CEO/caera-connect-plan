@@ -56,6 +56,55 @@ export interface WasmProgress {
   text: string;
 }
 
+/**
+ * KEEP THE DELIBERATION OUT OF THE ANSWER.
+ *
+ * With thinking on, this artifact's template wraps its reasoning in
+ * `<think>…</think>` and then answers. That reasoning is not the answer: it is
+ * the model talking to itself, it is frequently wrong on the way to being
+ * right, and `CLAUDE.md` keeps internal runtime behaviour off customer
+ * surfaces. So it never reaches the transcript.
+ *
+ * TAGS SPLIT ACROSS CHUNKS, which is the only hard part. A stream can deliver
+ * `<thi` and `nk>` separately, so a naive `replace` per chunk lets the halves
+ * through as text. Anything that could still become a tag is held back until
+ * the next chunk decides.
+ */
+export function reasoningFilter(): { visible(piece: string): string } {
+  const OPEN = "<think>";
+  const CLOSE = "</think>";
+  let held = "";
+  let inside = false;
+
+  return {
+    visible(piece: string): string {
+      held += piece;
+      let out = "";
+      for (;;) {
+        const tag = inside ? CLOSE : OPEN;
+        const at = held.indexOf(tag);
+        if (at === -1) {
+          const keep = unfinishedTagLength(held, tag);
+          if (!inside) out += held.slice(0, held.length - keep);
+          held = held.slice(held.length - keep);
+          return out;
+        }
+        if (!inside) out += held.slice(0, at);
+        held = held.slice(at + tag.length);
+        inside = !inside;
+      }
+    },
+  };
+}
+
+/** How much of the tail could still be the start of `tag`. */
+function unfinishedTagLength(text: string, tag: string): number {
+  for (let n = Math.min(tag.length - 1, text.length); n > 0; n -= 1) {
+    if (text.endsWith(tag.slice(0, n))) return n;
+  }
+  return 0;
+}
+
 export class BrowserWasmAdapter implements BrainAdapter {
   readonly id = "browser_wasm" as const;
   readonly displayName = "OCADE Browser (compatibility)";
@@ -428,6 +477,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
 
     const startedAt = Date.now();
     let firstTokenMs: number | null = null;
+    const reasoning = reasoningFilter();
 
     try {
       // `abortSignal` is wllama's own, so cancelling stops the computation
@@ -443,13 +493,19 @@ export class BrowserWasmAdapter implements BrainAdapter {
         top_k: BROWSER_SAMPLER.topK,
         min_p: BROWSER_SAMPLER.minP,
         /*
-         * DELIBERATING IS OFF, AND IT HAS TO BE ASKED FOR EXPLICITLY.
+         * DELIBERATING IS OFF UNLESS IT IS ASKED FOR — AND ASKING NOW WORKS.
          *
-         * This artifact's chat template emits a reasoning block unless told
-         * not to. On a device this size those tokens are minutes of waiting
-         * that never reach the person, and a page that looks hung.
+         * `BrainStreamHandlers.think` has been in the contract the whole time
+         * and this passed a hard-coded `false` regardless, so a caller that
+         * asked for deliberation was quietly given a straight answer. One
+         * artifact, two modes: the chat template takes `enable_thinking`, and
+         * the same weights answer either way.
+         *
+         * It stays off by default for the reason the contract already gives:
+         * on this tier those tokens are minutes of waiting that never reach
+         * the person. What changed is that the switch is now connected.
          */
-        chat_template_kwargs: { enable_thinking: false },
+        chat_template_kwargs: { enable_thinking: handlers.think === true },
         messages: messages.map((m) => ({ role: m.role, content: m.content })),
       });
 
@@ -464,8 +520,10 @@ export class BrowserWasmAdapter implements BrainAdapter {
         if (handlers.signal?.aborted) break;
         const piece = chunk.choices?.[0]?.delta?.content;
         if (piece) {
+          const visible = reasoning.visible(piece);
+          if (!visible) continue;
           if (firstTokenMs === null) firstTokenMs = Date.now() - startedAt;
-          handlers.onToken(piece);
+          handlers.onToken(visible);
         }
       }
 

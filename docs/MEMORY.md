@@ -212,11 +212,35 @@ Added this phase:
   transcript, because carrying turns across the boundary would either write
   what was promised not to be written or silently drop what the person can see.
 
-**Thinking is deliberately not built.** `PLAN.md` asks for it beside the mode
-selector, but the intelligence contract has no thinking parameter and the
-approved artifact declares `thinkingSuitable: false`. A control shipped today
-could only do nothing, which the no-dead-control rule and the product truth
-rules both forbid. It needs the contract first.
+**Thinking — corrected, and where it now stands.** The offline model is
+Qwen3-0.6B Q4_K_M, which carries Thinking and non-Thinking in one artifact and
+chooses between them through the chat template. `thinkingSuitable: false` was
+an OCADE configuration decision taken to keep the first WASM proof small, not a
+limit of the model.
+
+Tracing it found a real defect rather than a missing feature:
+`BrainStreamHandlers.think` has been in the adapter contract the whole time and
+`browser-wasm.ts` passed a hard-coded `enable_thinking: false` regardless, so a
+caller that asked to deliberate was quietly given a straight answer. The switch
+is connected now, and the reasoning block never reaches the transcript — a
+streaming filter removes `<think>…</think>`, including tags split across chunks,
+which is the case a per-chunk replace gets wrong and the one that would show a
+person the model's private working as its answer.
+
+`scripts/prove-offline-artifact.mjs` now proves Thinking as a separate verdict:
+the same artifact, asked to deliberate, must produce a complete reasoning block
+AND still answer correctly after it is removed. It also no longer loads with
+`reasoning:false` and a zero budget, which had made deliberation unobservable
+and proved the artifact under conditions the adapter does not apply.
+
+**The flag stays `false` and no Thinking control ships**, because the proof has
+not been run: the 484 MB artifact is not in this session and neither R2 (via
+`ocade.in`) nor any model host is reachable through this session's network
+policy. Run `node scripts/prove-offline-artifact.mjs <artifact>` where the file
+is available; only its `PASS  the same artifact deliberates and still answers
+correctly` line may flip `thinkingSuitable` in
+`release/OCADE_OFFLINE_RELEASE.json`. Nothing above the adapter sets `think`
+yet, so production behaviour is unchanged by this checkpoint.
 
 Two regressions the browser caught and that are fixed: the Temporary control
 pushed the composer's control row past 375px, so it wraps now rather than
