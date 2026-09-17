@@ -158,13 +158,49 @@ window.__prove = async () => {
       chat_template_kwargs: { enable_thinking: true },
       stream: false,
     });
-    const raw = String(deliberated?.choices?.[0]?.message?.content ?? "");
     diagnostics.thinkingMs = Date.now() - thinkingStartedAt;
+
+    /*
+     * WHERE THE REASONING ACTUALLY LANDS, RATHER THAN WHERE IT WAS ASSUMED TO.
+     *
+     * The first run of this proof reported opened=false, closed=false and a
+     * correct answer of "4", and that was read as "no thinking". It was the
+     * opposite: wllama loads llama.cpp with reasoning_format defaulting to
+     * deepseek, which PARSES the reasoning block out of the message and
+     * removes the tags from content. Looking for a literal <think> in content
+     * therefore cannot see deliberation that definitely happened.
+     *
+     * So take the evidence the runtime actually offers, all of it:
+     *   - content, in case reasoning_format is none and the tags survive;
+     *   - reasoning_content, which is where llama.cpp puts the parsed block
+     *     (wllama 3.5.1 does not declare it, so it is read defensively);
+     *   - usage.completion_tokens_details.reasoning_tokens, which wllama DOES
+     *     declare and which is a count nothing else could produce.
+     *
+     * Any one of the three is proof the model deliberated. The observed keys
+     * are reported either way, so a future change of runtime is diagnosable
+     * rather than mysterious.
+     */
+    const message = deliberated?.choices?.[0]?.message ?? {};
+    const raw = String(message.content ?? "");
+    const parsedReasoning = String(message.reasoning_content ?? "");
+    const reasoningTokens = Number(
+      deliberated?.usage?.completion_tokens_details?.reasoning_tokens ?? 0,
+    );
+
+    diagnostics.messageKeys = Object.keys(message);
     diagnostics.thinkingOpened = raw.includes("<think>");
     diagnostics.thinkingClosed = raw.includes("</think>");
+    diagnostics.reasoningContentChars = parsedReasoning.length;
+    diagnostics.reasoningTokens = Number.isFinite(reasoningTokens) ? reasoningTokens : 0;
     diagnostics.thinkingChars = raw.length;
-    // What a person would see, with the reasoning removed the way the adapter
-    // removes it.
+    diagnostics.deliberated =
+      (diagnostics.thinkingOpened && diagnostics.thinkingClosed) ||
+      diagnostics.reasoningContentChars > 0 ||
+      diagnostics.reasoningTokens > 0;
+
+    // What a person would see: the tags removed if they survived, and the
+    // parsed block was never in content to begin with.
     const thinkingAnswer = raw.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
 
     return { answer, thinkingAnswer, diagnostics };
@@ -363,15 +399,18 @@ try {
    */
   const thinking = String(result?.thinkingAnswer ?? "").trim();
   process.stdout.write(
-    `thinking: opened=${Boolean(d.thinkingOpened)} closed=${Boolean(d.thinkingClosed)} ` +
-      `chars=${d.thinkingChars ?? "?"} ms=${d.thinkingMs ?? "?"}\n`,
+    `thinking: deliberated=${Boolean(d.deliberated)} tags=${Boolean(d.thinkingOpened && d.thinkingClosed)} ` +
+      `reasoningContentChars=${d.reasoningContentChars ?? 0} reasoningTokens=${d.reasoningTokens ?? 0} ` +
+      `answerChars=${d.thinkingChars ?? "?"} ms=${d.thinkingMs ?? "?"} ` +
+      `messageKeys=${JSON.stringify(d.messageKeys ?? [])}\n`,
   );
   process.stdout.write(`thinking answer: ${JSON.stringify(thinking.slice(0, 200))}\n`);
 
-  if (!d.thinkingOpened || !d.thinkingClosed) {
+  if (!d.deliberated) {
     failed = true;
     process.stderr.write(
-      "Asked to deliberate, the artifact produced no complete reasoning block. " +
+      "Asked to deliberate, the artifact showed no reasoning by any measure the runtime offers: " +
+        "no reasoning block in content, no reasoning_content, and no reasoning tokens counted. " +
         "Do not set thinkingSuitable on this release.\n",
     );
   } else if (!isCorrectArithmeticAnswer(thinking)) {

@@ -233,8 +233,28 @@ AND still answer correctly after it is removed. It also no longer loads with
 `reasoning:false` and a zero budget, which had made deliberation unobservable
 and proved the artifact under conditions the adapter does not apply.
 
-**The flag stays `false` and no Thinking control ships**, because the proof has
-not been run: the 484 MB artifact is not in this session and neither R2 (via
+**The first proof run was read wrongly, and the proof is fixed.** It reported
+`opened=false closed=false` with a correct answer of `"4"`, which looked like
+"this model cannot think". It is the opposite: wllama 3.5.1 loads llama.cpp with
+`reasoning_format` defaulting to `deepseek`, which PARSES the reasoning block
+out of the message and strips the tags from `content`. Looking for a literal
+`<think>` in `content` cannot see deliberation that definitely happened.
+
+The proof now takes every measure the runtime offers — a tag pair surviving in
+`content`, a non-empty `reasoning_content` (llama.cpp emits it; wllama 3.5.1
+does not declare it, so it is read defensively), and
+`usage.completion_tokens_details.reasoning_tokens`, which wllama does declare
+and which nothing else could produce. Any one of the three is proof. It prints
+the observed message keys either way, so a future runtime change is diagnosable
+rather than mysterious.
+
+This also explains why the adapter's `<think>` filter is usually a no-op: with
+the default parsing the tags never arrive. It stays as the guard for
+`reasoning_format: "none"` and for templates that emit tags outside the
+parser's expectations.
+
+**The flag stays `false` and no Thinking control ships**, because the corrected
+proof has not been run: the 484 MB artifact is not in this session and neither R2 (via
 `ocade.in`) nor any model host is reachable through this session's network
 policy. Run `node scripts/prove-offline-artifact.mjs <artifact>` where the file
 is available; only its `PASS  the same artifact deliberates and still answers

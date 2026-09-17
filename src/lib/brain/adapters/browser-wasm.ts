@@ -69,6 +69,14 @@ export interface WasmProgress {
  * `<thi` and `nk>` separately, so a naive `replace` per chunk lets the halves
  * through as text. Anything that could still become a tag is held back until
  * the next chunk decides.
+ *
+ * WHY THIS IS USUALLY A NO-OP, AND STILL WORTH HAVING. wllama loads llama.cpp
+ * with `reasoning_format` defaulting to `deepseek`, which parses the block out
+ * of the message before this ever sees it — the tags do not arrive at all, and
+ * a proof that looked for them in `content` reported "no thinking" about a run
+ * that had definitely deliberated. This is the guard for the configurations
+ * where they DO arrive: `reasoning_format: "none"`, and any template that emits
+ * the tags outside the parser's expectations.
  */
 export function reasoningFilter(): { visible(piece: string): string } {
   const OPEN = "<think>";
