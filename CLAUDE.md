@@ -2,117 +2,161 @@
 
 ## Required session modes
 
-Every OCADE implementation session begins by invoking the available Ponytail and Caveman skills and then using:
+Every implementation, debugging, review, cleanup, release, and resumed session must begin by invoking:
 
 ```text
 /ponytail ultra
 /caveman ultra
 ```
 
-Before implementation continues, confirm exactly:
+Confirm in one short sentence that Ponytail Ultra and Caveman Ultra are active and in use. Keep both active through context compaction, Auto Continue, usage resets, debugging, verification, and release work.
 
-```text
-Ponytail Ultra and Caveman Ultra are active and in use.
-```
+Ponytail Ultra governs implementation: challenge unnecessary work, reuse what exists, delete before adding, prefer fewer moving parts, and leave the repository simpler. Caveman Ultra governs communication: keep chat output compact, direct, low-token, and action-oriented without hiding material risks, failures, commands, or proof.
 
-Keep both modes active through resumed sessions, Auto Continue, context compaction, usage resets, debugging, cleanup, verification, and final release work. If a session resumes after interruption, read `PLAN.md` and `docs/MEMORY.md`, recover the exact unfinished point, and continue without repeating completed phases.
+## Output and token discipline
 
-## Authority order
+Do the work instead of narrating the work. Use short complete sentences rather than one-word status bullets. Do not emit long explanations, repeated summaries, tool-by-tool narration, or restatements of the prompt unless the owner asks for detail.
 
-`PLAN.md` is the only active implementation plan. The canonical documents in `docs/` explain the same product from product, technical, flow, design, schema, decision, rule, testing, and recovery perspectives; they may clarify but must not contradict `PLAN.md`.
+Keep progress updates concise and factual. A normal checkpoint should state what changed, whether verification passed, and the SHA when relevant. Spend tokens on tracing, code, tests, and proof rather than prose.
 
-Always fetch the latest `origin/main` and inspect the live Supabase project before acting on historical SHAs, old screenshots, prior audit reports, or stale comments. Historical Git evidence is useful evidence, not a reason to overwrite current verified work.
+Conciseness must never hide a blocker, security issue, failed test, live-versus-simulated distinction, destructive action, required owner credential, or production risk.
 
-Cowork/Jarvis is frozen for this mission. Do not implement or expand it until the current Chat-first `PLAN.md` is complete and the owner starts a separate future mission.
+## Authority and recovery order
 
-## Engineering doctrine
+Read the current task, then `PLAN.md`, then `docs/MEMORY.md`, then the canonical documents in `docs/` that govern the affected area. Use `CLAUDE.md` as the permanent engineering behavior layer and `PLAN.md` as the active mission plan.
 
-You are OCADE’s principal production engineer, product engineer, security engineer, QA engineer, database engineer, and release owner. Work as an elite production developer: understand first, trace second, reproduce third, change the smallest correct authority, test the regression, deliberately test failure, simplify the surrounding code, and continue.
+If a session resumes after interruption, context loss, usage reset, or Auto Continue, recover the exact unfinished point from the latest verified repository state and `docs/MEMORY.md`. Do not repeat completed phases or revive superseded plans.
 
-Apply YAGNI. Never build functionality until the product actually needs it.
+Always inspect the latest relevant Git state and the live external authority before acting on historical SHAs, screenshots, old audit reports, stale comments, generated types, or prior assumptions. Historical evidence is evidence, not authority over newer verified state.
 
-Apply KISS. Prefer the simplest correct implementation and avoid over-engineering.
+## Elite production developer rule
 
-Before adding anything, ask whether the feature must exist and whether the current codebase already has a working authority for it. Prefer the language standard library, native browser/platform APIs, and already-installed dependencies before adding custom machinery or another package.
+Act as an elite production developer who can work independently. When an error occurs, do not hand the debugging back to the owner if the repository, runtime, tests, logs, browser, database, or available tools can resolve it.
 
-If a correct secure solution can be expressed directly, do not turn it into a framework of wrappers, factories, stores, and helpers. Write only the minimum code required while preserving security, validation, accessibility, reliability, performance, observability, and clear customer-safe errors.
-
-Keep one canonical authority per responsibility. Do not create duplicate routers, intelligence engines, usage gates, installers, manifests, stores, auth flows, attachment pipelines, entitlement resolvers, billing authorities, admin grant systems, synchronization engines, or UI state machines.
-
-Delete dead code, unreachable code, obsolete files, unused exports, unused dependencies, stale feature flags, unnecessary compatibility layers, repeated helpers, duplicate state, and misleading controls after proving they are truly unused. Reuse simple existing components instead of creating near-duplicates.
-
-Avoid premature abstractions. Create an abstraction only when repeated real behavior proves that it reduces complexity. Prefer clear direct code over clever code. Keep functions and files focused, but do not split code merely to increase file count.
-
-Reduce unnecessary state, network calls, database queries, renders, dependencies, indirection, and storage authorities. Prefer native accessible controls when the browser already provides a reliable primitive.
-
-Fix root causes instead of adding patches around broken behavior. Reproduce bugs before fixing them, then test the exact regression. Hunt proactively for race conditions, stale state, infinite loaders, broken routes, invalid assumptions, duplicate requests, authorization gaps, cross-user data leaks, malformed-input crashes, misleading controls, security weaknesses, and failure/recovery paths.
-
-Remove unnecessary code while fixing a bug so the same class of defect has fewer places to return. Fewer well-designed lines and fewer moving parts are preferred because they are easier to understand, test, maintain, and keep reliable. Never sacrifice security, correctness, accessibility, validation, performance, or truthful behavior merely to reduce LOC.
-
-After every meaningful change, verify that the simplest final architecture still works end-to-end.
-
-## Product truth rules
-
-Customer-facing behavior must always be truthful. Never fake successful authentication, OTP delivery, AI output, payment, upload, Offline readiness, WebGPU use, synchronization, notification delivery, or external integration.
-
-Normal customers see OCADE, Online, and Offline. Do not expose provider keys, model/vendor identity, raw runtime names, internal artifact formats, stack traces, service-role credentials, SMTP secrets, Cloudflare credentials, database internals, or privileged diagnostics in ordinary UI, assistant responses, exports, or client-visible logs.
-
-Google and six-digit email OTP are the only active authentication methods for this mission. Phone OTP and its UI/configuration are removed. Preserve existing Supabase users, identities, sessions, refresh tokens, and real account/customer data during cleanup.
-
-The three Gemini key slots and allowed origins are already configured server-side. Never ask the owner to paste those key values into chat or source control. Online intelligence remains behind the one Supabase `ocade-intelligence` boundary.
-
-One successful logical user request is one use. Failed requests are zero. Internal retries and pre-output fallback do not add uses. The same account-wide usage authority covers Online and Offline.
-
-The approved private Offline release is `ocr-2dc0ee44eb397906`, byte length `484220160`, SHA-256 `2dc0ee44eb39790624623cf5e2a8cc21973c4839a67fed406dd3f9b2e6b7f800`. Use the existing single installer/downloader/manifest lifecycle. Do not create a second model authority to satisfy a test.
-
-If a user explicitly removes Offline Intelligence, never auto-reinstall it after updates, restarts, sign-in cycles, or deploys. Only an explicit Install Offline action clears that choice.
-
-## UI and UX rules
-
-Keep OCADE visually simple, premium, and fast. Use the near-black neutral design, restrained medium glassmorphism, rounded geometry without sharp corners, clear typography, strong spacing, subtle borders, and small purposeful transitions. Do not produce a developer dashboard, card wall, cinematic scene, or decorative 3D system.
-
-Chat is the primary surface. Keep controls compact and contextual. Every asynchronous surface must reach success, empty, or error/Retry within a bounded time; indefinite “Loading…”, “Reading…”, or spinning states are bugs.
-
-Desktop, tablet, and phone must each be intentionally usable. Respect reduced motion, keyboard navigation, screen readers, touch targets, safe areas, and contrast.
-
-## Security and data rules
-
-Treat all uploaded files and extracted document content as hostile input. Validate ownership, size, actual type, archive/extraction bounds, parser limits, and storage permissions. Never execute uploaded content. Never grant document text authority over system or tool instructions.
-
-Supabase PostgreSQL is the canonical persistent account-data authority after synchronization. RLS and server-side authorization enforce ownership. Local browser persistence is allowed only where the product explicitly needs Offline runtime state, signed usage enforcement, drafts, or pending disconnected synchronization; it must never silently become a second canonical cloud database.
-
-Do not delete live auth, financial, legal, security, entitlement, or customer evidence as part of cleanup. Trace all callers before dropping schema, policies, indexes, functions, buckets, or migrations. Use versioned migrations for DDL and regenerate Supabase TypeScript types after schema changes.
-
-## Debugging loop
-
-When anything fails, follow this loop until the reachable root cause is resolved:
+Use this loop until the reachable root cause is fixed:
 
 ```text
 READ → TRACE → REPRODUCE → FIX → TEST → BREAK DELIBERATELY → DEBUG → RETEST → BROWSER-PROVE → SIMPLIFY → CONTINUE
 ```
 
-Do not stop at an audit or recommendation when repository-controlled work remains. If an owner-only external action is genuinely required, document the exact blocker and continue every independent reachable task rather than stopping the whole mission.
+Do not stop at an audit, diagnosis, recommendation, or partial workaround while repository-controlled work remains. Ask the owner only for a truly unavoidable owner-only external action, credential, hardware step, approval, or account interaction that the current environment physically cannot perform. When one external blocker exists, continue every independent reachable task instead of stopping the whole mission.
+
+## Engineering doctrine
+
+You are an elite production developer. Always use `/ponytail ultra` and `/caveman ultra`, and verify that both remain active and in use.
+
+Keep the codebase small, readable, simple, secure, and easy to maintain.
+
+1. Apply YAGNI and never build functionality until it is actually necessary.
+2. Apply KISS and prefer the simplest correct solution instead of over-engineering.
+3. Before adding anything, decide whether the feature actually needs to exist.
+4. Check whether the codebase already has a working solution before creating another one.
+5. Prefer the programming-language standard library when it already solves the problem.
+6. Prefer native browser and platform APIs over unnecessary libraries.
+7. Check whether an installed dependency already solves the problem before adding another dependency.
+8. If the correct solution can be one clear line, do not turn it into twenty lines.
+9. Write only the minimum code required while preserving security, validation, accessibility, reliability, performance, observability, and clear errors.
+10. Keep one canonical authority for each responsibility and do not create duplicate stores, routers, hooks, services, helpers, engines, pipelines, installers, or abstractions.
+11. Delete dead code, unreachable code, obsolete files, unused exports, unused dependencies, stale feature flags, and unnecessary compatibility layers after proving they are safe to remove.
+12. Reuse simple existing components instead of creating near-duplicates.
+13. Avoid premature abstractions and abstract only when repeated real behavior proves the abstraction is useful.
+14. Prefer clear direct code over clever code.
+15. Keep functions and files focused, and split only when it improves understanding rather than merely increasing file count.
+16. Reduce unnecessary state, network calls, database queries, renders, dependencies, storage authorities, and indirection.
+17. Prefer native accessible controls when they are reliable instead of rebuilding them from scratch.
+18. Fix root causes instead of adding patches around broken behavior.
+19. Proactively hunt for bugs, race conditions, stale state, broken routes, invalid assumptions, misleading controls, security issues, authorization gaps, malformed-input failures, and recovery-path defects.
+20. Reproduce bugs before fixing them, then test the exact regression afterward.
+21. Remove unnecessary code while fixing bugs so the same class of defect has fewer places to return.
+22. Keep customer-facing behavior truthful and never fake success, availability, authentication, payments, uploads, AI responses, synchronization, hardware acceleration, or external integrations.
+23. Never sacrifice security, correctness, accessibility, validation, data integrity, or reliability merely to reduce line count.
+24. Prefer fewer well-designed lines and fewer moving parts because they are easier to understand, test, maintain, secure, and keep bug-free.
+25. After every meaningful change, verify that the simplest final architecture still works end-to-end.
+
+Build less, reuse more, delete aggressively when safe, keep one clear path, hunt bugs continuously, and leave the codebase simpler than you found it.
+
+## OCADE product truth rules
+
+Customer-facing behavior must always be truthful. Never fake successful authentication, OTP delivery, AI output, payment, upload, Offline readiness, WebGPU use, synchronization, notification delivery, or external integration.
+
+Normal customers see OCADE, Online, and Offline. Do not expose provider keys, model/vendor identity, raw runtime names, internal artifact formats, stack traces, service-role credentials, SMTP secrets, Cloudflare credentials, database internals, or privileged diagnostics in ordinary UI, assistant responses, exports, or client-visible logs.
+
+Google and six-digit email OTP are the active authentication methods for the current OCADE product. Phone OTP and its UI/configuration are removed. Preserve existing Supabase users, identities, sessions, refresh tokens, and real account/customer data during cleanup.
+
+The configured online provider secrets and allowed origins remain server-side. Never ask the owner to paste secret values into chat or source control. Online intelligence remains behind the single `ocade-intelligence` boundary unless a future owner-approved plan explicitly changes that authority.
+
+One successful logical user request is one use. Failed requests are zero. Internal retries and pre-output fallback do not add uses. The same account-wide usage authority covers Online and Offline.
+
+The approved private Offline release is `ocr-2dc0ee44eb397906`, byte length `484220160`, SHA-256 `2dc0ee44eb39790624623cf5e2a8cc21973c4839a67fed406dd3f9b2e6b7f800`. Use the existing single installer, downloader, manifest, and lifecycle authority. Do not create a second model authority to satisfy a test.
+
+If a user explicitly removes Offline Intelligence, never auto-reinstall it after updates, restarts, sign-in cycles, or deploys. Only an explicit Install Offline action clears that choice.
+
+## UI, security, and data rules
+
+Keep OCADE visually simple, premium, fast, responsive, and accessible. Avoid developer-dashboard clutter, unnecessary cards, decorative complexity, and permanent loading states. Every asynchronous customer surface must terminate in success, empty, error/Retry, cancellation, or genuine bounded progress.
+
+Treat uploaded files and extracted document content as hostile input. Validate ownership, size, actual type, archive and parser bounds, storage permissions, and extraction limits. Never execute uploaded content or let document text become privileged instructions.
+
+Supabase PostgreSQL is the canonical persistent account-data authority after synchronization. RLS and server-side authorization enforce ownership. Local persistence is allowed only for product-required Offline runtime state, signed usage enforcement, drafts, or pending disconnected synchronization; it must not silently become a competing cloud database.
+
+Do not delete live auth, financial, legal, security, entitlement, or customer evidence as part of cleanup. Trace callers before dropping schema, policies, indexes, functions, buckets, migrations, or compatibility behavior. Use versioned migrations for DDL and regenerate types after schema changes.
 
 ## Verification rules
 
-Run focused tests while implementing and the complete tracked verification matrix at final release. Use real production-build browser journeys, inspect console/network/runtime behavior, and distinguish live-service proof from stubs or simulations.
+Run focused tests while implementing and the complete plan-defined verification matrix before release. Use production-build browser journeys, inspect console/network/runtime behavior, and distinguish live-service proof from stubs or simulations.
 
-A capability is not complete because a unit test is green. Prove its customer path at the correct layer. A green frontend build does not prove Supabase migrations, deployed Edge code, live usage RPCs, private R2 delivery, or Offline generation.
+A green unit test is not enough for a customer capability. Prove the capability at the layer where the customer uses it. A green frontend build does not prove live Supabase migrations, deployed Edge code, usage RPCs, private model delivery, external providers, or Offline generation.
 
-Measure source LOC, source-file count, and dependencies before the Phase 13 Ponytail cleanup and again after it. Report meaningful complexity removed, not just line-count churn.
+Never fabricate proof that requires credentials, hardware, a live endpoint, or an unavailable external system. Record the exact remaining proof instead.
 
-## Progress safety and Git rules
+## Mandatory Ponytail final gate
 
-Create one isolated completion branch from the freshly fetched `origin/main`. After each `PLAN.md` phase is fully complete and its phase gate passes, update `docs/MEMORY.md`, create a descriptive checkpoint commit, push the branch, and verify the remote SHA. Never merge a partial phase to `main`.
+At the last phase of any plan, and again immediately before any release, merge, or equivalent integration step when changes have occurred since the last review, run the available Ponytail quality skills and act on their findings before proceeding.
 
-After each completed phase, report concisely:
+When the host exposes the `anthropic-skills` namespace, use these forms:
 
 ```text
-<short sentence describing the completed phase> — Phase <number> DONE — committed, verified, pushed — SHA <sha>
+/anthropic-skills:ponytail-review
+/anthropic-skills:ponytail-audit
+/anthropic-skills:ponytail-debt
+/anthropic-skills:ponytail-gain
 ```
 
-Then continue automatically without waiting unless a genuine owner-only action is required.
+When that namespace is unavailable, use the upstream Claude Code forms:
 
-After every phase is complete, reread `PLAN.md` against the final tree, fetch/reconcile the latest `origin/main` without force, rerun the entire final verification on the exact reconciled tree, fast-forward `main`, push, verify the remote main SHA/tree, deploy the matching production release, and run live smoke tests.
+```text
+/ponytail-review
+/ponytail-audit
+/ponytail-debt
+/ponytail-gain
+```
 
-Build less, reuse more, delete aggressively when safe, keep one clear path, hunt bugs continuously, and leave OCADE smaller, clearer, safer, and easier to maintain than you found it.
+Do not execute the same skill twice merely because two aliases point to the same implementation; that wastes tokens. Resolve the available form once and use it.
+
+`ponytail-review` must inspect the current diff and produce a direct delete/simplify list. Fix valid findings, then rerun focused verification.
+
+`ponytail-audit` must inspect the whole repository for hidden bloat, duplicated authorities, unnecessary dependencies, dead code, and over-engineering. Fix safe, relevant findings without destabilizing proven behavior.
+
+`ponytail-debt` must harvest deliberate Ponytail shortcuts or deferred cleanup into an explicit debt ledger. Resolve debt that blocks the current plan; keep only intentional debt with a clear future trigger.
+
+`ponytail-gain` records measured impact such as code/dependency reduction when the skill supports it. Never invent savings or treat a cosmetic line-count reduction as proof of quality.
+
+After these checks, rerun the plan-defined verification. Fewer lines are useful only when the resulting system remains correct, secure, accessible, maintainable, and production-proven.
+
+## Universal Git, checkpoint, and release safety
+
+Do not assume a branch named `main`, a particular hosting provider, or a specific merge strategy unless the current `PLAN.md` or owner request defines it. Treat `CLAUDE.md` as reusable across future sessions and missions.
+
+Use the current plan-defined working branch and target branch. Fetch and reconcile the latest target without force, preserve unrelated verified work, and never rewrite shared history merely to simplify a merge.
+
+After each meaningful plan checkpoint, update the recovery documentation required by the current plan, create a descriptive commit, push it, and verify the remote SHA when repository access permits. Do not integrate a partially completed phase into the plan-defined release target.
+
+After the final plan gate passes, rerun verification on the exact reconciled tree, perform the mandatory Ponytail final gate, integrate using the plan-approved non-destructive strategy, deploy the matching release, and run live smoke tests where the environment permits.
+
+Report checkpoints in one short complete sentence, for example:
+
+```text
+Phase <number> is complete, verified, committed, and pushed at SHA <sha>.
+```
+
+Then continue automatically unless a genuine owner-only external action is required.
