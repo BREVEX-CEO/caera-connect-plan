@@ -28,6 +28,16 @@ const BASE = arg("base", "http://127.0.0.1:8788");
 const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
 const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 
+const CATEGORY_NAMES = [
+  "Account",
+  "Appearance",
+  "Notifications",
+  "Data Controls",
+  "Usage & Limits",
+  "Billing",
+  "Advanced",
+];
+
 const results = [];
 let failures = 0;
 
@@ -192,6 +202,52 @@ try {
       !FORBIDDEN.test(text),
       (FORBIDDEN.exec(text) ?? [""])[0],
     );
+  }
+
+  /* --- every category is reachable on a phone and a tablet ---------------- */
+
+  /*
+   * `PLAN.md` Phase 10 asks for Settings exercised on representative desktop,
+   * tablet and phone viewports. The desktop panel is a two-column dialog; on a
+   * phone it is a full-height sheet whose category list scrolls above the
+   * content. A category that cannot be reached, or a panel that scrolls
+   * sideways, is a control that does not exist on the device most people use.
+   */
+  for (const [label, width, height] of [
+    ["tablet", 820, 1180],
+    ["phone", 375, 812],
+  ]) {
+    const small = await signedInContext();
+    const view = await small.newPage();
+    await view.setViewportSize({ width, height });
+    await view.goto(`${BASE}/`, { waitUntil: "networkidle" });
+    // On a phone the sidebar is a drawer, so the account menu is not on screen
+    // until it is opened. On a tablet it is already there.
+    const drawer = view.locator('button[aria-label="Open navigation"]');
+    if (await drawer.isVisible().catch(() => false)) await drawer.click();
+    // Two asides exist at phone width — the drawer and the one behind it — so
+    // the visible one is the only one a person could press.
+    await view.locator('aside button[aria-haspopup="menu"]:visible').first().click();
+    await view.getByRole("menuitem", { name: "Settings" }).click();
+
+    let reachable = 0;
+    for (const category of CATEGORY_NAMES) {
+      const button = view.getByRole("button", { name: category, exact: true });
+      if ((await button.count()) === 0) continue;
+      await button.click();
+      await view.waitForTimeout(250);
+      reachable += 1;
+    }
+    check(
+      `every Settings category is reachable at ${label} width`,
+      reachable === CATEGORY_NAMES.length,
+      `${reachable} of ${CATEGORY_NAMES.length}`,
+    );
+    check(
+      `Settings does not scroll sideways at ${label} width`,
+      await view.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
+    );
+    await small.close();
   }
 
   check("no uncaught page errors", pageErrors.length === 0, pageErrors.join("; "));

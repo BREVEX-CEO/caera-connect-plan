@@ -420,6 +420,19 @@ pressed the next control while the page was still hydrating — React reported a
 hydration mismatch that came from the loop racing the framework, intermittently
 and indistinguishably from a real defect. It waits for `networkidle` now.
 
+## Phase 10 — Settings on the devices people use
+
+The seven categories now open and work at desktop, tablet (820px) and phone
+(375px) widths, with nothing scrolling sideways. Two harness faults surfaced
+doing it, both about the phone layout rather than the product: the account menu
+is inside a drawer that has to be opened first, and at phone width two asides
+exist — the drawer and the one behind it — so only the visible account button
+is the one a person could press.
+
+Every control was already backed by a real handler and a truthful result;
+`controls:check` and the dead-control gate cover that continuously, and the
+recovery-code and phone-sign-in remnants went in Phase 2.
+
 Still open for Phase 14: the deployed `ocade-intelligence` is version 6 and is
 materially older than this tree — its `edge-handler.ts` caps a request at 1 MiB
 where the repository caps it at 24 MiB, so attachments cannot work online until
