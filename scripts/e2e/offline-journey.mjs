@@ -102,6 +102,28 @@ try {
     (FORBIDDEN.exec(panel) ?? [""])[0],
   );
 
+  /* --- Thinking is offered only where it can be kept ---------------------- */
+
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
+  check(
+    "Thinking is not offered while Auto is selected",
+    (await page.getByRole("button", { name: "Thinking" }).count()) === 0,
+  );
+  await page.getByRole("button", { name: "OCADE", exact: true }).click();
+  check(
+    "nor while Online is selected, where the boundary has no such parameter",
+    (await page.getByRole("button", { name: "Thinking" }).count()) === 0,
+  );
+  await page.getByRole("button", { name: "Offline", exact: true }).click();
+  check(
+    "and is offered on Offline, where the artifact carries both modes",
+    (await page.getByRole("button", { name: "Thinking" }).count()) === 1,
+  );
+  await page.click('aside button[aria-haspopup="menu"]');
+  await page.getByRole("menuitem", { name: "Settings" }).click();
+  await page.getByRole("button", { name: "Data Controls" }).click();
+
   /* --- removal is deliberate ---------------------------------------------- */
 
   check(

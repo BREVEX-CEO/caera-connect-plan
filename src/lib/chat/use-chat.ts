@@ -122,6 +122,7 @@ export interface ChatActions {
     message: string,
     choice: IntelligenceChoice,
     attachments?: NormalizedAttachment[],
+    thinking?: boolean,
   ): Promise<boolean>;
   /** Edit, Regenerate and Retry, which are the same operation. */
   resend(userMessageId: string, choice: IntelligenceChoice, newText?: string): Promise<void>;
@@ -249,6 +250,7 @@ export function useChat(): ChatState & ChatActions {
       message: string,
       choice: IntelligenceChoice,
       attachments: NormalizedAttachment[] = [],
+      thinking = false,
     ) => {
       const text = message.trim();
       if (!text || busy) return false;
@@ -351,6 +353,7 @@ export function useChat(): ChatState & ChatActions {
             sealed: false,
           },
           conversationId: id ?? undefined,
+          thinking,
           signal: controller.signal,
         })) {
           if (event.type === "token") {

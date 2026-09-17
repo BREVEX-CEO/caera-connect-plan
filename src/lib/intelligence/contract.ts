@@ -92,6 +92,15 @@ export interface IntelligenceRequest {
   attachments: NormalizedAttachment[];
   privacy: IntelligencePrivacyPolicy;
   conversationId?: string;
+  /**
+   * Deliberate before answering.
+   *
+   * Only the local runtime honours it: the one artifact carries both modes and
+   * its chat template chooses between them. The online boundary has no such
+   * parameter, so a request that routes online simply answers directly — which
+   * is why the control is offered only where it can be kept.
+   */
+  thinking?: boolean;
   /** Internal continuation that must not replace the user-visible engine state. */
   background?: boolean;
   signal?: AbortSignal;

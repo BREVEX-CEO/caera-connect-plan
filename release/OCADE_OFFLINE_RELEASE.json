@@ -5,5 +5,5 @@
   "sha256": "2dc0ee44eb39790624623cf5e2a8cc21973c4839a67fed406dd3f9b2e6b7f800",
   "contextTokens": 4096,
   "requiredMemoryBytes": 943718400,
-  "thinkingSuitable": false
+  "thinkingSuitable": true
 }

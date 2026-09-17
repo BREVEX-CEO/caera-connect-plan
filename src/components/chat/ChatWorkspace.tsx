@@ -18,6 +18,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ArrowUp, ArrowLeft, ArrowRight, Mic, Plus, Square, X } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { useSession } from "@/lib/session";
+import { offlineRelease } from "@/lib/brain/offline-release";
 import { useChat, type IntelligenceChoice } from "@/lib/chat/use-chat";
 import { useChatShortcuts } from "@/lib/chat/use-shortcuts";
 import { useDictation } from "@/lib/chat/use-dictation";
@@ -80,6 +81,16 @@ export function ChatWorkspace() {
   const [draft, setDraft] = useState("");
   const [choice, setChoice] = useState<IntelligenceChoice>("auto");
   const online = useOnline();
+  const [thinking, setThinking] = useState(false);
+  /*
+   * OFFERED ONLY WHERE IT CAN BE KEPT.
+   *
+   * The one artifact carries both modes and its template chooses between them,
+   * so deliberation is a local capability. The online boundary has no such
+   * parameter. Showing the control while Online or Auto is selected would be a
+   * switch that silently does nothing on the route the request actually takes.
+   */
+  const canThink = choice === "offline" && offlineRelease()?.thinkingSuitable === true;
   const textarea = useRef<HTMLTextAreaElement>(null);
   const picker = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<PendingAttachment[]>([]);
@@ -250,7 +261,7 @@ export function ChatWorkspace() {
      * the person watched a toast fade and had nothing left to press Send on.
      * Nothing was sent, written or charged, so the work is still theirs.
      */
-    if (await chat.send(message, choice, carried)) return;
+    if (await chat.send(message, choice, carried, canThink && thinking)) return;
     setDraft((current) => (current.length > 0 ? current : message));
     setPending((current) => (current.length > 0 ? current : held));
     window.setTimeout(grow, 0);
@@ -447,6 +458,27 @@ export function ChatWorkspace() {
                     this message — and it says so while it is on rather than
                     hiding the state in a menu.
                   */}
+                  {canThink ? (
+                    <button
+                      type="button"
+                      onClick={() => setThinking((current) => !current)}
+                      aria-pressed={thinking}
+                      title={
+                        thinking
+                          ? "OCADE thinks before answering. Slower, on this device."
+                          : "Think before answering"
+                      }
+                      className={cn(
+                        "mr-1 h-6 rounded-md border px-2 text-xs transition-colors",
+                        thinking
+                          ? "border-border bg-accent text-foreground"
+                          : "border-transparent text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      Thinking
+                    </button>
+                  ) : null}
+
                   <button
                     type="button"
                     onClick={() => chat.setTemporary(!chat.temporary)}

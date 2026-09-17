@@ -108,6 +108,7 @@ export function createOfflineIntelligenceTransport(
         .stream(toBrainMessages(request), {
           onToken: push,
           signal: request.signal,
+          think: request.thinking === true,
         })
         .finally(() => {
           finished = true;
