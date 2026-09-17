@@ -163,9 +163,6 @@ export function createDeploymentPlan({
     ) {
       blockers.push("OCADE_ROLLBACK_VERSION_ID must name the previously verified deployment");
     }
-    if (!["locked", "open"].includes(env.OCADE_DEPLOY_EXPECT_ASSET_STATE ?? "")) {
-      blockers.push("OCADE_DEPLOY_EXPECT_ASSET_STATE must be locked or open");
-    }
   } else if (mode === "rollback") {
     if (env.OCADE_ROLLBACK_APPROVAL !== ROLLBACK_APPROVAL) {
       blockers.push("explicit production rollback approval is missing");
@@ -194,7 +191,6 @@ export function createDeploymentPlan({
       mode === "deploy" ? (env.OCADE_ROLLBACK_VERSION_ID ?? null) : (versionId ?? null),
     expectedHealthVersion:
       mode === "rollback" ? (env.OCADE_ROLLBACK_EXPECTED_VERSION ?? null) : version,
-    expectedAssetState: mode === "deploy" ? (env.OCADE_DEPLOY_EXPECT_ASSET_STATE ?? null) : null,
     assetProbePath: null,
   };
 }
@@ -224,10 +220,6 @@ function validateBuiltOutput(plan, cwd, env) {
     if (generated.version_metadata?.binding !== "CF_VERSION_METADATA") {
       failures.push("generated Cloudflare version metadata binding is missing");
     }
-    const builtEntry = readFileSync(path.join(cwd, plan.generatedEntryPath), "utf8");
-    if (!builtEntry.includes("x-ocade-edge-gate")) {
-      failures.push("generated Worker entry is missing the outermost asset launch gate");
-    }
     const assetsDirectory = path.join(cwd, ".output", "public", "assets");
     const assetNames = existsSync(assetsDirectory) ? readdirSync(assetsDirectory) : [];
     const entryAssets = assetNames.filter((name) => /^index-[A-Za-z0-9_-]+\.js$/.test(name));
@@ -254,6 +246,19 @@ function validateBuiltOutput(plan, cwd, env) {
   return failures;
 }
 
+/**
+ * THE STAGED VERSION MUST ACTUALLY SERVE ITS OWN CLIENT.
+ *
+ * A health probe proves the Worker answers; this proves the build it was
+ * uploaded with is reachable, because a version whose entry asset 404s renders
+ * a blank page while /api/health stays green.
+ *
+ * It used to ask a second question as well — whether the pre-launch gate was
+ * holding or open, selected by `OCADE_DEPLOY_EXPECT_ASSET_STATE`. That gate was
+ * removed from `cloudflare-entry.ts` when the product launched, so the "locked"
+ * half had become unreachable and the build check for its header refused every
+ * deployment outright.
+ */
 async function probeAssetGateOnce(plan, fetcher, expectedDeploymentId) {
   try {
     const assetUrl = new URL(plan.assetProbePath, plan.healthUrl);
@@ -266,29 +271,13 @@ async function probeAssetGateOnce(plan, fetcher, expectedDeploymentId) {
       },
       signal: AbortSignal.timeout(15_000),
     });
-    if (plan.expectedAssetState === "locked") {
-      const locked =
-        response.status === 503 &&
-        response.headers.get("cache-control") === "no-store" &&
-        response.headers.get("x-ocade-launch-state") === "prelaunch" &&
-        response.headers.get("x-ocade-edge-gate") === "asset-v1" &&
-        response.headers.get("x-robots-tag")?.includes("noindex");
-      return locked
-        ? { ok: true, evidence: `staged asset ${plan.assetProbePath} is fail-closed` }
-        : {
-            ok: false,
-            reason:
-              `staged asset ${plan.assetProbePath} bypassed the locked edge gate ` +
-              `(HTTP ${response.status})`,
-          };
-    }
     const contentType = response.headers.get("content-type") ?? "";
     return response.ok && contentType.includes("javascript")
-      ? { ok: true, evidence: `staged asset ${plan.assetProbePath} is launch-open` }
+      ? { ok: true, evidence: `staged asset ${plan.assetProbePath} is served` }
       : {
           ok: false,
           reason:
-            `staged asset ${plan.assetProbePath} did not open correctly ` +
+            `staged asset ${plan.assetProbePath} was not served ` +
             `(HTTP ${response.status}, ${contentType || "no content type"})`,
         };
   } catch (error) {

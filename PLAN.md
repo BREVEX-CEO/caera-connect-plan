@@ -47,7 +47,7 @@ Supabase leaked-password protection is not a release blocker while OCADE uses Go
 - Usage is account-wide across Online and Offline modes. Exhaustion blocks new generation while history, Library, Settings, Pricing, Billing, export, and account controls remain usable.
 - Chat supports Copy, Edit, Delete, Share action preparation, Regenerate, Retry, Stop, Markdown, tables, links, code-block Copy, generated titles, rename, search, grouped history, drafts, duplicate-Send prevention, temporary chat, individual export, and contextual controls that stay visually quiet until needed.
 - The composer supports `+`, multiple attachments, text, microphone dictation, mode selection, Thinking, Send/Stop, drag-and-drop, paste, attachment progress, remove, retry, reorder, and preview/download. Supported attachments may be up to 100 MB each subject to bounded total-message limits.
-- Thinking is exposed only where the active route can truthfully honor it. The approved Offline release has been proven to deliberate with the same Qwen3-0.6B artifact and declares the capability; Auto/Online do not expose a fake Thinking switch when the online boundary has no matching parameter.
+- Thinking is exposed only where the active route can truthfully honor it. The approved Offline release `ocr-2dc0ee44eb397906` has been proven to deliberate with that same artifact and declares the capability; Auto/Online do not expose a fake Thinking switch when the online boundary has no matching parameter.
 - Uploaded content is untrusted. OCADE must validate ownership, size, declared and detected type, archive structure, parser limits, and extraction bounds; it must never execute uploaded content or let document text become privileged instructions. Malformed, dangerous, or unsupported content fails closed with a short customer-safe error.
 - Important answers based on files should cite the useful file/page/section/row/cell source where practical. Offline image understanding is not claimed; images require connected OCADE. Safe local text extraction may feed Offline mode where supported.
 - Microphone behavior is dictation first. Speech is placed into the composer for review and is never auto-sent. If the browser lacks the required native capability, the control is disabled or hidden truthfully.
@@ -182,7 +182,13 @@ Reread this entire plan against the final tree. Run `npm run verify:full`, produ
 
 Prove Google login, email OTP, Chat, Gemini through the deployed Edge Function, exact usage decrement, attachments, Library, Settings, Offline install, no-Internet Chat, reconnect sync, WebGPU generation, forced WASM fallback, ordinary deployment with zero model redownload, explicit Remove persistence, and explicit reinstall. Test Windows Chrome and Android Chrome directly where available and the practical macOS/iPhone/iPad browser targets where available; record any hardware-only proof that remains external instead of fabricating it.
 
-The repository-controlled Phase 14 verification has passed on the completed tree. Production certification remains open until the matching Edge and frontend are deployed and the live smoke/hardware evidence above is recorded.
+The repository-controlled Phase 14 verification has passed on the completed tree.
+
+The Supabase Edge Function is deployed: `ocade-intelligence` on project `sazhgaisyhkdbrooycdv` is **version 7**, and its deployed source was read back and diffed byte-for-byte against this tree across all five files. Version 6 and its 1 MiB request cap, dropped attachments and missing grounded research are no longer in production.
+
+The frontend Worker is not deployed. The reason was a stale deployment controller rather than a missing credential — it required the pre-launch gate header that Phase 2 removed from `cloudflare-entry.ts`, so every deployment failed validation before Wrangler ran. That is fixed and proven end to end against the real controller.
+
+Production certification remains open on one owner-only action: run the **Cloudflare production deployment** workflow on `main` with `deploy_approval` = `I_APPROVE_OCADE_PRODUCTION_DEPLOY` and `rollback_version_id` = the `deploymentId` at `https://ocade.in/api/health`. The live smoke tests (Chat, usage, attachments, grounded research, Library, Settings) and the `/api/health` configuration check follow that deployment; they cannot be run from a session whose network egress to `ocade.in` and `*.supabase.co` is blocked.
 
 ## Mandatory final simplification and quality gate
 

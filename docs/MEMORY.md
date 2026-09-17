@@ -533,23 +533,52 @@ objects were verified directly (`legal_consent_receipts`, both policies, both
 indexes). Generated types were stale — they declared two organization helpers
 the live project dropped — and are regenerated from the live database.
 
-**Two things this session cannot do, and both are one command each.**
+## The Edge Function is deployed. Version 7, and it matches this tree.
 
-1. `supabase functions deploy ocade-intelligence --project-ref sazhgaisyhkdbrooycdv`
-   The deployed function is still version 6 and materially older than this tree:
-   it caps a request at 1 MiB where the repository caps 24 MiB, it validates
-   attachments and never forwards them, and it has no grounded research. The
-   Supabase MCP deploy tool takes file contents inline rather than paths, and
-   hand-transcribing 27 KB of `edge-handler.ts` into a production deploy risks
-   corrupting the boundary — the CLI copies the bytes exactly.
-2. `npm run deploy:web`
-   Needs `CLOUDFLARE_API_TOKEN`, which this session does not hold. The deployed
-   Worker is still a build from before Phase 1: the four defects in the original
-   report are live until it ships.
+`ocade-intelligence` on project `sazhgaisyhkdbrooycdv` moved from version 6 to
+**version 7** (`ezbr_sha256`
+`4c52705e639e4db2c8e4838a51fcf49acd64611919ae0226ef0a680614c3122f`), deployed
+through the authenticated Supabase MCP boundary because no CLI access token
+exists in this environment.
 
-Deploy the Edge Function and the frontend together — the plan requires one
-compatible release — then confirm with
-`curl -s https://ocade.in/api/health`, which must report all four of
+Proven rather than assumed: the deployed source was read back afterwards and
+diffed against the working tree, and all five files are byte-identical —
+`supabase/functions/ocade-intelligence/index.ts`,
+`src/lib/intelligence/edge-handler.ts`,
+`src/lib/intelligence/online-models.ts`,
+`src/lib/telemetry/operation-health.ts` and `src/lib/release.ts`. Version 6 is
+therefore gone from production along with its three defects: the 1 MiB request
+cap, attachments validated and then dropped, and no grounded research.
+
+## Why the frontend was never deployable, and it was not the credentials
+
+`npm run deploy:web` would have refused on any machine, with any token. Phase 2
+removed the pre-launch gate from `cloudflare-entry.ts` — correctly, because the
+product has launched and a permanently open gate is a branch nobody exercises —
+but the deployment controller still required that gate's `x-ocade-edge-gate`
+header to appear in the built Worker entry, and still demanded an
+`OCADE_DEPLOY_EXPECT_ASSET_STATE` whose "locked" half had become unreachable.
+Every deployment failed validation before Wrangler was called, so production sat
+on a pre-Phase-1 build with no product defect behind it.
+
+Fixed by deleting the stale half rather than resurrecting the gate: the built
+entry check is gone, the environment variable is gone from the controller and
+from `cloudflare-production.yml`, and the staged asset probe now asks the one
+question that still has an answer — does this version serve its own client.
+Driven end to end against the real controller with a stubbed Wrangler and edge,
+it now reaches `verified` through upload → stage at 0% → staged health → staged
+asset → promote → final health. `deploy-workflow-agrees-with-controller.test.ts`
+keeps the workflow's environment and the controller's requirements in step.
+
+**One owner-only step remains:** run the **Cloudflare production deployment**
+workflow on `main` with `deploy_approval` = `I_APPROVE_OCADE_PRODUCTION_DEPLOY`
+and `rollback_version_id` = the `deploymentId` currently reported at
+`https://ocade.in/api/health`. Its `cloudflare-production` environment already
+holds the Cloudflare and Supabase secrets; this session holds none of them, and
+its network egress to both `ocade.in` and `*.supabase.co` is blocked by policy,
+so neither the deploy nor the live smoke tests can run from here.
+
+Afterwards `curl -s https://ocade.in/api/health` must report all four of
 `supabasePublic`, `supabaseServer`, `modelDelivery` and `offlineLeases` true.
 
 Hardware-only proof that remains external, recorded rather than fabricated:
@@ -558,11 +587,11 @@ WASM (`node scripts/prove-offline-artifact.mjs <artifact>`, and `--cpu-only`
 for the fallback side), and the private-object install, resume, repair and
 reinstall journey against the real 484 MB release.
 
-Still open for Phase 14: the deployed `ocade-intelligence` is version 6 and is
-materially older than this tree — its `edge-handler.ts` caps a request at 1 MiB
-where the repository caps it at 24 MiB, so attachments cannot work online until
-it is redeployed. It must be deployed together with the matching frontend, not
-before it, and the frontend deploy is blocked in this session.
+Still open for Phase 14: `ocade-intelligence` is deployed and matches this tree
+at version 7, so the boundary is current. The frontend Worker is not, and the
+live smoke tests — Chat, usage, attachments, grounded research, Library and
+Settings — cannot be run from this session because egress to `ocade.in` and
+`*.supabase.co` is blocked. Both wait on the one workflow run named above.
 
 ## Checkpoint discipline
 
