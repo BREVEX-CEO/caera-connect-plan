@@ -218,6 +218,60 @@ try {
     `${before} before, ${after} after`,
   );
 
+  /* --- losing the network changes what is offered, truthfully -------------- */
+
+  await context.setOffline(true);
+  await page.evaluate(() => window.dispatchEvent(new Event("offline")));
+  await page.waitForTimeout(400);
+
+  const onlineOption = page.getByRole("button", { name: "OCADE", exact: true });
+  check(
+    "without a network, Online is disabled rather than offered",
+    await onlineOption.isDisabled(),
+  );
+  check(
+    "the selection moves off a mode that cannot run",
+    (await page.getByRole("button", { name: "Auto", exact: true }).getAttribute("aria-pressed")) ===
+      "true",
+  );
+  check(
+    "and Auto says it is answering on this device",
+    /no connection\. ocade answers on this device/i.test(await page.locator("body").innerText()),
+  );
+
+  /*
+   * MANUAL OFFLINE SENDS NOTHING TO THE PROVIDER — PLAN.md Phase 5's gate.
+   * Proved by what the boundary received, not by what the screen said: the
+   * stub records every request, so a request that was never made is the
+   * absence of a new record.
+   */
+  await context.setOffline(false);
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await page.waitForTimeout(300);
+  await fetch(`${SUPABASE}/__fixture/online-boundary`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ status: 200 }),
+  });
+  const beforeManualOffline = await fetch(`${SUPABASE}/__fixture/online-boundary`)
+    .then((response) => response.json())
+    .then((state) => JSON.stringify(state.lastRequest ?? null));
+
+  await page.goto(`${BASE}/?new=true`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Offline", exact: true }).click();
+  await page.fill("#ocade-composer", "Answer this without the network");
+  await page.click('button[aria-label="Send"]');
+  await page.waitForTimeout(5000);
+
+  const afterManualOffline = await fetch(`${SUPABASE}/__fixture/online-boundary`)
+    .then((response) => response.json())
+    .then((state) => JSON.stringify(state.lastRequest ?? null));
+  check(
+    "manual Offline sends zero provider traffic",
+    afterManualOffline === beforeManualOffline,
+    afterManualOffline === beforeManualOffline ? "" : "the boundary received a request",
+  );
+
   /* --- and nothing leaks into what the browser downloaded ----------------- */
 
   const scripts = await page.evaluate(() =>

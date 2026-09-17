@@ -282,6 +282,33 @@ refused rather than extracted. The loopback stub echoes a fragment of the
 attached file so "the file changed the answer" is observable on screen rather
 than merely recorded at the boundary.
 
+## Phase 5 — one router, and a truthful selector
+
+The router was already the single authority and already correct: `local_only`
+never enters the online branch, `online` refuses rather than silently
+degrading, and `automatic` may fall back only when the online attempt produced
+nothing meaningful — the pre-output rule, carrying the same permit so one
+request cannot be charged twice. Nothing about it needed rewriting.
+
+What was missing was the connectivity half of the contract, all of it in the
+composer:
+
+- Online is disabled without a network, and the selection moves off it. A
+  disabled button alone would leave somebody who had already chosen Online
+  holding a mode whose only possible outcome is a refusal they cannot avoid.
+- Auto says so: "No connection. OCADE answers on this device." It sits under
+  the selector rather than in the shared notice line, because that line shows
+  one thing at a time and a previous failure took precedence — written there
+  first, it was never seen, and the browser caught it.
+- `useOnline` is `navigator.onLine` through `useSyncExternalStore`: no polling,
+  no state to keep in sync, correct during hydration. It answers "is there a
+  network", not "is OCADE reachable" — the router still probes the boundary.
+
+Browser-proved by toggling real connectivity: Online disabled, the selection
+moved, the line shown, and manual Offline sending zero provider traffic —
+proved by the boundary's own record of requests being unchanged, not by what
+the screen said.
+
 Still open for Phase 14: the deployed `ocade-intelligence` is version 6 and is
 materially older than this tree — its `edge-handler.ts` caps a request at 1 MiB
 where the repository caps it at 24 MiB, so attachments cannot work online until

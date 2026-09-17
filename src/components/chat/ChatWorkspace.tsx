@@ -14,7 +14,7 @@
  */
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ArrowUp, ArrowLeft, ArrowRight, Mic, Plus, Square, X } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { useSession } from "@/lib/session";
@@ -43,6 +43,30 @@ const CHOICES: { id: IntelligenceChoice; label: string }[] = [
 ];
 
 /**
+ * Whether this browser currently has a network at all.
+ *
+ * `navigator.onLine` with its own events, through the subscription primitive
+ * React already provides — no polling, no state to keep in sync, and correct
+ * during hydration because the server snapshot says online. It answers "is
+ * there a network", not "is OCADE reachable"; the router still probes the
+ * boundary before routing anywhere.
+ */
+function useOnline(): boolean {
+  return useSyncExternalStore(
+    (notify) => {
+      window.addEventListener("online", notify);
+      window.addEventListener("offline", notify);
+      return () => {
+        window.removeEventListener("online", notify);
+        window.removeEventListener("offline", notify);
+      };
+    },
+    () => navigator.onLine,
+    () => true,
+  );
+}
+
+/**
  * A message written before signing in is held here, in this tab, and sent once
  * afterwards. `docs/APP_FLOW.md` is explicit that it must be neither discarded
  * nor duplicated.
@@ -55,6 +79,7 @@ export function ChatWorkspace() {
   const chat = useChat();
   const [draft, setDraft] = useState("");
   const [choice, setChoice] = useState<IntelligenceChoice>("auto");
+  const online = useOnline();
   const textarea = useRef<HTMLTextAreaElement>(null);
   const picker = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<PendingAttachment[]>([]);
@@ -111,6 +136,18 @@ export function ChatWorkspace() {
       setDraft("");
     },
   });
+
+  /*
+   * A MODE THAT CANNOT RUN IS NOT LEFT SELECTED.
+   *
+   * `PLAN.md` Phase 5 disables Online without a network. Disabling the button
+   * alone would leave somebody who had already chosen it holding a selection
+   * whose only possible outcome is a refusal they cannot avoid. Auto is the
+   * mode that does the right thing without a network, and it says so.
+   */
+  useEffect(() => {
+    if (!online && choice === "ocade") setChoice("auto");
+  }, [online, choice]);
 
   useEffect(() => {
     if (!startNew) return;
@@ -374,22 +411,32 @@ export function ChatWorkspace() {
                     aria-label="Intelligence mode"
                     className="mr-1 flex rounded-md border border-border p-0.5"
                   >
-                    {CHOICES.map((entry) => (
-                      <button
-                        key={entry.id}
-                        type="button"
-                        onClick={() => setChoice(entry.id)}
-                        aria-pressed={choice === entry.id}
-                        className={cn(
-                          "h-6 rounded px-2 text-xs transition-colors",
-                          choice === entry.id
-                            ? "bg-accent text-foreground"
-                            : "text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        {entry.label}
-                      </button>
-                    ))}
+                    {CHOICES.map((entry) => {
+                      // Online needs a network. Offline and Auto do not.
+                      const unavailable = entry.id === "ocade" && !online;
+                      return (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          disabled={unavailable}
+                          title={
+                            unavailable
+                              ? "No connection. OCADE answers on this device instead."
+                              : undefined
+                          }
+                          onClick={() => setChoice(entry.id)}
+                          aria-pressed={choice === entry.id}
+                          className={cn(
+                            "h-6 rounded px-2 text-xs transition-colors disabled:opacity-40",
+                            choice === entry.id
+                              ? "bg-accent text-foreground"
+                              : "text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          {entry.label}
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {/*
@@ -454,6 +501,20 @@ export function ChatWorkspace() {
                   )}
                 </div>
               </div>
+
+              {/*
+                SUBTLE, BUT SAID, AND IN ITS OWN PLACE.
+                `PLAN.md` Phase 5 asks Auto to indicate that it is operating
+                offline. It sits under the selector rather than in the shared
+                notice line below, where a failure or a sign-in prompt would
+                take precedence and this would never be seen — which is exactly
+                what happened the first time it was written there.
+              */}
+              {!online ? (
+                <p className="mt-2 px-1 text-[12px] text-muted-foreground" role="status">
+                  No connection. OCADE answers on this device.
+                </p>
+              ) : null}
             </div>
 
             {/*
