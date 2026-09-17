@@ -87,7 +87,7 @@ try {
   await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();
-  await page.getByRole("button", { name: "Billing" }).click();
+  await page.getByRole("button", { name: "Usage & Limits" }).click();
   await page.waitForSelector("text=of 28 left", { timeout: 15_000 });
   const opening = await page.getByText(EXACT_COUNT).innerText();
   check("a free account starts with 28 requests", opening.startsWith("28 of 28"), opening);
@@ -108,7 +108,7 @@ try {
   await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();
-  await page.getByRole("button", { name: "Billing" }).click();
+  await page.getByRole("button", { name: "Usage & Limits" }).click();
   /*
    * Waits for the settled number rather than reading the first frame. The panel
    * shows what it has while it refetches, and asserting on that frame would be
@@ -179,7 +179,7 @@ try {
     "Settings still opens",
     (await page.getByRole("dialog", { name: "Settings" }).count()) === 1,
   );
-  await page.getByRole("button", { name: "Billing" }).click();
+  await page.getByRole("button", { name: "Usage & Limits" }).click();
   await page.waitForSelector("text=of 28 left", { timeout: 15_000 });
   const exhausted = await page.getByText(EXACT_COUNT).innerText();
   check(
@@ -187,7 +187,25 @@ try {
     (await page.locator("text=/request.? left · resets|used this session's allowance/").count()) >=
       0,
   );
-  check("Billing still opens and reports nothing left", exhausted.startsWith("0 of 28"), exhausted);
+  check(
+    "Usage & Limits still opens and reports nothing left",
+    exhausted.startsWith("0 of 28"),
+    exhausted,
+  );
+
+  /* --- Billing is about plans, and never pretends a checkout exists -------- */
+
+  await page.getByRole("button", { name: "Billing", exact: true }).click();
+  const billing = await page.getByRole("dialog", { name: "Settings" }).innerText();
+  check(
+    "Billing names all three plans and which one this account is on",
+    /Free/.test(billing) && /Pro/.test(billing) && /Max/.test(billing) && /Your plan/.test(billing),
+  );
+  check(
+    "and says plainly that paid plans are not open rather than offering a dead checkout",
+    /not open yet/i.test(billing) && !/Upgrade now|Subscribe|Pay/i.test(billing),
+    billing.split("\n").find((line) => /not open yet/i.test(line)) ?? "",
+  );
   await page.keyboard.press("Escape");
 
   await page.goto(`${BASE}/library`, { waitUntil: "networkidle" });

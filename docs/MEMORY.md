@@ -399,6 +399,27 @@ states the consequence instead of hiding it: the turn is marked unsynchronised,
 and closing or signing out warns first. Revisit only with a decision to encrypt
 at rest.
 
+## Phase 9 — Usage & Limits is its own screen, and Billing is about plans
+
+Settings had six categories where `PLAN.md` names seven, because Billing was
+the usage breakdown under another name. There was no screen that answered "what
+would upgrading give me".
+
+- **Usage & Limits** is its own category: tier, the current 6h28m window, the
+  weekly cap where the tier has one, remaining counts, reset times, and the
+  rule that one successful request costs one use.
+- **Billing** now names Free, Pro and Max with their real allowances, marks
+  which one the account is on, and says plainly that paid plans are not open
+  yet. No disabled Upgrade button — that is the same lie told more quietly.
+- `settings-panel.tsx` had its own copy of `Row`; it uses the shared one now.
+
+Two regressions the browser caught, both mine. The online journey read the
+allowance from Billing, which no longer carries the count, and the final
+journey's control-pressing loop re-navigated with `domcontentloaded` and
+pressed the next control while the page was still hydrating — React reported a
+hydration mismatch that came from the loop racing the framework, intermittently
+and indistinguishably from a real defect. It waits for `networkidle` now.
+
 Still open for Phase 14: the deployed `ocade-intelligence` is version 6 and is
 materially older than this tree — its `edge-handler.ts` caps a request at 1 MiB
 where the repository caps it at 24 MiB, so attachments cannot work online until

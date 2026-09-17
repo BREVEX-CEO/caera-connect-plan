@@ -88,8 +88,9 @@ try {
   const dialog = page.getByRole("dialog", { name: "Settings" });
   const categories = await dialog.locator("nav button").allInnerTexts();
   check(
-    "Settings offers exactly the six categories the plan names",
-    categories.join("|") === "Account|Appearance|Notifications|Data Controls|Billing|Advanced",
+    "Settings offers exactly the seven categories the plan names",
+    categories.join("|") ===
+      "Account|Appearance|Notifications|Data Controls|Usage & Limits|Billing|Advanced",
     categories.join("|"),
   );
 
@@ -175,7 +176,14 @@ try {
 
   /* --- and nothing anywhere in Settings names one -------------------------- */
 
-  for (const category of ["Account", "Appearance", "Notifications", "Data Controls", "Billing"]) {
+  for (const category of [
+    "Account",
+    "Appearance",
+    "Notifications",
+    "Data Controls",
+    "Usage & Limits",
+    "Billing",
+  ]) {
     await page.getByRole("button", { name: category, exact: true }).click();
     await page.waitForTimeout(400);
     const text = await dialog.innerText();

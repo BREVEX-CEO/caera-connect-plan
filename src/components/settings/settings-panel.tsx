@@ -19,7 +19,17 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Bell, CreditCard, Database, Monitor, Moon, ShieldCheck, User, X } from "lucide-react";
+import {
+  Bell,
+  CreditCard,
+  Database,
+  Gauge,
+  Monitor,
+  Moon,
+  ShieldCheck,
+  User,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppearance } from "@/lib/appearance";
 import { useSession } from "@/lib/session";
@@ -28,11 +38,12 @@ import { SignInMethods } from "./SignInMethods";
 import { DataControlsSection } from "./DataControlsSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { UsageSection } from "./UsageSection";
-import { Action } from "./rows";
+import { BillingSection } from "./BillingSection";
+import { Action, Row } from "./rows";
 import { DELETE_CONFIRMATION, deleteMyAccount } from "@/lib/account.functions";
 
 export type SettingsCategory =
-  "account" | "appearance" | "notifications" | "data" | "billing" | "advanced";
+  "account" | "appearance" | "notifications" | "data" | "usage" | "billing" | "advanced";
 
 interface SettingsPanelValue {
   open: (category?: SettingsCategory) => void;
@@ -79,6 +90,7 @@ const CATEGORIES: { id: SettingsCategory; label: string; group: string; icon: ty
   { id: "appearance", label: "Appearance", group: "General", icon: Monitor },
   { id: "notifications", label: "Notifications", group: "General", icon: Bell },
   { id: "data", label: "Data Controls", group: "Data", icon: Database },
+  { id: "usage", label: "Usage & Limits", group: "Account", icon: Gauge },
   { id: "billing", label: "Billing", group: "Account", icon: CreditCard },
   { id: "advanced", label: "Advanced", group: "Account", icon: ShieldCheck },
 ];
@@ -159,32 +171,10 @@ function SettingsDialog({
           {category === "notifications" ? <NotificationsSection /> : null}
           {category === "data" ? <DataControlsSection /> : null}
           {category === "advanced" ? <AdvancedSection /> : null}
-          {category === "billing" ? <UsageSection /> : null}
+          {category === "usage" ? <UsageSection /> : null}
+          {category === "billing" ? <BillingSection /> : null}
         </div>
       </div>
-    </div>
-  );
-}
-
-/** One row: a label, an optional line of explanation, and one control. */
-function Row({
-  label,
-  description,
-  children,
-}: {
-  label: string;
-  description?: string;
-  children?: ReactNode;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-6 border-b border-border/50 py-4 last:border-b-0">
-      <div className="min-w-0">
-        <p className="text-sm text-foreground">{label}</p>
-        {description ? (
-          <p className="mt-1 text-[13px] leading-5 text-muted-foreground">{description}</p>
-        ) : null}
-      </div>
-      {children ? <div className="shrink-0">{children}</div> : null}
     </div>
   );
 }

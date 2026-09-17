@@ -106,9 +106,18 @@ async function sweep(page, routes, label) {
         await control.click({ timeout: 2000, noWaitAfter: true });
         pressed += 1;
         await page.waitForTimeout(120);
-        // Back to where we were, so the next control is the one we measured.
+        /*
+         * Back to where we were, so the next control is the one we measured.
+         *
+         * `networkidle` rather than `domcontentloaded`: the next press used to
+         * land while the page was still hydrating, and React reported a
+         * hydration mismatch that came from this loop racing the framework
+         * rather than from the page. Intermittent, and indistinguishable from a
+         * real defect in the report, which is the worst property a check can
+         * have.
+         */
         if (!page.url().includes(route)) {
-          await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded" });
+          await page.goto(`${BASE}${route}`, { waitUntil: "networkidle" });
         }
         await page.keyboard.press("Escape");
       } catch {
