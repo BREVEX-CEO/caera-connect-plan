@@ -23,9 +23,7 @@ import { z } from "zod";
 import { HIGH_RISK, requireAssurance } from "@/lib/security/assurance-middleware";
 import {
   buildAccountExport,
-  clearAccountDataClass,
   type AccountDataExport,
-  type DataClassDeletionReceipt,
   type DynamicTableClient,
 } from "@/lib/account/data-rights";
 

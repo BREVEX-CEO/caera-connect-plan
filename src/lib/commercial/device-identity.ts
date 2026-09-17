@@ -62,7 +62,7 @@ function clearCachedCurrentDeviceIdentity(accountId: string): void {
  * use. Keeping the identifier locally lets an already authenticated session
  * spend its preallocated block when the network is gone.
  */
-export function readCachedCurrentDeviceIdentity(accountId?: string): CurrentDeviceIdentity | null {
+function readCachedCurrentDeviceIdentity(accountId?: string): CurrentDeviceIdentity | null {
   if (typeof window === "undefined") return null;
   try {
     const parsed = JSON.parse(

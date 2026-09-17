@@ -125,7 +125,7 @@ export function describeInstall(state: InstallState): string {
 /** What a removal publishes, and the one line that says it happened. */
 export const REMOVED_DETAIL = "Removed";
 
-export function isErrorStage(stage: InstallStage): boolean {
+function isErrorStage(stage: InstallStage): boolean {
   return (
     stage === "insufficient_storage" || stage === "recoverable_error" || stage === "fatal_error"
   );

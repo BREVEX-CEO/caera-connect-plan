@@ -6,7 +6,6 @@ import {
   useRouter,
   Link,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
 /*
  * ON DEMAND, and this one module is why the whole public site used to pay for
  * Supabase.

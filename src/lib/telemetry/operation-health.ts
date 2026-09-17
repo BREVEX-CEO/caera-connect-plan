@@ -112,7 +112,7 @@ export type LatencyBucket = (typeof LATENCY_BUCKETS)[number];
 
 export type HealthOutcome = "succeeded" | "failed" | "refused";
 
-export function latencyBucketFor(durationMs: number): LatencyBucket {
+function latencyBucketFor(durationMs: number): LatencyBucket {
   if (!Number.isFinite(durationMs) || durationMs < 0) return "under_100ms";
   if (durationMs < 100) return "under_100ms";
   if (durationMs < 500) return "under_500ms";

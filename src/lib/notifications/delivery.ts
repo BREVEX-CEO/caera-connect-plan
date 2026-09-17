@@ -28,7 +28,7 @@
 import type { NotificationChannel, NotificationChannelId } from "./channels";
 import type { DeliveryDecision } from "./preferences";
 
-export const DELIVERY_STATES = ["sent", "held", "unavailable", "failed", "dead_letter"] as const;
+const DELIVERY_STATES = ["sent", "held", "unavailable", "failed", "dead_letter"] as const;
 export type DeliveryState = (typeof DELIVERY_STATES)[number];
 
 /** The per-channel map stored in `ocade_notifications.delivery`. */

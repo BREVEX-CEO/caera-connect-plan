@@ -32,7 +32,7 @@
  */
 import { toast } from "sonner";
 import { getOfflineCurrentDeviceIdentity } from "./device-identity";
-import { observeNow, readTrustedClockHighWater } from "@/lib/time/trusted-clock";
+import { readTrustedClockHighWater } from "@/lib/time/trusted-clock";
 import {
   acquireGenerationPermit,
   finalizeGenerationPermit,

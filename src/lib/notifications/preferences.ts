@@ -52,7 +52,7 @@ export interface NotificationPreferences {
   categories: Record<NotificationCategoryId, CategoryPreference>;
 }
 
-export const DEFAULT_QUIET_HOURS: QuietHoursPreference = {
+const DEFAULT_QUIET_HOURS: QuietHoursPreference = {
   enabled: false,
   fromHour: 22,
   toHour: 7,

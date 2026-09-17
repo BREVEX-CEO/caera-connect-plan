@@ -59,7 +59,6 @@ export type NotificationFrequency = "immediate" | "grouped" | "digest";
  * what stops a settings screen offering a choice that would be wrong to make.
  */
 const URGENT_ONLY: readonly NotificationFrequency[] = ["immediate"];
-const EVERY_FREQUENCY: readonly NotificationFrequency[] = ["immediate", "grouped", "digest"];
 
 export const NOTIFICATION_CATEGORIES: readonly NotificationCategory[] = [
   {

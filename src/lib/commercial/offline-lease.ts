@@ -1,7 +1,7 @@
 import type { GenerationSurface } from "./generation-gate";
 import type { PlanTier } from "@/lib/payments/pricing";
 
-export const OFFLINE_LEASE_VERSION = 1 as const;
+const OFFLINE_LEASE_VERSION = 1 as const;
 export const OFFLINE_LEASE_ALGORITHM = "Ed25519" as const;
 export const OFFLINE_BLOCK_INCREMENT: Record<PlanTier, number> = {
   free: 7,

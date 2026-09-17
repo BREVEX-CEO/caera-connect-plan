@@ -57,7 +57,7 @@ export function isPaddleEnv(value: string | null): value is PaddleEnv {
   return value === "sandbox" || value === "live";
 }
 
-export function getWebhookSecret(env: PaddleEnv): string {
+function getWebhookSecret(env: PaddleEnv): string {
   return env === "sandbox"
     ? getEnv("PAYMENTS_SANDBOX_WEBHOOK_SECRET")
     : getEnv("PAYMENTS_LIVE_WEBHOOK_SECRET");
@@ -217,7 +217,7 @@ function getApiKey(env: PaddleEnv): string {
   return env === "sandbox" ? getEnv("PAYMENTS_SANDBOX_API_KEY") : getEnv("PAYMENTS_LIVE_API_KEY");
 }
 
-export async function gatewayFetch(
+async function gatewayFetch(
   env: PaddleEnv,
   path: string,
   init: RequestInit = {},

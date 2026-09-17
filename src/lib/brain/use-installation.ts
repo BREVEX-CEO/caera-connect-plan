@@ -54,7 +54,7 @@ function authority(): Promise<ModelInstallationAuthority> {
 }
 
 /** Watch the installation. Causes nothing to happen, and loads nothing. */
-export function useInstallationState(): InstallState {
+function useInstallationState(): InstallState {
   return useSyncExternalStore(
     subscribeToInstallState,
     installState,

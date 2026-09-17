@@ -40,7 +40,7 @@ export interface RuntimeProgress {
 let live: { path: CapabilityPath; adapter: BrainAdapter; version: string } | null = null;
 
 /** The running engine, for routing. Null until the authority has started one. */
-export function activeRuntime(): { path: CapabilityPath; adapter: BrainAdapter } | null {
+function activeRuntime(): { path: CapabilityPath; adapter: BrainAdapter } | null {
   return live ? { path: live.path, adapter: live.adapter } : null;
 }
 
@@ -185,7 +185,7 @@ export function authorityBackedAdapter(): BrainAdapter {
 }
 
 /** Tear the running engine down. Used by uninstall and by tests. */
-export async function disposeRuntime(): Promise<void> {
+async function disposeRuntime(): Promise<void> {
   const current = live;
   live = null;
   try {

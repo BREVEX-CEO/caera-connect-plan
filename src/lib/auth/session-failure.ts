@@ -77,7 +77,7 @@ function isRetryableTransport(err: MaybeAuthError): boolean {
   return false;
 }
 
-export function classifyAuthFailure(error: unknown): AuthFailureKind {
+function classifyAuthFailure(error: unknown): AuthFailureKind {
   if (!error) return "rejected";
 
   const err = error as MaybeAuthError;

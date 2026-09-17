@@ -50,7 +50,7 @@ export interface AppearanceValue extends AppearancePrefs {
 }
 
 /** The key the boot script in `__root.tsx` reads. Changing one changes both. */
-export const APPEARANCE_STORAGE_KEY = "ocade:appearance:v1";
+const APPEARANCE_STORAGE_KEY = "ocade:appearance:v1";
 
 const DEFAULTS: AppearancePrefs = { theme: "dark", reducedMotion: false, highContrast: false };
 

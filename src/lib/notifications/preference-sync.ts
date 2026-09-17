@@ -22,11 +22,7 @@
  * about it, and neither will this browser after a reload.
  */
 
-import {
-  defaultPreferences,
-  normalisePreferences,
-  type NotificationPreferences,
-} from "./preferences";
+import { normalisePreferences, type NotificationPreferences } from "./preferences";
 import type { NotificationChannelId } from "./channels";
 import type { Json } from "@/integrations/supabase/types";
 

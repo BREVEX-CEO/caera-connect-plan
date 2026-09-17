@@ -24,7 +24,7 @@
 export const LIST_CAP = 500;
 
 /** Rows per request while walking a list that has to be complete. */
-export const PAGE_ROWS = 500;
+const PAGE_ROWS = 500;
 
 /**
  * Enough pages for any real account, and a bounded mistake rather than a tab

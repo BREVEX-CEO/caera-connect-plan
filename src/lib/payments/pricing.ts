@@ -141,7 +141,7 @@ export interface PriceCheck {
  * Free is valid by definition — a numeric signature on zero would be
  * meaningless.
  */
-export function checkPrice(amountMinor: number, currency: CurrencyCode = "USD"): PriceCheck {
+function checkPrice(amountMinor: number, currency: CurrencyCode = "USD"): PriceCheck {
   if (!Number.isSafeInteger(amountMinor) || amountMinor < 0) {
     return { valid: false, reason: "A price must use whole, non-negative minor units." };
   }

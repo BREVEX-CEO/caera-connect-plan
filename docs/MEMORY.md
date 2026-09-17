@@ -491,6 +491,35 @@ Three defects found on the way, all mine and all caught by the browser:
 - Research beside Thinking, Temporary and the selector made the composer 49px
   too wide at 375px. The right-hand control group wraps now.
 
+## Phase 13 — measured, and it is already lean
+
+Before: `src` 41,946 lines across 215 files (152 excluding tests), 15 runtime
+dependencies, 22 development. After: 41,938 lines, same file count, same
+dependencies.
+
+Eight lines. That is the honest result, and `PLAN.md` says so itself: "Reduce
+complexity rather than chasing a cosmetic LOC number." The hunt found no dead
+modules — the reachability gate proves 152 of 152 are reached from a route, an
+entry or a worker — no unused dependency, and no duplicated subsystem. The
+earlier debloat did the heavy work.
+
+What it did find and remove:
+
+- **15 exports nothing outside their own file imported.** They are private now,
+  which shrinks the surface another module could couple to without changing a
+  line of behaviour.
+- **Seven genuinely dead imports and locals** that `noUnusedLocals` surfaced
+  once those exports stopped being public: `ErrorInfo`, `useEffect`, `useRef`,
+  `observeNow`, `clearAccountDataClass`, `defaultPreferences`,
+  `EVERY_FREQUENCY`.
+
+The meaningful complexity removed this mission was not in this phase. It was
+the duplicate `Row` in two files, the object-URL code copied into a second
+export path (now one `saveFile`), the offline journal's unused in-flight guard
+(now the drain that never existed), the uninstall cooldown constant, and the
+stale processor-only claim that had kept a whole graphics rung out of the
+ladder.
+
 Still open for Phase 14: the deployed `ocade-intelligence` is version 6 and is
 materially older than this tree — its `edge-handler.ts` caps a request at 1 MiB
 where the repository caps it at 24 MiB, so attachments cannot work online until
