@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { releaseHealthResponse } from "../health";
 
 /**
- * A DEPLOYMENT WITHOUT THE SERVER SECRET MUST FAIL ITS OWN GATE.
+ * A DEPLOYMENT MISSING A BINDING MUST FAIL ITS OWN GATE.
  *
  * This is the Phase 1 production defect, and it was invisible for the worst
  * possible reason: the release gate asked only about the two public values the
@@ -17,53 +17,69 @@ import { releaseHealthResponse } from "../health";
  * artifact exists. One missing secret, four customer-visible failures, and a
  * green deployment.
  *
- * Health reports which bindings exist and never what they contain, and
- * `scripts/deploy.mjs` refuses a deployment whose health says the server secret
- * is absent.
+ * Every binding whose absence a customer meets as a broken feature is reported
+ * now, not only that one — the R2 binding that is the only door to the
+ * artifact, and the four lease values without which no offline capacity can be
+ * signed. Presence, never a value: this endpoint is public.
  */
-async function configurationFor(env: Record<string, unknown>) {
+const FIELDS = ["supabasePublic", "supabaseServer", "modelDelivery", "offlineLeases"] as const;
+type Configuration = Record<(typeof FIELDS)[number], boolean>;
+
+async function configurationFor(env: Record<string, unknown>): Promise<Configuration> {
   const response = releaseHealthResponse(new Request("https://ocade.in/api/health"), env);
   expect(response).not.toBeNull();
-  return (await response!.json()).configuration as {
-    supabasePublic: boolean;
-    supabaseServer: boolean;
-  };
+  return (await response!.json()).configuration as Configuration;
 }
 
 const CONFIGURED = {
   SUPABASE_URL: "https://project.supabase.co",
   SUPABASE_PUBLISHABLE_KEY: "sb_publishable_key",
   SUPABASE_SERVICE_ROLE_KEY: "sb_secret_key",
+  // A bucket binding is an object with methods, never a string.
+  OCADE_MODELS: { get: () => null, head: () => null },
+  OCADE_LEASE_SIGNING_KEY_ID: "lease-key-1",
+  OCADE_LEASE_SIGNING_PRIVATE_KEY: "private-key-material",
+  OCADE_LEASE_SIGNING_PUBLIC_KEY: "public-key-material",
+  OCADE_LEASE_SIGNING_NOT_BEFORE: "2026-01-01T00:00:00.000Z",
 };
 
 describe("the release configuration gate", () => {
-  it("reports both halves of the Supabase binding", async () => {
+  it("reports every binding a release needs", async () => {
     expect(await configurationFor(CONFIGURED)).toEqual({
       supabasePublic: true,
       supabaseServer: true,
+      modelDelivery: true,
+      offlineLeases: true,
     });
   });
 
-  it("reports the server secret as absent when it is", async () => {
-    const { SUPABASE_SERVICE_ROLE_KEY: _omitted, ...withoutSecret } = CONFIGURED;
-    expect(await configurationFor(withoutSecret)).toEqual({
-      supabasePublic: true,
-      supabaseServer: false,
-    });
+  it.each([
+    ["SUPABASE_SERVICE_ROLE_KEY", "supabaseServer"],
+    ["SUPABASE_PUBLISHABLE_KEY", "supabasePublic"],
+    ["OCADE_MODELS", "modelDelivery"],
+    ["OCADE_LEASE_SIGNING_PRIVATE_KEY", "offlineLeases"],
+    ["OCADE_LEASE_SIGNING_NOT_BEFORE", "offlineLeases"],
+  ])("reports %s as absent when it is", async (variable, field) => {
+    const { [variable]: _omitted, ...incomplete } = CONFIGURED as Record<string, unknown>;
+    const configuration = await configurationFor(incomplete);
+    expect(configuration[field as keyof Configuration]).toBe(false);
   });
 
   it("never reports the value of a secret, only that one exists", async () => {
     const response = releaseHealthResponse(new Request("https://ocade.in/api/health"), CONFIGURED);
     const body = await response!.text();
-    expect(body).not.toContain("sb_secret_key");
-    expect(body).not.toContain("sb_publishable_key");
+    for (const secret of ["sb_secret_key", "sb_publishable_key", "private-key-material"]) {
+      expect(body).not.toContain(secret);
+    }
   });
 
-  it("is refused by the deployment gate when the server secret is missing", () => {
+  it("refuses a deployment that is missing any of them", () => {
     // The gate is in the deploy script rather than in a module it could import,
-    // so this asserts the condition is actually written there. A deployment
-    // that cannot answer a single authenticated request must not be promoted.
+    // so this asserts the list is actually written there. A deployment that
+    // cannot answer an authenticated request, deliver the artifact, or sign
+    // offline capacity must not be promoted.
     const deploy = readFileSync("scripts/deploy.mjs", "utf8");
-    expect(deploy).toContain("body?.configuration?.supabaseServer !== true");
+    for (const field of FIELDS) expect(deploy).toContain(`"${field}"`);
+    expect(deploy).toContain("missingConfiguration(body?.configuration).length > 0");
   });
 });

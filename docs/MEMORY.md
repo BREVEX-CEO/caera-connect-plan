@@ -123,6 +123,39 @@ values the browser also holds. That is why a dead deployment went green.
 Proven: 793 unit/database tests, all 11 browser journeys, and a before/after
 browser run of the exact reproduction above.
 
+## Production configuration — what is verified and what is not
+
+The owner reports `SUPABASE_SERVICE_ROLE_KEY`, the `OCADE_LEASE_SIGNING_*`
+secrets and the `OCADE_MODELS` → `ocade-private-models` binding as configured
+and deployed. What this session can actually confirm:
+
+- **Confirmed.** The R2 bucket `ocade-private-models` exists (APAC, Standard),
+  created `2026-09-16T08:40:42Z`. Whether it still holds the object
+  `r/ocr-2dc0ee44eb397906/a` at 484,220,160 bytes is **not** confirmable from
+  here — Cloudflare's tools in this session expose buckets, not objects — and
+  the bucket's creation date is newer than the upload recorded above, so the
+  object must be re-verified before Offline is called done.
+- **Confirmed, and a problem.** The deployed Worker bundle contains neither
+  `supabaseServer` nor `Your chats could not be loaded`, so **production is
+  running a build from before Phase 1 and Phase 2**. The secrets may well be
+  set; the code that uses them correctly, and the health fields that would
+  prove they are set, are not deployed yet.
+- **Not confirmable.** Worker secret presence cannot be read from this session
+  at all. Once the current build is deployed it is one request:
+  `curl -s https://ocade.in/api/health` returns `configuration` with
+  `supabasePublic`, `supabaseServer`, `modelDelivery` and `offlineLeases`.
+
+`/api/health` reports all four now — presence only, never a value — and
+`scripts/deploy.mjs` refuses a deployment that is missing any of them, naming
+the ones that are missing. Proven both ways: served without the server secret
+it reports `supabaseServer: false`; served with every binding present it
+reports all four `true`.
+
+Presence is not correctness. A wrong lease key pair still fails
+`loadOfflineLeaseSigningAuthority`'s own sign-and-verify probe at issue time,
+which is the right place for it. The health answer is the question a release
+gate can ask from outside.
+
 ## Phase 2 — no wait without an ending, no control without a truth
 
 Every remaining indefinite wait was found and ended, and each one failed the

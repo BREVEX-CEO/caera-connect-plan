@@ -332,6 +332,35 @@ function readWranglerVersionId(outputPath, recordType) {
   return deployed?.version_id ?? null;
 }
 
+/**
+ * EVERY BINDING A RELEASE NEEDS, NAMED WHEN ONE IS ABSENT.
+ *
+ * The gate used to ask only about the two public Supabase values the browser
+ * also holds, so a deployment with no service-role secret went green and then
+ * refused every authenticated request. Each entry here is something whose
+ * absence a customer meets as a broken feature rather than as an error:
+ *
+ *   supabasePublic  no sign-in at all
+ *   supabaseServer  every authenticated server function throws
+ *   modelDelivery   the only door to the artifact answers 503; Offline never
+ *                   finishes installing
+ *   offlineLeases   no offline capacity can be signed, so Offline cannot run
+ *                   even once it is installed
+ *
+ * Presence, not correctness: a wrong value still fails at the point of use. The
+ * question this answers is the one a release gate can ask from outside.
+ */
+const REQUIRED_CONFIGURATION = [
+  "supabasePublic",
+  "supabaseServer",
+  "modelDelivery",
+  "offlineLeases",
+];
+
+function missingConfiguration(configuration) {
+  return REQUIRED_CONFIGURATION.filter((name) => configuration?.[name] !== true);
+}
+
 async function probeHealthOnce(plan, fetcher, expectedDeploymentId, useVersionOverride) {
   try {
     const headers = { accept: "application/json", "cache-control": "no-cache" };
@@ -350,22 +379,15 @@ async function probeHealthOnce(plan, fetcher, expectedDeploymentId, useVersionOv
       body?.service !== "ocade-web" ||
       body?.version !== plan.expectedHealthVersion ||
       body?.deploymentId !== expectedDeploymentId ||
-      (plan.mode === "deploy" && body?.configuration?.supabasePublic !== true) ||
-      /*
-       * A RELEASE WITHOUT THE SERVER SECRET IS NOT A RELEASE.
-       *
-       * Without it every authenticated server function throws: the allowance
-       * permit, the Billing read, the session list and the Offline release.
-       * The product signs people in and then refuses everything they came for,
-       * so the gate must refuse the deployment instead.
-       */
-      (plan.mode === "deploy" && body?.configuration?.supabaseServer !== true)
+      (plan.mode === "deploy" && missingConfiguration(body?.configuration).length > 0)
     ) {
+      const missing = missingConfiguration(body?.configuration);
       return {
         ok: false,
         reason:
           `health payload did not verify service/version ${plan.expectedHealthVersion} ` +
-          `at Cloudflare version ${expectedDeploymentId} with required runtime configuration`,
+          `at Cloudflare version ${expectedDeploymentId}` +
+          (missing.length > 0 ? `; runtime configuration missing: ${missing.join(", ")}` : ""),
       };
     }
     return {

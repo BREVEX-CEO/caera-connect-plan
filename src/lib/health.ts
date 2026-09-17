@@ -25,6 +25,11 @@ type VersionMetadataEnv = {
   SUPABASE_URL?: unknown;
   SUPABASE_PUBLISHABLE_KEY?: unknown;
   SUPABASE_SERVICE_ROLE_KEY?: unknown;
+  OCADE_MODELS?: unknown;
+  OCADE_LEASE_SIGNING_KEY_ID?: unknown;
+  OCADE_LEASE_SIGNING_PRIVATE_KEY?: unknown;
+  OCADE_LEASE_SIGNING_PUBLIC_KEY?: unknown;
+  OCADE_LEASE_SIGNING_NOT_BEFORE?: unknown;
 };
 
 type CloudflareRuntimeRequest = Request & {
@@ -73,12 +78,34 @@ function deploymentMetadata(env: unknown): { deploymentId: string; deploymentTag
 function configurationMetadata(env: unknown): {
   supabasePublic: boolean;
   supabaseServer: boolean;
+  modelDelivery: boolean;
+  offlineLeases: boolean;
 } {
   const runtime = env && typeof env === "object" ? (env as VersionMetadataEnv) : undefined;
   const present = (value: unknown): boolean => typeof value === "string" && value.length > 0;
   return {
     supabasePublic: present(runtime?.SUPABASE_URL) && present(runtime?.SUPABASE_PUBLISHABLE_KEY),
     supabaseServer: present(runtime?.SUPABASE_SERVICE_ROLE_KEY),
+    /*
+     * The private bucket binding, without which the only door to the artifact
+     * answers 503 and Offline Intelligence can never finish installing.
+     * An object, not a string, so it is checked as one.
+     */
+    modelDelivery: Boolean(runtime?.OCADE_MODELS) && typeof runtime?.OCADE_MODELS === "object",
+    /*
+     * All four values the signing authority requires. Three of four is the
+     * same as none: `loadOfflineLeaseSigningAuthority` refuses rather than
+     * inventing a key, so offline capacity cannot be issued at all.
+     *
+     * Presence is not correctness — a mismatched key pair still fails the
+     * authority's own sign-and-verify probe at issue time. What this answers is
+     * the question a release gate can ask from outside: is anything missing?
+     */
+    offlineLeases:
+      present(runtime?.OCADE_LEASE_SIGNING_KEY_ID) &&
+      present(runtime?.OCADE_LEASE_SIGNING_PRIVATE_KEY) &&
+      present(runtime?.OCADE_LEASE_SIGNING_PUBLIC_KEY) &&
+      present(runtime?.OCADE_LEASE_SIGNING_NOT_BEFORE),
   };
 }
 
