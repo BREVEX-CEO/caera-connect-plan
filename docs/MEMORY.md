@@ -65,11 +65,69 @@ The artifact structure and full digest were verified, real Chromium WASM generat
 - Cowork remains frozen until this plan is complete.
 - Production payment-provider onboarding remains owner-deferred and may not block this non-payment mission.
 
-## Active mission phase
+## This session's environment blockers
 
-Phase 0 is the documentation/current-truth rewrite. This phase is complete only when every root/docs Markdown authority in the repository has been rewritten to the same current decisions and committed together without changing product code.
+These are environment facts, not product findings, and they bound what
+"proven" can mean for the work recorded below.
 
-After Phase 0, Phase 1 immediately reproduces and fixes the real usage-allowance/Chat Send failure, verifies the exact live Supabase RPC contract, deploys the matching current Edge Function, and proves one real production Chat answer with exactly one use and durable persistence.
+- Outbound HTTPS to `ocade.in` and to `sazhgaisyhkdbrooycdv.supabase.co` is
+  refused by this session's network policy (proxy answers 403 to CONNECT). No
+  live production HTTP journey, and no live REST call, can be run from here.
+- The live Supabase **database** is reachable through the Supabase MCP tools, so
+  live schema, RPC signatures, grants and live SQL execution are real evidence.
+- Cloudflare is readable through its MCP tools (worker list, bundled code) but
+  there is no token or upload path, so the frontend Worker cannot be deployed
+  from this session. `npm run deploy:web` needs `CLOUDFLARE_API_TOKEN`.
+- Consequence: browser proof here uses the real production build served by
+  `wrangler dev` against the loopback Supabase stub. That is real product code
+  in a real browser; it is not proof about the hosted project.
+
+## Phase 1 — the allowance failure, root-caused and reproduced
+
+The live database was cleared as a suspect first. Every RPC the ledger calls
+exists in `sazhgaisyhkdbrooycdv` with a matching signature, granted to
+`service_role` alone, and `ocade_acquire_generation_permit` was executed live
+against the owner account: it granted a permit and the probe was released
+again, leaving no residue.
+
+The cause is one missing Worker binding. With `SUPABASE_URL` and
+`SUPABASE_PUBLISHABLE_KEY` present but `SUPABASE_SERVICE_ROLE_KEY` absent,
+`supabaseAdmin` throws on first use and every server function that needs it
+fails at once. Reproduced in a real browser against the production build by
+serving it without that one variable — all four reported defects appeared
+together:
+
+- Send → “OCADE could not verify your usage allowance.” and the typed question
+  was discarded with it;
+- Billing → the allowance read failed;
+- Advanced → the sessions read failed and rendered nothing at all;
+- Data Controls → “Offline Intelligence is not available in this version of
+  OCADE yet.”, although the approved artifact exists.
+
+The release gate could not see any of it: it asked only about the two public
+values the browser also holds. That is why a dead deployment went green.
+
+### Fixed in this phase
+
+- `/api/health` reports `configuration.supabaseServer` — presence only, never a
+  value — and `scripts/deploy.mjs` refuses a deployment whose health says the
+  server secret is absent.
+- A refused send returns the question and its attachments to the composer.
+  `useChat.send` now answers whether the request was accepted.
+- Billing, Advanced and the chat sidebar end in success, empty, or an error
+  with Retry. One `Pending` component in `components/settings/rows.tsx` owns
+  that shape; `UsageSection`'s duplicate `Row` was deleted.
+- `docs/TRD.md` names the pinned online model again, which restores the
+  documents-and-code agreement test Phase 0 broke.
+
+Proven: 793 unit/database tests, all 11 browser journeys, and a before/after
+browser run of the exact reproduction above.
+
+Still open for Phase 14: the deployed `ocade-intelligence` is version 6 and is
+materially older than this tree — its `edge-handler.ts` caps a request at 1 MiB
+where the repository caps it at 24 MiB, so attachments cannot work online until
+it is redeployed. It must be deployed together with the matching frontend, not
+before it, and the frontend deploy is blocked in this session.
 
 ## Checkpoint discipline
 

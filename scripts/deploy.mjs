@@ -350,7 +350,16 @@ async function probeHealthOnce(plan, fetcher, expectedDeploymentId, useVersionOv
       body?.service !== "ocade-web" ||
       body?.version !== plan.expectedHealthVersion ||
       body?.deploymentId !== expectedDeploymentId ||
-      (plan.mode === "deploy" && body?.configuration?.supabasePublic !== true)
+      (plan.mode === "deploy" && body?.configuration?.supabasePublic !== true) ||
+      /*
+       * A RELEASE WITHOUT THE SERVER SECRET IS NOT A RELEASE.
+       *
+       * Without it every authenticated server function throws: the allowance
+       * permit, the Billing read, the session list and the Offline release.
+       * The product signs people in and then refuses everything they came for,
+       * so the gate must refuse the deployment instead.
+       */
+      (plan.mode === "deploy" && body?.configuration?.supabaseServer !== true)
     ) {
       return {
         ok: false,

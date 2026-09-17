@@ -8,6 +8,8 @@ OCADE is a TypeScript/React application built with Vite/TanStack and npm. `packa
 
 The browser authenticates through Supabase Auth and sends online intelligence work only through the one `ocade-intelligence` Supabase Edge Function. Gemini keys remain server-side in exactly three optional slots named `GEMINI_API_KEY_PRIMARY`, `GEMINI_API_KEY_SECONDARY`, and `GEMINI_API_KEY_TERTIARY`. The browser never receives those values.
 
+Exactly one online model is pinned: `gemini-3.1-flash-lite`. It is the only entry in the server-side allowlist, and changing it requires an explicit owner decision with corresponding tests and documentation. This identifier is an internal operational fact; customer surfaces still say only OCADE Online.
+
 The Edge boundary verifies the JWT, validates the request contract, claims one generation permit through the canonical usage RPC, chooses the first healthy configured server-side key according to policy, streams output, and settles the permit exactly once. A provider failure before output may move to another configured key or Offline through the canonical router; a failure after output begins must not silently restart through a second authority.
 
 The repository and deployed Edge Function must be version-compatible. A successful frontend build is insufficient evidence when the deployed function or database RPC contract is older.

@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { Pending, Row } from "./rows";
 import {
   describeReset,
   useCommercialUsage,
@@ -19,19 +20,13 @@ import {
 export function UsageSection() {
   const usage = useCommercialUsage();
 
-  if (usage.isPending) {
+  if (usage.isPending || usage.isError || !usage.data) {
     return (
-      <p className="py-4 text-sm text-muted-foreground" role="status">
-        Reading your allowance…
-      </p>
-    );
-  }
-
-  if (usage.isError || !usage.data) {
-    return (
-      <p className="py-4 text-sm text-muted-foreground" role="alert">
-        Your allowance could not be read just now.
-      </p>
+      <Pending
+        query={usage}
+        loading="Reading your allowance…"
+        problem="Your allowance could not be read just now."
+      />
     );
   }
 
@@ -71,27 +66,5 @@ function WindowRow({ label, window }: { label: string; window: UsageWindowView }
         {window.remaining} of {window.allowance} left
       </span>
     </Row>
-  );
-}
-
-function Row({
-  label,
-  description,
-  children,
-}: {
-  label: string;
-  description?: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-6 border-b border-border/50 py-4 last:border-b-0">
-      <div className="min-w-0">
-        <p className="text-sm text-foreground">{label}</p>
-        {description ? (
-          <p className="mt-1 text-[13px] leading-5 text-muted-foreground">{description}</p>
-        ) : null}
-      </div>
-      {children ? <div className="shrink-0">{children}</div> : null}
-    </div>
   );
 }

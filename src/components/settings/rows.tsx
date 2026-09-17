@@ -60,6 +60,43 @@ export function Action({
   );
 }
 
+/**
+ * LOADING, AND THEN EITHER AN ANSWER OR A WAY OUT OF WAITING.
+ *
+ * `PLAN.md` Phase 2: every asynchronous surface ends in success, empty, or an
+ * error with Retry. Billing sat on "Reading your allowance…" and Advanced
+ * rendered nothing at all when its read failed — an empty panel that looks like
+ * an account with no sessions, which is the one thing it must never be mistaken
+ * for. Defined once so a third screen cannot invent a fourth ending.
+ *
+ * Returns null once the read has succeeded, so a caller renders it above its
+ * own content rather than branching around it.
+ */
+export function Pending({
+  query,
+  loading,
+  problem,
+}: {
+  query: { isPending: boolean; isError: boolean; refetch: () => unknown };
+  loading: string;
+  problem: string;
+}) {
+  if (query.isPending) {
+    return (
+      <p className="py-4 text-sm text-muted-foreground" role="status">
+        {loading}
+      </p>
+    );
+  }
+  if (!query.isError) return null;
+  return (
+    <div className="flex items-center justify-between gap-6 py-4" role="alert">
+      <p className="text-sm text-muted-foreground">{problem}</p>
+      <Action label="Retry" onClick={() => void query.refetch()} />
+    </div>
+  );
+}
+
 /** The quiet second half of a confirmation: "actually do it" beside "no". */
 export function Confirm({
   label,

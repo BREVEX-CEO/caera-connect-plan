@@ -151,6 +151,20 @@ try {
     "nothing was sent and no answer was invented",
     !body.includes("A question with nothing left") || !body.includes("stubbed OCADE answer"),
   );
+  /*
+   * A REFUSAL MUST NOT COST THE PERSON THEIR QUESTION.
+   *
+   * The composer cleared the instant Send was pressed, so a refused request —
+   * an exhausted allowance here, an unreachable allowance service in
+   * production — took the typed question with it and left a toast that faded
+   * after four seconds. Nothing was sent, written or charged, so the words are
+   * still theirs.
+   */
+  check(
+    "the refused question is still in the composer",
+    (await page.inputValue("#ocade-composer")) === "A question with nothing left",
+    await page.inputValue("#ocade-composer"),
+  );
 
   /* --- what exhaustion must NOT take away --------------------------------- */
 

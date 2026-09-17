@@ -203,8 +203,20 @@ export function ChatWorkspace() {
       /* Nothing to recover: the message is on its way. */
     }
     const carried = forRequest(pending);
+    const held = pending;
     setPending([]);
-    await chat.send(message, choice, carried);
+    /*
+     * A REFUSED SEND GIVES THE QUESTION BACK.
+     *
+     * The composer used to clear on the way in, so an exhausted allowance or an
+     * unreachable gate took the typed question and its attachments with it —
+     * the person watched a toast fade and had nothing left to press Send on.
+     * Nothing was sent, written or charged, so the work is still theirs.
+     */
+    if (await chat.send(message, choice, carried)) return;
+    setDraft((current) => (current.length > 0 ? current : message));
+    setPending((current) => (current.length > 0 ? current : held));
+    window.setTimeout(grow, 0);
   }
 
   const empty = chat.messages.length === 0 && chat.streaming.length === 0;
@@ -221,6 +233,8 @@ export function ChatWorkspace() {
             conversations={chat.conversations}
             activeId={chat.conversationId}
             loading={chat.loadingConversations}
+            failed={chat.conversationsFailed}
+            onRetry={() => void chat.reloadConversations()}
             onOpen={chat.openConversation}
             onRename={chat.rename}
             onArchive={(id) => chat.setArchived(id, true)}

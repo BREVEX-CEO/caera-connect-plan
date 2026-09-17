@@ -24,6 +24,7 @@ type VersionMetadataEnv = {
   };
   SUPABASE_URL?: unknown;
   SUPABASE_PUBLISHABLE_KEY?: unknown;
+  SUPABASE_SERVICE_ROLE_KEY?: unknown;
 };
 
 type CloudflareRuntimeRequest = Request & {
@@ -54,14 +55,30 @@ function deploymentMetadata(env: unknown): { deploymentId: string; deploymentTag
   return deploymentTag ? { deploymentId, deploymentTag } : { deploymentId };
 }
 
-function configurationMetadata(env: unknown): { supabasePublic: boolean } {
+/**
+ * WHICH BINDINGS EXIST, NEVER WHAT THEY CONTAIN.
+ *
+ * `supabaseServer` is here because its absence is invisible and total. A
+ * deployment missing the service-role secret serves the shell, signs people in
+ * and renders Chat — and then every server function that needs the admin client
+ * throws: the allowance permit ("OCADE could not verify your usage allowance"),
+ * the Billing read, the session list, and the Offline release, which reports
+ * itself unavailable although the artifact exists. All four were live at once,
+ * and the release gate passed the whole time because it only asked about the
+ * two public values the browser also holds.
+ *
+ * Booleans only. The endpoint is public, so it may say that a secret is
+ * configured and must never say anything about its value.
+ */
+function configurationMetadata(env: unknown): {
+  supabasePublic: boolean;
+  supabaseServer: boolean;
+} {
   const runtime = env && typeof env === "object" ? (env as VersionMetadataEnv) : undefined;
+  const present = (value: unknown): boolean => typeof value === "string" && value.length > 0;
   return {
-    supabasePublic:
-      typeof runtime?.SUPABASE_URL === "string" &&
-      runtime.SUPABASE_URL.length > 0 &&
-      typeof runtime?.SUPABASE_PUBLISHABLE_KEY === "string" &&
-      runtime.SUPABASE_PUBLISHABLE_KEY.length > 0,
+    supabasePublic: present(runtime?.SUPABASE_URL) && present(runtime?.SUPABASE_PUBLISHABLE_KEY),
+    supabaseServer: present(runtime?.SUPABASE_SERVICE_ROLE_KEY),
   };
 }
 

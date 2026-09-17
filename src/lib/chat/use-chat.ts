@@ -73,15 +73,22 @@ export interface ChatState {
   /** One line, already in OCADE's words. Never a provider's. */
   problem: string | null;
   loadingConversations: boolean;
+  /** The history read failed. Not the same as an account with no history. */
+  conversationsFailed: boolean;
   loadingMessages: boolean;
 }
 
 export interface ChatActions {
+  /**
+   * Whether the request was accepted. `false` means nothing was sent, nothing
+   * was written and nothing was charged — so the caller still owns what the
+   * person typed and must give it back to them rather than discard it.
+   */
   send(
     message: string,
     choice: IntelligenceChoice,
     attachments?: NormalizedAttachment[],
-  ): Promise<void>;
+  ): Promise<boolean>;
   /** Edit, Regenerate and Retry, which are the same operation. */
   resend(userMessageId: string, choice: IntelligenceChoice, newText?: string): Promise<void>;
   removeMessage(id: string): Promise<void>;
@@ -93,6 +100,7 @@ export interface ChatActions {
   trash(id: string): Promise<void>;
   restore(id: string): Promise<void>;
   deleteEverything(): Promise<void>;
+  reloadConversations(): Promise<void>;
   dismissProblem(): void;
 }
 
@@ -124,6 +132,7 @@ export function useChat(): ChatState & ChatActions {
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [loadingConversations, setLoadingConversations] = useState(false);
+  const [conversationsFailed, setConversationsFailed] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const abort = useRef<AbortController | null>(null);
 
@@ -136,9 +145,16 @@ export function useChat(): ChatState & ChatActions {
     try {
       const rows = (await listConversations()) as unknown as OcadeConversationRow[];
       setConversations(rows ?? []);
+      setConversationsFailed(false);
     } catch {
-      // A history that will not load is not a reason to block the composer.
+      /*
+       * A history that will not load is not a reason to block the composer —
+       * and it is not an account with no history either. The empty list was
+       * shown both ways, so a failed read was indistinguishable from a new
+       * account. The sidebar says which, and offers to try again.
+       */
       setConversations([]);
+      setConversationsFailed(true);
     } finally {
       setLoadingConversations(false);
     }
@@ -177,7 +193,7 @@ export function useChat(): ChatState & ChatActions {
       attachments: NormalizedAttachment[] = [],
     ) => {
       const text = message.trim();
-      if (!text || busy) return;
+      if (!text || busy) return false;
       setProblem(null);
 
       /*
@@ -186,8 +202,16 @@ export function useChat(): ChatState & ChatActions {
        * would leave a question in somebody's transcript that OCADE then
        * refused to answer.
        */
+      /*
+       * A REFUSAL HERE MUST NOT COST THE PERSON THEIR WORDS.
+       *
+       * This returned void, so the composer cleared the moment Send was
+       * pressed and a refused request — an exhausted allowance, an unreachable
+       * gate — took the question with it. The caller is told the request was
+       * not accepted and puts it back.
+       */
       const billed = await beginBilledRequest({ surface: "chat" });
-      if (!billed) return; // The gate has already said why, in its own words.
+      if (!billed) return false; // The gate has already said why, in its own words.
 
       setBusy(true);
       const controller = new AbortController();
@@ -278,7 +302,9 @@ export function useChat(): ChatState & ChatActions {
            */
           setProblem(refusal ?? "OCADE could not answer that. Try again.");
           await settle();
-          return;
+          // Accepted: the question is in the transcript, and Retry re-asks it
+          // from there. Returning it to the composer would make two of it.
+          return true;
         }
 
         const reply = await persistChatMessage({
@@ -310,6 +336,7 @@ export function useChat(): ChatState & ChatActions {
         setBusy(false);
         abort.current = null;
       }
+      return true;
     },
     [busy, conversationId, queryClient, refreshConversations, setMessages],
   );
@@ -420,6 +447,7 @@ export function useChat(): ChatState & ChatActions {
       busy,
       problem,
       loadingConversations,
+      conversationsFailed,
       loadingMessages,
       send,
       resend,
@@ -432,6 +460,7 @@ export function useChat(): ChatState & ChatActions {
       trash,
       restore,
       deleteEverything,
+      reloadConversations: refreshConversations,
       dismissProblem: () => setProblem(null),
     }),
     [
@@ -442,6 +471,7 @@ export function useChat(): ChatState & ChatActions {
       busy,
       problem,
       loadingConversations,
+      conversationsFailed,
       loadingMessages,
       send,
       resend,
@@ -454,6 +484,7 @@ export function useChat(): ChatState & ChatActions {
       trash,
       restore,
       deleteEverything,
+      refreshConversations,
     ],
   );
 }

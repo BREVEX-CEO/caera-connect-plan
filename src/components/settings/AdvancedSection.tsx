@@ -4,7 +4,7 @@ import {
   revokeAccountSession,
   revokeOtherAccountSessions,
 } from "@/lib/security/sessions.functions";
-import { Action, Row } from "./rows";
+import { Action, Pending, Row } from "./rows";
 
 /**
  * ADVANCED: WHERE THIS ACCOUNT IS SIGNED IN, AND NOTHING A CUSTOMER SHOULD NEED.
@@ -64,9 +64,15 @@ export function AdvancedSection() {
         ) : null}
       </Row>
 
-      {sessions.isPending ? (
-        <p className="py-4 text-sm text-muted-foreground" role="status">
-          Reading your sessions…
+      <Pending
+        query={sessions}
+        loading="Reading your sessions…"
+        problem="Your sessions could not be read just now."
+      />
+
+      {sessions.isSuccess && (sessions.data?.sessions ?? []).length === 0 ? (
+        <p className="py-4 text-sm text-muted-foreground">
+          No other browser or device is signed in to this account.
         </p>
       ) : null}
 

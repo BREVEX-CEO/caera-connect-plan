@@ -19,6 +19,8 @@ export function ConversationList({
   conversations,
   activeId,
   loading,
+  failed,
+  onRetry,
   onOpen,
   onRename,
   onArchive,
@@ -27,6 +29,9 @@ export function ConversationList({
   conversations: OcadeConversationRow[];
   activeId: string | null;
   loading: boolean;
+  /** The read failed. Silence here reads as "you have no chats", which is a lie. */
+  failed: boolean;
+  onRetry: () => void;
   onOpen: (id: string) => void;
   onRename: (id: string, title: string) => Promise<void> | void;
   onArchive: (id: string) => Promise<void> | void;
@@ -65,6 +70,21 @@ export function ConversationList({
       <p className="px-2.5 py-2 text-[13px] text-muted-foreground" role="status">
         Loading chats…
       </p>
+    );
+  }
+
+  if (failed && visible.length === 0) {
+    return (
+      <div className="px-2.5 py-2" role="alert">
+        <p className="text-[13px] text-muted-foreground">Your chats could not be loaded.</p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-1 text-[13px] text-foreground underline underline-offset-2"
+        >
+          Retry
+        </button>
+      </div>
     );
   }
 
