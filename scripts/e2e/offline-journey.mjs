@@ -87,14 +87,34 @@ try {
   );
 
   const panel = await page.getByRole("dialog", { name: "Settings" }).innerText();
+  const stateLine =
+    panel
+      .split("\n")
+      .find((line) =>
+        /Preparing|Downloading|Verifying|Almost ready|Ready|Repairing|Removed|storage|not available|could not|cannot run/.test(
+          line,
+        ),
+      ) ?? "";
   check(
     "it says what state this device is in, in OCADE's own words",
     /(Preparing OCADE|Downloading \d+%|Verifying|Almost ready|Ready|Repairing|Removed|more local storage|not available|could not|cannot run)/.test(
       panel,
     ),
-    panel
-      .split("\n")
-      .find((line) => /Preparing|Downloading|Ready|Removed|storage|not available/.test(line)) ?? "",
+    stateLine,
+  );
+  /*
+   * "NOT AVAILABLE" IS NOT A PASSING STATE WHEN A RELEASE IS PUBLISHED.
+   *
+   * The check above accepts it, which let this journey go green on a build that
+   * could never install anything — the exact production defect the mission
+   * opened with, reported as healthy. A published release means the deployment
+   * CAN install, so the only honest reasons to say otherwise are about this
+   * device.
+   */
+  check(
+    "and it does not claim the release is unavailable when one is published",
+    !/not available in this version/i.test(panel),
+    stateLine,
   );
   check(
     "it never names the model, its format, its publisher or the runtime",

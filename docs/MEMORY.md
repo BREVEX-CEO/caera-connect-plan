@@ -305,6 +305,35 @@ moved, the line shown, and manual Offline sending zero provider traffic —
 proved by the boundary's own record of requests being unchanged, not by what
 the screen said.
 
+## Phase 6 — the Offline lifecycle
+
+One real defect, and it was the opposite of subtle: **removal expired.** The
+uninstall intent was compared against a 24-hour cooldown, so on the first visit
+after a day OCADE quietly downloaded half a gigabyte again to a device whose
+owner had explicitly removed it — no prompt, possibly on a metered connection.
+`PLAN.md` and `CLAUDE.md` are both absolute on this, and a timestamp comparison
+had quietly turned "until the user asks for it back" into "for a day". The
+decision is permanent now; only `reinstall()` clears it, and only a person can
+call that. Tested across a year of simulated clock, because the defect was
+invisible to any test that did not wait.
+
+The offline journey also **passed on "not available"**, which let it go green on
+a build that could never install anything — the exact production defect this
+mission opened with, reported as healthy. A published release means the
+deployment can install, so the journey now refuses that claim outright.
+
+The rest of the lifecycle — adaptive ranged transfer, checkpointing, resume,
+authorization refresh, full digest verification, targeted repair, atomic
+activation, install-once reuse — is implemented and covered by 145 unit tests
+against the real transfer engine and vault.
+
+**What remains external.** First install, interrupted resume, restart recovery,
+targeted repair and explicit reinstall against the real private object cannot be
+proved from this session: the 484 MB artifact is not here and R2 is reachable
+only through `ocade.in`, which the network policy refuses. The delivery
+signature path IS proved in the browser — unsigned, forged, expired and
+malformed release ids are all refused.
+
 Still open for Phase 14: the deployed `ocade-intelligence` is version 6 and is
 materially older than this tree — its `edge-handler.ts` caps a request at 1 MiB
 where the repository caps it at 24 MiB, so attachments cannot work online until

@@ -273,16 +273,6 @@ const AUTOMATIC_REASONS = new Set<InstallReason>(["app_bootstrap", "warm", "resu
 
 const UNINSTALL_INTENT_KEY = "ocade.model.uninstalled.at.v1";
 
-/**
- * How long a deliberate removal suppresses automatic reinstallation.
- *
- * Long enough that the removal is real for the rest of the visit and the one
- * after it; short enough that a device someone cleared months ago is not
- * permanently opted out of a product feature they never disabled. A person who
- * wants it back sooner presses Reinstall, which clears this instantly.
- */
-export const UNINSTALL_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-
 export class ModelInstallationAuthority {
   private state: InstallState = INITIAL;
   private readonly listeners = new Set<(state: InstallState) => void>();
@@ -1035,10 +1025,20 @@ export class ModelInstallationAuthority {
     return this.install({ reason: "reinstall" });
   }
 
-  /** True while a deliberate removal is still being honoured. */
-  uninstallIntentActive(now: number = this.now()): boolean {
-    const at = this.deps.readIntent?.() ?? readIntentFromLocalStorage();
-    return at !== null && now - at < UNINSTALL_COOLDOWN_MS;
+  /**
+   * Whether a deliberate removal is being honoured — which is forever.
+   *
+   * THIS USED TO EXPIRE AFTER A DAY, and that made it a cooldown rather than a
+   * decision: OCADE quietly downloaded half a gigabyte again to a device whose
+   * owner had explicitly removed it, on the first visit after twenty-four
+   * hours. `PLAN.md` is unambiguous — "Offline remains disabled until the user
+   * explicitly chooses Install Offline" — and so is `CLAUDE.md`: "never
+   * auto-reinstall it after updates, restarts, sign-in cycles, or deploys".
+   *
+   * Only `reinstall()` clears it, and only a person can call that.
+   */
+  uninstallIntentActive(): boolean {
+    return (this.deps.readIntent?.() ?? readIntentFromLocalStorage()) !== null;
   }
 
   private recordUninstallIntent(): void {
