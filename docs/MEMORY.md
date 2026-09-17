@@ -570,16 +570,43 @@ it now reaches `verified` through upload → stage at 0% → staged health → s
 asset → promote → final health. `deploy-workflow-agrees-with-controller.test.ts`
 keeps the workflow's environment and the controller's requirements in step.
 
-**One owner-only step remains:** run the **Cloudflare production deployment**
-workflow on `main` with `deploy_approval` = `I_APPROVE_OCADE_PRODUCTION_DEPLOY`
-and `rollback_version_id` = the `deploymentId` currently reported at
-`https://ocade.in/api/health`. Its `cloudflare-production` environment already
-holds the Cloudflare and Supabase secrets; this session holds none of them, and
-its network egress to both `ocade.in` and `*.supabase.co` is blocked by policy,
-so neither the deploy nor the live smoke tests can run from here.
+## The frontend is deployed too, and Cloudflare did it, not the workflow
 
-Afterwards `curl -s https://ocade.in/api/health` must report all four of
-`supabasePublic`, `supabaseServer`, `modelDelivery` and `offlineLeases` true.
+`ocade-web` is built and deployed by Cloudflare from `main` on every push,
+about ninety seconds after it lands — observed twice. The live Worker bundle was
+read back from Cloudflare and contains every marker of this tree: the
+`supabaseServer` / `modelDelivery` / `offlineLeases` health configuration from
+Phase 1, the Phase 9 `Usage & Limits` category, `thinkingSuitable`, the approved
+release `ocr-2dc0ee44eb397906`, and grounded `research`. The pre-Phase-1 build
+is gone, and with it the four defects in the original report.
+
+So `cloudflare-production.yml` and `npm run deploy:web` are a SECOND deployment
+authority for a job Cloudflare already does. Leave that for the owner to decide:
+keeping both means two ways to change production, and the controller is the only
+one that stages at zero traffic and verifies before promoting.
+
+**What this session could not verify, and why.** Network egress to `ocade.in`
+and `*.supabase.co` is blocked by this environment's policy, so
+`https://ocade.in/api/health` was never read and no live smoke test was run.
+Two things therefore remain unproven rather than proven: that the four
+configuration booleans are all true at runtime, and the live Chat, usage,
+attachment, grounded research, Library and Settings journeys.
+
+**One step, from a machine that can reach the site:**
+
+```powershell
+irm https://ocade.in/api/health | ConvertTo-Json
+```
+
+All four of `supabasePublic`, `supabaseServer`, `modelDelivery` and
+`offlineLeases` must be true. If one is false, the named binding is missing in
+Cloudflare and the feature behind it is broken in production.
+
+GitHub Actions is also failing for this repository — every run since at least
+16 September ends in two seconds with no logs, which is a runner or billing
+condition at the account level rather than anything in this tree. It predates
+this work, and it means the deployment workflow could not run even if it were
+wanted.
 
 Hardware-only proof that remains external, recorded rather than fabricated:
 real generation on a graphics card and a forced WebGPU failure falling back to
@@ -587,11 +614,12 @@ WASM (`node scripts/prove-offline-artifact.mjs <artifact>`, and `--cpu-only`
 for the fallback side), and the private-object install, resume, repair and
 reinstall journey against the real 484 MB release.
 
-Still open for Phase 14: `ocade-intelligence` is deployed and matches this tree
-at version 7, so the boundary is current. The frontend Worker is not, and the
-live smoke tests — Chat, usage, attachments, grounded research, Library and
-Settings — cannot be run from this session because egress to `ocade.in` and
-`*.supabase.co` is blocked. Both wait on the one workflow run named above.
+Still open for Phase 14: both halves of the release are deployed and current —
+`ocade-intelligence` at version 7 byte-identical to this tree, and `ocade-web`
+carrying this tree's build. What remains is evidence rather than deployment: the
+`/api/health` configuration read and the live Chat, usage, attachment, grounded
+research, Library and Settings journeys, none of which can run from a session
+whose egress to `ocade.in` and `*.supabase.co` is blocked.
 
 ## Checkpoint discipline
 

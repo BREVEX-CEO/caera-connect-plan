@@ -186,9 +186,11 @@ The repository-controlled Phase 14 verification has passed on the completed tree
 
 The Supabase Edge Function is deployed: `ocade-intelligence` on project `sazhgaisyhkdbrooycdv` is **version 7**, and its deployed source was read back and diffed byte-for-byte against this tree across all five files. Version 6 and its 1 MiB request cap, dropped attachments and missing grounded research are no longer in production.
 
-The frontend Worker is not deployed. The reason was a stale deployment controller rather than a missing credential — it required the pre-launch gate header that Phase 2 removed from `cloudflare-entry.ts`, so every deployment failed validation before Wrangler ran. That is fixed and proven end to end against the real controller.
+The frontend Worker is deployed. Cloudflare builds and deploys `ocade-web` from `main` on every push, and the live Worker bundle was read back and contains this tree's markers: the `supabaseServer`/`modelDelivery`/`offlineLeases` health configuration, `Usage & Limits`, `thinkingSuitable`, release `ocr-2dc0ee44eb397906` and grounded `research`. The pre-Phase-1 build is gone.
 
-Production certification remains open on one owner-only action: run the **Cloudflare production deployment** workflow on `main` with `deploy_approval` = `I_APPROVE_OCADE_PRODUCTION_DEPLOY` and `rollback_version_id` = the `deploymentId` at `https://ocade.in/api/health`. The live smoke tests (Chat, usage, attachments, grounded research, Library, Settings) and the `/api/health` configuration check follow that deployment; they cannot be run from a session whose network egress to `ocade.in` and `*.supabase.co` is blocked.
+Separately, `npm run deploy:web` had been refusing every deployment on any machine with any credential: it required the pre-launch gate header that Phase 2 removed from `cloudflare-entry.ts`. That is fixed and proven end to end against the real controller. Because Cloudflare already deploys `main`, the owner should decide whether that controller and `cloudflare-production.yml` remain a second deployment authority at all.
+
+Production certification remains open on live evidence only, and that evidence cannot be gathered from a session whose network egress to `ocade.in` and `*.supabase.co` is blocked: read `https://ocade.in/api/health` and confirm `supabasePublic`, `supabaseServer`, `modelDelivery` and `offlineLeases` are all true, then run the live Chat, usage, attachment, grounded research, Library and Settings journeys.
 
 ## Mandatory final simplification and quality gate
 
