@@ -1617,6 +1617,10 @@ export type Database = {
         Args: { p_action: string }
         Returns: undefined
       }
+      ocade_cancel_unsigned_offline_usage: {
+        Args: { p_device_id: string; p_lease_id: string; p_user_id: string }
+        Returns: number
+      }
       ocade_return_offline_usage: {
         Args: { p_device_id: string; p_lease_id: string; p_user_id: string }
         Returns: number

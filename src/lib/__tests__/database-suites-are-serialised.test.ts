@@ -25,9 +25,9 @@ const LANE = new Set([...DECLARED.matchAll(/"(src\/[^"]*\.test\.ts)"/g)].map((m)
 
 /** The import statement, so neither the class name nor this file matches. */
 const IMPORTS_TWIN = /from "[^"]*db-twin\.mts"/;
-const usesPostgres = globSync("src/**/*.test.ts").filter((file) =>
-  IMPORTS_TWIN.test(readFileSync(file, "utf8")),
-);
+const usesPostgres = globSync("src/**/*.test.ts")
+  .map((file) => file.replaceAll("\\", "/"))
+  .filter((file) => IMPORTS_TWIN.test(readFileSync(file, "utf8")));
 
 describe("the serial database lane", () => {
   it("contains every suite that builds a real PostgreSQL", () => {

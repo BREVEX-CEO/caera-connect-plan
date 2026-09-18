@@ -20,7 +20,7 @@ const ROOT = "src";
 function sourceFiles(directory: string): string[] {
   const out: string[] = [];
   for (const entry of readdirSync(directory)) {
-    const path = join(directory, entry);
+    const path = join(directory, entry).replaceAll("\\", "/");
     if (statSync(path).isDirectory()) {
       if (entry === "__tests__") continue;
       out.push(...sourceFiles(path));

@@ -184,7 +184,7 @@ export const allocateOfflineUsage = createServerFn({ method: "POST" })
         throw new Error(activateError?.message ?? "The signed lease was not activated.");
       }
     } catch (cause) {
-      await supabaseAdmin.rpc("ocade_return_offline_usage", {
+      await supabaseAdmin.rpc("ocade_cancel_unsigned_offline_usage", {
         p_user_id: context.userId,
         p_device_id: data.deviceId,
         p_lease_id: row.lease_id,

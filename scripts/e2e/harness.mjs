@@ -84,7 +84,14 @@ const children = [];
 function stopEverything() {
   for (const child of children) {
     try {
-      process.kill(-child.pid, "SIGKILL");
+      if (process.platform === "win32") {
+        spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
+          windowsHide: true,
+          stdio: "ignore",
+        });
+      } else {
+        process.kill(-child.pid, "SIGKILL");
+      }
     } catch {
       /* Already gone. */
     }
@@ -115,10 +122,18 @@ if (!skipBuild) {
    * documented usage at the top of this file — resolved to `node ./npm` and
    * died with MODULE_NOT_FOUND before building anything.
    */
-  const built = spawnSync("npm", ["run", "build"], {
-    stdio: "inherit",
-    env: { ...process.env, ...BUILD_ENVIRONMENT },
-  });
+  const npmPath = process.env.npm_execpath;
+  const built = spawnSync(
+    npmPath ? process.execPath : "npm",
+    npmPath ? [npmPath, "run", "build"] : ["run", "build"],
+    {
+      stdio: "inherit",
+      shell: !npmPath && process.platform === "win32",
+      windowsHide: true,
+      env: { ...process.env, ...BUILD_ENVIRONMENT },
+    },
+  );
+  if (built.error) throw built.error;
   if (built.status !== 0) process.exit(built.status ?? 1);
 }
 

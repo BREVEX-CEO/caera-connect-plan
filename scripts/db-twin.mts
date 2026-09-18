@@ -453,6 +453,19 @@ export class DatabaseTwin {
     }
   }
 
+  /** Execute runtime SQL with PostgREST's service role, never owner privileges.
+   * A transaction serializes role changes on PGlite's single connection.
+   */
+  async asServiceRole<T = Record<string, unknown>>(sql: string): Promise<T[]> {
+    return this.db.transaction(async (tx) => {
+      await tx.exec("set local role service_role");
+      await tx.query(
+        "select set_config('request.jwt.claims', '{\"role\":\"service_role\"}', true)",
+      );
+      return (await tx.query<T>(sql)).rows;
+    });
+  }
+
   /** Superuser query, for setup and for proving the tenant path differs. */
   async asSuperuser<T = Record<string, unknown>>(sql: string): Promise<T[]> {
     const res = await this.db.query<T>(sql);
