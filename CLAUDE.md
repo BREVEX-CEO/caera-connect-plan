@@ -1,3 +1,6 @@
+/ponytail ultra
+/caveman ultra
+
 # OCADE Claude Execution Instructions
 
 ## Required session modes
@@ -160,3 +163,13 @@ Phase <number> is complete, verified, committed, and pushed at SHA <sha>.
 ```
 
 Then continue automatically unless a genuine owner-only external action is required.
+
+## Permanent execution rules
+
+Start every implementation session with `/ponytail ultra` and `/caveman ultra` active. Follow the repository authorities in `PLAN.md`, `docs/RULES.md`, and `docs/TESTING.md` before changing code.
+
+Finish the active plan completely before declaring the mission complete. After the plan is complete, perform a separate enterprise-grade AI-platform QA pass that actively tries to break the application through isolated browser testing, integration testing, regression testing, malformed and fuzzed inputs, concurrency races, failure injection, auth and cross-account invariants, database/RLS checks, provider/network failures, online/offline transitions, storage loss, reconnect, multi-device behavior, responsive/accessibility checks, deployment parity, and AI-behavior evaluations. Never replace real proof with mocks when the real boundary is available, and never claim hardware or external proof that was not actually performed.
+
+GitHub Actions remains optional because paid Actions availability is not assumed. Do not stop the mission merely because remote Actions cannot run. Use trusted local or agent verification and the existing direct deployment authorities without weakening any test or security requirement.
+
+Always apply Ponytail/YAGNI/KISS rules after correctness is proven. Debloat aggressively but safely: delete dead code, duplicated authorities, stale compatibility paths, unused exports, obsolete comments, unnecessary wrappers, and unnecessary dependencies. Prefer fewer maintained lines and fewer moving parts because they reduce bug surface and make OCADE easier to audit and maintain. Do not chase an arbitrary line-count target, and never remove required tests, validation, security controls, accessibility behavior, or reliability logic merely to reduce LOC. Measure and report the before/after maintained line count for substantial implementation work.
