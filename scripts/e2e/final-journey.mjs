@@ -105,7 +105,7 @@ async function sweep(page, routes, label) {
         const control = page.locator("button:visible, a[href]:visible").nth(index);
         await control.click({ timeout: 2000, noWaitAfter: true });
         pressed += 1;
-        await page.waitForTimeout(120);
+        await page.waitForLoadState("networkidle");
         /*
          * Back to where we were, so the next control is the one we measured.
          *
@@ -116,7 +116,7 @@ async function sweep(page, routes, label) {
          * real defect in the report, which is the worst property a check can
          * have.
          */
-        if (!page.url().includes(route)) {
+        if (new URL(page.url()).pathname !== route) {
           await page.goto(`${BASE}${route}`, { waitUntil: "networkidle" });
         }
         await page.keyboard.press("Escape");

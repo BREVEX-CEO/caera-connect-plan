@@ -43,7 +43,7 @@ function postgresLedger(): CommercialUsageLedger {
     async read(id, windows) {
       const out = new Map<string, number>();
       for (const window of windows) out.set(key(window), 0);
-      const rows = await twin.asSuperuser<{
+      const rows = await twin.asServiceRole<{
         window_kind: string;
         window_start: string;
         used_hundredths: string;
@@ -65,7 +65,7 @@ function postgresLedger(): CommercialUsageLedger {
     async reserve({ userId: id, window, amount, allowance }) {
       const limit = allowance === null ? "null" : String(toHundredths(allowance));
       try {
-        await twin.asSuperuser(
+        await twin.asServiceRole(
           `select public.ocade_consume_commercial_work(
              '${id}'::uuid, '${window.kind}', '${iso(window)}'::timestamptz,
              ${toHundredths(amount)}::bigint, ${limit}::bigint)`,
@@ -77,7 +77,7 @@ function postgresLedger(): CommercialUsageLedger {
     },
 
     async release({ userId: id, window, amount }) {
-      await twin.asSuperuser(
+      await twin.asServiceRole(
         `select public.ocade_release_commercial_work(
            '${id}'::uuid, '${window.kind}', '${iso(window)}'::timestamptz,
            ${toHundredths(amount)}::bigint)`,

@@ -55,7 +55,7 @@ async function allocate(
   requestKey: string,
   amountHundredths: number,
 ): Promise<Allocation> {
-  const rows = await twin.asSuperuser<Allocation>(
+  const rows = await twin.asServiceRole<Allocation>(
     `select lease_id, outcome, allocated_hundredths
        from public.ocade_allocate_offline_usage(
          '${account}'::uuid, '${device}'::uuid, '${install}', '${key}',
@@ -80,7 +80,7 @@ async function allocate(
  * anything different is not the thing that was signed.
  */
 async function activate(lease: string): Promise<void> {
-  const rows = await twin.asSuperuser<Record<string, string>>(
+  const rows = await twin.asServiceRole<Record<string, string>>(
     `select id::text, user_id::text, device_id::text, tier,
             allocated_hundredths::text, sequence_start::text, sequence_end::text,
             session_window_start::text, session_reset_at::text,
@@ -108,7 +108,7 @@ async function activate(lease: string): Promise<void> {
     expiresAt: row.expires_at,
     preissued: row.preissued === "true",
   };
-  const activated = await twin.asSuperuser<{ ocade_activate_offline_usage_lease: boolean }>(
+  const activated = await twin.asServiceRole<{ ocade_activate_offline_usage_lease: boolean }>(
     `select public.ocade_activate_offline_usage_lease(
        '${account}'::uuid, '${lease}'::uuid, 'capacity-proof-key',
        '${JSON.stringify(payload).replaceAll("'", "''")}'::jsonb,
@@ -122,7 +122,7 @@ async function activate(lease: string): Promise<void> {
 
 /** What the account has spent and is holding, in hundredths. */
 async function sessionHundredths(): Promise<number> {
-  const rows = await twin.asSuperuser<{ used_hundredths: string }>(
+  const rows = await twin.asServiceRole<{ used_hundredths: string }>(
     `select used_hundredths from public.ocade_commercial_usage
       where user_id = '${account}' and window_kind = 'session'`,
   );
@@ -130,7 +130,7 @@ async function sessionHundredths(): Promise<number> {
 }
 
 async function registerDevice(name: string, install: string): Promise<string> {
-  const rows = await twin.asSuperuser<{ id: string }>(
+  const rows = await twin.asServiceRole<{ id: string }>(
     `insert into public.devices (user_id, kind, name)
      values ('${account}', 'desktop', '${name}') returning id`,
   );
@@ -229,7 +229,7 @@ describe("two devices draw from one allowance", () => {
       "session_exhausted",
     );
 
-    const returned = await twin.asSuperuser<{ ocade_return_offline_usage: string }>(
+    const returned = await twin.asServiceRole<{ ocade_return_offline_usage: string }>(
       `select public.ocade_return_offline_usage(
          '${account}'::uuid, '${laptop}'::uuid, '${held.lease_id}'::uuid)`,
     );
@@ -252,7 +252,7 @@ describe("an offline block and a connected request spend the same allowance", ()
       FREE_SESSION_HUNDREDTHS - 100,
     );
 
-    const granted = await twin.asSuperuser<{ outcome: string }>(
+    const granted = await twin.asServiceRole<{ outcome: string }>(
       `select outcome from public.ocade_acquire_generation_permit(
          '${account}'::uuid, 'connected-1', 'generation-connected-1', 'chat', 'free',
          ${FREE_SESSION_HUNDREDTHS}, NULL, 100)`,
@@ -261,7 +261,7 @@ describe("an offline block and a connected request spend the same allowance", ()
     // allowance of 28 into an allowance of 27.
     expect(granted[0]!.outcome).toBe("granted");
 
-    const refused = await twin.asSuperuser<{ outcome: string }>(
+    const refused = await twin.asServiceRole<{ outcome: string }>(
       `select outcome from public.ocade_acquire_generation_permit(
          '${account}'::uuid, 'connected-2', 'generation-connected-2', 'chat', 'free',
          ${FREE_SESSION_HUNDREDTHS}, NULL, 100)`,
@@ -273,7 +273,7 @@ describe("an offline block and a connected request spend the same allowance", ()
   });
 
   it("refuses an offline block when connected requests have taken the window", async () => {
-    await twin.asSuperuser(
+    await twin.asServiceRole(
       `select outcome from public.ocade_acquire_generation_permit(
          '${account}'::uuid, 'connected-first', 'generation-connected-first', 'chat', 'free',
          ${FREE_SESSION_HUNDREDTHS}, NULL, ${FREE_SESSION_HUNDREDTHS})`,
@@ -329,7 +329,7 @@ describe("reconciling one device cannot move another", () => {
     sequence: number,
     events: string,
   ): Promise<void> {
-    await twin.asSuperuser(
+    await twin.asServiceRole(
       `select public.ocade_reconcile_offline_usage(
          '${account}'::uuid, '${device}'::uuid, '${lease}'::uuid,
          ${consumed}, ${sequence}, 'hash-${sequence}', '${events}'::jsonb)`,
@@ -347,7 +347,7 @@ describe("reconciling one device cannot move another", () => {
     await reconcile(laptopLease, laptop, 300, 1, envelope(laptopLease, laptop, 1, 300));
     await reconcile(phoneLease, phone, 100, 1, envelope(phoneLease, phone, 1, 100));
 
-    const rows = await twin.asSuperuser<{ id: string; consumed_hundredths: string }>(
+    const rows = await twin.asServiceRole<{ id: string; consumed_hundredths: string }>(
       `select id, consumed_hundredths from public.ocade_device_usage_leases
         where user_id = '${account}' order by device_id`,
     );
@@ -374,7 +374,7 @@ describe("reconciling one device cannot move another", () => {
       reconcile(laptopLease, laptop, 100, 1, envelope(phoneLease, phone, 1, 100)),
     ).rejects.toThrow(/identity mismatch/i);
 
-    const rows = await twin.asSuperuser<{ consumed_hundredths: string }>(
+    const rows = await twin.asServiceRole<{ consumed_hundredths: string }>(
       `select consumed_hundredths from public.ocade_device_usage_leases where id = '${laptopLease}'`,
     );
     expect(Number(rows[0]!.consumed_hundredths)).toBe(0);
@@ -390,12 +390,12 @@ describe("reconciling one device cannot move another", () => {
     // A device that lost its connection mid-upload sends the same block again.
     await reconcile(lease, laptop, 250, 1, events);
 
-    const stored = await twin.asSuperuser<{ count: string }>(
+    const stored = await twin.asServiceRole<{ count: string }>(
       `select count(*) from public.ocade_offline_usage_events where lease_id = '${lease}'`,
     );
     expect(Number(stored[0]!.count), "a replayed upload was stored twice").toBe(1);
 
-    const rows = await twin.asSuperuser<{ consumed_hundredths: string }>(
+    const rows = await twin.asServiceRole<{ consumed_hundredths: string }>(
       `select consumed_hundredths from public.ocade_device_usage_leases where id = '${lease}'`,
     );
     expect(Number(rows[0]!.consumed_hundredths)).toBe(250);
@@ -434,4 +434,13 @@ describe("reconciling one device cannot move another", () => {
       /already reconciled sequence/i,
     );
   });
+});
+
+it("signing retries cannot refund an active lease and unsigned cancellation is exact", async () => {
+  expect(
+    await twin.runScript(
+      "supabase/verification",
+      "20260918132426_offline_signing_retry_verify.sql",
+    ),
+  ).toEqual({ ok: true });
 });

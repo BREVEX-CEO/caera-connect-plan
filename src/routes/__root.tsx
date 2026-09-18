@@ -205,6 +205,12 @@ function RootComponent() {
  * and nothing it needs is imported statically, so the transfer can never share
  * a task with hydration.
  */
+function refreshOfflineAllowance() {
+  void import("@/lib/commercial/offline-allowance")
+    .then((module) => module.syncOfflineAllowance())
+    .catch(() => {});
+}
+
 function BrowserBootstrap() {
   const router = useRouter();
   useInstallationBootstrap();
@@ -233,12 +239,12 @@ function BrowserBootstrap() {
    */
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const timer = setTimeout(() => {
-      void import("@/lib/commercial/offline-allowance").then((module) =>
-        module.syncOfflineAllowance(),
-      );
-    }, 2000);
-    return () => clearTimeout(timer);
+    const timer = setTimeout(refreshOfflineAllowance, 2000);
+    window.addEventListener("online", refreshOfflineAllowance);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("online", refreshOfflineAllowance);
+    };
   }, []);
 
   useEffect(() => {
@@ -285,6 +291,7 @@ function BrowserBootstrap() {
           const nowSignedIn = session?.user.id ?? null;
           if (nowSignedIn === signedIn && event !== "USER_UPDATED") return;
           signedIn = nowSignedIn;
+          if (event === "SIGNED_IN") setTimeout(refreshOfflineAllowance, 0);
           if (event === "SIGNED_OUT") {
             /*
              * What signing out clears is what this TAB was holding, never the

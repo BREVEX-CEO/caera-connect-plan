@@ -42,7 +42,7 @@ let userId: string;
 /** A SQL literal for a value the binding produced. Nulls stay untyped. */
 function literal(value: unknown): string {
   if (value === null || value === undefined) return "null";
-  if (typeof value === "number") return Number.isInteger(value) ? String(value) : String(value);
+  if (typeof value === "number") return String(value);
   if (typeof value === "boolean") return value ? "true" : "false";
   return `'${String(value).replaceAll("'", "''")}'`;
 }
@@ -58,7 +58,7 @@ function literal(value: unknown): string {
 function twinClient(): SupabaseClient<Database> {
   const run = async (sql: string) => {
     try {
-      return { data: await twin.asSuperuser(sql), error: null };
+      return { data: await twin.asServiceRole(sql), error: null };
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause);
       // PGlite reports the SQLSTATE on the error; the binding reads `code` to

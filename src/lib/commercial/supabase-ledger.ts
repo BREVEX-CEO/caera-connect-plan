@@ -1,18 +1,4 @@
-/**
- * The commercial ledger, bound to the database.
- *
- * SERVER ONLY, and that is enforced by the database rather than by convention:
- * `ocade_consume_commercial_work` and `ocade_release_commercial_work` are
- * granted to `service_role` alone, so a browser holding a user token cannot
- * spend or return allowance even if it imported this file. The verification
- * script for the migration asserts that grant, so it is a fact about the
- * deployment and not a comment.
- *
- * AMOUNTS CROSS THE BOUNDARY AS INTEGER HUNDREDTHS. The policy rounds to a
- * hundredth and the column stores hundredths; converting once, here, means the
- * float that exists in JavaScript never reaches the ledger and a week of
- * additions cannot drift by fractions of a unit.
- */
+/** Server-only RPC binding. Amounts cross the database boundary as integer hundredths. */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import {
@@ -22,13 +8,6 @@ import {
 } from "./generation-gate";
 import { ONE_USE, type UsageWindow } from "./usage-policy";
 
-/**
- * Equivalents to the integer hundredths the ledger stores.
- *
- * Rounded rather than truncated: the policy has already rounded up to a
- * hundredth, so anything here is representation error from the float, and
- * truncating it would quietly lose a hundredth per request.
- */
 export function toHundredths(equivalents: number): number {
   return Math.round(equivalents * 100);
 }
@@ -78,24 +57,9 @@ export function supabaseCommercialLedger(admin: SupabaseClient<Database>): Comme
           "window_start",
           windows.map((window) => new Date(window.startsAt).toISOString()),
         )
-        /*
-         * Bounded, even though the unique key already makes this at most one
-         * row per window. `ocade_commercial_usage` grows with every window
-         * every account ever opens, and an unbounded read of a growing table is
-         * a query that works until it does not. The limit is the number of
-         * windows asked about, so it can never truncate a real answer.
-         */
+
         .limit(windows.length);
 
-      /*
-       * A FAILED READ IS NOT AN EMPTY LEDGER.
-       *
-       * Returning zeros here would report a full allowance to an account that
-       * has spent it, which is the one direction this must never fail in. The
-       * gate's `reserve` is the authority and would still refuse — but the
-       * person would be told they had room and then refused, which is worse
-       * than being told the truth now.
-       */
       if (error) throw new Error(`The usage ledger could not be read: ${error.message}`);
 
       for (const row of data ?? []) {

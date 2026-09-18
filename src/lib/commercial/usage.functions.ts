@@ -1,29 +1,4 @@
-/**
- * THE COMMERCIAL GATE, AS THE PRODUCT CALLS IT.
- *
- * The gate and its ledger are server-side, because the ledger's RPCs are
- * granted to `service_role` alone: a browser must be unable to spend or return
- * its own allowance, and the way to guarantee that is to keep the numbers
- * somewhere the browser has no key for.
- *
- * So a surface calls three functions around one logical request:
- *
- *   acquireGenerationPermit   before routing to any backend
- *   finalizeGenerationPermit  once output has genuinely reached the person
- *   releaseGenerationPermit   on failure, or on cancellation before output
- *
- * THE CLIENT REPORTS NOTHING THAT COSTS MONEY. It used to send a measurement —
- * tokens in, tokens out, tool batches, side effects — which the server weighed
- * into a fractional charge, and every field of it had to be clamped because a
- * negative one would credit the account. A successful request costs one use on
- * every tier, so the browser has nothing left to report and nothing left to get
- * wrong. The tier, the allowance and the window were always server-side and
- * still are.
- *
- * THE IDEMPOTENCY KEY IS BOUND TO THE ACCOUNT, not taken at face value. Two
- * people sending at the same moment with the same client-generated key must not
- * share a permit.
- */
+/** Authenticated usage operations. Account identity comes only from verified Supabase claims. */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { CommercialGenerationGate, type GenerationSurface } from "./generation-gate";
@@ -37,15 +12,6 @@ import { resolveTierFor, type ResolvedEntitlement } from "./entitlement-resolver
  */
 let gate: CommercialGenerationGate | null = null;
 
-/**
- * The gate, built once and reused — see the note above about why one object.
- *
- * ASYNC BECAUSE THE ADMIN CLIENT IS IMPORTED ON DEMAND. This module is reached
- * from route modules the generated route tree imports statically, so a
- * top-level import of the server client put `@supabase/supabase-js` on the
- * client entry chunk's graph, for code that only runs on the server. The
- * handler that calls this already awaits the ledger immediately afterwards.
- */
 async function generationGate(): Promise<CommercialGenerationGate> {
   if (!gate) {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -71,13 +37,6 @@ export interface PermitRefused {
 
 export type PermitResult = PermitGranted | PermitRefused;
 
-/**
- * Server-side transports call this before importing a model or native adapter.
- * A browser-held object is not authority: the durable permit row must still
- * belong to the authenticated caller, match the surface and remain reserved.
- * The database also claims the transport atomically. Merely selecting the row
- * would let two concurrent requests race through on the same copied permit.
- */
 export async function assertActiveGenerationPermit(input: {
   userId: string;
   permitId: string;
@@ -104,14 +63,6 @@ export async function assertActiveGenerationPermit(input: {
   }
 }
 
-/**
- * Ask for permission to run one logical request.
- *
- * NOTHING ROUTES BEFORE THIS RETURNS `ok`. An exhausted account is refused
- * here, before any backend is touched, and it cannot fall back to the local
- * engine — the allowance is one pool across every surface and backend, so
- * "the cloud refused, run it on the device" would spend it twice.
- */
 export const acquireGenerationPermit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(
@@ -162,20 +113,6 @@ export const acquireGenerationPermit = createServerFn({ method: "POST" })
     };
   });
 
-/**
- * The answer reached the person. Charge the one use it reserved.
- *
- * Called only once output has genuinely been delivered — not when generation
- * started, and not when a stream opened.
- *
- * NOTHING IS MEASURED HERE ANY MORE, and that removed a whole trust boundary.
- * This used to take a `WorkMeasurement` from the browser — input tokens, output
- * tokens, read batches, side effects, media work — clamp every field because a
- * negative one would credit the account and a NaN would poison the arithmetic,
- * and weigh the result into a fractional cost. A successful request costs one
- * use on every tier, so the browser has nothing left to report and nothing left
- * to get wrong.
- */
 export const finalizeGenerationPermit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: { idempotencyKey: string }) => {
@@ -193,12 +130,6 @@ export const finalizeGenerationPermit = createServerFn({ method: "POST" })
     return { charged };
   });
 
-/**
- * Nothing reached the person. Charge nothing.
- *
- * Failures, and cancellations before any output — the two cases where a person
- * would otherwise pay for OCADE's behaviour rather than for their own request.
- */
 export const releaseGenerationPermit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: { idempotencyKey: string; reason?: string }) => {
@@ -219,15 +150,7 @@ export const releaseGenerationPermit = createServerFn({ method: "POST" })
 
 export interface CommercialUsageView {
   tier: ResolvedEntitlement["tier"];
-  /**
-   * Exact counts, on every tier.
-   *
-   * This carried two shapes — raw numbers on Free, percentages on Pro and Max —
-   * because the paid tiers counted a weighted "Standard Work Equivalent" that
-   * was not a unit anybody could convert into their own work. The unit is now a
-   * successful request, so there is nothing left to hide behind a proportion
-   * and nothing left for two shapes to disagree about.
-   */
+
   windows: {
     kind: "session" | "week";
     used: number;

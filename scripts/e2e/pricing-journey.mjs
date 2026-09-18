@@ -65,6 +65,9 @@ try {
 
   /* --- the approved catalogue, exactly ------------------------------------ */
 
+  // Region detection follows the host timezone; choose the currency being asserted.
+  await page.selectOption("select", "USD");
+
   const price = (tier) =>
     page.locator(`section[aria-labelledby="plan-${tier}"] span.text-\\[28px\\]`).innerText();
 
