@@ -707,3 +707,15 @@ cleanup and the cap reproduction were done against the live database.
 Implementation work uses one isolated completion branch from the latest `origin/main`. After each phase passes its gate, update this file with the exact completed state, create a descriptive checkpoint commit, push the branch, and verify the remote SHA. Never merge an incomplete phase to `main`.
 
 The final release fast-forwards `main` without force only after the complete plan passes together on the reconciled tree. Record final Git SHA, deployed frontend, Edge version/source, migration state, Offline release, live-versus-simulated proof, cleanup measurements, and genuine owner-only blockers.
+
+## Owner engineering approach — permanent working memory
+
+The owner is a non-coder and expects implementation agents to make sound technical choices independently, explain outcomes directly, and stop only for genuinely owner-only credentials or external actions. Prompts and reports should use complete sentences rather than one-word bullet labels.
+
+Every implementation session starts with `/ponytail ultra` and `/caveman ultra`. Work follows `PLAN.md` to completion, fixes root causes rather than symptoms, aggressively hunts hidden bugs and race conditions, and adds regression coverage for reproduced failures.
+
+After the plan is complete, run an independent enterprise-grade AI-platform QA pass that actively tries to break the product across browser flows, integration boundaries, auth and cross-account isolation, Supabase/RLS, usage accounting, online/offline routing, storage/reconnect, multiple devices, Cloudflare deployment parity, malformed/fuzzed inputs, concurrency, failure injection, accessibility, responsive behavior, and AI-behavior evaluations.
+
+GitHub Actions is optional because the owner does not assume paid Actions availability. The project must not stop merely because remote Actions cannot run. Required tests and release proof should run through trusted local or agent execution and the existing direct Cloudflare/Supabase paths without weakening security or coverage.
+
+After correctness is proven, perform a final Ponytail/YAGNI/KISS debloat pass. Prefer fewer maintained lines, fewer dependencies, fewer wrappers, fewer duplicate authorities, and fewer moving parts because that lowers bug surface and makes the code easier to understand and maintain. Never remove necessary tests, validation, security, accessibility, or reliability behavior solely to reduce line count.

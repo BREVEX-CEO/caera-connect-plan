@@ -52,3 +52,13 @@ After fixing valid findings, rerun the affected tests and the complete plan-defi
 ## Universal Git and release rule
 
 Use the working branch and release target defined by the current plan or owner request. Do not assume a branch named `main`, do not force shared history merely for convenience, and do not integrate a partial phase into the release target. Reconcile the latest target, verify the exact reconciled tree, run the final Ponytail gate, deploy the matching release, and run live smoke tests where the environment permits.
+
+## Mandatory implementation and completion rules
+
+Start implementation work with `/ponytail ultra` and `/caveman ultra` active. Reproduce a defect before fixing it, repair the root cause, and add a regression test that would have failed on the old behavior. Use one canonical authority per responsibility and do not introduce a second router, installer, session authority, usage authority, deployment authority, or storage authority when the existing one can be repaired.
+
+After every requirement in `PLAN.md` is complete, run a separate adversarial enterprise-grade AI-platform QA pass. The tester pass must act like an independent hostile user and must cover unit, integration, regression, browser/E2E, malformed-input, property/fuzz, concurrency/race, failure-injection, auth/session isolation, cross-account privacy invariants, database/RLS permissions, provider and network failures, online/offline transitions, reconnect, storage loss, multi-device behavior, accessibility, responsive layouts, deployment parity, and AI-behavior evaluations. Real boundaries take precedence over stubs when they are safely available. Do not claim real-device, GPU, provider, or production proof unless it was actually executed.
+
+GitHub Actions is optional because paid Actions availability is not assumed. Its unavailability is not permission to skip verification. Run equivalent required tests in a trusted local or agent environment and use the existing direct Cloudflare and Supabase release paths where appropriate.
+
+After correctness and safety are proven, apply a Ponytail/YAGNI/KISS debloat pass. Prefer deleting unnecessary code over adding abstractions. Remove dead code, duplicate implementations, unused exports, stale configuration, obsolete compatibility layers, historical comments that no longer explain an invariant, and unnecessary dependencies only when removal is proven safe. Fewer maintained lines and fewer moving parts are preferred because they reduce the bug surface and make OCADE easier to maintain. Never reduce LOC by deleting required tests, security checks, validation, accessibility behavior, or reliability safeguards.

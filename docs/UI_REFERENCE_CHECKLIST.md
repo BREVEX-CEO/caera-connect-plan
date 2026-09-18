@@ -60,3 +60,7 @@ Use this checklist when reviewing every production surface. Each item is a sente
 - Motion is subtle and fast, reduced-motion is respected, and no animation is required to understand state.
 - Buttons, menus, inputs, and dialogs use consistent radius, spacing, type hierarchy, and interaction feedback.
 - The final browser sweep checks console errors, network failures, stale state, route transitions, refresh/deep links, mobile overflow, and accessibility in addition to screenshots.
+
+## Repository-wide completion rule
+
+This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply `/ponytail ultra`, `/caveman ultra`, YAGNI, and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.

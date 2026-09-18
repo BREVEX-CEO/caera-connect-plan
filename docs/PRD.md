@@ -95,3 +95,7 @@ Cowork/Jarvis expansion, native desktop apps, public conversation links, full me
 ## Acceptance criteria
 
 The mission is accepted only when the exact production release proves signed-in Send, real online answer, correct usage accounting, conversation persistence, attachment-to-model use, bounded async states, Library isolation, Offline install/reuse/remove/reinstall, no-Internet Chat, reconnect synchronization, WebGPU generation on supported hardware, WASM fallback, and responsive Settings/Chat without known repository-controlled defects.
+
+## Repository-wide completion rule
+
+This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply `/ponytail ultra`, `/caveman ultra`, YAGNI, and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.

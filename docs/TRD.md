@@ -96,3 +96,7 @@ Never trust client-provided user ids, entitlement, usage, model readiness, file 
 ## Deployment contract
 
 A release is a compatible set consisting of Git SHA, frontend bundle, Supabase Edge Function version/source, database migration state/generated types, and Offline manifest/release. Final production verification records all of them together.
+
+## Repository-wide completion rule
+
+This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply `/ponytail ultra`, `/caveman ultra`, YAGNI, and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.

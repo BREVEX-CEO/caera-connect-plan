@@ -65,3 +65,13 @@ Run realistic bounded-read/load scenarios for conversation history, Library, set
 Reread `PLAN.md` against the exact reconciled tree. Run `npm run verify:full`, build and all relevant browser journeys, then smoke-test the actual deployed release. Record what was live versus simulated.
 
 Final evidence must include the remote Git SHA, deployed frontend version/build, active Edge Function version/source, applied migration state, generated types state, Offline release id/hash, real Online answer, exact usage decrement, attachment-to-answer proof, Offline answer, WebGPU/WASM proof where hardware is available, no-redownload update proof, Remove/reinstall proof, Library isolation, auth recovery, and every genuine external blocker. Only the exact verified tree may fast-forward to `main` without force.
+
+## Final adversarial QA protocol
+
+After the entire active plan is implemented, run a separate tester-style validation pass whose purpose is to expose defects rather than confirm success. Exercise the application through isolated browser sessions as a real user would, deliberately switch accounts, conversations, modes, devices, connectivity states, and storage states during in-flight work, and verify that stale async results can never cross account, conversation, request, or device boundaries.
+
+Run unit, integration, regression, end-to-end browser, malformed-input, property/fuzz, concurrency/race, failure-injection, auth/session isolation, cross-account data isolation, database/RLS permission, provider/network failure, online/offline transition, reconnect, storage-loss, multi-device, responsive, accessibility, deployment-parity, and AI-behavior evaluation coverage. Maintain hard invariants such as “Account A can never observe Account B data,” “one successful logical generation consumes exactly one use,” “failed generations consume zero,” “temporary data is not durably persisted unless explicitly requested,” and “a verified installed offline release is not redownloaded by an ordinary deployment.”
+
+Do not let mocks or stubs stand in for final proof when a safe real integration boundary is available. Classify evidence as proven, code-verified, simulated, or externally unverified. GitHub Actions is optional because paid Actions availability is not assumed; run equivalent required verification in a trusted local or agent environment instead of skipping it.
+
+When failures are found, reproduce them deterministically, fix the root cause, add a regression test, and rerun the smallest relevant test first before the broader gate. After all correctness gates are green, apply `/ponytail ultra` and `/caveman ultra` to remove safely unnecessary code without weakening coverage.

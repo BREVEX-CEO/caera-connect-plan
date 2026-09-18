@@ -55,3 +55,7 @@ Use semantic controls, visible focus, sufficient contrast, keyboard support, scr
 ## Reference policy
 
 Owner-supplied screenshots and the existing Grok-like references guide density, spacing, hierarchy, and simplicity. They are references, not assets to clone pixel-for-pixel. Preserve OCADE branding and original implementation.
+
+## Repository-wide completion rule
+
+This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply `/ponytail ultra`, `/caveman ultra`, YAGNI, and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.

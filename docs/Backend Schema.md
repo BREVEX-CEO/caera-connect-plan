@@ -63,3 +63,7 @@ Use versioned migrations for DDL, trace all callers before destructive changes, 
 ## Release proof
 
 Final release evidence records the exact Git SHA, applied migration set, generated types state, active Edge Function version, private Library policy state, and successful real Chat/usage/Admin/Library smoke tests together.
+
+## Repository-wide completion rule
+
+This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply `/ponytail ultra`, `/caveman ultra`, YAGNI, and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.

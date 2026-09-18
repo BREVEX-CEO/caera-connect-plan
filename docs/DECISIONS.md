@@ -24,3 +24,7 @@ This file records owner-approved decisions that override older contradictory pla
 - The permanent owner/admin is `caeracadane28@gmail.com` through the audited role/grant authority; ordinary users must not be able to reach or self-grant Admin/entitlements.
 - Supabase leaked-password protection is documented but is not a current launch blocker for the Google/email-OTP passwordless product on the owner’s current Supabase plan.
 - Every engineering session uses `/ponytail ultra` and `/caveman ultra`, applies YAGNI/KISS, prefers one canonical authority, deletes safe dead/duplicate code, and fixes root causes rather than adding layers of patches.
+
+## Repository-wide completion rule
+
+This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply `/ponytail ultra`, `/caveman ultra`, YAGNI, and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
