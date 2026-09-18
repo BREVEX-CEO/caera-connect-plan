@@ -75,3 +75,7 @@ Use semantic elements, visible focus, keyboard navigation, screen-reader labels,
 ## Definition of polished
 
 A surface is not polished if it contains an infinite loader, fake control, stale feature description, excessive empty panel, technical provider/model text, inconsistent corner/radius, clipped content, hidden mobile action, or error that forces the customer to guess what happened.
+
+## Repository-wide completion rule
+
+This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply `/ponytail ultra`, `/caveman ultra`, YAGNI, and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
