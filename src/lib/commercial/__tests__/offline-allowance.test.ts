@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   reconcile: vi.fn(),
   install: vi.fn(),
   key: vi.fn(),
+  forget: vi.fn(),
 }));
 vi.mock("../device-identity", () => ({ ensureCurrentDeviceIdentity: mocks.identity }));
 vi.mock("../offline-counter", () => ({
@@ -16,6 +17,7 @@ vi.mock("../offline-counter", () => ({
   listOfflineUsageEvents: mocks.events,
   ensureOfflineDeviceKey: mocks.key,
   installOfflineUsageLease: mocks.install,
+  forgetOfflineUsageLease: mocks.forget,
 }));
 vi.mock("../offline-usage.functions", () => ({
   allocateOfflineUsage: mocks.allocate,
@@ -93,6 +95,29 @@ it("keeps a usable existing block instead of reserving another", async () => {
   mocks.installed.mockResolvedValue([entry("active", "2026-09-18T15:00:00Z")]);
   await syncOfflineAllowance();
   expect(mocks.allocate).not.toHaveBeenCalled();
+});
+
+it("forgets an expired block once the server has its events, and keeps an unsettled one", async () => {
+  mocks.installed.mockResolvedValue([entry("expired", "2026-09-18T09:59:00Z", 700)]);
+  mocks.events.mockResolvedValue([{ payload: { sequence: 1 } }]);
+  mocks.reconcile.mockResolvedValue({ consumedHundredths: 700 });
+
+  await syncOfflineAllowance();
+  expect(mocks.forget).toHaveBeenCalledWith("account", "device", "expired");
+
+  mocks.forget.mockClear();
+  mocks.reconcile.mockRejectedValue(new Error("the account could not be reached"));
+  await syncOfflineAllowance();
+  expect(mocks.forget).not.toHaveBeenCalled();
+});
+
+it("keeps a block that is still spendable, reconciled or not", async () => {
+  mocks.installed.mockResolvedValue([entry("live", "2026-09-18T15:00:00Z", 700)]);
+  mocks.events.mockResolvedValue([{ payload: { sequence: 1 } }]);
+  mocks.reconcile.mockResolvedValue({ consumedHundredths: 700 });
+
+  await syncOfflineAllowance();
+  expect(mocks.forget).not.toHaveBeenCalled();
 });
 
 it("does not keep replaying an expired server lease after local storage was lost", async () => {

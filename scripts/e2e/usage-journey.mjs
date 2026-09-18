@@ -214,6 +214,47 @@ try {
     (await page.getByRole("heading", { name: "Library" }).count()) === 1,
   );
 
+  /* --- the device cap is explained, not swallowed -------------------------- */
+
+  /*
+   * Every browser this account signs in on asks for a device of its own so it
+   * can answer without a network, and an account is allowed two of a kind. The
+   * third one is refused, in a background task that used to swallow the reason
+   * whole: offline answers simply never worked there and nothing on any screen
+   * said why. Two more contexts fill the cap; the fourth meets the refusal.
+   */
+  const extra = [];
+  for (let index = 0; index < 3; index += 1) {
+    const other = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    extra.push(other);
+    await other.addInitScript(
+      ([key, value]) => {
+        try {
+          window.localStorage.setItem(key, value);
+        } catch {
+          /* The check below fails visibly if this did not take. */
+        }
+      },
+      [storageKey(SUPABASE), JSON.stringify(session)],
+    );
+    const tab = await other.newPage();
+    await tab.goto(`${BASE}/`, { waitUntil: "networkidle" });
+    await tab.waitForTimeout(3500);
+    if (index < 2) continue;
+
+    await tab.click('aside button[aria-haspopup="menu"]');
+    await tab.getByRole("menuitem", { name: "Settings" }).click();
+    await tab.getByRole("button", { name: "Usage & Limits" }).click();
+    const panel = await tab.getByRole("dialog", { name: "Settings" }).innerText();
+    check(
+      "a browser beyond the device cap is told so, and told the network still works",
+      /as many of your devices as this account allows/.test(panel) &&
+        /over the network work normally/.test(panel),
+      panel.split("\n").find((line) => /devices as this account allows/.test(line)) ?? panel,
+    );
+  }
+  for (const other of extra) await other.close();
+
   check("no uncaught page errors", pageErrors.length === 0, pageErrors.join("; "));
 } finally {
   await browser.close();

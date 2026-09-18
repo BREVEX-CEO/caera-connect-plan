@@ -100,10 +100,19 @@ describe("what the gate refuses to let happen", () => {
 
   it("settles every permit it takes, on every path out", () => {
     const chat = readFileSync("src/lib/chat/use-chat.ts", "utf8");
-    // Empty answer, thrown error and success each reach `settle`, and `settle`
-    // is idempotent so the finally block cannot double-charge.
-    expect(chat.match(/await settle\(\)/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
-    expect(chat).toContain("if (settled) return");
+    /*
+     * ONE SETTLEMENT, IN THE `finally`. This used to be three calls — empty
+     * answer, thrown error, success — which covered the three exits that
+     * existed and none that a later edit might add. The exit itself settles
+     * now, so the count that matters is one.
+     */
+    const settlements = chat.match(/await billed\.settle\(\)/g)?.length ?? 0;
+    expect(settlements).toBe(1);
+    expect(chat.indexOf("} finally {")).toBeLessThan(chat.indexOf("await billed.settle()"));
+    // And the allowance is re-read after settlement rather than during it.
+    expect(chat.indexOf("await billed.settle()")).toBeLessThan(
+      chat.indexOf("invalidateQueries({ queryKey: USAGE_QUERY_KEY })"),
+    );
   });
 
   it("records delivery only when something was actually delivered", () => {

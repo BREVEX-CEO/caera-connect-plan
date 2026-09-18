@@ -207,10 +207,21 @@ export const readCommercialUsage = createServerFn({ method: "GET" })
             ) === serverWindow.startsAt,
         )
         .reduce((sum, row) => sum + Number(row.pending_hundredths) / 100, 0);
+      /*
+       * THE METER COUNTS WHAT THE GATE COUNTS.
+       *
+       * A signed offline block is charged to the account the moment it is
+       * issued, so an account holding one really does have that much less to
+       * spend over the network. This used to subtract it back out, which read
+       * better and was not true: with seven of twenty-eight held on a device,
+       * the twenty-second request was refused while this line still promised
+       * seven. `offlineAllocated` below says where they went, which is the part
+       * the person actually needs.
+       */
       const shown = describeUsage(
         {
           kind: window.kind,
-          used: Math.max(0, serverWindow.used - offlineAllocated),
+          used: serverWindow.used,
           allowance: cap,
           window,
         },

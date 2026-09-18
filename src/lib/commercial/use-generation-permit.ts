@@ -31,7 +31,7 @@
  * all come from the server, which clamps whatever arrives.
  */
 import { toast } from "sonner";
-import { getOfflineCurrentDeviceIdentity } from "./device-identity";
+import { deviceRegistrationProblem, getOfflineCurrentDeviceIdentity } from "./device-identity";
 import { readTrustedClockHighWater } from "@/lib/time/trusted-clock";
 import {
   acquireGenerationPermit,
@@ -265,7 +265,6 @@ async function beginOfflineBilledRequest(input: {
           time: trustedOfflineTimeNow(entry.lease.payload.issuedAt, readTrustedClockHighWater()),
           costHundredths: ONE_USE * 100,
         });
-        window.dispatchEvent(new Event("ocade:offline-usage-updated"));
       },
       settleEmpty: async () => {
         await releaseOfflineGeneration({
@@ -275,16 +274,18 @@ async function beginOfflineBilledRequest(input: {
           keys: entry.verificationKeys,
           time: trustedOfflineTimeNow(entry.lease.payload.issuedAt, readTrustedClockHighWater()),
         });
-        window.dispatchEvent(new Event("ocade:offline-usage-updated"));
       },
     });
   } catch (error) {
     if (input.explain) {
       toast.error("Offline Intelligence is locked on this device.", {
         description:
-          error instanceof Error
-            ? error.message
-            : "Reconnect once so OCADE can verify this device's allowance.",
+          /* The real reason when registration published one, rather than a guess. */
+          deviceRegistrationProblem() === "device_limit"
+            ? "OCADE already answers without a network on as many of your devices as this account allows, and this browser is not one of them."
+            : error instanceof Error
+              ? error.message
+              : "Reconnect once so OCADE can verify this device's allowance.",
       });
     }
     return null;

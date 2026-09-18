@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { ensureCurrentDeviceIdentity, getOfflineCurrentDeviceIdentity } from "../device-identity";
+import {
+  deviceRegistrationProblem,
+  ensureCurrentDeviceIdentity,
+  getOfflineCurrentDeviceIdentity,
+  watchDeviceRegistration,
+} from "../device-identity";
 
 const mocks = vi.hoisted(() => ({ load: vi.fn() }));
 vi.mock("@/integrations/supabase/on-demand", () => ({ loadSupabaseClient: mocks.load }));
@@ -10,12 +15,14 @@ let account: string;
 let refusal: string | undefined;
 let storage: Map<string, string>;
 let grantInsertFails: boolean;
+let deviceInsertCode: string | undefined;
 
 beforeEach(() => {
   tables = { devices: [], browser_grants: [] };
   account = "account-one";
   refusal = undefined;
   grantInsertFails = false;
+  deviceInsertCode = undefined;
   storage = new Map([["caera.browser_install_id", "install-one"]]);
   vi.stubGlobal("window", {
     location: { origin: "https://ocade.invalid" },
@@ -46,6 +53,12 @@ beforeEach(() => {
       let deleting = false;
       const filters: [string, unknown][] = [];
       const run = async () => {
+        if (inserted && deviceInsertCode && table === "devices") {
+          return {
+            data: null,
+            error: { code: deviceInsertCode, message: "Device cap reached for kind desktop" },
+          };
+        }
         if (refusal === table || (inserted && grantInsertFails && table === "browser_grants")) {
           return { data: null, error: { message: "database unavailable" } };
         }
@@ -114,6 +127,28 @@ it("fails closed on a grant lookup failure instead of creating a second device",
   refusal = "browser_grants";
   await expect(ensureCurrentDeviceIdentity()).rejects.toThrow("could not be verified");
   expect(tables.devices).toHaveLength(0);
+});
+
+it("says an account at its device limit instead of swallowing the refusal", async () => {
+  const seen: (string | null)[] = [];
+  const stop = watchDeviceRegistration(() => seen.push(deviceRegistrationProblem()));
+  deviceInsertCode = "23514";
+
+  await expect(ensureCurrentDeviceIdentity()).rejects.toThrow("could not be registered");
+
+  expect(deviceRegistrationProblem()).toBe("device_limit");
+  expect(seen).toEqual(["device_limit"]);
+  stop();
+});
+
+it("reports anything else as a fault that may pass, and clears it once a device exists", async () => {
+  refusal = "browser_grants";
+  await expect(ensureCurrentDeviceIdentity()).rejects.toThrow("could not be verified");
+  expect(deviceRegistrationProblem()).toBe("unavailable");
+
+  refusal = undefined;
+  await expect(ensureCurrentDeviceIdentity()).resolves.toMatchObject({ accountId: account });
+  expect(deviceRegistrationProblem()).toBeNull();
 });
 
 it("removes an incomplete registration when grant insertion fails", async () => {

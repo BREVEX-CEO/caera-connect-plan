@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "react";
 import { Link } from "@tanstack/react-router";
 import { Pending, Row } from "./rows";
 import {
@@ -5,6 +6,10 @@ import {
   useCommercialUsage,
   type UsageWindowView,
 } from "@/lib/commercial/use-commercial-usage";
+import {
+  deviceRegistrationProblem,
+  watchDeviceRegistration,
+} from "@/lib/commercial/device-identity";
 
 /**
  * WHAT THIS ACCOUNT HAS LEFT, AND WHEN IT RETURNS.
@@ -51,11 +56,57 @@ export function UsageSection() {
       </Row>
       {session ? <WindowRow label="This session" window={session} /> : null}
       {week ? <WindowRow label="This week" window={week} /> : null}
+      <OfflineRow held={session?.offlineAllocated ?? 0} />
       <Row
         label="How it counts"
         description="One request you make counts once, however much work it takes OCADE to answer it. Answers on your own device count the same as answers over the network."
       />
     </div>
+  );
+}
+
+/**
+ * WHERE THE MISSING REQUESTS WENT, AND WHY THIS BROWSER MAY HAVE NONE.
+ *
+ * A device that can answer without a network holds some of the account's
+ * requests up front, so the number above is lower than a person expects and
+ * nothing else on any screen explained it. The same row carries the refusal:
+ * registering a device can fail, it used to fail in a background task that
+ * swallowed the reason, and an account at its device limit would simply never
+ * work offline here with nothing said anywhere.
+ */
+function OfflineRow({ held }: { held: number }) {
+  const problem = useSyncExternalStore(
+    watchDeviceRegistration,
+    deviceRegistrationProblem,
+    () => null,
+  );
+
+  if (problem === "device_limit") {
+    return (
+      <Row
+        label="Offline on this device"
+        description="OCADE already answers without a network on as many of your devices as this account allows, so it cannot do that in this browser. Answers over the network work normally here."
+      />
+    );
+  }
+  if (problem === "unavailable") {
+    return (
+      <Row
+        label="Offline on this device"
+        description="OCADE could not reserve requests for this browser to use without a network. It tries again the next time you open OCADE with a connection."
+      />
+    );
+  }
+  return (
+    <Row
+      label="Offline on your devices"
+      description={
+        held > 0
+          ? `${held} of this session's requests are held on the devices that can answer without a network. They are yours to spend there, and they return at the reset.`
+          : "Requests you spend without a network count the same, and are held on that device until it reconnects."
+      }
+    />
   );
 }
 

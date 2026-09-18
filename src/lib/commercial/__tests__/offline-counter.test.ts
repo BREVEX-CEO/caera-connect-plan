@@ -3,8 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ensureOfflineDeviceKey,
   finalizeOfflineGeneration,
+  forgetOfflineUsageLease,
   installOfflineUsageLease,
   listOfflineUsageEvents,
+  readInstalledOfflineLeases,
   releaseOfflineGeneration,
   reserveOfflineGeneration,
 } from "../offline-counter";
@@ -303,6 +305,35 @@ describe("the browser offline usage counter", () => {
         time,
       }),
     ).rejects.toThrow(/exhausted/);
+  });
+
+  it("forgets a finished block, and only the one it was asked to forget", async () => {
+    const { payload, key, time } = await setup();
+    const reservation = await reserveOfflineGeneration({
+      accountId: payload.accountId,
+      deviceId: payload.deviceId,
+      leaseId: payload.leaseId,
+      generationId: "generation-forget",
+      idempotencyKey: "request-forget",
+      surface: "chat",
+      keys: [key],
+      time,
+    });
+    await releaseOfflineGeneration({
+      reservation,
+      accountId: payload.accountId,
+      deviceId: payload.deviceId,
+      keys: [key],
+      time,
+    });
+    expect(await listOfflineUsageEvents(payload.leaseId)).toHaveLength(2);
+
+    await forgetOfflineUsageLease("another-account", payload.deviceId, payload.leaseId);
+    expect(await listOfflineUsageEvents(payload.leaseId)).toHaveLength(2);
+
+    await forgetOfflineUsageLease(payload.accountId, payload.deviceId, payload.leaseId);
+    expect(await listOfflineUsageEvents(payload.leaseId)).toEqual([]);
+    expect(await readInstalledOfflineLeases(payload.accountId, payload.deviceId)).toEqual([]);
   });
 
   it("fails closed without Web Locks and on clock rollback", async () => {

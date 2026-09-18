@@ -476,6 +476,38 @@ export function releaseOfflineGeneration(input: {
   return settleOfflineGeneration({ ...input, status: "released", costHundredths: 0 });
 }
 
+/**
+ * Drop a finished block and its signed events from this device.
+ *
+ * Only for a block that has expired and whose events the server has: the chain
+ * is verified from its first sequence, so a device that keeps half of one can
+ * never report the rest.
+ */
+export async function forgetOfflineUsageLease(
+  accountId: string,
+  deviceId: string,
+  leaseId: string,
+): Promise<void> {
+  await runExclusive(deviceId, async () => {
+    const db = await openDb();
+    try {
+      const transaction = db.transaction([LEASE_STORE, STATE_STORE, EVENT_STORE], "readwrite");
+      const row = (await requestResult(transaction.objectStore(LEASE_STORE).get(leaseId))) as
+        LeaseRow | undefined;
+      if (row && row.accountId === accountId && row.deviceId === deviceId) {
+        transaction.objectStore(LEASE_STORE).delete(leaseId);
+        transaction.objectStore(STATE_STORE).delete(leaseId);
+        transaction
+          .objectStore(EVENT_STORE)
+          .delete(IDBKeyRange.bound(`${leaseId}:`, `${leaseId}:￿`));
+      }
+      await transactionDone(transaction);
+    } finally {
+      db.close();
+    }
+  });
+}
+
 export async function listOfflineUsageEvents(
   leaseId: string,
   existingDb?: IDBDatabase,

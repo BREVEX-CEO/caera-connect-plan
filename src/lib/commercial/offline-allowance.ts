@@ -1,6 +1,7 @@
 import { ensureCurrentDeviceIdentity } from "./device-identity";
 import {
   ensureOfflineDeviceKey,
+  forgetOfflineUsageLease,
   installOfflineUsageLease,
   listOfflineUsageEvents,
   readInstalledOfflineLeases,
@@ -15,10 +16,11 @@ const TOP_UP_BELOW_HUNDREDTHS = 100;
 /**
  * Bring this device's offline allowance up to date. Safe to call on any visit.
  *
- * Every failure is swallowed deliberately: this runs in the background on a
- * visit nobody asked it for, and an account with no offline allowance available
- * is a normal state that the online path handles. What must never happen is a
- * thrown error from a background top-up reaching a person who was typing.
+ * No failure interrupts the person: this runs in the background on a visit
+ * nobody asked for, and a thrown error from a top-up must never reach somebody
+ * who was typing. Registration is not silent about it, though — it publishes
+ * why it could not give this browser a device, and Usage & Limits and the
+ * offline refusal both read that.
  */
 export async function syncOfflineAllowance(): Promise<void> {
   try {
@@ -32,16 +34,31 @@ export async function syncOfflineAllowance(): Promise<void> {
 
     /* --- report what was spent while there was no network ----------------- */
 
+    /*
+     * AND THEN FORGET THE BLOCKS THAT ARE OVER.
+     *
+     * Nothing ever removed a lease, and the server verifies an event chain from
+     * its first sequence — so every visit re-sent every event of every block
+     * this browser had ever held. A profile used daily accumulates about four
+     * blocks a day, each with a chain, and the reconnect that was one request
+     * becomes a thousand. An expired block cannot be spent again and the server
+     * now has its events, so the only correct copy is the server's.
+     */
     for (const entry of installed) {
-      const events = await listOfflineUsageEvents(entry.lease.payload.leaseId);
-      if (events.length === 0) continue;
-      await reconcileOfflineUsage({
-        data: {
-          deviceId: identity.deviceId,
-          leaseId: entry.lease.payload.leaseId,
-          events,
-        },
-      }).catch(() => undefined);
+      const lease = entry.lease.payload;
+      const events = await listOfflineUsageEvents(lease.leaseId);
+      const settled =
+        events.length === 0 ||
+        (await reconcileOfflineUsage({
+          data: { deviceId: identity.deviceId, leaseId: lease.leaseId, events },
+        }).then(
+          () => true,
+          () => false,
+        ));
+      const time = trustedOfflineTimeNow(lease.issuedAt, readTrustedClockHighWater());
+      if (settled && time.now >= Date.parse(lease.expiresAt)) {
+        await forgetOfflineUsageLease(identity.accountId, identity.deviceId, lease.leaseId);
+      }
     }
 
     /* --- hold a block only while one is actually needed -------------------- */

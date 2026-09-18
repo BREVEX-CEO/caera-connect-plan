@@ -67,6 +67,7 @@ export const HEALTH_OPERATIONS = [
   "automation_run",
   "webhook_receipt",
   "model_prepare",
+  "offline_allowance",
   "backup_restore",
 ] as const;
 export type HealthOperation = (typeof HEALTH_OPERATIONS)[number];

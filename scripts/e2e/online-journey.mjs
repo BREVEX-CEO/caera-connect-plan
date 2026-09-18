@@ -211,6 +211,21 @@ try {
     !/gemini|google|api[_ -]?key|qwen|gguf|wllama/i.test(body),
   );
 
+  /*
+   * THE METER BESIDE THE COMPOSER, WHICH NOTHING REMOUNTED.
+   *
+   * Settings refetches when it opens, so the check below reads the settled
+   * number. This one reads the sidebar, which has been mounted throughout: a
+   * refused request must leave it saying exactly what it said before, with no
+   * flicker of a charge that was never kept.
+   */
+  const meter = await page.locator("aside p", { hasText: /of 28 left · resets/ }).innerText();
+  check(
+    "the meter beside the composer never showed a charge for the refused request",
+    meter.startsWith(`${before} of 28 left`),
+    meter,
+  );
+
   const after = await usageRemaining(page);
   check(
     "a refused request costs the person nothing",

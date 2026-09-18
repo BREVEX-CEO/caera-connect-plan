@@ -621,6 +621,87 @@ carrying this tree's build. What remains is evidence rather than deployment: the
 research, Library and Settings journeys, none of which can run from a session
 whose egress to `ocade.in` and `*.supabase.co` is blocked.
 
+## The device cap, the meter, and the proof that could only run once
+
+The live journey DID run against production on 18 September, and the database
+still held its leavings: two devices, a signed 700-hundredth lease, a
+conversation with three turns and four permits, plus two `diagnostic-probe`
+permits from an earlier session. The two devices mattered more than the rest —
+an account is allowed two active devices of a kind, nothing in the product gives
+one back, and so the proof had exhausted the cap on the way to passing. A third
+insert was attempted here against the live database and refused with SQLSTATE
+23514, which is the second run of that proof, reproduced.
+
+Cleaned: 2 devices (cascading their grants, keys, lease and allocation), 1
+conversation, 3 messages, 4 permits and 2 usage rows. Kept: all five auth users,
+including both test accounts — the proof needs one and deleting an account to
+tidy up is not a cleanup — and every row belonging to the three real accounts,
+apart from one `diagnostic-probe` permit that a session had left on the owner's
+account. `.live-offline-debug.mjs` is not in the working tree, on any branch, or
+anywhere in this repository's history; it was a scratch file in a previous
+session's container and there was nothing to delete.
+
+**The proof cleans up after itself now.** `live-usage-journey.mjs` clears the
+account's devices before it starts and removes what it created in a `finally`,
+so a run that fails half way cannot cost the next one its slots. Its assertions
+moved from absolute counts to deltas off whatever the account opens with, which
+is what makes a second run possible at all.
+
+**Registration failure was swallowed whole.** `ensureCurrentDeviceIdentity`
+threw one message for every failure, and the background top-up that calls it
+caught everything and said nothing. An account at its device limit therefore had
+no offline answers in that browser and no explanation anywhere. The refusal is
+classified now (`device_limit` from 23514, `unavailable` for the rest),
+published, read by Usage & Limits and by the offline refusal, and recorded once
+as a `buildHealthRecord` line whose every field is an enumerated value — it
+cannot carry an account, a prompt, a device name or a key. The stub enforces the
+same cap as the trigger, so `usage-journey` meets the refusal in a real browser;
+lifting the stub's cap makes that check fail, which is how it was proved not to
+be vacuous.
+
+**The meter promised requests the gate would refuse.** A signed offline block is
+charged to the account when it is issued — the live data says so: 800
+hundredths used against one 700 block and one answer — but `readCommercialUsage`
+subtracted the unspent part back out before displaying it. With seven of
+twenty-eight held on a device, the twenty-second online request was refused
+while the sidebar still said seven left. The subtraction is gone; where those
+requests went is a row in Usage & Limits instead.
+
+**Every visit re-sent every event this browser had ever signed.** Nothing
+removed a lease locally and the server verifies an event chain from its first
+sequence, so reconnect was O(every block ever held) — about four a day on a
+profile in daily use. An expired block whose events the server has is now
+forgotten, and only then.
+
+Also corrected here: a claim of mine that did not survive its own test. Moving
+the allowance re-read into the `finally` was described as fixing a stale meter
+after a failed generation. The online journey, run with the old placement
+deliberately restored, passed anyway — a failure changes nothing net, so the
+meter was never wrong. The settlement belongs in the `finally` regardless (three
+exits settled, a fourth would not have), and that is the only claim made for it.
+
+Recorded rather than fixed, each with its trigger:
+
+- `ocade_return_offline_usage` has no production caller. Unspent offline
+  capacity comes back at the session reset because a Free lease expires exactly
+  then; a paid tier's WEEK window would hold it for a week. Returning it at
+  expiry is not safe as things stand — a device that spent while disconnected
+  reports after expiry, and the capacity would have been given back twice.
+  Trigger: the first paid account in production.
+- Nothing in the product frees a device slot. The RPC exists
+  (`revoke_device_for_current_user`, granted to `authenticated`) and no screen
+  calls it, so a person on their third browser is told the truth and can do
+  nothing about it. Trigger: owner approval for a device list in Settings.
+- `install-telemetry.ts` keeps a sixty-event ring and a listener set that
+  nothing reads or subscribes to. Deleting it reaches into the install path this
+  session cannot prove end to end. Trigger: the next session that can run the
+  offline install journey against the real release.
+
+Still unproven from here, and unchanged: this environment's egress to
+`ocade.in` and `*.supabase.co` is blocked, so no browser journey ran against
+production. The Supabase management boundary is reachable, which is how the
+cleanup and the cap reproduction were done against the live database.
+
 ## Checkpoint discipline
 
 Implementation work uses one isolated completion branch from the latest `origin/main`. After each phase passes its gate, update this file with the exact completed state, create a descriptive checkpoint commit, push the branch, and verify the remote SHA. Never merge an incomplete phase to `main`.

@@ -35,6 +35,9 @@ import { createHash, randomUUID } from "node:crypto";
 
 const PORT = Number(process.argv[2] ?? 54321);
 
+/** Active devices per kind, per account — the same two the trigger enforces. */
+const DEVICE_CAP = 2;
+
 /* ----------------------------------------------------------------- state -- */
 
 /** tables[userId] = { tableName: rows[] }. One account, one set of rows. */
@@ -706,6 +709,25 @@ const server = createServer((request, response) => {
       if (request.method === "POST") {
         const payload = JSON.parse(body || "{}");
         const incoming = Array.isArray(payload) ? payload : [payload];
+        /*
+         * The account's device cap, which production enforces in a trigger and
+         * this stub used not to have at all. Without it the browser could
+         * register devices forever here and meet a refusal only in production,
+         * which is the one place nobody can reproduce it.
+         */
+        if (name === "devices") {
+          for (const row of incoming) {
+            const active = stored.filter(
+              (candidate) => candidate.kind === row.kind && !candidate.revoked_at,
+            );
+            if (active.length >= DEVICE_CAP) {
+              return send(400, {
+                code: "23514",
+                message: `Device cap reached for kind ${row.kind}: maximum ${DEVICE_CAP} active per account.`,
+              });
+            }
+          }
+        }
         const written = incoming.map((row) => {
           const onConflict = url.searchParams.get("on_conflict");
           const existing = onConflict

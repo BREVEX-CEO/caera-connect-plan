@@ -308,13 +308,6 @@ export function useChat(): ChatState & ChatActions {
       const controller = new AbortController();
       abort.current = controller;
 
-      let settled = false;
-      const settle = async () => {
-        if (settled) return;
-        settled = true;
-        await billed.settle();
-      };
-
       try {
         /*
          * A TEMPORARY CHAT WRITES NOTHING, ANYWHERE.
@@ -405,7 +398,6 @@ export function useChat(): ChatState & ChatActions {
            * than charged, because nothing was delivered.
            */
           setProblem(refusal ?? "OCADE could not answer that. Try again.");
-          await settle();
           // Accepted: the question is in the transcript, and Retry re-asks it
           // from there. Returning it to the composer would make two of it.
           return true;
@@ -426,18 +418,24 @@ export function useChat(): ChatState & ChatActions {
         }
 
         billed.recordDelivery({ answer });
-        await settle();
         if (!temporary) void refreshConversations();
-        /*
-         * The allowance the person is shown must reflect what they just spent.
-         * Settings reads it through the same query key, so one invalidation
-         * keeps every surface honest rather than each caching its own answer.
-         */
-        void queryClient.invalidateQueries({ queryKey: USAGE_QUERY_KEY });
       } catch (cause) {
         setProblem(describeStorageError(cause));
-        await settle();
       } finally {
+        /*
+         * SETTLE ON THE WAY OUT, WHICHEVER WAY OUT IT IS.
+         *
+         * Three call sites settled what one exit can: an answer, no answer, and
+         * a throw. A fourth way out — one early return somebody adds later —
+         * would leave the reservation held against a person who received
+         * nothing, which is the one outcome this must never have.
+         *
+         * The allowance is re-read here too, after settlement rather than
+         * during it, so the number comes from one place on every path instead
+         * of only on the one that succeeded.
+         */
+        await billed.settle();
+        void queryClient.invalidateQueries({ queryKey: USAGE_QUERY_KEY });
         setStreaming("");
         setBusy(false);
         abort.current = null;
