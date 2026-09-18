@@ -25,14 +25,12 @@
  *   node scripts/e2e/harness.mjs --no-build chat # reuse the current build
  */
 import { spawn, spawnSync } from "node:child_process";
-import { writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 
 const WEB_PORT = 8788;
 const SUPABASE_PORT = 54321;
 const SUPABASE_URL = `http://127.0.0.1:${SUPABASE_PORT}`;
 const BASE = `http://127.0.0.1:${WEB_PORT}`;
-const OUTPUT = path.join(process.cwd(), ".output", "server");
 
 const ALL = [
   "shell",
@@ -126,19 +124,16 @@ if (!skipBuild) {
 
 /*
  * The server functions read the same three names the Worker reads in
- * production. `.dev.vars` rather than the parent environment, because
- * `wrangler dev` does not forward the latter into the Worker.
+ * production. Passed as flags because `wrangler dev` forwards neither the
+ * parent environment nor a `.dev.vars` file that is not beside the config --
+ * and the config is the repository root one, where a real `.dev.vars` may hold
+ * a developer's own values that a harness must never overwrite.
  */
-mkdirSync(OUTPUT, { recursive: true });
-writeFileSync(
-  path.join(OUTPUT, ".dev.vars"),
-  [
-    `SUPABASE_URL=${SUPABASE_URL}`,
-    `SUPABASE_PUBLISHABLE_KEY=${BUILD_ENVIRONMENT.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-    "SUPABASE_SERVICE_ROLE_KEY=sb_secret_loopback_stub",
-    "",
-  ].join("\n"),
-);
+const STUB_VARS = [
+  `SUPABASE_URL:${SUPABASE_URL}`,
+  `SUPABASE_PUBLISHABLE_KEY:${BUILD_ENVIRONMENT.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+  "SUPABASE_SERVICE_ROLE_KEY:sb_secret_loopback_stub",
+].flatMap((pair) => ["--var", pair]);
 
 console.log("=== supabase stub ===");
 children.push(
@@ -157,7 +152,8 @@ children.push(
       path.join("node_modules", "wrangler", "bin", "wrangler.js"),
       "dev",
       "--config",
-      ".output/server/wrangler.json",
+      "wrangler.json",
+      ...STUB_VARS,
       "--ip",
       "127.0.0.1",
       "--port",

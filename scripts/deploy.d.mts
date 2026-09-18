@@ -6,7 +6,6 @@ export interface DeploymentPlan {
   readonly workerName: string | null;
   readonly healthUrl: string | null;
   readonly sourceConfigPath: string;
-  readonly generatedConfigPath: string;
   readonly generatedEntryPath: string;
   readonly rollbackVersionId: string | null;
   readonly expectedHealthVersion: string | null;

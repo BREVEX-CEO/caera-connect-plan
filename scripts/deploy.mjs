@@ -84,7 +84,6 @@ export function createDeploymentPlan({
 } = {}) {
   const blockers = [];
   const sourceConfigPath = "wrangler.json";
-  const generatedConfigPath = ".output/server/wrangler.json";
   const generatedEntryPath = ".output/server/index.mjs";
 
   if (!existsSync(path.join(cwd, sourceConfigPath))) blockers.push("wrangler.json is missing");
@@ -124,6 +123,21 @@ export function createDeploymentPlan({
       }
       if (source.vars !== undefined)
         blockers.push("source config must not contain deploy-time values");
+      /*
+       * THE ONE CONFIG HAS TO BE DEPLOYABLE ON ITS OWN.
+       *
+       * It was not, and that is what broke production. `main`, the asset
+       * binding and the asset directory lived only in a copy generated into
+       * `.output/server/`, so `wrangler deploy` found this file, saw an
+       * `assets` block with no `directory`, and refused. Anything that did not
+       * pass `--config` at the generated copy failed — including Cloudflare's
+       * own build. Nothing here needs the build to be known: every value is a
+       * fixed relative path, so they live here and the copy is gone.
+       */
+      if (!hasValue(source.main)) blockers.push("wrangler.json must name the Worker entry");
+      if (source.assets?.binding !== "ASSETS") blockers.push("the ASSETS binding is missing");
+      if (!hasValue(source.assets?.directory))
+        blockers.push("wrangler.json must name the assets directory");
     } catch {
       blockers.push("release source configuration is unreadable");
     }
@@ -185,7 +199,6 @@ export function createDeploymentPlan({
     workerName,
     healthUrl,
     sourceConfigPath,
-    generatedConfigPath,
     generatedEntryPath,
     rollbackVersionId:
       mode === "deploy" ? (env.OCADE_ROLLBACK_VERSION_ID ?? null) : (versionId ?? null),
@@ -195,31 +208,21 @@ export function createDeploymentPlan({
   };
 }
 
+/**
+ * WHAT THE BUILD PRODUCED, NOT WHAT THE CONFIG CLAIMS.
+ *
+ * The config is already checked in `createDeploymentPlan`, and there is only
+ * one of it now, so re-reading it here proved the same file twice. What is left
+ * is the half a config cannot answer: did the build actually emit the entry the
+ * config points at, exactly one client entry asset, and a client carrying the
+ * approved Supabase public values.
+ */
 function validateBuiltOutput(plan, cwd, env) {
   const failures = [];
-  for (const relativePath of [plan.generatedConfigPath, plan.generatedEntryPath]) {
-    if (!existsSync(path.join(cwd, relativePath)))
-      failures.push(`build output missing: ${relativePath}`);
+  if (!existsSync(path.join(cwd, plan.generatedEntryPath))) {
+    return [`build output missing: ${plan.generatedEntryPath}`];
   }
-  if (failures.length > 0) return failures;
   try {
-    const generated = readJson(cwd, plan.generatedConfigPath);
-    if (generated.name !== plan.workerName)
-      failures.push("generated worker name differs from source");
-    if (generated.main !== "index.mjs") failures.push("generated worker entry is unexpected");
-    if (generated.assets?.binding !== "ASSETS") failures.push("generated asset binding is missing");
-    if (generated.assets?.run_worker_first !== true) {
-      failures.push("generated assets do not enforce Worker-first launch gating");
-    }
-    if (generated.workers_dev !== false) {
-      failures.push("generated config enables the workers.dev surface");
-    }
-    if (generated.preview_urls !== false) {
-      failures.push("generated config enables public preview URLs");
-    }
-    if (generated.version_metadata?.binding !== "CF_VERSION_METADATA") {
-      failures.push("generated Cloudflare version metadata binding is missing");
-    }
     const assetsDirectory = path.join(cwd, ".output", "public", "assets");
     const assetNames = existsSync(assetsDirectory) ? readdirSync(assetsDirectory) : [];
     const entryAssets = assetNames.filter((name) => /^index-[A-Za-z0-9_-]+\.js$/.test(name));
@@ -241,7 +244,7 @@ function validateBuiltOutput(plan, cwd, env) {
       failures.push("generated client is missing the approved Supabase public configuration");
     }
   } catch {
-    failures.push("generated Wrangler configuration is unreadable");
+    failures.push("the build output could not be read");
   }
   return failures;
 }
@@ -504,7 +507,7 @@ export async function runDeployment({
           "upload",
           "--strict",
           "--config",
-          plan.generatedConfigPath,
+          plan.sourceConfigPath,
           "--message",
           `OCADE ${plan.version}`,
         ],

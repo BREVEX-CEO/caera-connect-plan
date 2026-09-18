@@ -47,7 +47,7 @@ const INSTALL_CHANNEL = "ocade.model.install.bus";
  * device that cannot do either is TOLD WHAT WAS ACTUALLY WRONG rather than
  * "unsupported". A refusal is reached only after every rung has been measured.
  */
-export async function probeBrowserCapabilities(): Promise<CapabilityRung[]> {
+async function probeBrowserCapabilities(): Promise<CapabilityRung[]> {
   const rungs: CapabilityRung[] = [];
 
   if (typeof window === "undefined") {
@@ -149,7 +149,7 @@ export async function probeBrowserCapabilities(): Promise<CapabilityRung[]> {
  * OCADE says Offline Intelligence is not available rather than starting an
  * install that cannot finish.
  */
-export async function resolveInstallTarget(path: CapabilityPath): Promise<InstallTarget | null> {
+async function resolveInstallTarget(path: CapabilityPath): Promise<InstallTarget | null> {
   void path;
   const release = await readOfflineRelease().catch(() => null);
   if (!release?.available) return null;

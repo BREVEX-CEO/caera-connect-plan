@@ -16,7 +16,12 @@
       "bucket_name": "ocade-private-models"
     }
   ],
+  "main": ".output/server/index.mjs",
+  "no_bundle": true,
+  "rules": [{ "type": "ESModule", "globs": ["**/*.mjs", "**/*.js"] }],
   "assets": {
+    "binding": "ASSETS",
+    "directory": ".output/public",
     "run_worker_first": true,
     "html_handling": "none"
   },

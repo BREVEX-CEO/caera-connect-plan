@@ -9,7 +9,7 @@ import { defineConfig } from "vitest/config";
  *
  * TWO PROJECTS, BECAUSE ONE OF THEM RUNS A DATABASE.
  *
- * Seven suites build a `DatabaseTwin` — real PostgreSQL 18.3 compiled to
+ * Every suite here builds a `DatabaseTwin` — real PostgreSQL 18.3 compiled to
  * WebAssembly, one instance per file, each holding its own heap. Run in
  * parallel they exhausted memory on this machine and the failure did not look
  * like memory: PGlite's wire parser threw mid-handshake and Vitest reported
@@ -22,25 +22,23 @@ import { defineConfig } from "vitest/config";
  * another — about a minute in total — while everything else keeps the full
  * pool. The alternative, a single shared twin, would let one suite's writes
  * reach another's assertions, which is a worse trade than a minute.
+ *
+ * THE LIST IS THE LANE, so a suite missing from it does not opt out of the
+ * database — it opts out of the protection. `library-schema` was missing and
+ * ran in the parallel pool, one memory spike away from the silent skip above.
+ * `database-suites-are-serialised.test.ts` fails if that happens again.
  */
 
 const DATABASE_BACKED = [
-  "src/lib/__tests__/db-twin.test.ts",
   "src/lib/__tests__/security-definer.test.ts",
-  "src/lib/__tests__/user-isolation.test.ts",
   "src/lib/account/__tests__/data-rights-map.test.ts",
+  "src/lib/admin/__tests__/admin-operations-schema.test.ts",
+  "src/lib/chat/__tests__/conversation-trash-schema.test.ts",
   "src/lib/commercial/__tests__/gate-against-postgres.test.ts",
   "src/lib/commercial/__tests__/ledger-against-postgres.test.ts",
   "src/lib/commercial/__tests__/offline-capacity-against-postgres.test.ts",
+  "src/lib/library/__tests__/library-schema.test.ts",
   "src/lib/notifications/__tests__/notification-schema.test.ts",
-  "src/lib/admin/__tests__/admin-operations-schema.test.ts",
-  "src/lib/support/__tests__/support-publishing-schema.test.ts",
-  "src/lib/status/__tests__/status-incident-schema.test.ts",
-  "src/lib/organizations/__tests__/organization-assurance.test.ts",
-  "src/lib/organizations/__tests__/organization-schema.test.ts",
-  "src/lib/chat/__tests__/conversation-share-schema.test.ts",
-  "src/lib/chat/__tests__/conversation-trash-schema.test.ts",
-  "src/lib/recovery/__tests__/recovery-rehearsal.test.ts",
 ];
 
 const alias = {

@@ -7,14 +7,15 @@ import { offlineRelease } from "../offline-release";
  *
  * `PLAN.md` Phase 5 names five things a verified model must survive: reload,
  * sign-in and sign-out, account deletion, a service-worker or application
- * deployment, and an ordinary revisit. Four of the five are already proved
- * behaviourally — `install-lifecycle.test.ts` covers reload, browser restart,
- * a new application deployment and revisit; `deletion-makes-no-model-request.ts`
- * covers account deletion, including the case where there is no model at all.
+ * deployment, and an ordinary revisit. The behavioural halves live where the
+ * behaviour is — `an-update-does-not-redownload.test.ts` proves the authority
+ * activates from disk without reaching the network, `install-once.test.ts`
+ * proves a complete checkpoint asks for no ranges, and the offline browser
+ * journey proves a reload starts nothing.
  *
- * The two that were not are the two whose code changed most recently, and both
- * fail in the same silent way: nothing errors, the person simply waits for a
- * multi-gigabyte transfer they already completed.
+ * What is left is the pair that no behavioural test can see, because the
+ * failure is a call that should not exist. Both fail in the same silent way:
+ * nothing errors, the person simply waits for a transfer they already paid for.
  *
  *   SIGNING OUT. Phase 2 rewrote this block, because it used to call
  *   `clearDevices()` and `clearApprovals()` — safe while those were local, and

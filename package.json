@@ -11,9 +11,9 @@
   "packageManager": "npm@10.9.8",
   "scripts": {
     "dev": "vite dev",
-    "build": "npm run routes:generate && vite build && node scripts/generate-wrangler-output.mjs",
+    "build": "npm run routes:generate && vite build",
     "build:dev": "npm run routes:generate && vite build --mode development",
-    "preview": "wrangler dev --config .output/server/wrangler.json --ip 127.0.0.1",
+    "preview": "wrangler dev --ip 127.0.0.1",
     "routes:generate": "node scripts/generate-routes.mjs",
     "routes:stable": "node scripts/check-generated-stability.mjs routes",
     "build:stable": "node scripts/check-generated-stability.mjs build",

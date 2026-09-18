@@ -57,6 +57,6 @@ jobs:
         with:
           name: ocade-portable-core-failure-${{ github.run_id }}
           path: |
-            .output/server/wrangler.json
+            wrangler.json
           if-no-files-found: ignore
           retention-days: 3
