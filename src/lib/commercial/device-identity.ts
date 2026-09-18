@@ -110,10 +110,8 @@ export async function ensureCurrentDeviceIdentity(): Promise<CurrentDeviceIdenti
   }
 }
 
-type SupabaseClient = Awaited<ReturnType<typeof loadSupabaseClient>>;
-
 async function registerCurrentDevice(
-  supabase: SupabaseClient,
+  supabase: Awaited<ReturnType<typeof loadSupabaseClient>>,
   accountId: string,
   browserInstallId: string,
 ): Promise<CurrentDeviceIdentity | null> {

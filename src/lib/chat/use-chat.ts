@@ -423,16 +423,10 @@ export function useChat(): ChatState & ChatActions {
         setProblem(describeStorageError(cause));
       } finally {
         /*
-         * SETTLE ON THE WAY OUT, WHICHEVER WAY OUT IT IS.
-         *
-         * Three call sites settled what one exit can: an answer, no answer, and
-         * a throw. A fourth way out — one early return somebody adds later —
-         * would leave the reservation held against a person who received
-         * nothing, which is the one outcome this must never have.
-         *
-         * The allowance is re-read here too, after settlement rather than
-         * during it, so the number comes from one place on every path instead
-         * of only on the one that succeeded.
+         * SETTLE ON THE WAY OUT, WHICHEVER WAY OUT IT IS, so no exit can leave
+         * a reservation held against somebody who received nothing — including
+         * an exit somebody adds later. The allowance is re-read after that
+         * settlement rather than during it.
          */
         await billed.settle();
         void queryClient.invalidateQueries({ queryKey: USAGE_QUERY_KEY });

@@ -208,15 +208,11 @@ export const readCommercialUsage = createServerFn({ method: "GET" })
         )
         .reduce((sum, row) => sum + Number(row.pending_hundredths) / 100, 0);
       /*
-       * THE METER COUNTS WHAT THE GATE COUNTS.
-       *
-       * A signed offline block is charged to the account the moment it is
-       * issued, so an account holding one really does have that much less to
-       * spend over the network. This used to subtract it back out, which read
-       * better and was not true: with seven of twenty-eight held on a device,
-       * the twenty-second request was refused while this line still promised
-       * seven. `offlineAllocated` below says where they went, which is the part
-       * the person actually needs.
+       * THE METER COUNTS WHAT THE GATE COUNTS. A signed offline block is
+       * charged to the account when it is issued, so an account holding one
+       * has that much less to spend over the network, and a number that says
+       * otherwise promises requests the gate will refuse. `offlineAllocated`
+       * below says where they went, which is the part a person needs.
        */
       const shown = describeUsage(
         {

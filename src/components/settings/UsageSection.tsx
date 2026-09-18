@@ -98,14 +98,13 @@ function OfflineRow({ held }: { held: number }) {
       />
     );
   }
+  // Nothing held and nothing wrong: the row below already says that answers on
+  // your own device count the same, and saying it twice is not saying it twice.
+  if (held === 0) return null;
   return (
     <Row
       label="Offline on your devices"
-      description={
-        held > 0
-          ? `${held} of this session's requests are held on the devices that can answer without a network. They are yours to spend there, and they return at the reset.`
-          : "Requests you spend without a network count the same, and are held on that device until it reconnects."
-      }
+      description={`${held} of this session's requests are held on the devices that can answer without a network. They are yours to spend there, and they return at the reset.`}
     />
   );
 }
