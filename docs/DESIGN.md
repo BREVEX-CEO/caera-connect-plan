@@ -1,61 +1,107 @@
 # OCADE Design System
 
-## Design outcome
+## Design philosophy
 
-OCADE should feel like a polished premium AI product with maximum usable workspace and minimum visual noise. The current Chat-first mission must remove the unfinished/developer-dashboard feeling visible in permanent loaders, large empty panels, sharp boxes, and controls that describe capabilities that no longer exist.
+OCADE is conversational first: simple on the surface, powerful underneath. The interface should reduce decisions, not advertise architecture.
 
-## Visual foundation
+## Visual direction
 
-Use a near-black/charcoal background with neutral dark-grey surfaces and white/soft-grey text. Use accent color sparingly for state and focus rather than filling the interface with gradients.
+- Dark, premium, minimal.
+- Near-black/charcoal foundation.
+- Neutral white/grey hierarchy.
+- Restrained medium glassmorphism.
+- Soft rounded geometry.
+- Minimal borders and shadows.
+- Subtle purposeful motion.
 
-Use restrained medium glassmorphism on high-value interactive surfaces such as the composer, Settings/dialogs, menus, attachment trays, Offline progress, and upgrade cards. Glass uses a semi-transparent neutral fill, moderate blur, thin low-contrast border, subtle highlight, and little or no heavy shadow.
+Reference interaction/layout screenshots exist under `docs/design-references/grok/`. Use them as inspiration together with the owner requirement for ChatGPT/Grok-like simplicity. Do not copy another company's brand assets.
 
-Corners are consistently soft and rounded. Avoid both sharp enterprise rectangles and oversized pill-everything styling.
+## Brand
 
-Typography is simple, readable, and semantic. Headings, body, labels, captions, and code each have clear hierarchy, consistent line height, and responsive behavior. Do not use movie-title/robotic treatment.
+CARCC is the company. OCADE is the product.
 
-## Shell and navigation
+Product UI says OCADE. About/legal/company attribution may say CARCC. The former CARCC CADANE/CADANE identity is retired.
 
-Desktop keeps a steady compact left sidebar with New Chat, Chat, Library, Cowork placeholder, recent/search, and Account. The Chat workspace remains centered and open rather than boxed into a dashboard.
+Tagline: **Command the Next Era.**
 
-Tablet keeps the same product but narrows/collapses navigation. Phone turns the sidebar into a drawer and Settings into an appropriate full-height/sheet view. No horizontal overflow is permitted.
+## Typography
 
-## Chat
+Use existing Inter UI font and JetBrains Mono for code where appropriate. Keep headings compact; body text readable; technical/code text clearly differentiated.
 
-The empty Chat state uses a small OCADE heading/greeting, a few subtle optional suggestions, and the composer. Do not fill the screen with marketing cards.
+## Spacing
 
-User prompts may use a compact bubble/treatment. OCADE answers favor open readable prose. Message actions stay contextual until hover/tap where possible. Generated text, tables, links, code, source references, and attachment chips must remain easy to scan.
+Use the existing Tailwind/token scale. Prefer consistent small-to-medium gaps over dense dashboard packing or oversized marketing whitespace inside the app.
 
-The composer is the primary glass surface. It contains attachment `+`, growing text input, microphone, `Auto | Online | Offline`, optional Thinking, and Send/Stop. Attachment progress/chips belong inside or immediately above the composer rather than creating a second permanent toolbar.
+## Border radius
 
-When Auto switches to Offline because connectivity is absent, use a subtle state/animation that communicates the route change without turning the composer into a status dashboard. When Online is unavailable, disable it clearly rather than allowing a predictable failure.
+Use existing rounded-md/lg/2xl patterns consistently. Conversation bubbles, composer, dialogs and glass panels may be more rounded than ordinary rows.
 
-## Settings
+## Shadows
 
-Settings contains Account, Appearance, Notifications, Data Controls, Usage & Limits, Billing, and Advanced in a compact responsive modal/sheet. Avoid huge blank areas. Rows use concise labels and one short supporting sentence only where it helps.
+Subtle only. Glass/border contrast should carry most separation.
 
-Every data-loading surface uses a bounded skeleton/progress state and then success, empty, or error/Retry. Permanent “Reading your allowance…”, “Reading your sessions…”, or “Loading chats…” is visually and functionally unacceptable.
+## Layout
 
-Offline Intelligence uses clear customer states such as Preparing, Installing, Verifying, Ready, Repairing, Removed, and Install Offline. Do not expose model/runtime implementation terminology.
+- Desktop: sidebar + focused workspace.
+- Tablet: collapsible navigation.
+- Phone: drawer + full-width workspace.
+- Reading/composer widths remain comfortable.
+- No horizontal overflow at 360–375 px.
 
-Usage & Limits shows a small meter and exact reset state without becoming an analytics dashboard. Billing uses clean Free/Pro/Max cards and honest checkout availability.
+## Responsive breakpoints
 
-## Library and attachments
+Use existing Tailwind breakpoints unless evidence proves a missing case. Mobile behavior is a first-class design, not a scaled desktop screenshot.
 
-Library keeps All, Images, Files, Search, and Add with a useful empty state. Upload/drop states provide visible progress and recovery. File cards/chips are compact; technical parser/security details appear only as short customer-safe errors when needed.
+## Component patterns
 
-## Motion
+### Navigation
+Only current product surfaces. Avoid exposing dormant/future modules.
 
-Motion is subtle, fast, and purposeful: hover/focus easing, panel transitions, streaming, attachment progress, Auto→Offline indication, and Offline installation progress. Respect `prefers-reduced-motion` and never depend on animation to convey the only meaning.
+### Composer
+Clear input, attachment, mode selection, optional reasoning/research, microphone and Send/Stop. State changes should not cause large layout jumps.
+
+### Settings
+Compact category navigation; rows stack on small screens.
+
+### Library
+Simple filters/search/list/grid only where useful. Generated and uploaded files belong to one Library concept.
+
+### Admin
+Role-gated, information-dense enough for operations but still follows product typography/spacing.
+
+## Buttons
+
+Native button semantics, clear focus, concise labels. Destructive actions use semantic destructive styling sparingly.
+
+## Forms
+
+Accessible label, validation and error association. Do not rely on placeholder alone.
+
+## Loading states
+
+Skeleton or real progress when measurable. Permanent Loading/Reading is forbidden.
+
+## Empty states
+
+State what is empty and the next useful action. Do not invent fake data.
+
+## Error states
+
+Short, customer-safe explanation + Retry/recovery. Never expose provider/model/runtime/database internals.
+
+## Animations
+
+Subtle and interruptible. Honor reduced motion.
 
 ## Accessibility
 
-Use semantic controls, visible focus, sufficient contrast, keyboard support, screen-reader labels, touch-friendly hit targets, reduced-motion support, and responsive text. Hover-only actions gain an equivalent tap/focus path on touch/keyboard devices.
+WCAG-conscious contrast, keyboard navigation, focus visibility, semantic HTML, screen-reader labels, touch-friendly targets.
 
-## Reference policy
+## Do not
 
-Owner-supplied screenshots and the existing Grok-like references guide density, spacing, hierarchy, and simplicity. They are references, not assets to clone pixel-for-pixel. Preserve OCADE branding and original implementation.
-
-## Repository-wide completion rule
-
-This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply YAGNI and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+- No CADANE branding.
+- No provider/model/vendor/runtime names in normal UI.
+- No OPFS/GGUF/WebGPU/WASM/R2/Supabase terminology in normal UI.
+- No card-wall dashboards.
+- No unsupported/fake controls.
+- No current-scope Projects/Tasks/Automations/Organizations/Code surfaces.

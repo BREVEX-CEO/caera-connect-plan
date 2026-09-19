@@ -1,77 +1,124 @@
-# OCADE Backend Schema Authority
+# OCADE Backend Schema
 
-## Live authority
+## Scope
 
-Production Supabase project: `sazhgaisyhkdbrooycdv`. Re-verify this id immediately before any migration or destructive operation.
+This document describes the current OCADE website data authority. Old migrations may contain historical product experiments; historical schema does not create a current product requirement.
 
-The current live project is healthy and contains the active `ocade-intelligence` Edge Function plus the production Auth, public, and Storage schemas. Existing Auth users, identities, sessions, refresh tokens, and real customer/account evidence are protected and must not be cleared during cleanup.
+## Authentication
 
-## Protected data
+Supabase Auth is canonical. Product target methods are Google, email OTP and password. MFA/strong assurance gates privileged actions.
 
-Never delete or truncate real authentication records, customer conversations/messages, private Library data, payment/subscription evidence, entitlement evidence, legal consent, security/audit evidence required for incident/account history, or current settings simply because the owner wants the project clean.
+Never accept a request-supplied user id as ownership proof.
 
-Never edit `auth.users` to represent Free/Pro/Max access. Product access is resolved through the canonical entitlement authority and audited Admin grants.
+## Current account tables
 
-## Current application domains
+Generated types currently include these current-product groups:
 
-The reduced product needs schema for account/profile state, conversations/messages, private Library metadata/storage, usage windows/permits/events, signed offline usage state, entitlement/subscription/manual grants, legal/account deletion/export evidence where required, and minimal notification/security state actually used by the final UI.
+### Identity/account
+- `profiles`
+- `user_roles`
+- `user_settings`
+- `user_private_records`
+- legal/security audit records as required
 
-The live project currently still contains objects from older product families, including recovery-code, financial, sharing, notification, and other historical systems. Their presence does not prove they should remain. Their emptiness does not prove they are safe to drop. Phase 11 traces every source/RPC/policy/function caller before removal.
+### Chat
+- `ocade_conversations`
+- `ocade_messages`
 
-The live `library` Storage bucket is private and remains the canonical customer-file bucket. Any older/unused bucket is removed only after proving that no customer object or current caller depends on it.
+Messages belong to an owned conversation. Client keys/idempotency prevent duplicate offline/retry insertion. Citations/reactions belong with the message where implemented.
 
-## Chat and usage contract
+### Library
+- `ocade_library_items`
+- storage deletion/tombstone records where required for safe cleanup
 
-Saved Chat uses `conversations` and `messages` as the durable cloud authority. Disconnected pending turns may live temporarily in a client sync journal with stable idempotency keys, but reconciliation writes exactly once to the canonical tables.
+Library objects are private to the owning account unless a future explicitly approved sharing product changes that rule.
 
-Usage uses one account-wide commercial authority. Free receives 28 successful logical generations per 6h28m; Pro receives 140 per 6h28m and 700/week; Max receives 1,400 per 6h28m and 7,000/week. Failed logical generations consume zero. Internal retry/failover cannot create extra settlements.
+### Commercial usage and entitlement
+- `ocade_commercial_usage`
+- `ocade_generation_permits`
+- `ocade_entitlement_grants`
+- Offline usage allocation/lease/event tables
+- `devices`
+- `browser_grants`
 
-The Edge Function and browser must call the exact current RPC signature used by the live schema. Any “could not verify your usage allowance” error is treated as a production contract defect and traced through RPC availability, permissions, argument names/types, RLS/security-definer behavior, generated types, and deployment parity.
+The browser may read only what it needs. Security-sensitive device/grant state changes use narrow RPCs rather than generic direct UPDATE.
 
-## Entitlement and Admin contract
+### Notifications
+- `ocade_notification_preferences`
+- `ocade_notifications`
 
-The permanent OCADE owner/admin is `caeracadane28@gmail.com` through the existing audited admin-role/grant system, not a hard-coded browser bypass. Hidden Admin may search a user, inspect current access, grant Free/Pro/Max with reason and optional duration, and revoke the grant. Normal users cannot reach or call privileged grant paths successfully.
+### Current legacy commercial records
 
-## Auth contract
+The generated schema still contains subscription/invoice/payment-event tables from previous payment work. Paid checkout is now closed and Paddle is not a current product. Do not build new behavior on provider-specific payment tables. Retire obsolete provider-specific runtime/code through an owner-approved safe cleanup that preserves evidence required by law/audit.
 
-Supabase Auth methods for this mission are Google and six-digit email OTP. Phone OTP and its product/provider configuration are removed. Custom SMTP is already configured externally; the application must never claim that an OTP was sent unless Supabase accepted the request.
+## Roles
 
-Account-enumeration resistance, OTP abuse controls, redirect validation, session integrity, and server/RLS authorization remain mandatory. The current Supabase advisor warning for leaked-password protection is documented but is not a launch blocker for the passwordless Google/email-OTP product on the current plan.
+- ordinary authenticated user: own account data only;
+- admin/owner: hidden privileged operations through audited server/RPC authorities;
+- service role: server-only, never client;
+- anonymous: only explicitly public data/routes.
 
-## Online intelligence contract
+## RLS principles
 
-One active Edge Function: `ocade-intelligence`. Exactly three server-side secret slots are allowed:
+- Enable RLS on user-owned tables.
+- Prefer one clear policy per role/command rather than overlapping permissive policy sprawl.
+- Grants and RLS both matter.
+- Parent/child ownership must be validated; a foreign key alone is not authorization.
+- Security-definer functions use pinned search paths and explicit auth checks.
 
-```text
-GEMINI_API_KEY_PRIMARY
-GEMINI_API_KEY_SECONDARY
-GEMINI_API_KEY_TERTIARY
-```
+## Device/offline authority
 
-The values are already configured by the owner and must never be requested in chat, committed, logged, returned to the browser, or stored in normal tables. `OCADE_ALLOWED_ORIGINS` is also configured server-side.
+An account currently allows the approved Offline-device cap (two per kind under current policy). Registration and revocation are transactional server functions.
 
-## Schema cleanup and advisor work
+Offline model data itself is **not database content**. It stays in browser OPFS on the device.
 
-Run the Supabase security and performance advisors after schema changes. Current performance findings include auth-RLS initialization patterns, multiple permissive policies, and indexes that have not yet been observed as used. Investigate them against real callers/workload before changing anything; do not blindly delete an index or merge policies solely because an advisor reports it.
+## OPFS model storage
 
-Retired recovery-code tables/functions are strong cleanup candidates because the product code removed that user flow, but they still require caller/policy/data verification before a migration drops them. Apply the same rule to every stale table, RPC, trigger, policy, index, bucket, and notification/payment artifact.
+Only OPFS may contain:
+- model bytes;
+- range chunks/partials;
+- download checkpoints;
+- model verification metadata;
+- active/previous release pointers;
+- runtime-owned model files/assets.
 
-## Migration rules
+No model byte/chunk copy in IndexedDB, Cache Storage, localStorage or cloud account storage.
 
-Use versioned migrations for DDL, trace all callers before destructive changes, preserve real customer/auth/financial/legal/security evidence, include verification and rollback strategy where practical, regenerate TypeScript types after schema changes, and never deploy a destructive migration before the compatible application/Edge version is ready.
+The explicit “user removed Offline” preference is not model data and must survive model deletion.
 
-## Release proof
+## Account memory
 
-Final release evidence records the exact Git SHA, applied migration set, generated types state, active Edge Function version, private Library policy state, and successful real Chat/usage/Admin/Library smoke tests together.
+If memory is enabled, it is account-owned, controllable and clearable. Do not create a second uncontrolled hidden profile store. Memory must not ingest Temporary Chat.
 
-## Repository-wide completion rule
+## File storage
 
-This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply YAGNI and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+Cloud Library content is private account content. Validate ownership and detected file type. Temporary Chat files are not written to Library unless explicitly saved.
 
-## Active audit database requirements
+## API/RPC boundaries
 
-RLS ownership checks do not substitute for column-level mutation authority. Customer roles must not receive a generic UPDATE path that can clear or rewrite revocation, identity, ownership, or other security-sensitive device/grant columns. Allowed customer device actions must use narrow SECURITY DEFINER RPCs with pinned search paths, explicit auth checks, audited inputs, and least-privilege EXECUTE grants.
+Critical RPC classes:
+- generation permit acquire/finalize/release;
+- read commercial usage;
+- Offline usage allocate/reconcile/return;
+- browser device register/revoke;
+- entitlement grant/revoke;
+- account session list/revoke;
+- notification preference/save/read;
+- atomic Chat mutation such as regenerate truncation where required.
 
-Browser-device registration must enforce the cap under true concurrency by serializing on the account and device kind, not the browser installation id. The database test matrix must prove that two different browsers racing for the final slot cannot both commit.
+## Admin grants
 
-Admin entitlement grants retain admin authorization, AAL2, no-self-grant, bounded duration/tier validation, and an audit record. Account lookup for grants must be server-side, indexed, paginated, and capable of finding accounts older than the newest 200 profiles.
+Admin grants:
+- target an account resolved server-side;
+- require admin/owner role and strong auth;
+- cannot self-grant when policy forbids it;
+- specify tier, duration and reason;
+- are auditable and expiring.
+
+## Data deletion
+
+Account/conversation/Library deletion must be real, bounded and auditable where required. Current conversation product uses permanent Delete after confirmation rather than a separate user-facing Trash lifecycle.
+
+## Historical schema rule
+
+Do not surface Projects, Tasks, Automations, Monitors, Organizations, public shares or other retired product schema merely because an old migration mentions them. If obsolete live objects still exist, remove them only through safe migrations after confirming no current caller/data-retention requirement.

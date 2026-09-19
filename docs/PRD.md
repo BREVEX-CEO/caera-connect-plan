@@ -1,111 +1,182 @@
 # OCADE Product Requirements Document
 
-## Product outcome
+## Product overview
 
-OCADE is a browser-first AI workspace whose current production mission is to make Chat, Library, Offline Intelligence, usage, Settings, and account control reliable before Cowork expands. The product must feel simple enough for a normal customer while its online/offline routing, usage enforcement, file handling, and synchronization remain production-grade underneath.
+**CARCC** is the company. **OCADE** is CARCC's AI product. The relationship is company → product, not a combined company name. Current branding must not use CARCC CADANE or CADANE.
 
-## Current launch surfaces
+Tagline: **Command the Next Era.**
 
-- Chat is the default root experience and must work for signed-in customers with Online and Offline intelligence.
-- Library stores customer files and generated outputs privately and is reachable from Chat attachment flows.
-- Settings contains Account, Appearance, Notifications, Data Controls, Usage & Limits, Billing, and Advanced.
-- Pricing remains public and explains Free, Pro, and Max clearly even while live payment-provider onboarding is deferred.
-- About, Help, Terms, and Privacy remain available as required public/legal pages.
-- Hidden Admin remains available only to authorized administrators for safe Free/Pro/Max grant and revoke operations.
-- Cowork remains a clean placeholder until this Chat-first mission is complete.
+OCADE is a website-first AI chatbot and AI workspace. The current mission is intentionally narrow: make the present Chat experience, Library, Settings, Offline Intelligence, usage, authentication and public surfaces extremely reliable before CARCC starts any separate future product mission.
 
-## Authentication
+## Target users
 
-Signed-out visitors may inspect the main Chat shell but Send asks them to sign in. Active authentication methods are Google and six-digit email OTP through Supabase Auth and the configured SMTP provider. Phone authentication is removed completely. Existing Supabase users, identities, sessions, and refresh tokens must survive every cleanup.
+OCADE is for individuals, students, professionals, businesses and later larger organizations, but the current website must stay simple enough for an ordinary user. The interface hides infrastructure and model complexity while preserving strong security, privacy and predictable usage.
 
-## Chat requirements
+## Problem statement
 
-Chat opens immediately at `/`. New Chat displays an empty composer without creating a database conversation. The first accepted Send creates/persists the conversation, and the first exchange generates a useful title automatically. Customers can later rename and delete with a short confirmation.
+People should not need separate AI products for connected answers and private on-device answers, nor should they need to understand providers, models, runtimes, storage engines or deployment systems. OCADE should provide one clean conversation experience that can work Online or Offline, keep the account consistent across devices, and remain understandable on desktop, tablet and phone.
 
-The sidebar provides New Chat, Chat, Library, Cowork placeholder, search, compact recent conversations grouped by useful time ranges, and Account at the bottom. It must not become a dashboard of unrelated modules.
+## Goals
 
-The composer provides `+`, text input, microphone dictation, `Auto | Online | Offline`, an optional Thinking control, and Send/Stop. Enter sends and Shift+Enter creates a newline. The composer grows only to a sensible maximum and drafts survive ordinary navigation or recoverable failures.
+- Deliver a fast, simple Chat experience comparable in interaction quality to leading AI chat products.
+- Make Auto, Online and Offline modes truthful and reliable.
+- Keep Offline Intelligence reusable across normal website updates without redownloading a compatible verified release.
+- Make mobile use first-class rather than a reduced version.
+- Keep provider/model/vendor identities out of normal customer experience.
+- Keep usage accounting simple: one successful answer equals one use.
+- Keep the codebase lean, testable and easy to debug.
 
-User messages support Copy, Edit, Delete, and Share only when the real sharing flow exists. OCADE answers support Copy, Regenerate, Delete, Retry after failure, code-block Copy, Markdown, tables, links, and source references where applicable. Editing an earlier prompt preserves earlier context and regenerates from the edited point. Regenerate and Edit→successful regeneration each count as one new successful use.
+## Non-goals for the current mission
 
-Controls remain visually quiet until hover/tap where practical. Timestamps appear only when useful. Streaming is required and Send changes to Stop during generation.
+Do not build or describe as current product functionality:
+- Code/coding-agent product;
+- Projects;
+- Tasks;
+- Automations;
+- Monitors;
+- Organizations/team workspaces;
+- native Windows/macOS/Android/iOS apps;
+- public conversation sharing;
+- separate side-conversation storage;
+- live browser/computer-control product;
+- live paid checkout;
+- Paddle integration.
 
-Temporary/incognito Chat is supported as a secondary action and is never persisted. Individual conversation export is supported. Public-link sharing is deferred until the core Chat flow is fully reliable.
+Cowork may remain only as a clean reserved placeholder until the owner explicitly starts a separate mission.
 
-## Intelligence routing
+## Core features — current
 
-The customer selector is `Auto | Online | Offline`.
+### Chat
 
-Auto uses Online while the Internet and online boundary are healthy. If the browser loses connectivity and Offline is ready, Auto switches to Offline and subtly indicates that state. If Online fails before any provider output and Offline is ready, Auto may fall back to Offline. Online is disabled when connectivity is absent. Manual Offline makes zero provider requests.
+- `/` is the primary product.
+- New Chat does not create an empty durable conversation before the first accepted Send.
+- Streaming answers with Stop.
+- Copy, Edit, Regenerate, Retry and Delete.
+- Conversation search and useful history grouping.
+- Immediate permanent conversation deletion after clear confirmation; Archive/Trash must not become parallel deletion concepts.
+- Temporary Chat persists nothing.
+- Markdown, tables, links, code blocks and code copy.
+- Helpful / Not helpful reaction.
+- Persist source/citation information with the message when applicable.
+- Highlight text or a word → **Ask OCADE**. This uses the current conversation context without creating a second persistent side-conversation system.
+- Thinking is an optional user control.
+- Web research is an optional Chat control using the same conversation, usage and intelligence authority.
 
-Online OCADE uses the one server-side Supabase `ocade-intelligence` boundary. Offline uses the one owner-approved private OCADE runtime. Normal customers never see provider, model, WebGPU/WASM, artifact-format, key, or vendor names.
+### Intelligence modes
 
-## Offline Intelligence requirements
+Visible selector: **Auto | Online | Offline**.
 
-After the first successful sign-in on a supported device, Offline preparation starts automatically as soon as practical while Online Chat remains usable. Downloading must be fast, adaptive, resumable, integrity-verified, restart-safe, and stored persistently on the device. A verified compatible installation is reused across site deploys, refreshes, browser restarts, and sign-in cycles.
+- Auto uses Online when connected and healthy.
+- Auto uses Offline when connectivity is absent and Offline is ready.
+- Auto may fall back to Offline only before Online has delivered meaningful output.
+- Online never silently changes into Offline after output starts.
+- Manual Offline makes zero Online Intelligence provider requests.
+- Provider/model/vendor identity is never a normal customer-facing concept.
 
-If the user explicitly removes Offline Intelligence, OCADE remembers that decision and never automatically redownloads it. The UI says that Offline was removed and offers Install Offline. Only that explicit action clears the suppression.
+### Offline Intelligence
 
-WebGPU is preferred only where real generation succeeds. WASM is the automatic fallback before output. The customer sees only OCADE Offline readiness, not backend terminology.
+- Automatically begin preparation after first successful sign-in when Offline was not explicitly removed.
+- Online Chat remains usable while preparation runs.
+- Download may use Wi-Fi, hotspot or cellular. On cellular, warn clearly and allow the customer to continue.
+- Verified compatible model releases survive normal website deploys, refreshes, restarts and sign-in cycles without redownload.
+- Explicit Remove deletes the local model and prevents automatic reinstall.
+- If a customer who removed Offline signs in again, show a clear reusable **Install / Cancel** prompt.
+- Selecting Offline while it is removed/not installed immediately offers installation.
+- Model bytes/chunks/checkpoints/model metadata use **OPFS only**.
+- No Offline image upload, image reading or image understanding.
+- Desktop and mobile browser support must be claimed only after real proof. Target supported environments include Chromium-family desktop/mobile and Safari on macOS/iOS where the current runtime genuinely works.
 
-Offline-created turns synchronize exactly once to Supabase when connectivity returns. Supabase remains canonical after sync; the local pending journal exists only to preserve unsynchronized work and is cleared/reconciled safely.
+### Attachments and Library
 
-## Usage requirements
+- Library contains user-uploaded files and OCADE-generated files/results.
+- Multiple supported attachments; current target ceiling is 100 MB per supported file, subject to safe total/request limits.
+- Safe local extraction where possible.
+- Treat uploaded bytes and extracted text as hostile/untrusted input.
+- Temporary Chat attachments do not enter Library unless the customer explicitly saves them.
+- Offline accepts only supported non-image content that the local path can genuinely process.
 
-One successful logical generation equals one use. Failed requests equal zero. Internal retries and pre-output failover attempts add no extra use. The same account-wide allowance applies to Online and Offline.
+### Account and authentication
 
-Free receives 28 successful generations per exact 6h28m window with no weekly cap. Pro receives 140 per 6h28m and 700 per week. Max receives 1,400 per 6h28m and 7,000 per week.
+Target current methods:
+- Google;
+- six-digit email OTP;
+- password sign-in.
 
-A compact usage indicator appears in the sidebar, a subtle warning appears near Send when allowance is low, and Settings contains a dedicated Usage & Limits page with plan, remaining uses, reset times, weekly state where applicable, and a plain explanation of what consumes one use.
+MFA is optional for ordinary customers and required for privileged/admin operations. Users can see and revoke active sessions/devices.
 
-At zero remaining uses, new AI generation is blocked while history, Library, Settings, Pricing, Billing, export, and account controls remain usable. The UI shows the exact reset time and an Upgrade option.
+Account deletion is immediate after strong confirmation and produces the required non-sensitive compliance receipt.
 
-## Attachments and Library
+### Memory
 
-Chat supports multiple attachments up to 100 MB per intentionally supported file, subject to bounded total-message limits. Supported formats include images, PDF, common Office documents, CSV, text, common code/text formats, and safe archives only where bounded parsing can be guaranteed.
+Account memory is an optional account-level capability. When enabled, it may work automatically and quietly without cluttering Chat, but the user must be able to disable it and clear it from Data Controls. Do not create a second hidden uncontrolled profile database.
 
-Customers can choose files, drag/drop, paste, monitor upload progress, remove, retry, reorder, preview, and download. Attachments must actually influence the intelligence request rather than being stored and ignored.
+### Usage
 
-Every file is untrusted input. Validate user ownership, size, content signature/type, extraction limits, archive structure, and parser safety. Never execute uploaded content. Document prompt injection is treated as untrusted data rather than privileged instructions. Reject malformed, unsafe, or unsupported files with short truthful errors.
+- Free: 28 successful generations per 6h28m, no weekly cap.
+- Pro: 140 per 6h28m + 700/week.
+- Max: 1,400 per 6h28m + 7,000/week.
+- Windows are anchored to the account.
+- Online, Offline and Auto share one account-wide allowance across all devices.
+- Failed/empty generations cost zero.
+- Internal retry/failover does not add uses.
 
-When practical, answers derived from files cite the relevant file/page/section/row/cell. Offline image understanding is not claimed; images require connected OCADE. Safe locally extracted text may be used by Offline mode.
+### Pricing
 
-## Voice and research
+Keep Free / Pro / Max and weekly + monthly paid catalogue options.
 
-Microphone is dictation-first. The browser-native speech result is placed in the composer for review and is not auto-sent. Unsupported browsers hide or disable the control truthfully.
+Current approved displayed anchors:
+- Pro weekly: 8 USD/EUR/GBP or ₹288.
+- Pro monthly: 28 USD/EUR/GBP or ₹1,888.
+- Max weekly: 28 USD/EUR/GBP or ₹1,888.
+- Max monthly: 88 USD/EUR/GBP or ₹5,888.
 
-Web research is added only after core Chat is stable and is implemented through the existing Chat intelligence/tool authority with the same auth, usage, cancellation, persistence, and source-citation rules.
+Paid prices retain the CARCC numeric signature ending in 8/28.
 
-## Settings requirements
+**Paid plans are not open yet.** Upgrade must say so clearly. Do not charge customers and do not use Paddle.
 
-Account contains working identity/session/account actions only. Appearance contains dark/light, reduced-motion, high-contrast, and other proven display preferences. Notifications contains only notification channels/events that actually exist. Data Controls contains export/deletion controls and Offline Intelligence lifecycle. Usage & Limits is separate from Billing. Billing shows tier/upgrade information and never spins indefinitely. Advanced contains working session/device diagnostics only.
+### Notifications
 
-Every async view has a bounded loading state followed by success, empty, or error with Retry. Infinite “Loading…” and “Reading…” states are defects.
+- In-app channel first.
+- Quiet hours.
+- Preferences synchronized to the account.
+- Users may control notification categories, including security/account/billing notification delivery preferences; records required for security/audit may still be retained where necessary for the product or law.
 
-## Design requirements
+### Public and administration surfaces
 
-Use a near-black/charcoal foundation, neutral grey/white text, restrained medium glassmorphism on important surfaces, soft rounded corners, clear hierarchy, minimal borders, and subtle purposeful motion. Do not use sharp enterprise boxes, excessive cards, cinematic scenes, or developer-dashboard density.
+Public: Chat shell, Pricing, About, Help, Terms, Privacy; add Status when its real incident/maintenance data is ready.
 
-Desktop, tablet, and phone preserve the same core capabilities. The sidebar becomes a drawer on narrow screens; Settings becomes an appropriate sheet/full-height layout; the composer remains fully usable without horizontal overflow.
+Help should evolve into a real Help Center with admin publishing while keeping a safe source fallback.
 
-## Non-goals for this mission
+Admin is hidden and role-gated. Custom plan grants are admin/owner-only, audited and expiring.
 
-Cowork/Jarvis expansion, native desktop apps, public conversation links, full memory, paid payment-provider onboarding, and speculative new product modules are not current implementation goals. They must not distract from shipping a dependable Chat-first product.
+## User flows
 
-## Acceptance criteria
+The canonical step-by-step flows live in `APP_FLOW.md`.
 
-The mission is accepted only when the exact production release proves signed-in Send, real online answer, correct usage accounting, conversation persistence, attachment-to-model use, bounded async states, Library isolation, Offline install/reuse/remove/reinstall, no-Internet Chat, reconnect synchronization, WebGPU generation on supported hardware, WASM fallback, and responsive Settings/Chat without known repository-controlled defects.
+## Future features
 
-## Repository-wide completion rule
+No future capability is current merely because old schema/code once existed. A future feature is added only by a new owner-approved mission. Until then, keep the repository and UI focused on the current product.
 
-This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply YAGNI and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+## Technical constraints
 
-## Active audit product requirements
+- Website/browser only for the current mission.
+- Fully responsive desktop/tablet/phone.
+- Durable account data uses the canonical account backend.
+- Offline model storage/download chunks are OPFS-only.
+- No provider/model/vendor identity in normal client/customer surfaces.
+- No duplicate model store, duplicate usage authority or duplicate Chat engine.
+- Site updates must not redownload an unchanged verified Offline release.
 
-OCADE must never serve the application or sign-in surfaces over plain HTTP. Customers are redirected to the canonical HTTPS origin before application content is delivered.
+## Success metrics and launch gates
 
-Offline wording must be exact: local inference stays on-device, while saved conversations, usage reconciliation, and explicitly saved files may still synchronize through OCADE services. Do not claim that Offline “sends nothing anywhere” unless a flow is truly local-only.
-
-Custom grants must be operable by an authorized owner through a complete MFA-backed flow, scalable account search, a clear grant preview, and confirmation of the authoritative resulting entitlement.
-
-Removing Offline Intelligence must verify that the intended stored model/runtime data is actually gone before saying Removed. Mobile public navigation and Settings must remain fully usable at 360–375 px without horizontal overflow or compressed form rows.
+The current mission is ready only when:
+- no known repository-controlled Critical or Major launch blocker remains;
+- required unit/database/integration/browser gates pass;
+- real Online answers are proven in a disposable test account;
+- real Offline answers are proven on supported hardware/browser environments;
+- Auto behavior and exactly-once usage are proven;
+- model install/resume/remove/reinstall and no-redownload-on-site-update are proven;
+- every reachable current page/button/setting has browser coverage;
+- 360–375 px mobile layouts have no horizontal overflow or blocked controls;
+- no customer-visible provider/model/runtime identity leaks through UI, errors, bundle scans or public metadata;
+- production source/deployment parity is verified.

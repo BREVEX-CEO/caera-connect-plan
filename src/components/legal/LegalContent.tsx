@@ -4,15 +4,15 @@ import { PublicSection } from "@/components/shell/PublicPage";
 export function TermsContent() {
   return (
     <>
-      <PublicSection title="1. Agreement and CARCC CADANE">
+      <PublicSection title="1. Agreement and CARCC">
         <p>
           These Terms govern the OCADE public website and every OCADE service that becomes available
-          under the CARCC CADANE brand. CARCC CADANE is the independent technology enterprise,
+          under the CARCC brand. CARCC is the independent technology enterprise,
           business brand and venture behind OCADE. HAANS ANTONI is Founder, CEO and Chairman of
-          CARCC CADANE and creator of OCADE.
+          CARCC and creator of OCADE.
         </p>
         <p>
-          These Terms deliberately use the public CARCC CADANE brand identity and do not describe a
+          These Terms deliberately use the public CARCC brand identity and do not describe a
           Private Limited Company, LLP, listed company or other legal form unless that status is
           separately established and published. No wording on this website creates a legal form,
           share class or corporate status that does not otherwise exist under applicable law.
@@ -22,7 +22,7 @@ export function TermsContent() {
       <PublicSection title="2. Effective date, founding date and launch">
         <p>
           These Terms are effective from 25 August 2026 for the public website and any OCADE service
-          already made available. CARCC CADANE records 28 August 2026 as its formal founding date
+          already made available. CARCC records 28 August 2026 as its formal founding date
           and the scheduled public launch date for OCADE.
         </p>
         <p>
@@ -48,18 +48,18 @@ export function TermsContent() {
         </p>
       </PublicSection>
 
-      <PublicSection title="4. OCADE service and local-first architecture">
+      <PublicSection title="4. OCADE service, Online and Offline">
         <p>
-          OCADE combines local software with optional online authentication, account-hosted
-          workspace data, current-information retrieval, support, payments and permissioned computer
-          or remote-device features. Supported chat generation is designed to run on the user's
-          device rather than through a public-cloud AI inference provider.
+          OCADE offers connected Online intelligence and on-device Offline intelligence through one
+          product experience. Online requests use OCADE's protected connected intelligence service.
+          Offline requests are processed on the user's device and do not send the prompt to Online
+          intelligence.
         </p>
         <p>
-          Optional Google authentication, Supabase, Cloudflare, current-information retrieval and
-          other user-requested network services may process the information reasonably necessary to
-          provide those features. Feature availability can vary by device, hardware, browser,
-          operating system, region, release stage and plan. Read the{" "}
+          Account authentication, saved conversations and files, current-information retrieval,
+          support and other user-requested network services may process the minimum information
+          reasonably necessary to provide those features. Feature availability can vary by device,
+          browser, operating system, region, release stage and plan. Read the{" "}
           <Link to="/privacy" className="text-foreground underline">
             Privacy notice
           </Link>
@@ -124,7 +124,7 @@ export function TermsContent() {
       <PublicSection title="9. Your content and commercial use of output">
         <p>
           You retain the rights you have in prompts, files and other content you provide. You grant
-          CARCC CADANE only the permissions reasonably necessary to operate the features you choose,
+          CARCC only the permissions reasonably necessary to operate the features you choose,
           protect OCADE and comply with law. You remain responsible for having the rights and
           permissions needed for content, accounts and systems you provide or direct OCADE to use.
         </p>
@@ -137,16 +137,16 @@ export function TermsContent() {
         </p>
       </PublicSection>
 
-      <PublicSection title="10. CARCC CADANE and OCADE intellectual property">
+      <PublicSection title="10. CARCC and OCADE intellectual property">
         <p>
-          CARCC CADANE and its applicable rights holders retain their rights in OCADE software,
+          CARCC and its applicable rights holders retain their rights in OCADE software,
           original code, interfaces, designs, systems, proprietary technology, brand materials,
           logos, product identity and the tagline “Command the Next Era.” Third-party and
           open-source software, model weights and other third-party materials remain governed by
           their own licences and rights.
         </p>
         <p>
-          Using OCADE does not transfer ownership of the platform or CARCC CADANE brand to a user,
+          Using OCADE does not transfer ownership of the platform or CARCC brand to a user,
           contractor, service provider, investor or prospective investor.
         </p>
       </PublicSection>
@@ -167,13 +167,13 @@ export function TermsContent() {
 
       <PublicSection title="12. Suspension, termination and feature changes">
         <p>
-          CARCC CADANE may limit, suspend or terminate online access for illegal activity, hacking,
+          CARCC may limit, suspend or terminate online access for illegal activity, hacking,
           malware, fraud, abuse, security-bypass attempts, attacks, non-payment, material or
           repeated Terms violations, security emergencies, misuse of third-party services or legal
           requirements. Notice may be provided where practicable or required.
         </p>
         <p>
-          CARCC CADANE may modify, replace, restrict or discontinue a feature or service, including
+          CARCC may modify, replace, restrict or discontinue a feature or service, including
           a free feature, subject to rights that applicable law does not permit these Terms to
           waive.
         </p>
@@ -181,14 +181,13 @@ export function TermsContent() {
 
       <PublicSection title="13. Free launch and future paid services">
         <p>
-          OCADE may initially be offered without charge while product and payment work is completed.
-          Free availability can change. Paid plans, subscriptions, fixed-duration access, add-ons or
-          other commercial services may be introduced later.
+          OCADE currently does not open paid checkout. Pricing may describe planned Free, Pro and Max
+          options, but no paid charge is available until OCADE explicitly opens a purchase flow.
         </p>
         <p>
-          Before a paid purchase, the checkout must display the applicable price, taxes where
-          required, duration or renewal rule, cancellation information and any purchase-specific
-          conditions. Payment providers may impose their own terms.
+          If paid purchases are introduced later, the purchase flow must disclose the applicable
+          price, taxes where required, duration or renewal rule, cancellation information and any
+          purchase-specific conditions before a charge is made.
         </p>
       </PublicSection>
 
@@ -204,16 +203,16 @@ export function TermsContent() {
           billing or payment-processing error, non-delivery, unauthorized transaction where law
           provides protection, material service defect or deficiency, or another non-waivable
           consumer right. Nothing in these Terms removes a refund or remedy that applicable law
-          requires CARCC CADANE or a payment provider to provide.
+          requires CARCC or a payment provider to provide.
         </p>
       </PublicSection>
 
       <PublicSection title="15. Third-party services and external information">
         <p>
-          OCADE may depend on services supplied by Google, Supabase, Cloudflare, payment providers,
-          network operators, cited websites, search or retrieval sources and other third parties.
-          CARCC CADANE does not control those services and cannot guarantee their availability,
-          accuracy, security, content, pricing, policies or continued operation.
+          OCADE may depend on authentication, hosting, network, cited websites, current-information
+          retrieval and other external services needed for a feature you request. CARCC does not
+          control those external services and cannot guarantee their availability, accuracy,
+          security, content, pricing, policies or continued operation.
         </p>
         <p>
           Third-party outages, policy changes, data errors, rate limits, account restrictions,
@@ -224,7 +223,7 @@ export function TermsContent() {
       <PublicSection title="16. Service provided as available">
         <p>
           To the maximum extent permitted by applicable law, OCADE is provided on an “as is” and “as
-          available” basis. CARCC CADANE does not promise uninterrupted, error-free, loss-free,
+          available” basis. CARCC does not promise uninterrupted, error-free, loss-free,
           perfectly secure or perfectly accurate operation, or that every defect will be corrected.
         </p>
         <p>
@@ -235,7 +234,7 @@ export function TermsContent() {
 
       <PublicSection title="17. Limitation of liability and assumed risk">
         <p>
-          To the maximum extent permitted by applicable law, CARCC CADANE, OCADE and their founder,
+          To the maximum extent permitted by applicable law, CARCC, OCADE and their founder,
           personnel, contractors and service providers are not liable for indirect, incidental,
           special, exemplary, punitive or consequential loss; lost profits, revenue, business,
           opportunities or anticipated savings; investment or trading loss; data loss or corruption;
@@ -267,7 +266,7 @@ export function TermsContent() {
           content without authorization.
         </p>
         <p>
-          This clause does not require a consumer to indemnify CARCC CADANE for CARCC CADANE's own
+          This clause does not require a consumer to indemnify CARCC for CARCC's own
           liability where applicable law does not permit that result.
         </p>
       </PublicSection>
@@ -314,19 +313,18 @@ export function TermsContent() {
 
       <PublicSection title="22. Changes to these Terms">
         <p>
-          CARCC CADANE may update these Terms as OCADE changes. Material changes will be identified
+          CARCC may update these Terms as OCADE changes. Material changes will be identified
           through an appropriate notice before or when they take effect where required. If a change
           legally requires fresh consent, OCADE will request that consent rather than relying only
           on continued use.
         </p>
       </PublicSection>
 
-      <PublicSection title="23. No guarantee of continuous feature parity">
+      <PublicSection title="23. Current platform scope">
         <p>
-          Web, Windows, macOS, Android, iOS, browser-extension and other releases may differ in
-          capability, timing and availability. A feature shown in source code, a demo, a test build,
-          a roadmap or another platform is not a promise that the same feature is available in every
-          production release.
+          OCADE is currently offered as a website. A feature shown in source code, a demo, a test
+          build, an old migration or a roadmap is not a promise that it is available in the current
+          production website.
         </p>
       </PublicSection>
 
@@ -373,9 +371,9 @@ export function PrivacyContent() {
     <>
       <PublicSection title="1. Who is responsible">
         <p>
-          CARCC CADANE is the independent technology enterprise, business brand and venture behind
+          CARCC is the independent technology enterprise, business brand and venture behind
           OCADE and is responsible for the OCADE service operations described in this notice. This
-          notice uses the public CARCC CADANE brand identity and does not publish an unverified
+          notice uses the public CARCC brand identity and does not publish an unverified
           legal form, registration category, address or corporate status.
         </p>
       </PublicSection>
@@ -413,18 +411,17 @@ export function PrivacyContent() {
         </p>
       </PublicSection>
 
-      <PublicSection title="4. Local-first does not mean local-only">
+      <PublicSection title="4. Online and Offline processing">
         <p>
-          Supported AI generation is designed to run locally on your device. Device-only processing
-          keeps supported data under your device controls. Optional Google authentication, Private
-          Sync, Supabase, Cloudflare, current-information retrieval, payments, mobile pairing,
-          support and other user-requested network services may process the minimum information
-          reasonably necessary to provide those features.
+          When you choose Offline, supported AI inference is performed on your device. Saved
+          conversations, account settings and files may still synchronize with your OCADE account
+          when a connection is available unless you use a feature such as Temporary Chat that is
+          specifically described as not being saved.
         </p>
         <p>
-          OCADE does not silently send normal chat generation to a public-cloud AI inference
-          provider. A network feature must still disclose or otherwise follow the applicable product
-          flow for that service.
+          When you choose Online, your request is processed through OCADE's protected connected
+          intelligence service. OCADE keeps underlying model/provider implementation details out of
+          the normal product interface, but Online processing necessarily uses network services.
         </p>
       </PublicSection>
 
@@ -440,9 +437,10 @@ export function PrivacyContent() {
 
       <PublicSection title="6. Service providers and sharing">
         <p>
-          Depending on the feature, recipients may include Supabase, Cloudflare, Google or another
-          authentication provider, cited source websites, payment providers and other processors or
-          services necessary to deliver the feature you request.
+          Depending on the feature, recipients may include authentication, hosting, network,
+          current-information and other processors or services necessary to deliver the feature you
+          request. If you explicitly choose Google Sign-In, Google also processes that sign-in under
+          the permissions shown to you.
         </p>
         <p>
           OCADE does not sell personal information to advertisers. Information is not shared merely
@@ -452,10 +450,9 @@ export function PrivacyContent() {
 
       <PublicSection title="7. Where your workspace data is stored">
         <p>
-          Conversations, projects, tasks, artifacts, memory and other workspace content are stored
-          through the configured Supabase infrastructure, subject to that service's access controls,
-          so that they are available on the devices you sign in on. They are not kept in a
-          device-only mode.
+          Saved conversations, messages, Library files, account settings and enabled account memory
+          are stored through OCADE's protected account infrastructure so that they can be available
+          on devices where you sign in. Temporary Chat is not saved.
         </p>
         <p>
           Two categories remain on the device. Offline Intelligence model data is stored on the
@@ -465,9 +462,9 @@ export function PrivacyContent() {
           because they describe that device rather than you.
         </p>
         <p>
-          A message composed while your account is unreachable is held in the open browser tab until
-          the connection returns. It is not written to durable storage on the device, and closing
-          that tab discards it.
+          OCADE may keep the minimum local pending information needed to finish synchronizing saved
+          work after a connection returns. Temporary Chat remains outside that synchronization
+          flow.
         </p>
       </PublicSection>
 
@@ -528,7 +525,7 @@ export function PrivacyContent() {
 
       <PublicSection title="14. Changes and contact">
         <p>
-          CARCC CADANE may update this notice as OCADE changes. Material privacy changes will be
+          CARCC may update this notice as OCADE changes. Material privacy changes will be
           identified through an appropriate notice and fresh consent will be requested where the law
           requires it.
         </p>
