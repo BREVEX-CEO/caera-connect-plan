@@ -16,10 +16,10 @@ Normal product chrome leads with OCADE. CARCC appears where company ownership/ab
 
 ## Color
 
-- Near-black/charcoal backgrounds.
-- Neutral white/grey foreground hierarchy.
-- Restrained accents only when they communicate state/action.
-- No bright dashboard palette.
+- Use near-black or charcoal backgrounds.
+- Use a neutral white and grey foreground hierarchy.
+- Use restrained accents only when they communicate state or action.
+- Avoid a bright dashboard-style palette.
 - Glass effects are medium/subtle, not cinematic.
 
 ## Typography
@@ -29,18 +29,18 @@ Use the existing repository fonts/tokens. Prioritize readability, compact labels
 ## Layout
 
 ### Desktop
-- Stable left navigation.
-- Centered Chat workspace with comfortable reading width.
-- Composer anchored naturally near the bottom.
+- Keep a stable left navigation on desktop.
+- Center the Chat workspace at a comfortable reading width.
+- Anchor the composer naturally near the bottom of the Chat workspace.
 - Settings as a focused panel/dialog, not a separate dashboard.
 
 ### Tablet
-- Collapse navigation when needed.
+- Collapse navigation on tablet when the available width requires it.
 - Keep full functionality.
 
 ### Phone
-- Drawer navigation.
-- Full-width content/composer.
+- Use drawer navigation on phones.
+- Use full-width content and composer layouts on phones.
 - Settings category selector becomes compact; fields may stack.
 - 360–375 px must have no horizontal overflow.
 - Touch targets must remain reachable and readable.
@@ -94,21 +94,21 @@ If Offline was explicitly removed, later sign-in and choosing Offline should mak
 ## Loading, empty and error states
 
 Every async view has bounded states:
-- skeleton/progress;
-- success;
-- empty;
-- error + Retry;
-- cancelled.
+- Show a skeleton or progress state while work is active.
+- Show a success state when the operation completes.
+- Show an empty state when no content exists.
+- Show an error state with Retry when recovery is possible.
+- Show a cancelled state when the user cancels an operation.
 
 No endless spinner.
 
 ## Accessibility
 
-- Keyboard usable.
-- Visible focus.
-- Accessible names.
-- Contrast sufficient in dark and light modes.
-- Reduced motion supported.
+- Make every important interaction usable with the keyboard.
+- Keep focus indicators visible.
+- Give interactive controls accessible names.
+- Maintain sufficient contrast in dark and light modes.
+- Respect reduced-motion preferences.
 - High contrast supported where current settings expose it.
 - Do not make important controls hover-only.
 
