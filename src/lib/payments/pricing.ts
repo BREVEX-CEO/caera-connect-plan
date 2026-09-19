@@ -2,7 +2,7 @@
  * THE CATALOGUE. Every plan OCADE sells, every price it displays, and the rule
  * they all satisfy.
  *
- * CARCC CADANE prices carry a deliberate numeric signature: every displayed
+ * CARCC prices carry a deliberate numeric signature: every displayed
  * paid price ends in 8 or 28. Prices are stored as integer minor units so £8.00
  * is exact and never becomes a floating-point billing value.
  *

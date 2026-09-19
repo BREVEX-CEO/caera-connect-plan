@@ -1,87 +1,122 @@
-# OCADE UI/UX Brief
+# OCADE UI/UX Design Brief
 
-## Experience goal
+## Aesthetic
 
-OCADE must feel immediate, quiet, premium, and trustworthy. A customer should understand where to type, what mode is active, how much usage remains, whether Offline is ready, and how to recover from an error without reading technical documentation.
+Dark-mode-first, minimal, premium and calm. Interaction density should feel closer to leading conversational AI products than to a dashboard SaaS. Use the repository's Grok reference screenshots in `docs/design-references/grok/` as interaction/layout references, not as a license to copy branding.
 
-## Primary shell
+The product should feel simple even when the implementation is complex.
 
-Keep the left sidebar compact with New Chat, Chat, Library, Cowork placeholder, recent/search, and Account. Keep the main workspace centered and open. Do not add dashboard cards simply to fill empty space.
+## Brand hierarchy
 
-Signed-out visitors see the same clean shell. Pressing Send opens authentication rather than redirecting them to a separate marketing product.
+- Company: **CARCC**
+- Product: **OCADE**
+- Tagline: **Command the Next Era.**
 
-## Chat
+Normal product chrome leads with OCADE. CARCC appears where company ownership/about/legal context is useful. Never show CARCC CADANE/CADANE as current branding.
 
-The empty state contains a small “Ask OCADE”/OCADE greeting and the composer. Suggested prompts, when present, remain subtle and secondary.
+## Color
 
-The composer is rounded and lightly glassed. It includes attachment `+`, multiline text, microphone, `Auto | Online | Offline`, optional Thinking, and Send/Stop. Text grows only to a sensible maximum. The selector remains compact and readable rather than looking like a model-debug control.
+- Near-black/charcoal backgrounds.
+- Neutral white/grey foreground hierarchy.
+- Restrained accents only when they communicate state/action.
+- No bright dashboard palette.
+- Glass effects are medium/subtle, not cinematic.
 
-When there is no Internet, Online becomes disabled. Auto gets a subtle Offline indication/animation when it is actually routing locally. If Offline is not ready, the UI communicates Installing/Removed/Install Offline rather than failing only after Send.
+## Typography
 
-User messages are compact. OCADE answers use open readable text with contextual controls. Copy/Edit/Delete/Regenerate/Retry/Stop/source controls appear only when useful and have touch/keyboard equivalents.
+Use the existing repository fonts/tokens. Prioritize readability, compact labels and clear hierarchy. Avoid decorative movie-title typography.
 
-## Sidebar and history
+## Layout
 
-Conversation history uses a bounded skeleton and then populated, empty, or error/Retry state. Group by useful periods and keep rows compact. Never leave “Loading chats…” indefinitely.
+### Desktop
+- Stable left navigation.
+- Centered Chat workspace with comfortable reading width.
+- Composer anchored naturally near the bottom.
+- Settings as a focused panel/dialog, not a separate dashboard.
 
-A small usage indicator belongs near the account area. Low allowance may add a small composer warning, not a blocking banner until exhaustion actually occurs.
+### Tablet
+- Collapse navigation when needed.
+- Keep full functionality.
 
-## Settings
+### Phone
+- Drawer navigation.
+- Full-width content/composer.
+- Settings category selector becomes compact; fields may stack.
+- 360–375 px must have no horizontal overflow.
+- Touch targets must remain reachable and readable.
 
-Use a compact modal/sheet with rounded corners and a clear left category list on desktop. On narrow screens, convert to a full-height/sheet navigation pattern rather than squeezing the desktop modal.
+## Components
 
-Categories are Account, Appearance, Notifications, Data Controls, Usage & Limits, Billing, and Advanced. Each row uses a concise label and at most one short supporting sentence unless a destructive/security flow genuinely needs more explanation.
+### Buttons
+Use native accessible semantics. Primary actions are obvious; secondary/destructive controls are quiet until needed.
 
-Billing and Advanced must never show endless “Reading…” text. Use short skeletons then content, empty, or error/Retry.
+### Forms
+Visible labels or accessible names. Clear validation. Never compress labels word-by-word beside fixed controls on small screens.
 
-## Offline Intelligence
+### Cards
+Use only when grouping genuinely benefits comprehension. Avoid card walls.
 
-Offline preparation stays in the background after sign-in and should not take over Chat. A compact status may appear in sidebar/account. Detailed progress appears only when the customer opens the relevant Settings surface.
+### Navigation
+Current product navigation emphasizes Chat and Library. Cowork may appear only as a clearly reserved placeholder. Do not surface unused future modules.
 
-Customer states are Preparing, Installing with percent/progress, Verifying, Ready, Repairing, Removed, and Install Offline. Do not expose runtime/model/vendor implementation names.
+### Modals and dialogs
+Use for confirmation/focused settings. Escape/click-away behavior must be predictable. Destructive actions require clear confirmation.
 
-If the customer removed Offline, show a direct sentence such as “You removed OCADE Offline. Install it again to use OCADE without Internet.” Do not silently redownload it.
+### Tables
+Use only where structured comparison/admin data genuinely needs them. Responsive fallbacks required.
 
-## Library and attachments
+## Chat patterns
 
-Library keeps a clean All/Images/Files filter, search, Add, and useful empty state. Attachment chips show filename/type/progress and only the actions that make sense: preview, remove, retry, reorder, or download.
+- Empty Chat is calm, not marketing-heavy.
+- Composer: attachment, text, Auto/Online/Offline, Thinking/Research when applicable, microphone, Send/Stop.
+- User/assistant actions remain compact.
+- Highlighting text may surface **Ask OCADE**.
+- Helpful / Not helpful feedback is discreet.
+- Citations/sources are readable and attached to the answer they support.
 
-Malicious/unsupported file failures use plain customer-safe wording and do not expose parser internals.
+## Offline UX
 
-## Usage and Billing
+Never show OPFS, GGUF, WebGPU, WASM, R2, provider names or model names.
 
-Usage & Limits shows plan, remaining uses, current reset, weekly limit where applicable, a small progress meter, and one plain-language sentence explaining that one successful answer consumes one use.
+Customer language:
+- Preparing Offline
+- Downloading
+- Verifying
+- Ready
+- Repair
+- Removed
+- Install Offline
 
-Billing uses clear Free/Pro/Max cards with current plan highlighted. If real checkout is not configured, upgrade actions explain that billing setup is not available yet rather than pretending to charge.
+On mobile data, explain that installation uses a large download and offer Continue/Cancel. Do not permanently block cellular/hotspot.
 
-## Visual tokens
+If Offline was explicitly removed, later sign-in and choosing Offline should make reinstall easy without forcing the user to hunt through Settings.
 
-Use near-black/charcoal backgrounds, neutral dark-grey glass surfaces, white primary text, soft-grey secondary text, thin low-contrast borders, and restrained accent for state/focus only.
+## Loading, empty and error states
 
-Use consistent soft medium radii on composer, dialogs, menus, cards that truly need enclosure, and Settings. Avoid sharp corners, oversized pills, strong shadows, thick separators, saturated gradients, and heavy blur.
+Every async view has bounded states:
+- skeleton/progress;
+- success;
+- empty;
+- error + Retry;
+- cancelled.
 
-Use a semantic type scale with clear heading/body/label/caption/code roles, readable line height, and responsive sizing.
+No endless spinner.
 
-## Motion and cursor response
+## Accessibility
 
-Use fast subtle hover/focus movement, panel transitions, streaming feedback, attachment progress, and small route-state transitions. Strong cursor-reactive/cinematic movement is not part of the current Chat mission. Respect reduced motion and never rely on motion alone to communicate state.
+- Keyboard usable.
+- Visible focus.
+- Accessible names.
+- Contrast sufficient in dark and light modes.
+- Reduced motion supported.
+- High contrast supported where current settings expose it.
+- Do not make important controls hover-only.
 
-## Responsive and accessibility
+## Do not
 
-Desktop, tablet, and phone retain the same core functionality. Navigation becomes a drawer on phone; Settings becomes a mobile sheet; composer controls remain reachable; attachment controls remain touch-safe; no horizontal overflow is allowed.
-
-Use semantic elements, visible focus, keyboard navigation, screen-reader labels, adequate contrast, reduced-motion support, and minimum practical touch targets.
-
-## Definition of polished
-
-A surface is not polished if it contains an infinite loader, fake control, stale feature description, excessive empty panel, technical provider/model text, inconsistent corner/radius, clipped content, hidden mobile action, or error that forces the customer to guess what happened.
-
-## Repository-wide completion rule
-
-This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply YAGNI and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
-
-## Active audit UX corrections
-
-At phone widths, public navigation must collapse, wrap, or move behind a compact control; it may not extend the document beyond the viewport. Settings categories must not consume most of the vertical viewport before content, and setting rows/inputs may stack vertically when side-by-side layout would compress labels.
-
-Admin grants should show target account, tier, duration, reason, MFA requirement, and a clear final confirmation of the authoritative entitlement. Help text must point account deletion to Account settings. Offline copy must explain that inference can be local while saved chat/files may synchronize.
+- Expose technical implementation terminology.
+- Show provider/model/vendor identity.
+- Build dashboard/card walls.
+- Add orange/red-heavy branding unless required for semantic warning/destructive state.
+- Create new current-scope modules not approved in PRD.
+- Use horizontal page scrolling on mobile.

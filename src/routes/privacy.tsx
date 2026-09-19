@@ -9,7 +9,7 @@ export const Route = createFileRoute("/privacy")({
       { title: "Privacy Policy — OCADE" },
       {
         name: "description",
-        content: "How OCADE by CARCC CADANE collects, stores and deletes your data.",
+        content: "How OCADE by CARCC collects, stores and deletes your data.",
       },
     ],
   }),

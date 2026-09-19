@@ -86,7 +86,7 @@ export function PublicPage({
         <div
           className={`mx-auto flex ${column} flex-wrap items-center justify-between gap-3 px-5 py-6 text-[13px] text-muted-foreground`}
         >
-          <span>OCADE by CARCC CADANE</span>
+          <span>OCADE by CARCC</span>
           <Link to="/" className="transition-colors hover:text-foreground">
             Open Chat
           </Link>

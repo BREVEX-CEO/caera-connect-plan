@@ -1,101 +1,125 @@
-# OCADE Architecture Authority
+# OCADE Architecture
 
-## Architectural principle
+## System overview
 
-OCADE must have one clear authority for each responsibility. New work should simplify or strengthen an existing authority before creating another store, router, installer, hook, service, worker, or schema family.
+CARCC builds OCADE. OCADE's current architecture is a website with one connected intelligence path and one on-device intelligence path behind a single Chat contract.
 
-## Customer surfaces
+```mermaid
+flowchart LR
+  U[Customer browser] --> W[OCADE web Worker]
+  U --> A[Account auth/data]
+  U --> L[Offline Intelligence in browser]
+  W --> A
+  U --> E[Online Intelligence boundary]
+  E --> A
+  E --> P[Configured online provider - server only]
+  L --> O[OPFS model store]
+  W --> R[Private opaque Offline release delivery]
+  R --> O
+```
 
-The current product shell is intentionally small: Chat, Library, Cowork placeholder, Pricing/public legal/help pages, Settings, and hidden Admin. Cowork expansion is frozen until the Chat-first production mission is complete.
+Provider/model identity is intentionally omitted from product/client architecture. It is server-only operational configuration.
 
-Chat is the root surface. Library is the private file/output surface. Settings contains Account, Appearance, Notifications, Data Controls, Usage & Limits, Billing, and Advanced. Hidden Admin exists only for authorized operational work such as entitlement grants.
+## Tech stack
 
-## Identity authority
+- React + TypeScript + TanStack + Vite + Tailwind.
+- Node/npm.
+- Supabase for auth/durable account data.
+- Cloudflare Worker for web serving.
+- Private R2 release delivery for Offline Intelligence.
+- Browser OPFS as the only model store.
 
-Supabase Auth is the only identity authority. Active customer methods are Google and email OTP. The browser holds a normal Supabase session; privileged authorization is checked server-side/RLS rather than inferred from visible UI.
+## Repository structure
 
-Existing Auth users, identities, sessions, and refresh tokens are protected during schema cleanup. Admin entitlement operations never mutate `auth.users` to represent a product tier.
+- `src/routes/` — app/public/API routes.
+- `src/components/` — Chat, Settings, shell/legal UI.
+- `src/lib/intelligence/` — normalized Online/Offline contract/router.
+- `src/lib/brain/` — Offline installer/runtime lifecycle.
+- `src/lib/commercial/` — usage, entitlements, devices.
+- `src/lib/library/` — Library/file authority.
+- `src/lib/security/` — auth assurance/session/security headers.
+- `supabase/` — migrations/functions/verification/rollback.
+- `scripts/` — verification, build, browser journeys and Offline release tooling.
+- `docs/` — canonical product/technical/design/test documentation.
 
-## Persistent account-data authority
+## Application layers
 
-Supabase PostgreSQL is canonical for durable conversations/messages, Library metadata, settings, entitlements, usage state, generation permits/events, and other account records used by the current product. Supabase Storage holds Library objects in a private bucket protected by ownership policies.
+1. UI/route layer.
+2. Product hooks/functions.
+3. Canonical intelligence and commercial boundaries.
+4. Account/database or Offline runtime authorities.
+5. Deployment/external integration boundaries.
 
-Local browser persistence is narrowly scoped. OPFS stores Offline runtime artifacts and model-owned metadata. A pending disconnected-chat journal may temporarily hold unsynchronized operations with stable idempotency keys. Device/runtime security state may persist where needed for offline usage enforcement. None of these become competing canonical cloud-account stores.
+Do not bypass a lower authority with UI-local rules.
 
-## Online intelligence authority
+## Data architecture
 
-The browser never calls the provider with a customer-visible key. Online requests go to the single Supabase Edge Function `ocade-intelligence`.
+Supabase is canonical for durable signed-in account data.
 
-The boundary verifies the Supabase JWT, validates the normalized request contract, claims the canonical usage permit, invokes the configured connected provider through server-side secrets, streams the response, and settles the logical generation. The live function is **version 7** and its deployed source was read back and diffed byte-for-byte against this tree. `docs/MEMORY.md` under "Live Supabase baseline" is the one place that records the deployed release state; this document describes the design and defers to it for what is live.
+Local browser persistence is intentionally narrow:
+- OPFS: Offline model bytes/chunks/checkpoints/model metadata/runtime model assets only.
+- encrypted pending reconciliation journal: disconnected account work that must survive restart.
+- small device/UI preferences where appropriate.
+- no duplicate durable conversation/library database in the browser.
 
-Exactly three server-side key slots exist: `GEMINI_API_KEY_PRIMARY`, `GEMINI_API_KEY_SECONDARY`, and `GEMINI_API_KEY_TERTIARY`. Failover is bounded, health-driven, and only before provider output starts. Key rotation must not be used to evade shared quota.
+## Online architecture
 
-## Commercial usage authority
+Browser → one OCADE Online Intelligence boundary → configured provider.
 
-One usage authority sits above every intelligence backend. A generation permit/idempotency key is acquired before work. Exactly one successful logical request settles one use; failure settles zero. Retries, duplicate clicks, multiple tabs, reconnect, key failover, and Online→Offline pre-output fallback must not produce duplicate charges.
+The browser sees normalized OCADE events only. Real provider/model identity stays out of the client bundle and customer-facing diagnostics. The boundary validates auth, request bounds and a commercial generation permit before provider work.
 
-Offline usage relies on signed/tamper-resistant device allocation/lease state that reconciles to the same account-wide authority rather than becoming an unlimited local bypass.
+## Offline architecture
 
-## Intelligence-routing authority
+One installer owns:
+- release resolution;
+- storage check;
+- ranged transfer;
+- checkpoint/resume;
+- digest verification;
+- activation;
+- repair;
+- remove/reinstall.
 
-One router receives customer intent (`Auto`, `Online`, `Offline`) and live availability state.
+### OPFS rule
 
-- Auto uses Online when connected intelligence is healthy, Offline when Internet is absent and local readiness is proven, and may use Offline after a pre-output Online failure.
-- Online uses connected intelligence only and is disabled when Internet is unavailable.
-- Offline uses the local runtime only and makes zero provider calls.
+There is one model store: OPFS. Model bytes/chunks/checkpoints/metadata/pointers do not live in IndexedDB, Cache Storage or localStorage.
 
-The UI may describe the route as OCADE Online/Offline but does not expose provider/model/runtime implementation names.
+Explicit uninstall preference is separate product state because it must survive deletion of model storage.
 
-## Offline Intelligence authority
+## Routing
 
-The one approved release is `ocr-2dc0ee44eb397906`, length `484220160`, SHA-256 `2dc0ee44eb39790624623cf5e2a8cc21973c4839a67fed406dd3f9b2e6b7f800`.
+The router owns Auto/Online/Offline selection. No component may implement a second fallback policy.
 
-Private OCADE-controlled Cloudflare R2 is the distribution authority. One installer/downloader manages authorized delivery metadata, adaptive ranged transfer, verified checkpointing, resume, authorization refresh, full digest verification, targeted repair, atomic activation, Remove, and reinstall.
+## Commercial architecture
 
-OPFS stores the verified active runtime and model-owned assets. Compatible OCADE site deployments do not redownload it. Explicit Remove persists a `user_uninstalled` decision that only explicit Install Offline clears.
+One permit/ledger authority handles successful logical generations across all modes/devices. Entitlement resolves from the canonical account state and audited temporary grants. Current paid checkout is closed.
 
-The execution preference is WebGPU where real generation succeeds, with WASM fallback before output. This is one lifecycle and one artifact, not two products.
+## Security architecture
 
-## Conversation and offline-sync authority
+- Server-side secrets.
+- RLS + grants.
+- Strong auth for privileged operations.
+- Canonical origin/HTTPS.
+- Hostile file handling.
+- No client trust for entitlement/usage/ownership/security-sensitive fields.
+- Cross-account async state must be scoped to account/conversation/request.
 
-Supabase conversations/messages are canonical when connected. A disconnected Offline turn is assigned stable client ids and placed in the minimal pending-sync journal required to survive practical browser interruptions. Reconnect uploads exactly once using idempotency and then retires the pending copy.
+## Deployment architecture
 
-Temporary/incognito conversations remain memory-only and never synchronize.
+Production proof includes:
+- exact Git SHA;
+- Cloudflare Worker deployment;
+- Supabase migration/type state;
+- Online Intelligence function version/source;
+- Offline opaque release contract.
 
-## Attachment and Library authority
+## Scalability
 
-One ingestion pipeline serves Chat and Library. It authenticates the user, validates ownership, enforces file/message bounds, verifies declared/detected type, constrains archive/extraction behavior, stores objects privately, extracts supported content as untrusted data, and preserves source metadata.
+Use indexed bounded queries and pagination. Avoid whole-table reads. Offline transfer uses bounded ranges/streaming. Keep current product scope small rather than scaling unused modules.
 
-The normalized attachment representation is passed to intelligence. There is no separate “uploaded but never read” path.
+## Constraints
 
-## UI state authority
-
-Each asynchronous feature owns a finite state machine rather than scattered booleans. Loading must resolve to success, empty, error/Retry, cancelled, or a genuine progress state. Permanent “Reading…”/“Loading…” screens are architectural defects.
-
-## Deployment authority
-
-A production release is a compatible tuple: Git commit, frontend build, Supabase Edge Function source/version, database migration/type state, and Offline release manifest. Release verification records these together and smoke-tests the actual deployed combination.
-
-## Observability and privacy
-
-Internal diagnostics may record enumerated route/result/error categories needed to debug production, but must not log prompts, secrets, raw provider keys, sensitive attachment contents, or privileged customer data. Normal customer errors remain concise and sanitized.
-
-## Security boundaries
-
-RLS/server checks protect user data. Admin operations require server-side authorization and auditable grants. File contents are hostile input. Client-provided entitlement, user id, usage count, MIME type, model readiness, payment state, and admin status are never trusted without authoritative verification.
-
-## Simplicity rule
-
-When two implementations provide the same responsibility, trace callers and retain the stronger canonical implementation. Delete the weaker duplicate after tests prove no needed path depends on it. Architecture quality is measured by fewer authorities and clearer contracts, not by the number of modules.
-
-## Repository-wide completion rule
-
-This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply YAGNI and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
-
-## Active audit architecture constraints
-
-Transport security has one canonical rule: application HTML and authenticated surfaces are HTTPS-only, with HTTP redirected before the application response is served.
-
-Device and browser revocation are server-authoritative. Authenticated clients may request allowed actions through narrow audited RPCs but may not directly rewrite identity or revocation-sensitive columns. Device-cap enforcement must serialize by account and device kind so two different browsers cannot race through the same final slot.
-
-Chat request ownership is established before the first asynchronous boundary and remains keyed to account, conversation, and request through every continuation and cleanup. Regenerate transcript replacement must be atomic or recoverable rather than a sequence of destructive independent deletes.
+- Website only for current mission.
+- No live Paddle/paid checkout.
+- No current Projects/Tasks/Automations/Monitors/Organizations/Code/native-app architecture.
+- Normal users never see provider/model/runtime/infrastructure identities.

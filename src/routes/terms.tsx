@@ -9,7 +9,7 @@ export const Route = createFileRoute("/terms")({
       { title: "Terms & Conditions — OCADE" },
       {
         name: "description",
-        content: "Current Terms & Conditions for OCADE by CARCC CADANE.",
+        content: "Current Terms & Conditions for OCADE by CARCC.",
       },
     ],
   }),
