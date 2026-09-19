@@ -46,8 +46,3 @@ export const exportMyAccountData = createServerFn({ method: "POST" })
   .handler(async ({ context }): Promise<AccountDataExport> =>
     buildAccountExport(await adminClient(), context.userId),
   );
-
-export const deleteDataClassInput = z.object({
-  dataClass: z.string(),
-  confirmation: z.string(),
-});

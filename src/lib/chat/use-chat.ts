@@ -245,6 +245,14 @@ export function useChat(): ChatState & ChatActions {
     opened.current = null;
     setStreaming("");
     setBusy(false);
+    /*
+     * Nothing is in flight, so nothing is loading. Without this the transcript
+     * read abandoned above leaves `loadingMessages` true for ever — the guard
+     * that drops its result also skips the `finally` that would have cleared
+     * it. It is invisible today only because every caller empties the
+     * transcript too, and the list is not rendered when there is nothing in it.
+     */
+    setLoadingMessages(false);
   }, []);
 
   /*
@@ -586,7 +594,12 @@ export function useChat(): ChatState & ChatActions {
            * as a reply with controls beside it. The permit is released rather
            * than charged, because nothing was delivered.
            */
-          setProblem(refusal ?? "OCADE could not answer that. Try again.");
+          // Stopping is a decision, not a failure: somebody who pressed Stop
+          // before anything arrived does not need to be told OCADE could not
+          // answer. A refusal or a genuine empty answer still says so.
+          if (!controller.signal.aborted) {
+            setProblem(refusal ?? "OCADE could not answer that. Try again.");
+          }
           // Accepted: the question is in the transcript, and Retry re-asks it
           // from there. Returning it to the composer would make two of it.
           return true;
