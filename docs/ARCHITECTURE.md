@@ -90,4 +90,12 @@ When two implementations provide the same responsibility, trace callers and reta
 
 ## Repository-wide completion rule
 
-This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply `/ponytail ultra`, `/caveman ultra`, YAGNI, and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply YAGNI and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+
+## Active audit architecture constraints
+
+Transport security has one canonical rule: application HTML and authenticated surfaces are HTTPS-only, with HTTP redirected before the application response is served.
+
+Device and browser revocation are server-authoritative. Authenticated clients may request allowed actions through narrow audited RPCs but may not directly rewrite identity or revocation-sensitive columns. Device-cap enforcement must serialize by account and device kind so two different browsers cannot race through the same final slot.
+
+Chat request ownership is established before the first asynchronous boundary and remains keyed to account, conversation, and request through every continuation and cleanup. Regenerate transcript replacement must be atomic or recoverable rather than a sequence of destructive independent deletes.
