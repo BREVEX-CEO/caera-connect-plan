@@ -29,18 +29,18 @@ People should not need separate AI products for connected answers and private on
 ## Non-goals for the current mission
 
 Do not build or describe as current product functionality:
-- Code/coding-agent product;
-- Projects;
-- Tasks;
-- Automations;
-- Monitors;
-- Organizations/team workspaces;
-- native Windows/macOS/Android/iOS apps;
-- public conversation sharing;
-- separate side-conversation storage;
-- live browser/computer-control product;
-- live paid checkout;
-- Paddle integration.
+- Do not build a Code or coding-agent product in the current mission.
+- Do not build Projects in the current mission.
+- Do not build Tasks in the current mission.
+- Do not build Automations in the current mission.
+- Do not build Monitors in the current mission.
+- Do not build Organizations or team workspaces in the current mission.
+- Do not build native Windows, macOS, Android or iOS apps in the current mission.
+- Do not build public conversation sharing in the current mission.
+- Do not build a separate side-conversation storage system in the current mission.
+- Do not build live browser or computer control in the current mission.
+- Do not open live paid checkout in the current mission.
+- Do not include Paddle integration in the current mission.
 
 Cowork may remain only as a clean reserved placeholder until the owner explicitly starts a separate mission.
 
@@ -50,13 +50,13 @@ Cowork may remain only as a clean reserved placeholder until the owner explicitl
 
 - `/` is the primary product.
 - New Chat does not create an empty durable conversation before the first accepted Send.
-- Streaming answers with Stop.
-- Copy, Edit, Regenerate, Retry and Delete.
-- Conversation search and useful history grouping.
+- Chat streams answers and exposes a working Stop action during generation.
+- Chat supports Copy, Edit, Regenerate, Retry and Delete where each action is genuinely available.
+- Chat supports conversation search and useful history grouping.
 - Immediate permanent conversation deletion after clear confirmation; Archive/Trash must not become parallel deletion concepts.
 - Temporary Chat persists nothing.
-- Markdown, tables, links, code blocks and code copy.
-- Helpful / Not helpful reaction.
+- OCADE renders Markdown, tables, links and code blocks, with copy support for code.
+- Users can mark an OCADE answer as Helpful or Not helpful.
 - Persist source/citation information with the message when applicable.
 - Highlight text or a word → **Ask OCADE**. This uses the current conversation context without creating a second persistent side-conversation system.
 - Thinking is an optional user control.
@@ -82,15 +82,15 @@ Visible selector: **Auto | Online | Offline**.
 - Explicit Remove deletes the local model and prevents automatic reinstall.
 - If a customer who removed Offline signs in again, show a clear reusable **Install / Cancel** prompt.
 - Selecting Offline while it is removed/not installed immediately offers installation.
-- Model bytes/chunks/checkpoints/model metadata use **OPFS only**.
-- No Offline image upload, image reading or image understanding.
+- Store all Offline model bytes, chunks, checkpoints and model metadata in **OPFS only**.
+- Offline mode must not accept image uploads, read images or claim image understanding.
 - Desktop and mobile browser support must be claimed only after real proof. Target supported environments include Chromium-family desktop/mobile and Safari on macOS/iOS where the current runtime genuinely works.
 
 ### Attachments and Library
 
 - Library contains user-uploaded files and OCADE-generated files/results.
-- Multiple supported attachments; current target ceiling is 100 MB per supported file, subject to safe total/request limits.
-- Safe local extraction where possible.
+- Support multiple attachments with a current target ceiling of 100 MB per supported file, subject to safe total-request limits.
+- Extract supported document content locally when it can be done safely.
 - Treat uploaded bytes and extracted text as hostile/untrusted input.
 - Temporary Chat attachments do not enter Library unless the customer explicitly saves them.
 - Offline accepts only supported non-image content that the local path can genuinely process.
@@ -98,9 +98,9 @@ Visible selector: **Auto | Online | Offline**.
 ### Account and authentication
 
 Target current methods:
-- Google;
-- six-digit email OTP;
-- password sign-in.
+- Support Google sign-in as a current authentication method.
+- Support six-digit email OTP as a current authentication method.
+- Support password sign-in as a target authentication method.
 
 MFA is optional for ordinary customers and required for privileged/admin operations. Users can see and revoke active sessions/devices.
 
@@ -125,10 +125,10 @@ Account memory is an optional account-level capability. When enabled, it may wor
 Keep Free / Pro / Max and weekly + monthly paid catalogue options.
 
 Current approved displayed anchors:
-- Pro weekly: 8 USD/EUR/GBP or ₹288.
-- Pro monthly: 28 USD/EUR/GBP or ₹1,888.
-- Max weekly: 28 USD/EUR/GBP or ₹1,888.
-- Max monthly: 88 USD/EUR/GBP or ₹5,888.
+- Display Pro weekly at 8 USD/EUR/GBP or ₹288.
+- Display Pro monthly at 28 USD/EUR/GBP or ₹1,888.
+- Display Max weekly at 28 USD/EUR/GBP or ₹1,888.
+- Display Max monthly at 88 USD/EUR/GBP or ₹5,888.
 
 Paid prices retain the CARCC numeric signature ending in 8/28.
 
@@ -136,9 +136,9 @@ Paid prices retain the CARCC numeric signature ending in 8/28.
 
 ### Notifications
 
-- In-app channel first.
-- Quiet hours.
-- Preferences synchronized to the account.
+- Use in-app notifications as the first supported notification channel.
+- Support quiet hours for optional notifications.
+- Synchronize notification preferences to the account.
 - Users may control notification categories, including security/account/billing notification delivery preferences; records required for security/audit may still be retained where necessary for the product or law.
 
 ### Public and administration surfaces
@@ -159,24 +159,24 @@ No future capability is current merely because old schema/code once existed. A f
 
 ## Technical constraints
 
-- Website/browser only for the current mission.
-- Fully responsive desktop/tablet/phone.
+- Keep the current mission limited to the website/browser product.
+- Make the website fully responsive across desktop, tablet and phone.
 - Durable account data uses the canonical account backend.
-- Offline model storage/download chunks are OPFS-only.
-- No provider/model/vendor identity in normal client/customer surfaces.
-- No duplicate model store, duplicate usage authority or duplicate Chat engine.
+- Keep Offline model storage and download chunks in OPFS only.
+- Never expose provider, model or vendor identity in normal client/customer surfaces.
+- Do not create a duplicate model store, usage authority or Chat engine.
 - Site updates must not redownload an unchanged verified Offline release.
 
 ## Success metrics and launch gates
 
 The current mission is ready only when:
-- no known repository-controlled Critical or Major launch blocker remains;
-- required unit/database/integration/browser gates pass;
-- real Online answers are proven in a disposable test account;
-- real Offline answers are proven on supported hardware/browser environments;
-- Auto behavior and exactly-once usage are proven;
-- model install/resume/remove/reinstall and no-redownload-on-site-update are proven;
-- every reachable current page/button/setting has browser coverage;
-- 360–375 px mobile layouts have no horizontal overflow or blocked controls;
-- no customer-visible provider/model/runtime identity leaks through UI, errors, bundle scans or public metadata;
-- production source/deployment parity is verified.
+- Confirm that no known repository-controlled Critical or Major launch blocker remains.
+- Confirm that all required unit, database, integration and browser gates pass.
+- Prove real Online answers with a disposable test account.
+- Prove real Offline answers on supported hardware and browser environments.
+- Prove Auto behavior and exactly-once usage accounting.
+- Prove model install, resume, remove, reinstall and no-redownload behavior after normal site updates.
+- Give every reachable current page, button and setting browser coverage.
+- Confirm that 360–375 px mobile layouts have no horizontal overflow or blocked controls.
+- Confirm that provider, model and runtime identity do not leak through UI, errors, bundle scans or public metadata.
+- Verify production source and deployment parity before release.
