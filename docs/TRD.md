@@ -6,15 +6,15 @@ CARCC is the company; OCADE is the product. The current technical mission is the
 
 ## Frontend
 
-- React 19 + TypeScript.
-- TanStack Router/Query/Start.
-- Vite.
-- Tailwind CSS.
-- Existing shared UI tokens/components; no second design system.
+- Use React 19 with TypeScript for the frontend.
+- Use TanStack Router, Query and Start for routing, server-state and application structure.
+- Use Vite for the frontend build pipeline.
+- Use Tailwind CSS for styling.
+- Reuse the existing shared UI tokens and components instead of creating a second design system.
 
 ## Runtime and package management
 
-- Node 22+.
+- Use Node 22 or newer within the supported engine range.
 - npm and the checked-in lockfile are authoritative.
 - Prefer native browser/platform APIs and existing dependencies before adding libraries.
 
@@ -27,17 +27,17 @@ CARCC is the company; OCADE is the product. The current technical mission is the
 
 ## Hosting and delivery
 
-- Cloudflare Worker serves the website.
-- Canonical origin: `https://ocade.in`.
+- Serve the website through the Cloudflare Worker.
+- Use `https://ocade.in` as the canonical origin.
 - Private Cloudflare R2 delivery is used for the opaque Offline Intelligence release.
 - HTTP and `www` canonicalization must occur before application HTML is served.
 
 ## Authentication
 
 Target OCADE website authentication:
-- Google;
-- six-digit email OTP;
-- password sign-in.
+- Support Google sign-in.
+- Support six-digit email OTP.
+- Support password sign-in as a target authentication method.
 
 MFA/strong reauthentication is required for privileged administrative or destructive operations according to risk.
 
@@ -58,23 +58,23 @@ One opaque OCADE release, one installer, one downloader, one model lifecycle.
 All Offline model **bytes, partial chunks/ranges, download checkpoints, integrity state, model metadata, active/previous model pointers and runtime-owned model assets** must live in OPFS.
 
 Do not use:
-- IndexedDB for model bytes/chunks;
-- Cache Storage for model bytes/chunks;
-- localStorage for model bytes/chunks/model metadata;
-- normal browser downloads;
-- a library-internal second model cache.
+- Do not store Offline model bytes or chunks in IndexedDB.
+- Do not store Offline model bytes or chunks in Cache Storage.
+- Do not store Offline model bytes, chunks or model metadata in localStorage.
+- Do not use the normal browser downloads folder as the model store.
+- Do not create a second model cache inside the runtime library.
 
 A non-model preference that must survive deletion of the model itself—such as “customer explicitly removed Offline Intelligence”—may be stored outside OPFS as a small product/device preference.
 
 ### Transfer requirements
 
-- Adaptive bounded range requests.
-- Persist each completed verified range/checkpoint.
-- Resume after refresh/restart/interruption.
-- Refresh expiring authorization.
+- Use adaptive bounded range requests for model transfer.
+- Persist each completed and verified download range or checkpoint.
+- Resume the model transfer after refresh, restart or interruption.
+- Refresh expiring download authorization when required.
 - Verify expected byte length and full digest before activation.
-- Repair only missing/corrupt ranges.
-- Atomic activation.
+- Repair only the missing or corrupt model ranges.
+- Activate a verified model atomically.
 - Never redownload a verified compatible release because the website bundle changed.
 - Explicit Remove verifies deletion before saying Removed.
 
@@ -90,18 +90,18 @@ Disconnected account work that must survive browser restart may use an encrypted
 
 ## Intelligence routing
 
-- **Auto:** Online when healthy/connected; Offline when disconnected and ready; pre-output fallback only.
-- **Online:** connected OCADE only.
-- **Offline:** local only.
+- **Auto** uses Online when healthy and connected, uses Offline when disconnected and ready, and allows fallback only before meaningful Online output.
+- **Online** uses the connected OCADE intelligence path only.
+- **Offline** uses the local intelligence path only.
 - One successful logical request uses one commercial permit regardless of internal routing/fallback.
 
 ## Usage
 
-- Free 28 / 6h28m.
-- Pro 140 / 6h28m + 700/week.
-- Max 1,400 / 6h28m + 7,000/week.
-- Account-anchored windows.
-- Same authority for all devices and modes.
+- The Free tier allows 28 successful uses per 6h28m window.
+- The Pro tier allows 140 successful uses per 6h28m window and 700 per week.
+- The Max tier allows 1,400 successful uses per 6h28m window and 7,000 per week.
+- Anchor usage windows to the account.
+- Use the same usage authority across every device and intelligence mode.
 - Failure/empty response releases/refunds the reservation.
 - Idempotency covers double clicks, retries, tabs, reconnects and failover.
 
@@ -117,18 +117,18 @@ The product retains pricing/tier metadata but paid checkout is closed. No Paddle
 
 ## Security
 
-- Secrets only in server/provider secret stores.
+- Keep secrets only in server-side secret stores.
 - No service-role or provider secret in client code.
 - No provider/model/vendor identity in normal client/customer surfaces.
-- Strong auth for admin/grant operations.
+- Require strong authentication for admin and grant operations.
 - Direct client writes to revocation/entitlement security fields are forbidden.
-- Sanitize internal errors.
+- Sanitize internal errors before they reach customers.
 - CSP and canonical-origin controls remain strict.
 
 ## Performance
 
-- Bounded reads and pagination.
-- Indexed account/admin searches.
+- Use bounded reads and pagination.
+- Use indexed queries for account and admin search.
 - Stream large files/model verification rather than materializing them unnecessarily.
 - Keep Chat interactive while Offline downloads.
 - Mobile layouts must remain responsive during network/database/model activity.
