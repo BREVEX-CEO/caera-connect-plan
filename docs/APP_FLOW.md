@@ -7,8 +7,8 @@
 - `/pricing` — Free/Pro/Max information; paid checkout closed.
 - `/about` — founder/company context: CARCC is the company, OCADE the product.
 - `/help` — Help Center/current support guidance.
-- `/terms`
-- `/privacy`
+- Use `/terms` for the Terms & Conditions page.
+- Use `/privacy` for the Privacy Policy page.
 - future `/status` only when real status data is published.
 
 ### Signed-in
@@ -95,18 +95,18 @@ Normal website updates never invalidate an unchanged verified model release.
 ## Message controls
 
 User message:
-- Copy
-- Edit
-- Delete
-- highlight text/word → Ask OCADE
+- Users can copy their own message.
+- Users can edit their own message.
+- Users can permanently delete their own message where the product supports it.
+- Users can highlight text or a word and choose Ask OCADE.
 
 Assistant:
-- Copy
-- Regenerate
-- Retry after failure
-- Delete
-- Helpful / Not helpful
-- sources/citations when present
+- Users can copy an OCADE answer.
+- Users can regenerate an OCADE answer.
+- Users can retry after a failed answer.
+- Users can delete an OCADE answer where the product supports it.
+- Users can mark an answer as Helpful or Not helpful.
+- OCADE shows sources or citations when they are present.
 
 **Ask OCADE on highlight** uses the selected text plus current conversation context. It is not a separately persisted side-conversation product.
 
@@ -149,13 +149,13 @@ If a saved chat is created while connectivity is unavailable:
 ## Settings
 
 Categories:
-- Account
-- Appearance
-- Notifications
-- Data Controls
-- Usage & Limits
-- Billing
-- Advanced
+- Account settings manage identity, authentication, sessions and account actions.
+- Appearance settings manage visual preferences.
+- Notifications settings manage notification preferences and quiet hours.
+- Data Controls manage Offline Intelligence, memory and supported data controls.
+- Usage & Limits shows plan allowances, remaining usage and reset timing.
+- Billing shows the current plan and the truthful paid-plan availability state.
+- Advanced contains only real advanced diagnostics or controls that are safe to expose.
 
 Account: identity methods, MFA, sessions, sign out, delete account.
 
