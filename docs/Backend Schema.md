@@ -53,16 +53,16 @@ The generated schema still contains subscription/invoice/payment-event tables fr
 
 ## Roles
 
-- ordinary authenticated user: own account data only;
+- An ordinary authenticated user may access only their own account data.
 - admin/owner: hidden privileged operations through audited server/RPC authorities;
-- service role: server-only, never client;
-- anonymous: only explicitly public data/routes.
+- The service role is server-only and must never be exposed to the client.
+- Anonymous users may access only explicitly public data and routes.
 
 ## RLS principles
 
-- Enable RLS on user-owned tables.
+- Enable row-level security on every user-owned table.
 - Prefer one clear policy per role/command rather than overlapping permissive policy sprawl.
-- Grants and RLS both matter.
+- Treat explicit grants and row-level security as separate required controls.
 - Parent/child ownership must be validated; a foreign key alone is not authorization.
 - Security-definer functions use pinned search paths and explicit auth checks.
 
@@ -75,12 +75,12 @@ Offline model data itself is **not database content**. It stays in browser OPFS 
 ## OPFS model storage
 
 Only OPFS may contain:
-- model bytes;
-- range chunks/partials;
-- download checkpoints;
-- model verification metadata;
-- active/previous release pointers;
-- runtime-owned model files/assets.
+- Store model bytes in OPFS only.
+- Store model range chunks and partials in OPFS only.
+- Store model download checkpoints in OPFS only.
+- Store model verification metadata in OPFS only.
+- Store active and previous release pointers in OPFS only.
+- Store runtime-owned model files and assets in OPFS only.
 
 No model byte/chunk copy in IndexedDB, Cache Storage, localStorage or cloud account storage.
 
@@ -97,22 +97,22 @@ Cloud Library content is private account content. Validate ownership and detecte
 ## API/RPC boundaries
 
 Critical RPC classes:
-- generation permit acquire/finalize/release;
+- Use RPCs to acquire, finalize and release generation permits.
 - read commercial usage;
-- Offline usage allocate/reconcile/return;
-- browser device register/revoke;
-- entitlement grant/revoke;
-- account session list/revoke;
+- Use RPCs to allocate, reconcile and return Offline usage.
+- Use RPCs to register and revoke browser devices.
+- Use RPCs to grant and revoke entitlements.
+- Use RPCs to list and revoke account sessions.
 - notification preference/save/read;
 - atomic Chat mutation such as regenerate truncation where required.
 
 ## Admin grants
 
 Admin grants:
-- target an account resolved server-side;
-- require admin/owner role and strong auth;
-- cannot self-grant when policy forbids it;
-- specify tier, duration and reason;
+- Resolve the target account on the server side before applying a grant.
+- Require an admin or owner role plus strong authentication for grants.
+- Prevent self-granting whenever policy forbids it.
+- Require every grant to specify the tier, duration and reason.
 - are auditable and expiring.
 
 ## Data deletion
