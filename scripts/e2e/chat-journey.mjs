@@ -429,6 +429,40 @@ try {
       )),
   );
 
+  /* --- signing out takes the transcript with it, in this tab, now ---------- */
+
+  /*
+   * THE PRIVACY BOUNDARY, WITHOUT A RELOAD.
+   *
+   * Sign-out cleared the conversation list and left everything else exactly
+   * where it was: the open conversation, its transcript, the streaming answer.
+   * The next person to sign in on the same machine — a shared laptop, a library
+   * computer, a demo at a desk — could be looking at the previous person's
+   * words, and a read that was already in flight could put them back even after
+   * a clear. A reload would have hidden it, so this deliberately does not
+   * reload: it signs out and looks at the same document.
+   */
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(500);
+  await page.locator("aside ul li button").first().click();
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  check("a signed-in tab is showing a transcript", true);
+
+  await page.click('aside button[aria-haspopup="menu"]');
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await page.waitForTimeout(1500);
+  const afterSignOut = await page.locator("body").innerText();
+  check(
+    "signing out empties the transcript in the same document",
+    !afterSignOut.includes("stubbed OCADE answer"),
+    afterSignOut.split("\n").find((line) => line.includes("stubbed")) ?? "",
+  );
+  check(
+    "and takes the conversation list with it",
+    (await page.locator("aside ul li").count()) === 0,
+    `${await page.locator("aside ul li").count()} rows`,
+  );
+
   check("no uncaught page errors", pageErrors.length === 0, pageErrors.join("; "));
 } finally {
   await browser.close();

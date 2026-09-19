@@ -31,7 +31,11 @@ export async function listOfflineDevices(): Promise<OfflineDevice[]> {
     .from("devices")
     .select("id, name, kind, last_active_at")
     .is("revoked_at", null)
-    .order("last_active_at", { ascending: false });
+    .order("last_active_at", { ascending: false })
+    // The cap is two of each kind, so this can only ever be a handful — but a
+    // screen that reads a table without a bound is one schema change away from
+    // reading all of it.
+    .limit(20);
   if (error) throw new Error("Your devices could not be read just now.");
   return (data ?? []).map((row) => ({
     id: row.id,

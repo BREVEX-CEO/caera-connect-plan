@@ -30,6 +30,7 @@ import { defineConfig } from "vitest/config";
  */
 
 const DATABASE_BACKED = [
+  "src/lib/__tests__/one-account-cannot-see-another.test.ts",
   "src/lib/__tests__/security-definer.test.ts",
   "src/lib/account/__tests__/data-rights-map.test.ts",
   "src/lib/admin/__tests__/admin-operations-schema.test.ts",

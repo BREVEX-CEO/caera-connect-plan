@@ -49,6 +49,9 @@ import type { IntelligenceMode } from "@/lib/intelligence/contract";
 import { useSession } from "@/lib/session";
 import { saveFile } from "@/lib/utils";
 
+/** How many questions keep their attachment bytes in this tab. */
+const CARRIED_QUESTIONS = 5;
+
 /** The three words a customer sees, and the mode each one means. */
 export type IntelligenceChoice = "auto" | "ocade" | "offline";
 
@@ -416,10 +419,26 @@ export function useChat(): ChatState & ChatActions {
        * gate — took the question with it. The caller is told the request was
        * not accepted and puts it back.
        */
-      const billed = await beginBilledRequest({ surface: "chat" });
+      /*
+       * A GATE THAT THROWS MUST NOT LEAVE THE COMPOSER STUCK FOR EVER.
+       *
+       * `sending` is set before this line, and nothing after a thrown permit
+       * would clear it — Send would be dead for the life of the tab, with no
+       * error anywhere. The gate explains its own refusals; an unexpected
+       * throw is not one of them, so it gets a sentence of its own.
+       */
+      const acquired = await beginBilledRequest({ surface: "chat" }).catch(
+        () => "gate_failed" as const,
+      );
+      const billed = acquired === "gate_failed" ? null : acquired;
       if (!billed) {
         sending.current = false;
-        return false; // The gate has already said why, in its own words.
+        // The gate explains its own refusals. An unexpected throw is not one of
+        // them, so it gets a sentence rather than silence.
+        if (acquired === "gate_failed") {
+          setProblem("OCADE could not verify your usage allowance. Nothing was sent.");
+        }
+        return false;
       }
 
       setBusy(true);
@@ -485,7 +504,15 @@ export function useChat(): ChatState & ChatActions {
         setMessages((current) => [...current, question.record]);
         // The bytes stay in this tab so Regenerate can send the same file
         // again. Names and sizes are all the stored row will ever have.
-        if (attachments.length > 0) carried.current.set(question.record.id, attachments);
+        if (attachments.length > 0) {
+          carried.current.set(question.record.id, attachments);
+          // A file can be 100 MB. Only the recent questions can still be
+          // regenerated in practice, so older bytes are released rather than
+          // held until the tab closes.
+          for (const id of [...carried.current.keys()].slice(0, -CARRIED_QUESTIONS)) {
+            carried.current.delete(id);
+          }
+        }
 
         /*
          * THE TRANSCRIPT ALREADY HAS THE QUESTION IN IT.
