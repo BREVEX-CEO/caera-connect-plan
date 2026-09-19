@@ -32,11 +32,31 @@ export class DeviceRegistrationFailed extends Error {
 }
 
 let problem: DeviceRegistrationProblem | null = null;
+/** The account the answer above is about. A different one has not been asked. */
+let problemAccount: string | null = null;
 const watchers = new Set<() => void>();
 
-/** Why this browser has no device, or null while it has one. */
-export function deviceRegistrationProblem(): DeviceRegistrationProblem | null {
+/**
+ * Why this browser has no device, or null while it has one.
+ *
+ * `forAccount` is how a screen refuses to show somebody else's answer. This was
+ * module-global and unkeyed, so signing out and in as another account left the
+ * first account's "you are at your device limit" on the second account's
+ * Settings until a refresh happened to overwrite it.
+ */
+export function deviceRegistrationProblem(
+  forAccount?: string | null,
+): DeviceRegistrationProblem | null {
+  if (forAccount !== undefined && forAccount !== problemAccount) return null;
   return problem;
+}
+
+/** Forget what was learned about another account. */
+function observeAccount(accountId: string | null): void {
+  if (problemAccount === accountId) return;
+  problemAccount = accountId;
+  problem = null;
+  for (const notify of watchers) notify();
 }
 
 /** Subscribe a surface to that answer. Returns its own unsubscribe. */
@@ -73,12 +93,28 @@ function publish(next: DeviceRegistrationProblem | null): void {
   for (const notify of watchers) notify();
 }
 
+/**
+ * Forget this browser's device.
+ *
+ * Used when the person removes it: the allocation is gone server-side, and a
+ * cached identity pointing at a revoked device would send the next offline
+ * request looking for a lease that no longer exists.
+ */
+export function forgetCurrentDeviceIdentity(): void {
+  try {
+    window.localStorage.removeItem(CURRENT_DEVICE_CACHE);
+  } catch {
+    /* A browser that will not let go of it must not fail the removal. */
+  }
+}
+
 /** Cached identity locates a lease; spending still requires its valid server signature. */
 export async function getOfflineCurrentDeviceIdentity(): Promise<CurrentDeviceIdentity | null> {
   if (typeof window === "undefined") return null;
   const supabase = await loadSupabaseClient();
   const { data, error } = await supabase.auth.getSession();
   if (error || !data.session?.user.id) return null;
+  observeAccount(data.session.user.id);
   try {
     const identity = JSON.parse(window.localStorage.getItem(CURRENT_DEVICE_CACHE) ?? "null");
     return identity?.accountId === data.session.user.id &&
@@ -93,11 +129,22 @@ export async function getOfflineCurrentDeviceIdentity(): Promise<CurrentDeviceId
 
 /** Register a fresh installation, or revalidate its existing grant before caching it. */
 export async function ensureCurrentDeviceIdentity(): Promise<CurrentDeviceIdentity | null> {
-  if (typeof window === "undefined" || !navigator.onLine || !navigator.locks) return null;
+  /*
+   * NO WEB LOCKS REQUIREMENT ANY MORE.
+   *
+   * This returned null — silently, publishing nothing — in any browser without
+   * `navigator.locks`, so an unsupported or restricted browser never registered
+   * and was never told why, while the model UI could still say Ready. The lock
+   * it was reaching for is now the database's, held by the registration
+   * transaction, which also covers the tabs and devices a browser-local lock
+   * could never see.
+   */
+  if (typeof window === "undefined" || !navigator.onLine) return null;
   const supabase = await loadSupabaseClient();
   const { data, error } = await supabase.auth.getSession();
   if (error || !data.session?.user.id) return null;
   const accountId = data.session.user.id;
+  observeAccount(accountId);
   const browserInstallId = getBrowserInstallId();
   if (!browserInstallId) return null;
   try {
@@ -110,72 +157,41 @@ export async function ensureCurrentDeviceIdentity(): Promise<CurrentDeviceIdenti
   }
 }
 
+/**
+ * ONE CALL, ONE TRANSACTION, ONE OUTCOME.
+ *
+ * The device row and the grant that points at it are written together by
+ * `register_browser_device_for_current_user`, so there is no moment at which
+ * one exists without the other and no compensating delete whose own failure
+ * could leave an orphan device holding a slot for ever.
+ *
+ * A null answer means this browser's grant was revoked. It is not re-admitted:
+ * removing a device in Settings would be worthless if the browser signed itself
+ * back in on the next visit.
+ */
 async function registerCurrentDevice(
   supabase: Awaited<ReturnType<typeof loadSupabaseClient>>,
   accountId: string,
   browserInstallId: string,
 ): Promise<CurrentDeviceIdentity | null> {
-  return navigator.locks.request(`ocade:device:${accountId}:${browserInstallId}`, async () => {
-    const grant = await supabase
-      .from("browser_grants")
-      .select("device_id, revoked_at")
-      .eq("user_id", accountId)
-      .eq("browser_install_id", browserInstallId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (grant.error)
-      throw new DeviceRegistrationFailed(
-        "unavailable",
-        "This browser grant could not be verified.",
-      );
-    let deviceId = grant.data?.device_id;
-    if (deviceId) {
-      const device = await supabase
-        .from("devices")
-        .select("id, revoked_at")
-        .eq("id", deviceId)
-        .eq("user_id", accountId)
-        .maybeSingle();
-      if (device.error)
-        throw new DeviceRegistrationFailed("unavailable", "This device could not be verified.");
-      if (grant.data?.revoked_at || !device.data || device.data.revoked_at) {
-        window.localStorage.removeItem(CURRENT_DEVICE_CACHE);
-        return null;
-      }
-    } else {
-      const device = await supabase
-        .from("devices")
-        .insert({
-          user_id: accountId,
-          kind: guessDeviceKind(),
-          name: browserLabel(),
-        })
-        .select("id")
-        .single();
-      if (device.error || !device.data)
-        throw new DeviceRegistrationFailed(
-          device.error?.code === DEVICE_CAP_REFUSAL ? "device_limit" : "unavailable",
-          "This device could not be registered.",
-        );
-      deviceId = device.data.id;
-      const created = await supabase.from("browser_grants").insert({
-        user_id: accountId,
-        device_id: deviceId,
-        browser_install_id: browserInstallId,
-        origin: window.location.origin,
-        user_agent: navigator.userAgent,
-      });
-      if (created.error) {
-        await supabase.from("devices").delete().eq("id", deviceId).eq("user_id", accountId);
-        throw new DeviceRegistrationFailed(
-          "unavailable",
-          "This browser grant could not be registered.",
-        );
-      }
-    }
-    const identity = { accountId, deviceId, browserInstallId };
-    window.localStorage.setItem(CURRENT_DEVICE_CACHE, JSON.stringify(identity));
-    return identity;
+  const { data, error } = await supabase.rpc("register_browser_device_for_current_user", {
+    _browser_install_id: browserInstallId,
+    _kind: guessDeviceKind(),
+    _name: browserLabel(),
+    _origin: window.location.origin,
+    _user_agent: navigator.userAgent,
   });
+  if (error)
+    throw new DeviceRegistrationFailed(
+      error.code === DEVICE_CAP_REFUSAL ? "device_limit" : "unavailable",
+      "This device could not be registered.",
+    );
+  const deviceId = data as string | null;
+  if (!deviceId) {
+    window.localStorage.removeItem(CURRENT_DEVICE_CACHE);
+    return null;
+  }
+  const identity = { accountId, deviceId, browserInstallId };
+  window.localStorage.setItem(CURRENT_DEVICE_CACHE, JSON.stringify(identity));
+  return identity;
 }

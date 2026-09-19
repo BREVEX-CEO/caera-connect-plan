@@ -247,3 +247,66 @@ export const reconcileOfflineUsage = createServerFn({ method: "POST" })
     }
     return { consumedHundredths: Number(consumed) };
   });
+
+/**
+ * GIVE BACK WHAT A REMOVED DEVICE WAS HOLDING.
+ *
+ * A device that can answer without a network is charged its whole block when
+ * the block is issued — that is what makes the block spendable with no network
+ * to ask. When the person removes that device, the part it never spent stayed
+ * held against their allowance until the window expired: a Free block until the
+ * session reset, and a paid one for a week.
+ *
+ * `ocade_return_offline_usage` has existed since the leases did and nothing
+ * called it. This is its caller, and it is deliberately the narrow case that is
+ * SAFE rather than the general one that is not:
+ *
+ *   - the device must be REVOKED, so it can never be issued another block;
+ *   - the browser calls this for ITS OWN device, immediately after reporting
+ *     everything it spent and deleting its local copy of the lease, so there is
+ *     no signed block left anywhere that could still be spent.
+ *
+ * A device removed from a DIFFERENT browser is not returned here: that browser
+ * may hold a signed block, offline, that it has not reported yet, and giving
+ * the capacity back before those events arrive would hand the account the same
+ * requests twice. Its block expires on its own.
+ *
+ * The RPC is idempotent — a lease that is already `returned` yields nothing —
+ * so a retry after a lost response cannot double-credit either.
+ */
+export const closeOfflineUsageForRevokedDevice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: { deviceId: string }) => {
+    if (!data?.deviceId) throw new Error("That device is not valid.");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: device, error: deviceError } = await supabaseAdmin
+      .from("devices")
+      .select("id, revoked_at")
+      .eq("id", data.deviceId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (deviceError) throw new Error("That device could not be read.");
+    // Not this account's device, or still active: either way there is nothing
+    // to return, and returning it would be wrong.
+    if (!device?.revoked_at) return { returnedHundredths: 0 };
+
+    const { data: rows, error } = await supabaseAdmin.rpc("ocade_read_offline_usage", {
+      p_user_id: context.userId,
+    });
+    if (error) throw new Error("That device's offline allowance could not be read.");
+
+    let returnedHundredths = 0;
+    for (const row of rows ?? []) {
+      if (row.device_id !== data.deviceId) continue;
+      const { data: returned } = await supabaseAdmin.rpc("ocade_return_offline_usage", {
+        p_user_id: context.userId,
+        p_device_id: data.deviceId,
+        p_lease_id: row.lease_id,
+      });
+      returnedHundredths += Number(returned ?? 0);
+    }
+    return { returnedHundredths };
+  });

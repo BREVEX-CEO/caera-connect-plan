@@ -105,6 +105,20 @@ try {
 
   const sent = await lastBoundaryRequest();
   check("the request carried the person's identity", sent.authorized === true);
+  /*
+   * ONE QUESTION, SENT ONCE.
+   *
+   * The transcript is updated synchronously before the request is built, and
+   * the question was then appended to it a second time — so the model received
+   * the last thing the person typed twice, on every single request. It distorts
+   * the answer and pays for the tokens twice, and nothing visible says so.
+   */
+  check(
+    "the question was sent exactly once, and nothing else was",
+    JSON.stringify(sent.turns.filter((turn) => turn.role !== "system")) ===
+      JSON.stringify([{ role: "user", content: "An online question" }]),
+    JSON.stringify(sent.turns),
+  );
   check(
     "the request carried a server-issued permit, not a claim of one",
     Boolean(sent.permitId) && sent.permitSource === "server",

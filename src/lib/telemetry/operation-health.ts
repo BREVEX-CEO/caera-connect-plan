@@ -68,6 +68,8 @@ export const HEALTH_OPERATIONS = [
   "webhook_receipt",
   "model_prepare",
   "offline_allowance",
+  /** Finalising or releasing a reservation after a generation ended. */
+  "usage_settlement",
   "backup_restore",
 ] as const;
 export type HealthOperation = (typeof HEALTH_OPERATIONS)[number];

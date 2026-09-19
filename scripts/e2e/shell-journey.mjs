@@ -45,6 +45,27 @@ try {
     (await page.locator("h1", { hasText: "Ask OCADE" }).count()) === 1,
   );
   check("the composer is present", (await page.locator("#ocade-composer").count()) === 1);
+
+  /*
+   * THE DOCUMENT THAT RUNS INFERENCE IS THE ONE THAT HAS TO BE ISOLATED.
+   *
+   * This journey used to celebrate `/ocade` returning 404 — and `/ocade` was
+   * the only path the isolation headers were ever applied to. Chat is `/`, so
+   * the real engine ran on a document with no `SharedArrayBuffer`, on one
+   * thread, and every check here passed.
+   *
+   * `crossOriginIsolated` is the platform's own answer, not a header read back,
+   * which is the only thing worth asserting: a browser that ignores
+   * `credentialless` would still send the headers and still have no threads.
+   */
+  check(
+    "the chat document is cross-origin isolated, so the engine can use several cores",
+    (await page.evaluate(() => globalThis.crossOriginIsolated === true)) === true,
+  );
+  check(
+    "and it really has SharedArrayBuffer",
+    (await page.evaluate(() => typeof SharedArrayBuffer === "function")) === true,
+  );
   for (const label of ["Chat", "Library", "Cowork", "New chat"]) {
     check(
       `the sidebar offers ${label}`,
@@ -83,6 +104,22 @@ try {
     const response = await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded" });
     check(`${path} is gone`, response?.status() === 404, `status ${response?.status()}`);
   }
+
+  /*
+   * SIGN-IN IS ON THE OTHER SIDE OF THE BOUNDARY, AND STAYS THERE.
+   *
+   * COOP `same-origin` severs `window.opener`, so the one document that must
+   * never be isolated is the one the auth SDK could open a popup from. Reaching
+   * it from Chat is a client-side transition, which cannot change isolation —
+   * the root route turns it into a real navigation, and this is what proves it.
+   */
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  await page.getByRole("link", { name: "Sign in" }).first().click();
+  await page.waitForURL(/\/auth/, { timeout: 15_000 });
+  check(
+    "reaching sign-in from chat leaves the isolated document behind",
+    (await page.evaluate(() => globalThis.crossOriginIsolated === true)) === false,
+  );
 
   const phone = await browser.newContext({ viewport: { width: 375, height: 812 } });
   const small = await phone.newPage();

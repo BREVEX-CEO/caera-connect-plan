@@ -129,7 +129,7 @@ try {
 
   /* --- the three controls that are one operation -------------------------- */
 
-  const turns = () => page.locator(".group").filter({ hasText: "stubbed OCADE answer" });
+  const turns = () => page.locator("div.group").filter({ hasText: "stubbed OCADE answer" });
 
   /*
    * WAIT FOR THE TRANSCRIPT TO SETTLE, DO NOT SAMPLE IT.
@@ -144,7 +144,7 @@ try {
     await page
       .waitForFunction(
         (want) =>
-          [...document.querySelectorAll(".group")].filter((node) =>
+          [...document.querySelectorAll("div.group")].filter((node) =>
             node.textContent?.includes("stubbed OCADE answer"),
           ).length === want,
         expected,
@@ -174,7 +174,17 @@ try {
   await page.getByRole("button", { name: "Edit" }).first().click();
   await page.fill('textarea[id^="edit-"]', "What is OCADE, in one line?");
   await page.getByRole("button", { name: "Send edit" }).click();
-  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  /*
+   * WAIT FOR THE THING BEING TESTED, NOT FOR TEXT THAT IS ALREADY THERE.
+   *
+   * This waited for the answer text, which the PREVIOUS answer already
+   * satisfied, so it returned immediately and the checks below sampled the
+   * transcript before the edit had landed. Whether they passed depended on how
+   * many round trips the edit took — and the edit gained one the moment the
+   * allowance was asked before anything was deleted. The edited question is
+   * what proves the edit happened, so that is what is waited for.
+   */
+  await page.waitForSelector('text="What is OCADE, in one line?"', { timeout: 20_000 });
   check(
     "editing a question replaces it rather than adding one",
     (await page.getByText("What is OCADE?", { exact: true }).count()) === 0 &&
@@ -193,10 +203,41 @@ try {
 
   /* --- deleting one turn, not the conversation ---------------------------- */
 
-  const before = await page.locator(".group").count();
+  const before = await page.locator("div.group").count();
   await page.getByRole("button", { name: "Delete" }).last().click();
   await page.waitForTimeout(600);
-  check("a single turn can be deleted", (await page.locator(".group").count()) < before);
+  check("a single turn can be deleted", (await page.locator("div.group").count()) < before);
+
+  /*
+   * A DELETION THAT FAILED MUST NOT LOOK LIKE ONE THAT WORKED.
+   *
+   * The screen removed the turn and swallowed the database's refusal, so
+   * private text somebody had deleted came back on the next reload — it had
+   * never left the account. The DOM check above cannot see that, because the
+   * DOM is exactly what the defect got right.
+   */
+  await fetch(`${SUPABASE}/__fixture/refuse`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ table: "ocade_messages", method: "DELETE" }),
+  });
+  const beforeRefused = await page.locator("div.group").count();
+  await page.getByRole("button", { name: "Delete" }).last().click();
+  await page.waitForTimeout(800);
+  check(
+    "a turn the account refused to delete stays on the screen",
+    (await page.locator("div.group").count()) === beforeRefused,
+    `${await page.locator("div.group").count()} against ${beforeRefused}`,
+  );
+  check(
+    "and the person is told rather than left believing it is gone",
+    /could not|try again|reach/i.test(await page.locator("body").innerText()),
+  );
+  await fetch(`${SUPABASE}/__fixture/refuse`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({}),
+  });
 
   /* --- recent history is grouped by when, not one flat run ---------------- */
 
@@ -307,6 +348,39 @@ try {
     (await page.locator("aside ul li").count()) === savedBefore,
     `${await page.locator("aside ul li").count()} rows against ${savedBefore}`,
   );
+  /*
+   * A FILE IS PART OF "NOTHING IS SAVED", AND IT WAS NOT.
+   *
+   * Every readable attachment was copied into Library, with no check for
+   * temporary mode at all — so somebody who turned Temporary on to ask about a
+   * document found that document on their account afterwards. The transcript
+   * checks above all passed while that was true, which is why this one counts
+   * Library rather than the sidebar.
+   */
+  await page.setInputFiles('input[aria-label="Attach files"]', {
+    name: "private-notes.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("secret,value\nkeep,private\n"),
+  });
+  await page.waitForSelector("text=private-notes.csv", { timeout: 10_000 });
+  await page.fill("#ocade-composer", "What does this say?");
+  await page.click('button[aria-label="Send"]');
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+
+  // Library is where a person looks for their files, so Library is what is
+  // asked. The pair is what makes this non-vacuous: the file from the ordinary
+  // conversation above MUST be there, and this one must not.
+  await page.goto(`${BASE}/library`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  const library = await page.locator("body").innerText();
+  check(
+    "a file attached in an ordinary chat is kept in Library",
+    library.includes("sales.csv"),
+    library.slice(0, 160).replaceAll("\n", " "),
+  );
+  check("a file attached in a temporary chat is not", !library.includes("private-notes.csv"));
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   check(

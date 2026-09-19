@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
-import { planThreads, readThreadOutcome, MAX_THREADS } from "../wasm-threads";
+import { planThreads, MAX_THREADS } from "../wasm-threads";
 
 /**
  * The thread plan, and the fact about the library it rests on.
@@ -154,41 +154,5 @@ describe("the count itself", () => {
         expect(plan.multithreaded).toBe(plan.threads > 1);
       }
     }
-  });
-});
-
-describe("what the runtime did is asked, not assumed", () => {
-  it("reports the runtime's own answer", () => {
-    const outcome = readThreadOutcome({
-      isMultithread: () => true,
-      getNumThreads: () => 4,
-    });
-    expect(outcome).toEqual({ multithreaded: true, threads: 4 });
-  });
-
-  it("falls back to one thread when the runtime refuses to answer", () => {
-    /*
-     * `isMultithread()` throws before a model is loaded. The conservative
-     * answer is the honest one — claiming four threads on a device running one
-     * is how a diagnostic surface starts lying.
-     */
-    const outcome = readThreadOutcome({
-      isMultithread: () => {
-        throw new Error("model not loaded");
-      },
-    });
-    expect(outcome).toEqual({ multithreaded: false, threads: 1 });
-  });
-
-  it("survives a runtime that exposes neither method", () => {
-    expect(readThreadOutcome({})).toEqual({ multithreaded: false, threads: 1 });
-  });
-
-  it("does not report a nonsense thread count", () => {
-    const outcome = readThreadOutcome({
-      isMultithread: () => true,
-      getNumThreads: () => Number.NaN,
-    });
-    expect(outcome.threads).toBe(1);
   });
 });

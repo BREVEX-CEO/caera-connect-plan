@@ -4,7 +4,7 @@ import {
   revokeAccountSession,
   revokeOtherAccountSessions,
 } from "@/lib/security/sessions.functions";
-import { Action, Pending, Row } from "./rows";
+import { Action, Pending, Row, describeWhen } from "./rows";
 
 /**
  * ADVANCED: WHERE THIS ACCOUNT IS SIGNED IN, AND NOTHING A CUSTOMER SHOULD NEED.
@@ -101,15 +101,4 @@ export function AdvancedSection() {
       ) : null}
     </div>
   );
-}
-
-/** "2 hours ago" — when, not a timestamp nobody reads. */
-function describeWhen(iso: string): string {
-  const at = Date.parse(iso);
-  if (!Number.isFinite(at)) return "recently";
-  const minutes = Math.max(1, Math.round((Date.now() - at) / 60_000));
-  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 48) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-  return `${Math.round(hours / 24)} days ago`;
 }

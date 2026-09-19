@@ -34,6 +34,7 @@ const DATABASE_BACKED = [
   "src/lib/account/__tests__/data-rights-map.test.ts",
   "src/lib/admin/__tests__/admin-operations-schema.test.ts",
   "src/lib/chat/__tests__/conversation-trash-schema.test.ts",
+  "src/lib/commercial/__tests__/device-registration-against-postgres.test.ts",
   "src/lib/commercial/__tests__/gate-against-postgres.test.ts",
   "src/lib/commercial/__tests__/ledger-against-postgres.test.ts",
   "src/lib/commercial/__tests__/offline-capacity-against-postgres.test.ts",

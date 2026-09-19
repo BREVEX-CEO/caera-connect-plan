@@ -75,7 +75,7 @@ export const listConversations = createServerFn({ method: "GET" })
       .order("pinned", { ascending: false })
       .order("updated_at", { ascending: false })
       .limit(LIST_CAP);
-    if (error) throw new Response(error.message, { status: 500 });
+    if (error) throw new Error(error.message);
     return data ?? [];
   });
 
@@ -102,8 +102,8 @@ export const setConversationTrashed = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select(CONVERSATION_COLUMNS)
       .maybeSingle();
-    if (error) throw new Response(error.message, { status: 500 });
-    if (!row) throw new Response("That conversation no longer exists.", { status: 404 });
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("That conversation no longer exists.");
     return row;
   });
 
@@ -132,7 +132,7 @@ export const createConversation = createServerFn({ method: "POST" })
       )
       .select(CONVERSATION_COLUMNS)
       .single();
-    if (error) throw new Response(error.message, { status: 500 });
+    if (error) throw new Error(error.message);
     return row;
   });
 
@@ -157,7 +157,7 @@ export const updateConversation = createServerFn({ method: "POST" })
       .from("ocade_conversations")
       .update(patch as never)
       .eq("id", data.id);
-    if (error) throw new Response(error.message, { status: 500 });
+    if (error) throw new Error(error.message);
     return { ok: true as const };
   });
 
@@ -183,7 +183,7 @@ export const deleteAllConversations = createServerFn({ method: "POST" })
       .from("ocade_conversations")
       .delete({ count: "exact" })
       .eq("user_id", context.userId);
-    if (error) throw new Response(error.message, { status: 500 });
+    if (error) throw new Error(error.message);
     return { ok: true as const, deleted: count ?? 0 };
   });
 
@@ -226,7 +226,7 @@ export const listMessages = createServerFn({ method: "GET" })
         .order("created_at", { ascending: true })
         .range(from, to),
     ).catch((cause: Error) => {
-      throw new Response(cause.message, { status: 500 });
+      throw new Error(cause.message);
     });
     return rows;
   });
@@ -244,7 +244,7 @@ export const deleteMessage = createServerFn({ method: "POST" })
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("ocade_messages").delete().eq("id", data.id);
-    if (error) throw new Response(error.message, { status: 500 });
+    if (error) throw new Error(error.message);
     return { ok: true as const };
   });
 
@@ -304,7 +304,7 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
       .select("id, title")
       .eq("id", data.conversationId)
       .maybeSingle();
-    if (!conv) throw new Response("Conversation not found", { status: 404 });
+    if (!conv) throw new Error("Conversation not found");
 
     const COLUMNS =
       "id, role, content, attachments, citations, reaction, model_id, provider_id, created_at";
@@ -360,7 +360,7 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
           .maybeSingle();
         if (raced) return raced;
       }
-      throw new Response(error.message, { status: 500 });
+      throw new Error(error.message);
     }
 
     // Auto-title from the first user message.

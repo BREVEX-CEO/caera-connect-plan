@@ -67,14 +67,17 @@ function statusIsRejection(status: number): boolean {
 /**
  * Signals from supabase-js / fetch that a request did not complete.
  *
- * `AuthRetryableFetchError` is the one supabase-js raises when its own fetch
- * threw, and it carries `status: 0`. A `TypeError` from fetch has no status at
- * all. Those are the only two shapes that can honestly be called transport.
+ * `AuthRetryableFetchError` means "worth retrying", which is NOT the same as
+ * "never answered". `@supabase/auth-js` raises it with `status: 0` when its own
+ * fetch threw, and with the REAL STATUS for 500-530 — a server that answered.
+ * Only the first of those is transport, so the name is trusted exactly when
+ * there is no status to contradict it.
  */
 function isRetryableTransport(err: MaybeAuthError): boolean {
-  const name = String(err.name ?? "").toLowerCase();
-  if (name.includes("retryable")) return true;
-  return false;
+  if (typeof err.status === "number" && statusIsRejection(err.status)) return false;
+  return String(err.name ?? "")
+    .toLowerCase()
+    .includes("retryable");
 }
 
 function classifyAuthFailure(error: unknown): AuthFailureKind {
@@ -83,17 +86,16 @@ function classifyAuthFailure(error: unknown): AuthFailureKind {
   const err = error as MaybeAuthError;
 
   /*
-   * supabase-js's own retryable marker is checked FIRST, because it carries
-   * status 0 and is the library telling us the request never completed.
-   */
-  if (isRetryableTransport(err)) return "transport";
-
-  /*
    * An explicit status outranks everything else and always fails closed. A
    * rejection body can contain the word "timeout"; a 503 from a proxy proves
-   * only that something on the path is alive and talking.
+   * only that something on the path is alive and talking — and supabase-js
+   * wraps exactly those in its retryable error, which is why the status is
+   * read before the name rather than after it.
    */
   if (typeof err.status === "number" && statusIsRejection(err.status)) return "rejected";
+
+  /* The library saying its own fetch never completed, with no status to deny it. */
+  if (isRetryableTransport(err)) return "transport";
 
   // AuthApiError / AuthSessionMissingError are answers even without a status.
   const name = String(err.name ?? "").toLowerCase();

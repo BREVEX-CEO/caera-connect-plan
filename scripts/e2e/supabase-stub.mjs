@@ -252,6 +252,78 @@ function handleRpc(name, args, userId) {
       return removed;
     }
 
+    case "register_browser_device_for_current_user": {
+      /*
+       * The one transactional registration, modelled the way the database does
+       * it. The browser no longer inserts a device and a grant itself, so a
+       * stub that still only answered table writes would leave every offline
+       * proof registering nothing and meeting a refusal it could not explain.
+       *
+       * Three behaviours matter here and all three are the product's: an
+       * existing grant returns its device, a revoked one returns null and is
+       * NOT re-admitted, and the cap refuses with 23514 before anything is
+       * written — which is what the browser turns into "this account already
+       * answers offline on as many devices as it allows".
+       */
+      const devices = rows(userId, "devices");
+      const grants = rows(userId, "browser_grants");
+      const install = args._browser_install_id;
+      const existing = [...grants].reverse().find((grant) => grant.browser_install_id === install);
+      if (existing) {
+        const device = devices.find((candidate) => candidate.id === existing.device_id);
+        if (existing.revoked_at || !device || device.revoked_at) return null;
+        device.last_active_at = new Date().toISOString();
+        existing.last_seen_at = device.last_active_at;
+        return device.id;
+      }
+      const active = devices.filter(
+        (candidate) => candidate.kind === args._kind && !candidate.revoked_at,
+      );
+      if (active.length >= DEVICE_CAP) {
+        return {
+          __error: {
+            code: "23514",
+            message: `Device cap reached for kind ${args._kind}: maximum ${DEVICE_CAP} active per account.`,
+          },
+        };
+      }
+      const created = {
+        id: crypto.randomUUID(),
+        user_id: userId,
+        kind: args._kind,
+        name: args._name,
+        user_agent: args._user_agent,
+        last_active_at: new Date().toISOString(),
+        revoked_at: null,
+        created_at: new Date().toISOString(),
+      };
+      devices.push(created);
+      grants.push({
+        id: crypto.randomUUID(),
+        user_id: userId,
+        device_id: created.id,
+        browser_install_id: install,
+        origin: args._origin,
+        user_agent: args._user_agent,
+        revoked_at: null,
+        created_at: new Date().toISOString(),
+        last_seen_at: new Date().toISOString(),
+      });
+      return created.id;
+    }
+
+    case "revoke_device_for_current_user": {
+      const devices = rows(userId, "devices");
+      const device = devices.find((candidate) => candidate.id === args._device_id);
+      if (!device) return false;
+      const at = new Date().toISOString();
+      device.revoked_at = device.revoked_at ?? at;
+      for (const grant of rows(userId, "browser_grants")) {
+        if (grant.device_id === device.id) grant.revoked_at = grant.revoked_at ?? at;
+      }
+      return true;
+    }
+
     case "ocade_active_entitlement_grant":
     case "ocade_my_entitlement_grant":
       // No grant: the account is on Free, which is what the allowance tests want.
@@ -463,6 +535,9 @@ const onlineBoundary = { status: 200, lastRequest: null };
 /** The only code `/auth/v1/verify` accepts. Nothing is sent anywhere. */
 const OTP_CODE = "123456";
 
+/** One write the stub has been told to refuse. `/__fixture/refuse` sets it. */
+const refusals = { table: null, method: null };
+
 /** What `/auth/v1/settings` reports. `/__fixture/auth-providers` changes it. */
 const authProviders = { google: true, email: true };
 
@@ -529,6 +604,23 @@ const server = createServer((request, response) => {
        */
       Object.assign(authProviders, JSON.parse(body || "{}"));
       return send(200, { ok: true, external: authProviders });
+    }
+
+    if (url.pathname === "/__fixture/refuse") {
+      /*
+       * MAKE ONE WRITE FAIL, SO A FAILURE CAN BE PROVED RATHER THAN ASSUMED.
+       *
+       * A screen that removes a message optimistically and swallows the
+       * database's refusal looks identical to one that worked — until a reload
+       * brings back private text somebody deleted. There is no way to see that
+       * from outside without making the write actually fail, which is what this
+       * is for. POST {"table":"ocade_messages","method":"DELETE"} refuses the
+       * next matching request; POST {} clears it.
+       */
+      const next = JSON.parse(body || "{}");
+      refusals.table = next.table ?? null;
+      refusals.method = next.method ?? null;
+      return send(200, { ok: true, refusing: refusals.table });
     }
 
     if (url.pathname === "/__fixture/spend-allowance") {
@@ -763,6 +855,10 @@ const server = createServer((request, response) => {
         return send(200, single ? (projected[0] ?? null) : projected);
       }
 
+      if (refusals.table === name && (!refusals.method || refusals.method === request.method)) {
+        return send(500, { message: `the stub was told to refuse ${request.method} on ${name}` });
+      }
+
       if (request.method === "DELETE") {
         const removed = stored.filter((row) => matches(row, params));
         const kept = stored.filter((row) => !matches(row, params));
@@ -814,6 +910,19 @@ const server = createServer((request, response) => {
         systemPrompts: (parsed.messages ?? [])
           .filter((message) => message?.role === "system")
           .map((message) => String(message.content).slice(0, 200)),
+        /*
+         * THE EXACT CONVERSATION, IN ORDER.
+         *
+         * Recording only the system prompts was enough to miss the defect that
+         * mattered most here: the current question was appended to a transcript
+         * that already contained it, so every request sent the last thing the
+         * person typed TWICE. Nothing on screen shows that, and no check here
+         * could see it. The sequence is what proves it.
+         */
+        turns: (parsed.messages ?? []).map((message) => ({
+          role: message?.role ?? null,
+          content: String(message?.content ?? "").slice(0, 200),
+        })),
       };
       if (!onlineBoundary.lastRequest.authorized) {
         return send(401, { error: "authentication_required" });

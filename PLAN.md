@@ -236,7 +236,7 @@ The repository-controlled implementation for Phases 0–14 was completed and mer
 
 The live Supabase project is `sazhgaisyhkdbrooycdv`. The database and repository migration/type state were reconciled: all 101 repository migrations are represented live, one under a different ledger name whose objects were verified directly, and generated Supabase types were regenerated from the live schema.
 
-The live `ocade-intelligence` Edge Function is still version 6 and is materially older than the completed repository tree. The old function has a 1 MiB request limit where the repository allows 24 MiB, validates attachments but does not forward them to the provider, and does not include grounded web research. The previous Claude session did not deploy it because the available Supabase MCP deploy action required the function contents to be hand-inlined; manually transcribing roughly 27 KB of `edge-handler.ts` into a production boundary risked byte corruption. The safe remaining deployment path is the Supabase CLI from the verified repository tree.
+The live `ocade-intelligence` Edge Function is **version 7**, deployed from this tree and diffed back byte-for-byte; version 6 with its 1 MiB request cap, dropped attachments and missing grounded research is no longer in production. This paragraph previously said version 6 while Phase 14 below said version 7, which is the contradiction recorded as finding 22. There is one record of what is deployed — `docs/MEMORY.md` under "Live Supabase baseline" — and every other document defers to it.
 
 The production frontend Worker is also still an older pre-Phase-1 build until the matching web release is deployed. Edge and frontend must ship as one compatible release, followed by live health and customer-path smoke tests.
 

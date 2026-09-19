@@ -122,3 +122,19 @@ export function Confirm({
     </div>
   );
 }
+
+/**
+ * "2 hours ago" — when, not a timestamp nobody reads.
+ *
+ * Shared by the two settings surfaces that list things by their last use, so a
+ * device and a session cannot start describing time differently.
+ */
+export function describeWhen(iso: string): string {
+  const at = Date.parse(iso);
+  if (!Number.isFinite(at)) return "recently";
+  const minutes = Math.max(1, Math.round((Date.now() - at) / 60_000));
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  return `${Math.round(hours / 24)} days ago`;
+}

@@ -1,13 +1,11 @@
 /**
- * How long the first run actually takes, measured without reading anything
- * private.
+ * THE SHAPE OF AN INSTALL EVENT, AND NOTHING THAT STORES ONE.
  *
- * WHY MEASURE AT ALL. "Make it fast" is not a thing anybody can do without
+ * WHY THIS TYPE EXISTS. "Make it fast" is not a thing anybody can do without
  * knowing which stage is slow, and the stages have completely different fixes:
  * a slow device check is a probe doing too much, a slow transfer is a
  * distribution problem, a slow load is a runtime problem, and a high retry
- * count is a network problem masquerading as all three. Guessing between them
- * is how a week gets spent optimising the stage that was already fast.
+ * count is a network problem masquerading as all three.
  *
  * WHAT IS DELIBERATELY NOT IN HERE, and cannot be added by accident. There is
  * no free-text field on any event. The union below is exhaustive and every
@@ -20,10 +18,11 @@
  * this codebase wrote for a screen, never anything the user or the model
  * produced.
  *
- * IT STAYS ON THE DEVICE UNLESS SOMETHING IS EXPLICITLY WIRED TO SEND IT. This
- * module keeps a bounded ring in memory and exposes it to the diagnostics
- * surface. There is no network call here, and adding one is a decision
- * somebody has to make on purpose.
+ * THERE IS NO SINK HERE ANY MORE. This module used to keep a sixty-event ring
+ * and a set of listeners, and nothing ever read the ring or subscribed to the
+ * set — a bounded memory leak and a maintenance surface with no operational
+ * value. The authority takes a `telemetry` dependency, so anything that wants
+ * these events asks for them; until something does, they are not produced.
  */
 
 export type InstallTelemetry =
@@ -49,26 +48,3 @@ export type InstallTelemetry =
   | { kind: "path_failed"; path: string; reason: string }
   | { kind: "failed"; stage: string; reason: string }
   | { kind: "uninstalled"; removed: number };
-
-export interface TimedInstallEvent {
-  at: number;
-  event: InstallTelemetry;
-}
-
-/**
- * Bounded on purpose.
- *
- * An unbounded log of a long-running session is a memory leak that only shows
- * up on the devices least able to afford one. Sixty events covers several
- * complete install attempts, which is what anybody diagnosing this needs.
- */
-const MAX_EVENTS = 60;
-const ring: TimedInstallEvent[] = [];
-const listeners = new Set<(event: TimedInstallEvent) => void>();
-
-export function recordInstallEvent(event: InstallTelemetry): void {
-  const timed = { at: Date.now(), event };
-  ring.push(timed);
-  if (ring.length > MAX_EVENTS) ring.shift();
-  for (const listener of listeners) listener(timed);
-}

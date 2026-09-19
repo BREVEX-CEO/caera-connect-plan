@@ -4,6 +4,7 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
+  redirect,
   useRouter,
   HeadContent,
   Scripts,
@@ -15,8 +16,33 @@ import { AppearanceProvider } from "@/lib/appearance";
 import { SettingsPanelProvider } from "@/components/settings/settings-panel";
 import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
 import { useInstallationBootstrap } from "@/lib/brain/use-installation";
+import { useSession } from "@/lib/session";
+import { needsFullNavigation } from "@/lib/security/isolation";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  /*
+   * CROSSING THE ISOLATION BOUNDARY NEEDS A NEW DOCUMENT.
+   *
+   * Cross-origin isolation is decided when a document is CREATED, from the
+   * headers on that response, so a client-side transition cannot change it.
+   * Chat is isolated because inference needs `SharedArrayBuffer`; `/auth` must
+   * not be, because COOP `same-origin` severs `window.opener` and that is where
+   * the sign-in SDK's popup branch would run.
+   *
+   * Without this, routing from Chat to sign-in kept the isolated document and
+   * quietly put the one page that must never be isolated on the isolated side —
+   * `needsFullNavigation` has existed for this the whole time and nothing
+   * consulted it. Both directions matter: the back button is the other one.
+   *
+   * The document's own URL is the question, not the router's idea of it, and
+   * the answer is false for every ordinary navigation — which is all of them
+   * except into and out of sign-in.
+   */
+  beforeLoad: ({ location }) => {
+    if (typeof window === "undefined") return;
+    if (!needsFullNavigation(window.location.pathname, location.pathname)) return;
+    throw redirect({ href: location.href, reloadDocument: true });
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -213,7 +239,22 @@ function refreshOfflineAllowance() {
 
 function BrowserBootstrap() {
   const router = useRouter();
-  useInstallationBootstrap();
+  /*
+   * PREPARING OFFLINE INTELLIGENCE NEEDS AN ACCOUNT, SO IT WAITS FOR ONE.
+   *
+   * This started on every visit, signed in or not. The release lookup is
+   * authenticated — it mints a delivery link for a person — so a signed-out
+   * bootstrap could only fail, and it failed into a stage nothing retries:
+   * a fresh tab that signed in with an emailed code stayed permanently broken
+   * because the sign-in was a client-side navigation and nothing started the
+   * install again.
+   *
+   * `enabled` flips when the account arrives, which re-runs the effect. That
+   * covers the emailed-code path, the redirect back from Google, and a session
+   * restored from storage, without a second trigger for each.
+   */
+  const { user } = useSession();
+  useInstallationBootstrap({ enabled: Boolean(user) });
 
   /*
    * REGISTER THE SERVICE WORKER, WHICH NOTHING WAS DOING.

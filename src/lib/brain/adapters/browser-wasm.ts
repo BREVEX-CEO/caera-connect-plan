@@ -8,12 +8,7 @@ import {
 } from "../adapter";
 import { BROWSER_SAMPLER } from "@/lib/brain/sampler-settings";
 import { OFFLINE_LABEL, formatSize, offlineRelease, type OfflineRelease } from "../offline-release";
-import {
-  planThreads,
-  readThreadSignals,
-  readThreadOutcome,
-  type ThreadOutcome,
-} from "../wasm-threads";
+import { planThreads, readThreadSignals } from "../wasm-threads";
 
 /**
  * OCADE in the browser on the processor, via wllama (llama.cpp compiled to
@@ -126,7 +121,6 @@ export class BrowserWasmAdapter implements BrainAdapter {
   /** Layers to offload. 0 is the processor; the graphics rung asks for all. */
   private readonly gpuLayers: number;
   /** What the runtime actually did, once a model is loaded. */
-  private threadOutcome: ThreadOutcome = { multithreaded: false, threads: 1 };
 
   constructor(options?: {
     onProgress?: (p: WasmProgress) => void;
@@ -358,24 +352,6 @@ export class BrowserWasmAdapter implements BrainAdapter {
   }
 
   /**
-   * Record what the runtime DID, which is not necessarily what was asked.
-   *
-   * An isolated page whose browser still fails wllama's own WebAssembly threads
-   * probe gets one thread however many were requested. Reporting the request as
-   * though it were the outcome is how a diagnostics screen comes to claim four
-   * threads on a device running one, so the runtime is asked and its answer is
-   * what gets stored.
-   */
-  private recordThreads(instance: WllamaInstance): void {
-    this.threadOutcome = readThreadOutcome(instance);
-  }
-
-  /** What the loaded engine is actually running on. Diagnostics only. */
-  threads(): ThreadOutcome {
-    return this.threadOutcome;
-  }
-
-  /**
    * Load the artifact the installation authority already verified.
    *
    * ONE DOWNLOADER, AND IT IS NOT THIS ONE. This used to carry a second
@@ -455,7 +431,6 @@ export class BrowserWasmAdapter implements BrainAdapter {
       throw new Error("OCADE's prepared engine could not be read back from this device.");
     }
     await instance.loadModel([blob], this.loadParams());
-    this.recordThreads(instance);
 
     this.instance = instance;
     this.loadedRelease = model.releaseId;

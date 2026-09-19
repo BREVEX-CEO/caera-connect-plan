@@ -178,34 +178,3 @@ export function readThreadSignals(): ThreadSignals {
     sharedArrayBuffer: typeof SharedArrayBuffer === "function",
   };
 }
-
-/**
- * What the runtime actually did, read back from it after loading.
- *
- * ASKED RATHER THAN ASSUMED, and that distinction is the whole reason this
- * exists. `planThreads` says what OCADE wants; wllama's own feature detection
- * decides what it gets, and the two can legitimately disagree — an isolated
- * page whose browser still fails the WebAssembly threads probe gets one thread
- * no matter what was requested. Reporting the request as though it were the
- * outcome is how a diagnostic surface comes to claim four threads on a device
- * running one.
- */
-export interface ThreadOutcome {
-  multithreaded: boolean;
-  threads: number;
-}
-
-export function readThreadOutcome(instance: {
-  isMultithread?: () => boolean;
-  getNumThreads?: () => number;
-}): ThreadOutcome {
-  try {
-    const multithreaded = instance.isMultithread?.() ?? false;
-    const threads = instance.getNumThreads?.() ?? 1;
-    return { multithreaded, threads: Number.isFinite(threads) ? threads : 1 };
-  } catch {
-    // Only valid after a model is loaded; before that the honest answer is the
-    // conservative one.
-    return { multithreaded: false, threads: 1 };
-  }
-}

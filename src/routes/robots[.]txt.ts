@@ -1,10 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { COMPANY_FACTS } from "@/config/company-facts";
 
 export const Route = createFileRoute("/robots.txt")({
   server: {
     handlers: {
-      GET: ({ request }) => {
-        const origin = new URL(request.url).origin;
+      GET: () => {
+        // The apex, not the host this request arrived on: a `www` request must
+        // not advertise a `www` sitemap for a product that lives on the apex.
+        const origin = COMPANY_FACTS.siteOrigin;
         const body = [
           "User-agent: *",
           "Allow: /",

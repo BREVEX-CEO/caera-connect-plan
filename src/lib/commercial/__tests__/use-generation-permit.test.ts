@@ -320,4 +320,62 @@ describe("the customer-side commercial permit boundary", () => {
       data: { idempotencyKey: "request-fallback", reason: "acquire_failed" },
     });
   });
+
+  /*
+   * SETTLEMENT IS THE LAST THING THAT CAN GO WRONG AND THE ONE NOBODY SEES.
+   *
+   * A settlement lost to a dropped connection used to be recorded as done, so
+   * a delivered answer could stay uncharged and an empty reservation stayed
+   * held. These prove the retry and, more importantly, that a permit which
+   * never settles does not claim it did.
+   */
+  it("retries a settlement the network lost, and charges exactly once", async () => {
+    mocks.acquire.mockResolvedValue({ ok: true, permitId: "permit-retry" });
+    mocks.finalize
+      .mockRejectedValueOnce(new Error("network"))
+      .mockResolvedValueOnce({ charged: 1 });
+
+    const billed = await beginBilledRequest({ idempotencyKey: "retry-1" });
+    billed!.recordDelivery({ answer: "delivered" });
+    await billed!.settle();
+
+    expect(mocks.finalize).toHaveBeenCalledTimes(2);
+    // Settled for real, so a second call is the no-op the contract promises.
+    await billed!.settle();
+    expect(mocks.finalize).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not record a settlement that never succeeded", async () => {
+    mocks.acquire.mockResolvedValue({ ok: true, permitId: "permit-lost" });
+    mocks.finalize.mockRejectedValue(new Error("network"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const billed = await beginBilledRequest({ idempotencyKey: "lost-1" });
+    billed!.recordDelivery({ answer: "delivered" });
+    await billed!.settle();
+
+    expect(mocks.finalize).toHaveBeenCalledTimes(3);
+    expect(warn).toHaveBeenCalledWith(
+      "[OCADE]",
+      expect.objectContaining({ operation: "usage_settlement", outcome: "failed" }),
+    );
+
+    // Unsettled means unsettled: a later attempt is allowed to try again.
+    mocks.finalize.mockResolvedValue({ charged: 1 });
+    await billed!.settle();
+    expect(mocks.finalize).toHaveBeenCalledTimes(4);
+    warn.mockRestore();
+  });
+
+  it("releases rather than charges when nothing was delivered", async () => {
+    mocks.acquire.mockResolvedValue({ ok: true, permitId: "permit-empty" });
+
+    const billed = await beginBilledRequest({ idempotencyKey: "empty-1" });
+    await billed!.settle();
+
+    expect(mocks.finalize).not.toHaveBeenCalled();
+    expect(mocks.release).toHaveBeenCalledWith({
+      data: { idempotencyKey: "empty-1", reason: "cancelled_before_output" },
+    });
+  });
 });

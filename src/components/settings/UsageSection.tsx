@@ -1,7 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Pending, Row } from "./rows";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Action, Confirm, Pending, Row, describeWhen } from "./rows";
 import {
+  USAGE_QUERY_KEY,
   describeReset,
   useCommercialUsage,
   type UsageWindowView,
@@ -10,6 +12,8 @@ import {
   deviceRegistrationProblem,
   watchDeviceRegistration,
 } from "@/lib/commercial/device-identity";
+import { listOfflineDevices, revokeOfflineDevice } from "@/lib/commercial/offline-devices";
+import { useSession } from "@/lib/session";
 
 /**
  * WHAT THIS ACCOUNT HAS LEFT, AND WHEN IT RETURNS.
@@ -57,6 +61,7 @@ export function UsageSection() {
       {session ? <WindowRow label="This session" window={session} /> : null}
       {week ? <WindowRow label="This week" window={week} /> : null}
       <OfflineRow held={session?.offlineAllocated ?? 0} />
+      <DevicesRows />
       <Row
         label="How it counts"
         description="One request you make counts once, however much work it takes OCADE to answer it. Answers on your own device count the same as answers over the network."
@@ -76,11 +81,7 @@ export function UsageSection() {
  * work offline here with nothing said anywhere.
  */
 function OfflineRow({ held }: { held: number }) {
-  const problem = useSyncExternalStore(
-    watchDeviceRegistration,
-    deviceRegistrationProblem,
-    () => null,
-  );
+  const problem = useDeviceRegistrationProblem();
 
   if (problem === "device_limit") {
     return (
@@ -106,6 +107,86 @@ function OfflineRow({ held }: { held: number }) {
       label="Offline on your devices"
       description={`${held} of this session's requests are held on the devices that can answer without a network. They are yours to spend there, and they return at the reset.`}
     />
+  );
+}
+
+/**
+ * The refusal, read for the account that is actually signed in.
+ *
+ * The published answer is module state, and it used to be shared across an
+ * account change: account B could be shown account A's device-limit refusal
+ * until a background refresh happened to overwrite it.
+ */
+function useDeviceRegistrationProblem() {
+  const { user } = useSession();
+  const account = user?.id ?? null;
+  return useSyncExternalStore(
+    watchDeviceRegistration,
+    () => deviceRegistrationProblem(account),
+    () => null,
+  );
+}
+
+/**
+ * THE DEVICES THAT HOLD THIS ACCOUNT'S OFFLINE SLOTS, AND REMOVE BESIDE EACH.
+ *
+ * The cap has always been enforced and the revocation function has always
+ * existed; nothing called it. A person on their third browser was told OCADE
+ * could not answer offline there and had nowhere to go — the only way out was
+ * a support request about a limit they could have managed themselves.
+ *
+ * Shown only when there is something to manage. An account with one device does
+ * not need a device manager, and a settings screen that lists one row to say so
+ * is the developer-dashboard clutter `docs/DESIGN.md` forbids.
+ */
+function DevicesRows() {
+  const client = useQueryClient();
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const devices = useQuery({
+    queryKey: ["commercial", "devices"],
+    queryFn: () => listOfflineDevices(),
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => revokeOfflineDevice(id),
+    onSuccess: () => {
+      setConfirming(null);
+      void client.invalidateQueries({ queryKey: ["commercial", "devices"] });
+      void client.invalidateQueries({ queryKey: USAGE_QUERY_KEY });
+    },
+  });
+
+  const rows = devices.data ?? [];
+  if (devices.isPending || rows.length === 0) return null;
+
+  return (
+    <div>
+      <Row
+        label="Devices that answer without a network"
+        description={
+          remove.error instanceof Error
+            ? remove.error.message
+            : "Removing one frees its place for another browser. It keeps answering over the network."
+        }
+      />
+      {rows.map((device) => (
+        <Row
+          key={device.id}
+          label={device.current ? `${device.name} — this browser` : device.name}
+          description={`Last used ${describeWhen(device.lastActiveAt)}.`}
+        >
+          {confirming === device.id ? (
+            <Confirm
+              label={remove.isPending ? "Removing…" : "Remove"}
+              busy={remove.isPending}
+              onConfirm={() => remove.mutate(device.id)}
+              onCancel={() => setConfirming(null)}
+            />
+          ) : (
+            <Action label="Remove" onClick={() => setConfirming(device.id)} />
+          )}
+        </Row>
+      ))}
+    </div>
   );
 }
 

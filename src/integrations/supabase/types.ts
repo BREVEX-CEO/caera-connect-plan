@@ -1422,6 +1422,10 @@ export type Database = {
           week_window_start: string
         }[]
       }
+      ocade_cancel_unsigned_offline_usage: {
+        Args: { p_device_id: string; p_lease_id: string; p_user_id: string }
+        Returns: number
+      }
       ocade_claim_generation_transport: {
         Args: {
           p_generation_id: string
@@ -1617,10 +1621,6 @@ export type Database = {
         Args: { p_action: string }
         Returns: undefined
       }
-      ocade_cancel_unsigned_offline_usage: {
-        Args: { p_device_id: string; p_lease_id: string; p_user_id: string }
-        Returns: number
-      }
       ocade_return_offline_usage: {
         Args: { p_device_id: string; p_lease_id: string; p_user_id: string }
         Returns: number
@@ -1651,6 +1651,16 @@ export type Database = {
         Returns: boolean
       }
       ocade_session_last_proof_at: { Args: never; Returns: string }
+      register_browser_device_for_current_user: {
+        Args: {
+          _browser_install_id: string
+          _kind: Database["public"]["Enums"]["device_kind"]
+          _name: string
+          _origin: string
+          _user_agent: string
+        }
+        Returns: string
+      }
       revoke_device_for_current_user: {
         Args: { _device_id: string }
         Returns: boolean

@@ -149,10 +149,21 @@ async function probeBrowserCapabilities(): Promise<CapabilityRung[]> {
  * OCADE says Offline Intelligence is not available rather than starting an
  * install that cannot finish.
  */
-async function resolveInstallTarget(path: CapabilityPath): Promise<InstallTarget | null> {
+async function resolveInstallTarget(
+  path: CapabilityPath,
+): Promise<InstallTarget | null | "unreachable"> {
   void path;
-  const release = await readOfflineRelease().catch(() => null);
-  if (!release?.available) return null;
+  /*
+   * A LOOKUP THAT FAILED IS NOT A RELEASE THAT DOES NOT EXIST.
+   *
+   * This swallowed every error into `null`, and `null` means "this deployment
+   * published nothing" — so a dropped connection, or a bootstrap that ran
+   * before the session arrived, produced a permanent-sounding refusal about the
+   * version of OCADE the person was running.
+   */
+  const release = await readOfflineRelease().catch(() => "unreachable" as const);
+  if (release === "unreachable") return "unreachable";
+  if (!release.available) return null;
 
   return {
     version: release.releaseId,

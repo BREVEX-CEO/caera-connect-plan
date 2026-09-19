@@ -60,7 +60,7 @@ import {
   type TransferResult,
 } from "./model-transfer";
 import { ModelVault, type ModelFileWriter, type VersionMeta } from "./model-vault";
-import { recordInstallEvent, type InstallTelemetry } from "./install-telemetry";
+import type { InstallTelemetry } from "./install-telemetry";
 import { publishInstallState, REMOVED_DETAIL } from "./installation-state";
 
 /**
@@ -179,8 +179,16 @@ export interface AuthorityDeps {
   fetchImpl: typeof fetch;
   /** Decide what this device can run, strongest first. */
   probeCapabilities: () => Promise<CapabilityRung[]>;
-  /** What to install for the chosen path. Null when the path needs no download. */
-  resolveTarget: (path: CapabilityPath) => Promise<InstallTarget | null>;
+  /**
+   * What to install for the chosen path.
+   *
+   * `null` means this deployment has published no release — a settled answer.
+   * `"unreachable"` means the question could not be ASKED, which is a different
+   * thing and used to be reported as the first: a lookup that failed because
+   * the network dropped or the session had not arrived yet told the person
+   * Offline Intelligence did not exist in this version of OCADE.
+   */
+  resolveTarget: (path: CapabilityPath) => Promise<InstallTarget | null | "unreachable">;
   /**
    * Load and warm the runtime once the bytes are verified and active.
    *
@@ -562,6 +570,16 @@ export class ModelInstallationAuthority {
      * artifact behind it produces a runtime failure with a message about the
      * device — blaming a person's machine for something OCADE has not shipped.
      */
+    if (target === "unreachable") {
+      return {
+        ok: false,
+        stop: true,
+        stage: "recoverable_error",
+        reason: "OCADE could not reach your account to prepare Offline Intelligence.",
+        remedies: ["retry"],
+      };
+    }
+
     if (target === null) {
       return {
         ok: false,
@@ -790,7 +808,9 @@ export class ModelInstallationAuthority {
            */
           refreshSources: async () => {
             const fresh = await this.deps.resolveTarget(path);
-            if (!fresh || fresh.version !== target.version) return null;
+            // A refresh that could not be asked is the same as one that came
+            // back different: this transfer does not continue on a guess.
+            if (!fresh || fresh === "unreachable" || fresh.version !== target.version) return null;
             return fresh.sources;
           },
           onProgress: (progress) => this.reportProgress(progress),
@@ -1130,7 +1150,7 @@ export class ModelInstallationAuthority {
   }
 
   private emit(event: InstallTelemetry): void {
-    (this.deps.telemetry ?? recordInstallEvent)(event);
+    this.deps.telemetry?.(event);
   }
 }
 

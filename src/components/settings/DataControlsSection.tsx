@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useInstallation } from "@/lib/brain/use-installation";
 import { deleteAllLibraryItems, listLibraryItems } from "@/lib/library/library.functions";
 import { deleteAllConversations, listConversations } from "@/lib/ocade.functions";
 import { exportMyAccountData } from "@/lib/account-data.functions";
 import { saveFile } from "@/lib/utils";
+import {
+  deviceRegistrationProblem,
+  watchDeviceRegistration,
+} from "@/lib/commercial/device-identity";
+import { useSession } from "@/lib/session";
 import { Action, Confirm, Row } from "./rows";
 
 /**
@@ -169,15 +174,41 @@ function OfflineIntelligenceSection() {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const removed = install.state.stage === "idle" && install.state.detail !== null;
+  /*
+   * READY MEANS READY TO ANSWER, NOT MERELY DOWNLOADED.
+   *
+   * The artifact's lifecycle and this browser's offline allocation were two
+   * independent authorities on the same screen, so Settings could say "Ready"
+   * here while Usage & Limits said OCADE cannot answer offline in this browser
+   * at all. Both are true of different things and the pair is a lie about the
+   * product, so readiness is stated once, from both.
+   */
+  const { user } = useSession();
+  const account = user?.id ?? null;
+  const allocation = useSyncExternalStore(
+    watchDeviceRegistration,
+    () => deviceRegistrationProblem(account),
+    () => null,
+  );
+  const line =
+    install.ready && allocation
+      ? allocation === "device_limit"
+        ? "Installed, but this browser has no offline place on your account"
+        : "Installed, but its allowance could not be reserved yet"
+      : install.line;
 
   return (
     <div>
       <Row
         label="Offline Intelligence"
-        description="OCADE can answer on this device, with no network. It prepares itself once and is reused after that."
+        description={
+          install.ready && allocation === "device_limit"
+            ? "OCADE is on this device, but every offline place on your account is taken. Remove a device under Usage & Limits to answer without a network here."
+            : "OCADE can answer on this device, with no network. It prepares itself once and is reused after that."
+        }
       >
         <span className="text-sm text-foreground" role="status">
-          {install.line}
+          {line}
         </span>
       </Row>
 

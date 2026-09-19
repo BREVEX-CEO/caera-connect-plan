@@ -1,18 +1,25 @@
 import { describe, it, expect } from "vitest";
 import { securityHeadersForTest, withPublicSecurityHeaders } from "../security/public-response";
+import { getSupabaseBrowserConfiguration } from "@/integrations/supabase/configuration";
 
 /**
- * The Content-Security-Policy had no test at all, and it had a defect that
- * only a browser could show: `connect-src 'self' https: wss: blob:` forbade
- * plain HTTP to loopback, so every probe for a local model runtime was refused
- * by OCADE's own policy —
+ * The Content-Security-Policy had no test at all, and it had two defects that
+ * only a browser or an attacker would show.
  *
- *   Refused to connect to 'http://localhost:11434/api/version' because it
- *   violates the following Content Security Policy directive: "connect-src …"
+ * The first was a grant it needed and did not have: `connect-src 'self' https:`
+ * forbade plain HTTP to loopback, where a local model runtime listened, so
+ * every probe was refused by OCADE's own policy. That runtime and the companion
+ * bridge beside it are gone, and the grant went with them — a policy that still
+ * permits the page to reach a person's own machine is an open door held for
+ * nobody.
  *
- * — and the on-device engine could never be detected in a deployed build,
- * however correctly it was running. A policy nothing asserts on is a policy
- * that regresses silently, in a way no unit test notices and no reviewer reads.
+ * The second was a grant it did not need and did have: `https: wss:` made every
+ * host on the internet a permitted destination, so any future injection could
+ * post a conversation, a file or a session anywhere. What is permitted now is
+ * what OCADE actually talks to.
+ *
+ * A policy nothing asserts on is a policy that regresses silently, in a way no
+ * unit test notices and no reviewer reads.
  */
 
 function directive(name: string): string {
@@ -25,23 +32,45 @@ function directive(name: string): string {
   return found;
 }
 
-describe("the policy lets OCADE reach a model runtime on this machine", () => {
-  it("allows plain HTTP to loopback, which is where a local runtime listens", () => {
+describe("the policy permits only the destinations OCADE actually uses", () => {
+  it("does not permit every HTTPS or WSS host on the internet", () => {
     const connect = directive("connect-src");
-    expect(connect).toContain("http://localhost:*");
-    expect(connect).toContain("http://127.0.0.1:*");
+    expect(connect).not.toMatch(/(^|\s)https:(\s|$)/);
+    expect(connect).not.toMatch(/(^|\s)wss:(\s|$)/);
+    expect(connect).not.toContain("*");
   });
 
-  it("allows a loopback websocket, for streaming from the same runtime", () => {
+  it("permits the configured Supabase project, over both schemes it uses", () => {
+    // Realtime opens a WebSocket to the same host, and an `https` source does
+    // not cover `wss` — leaving that out breaks live updates in a way that
+    // looks like a server fault.
+    const { url } = getSupabaseBrowserConfiguration();
     const connect = directive("connect-src");
-    expect(connect).toContain("ws://localhost:*");
-    expect(connect).toContain("ws://127.0.0.1:*");
+    if (!url) {
+      // Nothing configured, nothing granted. That is the fail-closed direction.
+      expect(connect).toBe("connect-src 'self' blob: https://cloudflareinsights.com");
+      return;
+    }
+    const { origin, host, protocol } = new URL(url);
+    expect(connect).toContain(origin);
+    expect(connect).toContain(`${protocol === "https:" ? "wss" : "ws"}://${host}`);
   });
 
-  /**
-   * The grant has to stay loopback. `http:` on its own, or a wildcard host,
-   * would let the page reach anything on the user's network.
-   */
+  it("keeps the page able to reach itself and its own blobs", () => {
+    const connect = directive("connect-src");
+    expect(connect).toContain("'self'");
+    // The offline artifact is served from this origin, and the engine reads it
+    // through a blob URL.
+    expect(connect).toContain("blob:");
+  });
+
+  it("no longer holds a door open to this machine", () => {
+    const connect = directive("connect-src");
+    expect(connect).not.toContain("http://localhost");
+    expect(connect).not.toContain("http://127.0.0.1");
+    expect(connect).not.toContain("ws://localhost");
+  });
+
   it("does NOT open plain HTTP generally", () => {
     const connect = directive("connect-src");
     expect(connect).not.toMatch(/(^|\s)http:(\s|$)/);

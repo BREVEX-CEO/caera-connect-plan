@@ -32,6 +32,7 @@
  */
 import { toast } from "sonner";
 import { deviceRegistrationProblem, getOfflineCurrentDeviceIdentity } from "./device-identity";
+import { buildHealthRecord } from "@/lib/telemetry/operation-health";
 import { readTrustedClockHighWater } from "@/lib/time/trusted-clock";
 import {
   acquireGenerationPermit,
@@ -74,10 +75,16 @@ export interface BilledRequest {
 const PERMIT_TIMEOUT_MS = 6000;
 
 function withTimeout<T>(work: Promise<T>, ms: number): Promise<T | "timed_out"> {
+  // The timer is cleared when the race is over, whichever side won it. Losing
+  // it kept a closure and a scheduled callback alive for the full six seconds
+  // after every request that answered sooner, which is all of them.
+  let timer: ReturnType<typeof setTimeout>;
   return Promise.race([
     work,
-    new Promise<"timed_out">((resolve) => setTimeout(() => resolve("timed_out"), ms)),
-  ]);
+    new Promise<"timed_out">((resolve) => {
+      timer = setTimeout(() => resolve("timed_out"), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
 }
 
 function formatResetAt(iso: string | undefined): string | null {
@@ -299,6 +306,7 @@ function createBilledRequest(input: {
 }): BilledRequest {
   let anythingDelivered = false;
   let settled = false;
+  let settling: Promise<void> | null = null;
 
   return {
     permit: input.permit,
@@ -315,23 +323,55 @@ function createBilledRequest(input: {
       if ((work.answer ?? "").trim().length > 0) anythingDelivered = true;
     },
 
+    /**
+     * SETTLED MEANS THE SERVER SAID SO.
+     *
+     * This set `settled = true` before it called anything and swallowed the
+     * failure, so a settlement lost to a dropped connection was recorded as
+     * done and every later attempt returned immediately. A delivered answer
+     * could stay uncharged, and an empty reservation stayed held until its
+     * window expired, with nothing anywhere saying it had happened.
+     *
+     * Both calls are keyed by the idempotency key, so repeating one is safe.
+     */
     async settle() {
       if (settled) return;
-      settled = true;
-      try {
-        if (!anythingDelivered) {
-          await input.settleEmpty();
-          return;
+      settling ??= (async () => {
+        const finish = anythingDelivered ? input.settleSuccess : input.settleEmpty;
+        for (let attempt = 1; attempt <= SETTLE_ATTEMPTS; attempt += 1) {
+          try {
+            await finish();
+            settled = true;
+            return;
+          } catch {
+            if (attempt < SETTLE_ATTEMPTS) await pause(attempt * SETTLE_BACKOFF_MS);
+          }
         }
-        await input.settleSuccess();
-      } catch {
         /*
-         * Settling failed. Not surfaced: the person has their answer, and a
-         * toast about OCADE's bookkeeping would be noise they can do nothing
-         * about. The reservation is already the charge, so the worst outcome
-         * is that it stays held until its window expires.
+         * Still unsettled. Not surfaced to the person: they have their answer
+         * and can do nothing about OCADE's bookkeeping. It is recorded, in the
+         * enumerated form that cannot carry an account or a prompt, because an
+         * allowance that drifts is otherwise invisible until somebody counts.
          */
-      }
+        settling = null; // A later call may still succeed.
+        console.warn(
+          "[OCADE]",
+          buildHealthRecord({
+            component: "web",
+            operation: "usage_settlement",
+            outcome: "failed",
+            errorClass: "transport",
+            attempts: SETTLE_ATTEMPTS,
+          }),
+        );
+      })();
+      await settling;
     },
   };
 }
+
+/** Three tries over roughly a second. Beyond that the tab is usually gone. */
+const SETTLE_ATTEMPTS = 3;
+const SETTLE_BACKOFF_MS = 300;
+
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

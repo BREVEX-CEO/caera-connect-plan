@@ -118,6 +118,10 @@ export interface ChatActions {
    * Whether the request was accepted. `false` means nothing was sent, nothing
    * was written and nothing was charged — so the caller still owns what the
    * person typed and must give it back to them rather than discard it.
+   *
+   * `prepare` runs after the allowance says yes and before anything is written.
+   * Regenerate uses it to drop the turns it is replacing, so a refused request
+   * cannot delete somebody's question and leave nothing in its place.
    */
   send(
     message: string,
@@ -125,6 +129,7 @@ export interface ChatActions {
     attachments?: NormalizedAttachment[],
     thinking?: boolean,
     research?: boolean,
+    prepare?: () => Promise<void>,
   ): Promise<boolean>;
   /** Edit, Regenerate and Retry, which are the same operation. */
   resend(userMessageId: string, choice: IntelligenceChoice, newText?: string): Promise<void>;
@@ -146,9 +151,24 @@ export interface ChatActions {
 }
 
 export function useChat(): ChatState & ChatActions {
-  const { user } = useSession();
+  const { user, loading } = useSession();
   const queryClient = useQueryClient();
-  const [conversations, setConversations] = useState<OcadeConversationRow[]>([]);
+  /*
+   * The list, read synchronously for the same reason the transcript is: an
+   * optimistic change has to know what it is replacing so it can put it back,
+   * and the array in a closure is the one from the render it was created in.
+   */
+  const conversationsRef = useRef<OcadeConversationRow[]>([]);
+  const [conversations, publishConversations] = useState<OcadeConversationRow[]>([]);
+  const setConversations = useCallback(
+    (
+      next: OcadeConversationRow[] | ((current: OcadeConversationRow[]) => OcadeConversationRow[]),
+    ) => {
+      conversationsRef.current = typeof next === "function" ? next(conversationsRef.current) : next;
+      publishConversations(conversationsRef.current);
+    },
+    [],
+  );
   const [conversationId, setConversationId] = useState<string | null>(null);
   /*
    * ONE TRANSCRIPT, READ SYNCHRONOUSLY.
@@ -181,17 +201,99 @@ export function useChat(): ChatState & ChatActions {
   const opened = useRef<string | null>(null);
   const abort = useRef<AbortController | null>(null);
 
+  /*
+   * ONE NUMBER SAYS WHOSE TRANSCRIPT IS ON THE SCREEN.
+   *
+   * Every asynchronous thing here — a history read, a transcript read, a
+   * stream, a persisted answer — finishes after the state it was started for
+   * may have stopped existing. Signing out, signing in as somebody else,
+   * opening another conversation, starting a new one and turning Temporary on
+   * all replace that state, and each of them used to leave the in-flight work
+   * running with nothing to compare itself against: account A's answer could
+   * arrive into account B's screen.
+   *
+   * So each of those bumps this counter, and every continuation compares the
+   * value it captured before it awaited. Not equal means what it is holding
+   * belongs to a screen nobody is looking at, and it is dropped. One mechanism
+   * covers the account boundary, the conversation boundary and Temporary,
+   * rather than three sets of guards that can disagree.
+   */
+  const epoch = useRef(0);
+  /*
+   * Set before the first await of a send, which `busy` cannot be: React state
+   * is not visible to the caller that reads it in the same tick, so two Sends
+   * pressed together both saw `busy === false` and both took a permit.
+   */
+  const sending = useRef(false);
+  /**
+   * The bytes that rode with a question, for as long as this tab is open.
+   *
+   * Stored messages keep names and sizes only, so Regenerate had no file to
+   * resend and asked the question again as though there had never been one.
+   */
+  const carried = useRef(new Map<string, NormalizedAttachment[]>());
+
+  /** Stop everything in flight and stop caring about what it returns. */
+  const abandonInFlight = useCallback(() => {
+    epoch.current += 1;
+    abort.current?.abort();
+    abort.current = null;
+    sending.current = false;
+    opened.current = null;
+    setStreaming("");
+    setBusy(false);
+  }, []);
+
+  /*
+   * A NEW ACCOUNT GETS A NEW SCREEN, WITH NOTHING OF THE OLD ONE ON IT.
+   *
+   * Sign-out cleared the conversation list and left the open transcript, the
+   * conversation id and the streaming answer exactly where they were, so
+   * signing in as somebody else in the same tab showed the previous person's
+   * words — and a read that was already in flight could put them back even
+   * after a clear. Every piece of account-owned state goes at once, and the
+   * bump inside `abandonInFlight` makes the in-flight reads unable to restore
+   * any of it.
+   *
+   * "SIGNED OUT" AND "NOT KNOWN YET" ARE NOT THE SAME ACCOUNT. The session hook
+   * reports `null` while it is still reading the stored token, so treating that
+   * first answer as a change wiped the screen of somebody who had just opened a
+   * conversation — the reset landed in the middle of their own page load. The
+   * first settled answer is recorded rather than acted on; every change after
+   * it is a real one.
+   */
+  const account = user?.id ?? null;
+  const lastAccount = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (loading) return;
+    const previous = lastAccount.current;
+    lastAccount.current = account;
+    if (previous === undefined || previous === account) return;
+    abandonInFlight();
+    carried.current.clear();
+    setConversations([]);
+    setConversationId(null);
+    setMessages([]);
+    setProblem(null);
+    setTemporary(false);
+    setMessagesFailed(false);
+    setConversationsFailed(false);
+  }, [account, loading, abandonInFlight, setMessages, setConversations]);
+
   const refreshConversations = useCallback(async () => {
     if (!user) {
       setConversations([]);
       return;
     }
     setLoadingConversations(true);
+    const at = epoch.current;
     try {
       const rows = (await listConversations()) as unknown as OcadeConversationRow[];
+      if (epoch.current !== at) return; // Another account's list, arriving late.
       setConversations(rows ?? []);
       setConversationsFailed(false);
     } catch {
+      if (epoch.current !== at) return;
       /*
        * A history that will not load is not a reason to block the composer —
        * and it is not an account with no history either. The empty list was
@@ -203,7 +305,7 @@ export function useChat(): ChatState & ChatActions {
     } finally {
       setLoadingConversations(false);
     }
-  }, [user]);
+  }, [user, setConversations]);
 
   useEffect(() => {
     void refreshConversations();
@@ -222,17 +324,19 @@ export function useChat(): ChatState & ChatActions {
       // flight must not let the slower answer overwrite the newer transcript.
       opened.current = id;
       setLoadingMessages(true);
+      const at = epoch.current;
+      const mine = () => opened.current === id && epoch.current === at;
       try {
         const rows = await loadChatMessages({ conversationId: id });
-        if (opened.current !== id) return;
+        if (!mine()) return;
         setMessages(rows);
         setMessagesFailed(false);
       } catch {
-        if (opened.current !== id) return;
+        if (!mine()) return;
         setMessages([]);
         setMessagesFailed(true);
       } finally {
-        if (opened.current === id) setLoadingMessages(false);
+        if (mine()) setLoadingMessages(false);
       }
     },
     [setMessages],
@@ -282,9 +386,20 @@ export function useChat(): ChatState & ChatActions {
       attachments: NormalizedAttachment[] = [],
       thinking = false,
       research = false,
+      prepare?: () => Promise<void>,
     ) => {
       const text = message.trim();
-      if (!text || busy) return false;
+      /*
+       * THE SECOND SEND IS REFUSED BEFORE THE FIRST ONE AWAITS ANYTHING.
+       *
+       * `busy` is state: the caller that set it cannot see it until the next
+       * render, so two Sends in the same tick both read `false`, both reached
+       * the gate, and both got a permit with a different idempotency key — two
+       * charges for one question. A ref is written and read synchronously,
+       * which is the only thing that can close a window that is one tick wide.
+       */
+      if (!text || sending.current) return false;
+      sending.current = true;
       setProblem(null);
 
       /*
@@ -302,13 +417,36 @@ export function useChat(): ChatState & ChatActions {
        * not accepted and puts it back.
        */
       const billed = await beginBilledRequest({ surface: "chat" });
-      if (!billed) return false; // The gate has already said why, in its own words.
+      if (!billed) {
+        sending.current = false;
+        return false; // The gate has already said why, in its own words.
+      }
 
       setBusy(true);
       const controller = new AbortController();
       abort.current = controller;
+      // Which screen this answer belongs to. Anything that replaces the screen
+      // — another conversation, another account, Temporary — moves this on.
+      const at = epoch.current;
+      const mine = () => epoch.current === at;
 
       try {
+        /*
+         * PERMISSION FIRST, THEN THE DESTRUCTIVE PART. Regenerate drops the
+         * turns it is replacing here, after the allowance has said yes — it
+         * used to delete them first, so an exhausted allowance took somebody's
+         * question away and put nothing back. Inside the `try`, so the one
+         * settlement in the `finally` covers this exit like every other.
+         */
+        if (prepare) {
+          try {
+            await prepare();
+          } catch (cause) {
+            setProblem(describeStorageError(cause));
+            return false;
+          }
+        }
+
         /*
          * A TEMPORARY CHAT WRITES NOTHING, ANYWHERE.
          *
@@ -343,14 +481,23 @@ export function useChat(): ChatState & ChatActions {
                 sizeBytes: attachment.sizeBytes,
               })),
             });
+        if (!mine()) return true; // The screen moved on while this was written.
         setMessages((current) => [...current, question.record]);
+        // The bytes stay in this tab so Regenerate can send the same file
+        // again. Names and sizes are all the stored row will ever have.
+        if (attachments.length > 0) carried.current.set(question.record.id, attachments);
 
-        const turns: NormalizedMessage[] = [...transcript.current, question.record].map(
-          (record) => ({
-            role: record.role === "system" ? ("assistant" as const) : record.role,
-            content: record.content,
-          }),
-        );
+        /*
+         * THE TRANSCRIPT ALREADY HAS THE QUESTION IN IT.
+         *
+         * `setMessages` writes `transcript.current` synchronously, so appending
+         * `question.record` here as well sent the current question to the model
+         * twice — the last thing the person typed, duplicated, in every request.
+         */
+        const turns: NormalizedMessage[] = transcript.current.map((record) => ({
+          role: record.role === "system" ? ("assistant" as const) : record.role,
+          content: record.content,
+        }));
         // Only when there is something to cite: a standing instruction about
         // files on every request is tokens spent on nothing, and a model told
         // to cite sources that do not exist will invent one.
@@ -362,32 +509,47 @@ export function useChat(): ChatState & ChatActions {
         let answer = "";
         let refusal: string | null = null;
 
-        for await (const event of ocadeIntelligence().stream({
-          permit: billed.permit,
-          generationId: billed.permit.generationId,
-          idempotencyKey: billed.permit.idempotencyKey,
-          surface: "chat",
-          mode: MODE_FOR[choice],
-          messages: history,
-          tools: [],
-          attachments,
-          privacy: {
-            // `Offline` makes zero provider traffic — docs/PLAN.md Phase 7.
-            onlineInferenceConsented: choice !== "offline",
-            sealed: false,
-          },
-          conversationId: id ?? undefined,
-          thinking,
-          research,
-          signal: controller.signal,
-        })) {
-          if (event.type === "token") {
-            answer += event.text;
-            setStreaming(answer);
-          } else if (event.type === "refusal") {
-            refusal = event.reason;
+        try {
+          for await (const event of ocadeIntelligence().stream({
+            permit: billed.permit,
+            generationId: billed.permit.generationId,
+            idempotencyKey: billed.permit.idempotencyKey,
+            surface: "chat",
+            mode: MODE_FOR[choice],
+            messages: history,
+            tools: [],
+            attachments,
+            privacy: {
+              // `Offline` makes zero provider traffic — docs/PLAN.md Phase 7.
+              onlineInferenceConsented: choice !== "offline",
+              sealed: false,
+            },
+            conversationId: id ?? undefined,
+            thinking,
+            research,
+            signal: controller.signal,
+          })) {
+            if (event.type === "token") {
+              answer += event.text;
+              if (mine()) setStreaming(answer);
+            } else if (event.type === "refusal") {
+              refusal = event.reason;
+            }
           }
+        } catch (cause) {
+          /*
+           * STOP KEEPS WHAT IT ALREADY WROTE.
+           *
+           * Abort threw out of the loop and the half-written answer went with
+           * it: the words were on the screen, then they were not, and nothing
+           * was saved. Stopping is the person deciding they have enough, so
+           * what arrived is persisted and charged like any other answer. A real
+           * failure still throws.
+           */
+          if (!controller.signal.aborted) throw cause;
         }
+
+        if (!mine()) return true;
 
         if (answer.length === 0) {
           /*
@@ -410,6 +572,7 @@ export function useChat(): ChatState & ChatActions {
               role: "assistant",
               content: answer,
             });
+        if (!mine()) return true;
         setMessages((current) => [...current, reply.record]);
         if (reply.stored === "unsynced") {
           setProblem(
@@ -420,7 +583,7 @@ export function useChat(): ChatState & ChatActions {
         billed.recordDelivery({ answer });
         if (!temporary) void refreshConversations();
       } catch (cause) {
-        setProblem(describeStorageError(cause));
+        if (mine()) setProblem(describeStorageError(cause));
       } finally {
         /*
          * SETTLE ON THE WAY OUT, WHICHEVER WAY OUT IT IS, so no exit can leave
@@ -430,13 +593,19 @@ export function useChat(): ChatState & ChatActions {
          */
         await billed.settle();
         void queryClient.invalidateQueries({ queryKey: USAGE_QUERY_KEY });
-        setStreaming("");
-        setBusy(false);
-        abort.current = null;
+        sending.current = false;
+        // Only this screen's controls are released. A send whose screen has
+        // been replaced must not clear the streaming text of the one that
+        // replaced it.
+        if (mine()) {
+          setStreaming("");
+          setBusy(false);
+          abort.current = null;
+        }
       }
       return true;
     },
-    [busy, conversationId, queryClient, refreshConversations, setMessages, temporary],
+    [conversationId, queryClient, refreshConversations, setMessages, setConversations, temporary],
   );
 
   /**
@@ -454,35 +623,78 @@ export function useChat(): ChatState & ChatActions {
    */
   const resend = useCallback(
     async (userMessageId: string, choice: IntelligenceChoice, newText?: string) => {
-      if (busy) return;
-      const at = transcript.current.findIndex((record) => record.id === userMessageId);
-      if (at < 0) return;
-      const question = transcript.current[at]!;
+      if (sending.current) return;
+      const index = transcript.current.findIndex((record) => record.id === userMessageId);
+      if (index < 0) return;
+      const question = transcript.current[index]!;
       const text = (newText ?? question.content).trim();
       if (!text) return;
 
-      const dropped = transcript.current.slice(at);
-      setMessages(transcript.current.slice(0, at));
-      // A temporary turn was never written, so there is nothing to delete and
-      // an authenticated call naming an id no row has ever carried.
-      if (!temporary) {
+      /*
+       * A FILE CANNOT BE ASKED ABOUT AGAIN IF IT IS NOT HERE ANY MORE.
+       *
+       * The stored question keeps the file's name and size, not its bytes, so
+       * after a reload there is nothing to resend. Asking anyway would repeat
+       * the question with the file silently missing and answer it as though
+       * there had never been one. Say so instead.
+       */
+      const files = carried.current.get(question.id) ?? [];
+      if (files.length === 0 && (question.attachments?.length ?? 0) > 0) {
+        setProblem(
+          "The file from this question is no longer attached. Attach it again to ask with it.",
+        );
+        return;
+      }
+
+      const dropped = transcript.current.slice(index);
+      const before = transcript.current;
+      let started = false;
+      const accepted = await send(text, choice, files, false, false, async () => {
+        started = true;
+        // Runs once the allowance has said yes. Deleting before that point cost
+        // somebody their question whenever the answer was going to be refused.
+        setMessages(before.slice(0, index));
+        // A temporary turn was never written, so there is nothing to delete and
+        // an authenticated call naming an id no row has ever carried.
+        if (temporary) return;
         await Promise.all(
           dropped
             .filter((record) => !record.unsynced)
-            .map((record) => deleteMessage({ data: { id: record.id } }).catch(() => undefined)),
+            .map((record) => deleteMessage({ data: { id: record.id } })),
         );
+      });
+      if (accepted) return;
+      // Refused before anything was touched: the turns are still theirs.
+      if (!started || temporary || !conversationId) {
+        setMessages(before);
+        return;
       }
-      await send(text, choice);
+      // The deletion failed part way, so what is on the screen is a guess. The
+      // account is the only thing that knows which turns are still there.
+      await openMessages(conversationId);
     },
-    [busy, send, setMessages, temporary],
+    [send, setMessages, temporary, conversationId, openMessages],
   );
 
   /** Remove one turn, from the screen and from the account. */
   const removeMessage = useCallback(
     async (id: string) => {
+      const before = transcript.current;
       setMessages((current) => current.filter((record) => record.id !== id));
       if (temporary) return; // Nothing was written, so nothing is deleted.
-      await deleteMessage({ data: { id } }).catch(() => undefined);
+      try {
+        await deleteMessage({ data: { id } });
+      } catch (cause) {
+        /*
+         * A DELETION THAT FAILED MUST NOT LOOK LIKE ONE THAT WORKED.
+         *
+         * The failure was swallowed and the turn left the screen anyway, so
+         * private text somebody had deleted came back on the next reload — it
+         * had never left the account. It stays visible, and they are told.
+         */
+        setMessages(before);
+        setProblem(describeStorageError(cause));
+      }
     },
     [setMessages, temporary],
   );
@@ -491,29 +703,70 @@ export function useChat(): ChatState & ChatActions {
     abort.current?.abort();
   }, []);
 
-  const rename = useCallback(async (id: string, title: string) => {
-    const trimmed = title.trim().slice(0, 200);
-    if (!trimmed) return;
-    setConversations((current) =>
-      current.map((row) => (row.id === id ? { ...row, title: trimmed } : row)),
-    );
-    await updateConversation({ data: { id, title: trimmed } });
-  }, []);
+  /*
+   * AN OPTIMISTIC CHANGE THAT FAILED IS PUT BACK.
+   *
+   * Rename, Archive and Trash all wrote to the screen first and then awaited
+   * the account. When that write failed — no network, a policy refusal — the
+   * screen kept the change and the account never had it, so somebody was
+   * looking at a conversation they had renamed or deleted that was still
+   * exactly where it was. The list is restored and they are told.
+   */
+  const mutateConversations = useCallback(
+    async (
+      optimistic: (rows: OcadeConversationRow[]) => OcadeConversationRow[],
+      write: Promise<unknown>,
+    ) => {
+      const before = conversationsRef.current;
+      setConversations(optimistic(before));
+      try {
+        await write;
+      } catch (cause) {
+        setConversations(before);
+        setProblem(describeStorageError(cause));
+      }
+    },
+    [setConversations],
+  );
 
-  const setArchived = useCallback(async (id: string, archived: boolean) => {
-    setConversations((current) =>
-      current.map((row) => (row.id === id ? { ...row, archived } : row)),
-    );
-    await updateConversation({ data: { id, archived } });
-  }, []);
+  const rename = useCallback(
+    async (id: string, title: string) => {
+      const trimmed = title.trim().slice(0, 200);
+      if (!trimmed) return;
+      await mutateConversations(
+        (rows) => rows.map((row) => (row.id === id ? { ...row, title: trimmed } : row)),
+        updateConversation({ data: { id, title: trimmed } }),
+      );
+    },
+    [mutateConversations],
+  );
 
-  const trash = useCallback(async (id: string) => {
-    // Removed from the list immediately; the row is recoverable until the
-    // trash period expires, which is what makes this safe to do optimistically.
-    setConversations((current) => current.filter((row) => row.id !== id));
-    setConversationId((current) => (current === id ? null : current));
-    await setConversationTrashed({ data: { id, trashed: true } });
-  }, []);
+  const setArchived = useCallback(
+    async (id: string, archived: boolean) => {
+      await mutateConversations(
+        (rows) => rows.map((row) => (row.id === id ? { ...row, archived } : row)),
+        updateConversation({ data: { id, archived } }),
+      );
+    },
+    [mutateConversations],
+  );
+
+  const trash = useCallback(
+    async (id: string) => {
+      // Removed from the list immediately; the row is recoverable until the
+      // trash period expires, which is what makes this safe to do optimistically.
+      if (conversationId === id) {
+        abandonInFlight();
+        setConversationId(null);
+        setMessages([]);
+      }
+      await mutateConversations(
+        (rows) => rows.filter((row) => row.id !== id),
+        setConversationTrashed({ data: { id, trashed: true } }),
+      );
+    },
+    [mutateConversations, conversationId, abandonInFlight, setMessages],
+  );
 
   const restore = useCallback(
     async (id: string) => {
@@ -525,19 +778,26 @@ export function useChat(): ChatState & ChatActions {
 
   const deleteEverything = useCallback(async () => {
     await deleteAllConversations();
+    abandonInFlight();
     setConversations([]);
     setConversationId(null);
     setMessages([]);
-  }, [setMessages]);
+  }, [setMessages, setConversations, abandonInFlight]);
 
-  const openConversation = useCallback((id: string | null) => {
-    // Opening a saved conversation leaves temporary mode, and with it the
-    // temporary transcript. Staying in it would write the next turn nowhere
-    // while the person is looking at a conversation that is saved.
-    setTemporary(false);
-    setConversationId(id);
-    setProblem(null);
-  }, []);
+  const openConversation = useCallback(
+    (id: string | null) => {
+      // Opening a saved conversation leaves temporary mode, and with it the
+      // temporary transcript. Staying in it would write the next turn nowhere
+      // while the person is looking at a conversation that is saved.
+      // An answer still arriving for the conversation being left is abandoned
+      // rather than allowed to land in this one.
+      abandonInFlight();
+      setTemporary(false);
+      setConversationId(id);
+      setProblem(null);
+    },
+    [abandonInFlight],
+  );
 
   /**
    * Turn temporary chat on or off.
@@ -548,13 +808,13 @@ export function useChat(): ChatState & ChatActions {
    */
   const setTemporaryChat = useCallback(
     (on: boolean) => {
-      opened.current = null;
+      abandonInFlight();
       setTemporary(on);
       setConversationId(null);
       setMessages([]);
       setProblem(null);
     },
-    [setMessages],
+    [setMessages, abandonInFlight],
   );
 
   /**
@@ -586,11 +846,11 @@ export function useChat(): ChatState & ChatActions {
   );
 
   const newConversation = useCallback(() => {
-    opened.current = null;
+    abandonInFlight();
     setConversationId(null);
     setMessages([]);
     setProblem(null);
-  }, [setMessages]);
+  }, [setMessages, abandonInFlight]);
 
   return useMemo(
     () => ({

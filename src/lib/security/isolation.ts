@@ -41,22 +41,35 @@
  */
 
 /**
- * The routes that run inference, and only those.
+ * WHICH DOCUMENTS ARE ISOLATED: ALL OF THEM, EXCEPT THE ONES BELOW.
  *
- * Listed as explicit prefixes rather than "everything except auth", because the
- * failure modes are asymmetric: a route wrongly left OUT of this list runs
- * single-threaded, which is slower and correct, while a route wrongly put IN
- * could break a cross-origin resource nobody remembered it had. An allowlist is
- * the direction that fails safely.
+ * This used to be an allowlist of one prefix, `/ocade`, and `/ocade` is
+ * deliberately a 404. The document that actually runs inference is Chat, and
+ * Chat is `/`. So the headers were applied to a page nobody can reach while the
+ * real engine ran on a document that reported `crossOriginIsolated === false`,
+ * had no `SharedArrayBuffer`, and therefore ran single-threaded on an
+ * eight-core machine — measured live, not inferred.
+ *
+ * The allowlist was chosen because a route wrongly INCLUDED could break a
+ * cross-origin subresource. Under `credentialless` that risk is a subresource
+ * being fetched without credentials, and nothing OCADE loads cross-origin needs
+ * any: the beacon is anonymous, Supabase authenticates in a header, and model
+ * bytes are same-origin. Against that, a route wrongly EXCLUDED is the whole
+ * offline product running at one thread. The asymmetry points the other way, so
+ * the list does too.
+ *
+ * `/` is isolated, and so is every screen a person can reach from it without a
+ * document load — otherwise every move between Chat and Settings would be a
+ * full page navigation, and `needsFullNavigation` would make it one.
  */
-export const ISOLATED_PATH_PREFIXES = ["/ocade"] as const;
 
 /**
- * Paths that must NEVER be isolated, checked first.
+ * Paths that must NEVER be isolated, and are the whole exception list.
  *
- * `/auth` and everything under it, because that is where the popup branch would
- * run if it ever ran. Belt and braces: no prefix above matches these today, and
- * this makes it impossible for one added later to do so by accident.
+ * `/auth` and everything under it, because that is where the SDK's popup branch
+ * would run if it ever ran, and COOP `same-origin` severs `window.opener`.
+ * Production signs in with a full-page redirect, verified in the SDK source, so
+ * this is the belt to that braces.
  */
 export const NEVER_ISOLATED_PATH_PREFIXES = ["/auth", "/.lovable"] as const;
 
@@ -70,8 +83,7 @@ export const NEVER_ISOLATED_PATH_PREFIXES = ["/auth", "/.lovable"] as const;
  */
 export function shouldIsolate(pathname: string): boolean {
   const path = normalisePath(pathname);
-  if (NEVER_ISOLATED_PATH_PREFIXES.some((prefix) => underPrefix(path, prefix))) return false;
-  return ISOLATED_PATH_PREFIXES.some((prefix) => underPrefix(path, prefix));
+  return !NEVER_ISOLATED_PATH_PREFIXES.some((prefix) => underPrefix(path, prefix));
 }
 
 /**

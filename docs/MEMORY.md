@@ -16,7 +16,7 @@ This file is the concise recovery checkpoint for the active Chat-first productio
 
 - Production project: `sazhgaisyhkdbrooycdv`.
 - The project is currently healthy.
-- The active Edge Function is `ocade-intelligence`, version 6, with JWT verification enabled.
+- The active Edge Function is `ocade-intelligence`, **version 7**, with JWT verification enabled (`ezbr_sha256` `4c52705e639e4db2c8e4838a51fcf49acd64611919ae0226ef0a680614c3122f`). Read from the live project rather than from an earlier note: this line said version 6 while a later section of the same file recorded the deployment to 7.
 - The owner has already configured `GEMINI_API_KEY_PRIMARY`, `GEMINI_API_KEY_SECONDARY`, `GEMINI_API_KEY_TERTIARY`, and the required allowed-origin setting. Never ask the owner to paste those secret values into chat or source.
 - Current active authentication methods for the product are Google and six-digit email OTP. Phone OTP is intentionally removed.
 - The permanent owner/admin account is `caeracadane28@gmail.com` through the audited role/grant authority.
@@ -719,3 +719,184 @@ After the plan is complete, run an independent enterprise-grade AI-platform QA p
 GitHub Actions is optional because the owner does not assume paid Actions availability. The project must not stop merely because remote Actions cannot run. Required tests and release proof should run through trusted local or agent execution and the existing direct Cloudflare/Supabase paths without weakening security or coverage.
 
 After correctness is proven, perform a final Ponytail/YAGNI/KISS debloat pass. Prefer fewer maintained lines, fewer dependencies, fewer wrappers, fewer duplicate authorities, and fewer moving parts because that lowers bug surface and makes the code easier to understand and maintain. Never remove necessary tests, validation, security, accessibility, or reliability behavior solely to reduce line count.
+
+## The twenty-six-defect audit, worked in its stated order
+
+Every finding in `PLAN.md` was reproduced before it was changed, and the fixes
+below are recorded with the evidence that actually exists for each — not with
+the evidence that would exist if this session had egress it does not have.
+
+**A signed-out screen and a signed-in one are the same tab.** `useChat` kept
+the conversation id, the transcript, the streaming answer and the in-flight
+reads across a change of account, so signing out and back in as somebody else
+could show the first person's words, or have a late read restore them after a
+clear. One counter now says whose screen is on the display: every asynchronous
+continuation captures it before it awaits and drops what it is holding when it
+no longer matches. The same counter closes the conversation-switch race — an
+answer that arrives for a conversation nobody is looking at is discarded rather
+than appended to whatever replaced it — and it is bumped by New chat, Temporary,
+Delete and the account change alike. The first settled answer from the session
+hook is recorded rather than acted on, because "not known yet" is not "signed
+out": treating it as a change wiped the screen of somebody who had just opened a
+conversation, which the chat journey caught.
+
+**The current question was sent to the model twice, on every request.**
+`setMessages` writes the transcript synchronously, and the question was then
+appended to it again when the request was built. The stub now records the exact
+outbound sequence and the online journey asserts it, because nothing visible on
+screen can show this.
+
+**Regenerate deleted before it asked.** Edit, Regenerate and Retry dropped the
+turns they were replacing — from the screen AND from the account — and only then
+asked the allowance for permission. With nothing left, the person lost their
+question and got nothing in its place, and a reload confirmed the loss. The
+deletion now runs after the permit and before anything is written, inside the
+one `try` whose `finally` settles, so there is still exactly one settlement. The
+usage journey exhausts the allowance, presses Regenerate and proves the turns
+survive both the refusal and a reload.
+
+**Two Sends in one tick were two charges.** The guard read React state, which
+the caller that set it cannot see until the next render. A ref is written and
+read synchronously; the usage journey clicks Send twice inside one page
+evaluation — two Playwright clicks are two ticks and cannot reproduce it — and
+proves one question and one charge.
+
+**A file could not be asked about again.** Stored messages keep a name and a
+size, so Regenerate re-asked a question about a document with no document. The
+bytes are kept for the life of the tab and resent; when they are gone, OCADE
+says the file must be attached again rather than answering as though there had
+never been one.
+
+**Settlement recorded itself as done before it happened.** `settled = true` was
+set before the network call and the failure was swallowed, so a delivered answer
+could stay uncharged and an empty reservation stayed held until its window
+expired. It is marked settled only on a confirmed server acceptance now, retries
+three times, and records an enumerated health line when it finally cannot.
+
+### The defect that turned off every error path in the product
+
+`removeMessage` swallowed a failed deletion, so private text somebody deleted
+came back on the next reload. Fixing the `catch` was not enough, and proving it
+is what showed why: with the stub told to refuse the delete, the server returned
+500, the browser logged the 500 — and the client half of the call RESOLVED, with
+`{}`.
+
+The handlers signalled failure by throwing a `Response`. The framework's client
+resolves that; it rethrows a thrown `Error`. Fourteen handlers did it, which
+means every `try`/`catch` around a server function in this codebase was
+unreachable code: the rollbacks, the "history could not be read, try again"
+states, the conversation-mutation failures, all of it. One line per handler had
+turned the product's error handling off, and no test could see it because
+nothing failed in a test.
+
+All fourteen throw `Error` now. `a-failed-server-function-reaches-its-caller.test.ts`
+keeps them that way, and the chat journey proves it end to end by making the
+database refuse a deletion and checking the turn stays on screen with the person
+told why.
+
+### Offline, devices and isolation
+
+**The engine ran single-threaded on the wrong document.** Cross-origin isolation
+was applied to `/ocade`, which is deliberately a 404; Chat is `/`. Isolation is
+now the default for every document except `/auth`, and crossing that boundary is
+a real navigation rather than a router transition — `needsFullNavigation` had
+existed for this the whole time and nothing consulted it. The shell journey
+asserts `crossOriginIsolated` and `SharedArrayBuffer` on the chat document, and
+asserts the sign-in document is NOT isolated after being reached from chat.
+
+**Registering a browser could cost a device slot for ever.** The device row and
+its grant were two client writes with a compensating delete whose own failure
+was ignored. One security-definer function writes both in one transaction,
+refuses past the cap with the code the browser turns into a sentence, and
+refuses to re-admit a browser whose device was removed.
+`device-registration-against-postgres.test.ts` proves each of those against real
+PostgreSQL, including the atomicity claim, by making the second write fail
+inside the database and looking at what is left.
+
+That function also replaced the Web Locks requirement, so a browser without
+`navigator.locks` — which used to register nothing and say nothing — registers
+normally. The lock is the database's advisory lock, held by the transaction, and
+it covers every tab and device rather than one browser.
+
+**The device cap had no way out, and now has one.** Usage & Limits lists the
+devices holding this account's offline places, marks the current browser, and
+removes one with a confirmation. Removing the current browser reports what it
+spent without a network, deletes its signed blocks locally, and then returns the
+unspent capacity through `ocade_return_offline_usage` — which had no production
+caller at all. Both halves are proved against PostgreSQL: a partial spend returns
+only the unspent part, and a retried return credits once.
+
+A device removed from a DIFFERENT browser is deliberately not returned: that
+browser may hold a signed block it has not reported, and crediting the account
+before those events arrive would hand it the same requests twice. Its block
+expires on its own. Trigger for revisiting: a server-side expiry sweep that can
+accept late events against a closed lease.
+
+**Settings said Ready and unavailable at the same time.** The artifact's
+lifecycle and this browser's offline allocation were two authorities on one
+screen. Readiness is stated once now, from both, and the device-limit case says
+where to go and what to do.
+
+**A device-limit refusal could be shown to the wrong account.** The published
+answer was module state with no account on it. It carries one now, and a screen
+asks on behalf of the account that is signed in.
+
+**The first sign-in could leave Offline permanently broken.** Preparation ran on
+every visit, signed in or not; the release lookup is authenticated, so a
+signed-out bootstrap could only fail — into a stage nothing retries. It waits for
+an account now, which also restarts it when one arrives through an emailed code
+without a page load. Separately, a lookup that could not be MADE no longer
+reports that Offline Intelligence does not exist in this version of OCADE.
+
+### Truth at the edges
+
+**Two origins served the same product.** `www.ocade.in` and `ocade.in` both
+answered 200, and a browser gives each origin its own sessions, storage, service
+worker and model vault — up to and including a second 484 MB download for the
+same person on the same machine. The Worker answers `www` with a 308 to the
+apex, before the asset binding and before Nitro.
+
+**The sitemap named twelve pages that do not exist** — `/company`, `/compare`,
+`/blog`, `/careers`, `/press`, `/status` and the rest — and left out `/about` and
+`/help`, which do. It also built its URLs from the request host, so the `www`
+origin advertised `www` URLs. It lists the real public pages at the canonical
+origin now, and `sitemap-lists-only-real-pages.test.ts` reads the generated route
+tree and fails in both directions if they ever disagree again.
+
+**The policy permitted posting to every HTTPS host on the internet.**
+`connect-src` is now OCADE itself, the configured Supabase project over both
+schemes it uses, and Cloudflare's beacon. The loopback grants went with the local
+runtime they were for, which no longer exists.
+
+Deliberate debt, with its trigger: `script-src` still carries `'unsafe-inline'`.
+The only inline script OCADE writes is the theme boot; the other two are the
+framework's, and pinning their hashes would break the site on a framework
+update. TanStack supports `ssr.nonce`, but `getRouter()` takes no arguments and
+runs in the browser too, so supplying a per-request nonce needs plumbing that
+can reach it without a module-level holder shared across concurrent requests.
+Trigger: the first framework release where the router can read the request, or
+an XSS finding, whichever comes first.
+
+**Dead weight removed rather than documented.** The install telemetry kept a
+sixty-event ring and a listener set that nothing read or subscribed to; with it
+went the thread-outcome accessor that had no caller and the permit timeout's
+leaked timer.
+
+### What this session could not prove, and why
+
+Egress to `ocade.in` and `*.supabase.co` is denied by policy in this environment,
+so nothing here is live production proof: no health read, no signed-in journey
+against the hosted project, no real Gemini answer. The Supabase MANAGEMENT
+boundary is reachable, which is how the migration was applied, the function
+verified in the live catalogue, the advisors read and the types regenerated.
+
+The live advisor warnings were traced rather than accepted: every SECURITY
+DEFINER function `authenticated` can execute enforces its own authorization —
+the entitlement pair requires a support admin AND `aal2`, `has_role` refuses to
+answer about another user, and the purge only touches the caller's own rows. The
+seven "RLS enabled, no policy" tables are service-role-only by design and
+`service-only-tables-stay-closed.test.ts` asserts it.
+
+Still external, unchanged: real WebGPU generation, the 484 MB install and its
+resume/repair/reinstall journey on real hardware, multi-device revocation in
+production, and paid checkout.

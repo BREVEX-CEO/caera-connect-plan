@@ -20,4 +20,14 @@ export const COMPANY_FACTS = {
   launchAtIso: "2026-08-27T22:58:00Z",
   location: "Bengaluru, Karnataka, India",
   status: "launched",
+  /**
+   * The one origin OCADE is canonically reached at.
+   *
+   * Derived from the request until now, in three places that all serve
+   * crawlers: the sitemap on `www.ocade.in` advertised `www` URLs for pages
+   * whose sessions, storage and model live on the apex, so a crawler could be
+   * sent to a second origin of the same product. The Worker redirects `www`
+   * here, and these two agree with it by construction.
+   */
+  siteOrigin: "https://ocade.in",
 } as const;

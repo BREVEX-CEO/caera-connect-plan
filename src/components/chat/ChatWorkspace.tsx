@@ -205,6 +205,16 @@ export function ChatWorkspace() {
         if (read.state !== "ready") return;
 
         /*
+         * A TEMPORARY CHAT KEEPS NOTHING, AND A FILE IS NOT AN EXCEPTION.
+         *
+         * The transcript was memory-only and the attachment was written to
+         * Library anyway, so a person who turned Temporary on to ask about a
+         * document found that document saved to their account afterwards. The
+         * promise the control makes covers the file as much as the words.
+         */
+        if (chat.temporary) return;
+
+        /*
          * Library is a copy, not the path to the model. It is best-effort on
          * purpose: a Library write that fails must not stop a person asking
          * their question about a file OCADE has already read.

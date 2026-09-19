@@ -133,6 +133,48 @@ try {
     `${meter} vs ${afterOne}`,
   );
 
+  /*
+   * TWO SENDS IN ONE TICK ARE ONE REQUEST, OR THEY ARE TWO CHARGES.
+   *
+   * The guard against a second send read React state, which the caller that set
+   * it cannot see until the next render — so two clicks in the same tick both
+   * saw "not busy", both took a permit with a different idempotency key, and
+   * the account paid twice for one question. Clicking from inside one
+   * evaluation is the only way to reproduce that from here: two Playwright
+   * clicks are two ticks, and the defect hides between them.
+   */
+  await setRemaining(20);
+  await page.reload({ waitUntil: "networkidle" });
+  await page.fill("#ocade-composer", "Sent twice in one tick");
+  await page.evaluate(() => {
+    const send = document.querySelector('button[aria-label="Send"]');
+    send?.click();
+    send?.click();
+  });
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  await page.waitForTimeout(2500);
+  /*
+   * Counted in the TRANSCRIPT, not on the page. The first question of a
+   * conversation also becomes its title, and a sidebar row carries the same
+   * `group` class a turn does — both use it for hover-reveal — so a page-wide
+   * count includes the sidebar and can never be one. Turns are divs; rows are
+   * list items.
+   */
+  const asked = () =>
+    page.locator("div.group").filter({ hasText: "Sent twice in one tick" }).count();
+  check(
+    "two Sends in the same tick produce one question",
+    (await asked()) === 1,
+    `${await asked()} turns`,
+  );
+  await page.click('aside button[aria-haspopup="menu"]');
+  await page.getByRole("menuitem", { name: "Settings" }).click();
+  await page.getByRole("button", { name: "Usage & Limits" }).click();
+  await page.waitForSelector("text=of 28 left", { timeout: 15_000 });
+  const afterDouble = await page.getByText(EXACT_COUNT).innerText();
+  check("and one charge, not two", afterDouble.startsWith("19 of 28"), afterDouble);
+  await page.keyboard.press("Escape");
+
   /* --- exhaustion --------------------------------------------------------- */
 
   await setRemaining(0);
@@ -172,6 +214,34 @@ try {
   await page.click("aside ul li button");
   await page.waitForSelector("text=stubbed OCADE answer", { timeout: 15_000 });
   check("an existing conversation still opens", true);
+
+  /*
+   * REGENERATE WITH NOTHING LEFT MUST NOT DESTROY THE CONVERSATION.
+   *
+   * Regenerate deleted the question and everything after it from the screen AND
+   * from the account, and only then asked for permission to answer. With the
+   * allowance gone the refusal arrived after the deletion, so the person lost
+   * their question and got nothing in its place — and a reload confirmed it,
+   * because the rows were already deleted.
+   */
+  const turnsBefore = await page.locator("div.group").count();
+  const questionBefore = await page.getByText("First question", { exact: true }).count();
+  await page.getByRole("button", { name: "Regenerate" }).first().click();
+  await page.waitForTimeout(2500);
+  check(
+    "Regenerate with an exhausted allowance keeps the question",
+    (await page.getByText("First question", { exact: true }).count()) === questionBefore &&
+      (await page.locator("div.group").count()) === turnsBefore,
+    `${await page.locator("div.group").count()} turns against ${turnsBefore}`,
+  );
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  await page.click("aside ul li button");
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 15_000 });
+  check(
+    "and the account still has it after a reload",
+    (await page.getByText("First question", { exact: true }).count()) === questionBefore,
+  );
 
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();

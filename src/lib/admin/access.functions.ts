@@ -61,7 +61,7 @@ async function assertAdmin(
   if (error || data !== true) {
     // Deliberately the same sentence a missing page would give. A hidden area
     // that explains itself tells anybody who guessed the URL that it is there.
-    throw new Response("Not found", { status: 404 });
+    throw new Error("Not found");
   }
 }
 
@@ -98,7 +98,7 @@ export const listAccountAccess = createServerFn({ method: "GET" })
     ]);
 
     for (const result of [profiles, roles, grants, subscriptions]) {
-      if (result.error) throw new Response(result.error.message, { status: 500 });
+      if (result.error) throw new Error(result.error.message);
     }
 
     const rolesByUser = new Map<string, string[]>();
@@ -164,7 +164,7 @@ export const grantAccountAccess = createServerFn({ method: "POST" })
       grant_reason: data.reason,
       days: data.days,
     });
-    if (error) throw new Response(adminFailure(error.message), { status: 400 });
+    if (error) throw new Error(adminFailure(error.message));
     return { ok: true };
   });
 
@@ -182,7 +182,7 @@ export const revokeAccountAccess = createServerFn({ method: "POST" })
       grant_id: data.grantId,
       revoke_reason: data.reason,
     });
-    if (error) throw new Response(adminFailure(error.message), { status: 400 });
+    if (error) throw new Error(adminFailure(error.message));
     return { revoked: revoked === true };
   });
 

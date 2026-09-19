@@ -401,6 +401,53 @@ describe("reconciling one device cannot move another", () => {
     expect(Number(rows[0]!.consumed_hundredths)).toBe(250);
   });
 
+  /*
+   * REMOVING A DEVICE GIVES BACK WHAT IT NEVER SPENT — ONCE.
+   *
+   * `ocade_return_offline_usage` had no caller in the product at all, so a
+   * block a removed device was holding stayed charged to the account until its
+   * window expired: a week, on a paid tier. `closeOfflineUsageForRevokedDevice`
+   * is its caller now, and these are the two things that make calling it safe.
+   */
+  it("returns only the part a removed device never spent", async () => {
+    const lease = (await allocate(laptop, "install-laptop", LAPTOP_KEY, "laptop-return", 700))
+      .lease_id!;
+    await activate(lease);
+    await reconcile(lease, laptop, 300, 1, envelope(lease, laptop, 1, 300));
+    expect(await sessionHundredths()).toBe(700);
+
+    const returned = await twin.asServiceRole<{ ocade_return_offline_usage: string }>(
+      `select public.ocade_return_offline_usage(
+         '${account}'::uuid, '${laptop}'::uuid, '${lease}'::uuid)`,
+    );
+    // The 300 it spent stays spent; the 400 it was holding comes back.
+    expect(Number(returned[0]!.ocade_return_offline_usage)).toBe(400);
+    expect(await sessionHundredths()).toBe(300);
+  });
+
+  it("credits a repeated return once, however many times it is retried", async () => {
+    const lease = (await allocate(laptop, "install-laptop", LAPTOP_KEY, "laptop-retry", 700))
+      .lease_id!;
+    await activate(lease);
+    expect(await sessionHundredths()).toBe(700);
+
+    const call = async () =>
+      Number(
+        (
+          await twin.asServiceRole<{ ocade_return_offline_usage: string }>(
+            `select public.ocade_return_offline_usage(
+               '${account}'::uuid, '${laptop}'::uuid, '${lease}'::uuid)`,
+          )
+        )[0]!.ocade_return_offline_usage,
+      );
+
+    expect(await call()).toBe(700);
+    // A lost response, and the browser tries again. The account must not be
+    // credited twice for one block.
+    expect(await call()).toBe(0);
+    expect(await sessionHundredths()).toBe(0);
+  });
+
   it("refuses a different event claiming a sequence that is already settled", async () => {
     const lease = (await allocate(laptop, "install-laptop", LAPTOP_KEY, "laptop-fork", 700))
       .lease_id!;

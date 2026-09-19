@@ -26,7 +26,7 @@ Local browser persistence is narrowly scoped. OPFS stores Offline runtime artifa
 
 The browser never calls the provider with a customer-visible key. Online requests go to the single Supabase Edge Function `ocade-intelligence`.
 
-The boundary verifies the Supabase JWT, validates the normalized request contract, claims the canonical usage permit, invokes the configured connected provider through server-side secrets, streams the response, and settles the logical generation. The current live function is version 6; repository source must be deployed/reconciled before production parity is claimed.
+The boundary verifies the Supabase JWT, validates the normalized request contract, claims the canonical usage permit, invokes the configured connected provider through server-side secrets, streams the response, and settles the logical generation. The live function is **version 7** and its deployed source was read back and diffed byte-for-byte against this tree. `docs/MEMORY.md` under "Live Supabase baseline" is the one place that records the deployed release state; this document describes the design and defers to it for what is live.
 
 Exactly three server-side key slots exist: `GEMINI_API_KEY_PRIMARY`, `GEMINI_API_KEY_SECONDARY`, and `GEMINI_API_KEY_TERTIARY`. Failover is bounded, health-driven, and only before provider output starts. Key rotation must not be used to evade shared quota.
 

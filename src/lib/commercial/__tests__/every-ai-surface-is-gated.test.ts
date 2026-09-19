@@ -93,7 +93,9 @@ describe("what the gate refuses to let happen", () => {
      * permit.
      */
     const chat = readFileSync("src/lib/chat/use-chat.ts", "utf8");
-    const refusal = chat.indexOf("if (!billed) return");
+    // The refusal itself, however it is written: what this asserts is that it
+    // comes BEFORE intelligence is reached, not how its braces are arranged.
+    const refusal = chat.indexOf("if (!billed)");
     expect(refusal).toBeGreaterThan(0);
     expect(refusal).toBeLessThan(chat.indexOf(INTELLIGENCE_ENTRY));
   });
