@@ -54,7 +54,7 @@ Cowork may remain only as a clean reserved placeholder until the owner explicitl
 - Chat supports Copy, Edit, Regenerate, Retry and Delete where each action is genuinely available.
 - Chat supports conversation search and useful history grouping.
 - Immediate permanent conversation deletion after clear confirmation; Archive/Trash must not become parallel deletion concepts.
-- Temporary Chat persists nothing.
+- Ensure that Temporary Chat persists nothing.
 - OCADE renders Markdown, tables, links and code blocks, with copy support for code.
 - Users can mark an OCADE answer as Helpful or Not helpful.
 - Persist source/citation information with the message when applicable.
@@ -113,11 +113,11 @@ Account memory is an optional account-level capability. When enabled, it may wor
 ### Usage
 
 - Free: 28 successful generations per 6h28m, no weekly cap.
-- Pro: 140 per 6h28m + 700/week.
-- Max: 1,400 per 6h28m + 7,000/week.
+- The Pro tier provides 140 successful uses per 6h28m window and 700 per week.
+- The Max tier provides 1,400 successful uses per 6h28m window and 7,000 per week.
 - Windows are anchored to the account.
 - Online, Offline and Auto share one account-wide allowance across all devices.
-- Failed/empty generations cost zero.
+- Failed or empty generations must cost zero uses.
 - Internal retry/failover does not add uses.
 
 ### Pricing
