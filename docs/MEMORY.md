@@ -4,7 +4,7 @@
 
 - Company identity: **CARCC**.
 - Product identity: **OCADE**.
-- Tagline: **Command the Next Era.**
+- The approved tagline is **Command the Next Era.**
 - Current `main` entering this documentation change: `6c40e68f9d242e6c27f55af18b30d875518f98ed`.
 - The previous 15-finding audit was implemented on that tree; the reported verification was 15/15 gates, 927 tests and 312 browser checks.
 - Supabase migrations from that mission were applied and the Online Intelligence function was reported at version 8.
@@ -76,7 +76,7 @@ Offline unsynced account work that must survive restart should use encrypted loc
 Remove current **CARCC CADANE**, **CADANE**, and old package branding. Use:
 - company: CARCC;
 - product: OCADE;
-- formal attribution where useful: “OCADE by CARCC.”
+- Use “OCADE by CARCC” as the formal attribution where company ownership context is useful.
 
 Founder/About remains publicly discoverable but secondary to the product.
 
