@@ -94,4 +94,12 @@ Desktop uses the steady left sidebar and centered workspace. Tablet narrows/coll
 
 ## Repository-wide completion rule
 
-This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply `/ponytail ultra`, `/caveman ultra`, YAGNI, and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply YAGNI and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+
+## Active audit flow additions
+
+Admin grant flow is: identify the target account through server-side search → complete MFA enrollment/challenge when AAL2 is not present → review tier, duration, account, and reason → submit the audited grant → reread and display the authoritative entitlement and audit result.
+
+Offline flow distinguishes inference locality from synchronization. Saved Offline conversations and explicitly saved files may synchronize after reconnection; Temporary remains memory-only. Remove verifies storage deletion before success, and a failed deletion remains visible and retryable.
+
+On phones, public navigation collapses or wraps without horizontal scrolling, and Settings uses a compact category selector with rows/fields allowed to stack vertically.

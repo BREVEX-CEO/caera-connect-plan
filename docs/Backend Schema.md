@@ -66,4 +66,12 @@ Final release evidence records the exact Git SHA, applied migration set, generat
 
 ## Repository-wide completion rule
 
-This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply `/ponytail ultra`, `/caveman ultra`, YAGNI, and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply YAGNI and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+
+## Active audit database requirements
+
+RLS ownership checks do not substitute for column-level mutation authority. Customer roles must not receive a generic UPDATE path that can clear or rewrite revocation, identity, ownership, or other security-sensitive device/grant columns. Allowed customer device actions must use narrow SECURITY DEFINER RPCs with pinned search paths, explicit auth checks, audited inputs, and least-privilege EXECUTE grants.
+
+Browser-device registration must enforce the cap under true concurrency by serializing on the account and device kind, not the browser installation id. The database test matrix must prove that two different browsers racing for the final slot cannot both commit.
+
+Admin entitlement grants retain admin authorization, AAL2, no-self-grant, bounded duration/tier validation, and an audit record. Account lookup for grants must be server-side, indexed, paginated, and capable of finding accounts older than the newest 200 profiles.

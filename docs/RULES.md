@@ -1,9 +1,8 @@
 # OCADE Non-Negotiable Rules
 
 - `PLAN.md` is the active implementation plan for the current mission. Older plans and audits are historical evidence and may not override the latest owner-approved decisions.
-- Every implementation, debugging, cleanup, review, resumed, and release session uses `/ponytail ultra` and `/caveman ultra`, confirms both are active, and keeps them active through the task.
+- Every new, resumed, context-compacted, Auto Continue, implementation, debugging, cleanup, review, and release session starts by activating `/ponytail ultra` and `/caveman ultra`.
 - Caveman Ultra keeps chat output short, direct, low-token, and written in complete sentences. Do not waste tokens on repeated summaries or narration when the work can be done instead.
-- Ponytail Ultra keeps implementation small and direct. Apply YAGNI and KISS, challenge unnecessary features, reuse existing code, prefer stdlib/native/platform APIs and installed dependencies, and delete safe dead code before adding machinery.
 - Act as an elite production developer. When something fails, trace, reproduce, fix the root cause, test the regression, deliberately test failure, browser-prove the customer path, simplify the result, and continue without asking the owner for help unless the remaining action is genuinely owner-only or externally inaccessible.
 - Keep one canonical authority per responsibility. Do not create duplicate routers, intelligence engines, usage gates, installers, manifests, stores, auth flows, attachment pipelines, entitlement resolvers, billing authorities, admin grant systems, synchronization engines, or UI state machines.
 - Never sacrifice security, correctness, accessibility, validation, reliability, data integrity, or truthful behavior merely to reduce line count. Fewer lines are preferred only when the final system remains safer and easier to maintain.
@@ -39,26 +38,16 @@
 - Reproduce bugs before fixing them, add the smallest useful regression coverage, deliberately test failure and recovery, and browser-prove real customer journeys.
 - After every meaningful change, verify that the simplest final architecture still works end-to-end.
 
-## Mandatory final Ponytail gate
-
-At the last phase of any plan, and immediately before a release, merge, or equivalent integration step when changes have occurred since the previous review, run the available Ponytail review set and fix valid findings before proceeding.
-
-When the host exposes the `anthropic-skills` namespace, use `/anthropic-skills:ponytail-review`, `/anthropic-skills:ponytail-audit`, `/anthropic-skills:ponytail-debt`, and `/anthropic-skills:ponytail-gain`. Otherwise use `/ponytail-review`, `/ponytail-audit`, `/ponytail-debt`, and `/ponytail-gain`. Do not execute the same skill twice merely because two aliases point to the same implementation.
-
-Use `ponytail-review` to inspect the current diff and remove valid over-engineering. Use `ponytail-audit` to inspect the whole repository for hidden bloat, duplicate authorities, unnecessary dependencies, and dead code. Use `ponytail-debt` to surface intentional shortcuts and resolve debt that blocks the current plan. Use `ponytail-gain` only for measured impact; never invent savings.
-
-After fixing valid findings, rerun the affected tests and the complete plan-defined release verification. Proceed only when the simpler result remains secure, correct, accessible, maintainable, and production-proven.
-
 ## Universal Git and release rule
 
-Use the working branch and release target defined by the current plan or owner request. Do not assume a branch named `main`, do not force shared history merely for convenience, and do not integrate a partial phase into the release target. Reconcile the latest target, verify the exact reconciled tree, run the final Ponytail gate, deploy the matching release, and run live smoke tests where the environment permits.
+Use the working branch and release target defined by the current plan or owner request. Do not assume a branch named `main`, do not force shared history merely for convenience, and do not integrate a partial phase into the release target. Reconcile the latest target, verify the exact reconciled tree, deploy the matching release, and run live smoke tests where the environment permits.
 
 ## Mandatory implementation and completion rules
 
-Start implementation work with `/ponytail ultra` and `/caveman ultra` active. Reproduce a defect before fixing it, repair the root cause, and add a regression test that would have failed on the old behavior. Use one canonical authority per responsibility and do not introduce a second router, installer, session authority, usage authority, deployment authority, or storage authority when the existing one can be repaired.
+Reproduce a defect before fixing it, repair the root cause, and add a regression test that would have failed on the old behavior. Use one canonical authority per responsibility and do not introduce a second router, installer, session authority, usage authority, deployment authority, or storage authority when the existing one can be repaired.
 
 After every requirement in `PLAN.md` is complete, run a separate adversarial enterprise-grade AI-platform QA pass. The tester pass must act like an independent hostile user and must cover unit, integration, regression, browser/E2E, malformed-input, property/fuzz, concurrency/race, failure-injection, auth/session isolation, cross-account privacy invariants, database/RLS permissions, provider and network failures, online/offline transitions, reconnect, storage loss, multi-device behavior, accessibility, responsive layouts, deployment parity, and AI-behavior evaluations. Real boundaries take precedence over stubs when they are safely available. Do not claim real-device, GPU, provider, or production proof unless it was actually executed.
 
 GitHub Actions is optional because paid Actions availability is not assumed. Its unavailability is not permission to skip verification. Run equivalent required tests in a trusted local or agent environment and use the existing direct Cloudflare and Supabase release paths where appropriate.
 
-After correctness and safety are proven, apply a Ponytail/YAGNI/KISS debloat pass. Prefer deleting unnecessary code over adding abstractions. Remove dead code, duplicate implementations, unused exports, stale configuration, obsolete compatibility layers, historical comments that no longer explain an invariant, and unnecessary dependencies only when removal is proven safe. Fewer maintained lines and fewer moving parts are preferred because they reduce the bug surface and make OCADE easier to maintain. Never reduce LOC by deleting required tests, security checks, validation, accessibility behavior, or reliability safeguards.
+After correctness and safety are proven, apply a YAGNI/KISS simplification pass. Prefer deleting unnecessary code over adding abstractions. Remove dead code, duplicate implementations, unused exports, stale configuration, obsolete compatibility layers, historical comments that no longer explain an invariant, and unnecessary dependencies only when removal is proven safe. Fewer maintained lines and fewer moving parts are preferred because they reduce the bug surface and make OCADE easier to maintain. Never reduce LOC by deleting required tests, security checks, validation, accessibility behavior, or reliability safeguards.

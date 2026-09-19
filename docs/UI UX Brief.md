@@ -78,4 +78,10 @@ A surface is not polished if it contains an infinite loader, fake control, stale
 
 ## Repository-wide completion rule
 
-This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply `/ponytail ultra`, `/caveman ultra`, YAGNI, and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply YAGNI and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+
+## Active audit UX corrections
+
+At phone widths, public navigation must collapse, wrap, or move behind a compact control; it may not extend the document beyond the viewport. Settings categories must not consume most of the vertical viewport before content, and setting rows/inputs may stack vertically when side-by-side layout would compress labels.
+
+Admin grants should show target account, tier, duration, reason, MFA requirement, and a clear final confirmation of the authoritative entitlement. Help text must point account deletion to Account settings. Offline copy must explain that inference can be local while saved chat/files may synchronize.

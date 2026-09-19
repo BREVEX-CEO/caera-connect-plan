@@ -712,13 +712,13 @@ The final release fast-forwards `main` without force only after the complete pla
 
 The owner is a non-coder and expects implementation agents to make sound technical choices independently, explain outcomes directly, and stop only for genuinely owner-only credentials or external actions. Prompts and reports should use complete sentences rather than one-word bullet labels.
 
-Every implementation session starts with `/ponytail ultra` and `/caveman ultra`. Work follows `PLAN.md` to completion, fixes root causes rather than symptoms, aggressively hunts hidden bugs and race conditions, and adds regression coverage for reproduced failures.
+Every new, resumed, context-compacted, or Auto Continue engineering session starts by activating `/ponytail ultra` and `/caveman ultra`. Work follows `PLAN.md` to completion, fixes root causes rather than symptoms, aggressively hunts hidden bugs and race conditions, and adds regression coverage for reproduced failures.
 
 After the plan is complete, run an independent enterprise-grade AI-platform QA pass that actively tries to break the product across browser flows, integration boundaries, auth and cross-account isolation, Supabase/RLS, usage accounting, online/offline routing, storage/reconnect, multiple devices, Cloudflare deployment parity, malformed/fuzzed inputs, concurrency, failure injection, accessibility, responsive behavior, and AI-behavior evaluations.
 
 GitHub Actions is optional because the owner does not assume paid Actions availability. The project must not stop merely because remote Actions cannot run. Required tests and release proof should run through trusted local or agent execution and the existing direct Cloudflare/Supabase paths without weakening security or coverage.
 
-After correctness is proven, perform a final Ponytail/YAGNI/KISS debloat pass. Prefer fewer maintained lines, fewer dependencies, fewer wrappers, fewer duplicate authorities, and fewer moving parts because that lowers bug surface and makes the code easier to understand and maintain. Never remove necessary tests, validation, security, accessibility, or reliability behavior solely to reduce line count.
+After correctness is proven, perform a YAGNI/KISS simplification pass. Prefer fewer maintained lines, fewer dependencies, fewer wrappers, fewer duplicate authorities, and fewer moving parts because that lowers bug surface and makes the code easier to understand and maintain. Never remove necessary tests, validation, security, accessibility, or reliability behavior solely to reduce line count.
 
 ## The twenty-six-defect audit, worked in its stated order
 
@@ -962,3 +962,17 @@ single-implementation interface, no wrapper that only delegates and no dead
 function. The deletions this session are the install telemetry ring, the thread
 outcome accessor that had no caller, the Web Locks branch the database replaced,
 and the compensating-delete protocol the transaction replaced.
+
+## Owner working approach — current permanent handoff
+
+The owner is a non-coder/vibe coder and wants agents to carry technical work independently. Ask for owner input only when a credential, payment, legal/business choice, destructive owner decision, or other genuinely owner-only action is unavoidable. Explain results in short plain language and give exact prompts or steps when manual action is required.
+
+The workflow is plan-driven. A credible independent audit becomes explicit remediation phases in `PLAN.md`; defects are fixed in severity/risk order, reproduced before repair when safely possible, fixed at root cause, and protected by regression coverage. After implementation, run a separate adversarial QA pass that tries to break real customer flows instead of merely confirming happy paths.
+
+Read-only audits and writable QA are different jobs. A read-only audit must not claim state-changing browser proof. Final certification uses disposable writable test data/accounts to exercise real browser sends, retries, deletes, grants, device revocation, online/offline routing, model install/remove/reinstall, storage/reconnect, and other state-changing paths when the environment permits them.
+
+GitHub Actions is optional because the owner cannot rely on paid Actions billing. Remote Actions failure is not treated as an application failure. Equivalent verification must run through trusted local/agent execution and the existing Cloudflare/Supabase authorities without weakening tests or security.
+
+At the start of every new, resumed, context-compacted, or Auto Continue session, activate `/ponytail ultra` and `/caveman ultra`. There is no mandatory end-of-plan `ponytail-review`, `ponytail-audit`, `ponytail-debt`, or `ponytail-gain` ritual. Final simplification uses ordinary YAGNI/KISS: prefer fewer authorities, fewer dependencies, fewer wrappers, and safe deletion of dead/duplicate code, but never remove necessary tests, validation, security, accessibility, or reliability just to reduce line count.
+
+The current active audit is the 15-finding read-only handoff from `main` `bd1e4f6d2c4c3131afb074ec4658d1a653c2fb1f`: 1 Critical, 5 Major, 7 Medium, 1 Small, and 1 Minor. Those findings are now Phases 15–21 in `PLAN.md`: HTTPS enforcement; revocation/device-cap authority; MFA-backed scalable admin grants; remaining Chat races/transcript safety; truthful Offline privacy/uninstall; mobile/help/indexing corrections; and the writable production-grade proof that the read-only audit could not perform.
