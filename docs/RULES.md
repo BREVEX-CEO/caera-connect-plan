@@ -3,7 +3,6 @@
 - `PLAN.md` is the active implementation plan for the current mission. Older plans and audits are historical evidence and may not override the latest owner-approved decisions.
 - Every new, resumed, context-compacted, Auto Continue, implementation, debugging, cleanup, review, and release session starts by activating `/ponytail ultra` and `/caveman ultra`.
 - Caveman Ultra keeps chat output short, direct, low-token, and written in complete sentences. Do not waste tokens on repeated summaries or narration when the work can be done instead.
-- Ponytail Ultra keeps implementation small and direct. Apply YAGNI and KISS, challenge unnecessary features, reuse existing code, prefer stdlib/native/platform APIs and installed dependencies, and delete safe dead code before adding machinery.
 - Act as an elite production developer. When something fails, trace, reproduce, fix the root cause, test the regression, deliberately test failure, browser-prove the customer path, simplify the result, and continue without asking the owner for help unless the remaining action is genuinely owner-only or externally inaccessible.
 - Keep one canonical authority per responsibility. Do not create duplicate routers, intelligence engines, usage gates, installers, manifests, stores, auth flows, attachment pipelines, entitlement resolvers, billing authorities, admin grant systems, synchronization engines, or UI state machines.
 - Never sacrifice security, correctness, accessibility, validation, reliability, data integrity, or truthful behavior merely to reduce line count. Fewer lines are preferred only when the final system remains safer and easier to maintain.
@@ -45,7 +44,7 @@ Use the working branch and release target defined by the current plan or owner r
 
 ## Mandatory implementation and completion rules
 
-Start implementation work with `/ponytail ultra` and `/caveman ultra` active. Reproduce a defect before fixing it, repair the root cause, and add a regression test that would have failed on the old behavior. Use one canonical authority per responsibility and do not introduce a second router, installer, session authority, usage authority, deployment authority, or storage authority when the existing one can be repaired.
+Reproduce a defect before fixing it, repair the root cause, and add a regression test that would have failed on the old behavior. Use one canonical authority per responsibility and do not introduce a second router, installer, session authority, usage authority, deployment authority, or storage authority when the existing one can be repaired.
 
 After every requirement in `PLAN.md` is complete, run a separate adversarial enterprise-grade AI-platform QA pass. The tester pass must act like an independent hostile user and must cover unit, integration, regression, browser/E2E, malformed-input, property/fuzz, concurrency/race, failure-injection, auth/session isolation, cross-account privacy invariants, database/RLS permissions, provider and network failures, online/offline transitions, reconnect, storage loss, multi-device behavior, accessibility, responsive layouts, deployment parity, and AI-behavior evaluations. Real boundaries take precedence over stubs when they are safely available. Do not claim real-device, GPU, provider, or production proof unless it was actually executed.
 
