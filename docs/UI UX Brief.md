@@ -8,9 +8,9 @@ The product should feel simple even when the implementation is complex.
 
 ## Brand hierarchy
 
-- Company: **CARCC**
-- Product: **OCADE**
-- Tagline: **Command the Next Era.**
+- Use **CARCC** as the company name.
+- Use **OCADE** as the product name.
+- Use **Command the Next Era.** as the approved tagline.
 
 Normal product chrome leads with OCADE. CARCC appears where company ownership/about/legal context is useful. Never show CARCC CADANE/CADANE as current branding.
 
@@ -79,13 +79,13 @@ Use only where structured comparison/admin data genuinely needs them. Responsive
 Never show OPFS, GGUF, WebGPU, WASM, R2, provider names or model names.
 
 Customer language:
-- Preparing Offline
-- Downloading
-- Verifying
-- Ready
-- Repair
-- Removed
-- Install Offline
+- Show **Preparing Offline** while the Offline setup is being prepared.
+- Show **Downloading** while model data is being transferred.
+- Show **Verifying** while integrity checks are running.
+- Show **Ready** only after Offline Intelligence is usable.
+- Show **Repair** when the existing installation needs safe repair.
+- Show **Removed** only after local model removal is verified.
+- Show **Install Offline** as the clear action when Offline Intelligence is not installed.
 
 On mobile data, explain that installation uses a large download and offer Continue/Cancel. Do not permanently block cellular/hotspot.
 
