@@ -976,3 +976,121 @@ GitHub Actions is optional because the owner cannot rely on paid Actions billing
 At the start of every new, resumed, context-compacted, or Auto Continue session, activate `/ponytail ultra` and `/caveman ultra`. There is no mandatory end-of-plan `ponytail-review`, `ponytail-audit`, `ponytail-debt`, or `ponytail-gain` ritual. Final simplification uses ordinary YAGNI/KISS: prefer fewer authorities, fewer dependencies, fewer wrappers, and safe deletion of dead/duplicate code, but never remove necessary tests, validation, security, accessibility, or reliability just to reduce line count.
 
 The current active audit is the 15-finding read-only handoff from `main` `bd1e4f6d2c4c3131afb074ec4658d1a653c2fb1f`: 1 Critical, 5 Major, 7 Medium, 1 Small, and 1 Minor. Those findings are now Phases 15–21 in `PLAN.md`: HTTPS enforcement; revocation/device-cap authority; MFA-backed scalable admin grants; remaining Chat races/transcript safety; truthful Offline privacy/uninstall; mobile/help/indexing corrections; and the writable production-grade proof that the read-only audit could not perform.
+
+## The fifteen findings, closed
+
+The read-only audit from `main` `bd1e4f6` is finished. Its table, with what each
+repair actually was and what proves it, is section 1 of `PLAN.md`; what follows
+is the part worth remembering rather than re-deriving.
+
+**The scheme is half of an origin, and only the edge knows which one was used.**
+`http://ocade.in/`, `/auth` and `/library` answered 200 with the application,
+because the `www` redirect copied the incoming URL and changed the hostname. The
+first fix read `url.protocol` — and every browser proof then timed out against a
+server that was answering perfectly well, because `wrangler dev` rewrites the
+request URL to the hostname in `wrangler.json` and keeps the scheme it serves
+over. Every local request arrives as `http://ocade.in/…`, the loopback exemption
+never fires, and the whole local session redirects to itself for ever. Cloudflare
+is asked instead: `cf-visitor` carries the visitor's own scheme and `cf-ray` is
+stamped on everything the edge proxies, both `cf-` headers a client cannot forge
+past. Their absence means this is not an edge request and there is nothing to
+upgrade.
+
+**RLS decides which rows, never which columns.** `authenticated` held every write
+grant on `devices` and `browser_grants` and both policies tested ownership alone,
+so an account could clear its own revoked row's `revoked_at` through the Data API
+and re-admit a browser it had removed — undoing the one control a person has over
+which browsers answer for them without a network. Nothing needed those grants:
+registration and removal are both audited functions. Removal went back to
+SECURITY DEFINER in the same migration, because it is now the only way an account
+can remove a device; it was made INVOKER in 20260824112646 precisely BECAUSE the
+caller held the grants, which is the same fact read the other way round.
+
+**A cap is serialised by the scope it counts.** The registration lock included the
+browser install id, so two different browsers of one account took different locks
+and the count-then-insert could hand both the last slot. Per account and kind now.
+
+**A second factor nothing could create.** `ocade_grant_entitlement` requires
+`aal2`, the signed-in layout redirects an enrolled account to a challenge, and
+`lib/security/mfa.ts` could enroll, verify, list and remove. Nothing called
+`startEnrollment`. So the factor could not come into existence and the one
+operational task the plan names was unreachable through the product. Enrollment
+is in Settings → Account, where anybody can protect their account, rather than in
+an admin corner — an enrollment flow only operators can reach would be a second
+authority over who may hold a factor.
+
+**Three orderings in `send`, each invisible without a second account, a slow
+allowance service or a storage failure at one exact moment.** The screen was
+captured after the permit await; the `finally` cleared the duplicate-Send guard
+whoever held it; delivery was recorded after persistence, so a storage failure
+un-charged an answer somebody had already read. All three are orderings in one
+file, so they are held by a test that reads that file.
+
+**Regenerate deleted a transcript one row at a time, in parallel.** One failure
+among five removed turns from the middle, permanently. `ocade_delete_messages_from`
+does it in one statement. It is keyed on a MOMENT rather than on the anchor row,
+because a turn written while the account was unreachable has no row to name —
+and that is also where this session put a defect of its own: the boundary came
+from the anchor's `created_at`, which for such a turn is a time the BROWSER
+wrote. A slow clock would have deleted earlier turns nobody asked to replace. The
+boundary comes from the first stored row being dropped, which is a time the
+database chose.
+
+**Offline's honesty is about the inference, not the record.** Help said Offline
+"sends nothing anywhere" while an ordinary offline chat creates a conversation,
+stores both turns and copies attachments to Library. Somebody choosing Offline
+FOR PRIVACY was reading a promise the product does not keep. The two claims are
+separated now, and temporary chat is named as the control that makes the stronger
+one true.
+
+**A deletion that cannot be verified is not a deletion.** `removeEverything`
+cleared each version's metadata whether or not the file went, and `uninstall`
+published "Removed" and returned `{ok:true}` regardless — so somebody could be
+told hundreds of megabytes were freed from a device where every byte remained,
+with no record left to retry against. The store is asked what is left.
+
+## The adversarial pass, and the three things it found
+
+**An upload was decoded before it was measured.** `addLibraryItem` checked the
+100 MB ceiling on the decoded bytes and bounded the base64 not at all, so the
+decode — the part that spends the memory — was the only thing between one request
+and an arbitrary amount of it.
+
+**And it stored the caller's own content type.** The Library opens an object by
+minting a signed URL and handing it to a new tab, and storage serves what it was
+told: a file stored as `text/html` was an attacker-chosen document on the
+project's storage domain, reached through OCADE's own screen. An image is stored
+as the format its first bytes are; everything else as bytes to download. The four
+signatures moved to `lib/media-type.ts` so the composer and the server share one
+answer rather than the composer having the only copy.
+
+**An erasure left no proof it happened.** `deleteMyAccount` wrote its compliance
+line with the user id in it, AFTER `deleteUser` removed the row it references.
+`ON DELETE SET NULL` describes what happens to an existing row when its user
+goes; it does not let a new row name a user who is already gone. The foreign key
+refused that insert every time and the best-effort `catch` swallowed it. The row
+carries no subject now, which is the state the constraint exists to produce.
+
+Two flaky checks were fixed at the root rather than re-run: the device-cap proof
+waited a flat 3.5 seconds for a background registration, and the final sweep's
+press loop produced React hydration reports by interrupting hydration — so every
+route is now checked for page errors on a plain load, before anything is pressed,
+and the loop no longer counts the reports it causes.
+
+## What was deployed, and what was not
+
+The three migrations are applied to `sazhgaisyhkdbrooycdv` and each was verified
+with its own verification script through the management boundary. `types.ts` is
+byte-identical to the types generated from the live schema. `ocade-intelligence`
+is at version 8 and matches this tree.
+
+The Cloudflare Worker is not: no `CLOUDFLARE_API_TOKEN`, no account id, and no
+egress to Cloudflare from this environment. `scripts/deploy.mjs --check` says the
+same. That is the owner's step, and until it runs the live frontend is the
+previous build — which the applied migrations are compatible with, because it
+reads those tables and mutates them only through the two RPCs.
+
+Still external and unchanged: real Gemini delivery, the 484 MB install and real
+WebGPU/WASM generation on real hardware, true database concurrency (PGlite is one
+connection), and paid checkout. One owner toggle is worth knowing about: leaked
+password protection is disabled on the Supabase project.
