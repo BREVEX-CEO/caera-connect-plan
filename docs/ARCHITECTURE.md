@@ -22,25 +22,25 @@ Provider/model identity is intentionally omitted from product/client architectur
 
 ## Tech stack
 
-- React + TypeScript + TanStack + Vite + Tailwind.
-- Node/npm.
-- Supabase for auth/durable account data.
-- Cloudflare Worker for web serving.
-- Private R2 release delivery for Offline Intelligence.
-- Browser OPFS as the only model store.
+- Build the frontend with React, TypeScript, TanStack, Vite and Tailwind.
+- Use Node with npm as the runtime and package-management toolchain.
+- Use Supabase for authentication and durable account data.
+- Use the Cloudflare Worker to serve the website.
+- Use private R2 delivery for the opaque Offline Intelligence release.
+- Use browser OPFS as the only Offline model store.
 
 ## Repository structure
 
-- `src/routes/` — app/public/API routes.
-- `src/components/` — Chat, Settings, shell/legal UI.
-- `src/lib/intelligence/` — normalized Online/Offline contract/router.
-- `src/lib/brain/` — Offline installer/runtime lifecycle.
-- `src/lib/commercial/` — usage, entitlements, devices.
-- `src/lib/library/` — Library/file authority.
-- `src/lib/security/` — auth assurance/session/security headers.
-- `supabase/` — migrations/functions/verification/rollback.
-- `scripts/` — verification, build, browser journeys and Offline release tooling.
-- `docs/` — canonical product/technical/design/test documentation.
+- Keep app, public and API routes under `src/routes/`.
+- Keep Chat, Settings, shell and legal UI components under `src/components/`.
+- Keep the normalized Online/Offline contract and router under `src/lib/intelligence/`.
+- Keep the Offline installer and runtime lifecycle under `src/lib/brain/`.
+- Keep usage, entitlement and device logic under `src/lib/commercial/`.
+- Keep the Library and file authority under `src/lib/library/`.
+- Keep authentication assurance, session and security-header logic under `src/lib/security/`.
+- Keep database migrations, functions, verification and rollback artifacts under `supabase/`.
+- Keep verification, build, browser journeys and Offline release tooling under `scripts/`.
+- Keep canonical product, technical, design and testing documentation under `docs/`.
 
 ## Application layers
 
@@ -57,10 +57,10 @@ Do not bypass a lower authority with UI-local rules.
 Supabase is canonical for durable signed-in account data.
 
 Local browser persistence is intentionally narrow:
-- OPFS: Offline model bytes/chunks/checkpoints/model metadata/runtime model assets only.
-- encrypted pending reconciliation journal: disconnected account work that must survive restart.
-- small device/UI preferences where appropriate.
-- no duplicate durable conversation/library database in the browser.
+- Use OPFS only for Offline model bytes, chunks, checkpoints, model metadata and runtime model assets.
+- Use an encrypted pending reconciliation journal for disconnected account work that must survive restart.
+- Keep only small device or UI preferences in their appropriate lightweight preference store.
+- Do not create a duplicate durable conversation or Library database in the browser.
 
 ## Online architecture
 
@@ -71,14 +71,14 @@ The browser sees normalized OCADE events only. Real provider/model identity stay
 ## Offline architecture
 
 One installer owns:
-- release resolution;
-- storage check;
-- ranged transfer;
-- checkpoint/resume;
-- digest verification;
-- activation;
-- repair;
-- remove/reinstall.
+- The installer resolves the approved release.
+- The installer checks storage before transfer.
+- The installer performs ranged transfer.
+- The installer checkpoints progress and resumes interrupted transfers.
+- The installer verifies the final digest.
+- The installer activates only a verified release.
+- The installer repairs only missing or corrupt model data.
+- The installer owns remove and reinstall behavior.
 
 ### OPFS rule
 
@@ -96,22 +96,22 @@ One permit/ledger authority handles successful logical generations across all mo
 
 ## Security architecture
 
-- Server-side secrets.
-- RLS + grants.
-- Strong auth for privileged operations.
-- Canonical origin/HTTPS.
-- Hostile file handling.
+- Keep secrets on the server side.
+- Enforce both row-level security and explicit grants.
+- Require strong authentication for privileged operations.
+- Enforce the canonical HTTPS origin.
+- Treat uploaded files as hostile input.
 - No client trust for entitlement/usage/ownership/security-sensitive fields.
 - Cross-account async state must be scoped to account/conversation/request.
 
 ## Deployment architecture
 
 Production proof includes:
-- exact Git SHA;
-- Cloudflare Worker deployment;
-- Supabase migration/type state;
-- Online Intelligence function version/source;
-- Offline opaque release contract.
+- Record the exact Git SHA used for the release.
+- Record the matching Cloudflare Worker deployment.
+- Record the matching Supabase migration and generated-type state.
+- Record the matching Online Intelligence function version and source.
+- Record the matching opaque Offline release contract.
 
 ## Scalability
 
@@ -119,7 +119,7 @@ Use indexed bounded queries and pagination. Avoid whole-table reads. Offline tra
 
 ## Constraints
 
-- Website only for current mission.
-- No live Paddle/paid checkout.
-- No current Projects/Tasks/Automations/Monitors/Organizations/Code/native-app architecture.
-- Normal users never see provider/model/runtime/infrastructure identities.
+- Keep the current mission limited to the website.
+- Do not include live Paddle or paid checkout in the current architecture.
+- Do not add Projects, Tasks, Automations, Monitors, Organizations, Code or native-app architecture to the current mission.
+- Never expose provider, model, runtime or infrastructure identities to normal users.
