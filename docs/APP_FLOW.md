@@ -68,7 +68,7 @@ Needs Internet. When disconnected, disable it and explain why.
 
 ### Offline
 Zero Online provider traffic. If not installed/removed:
-- show **Install Offline** immediately;
+- Show **Install Offline** immediately when Offline Intelligence is missing.
 - if the user previously removed it, show reusable **Install / Cancel** prompt on a later sign-in and whenever they choose Offline.
 
 Offline refuses image upload/input.
@@ -123,10 +123,10 @@ Assistant:
 ## Temporary Chat
 
 Temporary Chat:
-- writes no conversation/message history;
-- does not automatically add files to Library;
-- disappears when the temporary session ends;
-- does not enter account memory.
+- Temporary Chat writes no conversation or message history.
+- Temporary Chat does not automatically add files to Library.
+- Temporary Chat disappears when the temporary session ends.
+- Temporary Chat does not enter account memory.
 
 ## Offline account work
 
