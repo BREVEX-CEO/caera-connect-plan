@@ -3,15 +3,15 @@
 Use this before declaring a UI change complete.
 
 ## Brand
-- [ ] Product says OCADE.
-- [ ] Company attribution says CARCC where appropriate.
-- [ ] No current CARCC CADANE/CADANE identity.
+- [ ] Confirm that the product name shown to customers is OCADE.
+- [ ] Confirm that company attribution says CARCC where appropriate.
+- [ ] Confirm that no current CARCC CADANE or CADANE identity remains.
 - [ ] Tagline, where used, is “Command the Next Era.”
 
 ## Product scope
 - [ ] Current navigation does not advertise Projects, Tasks, Automations, Monitors, Organizations, Code or native apps.
 - [ ] Cowork, if present, is only a clean reserved placeholder.
-- [ ] No Paddle/live-checkout UI.
+- [ ] Confirm that no Paddle or live-checkout UI is present.
 
 ## Chat
 - [ ] Chat is primary home.
@@ -20,12 +20,12 @@ Use this before declaring a UI change complete.
 - [ ] Send ↔ Stop state is obvious.
 - [ ] Edit/Regenerate/Retry/Delete work without duplicate turns.
 - [ ] Helpful / Not helpful is discreet.
-- [ ] Sources stay attached to the answer.
+- [ ] Confirm that sources stay attached to the answer they support.
 - [ ] Highlighted text can support Ask OCADE when implemented.
 - [ ] Temporary Chat is clearly temporary.
 
 ## Offline
-- [ ] No provider/model/runtime/storage terminology.
+- [ ] Confirm that customer UI does not expose provider, model, runtime or storage terminology.
 - [ ] Preparing/Downloading/Verifying/Ready/Repair/Removed language is customer-safe.
 - [ ] Removed state offers easy Install/Cancel.
 - [ ] Selecting Offline while missing offers Install.
@@ -36,40 +36,40 @@ Use this before declaring a UI change complete.
 ## Library
 - [ ] Uploaded and generated files share one Library concept.
 - [ ] Temporary attachments are not silently saved.
-- [ ] Loading/empty/error/Retry states exist.
+- [ ] Confirm that loading, empty, error and Retry states exist where needed.
 
 ## Settings
 - [ ] Account, Appearance, Notifications, Data Controls, Usage & Limits, Billing, Advanced.
 - [ ] Phone category selector is compact.
 - [ ] Fields/labels stack rather than crush on narrow screens.
-- [ ] Offline controls live under Data Controls.
+- [ ] Confirm that Offline controls live under Data Controls.
 - [ ] Billing honestly says paid plans are not open.
 
 ## Public pages
-- [ ] About correctly describes CARCC → OCADE.
-- [ ] Help links to real surfaces.
-- [ ] Terms/Privacy match current website-only product.
-- [ ] Non-public/account-only routes have appropriate noindex.
-- [ ] HTTP/www canonicalize to HTTPS apex.
+- [ ] Confirm that About correctly describes CARCC as the company and OCADE as the product.
+- [ ] Confirm that Help links only to real product surfaces.
+- [ ] Confirm that Terms and Privacy match the current website-only product.
+- [ ] Confirm that non-public and account-only routes use appropriate noindex behavior.
+- [ ] Confirm that HTTP and www requests canonicalize to the HTTPS apex origin.
 
 ## Responsive
-- [ ] 360 px.
-- [ ] 375 px.
-- [ ] tablet.
-- [ ] desktop.
-- [ ] no horizontal page overflow.
-- [ ] no hover-only critical action.
-- [ ] touch targets usable.
+- [ ] Test the interface at 360 px width.
+- [ ] Test the interface at 375 px width.
+- [ ] Test the interface at a representative tablet width.
+- [ ] Test the interface at a representative desktop width.
+- [ ] Confirm that no page has horizontal overflow.
+- [ ] Confirm that no critical action depends on hover alone.
+- [ ] Confirm that touch targets remain usable.
 
 ## Accessibility
-- [ ] keyboard/focus.
-- [ ] dialog semantics.
-- [ ] accessible control names.
-- [ ] contrast.
-- [ ] reduced motion.
-- [ ] meaningful live/error status.
+- [ ] Confirm keyboard navigation and focus behavior.
+- [ ] Confirm correct dialog semantics.
+- [ ] Confirm that interactive controls have accessible names.
+- [ ] Confirm sufficient visual contrast.
+- [ ] Confirm reduced-motion behavior.
+- [ ] Confirm meaningful live and error status announcements.
 
 ## Technical secrecy
-- [ ] No provider/vendor/model name in visible UI.
-- [ ] No OPFS/GGUF/WebGPU/WASM/R2/Supabase jargon in normal UI.
-- [ ] No secret/internal stack error shown to customer.
+- [ ] Confirm that no provider, vendor or model name appears in visible UI.
+- [ ] Confirm that OPFS, GGUF, WebGPU, WASM, R2 and Supabase jargon do not appear in normal UI.
+- [ ] Confirm that no secret or internal stack error is shown to customers.
