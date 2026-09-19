@@ -14,7 +14,6 @@ Every implementation, debugging, review, cleanup, release, and resumed session m
 
 Confirm in one short sentence that Ponytail Ultra and Caveman Ultra are active and in use. Keep both active through context compaction, Auto Continue, usage resets, debugging, verification, and release work.
 
-Ponytail Ultra governs implementation: challenge unnecessary work, reuse what exists, delete before adding, prefer fewer moving parts, and leave the repository simpler. Caveman Ultra governs communication: keep chat output compact, direct, low-token, and action-oriented without hiding material risks, failures, commands, or proof.
 
 ## Output and token discipline
 
@@ -46,7 +45,7 @@ Do not stop at an audit, diagnosis, recommendation, or partial workaround while 
 
 ## Engineering doctrine
 
-You are an elite production developer. Always use `/ponytail ultra` and `/caveman ultra`, and verify that both remain active and in use.
+You are an elite production developer. Apply YAGNI, KISS, root-cause repair, one canonical authority per responsibility, and the smallest secure maintainable change.
 
 Keep the codebase small, readable, simple, secure, and easy to maintain.
 
@@ -112,40 +111,6 @@ A green unit test is not enough for a customer capability. Prove the capability 
 
 Never fabricate proof that requires credentials, hardware, a live endpoint, or an unavailable external system. Record the exact remaining proof instead.
 
-## Mandatory Ponytail final gate
-
-At the last phase of any plan, and again immediately before any release, merge, or equivalent integration step when changes have occurred since the last review, run the available Ponytail quality skills and act on their findings before proceeding.
-
-When the host exposes the `anthropic-skills` namespace, use these forms:
-
-```text
-/anthropic-skills:ponytail-review
-/anthropic-skills:ponytail-audit
-/anthropic-skills:ponytail-debt
-/anthropic-skills:ponytail-gain
-```
-
-When that namespace is unavailable, use the upstream Claude Code forms:
-
-```text
-/ponytail-review
-/ponytail-audit
-/ponytail-debt
-/ponytail-gain
-```
-
-Do not execute the same skill twice merely because two aliases point to the same implementation; that wastes tokens. Resolve the available form once and use it.
-
-`ponytail-review` must inspect the current diff and produce a direct delete/simplify list. Fix valid findings, then rerun focused verification.
-
-`ponytail-audit` must inspect the whole repository for hidden bloat, duplicated authorities, unnecessary dependencies, dead code, and over-engineering. Fix safe, relevant findings without destabilizing proven behavior.
-
-`ponytail-debt` must harvest deliberate Ponytail shortcuts or deferred cleanup into an explicit debt ledger. Resolve debt that blocks the current plan; keep only intentional debt with a clear future trigger.
-
-`ponytail-gain` records measured impact such as code/dependency reduction when the skill supports it. Never invent savings or treat a cosmetic line-count reduction as proof of quality.
-
-After these checks, rerun the plan-defined verification. Fewer lines are useful only when the resulting system remains correct, secure, accessible, maintainable, and production-proven.
-
 ## Universal Git, checkpoint, and release safety
 
 Do not assume a branch named `main`, a particular hosting provider, or a specific merge strategy unless the current `PLAN.md` or owner request defines it. Treat `CLAUDE.md` as reusable across future sessions and missions.
@@ -154,7 +119,7 @@ Use the current plan-defined working branch and target branch. Fetch and reconci
 
 After each meaningful plan checkpoint, update the recovery documentation required by the current plan, create a descriptive commit, push it, and verify the remote SHA when repository access permits. Do not integrate a partially completed phase into the plan-defined release target.
 
-After the final plan gate passes, rerun verification on the exact reconciled tree, perform the mandatory Ponytail final gate, integrate using the plan-approved non-destructive strategy, deploy the matching release, and run live smoke tests where the environment permits.
+After the final plan gate passes, rerun verification on the exact reconciled tree, integrate using the plan-approved non-destructive strategy, deploy the matching release, and run live smoke tests where the environment permits.
 
 Report checkpoints in one short complete sentence, for example:
 
@@ -166,10 +131,10 @@ Then continue automatically unless a genuine owner-only external action is requi
 
 ## Permanent execution rules
 
-Start every implementation session with `/ponytail ultra` and `/caveman ultra` active. Follow the repository authorities in `PLAN.md`, `docs/RULES.md`, and `docs/TESTING.md` before changing code.
+Start every new session, resumed session, context-compacted session, Auto Continue session, or fresh implementation/debugging/release session by activating `/ponytail ultra` and `/caveman ultra`. Follow the repository authorities in `PLAN.md`, `docs/RULES.md`, and `docs/TESTING.md` before changing code.
 
 Finish the active plan completely before declaring the mission complete. After the plan is complete, perform a separate enterprise-grade AI-platform QA pass that actively tries to break the application through isolated browser testing, integration testing, regression testing, malformed and fuzzed inputs, concurrency races, failure injection, auth and cross-account invariants, database/RLS checks, provider/network failures, online/offline transitions, storage loss, reconnect, multi-device behavior, responsive/accessibility checks, deployment parity, and AI-behavior evaluations. Never replace real proof with mocks when the real boundary is available, and never claim hardware or external proof that was not actually performed.
 
 GitHub Actions remains optional because paid Actions availability is not assumed. Do not stop the mission merely because remote Actions cannot run. Use trusted local or agent verification and the existing direct deployment authorities without weakening any test or security requirement.
 
-Always apply Ponytail/YAGNI/KISS rules after correctness is proven. Debloat aggressively but safely: delete dead code, duplicated authorities, stale compatibility paths, unused exports, obsolete comments, unnecessary wrappers, and unnecessary dependencies. Prefer fewer maintained lines and fewer moving parts because they reduce bug surface and make OCADE easier to audit and maintain. Do not chase an arbitrary line-count target, and never remove required tests, validation, security controls, accessibility behavior, or reliability logic merely to reduce LOC. Measure and report the before/after maintained line count for substantial implementation work.
+After correctness is proven, apply YAGNI/KISS simplification. Debloat aggressively but safely: delete dead code, duplicated authorities, stale compatibility paths, unused exports, obsolete comments, unnecessary wrappers, and unnecessary dependencies. Prefer fewer maintained lines and fewer moving parts because they reduce bug surface and make OCADE easier to audit and maintain. Do not chase an arbitrary line-count target, and never remove required tests, validation, security controls, accessibility behavior, or reliability logic merely to reduce LOC. Measure and report the before/after maintained line count for substantial implementation work.
