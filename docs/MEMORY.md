@@ -35,11 +35,11 @@ Documentation is authoritative about the desired product, but current source may
 - Remove any remaining CADANE strings and obsolete package identity.
 - Remove current Paddle-specific runtime and webhook code safely.
 - Add password authentication alongside Google and email OTP.
-- migrate any model metadata/checkpoints that still live outside OPFS into the one OPFS model authority;
+- Migrate any model metadata or checkpoints that still live outside OPFS into the single OPFS model authority.
 - Implement an encrypted, restart-safe journal for pending offline conversation synchronization.
-- simplify permanent conversation deletion if current Trash/restore code still exists;
-- replace old side-conversation machinery with highlight → Ask OCADE where applicable;
-- align notification behavior with the new preference decision;
+- Simplify permanent conversation deletion if current Trash or restore code still exists.
+- Replace old side-conversation machinery with highlight → Ask OCADE where applicable.
+- Align notification behavior with the new preference decision.
 - implement/enable Status and editable Help Center only when their real backend flow is ready.
 
 Do not call these complete merely because the docs say they are required.
