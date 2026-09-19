@@ -4,7 +4,7 @@
 
 ### Public
 - `/` — Chat shell; Send requires sign-in.
-- `/pricing` — Free/Pro/Max information; paid checkout closed.
+- Use `/pricing` to show Free, Pro and Max information while paid checkout remains closed.
 - `/about` — founder/company context: CARCC is the company, OCADE the product.
 - `/help` — Help Center/current support guidance.
 - Use `/terms` for the Terms & Conditions page.
@@ -12,10 +12,10 @@
 - future `/status` only when real status data is published.
 
 ### Signed-in
-- `/` — Chat.
-- `/library` — uploaded and generated files.
-- Settings — responsive dialog/surface from Account.
-- `/admin` — hidden, role-gated owner/admin surface.
+- Use `/` as the primary Chat surface.
+- Use `/library` for uploaded and generated files.
+- Open Settings as a responsive account surface from the Account control.
+- Keep `/admin` hidden and role-gated for owner/admin use.
 - `/cowork` may remain a reserved placeholder only; it is not a current functional product.
 
 ## Navigation
@@ -35,9 +35,9 @@ Mobile: drawer/sheet with the same current capabilities. No horizontal scrolling
 ## Authentication
 
 Offer:
-- Continue with Google;
-- email OTP;
-- password sign-in.
+- Offer Continue with Google as a sign-in method.
+- Offer email OTP as a sign-in method.
+- Offer password sign-in when the target implementation is complete.
 
 Do not reveal whether an email account exists through useful enumeration copy.
 
@@ -112,12 +112,12 @@ Assistant:
 
 ## Conversation management
 
-- Search recent conversations.
-- Rename.
+- Let users search recent conversations.
+- Let users rename a conversation.
 - Archive only if retained as a simple organization action.
-- Permanent Delete after explicit confirmation.
+- Permanently delete a conversation only after explicit confirmation.
 - Do not maintain a separate Trash/restore product if Delete is permanent.
-- Export individual conversation when supported.
+- Allow individual conversation export when that feature is supported.
 - Public share links are out of current scope.
 
 ## Temporary Chat
@@ -140,10 +140,10 @@ If a saved chat is created while connectivity is unavailable:
 ## Library
 
 - All / Images / Files filters as actually supported.
-- Add/upload.
-- Search.
+- Let users add or upload files to Library.
+- Let users search Library.
 - Generated OCADE outputs may also appear here.
-- Temporary attachments enter only after explicit Save.
+- Add Temporary Chat attachments to Library only after an explicit Save action.
 - File operations have loading, empty, success, error and Retry states.
 
 ## Settings
@@ -184,11 +184,11 @@ Generation locks at zero. History, Library, Settings, Pricing, account controls 
 ## Error contract
 
 Every async flow ends in one of:
-- success;
-- empty;
-- actionable error + Retry;
-- cancelled;
-- real bounded progress.
+- End in success when the operation completes.
+- End in an empty state when no data exists.
+- End in an actionable error state with Retry when recovery is possible.
+- End in a cancelled state when the user cancels the operation.
+- Show real bounded progress when the operation has measurable progress.
 
 No indefinite “Loading…”/“Reading…”.
 
