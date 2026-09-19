@@ -6,13 +6,13 @@ OCADE is conversational first: simple on the surface, powerful underneath. The i
 
 ## Visual direction
 
-- Dark, premium, minimal.
-- Near-black/charcoal foundation.
-- Neutral white/grey hierarchy.
-- Restrained medium glassmorphism.
-- Soft rounded geometry.
-- Minimal borders and shadows.
-- Subtle purposeful motion.
+- Keep the visual direction dark, premium and minimal.
+- Use a near-black or charcoal foundation.
+- Use a neutral white and grey hierarchy for text and surfaces.
+- Use restrained, medium-strength glassmorphism.
+- Use soft rounded geometry.
+- Keep borders and shadows minimal.
+- Use subtle motion only when it has a clear purpose.
 
 Reference interaction/layout screenshots exist under `docs/design-references/grok/`. Use them as inspiration together with the owner requirement for ChatGPT/Grok-like simplicity. Do not copy another company's brand assets.
 
@@ -42,9 +42,9 @@ Subtle only. Glass/border contrast should carry most separation.
 
 ## Layout
 
-- Desktop: sidebar + focused workspace.
-- Tablet: collapsible navigation.
-- Phone: drawer + full-width workspace.
+- On desktop, use a sidebar with a focused central workspace.
+- On tablet, use collapsible navigation.
+- On phones, use a drawer with a full-width workspace.
 - Reading/composer widths remain comfortable.
 - No horizontal overflow at 360–375 px.
 
@@ -99,9 +99,9 @@ WCAG-conscious contrast, keyboard navigation, focus visibility, semantic HTML, s
 
 ## Do not
 
-- No CADANE branding.
-- No provider/model/vendor/runtime names in normal UI.
-- No OPFS/GGUF/WebGPU/WASM/R2/Supabase terminology in normal UI.
-- No card-wall dashboards.
-- No unsupported/fake controls.
-- No current-scope Projects/Tasks/Automations/Organizations/Code surfaces.
+- Do not use CADANE branding.
+- Do not show provider, model, vendor or runtime names in the normal UI.
+- Do not show OPFS, GGUF, WebGPU, WASM, R2 or Supabase terminology in the normal UI.
+- Do not build card-wall dashboards.
+- Do not show unsupported or fake controls.
+- Do not show Projects, Tasks, Automations, Organizations or Code surfaces in the current scope.
