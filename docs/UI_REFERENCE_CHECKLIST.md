@@ -63,4 +63,15 @@ Use this checklist when reviewing every production surface. Each item is a sente
 
 ## Repository-wide completion rule
 
-This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply `/ponytail ultra`, `/caveman ultra`, YAGNI, and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply YAGNI and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+
+## Active audit checks
+
+- HTTP entry points redirect to canonical HTTPS before application HTML is served.
+- Public navigation has no horizontal overflow at 360–375 px and all controls remain touch-reachable.
+- Phone Settings uses a compact category pattern and lets labels/fields stack rather than wrap word by word.
+- Help sends customers to Account for account deletion.
+- Library/Cowork and other non-public/placeholder surfaces use appropriate noindex metadata.
+- Offline copy distinguishes local inference from saved-data synchronization.
+- Remove Offline never reports success until the intended model/runtime storage is actually absent.
+- Admin grant UI makes MFA requirement, target account, tier, duration, reason, and final authoritative result clear.
