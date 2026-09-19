@@ -5,15 +5,7 @@
 
 ## Required session modes
 
-Every implementation, debugging, review, cleanup, release, and resumed session must begin by invoking:
-
-```text
-/ponytail ultra
-/caveman ultra
-```
-
-Confirm in one short sentence that Ponytail Ultra and Caveman Ultra are active and in use. Keep both active through context compaction, Auto Continue, usage resets, debugging, verification, and release work.
-
+Every new, resumed, context-compacted, Auto Continue, implementation, debugging, review, cleanup, and release session starts by activating the two commands already placed at the top of this file. After a context reset or compaction, activate them again before continuing.
 
 ## Output and token discipline
 
