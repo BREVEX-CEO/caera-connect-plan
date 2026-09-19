@@ -252,6 +252,31 @@ function handleRpc(name, args, userId) {
       return removed;
     }
 
+    case "ocade_delete_messages_from": {
+      /*
+       * Edit, Regenerate and Retry drop a question and every turn after it, and
+       * the browser used to do that with one delete call per row. One statement
+       * replaced them, so a stub that only answered table writes would leave
+       * every edit refusing itself — which is exactly what it did, and the
+       * journey caught it.
+       *
+       * Modelled as the database does it: the caller's own rows, this
+       * conversation, at or after the moment, and never a side conversation.
+       */
+      const held = rows(userId, "ocade_messages");
+      const from = Date.parse(args.p_from);
+      const keep = held.filter(
+        (row) =>
+          !(
+            row.conversation_id === args.p_conversation_id &&
+            !row.anchor_message_id &&
+            Date.parse(row.created_at) >= from
+          ),
+      );
+      tablesFor(userId).ocade_messages = keep;
+      return held.length - keep.length;
+    }
+
     case "register_browser_device_for_current_user": {
       /*
        * The one transactional registration, modelled the way the database does

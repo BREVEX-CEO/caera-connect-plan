@@ -106,7 +106,7 @@ export default {
 
     // Before assets and before Nitro: neither should ever serve the second
     // origin or plain HTTP, not even a static file with a cache header on it.
-    const canonical = canonicalOriginRedirect(url);
+    const canonical = canonicalOriginRedirect(url, request.headers);
     if (canonical) return canonical;
 
     if (env.ASSETS && isPublicAssetURL(url.pathname)) {

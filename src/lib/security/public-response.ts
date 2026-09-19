@@ -179,6 +179,39 @@ function isLoopback(hostname: string): boolean {
   );
 }
 
+/** Cloudflare's statement of the scheme the VISITOR used, when it makes one. */
+const VISITOR_OVER_HTTP = /"scheme"\s*:\s*"http"/;
+
+/**
+ * Whether this request genuinely reached OCADE without transport encryption.
+ *
+ * THE URL ALONE IS NOT ENOUGH, and finding that out cost a redirect loop.
+ * `wrangler dev` rewrites the request URL to the hostname in `wrangler.json`'s
+ * routes and keeps the scheme it was served over, so every local request
+ * arrives as `http://ocade.in/…` however it was made — and an upgrade decided
+ * from the URL sent the whole local session to itself, for ever, with every
+ * browser proof timing out against a server that was answering perfectly well.
+ * The loopback exemption above never fired because by then the hostname was no
+ * longer loopback.
+ *
+ * So the question is asked of the edge instead. `cf-ray` is stamped on every
+ * request Cloudflare proxies and `cf-visitor` carries the visitor's own scheme;
+ * both are `cf-` headers, which the edge sets itself and a client cannot forge
+ * past it. Neither is present locally, and their absence means this is not an
+ * edge request at all — nothing to upgrade.
+ *
+ * Reading both rather than one: `cf-visitor` is the direct answer, and `cf-ray`
+ * with an `http:` URL says the same thing should Cloudflare ever stop sending
+ * it, so the control does not quietly switch itself off.
+ */
+function reachedUsOverPlainHttp(url: URL, headers: Headers): boolean {
+  if (url.protocol !== "http:") return false;
+  if (isLoopback(url.hostname)) return false;
+  const visitor = headers.get("cf-visitor");
+  if (visitor) return VISITOR_OVER_HTTP.test(visitor);
+  return headers.has("cf-ray");
+}
+
 /**
  * ONE ORIGIN, OVER ONE SCHEME, BECAUSE A BROWSER GIVES EACH ONE ITS OWN
  * EVERYTHING.
@@ -206,13 +239,12 @@ function isLoopback(hostname: string): boolean {
  * post or a server-function call that lands here has to arrive intact rather
  * than as a GET. Path and query are preserved for the same reason.
  *
- * Loopback is left exactly as it is, so development and the browser proofs are
- * untouched. Every other host is answered over HTTPS, including preview hosts:
- * Cloudflare serves those over TLS already, so the branch costs them nothing.
+ * Development is left exactly as it is — see `reachedUsOverPlainHttp` for how
+ * the two are told apart, and for the loop that proved the URL cannot do it.
  */
-export function canonicalOriginRedirect(url: URL): Response | null {
+export function canonicalOriginRedirect(url: URL, headers: Headers): Response | null {
   const wrongHost = url.hostname.startsWith("www.");
-  const wrongScheme = url.protocol === "http:" && !isLoopback(url.hostname);
+  const wrongScheme = reachedUsOverPlainHttp(url, headers);
   if (!wrongHost && !wrongScheme) return null;
 
   const canonical = new URL(url);
