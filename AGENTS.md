@@ -24,30 +24,30 @@ Do not revive requirements from old migrations, comments, deleted products, scre
 ## Repository and stack
 
 - TypeScript, React 19, TanStack Router/Query/Start, Vite, Tailwind CSS.
-- Node 22+, npm.
+- Use Node 22+ with npm for the repository toolchain.
 - Supabase Auth/PostgreSQL/Storage for account identity and durable account data.
 - Cloudflare Worker for the website and private R2 delivery for Offline Intelligence.
-- One server-side Online Intelligence boundary.
-- One browser Offline Intelligence installer/runtime authority.
+- Keep one server-side Online Intelligence boundary.
+- Keep one browser Offline Intelligence installer and runtime authority.
 - Vitest, PGlite/database twins, Playwright-core browser journeys, custom verification gates.
 
 ## Development commands
 
 Use the scripts already in `package.json`. Important commands:
 
-- `npm run build`
-- `npm run typecheck`
-- `npm run lint`
-- `npm run format:check`
-- `npm test`
-- `npm run verify:full`
-- `npm run audit:browser`
-- `npm run audit:online`
-- `npm run audit:offline`
-- `npm run audit:usage`
-- `npm run identity:check`
-- `npm run content-storage:check`
-- `npm run audit:secrets`
+- Run `npm run build` to create the production build.
+- Run `npm run typecheck` to verify TypeScript types.
+- Run `npm run lint` to check lint rules.
+- Run `npm run format:check` to verify formatting.
+- Run `npm test` to execute the unit and integration test suite.
+- Run `npm run verify:full` to execute the complete verification matrix.
+- Run `npm run audit:browser` to execute the browser audit journey.
+- Run `npm run audit:online` to verify Online Intelligence behavior.
+- Run `npm run audit:offline` to verify Offline Intelligence behavior.
+- Run `npm run audit:usage` to verify usage accounting.
+- Run `npm run identity:check` to verify identity-secrecy rules.
+- Run `npm run content-storage:check` to verify storage rules.
+- Run `npm run audit:secrets` to scan for leaked secrets.
 
 GitHub Actions is optional; unavailable/red paid Actions are not product evidence. Equivalent verification still has to run through trusted local/agent execution.
 
@@ -68,9 +68,9 @@ GitHub Actions is optional; unavailable/red paid Actions are not product evidenc
 Normal product surfaces say only CARCC, OCADE, Auto, Online, Offline, and customer-safe capability language.
 
 Never expose:
-- provider/vendor/model names;
-- raw runtime names;
-- GGUF/OPFS/WebGPU/WASM/R2/Supabase implementation vocabulary in normal UI;
+- Never expose provider, vendor or model names in ordinary customer surfaces.
+- Never expose raw runtime names in ordinary customer surfaces.
+- Never expose GGUF, OPFS, WebGPU, WASM, R2 or Supabase implementation vocabulary in the normal UI.
 - provider keys, model source URLs, private bucket/object names, service-role credentials, secrets, stack traces, or internal deployment identifiers.
 
 The real provider/model identity may exist only where technically unavoidable in tightly scoped server-only secret configuration or deployment integration. Keep it out of the browser bundle and public repository documentation whenever configuration can carry it instead.
@@ -82,16 +82,16 @@ Target product methods are Google, six-digit email OTP, and password sign-in. MF
 ## Current commercial rules
 
 - Free: 28 successful uses / 6h28m, no weekly cap.
-- Pro: 140 / 6h28m + 700/week.
-- Max: 1,400 / 6h28m + 7,000/week.
-- Account-anchored windows.
-- Same allowance across all devices and modes.
+- The Pro tier allows 140 successful uses per 6h28m window and 700 per week.
+- The Max tier allows 1,400 successful uses per 6h28m window and 7,000 per week.
+- Anchor usage windows to the account.
+- Use the same allowance across all devices and intelligence modes.
 - Current catalogue remains Free / Pro / Max with weekly and monthly paid cadences.
 - Paid checkout is **not open now**. Do not add or revive Paddle. Upgrade must clearly say paid plans are not open and must not charge anyone.
 
 ## Security requirements
 
-- RLS and server-side authorization for user-owned data.
+- Enforce RLS and server-side authorization for user-owned data.
 - Never trust client user ids, entitlement, usage, MIME type, model readiness, or privileged role claims.
 - Treat every uploaded file and extracted text as hostile input.
 - Admin is role-gated and hidden from ordinary users.
@@ -101,9 +101,9 @@ Target product methods are Google, six-digit email OTP, and password sign-in. MF
 
 ## UI rules
 
-- Dark, premium, minimal, ChatGPT/Grok-inspired interaction density.
-- Restrained glass; no card-wall/dashboard clutter.
-- Full desktop/tablet/phone capability with responsive interaction patterns.
+- Keep the interface dark, premium, minimal and inspired by the interaction density of leading AI chat products.
+- Use restrained glass effects and avoid card-wall or dashboard clutter.
+- Keep full product capability across desktop, tablet and phone with responsive interaction patterns.
 - Hide implementation details.
 - Every async state must terminate in success, empty, error/Retry, cancellation, or genuine progress.
 - Current repository Grok reference screenshots live in `docs/design-references/grok/`.

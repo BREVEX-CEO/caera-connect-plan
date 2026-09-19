@@ -4,18 +4,18 @@
 
 ### Public
 - `/` — Chat shell; Send requires sign-in.
-- `/pricing` — Free/Pro/Max information; paid checkout closed.
+- Use `/pricing` to show Free, Pro and Max information while paid checkout remains closed.
 - `/about` — founder/company context: CARCC is the company, OCADE the product.
 - `/help` — Help Center/current support guidance.
-- `/terms`
-- `/privacy`
+- Use `/terms` for the Terms & Conditions page.
+- Use `/privacy` for the Privacy Policy page.
 - future `/status` only when real status data is published.
 
 ### Signed-in
-- `/` — Chat.
-- `/library` — uploaded and generated files.
-- Settings — responsive dialog/surface from Account.
-- `/admin` — hidden, role-gated owner/admin surface.
+- Use `/` as the primary Chat surface.
+- Use `/library` for uploaded and generated files.
+- Open Settings as a responsive account surface from the Account control.
+- Keep `/admin` hidden and role-gated for owner/admin use.
 - `/cowork` may remain a reserved placeholder only; it is not a current functional product.
 
 ## Navigation
@@ -35,9 +35,9 @@ Mobile: drawer/sheet with the same current capabilities. No horizontal scrolling
 ## Authentication
 
 Offer:
-- Continue with Google;
-- email OTP;
-- password sign-in.
+- Offer Continue with Google as a sign-in method.
+- Offer email OTP as a sign-in method.
+- Offer password sign-in when the target implementation is complete.
 
 Do not reveal whether an email account exists through useful enumeration copy.
 
@@ -68,7 +68,7 @@ Needs Internet. When disconnected, disable it and explain why.
 
 ### Offline
 Zero Online provider traffic. If not installed/removed:
-- show **Install Offline** immediately;
+- Show **Install Offline** immediately when Offline Intelligence is missing.
 - if the user previously removed it, show reusable **Install / Cancel** prompt on a later sign-in and whenever they choose Offline.
 
 Offline refuses image upload/input.
@@ -95,38 +95,38 @@ Normal website updates never invalidate an unchanged verified model release.
 ## Message controls
 
 User message:
-- Copy
-- Edit
-- Delete
-- highlight text/word → Ask OCADE
+- Users can copy their own message.
+- Users can edit their own message.
+- Users can permanently delete their own message where the product supports it.
+- Users can highlight text or a word and choose Ask OCADE.
 
 Assistant:
-- Copy
-- Regenerate
-- Retry after failure
-- Delete
-- Helpful / Not helpful
-- sources/citations when present
+- Users can copy an OCADE answer.
+- Users can regenerate an OCADE answer.
+- Users can retry after a failed answer.
+- Users can delete an OCADE answer where the product supports it.
+- Users can mark an answer as Helpful or Not helpful.
+- OCADE shows sources or citations when they are present.
 
 **Ask OCADE on highlight** uses the selected text plus current conversation context. It is not a separately persisted side-conversation product.
 
 ## Conversation management
 
-- Search recent conversations.
-- Rename.
+- Let users search recent conversations.
+- Let users rename a conversation.
 - Archive only if retained as a simple organization action.
-- Permanent Delete after explicit confirmation.
+- Permanently delete a conversation only after explicit confirmation.
 - Do not maintain a separate Trash/restore product if Delete is permanent.
-- Export individual conversation when supported.
+- Allow individual conversation export when that feature is supported.
 - Public share links are out of current scope.
 
 ## Temporary Chat
 
 Temporary Chat:
-- writes no conversation/message history;
-- does not automatically add files to Library;
-- disappears when the temporary session ends;
-- does not enter account memory.
+- Temporary Chat writes no conversation or message history.
+- Temporary Chat does not automatically add files to Library.
+- Temporary Chat disappears when the temporary session ends.
+- Temporary Chat does not enter account memory.
 
 ## Offline account work
 
@@ -140,22 +140,22 @@ If a saved chat is created while connectivity is unavailable:
 ## Library
 
 - All / Images / Files filters as actually supported.
-- Add/upload.
-- Search.
+- Let users add or upload files to Library.
+- Let users search Library.
 - Generated OCADE outputs may also appear here.
-- Temporary attachments enter only after explicit Save.
+- Add Temporary Chat attachments to Library only after an explicit Save action.
 - File operations have loading, empty, success, error and Retry states.
 
 ## Settings
 
 Categories:
-- Account
-- Appearance
-- Notifications
-- Data Controls
-- Usage & Limits
-- Billing
-- Advanced
+- Account settings manage identity, authentication, sessions and account actions.
+- Appearance settings manage visual preferences.
+- Notifications settings manage notification preferences and quiet hours.
+- Data Controls manage Offline Intelligence, memory and supported data controls.
+- Usage & Limits shows plan allowances, remaining usage and reset timing.
+- Billing shows the current plan and the truthful paid-plan availability state.
+- Advanced contains only real advanced diagnostics or controls that are safe to expose.
 
 Account: identity methods, MFA, sessions, sign out, delete account.
 
@@ -184,11 +184,11 @@ Generation locks at zero. History, Library, Settings, Pricing, account controls 
 ## Error contract
 
 Every async flow ends in one of:
-- success;
-- empty;
-- actionable error + Retry;
-- cancelled;
-- real bounded progress.
+- End in success when the operation completes.
+- End in an empty state when no data exists.
+- End in an actionable error state with Retry when recovery is possible.
+- End in a cancelled state when the user cancels the operation.
+- Show real bounded progress when the operation has measurable progress.
 
 No indefinite “Loading…”/“Reading…”.
 

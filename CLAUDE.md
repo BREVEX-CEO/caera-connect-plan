@@ -26,16 +26,16 @@ Keep progress concise. Never hide a failed test, blocker, security/privacy risk,
 
 ## Product invariants
 
-- Company: **CARCC**. Product: **OCADE**. No current CADANE branding.
+- Treat **CARCC** as the company and **OCADE** as the product, with no current CADANE branding.
 - Current product: website-only, Chat-first. Chat, Library, Settings, Offline Intelligence, usage/limits, Pricing, auth and public/legal surfaces come before any separate future mission.
-- Customer selector: **Auto | Online | Offline**.
+- Show the customer selector as **Auto | Online | Offline**.
 - Provider/model/vendor/runtime identities never appear in normal customer surfaces or client-visible diagnostics.
 - Offline model bytes/chunks/checkpoints/model metadata are stored **only in OPFS**.
 - A verified compatible Offline release must not redownload merely because the website was updated.
 - Explicit Remove suppresses automatic reinstall until the customer explicitly chooses Install Offline.
 - Manual Offline makes zero Online provider requests and does not accept image input.
 - One successful logical answer is one use; failure is zero; retries/fallback do not double-charge.
-- Free 28/6h28m; Pro 140/6h28m + 700/week; Max 1,400/6h28m + 7,000/week.
+- Enforce Free at 28/6h28m, Pro at 140/6h28m + 700/week, and Max at 1,400/6h28m + 7,000/week.
 - Paid checkout is closed. Do not add/revive Paddle.
 - GitHub Actions is optional; run equivalent verification locally/through available direct authorities.
 

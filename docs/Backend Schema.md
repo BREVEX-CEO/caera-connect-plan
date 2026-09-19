@@ -15,37 +15,37 @@ Never accept a request-supplied user id as ownership proof.
 Generated types currently include these current-product groups:
 
 ### Identity/account
-- `profiles`
-- `user_roles`
-- `user_settings`
-- `user_private_records`
-- legal/security audit records as required
+- The `profiles` table stores the account profile record.
+- The `user_roles` table stores authorized account roles.
+- The `user_settings` table stores synchronized account settings.
+- The `user_private_records` table stores private account records that require restricted access.
+- Legal and security audit records are retained only where the current product or applicable requirements need them.
 
 ### Chat
-- `ocade_conversations`
-- `ocade_messages`
+- The `ocade_conversations` table stores owned conversation records.
+- The `ocade_messages` table stores messages that belong to an owned conversation.
 
 Messages belong to an owned conversation. Client keys/idempotency prevent duplicate offline/retry insertion. Citations/reactions belong with the message where implemented.
 
 ### Library
-- `ocade_library_items`
-- storage deletion/tombstone records where required for safe cleanup
+- The `ocade_library_items` table stores private Library item records.
+- Storage deletion or tombstone records are used only where safe cleanup requires them.
 
 Library objects are private to the owning account unless a future explicitly approved sharing product changes that rule.
 
 ### Commercial usage and entitlement
-- `ocade_commercial_usage`
-- `ocade_generation_permits`
-- `ocade_entitlement_grants`
-- Offline usage allocation/lease/event tables
-- `devices`
-- `browser_grants`
+- The `ocade_commercial_usage` table stores authoritative account usage state.
+- The `ocade_generation_permits` table stores logical generation permits and settlement state.
+- The `ocade_entitlement_grants` table stores audited temporary entitlement grants.
+- Offline usage allocation, lease and event tables enforce account-wide Offline usage.
+- The `devices` table stores registered device records.
+- The `browser_grants` table stores browser-level device authorization state.
 
 The browser may read only what it needs. Security-sensitive device/grant state changes use narrow RPCs rather than generic direct UPDATE.
 
 ### Notifications
-- `ocade_notification_preferences`
-- `ocade_notifications`
+- The `ocade_notification_preferences` table stores synchronized notification preferences.
+- The `ocade_notifications` table stores in-app notification history.
 
 ### Current legacy commercial records
 
@@ -53,16 +53,16 @@ The generated schema still contains subscription/invoice/payment-event tables fr
 
 ## Roles
 
-- ordinary authenticated user: own account data only;
-- admin/owner: hidden privileged operations through audited server/RPC authorities;
-- service role: server-only, never client;
-- anonymous: only explicitly public data/routes.
+- An ordinary authenticated user may access only their own account data.
+- An admin or owner may perform hidden privileged operations only through audited server or RPC authorities.
+- The service role is server-only and must never be exposed to the client.
+- Anonymous users may access only explicitly public data and routes.
 
 ## RLS principles
 
-- Enable RLS on user-owned tables.
+- Enable row-level security on every user-owned table.
 - Prefer one clear policy per role/command rather than overlapping permissive policy sprawl.
-- Grants and RLS both matter.
+- Treat explicit grants and row-level security as separate required controls.
 - Parent/child ownership must be validated; a foreign key alone is not authorization.
 - Security-definer functions use pinned search paths and explicit auth checks.
 
@@ -75,12 +75,12 @@ Offline model data itself is **not database content**. It stays in browser OPFS 
 ## OPFS model storage
 
 Only OPFS may contain:
-- model bytes;
-- range chunks/partials;
-- download checkpoints;
-- model verification metadata;
-- active/previous release pointers;
-- runtime-owned model files/assets.
+- Store model bytes in OPFS only.
+- Store model range chunks and partials in OPFS only.
+- Store model download checkpoints in OPFS only.
+- Store model verification metadata in OPFS only.
+- Store active and previous release pointers in OPFS only.
+- Store runtime-owned model files and assets in OPFS only.
 
 No model byte/chunk copy in IndexedDB, Cache Storage, localStorage or cloud account storage.
 
@@ -97,23 +97,23 @@ Cloud Library content is private account content. Validate ownership and detecte
 ## API/RPC boundaries
 
 Critical RPC classes:
-- generation permit acquire/finalize/release;
-- read commercial usage;
-- Offline usage allocate/reconcile/return;
-- browser device register/revoke;
-- entitlement grant/revoke;
-- account session list/revoke;
-- notification preference/save/read;
+- Use RPCs to acquire, finalize and release generation permits.
+- Use an RPC to read authoritative commercial usage.
+- Use RPCs to allocate, reconcile and return Offline usage.
+- Use RPCs to register and revoke browser devices.
+- Use RPCs to grant and revoke entitlements.
+- Use RPCs to list and revoke account sessions.
+- Use RPCs to read and save notification preferences and notification state.
 - atomic Chat mutation such as regenerate truncation where required.
 
 ## Admin grants
 
 Admin grants:
-- target an account resolved server-side;
-- require admin/owner role and strong auth;
-- cannot self-grant when policy forbids it;
-- specify tier, duration and reason;
-- are auditable and expiring.
+- Resolve the target account on the server side before applying a grant.
+- Require an admin or owner role plus strong authentication for grants.
+- Prevent self-granting whenever policy forbids it.
+- Require every grant to specify the tier, duration and reason.
+- Ensure that every admin grant is auditable and expiring.
 
 ## Data deletion
 

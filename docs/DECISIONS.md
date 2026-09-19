@@ -127,9 +127,9 @@ Active
 
 ### Decision
 One successful logical answer = one use across every device and Auto/Online/Offline. Failures = zero. Account-anchored limits:
-- Free 28/6h28m;
-- Pro 140/6h28m + 700/week;
-- Max 1,400/6h28m + 7,000/week.
+- The Free tier provides 28 successful uses per 6h28m window.
+- The Pro tier provides 140 successful uses per 6h28m window and 700 per week.
+- The Max tier provides 1,400 successful uses per 6h28m window and 7,000 per week.
 
 Offline device cap remains two per kind under the current policy.
 
