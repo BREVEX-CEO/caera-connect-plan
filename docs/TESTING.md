@@ -145,15 +145,15 @@ Use dedicated disposable accounts/files/devices for destructive QA. Never modify
 ## Required checks
 
 Run affected tests first, then appropriate broader checks. Release-grade changes normally include:
-- `npm run typecheck`
-- `npm run lint`
-- `npm run format:check`
-- `npm test`
-- `npm run identity:check`
-- `npm run content-storage:check`
-- `npm run audit:secrets`
-- relevant browser journeys
-- `npm run verify:full`
+- Run `npm run typecheck` to verify TypeScript types.
+- Run `npm run lint` to verify lint rules.
+- Run `npm run format:check` to verify formatting.
+- Run `npm test` to execute the automated test suite.
+- Run `npm run identity:check` to verify identity-secrecy rules.
+- Run `npm run content-storage:check` to verify content and storage rules.
+- Run `npm run audit:secrets` to scan for leaked secrets.
+- Run every browser journey that exercises the changed behavior.
+- Run `npm run verify:full` before release-grade completion.
 
 ## CI
 
