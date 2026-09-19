@@ -28,6 +28,7 @@ import {
   createConversation,
   deleteAllConversations,
   deleteMessage,
+  deleteMessagesFrom,
   listConversations,
   setConversationTrashed,
   updateConversation,
@@ -235,6 +236,16 @@ export function useChat(): ChatState & ChatActions {
    * resend and asked the question again as though there had never been one.
    */
   const carried = useRef(new Map<string, NormalizedAttachment[]>());
+  /**
+   * The Thinking and Research choices each question was asked with.
+   *
+   * Regenerate called `send(..., false, false, ...)`, so asking again silently
+   * dropped both: a question asked WITH Thinking was repeated without it, and
+   * the person was shown a different kind of answer to the one they asked to
+   * have redone. Kept beside the bytes and released on the same schedule, for
+   * the same reason — a stored row has no column for either.
+   */
+  const askedWith = useRef(new Map<string, { thinking: boolean; research: boolean }>());
 
   /** Stop everything in flight and stop caring about what it returns. */
   const abandonInFlight = useCallback(() => {
@@ -414,6 +425,20 @@ export function useChat(): ChatState & ChatActions {
       setProblem(null);
 
       /*
+       * WHICH SCREEN THIS SEND BELONGS TO, CAPTURED BEFORE THE FIRST AWAIT.
+       *
+       * This used to be read AFTER the permit, which is an await of up to six
+       * seconds against the allowance service. Switching account or conversation
+       * inside that window moved the epoch, the permit then arrived, and the
+       * send read the NEW epoch as its own — so it went on to create a
+       * conversation and persist a question belonging to a screen nobody was
+       * looking at, into the account now signed in. Everything after the first
+       * await compares against the value from before it.
+       */
+      const at = epoch.current;
+      const mine = () => epoch.current === at;
+
+      /*
        * THE ALLOWANCE IS ASKED FIRST, before a conversation exists and before
        * anything is written. A permit taken after the question is persisted
        * would leave a question in somebody's transcript that OCADE then
@@ -440,7 +465,10 @@ export function useChat(): ChatState & ChatActions {
       );
       const billed = acquired === "gate_failed" ? null : acquired;
       if (!billed) {
-        sending.current = false;
+        // Request-owned, for the same reason the `finally` below is: if the
+        // screen moved on during the refusal, `abandonInFlight` has already
+        // cleared this and a newer send may be holding it.
+        if (mine()) sending.current = false;
         // The gate explains its own refusals. An unexpected throw is not one of
         // them, so it gets a sentence rather than silence.
         if (acquired === "gate_failed") {
@@ -449,15 +477,26 @@ export function useChat(): ChatState & ChatActions {
         return false;
       }
 
-      setBusy(true);
-      const controller = new AbortController();
-      abort.current = controller;
-      // Which screen this answer belongs to. Anything that replaces the screen
-      // — another conversation, another account, Temporary — moves this on.
-      const at = epoch.current;
-      const mine = () => epoch.current === at;
-
       try {
+        /*
+         * THE SCREEN MOVED WHILE THE ALLOWANCE WAS BEING ASKED.
+         *
+         * Nothing has been written yet, so there is nothing to undo — and the
+         * permit is given back by the one settlement in the `finally`, like
+         * every other exit. Reported as accepted so the caller does not push
+         * this question into whatever screen replaced the one that asked it,
+         * which for an account switch would be another person's composer.
+         *
+         * BEFORE `busy` AND BEFORE THE CONTROLLER, because both belong to the
+         * screen that is on the display now — a send that no longer owns it must
+         * not leave that composer waiting on an answer nobody asked for.
+         */
+        if (!mine()) return true;
+
+        setBusy(true);
+        const controller = new AbortController();
+        abort.current = controller;
+
         /*
          * PERMISSION FIRST, THEN THE DESTRUCTIVE PART. Regenerate drops the
          * turns it is replacing here, after the allowance has said yes — it
@@ -510,6 +549,10 @@ export function useChat(): ChatState & ChatActions {
             });
         if (!mine()) return true; // The screen moved on while this was written.
         setMessages((current) => [...current, question.record]);
+        // How this question was asked, so Regenerate asks it the same way. Only
+        // recorded when it differs from the default, which is what keeps the map
+        // empty for the ordinary case.
+        if (thinking || research) askedWith.current.set(question.record.id, { thinking, research });
         // The bytes stay in this tab so Regenerate can send the same file
         // again. Names and sizes are all the stored row will ever have.
         if (attachments.length > 0) {
@@ -520,6 +563,9 @@ export function useChat(): ChatState & ChatActions {
           for (const id of [...carried.current.keys()].slice(0, -CARRIED_QUESTIONS)) {
             carried.current.delete(id);
           }
+        }
+        for (const id of [...askedWith.current.keys()].slice(0, -CARRIED_QUESTIONS)) {
+          askedWith.current.delete(id);
         }
 
         /*
@@ -605,6 +651,19 @@ export function useChat(): ChatState & ChatActions {
           return true;
         }
 
+        /*
+         * DELIVERY IS RECORDED WHERE DELIVERY HAPPENED — on the screen, before
+         * anything is written.
+         *
+         * This used to come after persistence, so an answer somebody had already
+         * read did not count as delivered if the transcript write threw: the
+         * permit settled as released, the use was not charged, and the account's
+         * allowance drifted a little further from what it had actually spent
+         * every time storage failed. Persisting is OCADE's bookkeeping; the
+         * answer was received either way.
+         */
+        billed.recordDelivery({ answer });
+
         const reply = temporary
           ? { record: temporaryRecord("assistant", answer, []), stored: "memory" as const }
           : await persistChatMessage({
@@ -620,7 +679,6 @@ export function useChat(): ChatState & ChatActions {
           );
         }
 
-        billed.recordDelivery({ answer });
         if (!temporary) void refreshConversations();
       } catch (cause) {
         if (mine()) setProblem(describeStorageError(cause));
@@ -633,11 +691,19 @@ export function useChat(): ChatState & ChatActions {
          */
         await billed.settle();
         void queryClient.invalidateQueries({ queryKey: USAGE_QUERY_KEY });
-        sending.current = false;
-        // Only this screen's controls are released. A send whose screen has
-        // been replaced must not clear the streaming text of the one that
-        // replaced it.
+        /*
+         * THE GUARD IS RELEASED BY THE SEND THAT TOOK IT, AND ONLY THAT ONE.
+         *
+         * This cleared `sending` unconditionally. `abandonInFlight` already
+         * clears it when the screen changes, so a newer send could be underway
+         * by the time an abandoned one reached here — and this line opened the
+         * duplicate-Send window the ref exists to close, for the whole of the
+         * newer request. An epoch that still matches is the same test the rest
+         * of the cleanup already used: nothing has replaced this screen, so this
+         * send is the one holding the guard.
+         */
         if (mine()) {
+          sending.current = false;
           setStreaming("");
           setBusy(false);
           abort.current = null;
@@ -686,34 +752,47 @@ export function useChat(): ChatState & ChatActions {
         return;
       }
 
-      const dropped = transcript.current.slice(index);
       const before = transcript.current;
-      let started = false;
-      const accepted = await send(text, choice, files, false, false, async () => {
-        started = true;
-        // Runs once the allowance has said yes. Deleting before that point cost
-        // somebody their question whenever the answer was going to be refused.
-        setMessages(before.slice(0, index));
-        // A temporary turn was never written, so there is nothing to delete and
-        // an authenticated call naming an id no row has ever carried.
-        if (temporary) return;
-        await Promise.all(
-          dropped
-            .filter((record) => !record.unsynced)
-            .map((record) => deleteMessage({ data: { id: record.id } })),
-        );
-      });
+      // The choices this question was originally asked with. Regenerate passed
+      // `false, false` and quietly answered a different question.
+      const options = askedWith.current.get(question.id) ?? { thinking: false, research: false };
+      const accepted = await send(
+        text,
+        choice,
+        files,
+        options.thinking,
+        options.research,
+        async () => {
+          // Runs once the allowance has said yes. Deleting before that point cost
+          // somebody their question whenever the answer was going to be refused.
+          setMessages(before.slice(0, index));
+          // A temporary turn was never written, so there is nothing to delete and
+          // an authenticated call naming an id no row has ever carried.
+          if (temporary || !conversationId) return;
+          /*
+           * ONE STATEMENT, NOT ONE PER TURN.
+           *
+           * This deleted each dropped turn with its own parallel call, so a
+           * failure after some had succeeded removed turns from the middle of
+           * somebody's transcript for good. The account now drops them together
+           * or not at all, and a refusal leaves everything exactly where it was.
+           */
+          await deleteMessagesFrom({
+            data: { conversationId, from: question.created_at },
+          });
+        },
+      );
       if (accepted) return;
-      // Refused before anything was touched: the turns are still theirs.
-      if (!started || temporary || !conversationId) {
-        setMessages(before);
-        return;
-      }
-      // The deletion failed part way, so what is on the screen is a guess. The
-      // account is the only thing that knows which turns are still there.
-      await openMessages(conversationId);
+      /*
+       * REFUSED, OR THE ACCOUNT REFUSED THE DELETION. Either way nothing was
+       * removed — the deletion is one statement — so the turns are still theirs
+       * in the account and putting them back on the screen is the whole
+       * recovery. This used to re-read the transcript instead, because a
+       * part-finished deletion meant the screen could no longer be trusted.
+       */
+      setMessages(before);
     },
-    [send, setMessages, temporary, conversationId, openMessages],
+    [send, setMessages, temporary, conversationId],
   );
 
   /** Remove one turn, from the screen and from the account. */

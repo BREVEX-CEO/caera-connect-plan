@@ -163,7 +163,25 @@ export function securityHeadersForTest(): Readonly<Record<string, string>> {
 }
 
 /**
- * ONE ORIGIN, BECAUSE A BROWSER GIVES EACH ONE ITS OWN EVERYTHING.
+ * Hostnames that are a developer's own machine, where plain HTTP is the point.
+ *
+ * `wrangler dev` serves `http://127.0.0.1:8788` and the browser proofs run
+ * against it. Upgrading those to HTTPS would redirect every local request to a
+ * port that is not listening.
+ */
+function isLoopback(hostname: string): boolean {
+  return (
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname === "127.0.0.1" ||
+    hostname === "[::1]" ||
+    hostname === "::1"
+  );
+}
+
+/**
+ * ONE ORIGIN, OVER ONE SCHEME, BECAUSE A BROWSER GIVES EACH ONE ITS OWN
+ * EVERYTHING.
  *
  * `www.ocade.in` and `ocade.in` both answered 200, and they are not two names
  * for one place as far as a browser is concerned: localStorage, IndexedDB,
@@ -172,18 +190,39 @@ export function securityHeadersForTest(): Readonly<Record<string, string>> {
  * caches, and could be asked to download the 484 MB offline release a second
  * time for the same account on the same machine.
  *
+ * THE SCHEME IS HALF OF AN ORIGIN, AND IT WAS BEING PRESERVED. `http://ocade.in/`,
+ * `/auth` and `/library` answered 200 with the application over plain HTTP: the
+ * `www` redirect copied the incoming URL and changed only its hostname. HSTS
+ * closes that window from the SECOND visit onwards and `upgrade-insecure-requests`
+ * only rewrites subresources; neither does anything about the first request for
+ * the document itself, which is the one somebody on a café network is reading.
+ * A sign-in page delivered over plain HTTP is a sign-in page an attacker can
+ * rewrite.
+ *
+ * So one function decides the canonical origin — scheme and host together —
+ * rather than two that can disagree about which half they own.
+ *
  * 308 rather than 301 or 302: the method and body must survive, because a form
  * post or a server-function call that lands here has to arrive intact rather
  * than as a GET. Path and query are preserved for the same reason.
  *
- * Only `www.` is redirected. Anything else — the apex, a preview host,
- * localhost — is left exactly as it is, so development and Cloudflare's own
- * health probes are untouched.
+ * Loopback is left exactly as it is, so development and the browser proofs are
+ * untouched. Every other host is answered over HTTPS, including preview hosts:
+ * Cloudflare serves those over TLS already, so the branch costs them nothing.
  */
-export function canonicalHostRedirect(url: URL): Response | null {
-  if (!url.hostname.startsWith("www.")) return null;
+export function canonicalOriginRedirect(url: URL): Response | null {
+  const wrongHost = url.hostname.startsWith("www.");
+  const wrongScheme = url.protocol === "http:" && !isLoopback(url.hostname);
+  if (!wrongHost && !wrongScheme) return null;
+
   const canonical = new URL(url);
-  canonical.hostname = url.hostname.slice(4);
+  if (wrongHost) canonical.hostname = url.hostname.slice(4);
+  if (wrongScheme) {
+    canonical.protocol = "https:";
+    // A URL keeps an explicit port across a scheme change, and `https://host:80`
+    // is not where anything is listening. The default port is implied.
+    if (canonical.port === "80") canonical.port = "";
+  }
   return new Response(null, {
     status: 308,
     headers: { location: canonical.toString(), "cache-control": "public, max-age=3600" },

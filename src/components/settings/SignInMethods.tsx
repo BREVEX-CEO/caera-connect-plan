@@ -98,14 +98,14 @@ export function SignInMethods() {
           "OCADE sends a confirmation to the new address. Your sign-in stays as it is until you follow that link."
         }
       >
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2">
           <input
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             type="email"
             aria-label="New email address"
             placeholder="you@example.com"
-            className="h-8 w-48 rounded-md border border-border bg-transparent px-2.5 text-sm text-foreground outline-none focus-visible:border-ring"
+            className="h-8 w-full min-w-0 rounded-md border border-border bg-transparent px-2.5 text-sm text-foreground outline-none focus-visible:border-ring sm:w-48"
           />
           <Action
             label={changing ? "Sending…" : "Send"}

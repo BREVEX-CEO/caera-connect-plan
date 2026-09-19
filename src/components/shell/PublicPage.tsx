@@ -42,17 +42,31 @@ export function PublicPage({
         Skip to content
       </a>
 
+      {/*
+        FIVE LINKS AND A WORDMARK DO NOT FIT ON A PHONE IN ONE ROW.
+        At 375 px the document scrolled 425 px wide against a 360 px viewport and
+        Privacy sat off the right-hand edge — reachable only by scrolling the page
+        sideways, which nobody thinks to try on a page of text. The row becomes a
+        column below `sm` and the links wrap, so every destination is on screen
+        whatever the width; the desktop header is unchanged. The taller phone
+        padding is the touch target the 13 px row did not have.
+      */}
       <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur">
-        <div className={`mx-auto flex h-14 ${column} items-center justify-between px-5`}>
+        <div
+          className={`mx-auto flex ${column} flex-col gap-1 px-5 py-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:py-0`}
+        >
           <Link to="/" aria-label="OCADE home" className="rounded-md">
             <BrandMark showWordmark />
           </Link>
-          <nav aria-label="Public pages" className="flex items-center gap-1">
+          <nav
+            aria-label="Public pages"
+            className="-mx-2.5 flex flex-wrap items-center gap-x-1 sm:mx-0 sm:flex-nowrap"
+          >
             {PUBLIC_LINKS.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
-                className="rounded-md px-2.5 py-1.5 text-[13px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="rounded-md px-2.5 py-2 text-[13px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:py-1.5"
                 activeProps={{ className: "text-foreground" }}
               >
                 {link.label}

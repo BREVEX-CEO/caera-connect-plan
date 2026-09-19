@@ -3,7 +3,7 @@ import "#nitro/virtual/polyfills";
 import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import { useNitroApp as getNitroApp, useNitroHooks as getNitroHooks } from "nitro/app";
 
-import { canonicalHostRedirect, withPublicSecurityHeaders } from "./lib/security/public-response";
+import { canonicalOriginRedirect, withPublicSecurityHeaders } from "./lib/security/public-response";
 
 type WaitUntilContext = {
   waitUntil(promise: Promise<unknown>): void;
@@ -105,8 +105,8 @@ export default {
     const url = new URL(request.url);
 
     // Before assets and before Nitro: neither should ever serve the second
-    // origin, not even a static file with a cache header on it.
-    const canonical = canonicalHostRedirect(url);
+    // origin or plain HTTP, not even a static file with a cache header on it.
+    const canonical = canonicalOriginRedirect(url);
     if (canonical) return canonical;
 
     if (env.ASSETS && isPublicAssetURL(url.pathname)) {

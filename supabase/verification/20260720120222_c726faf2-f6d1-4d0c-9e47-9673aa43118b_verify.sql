@@ -37,8 +37,11 @@ BEGIN
   -- Own-row policies present (spot-check the identity-critical ones).
   PERFORM 1 FROM pg_policies WHERE schemaname='public' AND tablename='profiles' AND policyname='profiles_self_select';
   IF NOT FOUND THEN RAISE EXCEPTION 'missing policy profiles_self_select'; END IF;
-  PERFORM 1 FROM pg_policies WHERE schemaname='public' AND tablename='devices' AND policyname='devices_self_all';
-  IF NOT FOUND THEN RAISE EXCEPTION 'missing policy devices_self_all'; END IF;
+  -- Renamed to devices_self_read when the write grants were taken away; either
+  -- name proves the table has a self-scoped policy, which is what this checks.
+  PERFORM 1 FROM pg_policies WHERE schemaname='public' AND tablename='devices'
+    AND policyname IN ('devices_self_all', 'devices_self_read');
+  IF NOT FOUND THEN RAISE EXCEPTION 'missing self policy on public.devices'; END IF;
 
   -- Helper functions and the signup trigger.
   PERFORM 1 FROM pg_proc WHERE proname='has_role';        IF NOT FOUND THEN RAISE EXCEPTION 'missing function has_role'; END IF;

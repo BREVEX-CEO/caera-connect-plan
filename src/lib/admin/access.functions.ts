@@ -42,7 +42,16 @@ export interface AdminAccountRow {
   paid: boolean;
 }
 
-const ACCOUNT_LIMIT = 200;
+/**
+ * How many accounts one answer carries.
+ *
+ * SEARCHING USED TO HAPPEN IN THE BROWSER over the 200 newest profiles. That
+ * works until the two hundred and first account exists, and then an operator
+ * looking for a customer who signed up last month is told "No matching
+ * accounts" — a screen saying a real person does not exist. The search is the
+ * database's now, so the page size is only how much an operator reads at once.
+ */
+const ACCOUNT_LIMIT = 50;
 
 /** Refuse before reading anything if the caller is not an admin. */
 async function assertAdmin(
@@ -66,38 +75,93 @@ async function assertAdmin(
 }
 
 /**
+ * A search term reduced to something PostgREST's filter grammar can carry.
+ *
+ * `,` and `(` `)` separate and group filters in an `or=(...)`, and `%` and `_`
+ * are wildcards, so a term containing any of them either changes the query's
+ * shape or silently matches more than was asked for. Replaced rather than
+ * rejected: an operator pasting a name with a comma in it should get a search,
+ * not a complaint.
+ */
+export function searchableAccountTerm(term: string): string {
+  return term.replace(/[%_,()\\*]/g, " ").trim();
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export interface AdminAccountPage {
+  accounts: AdminAccountRow[];
+  /** More accounts match than were returned, so the term needs narrowing. */
+  more: boolean;
+}
+
+/**
  * Accounts, their roles, their live manual grant and whether they pay.
  *
- * Capped rather than paged: an operator searches for somebody, they do not
- * browse. The search happens in the browser over this one page.
+ * With no term this is the newest page, which is what an operator opening the
+ * screen wants to see. With one, the DATABASE matches it — an exact account id,
+ * or an email or name containing the term — so the answer does not depend on
+ * whether that customer happens to be among the most recent.
  */
 export const listAccountAccess = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<AdminAccountRow[]> => {
+  .validator((input) =>
+    z.object({ query: z.string().trim().max(200).optional() }).parse(input ?? {}),
+  )
+  .handler(async ({ data, context }): Promise<AdminAccountPage> => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const [profiles, roles, grants, subscriptions] = await Promise.all([
+    const term = searchableAccountTerm(data.query ?? "");
+    let accountQuery = supabaseAdmin
+      .from("profiles")
+      .select("id, display_name, email, created_at")
+      .order("created_at", { ascending: false })
+      // One more than the page, which is how "there are others" is known
+      // without a second counting query.
+      .limit(ACCOUNT_LIMIT + 1);
+    if (UUID.test(term)) accountQuery = accountQuery.eq("id", term);
+    else if (term.length > 0) {
+      accountQuery = accountQuery.or(`email.ilike.%${term}%,display_name.ilike.%${term}%`);
+    }
+
+    const { data: matched, error: matchError } = await accountQuery;
+    if (matchError) throw new Error(matchError.message);
+    const page = (matched ?? []).slice(0, ACCOUNT_LIMIT);
+    const ids = page.map((row) => row.id);
+    if (ids.length === 0) return { accounts: [], more: false };
+
+    /*
+     * THE THREE COMPANION READS ARE SCOPED TO THE PAGE, not to the whole table.
+     * They used to read a thousand rows each and join in memory, which is a
+     * growing read for a shrinking answer.
+     */
+    const [roles, grants, subscriptions] = await Promise.all([
       supabaseAdmin
-        .from("profiles")
-        .select("id, display_name, email, created_at")
-        .order("created_at", { ascending: false })
-        .limit(ACCOUNT_LIMIT),
-      supabaseAdmin.from("user_roles").select("user_id, role").limit(1_000),
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", ids)
+        // Each read is already bounded by the page it is for; the limits are
+        // the ceiling on how many rows one of those accounts could contribute.
+        .limit(ACCOUNT_LIMIT * 8),
       supabaseAdmin
         .from("ocade_entitlement_grants")
         .select("id, user_id, tier, reason, ends_at")
+        .in("user_id", ids)
         .is("revoked_at", null)
         .gt("ends_at", new Date().toISOString())
-        .limit(1_000),
+        // Live grants only, and the strongest wins below — so this is generous
+        // enough that truncation cannot change which one an operator is shown.
+        .limit(ACCOUNT_LIMIT * 20),
       supabaseAdmin
         .from("subscriptions")
         .select("user_id, status")
+        .in("user_id", ids)
         .in("status", ["active", "trialing"])
-        .limit(1_000),
+        .limit(ACCOUNT_LIMIT * 8),
     ]);
 
-    for (const result of [profiles, roles, grants, subscriptions]) {
+    for (const result of [roles, grants, subscriptions]) {
       if (result.error) throw new Error(result.error.message);
     }
 
@@ -120,15 +184,18 @@ export const listAccountAccess = createServerFn({ method: "GET" })
     }
     const paying = new Set((subscriptions.data ?? []).map((row) => row.user_id));
 
-    return (profiles.data ?? []).map((row) => ({
-      id: row.id,
-      email: row.email,
-      displayName: row.display_name,
-      createdAt: row.created_at,
-      roles: rolesByUser.get(row.id) ?? [],
-      grant: grantByUser.get(row.id) ?? null,
-      paid: paying.has(row.id),
-    }));
+    return {
+      accounts: page.map((row) => ({
+        id: row.id,
+        email: row.email,
+        displayName: row.display_name,
+        createdAt: row.created_at,
+        roles: rolesByUser.get(row.id) ?? [],
+        grant: grantByUser.get(row.id) ?? null,
+        paid: paying.has(row.id),
+      })),
+      more: (matched ?? []).length > ACCOUNT_LIMIT,
+    };
   });
 
 /**

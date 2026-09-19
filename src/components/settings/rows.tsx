@@ -18,15 +18,23 @@ export function Row({
   description?: ReactNode;
   children?: ReactNode;
 }) {
+  /*
+   * A ROW STACKS ON A PHONE RATHER THAN SQUEEZING.
+   *
+   * Side by side at 375 px, "Change your email" wrapped one word per line beside
+   * a fixed-width input, and every row with a control did some version of the
+   * same. The label and its control get the full width below `sm` and the
+   * desktop row is unchanged.
+   */
   return (
-    <div className="flex items-start justify-between gap-6 border-b border-border/50 py-4 last:border-b-0">
+    <div className="flex flex-col items-stretch gap-2 border-b border-border/50 py-4 last:border-b-0 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
       <div className="min-w-0">
         <p className="text-sm text-foreground">{label}</p>
         {description ? (
           <div className="mt-1 text-[13px] leading-5 text-muted-foreground">{description}</div>
         ) : null}
       </div>
-      {children ? <div className="shrink-0">{children}</div> : null}
+      {children ? <div className="sm:shrink-0">{children}</div> : null}
     </div>
   );
 }

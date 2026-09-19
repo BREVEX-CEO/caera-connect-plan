@@ -1035,17 +1035,48 @@ export class ModelInstallationAuthority {
     const nativeRemoved = this.deps.uninstallNative
       ? await this.deps.uninstallNative().catch(() => false)
       : true;
-    if (!nativeRemoved) {
-      this.emit({ kind: "failed", stage: "uninstall", reason: "native copy could not be removed" });
-    }
     this.ladder = [];
     this.highestFraction = 0;
     // Recorded BEFORE the state is published, so nothing observing the change
-    // can race ahead and start an automatic install between the two.
+    // can race ahead and start an automatic install between the two. It is
+    // recorded even when the deletion did not finish: the person asked for this
+    // and nothing may quietly reinstall over that, whatever the disk did.
     this.recordUninstallIntent();
+
+    const removed = result.versionsRemoved + result.legacyRemoved;
+
+    /*
+     * "REMOVED" IS SAID ONLY WHEN THE BYTES ARE GONE.
+     *
+     * This published the removed state and returned `{ ok: true }` no matter
+     * what happened: a file system that refused every deletion, or a native
+     * companion that failed to uninstall, both ended with somebody being told
+     * that hundreds of megabytes had been freed from a device where every byte
+     * was still sitting. The store is asked what is left, and what is left is
+     * what is said.
+     *
+     * The Remove control stays where it is — this is not the removed state —
+     * so trying again is the obvious next thing rather than a mystery.
+     */
+    if (result.remainingFiles > 0 || !nativeRemoved) {
+      this.emit({
+        kind: "failed",
+        stage: "uninstall",
+        reason: nativeRemoved ? "files remained after removal" : "native copy could not be removed",
+      });
+      this.publish({
+        ...INITIAL,
+        stage: "recoverable_error",
+        problem:
+          "OCADE could not remove all of its offline intelligence from this device. Nothing will reinstall, and you can try removing it again.",
+      });
+      this.emit({ kind: "uninstalled", removed });
+      return { ok: false, removed };
+    }
+
     this.publish({ ...INITIAL, detail: REMOVED_DETAIL });
-    this.emit({ kind: "uninstalled", removed: result.versionsRemoved + result.legacyRemoved });
-    return { ok: true, removed: result.versionsRemoved + result.legacyRemoved };
+    this.emit({ kind: "uninstalled", removed });
+    return { ok: true, removed };
   }
 
   /** Put it back, now, because the user asked for it. */

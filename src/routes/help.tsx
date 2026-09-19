@@ -61,8 +61,21 @@ const QUESTIONS: { question: string; answer: React.ReactNode }[] = [
       <p>
         <strong className="text-foreground">Auto</strong> picks for you.{" "}
         <strong className="text-foreground">OCADE</strong> answers over the network.{" "}
-        <strong className="text-foreground">Offline</strong> answers on your own device and sends
-        nothing anywhere.
+        <strong className="text-foreground">Offline</strong> works out the answer on your own
+        device: your question is not sent to any AI provider. The chat itself is still saved to your
+        account like any other, unless you turn on a temporary chat.
+      </p>
+    ),
+  },
+  {
+    question: "Does an offline chat leave my device?",
+    answer: (
+      <p>
+        The thinking does not — an offline answer is produced by the model installed in your
+        browser, and nothing about the question is sent to an AI provider. Saving is separate:
+        unless the chat is temporary, the question and the answer are stored in your account so you
+        can read them on your other devices, and a file you attach goes to your Library. Turn on a
+        temporary chat and none of that is written anywhere.
       </p>
     ),
   },
@@ -110,9 +123,10 @@ const QUESTIONS: { question: string; answer: React.ReactNode }[] = [
     question: "How do I delete my account?",
     answer: (
       <p>
-        Open Settings from your account menu and use Data Controls. Deletion removes your account
-        content; see the <Link to="/privacy">Privacy Policy</Link> for what is kept and for how
-        long.
+        Open Settings from your account menu and use Account, where “Delete your account” asks you
+        to type the confirmation. Data Controls is next door and deletes your conversations or your
+        files without closing the account. Deletion removes your account content; see the{" "}
+        <Link to="/privacy">Privacy Policy</Link> for what is kept and for how long.
       </p>
     ),
   },

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { canonicalHostRedirect } from "@/lib/security/public-response";
+import { canonicalOriginRedirect } from "@/lib/security/public-response";
 
 /**
  * TWO ORIGINS SERVING THE SAME PRODUCT IS TWO OF EVERYTHING THE BROWSER KEEPS.
@@ -25,26 +25,55 @@ const ENTRY = readFileSync("src/cloudflare-entry.ts", "utf8");
 
 describe("the canonical origin", () => {
   it("sends www to the apex, keeping the path, the query and the method", () => {
-    const response = canonicalHostRedirect(
+    const response = canonicalOriginRedirect(
       new URL("https://www.ocade.in/pricing?plan=pro#compare"),
     );
     expect(response?.status).toBe(308);
     expect(response?.headers.get("location")).toBe("https://ocade.in/pricing?plan=pro#compare");
   });
 
-  it("leaves the apex, previews and development alone", () => {
+  /*
+   * THE APPLICATION AND THE SIGN-IN PAGE WERE SERVED OVER PLAIN HTTP.
+   *
+   * `http://ocade.in/`, `/auth` and `/library` each answered 200 with HTML: the
+   * redirect copied the incoming URL and changed only its hostname, so the
+   * scheme — the other half of an origin — survived untouched. HSTS protects
+   * every visit after the first and does nothing about the first.
+   */
+  it("answers plain HTTP with an upgrade rather than the application", () => {
+    for (const path of ["/", "/auth", "/library"]) {
+      const response = canonicalOriginRedirect(new URL(`http://ocade.in${path}`));
+      expect(response?.status, `${path} was served over plain HTTP`).toBe(308);
+      expect(response?.headers.get("location")).toBe(`https://ocade.in${path}`);
+    }
+  });
+
+  it("fixes the scheme and the host in one hop, keeping path, query and fragment", () => {
+    const response = canonicalOriginRedirect(
+      new URL("http://www.ocade.in/pricing?plan=pro#compare"),
+    );
+    expect(response?.headers.get("location")).toBe("https://ocade.in/pricing?plan=pro#compare");
+  });
+
+  it("does not send an upgrade to a port nothing listens on", () => {
+    const response = canonicalOriginRedirect(new URL("http://ocade.in:80/help"));
+    expect(response?.headers.get("location")).toBe("https://ocade.in/help");
+  });
+
+  it("leaves the canonical origin, previews and development alone", () => {
     for (const href of [
       "https://ocade.in/",
       "http://127.0.0.1:8788/pricing",
       "http://localhost:3000/",
+      "http://ocade.localhost:5173/",
       "https://ocade-web.pages.dev/",
     ]) {
-      expect(canonicalHostRedirect(new URL(href))).toBeNull();
+      expect(canonicalOriginRedirect(new URL(href)), href).toBeNull();
     }
   });
 
   it("redirects before anything can serve the second origin", () => {
-    const redirect = ENTRY.indexOf("const canonical = canonicalHostRedirect(url)");
+    const redirect = ENTRY.indexOf("const canonical = canonicalOriginRedirect(url)");
     expect(redirect).toBeGreaterThan(0);
     expect(redirect).toBeLessThan(ENTRY.indexOf("env.ASSETS.fetch"));
     expect(redirect).toBeLessThan(ENTRY.indexOf("nitroApp.fetch"));

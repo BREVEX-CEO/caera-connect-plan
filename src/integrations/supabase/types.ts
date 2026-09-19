@@ -1466,6 +1466,10 @@ export type Database = {
         }[]
       }
       ocade_delete_all_library_items: { Args: never; Returns: number }
+      ocade_delete_messages_from: {
+        Args: { p_conversation_id: string; p_from: string }
+        Returns: number
+      }
       ocade_expire_commercial_permits: {
         Args: { p_now?: string; p_user_id: string }
         Returns: number

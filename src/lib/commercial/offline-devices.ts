@@ -7,9 +7,12 @@
  * ever called it, so somebody on their third browser was told the truth and
  * given no way to act on it: no list, no name, no Remove.
  *
- * Reads go through RLS rather than a function: `devices_self_all` already
+ * Reads go through RLS rather than a function: `devices_self_read` already
  * restricts both to the signed-in account, and a security-definer read would be
- * a second authority saying the same thing with more ways to be wrong.
+ * a second authority saying the same thing with more ways to be wrong. Reading
+ * is all the client may do here — every write goes through one of the two
+ * audited functions, because RLS cannot stop an owner from clearing its own
+ * row's `revoked_at` and re-admitting a browser it had removed.
  */
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { forgetCurrentDeviceIdentity, getOfflineCurrentDeviceIdentity } from "./device-identity";

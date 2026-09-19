@@ -128,6 +128,92 @@ it("does not re-admit a browser whose device was removed", async () => {
   expect(returning.rows[0]?.register_browser_device_for_current_user).toBeNull();
 });
 
+/*
+ * REMOVE MUST NOT BE UNDOABLE FROM THE CLIENT.
+ *
+ * `authenticated` held INSERT, UPDATE and DELETE on `devices` and
+ * `browser_grants`, and both policies checked ownership and nothing else. RLS
+ * does not restrict WHICH COLUMNS a permitted row may change, so an account
+ * could clear its own revoked row's `revoked_at` straight through the Data API
+ * and put a removed browser back — defeating the one control a person has over
+ * which devices may answer for them without a network. Registration and removal
+ * both go through audited SECURITY DEFINER functions, so the write grants were
+ * reachable authority nothing needed.
+ */
+it("refuses a direct write to devices, so a removal cannot be undone", async () => {
+  const revoked = (await devicesOf(ACCOUNT)).find((row) => row.revoked_at !== null);
+  expect(revoked, "this suite has already removed a device").toBeTruthy();
+
+  const undo = await twin.asTenant(
+    ACCOUNT,
+    `update public.devices set revoked_at = null where id = '${revoked!.id}'`,
+  );
+  expect(undo.error).toMatch(/permission denied/i);
+
+  const after = await devicesOf(ACCOUNT);
+  expect(after.find((row) => row.id === revoked!.id)?.revoked_at).toEqual(revoked!.revoked_at);
+
+  // Nor by inserting a device the cap trigger and the registration function
+  // never saw, nor by deleting one to free a slot without an audit trail.
+  const inserted = await twin.asTenant(
+    ACCOUNT,
+    `insert into public.devices (user_id, kind, name)
+       values ('${ACCOUNT}', 'desktop'::public.device_kind, 'Smuggled')`,
+  );
+  expect(inserted.error).toMatch(/permission denied/i);
+  const deleted = await twin.asTenant(
+    ACCOUNT,
+    `delete from public.devices where id = '${revoked!.id}'`,
+  );
+  expect(deleted.error).toMatch(/permission denied/i);
+
+  // Reading stays open: Usage & Limits lists these rows through RLS.
+  const read = await twin.asTenant(ACCOUNT, `select id from public.devices`);
+  expect(read.error).toBeUndefined();
+});
+
+it("refuses a direct write to a browser grant for the same reason", async () => {
+  const grant = (await grantsOf(ACCOUNT)).find((row) => row.revoked_at !== null);
+  expect(grant, "this suite has already revoked a grant").toBeTruthy();
+
+  const undo = await twin.asTenant(
+    ACCOUNT,
+    `update public.browser_grants set revoked_at = null
+      where device_id = '${grant!.device_id}'`,
+  );
+  expect(undo.error).toMatch(/permission denied/i);
+  const rebind = await twin.asTenant(
+    ACCOUNT,
+    `insert into public.browser_grants (user_id, device_id, browser_install_id)
+       values ('${ACCOUNT}', '${grant!.device_id}', 'smuggled-browser')`,
+  );
+  expect(rebind.error).toMatch(/permission denied/i);
+  expect(
+    (await twin.asTenant(ACCOUNT, `select id from public.browser_grants`)).error,
+  ).toBeUndefined();
+});
+
+/*
+ * THE CAP WAS SERIALISED BY THE WRONG KEY.
+ *
+ * The advisory lock included the browser install id, so two DIFFERENT browsers
+ * of one account took two different locks — and the cap is a count-then-insert,
+ * so both could see the last slot free and both take it. The cap is per account
+ * AND kind, so that is what the lock must be per.
+ *
+ * PGlite is one connection, so two simultaneous registrations cannot be
+ * interleaved here; what is checked is the key the transaction locks on, which
+ * is the thing that was wrong.
+ */
+it("serialises registration per account and device kind, not per browser", async () => {
+  const [source] = await twin.asServiceRole<{ prosrc: string }>(
+    `select prosrc from pg_proc where proname = 'register_browser_device_for_current_user'`,
+  );
+  const lock = /pg_advisory_xact_lock\(([^;]*?)\)\);/.exec(source!.prosrc)?.[1] ?? "";
+  expect(lock).toContain("_kind");
+  expect(lock).not.toContain("_browser_install_id");
+});
+
 it("never lets one account register against another's", async () => {
   const mine = await register(OTHER, "browser-atomic");
   const id = mine.rows[0]?.register_browser_device_for_current_user;

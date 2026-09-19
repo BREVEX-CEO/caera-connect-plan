@@ -27,6 +27,20 @@ import { mayUseCachedSession, cachedSessionIsCurrent } from "@/lib/auth/session-
  */
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
+  /*
+   * NOTHING BEHIND SIGN-IN IS FOR A SEARCH INDEX.
+   *
+   * The root sets `index,follow` for the public site, and `/library` and
+   * `/cowork` inherited it: both answered with it in their HTML despite being
+   * account destinations absent from the sitemap, so a crawler was invited to
+   * list URLs that show a stranger nothing but a redirect to sign-in. Admin had
+   * its own `noindex`; the others were relying on nobody looking.
+   *
+   * On the PARENT, so a route added under here cannot forget it. A child's own
+   * `robots` entry still wins, which is how a future exception would be stated
+   * deliberately rather than by omission.
+   */
+  head: () => ({ meta: [{ name: "robots", content: "noindex" }] }),
   beforeLoad: async ({ location }) => {
     if (typeof window === "undefined") return { user: null };
 

@@ -249,6 +249,36 @@ export const deleteMessage = createServerFn({ method: "POST" })
   });
 
 /**
+ * DROP A QUESTION AND EVERYTHING AFTER IT, IN ONE STATEMENT.
+ *
+ * Edit, Regenerate and Retry all replace a turn and its successors. The browser
+ * used to delete them one call at a time, in parallel, so a failure part-way
+ * through left the account's transcript missing turns from the middle — gone,
+ * with no way back and nothing but a re-read to discover what remained.
+ *
+ * `ocade_delete_messages_from` is one DELETE, so it removes all of them or none.
+ * It runs as the caller, so `own_messages` is what decides which rows it can
+ * see: this function adds reachability, never authority.
+ *
+ * FROM A MOMENT, NOT FROM A ROW: a turn held in the tab because the account was
+ * unreachable has no row to name, and the turns after it may well have been
+ * stored.
+ */
+export const deleteMessagesFrom = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i) =>
+    z.object({ conversationId: uuid, from: z.string().datetime({ offset: true }) }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: removed, error } = await context.supabase.rpc("ocade_delete_messages_from", {
+      p_conversation_id: data.conversationId,
+      p_from: data.from,
+    });
+    if (error) throw new Error(error.message);
+    return { removed: Number(removed ?? 0) };
+  });
+
+/**
  * Persist a single OCADE message (P4c). Used when the assistant response is
  * produced by OCADE Local on-device — the browser streams the completion and
  * then records the user + assistant turns here. Ownership is enforced by RLS

@@ -35,6 +35,7 @@ import { useAppearance } from "@/lib/appearance";
 import { useSession } from "@/lib/session";
 import { AdvancedSection } from "./AdvancedSection";
 import { SignInMethods } from "./SignInMethods";
+import { TwoStep } from "./TwoStep";
 import { DataControlsSection } from "./DataControlsSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { UsageSection } from "./UsageSection";
@@ -121,13 +122,24 @@ function SettingsDialog({
       />
 
       <div className="glass-strong relative flex h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl sm:h-[min(40rem,88vh)] sm:flex-row sm:rounded-2xl">
+        {/*
+          ON A PHONE THE CATEGORIES ARE A STRIP, NOT A COLUMN.
+          Seven stacked rows of categories with their group headings took most of
+          the sheet's height and left the settings themselves in a band at the
+          bottom. The same list becomes one scrollable row of chips below `sm` —
+          the pattern a phone already uses for tabs — and the desktop sidebar is
+          untouched. Group headings are a desktop affordance and are hidden
+          rather than shortened.
+        */}
         <nav
-          className="ocade-scroll shrink-0 overflow-y-auto border-b border-border/60 p-3 sm:w-[12.5rem] sm:border-b-0 sm:border-r"
+          className="ocade-scroll flex shrink-0 gap-1 overflow-x-auto border-b border-border/60 p-2 sm:block sm:w-[12.5rem] sm:overflow-x-visible sm:overflow-y-auto sm:border-b-0 sm:border-r sm:p-3"
           aria-label="Settings categories"
         >
           {groups.map((group) => (
-            <div key={group} className="mb-2">
-              <p className="px-2.5 pb-1 pt-2 text-[13px] text-muted-foreground">{group}</p>
+            <div key={group} className="flex gap-1 sm:mb-2 sm:block">
+              <p className="hidden px-2.5 pb-1 pt-2 text-[13px] text-muted-foreground sm:block">
+                {group}
+              </p>
               {CATEGORIES.filter((entry) => entry.group === group).map(
                 ({ id, label, icon: Icon }) => (
                   <button
@@ -136,7 +148,7 @@ function SettingsDialog({
                     onClick={() => onCategoryChange(id)}
                     aria-current={category === id ? "true" : undefined}
                     className={cn(
-                      "flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-[15px] transition-colors",
+                      "flex h-9 shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 text-[15px] transition-colors sm:w-full",
                       category === id
                         ? "bg-accent text-foreground"
                         : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
@@ -223,6 +235,7 @@ function AccountSettings() {
       {/* Google and email OTP are the only identities; phone sign-in is removed. */}
       <Row label="Signed in as" description={user?.email ?? "Not signed in"} />
       <SignInMethods />
+      <TwoStep />
       <Row label="Sign out" description="Ends this session on this device only.">
         <button
           type="button"
@@ -252,13 +265,13 @@ function AccountSettings() {
         }
       >
         {receipt ? null : asking ? (
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center gap-2">
             <input
               value={phrase}
               onChange={(event) => setPhrase(event.target.value)}
               aria-label="Type DELETE MY ACCOUNT to confirm"
               placeholder={DELETE_CONFIRMATION}
-              className="h-8 w-44 rounded-md border border-border bg-transparent px-2.5 text-sm text-foreground outline-none focus-visible:border-ring"
+              className="h-8 w-full min-w-0 rounded-md border border-border bg-transparent px-2.5 text-sm text-foreground outline-none focus-visible:border-ring sm:w-44"
             />
             <Action
               label={deleting ? "Deleting…" : "Delete"}

@@ -281,6 +281,37 @@ try {
     );
   }
 
+  /* --- every public page, at the narrowest phone worth supporting ---------- */
+
+  /*
+   * THE LOOP ABOVE ONLY EVER LOADED `/`, AND THE DEFECT WAS NOT THERE.
+   *
+   * At 375 px, Pricing's document was 425 px wide against a 360 px viewport:
+   * five header links and a wordmark in one row pushed Privacy off the right
+   * edge, reachable only by scrolling a page of text sideways. Chat passed the
+   * check the whole time, because Chat's header is not that header.
+   */
+  await page.setViewportSize({ width: 375, height: 812 });
+  for (const path of ["/pricing", "/about", "/help", "/terms", "/privacy"]) {
+    await page.goto(`${BASE}${path}`, { waitUntil: "networkidle" });
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    check(`${path} does not spill sideways at 375px`, overflow <= 0, `${overflow}px over`);
+
+    // And the link furthest along the row is genuinely on the screen, which is
+    // the thing the overflow number is a proxy for.
+    const reachable = await page.evaluate(() => {
+      const link = [...document.querySelectorAll("header a")].find(
+        (anchor) => anchor.textContent?.trim() === "Privacy",
+      );
+      if (!link) return false;
+      const box = link.getBoundingClientRect();
+      return box.left >= 0 && box.right <= window.innerWidth + 1;
+    });
+    check(`${path} keeps every public link on the screen`, reachable);
+  }
+
   /* --- what the first visit actually costs -------------------------------- */
 
   await page.setViewportSize({ width: 1440, height: 900 });

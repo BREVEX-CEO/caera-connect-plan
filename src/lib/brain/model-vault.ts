@@ -436,6 +436,21 @@ export class ModelVault {
   async removeVersion(version: string): Promise<boolean> {
     const meta = this.readMeta(version);
     const removed = await this.store.remove(versionPath(version, artifactName(meta, version)));
+    /*
+     * THE RECORD GOES ONLY WHEN THE BYTES DO.
+     *
+     * This cleared the metadata unconditionally, so a deletion the file system
+     * refused left hundreds of megabytes on the device with nothing describing
+     * them: `listVersions` walks the store and would still find the directory,
+     * but the verified digest, the expected length and the fact that this used
+     * to be an engine were all discarded — and the uninstall reported success.
+     * Asking the store what is actually there is the only honest test.
+     */
+    if (await this.bytesOf(version, meta)) {
+      // Still on disk. The pointers stay too, because they describe something
+      // that exists.
+      return false;
+    }
     this.writeMeta(version, null);
     if (this.activeVersion() === version) this.clearPointer(ACTIVE_POINTER_KEY);
     if (this.previousVersion() === version) this.clearPointer(PREVIOUS_POINTER_KEY);
@@ -545,14 +560,20 @@ export class ModelVault {
    * "delete my account" are different requests and a control that quietly did
    * both would be the last one anybody trusted.
    */
-  async removeEverything(): Promise<{ versionsRemoved: number; legacyRemoved: number }> {
+  async removeEverything(): Promise<{
+    versionsRemoved: number;
+    legacyRemoved: number;
+    /** Files still on this device afterwards. Zero, or the removal did not happen. */
+    remainingFiles: number;
+    /** What those files still occupy. */
+    remainingBytes: number;
+  }> {
     const versions = await this.listVersions();
     let versionsRemoved = 0;
     for (const stored of versions) {
+      // `removeVersion` clears the metadata itself, and only for a version
+      // whose bytes it can prove are gone.
       if (await this.removeVersion(stored.version)) versionsRemoved += 1;
-      // Metadata is cleared even when the file was already gone, so an
-      // uninstall leaves no record claiming an engine that is not there.
-      this.writeMeta(stored.version, null);
     }
     this.clearPointer(ACTIVE_POINTER_KEY);
     this.clearPointer(PREVIOUS_POINTER_KEY);
@@ -567,7 +588,19 @@ export class ModelVault {
       if (file.key.split("/")[0] === VERSIONS_DIRECTORY) continue;
       if (await this.store.remove(file.key)) legacyRemoved += 1;
     }
-    return { versionsRemoved, legacyRemoved };
+
+    /*
+     * WHAT IS ACTUALLY LEFT, ASKED OF THE STORE RATHER THAN INFERRED FROM THE
+     * COUNTS. A `remove` that returns false is the case this exists for, and so
+     * is one that returns true without the file going anywhere.
+     */
+    const left = await this.store.list();
+    return {
+      versionsRemoved,
+      legacyRemoved,
+      remainingFiles: left.length,
+      remainingBytes: left.reduce((total, file) => total + file.bytes, 0),
+    };
   }
 
   /**

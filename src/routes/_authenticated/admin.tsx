@@ -48,9 +48,19 @@ function AdminPage() {
   const [open, setOpen] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
+  /*
+   * THE DATABASE SEARCHES, NOT THIS PAGE.
+   *
+   * Filtering happened here over the 200 newest profiles, so the two hundred and
+   * first account was unfindable and the screen said "No matching accounts"
+   * about a real customer. The term goes to the server, which is also why it is
+   * part of the query key: a different term is a different answer, cached
+   * separately rather than overwriting the last one.
+   */
+  const term = query.trim();
   const accounts = useQuery({
-    queryKey: ["admin", "access"],
-    queryFn: () => listAccountAccess(),
+    queryKey: ["admin", "access", term],
+    queryFn: () => listAccountAccess({ data: { query: term } }),
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin", "access"] });
@@ -78,22 +88,18 @@ function AdminPage() {
     onError: (error: unknown) => toast.error(messageOf(error)),
   });
 
-  const term = query.trim().toLowerCase();
-  const visible = (accounts.data ?? []).filter(
-    (row) =>
-      term.length === 0 ||
-      (row.email ?? "").toLowerCase().includes(term) ||
-      (row.displayName ?? "").toLowerCase().includes(term) ||
-      row.id === term,
-  );
+  const visible = accounts.data?.accounts ?? [];
 
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-4xl px-5 py-8">
         <h1 className="text-lg font-semibold tracking-tight text-foreground">Administration</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          The 200 most recent accounts, their roles, and the access given to them by hand.
+          {term.length > 0
+            ? "Accounts matching your search, their roles, and the access given to them by hand."
+            : "The most recent accounts, their roles, and the access given to them by hand. Search to reach any other."}
         </p>
+        <SecondFactorNotice />
 
         <label className="mt-5 block">
           <span className="sr-only">Search accounts</span>
@@ -170,10 +176,43 @@ function AdminPage() {
             {visible.length === 0 ? (
               <li className="py-3 text-sm text-muted-foreground">No matching accounts.</li>
             ) : null}
+            {accounts.data?.more ? (
+              <li className="py-3 text-sm text-muted-foreground">
+                More accounts match than are shown. Narrow the search, or paste the account id.
+              </li>
+            ) : null}
           </ul>
         )}
       </div>
     </AppShell>
+  );
+}
+
+/**
+ * WHETHER A GRANT CAN BE SUBMITTED AT ALL, SAID BEFORE IT IS TRIED.
+ *
+ * `ocade_grant_entitlement` refuses without `aal2`, and it is right to. What was
+ * missing was any way to reach `aal2`: nothing in the product enrolled a second
+ * factor, so an operator filled in the form, pressed the button, and was told
+ * the change needed something OCADE gave them no way to obtain. Enrollment lives
+ * in Settings now, and this says so while the session cannot grant.
+ *
+ * The check is a prompt, not the protection — the database refuses regardless —
+ * so an unreadable answer says nothing rather than blocking the screen.
+ */
+function SecondFactorNotice() {
+  const assurance = useQuery({
+    queryKey: ["admin", "assurance"],
+    queryFn: async () => (await import("@/lib/security/mfa")).currentAssurance(),
+    retry: false,
+  });
+  if (assurance.data?.current === "aal2" || assurance.data === undefined) return null;
+  return (
+    <p className="mt-3 text-[13px] text-foreground" role="status">
+      {assurance.data.next === "aal2"
+        ? "Giving or taking back access needs your second factor. Open any signed-in page to be asked for your code, then come back."
+        : "Giving or taking back access needs a second factor. Set up two-step verification under Settings → Account, then come back."}
+    </p>
   );
 }
 
@@ -267,6 +306,14 @@ function GrantForm({
       >
         Give access
       </button>
+      {/* What is about to be written, in one sentence, before it is written. */}
+      <p className="basis-full text-[13px] text-muted-foreground">
+        {valid
+          ? `${tier === "max" ? "Max" : "Pro"} until ${new Date(
+              Date.now() + parsedDays * 86_400_000,
+            ).toLocaleDateString()}, recorded against your account with the reason above.`
+          : "Choose a tier, 1 to 366 days, and a reason of at least three characters."}
+      </p>
       <button
         type="button"
         onClick={onCancel}
