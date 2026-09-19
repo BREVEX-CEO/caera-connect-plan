@@ -12,10 +12,10 @@ Use the repository's existing:
 - Use Vitest for unit and integration testing.
 - Use PGlite and database-twin suites for database behavior checks.
 - Use TypeScript typechecking to catch contract and typing errors.
-- ESLint/Prettier checks;
+- Use ESLint and Prettier checks for code quality and formatting.
 - Use the custom security, content, reachability and storage gates.
 - Use Playwright-core browser journeys for real UI flow verification.
-- production build/Worker preview.
+- Use a production build and Worker preview for release-like browser verification.
 
 ## Unit tests
 
@@ -95,11 +95,11 @@ Real hardware/browser proof should cover:
 - Prove that model bytes, chunks, checkpoints and model metadata live only in OPFS.
 - Prove model interruption and resume behavior.
 - Prove model persistence across refresh and browser restart.
-- ordinary website deploy does not redownload unchanged release;
-- Remove verifies OPFS deletion;
+- Prove that an ordinary website deploy does not redownload an unchanged Offline release.
+- Prove that Remove verifies OPFS deletion before reporting success.
 - Prove that Removed state suppresses automatic reinstall.
 - Prove explicit Offline reinstall after removal.
-- supported acceleration path and fallback where hardware permits;
+- Prove the supported acceleration path and fallback behavior where the hardware permits it.
 - Prove that manual Offline produces zero Online provider traffic.
 - Prove that Offline image input is refused.
 
@@ -128,7 +128,7 @@ Test:
 - Test that forbidden direct database mutations are rejected.
 - Test revoked sessions and devices.
 - Test malicious file types and hostile file content.
-- open redirects/canonical host/HTTPS;
+- Test open-redirect resistance, canonical-host behavior and HTTPS enforcement.
 - Test the Content Security Policy.
 - Run provider and model identity scans.
 - Run client-bundle secret scans.
