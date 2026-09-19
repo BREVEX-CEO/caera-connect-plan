@@ -74,4 +74,10 @@ Run unit, integration, regression, end-to-end browser, malformed-input, property
 
 Do not let mocks or stubs stand in for final proof when a safe real integration boundary is available. Classify evidence as proven, code-verified, simulated, or externally unverified. GitHub Actions is optional because paid Actions availability is not assumed; run equivalent required verification in a trusted local or agent environment instead of skipping it.
 
-When failures are found, reproduce them deterministically, fix the root cause, add a regression test, and rerun the smallest relevant test first before the broader gate. After all correctness gates are green, apply `/ponytail ultra` and `/caveman ultra` to remove safely unnecessary code without weakening coverage.
+When failures are found, reproduce them deterministically, fix the root cause, add a regression test, and rerun the smallest relevant test first before the broader gate. After all correctness gates are green, simplify safely with YAGNI/KISS without weakening coverage.
+
+## Audit-remediation proof matrix
+
+The active 15-finding remediation phases require explicit coverage for HTTP-to-HTTPS enforcement, rejected direct revocation-column updates, concurrent final-slot device registration, MFA-backed admin grants, server-side account search beyond the newest 200 profiles, account/conversation switches during permit acquisition, partial Regenerate failure, visible-output persistence failure, preservation of Thinking/Research options on Regenerate, truthful Offline synchronization copy, forced uninstall deletion failure, 360–375 px public-navigation and Settings layouts, Help account-deletion routing, and noindex metadata for non-public surfaces.
+
+The final writable browser pass must exercise real Online, Auto, and Offline generation plus state-changing customer flows in a disposable environment. Read-only inspection is not accepted as proof for a behavior that requires mutation.
