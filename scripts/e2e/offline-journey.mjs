@@ -225,6 +225,74 @@ try {
       (await status("/api/offline/bytes/ocr-nope")) === 404,
   );
 
+  /* --- losing local storage is a recoverable event, not a broken product --- */
+
+  /*
+   * WHAT SURVIVES WHEN THE BROWSER THROWS THE LOCAL STATE AWAY.
+   *
+   * A person clears site data, a private window ends, a phone reclaims storage
+   * under pressure — all of them delete IndexedDB and localStorage while the
+   * account is untouched. Supabase is the canonical authority for a
+   * conversation, so the transcript must come back; the device identity and the
+   * signed offline block are local and must be re-established rather than
+   * mourned. What must NOT happen is a screen stuck on a promise it can no
+   * longer keep.
+   *
+   * The session key is put back deliberately: signing out is a different test.
+   * This is the storage under the session going, not the session itself.
+   */
+  // Something to lose: this journey never sends, and a recovery check against an
+  // account with no history would pass without proving anything came back.
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  await page.fill("#ocade-composer", "Written before the storage was lost");
+  await page.click('button[aria-label="Send"]');
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  await page.waitForTimeout(600);
+
+  await page.evaluate(async (key) => {
+    const session = window.localStorage.getItem(key);
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    if (session) window.localStorage.setItem(key, session);
+    const databases = (await indexedDB.databases?.()) ?? [];
+    await Promise.all(
+      databases.map(
+        (database) =>
+          new Promise((resolve) => {
+            const request = indexedDB.deleteDatabase(database.name);
+            request.onsuccess = resolve;
+            request.onerror = resolve;
+            request.onblocked = resolve;
+          }),
+      ),
+    );
+  }, storageKey(SUPABASE));
+
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  const recovered = await page.locator("body").innerText();
+  check(
+    "after local storage is lost the account is still signed in",
+    (await page.locator('aside button[aria-haspopup="menu"]').count()) === 1,
+  );
+  check(
+    "the conversations come back from the account rather than from this device",
+    (await page.locator("aside ul li").count()) >= 1,
+    `${await page.locator("aside ul li").count()} rows`,
+  );
+  await page.locator("aside ul li button").first().click();
+  await page.waitForSelector("text=Written before the storage was lost", { timeout: 20_000 });
+  check("and the transcript inside one is readable again", true);
+  check(
+    "and nothing is left promising something it cannot deliver",
+    !/Opening this conversation…|Reading your allowance…/.test(recovered),
+    recovered.split("\n").find((line) => /Opening|Reading your/.test(line)) ?? "",
+  );
+  check(
+    "the composer still works after the loss",
+    (await page.locator("#ocade-composer").isEnabled()) === true,
+  );
+
   check("no uncaught page errors", pageErrors.length === 0, pageErrors.join("; "));
 } finally {
   await browser.close();
