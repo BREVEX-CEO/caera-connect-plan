@@ -54,7 +54,7 @@ The generated schema still contains subscription/invoice/payment-event tables fr
 ## Roles
 
 - An ordinary authenticated user may access only their own account data.
-- admin/owner: hidden privileged operations through audited server/RPC authorities;
+- An admin or owner may perform hidden privileged operations only through audited server or RPC authorities.
 - The service role is server-only and must never be exposed to the client.
 - Anonymous users may access only explicitly public data and routes.
 
@@ -98,12 +98,12 @@ Cloud Library content is private account content. Validate ownership and detecte
 
 Critical RPC classes:
 - Use RPCs to acquire, finalize and release generation permits.
-- read commercial usage;
+- Use an RPC to read authoritative commercial usage.
 - Use RPCs to allocate, reconcile and return Offline usage.
 - Use RPCs to register and revoke browser devices.
 - Use RPCs to grant and revoke entitlements.
 - Use RPCs to list and revoke account sessions.
-- notification preference/save/read;
+- Use RPCs to read and save notification preferences and notification state.
 - atomic Chat mutation such as regenerate truncation where required.
 
 ## Admin grants
@@ -113,7 +113,7 @@ Admin grants:
 - Require an admin or owner role plus strong authentication for grants.
 - Prevent self-granting whenever policy forbids it.
 - Require every grant to specify the tier, duration and reason.
-- are auditable and expiring.
+- Ensure that every admin grant is auditable and expiring.
 
 ## Data deletion
 
