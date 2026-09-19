@@ -98,4 +98,14 @@ The mission is accepted only when the exact production release proves signed-in 
 
 ## Repository-wide completion rule
 
-This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply `/ponytail ultra`, `/caveman ultra`, YAGNI, and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply YAGNI and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+
+## Active audit product requirements
+
+OCADE must never serve the application or sign-in surfaces over plain HTTP. Customers are redirected to the canonical HTTPS origin before application content is delivered.
+
+Offline wording must be exact: local inference stays on-device, while saved conversations, usage reconciliation, and explicitly saved files may still synchronize through OCADE services. Do not claim that Offline “sends nothing anywhere” unless a flow is truly local-only.
+
+Custom grants must be operable by an authorized owner through a complete MFA-backed flow, scalable account search, a clear grant preview, and confirmation of the authoritative resulting entitlement.
+
+Removing Offline Intelligence must verify that the intended stored model/runtime data is actually gone before saying Removed. Mobile public navigation and Settings must remain fully usable at 360–375 px without horizontal overflow or compressed form rows.
