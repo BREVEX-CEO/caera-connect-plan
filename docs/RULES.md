@@ -11,11 +11,11 @@
 ## Code organization
 
 Keep responsibility with the existing authority:
-- Chat state in the Chat authority;
-- routing in the intelligence router;
-- usage in commercial authority;
-- Offline lifecycle in one installer/vault;
-- durable account state in the account backend.
+- Keep Chat state in the Chat authority.
+- Keep routing decisions in the intelligence router.
+- Keep usage accounting in the commercial authority.
+- Keep the Offline lifecycle in one installer/vault authority.
+- Keep durable account state in the account backend.
 
 Do not build a parallel solution because editing the existing one is harder.
 
@@ -39,36 +39,36 @@ No broad `any` to bypass a real contract. Validate untrusted network/storage/fil
 ## API rules
 
 - Bound body sizes/list lengths/output.
-- Auth before protected work.
-- Stable idempotency for logical retries.
-- Cancellation propagates.
+- Authenticate the request before protected work starts.
+- Use stable idempotency keys for logical retries.
+- Propagate cancellation through the full request path.
 - No client-supplied ownership/entitlement trust.
 
 ## Database rules
 
-- Versioned migrations + rollback/verification.
-- RLS + grants.
-- Strong-auth gates for privileged RPCs.
-- Indexed bounded reads.
+- Use versioned migrations with rollback and verification.
+- Use both row-level security and explicit grants.
+- Require strong authentication for privileged RPCs.
+- Use indexed and bounded reads.
 - Regenerate/destructive multi-row mutations are atomic or recoverable.
 - Historical tables are not product requirements.
 
 ## Security rules
 
-- Secrets server-side.
+- Keep secrets on the server side.
 - No provider/model/vendor identity in normal UI, public docs, client logs or bundle-visible diagnostics.
 - No direct browser write to revocation/entitlement authority.
-- Hostile-file assumptions everywhere.
+- Treat uploaded files and extracted content as hostile input everywhere.
 - Cross-account state never survives account switch.
-- Admin hidden and role-gated.
+- Keep the Admin surface hidden and role-gated.
 
 ## Offline storage rules
 
 Model storage/download is OPFS-only:
-- bytes/chunks/checkpoints/metadata/pointers/runtime model assets → OPFS;
-- no IndexedDB/Cache Storage/localStorage model copy;
-- normal site update does not redownload an unchanged verified release;
-- explicit Remove suppresses automatic reinstall until explicit Install.
+- Store Offline model bytes, chunks, checkpoints, metadata, pointers and runtime model assets in OPFS only.
+- Do not keep a duplicate Offline model copy in IndexedDB, Cache Storage or localStorage.
+- A normal site update must not redownload an unchanged verified Offline release.
+- An explicit Remove action must suppress automatic reinstall until the customer explicitly chooses Install.
 
 ## Dependency rules
 
@@ -76,11 +76,11 @@ Use platform/native APIs or installed dependencies first. New dependency require
 
 ## UI rules
 
-- Dark, premium, minimal.
-- No dashboard/card walls.
-- Responsive desktop/tablet/phone.
-- Hide infrastructure details.
-- No current unused/future product modules.
+- Keep the interface dark, premium and minimal.
+- Do not build dashboard-style card walls.
+- Keep the same core functionality responsive across desktop, tablet and phone.
+- Hide infrastructure details from normal customers.
+- Do not surface unused or future product modules in the current product.
 
 ## State management
 
@@ -100,10 +100,10 @@ Bound reads, uploads, parsing and provider output. Stream/chunk large work. Keep
 
 ## Forbidden practices
 
-- Reintroducing CADANE branding.
-- Reintroducing Paddle/live paid checkout.
-- Exposing provider/model/vendor/runtime identity.
-- Storing Offline model chunks outside OPFS.
-- Building current-scope Projects/Tasks/Automations/Monitors/Organizations/Code/native apps without a new mission.
-- Weakening tests/security to pass a gate.
-- Claiming real hardware/provider/production proof that was not run.
+- Do not reintroduce CADANE branding.
+- Do not reintroduce Paddle or live paid checkout.
+- Do not expose provider, model, vendor or runtime identity.
+- Do not store Offline model chunks outside OPFS.
+- Do not build Projects, Tasks, Automations, Monitors, Organizations, Code or native apps without a new owner-approved mission.
+- Do not weaken tests or security just to pass a gate.
+- Do not claim real hardware, provider or production proof that was not actually run.
