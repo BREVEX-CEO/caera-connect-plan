@@ -900,3 +900,65 @@ seven "RLS enabled, no policy" tables are service-role-only by design and
 Still external, unchanged: real WebGPU generation, the 484 MB install and its
 resume/repair/reinstall journey on real hardware, multi-device revocation in
 production, and paid checkout.
+
+## The adversarial pass, and what it actually found
+
+Run after the plan's findings were closed, against the reconciled tree, with
+the purpose of breaking the product rather than confirming it.
+
+**It found two faults in this session's own work**, which is the point of
+re-reading a diff adversarially rather than re-reading the tests. Abandoning a
+transcript read left `loadingMessages` true for ever: the guard that drops the
+stale result also skips the `finally` that cleared it. It is invisible today
+only because every caller empties the transcript too and the list is not
+rendered when empty — a latent trap, not a defence, and one line at the source
+fixed it. And pressing Stop before the first token said "OCADE could not answer
+that", which is untrue; stopping is a decision, and a refusal or a genuinely
+empty answer still says so.
+
+**Cross-account isolation is now proved rather than assumed.** Nine checks run
+under `SET ROLE authenticated` with a JWT claim — the way PostgREST executes a
+customer's request, and the only way the policies are in force at all. A
+conversation and its messages are invisible to another account, cannot be
+renamed, deleted or added to by one, and cannot be claimed by inserting a row
+that names somebody else as owner. Usage is unreadable across accounts and an
+account cannot grant itself a tier. A control read proves the suite is not
+passing because nothing is readable.
+
+**Losing local storage is survivable.** The offline journey clears IndexedDB and
+localStorage with the account untouched, then proves the conversations come back
+from Supabase, a transcript inside one reads again, the composer still works,
+and nothing is left promising something it cannot deliver.
+
+**Failure injection is real now.** The stub can be told to refuse a write, which
+is how the swallowed-deletion defect was caught and how it stays caught.
+
+Checked and found sound, so nothing was changed: the unsynced-turn journal
+(claim/release per tab, with a unique index on `(user_id, client_key)` as the
+real exactly-once guarantee, and a SELECT-before-INSERT that answers the common
+replay without a failed write); attachment ingestion (image size cap, magic-byte
+check, SVG read as text rather than base64'd into a vision model, text bounded
+BEFORE it is read, total budget at the request boundary); and every live
+SECURITY DEFINER function `authenticated` can execute.
+
+Not reachable from here and unchanged as external proof: true database
+concurrency — PGlite is one connection, so the row locking that makes two
+simultaneous requests for the last use safe cannot be exercised — real WebGPU
+generation, the 484 MB install on real hardware, multi-device revocation in
+production, and paid checkout.
+
+## Measured cleanup
+
+`src` moved from 42,459 to 43,602 lines and 221 to 227 files across this
+session. That is growth, and it is honest to say what it bought: four new test
+files, the device management the plan required, one migration's client, and the
+comments that record why each defect existed. Product code excluding tests went
+30,818 to 31,519.
+
+A whole-repository audit for over-engineering found one dead export (a zod
+schema nothing validated with), no unused dependency — the four with no source
+import are used by `vite.config.ts` or a dynamic `import()` — no
+single-implementation interface, no wrapper that only delegates and no dead
+function. The deletions this session are the install telemetry ring, the thread
+outcome accessor that had no caller, the Web Locks branch the database replaced,
+and the compensating-delete protocol the transaction replaced.
