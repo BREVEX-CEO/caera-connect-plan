@@ -23,8 +23,19 @@ This file records owner-approved decisions that override older contradictory pla
 - Public/legal surfaces keep About, Help, Terms, Privacy, and Pricing. Native desktop apps and install-app promotion remain out of scope for this browser-first mission.
 - The permanent owner/admin is `caeracadane28@gmail.com` through the audited role/grant authority; ordinary users must not be able to reach or self-grant Admin/entitlements.
 - Supabase leaked-password protection is documented but is not a current launch blocker for the Google/email-OTP passwordless product on the owner’s current Supabase plan.
-- Every engineering session uses `/ponytail ultra` and `/caveman ultra`, applies YAGNI/KISS, prefers one canonical authority, deletes safe dead/duplicate code, and fixes root causes rather than adding layers of patches.
+- Every new, resumed, or context-compacted engineering session starts by activating `/ponytail ultra` and `/caveman ultra`; implementation otherwise follows YAGNI/KISS, one canonical authority, safe deletion of dead/duplicate code, and root-cause repair.
 
 ## Repository-wide completion rule
 
-This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply `/ponytail ultra`, `/caveman ultra`, YAGNI, and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply YAGNI and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+
+## 2026-09-19 active audit decisions
+
+- The latest read-only audit created 15 active findings: 1 Critical, 5 Major, 7 Medium, 1 Small, and 1 Minor. They are implemented as Phases 15–21 in `PLAN.md`.
+- HTTPS enforcement is a launch blocker and must occur before application HTML is served.
+- Device revocation/identity-sensitive fields are mutated only through narrow audited server functions; direct generic authenticated UPDATE authority is rejected.
+- Device-cap serialization is per account and device kind so different browsers cannot bypass the cap concurrently.
+- Admin grants keep AAL2 and no-self-grant protections; the product must supply MFA enrollment/challenge and scalable server-side account search rather than weakening the RPC.
+- Offline customer copy distinguishes on-device inference from cloud synchronization of saved data.
+- Regenerate must be atomic/recoverable, preserve original request options, and never partially destroy a transcript.
+- Model removal is truthful only after intended storage paths are actually absent.
