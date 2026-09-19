@@ -35,19 +35,19 @@ Do not revive requirements from old migrations, comments, deleted products, scre
 
 Use the scripts already in `package.json`. Important commands:
 
-- `npm run build`
-- `npm run typecheck`
-- `npm run lint`
-- `npm run format:check`
-- `npm test`
-- `npm run verify:full`
-- `npm run audit:browser`
-- `npm run audit:online`
-- `npm run audit:offline`
-- `npm run audit:usage`
-- `npm run identity:check`
-- `npm run content-storage:check`
-- `npm run audit:secrets`
+- Run `npm run build` to create the production build.
+- Run `npm run typecheck` to verify TypeScript types.
+- Run `npm run lint` to check lint rules.
+- Run `npm run format:check` to verify formatting.
+- Run `npm test` to execute the unit and integration test suite.
+- Run `npm run verify:full` to execute the complete verification matrix.
+- Run `npm run audit:browser` to execute the browser audit journey.
+- Run `npm run audit:online` to verify Online Intelligence behavior.
+- Run `npm run audit:offline` to verify Offline Intelligence behavior.
+- Run `npm run audit:usage` to verify usage accounting.
+- Run `npm run identity:check` to verify identity-secrecy rules.
+- Run `npm run content-storage:check` to verify storage rules.
+- Run `npm run audit:secrets` to scan for leaked secrets.
 
 GitHub Actions is optional; unavailable/red paid Actions are not product evidence. Equivalent verification still has to run through trusted local/agent execution.
 
