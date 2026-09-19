@@ -185,20 +185,27 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
     };
 
     /*
-     * THE RECORD OF THE DELETION OUTLIVES THE ACCOUNT, ANONYMISED.
+     * THE RECORD OF THE DELETION OUTLIVES THE ACCOUNT, WITH NO SUBJECT.
      *
-     * `compliance_audit_log.user_id` is ON DELETE SET NULL, so this line
-     * survives the identity deletion above with the subject removed. That is the
-     * shape a deletion record has to have: proof that an erasure was carried
-     * out, holding nothing that identifies the person it was carried out for.
+     * `compliance_audit_log.user_id` is ON DELETE SET NULL, and this line used
+     * to be written with the user id in it — AFTER `deleteUser` had removed the
+     * row it referenced. `SET NULL` describes what happens to an existing row
+     * when its user is deleted; it does not let a NEW row name a user who is
+     * already gone. So the foreign key refused this insert every single time,
+     * the `catch` below swallowed the refusal, and the proof that an erasure had
+     * been carried out was never written at all.
      *
-     * Written AFTER the deletion, so it records what happened rather than what
-     * was about to. Failing to write it does not un-delete anything, and the
-     * person still receives their receipt.
+     * `null` is not a workaround for that: it is the state the constraint exists
+     * to produce, and the shape this record has to have — evidence that a
+     * deletion happened, holding nothing that identifies whose it was. The
+     * reference is what ties it to the receipt the person keeps.
+     *
+     * Still best-effort: failing to write it does not un-delete anything, and
+     * the person still receives their receipt.
      */
     try {
       await supabaseAdmin.from("compliance_audit_log").insert({
-        user_id: userId,
+        user_id: null,
         action: "account.deleted",
         category: "deletion",
         feature_id: "settings.account",

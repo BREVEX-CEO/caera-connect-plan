@@ -694,6 +694,17 @@ async function runOnlineIntelligence(
         provider = response;
         if (response.ok) break outer;
 
+        /*
+         * A REFUSED ATTEMPT'S BODY IS STILL AN OPEN STREAM.
+         *
+         * Nothing reads it — only its status decides what happens next — and a
+         * body that is neither read nor cancelled holds its connection until the
+         * runtime collects it. Three attempts across three keys is nine of them
+         * per request, and a provider outage is exactly when every request takes
+         * all nine.
+         */
+        void response.body?.cancel().catch(() => undefined);
+
         if (response.status === 401 || response.status === 403) continue outer;
 
         if (response.status === 429) {
