@@ -99,4 +99,16 @@ A release is a compatible set consisting of Git SHA, frontend bundle, Supabase E
 
 ## Repository-wide completion rule
 
-This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply `/ponytail ultra`, `/caveman ultra`, YAGNI, and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+This document is subordinate to the active implementation authority in `PLAN.md` and the engineering rules in `CLAUDE.md`, `docs/RULES.md`, and `docs/TESTING.md`. Complete the active plan, fix root causes with regression coverage, then run the separate adversarial enterprise-grade AI-platform QA pass before calling the product complete. After correctness is proven, apply YAGNI and KISS to remove safely unnecessary code and reduce duplicate authorities and maintenance surface. GitHub Actions is optional; required verification must still run through trusted local or agent execution and the existing direct production authorities.
+
+## Active audit technical requirements
+
+The Worker or Cloudflare edge must enforce HTTPS before application HTML is returned. Canonical-host and scheme handling are tested together.
+
+Send captures account, conversation, request identity, and request-owned cleanup before the first await and rejects stale continuations after every asynchronous boundary. Regenerate preserves the original request options, including Thinking and Research, and uses an atomic or recoverable transcript replacement path.
+
+A delivered answer and a persisted transcript are separate states: usage settlement must not become undelivered merely because transcript persistence fails after output reached the customer.
+
+Offline uninstall reports success only after all intended model/runtime locations are verified absent. A failed OPFS/native deletion remains a retryable error state rather than clearing metadata and claiming removal.
+
+Admin grants require an in-product MFA enrollment/challenge path to reach AAL2, server-side account search, and authoritative post-submit entitlement/audit confirmation.
