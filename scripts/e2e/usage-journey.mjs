@@ -64,6 +64,34 @@ async function setRemaining(remainingUses) {
   });
 }
 
+/**
+ * Wait for a CONDITION rather than for a duration.
+ *
+ * Registering a browser's device happens in a background task nothing here can
+ * await, and the device-cap check below waited a flat 3.5 seconds for it. Under
+ * load that was sometimes not enough: the refusal had not been published yet, so
+ * a check about what a person is TOLD failed because nothing had happened yet.
+ * A fixed sleep is a guess about a machine's speed, and a guess that is wrong
+ * intermittently is the worst kind of check.
+ */
+async function until(condition, timeoutMs = 20_000) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    if (await condition()) return true;
+    if (Date.now() > deadline) return false;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+}
+
+/** How many devices this account currently holds, straight from the database. */
+async function deviceCount() {
+  const response = await fetch(`${SUPABASE}/rest/v1/devices?select=id`, {
+    headers: { authorization: `Bearer ${session.access_token}` },
+  });
+  if (!response.ok) return 0;
+  return ((await response.json()) ?? []).length;
+}
+
 const browser = await chromium.launch({ executablePath: EXECUTABLE, args: ["--no-sandbox"] });
 
 try {
@@ -309,13 +337,23 @@ try {
     );
     const tab = await other.newPage();
     await tab.goto(`${BASE}/`, { waitUntil: "networkidle" });
-    await tab.waitForTimeout(3500);
-    if (index < 2) continue;
+    if (index < 2) {
+      // This browser has taken its slot when the account holds one more device
+      // than it did, which the database is the only honest witness to.
+      await until(async () => (await deviceCount()) > index);
+      continue;
+    }
 
     await tab.click('aside button[aria-haspopup="menu"]');
     await tab.getByRole("menuitem", { name: "Settings" }).click();
     await tab.getByRole("button", { name: "Usage & Limits" }).click();
-    const panel = await tab.getByRole("dialog", { name: "Settings" }).innerText();
+    // The refusal arrives from the same background task, so the screen is read
+    // until it says something rather than once, at a moment chosen by a timer.
+    const dialog = tab.getByRole("dialog", { name: "Settings" });
+    await until(async () =>
+      /as many of your devices as this account allows/.test(await dialog.innerText()),
+    );
+    const panel = await dialog.innerText();
     check(
       "a browser beyond the device cap is told so, and told the network still works",
       /as many of your devices as this account allows/.test(panel) &&

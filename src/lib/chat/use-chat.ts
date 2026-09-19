@@ -766,9 +766,6 @@ export function useChat(): ChatState & ChatActions {
           // Runs once the allowance has said yes. Deleting before that point cost
           // somebody their question whenever the answer was going to be refused.
           setMessages(before.slice(0, index));
-          // A temporary turn was never written, so there is nothing to delete and
-          // an authenticated call naming an id no row has ever carried.
-          if (temporary || !conversationId) return;
           /*
            * ONE STATEMENT, NOT ONE PER TURN.
            *
@@ -776,10 +773,20 @@ export function useChat(): ChatState & ChatActions {
            * failure after some had succeeded removed turns from the middle of
            * somebody's transcript for good. The account now drops them together
            * or not at all, and a refusal leaves everything exactly where it was.
+           *
+           * FROM A STORED TURN'S OWN TIMESTAMP, NEVER THIS DEVICE'S CLOCK.
+           * The obvious value to send is the anchor's `created_at` — and a turn
+           * held in this tab because the account was unreachable carries a time
+           * THIS BROWSER wrote. A clock running slow would name a moment before
+           * turns that are genuinely earlier, and the delete would take them
+           * too: turns nobody asked to replace, gone. Every stored row's
+           * timestamp came from the database, so the first one being dropped is
+           * a boundary the database itself chose. With nothing stored to drop,
+           * there is nothing to ask for.
            */
-          await deleteMessagesFrom({
-            data: { conversationId, from: question.created_at },
-          });
+          const from = before.slice(index).find((record) => !record.unsynced)?.created_at;
+          if (temporary || !conversationId || !from) return;
+          await deleteMessagesFrom({ data: { conversationId, from } });
         },
       );
       if (accepted) return;

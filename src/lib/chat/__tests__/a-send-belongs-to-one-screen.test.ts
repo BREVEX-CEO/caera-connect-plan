@@ -92,4 +92,21 @@ describe("asking a question again asks the same question", () => {
     expect(SOURCE).toContain("deleteMessagesFrom({");
     expect(SOURCE).not.toMatch(/Promise\.all\(\s*dropped/);
   });
+
+  /*
+   * A CLOCK THIS DEVICE WROTE MUST NOT DECIDE WHAT THE ACCOUNT DELETES.
+   *
+   * The boundary is a MOMENT, and the anchor's own `created_at` is the obvious
+   * thing to send — except that a turn held in the tab because the account was
+   * unreachable carries a time this browser wrote. A slow clock would name a
+   * moment before turns that are genuinely earlier, and one statement would
+   * take those too.
+   */
+  it("takes the boundary from a stored turn, never from a local one", () => {
+    expect(SOURCE).toContain("find((record) => !record.unsynced)?.created_at");
+    expect(SOURCE).not.toContain("from: question.created_at");
+    // Nothing stored among the dropped turns means nothing to ask the account
+    // to delete, rather than a call with a made-up boundary.
+    expect(SOURCE).toContain("!conversationId || !from");
+  });
 });

@@ -76,6 +76,19 @@ async function sweep(page, routes, label) {
       (response?.status() ?? 0) < 400,
       String(response?.status()),
     );
+    /*
+     * WHETHER THE PAGE ITSELF IS SOUND, ASKED BEFORE ANYTHING IS PRESSED.
+     *
+     * The press loop below is the only thing that has ever produced a hydration
+     * report here, and it produces one by INTERRUPTING hydration: a click lands
+     * while React is still adopting the server markup, React gives up on the
+     * tree and re-renders it, and the recoverable error reads exactly like a
+     * defect in the page. Loading the route and looking before touching it is
+     * the question that was actually meant — a page that cannot hydrate on its
+     * own fails here, loudly, and no press can mask it or invent it.
+     */
+    check(`${label}: ${route} loads without a page error`, errors.length === 0, errors.join("; "));
+    errors.length = 0;
 
     /*
      * The list is taken ONCE, as plain descriptions, because a press can
@@ -124,10 +137,17 @@ async function sweep(page, routes, label) {
         /* Detached or covered by something this press opened: not a defect. */
       }
     }
+    /*
+     * A press that lands mid-hydration makes React re-render the tree and report
+     * it. That is this loop racing the framework — the plain load above already
+     * proved the page hydrates — so those reports are not counted here while
+     * every other page error still is.
+     */
+    const thrown = errors.filter((error) => !/Minified React error #(418|423|425)\b/.test(error));
     check(
       `${label}: ${route} — pressed ${pressed} controls with nothing thrown`,
-      errors.length === 0,
-      errors.join("; "),
+      thrown.length === 0,
+      thrown.join("; "),
     );
     errors.length = 0;
   }

@@ -20,6 +20,7 @@
  * "the third row of sales.csv" is checkable and "your data says" is not.
  */
 import type { NormalizedAttachment } from "@/lib/intelligence/contract";
+import { imageMediaType } from "@/lib/media-type";
 
 /** How many files may ride with one question. Matches the boundary's own cap. */
 export const MAX_ATTACHMENTS = 8;
@@ -78,22 +79,15 @@ function isText(file: File): boolean {
  * person can rename anything. Sending arbitrary bytes to the provider labelled
  * `image/png` is the shape of attack this closes: the declared type decides
  * which path a file takes, so the path has to check the bytes before acting on
- * it. These four signatures are the formats the online engine accepts.
+ * it.
+ *
+ * The signatures themselves live in `lib/media-type.ts` because the Library
+ * needs the same answer on the server, and two copies of "what an image looks
+ * like" is two places for the list to differ.
  */
 async function looksLikeImage(file: File): Promise<boolean> {
   const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
-  const starts = (...bytes: number[]) => bytes.every((byte, at) => head[at] === byte);
-  return (
-    starts(0x89, 0x50, 0x4e, 0x47) || // PNG
-    starts(0xff, 0xd8, 0xff) || // JPEG
-    starts(0x47, 0x49, 0x46, 0x38) || // GIF
-    // WEBP is "RIFF" .... "WEBP"
-    (starts(0x52, 0x49, 0x46, 0x46) &&
-      head[8] === 0x57 &&
-      head[9] === 0x45 &&
-      head[10] === 0x42 &&
-      head[11] === 0x50)
-  );
+  return imageMediaType(head) !== null;
 }
 
 /** A refusal a person can act on: what OCADE cannot read, and what it can. */

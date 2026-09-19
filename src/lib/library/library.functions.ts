@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { imageMediaType, isMediaType } from "@/lib/media-type";
 
 /**
  * LIBRARY: ONE TABLE, ONE PRIVATE BUCKET, ONE SET OF FUNCTIONS.
@@ -49,6 +50,9 @@ const COLUMNS =
  */
 export const LIBRARY_MAX_BYTES = 100 * 1024 * 1024;
 
+/** What `LIBRARY_MAX_BYTES` costs as base64, with room for the padding. */
+const MAX_BASE64_LENGTH = Math.ceil(LIBRARY_MAX_BYTES / 3) * 4 + 4;
+
 /** The whole library for this account, newest first. */
 export const listLibraryItems = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -80,19 +84,56 @@ export const addLibraryItem = createServerFn({ method: "POST" })
   .validator(
     z.object({
       name: z.string().trim().min(1).max(300),
-      mime: z.string().trim().min(1).max(200),
+      /*
+       * Shaped like a media type, because it is recorded as one. It is never
+       * acted on — see the stored content type below — but a column that says
+       * "media type" should not hold a free-form string a caller chose.
+       */
+      mime: z.string().trim().min(1).max(200).refine(isMediaType, "That file type is not valid."),
       kind: z.enum(["image", "file"]),
       source: z.enum(["upload", "generated"]).default("upload"),
       conversationId: uuid.nullish(),
-      /** base64, without a data: prefix. */
-      contentBase64: z.string().min(1),
+      /**
+       * base64, without a data: prefix.
+       *
+       * BOUNDED BEFORE IT IS DECODED. The ceiling was checked on the decoded
+       * bytes, so the only thing standing between a request and an arbitrary
+       * amount of memory in the isolate was the decode itself — a caller could
+       * post half a gigabyte of base64 and have it materialised twice over
+       * before anything said it was too large. A string that cannot hold
+       * `LIBRARY_MAX_BYTES` is refused without being looked at.
+       */
+      contentBase64: z.string().min(1).max(MAX_BASE64_LENGTH),
     }).parse,
   )
   .handler(async ({ data, context }): Promise<LibraryItemRow> => {
-    const bytes = Uint8Array.from(atob(data.contentBase64), (character) => character.charCodeAt(0));
+    let bytes: Uint8Array;
+    try {
+      bytes = Uint8Array.from(atob(data.contentBase64), (character) => character.charCodeAt(0));
+    } catch {
+      // `atob` throws on anything that is not base64, and the raw exception is
+      // neither useful to a person nor safe to show them.
+      throw new Error("That file could not be read.");
+    }
     if (bytes.byteLength > LIBRARY_MAX_BYTES) {
       throw new Error("That file is larger than OCADE can keep in your library.");
     }
+
+    /*
+     * WHAT THE BYTES ARE, NOT WHAT THE CALLER SAID THEY WERE.
+     *
+     * The stored object's content type was whatever arrived in `mime`, and the
+     * Library opens an object by minting a signed URL and handing it to a new
+     * tab. Storage serves what it was told, so a file stored as `text/html` or
+     * `image/svg+xml` was an attacker-chosen DOCUMENT served from the project's
+     * own storage domain, reached through OCADE's own screen. Nothing about the
+     * caller's declaration reaches that decision now: an image is stored as the
+     * format its first bytes actually are, and everything else is stored as
+     * bytes to be downloaded.
+     */
+    const signature = imageMediaType(bytes.subarray(0, 12));
+    const kind = data.kind === "image" && signature ? "image" : "file";
+    const storedType = signature && kind === "image" ? signature : "application/octet-stream";
 
     const id = crypto.randomUUID();
     const storagePath = `${context.userId}/${id}`;
@@ -102,7 +143,7 @@ export const addLibraryItem = createServerFn({ method: "POST" })
       .insert({
         id,
         user_id: context.userId,
-        kind: data.kind,
+        kind,
         source: data.source,
         name: data.name,
         mime: data.mime,
@@ -116,7 +157,7 @@ export const addLibraryItem = createServerFn({ method: "POST" })
 
     const upload = await context.supabase.storage
       .from("library")
-      .upload(storagePath, bytes, { contentType: data.mime, upsert: false });
+      .upload(storagePath, bytes, { contentType: storedType, upsert: false });
     if (upload.error) {
       // Neither, rather than a row pointing at nothing.
       await context.supabase.from("ocade_library_items").delete().eq("id", id);
