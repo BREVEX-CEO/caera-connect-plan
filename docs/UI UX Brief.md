@@ -36,7 +36,7 @@ Use the existing repository fonts/tokens. Prioritize readability, compact labels
 
 ### Tablet
 - Collapse navigation on tablet when the available width requires it.
-- Keep full functionality.
+- Keep the same core functionality available on tablet layouts.
 
 ### Phone
 - Use drawer navigation on phones.
@@ -69,7 +69,7 @@ Use only where structured comparison/admin data genuinely needs them. Responsive
 
 - Empty Chat is calm, not marketing-heavy.
 - Composer: attachment, text, Auto/Online/Offline, Thinking/Research when applicable, microphone, Send/Stop.
-- User/assistant actions remain compact.
+- Keep user and assistant message actions compact.
 - Highlighting text may surface **Ask OCADE**.
 - Helpful / Not helpful feedback is discreet.
 - Citations/sources are readable and attached to the answer they support.
@@ -114,9 +114,9 @@ No endless spinner.
 
 ## Do not
 
-- Expose technical implementation terminology.
-- Show provider/model/vendor identity.
-- Build dashboard/card walls.
+- Do not expose technical implementation terminology.
+- Do not show provider, model or vendor identity.
+- Do not build dashboard-style card walls.
 - Add orange/red-heavy branding unless required for semantic warning/destructive state.
 - Create new current-scope modules not approved in PRD.
 - Use horizontal page scrolling on mobile.
