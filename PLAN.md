@@ -1,3 +1,67 @@
+# Active audit remediation — 15 findings
+
+**15 findings: 1 Critical, 5 Major, 7 Medium, 1 Small, 1 Minor.**
+
+This is the active continuation plan from the read-only production audit of `main` at `bd1e4f6d2c4c3131afb074ec4658d1a653c2fb1f`. The earlier 26-finding audit below is completed historical context. Do not reopen an old finding unless a regression test or live proof shows it has returned.
+
+## Phase 15 — Enforce HTTPS everywhere — C1
+
+Force every HTTP request for `ocade.in` and `www.ocade.in` to HTTPS before any application HTML, auth page, asset, or customer data is served. Preserve path, query, and method semantics where applicable. Prefer one canonical enforcement authority instead of overlapping redirect layers.
+
+The phase gate proves `http://ocade.in/`, `/auth`, `/library`, representative public routes, and `www` all reach the canonical HTTPS origin without serving application HTML over HTTP.
+
+## Phase 16 — Make device revocation and device caps authoritative — M1, D3
+
+Remove direct authenticated mutation paths that can alter revocation or identity-sensitive device/grant columns. Customer-owned rows must not be able to clear or rewrite their own revocation state through the Data API. Expose only narrow audited RPCs for allowed device actions.
+
+Fix concurrent browser registration so the cap is serialized by account and device kind rather than by browser installation id. Two different browsers racing for the final slot must never both succeed.
+
+The phase gate includes authenticated attempts to mutate protected columns directly, two-browser concurrent registration against the real database role model, revoke/re-register behavior, and proof that the cap cannot be bypassed by races.
+
+## Phase 17 — Make custom grants usable and scalable — M2, D4
+
+Keep the existing admin, second-factor, and no-self-grant protections. Add a complete MFA enrollment/challenge path so an authorized operator can actually reach AAL2 and submit a custom entitlement grant through the product.
+
+Replace the client-side search over only the newest 200 profiles with a bounded indexed server-side email/id search and pagination. The UI must show the selected account, requested tier, duration, reason, and the authoritative resulting entitlement/audit record after submission.
+
+The phase gate proves enrollment/challenge, successful and rejected grants, no-self-grant, unauthorized denial, search for an account outside the newest 200, and authoritative post-submit state.
+
+## Phase 18 — Close the remaining Chat races and transcript-loss paths — M5, M4, D1, D5
+
+Capture account, conversation, request identity, and request-owned cleanup before the first asynchronous wait in Send. Recheck ownership after each await so an old request cannot resume into a new account or conversation, and one request cannot clear another request's guard.
+
+Make Regenerate/Edit replacement atomic or recoverable so a partial deletion failure cannot irreversibly destroy later turns. Preserve the original Thinking and Research choices when repeating a turn.
+
+Separate visible-delivery accounting from transcript persistence so an answer already delivered to the customer cannot later settle as undelivered merely because message persistence failed.
+
+The phase gate includes conversation/account switches during permit acquisition, concurrent sends, injected mid-regenerate deletion failure, persistence failure after visible output, and regenerate with original mode options preserved.
+
+## Phase 19 — Make Offline privacy and uninstall claims exact — M3, D2
+
+Customer copy must distinguish local inference from cloud synchronization. Offline inference may remain on-device while saved conversations, usage reconciliation, and explicitly saved files still synchronize through OCADE services. Never say “sends nothing anywhere” unless the entire flow is truly local-only.
+
+Uninstall succeeds only after every intended model/runtime path is verified absent. If OPFS/native deletion fails, preserve enough metadata to retry and show an actionable failure instead of publishing a false Removed state.
+
+The phase gate covers privacy copy, Offline saved-chat behavior, OPFS/runtime removal success, forced deletion failure, reinstall, and verification that no false success is reported.
+
+## Phase 20 — Repair mobile navigation, Settings, Help, and indexing — D6, D7, S1, N1
+
+Remove phone horizontal overflow from public navigation. Make Settings use a compact mobile category pattern and allow labels/fields to stack cleanly instead of compressing text beside fixed-width controls.
+
+Correct Help so account deletion points to Account, not Data Controls. Mark non-public account/placeholder surfaces such as Library and Cowork as `noindex` where appropriate and verify unauthenticated metadata.
+
+The phase gate covers 360–375 px phone widths, touch targets, keyboard/focus behavior, Help navigation accuracy, robots metadata, and absence of horizontal overflow.
+
+## Phase 21 — Run the writable production-grade proof that the read-only audit could not perform
+
+Use a disposable, explicitly writable test environment and safe test accounts/data to execute state-changing journeys that the read-only audit could not legally perform: real Online sends to Gemini, Auto routing, Offline output, Stop/Retry/Regenerate/Edit/Delete, account switching, custom grants, revocation, concurrent device registration, usage exhaustion/reset/refunds, model install/remove/reinstall, interrupted download/resume/repair, storage inspection, reconnect, WebGPU where hardware permits, forced WASM fallback, and payment/unavailable-payment states.
+
+Use browser control like a real customer and test every reachable page, button, menu, dialog, setting, link, loading state, error state, retry, responsive breakpoint, and critical cross-account invariant. Distinguish live proof, browser proof, database proof, local simulation, and unverified external proof.
+
+The final gate requires no known repository-controlled Critical or Major defect, all relevant regression suites green, production/source parity established, and every remaining external limitation explicitly documented rather than implied to pass.
+
+---
+
 **26 defects: 1 Critical, 16 Major, 7 Medium, 2 Minor.**
 
 ## Findings
@@ -222,7 +286,7 @@ After the entire plan is complete, run a separate enterprise-grade AI-platform q
 
 GitHub Actions is optional and must never block completion because paid Actions availability is not assumed. Run the required verification in a trusted local or agent environment and use the existing direct Cloudflare and Supabase authorities where appropriate. Do not weaken tests, security, or release gates merely because remote Actions is unavailable.
 
-After correctness is proven, apply `/ponytail ultra` and strict YAGNI/KISS debloating. Prefer deletion, reuse, one canonical authority, native platform capabilities, and fewer maintained lines over new wrappers or abstractions. Remove dead code, duplicated logic, stale compatibility paths, obsolete comments, unused exports, dead configuration, and unnecessary dependencies only when their removal is proven safe. Report before/after maintained line counts and keep tests and security controls intact.
+After correctness is proven, apply strict YAGNI/KISS simplification. Prefer deletion, reuse, one canonical authority, native platform capabilities, and fewer maintained lines over new wrappers or abstractions. Remove dead code, duplicated logic, stale compatibility paths, obsolete comments, unused exports, dead configuration, and unnecessary dependencies only when their removal is proven safe. Report before/after maintained line counts and keep tests and security controls intact.
 
 ---
 
@@ -396,11 +460,11 @@ After the core Chat and intelligence router are stable, add research/browsing as
 
 The phase gate proves a sourced research answer, cancellation, tool failure, and no double-charge.
 
-## Phase 13 — Perform the whole-product UI/UX and Ponytail cleanup
+## Phase 13 — Perform the whole-product UI/UX and simplification cleanup
 
 Refine the shell, Chat, Library, Settings, usage surfaces, pricing cards, loading states, Offline states, dialogs, and mobile behavior using the locked near-black rounded glass direction. Remove unnecessary cards, oversized empty panels, excessive borders, duplicate controls, developer diagnostics, and sharp corners.
 
-Measure source LOC, source-file count, and dependency count before cleanup. Use `/ponytail ultra` to remove dead code, obsolete modules, duplicate helpers, stale feature remnants, unnecessary wrappers, repeated state, unreachable code, and unused dependencies while preserving security, accessibility, correctness, and tests. Reduce complexity rather than chasing a cosmetic LOC number.
+Measure source LOC, source-file count, and dependency count before cleanup. Remove dead code, obsolete modules, duplicate helpers, stale feature remnants, unnecessary wrappers, repeated state, unreachable code, and unused dependencies while preserving security, accessibility, correctness, and tests. Reduce complexity rather than chasing a cosmetic LOC number.
 
 The phase gate records before/after LOC and file/dependency counts, lists the meaningful dead systems removed, and reruns every relevant test/browser journey.
 
@@ -422,13 +486,9 @@ Production certification remains open on live evidence only, and that evidence c
 
 ## Mandatory final simplification and quality gate
 
-At the last phase of this plan and immediately before the final integration/release when changes have occurred since the last review, keep `/ponytail ultra` and `/caveman ultra` active and run the available Ponytail final-review skills.
+At the last phase and immediately before final integration/release when code changed, inspect the current diff and repository for unnecessary complexity, duplicate authorities, dead code, stale compatibility paths, unused dependencies, and accidental maintenance surface.
 
-If Claude Code exposes the `anthropic-skills` namespace, use `/anthropic-skills:ponytail-review`, `/anthropic-skills:ponytail-audit`, `/anthropic-skills:ponytail-debt`, and `/anthropic-skills:ponytail-gain`. Otherwise use the upstream `/ponytail-review`, `/ponytail-audit`, `/ponytail-debt`, and `/ponytail-gain` forms. Do not execute the same skill twice merely because two aliases point to the same implementation.
-
-Use `ponytail-review` to inspect the current diff and remove valid over-engineering. Use `ponytail-audit` to inspect the whole repository for hidden bloat, duplicate authorities, unnecessary dependencies, and dead code. Use `ponytail-debt` to surface deliberate shortcuts and resolve any debt that blocks this plan. Use `ponytail-gain` only to record measured impact; never fabricate savings.
-
-Fix valid findings as an elite production developer, rerun the affected tests and the full release verification, and proceed only when the simpler result remains secure, correct, accessible, maintainable, and production-safe.
+Apply YAGNI and KISS. Prefer deletion and reuse over new abstractions, but never remove required tests, validation, security controls, accessibility behavior, or reliability logic merely to reduce line count. Rerun affected tests and the full release verification after valid simplifications.
 
 ## Progress-safety and checkpoint rule
 
