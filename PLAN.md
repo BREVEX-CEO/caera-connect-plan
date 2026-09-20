@@ -1182,3 +1182,147 @@ These are **implementation recommendations**, not changes made in this audit. LO
 | `generation-gate.ts:62`, `edge-handler.ts:38`, permit migration surface checks — CONSOLIDATE | One `chat` surface; reuse current permit validation, preserve historic ledger values | Code validators first, forward-only SQL constraint for new writes, old-row readability, negative Cowork test | Few lines, one less policy branch and reduced authorization drift |
 | `ocade.functions.ts:setConversationTrashed`, `use-chat.ts:880-899`, `ConversationList`, Trash SQL — MIGRATE THEN DELETE | Reuse ownership/RLS and confirmation; add one owner-scoped permanent delete | Migrate old trash rows, test cancel/accept/attachments/concurrent send, then remove old UI/RPC/column and replace 163-line old test | Old test **163 gross lines** after replacement; simpler lifecycle; stronger privacy if byte/child deletion proved |
 | `model-vault.ts` localStorage pointers, `model-store.ts:421-438` — CONSOLIDATE | OPFS `pointers.json` becomes authority; reuse `persistPointers/restorePointers`, verified digest and current artifact | Backfill live legacy installs, test localStorage clear/corrupt/reload, then remove duplicate keys | Net LOC uncertain; fewer recovery branches, less redownload and stronger storage privacy |
+
+| `browser-wasm.ts:440-544`, `offline-transport.ts:86-168`, `router.ts:104-172` — CONNECT | One serialized Wllama slot, drain/cancel barrier and generation tag; reuse existing abort signal/adapter | First write failing fake-producer race; fix, then 100 real sequential/switch runs, signout boundary and no new model download | May add necessary code; prevents cross-chat leakage and costly wrong answers; reduces hidden concurrency states |
+| `use-chat.ts:613-693`, `use-generation-permit.ts` — CONNECT | Mark first visible token as delivery once, use existing settle/finally; preserve epoch guard | Tests for before/after token Stop/switch, persistence failure and exact one-charge ledger | Small replacement, fewer billing states, closes free-visible-output bypass |
+| `library.functions.ts:205-245`, `storage_tombstones` — CONNECT | Acknowledge successful Storage removal through one server-only idempotent RPC; reuse trigger and durable retry queue | Test success/failure/no-object, >500 bulk delete, owner denial and account deletion before retiring redundant calls | Small net code; queue no longer accumulates false debt; no client-writable purge authority |
+| Payment `subscriptions` readers, `apply_payment_webhook_event`, old tables — MIGRATE THEN DELETE | Existing grant/catalogue authority replaces active tier reads; keep historical payment evidence for retention | Inventory rows/legal hold, migrate and compare Free/Pro/Max, revoke/drop old service RPC and tables in forward migration | Net LOC/storage savings unquantified; fewer dormant dependencies without losing customer entitlement |
+| `public/sw.js:47-57`, `BrandMark.tsx:15-31`, brand PNGs — DELETE/REROUTE | Remove optional OG wordmark precache; point small UI mark to measured derivative, keep social source until approved replacement | Verify offline shell, retina/mobile visual, OG 200, fresh transferred bytes, cache version | Avoids **509,850** optional fetched bytes; UI mark currently **672,629** transferred bytes; actual derivative saving measured after encoding |
+| `src/routes/__root.tsx:67`, `PublicPage.tsx:89` — REROUTE | Reuse one approved brand asset/name; remove retired bitmap only when all metadata/SW callers moved | Verify social crawler/footers, source SHA, CF cache invalidation | Small LOC, clearer identity and fewer stale assets; no direct security claim |
+| `src/lib/health.ts`, `src/cloudflare-entry.ts`, Cloudflare edge setting — CONNECT | One immutable Git SHA and one HTTPS apex redirect; reuse existing response helpers | Build/deploy with SHA, probe HTTP/www across POPs and no loops; redact signed URL query logs | Little LOC; major incident-response clarity, secure first visit and lower token replay risk |
+
+## Complete `ToRemove.md` verification
+
+`ToRemove.md:13` records older main SHA `4a94c049...`; this audit uses `cf3df83...`, so its branch and caller lists are hypotheses to recheck. Confirmed active Cowork remnants: route `src/routes/_authenticated/cowork.tsx`, nav `AppShell.tsx:45`, public help `src/routes/help.tsx:35`, root metadata `src/routes/__root.tsx:63`, and shell/final E2E assumptions. The latest owner removal decision conflicts with `AGENTS.md:7`, `docs/PRD.md:45`, `docs/APP_FLOW.md:19,23`, `docs/DECISIONS.md:29` and other older placeholder allowances (F08). Active Trash callers are `src/lib/ocade.functions.ts:35-108`, `src/lib/chat/use-chat.ts:880-899`, `src/components/chat/ConversationList.tsx:51`, with live `deleted_at` and two Trash RPCs (F09). Keep Archive separate from deletion. Current Supabase has no public tables/RPCs matching Projects, Tasks, Artifacts, Automations, Monitors, Organizations, side conversations or share links; historical migration files are migration provenance and must stay until a forward-only retirement/baseline strategy is proved. Live payment residue remains: `subscriptions`, `ocade_invoices`, `ocade_payment_events`, `payment_webhook_events`, and `apply_payment_webhook_event`; the RPC is **not** executable by anon/authenticated, and current server entitlement/Admin reads still depend on `subscriptions`. It is therefore a safe-retirement dependency, not a currently exposed checkout. Current Chat, Library, Settings, auth, Admin, usage, one intelligence router and OPFS installer remain current authorities; no removal recommended merely to reduce LOC.
+
+## Complete branch cleanup list — all 50 non-main heads
+
+# OCADE second audit — every remote branch
+
+Remote snapshot: origin/main cf3df83dcc019a58fb6b009f3b64cec51bb04b72. All 50 non-main remote heads were fetched read-only; ahead is unique commits in branch relative to main, behind is commits in main absent from branch. Open PRs were checked with the GitHub connector. No branch was deleted, merged, or modified.
+
+| Branch | Head SHA | Ahead | Behind | Open PR | Classification and later action |
+|---|---|---:|---:|---|---|
+| `agent/full-repo-error-audit-20260818` | `5720c94d6f6cccb31e0109a081a58da610e4eba8` | 37 | 546 | [#8](https://github.com/BREVEX-CEO/caera-connect-plan/pull/8) | Open PR — retain; review/rebase before any merge |
+| `agent/local-only-hardening` | `31c152d16b563f2ac2851c05e63a8c5a353f2a67` | 53 | 574 | [#7](https://github.com/BREVEX-CEO/caera-connect-plan/pull/7) | Open PR — retain; review/rebase before any merge |
+| `agent/repo-wide-hardening-20260818` | `96548ca3f530cb8dc050dc013fbd9579ce52e4b8` | 20 | 546 | [#6](https://github.com/BREVEX-CEO/caera-connect-plan/pull/6) | Open PR — retain; review/rebase before any merge |
+| `claude/admiring-albattani-8gpkf3` | `03a8f1595ce090749c6c1175cbbb6dc9434570c8` | 1 | 170 | none | Unique commits — retain for manual content review |
+| `claude/ecstatic-goldberg-4nycdu` | `f0510d7555274e528b4b70817b7f06967106b931` | 0 | 154 | none | Fully contained in main — deletion candidate after owner review |
+| `claude/happy-shannon-ox0ho6` | `328f0ab97b385aeacc9db0461ec1ffd59e755c57` | 0 | 107 | none | Fully contained in main — deletion candidate after owner review |
+| `claude/lucid-brown-bpvxzl` | `1e630f1e42c66a56a3aedd72b37861e59bb7a36c` | 0 | 81 | none | Fully contained in main — deletion candidate after owner review |
+| `claude/lucid-davinci-k27hqj` | `bd1e4f6d2c4c3131afb074ec4658d1a653c2fb1f` | 0 | 58 | none | Fully contained in main — deletion candidate after owner review |
+| `claude/plan-implementation-n3yjkn` | `4424a15abfe0fcf6b0e5550a0ee27095e7522029` | 0 | 181 | none | Fully contained in main — deletion candidate after owner review |
+| `claude/serene-dijkstra-mnh8ty` | `6c40e68f9d242e6c27f55af18b30d875518f98ed` | 0 | 33 | none | Fully contained in main — deletion candidate after owner review |
+| `claude/wonderful-maxwell-mpyqr8` | `3f719903249c0b923a0f005fcfc96b13d0e3f2c5` | 0 | 78 | none | Fully contained in main — deletion candidate after owner review |
+| `dependabot/github_actions/actions/checkout-7.0.1` | `604a3ff683db36bd7177b7671a6ab8b093c84138` | 1 | 81 | [#42](https://github.com/BREVEX-CEO/caera-connect-plan/pull/42) | Open PR — retain; review/rebase before any merge |
+| `dependabot/github_actions/actions/setup-node-7.0.0` | `b5b7758878bafc0056f73a4840198f7abe91d33f` | 1 | 81 | [#43](https://github.com/BREVEX-CEO/caera-connect-plan/pull/43) | Open PR — retain; review/rebase before any merge |
+| `dependabot/github_actions/actions/upload-artifact-7.0.1` | `92d31d20279a94d3de25c8b16f1cfe305050089c` | 1 | 108 | [#44](https://github.com/BREVEX-CEO/caera-connect-plan/pull/44) | Open PR — retain; review/rebase before any merge |
+| `dependabot/github_actions/github/codeql-action/analyze-4.38.0` | `a113b7d2a9ba3d7cd9c66095d2440e42a9bf944d` | 1 | 137 | [#41](https://github.com/BREVEX-CEO/caera-connect-plan/pull/41) | Open PR — retain; review/rebase before any merge |
+| `dependabot/github_actions/github/codeql-action/init-4.38.0` | `d8973ac761c04c8c4567d308fd40cedb91bcb058` | 1 | 137 | [#45](https://github.com/BREVEX-CEO/caera-connect-plan/pull/45) | Open PR — retain; review/rebase before any merge |
+| `dependabot/npm_and_yarn/eslint-10.9.0` | `92f5a40cb1ffdd3625307b3f5155bc01e8b6cca7` | 1 | 154 | [#24](https://github.com/BREVEX-CEO/caera-connect-plan/pull/24) | Open PR — retain; review/rebase before any merge |
+| `dependabot/npm_and_yarn/eslint-plugin-react-hooks-7.1.1` | `a2946b67d0b4bbadef2eaaf75ed0272e3cdff8c5` | 1 | 216 | [#26](https://github.com/BREVEX-CEO/caera-connect-plan/pull/26) | Open PR — retain; review/rebase before any merge |
+| `dependabot/npm_and_yarn/multi-00f7b83f97` | `731a013aa2c50f1d4e3929f9e57f85f5a4f50f90` | 1 | 154 | [#37](https://github.com/BREVEX-CEO/caera-connect-plan/pull/37) | Open PR — retain; review/rebase before any merge |
+| `dependabot/npm_and_yarn/routine-8c1a79006f` | `674d5476c2869fd527a46d55c859dd98d02d1812` | 1 | 29 | [#46](https://github.com/BREVEX-CEO/caera-connect-plan/pull/46) | Open PR — retain; review/rebase before any merge |
+| `dependabot/npm_and_yarn/vitest-4.1.11` | `4b5817b4adfca999b633513f324bc8340b85050f` | 1 | 154 | [#25](https://github.com/BREVEX-CEO/caera-connect-plan/pull/25) | Open PR — retain; review/rebase before any merge |
+| `docs/add-to-remove-audit` | `1c9e55837f8fa1a75cb4fb42f207c11ff076ef86` | 0 | 1 | none | Fully contained in main — deletion candidate after owner review |
+| `docs/audit-phases-session-rules` | `ba7755c7d26907a8a8a6f9105b79f72c90745780` | 0 | 42 | none | Fully contained in main — deletion candidate after owner review |
+| `docs/audit-qa-rules` | `ace46849bac856f7a044d5cedc27c81c255c821d` | 0 | 64 | none | Fully contained in main — deletion candidate after owner review |
+| `docs/carcc-ocade-product-authority` | `c527d6299858818881bf9a320c135e12b5a53ab4` | 0 | 30 | none | Fully contained in main — deletion candidate after owner review |
+| `docs/ocade-authority-repair-20260909` | `013661f33ed60e8058146b85ec4887fbc4a14652` | 10 | 207 | none | Unique commits — retain for manual content review |
+| `docs/ocade-current-state-audit` | `257f0e9154a74eebbfc4679e3ad76254aac572fd` | 2 | 1084 | none | Unique commits — retain for manual content review |
+| `docs/ocade-md-cleanup-20260909` | `5440321cb4ceb962f541e2b8ed994d8965234d7a` | 0 | 207 | none | Fully contained in main — deletion candidate after owner review |
+| `docs/replace-plan-current-audit-v2` | `b786eaaefba4332780661b57df610e2f67c387a0` | 1 | 41 | none | Unique commits — retain for manual content review |
+| `docs/replace-plan-with-current-audit` | `d45570dc9da682338c09d87ac9c6a6c6040409e5` | 0 | 39 | none | Fully contained in main — deletion candidate after owner review |
+| `docs/sentence-bullets` | `34d37eb240cbc830129824a1f9baf76964a2d4d3` | 0 | 3 | none | Fully contained in main — deletion candidate after owner review |
+| `feat/ocade-control-work` | `bab8ab7998aae667b46325ef775a54b4715779d4` | 17 | 903 | none | Unique commits — retain for manual content review |
+| `feat/ocade-implementation` | `f44f2a84b2129ca0a0f88355847193618a95e3d9` | 12 | 903 | none | Unique commits — retain for manual content review |
+| `fix/service-role-usage-authority` | `7b0c335dc4e2b5a3b35568e49eeb64e681cd7835` | 1 | 81 | none | Unique commits — retain for manual content review |
+| `import/ocade-primary-logic-rar-20260826` | `8aa94841549b9cf51ebc75b45536130e00f25b56` | 3 | 357 | none | Unique commits — retain for manual content review |
+| `rebuild/simplified-ocade-authority` | `7da5d8b6f120a69ae669907f8ce473f4fe1288f4` | 0 | 180 | none | Fully contained in main — deletion candidate after owner review |
+| `rebuild/simplified-ocade-authority-2` | `4424a15abfe0fcf6b0e5550a0ee27095e7522029` | 0 | 181 | none | Fully contained in main — deletion candidate after owner review |
+| `rebuild/simplified-ocade-authority-3` | `4424a15abfe0fcf6b0e5550a0ee27095e7522029` | 0 | 181 | none | Fully contained in main — deletion candidate after owner review |
+| `rebuild/simplified-ocade-authority-4` | `4424a15abfe0fcf6b0e5550a0ee27095e7522029` | 0 | 181 | none | Fully contained in main — deletion candidate after owner review |
+| `rebuild/simplified-ocade-authority-actual` | `4424a15abfe0fcf6b0e5550a0ee27095e7522029` | 0 | 181 | none | Fully contained in main — deletion candidate after owner review |
+| `rebuild/simplified-ocade-authority-canonical` | `4424a15abfe0fcf6b0e5550a0ee27095e7522029` | 0 | 181 | none | Fully contained in main — deletion candidate after owner review |
+| `rebuild/simplified-ocade-authority-docs` | `4424a15abfe0fcf6b0e5550a0ee27095e7522029` | 0 | 181 | none | Fully contained in main — deletion candidate after owner review |
+| `rebuild/simplified-ocade-authority-final` | `4424a15abfe0fcf6b0e5550a0ee27095e7522029` | 0 | 181 | none | Fully contained in main — deletion candidate after owner review |
+| `rebuild/simplified-ocade-authority-last` | `4424a15abfe0fcf6b0e5550a0ee27095e7522029` | 0 | 181 | none | Fully contained in main — deletion candidate after owner review |
+| `rebuild/simplified-ocade-authority-mainwork` | `4424a15abfe0fcf6b0e5550a0ee27095e7522029` | 0 | 181 | none | Fully contained in main — deletion candidate after owner review |
+| `rebuild/simplified-ocade-authority-one` | `4424a15abfe0fcf6b0e5550a0ee27095e7522029` | 0 | 181 | none | Fully contained in main — deletion candidate after owner review |
+| `rebuild/simplified-ocade-authority-real` | `4424a15abfe0fcf6b0e5550a0ee27095e7522029` | 0 | 181 | none | Fully contained in main — deletion candidate after owner review |
+| `rebuild/simplified-ocade-authority-use-this` | `4424a15abfe0fcf6b0e5550a0ee27095e7522029` | 0 | 181 | none | Fully contained in main — deletion candidate after owner review |
+| `rebuild/simplified-ocade-authority-work` | `4424a15abfe0fcf6b0e5550a0ee27095e7522029` | 0 | 181 | none | Fully contained in main — deletion candidate after owner review |
+| `rebuild/simplified-ocade-authority-write` | `4424a15abfe0fcf6b0e5550a0ee27095e7522029` | 0 | 181 | none | Fully contained in main — deletion candidate after owner review |
+
+Summary: 50 non-main branches; 13 open-PR heads retained; 29 non-PR heads have zero unique commits and are safe deletion candidates after owner review; 8 non-PR heads contain unique commits and must be reviewed before deletion. Counts are commit-graph facts, not proof that unique work is still desirable.
+
+## Unique-commit branches without open PR
+
+### `claude/admiring-albattani-8gpkf3` (1 unique commits)
+
+- 03a8f159 2026-09-12 chore(plan): Phase 0 baseline, full trace and cleanup map
+
+### `docs/ocade-authority-repair-20260909` (10 unique commits)
+
+- 013661f3 2026-09-09 docs: align PRD with canonical technical authorities
+- 857e8542 2026-09-09 docs: distinguish design authority from UX brief
+- 7e6da959 2026-09-09 docs: make cleanup checkpoint historical
+- a707032a 2026-09-09 docs: align plan with expanded authority set
+- 1a9002d7 2026-09-09 docs: remove stale ADR guidance from agent authority
+- 4809d68e 2026-09-09 docs: reconcile governance with current authorities
+- e2a22e6d 2026-09-09 docs: align rules with canonical authority set
+- 036e2efa 2026-09-09 docs: refresh README after markdown consolidation
+- 1144361b 2026-09-09 docs: align documentation index after ADR consolidation
+- 30f60da7 2026-09-09 docs: refresh memory after markdown cleanup
+
+### `docs/ocade-current-state-audit` (2 unique commits)
+
+- 257f0e91 2026-07-22 docs: revise OCADE plan into full current-state & master completion plan
+- a4fd4d50 2026-07-21 docs: add OCADE current-state audit and completion plan
+
+### `docs/replace-plan-current-audit-v2` (1 unique commits)
+
+- b786eaae 2026-09-19 docs: replace plan with current audit and permanent rules
+
+### `feat/ocade-control-work` (17 unique commits)
+
+- bab8ab79 2026-08-10 Demo Control + Work: the same surface, locally, without an account
+- 9ef1e8cb 2026-08-10 Control + Work becomes a place, not a redirect
+- 616db23e 2026-08-10 The desktop app finally has the conversation in it
+- d007a419 2026-08-09 First run stops asking the hardware, and says how much space it is short by
+- 5e99a9b1 2026-08-09 Two fixed models, and a machine that is no longer asked which one
+- f44f2a84 2026-08-09 feat(ocade): connect live-world Ollama agent loop
+- db744ad8 2026-08-09 feat(ocade): add deterministic priority voice controls
+- 66776b83 2026-08-09 refactor(ocade): replace legacy readiness with capability status
+- 38f93cce 2026-08-09 test(ocade): retain progressive Ollama streaming proof
+- 1b1c3257 2026-08-09 chore(ocade): bind readiness evidence to closure revision
+- ... 7 older unique commits omitted from this summary; inspect the ref before deleting.
+
+### `feat/ocade-implementation` (12 unique commits)
+
+- f44f2a84 2026-08-09 feat(ocade): connect live-world Ollama agent loop
+- db744ad8 2026-08-09 feat(ocade): add deterministic priority voice controls
+- 66776b83 2026-08-09 refactor(ocade): replace legacy readiness with capability status
+- 38f93cce 2026-08-09 test(ocade): retain progressive Ollama streaming proof
+- 1b1c3257 2026-08-09 chore(ocade): bind readiness evidence to closure revision
+- d28e13dc 2026-08-09 docs(ocade): publish evidence-bound closure ledger
+- a8778e4b 2026-08-09 feat(ocade): add universal discovery and resilient long tasks
+- 20ca305e 2026-08-09 chore(ocade): bind closure receipt to evidence commit
+- d6a4f867 2026-08-09 chore(ocade): publish closure evidence
+- 8df172a9 2026-08-09 fix(governance): register deprecated placeholder features
+- ... 2 older unique commits omitted from this summary; inspect the ref before deleting.
+
+### `fix/service-role-usage-authority` (1 unique commits)
+
+- 7b0c335d 2026-09-18 fix: restore service-role usage authority and prove permissions
+
+### `import/ocade-primary-logic-rar-20260826` (3 unique commits)
+
+- 8aa94841 2026-08-26 Add Claude Opus 5 OCADE integration plan prompt
+- 12807efb 2026-08-26 Record OCADE RAR scan and integration constraints
+- 61066cff 2026-08-26 Prepare OCADE primary logic RAR intake
+
+## Open-PR handling
+
+PR #7 targets the #8 audit branch rather than main. PRs #6–8 describe older product architectures; none is a current release proof. The ten Dependabot PRs change dependencies or Actions and need branch-head tests after F01/F07 are fixed. GitHub Actions billing availability is not treated as a pass. Keep every PR head until the PR is deliberately resolved; branch deletion is outside this read-only audit.
+
