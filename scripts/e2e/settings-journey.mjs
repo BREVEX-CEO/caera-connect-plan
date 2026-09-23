@@ -129,8 +129,8 @@ try {
   await page.getByRole("button", { name: "Notifications", exact: true }).click();
   await page.waitForSelector("text=Optional notifications", { timeout: 15_000 });
   check(
-    "security, account recovery and billing are shown as always on",
-    (await dialog.getByText("Always on").count()) === 3,
+    "security and account recovery are shown as always on",
+    (await dialog.getByText("Always on").count()) === 2,
   );
 
   await dialog.getByRole("switch", { name: "Quiet hours" }).click();

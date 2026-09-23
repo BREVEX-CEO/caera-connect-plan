@@ -75,9 +75,19 @@ try {
       (await page.getByRole("tab", { name: "phone" }).count()) === 0,
   );
   check(
-    "there is no password field on the way in",
+    "the first screen leads with a code, not a password",
     (await page.locator('input[type="password"]').count()) === 0,
   );
+
+  // The password path, one press away, with one account-neutral refusal.
+  await page.getByRole("button", { name: "Use a password instead" }).click();
+  await page.fill('input[type="email"]', "proof@ocade.test");
+  await page.fill('input[type="password"]', "wrong-password");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.waitForSelector("text=That email and password did not match.", { timeout: 10_000 });
+  check("a wrong password is refused without saying whether the account exists", true);
+  await page.getByRole("button", { name: "Use an email code instead" }).click();
+  await page.fill('input[type="email"]', "");
   check(
     "the terms and the privacy policy are linked from the way in",
     (await page.locator('a[href="/terms"]').count()) >= 1 &&

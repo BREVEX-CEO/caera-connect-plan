@@ -109,7 +109,10 @@ try {
 
   /* --- nothing is pretended ----------------------------------------------- */
 
-  check("paying is described as needing a connection", /never takes a payment/i.test(body));
+  check(
+    "paid plans are described as not open, with nothing charged",
+    /paid plans are not open yet, and nothing is charged/i.test(body),
+  );
   check(
     "a signed-out visitor is asked to make an account rather than to pay",
     (await page.getByRole("link", { name: "Create an account" }).count()) >= 1,

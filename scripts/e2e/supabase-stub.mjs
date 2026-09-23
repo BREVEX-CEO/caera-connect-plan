@@ -673,6 +673,13 @@ const server = createServer((request, response) => {
         const email = emails.get(sessions.get(parsed.refresh_token)) ?? "proof@ocade.test";
         return send(200, openSession(email));
       }
+      // One password the stub refuses, so a wrong one can be proved refused.
+      if (grant === "password" && parsed.password === "wrong-password") {
+        return send(400, {
+          error: "invalid_grant",
+          error_description: "Invalid login credentials",
+        });
+      }
       return send(200, openSession(parsed.email ?? "proof@ocade.test"));
     }
 

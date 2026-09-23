@@ -124,6 +124,44 @@ try {
     (await page.locator("aside", { hasText: "Renamed by the proof" }).count()) === 1,
   );
 
+  // Highlight part of an answer, then Ask OCADE quotes it into this composer.
+  await page.evaluate(() => {
+    const target = [...document.querySelectorAll("[data-transcript] p")].find((node) =>
+      node.textContent?.includes("stubbed OCADE answer"),
+    );
+    const range = document.createRange();
+    range.selectNodeContents(target);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.dispatchEvent(new PointerEvent("pointerup"));
+  });
+  await page.getByRole("button", { name: "Ask OCADE", exact: true }).click();
+  check(
+    "Ask OCADE quotes the highlighted words into this chat's composer",
+    (await page.inputValue("#ocade-composer")).startsWith("> "),
+  );
+  await page.fill("#ocade-composer", "");
+
+  // Archive hides it from recent chats but keeps it reachable, and it comes back.
+  await page.hover("aside ul li");
+  await page.click('aside ul li button[aria-label^="More options"]');
+  await page.click('role=menuitem[name="Archive"]');
+  await page.waitForTimeout(400);
+  check(
+    "an archived chat is listed under Archived, not lost",
+    (await page.locator("aside p", { hasText: "Archived" }).count()) === 1 &&
+      (await page.locator("aside", { hasText: "Renamed by the proof" }).count()) === 1,
+  );
+  await page.hover("aside ul li");
+  await page.click('aside ul li button[aria-label^="More options"]');
+  await page.click('role=menuitem[name="Unarchive"]');
+  await page.waitForTimeout(400);
+  check(
+    "and Unarchive brings it back",
+    (await page.locator("aside p", { hasText: "Archived" }).count()) === 0,
+  );
+
   // Copy is offered on an answer, and on nothing else.
   check("an answer offers Copy", (await page.getByRole("button", { name: "Copy" }).count()) >= 1);
 
@@ -281,6 +319,12 @@ try {
   await page.click('role=menuitem[name="Delete for good"]');
   await page.waitForTimeout(500);
   check("and confirming deletes it", (await page.locator("aside ul li").count()) === 0);
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  check(
+    "and it is gone for good, not in a trash that a reload restores",
+    (await page.locator("aside ul li").count()) === 0,
+  );
 
   /* --- an attached file reaches the answer, and hostile ones do not -------- */
 

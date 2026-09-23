@@ -304,9 +304,16 @@ try {
     (await page.getByRole("button", { name: "Auto", exact: true }).getAttribute("aria-pressed")) ===
       "true",
   );
+  // F16: this browser has no verified model and no signed allowance, so the
+  // banner must not promise an answer the send would refuse.
+  await page
+    .waitForSelector("text=cannot answer without a network yet", { timeout: 10_000 })
+    .catch(() => undefined);
+  const banner = await page.locator("body").innerText();
   check(
-    "and Auto says it is answering on this device",
-    /no connection\. ocade answers on this device/i.test(await page.locator("body").innerText()),
+    "and Auto says truthfully that this device cannot answer without a network yet",
+    /cannot answer without a network yet/i.test(banner) &&
+      !/ocade answers on this device/i.test(banner),
   );
 
   /*
