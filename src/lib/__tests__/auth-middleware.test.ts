@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 
 /**
  * Server-function auth middleware.
@@ -36,7 +36,7 @@ function requestWith(headers: Record<string, string> | null) {
   return { headers: new Headers(headers) };
 }
 
-let next: ReturnType<typeof vi.fn>;
+let next: Mock<(arg?: unknown) => unknown>;
 
 beforeEach(() => {
   vi.clearAllMocks();

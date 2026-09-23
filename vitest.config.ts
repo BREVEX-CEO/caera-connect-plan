@@ -72,12 +72,12 @@ export default defineConfig({
           environment: "node",
           include: DATABASE_BACKED,
           /*
-           * One WASM Postgres at a time. `singleFork` keeps them in one worker
+           * One WASM Postgres at a time, in one worker,
            * so a finished twin's memory is reclaimed before the next starts.
            */
           fileParallelism: false,
           pool: "forks",
-          poolOptions: { forks: { singleFork: true } },
+          maxWorkers: 1,
           testTimeout: 120_000,
           hookTimeout: 120_000,
           clearMocks: true,
