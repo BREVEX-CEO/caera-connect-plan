@@ -12,11 +12,9 @@
  * the page that sells the allowance and the gate that enforces it read the same
  * number.
  *
- * CHECKOUT IS NOT PRETENDED. OCADE has no payment provider configured — that
- * needs credentials only the owner can obtain — so the paid cards say so in one
- * line. There is deliberately no button that refuses: a control whose only
- * answer is no is worse than the sentence, because somebody has to press it to
- * find out. When the provider exists, the button replaces the sentence.
+ * CHECKOUT IS NOT PRETENDED. No payment provider is configured — that needs an
+ * owner-chosen provider and credentials — so the paid cards say so in one line
+ * and nothing is charged. When a provider exists, a button replaces the line.
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
@@ -140,15 +138,15 @@ function PricingPage() {
             tier={tier}
             cadence={cadence}
             currency={currency}
-            currentTier={usage.data?.tier}
+            currentTier={user ? usage.data?.tier : undefined}
             signedIn={Boolean(user)}
           />
         ))}
       </div>
 
       <p className="mt-6 text-[13px] leading-5 text-muted-foreground">
-        Paying needs a connection. OCADE never takes a payment, or queues one, while you are
-        offline. Everything else — reading, your Library, your settings — keeps working.
+        Paid plans are not open yet, and nothing is charged. Prices are shown so you know what they
+        will cost when they open.
       </p>
     </PublicPage>
   );
@@ -212,7 +210,7 @@ function PlanCard({
       </ul>
 
       <div className="mt-5">
-        <Action tier={tier} current={current} signedIn={signedIn} />
+        <Action tier={tier} current={current} signedIn={signedIn} currentTier={currentTier} />
       </div>
     </section>
   );
@@ -223,10 +221,12 @@ function Action({
   tier,
   current,
   signedIn,
+  currentTier,
 }: {
   tier: PlanTier;
   current: boolean;
   signedIn: boolean;
+  currentTier: PlanTier | undefined;
 }) {
   if (current) {
     return <p className="text-[13px] font-medium text-foreground">Your plan</p>;
@@ -247,7 +247,9 @@ function Action({
   }
   return (
     <p className="text-[13px] text-muted-foreground">
-      Paid plans are not open yet. Your account stays on Free until they are.
+      {currentTier === "free"
+        ? "Paid plans are not open yet. Your account stays on Free until they are."
+        : "Paid plans are not open yet."}
     </p>
   );
 }

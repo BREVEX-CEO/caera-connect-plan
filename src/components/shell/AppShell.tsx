@@ -13,6 +13,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import {
+  ArrowUpCircle,
   Images,
   LibraryBig,
   Menu,
@@ -214,6 +215,7 @@ function AccountRow() {
   const menuId = useId();
   const container = useRef<HTMLDivElement>(null);
   const settings = useSettingsPanel();
+  const usage = useCommercialUsage(Boolean(user) && !loading);
 
   useEffect(() => {
     if (!open) return;
@@ -280,6 +282,17 @@ function AccountRow() {
             <Images className="h-4 w-4 text-muted-foreground" aria-hidden />
             Library
           </Link>
+          {usage.data && usage.data.tier !== "max" ? (
+            <Link
+              to="/pricing"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent"
+            >
+              <ArrowUpCircle className="h-4 w-4 text-muted-foreground" aria-hidden />
+              Upgrade
+            </Link>
+          ) : null}
           <button
             type="button"
             role="menuitem"

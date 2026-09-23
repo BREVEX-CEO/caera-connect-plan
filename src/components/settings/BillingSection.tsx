@@ -69,7 +69,11 @@ export function BillingSection() {
 
       <Row
         label="Upgrading"
-        description="Paid plans are not open yet. Your account stays on Free until they are, and nothing will be charged in the meantime."
+        description={
+          current === "free"
+            ? "Paid plans are not open yet. Your account stays on Free until they are, and nothing will be charged in the meantime."
+            : "Your plan access was given by OCADE, not bought. Paid plans are not open yet, and nothing is charged."
+        }
       >
         <Link to="/pricing" className="text-sm text-foreground underline underline-offset-2">
           See plans
