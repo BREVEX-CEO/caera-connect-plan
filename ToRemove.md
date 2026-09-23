@@ -8,6 +8,10 @@ The current product authority is the owner-approved OCADE documentation under `d
 
 This file is not permission to delete live customer data, applied production migrations, production credentials, the admin account, or unreviewed branch history. Every destructive cleanup must first prove that the target is no longer required and that the replacement path is working.
 
+## Status (2026-09-23)
+
+Done on `claude/cool-allen-rlxvkm`: Cowork route, nav, surface and copy removed; Trash/restore replaced by confirmed permanent Delete; provider payment tables, webhook function, side-thread columns and uncalled helper functions retired by forward migration `20260923100000` (apply after that Worker deploys); dead limits module removed. Historical migrations stay as provenance. Branches were reviewed and hold no unmerged current-product value; deleting them needs the owner's go-ahead.
+
 ## Current audit baseline
 
 The repository was inspected from `main` at SHA `4a94c049900e46bb997d81bcbe03f61de2a7faac`.

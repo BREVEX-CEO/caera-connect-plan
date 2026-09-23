@@ -2,49 +2,30 @@
 
 ## Current status
 
-- The company identity is **CARCC**.
-- The product identity is **OCADE**.
-- The approved tagline is **Command the Next Era.**
-- The `main` SHA entering the previous documentation change was `6c40e68f9d242e6c27f55af18b30d875518f98ed`.
-- The previous 15-finding audit was implemented on that tree; the reported verification was 15/15 gates, 927 tests and 312 browser checks.
-- Supabase migrations from that mission were applied and the Online Intelligence function was reported at version 8.
-- Cloudflare build settings were corrected to use `npx wrangler deploy --config wrangler.json`; production redeploy/live smoke still needs authoritative confirmation after that setting change.
-- `PLAN.md` is intentionally not modified by this product-documentation update.
+- The company identity is **CARCC**. The product identity is **OCADE**. The approved tagline is **Command the Next Era.**
+- Branch `claude/cool-allen-rlxvkm` (2026-09-23) implements the PLAN.md F01–F35 review on top of `main` `e0880f3`.
+- Verified on that exact tree: `verify:full` 15/15 gates, 84 test files / 867 tests, 11 browser journeys / 313 checks against the local build and Supabase stub.
+- Supabase migration `close_client_write_paths` (repo `20260923090000`) is applied live and verified.
+- Supabase migration `20260923100000_retire_trash_payments_and_side_threads` is **not applied yet**. Apply it only after the Worker built from this branch is live, because the old Worker still reads `deleted_at` and the retired message columns.
+- The live Worker was last seen at deployment `987d6324-3878-4811-a179-dfb143337941`; `/api/health` gains a `commit` field once this branch deploys.
 
-## Recently completed
+## Completed in this mission
 
-- Audit/root-cause repair for HTTPS, device authority/cap races, admin MFA/search, Chat request races, regenerate atomicity, Offline uninstall truth, mobile polish and related hidden defects.
-- Additional adversarial fixes included Library upload bounds/type authority, account-deletion compliance record, server-time regenerate boundary and local HTTPS-loop handling.
+- Build/test gates green; entitlement comes from audited grants only; dead limits, Cowork, Trash/restore, side-thread columns and closed payment schema retired.
+- Chat: delivery is the first visible token (no free answers on chat switch); a partly read answer is kept with its own chat.
+- Offline: one serialized generation slot that disposes the runtime after any unfinished generation (no cross-chat text); context sized to device memory with a packed transcript; OPFS `versions/pointers.json` is the only install authority (localStorage keys migrated once and cleared); cleanup no longer deletes that manifest.
+- Security: no browser role can write `user_roles`, TRUNCATE, or write grants/usage/tombstones; permits accept Chat only.
+- Deletion: account deletion checks every step before removing the sign-in identity; Library tombstones are acknowledged only after Storage confirms.
+- UX: `Auto | Online | Offline`, password sign-in behind "Use a password instead", highlight → Ask OCADE, Archive/Unarchive, truthful no-network banner, device rows distinguished by when added, Upgrade in the account menu, corrected social image and small brand mark.
 
-## Currently in progress
+## Open items needing the owner
 
-The product authorities are being reset to the owner's final current-scope decisions:
-
-- Use CARCC as the company and OCADE as the product.
-- Keep the current mission website-only and Chat-first.
-- Use Auto, Online and Offline as the customer-facing intelligence modes.
-- Keep provider and model identity hidden from customer and client surfaces.
-- Keep Offline model storage and download state in OPFS only.
-- Keep live Paddle and paid checkout out of the current product.
-- Keep Projects, Tasks, Automations, Monitors, Organizations, Code and native apps out of the current product.
-- Maintain full mobile parity for the current web product.
-- Keep the UI clean and conversational, similar in simplicity to leading AI chat products.
-
-## Known implementation gaps created by the new decisions
-
-Documentation is authoritative about the desired product, but current source may still need follow-up implementation to:
-
-- Remove any remaining CADANE strings and obsolete package identity.
-- Remove current Paddle-specific runtime and webhook code safely.
-- Add password authentication alongside Google and email OTP.
-- Migrate any model metadata or checkpoints that still live outside OPFS into the single OPFS model authority.
-- Implement an encrypted, restart-safe journal for pending offline conversation synchronization.
-- Simplify permanent conversation deletion if current Trash or restore code still exists.
-- Replace old side-conversation machinery with highlight → Ask OCADE where applicable.
-- Align notification behavior with the new preference decision.
-- implement/enable Status and editable Help Center only when their real backend flow is ready.
-
-Do not call these complete merely because the docs say they are required.
+- Paid checkout: PLAN.md asks for a real checkout, but no payment provider or credentials exist. Choose a provider and supply credentials; until then Upgrade truthfully says paid plans are not open.
+- Cloudflare zone "Always Use HTTPS" (F24) and Supabase leaked-password protection (F14) are dashboard settings.
+- Two live accounts each hold two active device places for one browser (F04). Settings now shows when each was added so the owner can remove the older one.
+- Offline answer quality (F18/F21/F22) needs a real-device evaluation with the installed model.
+- A restart-safe encrypted journal for unsynced Offline turns is still not implemented (turns are held in the open tab).
+- Branch deletion: all non-main branches were reviewed; none carries unmerged current-product value.
 
 ## Important context
 
@@ -54,7 +35,7 @@ GitHub Actions is optional because paid Actions cannot be relied on. Red/unavail
 
 ## Product facts
 
-- Current surfaces: Chat, Library, Settings, Pricing, auth, public/legal pages, hidden Admin. Cowork was removed.
+- Current surfaces: Chat, Library, Settings, Pricing, auth, public/legal pages, hidden Admin.
 - Free 28/6h28m; Pro 140/6h28m + 700/week; Max 1,400/6h28m + 7,000/week.
 - Offline device cap: two per kind under current policy.
 - Current paid prices remain the approved 8/28 anchors, but paid checkout is closed.
