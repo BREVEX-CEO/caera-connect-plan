@@ -170,8 +170,6 @@ export interface InstallTarget {
   /** Published digest. Without one, nothing can be reported verified. */
   sha256?: string;
   sources: DownloadSource[];
-  /** The pre-versioning key this artifact used to live under, if any. */
-  legacyKey?: string | null;
 }
 
 export interface AuthorityDeps {
@@ -591,6 +589,7 @@ export class ModelInstallationAuthority {
     }
 
     /* Already installed and verified? Then this is not a download at all. */
+    await this.deps.vault.load({ fresh: true });
     const existing = this.deps.vault.readMeta(target.version);
     const onDisk = await this.deps.vault.bytesOf(target.version);
     if (existing?.verified && onDisk > 0) {
@@ -638,25 +637,6 @@ export class ModelInstallationAuthority {
       }
       // A digest that could not be computed leaves the bytes alone and falls
       // through to a normal transfer, which will resume over them.
-    }
-
-    /*
-     * ADOPT A PRE-VERSIONING INSTALL RATHER THAN RE-DOWNLOADING IT.
-     *
-     * Somebody who already has the engine must not pay for it again because
-     * OCADE reorganised its own storage. Only a VERIFIED legacy file is
-     * adopted; a partial one falls through to the normal path.
-     */
-    if (target.legacyKey) {
-      const adopted = await this.deps.vault.adoptLegacy(target.legacyKey, target.version, {
-        sha256: target.sha256,
-        expectedBytes: target.totalBytes,
-      });
-      if (adopted) {
-        await this.deps.vault.cleanupAfterActivation(target.version);
-        this.emit({ kind: "adopted_existing", version: target.version });
-        return this.activate(path, target.version, signal);
-      }
     }
 
     /* 3. Room. Checked BEFORE starting, not after failing. */

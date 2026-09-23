@@ -85,6 +85,7 @@ async function startWasm(
      * has not already proven.
      */
     weightsProvider: async () => {
+      await modelVault.load();
       const active = modelVault.activeVersion();
       if (active !== version) return null;
       return modelVault.readArtifact(version);

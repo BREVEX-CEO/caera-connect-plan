@@ -167,6 +167,19 @@ export function ChatWorkspace() {
     if (!online && choice === "online") setChoice("auto");
   }, [online, choice]);
 
+  /** Without a network, whether this device can truly answer (F16). */
+  const [offlineCapable, setOfflineCapable] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (online) return setOfflineCapable(null);
+    let live = true;
+    void import("@/lib/commercial/offline-allowance")
+      .then(({ canAnswerWithoutNetwork }) => canAnswerWithoutNetwork())
+      .then((capable) => live && setOfflineCapable(capable));
+    return () => {
+      live = false;
+    };
+  }, [online]);
+
   useEffect(() => {
     if (!startNew) return;
     newConversation();
@@ -454,11 +467,7 @@ export function ChatWorkspace() {
                           key={entry.id}
                           type="button"
                           disabled={unavailable}
-                          title={
-                            unavailable
-                              ? "No connection. OCADE answers on this device instead."
-                              : undefined
-                          }
+                          title={unavailable ? "Online needs a connection." : undefined}
                           onClick={() => setChoice(entry.id)}
                           aria-pressed={choice === entry.id}
                           className={cn(
@@ -589,7 +598,11 @@ export function ChatWorkspace() {
               */}
               {!online ? (
                 <p className="mt-2 px-1 text-[12px] text-muted-foreground" role="status">
-                  No connection. OCADE answers on this device.
+                  {offlineCapable === null
+                    ? "No connection. Checking whether this device can answer…"
+                    : offlineCapable
+                      ? "No connection. OCADE answers on this device."
+                      : "No connection. This device cannot answer without a network yet. Reconnect to continue."}
                 </p>
               ) : null}
             </div>

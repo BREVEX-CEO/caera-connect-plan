@@ -40,9 +40,20 @@ import type { DigestCheckpoint } from "./streaming-digest";
 /** Root directory inside OPFS. Sibling of the legacy flat layout. */
 const VERSIONS_DIRECTORY = "versions";
 
-const ACTIVE_POINTER_KEY = "ocade.model.active.v1";
-const PREVIOUS_POINTER_KEY = "ocade.model.previous.v1";
-const VERSION_META_PREFIX = "ocade.model.version.v1.";
+/**
+ * THE ONE RECORD OF WHAT IS INSTALLED, IN OPFS BESIDE THE BYTES.
+ *
+ * Pointers and verification metadata used to live in localStorage with this
+ * file as a backup copy, so clearing site storage could strand a verified
+ * model and the two could disagree. Now this manifest is the authority, held
+ * in memory after `load()` and written through on every change.
+ */
+const MANIFEST = `${VERSIONS_DIRECTORY}/pointers.json`;
+
+/** Keys an older release kept in localStorage; moved into the manifest once. */
+const LEGACY_ACTIVE_KEY = "ocade.model.active.v1";
+const LEGACY_PREVIOUS_KEY = "ocade.model.previous.v1";
+const LEGACY_PREFIXES = ["ocade.model.version.v1.", "ocade.model.meta."];
 
 /**
  * What is known about one stored version.
@@ -111,13 +122,22 @@ export interface ModelFileWriter {
   close(): Promise<void>;
 }
 
+type LegacyStorage = Pick<Storage, "getItem" | "removeItem" | "key" | "length">;
+
 /** Injected so every branch is reachable from a test with no OPFS anywhere. */
 export interface VaultDeps {
   store?: ModelStore;
-  storage?: Pick<Storage, "getItem" | "setItem" | "removeItem">;
+  /** Where an older release left pointers; read once, then cleared. */
+  legacy?: LegacyStorage | null;
 }
 
-function safeLocal(): Pick<Storage, "getItem" | "setItem" | "removeItem"> | null {
+interface Manifest {
+  active: string | null;
+  previous: string | null;
+  meta: Record<string, VersionMeta>;
+}
+
+function safeLocal(): LegacyStorage | null {
   if (typeof window === "undefined") return null;
   try {
     return window.localStorage;
@@ -151,41 +171,137 @@ function sanitiseSegment(value: string): string {
   return cleaned.length > 0 ? cleaned.slice(0, 128) : "unnamed";
 }
 
-/**
- * The sidecar's shape, as READ. Every field is optional and unvalidated on
- * purpose: this file survives a browser wiping local storage, so it is the one
- * input to this module that has genuinely been out of its hands, and it is
- * checked field by field rather than trusted to a cast.
- */
-interface SidecarPayload {
-  active?: unknown;
-  previous?: unknown;
-  meta?: Record<string, unknown>;
+/** A stored meta entry, checked field by field rather than trusted to a cast. */
+function validMeta(value: unknown): VersionMeta | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const meta = value as VersionMeta;
+  return typeof meta.verified === "boolean" ? meta : null;
 }
 
 export class ModelVault {
   private readonly store: ModelStore;
-  private readonly storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null;
+  private readonly legacy: LegacyStorage | null;
+  private state: Manifest = { active: null, previous: null, meta: {} };
+  private loading: Promise<void> | null = null;
+  private saving: Promise<unknown> = Promise.resolve();
 
   constructor(deps: VaultDeps = {}) {
     this.store = deps.store ?? modelStore;
-    this.storage = deps.storage ?? safeLocal();
+    this.legacy = deps.legacy === undefined ? safeLocal() : deps.legacy;
   }
 
   static isSupported(): boolean {
     return ModelStore.isSupported();
   }
 
+  /**
+   * Read the manifest before anything is decided. Memoised; `fresh` re-reads
+   * it, after this tab's own pending writes land, so another tab's install is
+   * seen.
+   */
+  load(options?: { fresh?: boolean }): Promise<void> {
+    if (options?.fresh || !this.loading) {
+      this.loading = this.saving.then(() => this.readManifest());
+    }
+    return this.loading;
+  }
+
+  private async readManifest(): Promise<void> {
+    const next: Manifest = { active: null, previous: null, meta: {} };
+    const blob = await this.store.readBlob(MANIFEST);
+    try {
+      const parsed = blob ? (JSON.parse(await blob.text()) as Record<string, unknown>) : null;
+      if (parsed && typeof parsed === "object") {
+        for (const [version, meta] of Object.entries((parsed.meta as object) ?? {})) {
+          const valid = validMeta(meta);
+          if (valid) next.meta[version] = valid;
+        }
+        if (typeof parsed.active === "string") next.active = parsed.active;
+        if (typeof parsed.previous === "string") next.previous = parsed.previous;
+      }
+    } catch {
+      // A corrupt manifest is no evidence; the files are re-verified instead.
+    }
+    this.state = next;
+    await this.adoptLegacyStorage();
+    // A pointer is only as good as the verification record behind it.
+    if (this.state.active && !this.state.meta[this.state.active]?.verified) {
+      this.state.active = null;
+    }
+  }
+
+  /** Move an older release's localStorage pointers into the manifest, once. */
+  private async adoptLegacyStorage(): Promise<void> {
+    const legacy = this.legacy;
+    if (!legacy) return;
+    const keys: string[] = [];
+    try {
+      for (let index = 0; index < legacy.length; index += 1) {
+        const key = legacy.key(index);
+        if (
+          key &&
+          (key === LEGACY_ACTIVE_KEY ||
+            key === LEGACY_PREVIOUS_KEY ||
+            LEGACY_PREFIXES.some((p) => key.startsWith(p)))
+        ) {
+          keys.push(key);
+        }
+      }
+    } catch {
+      return;
+    }
+    if (keys.length === 0) return;
+
+    const prefix = LEGACY_PREFIXES[0]!;
+    for (const key of keys.filter((k) => k.startsWith(prefix))) {
+      const version = key.slice(prefix.length);
+      if (this.state.meta[version]) continue;
+      try {
+        const meta = validMeta(JSON.parse(legacy.getItem(key) ?? "null"));
+        if (meta) this.state.meta[version] = meta;
+      } catch {
+        /* unreadable legacy metadata is simply not carried over */
+      }
+    }
+    this.state.active ??= legacy.getItem(LEGACY_ACTIVE_KEY) || null;
+    this.state.previous ??= legacy.getItem(LEGACY_PREVIOUS_KEY) || null;
+
+    // The old copy goes only once the manifest holds it.
+    if (await this.save()) {
+      for (const key of keys) {
+        try {
+          legacy.removeItem(key);
+        } catch {
+          /* left behind; harmless now that the manifest is the authority */
+        }
+      }
+    }
+  }
+
+  /** Write the manifest, one write at a time, replacing the file whole. */
+  private save(): Promise<boolean> {
+    const run = this.saving.then(() =>
+      this.store.writeFile(
+        MANIFEST,
+        new TextEncoder().encode(
+          JSON.stringify({ ...this.state, writtenAt: new Date().toISOString() }),
+        ),
+      ),
+    );
+    this.saving = run.catch(() => false);
+    return run.catch(() => false);
+  }
+
   /* --------------------------------------------------------- the pointer -- */
 
   /** The version currently authorised for use, or null when none is. */
   activeVersion(): string | null {
-    return this.readPointer(ACTIVE_POINTER_KEY);
+    return this.state.active;
   }
 
   /** The version that was active before the current one. The rollback target. */
   previousVersion(): string | null {
-    return this.readPointer(PREVIOUS_POINTER_KEY);
+    return this.state.previous;
   }
 
   /**
@@ -198,18 +314,17 @@ export class ModelVault {
    * removed.
    */
   async activate(version: string): Promise<boolean> {
+    await this.load();
     const meta = this.readMeta(version);
     if (!meta?.verified) return false;
 
-    const current = this.activeVersion();
+    const current = this.state.active;
     if (current === version) return true;
     // The outgoing version is remembered BEFORE the pointer moves, so a
     // rollback target exists even if this process stops immediately after.
-    if (current) this.writePointer(PREVIOUS_POINTER_KEY, current);
-    this.writePointer(ACTIVE_POINTER_KEY, version);
-    // The durable copy follows the pointer, never leads it: the sidecar records
-    // what happened, and cannot cause it.
-    await this.persistPointers();
+    if (current) this.state.previous = current;
+    this.state.active = version;
+    await this.save();
     return true;
   }
 
@@ -221,161 +336,31 @@ export class ModelVault {
    * deleting everything that is not current.
    */
   async rollback(): Promise<string | null> {
-    const previous = this.previousVersion();
+    await this.load();
+    const previous = this.state.previous;
     if (!previous) return null;
     const meta = this.readMeta(previous);
     if (!meta?.verified) return null;
     if ((await this.bytesOf(previous, meta)) <= 0) return null;
 
-    const current = this.activeVersion();
-    this.writePointer(ACTIVE_POINTER_KEY, previous);
-    if (current) this.writePointer(PREVIOUS_POINTER_KEY, current);
-    else this.clearPointer(PREVIOUS_POINTER_KEY);
-    await this.persistPointers();
+    const current = this.state.active;
+    this.state.active = previous;
+    this.state.previous = current;
+    await this.save();
     return previous;
-  }
-
-  /* ------------------------------------------------------- durable copy -- */
-
-  /**
-   * THE POINTERS AND METADATA, WRITTEN WHERE THE MODEL LIVES.
-   *
-   * PLAN.md §A: "Do not keep the ONLY authoritative active version in
-   * `localStorage`." The word that matters is "only". The pointer stays in
-   * `localStorage` because `activeVersion()` is synchronous and dozens of call
-   * sites depend on that — an async pointer would ripple through the whole
-   * engine surface for no safety gain. What was missing is a durable copy
-   * beside the bytes it describes.
-   *
-   * It matters because the two can be destroyed independently. A cleared
-   * `localStorage` — private mode, a browser tidying storage, or the
-   * `localStorage.clear()` this repository used to run on "sign out
-   * everywhere" — left a verified, complete, unusable model in OPFS: the
-   * weights were there and the evidence that they had been checked was not, so
-   * preparation started again from nothing and downloaded a gigabyte the
-   * machine already had.
-   *
-   * The sidecar lives in the model's own OPFS namespace, so it is removed by
-   * exactly the thing that removes the model and by nothing else.
-   */
-  private sidecarKey(): string {
-    return `${VERSIONS_DIRECTORY}/pointers.json`;
-  }
-
-  /**
-   * Write the sidecar. Failures are silent by design: a browser that will not
-   * give OCADE a file handle should not break an activation that has already
-   * been proven and recorded.
-   */
-  async persistPointers(): Promise<boolean> {
-    const active = this.activeVersion();
-    const previous = this.previousVersion();
-    const versions = new Set([active, previous].filter((v): v is string => Boolean(v)));
-    const payload = {
-      active,
-      previous,
-      meta: Object.fromEntries(
-        [...versions].map((version) => [version, this.readMeta(version)] as const),
-      ),
-      writtenAt: new Date().toISOString(),
-    };
-    const writer = await this.store.openWriter(this.sidecarKey());
-    if (!writer) return false;
-    try {
-      const bytes = new TextEncoder().encode(JSON.stringify(payload));
-      await writer.write(bytes, 0);
-      await writer.close();
-      return true;
-    } catch {
-      await writer.close().catch(() => undefined);
-      return false;
-    }
-  }
-
-  /**
-   * Put the pointers back when `localStorage` has lost them.
-   *
-   * ONLY FILLS GAPS. A pointer that is present locally is authoritative for
-   * this browser and is never overwritten from the sidecar: a stale sidecar
-   * must not be able to roll a working install back to an older version.
-   *
-   * Returns what it restored, so a caller can say so rather than guess.
-   */
-  async restorePointers(): Promise<{ active: string | null; previous: string | null }> {
-    const restored: { active: string | null; previous: string | null } = {
-      active: null,
-      previous: null,
-    };
-    if (!this.storage) return restored;
-
-    const blob = await this.store.readBlob(this.sidecarKey());
-    if (!blob) return restored;
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(await blob.text());
-    } catch {
-      // A corrupt sidecar is no evidence at all, and must not be treated as if
-      // it were an empty one that could clear something.
-      return restored;
-    }
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return restored;
-    const payload = parsed as SidecarPayload;
-
-    /*
-     * Metadata first, then the pointer. `activate()` refuses a version whose
-     * metadata does not say verified, and a pointer restored ahead of its
-     * metadata would name a version this browser cannot yet justify using.
-     */
-    for (const [version, meta] of Object.entries(payload.meta ?? {})) {
-      if (!meta || typeof meta !== "object") continue;
-      if (this.readMeta(version)) continue;
-      const candidate = meta as VersionMeta;
-      if (typeof candidate.verified !== "boolean") continue;
-      this.writeMeta(version, candidate);
-    }
-
-    if (typeof payload.active === "string" && payload.active && !this.activeVersion()) {
-      // Restored only when the metadata now justifies it, so a sidecar cannot
-      // authorise a version this browser has no verification record for.
-      if (this.readMeta(payload.active)?.verified === true) {
-        this.writePointer(ACTIVE_POINTER_KEY, payload.active);
-        restored.active = payload.active;
-      }
-    }
-    if (typeof payload.previous === "string" && payload.previous && !this.previousVersion()) {
-      this.writePointer(PREVIOUS_POINTER_KEY, payload.previous);
-      restored.previous = payload.previous;
-    }
-    return restored;
   }
 
   /* ------------------------------------------------------------ metadata -- */
 
   readMeta(version: string): VersionMeta | null {
-    if (!this.storage) return null;
-    try {
-      const raw = this.storage.getItem(VERSION_META_PREFIX + version);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as VersionMeta;
-      return typeof parsed === "object" && parsed !== null ? parsed : null;
-    } catch {
-      return null;
-    }
+    return this.state.meta[version] ?? null;
   }
 
-  writeMeta(version: string, meta: VersionMeta | null): void {
-    if (!this.storage) return;
-    try {
-      if (meta === null) this.storage.removeItem(VERSION_META_PREFIX + version);
-      else
-        this.storage.setItem(
-          VERSION_META_PREFIX + version,
-          JSON.stringify({ ...meta, updatedAt: Date.now() }),
-        );
-    } catch {
-      /* No durable metadata means the next attempt re-verifies. Slower, not wrong. */
-    }
+  /** Record metadata; durable once the returned write lands. */
+  writeMeta(version: string, meta: VersionMeta | null): Promise<boolean> {
+    if (meta === null) delete this.state.meta[version];
+    else this.state.meta[version] = { ...meta, updatedAt: Date.now() };
+    return this.save();
   }
 
   /** Merge a patch into a version's metadata without restating the rest. */
@@ -391,12 +376,14 @@ export class ModelVault {
   /* --------------------------------------------------------------- files -- */
 
   async bytesOf(version: string, meta?: VersionMeta | null): Promise<number> {
+    await this.load();
     const name = artifactName(meta ?? this.readMeta(version), version);
     return this.store.sizeOf(versionPath(version, name));
   }
 
   /** The stored artifact for a version, as a Blob the runtime can load. */
   async readArtifact(version: string): Promise<Blob | null> {
+    await this.load();
     const meta = this.readMeta(version);
     return this.store.readBlob(versionPath(version, artifactName(meta, version)));
   }
@@ -410,19 +397,8 @@ export class ModelVault {
    * verified in ModelVault while Settings labelled its file "not verified".
    */
   async installationView(): Promise<InstallationView> {
-    /*
-     * THE RECOVERY POINT, and the reason it is here rather than in a startup
-     * hook: this is the first thing anything asks about the install, on every
-     * surface that cares — the storage panel, the setup control, the runtime.
-     * A recovery that runs somewhere else runs only when that somewhere else
-     * does.
-     *
-     * It costs one OPFS read when the pointer is missing, and nothing at all
-     * when it is present: `restorePointers` only fills gaps, so on a browser
-     * that still has its pointer this is a read of a small file and no writes.
-     */
-    if (!this.activeVersion()) await this.restorePointers();
-
+    // Fresh, so an install finished in another tab is seen here.
+    await this.load({ fresh: true });
     const active = this.activeVersion();
     if (!active) return { ready: false, stored: false };
     const bytes = await this.bytesOf(active);
@@ -451,9 +427,10 @@ export class ModelVault {
       // that exists.
       return false;
     }
-    this.writeMeta(version, null);
-    if (this.activeVersion() === version) this.clearPointer(ACTIVE_POINTER_KEY);
-    if (this.previousVersion() === version) this.clearPointer(PREVIOUS_POINTER_KEY);
+    delete this.state.meta[version];
+    if (this.state.active === version) this.state.active = null;
+    if (this.state.previous === version) this.state.previous = null;
+    await this.save();
     return removed;
   }
 
@@ -466,6 +443,7 @@ export class ModelVault {
    * gigabyte the product cannot see is a gigabyte it cannot be honest about.
    */
   async listVersions(): Promise<StoredVersion[]> {
+    await this.load();
     const active = this.activeVersion();
     const files = await this.store.list();
     const byVersion = new Map<string, number>();
@@ -515,6 +493,7 @@ export class ModelVault {
    * removes everything else only after an active version is verified.
    */
   async cleanupAfterActivation(activeVersion: string): Promise<string[]> {
+    await this.load();
     const activeMeta = this.readMeta(activeVersion);
     if (!activeMeta?.verified || (await this.bytesOf(activeVersion, activeMeta)) <= 0) return [];
 
@@ -525,11 +504,12 @@ export class ModelVault {
       protectedVersions.add(previous);
     }
 
-    const protectedPaths = new Set(
-      [...protectedVersions].map((version) =>
+    const protectedPaths = new Set([
+      MANIFEST,
+      ...[...protectedVersions].map((version) =>
         versionPath(version, artifactName(this.readMeta(version), version)),
       ),
-    );
+    ]);
     const removed: string[] = [];
     const touchedVersions = new Set<string>();
 
@@ -545,9 +525,10 @@ export class ModelVault {
     }
 
     for (const version of touchedVersions) {
-      if (!protectedVersions.has(version)) this.writeMeta(version, null);
+      if (!protectedVersions.has(version)) delete this.state.meta[version];
     }
-    if (previous && !protectedVersions.has(previous)) this.clearPointer(PREVIOUS_POINTER_KEY);
+    if (previous && !protectedVersions.has(previous)) this.state.previous = null;
+    await this.save();
     return removed;
   }
 
@@ -575,8 +556,14 @@ export class ModelVault {
       // whose bytes it can prove are gone.
       if (await this.removeVersion(stored.version)) versionsRemoved += 1;
     }
-    this.clearPointer(ACTIVE_POINTER_KEY);
-    this.clearPointer(PREVIOUS_POINTER_KEY);
+    // Metadata survives only for files that refused to go.
+    this.state.active = null;
+    this.state.previous = null;
+    if (Object.keys(this.state.meta).length > 0) await this.save();
+    else {
+      await this.saving;
+      await this.store.remove(MANIFEST);
+    }
 
     /*
      * The flat pre-versioning layout is removed too. A user who installed
@@ -594,7 +581,7 @@ export class ModelVault {
      * COUNTS. A `remove` that returns false is the case this exists for, and so
      * is one that returns true without the file going anywhere.
      */
-    const left = await this.store.list();
+    const left = (await this.store.list()).filter((file) => file.key !== MANIFEST);
     return {
       versionsRemoved,
       legacyRemoved,
@@ -603,85 +590,11 @@ export class ModelVault {
     };
   }
 
-  /**
-   * Adopt a completed pre-versioning install as a version.
-   *
-   * Somebody who already downloaded the engine under the old flat layout must
-   * not be made to download it again because OCADE reorganised its own storage.
-   * The bytes are already there and already verified against the same digest,
-   * so this records them as the active version.
-   *
-   * ONLY A VERIFIED LEGACY FILE IS ADOPTED. An unverified or partial one is
-   * left where it is and the normal install path runs, because adopting bytes
-   * on the strength of their length is exactly the shortcut that ships a
-   * corrupt engine.
-   */
-  async adoptLegacy(
-    legacyKey: string,
-    version: string,
-    expectations: { sha256?: string; expectedBytes?: number | null },
-  ): Promise<boolean> {
-    if (this.readMeta(version)?.verified) return false;
-    const legacyMeta = await this.store.readMeta(legacyKey);
-    if (!legacyMeta?.verified) return false;
-    if (expectations.sha256 && legacyMeta.sha256 && legacyMeta.sha256 !== expectations.sha256) {
-      return false;
-    }
-    const bytes = await this.store.sizeOf(legacyKey);
-    if (bytes <= 0) return false;
-
-    const name = artifactName(null, version);
-    const moved = await this.store.movePath(legacyKey, versionPath(version, name));
-    if (!moved) return false;
-
-    this.writeMeta(version, {
-      verified: true,
-      expectedBytes: expectations.expectedBytes ?? bytes,
-      sha256: expectations.sha256 ?? legacyMeta.sha256,
-    });
-    await this.activate(version);
-    await this.store.writeMeta(legacyKey, null);
-    return true;
-  }
-
   /** Open a continuously-written file for one version's artifact. */
   async openWriter(version: string, name?: string): Promise<ModelFileWriter | null> {
+    await this.load();
     const meta = this.readMeta(version);
     return this.store.openWriter(versionPath(version, name ?? artifactName(meta, version)));
-  }
-
-  /* ------------------------------------------------------------ pointers -- */
-
-  private readPointer(key: string): string | null {
-    if (!this.storage) return null;
-    try {
-      const raw = this.storage.getItem(key);
-      return raw && raw.length > 0 ? raw : null;
-    } catch {
-      return null;
-    }
-  }
-
-  private writePointer(key: string, value: string): void {
-    if (!this.storage) return;
-    try {
-      this.storage.setItem(key, value);
-    } catch {
-      /*
-       * A browser that will not remember which version is active cannot keep
-       * an engine between visits. That is reported by the caller as a storage
-       * problem rather than pretended past here.
-       */
-    }
-  }
-
-  private clearPointer(key: string): void {
-    if (!this.storage) return;
-    try {
-      this.storage.removeItem(key);
-    } catch {
-      /* nothing to clear */
-    }
   }
 }
 

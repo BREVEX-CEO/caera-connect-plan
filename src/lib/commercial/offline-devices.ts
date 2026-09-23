@@ -22,6 +22,8 @@ export interface OfflineDevice {
   name: string;
   kind: "desktop" | "mobile";
   lastActiveAt: string;
+  /** When the place was taken; tells two same-named browsers apart. */
+  createdAt: string;
   /** The browser this list is being read in. */
   current: boolean;
 }
@@ -32,7 +34,7 @@ export async function listOfflineDevices(): Promise<OfflineDevice[]> {
   const identity = await getOfflineCurrentDeviceIdentity();
   const { data, error } = await supabase
     .from("devices")
-    .select("id, name, kind, last_active_at")
+    .select("id, name, kind, last_active_at, created_at")
     .is("revoked_at", null)
     .order("last_active_at", { ascending: false })
     // The cap is two of each kind, so this can only ever be a handful — but a
@@ -45,6 +47,7 @@ export async function listOfflineDevices(): Promise<OfflineDevice[]> {
     name: row.name,
     kind: row.kind === "mobile" ? "mobile" : "desktop",
     lastActiveAt: row.last_active_at,
+    createdAt: row.created_at,
     current: row.id === identity?.deviceId,
   }));
 }

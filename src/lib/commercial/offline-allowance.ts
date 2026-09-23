@@ -109,3 +109,34 @@ export async function syncOfflineAllowance(): Promise<void> {
     /* A device without an offline allowance still works online. */
   }
 }
+
+/**
+ * Can this browser answer with no network right now? Needs a verified model
+ * and an unexpired signed allowance with room left. The banner reads this so
+ * it never promises an answer the send would refuse (F16).
+ */
+export async function canAnswerWithoutNetwork(): Promise<boolean> {
+  try {
+    const [{ modelVault }, { getOfflineCurrentDeviceIdentity }] = await Promise.all([
+      import("@/lib/brain/model-vault"),
+      import("./device-identity"),
+    ]);
+    const [view, identity] = await Promise.all([
+      modelVault.installationView(),
+      getOfflineCurrentDeviceIdentity(),
+    ]);
+    if (!view.ready || !identity) return false;
+    const leases = await readInstalledOfflineLeases(identity.accountId, identity.deviceId);
+    const now = Date.now();
+    return leases.some(
+      (entry) =>
+        Date.parse(entry.lease.payload.expiresAt) > now &&
+        entry.lease.payload.allocatedHundredths -
+          entry.consumedHundredths -
+          entry.reservedHundredths >=
+          100,
+    );
+  } catch {
+    return false;
+  }
+}

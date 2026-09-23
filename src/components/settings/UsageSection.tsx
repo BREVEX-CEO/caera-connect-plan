@@ -156,7 +156,12 @@ function DevicesRows() {
   });
 
   const rows = devices.data ?? [];
+  if (devices.isError) {
+    return <Row label="Devices" description="Your devices could not be read just now." />;
+  }
   if (devices.isPending || rows.length === 0) return null;
+  // Two places with one name are told apart by when each was added (F19).
+  const shared = (name: string) => rows.filter((row) => row.name === name).length > 1;
 
   return (
     <div>
@@ -172,7 +177,11 @@ function DevicesRows() {
         <Row
           key={device.id}
           label={device.current ? `${device.name} — this browser` : device.name}
-          description={`Last used ${describeWhen(device.lastActiveAt)}.`}
+          description={`${
+            shared(device.name)
+              ? `Added ${new Date(device.createdAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}. `
+              : ""
+          }Last used ${describeWhen(device.lastActiveAt)}.`}
         >
           {confirming === device.id ? (
             <Confirm

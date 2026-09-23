@@ -23,6 +23,7 @@ function authorityOver(meta: { verified: boolean } | null, onDisk: number) {
   });
   const activated = vi.fn(async () => ({ ok: true }) as const);
   const vault = {
+    load: async () => {},
     readMeta: () => meta,
     bytesOf: async () => onDisk,
     activate: async () => {},
@@ -30,7 +31,6 @@ function authorityOver(meta: { verified: boolean } | null, onDisk: number) {
     removeVersion: async () => {},
     readArtifact: async () => null,
     writeMeta: () => {},
-    adoptLegacy: async () => false,
     openWriter: async () => ({ write: async () => {}, close: async () => {} }),
   };
   const authority = new ModelInstallationAuthority({

@@ -26,21 +26,6 @@ export interface StoredModel {
   /** Stable key. Opaque: derived from the release id, never from a name. */
   key: string;
   bytes: number;
-  /** Set once the file has been verified against its expected digest. */
-  verified: boolean;
-}
-
-export interface StorageReport {
-  supported: boolean;
-  /** True when the browser has promised not to evict this data under pressure. */
-  persistent: boolean;
-  /** Bytes this origin is currently using, when the browser will say. */
-  usedBytes: number | null;
-  /** Bytes this origin may use in total, when the browser will say. */
-  quotaBytes: number | null;
-  models: StoredModel[];
-  /** Present when something could not be determined; never a silent zero. */
-  problem?: string;
 }
 
 function opfsAvailable(): boolean {
@@ -49,13 +34,6 @@ function opfsAvailable(): boolean {
     typeof navigator.storage?.getDirectory === "function" &&
     typeof FileSystemFileHandle !== "undefined"
   );
-}
-
-/** Metadata written next to each model so verification survives a reload. */
-interface ModelMeta {
-  verified: boolean;
-  expectedBytes: number;
-  sha256?: string;
 }
 
 /**
@@ -73,9 +51,6 @@ interface ModelMeta {
  * has reached a point worth resuming from — a completed chunk whose digest
  * checkpoint has also been recorded. Writing continuously and committing
  * deliberately is the whole difference.
- *
- * `append()` is kept for the small number of callers that write once, and for
- * the tests that were written against it.
  */
 export interface ModelFileWriter {
   write(chunk: Uint8Array, at: number): Promise<boolean>;
@@ -272,29 +247,6 @@ export class ModelStore {
   }
 
   /**
-   * Append bytes at the end of the stored file.
-   *
-   * `at` is passed explicitly rather than inferred so a caller resuming a
-   * download cannot accidentally append to the wrong offset after a retry.
-   */
-  async append(key: string, chunk: Uint8Array<ArrayBuffer>, at: number): Promise<boolean> {
-    const handle = await this.fileHandle(key, true);
-    if (!handle) return false;
-    try {
-      const writable = await handle.createWritable({ keepExistingData: true });
-      // Cast at the boundary: a Uint8Array's buffer is typed ArrayBufferLike,
-      // which includes SharedArrayBuffer, and the write API accepts only a
-      // plain ArrayBuffer view. Every chunk reaching here is over an ordinary
-      // ArrayBuffer -- the transfer builds them that way deliberately.
-      await writable.write({ type: "write", position: at, data: chunk as unknown as BufferSource });
-      await writable.close();
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
    * Open a file for continuous writing.
    *
    * Prefers a sync access handle — in place, explicitly flushable, and only
@@ -326,68 +278,36 @@ export class ModelStore {
   }
 
   /**
-   * Move a file to a different key, without reading it into memory.
-   *
-   * `FileSystemFileHandle.move()` where the browser has it — a metadata
-   * operation on a gigabyte — and a streamed copy where it does not. The copy
-   * reads and writes in bounded pieces for the reason everything else here
-   * does: a whole-file `arrayBuffer()` on a phone kills the tab.
-   *
-   * The source is removed only after the destination is complete, so an
-   * interruption leaves the original in place rather than nothing at all.
+   * Replace a small file whole. `createWritable()` without `keepExistingData`
+   * commits a truncated swap file atomically; the sync handle is the worker
+   * fallback. A manifest written over a longer one must not keep its tail.
    */
-  async movePath(from: string, to: string): Promise<boolean> {
-    const source = await this.fileHandle(from, false);
-    if (!source) return false;
-
-    const movable = source as FileSystemFileHandle & {
-      move?: (parent: FileSystemDirectoryHandle, name?: string) => Promise<void>;
-    };
-    const parts = to.split("/").filter(Boolean);
-    const name = parts.pop();
-    if (!name) return false;
-
-    if (typeof movable.move === "function") {
-      try {
-        const root = await this.root();
-        if (root) {
-          let dir = root;
-          for (const part of parts) dir = await dir.getDirectoryHandle(part, { create: true });
-          await movable.move(dir, name);
-          return true;
-        }
-      } catch {
-        /* Fall through to the copy, which works on every engine. */
-      }
-    }
-
-    const writer = await this.openWriter(to);
-    if (!writer) return false;
+  async writeFile(key: string, bytes: Uint8Array): Promise<boolean> {
+    const handle = await this.fileHandle(key, true);
+    if (!handle) return false;
     try {
-      const file = await source.getFile();
-      const reader = file.stream().getReader();
-      let at = 0;
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (!(await writer.write(value, at))) {
-          await writer.close();
-          await this.remove(to);
-          return false;
-        }
-        at += value.length;
-      }
-      await writer.close();
+      const writable = await handle.createWritable();
+      await writable.write(bytes as unknown as BufferSource);
+      await writable.close();
+      return true;
     } catch {
-      await writer.close();
-      await this.remove(to);
-      return false;
+      try {
+        const sync = await (
+          handle as FileSystemFileHandle & {
+            createSyncAccessHandle: () => Promise<FileSystemSyncAccessHandle>;
+          }
+        ).createSyncAccessHandle();
+        sync.truncate(0);
+        sync.write(bytes as unknown as BufferSource, { at: 0 });
+        sync.flush();
+        sync.close();
+        return true;
+      } catch {
+        return false;
+      }
     }
-    await this.remove(from);
-    return true;
   }
 
-  /** Read the whole model back, for handing to an engine. */
   async readBlob(key: string): Promise<Blob | null> {
     const handle = await this.fileHandle(key, false);
     if (!handle) return null;
@@ -408,80 +328,10 @@ export class ModelStore {
       let dir = root;
       for (const part of parts) dir = await dir.getDirectoryHandle(part);
       await dir.removeEntry(name);
-      await this.writeMeta(key, null);
       return true;
     } catch {
       return false;
     }
-  }
-
-  /* ------------------------------------------------------------ metadata -- */
-
-  private metaKey(key: string): string {
-    return `ocade.model.meta.${key}`;
-  }
-
-  async readMeta(key: string): Promise<ModelMeta | null> {
-    if (typeof window === "undefined") return null;
-    try {
-      const raw = window.localStorage.getItem(this.metaKey(key));
-      return raw ? (JSON.parse(raw) as ModelMeta) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  async writeMeta(key: string, meta: ModelMeta | null): Promise<void> {
-    if (typeof window === "undefined") return;
-    try {
-      if (meta === null) window.localStorage.removeItem(this.metaKey(key));
-      else window.localStorage.setItem(this.metaKey(key), JSON.stringify(meta));
-    } catch {
-      /* A browser refusing storage re-verifies next time. Slower, not wrong. */
-    }
-  }
-
-  /* -------------------------------------------------------------- report -- */
-
-  /** Everything the storage settings page needs, with unknowns left unknown. */
-  async report(): Promise<StorageReport> {
-    if (!opfsAvailable()) {
-      return {
-        supported: false,
-        persistent: false,
-        usedBytes: null,
-        quotaBytes: null,
-        models: [],
-        problem:
-          "This browser does not provide the private file storage OCADE needs to keep a model between visits.",
-      };
-    }
-
-    let usedBytes: number | null = null;
-    let quotaBytes: number | null = null;
-    try {
-      const estimate = await navigator.storage.estimate();
-      usedBytes = estimate.usage ?? null;
-      quotaBytes = estimate.quota ?? null;
-    } catch {
-      // Left null. A zero here would read as "nothing stored", which is a
-      // different and wrong claim.
-    }
-
-    let persistent = false;
-    try {
-      persistent = (await navigator.storage.persisted?.()) ?? false;
-    } catch {
-      persistent = false;
-    }
-
-    return {
-      supported: true,
-      persistent,
-      usedBytes,
-      quotaBytes,
-      models: await this.list(),
-    };
   }
 
   /** Every model file currently stored, walked depth-first. */
@@ -502,8 +352,7 @@ export class ModelStore {
         } else {
           try {
             const file = await (handle as FileSystemFileHandle).getFile();
-            const meta = await this.readMeta(key);
-            out.push({ key, bytes: file.size, verified: meta?.verified ?? false });
+            out.push({ key, bytes: file.size });
           } catch {
             /* A file that cannot be read is simply not listed. */
           }
@@ -519,15 +368,6 @@ export class ModelStore {
     return out.sort((a, b) => a.key.localeCompare(b.key));
   }
 
-  /** Delete everything OCADE stored. Used by Settings › Storage. */
-  async clear(): Promise<number> {
-    const models = await this.list();
-    let removed = 0;
-    for (const model of models) {
-      if (await this.remove(model.key)) removed += 1;
-    }
-    return removed;
-  }
 }
 
 export const modelStore = new ModelStore();

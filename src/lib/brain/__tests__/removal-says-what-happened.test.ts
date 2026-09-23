@@ -17,15 +17,6 @@ import type { ModelStore } from "../model-store";
  * A deletion that cannot be verified is not a deletion, and that is what these
  * check: what the store actually holds afterwards decides what is said.
  */
-function memoryStorage() {
-  const map = new Map<string, string>();
-  return {
-    getItem: (key: string) => map.get(key) ?? null,
-    setItem: (key: string, value: string) => void map.set(key, value),
-    removeItem: (key: string) => void map.delete(key),
-  };
-}
-
 /** A store whose `remove` can be told to fail, as a locked file system does. */
 function stubbornStore() {
   const files = new Map<string, Uint8Array>();
@@ -34,23 +25,22 @@ function stubbornStore() {
     async sizeOf(key: string) {
       return files.get(key)?.length ?? 0;
     },
-    async append(key: string, chunk: Uint8Array) {
-      files.set(key, chunk);
-      return true;
-    },
     async remove(key: string) {
       if (refusing) return false;
       return files.delete(key);
     },
-    async readMeta() {
-      return null;
+    async readBlob(key: string) {
+      const bytes = files.get(key);
+      return bytes ? new Blob([bytes as BufferSource]) : null;
     },
-    async writeMeta() {},
+    async writeFile(key: string, bytes: Uint8Array) {
+      files.set(key, bytes);
+      return true;
+    },
     async list() {
       return [...files.entries()].map(([key, bytes]) => ({
         key,
         bytes: bytes.length,
-        verified: true,
       }));
     },
   } as unknown as ModelStore;
@@ -68,12 +58,9 @@ let vault: ModelVault;
 
 beforeEach(async () => {
   backing = stubbornStore();
-  vault = new ModelVault({
-    store: backing.store,
-    storage: memoryStorage(),
-  } as unknown as ConstructorParameters<typeof ModelVault>[0]);
-  await backing.store.append(versionPath("v1", "v1.bin"), new Uint8Array(4_096).fill(1), 0);
-  vault.writeMeta("v1", { verified: true, expectedBytes: 4_096, sha256: "digest-v1" });
+  vault = new ModelVault({ store: backing.store, legacy: null });
+  await backing.store.writeFile(versionPath("v1", "v1.bin"), new Uint8Array(4_096).fill(1));
+  await vault.writeMeta("v1", { verified: true, expectedBytes: 4_096, sha256: "digest-v1" });
 });
 
 function authorityOver(uninstallNative?: () => Promise<boolean>) {

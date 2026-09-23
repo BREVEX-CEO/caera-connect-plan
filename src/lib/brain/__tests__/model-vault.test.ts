@@ -22,15 +22,17 @@ function memoryStorage() {
     getItem: (k: string) => map.get(k) ?? null,
     setItem: (k: string, v: string) => void map.set(k, v),
     removeItem: (k: string) => void map.delete(k),
+    key: (i: number) => [...map.keys()][i] ?? null,
+    get length() {
+      return map.size;
+    },
     /** Everything gone, as a browser clearing site data does it. */
     clear: () => map.clear(),
-    keys: () => [...map.keys()],
   };
 }
 
 function memoryStore() {
   const files = new Map<string, Uint8Array>();
-  const meta = new Map<string, unknown>();
 
   const writerFor = (key: string): ModelFileWriter => ({
     async write(chunk, at) {
@@ -48,21 +50,15 @@ function memoryStore() {
   });
 
   const store = {
+    async writeFile(key: string, bytes: Uint8Array) {
+      files.set(key, bytes.slice());
+      return true;
+    },
     async sizeOf(key: string) {
       return files.get(key)?.length ?? 0;
     },
     async openWriter(key: string) {
       return writerFor(key);
-    },
-    async append(key: string, chunk: Uint8Array, at: number) {
-      return writerFor(key).write(chunk, at);
-    },
-    async movePath(from: string, to: string) {
-      const bytes = files.get(from);
-      if (!bytes) return false;
-      files.set(to, bytes);
-      files.delete(from);
-      return true;
     },
     async readBlob(key: string) {
       const bytes = files.get(key);
@@ -71,23 +67,16 @@ function memoryStore() {
     async remove(key: string) {
       return files.delete(key);
     },
-    async readMeta(key: string) {
-      return (meta.get(key) ?? null) as never;
-    },
-    async writeMeta(key: string, value: unknown) {
-      if (value === null) meta.delete(key);
-      else meta.set(key, value);
-    },
     async list() {
       return [...files.entries()].map(([key, bytes]) => ({
         key,
         bytes: bytes.length,
-        verified: false,
       }));
     },
   } as unknown as ModelStore;
 
-  return { store, files, meta };
+  const write = (key: string, bytes: Uint8Array) => writerFor(key).write(bytes, 0);
+  return { store, files, write };
 }
 
 let backing: ReturnType<typeof memoryStore>;
@@ -104,7 +93,7 @@ async function put(version: string, bytes: number, verified = true) {
 beforeEach(() => {
   backing = memoryStore();
   storage = memoryStorage();
-  vault = new ModelVault({ store: backing.store, storage });
+  vault = new ModelVault({ store: backing.store, legacy: storage });
 });
 
 describe("activation is a pointer, not a move", () => {
@@ -144,75 +133,66 @@ describe("activation is a pointer, not a move", () => {
     expect([...backing.files.keys()]).toContain("versions/pointers.json");
   });
 
-  it("keeps the pointer where the model is, so a cleared browser can recover", async () => {
-    /*
-     * The failure this prevents, which actually happened: "sign out everywhere"
-     * called `localStorage.clear()`, and the verified model in OPFS became a
-     * gigabyte of unusable bytes because the record that it had been checked
-     * was somewhere else entirely.
-     */
+  it("keeps the pointer only in OPFS, so clearing site storage changes nothing", async () => {
     await put("v1", 100);
     await vault.activate("v1");
-    expect(vault.activeVersion()).toBe("v1");
-
-    // Everything local is gone; the model's own storage is untouched.
     storage.clear();
-    expect(vault.activeVersion()).toBeNull();
+    expect(storage.length).toBe(0);
 
-    const restored = await vault.restorePointers();
-    expect(restored.active).toBe("v1");
-    expect(vault.activeVersion()).toBe("v1");
-    expect(vault.readMeta("v1")?.verified).toBe(true);
+    // A new tab, a reload: everything comes from the manifest beside the bytes.
+    const reloaded = new ModelVault({ store: backing.store, legacy: storage });
+    expect(await reloaded.installationView()).toEqual({ ready: true, stored: true });
+    expect(reloaded.activeVersion()).toBe("v1");
+    expect(reloaded.readMeta("v1")?.verified).toBe(true);
   });
 
-  it("never lets a stale sidecar overrule a pointer this browser already has", async () => {
+  it("writes nothing about the model to localStorage", async () => {
     await put("v1", 100);
     await vault.activate("v1");
     await put("v2", 120);
     await vault.activate("v2");
-
-    // The sidecar now says v2. Local storage is deliberately left saying v2 too;
-    // a restore must be a no-op rather than a chance to change anything.
-    const before = vault.activeVersion();
-    const restored = await vault.restorePointers();
-    expect(restored.active).toBeNull();
-    expect(vault.activeVersion()).toBe(before);
+    expect(storage.length).toBe(0);
   });
 
-  it("refuses to restore a version the metadata does not justify", async () => {
-    /*
-     * The sidecar is the one input to this module that has genuinely been out of
-     * its hands — it survives a storage wipe. A pointer restored without a
-     * verification record would authorise a version this browser cannot justify.
-     */
+  it("moves an older release's localStorage pointers into OPFS once, then clears them", async () => {
+    storage.setItem("ocade.model.active.v1", "v1");
+    storage.setItem(
+      "ocade.model.version.v1.v1",
+      JSON.stringify({ verified: true, expectedBytes: 100, sha256: "d" }),
+    );
+    storage.setItem("ocade.model.meta.wasm/old.bin", JSON.stringify({ verified: true }));
+    storage.setItem("supabase.auth.token", "kept");
+    const writer = await backing.store.openWriter(versionPath("v1", "v1.bin"));
+    await writer!.write(new Uint8Array(100), 0);
+
+    const migrated = new ModelVault({ store: backing.store, legacy: storage });
+    expect(await migrated.installationView()).toEqual({ ready: true, stored: true });
+    expect(storage.getItem("ocade.model.active.v1")).toBeNull();
+    expect(storage.getItem("ocade.model.meta.wasm/old.bin")).toBeNull();
+    expect(storage.getItem("supabase.auth.token")).toBe("kept");
+
+    // The manifest alone now carries it.
+    const again = new ModelVault({ store: backing.store, legacy: null });
+    expect(await again.installationView()).toEqual({ ready: true, stored: true });
+  });
+
+  it("refuses a pointer the manifest's verification record does not justify", async () => {
     await put("v1", 100);
     await vault.activate("v1");
-    storage.clear();
+    await backing.store.writeFile(
+      "versions/pointers.json",
+      new TextEncoder().encode(
+        JSON.stringify({ active: "v1", meta: { v1: { verified: false, expectedBytes: 100 } } }),
+      ),
+    );
+    const reloaded = new ModelVault({ store: backing.store, legacy: null });
+    expect(await reloaded.installationView()).toEqual({ ready: false, stored: false });
+  });
 
-    const raw = await backing.store.readBlob("versions/pointers.json");
-    const payload = JSON.parse(await raw!.text()) as { meta: Record<string, unknown> };
-    payload.meta = { v1: { verified: false, expectedBytes: 100 } };
-    /*
-     * REMOVED BEFORE REWRITING, and the first version of this test did not do
-     * that. The writer overlays bytes at an offset and keeps whatever was
-     * longer, so a shorter replacement left a tail of the old payload behind
-     * and the file simply failed to parse. The test passed — for the wrong
-     * reason entirely, proving only that a corrupt sidecar is ignored, while
-     * the rule it claimed to check could be deleted without it noticing.
-     */
-    await backing.store.remove("versions/pointers.json");
-    const writer = await backing.store.openWriter("versions/pointers.json");
-    await writer!.write(new TextEncoder().encode(JSON.stringify(payload)), 0);
-    await writer!.close();
-
-    // The rewrite really took: otherwise this proves nothing about verification.
-    const rewritten = await backing.store.readBlob("versions/pointers.json");
-    expect(JSON.parse(await rewritten!.text())).toMatchObject({
-      meta: { v1: { verified: false } },
-    });
-
-    expect((await vault.restorePointers()).active).toBeNull();
-    expect(vault.activeVersion()).toBeNull();
+  it("treats a corrupt manifest as no evidence rather than crashing", async () => {
+    await backing.store.writeFile("versions/pointers.json", new TextEncoder().encode("{not json"));
+    const reloaded = new ModelVault({ store: backing.store, legacy: null });
+    expect(await reloaded.installationView()).toEqual({ ready: false, stored: false });
   });
 
   it("remembers the outgoing version as the rollback target", async () => {
@@ -231,7 +211,7 @@ describe("canonical installation view and cleanup", () => {
     await put("v1", 100, false);
     expect(await vault.installationView()).toEqual({ ready: false, stored: false });
 
-    vault.writeMeta("v1", { verified: true, expectedBytes: 100, sha256: "digest-v1" });
+    await vault.writeMeta("v1", { verified: true, expectedBytes: 100, sha256: "digest-v1" });
     await vault.activate("v1");
     expect(await vault.installationView()).toEqual({ ready: true, stored: true });
   });
@@ -259,6 +239,10 @@ describe("canonical installation view and cleanup", () => {
     expect(await vault.bytesOf("v1")).toBe(100);
     expect(vault.activeVersion()).toBe("v2");
     expect(vault.previousVersion()).toBe("v1");
+    // F20: cleanup used to delete the manifest itself, stranding the install.
+    expect(removed).not.toContain("versions/pointers.json");
+    const reloaded = new ModelVault({ store: backing.store, legacy: null });
+    expect(await reloaded.installationView()).toEqual({ ready: true, stored: true });
   });
 });
 
@@ -362,7 +346,7 @@ describe("listing sees files even when their metadata was lost", () => {
   it("ignores files outside the versioned layout", async () => {
     await put("v1", 100);
     // A pre-versioning artifact from an older install.
-    await backing.store.append("wasm/old/engine.bin", new Uint8Array(10), 0);
+    await backing.write("wasm/old/engine.bin", new Uint8Array(10));
     const versions = await vault.listVersions();
     expect(versions.map((v) => v.version)).toEqual(["v1"]);
   });
@@ -387,7 +371,7 @@ describe("uninstall removes the engine and only the engine", () => {
     // Somebody who installed before the layout was versioned has hundreds of
     // megabytes under the old keys. An uninstall that left them would report
     // "removed" over a full disk.
-    await backing.store.append("wasm/legacy/engine.bin", new Uint8Array(500), 0);
+    await backing.write("wasm/legacy/engine.bin", new Uint8Array(500));
     await put("v1", 100);
 
     const result = await vault.removeEverything();
@@ -395,7 +379,7 @@ describe("uninstall removes the engine and only the engine", () => {
     expect(backing.files.size).toBe(0);
   });
 
-  it("leaves storage that is not OCADE's engine completely alone", async () => {
+  it("leaves localStorage that is not OCADE's engine completely alone", async () => {
     await put("v1", 100);
     storage.setItem("caera:conversations", "a conversation");
     storage.setItem("caera:demo:session:v2", "12345");
@@ -406,65 +390,6 @@ describe("uninstall removes the engine and only the engine", () => {
     expect(storage.getItem("caera:conversations")).toBe("a conversation");
     expect(storage.getItem("caera:demo:session:v2")).toBe("12345");
     expect(storage.getItem("supabase.auth.token")).toBe("a token");
-  });
-});
-
-describe("adopting a pre-versioning install", () => {
-  it("moves a verified legacy file in rather than re-downloading it", async () => {
-    const legacy = "wasm/legacy/engine.bin";
-    await backing.store.append(legacy, new Uint8Array(400).fill(7), 0);
-    await backing.store.writeMeta(legacy, {
-      verified: true,
-      expectedBytes: 400,
-      sha256: "known-digest",
-    });
-
-    const adopted = await vault.adoptLegacy(legacy, "v1", {
-      sha256: "known-digest",
-      expectedBytes: 400,
-    });
-
-    expect(adopted).toBe(true);
-    expect(vault.activeVersion()).toBe("v1");
-    expect(await vault.bytesOf("v1")).toBe(400);
-    expect(vault.readMeta("v1")?.verified).toBe(true);
-    // Moved, not copied: the user's disk does not hold it twice.
-    expect(await backing.store.sizeOf(legacy)).toBe(0);
-  });
-
-  it("REFUSES an unverified legacy file", async () => {
-    const legacy = "wasm/legacy/engine.bin";
-    await backing.store.append(legacy, new Uint8Array(400), 0);
-    await backing.store.writeMeta(legacy, { verified: false, expectedBytes: 400 });
-
-    // Adopting on the strength of a length is the shortcut that ships a
-    // corrupt engine. It falls through to the normal, verified path instead.
-    expect(await vault.adoptLegacy(legacy, "v1", { expectedBytes: 400 })).toBe(false);
-    expect(vault.activeVersion()).toBeNull();
-  });
-
-  it("refuses a legacy file whose digest is for different weights", async () => {
-    const legacy = "wasm/legacy/engine.bin";
-    await backing.store.append(legacy, new Uint8Array(400), 0);
-    await backing.store.writeMeta(legacy, {
-      verified: true,
-      expectedBytes: 400,
-      sha256: "an-older-engine",
-    });
-
-    expect(
-      await vault.adoptLegacy(legacy, "v1", { sha256: "the-current-engine", expectedBytes: 400 }),
-    ).toBe(false);
-  });
-
-  it("does nothing when the version is already installed", async () => {
-    await put("v1", 100);
-    const legacy = "wasm/legacy/engine.bin";
-    await backing.store.append(legacy, new Uint8Array(400), 0);
-    await backing.store.writeMeta(legacy, { verified: true, expectedBytes: 400 });
-
-    expect(await vault.adoptLegacy(legacy, "v1", { expectedBytes: 400 })).toBe(false);
-    expect(await vault.bytesOf("v1")).toBe(100);
   });
 });
 
