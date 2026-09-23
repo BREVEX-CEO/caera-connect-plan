@@ -43,7 +43,7 @@ Do not build or describe as current product functionality:
 - Do not open live paid checkout in the current mission.
 - Do not include Paddle integration in the current mission.
 
-Cowork may remain only as a clean reserved placeholder until the owner explicitly starts a separate mission.
+Cowork is not part of the current product; it returns only through a separate owner-approved mission.
 
 ## Core features — current
 

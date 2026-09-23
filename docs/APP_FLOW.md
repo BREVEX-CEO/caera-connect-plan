@@ -18,11 +18,11 @@
 - Use `/library` for uploaded and generated files.
 - Open Settings as a responsive account surface from the Account control.
 - Keep `/admin` hidden and role-gated for owner/admin use.
-- `/cowork` may remain a reserved placeholder only; it is not a current functional product.
+- There is no `/cowork` route; future products are not placeholders in the current product.
 
 ## Navigation
 
-Desktop: compact left rail/sidebar with New Chat, Chat, Library, recent conversations, optional reserved Cowork placeholder, usage state and Account.
+Desktop: compact left rail/sidebar with New Chat, Chat, Library, recent conversations (with an Archived group), usage state and Account.
 
 Mobile: drawer/sheet with the same current capabilities. No horizontal scrolling and no desktop-only control.
 

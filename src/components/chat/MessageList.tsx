@@ -47,7 +47,7 @@ export function MessageList({
   }, [messages.length, streaming]);
 
   return (
-    <div className="ocade-scroll flex-1 overflow-y-auto px-5 pt-8">
+    <div data-transcript className="ocade-scroll flex-1 overflow-y-auto px-5 pt-8">
       <div className="mx-auto w-full max-w-3xl space-y-6">
         {loading ? (
           <p className="text-sm text-muted-foreground" role="status">

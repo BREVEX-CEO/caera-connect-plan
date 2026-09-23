@@ -167,6 +167,30 @@ export function ChatWorkspace() {
     if (!online && choice === "online") setChoice("auto");
   }, [online, choice]);
 
+  /*
+   * HIGHLIGHT, THEN ASK OCADE. The selected words go into this chat's composer
+   * as a quote, so the question keeps the conversation's context and nothing
+   * separate is stored.
+   */
+  const [quote, setQuote] = useState<{ text: string; x: number; y: number } | null>(null);
+  useEffect(() => {
+    const read = () => {
+      const selection = window.getSelection();
+      const text = selection?.toString().trim() ?? "";
+      const anchor = selection?.anchorNode;
+      const inside = anchor instanceof Node && anchor.parentElement?.closest("[data-transcript]");
+      if (!text || !inside || !selection?.rangeCount) return setQuote(null);
+      const rect = selection.getRangeAt(0).getBoundingClientRect();
+      setQuote({ text: text.slice(0, 2_000), x: rect.left + rect.width / 2, y: rect.top });
+    };
+    document.addEventListener("pointerup", read);
+    document.addEventListener("keyup", read);
+    return () => {
+      document.removeEventListener("pointerup", read);
+      document.removeEventListener("keyup", read);
+    };
+  }, []);
+
   /** Without a network, whether this device can truly answer (F16). */
   const [offlineCapable, setOfflineCapable] = useState<boolean | null>(null);
   useEffect(() => {
@@ -330,6 +354,27 @@ export function ChatWorkspace() {
           it with together, slightly above the middle; once there is a
           conversation the composer drops to the bottom where it belongs.
         */}
+        {quote ? (
+          <button
+            type="button"
+            // Before the click, so pressing it does not clear the selection first.
+            onPointerDown={(event) => event.preventDefault()}
+            onClick={() => {
+              const quoted = quote.text
+                .split("\n")
+                .map((line) => `> ${line}`)
+                .join("\n");
+              setDraft((current) => `${quoted}\n\n${current}`);
+              setQuote(null);
+              window.getSelection()?.removeAllRanges();
+              textarea.current?.focus();
+            }}
+            style={{ left: quote.x, top: Math.max(8, quote.y - 40) }}
+            className="glass-strong fixed z-30 -translate-x-1/2 rounded-md px-3 py-1.5 text-[13px] text-foreground"
+          >
+            Ask OCADE
+          </button>
+        ) : null}
         {empty ? null : (
           <MessageList
             messages={chat.messages}

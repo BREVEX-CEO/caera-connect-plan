@@ -34,7 +34,7 @@ Active
 
 ### Decision
 
-Current required product is Chat + Library + Settings + Offline Intelligence + usage + Pricing/auth/public/legal surfaces. Cowork may remain only as a reserved placeholder.
+Current required product is Chat + Library + Settings + Offline Intelligence + usage + Pricing/auth/public/legal surfaces. Cowork is not part of the current product.
 
 Do not build Code, Projects, Tasks, Automations, Monitors, Organizations, native apps, public sharing or other future products until a new explicit mission.
 

@@ -64,7 +64,7 @@ Use only when grouping genuinely benefits comprehension. Avoid card walls.
 
 ### Navigation
 
-Current product navigation emphasizes Chat and Library. Cowork may appear only as a clearly reserved placeholder. Do not surface unused future modules.
+Current product navigation emphasizes Chat and Library. Do not surface unused future modules.
 
 ### Modals and dialogs
 

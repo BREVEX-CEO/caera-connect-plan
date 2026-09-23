@@ -54,7 +54,7 @@ GitHub Actions is optional because paid Actions cannot be relied on. Red/unavail
 
 ## Product facts
 
-- Current surfaces: Chat, Library, Settings, Pricing, auth, public/legal pages, hidden Admin. Cowork is only a reserved placeholder.
+- Current surfaces: Chat, Library, Settings, Pricing, auth, public/legal pages, hidden Admin. Cowork was removed.
 - Free 28/6h28m; Pro 140/6h28m + 700/week; Max 1,400/6h28m + 7,000/week.
 - Offline device cap: two per kind under current policy.
 - Current paid prices remain the approved 8/28 anchors, but paid checkout is closed.

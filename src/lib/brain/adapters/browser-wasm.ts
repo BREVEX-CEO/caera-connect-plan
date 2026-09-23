@@ -503,8 +503,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
       return {
         ok: false,
         failure: "unavailable",
-        reason:
-          "OCADE's compatibility engine cannot read images. A device engine or a paired computer can.",
+        reason: "Offline Intelligence cannot read images. Use Online for questions about an image.",
       };
     }
 
@@ -514,7 +513,11 @@ export class BrowserWasmAdapter implements BrainAdapter {
     }
     const model = this.cachedModel;
     if (!model) {
-      return { ok: false, failure: "unavailable", reason: "No browser engine was selected." };
+      return {
+        ok: false,
+        failure: "unavailable",
+        reason: "Offline Intelligence is not ready yet.",
+      };
     }
 
     const context = contextTokens();
@@ -532,13 +535,11 @@ export class BrowserWasmAdapter implements BrainAdapter {
     let instance: WllamaInstance;
     try {
       instance = await this.ensureLoaded(model);
-    } catch (error) {
+    } catch {
       return {
         ok: false,
         failure: "error",
-        reason: `OCADE's compatibility engine could not start: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        reason: "Offline Intelligence could not start on this device. Try again.",
       };
     }
 
@@ -611,9 +612,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
       return {
         ok: false,
         failure: "error",
-        reason: `OCADE's compatibility engine stopped: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        reason: "Offline Intelligence stopped before it finished. Try again.",
       };
     } finally {
       // Its worker may still be producing; that output must reach nobody.

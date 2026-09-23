@@ -12,7 +12,7 @@ Use this before declaring a UI change complete.
 ## Product scope
 
 - [ ] Current navigation does not advertise Projects, Tasks, Automations, Monitors, Organizations, Code or native apps.
-- [ ] Cowork, if present, is only a clean reserved placeholder.
+- [ ] No Cowork or other future-product surface is present.
 - [ ] Confirm that no Paddle or live-checkout UI is present.
 
 ## Chat

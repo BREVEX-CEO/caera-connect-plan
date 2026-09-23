@@ -162,25 +162,8 @@ export default defineOcadeConfig({
           if (name !== "client") return;
           return {
             build: {
-              /*
-               * Rollup's generic "chunk larger than 500 kB" warning is turned off
-               * here because this repository enforces a STRICTER and more
-               * meaningful budget in `scripts/check-asset-budgets.mjs`, which runs
-               * in CI and fails the build rather than printing a note.
-               *
-               * The two chunks that trip the generic threshold are the web-llm
-               * inference runtime and its worker, at ~5.9 MB each. An inference
-               * engine cannot be made small, and splitting it further would only
-               * produce more chunks that always load together. What actually
-               * matters is that they never load unless the user starts the
-               * on-device engine — and that IS checked: the budget gate asserts
-               * `all lazy: true`, and the entry bundle contains zero references to
-               * them, with no modulepreload in the HTML.
-               *
-               * The real numbers the gate holds: eager JavaScript 2,999/3,760 KiB,
-               * largest eager chunk 486/537 KiB. A generic byte threshold that
-               * cannot tell eager from lazy would only train people to ignore it.
-               */
+              // The on-device engine is large by nature and always lazy;
+              // the generic 500 kB warning cannot tell eager from lazy.
               chunkSizeWarningLimit: 6144,
               rollupOptions: {
                 output: {
@@ -223,18 +206,6 @@ export default defineOcadeConfig({
                           id.includes("/node_modules/tslib/"),
                         priority: 100,
                       },
-
-                      // Document libraries are the heaviest dependencies in the tree
-                      // and each is reached only through a dynamic import. They are
-                      // kept in SEPARATE chunks on purpose: a single shared
-                      // "documents" chunk makes any one of them drag in all the
-                      // others, so reading a PDF would also pay for the DOCX writer.
-                      //
-                      // The PDF reader keeps the bare `pdf` name so the emitted file is
-                      // `pdf-<hash>.js` — the lazy boundary the performance budget gate
-                      // asserts on.
-                      { name: "pdf", test: fromPackage("pdfjs-dist"), priority: 90 },
-                      { name: "vendor-zip", test: fromPackage("jszip"), priority: 90 },
 
                       // Supabase sits above the rest of the vendors. Groups claim
                       // dependencies recursively, so at equal priority an earlier
@@ -383,9 +354,7 @@ export default defineOcadeConfig({
                       },
                       {
                         name: "vendor-ui",
-                        test: (id) =>
-                          id.includes("@radix-ui") ||
-                          fromPackage("lucide-react", "cmdk", "vaul", "sonner")(id),
+                        test: fromPackage("lucide-react", "sonner"),
                         priority: 50,
                       },
                       {
@@ -395,81 +364,13 @@ export default defineOcadeConfig({
                           /\/node_modules\/(?:remark|rehype)-[^/]+\//.test(id),
                         priority: 50,
                       },
-                      {
-                        name: "vendor-ai",
-                        test: (id) => id.includes("@ai-sdk") || fromPackage("ai")(id),
-                        priority: 50,
-                      },
-                      /*
-                       * THE HELP CENTER'S PROSE IS NOT FIRST-PAINT CONTENT.
-                       *
-                       * `src/lib/support/articles.ts` is the single authority for
-                       * every help answer, and four lazy routes read it: the Help
-                       * Center home, an article page, the FAQ and site search. A
-                       * module shared by several async chunks is hoisted into the
-                       * common chunk — which here is the ENTRY — so making the
-                       * answers canonical put seventeen kilobytes of help text on
-                       * first paint, where nobody is reading it.
-                       *
-                       * Giving it a chunk of its own keeps one copy (the point of
-                       * having one authority) without that copy being eager. It is
-                       * fetched when somebody opens help, which is when they want
-                       * it.
-                       */
-                      /*
-                       * The commercial catalogue, claimed BEFORE the help articles.
-                       *
-                       * Groups pull their dependencies in recursively, and the
-                       * billing article quotes the one canonical "checkout is not
-                       * available" sentence — which reaches the catalogue, which
-                       * reaches the plan table. Without a home of its own the
-                       * catalogue was swallowed into the help chunk, and the entry
-                       * then had to import twenty-five kilobytes of help prose to
-                       * read a plan id. The same shape of mistake as
-                       * `vendor-runtime` above, and found the same way: by the
-                       * budget gate, not by review.
-                       */
+                      // The plan catalogue in a small chunk of its own, so no
+                      // feature chunk can swallow it and make the entry import it.
                       {
                         name: "commerce-catalogue",
                         test: (id) => id.includes("/src/lib/payments/"),
                         priority: 80,
                       },
-
-                      /*
-                       * The locale authority, claimed BEFORE the help articles —
-                       * the same shape of mistake as `commerce-catalogue` above,
-                       * and found the same way.
-                       *
-                       * Phase 18 routed every date and number through
-                       * `src/lib/locale`, and the Help Center was one of the
-                       * screens that started calling it. Without a home of its
-                       * own the formatter module was swallowed into the help
-                       * chunk, so the entry — which formats a date on almost
-                       * every screen — had to import twenty-seven kilobytes of
-                       * help prose to read one. It is small, shared by
-                       * everything, and belongs with the code that loads first.
-                       */
-                      {
-                        name: "locale-formatting",
-                        test: (id) => id.includes("/src/lib/locale/"),
-                        priority: 80,
-                      },
-
-                      {
-                        name: "help-articles",
-                        test: (id) => id.includes("/src/lib/support/"),
-                        priority: 70,
-                      },
-
-                      /*
-                       * `vendor-docx` and `vendor-charts` used to sit here, naming
-                       * `docx` and `recharts`. Both packages were uninstalled once
-                       * nothing imported them — the shadcn components that pulled
-                       * them in had already been deleted. A chunk group naming a
-                       * package that is not installed is silently dead config:
-                       * it matches nothing, and it reads as though the app still
-                       * ships a chart library and a DOCX writer.
-                       */
                     ],
                   },
                 },

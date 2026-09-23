@@ -7,7 +7,7 @@ export const Route = createFileRoute("/")({
       { title: "OCADE" },
       {
         name: "description",
-        content: "Ask OCADE. A small AI workspace with chat, a library and work it can carry out.",
+        content: "Ask OCADE. Chat Online or Offline, with your files in Library.",
       },
     ],
   }),

@@ -187,11 +187,6 @@ export function describePrice(price: PlanPrice): string {
   }).format(amount);
 }
 
-/** The plan, by id. */
-export function planById(id: PlanId): Plan | undefined {
-  return PLANS.find((p) => p.id === id);
-}
-
 /**
  * Pick the currency for a region.
  *

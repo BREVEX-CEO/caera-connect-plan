@@ -4,7 +4,7 @@
 
 **CARCC** is the company. **OCADE** is CARCC's AI product. Keep that relationship consistent everywhere: company context says CARCC; product context says OCADE. Remove the former CARCC CADANE/CADANE identity from current product material.
 
-OCADE's current mission is a **website-only, Chat-first AI product**. The release target is deliberately narrow: Chat, Library, Settings, Offline Intelligence, usage/limits, Pricing, authentication, public/legal pages, and the hidden owner/admin surface. Cowork may remain only as a clean reserved placeholder. Do not build Code, Projects, Tasks, Automations, Monitors, Organizations, native apps, browser/computer control, or other future products unless a new owner-approved mission explicitly adds them.
+OCADE's current mission is a **website-only, Chat-first AI product**. The release target is deliberately narrow: Chat, Library, Settings, Offline Intelligence, usage/limits, Pricing, authentication, public/legal pages, and the hidden owner/admin surface. Cowork and other future products are not part of the current product. Do not build Code, Projects, Tasks, Automations, Monitors, Organizations, native apps, browser/computer control, or other future products unless a new owner-approved mission explicitly adds them.
 
 The customer-facing intelligence choices are **Auto | Online | Offline**. Provider, vendor, model, runtime, artifact-format and infrastructure identities are implementation details and must not appear in ordinary UI, customer errors, exports, public metadata, or client-visible diagnostics.
 

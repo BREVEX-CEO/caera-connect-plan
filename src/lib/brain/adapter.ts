@@ -104,27 +104,6 @@ export interface BrainStreamHandlers {
    * hardware — 163s to first visible character against 28s warm.
    */
   think?: boolean;
-  /**
-   * Actions the model may call, in the runtime's own function-call schema.
-   *
-   * WHY THIS IS HERE RATHER THAN WRITTEN INTO THE PROMPT
-   * ----------------------------------------------------
-   * Control + Work used to append the whole tool vocabulary to the system
-   * message and read JSON back out of the reply text. That works until the
-   * model writes JSON that does not parse, and on a 3B model it eventually
-   * does. Observed live: `{"tool": "system_status", "arguments": {"}}` — an
-   * unterminated object, unparseable, and the run simply ended.
-   *
-   * Passed as a schema instead, the runtime constrains the shape: the same
-   * model produced well-formed calls on every attempt in benchmarking, at
-   * about a tenth of the latency. Prose parsing stays as a fallback for
-   * adapters with no function-call channel, but it is no longer the contract.
-   *
-   * Adapters that cannot carry tools ignore this, and the caller falls back.
-   */
-  tools?: readonly unknown[];
-  /** Called once per action the model asks for, before the stream closes. */
-  onToolCall?: (call: { id?: string; name: string; arguments: Record<string, unknown> }) => void;
 }
 
 export type BrainStreamResult =
