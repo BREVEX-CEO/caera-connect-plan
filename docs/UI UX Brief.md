@@ -29,16 +29,19 @@ Use the existing repository fonts/tokens. Prioritize readability, compact labels
 ## Layout
 
 ### Desktop
+
 - Keep a stable left navigation on desktop.
 - Center the Chat workspace at a comfortable reading width.
 - Anchor the composer naturally near the bottom of the Chat workspace.
 - Settings as a focused panel/dialog, not a separate dashboard.
 
 ### Tablet
+
 - Collapse navigation on tablet when the available width requires it.
 - Keep the same core functionality available on tablet layouts.
 
 ### Phone
+
 - Use drawer navigation on phones.
 - Use full-width content and composer layouts on phones.
 - Settings category selector becomes compact; fields may stack.
@@ -48,21 +51,27 @@ Use the existing repository fonts/tokens. Prioritize readability, compact labels
 ## Components
 
 ### Buttons
+
 Use native accessible semantics. Primary actions are obvious; secondary/destructive controls are quiet until needed.
 
 ### Forms
+
 Visible labels or accessible names. Clear validation. Never compress labels word-by-word beside fixed controls on small screens.
 
 ### Cards
+
 Use only when grouping genuinely benefits comprehension. Avoid card walls.
 
 ### Navigation
+
 Current product navigation emphasizes Chat and Library. Cowork may appear only as a clearly reserved placeholder. Do not surface unused future modules.
 
 ### Modals and dialogs
+
 Use for confirmation/focused settings. Escape/click-away behavior must be predictable. Destructive actions require clear confirmation.
 
 ### Tables
+
 Use only where structured comparison/admin data genuinely needs them. Responsive fallbacks required.
 
 ## Chat patterns
@@ -76,9 +85,10 @@ Use only where structured comparison/admin data genuinely needs them. Responsive
 
 ## Offline UX
 
-Never show OPFS, GGUF, WebGPU, WASM, R2, provider names or model names.
+Never show OPFS, model file formats, WebGPU, WASM, R2, provider names or model names.
 
 Customer language:
+
 - Show **Preparing Offline** while the Offline setup is being prepared.
 - Show **Downloading** while model data is being transferred.
 - Show **Verifying** while integrity checks are running.
@@ -94,6 +104,7 @@ If Offline was explicitly removed, later sign-in and choosing Offline should mak
 ## Loading, empty and error states
 
 Every async view has bounded states:
+
 - Show a skeleton or progress state while work is active.
 - Show a success state when the operation completes.
 - Show an empty state when no content exists.

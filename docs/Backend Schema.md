@@ -15,6 +15,7 @@ Never accept a request-supplied user id as ownership proof.
 Generated types currently include these current-product groups:
 
 ### Identity/account
+
 - The `profiles` table stores the account profile record.
 - The `user_roles` table stores authorized account roles.
 - The `user_settings` table stores synchronized account settings.
@@ -22,18 +23,21 @@ Generated types currently include these current-product groups:
 - Legal and security audit records are retained only where the current product or applicable requirements need them.
 
 ### Chat
+
 - The `ocade_conversations` table stores owned conversation records.
 - The `ocade_messages` table stores messages that belong to an owned conversation.
 
 Messages belong to an owned conversation. Client keys/idempotency prevent duplicate offline/retry insertion. Citations/reactions belong with the message where implemented.
 
 ### Library
+
 - The `ocade_library_items` table stores private Library item records.
 - Storage deletion or tombstone records are used only where safe cleanup requires them.
 
 Library objects are private to the owning account unless a future explicitly approved sharing product changes that rule.
 
 ### Commercial usage and entitlement
+
 - The `ocade_commercial_usage` table stores authoritative account usage state.
 - The `ocade_generation_permits` table stores logical generation permits and settlement state.
 - The `ocade_entitlement_grants` table stores audited temporary entitlement grants.
@@ -44,6 +48,7 @@ Library objects are private to the owning account unless a future explicitly app
 The browser may read only what it needs. Security-sensitive device/grant state changes use narrow RPCs rather than generic direct UPDATE.
 
 ### Notifications
+
 - The `ocade_notification_preferences` table stores synchronized notification preferences.
 - The `ocade_notifications` table stores in-app notification history.
 
@@ -75,6 +80,7 @@ Offline model data itself is **not database content**. It stays in browser OPFS 
 ## OPFS model storage
 
 Only OPFS may contain:
+
 - Store model bytes in OPFS only.
 - Store model range chunks and partials in OPFS only.
 - Store model download checkpoints in OPFS only.
@@ -97,6 +103,7 @@ Cloud Library content is private account content. Validate ownership and detecte
 ## API/RPC boundaries
 
 Critical RPC classes:
+
 - Use RPCs to acquire, finalize and release generation permits.
 - Use an RPC to read authoritative commercial usage.
 - Use RPCs to allocate, reconcile and return Offline usage.
@@ -109,6 +116,7 @@ Critical RPC classes:
 ## Admin grants
 
 Admin grants:
+
 - Resolve the target account on the server side before applying a grant.
 - Require an admin or owner role plus strong authentication for grants.
 - Prevent self-granting whenever policy forbids it.

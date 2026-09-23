@@ -7,23 +7,23 @@ export function TermsContent() {
       <PublicSection title="1. Agreement and CARCC">
         <p>
           These Terms govern the OCADE public website and every OCADE service that becomes available
-          under the CARCC brand. CARCC is the independent technology enterprise,
-          business brand and venture behind OCADE. HAANS ANTONI is Founder, CEO and Chairman of
-          CARCC and creator of OCADE.
+          under the CARCC brand. CARCC is the independent technology enterprise, business brand and
+          venture behind OCADE. HAANS ANTONI is Founder, CEO and Chairman of CARCC and creator of
+          OCADE.
         </p>
         <p>
-          These Terms deliberately use the public CARCC brand identity and do not describe a
-          Private Limited Company, LLP, listed company or other legal form unless that status is
-          separately established and published. No wording on this website creates a legal form,
-          share class or corporate status that does not otherwise exist under applicable law.
+          These Terms deliberately use the public CARCC brand identity and do not describe a Private
+          Limited Company, LLP, listed company or other legal form unless that status is separately
+          established and published. No wording on this website creates a legal form, share class or
+          corporate status that does not otherwise exist under applicable law.
         </p>
       </PublicSection>
 
       <PublicSection title="2. Effective date, founding date and launch">
         <p>
           These Terms are effective from 25 August 2026 for the public website and any OCADE service
-          already made available. CARCC records 28 August 2026 as its formal founding date
-          and the scheduled public launch date for OCADE.
+          already made available. CARCC records 28 August 2026 as its formal founding date and the
+          scheduled public launch date for OCADE.
         </p>
         <p>
           Public legal, identity, verification, support and information pages can be available
@@ -139,11 +139,11 @@ export function TermsContent() {
 
       <PublicSection title="10. CARCC and OCADE intellectual property">
         <p>
-          CARCC and its applicable rights holders retain their rights in OCADE software,
-          original code, interfaces, designs, systems, proprietary technology, brand materials,
-          logos, product identity and the tagline “Command the Next Era.” Third-party and
-          open-source software, model weights and other third-party materials remain governed by
-          their own licences and rights.
+          CARCC and its applicable rights holders retain their rights in OCADE software, original
+          code, interfaces, designs, systems, proprietary technology, brand materials, logos,
+          product identity and the tagline “Command the Next Era.” Third-party and open-source
+          software, model weights and other third-party materials remain governed by their own
+          licences and rights.
         </p>
         <p>
           Using OCADE does not transfer ownership of the platform or CARCC brand to a user,
@@ -173,16 +173,15 @@ export function TermsContent() {
           requirements. Notice may be provided where practicable or required.
         </p>
         <p>
-          CARCC may modify, replace, restrict or discontinue a feature or service, including
-          a free feature, subject to rights that applicable law does not permit these Terms to
-          waive.
+          CARCC may modify, replace, restrict or discontinue a feature or service, including a free
+          feature, subject to rights that applicable law does not permit these Terms to waive.
         </p>
       </PublicSection>
 
       <PublicSection title="13. Free launch and future paid services">
         <p>
-          OCADE currently does not open paid checkout. Pricing may describe planned Free, Pro and Max
-          options, but no paid charge is available until OCADE explicitly opens a purchase flow.
+          OCADE currently does not open paid checkout. Pricing may describe planned Free, Pro and
+          Max options, but no paid charge is available until OCADE explicitly opens a purchase flow.
         </p>
         <p>
           If paid purchases are introduced later, the purchase flow must disclose the applicable
@@ -223,8 +222,8 @@ export function TermsContent() {
       <PublicSection title="16. Service provided as available">
         <p>
           To the maximum extent permitted by applicable law, OCADE is provided on an “as is” and “as
-          available” basis. CARCC does not promise uninterrupted, error-free, loss-free,
-          perfectly secure or perfectly accurate operation, or that every defect will be corrected.
+          available” basis. CARCC does not promise uninterrupted, error-free, loss-free, perfectly
+          secure or perfectly accurate operation, or that every defect will be corrected.
         </p>
         <p>
           You should maintain independent records and backups for information that is important to
@@ -266,8 +265,8 @@ export function TermsContent() {
           content without authorization.
         </p>
         <p>
-          This clause does not require a consumer to indemnify CARCC for CARCC's own
-          liability where applicable law does not permit that result.
+          This clause does not require a consumer to indemnify CARCC for CARCC's own liability where
+          applicable law does not permit that result.
         </p>
       </PublicSection>
 
@@ -313,10 +312,10 @@ export function TermsContent() {
 
       <PublicSection title="22. Changes to these Terms">
         <p>
-          CARCC may update these Terms as OCADE changes. Material changes will be identified
-          through an appropriate notice before or when they take effect where required. If a change
-          legally requires fresh consent, OCADE will request that consent rather than relying only
-          on continued use.
+          CARCC may update these Terms as OCADE changes. Material changes will be identified through
+          an appropriate notice before or when they take effect where required. If a change legally
+          requires fresh consent, OCADE will request that consent rather than relying only on
+          continued use.
         </p>
       </PublicSection>
 
@@ -371,10 +370,10 @@ export function PrivacyContent() {
     <>
       <PublicSection title="1. Who is responsible">
         <p>
-          CARCC is the independent technology enterprise, business brand and venture behind
-          OCADE and is responsible for the OCADE service operations described in this notice. This
-          notice uses the public CARCC brand identity and does not publish an unverified
-          legal form, registration category, address or corporate status.
+          CARCC is the independent technology enterprise, business brand and venture behind OCADE
+          and is responsible for the OCADE service operations described in this notice. This notice
+          uses the public CARCC brand identity and does not publish an unverified legal form,
+          registration category, address or corporate status.
         </p>
       </PublicSection>
 
@@ -463,8 +462,7 @@ export function PrivacyContent() {
         </p>
         <p>
           OCADE may keep the minimum local pending information needed to finish synchronizing saved
-          work after a connection returns. Temporary Chat remains outside that synchronization
-          flow.
+          work after a connection returns. Temporary Chat remains outside that synchronization flow.
         </p>
       </PublicSection>
 
@@ -525,9 +523,9 @@ export function PrivacyContent() {
 
       <PublicSection title="14. Changes and contact">
         <p>
-          CARCC may update this notice as OCADE changes. Material privacy changes will be
-          identified through an appropriate notice and fresh consent will be requested where the law
-          requires it.
+          CARCC may update this notice as OCADE changes. Material privacy changes will be identified
+          through an appropriate notice and fresh consent will be requested where the law requires
+          it.
         </p>
         <p>
           Privacy, security and grievance requests use the OCADE ticket system while dedicated

@@ -117,6 +117,7 @@ const ApiOfflineBytesReleaseRoute = ApiOfflineBytesReleaseRouteImport.update({
   path: '/api/offline/bytes/$release',
   getParentRoute: () => rootRouteImport,
 } as any)
+
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
@@ -381,8 +382,6 @@ declare module '@tanstack/react-router' {
       path: '/api/offline/bytes/$release'
       fullPath: '/api/offline/bytes/$release'
       preLoaderRoute: typeof ApiOfflineBytesReleaseRouteImport
-      parentRoute: typeof rootRouteImport
-    }
       parentRoute: typeof rootRouteImport
     }
   }

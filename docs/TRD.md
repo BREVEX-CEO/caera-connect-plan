@@ -35,6 +35,7 @@ CARCC is the company; OCADE is the product. The current technical mission is the
 ## Authentication
 
 Target OCADE website authentication:
+
 - Support Google sign-in.
 - Support six-digit email OTP.
 - Support password sign-in as a target authentication method.
@@ -58,6 +59,7 @@ One opaque OCADE release, one installer, one downloader, one model lifecycle.
 All Offline model **bytes, partial chunks/ranges, download checkpoints, integrity state, model metadata, active/previous model pointers and runtime-owned model assets** must live in OPFS.
 
 Do not use:
+
 - Do not store Offline model bytes or chunks in IndexedDB.
 - Do not store Offline model bytes or chunks in Cache Storage.
 - Do not store Offline model bytes, chunks or model metadata in localStorage.

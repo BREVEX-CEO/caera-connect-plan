@@ -3,6 +3,7 @@
 ## Pages and surfaces
 
 ### Public
+
 - `/` — Chat shell; Send requires sign-in.
 - Use `/pricing` to show Free, Pro and Max information while paid checkout remains closed.
 - `/about` — founder/company context: CARCC is the company, OCADE the product.
@@ -12,6 +13,7 @@
 - future `/status` only when real status data is published.
 
 ### Signed-in
+
 - Use `/` as the primary Chat surface.
 - Use `/library` for uploaded and generated files.
 - Open Settings as a responsive account surface from the Account control.
@@ -35,6 +37,7 @@ Mobile: drawer/sheet with the same current capabilities. No horizontal scrolling
 ## Authentication
 
 Offer:
+
 - Offer Continue with Google as a sign-in method.
 - Offer email OTP as a sign-in method.
 - Offer password sign-in when the target implementation is complete.
@@ -57,6 +60,7 @@ Privileged actions may require an MFA challenge even when the account is already
 ## Intelligence selector
 
 ### Auto
+
 Connected + Online healthy → Online.
 
 No connectivity + Offline ready → Offline with a subtle customer-safe status.
@@ -64,10 +68,13 @@ No connectivity + Offline ready → Offline with a subtle customer-safe status.
 Online pre-output failure + Offline ready → one fallback without a second use.
 
 ### Online
+
 Needs Internet. When disconnected, disable it and explain why.
 
 ### Offline
+
 Zero Online provider traffic. If not installed/removed:
+
 - Show **Install Offline** immediately when Offline Intelligence is missing.
 - if the user previously removed it, show reusable **Install / Cancel** prompt on a later sign-in and whenever they choose Offline.
 
@@ -76,6 +83,7 @@ Offline refuses image upload/input.
 ## Offline installation
 
 Normal first sign-in:
+
 1. Determine whether customer previously removed Offline.
 2. If not, begin preparation automatically.
 3. Chat remains usable Online.
@@ -84,6 +92,7 @@ Normal first sign-in:
 6. Download/checkpoint/resume → verify → activate → Ready.
 
 Explicit Remove:
+
 1. Ask concise confirmation.
 2. Delete model data from OPFS.
 3. Verify absence.
@@ -95,12 +104,14 @@ Normal website updates never invalidate an unchanged verified model release.
 ## Message controls
 
 User message:
+
 - Users can copy their own message.
 - Users can edit their own message.
 - Users can permanently delete their own message where the product supports it.
 - Users can highlight text or a word and choose Ask OCADE.
 
 Assistant:
+
 - Users can copy an OCADE answer.
 - Users can regenerate an OCADE answer.
 - Users can retry after a failed answer.
@@ -123,6 +134,7 @@ Assistant:
 ## Temporary Chat
 
 Temporary Chat:
+
 - Temporary Chat writes no conversation or message history.
 - Temporary Chat does not automatically add files to Library.
 - Temporary Chat disappears when the temporary session ends.
@@ -131,6 +143,7 @@ Temporary Chat:
 ## Offline account work
 
 If a saved chat is created while connectivity is unavailable:
+
 1. answer locally;
 2. mark unsynchronized work clearly;
 3. place required pending work in the encrypted local reconciliation journal;
@@ -149,6 +162,7 @@ If a saved chat is created while connectivity is unavailable:
 ## Settings
 
 Categories:
+
 - Account settings manage identity, authentication, sessions and account actions.
 - Appearance settings manage visual preferences.
 - Notifications settings manage notification preferences and quiet hours.
@@ -184,6 +198,7 @@ Generation locks at zero. History, Library, Settings, Pricing, account controls 
 ## Error contract
 
 Every async flow ends in one of:
+
 - End in success when the operation completes.
 - End in an empty state when no data exists.
 - End in an actionable error state with Retry when recovery is possible.

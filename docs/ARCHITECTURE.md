@@ -57,6 +57,7 @@ Do not bypass a lower authority with UI-local rules.
 Supabase is canonical for durable signed-in account data.
 
 Local browser persistence is intentionally narrow:
+
 - Use OPFS only for Offline model bytes, chunks, checkpoints, model metadata and runtime model assets.
 - Use an encrypted pending reconciliation journal for disconnected account work that must survive restart.
 - Keep only small device or UI preferences in their appropriate lightweight preference store.
@@ -71,6 +72,7 @@ The browser sees normalized OCADE events only. Real provider/model identity stay
 ## Offline architecture
 
 One installer owns:
+
 - The installer resolves the approved release.
 - The installer checks storage before transfer.
 - The installer performs ranged transfer.
@@ -107,6 +109,7 @@ One permit/ledger authority handles successful logical generations across all mo
 ## Deployment architecture
 
 Production proof includes:
+
 - Record the exact Git SHA used for the release.
 - Record the matching Cloudflare Worker deployment.
 - Record the matching Supabase migration and generated-type state.

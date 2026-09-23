@@ -68,9 +68,10 @@ GitHub Actions is optional; unavailable/red paid Actions are not product evidenc
 Normal product surfaces say only CARCC, OCADE, Auto, Online, Offline, and customer-safe capability language.
 
 Never expose:
+
 - Never expose provider, vendor or model names in ordinary customer surfaces.
 - Never expose raw runtime names in ordinary customer surfaces.
-- Never expose GGUF, OPFS, WebGPU, WASM, R2 or Supabase implementation vocabulary in the normal UI.
+- Never expose model file formats, OPFS, WebGPU, WASM, R2 or Supabase implementation vocabulary in the normal UI.
 - provider keys, model source URLs, private bucket/object names, service-role credentials, secrets, stack traces, or internal deployment identifiers.
 
 The real provider/model identity may exist only where technically unavoidable in tightly scoped server-only secret configuration or deployment integration. Keep it out of the browser bundle and public repository documentation whenever configuration can carry it instead.

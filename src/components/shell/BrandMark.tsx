@@ -10,10 +10,7 @@ export function BrandMark({
   showWordmark?: boolean;
 }) {
   return (
-    <span
-      className={cn("inline-flex items-center gap-2.5", className)}
-      aria-label="OCADE by CARCC"
-    >
+    <span className={cn("inline-flex items-center gap-2.5", className)} aria-label="OCADE by CARCC">
       <img
         src="/brand/ocade-carcc-mark.png"
         alt=""

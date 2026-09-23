@@ -29,6 +29,7 @@ People should not need separate AI products for connected answers and private on
 ## Non-goals for the current mission
 
 Do not build or describe as current product functionality:
+
 - Do not build a Code or coding-agent product in the current mission.
 - Do not build Projects in the current mission.
 - Do not build Tasks in the current mission.
@@ -98,6 +99,7 @@ Visible selector: **Auto | Online | Offline**.
 ### Account and authentication
 
 Target current methods:
+
 - Support Google sign-in as a current authentication method.
 - Support six-digit email OTP as a current authentication method.
 - Support password sign-in as a target authentication method.
@@ -125,6 +127,7 @@ Account memory is an optional account-level capability. When enabled, it may wor
 Keep Free / Pro / Max and weekly + monthly paid catalogue options.
 
 Current approved displayed anchors:
+
 - Display Pro weekly at 8 USD/EUR/GBP or ₹288.
 - Display Pro monthly at 28 USD/EUR/GBP or ₹1,888.
 - Display Max weekly at 28 USD/EUR/GBP or ₹1,888.
@@ -170,6 +173,7 @@ No future capability is current merely because old schema/code once existed. A f
 ## Success metrics and launch gates
 
 The current mission is ready only when:
+
 - Confirm that no known repository-controlled Critical or Major launch blocker remains.
 - Confirm that all required unit, database, integration and browser gates pass.
 - Prove real Online answers with a disposable test account.

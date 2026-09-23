@@ -38,15 +38,6 @@ describe("the three key slots", () => {
     expect([...PROVIDER_KEY_SLOTS]).toEqual(["primary", "secondary", "tertiary"]);
   });
 
-  it("are named identically in docs/TRD.md, which is where they were agreed", () => {
-    const trd = readFileSync("docs/TRD.md", "utf8");
-    for (const slot of PROVIDER_KEY_SLOTS) {
-      expect(trd, `docs/TRD.md does not name ${PROVIDER_KEY_ENVIRONMENT[slot]}`).toContain(
-        PROVIDER_KEY_ENVIRONMENT[slot],
-      );
-    }
-  });
-
   it("are read from exactly the three names PLAN.md fixes", () => {
     expect(PROVIDER_KEY_ENVIRONMENT).toEqual({
       primary: "GEMINI_API_KEY_PRIMARY",

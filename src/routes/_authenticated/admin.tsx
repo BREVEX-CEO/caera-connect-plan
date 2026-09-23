@@ -151,6 +151,8 @@ function AdminPage() {
                       >
                         Revoke
                       </button>
+                    ) : row.isSelf ? (
+                      <span className="text-muted-foreground">Another admin grants yours</span>
                     ) : (
                       <button
                         type="button"
@@ -164,7 +166,7 @@ function AdminPage() {
                   </span>
                 </div>
 
-                {open === row.id ? (
+                {open === row.id && !row.isSelf ? (
                   <GrantForm
                     busy={grant.isPending}
                     onCancel={() => setOpen(null)}
@@ -235,7 +237,6 @@ function AccessBadge({ row }: { row: AdminAccountRow }) {
       </span>
     );
   }
-  if (row.paid) return <span className="text-muted-foreground">Paid subscription</span>;
   return <span className="text-muted-foreground">Free</span>;
 }
 
@@ -256,7 +257,7 @@ function GrantForm({
     Number.isInteger(parsedDays) &&
     parsedDays >= 1 &&
     parsedDays <= 366 &&
-    reason.trim().length >= 3;
+    reason.trim().length >= 10;
 
   return (
     <form
@@ -312,7 +313,7 @@ function GrantForm({
           ? `${tier === "max" ? "Max" : "Pro"} until ${new Date(
               Date.now() + parsedDays * 86_400_000,
             ).toLocaleDateString()}, recorded against your account with the reason above.`
-          : "Choose a tier, 1 to 366 days, and a reason of at least three characters."}
+          : "Choose a tier, 1 to 366 days, and a reason of at least ten characters."}
       </p>
       <button
         type="button"

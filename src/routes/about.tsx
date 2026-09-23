@@ -8,8 +8,7 @@ export const Route = createFileRoute("/about")({
       { title: "About the founder — OCADE" },
       {
         name: "description",
-        content:
-          "HAANS ANTONI is Founder, CEO and Chairman of CARCC and the creator of OCADE.",
+        content: "HAANS ANTONI is Founder, CEO and Chairman of CARCC and the creator of OCADE.",
       },
       { property: "og:title", content: "About the founder — OCADE" },
       {

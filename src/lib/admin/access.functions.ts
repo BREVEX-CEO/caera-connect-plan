@@ -38,8 +38,8 @@ export interface AdminAccountRow {
     reason: string | null;
     endsAt: string;
   } | null;
-  /** True when a verified provider subscription is live. Shown, never edited. */
-  paid: boolean;
+  /** The operator's own account, which the grant function refuses to target. */
+  isSelf: boolean;
 }
 
 /**
@@ -96,7 +96,7 @@ export interface AdminAccountPage {
 }
 
 /**
- * Accounts, their roles, their live manual grant and whether they pay.
+ * Accounts, their roles and their live manual grant.
  *
  * With no term this is the newest page, which is what an operator opening the
  * screen wants to see. With one, the DATABASE matches it — an exact account id,
@@ -132,11 +132,11 @@ export const listAccountAccess = createServerFn({ method: "GET" })
     if (ids.length === 0) return { accounts: [], more: false };
 
     /*
-     * THE THREE COMPANION READS ARE SCOPED TO THE PAGE, not to the whole table.
+     * THE COMPANION READS ARE SCOPED TO THE PAGE, not to the whole table.
      * They used to read a thousand rows each and join in memory, which is a
      * growing read for a shrinking answer.
      */
-    const [roles, grants, subscriptions] = await Promise.all([
+    const [roles, grants] = await Promise.all([
       supabaseAdmin
         .from("user_roles")
         .select("user_id, role")
@@ -153,15 +153,9 @@ export const listAccountAccess = createServerFn({ method: "GET" })
         // Live grants only, and the strongest wins below — so this is generous
         // enough that truncation cannot change which one an operator is shown.
         .limit(ACCOUNT_LIMIT * 20),
-      supabaseAdmin
-        .from("subscriptions")
-        .select("user_id, status")
-        .in("user_id", ids)
-        .in("status", ["active", "trialing"])
-        .limit(ACCOUNT_LIMIT * 8),
     ]);
 
-    for (const result of [roles, grants, subscriptions]) {
+    for (const result of [roles, grants]) {
       if (result.error) throw new Error(result.error.message);
     }
 
@@ -182,7 +176,6 @@ export const listAccountAccess = createServerFn({ method: "GET" })
         endsAt: row.ends_at,
       });
     }
-    const paying = new Set((subscriptions.data ?? []).map((row) => row.user_id));
 
     return {
       accounts: page.map((row) => ({
@@ -192,7 +185,7 @@ export const listAccountAccess = createServerFn({ method: "GET" })
         createdAt: row.created_at,
         roles: rolesByUser.get(row.id) ?? [],
         grant: grantByUser.get(row.id) ?? null,
-        paid: paying.has(row.id),
+        isSelf: row.id === context.userId,
       })),
       more: (matched ?? []).length > ACCOUNT_LIMIT,
     };
@@ -213,7 +206,8 @@ export const grantAccountAccess = createServerFn({ method: "POST" })
         userId: z.string().uuid(),
         tier: z.enum(["pro", "max"]),
         days: z.number().int().min(1).max(366),
-        reason: z.string().trim().min(3).max(500),
+        // The database refuses a reason under ten characters; say so first.
+        reason: z.string().trim().min(10).max(500),
       })
       .parse(input),
   )

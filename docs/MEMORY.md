@@ -19,6 +19,7 @@
 ## Currently in progress
 
 The product authorities are being reset to the owner's final current-scope decisions:
+
 - Use CARCC as the company and OCADE as the product.
 - Keep the current mission website-only and Chat-first.
 - Use Auto, Online and Offline as the customer-facing intelligence modes.
@@ -32,6 +33,7 @@ The product authorities are being reset to the owner's final current-scope decis
 ## Known implementation gaps created by the new decisions
 
 Documentation is authoritative about the desired product, but current source may still need follow-up implementation to:
+
 - Remove any remaining CADANE strings and obsolete package identity.
 - Remove current Paddle-specific runtime and webhook code safely.
 - Add password authentication alongside Google and email OTP.
@@ -74,6 +76,7 @@ Offline unsynced account work that must survive restart should use encrypted loc
 ## Branding
 
 Remove current **CARCC CADANE**, **CADANE**, and old package branding. Use:
+
 - Use CARCC as the company name.
 - Use OCADE as the product name.
 - Use “OCADE by CARCC” as the formal attribution where company ownership context is useful.
@@ -83,6 +86,7 @@ Founder/About remains publicly discoverable but secondary to the product.
 ## Session handoff
 
 At the beginning of a new/resumed/context-compacted Claude session:
+
 1. run `/ponytail ultra`;
 2. run `/caveman ultra`;
 3. read `AGENTS.md`;

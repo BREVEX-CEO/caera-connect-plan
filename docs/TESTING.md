@@ -9,6 +9,7 @@ Every bug fix should have a regression that would have failed before the fix.
 ## Test stack
 
 Use the repository's existing:
+
 - Use Vitest for unit and integration testing.
 - Use PGlite and database-twin suites for database behavior checks.
 - Use TypeScript typechecking to catch contract and typing errors.
@@ -20,6 +21,7 @@ Use the repository's existing:
 ## Unit tests
 
 Use for pure policy and state machines:
+
 - Unit-test usage-window calculations and resets.
 - Unit-test intelligence routing and fallback decisions.
 - Unit-test Offline installer state transitions.
@@ -31,6 +33,7 @@ Use for pure policy and state machines:
 ## Integration tests
 
 Use for:
+
 - Integration-test Chat send, regenerate and delete persistence.
 - Integration-test account switching and state isolation.
 - Integration-test usage permits and settlement.
@@ -42,6 +45,7 @@ Use for:
 ## Database tests
 
 Real PostgreSQL-compatible tests must cover:
+
 - Database-test row-level security and privilege boundaries.
 - Database-test security-definer functions and their authorization checks.
 - Database-test cross-account isolation.
@@ -55,6 +59,7 @@ Real PostgreSQL-compatible tests must cover:
 Use real browser control against safe disposable data.
 
 Test every reachable current:
+
 - Exercise every reachable page.
 - Exercise every reachable button.
 - Exercise every reachable menu.
@@ -64,6 +69,7 @@ Test every reachable current:
 - Exercise every reachable loading, empty, error and Retry state.
 
 Critical journeys:
+
 - Exercise Google, email OTP and password authentication as implemented.
 - Exercise Send, Stop, Edit, Regenerate, Retry and Delete.
 - Exercise Temporary Chat and prove that it does not persist.
@@ -81,6 +87,7 @@ Critical journeys:
 A real Online test requires evidence that the server boundary produced the response. Customer/browser evidence must not expose the real provider/model name.
 
 Test:
+
 - Prove a successful real Online response stream.
 - Prove the pre-output Online failure path.
 - Prove that fallback does not occur after meaningful Online output.
@@ -91,6 +98,7 @@ Test:
 ## Offline proof
 
 Real hardware/browser proof should cover:
+
 - Prove the first Offline install from an empty browser profile.
 - Prove that model bytes, chunks, checkpoints and model metadata live only in OPFS.
 - Prove model interruption and resume behavior.
@@ -114,6 +122,7 @@ Pending unsynced account work is a separate encrypted journal and must not be co
 ## Responsive/accessibility
 
 At minimum exercise 360/375 px phone, tablet and desktop layouts:
+
 - Confirm there is no horizontal overflow.
 - Confirm that all controls remain reachable.
 - Confirm keyboard navigation and focus behavior.
@@ -124,6 +133,7 @@ At minimum exercise 360/375 px phone, tablet and desktop layouts:
 ## Security/privacy
 
 Test:
+
 - Test cross-account isolation.
 - Test that forbidden direct database mutations are rejected.
 - Test revoked sessions and devices.
@@ -145,6 +155,7 @@ Use dedicated disposable accounts/files/devices for destructive QA. Never modify
 ## Required checks
 
 Run affected tests first, then appropriate broader checks. Release-grade changes normally include:
+
 - Run `npm run typecheck` to verify TypeScript types.
 - Run `npm run lint` to verify lint rules.
 - Run `npm run format:check` to verify formatting.

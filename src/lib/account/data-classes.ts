@@ -18,10 +18,8 @@
  *   table has no delete policy at all, deliberately, and erasing it would
  *   destroy the record that protects the person as much as the product.
  *
- *   `billing` — invoices and payment events are kept for the statutory
- *   retention period. They are exported in full so the access right is real,
- *   and the deletion path for them is account closure plus the retention
- *   clock, not a button.
+ *   `billing` — plan-access grants are the audit record of who gave paid
+ *   access and why. They are exported in full and leave with the account.
  *
  *   `profile` — the account's own identity row. Deleting it is deleting the
  *   account, which is a different, irreversible operation with its own
@@ -148,18 +146,11 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
   },
   {
     id: "billing",
-    label: "Billing records",
-    description: "Subscriptions, invoices and the payment events behind them.",
-    tables: [
-      // The provider's own subscription record. It is the customer's and
-      // belongs in their export; it is not theirs to delete.
-      { table: "subscriptions", owner: "user_id" },
-      { table: "ocade_entitlement_grants", owner: "user_id" },
-      { table: "ocade_invoices", owner: "user_id" },
-      { table: "ocade_payment_events", owner: "user_id" },
-    ],
+    label: "Plan access",
+    description: "Pro or Max access given to this account, by whom, why and for how long.",
+    tables: [{ table: "ocade_entitlement_grants", owner: "user_id" }],
     retention:
-      "Financial records are kept for the statutory retention period and cannot be deleted on request. They are included in your export in full.",
+      "Plan access records are the audit trail of who gave access and why. They are kept while the account exists and are included in your export.",
   },
   {
     id: "legal",

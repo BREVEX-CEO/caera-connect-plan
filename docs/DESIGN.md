@@ -55,18 +55,23 @@ Use existing Tailwind breakpoints unless evidence proves a missing case. Mobile 
 ## Component patterns
 
 ### Navigation
+
 Only current product surfaces. Avoid exposing dormant/future modules.
 
 ### Composer
+
 Clear input, attachment, mode selection, optional reasoning/research, microphone and Send/Stop. State changes should not cause large layout jumps.
 
 ### Settings
+
 Compact category navigation; rows stack on small screens.
 
 ### Library
+
 Simple filters/search/list/grid only where useful. Generated and uploaded files belong to one Library concept.
 
 ### Admin
+
 Role-gated, information-dense enough for operations but still follows product typography/spacing.
 
 ## Buttons
@@ -101,7 +106,7 @@ WCAG-conscious contrast, keyboard navigation, focus visibility, semantic HTML, s
 
 - Do not use CADANE branding.
 - Do not show provider, model, vendor or runtime names in the normal UI.
-- Do not show OPFS, GGUF, WebGPU, WASM, R2 or Supabase terminology in the normal UI.
+- Do not show OPFS, model file formats, WebGPU, WASM, R2 or Supabase terminology in the normal UI.
 - Do not build card-wall dashboards.
 - Do not show unsupported or fake controls.
 - Do not show Projects, Tasks, Automations, Organizations or Code surfaces in the current scope.

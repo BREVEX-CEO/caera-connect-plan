@@ -11,6 +11,7 @@
 ## Code organization
 
 Keep responsibility with the existing authority:
+
 - Keep Chat state in the Chat authority.
 - Keep routing decisions in the intelligence router.
 - Keep usage accounting in the commercial authority.
@@ -65,6 +66,7 @@ No broad `any` to bypass a real contract. Validate untrusted network/storage/fil
 ## Offline storage rules
 
 Model storage/download is OPFS-only:
+
 - Store Offline model bytes, chunks, checkpoints, metadata, pointers and runtime model assets in OPFS only.
 - Do not keep a duplicate Offline model copy in IndexedDB, Cache Storage or localStorage.
 - A normal site update must not redownload an unchanged verified Offline release.
