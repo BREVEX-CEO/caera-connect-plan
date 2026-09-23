@@ -66,11 +66,24 @@ describe("a send knows which screen it belongs to", () => {
 });
 
 describe("what was delivered is what is charged", () => {
-  it("records delivery before the answer is persisted, not after", () => {
+  it("records delivery at the first visible token, before any persistence", () => {
     const delivered = at("billed.recordDelivery({ answer })");
-    const persisted = SOURCE.indexOf('role: "assistant"');
-    expect(persisted).toBeGreaterThan(-1);
-    expect(delivered).toBeLessThan(persisted);
+    // Inside the token branch, guarded by the screen that renders it.
+    const tokenBranch = at('if (event.type === "token")');
+    expect(delivered).toBeGreaterThan(tokenBranch);
+    expect(SOURCE.slice(tokenBranch, delivered)).toContain("if (mine())");
+    expect(delivered).toBeLessThan(SOURCE.indexOf('role: "assistant"'));
+    // Exactly one delivery marker: a late second one is how F23 came back.
+    expect(SOURCE.match(/billed\.recordDelivery/g)).toHaveLength(1);
+  });
+
+  it("keeps a partially read answer with its own conversation after a switch", () => {
+    const moved = at("if (!mine()) {\n          /*\n           * THE SCREEN MOVED AFTER PART");
+    const kept = SOURCE.indexOf("content: shown", moved);
+    expect(kept).toBeGreaterThan(moved);
+    // Same account only, and never a temporary chat.
+    expect(SOURCE.slice(moved, kept)).toContain("lastAccount.current === owner");
+    expect(SOURCE.slice(moved, kept)).toContain("!temporary");
   });
 
   it("still settles once, on every way out", () => {

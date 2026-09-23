@@ -108,6 +108,47 @@ function unfinishedTagLength(text: string, tag: string): number {
   return 0;
 }
 
+/** Tokens held back for the answer when the transcript is packed. */
+const ANSWER_RESERVE = 512;
+
+/**
+ * Tokens the engine's context holds. wllama defaults to 1024, which a normal
+ * continued chat overflows. Bounded by device memory, because the attention
+ * cache grows with it.
+ */
+export function contextTokens(signals = readThreadSignals()): number {
+  return signals.mobile || (signals.deviceMemoryGb ?? 4) < 8 ? 2048 : 4096;
+}
+
+/**
+ * A conservative token estimate with no tokenizer: three UTF-8 bytes per token
+ * overestimates Latin text and matches CJK; eight covers each turn's template.
+ */
+export function estimateTokens(text: string): number {
+  return Math.ceil(new TextEncoder().encode(text).length / 3) + 8;
+}
+
+/**
+ * The newest turns that fit `budget`, always ending with the current question.
+ * Null when the question alone does not fit, which is refused before any work.
+ */
+export function fitTranscript(messages: BrainMessage[], budget: number): BrainMessage[] | null {
+  const system = messages.filter((m) => m.role === "system");
+  const turns = messages.filter((m) => m.role !== "system");
+  let used = system.reduce((sum, m) => sum + estimateTokens(m.content), 0);
+  const kept: BrainMessage[] = [];
+  for (let i = turns.length - 1; i >= 0; i -= 1) {
+    const cost = estimateTokens(turns[i]!.content);
+    if (used + cost > budget) break;
+    used += cost;
+    kept.unshift(turns[i]!);
+  }
+  if (kept.length === 0 || kept[kept.length - 1] !== turns[turns.length - 1]) return null;
+  // Open on the person's turn, never on an orphaned answer.
+  while (kept.length > 1 && kept[0]!.role !== "user") kept.shift();
+  return [...system, ...kept];
+}
+
 export class BrowserWasmAdapter implements BrainAdapter {
   readonly id = "browser_wasm" as const;
   readonly displayName = "OCADE Browser (compatibility)";
@@ -120,7 +161,14 @@ export class BrowserWasmAdapter implements BrainAdapter {
   private readonly preferThreads: boolean;
   /** Layers to offload. 0 is the processor; the graphics rung asks for all. */
   private readonly gpuLayers: number;
-  /** What the runtime actually did, once a model is loaded. */
+  /**
+   * ONE GENERATION AT A TIME. wllama cannot cancel work inside its worker:
+   * abort only stops this side reading, and the worker's queued output is then
+   * read by the NEXT completion, which put one chat's words in another. So a
+   * request waits for the previous one, and any generation that did not finish
+   * on its own disposes the runtime before the next begins.
+   */
+  private slot: Promise<unknown> = Promise.resolve();
 
   constructor(options?: {
     onProgress?: (p: WasmProgress) => void;
@@ -305,6 +353,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
     });
     return {
       n_threads: plan.threads,
+      n_ctx: contextTokens(),
       /*
        * SMALL BATCHES AND ONE SEQUENCE, BECAUSE THE DEVICE IS THE CONSTRAINT.
        *
@@ -437,10 +486,19 @@ export class BrowserWasmAdapter implements BrainAdapter {
     return instance;
   }
 
-  async stream(
+  stream(messages: BrainMessage[], handlers: BrainStreamHandlers): Promise<BrainStreamResult> {
+    const run = this.slot.then(() => this.streamAlone(messages, handlers));
+    this.slot = run.catch(() => undefined);
+    return run;
+  }
+
+  private async streamAlone(
     messages: BrainMessage[],
     handlers: BrainStreamHandlers,
   ): Promise<BrainStreamResult> {
+    if (handlers.signal?.aborted) {
+      return { ok: false, failure: "cancelled", reason: "Stopped." };
+    }
     if (messages.some((m) => (m.images?.length ?? 0) > 0)) {
       return {
         ok: false,
@@ -459,6 +517,18 @@ export class BrowserWasmAdapter implements BrainAdapter {
       return { ok: false, failure: "unavailable", reason: "No browser engine was selected." };
     }
 
+    const context = contextTokens();
+    const fitted = fitTranscript(messages, context - ANSWER_RESERVE);
+    if (!fitted) {
+      return {
+        ok: false,
+        failure: "unavailable",
+        reason:
+          "This message is too long for Offline Intelligence on this device. Shorten it or use Online.",
+      };
+    }
+    const inputTokens = fitted.reduce((sum, m) => sum + estimateTokens(m.content), 0);
+
     let instance: WllamaInstance;
     try {
       instance = await this.ensureLoaded(model);
@@ -475,6 +545,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
     const startedAt = Date.now();
     let firstTokenMs: number | null = null;
     const reasoning = reasoningFilter();
+    let finished = false;
 
     try {
       // `abortSignal` is wllama's own, so cancelling stops the computation
@@ -503,7 +574,10 @@ export class BrowserWasmAdapter implements BrainAdapter {
          * the person. What changed is that the switch is now connected.
          */
         chat_template_kwargs: { enable_thinking: handlers.think === true },
-        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        // Never more than the context has room for, so a long answer ends
+        // cleanly instead of overflowing.
+        max_tokens: Math.max(ANSWER_RESERVE, context - inputTokens),
+        messages: fitted.map((m) => ({ role: m.role, content: m.content })),
       });
 
       for await (const chunk of stream) {
@@ -527,6 +601,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
       if (handlers.signal?.aborted) {
         return { ok: false, failure: "cancelled", reason: "Stopped." };
       }
+      finished = true;
       return { ok: true, modelId: this.loadedRelease, firstTokenMs };
     } catch (error) {
       const name = error instanceof Error ? error.name : "";
@@ -540,6 +615,9 @@ export class BrowserWasmAdapter implements BrainAdapter {
           error instanceof Error ? error.message : String(error)
         }`,
       };
+    } finally {
+      // Its worker may still be producing; that output must reach nobody.
+      if (!finished) await this.dispose();
     }
   }
 

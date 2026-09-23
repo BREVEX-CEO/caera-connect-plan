@@ -119,8 +119,13 @@ describe("what the gate refuses to let happen", () => {
 
   it("records delivery only when something was actually delivered", () => {
     const chat = readFileSync("src/lib/chat/use-chat.ts", "utf8");
-    expect(chat.indexOf("if (answer.length === 0)")).toBeLessThan(
+    // Only after a token arrived; the permit itself ignores blank answers.
+    expect(chat.indexOf("answer += event.text")).toBeLessThan(
       chat.indexOf("billed.recordDelivery"),
+    );
+    const permit = readFileSync("src/lib/commercial/use-generation-permit.ts", "utf8");
+    expect(permit).toContain(
+      'if ((work.answer ?? "").trim().length > 0) anythingDelivered = true;',
     );
   });
 });

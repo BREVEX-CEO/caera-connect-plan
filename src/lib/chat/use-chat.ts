@@ -437,6 +437,7 @@ export function useChat(): ChatState & ChatActions {
        */
       const at = epoch.current;
       const mine = () => epoch.current === at;
+      const owner = account;
 
       /*
        * THE ALLOWANCE IS ASKED FIRST, before a conversation exists and before
@@ -588,6 +589,8 @@ export function useChat(): ChatState & ChatActions {
           : turns;
 
         let answer = "";
+        /** What the person actually saw. Only this is charged and kept. */
+        let shown = "";
         let refusal: string | null = null;
 
         try {
@@ -612,7 +615,16 @@ export function useChat(): ChatState & ChatActions {
           })) {
             if (event.type === "token") {
               answer += event.text;
-              if (mine()) setStreaming(answer);
+              /*
+               * DELIVERY IS THE FIRST VISIBLE WORD. Recorded here, while this
+               * screen still owns it, so switching chats after reading part of
+               * an answer cannot release it at zero.
+               */
+              if (mine()) {
+                billed.recordDelivery({ answer });
+                shown = answer;
+                setStreaming(answer);
+              }
             } else if (event.type === "refusal") {
               refusal = event.reason;
             }
@@ -630,7 +642,17 @@ export function useChat(): ChatState & ChatActions {
           if (!controller.signal.aborted) throw cause;
         }
 
-        if (!mine()) return true;
+        if (!mine()) {
+          /*
+           * THE SCREEN MOVED AFTER PART OF THE ANSWER WAS READ. It is kept with
+           * the conversation that asked for it, never rendered here, and only
+           * while the same account is signed in.
+           */
+          if (shown.trim() && id && !temporary && lastAccount.current === owner) {
+            await persistChatMessage({ conversationId: id, role: "assistant", content: shown });
+          }
+          return true;
+        }
 
         if (answer.length === 0) {
           /*
@@ -650,19 +672,6 @@ export function useChat(): ChatState & ChatActions {
           // from there. Returning it to the composer would make two of it.
           return true;
         }
-
-        /*
-         * DELIVERY IS RECORDED WHERE DELIVERY HAPPENED — on the screen, before
-         * anything is written.
-         *
-         * This used to come after persistence, so an answer somebody had already
-         * read did not count as delivered if the transcript write threw: the
-         * permit settled as released, the use was not charged, and the account's
-         * allowance drifted a little further from what it had actually spent
-         * every time storage failed. Persisting is OCADE's bookkeeping; the
-         * answer was received either way.
-         */
-        billed.recordDelivery({ answer });
 
         const reply = temporary
           ? { record: temporaryRecord("assistant", answer, []), stored: "memory" as const }
@@ -711,7 +720,15 @@ export function useChat(): ChatState & ChatActions {
       }
       return true;
     },
-    [conversationId, queryClient, refreshConversations, setMessages, setConversations, temporary],
+    [
+      account,
+      conversationId,
+      queryClient,
+      refreshConversations,
+      setMessages,
+      setConversations,
+      temporary,
+    ],
   );
 
   /**
