@@ -261,17 +261,13 @@ function handleRpc(name, args, userId) {
        * journey caught it.
        *
        * Modelled as the database does it: the caller's own rows, this
-       * conversation, at or after the moment, and never a side conversation.
+       * conversation, at or after the moment.
        */
       const held = rows(userId, "ocade_messages");
       const from = Date.parse(args.p_from);
       const keep = held.filter(
         (row) =>
-          !(
-            row.conversation_id === args.p_conversation_id &&
-            !row.anchor_message_id &&
-            Date.parse(row.created_at) >= from
-          ),
+          !(row.conversation_id === args.p_conversation_id && Date.parse(row.created_at) >= from),
       );
       tablesFor(userId).ocade_messages = keep;
       return held.length - keep.length;
@@ -485,12 +481,6 @@ function handleRpc(name, args, userId) {
         -(Number(args.p_cost_hundredths) || 0),
       );
       return null;
-
-    case "ocade_purge_expired_conversation_trash":
-      return null;
-
-    case "ocade_conversation_trash_days":
-      return 30;
 
     case "ocade_count_mfa_recovery_codes":
       return 0;
@@ -861,7 +851,6 @@ const server = createServer((request, response) => {
             updated_at: new Date().toISOString(),
             archived: false,
             pinned: false,
-            deleted_at: null,
             ...row,
           };
           stored.push(created);

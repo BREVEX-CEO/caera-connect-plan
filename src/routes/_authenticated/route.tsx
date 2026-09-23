@@ -30,8 +30,8 @@ export const Route = createFileRoute("/_authenticated")({
   /*
    * NOTHING BEHIND SIGN-IN IS FOR A SEARCH INDEX.
    *
-   * The root sets `index,follow` for the public site, and `/library` and
-   * `/cowork` inherited it: both answered with it in their HTML despite being
+   * The root sets `index,follow` for the public site, and `/library`
+   * inherited it: it answered with it in their HTML despite being
    * account destinations absent from the sitemap, so a crawler was invited to
    * list URLs that show a stranger nothing but a redirect to sign-in. Admin had
    * its own `noindex`; the others were relying on nobody looking.

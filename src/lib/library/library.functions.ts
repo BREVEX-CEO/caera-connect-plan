@@ -7,9 +7,9 @@ import { imageMediaType, isMediaType } from "@/lib/media-type";
  * LIBRARY: ONE TABLE, ONE PRIVATE BUCKET, ONE SET OF FUNCTIONS.
  *
  * Everything here runs as the CALLER, through `requireSupabaseAuth`, so the
- * row-level policies decide what each call can touch. Nothing uses the service
- * role: a library is the most personal thing in the product, and a server
- * function holding an admin client is one bug away from reading everybody's.
+ * row-level policies decide what each call can touch. The one exception is
+ * settling deletion tombstones (`tombstones.server.ts`), which only the service
+ * role may write, scoped to the caller's own id.
  *
  * WHAT A ROW IS. An index entry: a name, a kind, a size and where the object
  * sits. The bytes live in the private `library` bucket under the owner's own
@@ -197,27 +197,21 @@ export const signLibraryItem = createServerFn({ method: "POST" })
 /**
  * Remove one item, bytes and all.
  *
- * The row goes first, which tombstones the object, and then the object is
- * removed directly so the person does not wait on a sweep. A failed object
- * delete is not an error the person needs: the tombstone is the durable record
- * that those bytes are owed a deletion.
+ * The row goes first, which tombstones the object; the sweep then removes the
+ * bytes and acknowledges the tombstone only once Storage confirms. A failed
+ * removal stays pending and is retried by the owner's next deletion.
  */
 export const deleteLibraryItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(z.object({ id: uuid }).parse)
   .handler(async ({ data, context }) => {
-    const { data: row } = await context.supabase
+    const { error, count } = await context.supabase
       .from("ocade_library_items")
-      .select("storage_path")
-      .eq("id", data.id)
-      .single();
-
-    const { error } = await context.supabase.from("ocade_library_items").delete().eq("id", data.id);
+      .delete({ count: "exact" })
+      .eq("id", data.id);
     if (error) throw new Error(`That could not be deleted: ${error.message}`);
-
-    if (row?.storage_path) {
-      await context.supabase.storage.from("library").remove([row.storage_path]);
-    }
+    if (!count) throw new Error("That item is not in your library.");
+    await (await import("./tombstones.server")).sweepTombstones(context.userId);
     return { ok: true as const };
   });
 
@@ -225,22 +219,8 @@ export const deleteLibraryItem = createServerFn({ method: "POST" })
 export const deleteAllLibraryItems = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ removed: number }> => {
-    /*
-     * The paths are read before the rows go, so the objects can be removed
-     * immediately rather than waiting on the tombstone sweep. Bounded at the
-     * same 500 the list is: past that the rows are still all deleted and their
-     * tombstones still name every object, so the sweep finishes the job.
-     */
-    const { data: rows } = await context.supabase
-      .from("ocade_library_items")
-      .select("storage_path")
-      .limit(500);
-
     const { data: removed, error } = await context.supabase.rpc("ocade_delete_all_library_items");
     if (error) throw new Error(`Your library could not be emptied: ${error.message}`);
-
-    const paths = (rows ?? []).map((row) => row.storage_path).filter(Boolean);
-    if (paths.length > 0) await context.supabase.storage.from("library").remove(paths);
-
+    await (await import("./tombstones.server")).sweepTombstones(context.userId);
     return { removed: Number(removed ?? 0) };
   });

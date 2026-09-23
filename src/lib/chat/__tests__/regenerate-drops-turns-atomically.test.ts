@@ -117,35 +117,6 @@ describe("dropping a question and everything after it", () => {
     `);
   });
 
-  it("leaves a side conversation on a surviving turn alone", async () => {
-    const id = await conversation(OWNER);
-    const times = await turns(OWNER, id, 3);
-    const anchor = (
-      await twin.asSuperuser<{ id: string }>(
-        `select id from public.ocade_messages where conversation_id = '${id}'
-          order by created_at limit 1`,
-      )
-    )[0]!.id;
-    /*
-     * A side conversation is a message with an anchor, and its own timestamp is
-     * NOW — later than every turn being dropped. Truncating by time alone would
-     * take it, which is why the function filters on the anchor the same way
-     * `listMessages` does: a thread kept out of the transcript is not part of
-     * the transcript being replaced.
-     */
-    await twin.execSuperuser(
-      `insert into public.ocade_messages
-         (user_id, conversation_id, role, content, created_at, anchor_message_id)
-       values ('${OWNER}', '${id}', 'user', 'aside', now(), '${anchor}')`,
-    );
-
-    // From the SECOND turn, so the anchor survives. Dropping the anchor itself
-    // takes the thread with it through the column's own ON DELETE CASCADE,
-    // which is the schema's answer to a thread whose message no longer exists.
-    expect((await truncate(OWNER, id, times[1]!)).rows[0]?.ocade_delete_messages_from).toBe(2);
-    expect(await contentsOf(id)).toEqual(["turn 1", "aside"]);
-  });
-
   it("cannot be turned on somebody else's conversation", async () => {
     const id = await conversation(OWNER);
     const times = await turns(OWNER, id, 3);

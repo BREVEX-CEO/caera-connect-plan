@@ -1,5 +1,5 @@
 /**
- * OCADE server functions — conversations, messages, prompt improvement.
+ * OCADE server functions — conversations and messages.
  * All routes use requireSupabaseAuth so RLS applies as the caller.
  */
 import { createServerFn } from "@tanstack/react-start";
@@ -31,47 +31,16 @@ export interface OcadeConversationRow {
   model_id: string | null;
   updated_at: string;
   created_at: string;
-  /** When this was moved to trash. `null` means it is not in the trash. */
-  deleted_at: string | null;
 }
 
-const CONVERSATION_COLUMNS =
-  "id, title, pinned, archived, model_id, updated_at, created_at, deleted_at";
+const CONVERSATION_COLUMNS = "id, title, pinned, archived, model_id, updated_at, created_at";
 
 export const listConversations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    /*
-     * Bounded, and bounded by US rather than by PostgREST's own ceiling — which
-     * truncates silently at 1,000 and tells nobody. A sidebar does not need an
-     * unbounded list; the most recent few hundred, pinned first, is the list.
-     * Anything older is reached through Search, which reads the same rows.
-     */
-    /*
-     * THE TRASH IS SWEPT BEFORE THE LIST IS READ.
-     *
-     * Anything past the undo period is genuinely gone, and the only moment that
-     * has to be true is when somebody looks — which is here. Swept on read
-     * rather than on a schedule, the way `listApprovals` already expires
-     * approvals: a cron job is a second system to deploy and monitor for a
-     * question that answers itself at the point of use.
-     *
-     * A FAILED SWEEP IS NOT FATAL. A conversation lingering a few minutes past
-     * thirty days is a cosmetic wrong; refusing to show somebody their history
-     * because a cleanup failed is not. The list still excludes it.
-     */
-    await context.supabase.rpc("ocade_purge_expired_conversation_trash");
-
-    /*
-     * Bounded, and bounded by US rather than by PostgREST's own ceiling — which
-     * truncates silently at 1,000 and tells nobody. A sidebar does not need an
-     * unbounded list; the most recent few hundred, pinned first, is the list.
-     * Anything older is reached through Search, which reads the same rows.
-     */
     const { data, error } = await context.supabase
       .from("ocade_conversations")
       .select(CONVERSATION_COLUMNS)
-      .is("deleted_at", null)
       .order("pinned", { ascending: false })
       .order("updated_at", { ascending: false })
       .limit(LIST_CAP);
@@ -80,31 +49,21 @@ export const listConversations = createServerFn({ method: "GET" })
   });
 
 /**
- * Move a conversation to the trash, or take it back out.
- *
- * SEPARATE FROM `updateConversation`, which patches whatever it is given. This
- * one writes a timestamp the caller does not choose: a client that could set
- * `deleted_at` could date something into the past and have it swept
- * immediately, which turns an undoable act into a permanent one through the
- * ordinary update path.
- *
- * Restoring clears the timestamp and nothing else. A conversation that was
- * archived before it was trashed comes back archived, because that is where its
- * owner left it.
+ * Delete one conversation for good. The person confirmed first; messages go
+ * with it through ON DELETE CASCADE, and row-level security decides whose.
+ * Library files it produced stay in Library, which owns them.
  */
-export const setConversationTrashed = createServerFn({ method: "POST" })
+export const deleteConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((i) => z.object({ id: uuid, trashed: z.boolean() }).parse(i))
+  .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
+    const { error, count } = await context.supabase
       .from("ocade_conversations")
-      .update({ deleted_at: data.trashed ? new Date().toISOString() : null })
-      .eq("id", data.id)
-      .select(CONVERSATION_COLUMNS)
-      .maybeSingle();
+      .delete({ count: "exact" })
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
-    if (!row) throw new Error("That conversation no longer exists.");
-    return row;
+    if (!count) throw new Error("That conversation no longer exists.");
+    return { ok: true as const };
   });
 
 export const createConversation = createServerFn({ method: "POST" })
@@ -204,25 +163,14 @@ export const listMessages = createServerFn({ method: "GET" })
       role: string;
       content: string;
       attachments: Json;
-      citations: Json | null;
-      reaction: string | null;
       model_id: string | null;
       provider_id: string | null;
       created_at: string;
     }>((from, to) =>
       context.supabase
         .from("ocade_messages")
-        .select(
-          "id, role, content, attachments, citations, reaction, model_id, provider_id, created_at",
-        )
+        .select("id, role, content, attachments, model_id, provider_id, created_at")
         .eq("conversation_id", data.conversationId)
-        /*
-         * ORDINARY TURNS ONLY. A side conversation is a message with an anchor,
-         * and it belongs to that anchor rather than to the transcript. Without
-         * this filter every side question would appear inline and be sent to
-         * the engine as part of the thread it was deliberately kept out of.
-         */
-        .is("anchor_message_id", null)
         .order("created_at", { ascending: true })
         .range(from, to),
     ).catch((cause: Error) => {
@@ -231,14 +179,6 @@ export const listMessages = createServerFn({ method: "GET" })
     return rows;
   });
 
-/**
- * One side conversation: the short thread hanging off a single message.
- *
- * Separate from `listMessages` rather than a flag on it, because the two are
- * read at different moments and by different surfaces — the transcript loads
- * on open, a side thread loads when somebody expands one — and a single
- * function with a mode is how the wrong rows end up in the wrong place.
- */
 export const deleteMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((i) => z.object({ id: uuid }).parse(i))
@@ -306,14 +246,6 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
          * writing the same sentence into somebody's transcript twice.
          */
         clientKey: z.string().min(8).max(200).optional(),
-        /**
-         * The message this turn hangs off, for a side conversation.
-         *
-         * Absent for an ordinary turn. Present, the row is excluded from the
-         * transcript and read only by the thread it belongs to — and the
-         * foreign key removes it when the anchor goes.
-         */
-        anchorMessageId: uuid.optional(),
         attachments: z
           .array(
             z.object({
@@ -336,8 +268,7 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!conv) throw new Error("Conversation not found");
 
-    const COLUMNS =
-      "id, role, content, attachments, citations, reaction, model_id, provider_id, created_at";
+    const COLUMNS = "id, role, content, attachments, model_id, provider_id, created_at";
 
     /*
      * ALREADY WRITTEN? SAY SO AND STOP.
@@ -369,7 +300,6 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
         model_id: data.modelId ?? null,
         provider_id: data.providerId ?? null,
         client_key: data.clientKey ?? null,
-        anchor_message_id: data.anchorMessageId ?? null,
         attachments: (data.attachments ?? []) as never,
       })
       .select(COLUMNS)
@@ -396,7 +326,6 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
     // Auto-title from the first user message.
     if (
       data.role === "user" &&
-      !data.anchorMessageId &&
       (conv.title ?? "").toLowerCase() === "new chat" &&
       data.content.trim()
     ) {
@@ -407,11 +336,3 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
     }
     return row;
   });
-
-/*
- * Improve Prompt used to live here as a server function calling Gemini
- * through the Lovable gateway, with no privacy gate of any kind. It is now
- * `improvePromptLocally` in src/lib/chat/improve-prompt.ts and runs on the
- * user's own engine. Nothing server-side is involved, so nothing server-side
- * remains.
- */

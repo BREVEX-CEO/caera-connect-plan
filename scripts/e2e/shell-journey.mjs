@@ -66,17 +66,17 @@ try {
     "and it really has SharedArrayBuffer",
     (await page.evaluate(() => typeof SharedArrayBuffer === "function")) === true,
   );
-  for (const label of ["Chat", "Library", "Cowork", "New chat"]) {
+  for (const label of ["Chat", "Library", "New chat"]) {
     check(
       `the sidebar offers ${label}`,
       (await page.locator(`nav[aria-label="Primary"] >> text=${label}`).count()) >= 1,
     );
   }
   check(
-    "the intelligence selector shows only Auto, OCADE and Offline",
+    "the intelligence selector shows only Auto, Online and Offline",
     (
       await page.locator('[role="group"][aria-label="Intelligence mode"] button').allTextContents()
-    ).join("|") === "Auto|OCADE|Offline",
+    ).join("|") === "Auto|Online|Offline",
   );
   check(
     "no provider or runtime identifier is on screen",

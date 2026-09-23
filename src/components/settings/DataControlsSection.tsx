@@ -50,7 +50,7 @@ export function DataControlsSection() {
   );
 }
 
-/** Every conversation, gone. The trash is not a reprieve from this one. */
+/** Every conversation, gone for good. */
 function ConversationsSection() {
   const client = useQueryClient();
   const [confirming, setConfirming] = useState(false);

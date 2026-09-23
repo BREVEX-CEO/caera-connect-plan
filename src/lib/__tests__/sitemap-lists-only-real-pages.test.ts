@@ -34,7 +34,7 @@ const notAPage = (path: string) =>
   // Reached from an email link, and listing it invites crawlers to a flow.
   path === "/reset-password" ||
   // Signed-in surfaces. A crawler cannot see them and should not be sent.
-  ["/admin", "/cowork", "/library"].includes(path);
+  ["/admin", "/library"].includes(path);
 
 describe("the sitemap", () => {
   it("lists nothing the application does not serve", () => {

@@ -50,16 +50,8 @@ import {
   windowFor,
 } from "./usage-policy";
 
-/**
- * Where a generation came from.
- *
- * Two, because the product has two destinations: Chat, and the Cowork
- * placeholder that a future mission will implement.
- * It listed eight while Code, Tasks, Automations, background agents, Voice and
- * Artifacts were separate products; those surfaces are gone, and a surface
- * nothing can emit is a value every gate downstream still has to handle.
- */
-export const GENERATION_SURFACES = ["chat", "cowork"] as const;
+/** Where a generation came from. Chat is the product's only surface. */
+export const GENERATION_SURFACES = ["chat"] as const;
 export type GenerationSurface = (typeof GENERATION_SURFACES)[number];
 
 export type DurablePermitOutcome =

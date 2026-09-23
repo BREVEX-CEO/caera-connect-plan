@@ -48,16 +48,7 @@ const LEAVE_ALONE =
   /sign out|delete|remove|export|unlink|send|stop|empty|install|repair|mark all read/i;
 
 const SIGNED_OUT_ROUTES = ["/", "/pricing", "/about", "/help", "/terms", "/privacy", "/auth"];
-const SIGNED_IN_ROUTES = [
-  "/",
-  "/library",
-  "/cowork",
-  "/pricing",
-  "/about",
-  "/help",
-  "/terms",
-  "/privacy",
-];
+const SIGNED_IN_ROUTES = ["/", "/library", "/pricing", "/about", "/help", "/terms", "/privacy"];
 
 const browser = await chromium.launch({ executablePath: EXECUTABLE, args: ["--no-sandbox"] });
 

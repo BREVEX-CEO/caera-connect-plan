@@ -186,7 +186,7 @@ try {
   console.log("PASS Billing reads current Free plan");
   await page.keyboard.press("Escape");
 
-  await page.getByRole("button", { name: "OCADE", exact: true }).click();
+  await page.getByRole("button", { name: "Online", exact: true }).click();
   await page.fill("#ocade-composer", "Reply with only the word READY.");
   await page.click('button[aria-label="Send"]');
   await page.getByRole("button", { name: "Regenerate", exact: true }).waitFor({ timeout: 90000 });

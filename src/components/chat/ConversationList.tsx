@@ -24,7 +24,7 @@ export function ConversationList({
   onOpen,
   onRename,
   onArchive,
-  onTrash,
+  onDelete,
   onExport,
 }: {
   conversations: OcadeConversationRow[];
@@ -35,8 +35,8 @@ export function ConversationList({
   onRetry: () => void;
   onOpen: (id: string) => void;
   onRename: (id: string, title: string) => Promise<void> | void;
-  onArchive: (id: string) => Promise<void> | void;
-  onTrash: (id: string) => Promise<void> | void;
+  onArchive: (id: string, archived: boolean) => Promise<void> | void;
+  onDelete: (id: string) => Promise<void> | void;
   onExport: (id: string) => Promise<void> | void;
 }) {
   const [menuFor, setMenuFor] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export function ConversationList({
   /** Which conversation's Delete has been pressed once and is asking. */
   const [confirming, setConfirming] = useState<string | null>(null);
 
-  const listed = conversations.filter((row) => !row.archived && !row.deleted_at);
+  const listed = conversations;
   /*
    * SEARCH IS A FILTER OVER WHAT IS ALREADY HERE.
    *
@@ -136,7 +136,13 @@ export function ConversationList({
         <p className="px-2.5 py-2 text-[13px] text-muted-foreground">No chats match.</p>
       ) : null}
 
-      {groupConversations(visible).map((group) => (
+      {[
+        ...groupConversations(visible.filter((row) => !row.archived)),
+        // Archived chats stay reachable, so Archive is never a quiet delete.
+        ...(visible.some((row) => row.archived)
+          ? [{ label: "Archived", rows: visible.filter((row) => row.archived) }]
+          : []),
+      ].map((group) => (
         <div key={group.label}>
           <p className="px-2.5 pb-1 pt-3 text-[13px] text-muted-foreground">{group.label}</p>
           <ul>
@@ -178,7 +184,7 @@ export function ConversationList({
                     event.preventDefault();
                     setMenuFor((current) => (current === row.id ? null : row.id));
                   }}
-                  className="absolute right-1 top-1.5 grid h-6 w-6 place-items-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                  className="absolute right-1 top-1.5 grid h-6 w-6 place-items-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100"
                 >
                   <MoreHorizontal className="h-4 w-4" aria-hidden />
                 </button>
@@ -200,10 +206,10 @@ export function ConversationList({
                     />
                     <MenuItem
                       icon={Archive}
-                      label="Archive"
+                      label={row.archived ? "Unarchive" : "Archive"}
                       onSelect={() => {
                         setMenuFor(null);
-                        void onArchive(row.id);
+                        void onArchive(row.id, !row.archived);
                       }}
                     />
                     <MenuItem
@@ -230,7 +236,7 @@ export function ConversationList({
                         }
                         setConfirming(null);
                         setMenuFor(null);
-                        void onTrash(row.id);
+                        void onDelete(row.id);
                       }}
                     />
                   </div>

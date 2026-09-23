@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
  *     under Account; Data Controls deletes content and keeps the account.
  *   - The public header put five links and a wordmark in one row, so at 375 px
  *     the document was 425 px wide and Privacy sat off the edge of the screen.
- *   - `/library` and `/cowork` answered `index,follow` — account destinations
+ *   - `/library` answered `index,follow` — account destinations
  *     inviting a crawler to index a redirect to sign-in.
  *
  * Copy and layout have no runtime assertion to make, so what is checked is the

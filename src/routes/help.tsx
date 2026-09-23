@@ -31,8 +31,8 @@ const QUESTIONS: { question: string; answer: React.ReactNode }[] = [
     question: "What is OCADE?",
     answer: (
       <p>
-        A small AI workspace. Chat is the home; Library holds the files and images you upload and
-        the ones OCADE produces; Cowork is where OCADE carries out work for you.
+        OCADE by CARCC is an AI chat product. Chat is the home, and Library holds the files and
+        images you upload and the ones OCADE produces.
       </p>
     ),
   },

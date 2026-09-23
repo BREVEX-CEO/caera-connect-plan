@@ -35,7 +35,7 @@ import {
  * more, and a value nothing can send is a value this validator was accepting
  * from anybody who asked.
  */
-const ALLOWED_SURFACES: readonly string[] = ["chat", "cowork"];
+const ALLOWED_SURFACES: readonly string[] = ["chat"];
 
 /**
  * THE CEILING ON ONE REQUEST.

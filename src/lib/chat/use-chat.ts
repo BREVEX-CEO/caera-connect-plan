@@ -2,7 +2,7 @@
  * EVERYTHING CHAT DOES, IN ONE HOOK.
  *
  * The screen renders; this decides. Conversations, the transcript, sending,
- * streaming, persistence, rename, archive, trash, restore and delete-all all
+ * streaming, persistence, rename, archive, delete and delete-all all
  * live here, so the component cannot grow a second copy of any of them — which
  * is exactly how the 4,519-line screen this replaces came to have three
  * different ideas of what "the current conversation" was.
@@ -30,7 +30,7 @@ import {
   deleteMessage,
   deleteMessagesFrom,
   listConversations,
-  setConversationTrashed,
+  deleteConversation,
   updateConversation,
   type OcadeConversationRow,
 } from "@/lib/ocade.functions";
@@ -54,11 +54,11 @@ import { saveFile } from "@/lib/utils";
 const CARRIED_QUESTIONS = 5;
 
 /** The three words a customer sees, and the mode each one means. */
-export type IntelligenceChoice = "auto" | "ocade" | "offline";
+export type IntelligenceChoice = "auto" | "online" | "offline";
 
 const MODE_FOR: Record<IntelligenceChoice, IntelligenceMode> = {
   auto: "automatic",
-  ocade: "online",
+  online: "online",
   offline: "local_only",
 };
 
@@ -143,8 +143,7 @@ export interface ChatActions {
   newConversation(): void;
   rename(id: string, title: string): Promise<void>;
   setArchived(id: string, archived: boolean): Promise<void>;
-  trash(id: string): Promise<void>;
-  restore(id: string): Promise<void>;
+  remove(id: string): Promise<void>;
   deleteEverything(): Promise<void>;
   reloadConversations(): Promise<void>;
   reloadMessages(): Promise<void>;
@@ -849,7 +848,7 @@ export function useChat(): ChatState & ChatActions {
   /*
    * AN OPTIMISTIC CHANGE THAT FAILED IS PUT BACK.
    *
-   * Rename, Archive and Trash all wrote to the screen first and then awaited
+   * Rename, Archive and Delete all wrote to the screen first and then awaited
    * the account. When that write failed — no network, a policy refusal — the
    * screen kept the change and the account never had it, so somebody was
    * looking at a conversation they had renamed or deleted that was still
@@ -894,10 +893,8 @@ export function useChat(): ChatState & ChatActions {
     [mutateConversations],
   );
 
-  const trash = useCallback(
+  const remove = useCallback(
     async (id: string) => {
-      // Removed from the list immediately; the row is recoverable until the
-      // trash period expires, which is what makes this safe to do optimistically.
       if (conversationId === id) {
         abandonInFlight();
         setConversationId(null);
@@ -905,18 +902,10 @@ export function useChat(): ChatState & ChatActions {
       }
       await mutateConversations(
         (rows) => rows.filter((row) => row.id !== id),
-        setConversationTrashed({ data: { id, trashed: true } }),
+        deleteConversation({ data: { id } }),
       );
     },
     [mutateConversations, conversationId, abandonInFlight, setMessages],
-  );
-
-  const restore = useCallback(
-    async (id: string) => {
-      await setConversationTrashed({ data: { id, trashed: false } });
-      await refreshConversations();
-    },
-    [refreshConversations],
   );
 
   const deleteEverything = useCallback(async () => {
@@ -1016,8 +1005,7 @@ export function useChat(): ChatState & ChatActions {
       newConversation,
       rename,
       setArchived,
-      trash,
-      restore,
+      remove,
       deleteEverything,
       reloadConversations: refreshConversations,
       reloadMessages: async () => {
@@ -1047,8 +1035,7 @@ export function useChat(): ChatState & ChatActions {
       newConversation,
       rename,
       setArchived,
-      trash,
-      restore,
+      remove,
       deleteEverything,
       refreshConversations,
       openMessages,

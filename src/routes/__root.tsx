@@ -51,7 +51,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "OCADE is a small AI workspace: chat, a library of your files and outputs, and work OCADE can carry out for you.",
+          "OCADE by CARCC is an AI chat product: ask Online or Offline, and keep your files in Library.",
       },
       { name: "author", content: "Haans Antoni" },
       // Matches --background in the default theme, so the browser chrome and
@@ -60,7 +60,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "OCADE" },
       {
         property: "og:description",
-        content: "A small AI workspace. Chat, Library and Cowork, and nothing you did not ask for.",
+        content: "OCADE by CARCC. Chat Online or Offline, with your files in Library.",
       },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "OCADE" },

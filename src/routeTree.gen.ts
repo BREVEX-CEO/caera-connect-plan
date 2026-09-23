@@ -20,7 +20,6 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as AuthenticatedCoworkRouteImport } from './routes/_authenticated/cowork'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
@@ -82,11 +81,6 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedCoworkRoute = AuthenticatedCoworkRouteImport.update({
-  id: '/cowork',
-  path: '/cowork',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
   id: '/library',
   path: '/library',
@@ -129,7 +123,6 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/cowork': typeof AuthenticatedCoworkRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/challenge': typeof AuthChallengeRoute
@@ -148,7 +141,6 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/cowork': typeof AuthenticatedCoworkRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/challenge': typeof AuthChallengeRoute
@@ -169,7 +161,6 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
-  '/_authenticated/cowork': typeof AuthenticatedCoworkRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/challenge': typeof AuthChallengeRoute
@@ -190,7 +181,6 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/admin'
-    | '/cowork'
     | '/library'
     | '/auth/callback'
     | '/auth/challenge'
@@ -209,7 +199,6 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/admin'
-    | '/cowork'
     | '/library'
     | '/auth/callback'
     | '/auth/challenge'
@@ -229,7 +218,6 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/_authenticated/admin'
-    | '/_authenticated/cowork'
     | '/_authenticated/library'
     | '/auth/callback'
     | '/auth/challenge'
@@ -335,13 +323,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/cowork': {
-      id: '/_authenticated/cowork'
-      path: '/cowork'
-      fullPath: '/cowork'
-      preLoaderRoute: typeof AuthenticatedCoworkRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/library': {
       id: '/_authenticated/library'
       path: '/library'
@@ -389,13 +370,11 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
-  AuthenticatedCoworkRoute: typeof AuthenticatedCoworkRoute
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
-  AuthenticatedCoworkRoute: AuthenticatedCoworkRoute,
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
 }
 

@@ -1,7 +1,11 @@
 /** Authenticated usage operations. Account identity comes only from verified Supabase claims. */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { CommercialGenerationGate, type GenerationSurface } from "./generation-gate";
+import {
+  CommercialGenerationGate,
+  GENERATION_SURFACES,
+  type GenerationSurface,
+} from "./generation-gate";
 import { supabaseCommercialLedger } from "./supabase-ledger";
 import { ALLOWANCES, describeUsage } from "./usage-policy";
 import { resolveTierFor, type ResolvedEntitlement } from "./entitlement-resolver";
@@ -72,9 +76,8 @@ export const acquireGenerationPermit = createServerFn({ method: "POST" })
       if (key.length > 200) throw new Error("That request key is not valid.");
       const generationId = data.generationId?.trim() || key;
       if (generationId.length > 200) throw new Error("That generation identity is not valid.");
-      const allowedSurfaces: GenerationSurface[] = ["chat", "cowork"];
       const surface = data.surface ?? "chat";
-      if (!allowedSurfaces.includes(surface))
+      if (!GENERATION_SURFACES.includes(surface))
         throw new Error("That generation surface is not valid.");
       return { idempotencyKey: key, generationId, surface };
     },

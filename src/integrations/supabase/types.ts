@@ -261,7 +261,6 @@ export type Database = {
         Row: {
           archived: boolean
           created_at: string
-          deleted_at: string | null
           id: string
           model_id: string | null
           pinned: boolean
@@ -273,7 +272,6 @@ export type Database = {
         Insert: {
           archived?: boolean
           created_at?: string
-          deleted_at?: string | null
           id?: string
           model_id?: string | null
           pinned?: boolean
@@ -285,7 +283,6 @@ export type Database = {
         Update: {
           archived?: boolean
           created_at?: string
-          deleted_at?: string | null
           id?: string
           model_id?: string | null
           pinned?: boolean
@@ -534,62 +531,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ocade_invoices: {
-        Row: {
-          amount_minor: number
-          catalogue_version: string
-          created_at: string
-          currency: string
-          id: string
-          invoice_number: string
-          issued_at: string
-          payment_event_id: string | null
-          plan_id: string
-          receipt_url: string | null
-          status: string
-          tax_minor: number
-          user_id: string
-        }
-        Insert: {
-          amount_minor: number
-          catalogue_version?: string
-          created_at?: string
-          currency: string
-          id?: string
-          invoice_number: string
-          issued_at: string
-          payment_event_id?: string | null
-          plan_id: string
-          receipt_url?: string | null
-          status: string
-          tax_minor?: number
-          user_id: string
-        }
-        Update: {
-          amount_minor?: number
-          catalogue_version?: string
-          created_at?: string
-          currency?: string
-          id?: string
-          invoice_number?: string
-          issued_at?: string
-          payment_event_id?: string | null
-          plan_id?: string
-          receipt_url?: string | null
-          status?: string
-          tax_minor?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ocade_invoices_payment_event_id_fkey"
-            columns: ["payment_event_id"]
-            isOneToOne: false
-            referencedRelation: "ocade_payment_events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ocade_library_items: {
         Row: {
           conversation_id: string | null
@@ -639,9 +580,7 @@ export type Database = {
       }
       ocade_messages: {
         Row: {
-          anchor_message_id: string | null
           attachments: Json
-          citations: Json | null
           client_key: string | null
           content: string
           conversation_id: string
@@ -649,15 +588,11 @@ export type Database = {
           id: string
           model_id: string | null
           provider_id: string | null
-          reaction: string | null
           role: string
-          token_usage: Json | null
           user_id: string
         }
         Insert: {
-          anchor_message_id?: string | null
           attachments?: Json
-          citations?: Json | null
           client_key?: string | null
           content: string
           conversation_id: string
@@ -665,15 +600,11 @@ export type Database = {
           id?: string
           model_id?: string | null
           provider_id?: string | null
-          reaction?: string | null
           role: string
-          token_usage?: Json | null
           user_id: string
         }
         Update: {
-          anchor_message_id?: string | null
           attachments?: Json
-          citations?: Json | null
           client_key?: string | null
           content?: string
           conversation_id?: string
@@ -681,19 +612,10 @@ export type Database = {
           id?: string
           model_id?: string | null
           provider_id?: string | null
-          reaction?: string | null
           role?: string
-          token_usage?: Json | null
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "ocade_messages_anchor_message_id_fkey"
-            columns: ["anchor_message_id"]
-            isOneToOne: false
-            referencedRelation: "ocade_messages"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "ocade_messages_conversation_id_fkey"
             columns: ["conversation_id"]
@@ -931,90 +853,6 @@ export type Database = {
           },
         ]
       }
-      ocade_payment_events: {
-        Row: {
-          amount_minor: number
-          catalogue_version: string
-          created_at: string
-          currency: string
-          id: string
-          kind: string
-          occurred_at: string
-          plan_id: string
-          provider: string
-          provider_event_id: string
-          provider_payment_ref: string | null
-          status: string
-          user_id: string
-        }
-        Insert: {
-          amount_minor: number
-          catalogue_version?: string
-          created_at?: string
-          currency: string
-          id?: string
-          kind: string
-          occurred_at: string
-          plan_id: string
-          provider: string
-          provider_event_id: string
-          provider_payment_ref?: string | null
-          status: string
-          user_id: string
-        }
-        Update: {
-          amount_minor?: number
-          catalogue_version?: string
-          created_at?: string
-          currency?: string
-          id?: string
-          kind?: string
-          occurred_at?: string
-          plan_id?: string
-          provider?: string
-          provider_event_id?: string
-          provider_payment_ref?: string | null
-          status?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      payment_webhook_events: {
-        Row: {
-          entity_id: string | null
-          environment: string
-          event_id: string
-          event_type: string
-          occurred_at: string
-          outcome: string
-          reason: string | null
-          received_at: string
-          user_id: string | null
-        }
-        Insert: {
-          entity_id?: string | null
-          environment: string
-          event_id: string
-          event_type: string
-          occurred_at: string
-          outcome: string
-          reason?: string | null
-          received_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          entity_id?: string | null
-          environment?: string
-          event_id?: string
-          event_type?: string
-          occurred_at?: string
-          outcome?: string
-          reason?: string | null
-          received_at?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1108,60 +946,6 @@ export type Database = {
           requested_at?: string
           source?: string
           storage_path?: string
-        }
-        Relationships: []
-      }
-      subscriptions: {
-        Row: {
-          cancel_at_period_end: boolean | null
-          created_at: string | null
-          current_period_end: string | null
-          current_period_start: string | null
-          environment: string
-          id: string
-          kind: string
-          paddle_customer_id: string
-          paddle_subscription_id: string
-          price_id: string
-          product_id: string
-          provider_event_at: string | null
-          status: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          cancel_at_period_end?: boolean | null
-          created_at?: string | null
-          current_period_end?: string | null
-          current_period_start?: string | null
-          environment?: string
-          id?: string
-          kind?: string
-          paddle_customer_id: string
-          paddle_subscription_id: string
-          price_id: string
-          product_id: string
-          provider_event_at?: string | null
-          status?: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          cancel_at_period_end?: boolean | null
-          created_at?: string | null
-          current_period_end?: string | null
-          current_period_start?: string | null
-          environment?: string
-          id?: string
-          kind?: string
-          paddle_customer_id?: string
-          paddle_subscription_id?: string
-          price_id?: string
-          product_id?: string
-          provider_event_at?: string | null
-          status?: string
-          updated_at?: string | null
-          user_id?: string
         }
         Relationships: []
       }
@@ -1302,41 +1086,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      apply_payment_webhook_event: {
-        Args: {
-          p_action: string
-          p_allow_terminal_reversal: boolean
-          p_cancel_at_period_end: boolean
-          p_current_period_end: string
-          p_current_period_start: string
-          p_entity_id: string
-          p_environment: string
-          p_event_id: string
-          p_event_type: string
-          p_kind: string
-          p_occurred_at: string
-          p_paddle_customer_id: string
-          p_paddle_subscription_id: string
-          p_price_id: string
-          p_product_id: string
-          p_reason: string
-          p_status: string
-          p_user_id: string
-        }
-        Returns: string
-      }
-      attachment_deletion_status: {
-        Args: never
-        Returns: {
-          oldest_pending: string
-          pending: number
-          purged: number
-        }[]
-      }
-      has_active_subscription: {
-        Args: { check_env?: string; user_uuid: string }
-        Returns: boolean
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1380,15 +1129,6 @@ export type Database = {
           reason: string
           starts_at: string
           tier: string
-        }[]
-      }
-      ocade_admin_notification_delivery: {
-        Args: { p_since: string }
-        Returns: {
-          category: string
-          channel: string
-          occurrences: number
-          state: string
         }[]
       }
       ocade_allocate_offline_usage: {

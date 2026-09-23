@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 
 const CHOICES: { id: IntelligenceChoice; label: string }[] = [
   { id: "auto", label: "Auto" },
-  { id: "ocade", label: "OCADE" },
+  { id: "online", label: "Online" },
   { id: "offline", label: "Offline" },
 ];
 
@@ -164,7 +164,7 @@ export function ChatWorkspace() {
    * mode that does the right thing without a network, and it says so.
    */
   useEffect(() => {
-    if (!online && choice === "ocade") setChoice("auto");
+    if (!online && choice === "online") setChoice("auto");
   }, [online, choice]);
 
   useEffect(() => {
@@ -303,9 +303,9 @@ export function ChatWorkspace() {
             onRetry={() => void chat.reloadConversations()}
             onOpen={chat.openConversation}
             onRename={chat.rename}
-            onArchive={(id) => chat.setArchived(id, true)}
+            onArchive={chat.setArchived}
             onExport={(id) => chat.exportConversation(id)}
-            onTrash={chat.trash}
+            onDelete={chat.remove}
           />
         ) : null
       }
@@ -448,7 +448,7 @@ export function ChatWorkspace() {
                   >
                     {CHOICES.map((entry) => {
                       // Online needs a network. Offline and Auto do not.
-                      const unavailable = entry.id === "ocade" && !online;
+                      const unavailable = entry.id === "online" && !online;
                       return (
                         <button
                           key={entry.id}

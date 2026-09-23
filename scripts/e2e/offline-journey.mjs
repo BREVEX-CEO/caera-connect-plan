@@ -130,7 +130,7 @@ try {
     "Thinking is not offered while Auto is selected",
     (await page.getByRole("button", { name: "Thinking" }).count()) === 0,
   );
-  await page.getByRole("button", { name: "OCADE", exact: true }).click();
+  await page.getByRole("button", { name: "Online", exact: true }).click();
   check(
     "nor while Online is selected, where the boundary has no such parameter",
     (await page.getByRole("button", { name: "Thinking" }).count()) === 0,

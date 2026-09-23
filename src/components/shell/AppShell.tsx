@@ -20,7 +20,6 @@ import {
   PanelLeftClose,
   PenSquare,
   Settings as SettingsIcon,
-  Sparkles,
   X,
 } from "lucide-react";
 import { BrandMark } from "./BrandMark";
@@ -42,7 +41,6 @@ interface Destination {
 const DESTINATIONS: Destination[] = [
   { to: "/", label: "Chat", icon: MessageSquare },
   { to: "/library", label: "Library", icon: LibraryBig },
-  { to: "/cowork", label: "Cowork", icon: Sparkles },
 ];
 
 export function AppShell({

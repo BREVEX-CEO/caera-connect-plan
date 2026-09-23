@@ -201,7 +201,7 @@ describe("every surface and tier the types allow is one the database accepts", (
    * send. Listing them here means adding a surface to one side without the
    * other fails in this file rather than in production.
    */
-  const surfaces: GenerationSurface[] = ["chat", "cowork"];
+  const surfaces: GenerationSurface[] = ["chat"];
   const tiers: PlanTier[] = ["free", "pro", "max"];
 
   it.each(surfaces)("accepts the %s surface", async (surface) => {
@@ -381,7 +381,7 @@ describe("the binding's own calls settle in the real ledger", () => {
       userId,
       idempotencyKey: "conflict",
       generationId: "generation-b",
-      surface: "cowork",
+      surface: "chat",
       tier: "pro",
       sessionAllowance: ALLOWANCES.pro.session,
       weekAllowance: ALLOWANCES.pro.week,

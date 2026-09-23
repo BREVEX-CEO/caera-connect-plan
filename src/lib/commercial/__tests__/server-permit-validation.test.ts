@@ -15,7 +15,7 @@ const permit = {
   permitId: "11111111-1111-4111-8111-111111111111",
   generationId: "generation-1",
   idempotencyKey: "request-1",
-  surface: "cowork" as const,
+  surface: "chat" as const,
   source: "server" as const,
 };
 
@@ -34,7 +34,7 @@ describe("server-side intelligence transport permit validation", () => {
       p_permit_id: permit.permitId,
       p_generation_id: permit.generationId,
       p_idempotency_key: permit.idempotencyKey,
-      p_surface: "cowork",
+      p_surface: "chat",
     });
   });
 

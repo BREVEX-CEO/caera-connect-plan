@@ -105,30 +105,7 @@ describe("commercial usage windows", () => {
   });
 });
 
-describe("notification delivery is counts, never content", () => {
-  it("answers an operator with categories, channels and states", async () => {
-    const rows = await twin.asTenant<{ category: string; channel: string; state: string }>(
-      OPERATOR,
-      `select category, channel, state, occurrences
-         from public.ocade_admin_notification_delivery(now() - interval '7 days')
-        order by category, channel`,
-    );
-    expect(rows.error).toBeUndefined();
-    expect(rows.rows).toEqual([
-      { category: "account", channel: "in_app", state: "sent", occurrences: 1 },
-      { category: "security", channel: "email", state: "dead_letter", occurrences: 1 },
-      { category: "security", channel: "in_app", state: "sent", occurrences: 1 },
-    ]);
-  });
-
-  it("refuses an account without the admin role", async () => {
-    const rows = await twin.asTenant(
-      PERSON,
-      `select * from public.ocade_admin_notification_delivery(now() - interval '7 days')`,
-    );
-    expect(rows.error, "a non-admin read the delivery aggregate").toMatch(/administrator/i);
-  });
-
+describe("notification content stays private", () => {
   it("gives an operator no way to read a title or a body", async () => {
     // The aggregate is the only door. There is no admin policy on the table, so
     // this returns the operator's own notifications — of which there are none.

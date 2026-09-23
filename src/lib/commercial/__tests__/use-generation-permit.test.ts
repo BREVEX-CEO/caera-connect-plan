@@ -211,19 +211,19 @@ describe("the customer-side commercial permit boundary", () => {
       leaseId: "lease-1",
       generationId: "generation-1",
       idempotencyKey: "offline-1",
-      surface: "cowork",
+      surface: "chat",
       reservedHundredths: 100,
     });
 
     const billed = await beginBilledRequest({
       idempotencyKey: "offline-1",
       generationId: "generation-1",
-      surface: "cowork",
+      surface: "chat",
     });
     expect(mocks.acquire).not.toHaveBeenCalled();
     expect(billed?.permit).toMatchObject({
       generationId: "generation-1",
-      surface: "cowork",
+      surface: "chat",
       source: "offline_lease",
     });
     billed!.recordDelivery({ answer: "done" });
@@ -255,11 +255,11 @@ describe("the customer-side commercial permit boundary", () => {
       leaseId: "lease-1",
       generationId: "offline-2",
       idempotencyKey: "offline-2",
-      surface: "cowork",
+      surface: "chat",
       reservedHundredths: 3500,
     });
 
-    const billed = await beginBilledRequest({ idempotencyKey: "offline-2", surface: "cowork" });
+    const billed = await beginBilledRequest({ idempotencyKey: "offline-2", surface: "chat" });
     await billed!.settle();
 
     expect(mocks.releaseOffline).toHaveBeenCalledOnce();
@@ -288,26 +288,26 @@ describe("the customer-side commercial permit boundary", () => {
       leaseId: "lease-1",
       generationId: "generation-fallback",
       idempotencyKey: "request-fallback",
-      surface: "cowork",
+      surface: "chat",
       reservedHundredths: 100,
     });
 
     const billed = await beginBilledRequest({
       idempotencyKey: "request-fallback",
       generationId: "generation-fallback",
-      surface: "cowork",
+      surface: "chat",
     });
     expect(billed?.permit).toMatchObject({
       generationId: "generation-fallback",
       idempotencyKey: "request-fallback",
-      surface: "cowork",
+      surface: "chat",
       source: "offline_lease",
     });
     expect(mocks.reserveOffline).toHaveBeenCalledWith(
       expect.objectContaining({
         generationId: "generation-fallback",
         idempotencyKey: "request-fallback",
-        surface: "cowork",
+        surface: "chat",
       }),
     );
 

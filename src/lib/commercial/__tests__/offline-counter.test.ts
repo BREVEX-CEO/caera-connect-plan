@@ -171,7 +171,7 @@ describe("the browser offline usage counter", () => {
       leaseId: payload.leaseId,
       generationId: "generation-release",
       idempotencyKey: "request-release",
-      surface: "cowork",
+      surface: "chat",
       keys: [key],
       time,
     });
@@ -195,7 +195,7 @@ describe("the browser offline usage counter", () => {
       leaseId: payload.leaseId,
       generationId: "paid-generation",
       idempotencyKey: "paid-request",
-      surface: "cowork",
+      surface: "chat",
       keys: [key],
       time,
     });
@@ -300,7 +300,7 @@ describe("the browser offline usage counter", () => {
         leaseId: payload.leaseId,
         generationId: "generation-8",
         idempotencyKey: "request-8",
-        surface: "cowork",
+        surface: "chat",
         keys: [key],
         time,
       }),

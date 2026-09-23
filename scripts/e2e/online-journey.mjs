@@ -91,7 +91,7 @@ try {
   /* --- online answers, through OCADE's own boundary ----------------------- */
 
   await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
-  const onlineChoice = page.getByRole("button", { name: "OCADE", exact: true });
+  const onlineChoice = page.getByRole("button", { name: "Online", exact: true });
   await onlineChoice.click();
   check(
     "a person can choose online OCADE without being told what runs it",
@@ -143,7 +143,7 @@ try {
     undefined,
     { timeout: 10_000 },
   );
-  await page.getByRole("button", { name: "OCADE", exact: true }).click();
+  await page.getByRole("button", { name: "Online", exact: true }).click();
   await page.setInputFiles('input[type="file"]', {
     name: "sales.csv",
     mimeType: "text/csv",
@@ -205,7 +205,7 @@ try {
     undefined,
     { timeout: 10_000 },
   );
-  await page.getByRole("button", { name: "OCADE", exact: true }).click();
+  await page.getByRole("button", { name: "Online", exact: true }).click();
   await page.fill("#ocade-composer", "A question the boundary will refuse");
   await page.click('button[aria-label="Send"]');
   await page.waitForTimeout(4000);
@@ -294,7 +294,7 @@ try {
   await page.evaluate(() => window.dispatchEvent(new Event("offline")));
   await page.waitForTimeout(400);
 
-  const onlineOption = page.getByRole("button", { name: "OCADE", exact: true });
+  const onlineOption = page.getByRole("button", { name: "Online", exact: true });
   check(
     "without a network, Online is disabled rather than offered",
     await onlineOption.isDisabled(),
