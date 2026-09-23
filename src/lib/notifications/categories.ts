@@ -30,7 +30,7 @@
  * product actually sends today (security) and the three it sends about the
  * account itself.
  */
-export type NotificationCategoryId = "security" | "account" | "billing" | "product_updates";
+export type NotificationCategoryId = "security" | "account" | "product_updates";
 
 export interface NotificationCategory {
   id: NotificationCategoryId;
@@ -78,13 +78,6 @@ export const NOTIFICATION_CATEGORIES: readonly NotificationCategory[] = [
      * send them — on the screen where they decide what they need to be told.
      */
     description: "Email changes and anything else that affects getting back in.",
-    optional: false,
-    frequencies: URGENT_ONLY,
-  },
-  {
-    id: "billing",
-    title: "Billing",
-    description: "Payments, renewals, failures and refunds on your account.",
     optional: false,
     frequencies: URGENT_ONLY,
   },

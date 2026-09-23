@@ -23,7 +23,7 @@
  */
 
 const SHELL_CACHE_PREFIX = "ocade-shell-v";
-const VERSION = `${SHELL_CACHE_PREFIX}12`;
+const VERSION = `${SHELL_CACHE_PREFIX}13`;
 const OFFLINE_URL = "/offline.html";
 
 /**
@@ -51,9 +51,8 @@ const OPTIONAL_PRECACHE = [
    * download runs in the background, which is a browser capability rather than
    * an install prompt.
    */
+  // Also the shell's 28px brand mark, so one small file serves both.
   "/icons/ocade-192.png",
-  "/brand/ocade-carcc-mark.png",
-  "/brand/ocade-carcc-wordmark.png",
 ];
 
 /**

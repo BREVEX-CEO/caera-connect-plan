@@ -142,7 +142,7 @@ Paid prices retain the CARCC numeric signature ending in 8/28.
 - Use in-app notifications as the first supported notification channel.
 - Support quiet hours for optional notifications.
 - Synchronize notification preferences to the account.
-- Users may control notification categories, including security/account/billing notification delivery preferences; records required for security/audit may still be retained where necessary for the product or law.
+- Users control optional categories (mute, quiet hours). Security and account-recovery notices are always delivered in-app and always recorded, because muting them would hide account takeover. There is no billing category while paid checkout is closed.
 
 ### Public and administration surfaces
 

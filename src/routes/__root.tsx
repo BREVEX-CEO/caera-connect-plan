@@ -64,7 +64,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "OCADE" },
-      { property: "og:image", content: "/brand/ocade-carcc-wordmark.png" },
+      { property: "og:image", content: "https://ocade.in/brand/ocade-og.png" },
       { name: "robots", content: "index,follow,max-image-preview:large" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

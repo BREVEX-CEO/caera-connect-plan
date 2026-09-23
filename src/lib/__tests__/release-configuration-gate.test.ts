@@ -73,6 +73,16 @@ describe("the release configuration gate", () => {
     }
   });
 
+  it("names the commit the running bundle was built from (F13)", async () => {
+    const response = releaseHealthResponse(new Request("https://ocade.in/api/health"), CONFIGURED);
+    expect(JSON.parse(await response!.text())).toHaveProperty("commit");
+  });
+
+  it("keeps request URLs, and the signed model links in them, out of Worker logs (F25)", () => {
+    const wrangler = JSON.parse(readFileSync("wrangler.json", "utf8"));
+    expect(wrangler.observability.logs.invocation_logs).toBe(false);
+  });
+
   it("refuses a deployment that is missing any of them", () => {
     // The gate is in the deploy script rather than in a module it could import,
     // so this asserts the list is actually written there. A deployment that

@@ -216,7 +216,7 @@ export function createOcadeIntelligence(options: IntelligenceRouterOptions): Oca
       const outcome = step.value;
       if (!outcome.meaningful) {
         yield outcome.refusal ??
-          failureEvent("local_unavailable", "Local Intelligence returned no response.", false);
+          failureEvent("local_unavailable", "Offline Intelligence returned no response.", false);
       } else if (outcome.refusal) {
         yield outcome.refusal;
       }

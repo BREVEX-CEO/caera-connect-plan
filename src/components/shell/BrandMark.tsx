@@ -12,7 +12,7 @@ export function BrandMark({
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)} aria-label="OCADE by CARCC">
       <img
-        src="/brand/ocade-carcc-mark.png"
+        src="/icons/ocade-192.png"
         alt=""
         width={28}
         height={28}

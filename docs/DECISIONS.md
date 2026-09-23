@@ -208,7 +208,7 @@ Active
 
 ### Decision
 
-In-app first, account-synced preferences and quiet hours. Customer notification preferences may control delivery categories; retain security/audit records separately where product/legal requirements require evidence.
+In-app first, account-synced preferences and quiet hours. Optional categories can be muted or held; security and account-recovery notices are always delivered in-app and recorded. No billing category while paid checkout is closed.
 
 ## Data authority
 

@@ -3,6 +3,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { transform } from "lightningcss";
 import { nitro } from "nitro/vite";
+import { execSync } from "node:child_process";
 import { resolve } from "node:path";
 import { defineConfig, type UserConfig } from "vite";
 
@@ -14,6 +15,17 @@ import { defineConfig, type UserConfig } from "vite";
  * most plugin time belong to a redundant resolver. Keeping the small plugin
  * composition here makes its order explicit and removes that obsolete peer.
  */
+/** The commit being built: CI's own variable first, then the local checkout. */
+function buildCommit(): string {
+  const fromCi = process.env.WORKERS_CI_COMMIT_SHA ?? process.env.GITHUB_SHA;
+  if (fromCi) return fromCi;
+  try {
+    return execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
+  } catch {
+    return "unknown";
+  }
+}
+
 function defineOcadeConfig(options: {
   tanstackStart?: Parameters<typeof tanstackStart>[0];
   vite: UserConfig;
@@ -22,6 +34,7 @@ function defineOcadeConfig(options: {
     const config = options.vite;
     return {
       ...config,
+      define: { __OCADE_COMMIT__: JSON.stringify(buildCommit()), ...config.define },
       css: { transformer: "lightningcss", ...config.css },
       resolve: {
         tsconfigPaths: true,

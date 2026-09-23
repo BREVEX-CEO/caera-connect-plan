@@ -35,7 +35,7 @@ const EVERY_CHANNEL: NotificationChannel[] = resolveChannels({
 
 const IN_APP_ONLY: NotificationChannel[] = resolveChannels({});
 
-const PROTECTED: NotificationCategoryId[] = ["security", "account", "billing"];
+const PROTECTED: NotificationCategoryId[] = ["security", "account"];
 const OPTIONAL: NotificationCategoryId[] = ["product_updates"];
 
 function muted(overrides: Partial<NotificationPreferences> = {}): NotificationPreferences {
@@ -43,8 +43,8 @@ function muted(overrides: Partial<NotificationPreferences> = {}): NotificationPr
 }
 
 describe("the categories", () => {
-  it("are the four the product can actually send", () => {
-    expect(NOTIFICATION_CATEGORIES).toHaveLength(4);
+  it("are the three the product can actually send", () => {
+    expect(NOTIFICATION_CATEGORIES).toHaveLength(3);
     for (const category of NOTIFICATION_CATEGORIES) {
       expect(category.title.length).toBeGreaterThan(2);
       expect(category.description.length).toBeGreaterThan(20);
@@ -65,7 +65,7 @@ describe("the categories", () => {
     }
   });
 
-  it("marks security, account recovery and billing as un-mutable", () => {
+  it("marks security and account recovery as un-mutable", () => {
     for (const id of PROTECTED) {
       expect(findNotificationCategory(id)?.optional, id).toBe(false);
       expect(isMutable(id), id).toBe(false);

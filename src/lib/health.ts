@@ -1,5 +1,5 @@
 export { OCADE_RELEASE_VERSION } from "./release";
-import { OCADE_RELEASE_VERSION } from "./release";
+import { OCADE_COMMIT, OCADE_RELEASE_VERSION } from "./release";
 
 const HEALTH_PATH = "/api/health";
 const LOCAL_DEPLOYMENT_ID = "local";
@@ -135,6 +135,7 @@ export function releaseHealthResponse(request: Request, env?: unknown): Response
     status: "ok",
     service: "ocade-web",
     version: OCADE_RELEASE_VERSION,
+    commit: OCADE_COMMIT,
     ...deployment,
     configuration,
     scope: "liveness",

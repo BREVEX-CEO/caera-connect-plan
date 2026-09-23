@@ -195,9 +195,11 @@ export function createOnlineIntelligenceTransport(
           type: "refusal",
           code: response.status === 429 ? "provider_rate_limited" : "online_unavailable",
           reason:
-            response.status === 429
-              ? "Online Intelligence is busy. OCADE can continue locally when Local Intelligence is ready."
-              : "Online Intelligence is unavailable right now.",
+            response.status !== 429
+              ? "Online Intelligence is unavailable right now."
+              : request.research === true
+                ? "Research is busy right now. Nothing was charged. Try again later, or turn Research off to ask without live sources."
+                : "Online Intelligence is busy. Nothing was charged. Try again in a moment, or use Offline.",
           retryable,
         };
         return;
