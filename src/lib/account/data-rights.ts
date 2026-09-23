@@ -26,7 +26,7 @@ import {
 } from "./data-classes";
 
 /** Bumped when the SHAPE changes, so a reader can tell what it is holding. */
-export const ACCOUNT_EXPORT_SCHEMA_VERSION = 1;
+const ACCOUNT_EXPORT_SCHEMA_VERSION = 1;
 
 /** How many rows one page of a table read asks for. */
 const PAGE_SIZE = 500;

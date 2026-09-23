@@ -11,27 +11,6 @@ import {
   type SignedOfflineUsageLease,
 } from "./offline-lease";
 
-export interface OfflineUsageLeaseView {
-  leaseId: string;
-  deviceId: string;
-  deviceName: string;
-  status: string;
-  tier: "free" | "pro" | "max";
-  allocated?: number;
-  consumed?: number;
-  remaining?: number;
-  usedPercent?: number;
-  remainingPercent?: number;
-  preissued: boolean;
-  sessionWindowStart: string;
-  sessionResetAt: string;
-  weekWindowStart: string;
-  weekResetAt: string;
-  notBefore: string;
-  expiresAt: string;
-  signedLease?: SignedOfflineUsageLease;
-}
-
 function first<T>(value: T | T[] | null): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }

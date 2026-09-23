@@ -71,7 +71,7 @@
  * Production signs in with a full-page redirect, verified in the SDK source, so
  * this is the belt to that braces.
  */
-export const NEVER_ISOLATED_PATH_PREFIXES = ["/auth", "/.lovable"] as const;
+const NEVER_ISOLATED_PATH_PREFIXES = ["/auth"] as const;
 
 /**
  * Should the document at this path be cross-origin isolated?
@@ -81,7 +81,7 @@ export const NEVER_ISOLATED_PATH_PREFIXES = ["/auth", "/.lovable"] as const;
  * which routes are isolated — a disagreement there produces either a page that
  * never gets threads or an infinite reload.
  */
-export function shouldIsolate(pathname: string): boolean {
+function shouldIsolate(pathname: string): boolean {
   const path = normalisePath(pathname);
   return !NEVER_ISOLATED_PATH_PREFIXES.some((prefix) => underPrefix(path, prefix));
 }
@@ -106,8 +106,8 @@ export function shouldIsolate(pathname: string): boolean {
  * unrecognised, which means NOT ISOLATED — so it runs single-threaded rather
  * than breaking. That is the right way round.
  */
-export const COEP_VALUE = "credentialless";
-export const COOP_ISOLATED = "same-origin";
+const COEP_VALUE = "credentialless";
+const COOP_ISOLATED = "same-origin";
 
 /**
  * COOP for documents that are not isolated.
@@ -116,7 +116,7 @@ export const COOP_ISOLATED = "same-origin";
  * opener from reaching into this page, while leaving popups OCADE itself opens
  * able to talk back. That is precisely what the auth popup branch needs.
  */
-export const COOP_DEFAULT = "same-origin-allow-popups";
+const COOP_DEFAULT = "same-origin-allow-popups";
 
 export interface IsolationHeaders {
   "cross-origin-opener-policy": string;

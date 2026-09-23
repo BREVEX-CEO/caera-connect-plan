@@ -1,4 +1,3 @@
-export { OCADE_RELEASE_VERSION } from "./release";
 import { OCADE_COMMIT, OCADE_RELEASE_VERSION } from "./release";
 
 const HEALTH_PATH = "/api/health";

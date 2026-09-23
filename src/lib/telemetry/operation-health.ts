@@ -37,15 +37,7 @@
 import { OCADE_RELEASE_VERSION } from "../release.ts";
 
 /** The part of the product a record is about. */
-export const HEALTH_COMPONENTS = [
-  "web",
-  "edge_function",
-  "webhook",
-  "task",
-  "provider",
-  "model",
-  "database",
-] as const;
+const HEALTH_COMPONENTS = ["web", "edge_function"] as const;
 export type HealthComponent = (typeof HEALTH_COMPONENTS)[number];
 
 /**
@@ -55,22 +47,11 @@ export type HealthComponent = (typeof HEALTH_COMPONENTS)[number];
  * anything finer becomes a per-user trace, which is the thing this refuses to
  * be.
  */
-export const HEALTH_OPERATIONS = [
-  "page_load",
-  "sign_in",
-  "conversation_send",
-  "conversation_load",
+const HEALTH_OPERATIONS = [
   "generation",
-  "file_upload",
-  "file_download",
-  "task_run",
-  "automation_run",
-  "webhook_receipt",
-  "model_prepare",
   "offline_allowance",
   /** Finalising or releasing a reservation after a generation ended. */
   "usage_settlement",
-  "backup_restore",
 ] as const;
 export type HealthOperation = (typeof HEALTH_OPERATIONS)[number];
 
@@ -82,7 +63,7 @@ export type HealthOperation = (typeof HEALTH_OPERATIONS)[number];
  * decision: `quota` means wait, `auth` means credentials, `upstream` means it
  * was not us.
  */
-export const ERROR_CLASSES = [
+const ERROR_CLASSES = [
   "none",
   "auth",
   "permission",
@@ -98,11 +79,11 @@ export const ERROR_CLASSES = [
 export type ErrorClass = (typeof ERROR_CLASSES)[number];
 
 /** Which of the three server-side secret slots served. Never which key. */
-export const PROVIDER_SLOTS = ["primary", "secondary", "tertiary", "local", "none"] as const;
+const PROVIDER_SLOTS = ["primary", "secondary", "tertiary", "local", "none"] as const;
 export type ProviderSlot = (typeof PROVIDER_SLOTS)[number];
 
 /** Latency, at a resolution that describes a path and identifies no session. */
-export const LATENCY_BUCKETS = [
+const LATENCY_BUCKETS = [
   "under_100ms",
   "under_500ms",
   "under_1s",
@@ -185,7 +166,7 @@ export function buildHealthRecord(observation: HealthObservation): HealthRecord 
     schemaVersion: 1,
     release: OCADE_RELEASE_VERSION,
     component: oneOf(HEALTH_COMPONENTS, observation.component, "web"),
-    operation: oneOf(HEALTH_OPERATIONS, observation.operation, "page_load"),
+    operation: oneOf(HEALTH_OPERATIONS, observation.operation, "generation"),
     outcome,
     // A success has no error class, whatever the caller passed.
     errorClass: outcome === "succeeded" ? "none" : declared === "none" ? "internal" : declared,
@@ -196,23 +177,4 @@ export function buildHealthRecord(observation: HealthObservation): HealthRecord 
       Math.max(1, Math.trunc(Number(observation.attempts ?? 1)) || 1),
     ),
   };
-}
-
-/**
- * Roll records up into what an operator actually reads.
- *
- * Counts per component, operation and error class. This is what a status
- * screen or an alert threshold consumes; individual records are not
- * interesting and keeping them around is how a diagnostic store turns into a
- * history of one person's day.
- */
-export interface HealthRollup {
-  key: string;
-  component: HealthComponent;
-  operation: HealthOperation;
-  total: number;
-  failed: number;
-  refused: number;
-  slowest: LatencyBucket;
-  errorClasses: Partial<Record<ErrorClass, number>>;
 }

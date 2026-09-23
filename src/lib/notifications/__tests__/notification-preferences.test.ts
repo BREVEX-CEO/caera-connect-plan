@@ -29,8 +29,6 @@ import {
 const EVERY_CHANNEL: NotificationChannel[] = resolveChannels({
   emailSender: "notifications@example.test",
   webPushPublicKey: "public-key",
-  fcmSenderId: "sender",
-  apnsTopic: "topic",
 });
 
 const IN_APP_ONLY: NotificationChannel[] = resolveChannels({});

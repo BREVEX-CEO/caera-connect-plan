@@ -561,12 +561,9 @@ export class ModelInstallationAuthority {
     /*
      * NOTHING TO INSTALL MEANS THERE IS NOTHING TO INSTALL.
      *
-     * This used to treat a null target as "this backend already holds the
-     * weights, go straight to activation", which was true of the desktop bridge
-     * and the paired computer. Both are gone. What null means now is that the
-     * deployment has published no release, and activating a path with no
-     * artifact behind it produces a runtime failure with a message about the
-     * device — blaming a person's machine for something OCADE has not shipped.
+     * A null target means the deployment has published no release. Activating a
+     * path with no artifact behind it would blame the person's device for
+     * something OCADE has not shipped.
      */
     if (target === "unreachable") {
       return {
@@ -1203,7 +1200,7 @@ function writeIntentToLocalStorage(at: number | null): void {
  * the total. A partial checkpoint is not a cheaper resume, it is a wrong offset,
  * and a wrong offset produces a digest mismatch on a file that was fine.
  */
-export function checkpointFrom(
+function checkpointFrom(
   meta: VersionMeta | null,
   totalBytes: number | null,
 ): TransferCheckpoint | null {

@@ -60,7 +60,7 @@ export interface UpgradeDeps {
  * the next document would believe it was the first attempt. That ordering is
  * the difference between one reload and an unbounded number of them.
  */
-export function upgradeIsolation(deps: UpgradeDeps): IsolationOutcome {
+function upgradeIsolation(deps: UpgradeDeps): IsolationOutcome {
   const target = isolationUpgradeTarget({
     pathname: deps.pathname,
     isolated: deps.isolated,

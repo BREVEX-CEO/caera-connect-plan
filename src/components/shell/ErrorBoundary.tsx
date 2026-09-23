@@ -50,7 +50,7 @@ const DEVELOPER_SHAPED = [
 const GENERIC = "Something here stopped working. Trying again usually clears it.";
 
 /** What may be shown to a person, as opposed to what is worth logging. */
-export function readableMessage(raw: string | undefined): string {
+function readableMessage(raw: string | undefined): string {
   const message = (raw ?? "").trim();
   if (!message) return GENERIC;
   if (DEVELOPER_SHAPED.some((shape) => shape.test(message))) return GENERIC;

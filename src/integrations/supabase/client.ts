@@ -75,13 +75,8 @@ function createSupabaseClient() {
     },
     auth: {
       /*
-       * Ordinary browser storage, and the library's own default key.
-       *
-       * A generated module used to broker the session to a Lovable editor over
-       * postMessage whenever the page was framed on one of that platform's
-       * preview domains. It was a second auth storage authority, tied to a
-       * platform this product does not deploy to, and it handed a session token
-       * to a parent frame on a host-name match.
+       * Ordinary browser storage, and the library's own default key: the one
+       * auth storage authority. Never broker the session to a parent frame.
        */
       persistSession: true,
       autoRefreshToken: true,

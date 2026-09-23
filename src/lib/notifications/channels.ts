@@ -16,7 +16,7 @@
  * why in words a person can act on.
  */
 
-export type NotificationChannelId = "in_app" | "email" | "web_push" | "fcm" | "apns";
+export type NotificationChannelId = "in_app" | "email" | "web_push";
 
 export interface NotificationChannel {
   id: NotificationChannelId;
@@ -36,10 +36,6 @@ export interface ChannelConfiguration {
   webPushPublicKey?: string;
   /** A configured transactional email sender. */
   emailSender?: string;
-  /** Firebase messaging, for the Android build. */
-  fcmSenderId?: string;
-  /** Apple push, for the iOS build. */
-  apnsTopic?: string;
 }
 
 /**
@@ -81,29 +77,6 @@ export function resolveChannels(configuration: ChannelConfiguration): Notificati
               "No browser push service is connected to this deployment, so OCADE would have nowhere to send them.",
           }),
     },
-    {
-      id: "fcm",
-      title: "Android notifications",
-      description: "To the OCADE app on an Android device.",
-      available: present(configuration.fcmSenderId),
-      ...(present(configuration.fcmSenderId)
-        ? {}
-        : {
-            unavailableReason:
-              "The Android delivery service is not configured for this deployment.",
-          }),
-    },
-    {
-      id: "apns",
-      title: "iPhone and iPad notifications",
-      description: "To the OCADE app on an Apple device.",
-      available: present(configuration.apnsTopic),
-      ...(present(configuration.apnsTopic)
-        ? {}
-        : {
-            unavailableReason: "The Apple delivery service is not configured for this deployment.",
-          }),
-    },
   ];
 }
 
@@ -112,7 +85,7 @@ export function resolveChannels(configuration: ChannelConfiguration): Notificati
  *
  * Read from `import.meta.env` so the answer is about the DEPLOYMENT rather than
  * about the browser, and read here once so no surface can form its own opinion.
- * Public identifiers only: a VAPID public key and a sender id are meant to be
+ * Public identifiers only: a VAPID public key and a sender address are meant to be
  * in a bundle; nothing secret is or can be.
  */
 export function deploymentChannelConfiguration(): ChannelConfiguration {
@@ -120,8 +93,6 @@ export function deploymentChannelConfiguration(): ChannelConfiguration {
   return {
     webPushPublicKey: env.VITE_WEB_PUSH_PUBLIC_KEY,
     emailSender: env.VITE_TRANSACTIONAL_EMAIL_SENDER,
-    fcmSenderId: env.VITE_FCM_SENDER_ID,
-    apnsTopic: env.VITE_APNS_TOPIC,
   };
 }
 

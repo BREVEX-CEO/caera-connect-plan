@@ -27,14 +27,6 @@ import {
   type DynamicTableClient,
 } from "@/lib/account/data-rights";
 
-export type {
-  AccountDataExport,
-  AccountExportClass,
-  AccountExportTable,
-  DataClassDeletionReceipt,
-} from "@/lib/account/data-rights";
-export { ACCOUNT_EXPORT_SCHEMA_VERSION } from "@/lib/account/data-rights";
-
 /** The service client, in the shape the data-rights core asks for. */
 async function adminClient(): Promise<DynamicTableClient> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

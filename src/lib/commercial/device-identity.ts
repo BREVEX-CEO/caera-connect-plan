@@ -22,7 +22,7 @@ const DEVICE_CAP_REFUSAL = "23514";
  */
 export type DeviceRegistrationProblem = "device_limit" | "unavailable";
 
-export class DeviceRegistrationFailed extends Error {
+class DeviceRegistrationFailed extends Error {
   constructor(
     readonly problem: DeviceRegistrationProblem,
     message: string,

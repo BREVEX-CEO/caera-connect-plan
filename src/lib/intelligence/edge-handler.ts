@@ -27,7 +27,7 @@ import {
  *
  * Restated here rather than imported because Deno runs this file from
  * `supabase/functions` and cannot follow the `@/` alias the product uses.
- * `surfaces-agree.test.ts` fails if this list and `GENERATION_SURFACES` ever
+ * `online-boundary.test.ts` fails if this list and `GENERATION_SURFACES` ever
  * disagree, so the duplication cannot drift into a second opinion.
  *
  * It listed eight while Code, Tasks, Automations, background agents, Voice and

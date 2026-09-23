@@ -64,7 +64,7 @@ const MODE_FOR: Record<IntelligenceChoice, IntelligenceMode> = {
 };
 
 /** A title from the first thing somebody said, rather than "New chat" forever. */
-export function titleFrom(message: string): string {
+function titleFrom(message: string): string {
   const line = message.trim().split("\n")[0] ?? "";
   const trimmed = line.length > 60 ? `${line.slice(0, 57).trimEnd()}…` : line;
   return trimmed || "New chat";

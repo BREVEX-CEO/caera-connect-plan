@@ -25,7 +25,7 @@ function encodeBase64(value: Uint8Array): string {
   return btoa(binary);
 }
 
-export async function importOfflineLeasePrivateKey(pkcs8Base64: string): Promise<CryptoKey> {
+async function importOfflineLeasePrivateKey(pkcs8Base64: string): Promise<CryptoKey> {
   const bytes = decodeBase64(pkcs8Base64);
   return crypto.subtle.importKey(
     "pkcs8",

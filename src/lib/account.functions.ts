@@ -21,7 +21,7 @@ import { callerSessionIsLive } from "@/lib/security/sessions.functions";
  */
 export const DELETE_CONFIRMATION = "DELETE MY ACCOUNT";
 
-export const deleteAccountInput = z.object({
+const deleteAccountInput = z.object({
   confirmation: z.string(),
 });
 

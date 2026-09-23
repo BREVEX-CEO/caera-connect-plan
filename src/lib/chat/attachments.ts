@@ -35,7 +35,7 @@ export const MAX_ATTACHMENTS = 8;
 export const MAX_TEXT_CHARS = 200_000;
 
 /** An image, decoded. Comfortably above a phone photograph. */
-export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 /**
  * How much of a text file is ever READ, as opposed to how much is kept.
@@ -46,7 +46,7 @@ export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
  * because `MAX_TEXT_CHARS` throws them away immediately afterwards. One
  * megabyte holds `MAX_TEXT_CHARS` even when every character is multi-byte.
  */
-export const MAX_TEXT_BYTES = 1024 * 1024;
+const MAX_TEXT_BYTES = 1024 * 1024;
 
 /** Everything one question may carry, so a request cannot be unbounded. */
 export const MAX_TOTAL_BYTES = 20 * 1024 * 1024;

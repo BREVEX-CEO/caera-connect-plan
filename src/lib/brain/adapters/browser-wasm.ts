@@ -112,7 +112,7 @@ function unfinishedTagLength(text: string, tag: string): number {
  * The small model follows formats better when told once, briefly (F18/F21/F22).
  * ponytail: prompt-level only; measure on the installed artifact before tuning.
  */
-export const FORMAT_INSTRUCTION =
+const FORMAT_INSTRUCTION =
   "You are OCADE. Answer exactly what is asked. When the person asks for only a number, one word, or JSON, reply with only that and nothing else. Check arithmetic before answering.";
 
 /** An explicit request for JSON-only output, which the runtime can then enforce. */

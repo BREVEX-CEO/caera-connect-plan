@@ -37,7 +37,7 @@ import {
  * A named class so a surface can tell "you need to confirm the code" apart from
  * "that went wrong", and prompt rather than apologise.
  */
-export class AssuranceRequiredError extends Error {
+class AssuranceRequiredError extends Error {
   constructor(
     readonly reason: "factor_required" | "reauthentication_required",
     message: string,
