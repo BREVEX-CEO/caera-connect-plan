@@ -4,7 +4,8 @@
 
 - The company identity is **CARCC**. The product identity is **OCADE**. The approved tagline is **Command the Next Era.**
 - Branch `claude/cool-allen-rlxvkm` (2026-09-23) implements the PLAN.md F01–F35 review on top of `main` `e0880f3`.
-- Verified on that exact tree: `verify:full` 15/15 gates, 84 test files / 867 tests, 11 browser journeys / 313 checks against the local build and Supabase stub.
+- Verified on that exact tree: `verify:full` 15/15 gates, 84 test files / 873 tests, 11 browser journeys / 313 checks against the local build and Supabase stub. `npm audit`: 0 vulnerabilities (vitest 4.1).
+- Edge Function `ocade-intelligence` v9 is deployed from this branch (Chat is the only accepted surface).
 - Supabase migration `close_client_write_paths` (repo `20260923090000`) is applied live and verified.
 - Supabase migration `20260923100000_retire_trash_payments_and_side_threads` is **not applied yet**. Apply it only after the Worker built from this branch is live, because the old Worker still reads `deleted_at` and the retired message columns.
 - The live Worker was last seen at deployment `987d6324-3878-4811-a179-dfb143337941`; `/api/health` gains a `commit` field once this branch deploys.
@@ -13,19 +14,19 @@
 
 - Build/test gates green; entitlement comes from audited grants only; dead limits, Cowork, Trash/restore, side-thread columns and closed payment schema retired.
 - Chat: delivery is the first visible token (no free answers on chat switch); a partly read answer is kept with its own chat.
-- Offline: one serialized generation slot that disposes the runtime after any unfinished generation (no cross-chat text); context sized to device memory with a packed transcript; OPFS `versions/pointers.json` is the only install authority (localStorage keys migrated once and cleared); cleanup no longer deletes that manifest.
+- Offline: unsynced turns kept in an encrypted restart-safe journal and uploaded exactly once; one serialized generation slot that disposes the runtime after any unfinished generation (no cross-chat text); context sized to device memory with a packed transcript; OPFS `versions/pointers.json` is the only install authority (localStorage keys migrated once and cleared); cleanup no longer deletes that manifest.
 - Security: no browser role can write `user_roles`, TRUNCATE, or write grants/usage/tombstones; permits accept Chat only.
 - Deletion: account deletion checks every step before removing the sign-in identity; Library tombstones are acknowledged only after Storage confirms.
 - UX: `Auto | Online | Offline`, password sign-in behind "Use a password instead", highlight → Ask OCADE, Archive/Unarchive, truthful no-network banner, device rows distinguished by when added, Upgrade in the account menu, corrected social image and small brand mark.
 
 ## Open items needing the owner
 
-- Paid checkout: PLAN.md asks for a real checkout, but no payment provider or credentials exist. Choose a provider and supply credentials; until then Upgrade truthfully says paid plans are not open.
-- Cloudflare zone "Always Use HTTPS" (F24) and Supabase leaked-password protection (F14) are dashboard settings.
-- Two live accounts each hold two active device places for one browser (F04). Settings now shows when each was added so the owner can remove the older one.
-- Offline answer quality (F18/F21/F22) needs a real-device evaluation with the installed model.
-- A restart-safe encrypted journal for unsynced Offline turns is still not implemented (turns are held in the open tab).
-- Branch deletion: all non-main branches were reviewed; none carries unmerged current-product value.
+- Paid checkout: the owner is not ready for payments. Upgrade stays truthful and non-charging; no payment provider is built.
+- Supabase leaked-password protection (F14) is unavailable on the current plan; externally blocked, no workaround.
+- Two live accounts each hold two active device places for one browser (F04). Settings shows when each was added so the owner can remove the older one.
+- Offline answer quality (F18/F21/F22): format steering and JSON grammar are unit-tested; a real-device evaluation with the installed model is still needed.
+- Research "busy": the request matches the provider's documented grounding format; no provider logs were available to prove the cause.
+- Worker deploy, merge to `main`, branch deletion and migration `20260923100000` wait for the owner's explicit confirmation.
 
 ## Important context
 
@@ -52,7 +53,7 @@ No IndexedDB/Cache Storage/localStorage model copy.
 
 The user-uninstalled preference is separate non-model state so it survives deleting the model.
 
-Offline unsynced account work that must survive restart should use encrypted local storage/journal and exactly-once reconciliation.
+Offline unsynced turns survive restart in an AES-GCM encrypted IndexedDB journal (`src/lib/chat/unsynced-turns.ts`, non-extractable per-account key, deleted at sign-out) and upload exactly once through the server `clientKey` dedupe.
 
 ## Branding
 
