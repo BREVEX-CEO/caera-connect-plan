@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  */
 
 const instances: FakeWllama[] = [];
+let lastOptions: Record<string, unknown> = {};
 
 class FakeWllama {
   leftover: string[] = [];
@@ -24,6 +25,7 @@ class FakeWllama {
     messages: { content: string }[];
     abortSignal?: AbortSignal;
   }) {
+    lastOptions = options;
     const prompt = options.messages[options.messages.length - 1]!.content;
     const tokens = [...this.leftover, ...[1, 2, 3, 4].map((n) => `${prompt}${n} `)];
     this.leftover = [];
@@ -143,5 +145,25 @@ describe("the transcript fits the engine", () => {
     expect(contextTokens({ mobile: true, deviceMemoryGb: 8 })).toBe(2048);
     expect(contextTokens({ mobile: false, deviceMemoryGb: 8 })).toBe(4096);
     expect(contextTokens({ mobile: false, deviceMemoryGb: null })).toBe(2048);
+  });
+});
+
+describe("strict formats on the small model (F21/F22)", () => {
+  it("tells it once to keep to the requested format", async () => {
+    const engine = await adapter();
+    await ask(engine, "Name one primary color. Reply with one word.");
+    const messages = lastOptions.messages as { role: string; content: string }[];
+    expect(messages[0]!.role).toBe("system");
+    expect(messages[0]!.content).toMatch(/only that and nothing else/);
+    expect(lastOptions.response_format).toBeUndefined();
+  });
+
+  it("constrains the output to JSON only when JSON-only is asked for", async () => {
+    const engine = await adapter();
+    await ask(engine, "Return only valid JSON with keys sum and even for 3 + 5. No Markdown.");
+    expect(lastOptions.response_format).toEqual({ type: "json_object" });
+    const { wantsJsonOnly } = await import("../adapters/browser-wasm");
+    expect(wantsJsonOnly("Explain what JSON is")).toBe(false);
+    expect(wantsJsonOnly("Reply in JSON only")).toBe(true);
   });
 });

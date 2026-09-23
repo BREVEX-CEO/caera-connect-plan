@@ -108,6 +108,18 @@ function unfinishedTagLength(text: string, tag: string): number {
   return 0;
 }
 
+/**
+ * The small model follows formats better when told once, briefly (F18/F21/F22).
+ * ponytail: prompt-level only; measure on the installed artifact before tuning.
+ */
+export const FORMAT_INSTRUCTION =
+  "You are OCADE. Answer exactly what is asked. When the person asks for only a number, one word, or JSON, reply with only that and nothing else. Check arithmetic before answering.";
+
+/** An explicit request for JSON-only output, which the runtime can then enforce. */
+export function wantsJsonOnly(question: string): boolean {
+  return /\bonly\s+(valid\s+)?json\b|\bjson\s+only\b/i.test(question);
+}
+
 /** Tokens held back for the answer when the transcript is packed. */
 const ANSWER_RESERVE = 512;
 
@@ -521,7 +533,10 @@ export class BrowserWasmAdapter implements BrainAdapter {
     }
 
     const context = contextTokens();
-    const fitted = fitTranscript(messages, context - ANSWER_RESERVE);
+    const fitted = fitTranscript(
+      [{ role: "system", content: FORMAT_INSTRUCTION }, ...messages],
+      context - ANSWER_RESERVE,
+    );
     if (!fitted) {
       return {
         ok: false,
@@ -578,6 +593,10 @@ export class BrowserWasmAdapter implements BrainAdapter {
         // Never more than the context has room for, so a long answer ends
         // cleanly instead of overflowing.
         max_tokens: Math.max(ANSWER_RESERVE, context - inputTokens),
+        // Grammar-constrained, so a JSON-only request cannot come back fenced.
+        ...(wantsJsonOnly(fitted[fitted.length - 1]!.content)
+          ? { response_format: { type: "json_object" as const } }
+          : {}),
         messages: fitted.map((m) => ({ role: m.role, content: m.content })),
       });
 
