@@ -1,18 +1,6 @@
 /**
  * WHAT THE PRODUCT IS DOING, IN A SHAPE THAT CANNOT CARRY ANYBODY'S WORK.
  *
- * `PLAN.md` Phase 16 asks for "privacy-safe structured diagnostics for
- * release/operation/error class/latency/provider slot/task/Edge Function/
- * webhook health without secrets or unnecessary content".
- *
- * `failure-telemetry.ts` already owns the consent, the allow-list, the
- * redaction and the queue, and it stays the authority for all four -- this is
- * not a second telemetry stack. What it did not have was a vocabulary: it
- * could say a control route failed on a route, and nothing at all about
- * whether the Edge Function answered, which provider slot served, how long an
- * operation took, or whether a webhook was accepted. So this module supplies
- * the vocabulary and the coercion, and hands the result to that queue.
- *
  * ENUMERATED, NOT FREE TEXT, AND THAT IS THE PRIVACY PROPERTY. Every field
  * here is one of a fixed set of values known at build time. A caller cannot
  * put a prompt, a file name, an email address or an API key into an

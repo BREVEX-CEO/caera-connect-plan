@@ -29,11 +29,6 @@ import {
  * `supabase/functions` and cannot follow the `@/` alias the product uses.
  * `online-boundary.test.ts` fails if this list and `GENERATION_SURFACES` ever
  * disagree, so the duplication cannot drift into a second opinion.
- *
- * It listed eight while Code, Tasks, Automations, background agents, Voice and
- * Artifacts were separate products. Six of those cannot emit a request any
- * more, and a value nothing can send is a value this validator was accepting
- * from anybody who asked.
  */
 const ALLOWED_SURFACES: readonly string[] = ["chat"];
 
@@ -511,7 +506,6 @@ function normalizedProviderStream(
   });
 }
 
-/** Portable authenticated handler used by the Supabase Edge entry point. */
 /** How a refusal reads to an operator, from the status it answered with. */
 function errorClassForStatus(status: number): ErrorClass {
   if (status < 400) return "none";
