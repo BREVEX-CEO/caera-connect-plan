@@ -77,10 +77,14 @@ describe("the ways in", () => {
     expect(copy).not.toMatch(/phone|sms/i);
   });
 
-  it("keep the password off the first screen", () => {
-    // A password is optional and managed under Account; `/reset-password`
-    // remains for the people who set one.
-    expect(SIGN_IN).not.toContain('type="password"');
+  it("offer a password one press away, never as the first field", () => {
+    // Google, email code and password are the three target methods.
+    expect(SIGN_IN).toContain("signInWithPassword");
+    expect(SIGN_IN).toContain("Use a password instead");
+    expect(SIGN_IN.indexOf('type="password"')).toBeGreaterThan(SIGN_IN.indexOf("usePassword ? ("));
+    // The same sentence whether or not the account exists.
+    expect(SIGN_IN).toContain("That email and password did not match.");
+    expect(SIGN_IN).toContain('loadThrottle("password_signin"');
     expect(RESET).toContain('type={visible ? "text" : "password"}');
   });
 

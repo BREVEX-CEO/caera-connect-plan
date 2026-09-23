@@ -79,11 +79,9 @@ export const Route = createFileRoute("/auth/")({
  * authenticate is worse than one that is absent, because it is the one somebody
  * picks when the others give them trouble.
  *
- * THE PASSWORD IS NOT HERE, AND THAT IS THE DECISION RATHER THAN AN OMISSION.
- * A password is optional and managed under Account; `/reset-password` remains
- * for the people who set one. Putting it on the first screen makes the common
- * case — a code, arriving in seconds, with nothing to remember — look like the
- * fallback.
+ * A PASSWORD IS THE THIRD WAY, ONE PRESS AWAY. It is optional and set under
+ * Account, so it sits behind "Use a password instead" rather than competing
+ * with the code, which needs nothing remembered.
  *
  * WHAT A FAILURE IS ALLOWED TO SAY. Never the provider's own text, which names
  * the provider and is written for whoever operates it. Never whether an account
@@ -107,6 +105,8 @@ function AuthPage() {
     : null;
 
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [usePassword, setUsePassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(inboundFriendly?.message ?? null);
   const [hint, setHint] = useState<string | null>(inboundFriendly?.hint ?? null);
@@ -197,6 +197,44 @@ function AuthPage() {
     }
   }
 
+  async function signInWithPassword(event: React.FormEvent) {
+    event.preventDefault();
+    const address = email.trim().toLowerCase();
+    if (!address || !password) {
+      setError("Enter your email address and password.");
+      return;
+    }
+    const state = loadThrottle("password_signin", address);
+    const wait = secondsUntilAllowed(state, Date.now());
+    if (wait > 0) {
+      setError(describeWait(wait));
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setHint(null);
+    try {
+      const supabase = await loadSupabaseClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: address,
+        password,
+      });
+      if (signInError) {
+        saveThrottle("password_signin", address, recordFailure(state, Date.now()));
+        // One sentence whether the account exists or not.
+        setError("That email and password did not match.");
+        setHint("Forgot it? Sign in with a code, then set a new password under Account.");
+        setBusy(false);
+        return;
+      }
+      saveThrottle("password_signin", address, recordSuccess());
+      void navigate({ to: nextPath });
+    } catch {
+      setError("OCADE could not sign you in just now. Try again in a moment.");
+      setBusy(false);
+    }
+  }
+
   if (!configured) {
     return (
       <AuthShell
@@ -243,7 +281,34 @@ function AuthPage() {
         </>
       ) : null}
 
-      {availability.emailDelivery ? (
+      {usePassword ? (
+        <form onSubmit={signInWithPassword} className="space-y-3">
+          <label className="block">
+            <span className="sr-only">Email address</span>
+            <input
+              type="email"
+              autoComplete="email"
+              inputMode="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@example.com"
+              className="h-10 w-full rounded-md border border-border bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+            />
+          </label>
+          <label className="block">
+            <span className="sr-only">Password</span>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Password"
+              className="h-10 w-full rounded-md border border-border bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+            />
+          </label>
+          <SubmitButton busy={busy}>Sign in</SubmitButton>
+        </form>
+      ) : availability.emailDelivery ? (
         <form onSubmit={sendEmailCode} className="space-y-3">
           <label className="block">
             <span className="sr-only">Email address</span>
@@ -264,6 +329,18 @@ function AuthPage() {
           Email codes are not available on this deployment yet.
         </p>
       )}
+
+      <button
+        type="button"
+        onClick={() => {
+          setUsePassword((current) => !current);
+          setError(null);
+          setHint(null);
+        }}
+        className="mt-3 w-full text-center text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+      >
+        {usePassword ? "Use an email code instead" : "Use a password instead"}
+      </button>
 
       {error ? (
         <p className="mt-4 text-[13px] text-foreground" role="alert">
