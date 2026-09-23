@@ -14,13 +14,13 @@
  * `ocade_messages`, protected by row-level security, readable from every
  * device the person signs in on, and removed for good when they delete it.
  *
- * THE ONE EXCEPTION IS RAM, AND IT IS TEMPORARY. A turn generated on the
- * device while the database is unreachable waits in `chat/unsynced-turns.ts`
- * — in this tab's memory, never on disk — is shown as unsynchronised, warns
- * before it is lost, and uploads exactly once when the connection returns.
+ * THE ONE EXCEPTION IS TEMPORARY. A turn written while the database is
+ * unreachable waits in `chat/unsynced-turns.ts` (encrypted, surviving a
+ * restart), is shown as unsynchronised, and uploads exactly once when the
+ * connection returns.
  *
  */
-import { appendOcadeMessage, listMessages } from "./ocade.functions";
+import { appendOcadeMessage, createConversation, listMessages } from "./ocade.functions";
 import {
   claimUnsyncedTurn,
   forgetUnsyncedTurn,
@@ -96,6 +96,8 @@ export async function persistChatMessage(input: {
   modelId?: string | null;
   providerId?: string | null;
   attachments?: ChatAttachmentMeta[];
+  /** Set when the conversation itself was started without a connection. */
+  title?: string;
 }): Promise<PersistResult> {
   const createdAt = new Date().toISOString();
   const clientKey = newClientKey();
@@ -133,6 +135,7 @@ export async function persistChatMessage(input: {
     rememberUnsyncedTurn({
       clientKey,
       conversationId: input.conversationId,
+      title: input.title,
       role: input.role,
       content: input.content,
       modelId: input.modelId ?? null,
@@ -199,6 +202,10 @@ export async function flushUnsyncedTurns(): Promise<{ uploaded: number; waiting:
   for (const turn of unsyncedTurns()) {
     if (!claimUnsyncedTurn(turn.clientKey)) continue;
     try {
+      // A chat started offline is created first, under the id it already has.
+      if (turn.title) {
+        await createConversation({ data: { id: turn.conversationId, title: turn.title } });
+      }
       await appendOcadeMessage({
         data: {
           conversationId: turn.conversationId,
@@ -222,11 +229,17 @@ export async function flushUnsyncedTurns(): Promise<{ uploaded: number; waiting:
   return { uploaded, waiting: unsyncedTurns().length };
 }
 
+/** True when a write failed because the account could not be reached. */
+export function isUnreachable(e: unknown): boolean {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
+  return /network|fetch|offline/i.test(e instanceof Error ? e.message : String(e ?? ""));
+}
+
 /** Human-readable, actionable message for a failed write. */
 export function describeStorageError(e: unknown): string {
   const message = e instanceof Error ? e.message : String(e ?? "");
-  if (/network|fetch|offline|failed to fetch/i.test(message)) {
-    return "OCADE could not reach your account. The message is being held in this tab and will be saved when the connection returns — closing the tab discards it.";
+  if (isUnreachable(e)) {
+    return "OCADE could not reach your account. The message is kept on this device and will be saved when the connection returns.";
   }
   return message.trim() || "OCADE could not save this message.";
 }

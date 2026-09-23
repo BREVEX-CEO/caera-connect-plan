@@ -1,9 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  forgetAllUnsyncedTurns,
-  rememberUnsyncedTurn,
-  unsyncedTurns,
-} from "@/lib/chat/unsynced-turns";
+import "fake-indexeddb/auto";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * WORK DONE OFFLINE HAS TO REACH THE ACCOUNT.
@@ -21,6 +17,7 @@ import {
  * own bookkeeping.
  */
 const appended: string[] = [];
+const created: string[] = [];
 let failNext = false;
 
 vi.mock("@/lib/ocade.functions", () => ({
@@ -30,13 +27,29 @@ vi.mock("@/lib/ocade.functions", () => ({
     appended.push(data.clientKey);
     return { id: data.clientKey };
   }),
+  createConversation: vi.fn(async ({ data }: { data: { id: string } }) => {
+    if (failNext) throw new Error("network");
+    created.push(data.id);
+    return { id: data.id };
+  }),
   listMessages: vi.fn(async () => []),
 }));
 
-const { flushUnsyncedTurns } = await import("@/lib/ocade-chat-store");
+/** A fresh module graph is what a browser restart gives the journal. */
+async function boot(account: string) {
+  vi.resetModules();
+  const journal = await import("@/lib/chat/unsynced-turns");
+  const store = await import("@/lib/ocade-chat-store");
+  await journal.openJournal(account);
+  return { ...journal, ...store };
+}
+
+let app: Awaited<ReturnType<typeof boot>>;
+const flushUnsyncedTurns = () => app.flushUnsyncedTurns();
+const unsyncedTurns = () => app.unsyncedTurns();
 
 function waiting(clientKey: string, createdAt: string) {
-  rememberUnsyncedTurn({
+  app.rememberUnsyncedTurn({
     clientKey,
     conversationId: "c1",
     role: "user",
@@ -48,9 +61,14 @@ function waiting(clientKey: string, createdAt: string) {
   });
 }
 
-afterEach(() => {
-  forgetAllUnsyncedTurns();
+beforeEach(async () => {
+  app = await boot("account-a");
+});
+
+afterEach(async () => {
+  await app.forgetAllUnsyncedTurns("account-a");
   appended.length = 0;
+  created.length = 0;
   failNext = false;
 });
 
@@ -94,5 +112,67 @@ describe("turns written while the database was unreachable", () => {
 
     expect(appended).toEqual(["k1"]);
     expect(unsyncedTurns()).toHaveLength(0);
+  });
+});
+
+describe("after the browser restarts", () => {
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
+
+  it("are still there, encrypted, and upload exactly once", async () => {
+    waiting("r1", "2026-01-01T00:00:00.000Z");
+    await settle();
+
+    // Nothing readable on disk: the journal holds ciphertext only.
+    const raw = await new Promise<unknown[]>((resolve) => {
+      const open = indexedDB.open("ocade-offline-journal");
+      open.onsuccess = () => {
+        const all = open.result.transaction("turns").objectStore("turns").getAll();
+        all.onsuccess = () => resolve(all.result);
+      };
+    });
+    expect(JSON.stringify(raw)).not.toContain("held r1");
+
+    app = await boot("account-a");
+    expect(unsyncedTurns().map((turn) => turn.clientKey)).toEqual(["r1"]);
+    expect(await flushUnsyncedTurns()).toEqual({ uploaded: 1, waiting: 0 });
+    await settle();
+
+    app = await boot("account-a");
+    expect(unsyncedTurns()).toEqual([]);
+    expect(appended).toEqual(["r1"]);
+  });
+
+  it("belong to their account and no other", async () => {
+    waiting("mine", "2026-01-01T00:00:00.000Z");
+    await settle();
+    app = await boot("account-b");
+    expect(unsyncedTurns()).toEqual([]);
+    app = await boot("account-a");
+    expect(unsyncedTurns()).toHaveLength(1);
+  });
+
+  it("are deleted with their key when the account signs out", async () => {
+    waiting("gone", "2026-01-01T00:00:00.000Z");
+    await settle();
+    await app.forgetAllUnsyncedTurns("account-a");
+    app = await boot("account-a");
+    expect(unsyncedTurns()).toEqual([]);
+  });
+
+  it("create a chat that was started offline before its first turn", async () => {
+    app.rememberUnsyncedTurn({
+      clientKey: "t1",
+      conversationId: "11111111-1111-4111-8111-111111111111",
+      title: "Started offline",
+      role: "user",
+      content: "hello",
+      modelId: null,
+      providerId: null,
+      attachments: [],
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+    await flushUnsyncedTurns();
+    expect(created).toEqual(["11111111-1111-4111-8111-111111111111"]);
+    expect(appended).toEqual(["t1"]);
   });
 });

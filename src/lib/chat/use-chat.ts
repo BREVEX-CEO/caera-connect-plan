@@ -37,6 +37,7 @@ import {
 import {
   describeStorageError,
   flushUnsyncedTurns,
+  isUnreachable,
   loadChatMessages,
   persistChatMessage,
   type ChatMessageRecord,
@@ -386,6 +387,10 @@ export function useChat(): ChatState & ChatActions {
    * than a duplicate.
    */
   useEffect(() => {
+    // Restart-safe: this account's saved offline turns load before the drain.
+    const journal = import("@/lib/chat/unsynced-turns").then(({ openJournal }) =>
+      openJournal(user?.id ?? null),
+    );
     if (!user) return;
     const drain = () => {
       void flushUnsyncedTurns().then(({ uploaded }) => {
@@ -395,7 +400,7 @@ export function useChat(): ChatState & ChatActions {
         }
       });
     };
-    drain();
+    void journal.then(drain);
     window.addEventListener("online", drain);
     return () => window.removeEventListener("online", drain);
   }, [user, refreshConversations, openMessages]);
@@ -523,10 +528,25 @@ export function useChat(): ChatState & ChatActions {
          * checks and could forget.
          */
         let id = conversationId;
+        /** Set when the chat starts with no connection; the drain creates it later. */
+        let offlineTitle: string | undefined;
         if (!id && !temporary) {
-          const row = (await createConversation({
-            data: { title: titleFrom(text) },
-          })) as unknown as OcadeConversationRow;
+          const row = (await createConversation({ data: { title: titleFrom(text) } }).catch(
+            (cause) => {
+              if (!isUnreachable(cause)) throw cause;
+              offlineTitle = titleFrom(text);
+              const now = new Date().toISOString();
+              return {
+                id: crypto.randomUUID(),
+                title: offlineTitle,
+                pinned: false,
+                archived: false,
+                model_id: null,
+                updated_at: now,
+                created_at: now,
+              };
+            },
+          )) as unknown as OcadeConversationRow;
           id = row.id;
           setConversationId(id);
           setConversations((current) => [row, ...current]);
@@ -536,6 +556,7 @@ export function useChat(): ChatState & ChatActions {
           ? { record: temporaryRecord("user", text, attachments), stored: "memory" as const }
           : await persistChatMessage({
               conversationId: id!,
+              title: offlineTitle,
               role: "user",
               content: text,
               // Names and sizes only. The bytes are in Library, which is the one
@@ -648,7 +669,12 @@ export function useChat(): ChatState & ChatActions {
            * while the same account is signed in.
            */
           if (shown.trim() && id && !temporary && lastAccount.current === owner) {
-            await persistChatMessage({ conversationId: id, role: "assistant", content: shown });
+            await persistChatMessage({
+              conversationId: id,
+              title: offlineTitle,
+              role: "assistant",
+              content: shown,
+            });
           }
           return true;
         }
@@ -676,6 +702,7 @@ export function useChat(): ChatState & ChatActions {
           ? { record: temporaryRecord("assistant", answer, []), stored: "memory" as const }
           : await persistChatMessage({
               conversationId: id!,
+              title: offlineTitle,
               role: "assistant",
               content: answer,
             });
@@ -683,7 +710,7 @@ export function useChat(): ChatState & ChatActions {
         setMessages((current) => [...current, reply.record]);
         if (reply.stored === "unsynced") {
           setProblem(
-            "This answer is held in this tab because your account could not be reached. Closing the tab discards it.",
+            "This answer is kept on this device because your account could not be reached. It is saved when the connection returns.",
           );
         }
 

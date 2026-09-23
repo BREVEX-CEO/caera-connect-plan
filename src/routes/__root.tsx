@@ -331,6 +331,7 @@ function BrowserBootstrap() {
           if (!["SIGNED_IN", "SIGNED_OUT", "USER_UPDATED"].includes(event)) return;
           const nowSignedIn = session?.user.id ?? null;
           if (nowSignedIn === signedIn && event !== "USER_UPDATED") return;
+          const previous = signedIn;
           signedIn = nowSignedIn;
           if (event === "SIGNED_IN") setTimeout(refreshOfflineAllowance, 0);
           if (event === "SIGNED_OUT") {
@@ -339,9 +340,11 @@ function BrowserBootstrap() {
              * account's own records: the next person to sign in on this machine
              * must not inherit an unsent turn from the last one.
              */
-            void import("@/lib/chat/unsynced-turns")
-              .then((module) => module.forgetAllUnsyncedTurns())
-              .catch(() => {});
+            if (previous) {
+              void import("@/lib/chat/unsynced-turns")
+                .then((module) => module.forgetAllUnsyncedTurns(previous))
+                .catch(() => {});
+            }
           }
           router.invalidate();
         });

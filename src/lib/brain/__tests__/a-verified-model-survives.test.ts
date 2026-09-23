@@ -56,7 +56,7 @@ describe("signing out", () => {
     const block = signOutBlock();
 
     // What it IS allowed to forget: this tab's own scratch state.
-    expect(block).toContain("forgetAllUnsyncedTurns()");
+    expect(block).toContain("forgetAllUnsyncedTurns(previous)");
 
     /*
      * What it must never reach. Each of these is a way to lose the model:

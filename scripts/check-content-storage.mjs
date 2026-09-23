@@ -81,6 +81,10 @@ const ALLOWED = new Map([
     "A message typed before signing in, held in this TAB so the sign-in does not discard it and sent once afterwards.",
   ],
   [
+    "src/lib/chat/unsynced-turns.ts",
+    "Offline turns the account has not received yet, AES-GCM encrypted, deleted once synced or on sign-out.",
+  ],
+  [
     "src/lib/security/isolation-upgrade.ts",
     "One reload attempt, remembered for this tab so a failed upgrade cannot loop.",
   ],
