@@ -3,7 +3,7 @@
 ## Current status
 
 - The company identity is **CARCC**. The product identity is **OCADE**. The approved tagline is **Command the Next Era.**
-- Branch `claude/cool-allen-rlxvkm` (2026-09-23) implements the PLAN.md F01–F35 review on top of `main` `e0880f3`.
+- `main` is `6c1535fe` (2026-09-25), fast-forwarded from `claude/cool-allen-rlxvkm`, which implements the PLAN.md F01–F35 review on top of `e0880f3`.
 - Verified on that exact tree: `verify:full` 15/15 gates, 84 test files / 873 tests, 11 browser journeys / 313 checks against the local build and Supabase stub. `npm audit`: 0 vulnerabilities (vitest 4.1).
 - Edge Function `ocade-intelligence` v9 is deployed from this branch (Chat is the only accepted surface).
 - Supabase migration `close_client_write_paths` (repo `20260923090000`) is applied live and verified.
@@ -26,7 +26,9 @@
 - Two live accounts each hold two active device places for one browser (F04). Settings shows when each was added so the owner can remove the older one.
 - Offline answer quality (F18/F21/F22): format steering and JSON grammar are unit-tested; a real-device evaluation with the installed model is still needed.
 - Research "busy": the request matches the provider's documented grounding format; no provider logs were available to prove the cause.
-- Worker deploy, merge to `main`, branch deletion and migration `20260923100000` wait for the owner's explicit confirmation.
+- Worker deploy of `main` is blocked: the `Cloudflare production deployment` workflow gets no GitHub-hosted runner (fails in 2 s, no logs), and agent sessions cannot reach the Cloudflare API. Run `npm run deploy:web` with `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` from a machine that can, or restore Actions minutes and dispatch the workflow (rollback version `987d6324-3878-4811-a179-dfb143337941`).
+- Migration `20260923100000` stays unapplied until `/api/health` shows `commit` `6c1535fe…` (or later).
+- Obsolete PRs #6, #7, #8, #24, #25, #26, #37, #41, #44 and #45 are closed. Their 50 obsolete branches still exist because agent sessions may push only their own branch; delete them in GitHub's Branches page. Keep `main`, and the Dependabot branches for open PRs #42, #43 and #46.
 
 ## Important context
 
