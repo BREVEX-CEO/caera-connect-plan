@@ -62,7 +62,14 @@ export default tseslint.config(
           ],
         },
       ],
-      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      "react-refresh/only-export-components": [
+        "warn",
+        {
+          allowConstantExport: true,
+          // A provider's own hook, and one pure formatter, beside the components that use them.
+          allowExportNames: ["useAppearance", "useSettingsPanel", "describeWhen"],
+        },
+      ],
       "@typescript-eslint/no-unused-vars": "off",
       // ~207 pre-existing `any` usages in the Lovable source; surface as a
       // warning (paid down over time). New OCADE code is written without `any`.
