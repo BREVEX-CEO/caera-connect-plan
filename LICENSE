@@ -1,74 +1,142 @@
-OCADE PROPRIETARY SOURCE CODE NOTICE
+OCADE PROPRIETARY SOURCE CODE LICENSE
 
 Copyright (c) 2026 Haans Antoni. All rights reserved.
 
-Brand: CARCC CADANE
+Project family / brand: CARCC
 Product: OCADE
+Covered components: OCADE core, OCADE JARVIS, and other proprietary OCADE
+source and assets in this repository unless a file or directory states a
+different applicable licence.
 Owner before any written assignment: Haans Antoni
 
-IMPORTANT: LAWYER REVIEW IS REQUIRED BEFORE COMMERCIAL DISTRIBUTION. This file
-governs access to the private source repository. It is not the consumer terms
-of service, an end-user licence agreement, a privacy notice, proof of company
-incorporation, proof of trademark registration, or proof that OCADE launched.
+IMPORTANT: LAWYER REVIEW IS REQUIRED BEFORE COMMERCIAL DISTRIBUTION.
 
-1. RESERVATION OF RIGHTS
+This file governs proprietary source-code access and use for this repository.
+It is not the consumer Terms of Service, an end-user subscription agreement, a
+Privacy Notice, proof of company incorporation, proof of trademark
+registration, or proof that any product or service has launched.
+
+1. OWNERSHIP AND RESERVATION OF RIGHTS
+
+The proprietary OCADE source code, application logic, interfaces, workflows,
+designs, prompts, documentation, integration logic, internal architecture,
+automation logic, and other original materials are protected by copyright and
+other applicable intellectual-property laws.
 
 Except for rights expressly granted in a separate written agreement signed by
-the copyright owner, no licence is granted to use, copy, modify, distribute,
-publish, sublicense, sell, host, reverse engineer, create derivative works from,
-or commercially exploit the proprietary portions of this repository.
+the copyright owner, no licence is granted to copy, reproduce, modify,
+redistribute, publish, sublicense, sell, rent, host, commercialize, reverse
+engineer, create derivative source products from, or otherwise reuse the
+proprietary portions of this repository.
 
-Access to the private repository does not transfer ownership. Contractors,
-employees, collaborators and investors must have a written confidentiality and
-intellectual-property agreement appropriate to their role before receiving
-access or contributing work.
+Access to the repository does not transfer ownership.
 
-2. THIRD-PARTY MATERIAL
+Employees, contractors, collaborators, consultants, investors, and other
+authorized recipients must have confidentiality and intellectual-property
+agreements appropriate to their role before receiving non-public source access
+or contributing proprietary work.
 
-This repository includes or depends on third-party software, models, weights,
-assets and services. Those materials remain governed by their respective
-licences and terms. Nothing in this notice restricts rights granted by an
-applicable open-source or third-party licence. Available notices are recorded in
-release/THIRD_PARTY_NOTICES.md and must be regenerated and reviewed for every
-distribution.
+2. AUTHORIZED PRODUCT USE
 
-3. CONTRIBUTIONS AND OWNERSHIP CHAIN
+Authorized customers and users may use released OCADE products and services for
+lawful productivity, education, learning, teaching, creative work, engineering
+work, automation, and other functionality made available under the applicable
+OCADE Terms of Service or other customer agreement.
 
-No contribution is accepted as owned by Haans Antoni merely because it appears
-in this repository. The contributor's employment, contractor, assignment or
-contribution agreement controls. The owner must retain signed records sufficient
-to establish the chain of title.
+Permission to use an OCADE product does not grant permission to copy, fork,
+redistribute, republish, resell, host, or incorporate proprietary OCADE source
+code into another product or service.
 
-CARCC CADANE is currently described as a brand/venture. If an incorporated
-entity is later intended to own OCADE, the relevant copyright, trademark,
-domain, contracts and other assets must be assigned to that entity by a valid
-written instrument. Do not replace the owner in this notice before that transfer
-is completed and recorded.
+Public educational material may teach users how to operate OCADE and its
+features. That permission does not include publication or redistribution of
+non-public proprietary source code, credentials, private architecture,
+confidential security details, or protected assets.
 
-4. CONFIDENTIALITY AND SECURITY
+3. THIRD-PARTY MATERIAL
 
-Non-public source, architecture, credentials, vulnerability information,
-customer information and business records must be protected as confidential.
-No real password, private key, service-role key, access token, payment secret or
-personal identification document may be committed to this repository.
+This repository includes or depends on third-party software, libraries, APIs,
+models, weights, protocols, assets, fonts, and services.
 
-5. NO WARRANTY FOR REPOSITORY ACCESS
+Those materials remain governed by their respective licences and terms.
+Nothing in this proprietary licence removes, narrows, or overrides rights
+granted under an applicable open-source or third-party licence.
 
-TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE PROPRIETARY MATERIAL IS PROVIDED FOR
-AUTHORIZED DEVELOPMENT "AS IS," WITHOUT WARRANTIES. THIS CLAUSE DOES NOT REMOVE
-NON-WAIVABLE CONSUMER, EMPLOYMENT, CONFIDENTIALITY, DATA-PROTECTION OR OTHER
-STATUTORY RIGHTS.
+Available third-party notices are recorded in
+release/THIRD_PARTY_NOTICES.md where applicable and should be regenerated and
+reviewed before each public or commercial distribution.
 
-6. GOVERNING DOCUMENTS
+4. CONTRIBUTIONS AND OWNERSHIP CHAIN
 
-Commercial users are governed by the final, accepted terms of service and any
-applicable store or enterprise agreement. Data processing is governed by the
-final privacy notice and applicable law. In a conflict, mandatory law and an
-applicable third-party licence take precedence over this source notice.
+No contribution is automatically owned by Haans Antoni merely because it
+appears in this repository. The applicable employment, contractor,
+contribution, assignment, or other written agreement controls ownership.
 
-7. CONTACT STATUS
+The owner must retain signed records sufficient to establish the chain of title
+for proprietary contributions and assigned intellectual property.
+
+CARCC is the project family / brand associated with OCADE in this repository.
+If an incorporated CARCC entity is later intended to own OCADE, the relevant
+copyright, trademarks, domains, contracts, source rights, and other assets must
+be assigned to that entity through valid written instruments. Do not replace
+the recorded owner in this licence until that transfer has been completed and
+documented.
+
+5. OCADE JARVIS AND PRESERVED SOURCE MATERIAL
+
+OCADE JARVIS is a proprietary OCADE component.
+
+Original source packages, imported donor/runtime source, immutable source
+snapshots, preserved archives, and adapted production implementations remain
+subject to this licence to the extent they contain proprietary OCADE/JARVIS
+material.
+
+Preserving an original source snapshot for provenance does not grant third
+parties permission to copy, redistribute, fork, commercialize, or create a
+competing derivative product from that proprietary material.
+
+Third-party material contained within such snapshots remains governed by its
+own licence and terms.
+
+6. CONFIDENTIALITY AND SECURITY
+
+Non-public source code, internal architecture, credentials, private keys,
+access tokens, service-role secrets, provider credentials, vulnerability
+information, customer information, device-control information, automation
+permissions, private prompts, and business records must be protected as
+confidential information.
+
+No production password, private key, service-role key, API secret, access
+token, payment secret, recovery credential, or personal identification document
+may be committed to this repository.
+
+Repository access does not authorize disclosure of confidential customer,
+security, business, or infrastructure information.
+
+7. NO WARRANTY FOR SOURCE ACCESS
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, PROPRIETARY MATERIAL MADE AVAILABLE FOR
+AUTHORIZED DEVELOPMENT IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND.
+
+THIS CLAUSE DOES NOT EXCLUDE OR LIMIT RIGHTS OR OBLIGATIONS THAT CANNOT
+LAWFULLY BE EXCLUDED, INCLUDING MANDATORY CONSUMER, PRIVACY, DATA-PROTECTION,
+EMPLOYMENT, CONFIDENTIALITY, OR OTHER STATUTORY RIGHTS.
+
+8. GOVERNING PRODUCT DOCUMENTS
+
+Use of released OCADE products and services by customers is governed by the
+final applicable Terms of Service, Privacy Notice, subscription terms, store
+terms, enterprise agreement, or other customer agreement.
+
+In a conflict, mandatory law and an applicable third-party licence take
+precedence over this proprietary source-code licence.
+
+9. CONTACT STATUS
 
 The intended public address support@ocade.in must not be treated as an active
-legal-notice channel until the owner verifies control, delivery, retention and
-response ownership. The final commercial licence must publish a working legal
-contact and the verified provider address.
+legal-notice channel until the owner verifies control, delivery, retention, and
+response ownership.
+
+The final commercial legal documents must publish a working legal/contact
+channel appropriate to the jurisdiction and product offering.
+
+All rights not expressly granted are reserved.
