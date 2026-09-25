@@ -10,7 +10,7 @@ This file is not permission to delete live customer data, applied production mig
 
 ## Status (2026-09-23)
 
-Done on `claude/cool-allen-rlxvkm`: Cowork route, nav, surface and copy removed; Trash/restore replaced by confirmed permanent Delete; provider payment tables, webhook function, side-thread columns and uncalled helper functions retired by forward migration `20260923100000` (apply after that Worker deploys); dead limits module removed. Historical migrations stay as provenance. Branches were reviewed and hold no unmerged current-product value; deleting them needs the owner's go-ahead.
+Done and live on `main` (2026-09-25): Cowork route, nav, surface and copy removed; Trash/restore replaced by confirmed permanent Delete; provider payment tables, webhook function, side-thread columns, uncalled helper functions (migration `20260923100000`) and orphan enum types from retired products (migration `20260925140000`) dropped; dead limits module removed. Historical migrations stay as provenance. Obsolete PRs are closed and every non-`main` branch was reviewed: none holds current-product work missing from `main`.
 
 ## Current audit baseline
 

@@ -52,9 +52,9 @@ The browser may read only what it needs. Security-sensitive device/grant state c
 - The `ocade_notification_preferences` table stores synchronized notification preferences.
 - The `ocade_notifications` table stores in-app notification history.
 
-### Current legacy commercial records
+### Retired commercial records
 
-The generated schema still contains subscription/invoice/payment-event tables from previous payment work. Paid checkout is now closed and Paddle is not a current product. Do not build new behavior on provider-specific payment tables. Retire obsolete provider-specific runtime/code through an owner-approved safe cleanup that preserves evidence required by law/audit.
+The provider payment tables (subscriptions, invoices, payment events, webhook events) were dropped by migration `20260923100000` after they were confirmed empty. Paid checkout is closed and Paddle is not a current product; tier comes only from audited entitlement grants.
 
 ## Roles
 

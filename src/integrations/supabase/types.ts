@@ -1196,7 +1196,6 @@ export type Database = {
         }
         Returns: string
       }
-      ocade_conversation_trash_days: { Args: never; Returns: number }
       ocade_count_mfa_recovery_codes: {
         Args: { p_user_id: string }
         Returns: {
@@ -1282,7 +1281,6 @@ export type Database = {
           tier: string
         }[]
       }
-      ocade_purge_expired_conversation_trash: { Args: never; Returns: number }
       ocade_read_commercial_usage: {
         Args: { p_user_id: string }
         Returns: {
@@ -1412,22 +1410,6 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
-      approval_decision: "approve" | "reject"
-      approval_status:
-        | "pending"
-        | "approved"
-        | "rejected"
-        | "released"
-        | "withdrawn"
-      approval_subject:
-        | "expense"
-        | "invoice"
-        | "payroll"
-        | "tax"
-        | "files"
-        | "payments"
-        | "signatures"
-        | "export"
       compliance_category:
         | "finance"
         | "payment"
@@ -1439,58 +1421,8 @@ export type Database = {
         | "deletion"
         | "other"
       device_kind: "mobile" | "desktop"
-      employment_status: "invited" | "active" | "suspended" | "terminated"
-      feature_flag_stage: "demo" | "private_alpha" | "beta" | "ga"
-      launch_gate_status:
-        | "not_started"
-        | "in_progress"
-        | "pending_review"
-        | "evidence_required"
-        | "complete"
-        | "waived"
       main_purpose_kind: "solo" | "small_business" | "enterprise"
-      msg_grant_status:
-        | "pending_from"
-        | "pending_to"
-        | "active"
-        | "revoked"
-        | "rejected"
-      msg_link_kind:
-        | "task"
-        | "approval"
-        | "timesheet"
-        | "evidence"
-        | "invoice"
-        | "expense"
-        | "filing"
-        | "signature"
-      msg_member_role: "admin" | "member"
-      msg_message_kind: "text" | "voice" | "system"
-      msg_scope_badge: "company" | "private" | "cross_company" | "dm"
-      msg_thread_kind:
-        | "company"
-        | "department"
-        | "role"
-        | "project"
-        | "private"
-        | "dm"
-        | "cross_company"
       privacy_mode: "device_only" | "private_sync"
-      tenant_kind: "individual" | "company"
-      tenant_role:
-        | "owner"
-        | "manager"
-        | "employee"
-        | "accountant"
-        | "auditor"
-        | "consultant"
-        | "advisor"
-      worker_type:
-        | "employee"
-        | "contractor"
-        | "advisor"
-        | "auditor"
-        | "consultant"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1619,24 +1551,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
-      approval_decision: ["approve", "reject"],
-      approval_status: [
-        "pending",
-        "approved",
-        "rejected",
-        "released",
-        "withdrawn",
-      ],
-      approval_subject: [
-        "expense",
-        "invoice",
-        "payroll",
-        "tax",
-        "files",
-        "payments",
-        "signatures",
-        "export",
-      ],
       compliance_category: [
         "finance",
         "payment",
@@ -1649,64 +1563,8 @@ export const Constants = {
         "other",
       ],
       device_kind: ["mobile", "desktop"],
-      employment_status: ["invited", "active", "suspended", "terminated"],
-      feature_flag_stage: ["demo", "private_alpha", "beta", "ga"],
-      launch_gate_status: [
-        "not_started",
-        "in_progress",
-        "pending_review",
-        "evidence_required",
-        "complete",
-        "waived",
-      ],
       main_purpose_kind: ["solo", "small_business", "enterprise"],
-      msg_grant_status: [
-        "pending_from",
-        "pending_to",
-        "active",
-        "revoked",
-        "rejected",
-      ],
-      msg_link_kind: [
-        "task",
-        "approval",
-        "timesheet",
-        "evidence",
-        "invoice",
-        "expense",
-        "filing",
-        "signature",
-      ],
-      msg_member_role: ["admin", "member"],
-      msg_message_kind: ["text", "voice", "system"],
-      msg_scope_badge: ["company", "private", "cross_company", "dm"],
-      msg_thread_kind: [
-        "company",
-        "department",
-        "role",
-        "project",
-        "private",
-        "dm",
-        "cross_company",
-      ],
       privacy_mode: ["device_only", "private_sync"],
-      tenant_kind: ["individual", "company"],
-      tenant_role: [
-        "owner",
-        "manager",
-        "employee",
-        "accountant",
-        "auditor",
-        "consultant",
-        "advisor",
-      ],
-      worker_type: [
-        "employee",
-        "contractor",
-        "advisor",
-        "auditor",
-        "consultant",
-      ],
     },
   },
 } as const
