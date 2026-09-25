@@ -2,10 +2,8 @@
  * The OCADE Brain adapter contract.
  *
  * ONE interface, one way of running a model: WebAssembly in the browser, over
- * the artifact OCADE installs and verifies itself. It described five ways
- * once — a desktop bridge, a paired desktop, WebGPU, WebAssembly and a native
- * mobile engine — and four of them belonged to products that no longer exist.
- * The interface survives because Chat must still not know what answered.
+ * the artifact OCADE installs and verifies itself. Chat must not know what
+ * answered.
  *
  * WHAT AN ADAPTER MUST GUARANTEE
  *
@@ -19,37 +17,22 @@
  *    computation, not merely stop delivering tokens to the caller. Anything
  *    less keeps a phone warm and a laptop fan spinning after the user pressed
  *    stop.
- * 4. NOTHING LEAVES THE DEVICE unless `locality` says so. That field is the
- *    product's central promise expressed as a type.
  */
 
 export type AdapterId = "browser_wasm";
-
-/** Where computation physically happens. Drives the badge and the promise. */
-export type AdapterLocality = "on_device";
 
 export interface AdapterCapabilities {
   text: boolean;
   /** Genuine image understanding, not filename guessing. */
   vision: boolean;
-  /** Can produce images. Almost always false. */
-  imageGeneration: boolean;
   /** Supports tool/function calling. */
   tools: boolean;
 }
 
-export type UnavailableCode =
-  | "not_installed"
-  | "not_running"
-  | "unsupported_device"
-  | "insufficient_memory"
-  | "insufficient_storage"
-  | "no_model"
-  | "disabled_by_user"
-  | "probe_failed";
+export type UnavailableCode = "unsupported_device" | "insufficient_storage" | "no_model";
 
 /** A remedy the UI can render as a real button. */
-export type RemedyAction = "download_model" | "free_storage" | "enable_in_settings";
+export type RemedyAction = "free_storage";
 
 export interface AdapterUnavailable {
   available: false;
@@ -64,15 +47,9 @@ export interface AdapterReady {
   available: true;
   /** Capability label — "OCADE Local", never a raw model id. */
   label: string;
-  locality: AdapterLocality;
   capabilities: AdapterCapabilities;
   /** Raw model identifier, for diagnostics and About only. */
   modelId: string | null;
-  /**
-   * Measured first-token latency where known, so the router can prefer a
-   * genuinely faster adapter rather than a nominally better one.
-   */
-  measuredFirstTokenMs?: number | null;
   /**
    * Whether Thinking is worth running on whatever this adapter actually
    * loaded. Absent means yes.

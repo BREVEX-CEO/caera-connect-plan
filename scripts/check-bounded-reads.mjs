@@ -26,12 +26,7 @@
 import { readFileSync } from "node:fs";
 import { globSync } from "node:fs";
 
-const SOURCES = globSync("src/**/*.{ts,tsx}").filter(
-  (file) =>
-    !file.includes("__tests__") &&
-    // Donor logic kept verbatim for provenance rather than shipped as a surface.
-    !file.includes("/primary-logic/"),
-);
+const SOURCES = globSync("src/**/*.{ts,tsx}").filter((file) => !file.includes("__tests__"));
 
 /** How far past `.select(` to look for the rest of the query chain. */
 const CHAIN_WINDOW = 1_400;

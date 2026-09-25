@@ -6,11 +6,6 @@ name: CodeQL
 # are advisory rather than a build gate, and putting it in the same workflow
 # would mean a security query timing out blocks a typecheck. Its own workflow,
 # its own schedule, its own failure.
-#
-# `javascript-typescript` only. The Rust and Python under native/ are built by
-# toolchains this workflow does not set up, and a CodeQL run that silently
-# analyses nothing is worse than one that was never configured — it produces a
-# green badge for coverage that does not exist.
 
 on:
   schedule:

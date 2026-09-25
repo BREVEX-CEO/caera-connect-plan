@@ -32,19 +32,3 @@ updates:
       actions:
         update-types: ["minor", "patch"]
     labels: ["dependencies", "ci"]
-
-  - package-ecosystem: cargo
-    directory: /native/companion/tauri
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 3
-    labels: ["dependencies", "native"]
-
-  - package-ecosystem: pip
-    directory: /native/python-host
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 3
-    labels: ["dependencies", "native"]

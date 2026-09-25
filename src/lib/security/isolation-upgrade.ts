@@ -24,7 +24,7 @@
  * restored session, a back button.
  */
 
-import { isolationUpgradeTarget, needsFullNavigation } from "./isolation";
+import { isolationUpgradeTarget } from "./isolation";
 
 const ATTEMPT_KEY = "ocade.isolation.attempted.v1";
 

@@ -4,15 +4,7 @@ const sourceFiles = [
   ...globSync("src/**/*.{ts,tsx,css,svg}"),
   ...globSync("public/**/*.svg"),
   ...globSync("public/**/*.{html,js,mjs,css}"),
-  ...globSync("mobile/**/*.{html,js,css,svg}"),
-  ...globSync("native/companion/ui/**/*.{html,js,css,svg}"),
-].filter(
-  (file) =>
-    !file.includes("/__tests__/") &&
-    !file.includes("\\__tests__\\") &&
-    !file.includes("/primary-logic/") &&
-    !file.includes("\\primary-logic\\"),
-);
+].filter((file) => !file.includes("/__tests__/") && !file.includes("\\__tests__\\"));
 
 /*
  * Source-only scanning catches the most useful authoring mistake, but the

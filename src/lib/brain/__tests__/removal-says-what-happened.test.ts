@@ -8,8 +8,7 @@ import type { ModelStore } from "../model-store";
  *
  * `removeEverything` cleared each version's metadata even when the file system
  * refused to delete the file, and `uninstall` published the removed state and
- * returned `{ ok: true }` unconditionally — a failed native removal only emitted
- * a diagnostic event nobody sees. So a person could press Remove, be told
+ * returned `{ ok: true }` unconditionally. So a person could press Remove, be told
  * OCADE's offline intelligence was gone from their device, and still be several
  * hundred megabytes down with no record of it anywhere: nothing to list, nothing
  * to repair, and no reason to try again.
@@ -63,14 +62,13 @@ beforeEach(async () => {
   await vault.writeMeta("v1", { verified: true, expectedBytes: 4_096, sha256: "digest-v1" });
 });
 
-function authorityOver(uninstallNative?: () => Promise<boolean>) {
+function authorityOver() {
   // The intent is held rather than stubbed to a constant, because whether a
   // failed removal still suppresses an automatic reinstall is one of the things
   // being checked.
   let intent: number | null = null;
   return new ModelInstallationAuthority({
     vault,
-    uninstallNative,
     now: () => 1_000,
     readIntent: () => intent,
     writeIntent: (at: number | null) => {
@@ -110,21 +108,11 @@ describe("a removal that did not remove anything", () => {
     await authority.uninstall();
     expect(authority.uninstallIntentActive()).toBe(true);
   });
-
-  it("does not claim success when the native copy survives either", async () => {
-    const authority = authorityOver(async () => false);
-    const outcome = await authority.uninstall();
-    // Every browser file went; the companion's did not, and that is the case
-    // where the most bytes are left behind.
-    expect(backing.files.size).toBe(0);
-    expect(outcome.ok).toBe(false);
-    expect(authority.snapshot().stage).toBe("recoverable_error");
-  });
 });
 
 describe("a removal that worked", () => {
   it("says removed, and means it", async () => {
-    const authority = authorityOver(async () => true);
+    const authority = authorityOver();
     const outcome = await authority.uninstall();
 
     expect(outcome.ok).toBe(true);

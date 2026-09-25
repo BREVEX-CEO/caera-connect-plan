@@ -46,11 +46,6 @@ import { planThreads, readThreadSignals } from "../wasm-threads";
 type WllamaModule = typeof import("@wllama/wllama");
 type WllamaInstance = InstanceType<WllamaModule["Wllama"]>;
 
-export interface WasmProgress {
-  fraction: number | null;
-  text: string;
-}
-
 /**
  * KEEP THE DELIBERATION OUT OF THE ANSWER.
  *
@@ -168,7 +163,6 @@ export class BrowserWasmAdapter implements BrainAdapter {
   private instance: WllamaInstance | null = null;
   private loadedRelease: string | null = null;
   private cachedModel: OfflineRelease | null = null;
-  private readonly onProgress?: (p: WasmProgress) => void;
   private readonly weightsProvider?: () => Promise<Blob | null>;
   private readonly preferThreads: boolean;
   /** Layers to offload. 0 is the processor; the graphics rung asks for all. */
@@ -183,7 +177,6 @@ export class BrowserWasmAdapter implements BrainAdapter {
   private slot: Promise<unknown> = Promise.resolve();
 
   constructor(options?: {
-    onProgress?: (p: WasmProgress) => void;
     /**
      * Hand the adapter its weights instead of letting it fetch them.
      *
@@ -221,7 +214,6 @@ export class BrowserWasmAdapter implements BrainAdapter {
      */
     gpuLayers?: number;
   }) {
-    this.onProgress = options?.onProgress;
     this.weightsProvider = options?.weightsProvider;
     this.preferThreads = options?.preferThreads ?? false;
     this.gpuLayers = options?.gpuLayers ?? 0;
@@ -274,12 +266,11 @@ export class BrowserWasmAdapter implements BrainAdapter {
     return {
       available: true,
       label: OFFLINE_LABEL,
-      locality: "on_device",
       // The opaque release id, never a model name. It reaches diagnostics and
       // nothing else.
       modelId: model.releaseId,
       thinkingSuitable: model.thinkingSuitable,
-      capabilities: { text: true, vision: false, imageGeneration: false, tools: false },
+      capabilities: { text: true, vision: false, tools: false },
     };
   }
 

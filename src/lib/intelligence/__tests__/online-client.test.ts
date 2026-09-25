@@ -40,7 +40,7 @@ function deps(fetchImpl: typeof fetch) {
 
 describe("online intelligence client", () => {
   it("sends the user JWT, publishable key and existing permit to the Edge boundary", async () => {
-    const fetcher = vi.fn<typeof fetch>(async (_input, init) => {
+    const fetcher = vi.fn<typeof fetch>(async () => {
       const encoder = new TextEncoder();
       const body = new ReadableStream({
         start(controller) {

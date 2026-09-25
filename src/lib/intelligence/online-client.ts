@@ -1,7 +1,6 @@
 import { getSupabaseBrowserConfiguration } from "@/integrations/supabase/configuration";
 import type {
   IntelligenceEvent,
-  IntelligenceRequest,
   IntelligenceTransport,
   IntelligenceTransportStatus,
 } from "./contract";

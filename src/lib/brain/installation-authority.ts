@@ -207,23 +207,6 @@ export interface AuthorityDeps {
   /** Ask the browser not to evict the weights. */
   requestPersistence: () => Promise<boolean>;
   /**
-   * Offer the work to a native companion that can finish it with the tab shut.
-   *
-   * Returns `{ handedOff: false }` on every device without one, which is the
-   * common case and must be cheap. When it does hand off, the authority does
-   * NOT then transfer the same artifact itself — there is one owner per job.
-   */
-  handOff?: (
-    target: InstallTarget,
-    report: (progress: {
-      stage: "downloading" | "verifying";
-      fraction: number | null;
-      detail?: string | null;
-    }) => void,
-  ) => Promise<{ handedOff: false } | { handedOff: true; platform: string; verified: boolean }>;
-  /** Remove what a native companion holds. Called by uninstall. */
-  uninstallNative?: () => Promise<boolean>;
-  /**
    * Digest an artifact already on disk, without materialising it.
    *
    * Injected so the verification cost is measurable and the path is reachable
@@ -666,60 +649,6 @@ export class ModelInstallationAuthority {
      */
     const persistence = this.requestPersistence();
 
-    /*
-     * 3b. HAND OFF TO A NATIVE COMPANION, WHEN ONE IS GENUINELY STRONGER.
-     *
-     * A browser tab cannot promise to keep downloading; an operating system
-     * does it routinely. When a trusted OCADE companion is present AND reports
-     * real background transfer AND the browser has nothing equivalent, the work
-     * moves to it — and this method RETURNS, so the browser never starts its
-     * own transfer of the same artifact. That return is rule one: one owner.
-     *
-     * `deps.handOff` decides and performs it. Its absence, or a refusal, falls
-     * straight through to the browser transfer below, which is the correct
-     * outcome on every device without a companion — that is to say, most of
-     * them.
-     */
-    if (this.deps.handOff) {
-      const handled = await this.deps.handOff(target, (progress) => {
-        this.publish({
-          stage: progress.stage,
-          fraction: progress.fraction,
-          etaSeconds: null,
-          detail: progress.detail ?? null,
-        });
-      });
-      if (handled.handedOff) {
-        this.emit({ kind: "handed_off", version: target.version, to: handled.platform });
-        if (handled.verified) {
-          /*
-           * The companion finished AND its digest matched the published one —
-           * checked by the authority, not asserted by the companion. Only then
-           * is the version recorded as verified and activated.
-           */
-          this.deps.vault.writeMeta(target.version, {
-            verified: true,
-            expectedBytes: target.totalBytes,
-            sha256: target.sha256,
-          });
-          await this.deps.vault.activate(target.version);
-          await this.deps.vault.cleanupAfterActivation(target.version);
-          return this.activate(path, target.version, signal);
-        }
-        /*
-         * Still running. The page is not the owner and must not become one, so
-         * this reports honestly and stops rather than racing the companion.
-         */
-        return {
-          ok: false,
-          reason: "OCADE is preparing this device in the background.",
-          stop: true,
-          stage: "downloading",
-          remedies: [],
-        };
-      }
-    }
-
     /* 4. Transfer, with real retries. */
     this.publish({ stage: "waiting_for_source", fraction: null });
     const plan = this.deps.plan ?? planTransfer((this.deps.deviceSignals ?? readDeviceSignals)());
@@ -1002,16 +931,6 @@ export class ModelInstallationAuthority {
     this.controller?.abort();
     this.running = null;
     const result = await this.deps.vault.removeEverything();
-    /*
-     * AND WHATEVER THE COMPANION HOLDS.
-     *
-     * Without this, "OCADE Intelligence has been removed from this device"
-     * would be false on exactly the devices storing the most — the native ones
-     * — and the user would be reading it over a full disk.
-     */
-    const nativeRemoved = this.deps.uninstallNative
-      ? await this.deps.uninstallNative().catch(() => false)
-      : true;
     this.ladder = [];
     this.highestFraction = 0;
     // Recorded BEFORE the state is published, so nothing observing the change
@@ -1026,8 +945,8 @@ export class ModelInstallationAuthority {
      * "REMOVED" IS SAID ONLY WHEN THE BYTES ARE GONE.
      *
      * This published the removed state and returned `{ ok: true }` no matter
-     * what happened: a file system that refused every deletion, or a native
-     * companion that failed to uninstall, both ended with somebody being told
+     * what happened: a file system that refused every deletion ended with
+     * somebody being told
      * that hundreds of megabytes had been freed from a device where every byte
      * was still sitting. The store is asked what is left, and what is left is
      * what is said.
@@ -1035,12 +954,8 @@ export class ModelInstallationAuthority {
      * The Remove control stays where it is — this is not the removed state —
      * so trying again is the obvious next thing rather than a mystery.
      */
-    if (result.remainingFiles > 0 || !nativeRemoved) {
-      this.emit({
-        kind: "failed",
-        stage: "uninstall",
-        reason: nativeRemoved ? "files remained after removal" : "native copy could not be removed",
-      });
+    if (result.remainingFiles > 0) {
+      this.emit({ kind: "failed", stage: "uninstall", reason: "files remained after removal" });
       this.publish({
         ...INITIAL,
         stage: "recoverable_error",

@@ -1,9 +1,8 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { AuthShell } from "@/components/shell/AuthShell";
-import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { answerChallenge, listVerifiedFactors, type SecondFactor } from "@/lib/security/mfa";
 import { DEFAULT_NEXT, safeNext } from "@/lib/auth/safe-next";
 
@@ -40,7 +39,6 @@ export const Route = createFileRoute("/auth/challenge")({
 });
 
 function ChallengePage() {
-  const navigate = useNavigate();
   const { next } = Route.useSearch();
 
   const [factors, setFactors] = useState<SecondFactor[] | null>(null);
