@@ -164,7 +164,7 @@ export function BrowserPanel({
   return (
     <aside
       aria-label="Live browser"
-      className="relative z-10 mx-3 mb-2 flex flex-col rounded-xl border border-border/60 bg-background/90 lg:mx-0 lg:mb-0 lg:mr-3 lg:w-[420px]"
+      className="pointer-events-auto relative z-10 mx-3 mb-2 flex flex-col rounded-xl border border-border/60 bg-background/90 lg:mx-0 lg:mb-0 lg:mr-3 lg:w-[420px]"
     >
       <div className="flex items-center gap-2 px-3 py-2">
         <h2 className="text-sm font-medium">
@@ -290,10 +290,14 @@ export function VoiceBar({
   voice,
   wake,
   onWake,
+  speak,
+  onSpeak,
 }: {
   voice: JarvisVoice;
   wake: boolean;
   onWake: (wake: boolean) => void;
+  speak: boolean;
+  onSpeak: (speak: boolean) => void;
 }) {
   return (
     <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-background/80 px-3 py-2 text-xs">
@@ -335,7 +339,29 @@ export function VoiceBar({
         End
       </button>
       <label className="flex items-center gap-1.5">
-        <input type="checkbox" checked={wake} onChange={(event) => onWake(event.target.checked)} />
+        <input
+          type="checkbox"
+          checked={speak}
+          onChange={(event) => onSpeak(event.target.checked)}
+        />
+        Speak answers
+      </label>
+      <label
+        className={
+          voice.wakeLocal ? "flex items-center gap-1.5" : "flex items-center gap-1.5 opacity-50"
+        }
+        title={
+          voice.wakeLocal
+            ? undefined
+            : "This browser cannot listen for “Hey OCADE” on the device, so it stays off."
+        }
+      >
+        <input
+          type="checkbox"
+          checked={wake && voice.wakeLocal}
+          disabled={!voice.wakeLocal}
+          onChange={(event) => onWake(event.target.checked)}
+        />
         Only after “Hey OCADE”
       </label>
     </div>

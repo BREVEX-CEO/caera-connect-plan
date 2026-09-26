@@ -713,7 +713,17 @@ try {
   await speech.addInitScript(
     ([key, value]) => {
       window.localStorage.setItem(key, value);
+      window.__micAsks = 0;
+      const media = navigator.mediaDevices;
+      const ask = media.getUserMedia.bind(media);
+      media.getUserMedia = (constraints) => {
+        window.__micAsks += 1;
+        return ask(constraints);
+      };
       class Recogniser {
+        static available() {
+          return Promise.resolve(window.__local === false ? "unavailable" : "available");
+        }
         start() {
           window.__recogniser = this;
         }
@@ -734,7 +744,15 @@ try {
   );
   const talker = await speech.newPage();
   await talker.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
+  check(
+    "JARVIS opens text-only: no microphone request before Voice is pressed",
+    (await talker.evaluate(() => window.__micAsks)) === 0,
+  );
   await talker.getByRole("button", { name: "Start voice", exact: true }).click();
+  check(
+    "the microphone is requested when Voice is first used",
+    (await talker.evaluate(() => window.__micAsks)) === 1,
+  );
   const bar = talker.getByRole("status").filter({ hasText: /Listening|Paused|Speaking/ });
   check("voice starts listening", await until(async () => (await bar.innerText()) === "Listening"));
   await talker.getByRole("button", { name: "Pause", exact: true }).click();
@@ -743,6 +761,13 @@ try {
   check("Continue resumes", (await bar.innerText()) === "Listening");
   await talker.getByRole("button", { name: "Interrupt", exact: true }).click();
   check("Interrupt returns to listening", (await bar.innerText()) === "Listening");
+  await talker.evaluate(() => window.__say("Pause"));
+  check(
+    "a spoken Pause pauses, and is not sent as a message",
+    (await until(async () => (await bar.innerText()) === "Paused")) &&
+      (await talker.getByText("Pause", { exact: true }).count()) === 0,
+  );
+  await talker.getByRole("button", { name: "Continue", exact: true }).click();
   await talker.getByRole("button", { name: "End", exact: true }).click();
   check(
     "End ends voice",
@@ -750,6 +775,10 @@ try {
   );
   await talker.getByRole("button", { name: "Start voice", exact: true }).click();
   await talker.getByRole("checkbox", { name: /Hey OCADE/ }).check();
+  check(
+    "waiting for Hey OCADE runs on the on-device recogniser only",
+    await until(() => talker.evaluate(() => window.__recogniser?.processLocally === true)),
+  );
   await talker.evaluate(() => window.__say("tell me a secret"));
   await talker.waitForTimeout(1500);
   check(
@@ -787,15 +816,57 @@ try {
     )) && (await talker.getByRole("button", { name: "Start voice", exact: true }).count()) === 1,
   );
   blocked("real speech service", "the browser's own recognition service is not reachable here");
+  const cloudOnly = await speech.newPage();
+  await cloudOnly.addInitScript(() => (window.__local = false));
+  await cloudOnly.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
+  await cloudOnly.getByRole("button", { name: "Start voice", exact: true }).click();
+  check(
+    "without an on-device recogniser, Hey OCADE cannot be turned on",
+    await cloudOnly.getByRole("checkbox", { name: /Hey OCADE/ }).isDisabled(),
+  );
   await speech.close();
 
-  /* --- theme and layouts ------------------------------------------------------ */
-  await page.getByRole("button", { name: /theme/ }).first().click();
+  /* --- navigation, Settings, Orb Focus and layouts ------------------------------ */
   check(
-    "the theme switches",
-    await page.evaluate(() => document.documentElement.classList.contains("light")),
+    "the rail has exactly Conversations, Tasks, Activity, Allowed Apps and Devices",
+    (await page.getByRole("button", { name: "History", exact: true }).count()) === 0 &&
+      (await page.getByRole("button", { name: "Plugins", exact: true }).count()) === 0 &&
+      (await page.getByRole("button", { name: /theme/i }).count()) === 0,
   );
-  await page.getByRole("button", { name: /theme/ }).first().click();
+  await rail("Settings").click();
+  check(
+    "Settings opens OCADE's own Settings",
+    await until(async () => (await page.getByRole("dialog").count()) >= 1),
+  );
+  await page.keyboard.press("Escape");
+  // Double-click the empty space beside the conversation: the orb's space.
+  const box = await page.getByRole("region", { name: "Conversation" }).boundingBox();
+  await page.mouse.dblclick(box.x + 6, box.y + box.height / 2);
+  const header = page.locator("main header");
+  check(
+    "double-click enters Orb Focus",
+    (await page.getByRole("button", { name: "Leave focus", exact: true }).count()) === 1,
+    await page.evaluate(
+      ([x, y]) => document.elementFromPoint(x, y)?.outerHTML.slice(0, 200),
+      [box.x + 6, box.y + box.height / 2],
+    ),
+  );
+  await page.waitForTimeout(8600);
+  check(
+    "in Orb Focus the controls fade after eight quiet seconds",
+    (await header.evaluate((el) => getComputedStyle(el).opacity)) === "0",
+  );
+  await page.mouse.move(300, 300);
+  await page.waitForTimeout(700);
+  check(
+    "and come back on movement",
+    (await header.evaluate((el) => getComputedStyle(el).opacity)) === "1",
+  );
+  await page.keyboard.press("Escape");
+  check(
+    "Escape leaves Orb Focus",
+    (await page.getByRole("button", { name: "Focus orb", exact: true }).count()) === 1,
+  );
   for (const width of [375, 360, 820]) {
     await page.setViewportSize({ width, height: 800 });
     await page.waitForTimeout(300);

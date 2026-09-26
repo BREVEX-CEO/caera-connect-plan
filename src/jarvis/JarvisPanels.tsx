@@ -15,11 +15,10 @@ import {
   type JarvisState,
 } from "./jarvis.functions";
 
-export type Section = "conversations" | "history" | "tasks" | "activity" | "apps" | "devices";
+export type Section = "conversations" | "tasks" | "activity" | "apps" | "devices";
 
 const TITLES: Record<Section, string> = {
   conversations: "Conversations",
-  history: "History",
   tasks: "Tasks",
   activity: "Activity",
   apps: "Allowed Apps",
@@ -151,12 +150,21 @@ function SectionBody({
       section === "conversations"
         ? state.conversations
             .filter((c) => !c.archived)
-            .map((c) => ({ id: c.id, title: c.title, sub: when(c.updated_at), open: c.id }))
+            .map((c) => ({
+              id: c.id,
+              title: c.title,
+              sub: when(c.updated_at),
+              open: c.id,
+              result: null as string | null,
+            }))
         : state.tasks.map((t) => ({
             id: t.id,
             title: t.title,
-            sub: `${t.status.replace("_", " ")} · step ${Math.min(t.current_step + 1, Math.max(1, t.plan.length))} of ${Math.max(1, t.plan.length)}`,
+            sub: FINISHED.includes(t.status)
+              ? `${t.status.replace("_", " ")} · ${when(t.updated_at)}`
+              : `${t.status.replace("_", " ")} · step ${Math.min(t.current_step + 1, Math.max(1, t.plan.length))} of ${Math.max(1, t.plan.length)}`,
             open: t.conversation_id,
+            result: t.result,
           }));
     if (list.length === 0) {
       return <p className="text-muted-foreground">Nothing here yet.</p>;
@@ -164,7 +172,7 @@ function SectionBody({
     return (
       <ul className="flex flex-col gap-0.5">
         {list.map((item) => (
-          <li key={item.id} className="flex items-center gap-1">
+          <li key={item.id} className="flex flex-wrap items-center gap-1">
             <button
               type="button"
               onClick={() => onOpenConversation(item.open)}
@@ -192,32 +200,14 @@ function SectionBody({
                 <Trash2 className="h-4 w-4" aria-hidden />
               </button>
             ) : null}
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  if (section === "history") {
-    const done = state.tasks.filter((t) => FINISHED.includes(t.status));
-    if (done.length === 0)
-      return <p className="text-muted-foreground">Finished tasks appear here.</p>;
-    return (
-      <ul className="flex flex-col gap-2">
-        {done.map((t) => (
-          <li key={t.id} className="rounded-md border border-border/60 p-2">
-            <p className="truncate font-medium">{t.title}</p>
-            <p className="text-xs text-muted-foreground">
-              {t.status} · {when(t.updated_at)}
-            </p>
-            {t.result ? (
-              opened === t.id ? (
-                <p className="mt-1 whitespace-pre-wrap text-xs">{t.result}</p>
+            {item.result ? (
+              opened === item.id ? (
+                <p className="w-full whitespace-pre-wrap px-2 pb-1 text-xs">{item.result}</p>
               ) : (
                 <button
                   type="button"
-                  onClick={() => setOpened(t.id)}
-                  className="mt-1 text-xs underline underline-offset-2"
+                  onClick={() => setOpened(item.id)}
+                  className="px-2 pb-1 text-xs underline underline-offset-2"
                 >
                   Show result
                 </button>

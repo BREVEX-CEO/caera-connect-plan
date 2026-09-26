@@ -27,6 +27,12 @@ describe("the original JARVIS source", () => {
     expect(sha256(ZIP)).toBe(ZIP_SHA256);
   });
 
+  it("keeps the latest UI reference ZIP byte for byte", () => {
+    expect(sha256("imports/UI OCADE JARVIS.zip")).toBe(
+      "dfd6ba4154be014a02858aefbfd6086fa57c44dc7ca78ec7c6293516c149266b",
+    );
+  });
+
   it("keeps the extracted snapshot identical to the ZIP's contents", () => {
     const expected = new Map(
       readFileSync(MANIFEST, "utf8")

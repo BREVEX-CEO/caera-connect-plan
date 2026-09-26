@@ -9,25 +9,24 @@ import {
   Activity,
   AppWindow,
   ArrowUp,
-  History,
   ListChecks,
   Menu,
   MessageSquare,
   MessagesSquare,
   Mic,
   MonitorSmartphone,
-  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   PenSquare,
+  Settings,
   ShieldCheck,
   Square,
-  Sun,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/session";
 import { useAppearance } from "@/lib/appearance";
+import { useSettingsPanel } from "@/components/settings/settings-panel";
 import { loadChatMessages, persistChatMessage } from "@/lib/ocade-chat-store";
 import { describeReset } from "@/lib/commercial/use-commercial-usage";
 import { cn } from "@/lib/utils";
@@ -38,7 +37,7 @@ import { liveDeps, ModelRefused } from "./live-deps";
 import { isAllowed } from "./permissions";
 import { FINISHED } from "./protocol";
 import { readPreferences, writePreferences, type JarvisPreferences } from "./preferences";
-import { useJarvisVoice } from "./use-voice";
+import { useJarvisVoice, voiceCommand } from "./use-voice";
 import {
   createJarvisConversation,
   readJarvisState,
@@ -58,7 +57,6 @@ interface Turn {
 
 const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: "conversations", label: "Conversations", icon: MessagesSquare },
-  { id: "history", label: "History", icon: History },
   { id: "tasks", label: "Tasks", icon: ListChecks },
   { id: "activity", label: "Activity", icon: Activity },
   { id: "apps", label: "Allowed Apps", icon: AppWindow },
@@ -70,12 +68,13 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
   const signedIn = Boolean(user);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { motionReduced, theme, setAppearance } = useAppearance();
+  const { motionReduced } = useAppearance();
+  const settings = useSettingsPanel();
   const [prefs, setPrefs] = useState<JarvisPreferences>({
     accent: null,
     railExpanded: false,
-    micAsked: true,
     wake: false,
+    speak: true,
   });
   useEffect(() => setPrefs(readPreferences()), []);
   const updatePrefs = (patch: Partial<JarvisPreferences>) =>
@@ -119,6 +118,7 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
   const [browserOpen, setBrowserOpen] = useState(true);
   const [selected, setSelected] = useState<GraphNode | null>(null);
   const [focusOrb, setFocusOrb] = useState(false);
+  const [controlsHidden, setControlsHidden] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // The conversation's open task: the one this tab is running, else the newest unfinished one.
@@ -162,7 +162,10 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
   const sendRef = useRef<(text: string, fromVoice: boolean) => Promise<void>>(
     async () => undefined,
   );
-  const voice = useJarvisVoice((text) => void sendRef.current(text, true), prefs.wake);
+  const commandRef = useRef<(text: string) => boolean>(() => false);
+  const voice = useJarvisVoice((text) => {
+    if (!commandRef.current(text)) void sendRef.current(text, true);
+  }, prefs.wake);
 
   // Signing out ends voice and anything running.
   const endVoice = voice.end;
@@ -236,7 +239,7 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
           ...list,
           { id: saved.record.id, role: "assistant", content: out.answer },
         ]);
-        if (fromVoice || voice.state !== "off") voice.speak(out.answer);
+        if (prefs.speak && (fromVoice || voice.state !== "off")) voice.speak(out.answer);
       }
     } catch (error) {
       if (error instanceof Stopped) {
@@ -299,6 +302,19 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
     void send("Continue the task from where it stopped.", false);
   };
 
+  // Spoken Stop, Pause, Continue and Cancel act at once and are never sent as messages.
+  commandRef.current = (text) => {
+    const command = voiceCommand(text);
+    if (command === "stop") void stop();
+    else if (command === "pause") voice.pause();
+    else if (command === "end") voice.end();
+    else if (command === "continue") {
+      if (takeover || conversationTask?.status === "taken_over") void resume();
+      else return false;
+    }
+    return command !== null;
+  };
+
   const openNode = (node: GraphNode) => {
     if (node.kind === "conversation" && node.recordId) {
       void navigate({ to: "/ocade-jarvis", search: { c: node.recordId } });
@@ -322,7 +338,32 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
 
   const hasText = turns.length > 0 || liveAnswer !== null;
   const usage = state.data?.usage;
-  const showMicAsk = signedIn && !prefs.micAsked && voice.supported;
+
+  // Orb Focus stays until the person leaves it; the controls around it fade after
+  // eight quiet seconds and come back on any movement or key. Stop never fades.
+  useEffect(() => {
+    if (!focusOrb) {
+      setControlsHidden(false);
+      return;
+    }
+    let timer = window.setTimeout(() => setControlsHidden(true), 8000);
+    const wake = (event: Event) => {
+      if (event instanceof KeyboardEvent && event.key === "Escape") setFocusOrb(false);
+      setControlsHidden(false);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setControlsHidden(true), 8000);
+    };
+    const events = ["pointermove", "pointerdown", "keydown"] as const;
+    events.forEach((name) => window.addEventListener(name, wake));
+    return () => {
+      window.clearTimeout(timer);
+      events.forEach((name) => window.removeEventListener(name, wake));
+    };
+  }, [focusOrb]);
+  const fade = cn(
+    "transition-opacity duration-500",
+    controlsHidden && "pointer-events-none opacity-0",
+  );
 
   const rail = (mobile: boolean) => (
     <nav
@@ -361,10 +402,13 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
         onClick={() => setPermissionsOpen(true)}
       />
       <RailButton
-        icon={theme === "light" ? Moon : Sun}
-        label={theme === "light" ? "Dark theme" : "Light theme"}
+        icon={Settings}
+        label="Settings"
         expanded={mobile || prefs.railExpanded}
-        onClick={() => setAppearance({ theme: theme === "light" ? "dark" : "light" })}
+        onClick={() => {
+          setDrawerOpen(false);
+          settings.open();
+        }}
       />
       {mobile ? null : (
         <RailButton
@@ -406,7 +450,7 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
       <a href="#jarvis-composer" className="skip-link">
         Skip to the message box
       </a>
-      <div className="hidden h-full md:flex">
+      <div className={cn("hidden h-full md:flex", fade)}>
         {rail(false)}
         {sectionPanel}
       </div>
@@ -435,9 +479,11 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
           reducedMotion={motionReduced}
           selectedId={selected?.id ?? null}
           onSelect={setSelected}
+          onFocus={() => setFocusOrb((value) => !value)}
+          controlsHidden={controlsHidden}
         />
 
-        <header className="relative z-10 flex h-12 items-center gap-2 px-3">
+        <header className={cn("relative z-10 flex h-12 items-center gap-2 px-3", fade)}>
           <button
             type="button"
             aria-label="Open navigation"
@@ -454,25 +500,33 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
               {describeReset(usage.resetsInMs)}
             </p>
           ) : null}
-          {hasText ? (
-            <button
-              type="button"
-              aria-pressed={focusOrb}
-              onClick={() => setFocusOrb((value) => !value)}
-              className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              {focusOrb ? "Show conversation" : "Focus orb"}
-            </button>
-          ) : null}
+          <button
+            type="button"
+            aria-pressed={focusOrb}
+            onClick={() => setFocusOrb((value) => !value)}
+            className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            {focusOrb ? "Leave focus" : "Focus orb"}
+          </button>
         </header>
 
-        <div className="relative z-10 flex min-h-0 flex-1 flex-col lg:flex-row">
+        {/* The orb lies behind this layer; only what is on it takes the pointer. */}
+        <div className="pointer-events-none relative z-10 flex min-h-0 flex-1 flex-col lg:flex-row">
           <section
             aria-label="Conversation"
             className={cn(
               "ocade-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-4 transition-opacity",
-              focusOrb ? "pointer-events-none opacity-0" : "opacity-100",
+              focusOrb ? "opacity-0" : "opacity-100",
+              !focusOrb && (hasText || conversationTask) && "pointer-events-auto",
             )}
+            // Empty space around the conversation belongs to the orb behind it.
+            onDoubleClick={(event) => {
+              if (
+                event.target === event.currentTarget ||
+                event.target === event.currentTarget.firstChild
+              )
+                setFocusOrb(true);
+            }}
           >
             <div className="mx-auto flex max-w-2xl flex-col gap-4 pt-4">
               {!hasText && !loading ? (
@@ -545,37 +599,16 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
           ) : null}
         </div>
 
-        <div className="relative z-10 px-3 pb-3">
+        <div className={cn("relative z-10 px-3 pb-3", !running && !taskLive && fade)}>
           <div className="mx-auto max-w-2xl">
-            {showMicAsk ? (
-              <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-background/80 px-3 py-2 text-sm">
-                <span className="flex-1">
-                  JARVIS can listen when you turn voice on. Allow the microphone?
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    updatePrefs({ micAsked: true });
-                    void navigator.mediaDevices
-                      .getUserMedia({ audio: true })
-                      .then((media) => media.getTracks().forEach((t) => t.stop()))
-                      .catch(() => toast.message("Voice stays off. You can still type."));
-                  }}
-                  className="rounded-md bg-primary px-3 py-1 text-primary-foreground"
-                >
-                  Allow
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updatePrefs({ micAsked: true })}
-                  className="rounded-md px-3 py-1 text-muted-foreground hover:bg-accent"
-                >
-                  Not now
-                </button>
-              </div>
-            ) : null}
             {voice.state !== "off" ? (
-              <VoiceBar voice={voice} wake={prefs.wake} onWake={(wake) => updatePrefs({ wake })} />
+              <VoiceBar
+                voice={voice}
+                wake={prefs.wake}
+                onWake={(wake) => updatePrefs({ wake })}
+                speak={prefs.speak}
+                onSpeak={(speak) => updatePrefs({ speak })}
+              />
             ) : null}
             {voice.error ? (
               <p role="alert" className="mb-2 text-xs text-destructive">

@@ -7,7 +7,7 @@ import {
   siteAllowed,
   type PermissionRow,
 } from "../permissions";
-import { heard } from "../use-voice";
+import { heard, voiceCommand } from "../use-voice";
 
 const row = (
   capability: string,
@@ -113,6 +113,14 @@ describe("the wake phrase", () => {
     expect(heard("hey o cade what's up", true)).toBe("what's up");
     expect(heard("open the news", true)).toBeNull();
     expect(heard("Hey OCADE", true)).toBeNull();
+  });
+  it("treats a bare Stop, Pause, Continue or Cancel as a control, never a message", () => {
+    expect(voiceCommand("Stop.")).toBe("stop");
+    expect(voiceCommand("pause")).toBe("pause");
+    expect(voiceCommand("Continue")).toBe("continue");
+    expect(voiceCommand("cancel")).toBe("end");
+    expect(voiceCommand("stop the music on YouTube")).toBeNull();
+    expect(voiceCommand("what does pause mean")).toBeNull();
   });
 });
 

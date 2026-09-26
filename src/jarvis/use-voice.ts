@@ -5,8 +5,13 @@
  * From the original runtime's voice design: the microphone is not listening
  * while JARVIS speaks, and for a short echo tail after (core/echo.py), so it
  * never answers itself; and a wake phrase gates what is sent (core/wake_word.py).
- * Here the phrase is "Hey OCADE", matched in the recogniser's transcript, and it
- * exists only where the browser has a recogniser.
+ *
+ * WAKE IS LOCAL OR IT IS OFF. Waiting for "Hey OCADE" means listening before
+ * anyone asked, so that listening must never leave the device. The wake mode
+ * runs only on a recogniser that processes on the device; where the browser has
+ * none, "Hey OCADE" is unavailable rather than quietly streamed to a service.
+ * Pressing Voice is the person asking, so ordinary voice may use the browser's
+ * standard recogniser.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -15,6 +20,7 @@ interface RecognitionResult {
   0: { transcript: string };
 }
 interface Recognition {
+  processLocally?: boolean;
   continuous: boolean;
   interimResults: boolean;
   lang: string;
@@ -26,7 +32,12 @@ interface Recognition {
   onerror: ((event: { error?: string }) => void) | null;
   onend: (() => void) | null;
 }
-type RecognitionConstructor = new () => Recognition;
+type RecognitionConstructor = (new () => Recognition) & {
+  available?: (options: {
+    langs: string[];
+    processLocally: boolean;
+  }) => Promise<"available" | "downloadable" | "downloading" | "unavailable">;
+};
 
 const ECHO_TAIL_MS = 600;
 const WAKE = /^\s*(hey|hi)[,\s]+o\s?cade\b[,.!\s]*/i;
@@ -44,6 +55,8 @@ export type VoiceState = "off" | "listening" | "speaking" | "paused";
 
 export interface JarvisVoice {
   supported: boolean;
+  /** True only where "Hey OCADE" can be heard without audio leaving the device. */
+  wakeLocal: boolean;
   state: VoiceState;
   level: number;
   error: string | null;
@@ -64,8 +77,24 @@ export function heard(transcript: string, wake: boolean): string | null {
   return match ? said.slice(match[0].length).trim() || null : null;
 }
 
+export type VoiceCommand = "stop" | "pause" | "continue" | "end";
+
+/** A spoken control word, said on its own, or null for anything to send. */
+export function voiceCommand(text: string): VoiceCommand | null {
+  const said = text
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, "")
+    .trim();
+  if (/^(stop|stop jarvis|stop the task)$/.test(said)) return "stop";
+  if (/^(pause|pause voice)$/.test(said)) return "pause";
+  if (/^(continue|carry on|resume)$/.test(said)) return "continue";
+  if (/^(cancel|end voice|stop listening|goodbye)$/.test(said)) return "end";
+  return null;
+}
+
 export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): JarvisVoice {
   const [supported, setSupported] = useState(false);
+  const [wakeLocal, setWakeLocal] = useState(false);
   const [state, setState] = useState<VoiceState>("off");
   const [level, setLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -85,12 +114,23 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
     setState(next);
   };
 
-  useEffect(() => setSupported(recogniser() !== null && "speechSynthesis" in window), []);
+  useEffect(() => {
+    const Recogniser = recogniser();
+    setSupported(Recogniser !== null && "speechSynthesis" in window);
+    void Recogniser?.available?.({ langs: [navigator.language || "en-US"], processLocally: true })
+      .then((answer) => setWakeLocal(answer === "available"))
+      .catch(() => setWakeLocal(false));
+  }, []);
+  const wakeLocalRef = useRef(wakeLocal);
+  wakeLocalRef.current = wakeLocal;
 
   const listen = useCallback(() => {
     const Recogniser = recogniser();
     if (!Recogniser || recognition.current) return;
     const r = new Recogniser();
+    // Waiting for the wake phrase happens on the device, or not at all.
+    // A browser without one ignores the wake choice: pressing Voice already asked.
+    if (wakeRef.current && wakeLocalRef.current) r.processLocally = true;
     r.continuous = true;
     r.interimResults = false;
     r.lang = navigator.language || "en-US";
@@ -98,7 +138,7 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
       for (let at = event.resultIndex; at < event.results.length; at += 1) {
         const result = event.results[at]!;
         if (!result.isFinal) continue;
-        const text = heard(result[0].transcript, wakeRef.current);
+        const text = heard(result[0].transcript, wakeRef.current && wakeLocalRef.current);
         if (text) deliver.current(text);
       }
     };
@@ -134,6 +174,14 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
       r.abort();
     }
   }, []);
+
+  // Turning the wake phrase on or off restarts listening under the new rule, so a
+  // recogniser started for ordinary voice never keeps listening for the wake phrase.
+  useEffect(() => {
+    if (stateRef.current !== "listening") return;
+    stopListening();
+    listen();
+  }, [wake, wakeLocal, listen, stopListening]);
 
   const start = useCallback(async () => {
     setError(null);
@@ -237,5 +285,5 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
   // Leaving the page ends voice: no microphone outlives the screen.
   useEffect(() => () => end(), [end]);
 
-  return { supported, state, level, error, start, speak, interrupt, pause, resume, end };
+  return { supported, wakeLocal, state, level, error, start, speak, interrupt, pause, resume, end };
 }

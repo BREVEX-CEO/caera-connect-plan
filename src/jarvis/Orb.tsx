@@ -1,7 +1,14 @@
 /**
- * The central orb: a quiet sphere of points with the account's real graph
- * growing out of it. Canvas 2D with a hand-rolled perspective projection —
- * no 3D library for a few hundred points.
+ * The central orb: a glass core inside a quiet sphere of points, with the
+ * account's real graph growing out of it. Canvas 2D with a hand-rolled
+ * perspective projection — no 3D library for a few hundred points. The glass
+ * core, depth-sorted nodes and hover glow follow the latest UI reference; the
+ * shell of points is ambient decoration and never stands for stored data.
+ *
+ * Categories differ by shape, not colour: conversations are circles, tasks
+ * squares, memory diamonds, devices triangles, apps rings.
+ *
+ * Double-click toggles Orb Focus.
  *
  * Drag pans, the wheel or a pinch zooms, the pointer tilts the view, hover
  * names a node and a click selects it. Zooming in reveals individual records
@@ -10,7 +17,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Minus, Plus } from "lucide-react";
-import type { Graph, GraphNode } from "./graph";
+import type { Category, Graph, GraphNode } from "./graph";
 import { cn } from "@/lib/utils";
 
 const SHELL_POINTS = 160;
@@ -30,6 +37,38 @@ function fibonacciSphere(count: number): [number, number, number][] {
 
 const SHELL = fibonacciSphere(SHELL_POINTS);
 
+function shape(
+  context: CanvasRenderingContext2D,
+  category: Category | undefined,
+  x: number,
+  y: number,
+  r: number,
+) {
+  context.beginPath();
+  if (category === "task") {
+    context.rect(x - r, y - r, r * 2, r * 2);
+  } else if (category === "memory") {
+    context.moveTo(x, y - r * 1.25);
+    context.lineTo(x + r * 1.25, y);
+    context.lineTo(x, y + r * 1.25);
+    context.lineTo(x - r * 1.25, y);
+    context.closePath();
+  } else if (category === "device") {
+    context.moveTo(x, y - r * 1.3);
+    context.lineTo(x + r * 1.2, y + r * 0.9);
+    context.lineTo(x - r * 1.2, y + r * 0.9);
+    context.closePath();
+  } else {
+    context.arc(x, y, r, 0, Math.PI * 2);
+  }
+}
+
+/** True when the foreground is light, i.e. the page is dark. */
+function darkPage(ink: string): boolean {
+  const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(ink);
+  return m ? Number(m[1]) + Number(m[2]) + Number(m[3]) > 382 : true;
+}
+
 interface View {
   yaw: number;
   pitch: number;
@@ -46,6 +85,8 @@ export function Orb({
   reducedMotion,
   selectedId,
   onSelect,
+  onFocus,
+  controlsHidden = false,
 }: {
   graph: Graph;
   dimmed: boolean;
@@ -55,6 +96,8 @@ export function Orb({
   reducedMotion: boolean;
   selectedId: string | null;
   onSelect(node: GraphNode): void;
+  onFocus?(): void;
+  controlsHidden?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const view = useRef<View>({ yaw: 0.6, pitch: -0.25, zoom: 1, panX: 0, panY: 0 });
@@ -63,6 +106,8 @@ export function Orb({
   const levelRef = useRef(level);
   levelRef.current = level;
   const [hover, setHover] = useState<{ node: GraphNode; x: number; y: number } | null>(null);
+  const hoverId = useRef<string | null>(null);
+  hoverId.current = hover?.node.id ?? null;
   const [zoomShown, setZoomShown] = useState(1);
   const draw = useRef<() => void>(() => undefined);
 
@@ -112,6 +157,8 @@ export function Orb({
       context.fillStyle = ink;
       context.strokeStyle = ink;
 
+      const foreground = getComputedStyle(canvas).color;
+      const dark = darkPage(foreground);
       const glow = context.createRadialGradient(cx, cy, 0, cx, cy, radius * 1.4);
       context.globalAlpha = 0.1 + levelRef.current * 0.12;
       glow.addColorStop(0, ink);
@@ -122,9 +169,10 @@ export function Orb({
       context.fill();
       context.fillStyle = ink;
 
+      // Ambient shell: decoration only, never a stored relationship.
       for (const point of SHELL) {
         const p = project(point);
-        context.globalAlpha = 0.12 + (1 - p.z) * 0.18;
+        context.globalAlpha = 0.1 + (1 - p.z) * 0.16;
         context.beginPath();
         context.arc(p.x, p.y, 1.1 * p.depth, 0, Math.PI * 2);
         context.fill();
@@ -137,13 +185,15 @@ export function Orb({
       const ids = new Set(shown.map((n) => n.id));
       const at = new Map<string, ReturnType<typeof project>>();
       for (const node of shown) at.set(node.id, project(node.position));
+      const focus = hoverId.current ?? selectedId;
 
-      context.lineWidth = 0.8;
       for (const edge of graph.edges) {
         const a = at.get(edge.from);
         const b = at.get(edge.to);
         if (!a || !b || !ids.has(edge.from) || !ids.has(edge.to)) continue;
-        context.globalAlpha = 0.14 + levelRef.current * 0.2;
+        const lit = focus !== null && (edge.from === focus || edge.to === focus);
+        context.globalAlpha = lit ? 0.7 : 0.14 + levelRef.current * 0.2;
+        context.lineWidth = lit ? 1.2 : 0.8;
         context.beginPath();
         context.moveTo(a.x, a.y);
         const mx = (a.x + b.x) / 2 + (cy - (a.y + b.y) / 2) * 0.08;
@@ -152,15 +202,34 @@ export function Orb({
         context.stroke();
       }
 
+      // Far nodes first, so near ones sit in front.
+      const order = shown
+        .filter((n) => n.kind !== "core")
+        .sort((a, b) => at.get(b.id)!.z - at.get(a.id)!.z);
       const hits: typeof projected.current = [];
-      for (const node of shown) {
+      for (const node of order) {
         const p = at.get(node.id)!;
-        const size = node.kind === "core" ? 5 : node.kind === "hub" ? 4 : 2.6;
+        const lit = node.id === focus;
+        const size = node.kind === "hub" ? 4 : 2.6;
         const r = size * p.depth * (node.id === selectedId ? 1.7 : 1);
-        context.globalAlpha = node.kind === "core" ? 0.9 : 0.35 + (1 - p.z) * 0.3;
-        context.beginPath();
-        context.arc(p.x, p.y, r, 0, Math.PI * 2);
-        context.fill();
+        if (lit) {
+          const halo = context.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 4);
+          halo.addColorStop(0, ink);
+          halo.addColorStop(1, "transparent");
+          context.globalAlpha = 0.35;
+          context.fillStyle = halo;
+          context.beginPath();
+          context.arc(p.x, p.y, r * 4, 0, Math.PI * 2);
+          context.fill();
+          context.fillStyle = ink;
+        }
+        context.globalAlpha = lit ? 1 : 0.35 + (1 - p.z) * 0.3;
+        shape(context, node.category, p.x, p.y, r);
+        if (node.kind === "hub" || node.category === "app") {
+          context.lineWidth = 1.2;
+          context.stroke();
+          if (node.kind === "hub") context.fill();
+        } else context.fill();
         if (node.id === selectedId) {
           context.globalAlpha = 0.8;
           context.beginPath();
@@ -175,6 +244,49 @@ export function Orb({
         }
         hits.push({ node, x: p.x, y: p.y, r: Math.max(10, r + 4) });
       }
+
+      // The glass core, after the reference: a dark (or pale) sphere with a
+      // specular highlight and a faint rim, breathing with the voice level.
+      const core = radius * 0.16 * (1 + levelRef.current * 0.15);
+      const body = context.createRadialGradient(
+        cx - core * 0.3,
+        cy - core * 0.3,
+        core * 0.04,
+        cx,
+        cy,
+        core,
+      );
+      if (dark) {
+        body.addColorStop(0, "rgba(95,95,100,0.62)");
+        body.addColorStop(0.4, "rgba(35,35,40,0.72)");
+        body.addColorStop(0.85, "rgba(10,10,14,0.88)");
+        body.addColorStop(1, "rgba(5,5,8,0.96)");
+      } else {
+        body.addColorStop(0, "rgba(240,240,245,0.88)");
+        body.addColorStop(0.4, "rgba(200,200,210,0.82)");
+        body.addColorStop(1, "rgba(150,150,165,0.92)");
+      }
+      context.globalAlpha = 1;
+      context.fillStyle = body;
+      context.beginPath();
+      context.arc(cx, cy, core, 0, Math.PI * 2);
+      context.fill();
+      const spec = context.createRadialGradient(
+        cx - core * 0.35,
+        cy - core * 0.35,
+        0,
+        cx - core * 0.2,
+        cy - core * 0.2,
+        core * 0.6,
+      );
+      spec.addColorStop(0, `rgba(255,255,255,${dark ? 0.28 : 0.55})`);
+      spec.addColorStop(1, "rgba(255,255,255,0)");
+      context.fillStyle = spec;
+      context.fill();
+      context.globalAlpha = dark ? 0.12 : 0.25;
+      context.lineWidth = 0.7;
+      context.stroke();
+      context.fillStyle = ink;
       projected.current = hits;
       context.globalAlpha = 1;
     };
@@ -199,7 +311,7 @@ export function Orb({
 
   useEffect(() => {
     if (reducedMotion) draw.current();
-  }, [level, reducedMotion]);
+  }, [level, hover, reducedMotion]);
 
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const pinch = useRef(new Map<number, { x: number; y: number }>());
@@ -292,6 +404,7 @@ export function Orb({
           }
         }}
         onWheel={(event) => setZoom(view.current.zoom * (event.deltaY < 0 ? 1.1 : 0.9))}
+        onDoubleClick={() => onFocus?.()}
       />
       {hover ? (
         <div
@@ -301,7 +414,12 @@ export function Orb({
           {hover.node.label}
         </div>
       ) : null}
-      <div className="absolute bottom-24 right-3 flex flex-col gap-1 md:bottom-4">
+      <div
+        className={cn(
+          "absolute bottom-24 right-3 flex flex-col gap-1 transition-opacity duration-500 md:bottom-4",
+          controlsHidden && "pointer-events-none opacity-0",
+        )}
+      >
         <button
           type="button"
           aria-label="Zoom in"
