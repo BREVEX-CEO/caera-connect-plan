@@ -1,111 +1,83 @@
 # OCADE Project Rules
 
-## General
+## General rules
 
-- Current owner request and `PLAN.md` govern the active mission.
-- CARCC is the company; OCADE is the product.
-- Do not use current CADANE branding.
-- Keep the current product website-only and Chat-first.
-- Prefer fewer maintained lines, fewer authorities and fewer moving parts.
+- Every change must follow the owner request, PLAN.md, and canonical documents.
+- CARCC is the company and OCADE is the product.
+- Chat and JARVIS remain separate experiences with protected regression boundaries.
+- Do not invent capability that has not been implemented and tested.
 
-## Code organization
+## JARVIS source rules
 
-Keep responsibility with the existing authority:
+- Never modify or delete the uploaded original ZIP.
+- Never modify or delete the immutable source-original snapshot.
+- Use the extracted working runtime as the primary JARVIS engine.
+- Preserve useful original functionality rather than rewriting it merely for style.
+- Remove active old GUI/API-key behavior only after the new path works.
+- Preserve the generic plugin subsystem but keep it unused/customer-hidden.
+- Preserve the old phone dashboard but do not expose it as the final remote-control product.
 
-- Keep Chat state in the Chat authority.
-- Keep routing decisions in the intelligence router.
-- Keep usage accounting in the commercial authority.
-- Keep the Offline lifecycle in one installer/vault authority.
-- Keep durable account state in the account backend.
+## Code organization rules
 
-Do not build a parallel solution because editing the existing one is harder.
+- Keep React/TypeScript web code under the existing web source structure.
+- Keep active Python/runtime JARVIS code outside the React src tree.
+- Create a shared protocol/contract only when real cross-runtime communication requires it.
+- Avoid duplicate routers, usage authorities, memory authorities, provider clients, and permission systems.
 
-## Naming
+## Intelligence rules
 
-Customer-safe names: OCADE, Auto, Online, Offline, Library, Settings.
+- JARVIS is Online-only.
+- Never route JARVIS through Offline Intelligence.
+- Never ask customers for provider API keys.
+- Never expose provider/model/vendor identity in normal customer UI.
 
-Provider/model/runtime/vendor names are not customer-facing names.
+## Browser-control rules
 
-## Type safety
-
-No broad `any` to bypass a real contract. Validate untrusted network/storage/file data at the boundary.
-
-## Error handling
-
-- Never swallow a failure that changes what the customer believes happened.
-- Every customer-visible async operation terminates.
-- Errors are actionable and sanitized.
-- Do not report successful deletion/install/payment/sync until authoritative success is verified.
-
-## API rules
-
-- Bound body sizes/list lengths/output.
-- Authenticate the request before protected work starts.
-- Use stable idempotency keys for logical retries.
-- Propagate cancellation through the full request path.
-- No client-supplied ownership/entitlement trust.
-
-## Database rules
-
-- Use versioned migrations with rollback and verification.
-- Use both row-level security and explicit grants.
-- Require strong authentication for privileged RPCs.
-- Use indexed and bounded reads.
-- Regenerate/destructive multi-row mutations are atomic or recoverable.
-- Historical tables are not product requirements.
-
-## Security rules
-
-- Keep secrets on the server side.
-- No provider/model/vendor identity in normal UI, public docs, client logs or bundle-visible diagnostics.
-- No direct browser write to revocation/entitlement authority.
-- Treat uploaded files and extracted content as hostile input everywhere.
-- Cross-account state never survives account switch.
-- Keep the Admin surface hidden and role-gated.
-
-## Offline storage rules
-
-Model storage/download is OPFS-only:
-
-- Store Offline model bytes, chunks, checkpoints, metadata, pointers and runtime model assets in OPFS only.
-- Do not keep a duplicate Offline model copy in IndexedDB, Cache Storage or localStorage.
-- A normal site update must not redownload an unchanged verified Offline release.
-- An explicit Remove action must suppress automatic reinstall until the customer explicitly chooses Install.
-
-## Dependency rules
-
-Use platform/native APIs or installed dependencies first. New dependency requires a real need and must reduce rather than multiply maintenance.
+- Prefer semantic DOM/accessibility control over visual coordinates.
+- Use Playwright/browser tooling before coordinate fallback.
+- Re-observe after resize, zoom, navigation, tab changes, scroll changes, or responsive reflow.
+- Never reuse stale screen coordinates.
+- Verify the result of meaningful actions before continuing.
+- Pause for CAPTCHA/passkeys/OTP/2FA when human authentication is required.
+- Never bypass security challenges.
+- Never perform the final purchase action.
 
 ## UI rules
 
-- Keep the interface dark, premium and minimal.
-- Do not build dashboard-style card walls.
-- Keep the same core functionality responsive across desktop, tablet and phone.
-- Hide infrastructure details from normal customers.
-- Do not surface unused or future product modules in the current product.
+- Keep JARVIS minimal, professional, monochrome-first, and responsive.
+- Use the orb/graph as a real data visualization.
+- Do not create random decorative data relationships.
+- Keep Activity customer-safe.
+- Keep Stop and Take Over prominent during automation.
+- Respect reduced motion and accessibility.
 
-## State management
+## Data rules
 
-One authority. Async work scoped to account/conversation/request. Avoid duplicate cached “truth” when Query/server state already owns it.
+- Reuse approved OCADE account/conversation authorities where documented.
+- Keep JARVIS memory logically separate from Chat memory.
+- Retain detailed JARVIS activity for 90 days.
+- Keep raw visual frames temporary unless explicitly retained for a valid user purpose.
+- Never store provider secrets or payment card security codes.
+- Keep one-time authentication secrets ephemeral.
+
+## Usage rules
+
+- Chat and JARVIS use separate plan allowances.
+- JARVIS resource-bearing internal work may consume JARVIS usage.
+- Failed/no-result work must not be blindly charged.
 
 ## Testing rules
 
-Reproduce → fix root cause → regression → broader tests → adversarial browser proof. Do not count stub-only proof as live proof.
-
-## Git rules
-
-No force rewrite of shared history. Reconcile latest target before integration. Preserve unrelated verified work.
-
-## Performance rules
-
-Bound reads, uploads, parsing and provider output. Stream/chunk large work. Keep Chat responsive while Offline installs.
+- Add tests before or alongside integration work.
+- Keep the original source snapshot outside autofix/format/dependency-upgrade passes.
+- Keep all existing Chat/Offline verification green.
+- Distinguish live proof, browser proof, local proof, database proof, blocked cases, and untested cases.
 
 ## Forbidden practices
 
-- Do not reintroduce CADANE branding.
-- Do not reintroduce Paddle or live paid checkout.
-- Do not expose provider, model, vendor or runtime identity.
-- Do not store Offline model chunks outside OPFS.
-- Do not build Projects, Tasks, Automations, Monitors, Organizations, Code or native apps without a new owner-approved mission.
-- Do not weaken tests or security just to pass a gate.
-- Do not claim real hardware, provider or production proof that was not actually run.
+- Do not delete preserved source to reduce LOC.
+- Do not merge Chat into JARVIS.
+- Do not add Offline JARVIS.
+- Do not fake desktop/mobile control.
+- Do not mention a desktop-wrapper architecture before the owner starts that mission.
+- Do not weaken permission, security, validation, accessibility, or test boundaries for convenience.
