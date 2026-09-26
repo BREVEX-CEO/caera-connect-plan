@@ -2,127 +2,124 @@
 
 ## System overview
 
-CARCC builds OCADE. OCADE's current architecture is a website with one connected intelligence path and one on-device intelligence path behind a single Chat contract.
+OCADE is one repository with a protected Chat product and a new OCADE JARVIS product surface.
+
+JARVIS is integrated as a web-controlled agentic experience while preserving the original JARVIS source and working runtime as separate runtime layers.
+
+## High-level architecture
 
 ```mermaid
-flowchart LR
-  U[Customer browser] --> W[OCADE web Worker]
-  U --> A[Account auth/data]
-  U --> L[Offline Intelligence in browser]
-  W --> A
-  U --> E[Online Intelligence boundary]
-  E --> A
-  E --> P[Configured online provider - server only]
-  L --> O[OPFS model store]
-  W --> R[Private opaque Offline release delivery]
-  R --> O
+flowchart TD
+  U[User] --> W[OCADE Web]
+  W --> C[Chat]
+  W --> J[OCADE JARVIS]
+  J --> JU[JARVIS Web UI / src/jarvis]
+  JU --> OI[OCADE Online Intelligence]
+  JU --> BC[JARVIS Browser Control]
+  JU --> JT[JARVIS Task / Voice / Permission Layer]
+  BC --> PW[Playwright / Browser Tooling]
+  JT --> JR[jarvis-runtime]
+  C --> CA[Existing Chat Authorities]
+  OI --> S[Supabase / Edge Authority]
+  CA --> S
+  JT --> S
 ```
-
-Provider/model identity is intentionally omitted from product/client architecture. It is server-only operational configuration.
-
-## Tech stack
-
-- Build the frontend with React, TypeScript, TanStack, Vite and Tailwind.
-- Use Node with npm as the runtime and package-management toolchain.
-- Use Supabase for authentication and durable account data.
-- Use the Cloudflare Worker to serve the website.
-- Use private R2 delivery for the opaque Offline Intelligence release.
-- Use browser OPFS as the only Offline model store.
 
 ## Repository structure
 
-- Keep app, public and API routes under `src/routes/`.
-- Keep Chat, Settings, shell and legal UI components under `src/components/`.
-- Keep the normalized Online/Offline contract and router under `src/lib/intelligence/`.
-- Keep the Offline installer and runtime lifecycle under `src/lib/brain/`.
-- Keep usage, entitlement and device logic under `src/lib/commercial/`.
-- Keep the Library and file authority under `src/lib/library/`.
-- Keep authentication assurance, session and security-header logic under `src/lib/security/`.
-- Keep database migrations, functions, verification and rollback artifacts under `supabase/`.
-- Keep verification, build, browser journeys and Offline release tooling under `scripts/`.
-- Keep canonical product, technical, design and testing documentation under `docs/`.
+- imports/ocade-jarvis/ stores the uploaded original ZIP and preservation documentation.
+- imports/ocade-jarvis/source-original/ stores the immutable extracted original source.
+- jarvis-runtime/ stores the active working JARVIS Python/runtime engine.
+- src/jarvis/ stores the production web UI and browser-facing JARVIS integration.
+- src/routes/ continues to own TanStack routes, including /ocade-jarvis.
+- supabase/ continues to own database migrations and Edge Functions.
 
-## Application layers
+## Preservation boundary
 
-1. UI/route layer.
-2. Product hooks/functions.
-3. Canonical intelligence and commercial boundaries.
-4. Account/database or Offline runtime authorities.
-5. Deployment/external integration boundaries.
+The uploaded ZIP and source-original snapshot are immutable evidence.
 
-Do not bypass a lower authority with UI-local rules.
+The working jarvis-runtime is allowed to change as required for OCADE integration.
 
-## Data architecture
+Ponytail cleanup never targets immutable source.
 
-Supabase is canonical for durable signed-in account data.
+## Product boundary
 
-Local browser persistence is intentionally narrow:
+Chat and JARVIS share authentication, account identity, server security patterns, and approved storage authorities.
 
-- Use OPFS only for Offline model bytes, chunks, checkpoints, model metadata and runtime model assets.
-- Use an encrypted pending reconciliation journal for disconnected account work that must survive restart.
-- Keep only small device or UI preferences in their appropriate lightweight preference store.
-- Do not create a duplicate durable conversation or Library database in the browser.
+Chat and JARVIS remain distinct user experiences.
 
-## Online architecture
+JARVIS is Online-only and must not use Chat Offline inference.
 
-Browser → one OCADE Online Intelligence boundary → configured provider.
+## Conversation and data boundary
 
-The browser sees normalized OCADE events only. Real provider/model identity stays out of the client bundle and customer-facing diagnostics. The boundary validates auth, request bounds and a commercial generation permit before provider work.
+JARVIS reuses the existing conversation/message authority with a clear JARVIS surface discriminator or equivalent schema mechanism.
 
-## Offline architecture
+The system must never mix normal Chat and JARVIS history unintentionally.
 
-One installer owns:
+JARVIS memory is logically separate from Chat memory even though both use Supabase account security.
 
-- The installer resolves the approved release.
-- The installer checks storage before transfer.
-- The installer performs ranged transfer.
-- The installer checkpoints progress and resumes interrupted transfers.
-- The installer verifies the final digest.
-- The installer activates only a verified release.
-- The installer repairs only missing or corrupt model data.
-- The installer owns remove and reinstall behavior.
+Detailed JARVIS activity has a 90-day retention policy.
 
-### OPFS rule
+## Intelligence boundary
 
-There is one model store: OPFS. Model bytes/chunks/checkpoints/metadata/pointers do not live in IndexedDB, Cache Storage or localStorage.
+All active JARVIS intelligence routes through OCADE's approved server-side Online intelligence authority.
 
-Explicit uninstall preference is separate product state because it must survive deletion of model storage.
+The original local/manual provider-key route is disabled in production.
 
-## Routing
+The provider key is never sent to the browser or exposed in the working runtime UI.
 
-The router owns Auto/Online/Offline selection. No component may implement a second fallback policy.
+## Browser-control boundary
 
-## Commercial architecture
+Browser control is the first deep JARVIS control capability.
 
-One permit/ledger authority handles successful logical generations across all modes/devices. Entitlement resolves from the canonical account state and audited temporary grants. Current paid checkout is closed.
+The hierarchy is semantic DOM/accessibility targeting first, Playwright/browser tooling second, authorized browser integration third, visual understanding fourth, and coordinates last.
 
-## Security architecture
+Coordinate actions are ephemeral observations, not stable selectors.
 
-- Keep secrets on the server side.
-- Enforce both row-level security and explicit grants.
-- Require strong authentication for privileged operations.
-- Enforce the canonical HTTPS origin.
-- Treat uploaded files as hostile input.
-- No client trust for entitlement/usage/ownership/security-sensitive fields.
-- Cross-account async state must be scoped to account/conversation/request.
+Every resize, zoom, scroll-context change, responsive reflow, navigation, or tab switch invalidates stale geometry and requires re-observation.
 
-## Deployment architecture
+Take Over pauses automation, and Resume begins from a new observation.
 
-Production proof includes:
+## Runtime boundary
 
-- Record the exact Git SHA used for the release.
-- Record the matching Cloudflare Worker deployment.
-- Record the matching Supabase migration and generated-type state.
-- Record the matching Online Intelligence function version and source.
-- Record the matching opaque Offline release contract.
+The existing Python JARVIS modules remain the primary runtime foundation.
 
-## Scalability
+Existing voice, desktop, file, screen, system, task, undo, confirmation, development-agent, and related modules are preserved unless the owner explicitly rejected active behavior.
 
-Use indexed bounded queries and pagination. Avoid whole-table reads. Offline transfer uses bounded ranges/streaming. Keep current product scope small rather than scaling unused modules.
+Unsupported runtime capabilities are capability-gated rather than simulated.
 
-## Constraints
+## Voice boundary
 
-- Keep the current mission limited to the website.
-- Do not include live Paddle or paid checkout in the current architecture.
-- Do not add Projects, Tasks, Automations, Monitors, Organizations, Code or native-app architecture to the current mission.
-- Never expose provider, model, runtime or infrastructure identities to normal users.
+Voice is a JARVIS interaction mode rather than a separate product.
+
+Voice and typed input share the same JARVIS conversation/task state.
+
+## Permission boundary
+
+The system supports a global JARVIS enable/disable control plus granular capability permissions.
+
+Device-sensitive permissions are evaluated per device.
+
+Prompt or website content never grants permissions.
+
+## Usage boundary
+
+Chat and JARVIS have separate plan usage authorities.
+
+JARVIS can account for multiple resource-bearing internal steps.
+
+Failed/no-result steps are reconciled.
+
+## Deployment boundary
+
+The web product remains deployed through the current Cloudflare Worker path.
+
+Supabase remains the durable account/security authority.
+
+The working JARVIS runtime must not create a second customer identity or provider-secret system.
+
+## Planned later capability boundary
+
+Deeper computer and mobile control begins only after the browser-controlled web mission is stable.
+
+Current documentation intentionally does not select or describe a desktop-wrapper technology.
