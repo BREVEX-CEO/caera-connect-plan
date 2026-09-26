@@ -16,6 +16,13 @@
     "enroll": "/api/jarvis/enroll",
     "exchange": "/api/jarvis/device"
   },
-  "kinds": ["agent", "extension"],
-  "rotateAfterDays": 30
+  "kinds": [
+    "agent",
+    "extension"
+  ],
+  "rotateAfterDays": 30,
+  "gates": {
+    "purchase": "\\b(buy( it)? now|place (your |my )?order|complete (your |my )?(purchase|order|payment)|confirm (and |& )?pay|pay( now)?|submit (order|payment)|purchase|make payment)\\b",
+    "sensitive": "\\b(submit|send|post|publish|tweet|reply|comment|delete|remove|transfer|sign|agree|accept|apply|file|confirm|save changes|change password|unsubscribe|book|reserve|register|donate)\\b"
+  }
 }

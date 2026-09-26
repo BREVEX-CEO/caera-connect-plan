@@ -106,6 +106,12 @@ def remove_autostart() -> None:
 
 def uninstall(home: Path) -> str:
     """Everything this agent put on the computer, except the program files the OS uninstaller owns."""
+    identity = Identity(home)
+    if identity.connected:
+        try:  # this computer's key stops working in OCADE too
+            identity.exchange({"results": [], "forget": True})
+        except Exception:
+            pass  # offline: the person can still remove it in OCADE Devices
     remove_autostart()
     shutil.rmtree(home, ignore_errors=True)  # the key, pending results and the cache
     return ("OCADE Device Agent was removed from this computer. PC control, background tasks and "

@@ -297,6 +297,8 @@ export const exchangeInput = z.object({
   apps: z.array(z.string().max(80)).max(300).optional(),
   /** STOP JARVIS from the computer's own tray or mini-control. */
   stop: z.boolean().optional(),
+  /** The device disconnects itself (Disconnect, or uninstall): its key stops working. */
+  forget: z.boolean().optional(),
   rotate: z.object({ publicKey: publicKeyText }).optional(),
 });
 
@@ -327,6 +329,23 @@ export async function exchange(
   commands: DeviceCommand[];
   rotated?: boolean;
 }> {
+  if (input.forget) {
+    const at = new Date().toISOString();
+    await admin
+      .from("jarvis_tasks")
+      .update({ status: "stopped", blocker: "The device was disconnected." })
+      .eq("device_id", device.id)
+      .in("status", ["running", "waiting", "taken_over"]);
+    await admin.from("jarvis_devices").update({ revoked_at: at, public_key: null }).eq("id", device.id);
+    return {
+      protocol: PROTOCOL.version,
+      deviceId: device.id,
+      busy: false,
+      background: false,
+      task: null,
+      commands: [],
+    };
+  }
   if (input.stop) {
     // The global Stop: every unfinished task on this device ends, and nothing
     // queued for it runs.
