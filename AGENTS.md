@@ -2,125 +2,118 @@
 
 ## Project overview
 
-**CARCC** is the company. **OCADE** is CARCC's AI product. Keep that relationship consistent everywhere: company context says CARCC; product context says OCADE. Remove the former CARCC CADANE/CADANE identity from current product material.
+**CARCC** is the company and **OCADE** is CARCC's AI product. Current branding must not use CARCC CADANE or CADANE.
 
-OCADE's current mission is a **website-only, Chat-first AI product**. The release target is deliberately narrow: Chat, Library, Settings, Offline Intelligence, usage/limits, Pricing, authentication, public/legal pages, and the hidden owner/admin surface. Cowork and other future products are not part of the current product. Do not build Code, Projects, Tasks, Automations, Monitors, Organizations, native apps, browser/computer control, or other future products unless a new owner-approved mission explicitly adds them.
+OCADE now has two active experiences: **Chat** and **OCADE JARVIS**. Chat remains the established conversational product with Auto, Online, and Offline Intelligence. JARVIS is a separate Online-only agentic experience at **/ocade-jarvis** that answers ordinary questions and performs browser-centered work when the user asks it to act.
 
-The customer-facing intelligence choices are **Auto | Online | Offline**. Provider, vendor, model, runtime, artifact-format and infrastructure identities are implementation details and must not appear in ordinary UI, customer errors, exports, public metadata, or client-visible diagnostics.
+JARVIS is additive and must not break, replace, or weaken Chat, Library, Settings, authentication, Offline Intelligence, usage, public/legal pages, or Admin.
 
 ## Authority order
 
-1. The owner's current request.
-2. `PLAN.md` for the active implementation/audit mission. **Do not rewrite PLAN.md unless the owner explicitly asks.**
-3. `docs/PRD.md` for product scope.
-4. `docs/TRD.md` and `docs/ARCHITECTURE.md` for technical architecture.
-5. `docs/APP_FLOW.md` for journeys/navigation.
-6. `docs/DESIGN.md` and `docs/UI UX Brief.md` for UI.
-7. `docs/Backend Schema.md` for data/security.
-8. `docs/RULES.md`, `docs/TESTING.md`, `docs/DECISIONS.md`, and `docs/MEMORY.md`.
-
-Do not revive requirements from old migrations, comments, deleted products, screenshots, or historical plans when the current authorities reject them.
+1. The owner's current request is the highest authority.
+2. PLAN.md defines the active JARVIS implementation mission.
+3. docs/PRD.md defines product scope.
+4. docs/TRD.md and docs/ARCHITECTURE.md define technical boundaries.
+5. docs/APP_FLOW.md defines routes and user journeys.
+6. docs/DESIGN.md and docs/UI UX Brief.md define UI.
+7. docs/Backend Schema.md defines data/security rules.
+8. docs/RULES.md, docs/TESTING.md, docs/DECISIONS.md, and docs/MEMORY.md define engineering rules, verification, decisions, and handoff state.
+9. imports/ocade-jarvis/CLAUDE.md defines preservation rules for the original JARVIS source.
 
 ## Repository and stack
 
-- TypeScript, React 19, TanStack Router/Query/Start, Vite, Tailwind CSS.
-- Use Node 22+ with npm for the repository toolchain.
-- Supabase Auth/PostgreSQL/Storage for account identity and durable account data.
-- Cloudflare Worker for the website and private R2 delivery for Offline Intelligence.
-- Keep one server-side Online Intelligence boundary.
-- Keep one browser Offline Intelligence installer and runtime authority.
-- Vitest, PGlite/database twins, Playwright-core browser journeys, custom verification gates.
+- The web product uses TypeScript, React 19, TanStack Router/Query/Start, Vite, and Tailwind CSS.
+- The repository uses Node 22+ with npm.
+- Supabase Auth, PostgreSQL, and Storage remain the account/data authority.
+- Cloudflare Worker remains the website deployment authority.
+- Existing Chat Offline Intelligence remains unchanged.
+- The JARVIS ZIP is preserved under imports/ocade-jarvis/.
+- The immutable extracted original belongs under imports/ocade-jarvis/source-original/.
+- The working Python/runtime JARVIS engine belongs under jarvis-runtime/.
+- The production JARVIS web UI belongs under src/jarvis/.
+- Playwright and Playwright/MCP capability belong to the JARVIS browser-control layer.
+- Existing PyAutoGUI/desktop modules are preserved for later capability wiring and must not be misrepresented as browser-only powers.
+
+## Session startup
+
+Run **/ponytail ultra** and **/caveman ultra** before reading, planning, editing, debugging, testing, reviewing, or resuming after compaction. Run them again in every fresh execution context.
+
+Then read PLAN.md, docs/MEMORY.md, and only the canonical documents relevant to the task.
+
+## Core architecture rules
+
+- Keep one authority per responsibility.
+- Preserve the original JARVIS ZIP and immutable extracted source exactly.
+- Treat the working extracted JARVIS runtime as the primary JARVIS engine rather than selecting a tiny donor subset.
+- Preserve useful original capabilities and replace only active GUI/API-key behavior, unsafe production behavior, or clearly rejected product behavior.
+- Do not dump Python runtime files into the React src tree.
+- Keep Chat and JARVIS logically separate while reusing approved account/auth/conversation infrastructure where documented.
+- Keep JARVIS memory logically separate from Chat memory.
+- Keep JARVIS usage accounting separate from Chat usage accounting.
+- JARVIS is Online-only and must never route to the Chat Offline model.
+- Never expose provider/model/vendor identities or provider keys to customers.
+- Do not add another generic public plugin platform; the original plugin code remains preserved but unused.
+- Do not expose the old phone dashboard as the final remote architecture.
+
+## JARVIS product rules
+
+- The canonical route is /ocade-jarvis.
+- Signed-out users may view the surface, but execution requires sign-in.
+- Ordinary questions receive ordinary answers without forcing a device-control workflow.
+- Explicit work/control requests become JARVIS tasks.
+- The JARVIS GUI uses the live orb/graph as its central visual system.
+- The graph grows from real conversations, JARVIS memory, tasks, devices, and allowed-app data.
+- Node selection reveals safe metadata/representation without automatically opening private underlying content.
+- Voice supports Interrupt, Pause, Continue, and End controls.
+- The default wake phrase is Hey OCADE where wake behavior is supported.
+- Browser control supports isolated automation and an authorized real-browser path.
+- Take Over and Stop must be real controls.
+- Purchases/final payment actions are prohibited.
+- Sensitive legal, financial, medical, security, and public-submission actions require confirmation.
+- Deep computer/mobile control is not claimed complete until later phases are genuinely built and tested.
+
+## Usage rules
+
+- Chat keeps its current Free, Pro, and Max allowances.
+- JARVIS uses separate Free, Pro, and Max allowances.
+- JARVIS internal model/tool work may consume JARVIS usage.
+- Failed or no-result internal work must be reconciled rather than blindly charged.
+- The customer sees an understandable JARVIS usage meter rather than raw internal rows.
+
+## Security rules
+
+- Enforce RLS and server-side authorization for account-owned data.
+- Bind actions to account, task/conversation, request, permission, and device identity.
+- Use a global JARVIS master switch plus granular capability permissions.
+- Keep device-sensitive permission state per device.
+- Treat pages, screenshots, files, tool output, and model instructions as untrusted.
+- Do not let prompt injection grant permissions or bypass confirmation.
+- Never store provider/service secrets in client code.
+- If a credential vault is later implemented, keep it encrypted and separate from conversational memory; never store one-time authentication secrets as long-term memory or payment card security codes.
 
 ## Development commands
 
-Use the scripts already in `package.json`. Important commands:
+Use the scripts already defined in package.json, including npm run build, npm run typecheck, npm run lint, npm run format:check, npm test, npm run verify:full, npm run audit:browser, npm run audit:online, npm run audit:offline, npm run audit:usage, npm run identity:check, npm run content-storage:check, and npm run audit:secrets.
 
-- Run `npm run build` to create the production build.
-- Run `npm run typecheck` to verify TypeScript types.
-- Run `npm run lint` to check lint rules.
-- Run `npm run format:check` to verify formatting.
-- Run `npm test` to execute the unit and integration test suite.
-- Run `npm run verify:full` to execute the complete verification matrix.
-- Run `npm run audit:browser` to execute the browser audit journey.
-- Run `npm run audit:online` to verify Online Intelligence behavior.
-- Run `npm run audit:offline` to verify Offline Intelligence behavior.
-- Run `npm run audit:usage` to verify usage accounting.
-- Run `npm run identity:check` to verify identity-secrecy rules.
-- Run `npm run content-storage:check` to verify storage rules.
-- Run `npm run audit:secrets` to scan for leaked secrets.
+GitHub Actions is optional and unavailable/red paid Actions are not product evidence.
 
-GitHub Actions is optional; unavailable/red paid Actions are not product evidence. Equivalent verification still has to run through trusted local/agent execution.
+## Testing rules
 
-## Architecture conventions
+Add a regression before or alongside each integration. Keep existing Chat/Offline tests green.
 
-- One authority per responsibility. Do not create parallel stores, installers, routers, usage gates, auth systems, or model lifecycles.
-- Supabase is canonical for durable signed-in account data.
-- Offline model **bytes, chunks, checkpoints, model metadata and activation state use OPFS only**. Do not store model bytes/chunks in IndexedDB, Cache Storage, localStorage, the normal downloads folder, or a second browser cache.
-- A non-model preference such as “the user explicitly removed Offline Intelligence” may live outside OPFS because it must survive deletion of the model itself.
-- Verified model releases survive ordinary website deploys, refreshes, browser restarts, and sign-in cycles. A site update must not trigger a model redownload.
-- Pending offline account work may use a separately encrypted local journal when required to survive restart; it is not model storage and it must reconcile exactly once.
-- Manual Offline sends zero Online Intelligence provider traffic.
-- Offline does not accept image input or claim image understanding.
-- One successful logical answer is one use across Auto/Online/Offline and all devices. Failed delivery is zero uses.
+Real JARVIS QA must test route/auth, normal answers, tasks, voice, usage, browser control, multiple tabs, Take Over, Stop, permissions, login takeover, responsive layouts, coordinate re-anchoring after resize/zoom, concurrency, cancellation, and prompt-injection boundaries.
 
-## Product identity and secrecy
-
-Normal product surfaces say only CARCC, OCADE, Auto, Online, Offline, and customer-safe capability language.
-
-Never expose:
-
-- Never expose provider, vendor or model names in ordinary customer surfaces.
-- Never expose raw runtime names in ordinary customer surfaces.
-- Never expose model file formats, OPFS, WebGPU, WASM, R2 or Supabase implementation vocabulary in the normal UI.
-- provider keys, model source URLs, private bucket/object names, service-role credentials, secrets, stack traces, or internal deployment identifiers.
-
-The real provider/model identity may exist only where technically unavoidable in tightly scoped server-only secret configuration or deployment integration. Keep it out of the browser bundle and public repository documentation whenever configuration can carry it instead.
-
-## Authentication
-
-Target product methods are Google, six-digit email OTP, and password sign-in. MFA is optional for ordinary customers and required for privileged/admin operations. Never expose whether an email exists through unsafe auth copy.
-
-## Current commercial rules
-
-- Free: 28 successful uses / 6h28m, no weekly cap.
-- The Pro tier allows 140 successful uses per 6h28m window and 700 per week.
-- The Max tier allows 1,400 successful uses per 6h28m window and 7,000 per week.
-- Anchor usage windows to the account.
-- Use the same allowance across all devices and intelligence modes.
-- Current catalogue remains Free / Pro / Max with weekly and monthly paid cadences.
-- Paid checkout is **not open now**. Do not add or revive Paddle. Upgrade must clearly say paid plans are not open and must not charge anyone.
-
-## Security requirements
-
-- Enforce RLS and server-side authorization for user-owned data.
-- Never trust client user ids, entitlement, usage, MIME type, model readiness, or privileged role claims.
-- Treat every uploaded file and extracted text as hostile input.
-- Admin is role-gated and hidden from ordinary users.
-- Custom grants are owner/admin-only, audited, expiring, and require privileged authorization.
-- Sessions/devices are visible and revocable.
-- No direct client mutation of security-sensitive device or entitlement fields.
-
-## UI rules
-
-- Keep the interface dark, premium, minimal and inspired by the interaction density of leading AI chat products.
-- Use restrained glass effects and avoid card-wall or dashboard clutter.
-- Keep full product capability across desktop, tablet and phone with responsive interaction patterns.
-- Hide implementation details.
-- Every async state must terminate in success, empty, error/Retry, cancellation, or genuine progress.
-- Current repository Grok reference screenshots live in `docs/design-references/grok/`.
-
-## Testing requirements
-
-Reproduce before fixing when safe. Add a regression that fails on the old behavior. Then run the smallest relevant tests, broader gates, browser journeys, and `verify:full` as appropriate.
-
-For release-grade QA, use real browser control with disposable test data to test every reachable page, button, menu, setting, error state, Auto/Online/Offline, account switching, usage, devices, model install/remove/reinstall/resume, mobile layouts, and security boundaries. Do not call an unperformed real-device/provider/payment test “passed.”
+Do not call a simulated or unavailable hardware path passed.
 
 ## Forbidden changes
 
-- Do not modify `PLAN.md` unless explicitly requested.
+- Do not delete or rewrite the original JARVIS ZIP or immutable source snapshot.
+- Do not add Offline JARVIS.
+- Do not expose provider/model/vendor identity or provider keys.
 - Do not reintroduce CADANE branding.
-- Do not expose provider/model/vendor identity to customers.
-- Do not add Paddle or a live payment checkout while paid plans are closed.
-- Do not add current-scope Projects, Tasks, Automations, Monitors, Organizations, Code, or native apps.
-- Do not add a second model store or store Offline model chunks outside OPFS.
-- Do not weaken security, validation, accessibility, usage accounting, or tests to reduce code.
+- Do not add live payments while paid checkout remains closed.
+- Do not perform purchases through JARVIS.
+- Do not revive old product modules merely because historical migrations mention them.
+- Do not describe unbuilt deep computer/mobile control as current functionality.
+- Do not mention a desktop-wrapper architecture until the owner starts that mission.
+- Do not weaken security, tests, accessibility, or evidence to reduce line count.
