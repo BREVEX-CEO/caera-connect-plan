@@ -19,7 +19,7 @@
  * Usage: node scripts/e2e/jarvis-journey.mjs [--base=…] [--supabase=…]
  */
 import { spawn, spawnSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -251,52 +251,103 @@ try {
       "python3 with playwright is not available (or OCADE_JARVIS_DEVICE=skip)",
     );
   } else {
-    /* --- pair the runtime --------------------------------------------------- */
-    await rail("Devices").click();
-    await page.getByRole("button", { name: "Connect a device", exact: true }).click();
-    const code = await page.locator("[data-testid=pairing-code]").innerText();
+    /* --- connect the runtime: its own key, one click, no codes ---------------- */
     const env = {
       ...process.env,
       OCADE_JARVIS_HOME: deviceHome,
       OCADE_BROWSER_EXECUTABLE: EXECUTABLE,
     };
-    const paired = spawnSync(
+    const connectDevice = (home, name) => {
+      const child = spawn(
+        "python3",
+        [
+          "jarvis-runtime/ocade_device.py",
+          "connect",
+          "--server",
+          BASE,
+          "--no-browser",
+          "--name",
+          name,
+        ],
+        { env: { ...env, OCADE_JARVIS_HOME: home }, stdio: ["ignore", "pipe", "pipe"] },
+      );
+      let out = "";
+      child.stdout.on("data", (d) => (out += d));
+      child.stderr.on("data", (d) => (out += d));
+      const exit = new Promise((resolve) => child.on("exit", resolve));
+      return { child, exit, out: () => out };
+    };
+    const thief = connectDevice(mkdtempSync(path.join(tmpdir(), "thief-")), "Not mine");
+    await until(() => /OCADE: (\S+)/.test(thief.out()), 20_000);
+    await page.goto(/OCADE: (\S+)/.exec(thief.out())[1], { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "Not mine", exact: true }).click();
+    check(
+      "a device the person does not recognise is refused and keeps nothing",
+      (await thief.exit) !== 0 && thief.out().includes("not approved"),
+      thief.out().slice(-200),
+    );
+
+    const laptop = connectDevice(deviceHome, "Proof laptop");
+    await until(() => /OCADE: (\S+)/.test(laptop.out()), 20_000);
+    const approveUrl = /OCADE: (\S+)/.exec(laptop.out())[1];
+    const printed = /fingerprint (\S+)\./.exec(laptop.out())?.[1];
+    await page.goto(approveUrl, { waitUntil: "networkidle" });
+    const shown = await page.getByTestId("device-fingerprint").innerText();
+    check(
+      "OCADE shows the same key fingerprint the computer printed",
+      shown === printed,
+      `${shown} / ${printed}`,
+    );
+    check(
+      "no code or password is asked for",
+      (await page.getByRole("textbox").count()) === 0 ||
+        (await page.getByRole("dialog").getByRole("textbox").count()) === 0,
+    );
+    await page.getByRole("button", { name: "Connect", exact: true }).click();
+    check(
+      "one click connects the computer",
+      (await laptop.exit) === 0 && laptop.out().includes("Connected as Proof laptop"),
+      laptop.out().slice(-200),
+    );
+    const reused = spawnSync(
       "python3",
       [
-        "jarvis-runtime/ocade_device.py",
-        "pair",
-        "--server",
-        BASE,
-        "--code",
-        code,
-        "--name",
-        "Proof laptop",
+        "-c",
+        `import sys; sys.path.insert(0, "jarvis-runtime")
+from pathlib import Path
+import ocade_identity as i
+me = i.Identity(Path(${JSON.stringify(deviceHome)}))
+body = {"results": []}
+real = me._timestamp
+stamp = real()
+me._timestamp = lambda: stamp
+print("first", me.post(i.PROTOCOL["paths"]["exchange"], body)[0])
+print("replay", me.post(i.PROTOCOL["paths"]["exchange"], body)[0])
+me._timestamp = real
+old = me.key
+print("rotated", me.rotate())
+print("new key", me.post(i.PROTOCOL["paths"]["exchange"], body)[0])
+print("old key", me.post(i.PROTOCOL["paths"]["exchange"], body, key=old)[0])
+i.PROTOCOL["version"] = 0
+try:
+    me.post(i.PROTOCOL["paths"]["exchange"], body)
+    print("old protocol accepted")
+except i.UpdateRequired:
+    print("old protocol refused")`,
       ],
       { env, encoding: "utf8" },
     );
+    const said = reused.stdout + reused.stderr;
+    check("a signed request is accepted", said.includes("first 200"), said.slice(-300));
+    check("the same signed request cannot be replayed", said.includes("replay 401"));
     check(
-      "the runtime pairs with a one-time code",
-      paired.status === 0,
-      (paired.stderr || paired.stdout).slice(-200),
+      "the device rotates its own key and the old key stops working",
+      said.includes("rotated True") && said.includes("new key 200") && said.includes("old key 401"),
     );
-    const reuse = spawnSync(
-      "python3",
-      [
-        "jarvis-runtime/ocade_device.py",
-        "pair",
-        "--server",
-        BASE,
-        "--code",
-        code,
-        "--name",
-        "Thief",
-      ],
-      {
-        env: { ...env, OCADE_JARVIS_HOME: mkdtempSync(path.join(tmpdir(), "thief-")) },
-        encoding: "utf8",
-      },
+    check(
+      "an out-of-date protocol fails closed with an update request",
+      said.includes("old protocol refused"),
     );
-    check("the same code cannot pair twice", reuse.status !== 0);
     device = spawn("python3", ["jarvis-runtime/ocade_device.py", "run", "--headless"], {
       env,
       stdio: ["ignore", "pipe", "pipe"],
@@ -686,7 +737,9 @@ try {
     const exited = await until(() => device.exitCode !== null, 30_000);
     check(
       "a removed device loses access at once",
-      exited && deviceLog.includes("no longer paired"),
+      exited &&
+        deviceLog.includes("no longer connected") &&
+        !existsSync(path.join(deviceHome, "device.key")),
       deviceLog.slice(-160),
     );
     await page.getByRole("button", { name: "Close", exact: true }).first().click();

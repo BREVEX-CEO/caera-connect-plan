@@ -259,43 +259,58 @@ export type Database = {
       }
       jarvis_devices: {
         Row: {
+          background_enabled: boolean
           capabilities: Json
           created_at: string
+          enrollment_expires_at: string | null
           id: string
+          key_rotated_at: string | null
+          kind: string
+          last_request_ms: number
           last_seen_at: string | null
           name: string
-          pairing_code_hash: string | null
-          pairing_expires_at: string | null
           platform: string | null
+          protocol_version: number
+          public_key: string | null
           revoked_at: string | null
-          token_hash: string | null
-          user_id: string
+          software_version: string | null
+          user_id: string | null
         }
         Insert: {
+          background_enabled?: boolean
           capabilities?: Json
           created_at?: string
+          enrollment_expires_at?: string | null
           id?: string
+          key_rotated_at?: string | null
+          kind?: string
+          last_request_ms?: number
           last_seen_at?: string | null
           name?: string
-          pairing_code_hash?: string | null
-          pairing_expires_at?: string | null
           platform?: string | null
+          protocol_version?: number
+          public_key?: string | null
           revoked_at?: string | null
-          token_hash?: string | null
-          user_id: string
+          software_version?: string | null
+          user_id?: string | null
         }
         Update: {
+          background_enabled?: boolean
           capabilities?: Json
           created_at?: string
+          enrollment_expires_at?: string | null
           id?: string
+          key_rotated_at?: string | null
+          kind?: string
+          last_request_ms?: number
           last_seen_at?: string | null
           name?: string
-          pairing_code_hash?: string | null
-          pairing_expires_at?: string | null
           platform?: string | null
+          protocol_version?: number
+          public_key?: string | null
           revoked_at?: string | null
-          token_hash?: string | null
-          user_id?: string
+          software_version?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -357,6 +372,8 @@ export type Database = {
       }
       jarvis_tasks: {
         Row: {
+          checkpoint: Json | null
+          controller: string | null
           blocker: string | null
           browser_mode: string
           conversation_id: string
@@ -374,6 +391,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          checkpoint?: Json | null
+          controller?: string | null
           blocker?: string | null
           browser_mode?: string
           conversation_id: string
@@ -391,6 +410,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          checkpoint?: Json | null
+          controller?: string | null
           blocker?: string | null
           browser_mode?: string
           conversation_id?: string

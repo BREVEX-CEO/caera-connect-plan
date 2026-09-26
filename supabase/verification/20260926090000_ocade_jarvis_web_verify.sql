@@ -27,9 +27,13 @@ BEGIN
       RAISE EXCEPTION 'an anonymous visitor can read public.%', _table;
     END IF;
   END LOOP;
-  IF has_column_privilege('authenticated', 'public.jarvis_devices', 'token_hash', 'SELECT')
-     OR has_column_privilege('authenticated', 'public.jarvis_devices', 'pairing_code_hash', 'SELECT') THEN
-    RAISE EXCEPTION 'a browser can read device credential hashes';
+  -- The credential columns were later replaced by per-device public keys; either
+  -- way, no credential column may be readable by a browser role.
+  IF EXISTS (SELECT 1 FROM information_schema.column_privileges
+              WHERE table_schema = 'public' AND table_name = 'jarvis_devices'
+                AND grantee = 'authenticated' AND privilege_type = 'SELECT'
+                AND column_name IN ('token_hash', 'pairing_code_hash', 'public_key')) THEN
+    RAISE EXCEPTION 'a browser can read device credential material';
   END IF;
   IF has_table_privilege('authenticated', 'public.jarvis_activity', 'INSERT')
      OR has_table_privilege('authenticated', 'public.jarvis_devices', 'UPDATE') THEN

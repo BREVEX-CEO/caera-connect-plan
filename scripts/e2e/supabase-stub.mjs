@@ -623,7 +623,15 @@ const jarvisTables = {};
 
 /** Column defaults the migration gives JARVIS rows. */
 const JARVIS_DEFAULTS = {
-  jarvis_devices: { name: "New device", capabilities: {}, revoked_at: null, last_seen_at: null },
+  jarvis_devices: {
+    name: "New device",
+    capabilities: {},
+    revoked_at: null,
+    last_seen_at: null,
+    kind: "agent",
+    last_request_ms: 0,
+    background_enabled: false,
+  },
   jarvis_tasks: {
     status: "running",
     current_step: 0,

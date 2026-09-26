@@ -44,7 +44,13 @@ import {
   updateJarvisTask,
   type JarvisTaskRow,
 } from "./jarvis.functions";
-import { NodePanel, PermissionsDrawer, SectionPanel, type Section } from "./JarvisPanels";
+import {
+  ConnectDevice,
+  NodePanel,
+  PermissionsDrawer,
+  SectionPanel,
+  type Section,
+} from "./JarvisPanels";
 import { BrowserPanel, ConfirmBanner, TaskCard, TakeOverBanner, VoiceBar } from "./JarvisTask";
 
 const JARVIS_STATE_KEY = ["jarvis", "state"] as const;
@@ -63,7 +69,13 @@ const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: "devices", label: "Devices", icon: MonitorSmartphone },
 ];
 
-export function JarvisWorkspace({ conversationId }: { conversationId: string | null }) {
+export function JarvisWorkspace({
+  conversationId,
+  connectId,
+}: {
+  conversationId: string | null;
+  connectId: string | null;
+}) {
   const { user, loading } = useSession();
   const signedIn = Boolean(user);
   const navigate = useNavigate();
@@ -245,7 +257,11 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
       if (error instanceof Stopped) {
         setTurns((list) => [
           ...list,
-          { id: crypto.randomUUID(), role: "assistant", content: "Stopped." },
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: error.handedOff ? error.message : "Stopped.",
+          },
         ]);
       } else if (error instanceof ModelRefused) {
         toast.error(error.message);
@@ -701,6 +717,39 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
         ) : null}
       </main>
 
+      {connectId && !signedIn && !loading ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label="Connect a device"
+            className="w-full max-w-sm rounded-xl bg-background p-4 text-sm"
+          >
+            <p>Sign in to connect this device to your OCADE account.</p>
+            <Link
+              to="/auth"
+              search={{ next: `/ocade-jarvis?connect=${connectId}` }}
+              className="mt-3 inline-flex rounded-md bg-primary px-3 py-1.5 text-primary-foreground"
+            >
+              Sign in
+            </Link>
+          </section>
+        </div>
+      ) : null}
+      {connectId && signedIn ? (
+        <ConnectDevice
+          id={connectId}
+          onDone={(connected) => {
+            if (connected) toast.success("Device connected.");
+            refresh();
+            void navigate({
+              to: "/ocade-jarvis",
+              search: conversationId ? { c: conversationId } : {},
+              replace: true,
+            });
+          }}
+        />
+      ) : null}
       {permissionsOpen ? (
         <PermissionsDrawer
           state={state.data}

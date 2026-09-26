@@ -9,15 +9,21 @@ model call: intelligence runs only in OCADE's server-side Online authority.
 ## Use
 
 ```
-python setup.py                                   # dependencies + Playwright Chromium
-python ocade_device.py pair --server https://ocade.in --code ABCD-2345
-python ocade_device.py run                        # isolated JARVIS browser
+python setup.py                                    # dependencies + Playwright Chromium
+python ocade_device.py connect --server https://ocade.in
+python ocade_device.py run                         # isolated JARVIS browser
 python ocade_device.py run --real-browser-cdp http://127.0.0.1:9222   # also your own browser
+python ocade_device.py forget                      # remove this computer's key
 ```
 
-The pairing code comes from OCADE JARVIS → Devices → Connect a device. The
-device token is stored in `~/.ocade_jarvis/device.json` (owner-only). Removing
-the device in OCADE revokes it at once.
+`connect` creates this computer's own P-256 key, sends OCADE only the public
+half, and opens OCADE so the signed-in person can confirm it with one click
+(the page shows the same fingerprint the terminal prints). There are no codes,
+tokens or passwords to copy. The private key stays in `~/.ocade_jarvis/`
+(owner-only), every request is signed over `ocade_protocol.json` — the one
+contract the website and the browser extension also read — and the key rotates
+itself every 30 days. Removing the device in OCADE ends its access at once and
+the runtime deletes its local key.
 
 `--real-browser-cdp` is the on-device authorization for your own browser: start
 it yourself with `--remote-debugging-port=9222`, and turn on "Use my own browser"

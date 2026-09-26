@@ -1,5 +1,6 @@
 /** The rail's sections, the Permissions drawer and the graph node panel. */
 import { Fragment, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Trash2, X } from "lucide-react";
 import { deleteConversation } from "@/lib/ocade.functions";
 import { toast } from "sonner";
@@ -8,8 +9,10 @@ import { FINISHED, hostOf, type Capability } from "./protocol";
 import { isAllowed } from "./permissions";
 import type { GraphNode } from "./graph";
 import {
-  createJarvisPairing,
+  approveJarvisDevice,
+  declineJarvisDevice,
   forgetJarvis,
+  readJarvisEnrollment,
   revokeJarvisDevice,
   setJarvisPermission,
   type JarvisState,
@@ -143,7 +146,6 @@ function SectionBody({
   onChanged: () => void;
 }) {
   const [opened, setOpened] = useState<string | null>(null);
-  const [pairing, setPairing] = useState<{ code: string; expiresAt: string } | null>(null);
 
   if (section === "conversations" || section === "tasks") {
     const list =
@@ -316,6 +318,7 @@ function SectionBody({
             <p className="text-xs text-muted-foreground">
               {d.online ? "Online" : "Offline"}
               {d.platform ? ` · ${d.platform}` : ""}
+              {d.kind === "extension" ? " · Browser extension" : ""}
             </p>
             <Toggle
               label="Browser control"
@@ -346,34 +349,14 @@ function SectionBody({
           </li>
         ))}
       </ul>
-      <div className="mt-3 rounded-md border border-border/60 p-2">
-        {pairing ? (
-          <>
-            <p className="text-xs text-muted-foreground">On the computer, run:</p>
-            <code className="mt-1 block break-all rounded bg-secondary px-2 py-1 text-xs">
-              python ocade_device.py pair --server {window.location.origin} --code {pairing.code}
-            </code>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Code <span data-testid="pairing-code">{pairing.code}</span> works once, until{" "}
-              {when(pairing.expiresAt)}.
-            </p>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() =>
-              void createJarvisPairing()
-                .then((value) => {
-                  setPairing(value);
-                  onChanged();
-                })
-                .catch(() => toast.error("A pairing code could not be created."))
-            }
-            className="w-full rounded-md bg-primary px-3 py-1.5 text-primary-foreground"
-          >
-            Connect a device
-          </button>
-        )}
+      <div className="mt-3 rounded-md border border-border/60 p-2 text-xs text-muted-foreground">
+        <p className="font-medium text-foreground">Connect a computer</p>
+        <p className="mt-1">
+          Start the OCADE Device Agent on the computer. It opens OCADE here so you can confirm it
+          with one click — no codes or passwords. Each computer gets its own key, and you can remove
+          it at any time.
+        </p>
+        <p className="mt-1">The signed installer for Windows and macOS is not published yet.</p>
       </div>
     </>
   );
@@ -585,5 +568,97 @@ export function NodePanel({
         <p className="mt-2 whitespace-pre-wrap text-xs">{memory.content}</p>
       ) : null}
     </section>
+  );
+}
+
+/**
+ * One click to connect a device the person is setting up right now. The
+ * fingerprint is shown so it can be compared with the one the device shows;
+ * "Not mine" deletes the request.
+ */
+export function ConnectDevice({
+  id,
+  onDone,
+}: {
+  id: string;
+  onDone: (connected: boolean) => void;
+}) {
+  const request = useQuery({
+    queryKey: ["jarvis", "enrollment", id],
+    queryFn: () => readJarvisEnrollment({ data: { id } }),
+  });
+  const [busy, setBusy] = useState(false);
+  const row = request.data;
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-label="Connect a device"
+        className="w-full max-w-sm rounded-xl bg-background p-4 text-sm"
+      >
+        {request.isLoading ? (
+          <p className="text-muted-foreground">Checking the request…</p>
+        ) : !row ? (
+          <>
+            <p>This connection request has expired or was already used.</p>
+            <button
+              type="button"
+              onClick={() => onDone(false)}
+              className="mt-3 rounded-md border border-border px-3 py-1.5"
+            >
+              Close
+            </button>
+          </>
+        ) : (
+          <>
+            <h2 className="text-base font-medium">
+              Connect {row.kind === "extension" ? "this browser" : `“${row.name}”`}?
+            </h2>
+            <p className="mt-2 text-muted-foreground">
+              {row.platform ? `${row.platform} · ` : ""}
+              It will run JARVIS tasks you start, within the permissions you set. Only connect a{" "}
+              {row.kind === "extension" ? "browser" : "computer"} you are setting up now.
+            </p>
+            <p className="mt-2">
+              Check that it shows{" "}
+              <span className="font-mono" data-testid="device-fingerprint">
+                {row.fingerprint}
+              </span>
+              .
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setBusy(true);
+                  void approveJarvisDevice({ data: { id } })
+                    .then((out) => {
+                      if (!out.ok) toast.error(out.message);
+                      onDone(out.ok);
+                    })
+                    .catch(() => toast.error("The device could not be connected."))
+                    .finally(() => setBusy(false));
+                }}
+                className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground"
+              >
+                Connect
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void declineJarvisDevice({ data: { id } }).finally(() => onDone(false))
+                }
+                className="rounded-md px-3 py-1.5 hover:bg-accent"
+              >
+                Not mine
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+    </div>
   );
 }

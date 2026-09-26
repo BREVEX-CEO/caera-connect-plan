@@ -1,13 +1,18 @@
 """
 OCADE JARVIS device runtime — the active entry point of the working engine.
 
-It pairs this machine with an OCADE account, then runs the browser actions a
-JARVIS task queues for it. It holds no provider key and makes no model call:
+It connects this machine to an OCADE account, then runs the actions a JARVIS
+task queues for it. It holds no provider key and makes no model call:
 intelligence stays in OCADE's Online authority, and this process only executes
 and observes.
 
-    python ocade_device.py pair --server https://ocade.in --code ABCD-2345
+    python ocade_device.py connect --server https://ocade.in     # one click in OCADE, no codes
     python ocade_device.py run [--headless] [--real-browser-cdp http://127.0.0.1:9222]
+    python ocade_device.py forget                                  # remove this device's key
+
+`run` connects first when this machine is not connected yet. The device's own
+key (see ocade_identity.py) is the only credential; removing the device in OCADE
+ends its access at once and this process then deletes the local key.
 
 `--real-browser-cdp` is the explicit on-device authorization for the user's own
 browser (started by the user with --remote-debugging-port). Without it only the
@@ -16,42 +21,34 @@ isolated automation browser exists, whatever the account settings say.
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import platform
 import sys
 import time
 import urllib.error
-import urllib.request
+import webbrowser
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from ocade_identity import SOFTWARE_VERSION, Identity, NotEnrolled, UpdateRequired  # noqa: E402
+
 HOME = Path(os.environ.get("OCADE_JARVIS_HOME", Path.home() / ".ocade_jarvis"))
-CREDENTIAL = HOME / "device.json"
 POLL_IDLE_SECONDS = 1.0
 
 
-def _post(server: str, path: str, body: dict, token: str | None = None) -> dict:
-    request = urllib.request.Request(
-        server.rstrip("/") + path,
-        data=json.dumps(body).encode(),
-        headers={"Content-Type": "application/json",
-                 **({"Authorization": f"Bearer {token}"} if token else {})},
-        method="POST",
-    )
-    with urllib.request.urlopen(request, timeout=40) as response:
-        return json.loads(response.read().decode() or "{}")
-
-
-def pair(server: str, code: str, name: str) -> None:
-    reply = _post(server, "/api/jarvis/pair",
-                  {"code": code, "name": name, "platform": platform.system()[:60]})
-    HOME.mkdir(parents=True, exist_ok=True)
-    CREDENTIAL.write_text(json.dumps({"server": server, "token": reply["token"],
-                                      "deviceId": reply["deviceId"]}))
-    CREDENTIAL.chmod(0o600)
-    print(f"Paired as {name}. Run: python ocade_device.py run")
+def connect(server: str, name: str, open_browser: bool = True) -> Identity:
+    identity = Identity(HOME)
+    request = identity.enroll(server, name, platform.system()[:60])
+    print(f"Confirm this computer in OCADE: {request['url']}", flush=True)
+    print(f"It should show the fingerprint {request['fingerprint']}.", flush=True)
+    if open_browser:
+        webbrowser.open(request["url"])
+    if not identity.wait_for_approval():
+        identity.forget()
+        raise SystemExit("The connection was not approved. Nothing was kept.")
+    print(f"Connected as {name}.", flush=True)
+    return identity
 
 
 class Browsers:
@@ -88,27 +85,29 @@ class Browsers:
             return None
 
 
-def run(headless: bool, cdp: str | None) -> None:
-    held = json.loads(CREDENTIAL.read_text())
-    server, token = held["server"], held["token"]
+def run(headless: bool, cdp: str | None, server: str | None) -> int:
+    identity = Identity(HOME)
+    if not identity.connected:
+        if not server:
+            raise SystemExit("This computer is not connected. Run: ocade_device.py connect --server URL")
+        identity = connect(server, platform.node()[:120] or "My computer")
     browsers = Browsers(headless, cdp)
     results: list[dict] = []
     frame: dict | None = None
-    print(f"OCADE JARVIS device running for {server}. Ctrl+C to stop.")
+    print(f"OCADE JARVIS device running for {identity.meta['server']}. Ctrl+C to stop.", flush=True)
     while True:
         try:
-            reply = _post(server, "/api/jarvis/device",
-                          {"results": results, "frame": frame,
-                           "capabilities": browsers.capabilities()}, token)
-        except urllib.error.HTTPError as e:
-            if e.code in (401, 403):
-                print("This device is no longer paired. Pair it again from OCADE JARVIS.")
-                return
-            if e.code == 400:  # a malformed report is dropped, never resent forever
-                results, frame = [], None
-            time.sleep(3)
-            continue
-        except (urllib.error.URLError, TimeoutError):
+            reply = identity.exchange({"results": results, "frame": frame,
+                                       "capabilities": browsers.capabilities(),
+                                       "softwareVersion": SOFTWARE_VERSION})
+        except NotEnrolled:
+            identity.forget()
+            print("This device is no longer connected. Its key was removed.", flush=True)
+            return 2
+        except UpdateRequired:
+            print("OCADE needs a newer Device Agent. Nothing more runs until it updates.", flush=True)
+            return 3
+        except (urllib.error.URLError, TimeoutError, ConnectionError):
             time.sleep(3)
             continue
         results, frame = [], None
@@ -129,18 +128,23 @@ def run(headless: bool, cdp: str | None) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(prog="ocade_device")
     sub = parser.add_subparsers(dest="command", required=True)
-    p = sub.add_parser("pair")
-    p.add_argument("--server", required=True)
-    p.add_argument("--code", required=True)
-    p.add_argument("--name", default=platform.node()[:120] or "My computer")
+    c = sub.add_parser("connect")
+    c.add_argument("--server", required=True)
+    c.add_argument("--name", default=platform.node()[:120] or "My computer")
+    c.add_argument("--no-browser", action="store_true", help="print the link instead of opening it")
     r = sub.add_parser("run")
+    r.add_argument("--server", default=None, help="connect to this OCADE first if needed")
     r.add_argument("--headless", action="store_true")
     r.add_argument("--real-browser-cdp", default=None)
+    sub.add_parser("forget")
     args = parser.parse_args()
-    if args.command == "pair":
-        pair(args.server, args.code, args.name)
+    if args.command == "connect":
+        connect(args.server, args.name, open_browser=not args.no_browser)
+    elif args.command == "forget":
+        Identity(HOME).forget()
+        print("This computer's OCADE key was removed.")
     else:
-        run(args.headless, args.real_browser_cdp)
+        sys.exit(run(args.headless, args.real_browser_cdp, args.server))
 
 
 if __name__ == "__main__":
