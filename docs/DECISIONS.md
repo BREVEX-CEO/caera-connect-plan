@@ -1,253 +1,151 @@
 # OCADE Decision Log
 
-## CARCC → OCADE brand architecture
+## OCADE JARVIS becomes an active product surface
 
 ### Date
 
-2026-09-19
+2026-09-26.
 
 ### Status
 
-Active
+Accepted.
+
+### Decision
+
+OCADE JARVIS is a current product surface at /ocade-jarvis while Chat remains a separate protected experience.
+
+## Preserve the full JARVIS source and use it as the engine foundation
+
+### Date
+
+2026-09-26.
+
+### Status
+
+Accepted.
 
 ### Context
 
-The former combined CARCC CADANE identity no longer represents the desired company/product relationship.
+The uploaded ZIP already contains extensive JARVIS runtime functionality.
 
 ### Decision
 
-**CARCC is the company. OCADE is the product.** Use the relationship the same way a technology company owns a distinct AI product. Remove current CADANE branding.
-
-### Consequences
-
-Product UI leads with OCADE. CARCC appears in company/about/legal attribution.
-
-## Current mission is website-only and Chat-first
-
-### Date
-
-2026-09-19
-
-### Status
-
-Active
-
-### Decision
-
-Current required product is Chat + Library + Settings + Offline Intelligence + usage + Pricing/auth/public/legal surfaces. Cowork is not part of the current product.
-
-Do not build Code, Projects, Tasks, Automations, Monitors, Organizations, native apps, public sharing or other future products until a new explicit mission.
-
-## Provider/model identity stays private
-
-### Date
-
-2026-09-19
-
-### Status
-
-Active
-
-### Decision
-
-Customers see Auto/Online/Offline and OCADE capability language. Provider/model/vendor/runtime identities do not appear in ordinary UI, public documentation, client diagnostics or bundle-visible customer surfaces.
-
-Where real identity is technically unavoidable, keep it in tightly scoped server-only deployment/secret configuration.
-
-## OPFS is the only Offline model store
-
-### Date
-
-2026-09-19
-
-### Status
-
-Active
-
-### Decision
-
-Offline model bytes, chunks/ranges, checkpoints, verification/model metadata, active pointers and runtime model assets live only in OPFS.
+Keep the uploaded ZIP untouched, keep an immutable extracted source snapshot, and create a working extracted runtime that preserves the original meaningful structure and functionality.
 
 ### Alternatives rejected
 
-IndexedDB model copies, Cache Storage model copies, localStorage model metadata/bytes and library-internal duplicate model caches.
+Selecting only a small subset of donor code was rejected because the owner considers most of the ZIP useful.
 
-### Consequence
+Dumping all Python directly into the React src tree was rejected because it would mix incompatible runtime/build concerns.
 
-Explicit uninstall preference remains separate non-model product state so deleting OPFS model data does not erase the user's “do not reinstall” choice.
-
-## Offline installation behavior
+## Replace active GUI and manual provider-key entry
 
 ### Date
 
-2026-09-19
+2026-09-26.
 
 ### Status
 
-Active
+Accepted.
 
 ### Decision
 
-Begin preparation automatically after first sign-in unless the user explicitly removed Offline. Keep Online usable during install. Allow Wi-Fi/hotspot/cellular with a cellular warning and explicit continue. Site deploys do not redownload an unchanged verified release.
+The production working runtime replaces the old GUI with the new OCADE JARVIS web GUI and removes customer API-key entry/plaintext provider-key configuration.
 
-After explicit Remove, never auto-reinstall. Later sign-in and selecting Offline provide an easy Install/Cancel path.
+The immutable original snapshot remains unchanged.
 
-## Offline has no image mode
+## JARVIS is Online-only
 
 ### Date
 
-2026-09-19
+2026-09-26.
 
 ### Status
 
-Active
+Accepted.
 
 ### Decision
 
-Manual Offline does not accept/upload/read images and makes zero Online provider requests.
+JARVIS uses OCADE's approved server-side Online intelligence authority and does not use Chat Offline Intelligence.
 
-## Chat deletion is permanent
+## Browser control is the first deep control capability
 
 ### Date
 
-2026-09-19
+2026-09-26.
 
 ### Status
 
-Active
+Accepted.
 
 ### Decision
 
-Use one permanent Delete with explicit confirmation rather than maintaining separate user-facing Archive/Trash/restore deletion authorities. Archive, if retained, is only organization—not deletion.
+The first deep JARVIS control implementation is browser control using structured DOM/accessibility targeting, Playwright/browser tooling, authorized browser integration, visual understanding, and coordinates only as the last fallback.
 
-## Highlight → Ask OCADE
+### Consequences
+
+Resize, zoom, responsive reflow, navigation, tab switches, and scroll-context changes invalidate stale coordinates and require a new observation.
+
+## JARVIS usage is separate from Chat usage
 
 ### Date
 
-2026-09-19
+2026-09-26.
 
 ### Status
 
-Active
+Accepted.
 
 ### Decision
 
-Selected text can be sent to Ask OCADE using current conversation context. Do not create a separately persisted side-conversation product for this interaction.
+JARVIS uses separate plan allowances and may account for multiple resource-bearing internal steps.
 
-## Memory behavior
+Failed/no-result steps are reconciled rather than blindly charged.
+
+## JARVIS reuses conversations but separates memory
 
 ### Date
 
-2026-09-19
+2026-09-26.
 
 ### Status
 
-Active
+Accepted.
 
 ### Decision
 
-Memory may run automatically and quietly only after account-level enablement. The user can disable/clear it in Data Controls. Temporary Chat never enters memory.
+JARVIS reuses the existing OCADE conversation/message authority with a JARVIS surface discriminator, while JARVIS memory remains logically separate from Chat memory.
 
-## Usage
+Detailed JARVIS activity is retained for 90 days.
+
+## JARVIS UI uses a real growing orb/graph
 
 ### Date
 
-2026-09-19
+2026-09-26.
 
 ### Status
 
-Active
+Accepted.
 
 ### Decision
 
-One successful logical answer = one use across every device and Auto/Online/Offline. Failures = zero. Account-anchored limits:
+The central orb starts visually simple and grows real graph density from JARVIS conversations, memory, tasks, devices, and allowed-app relationships.
 
-- The Free tier provides 28 successful uses per 6h28m window.
-- The Pro tier provides 140 successful uses per 6h28m window and 700 per week.
-- The Max tier provides 1,400 successful uses per 6h28m window and 7,000 per week.
+Node selection reveals safe metadata rather than automatically opening full private content.
 
-Offline device cap remains two per kind under the current policy.
+The GUI remains minimal, professional, dark/light capable, and monochrome-first.
 
-## Pricing and payment
+## Current docs intentionally avoid a desktop-wrapper architecture
 
 ### Date
 
-2026-09-19
+2026-09-26.
 
 ### Status
 
-Active
+Accepted.
 
 ### Decision
 
-Keep Free/Pro/Max, weekly/monthly catalogue and current approved price anchors/numeric signature. Paid checkout is closed now. Remove Paddle as a current runtime/product dependency; Upgrade states that paid plans are not open.
-
-## Authentication
-
-### Date
-
-2026-09-19
-
-### Status
-
-Active
-
-### Decision
-
-Target methods are Google, six-digit email OTP and password. MFA optional for ordinary use and required for privileged/admin actions.
-
-## Notifications
-
-### Date
-
-2026-09-19
-
-### Status
-
-Active
-
-### Decision
-
-In-app first, account-synced preferences and quiet hours. Optional categories can be muted or held; security and account-recovery notices are always delivered in-app and recorded. No billing category while paid checkout is closed.
-
-## Data authority
-
-### Date
-
-2026-09-19
-
-### Status
-
-Active
-
-### Decision
-
-Supabase remains canonical for durable signed-in account data. Offline model storage is OPFS-only. Disconnected account work that must survive restart uses an encrypted reconciliation journal, not plaintext durable chat storage.
-
-## UI
-
-### Date
-
-2026-09-19
-
-### Status
-
-Active
-
-### Decision
-
-Dark, minimal, premium, restrained glass, ChatGPT/Grok-like conversational simplicity. Same core functionality on desktop/tablet/phone. Normal users see no infrastructure jargon.
-
-## Agent execution
-
-### Date
-
-2026-09-19
-
-### Status
-
-Active
-
-### Decision
-
-Every new/resumed/context-compacted Claude session begins by running `/ponytail ultra` and `/caveman ultra` before proceeding. YAGNI/KISS and one-authority design apply throughout; there is no required end-of-plan Ponytail ritual.
+Current documentation focuses on the web-controlled mission and does not name or plan a desktop-wrapper technology before the owner starts that later mission.
