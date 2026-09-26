@@ -1,133 +1,125 @@
-# OCADE UI/UX Design Brief
+# OCADE JARVIS UI/UX Brief
 
 ## Aesthetic
 
-Dark-mode-first, minimal, premium and calm. Interaction density should feel closer to leading conversational AI products than to a dashboard SaaS. Use the repository's Grok reference screenshots in `docs/design-references/grok/` as interaction/layout references, not as a license to copy branding.
+OCADE JARVIS should feel ultra-clean, professional, executive, minimal, and calm.
 
-The product should feel simple even when the implementation is complex.
+The reference direction is modern conversational-AI clarity combined with a distinctive central orb and real neural graph.
 
-## Brand hierarchy
+The UI must avoid chaotic sci-fi, hacker, gaming, neon-dashboard, or movie-interface styling.
 
-- Use **CARCC** as the company name.
-- Use **OCADE** as the product name.
-- Use **Command the Next Era.** as the approved tagline.
+## Central orb and graph
 
-Normal product chrome leads with OCADE. CARCC appears where company ownership/about/legal context is useful. Never show CARCC CADANE/CADANE as current branding.
+The main workspace uses a live 3D orb as its focal point.
 
-## Color
+A new JARVIS history begins with a visually simple orb rather than a fully populated artificial network.
 
-- Use near-black or charcoal backgrounds.
-- Use a neutral white and grey foreground hierarchy.
-- Use restrained accents only when they communicate state or action.
-- Avoid a bright dashboard-style palette.
-- Glass effects are medium/subtle, not cinematic.
+As real JARVIS conversations, memory, tasks, devices, and allowed-app relationships accumulate, thin neural threads and nodes grow outward and become denser.
 
-## Typography
+The graph behaves like a floating 3D knowledge/task graph with cursor-reactive motion, pan, zoom, hover, selection, and semantic zoom.
 
-Use the existing repository fonts/tokens. Prioritize readability, compact labels and clear hierarchy. Avoid decorative movie-title typography.
+The graph is data-driven. Random decorative relationships must not pretend to be user memory.
 
-## Layout
+Selecting a graph structure shows safe information about what data category and stored metadata it represents without automatically opening the full private content.
 
-### Desktop
+When conversation text occupies the center, the orb and graph dim smoothly into a background aura.
 
-- Keep a stable left navigation on desktop.
-- Center the Chat workspace at a comfortable reading width.
-- Anchor the composer naturally near the bottom of the Chat workspace.
-- Settings as a focused panel/dialog, not a separate dashboard.
+The user can deliberately return the orb to full visual focus.
 
-### Tablet
+## Voice
 
-- Collapse navigation on tablet when the available width requires it.
-- Keep the same core functionality available on tablet layouts.
+Voice uses the same orb.
 
-### Phone
+The orb becomes an ambient audio visualizer that pulses, rotates, expands, and ripples smoothly in response to speech.
 
-- Use drawer navigation on phones.
-- Use full-width content and composer layouts on phones.
-- Settings category selector becomes compact; fields may stack.
-- 360–375 px must have no horizontal overflow.
-- Touch targets must remain reachable and readable.
+Use one coherent visual language for user and JARVIS speech.
 
-## Components
+Show explicit Interrupt, Pause, Continue, and End controls.
 
-### Buttons
+Do not make ordinary orb clicks secretly interrupt speech.
 
-Use native accessible semantics. Primary actions are obvious; secondary/destructive controls are quiet until needed.
+## Navigation
 
-### Forms
+The left sidebar is compact/icon-first by default and expands/collapses when needed.
 
-Visible labels or accessible names. Clear validation. Never compress labels word-by-word beside fixed controls on small screens.
+The active sections are Conversations, History, Tasks, Activity/Logs, Allowed Apps, and Devices.
 
-### Cards
+Do not show a customer Plugins section.
 
-Use only when grouping genuinely benefits comprehension. Avoid card walls.
+Permissions open in a drawer/modal.
 
-### Navigation
+## Conversation behavior
 
-Current product navigation emphasizes Chat and Library. Do not surface unused future modules.
+The orb remains the primary idle state.
 
-### Modals and dialogs
+Conversation content overlays/occupies the workspace when needed and automatically reduces orb emphasis for readability.
 
-Use for confirmation/focused settings. Escape/click-away behavior must be predictable. Destructive actions require clear confirmation.
+Normal questions feel conversational.
 
-### Tables
+Active work shows concise task state without turning the page into a dashboard wall.
 
-Use only where structured comparison/admin data genuinely needs them. Responsive fallbacks required.
+## Browser-control experience
 
-## Chat patterns
+Active browser work may show a collapsible live panel.
 
-- Empty Chat is calm, not marketing-heavy.
-- Composer: attachment, text, Auto/Online/Offline, Thinking/Research when applicable, microphone, Send/Stop.
-- Keep user and assistant message actions compact.
-- Highlighting text may surface **Ask OCADE**.
-- Helpful / Not helpful feedback is discreet.
-- Citations/sources are readable and attached to the answer they support.
+Stop and Take Over remain visible and understandable.
 
-## Offline UX
+Permission requests explain the exact capability being requested.
 
-Never show OPFS, model file formats, WebGPU, WASM, R2, provider names or model names.
+The UI remains stable when browser panels, sidebars, screen sizes, or window dimensions change.
 
-Customer language:
+## Composer
 
-- Show **Preparing Offline** while the Offline setup is being prepared.
-- Show **Downloading** while model data is being transferred.
-- Show **Verifying** while integrity checks are running.
-- Show **Ready** only after Offline Intelligence is usable.
-- Show **Repair** when the existing installation needs safe repair.
-- Show **Removed** only after local model removal is verified.
-- Show **Install Offline** as the clear action when Offline Intelligence is not installed.
+The bottom composer includes prompt input, Send/Stop, microphone, attachment where supported, permissions, and relevant task/device context.
 
-On mobile data, explain that installation uses a large download and offer Continue/Cancel. Do not permanently block cellular/hotspot.
+The composer stays ergonomic on desktop and mobile.
 
-If Offline was explicitly removed, later sign-in and choosing Offline should make reinstall easy without forcing the user to hunt through Settings.
+## Color and themes
 
-## Loading, empty and error states
+Monochrome black/white/charcoal is the default.
 
-Every async view has bounded states:
+Dark and light themes are both supported.
 
-- Show a skeleton or progress state while work is active.
-- Show a success state when the operation completes.
-- Show an empty state when no content exists.
-- Show an error state with Retry when recovery is possible.
-- Show a cancelled state when the user cancels an operation.
+Users may optionally customize the orb/accent color.
 
-No endless spinner.
+Color customization preserves contrast and accessibility.
+
+## Glass and depth
+
+Use restrained glass morphism for focused overlays, node inspectors, and permission/task panels.
+
+Do not cover the interface in translucent cards.
+
+## Responsive behavior
+
+Desktop keeps the full orb workspace and compact sidebar.
+
+Tablet collapses non-essential chrome while preserving capability.
+
+Phone uses drawer-style navigation and touch-friendly graph controls.
+
+The product must not horizontally overflow at 360–375 px.
 
 ## Accessibility
 
-- Make every important interaction usable with the keyboard.
-- Keep focus indicators visible.
-- Give interactive controls accessible names.
-- Maintain sufficient contrast in dark and light modes.
-- Respect reduced-motion preferences.
-- High contrast supported where current settings expose it.
-- Do not make important controls hover-only.
+Respect reduced motion.
 
-## Do not
+Provide keyboard support and visible focus.
 
-- Do not expose technical implementation terminology.
-- Do not show provider, model or vendor identity.
-- Do not build dashboard-style card walls.
-- Add orange/red-heavy branding unless required for semantic warning/destructive state.
-- Create new current-scope modules not approved in PRD.
-- Use horizontal page scrolling on mobile.
+Provide non-visual/semantic access to important graph information.
+
+Keep Stop and Take Over reachable without hover.
+
+Do not use color alone to communicate status.
+
+## Forbidden design patterns
+
+Do not use a dense hacker console.
+
+Do not use decorative fake code as background.
+
+Do not use an always-maximal graph for an empty account.
+
+Do not expose provider, runtime, model, storage-engine, or infrastructure terminology.
+
+Do not make the UI look like a game.
