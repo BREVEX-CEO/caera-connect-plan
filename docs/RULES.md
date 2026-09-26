@@ -79,5 +79,25 @@
 - Do not merge Chat into JARVIS.
 - Do not add Offline JARVIS.
 - Do not fake desktop/mobile control.
-- Do not mention a desktop-wrapper architecture before the owner starts that mission.
+- The owner has started the deeper-device mission; implement only the approved Device Agent/extension architecture in PLAN.md Phases 13–23 and docs/JARVIS_DEVICE_ROADMAP.md.
 - Do not weaken permission, security, validation, accessibility, or test boundaries for convenience.
+
+## Deeper-device rules
+
+- PLAN.md Phases 0–12 remain protected completed-baseline rules; Phases 13–23 extend them.
+- Read `docs/JARVIS_DEVICE_ROADMAP.md` before editing Device Agent, extension, deep-control, wake/background or mobile-remote code.
+- Never replace useful completed browser behavior merely to implement desktop control.
+- Public Device Agent builds must be signed/notarized; development-only unsigned builds must not be represented as production.
+- Device enrollment may be effortless, but every device still needs a unique revocable cryptographic identity.
+- Never persist the user's account password as a device-control credential.
+- One task owns mouse/keyboard/UI control per device at a time.
+- Physical user input pauses UI automation.
+- Never bypass UAC/admin-password/CAPTCHA/OTP/passkey or equivalent human-security boundaries.
+- Whole-computer file access is not the silent default.
+- Prefer Trash/Recycle Bin; permanent deletion requires confirmation.
+- A Chrome extension must use minimum required permissions and must not inject into unrelated tabs.
+- Provider/model/vendor/key identities remain customer-hidden.
+- Three Online capacity slots are operational redundancy, not a quota-evasion mechanism.
+- JARVIS opens text-only; microphone permission is requested on first Voice use.
+- PC wake-word detection stays local before activation.
+- Mobile remains web/PWA-first; do not fake unsupported OS-wide third-party-app control, persistent overlays or background behavior.

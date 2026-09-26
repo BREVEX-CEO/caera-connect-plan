@@ -30,7 +30,7 @@
  * product actually sends today (security) and the three it sends about the
  * account itself.
  */
-export type NotificationCategoryId = "security" | "account" | "product_updates";
+export type NotificationCategoryId = "security" | "account" | "task_outcomes" | "product_updates";
 
 export interface NotificationCategory {
   id: NotificationCategoryId;
@@ -82,6 +82,13 @@ export const NOTIFICATION_CATEGORIES: readonly NotificationCategory[] = [
     frequencies: URGENT_ONLY,
   },
   {
+    id: "task_outcomes",
+    title: "JARVIS task results",
+    description: "When a JARVIS task you started finishes or stops, wherever you are.",
+    optional: true,
+    frequencies: ["immediate", "grouped"],
+  },
+  {
     id: "product_updates",
     title: "Product updates",
     description: "New capabilities and changes worth knowing about.",
@@ -92,7 +99,7 @@ export const NOTIFICATION_CATEGORIES: readonly NotificationCategory[] = [
 
 const BY_ID = new Map(NOTIFICATION_CATEGORIES.map((category) => [category.id, category]));
 
-/** Is this one of the four categories the product can send? */
+/** Is this one of the categories the product can send? */
 export function isNotificationCategory(value: unknown): value is NotificationCategoryId {
   return (
     typeof value === "string" && NOTIFICATION_CATEGORIES.some((category) => category.id === value)

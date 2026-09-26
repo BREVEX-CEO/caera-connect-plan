@@ -6,7 +6,13 @@
  * default for that device. A capability with no decision takes its default,
  * and capabilities this mission has not built default to off.
  */
-import { hostOf, type Capability } from "./protocol";
+import {
+  capabilityFor,
+  commandNeedsConfirmation,
+  hostOf,
+  type Capability,
+  type DeviceAction,
+} from "./protocol";
 
 export interface PermissionRow {
   capability: string;
@@ -28,6 +34,8 @@ const DEFAULTS: Record<Capability, boolean> = {
   messaging: false,
   devices: true,
   computer_control: false,
+  terminal: false,
+  cowork: false,
 };
 
 export function isAllowed(
@@ -77,21 +85,60 @@ export function siteAllowed(rows: readonly PermissionRow[], url: string): boolea
   return siteDecision(rows, host) ?? !isPrivateHost(host);
 }
 
-export type Refusal = { capability: Capability | "site"; message: string };
+export type Refusal = { capability: Capability | "site" | "app"; message: string };
 
-/** Why an action on this device may not run, or null when it may. */
+/** Allowed Apps: Always (true), Never (false) or Ask (no decision). */
+export function appDecision(rows: readonly PermissionRow[], name: string): boolean | null {
+  const row = rows.find(
+    (r) => r.capability === `app:${name.toLowerCase()}` && r.device_id === null,
+  );
+  return row ? row.allowed : null;
+}
+
+const LABELS: Partial<Record<Capability, string>> = {
+  browser: "Browser control",
+  browser_real: "Using your own browser",
+  screen: "Seeing the screen",
+  computer_control: "Mouse and keyboard control",
+  apps: "Opening apps",
+  files: "Files",
+  terminal: "Running commands",
+};
+
+/**
+ * Why an action on this device may not run, or null when it may. `offered` is
+ * what the device itself reported it can do: a permission never turns on a
+ * capability the device does not have.
+ */
 export function refuseAction(
   rows: readonly PermissionRow[],
-  input: { deviceId: string; mode: "isolated" | "real"; url?: string },
+  input: {
+    deviceId: string;
+    mode: "isolated" | "real";
+    action: DeviceAction;
+    offered?: Record<string, boolean>;
+  },
 ): Refusal | null {
   if (!isAllowed(rows, "master"))
     return { capability: "master", message: "OCADE JARVIS is turned off." };
-  if (!isAllowed(rows, "browser", input.deviceId))
-    return { capability: "browser", message: "Browser control is turned off for this device." };
-  if (input.mode === "real" && !isAllowed(rows, "browser_real", input.deviceId))
+  const needed = capabilityFor(input.action);
+  const label = LABELS[needed] ?? "That";
+  if (!isAllowed(rows, needed, input.deviceId))
+    return { capability: needed, message: `${label} is turned off for this device.` };
+  if (needed !== "browser" && input.offered && input.offered[needed] !== true)
+    return { capability: needed, message: `${label} is not available on this device.` };
+  if (
+    needed === "browser" &&
+    input.mode === "real" &&
+    !isAllowed(rows, "browser_real", input.deviceId)
+  )
     return { capability: "browser_real", message: "Using your own browser is not allowed." };
-  if (input.url !== undefined && !siteAllowed(rows, input.url)) {
-    const host = hostOf(input.url) ?? "";
+  const url =
+    input.action.action === "open" || input.action.action === "new_tab"
+      ? input.action.url
+      : undefined;
+  if (url !== undefined && !siteAllowed(rows, url)) {
+    const host = hostOf(url) ?? "";
     return {
       capability: "site",
       message:
@@ -100,5 +147,22 @@ export function refuseAction(
           : "That site is turned off in Allowed Apps.",
     };
   }
+  if (input.action.action === "open_app" && appDecision(rows, input.action.name) === false)
+    return { capability: "app", message: `${input.action.name} is set to Never in Allowed Apps.` };
   return null;
+}
+
+/** Whether the person must confirm this action before the device runs it. */
+export function needsConfirmation(rows: readonly PermissionRow[], action: DeviceAction): boolean {
+  switch (action.action) {
+    case "open_app":
+      return appDecision(rows, action.name) !== true;
+    case "file_delete":
+    case "system":
+      return true;
+    case "run":
+      return commandNeedsConfirmation(action.command);
+    default:
+      return false;
+  }
 }

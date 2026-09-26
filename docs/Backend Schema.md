@@ -109,3 +109,23 @@ Use forward-only migrations for live schema changes.
 Do not edit applied migrations to make history cleaner.
 
 Add verification SQL and rollback/provenance support consistent with current repository rules.
+
+## Deeper-device schema requirements
+
+The next device migration should extend existing JARVIS device/task authorities rather than create duplicate account or task systems.
+
+Persist only the minimum durable state needed for:
+
+- unique device public identity / server-verifiable credential material;
+- credential rotation metadata and revocation state;
+- protocol/agent/extension versions;
+- device capability and permission state;
+- active UI-control lease ownership;
+- durable task checkpoints and resumability metadata;
+- background/wake enablement;
+- customer-safe new-device/security notifications;
+- signed update/rollback state where server coordination is required.
+
+Keep raw device secrets out of normal tables/logs. Keep RLS and server authorization aligned with existing account ownership. Device credentials must not authorize another account/device through identifier substitution.
+
+Do not create mobile-native-app-specific schema merely to simulate capabilities that remain web/PWA-only.

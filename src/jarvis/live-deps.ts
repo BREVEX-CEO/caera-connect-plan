@@ -22,6 +22,16 @@ const online = createOnlineIntelligenceTransport();
 
 export class ModelRefused extends Error {}
 
+/**
+ * OCADE's Online capacity is unavailable or exhausted right now. Said in
+ * OCADE's own words, never the provider's: the reason stays on the server.
+ */
+export class Unavailable extends Error {
+  constructor() {
+    super("OCADE JARVIS is busy right now. Nothing was charged.");
+  }
+}
+
 export function liveDeps(conversationId: string): AgentDeps {
   return {
     async model({ messages, memory, attachments, signal }) {
@@ -29,7 +39,7 @@ export function liveDeps(conversationId: string): AgentDeps {
       if (!billed) return null;
       let text = "";
       const toolCalls: NormalizedToolCall[] = [];
-      let refusal: string | null = null;
+      let refusal: { reason: string; code: string; retryable: boolean } | null = null;
       try {
         for await (const event of online.stream({
           permit: billed.permit,
@@ -46,7 +56,7 @@ export function liveDeps(conversationId: string): AgentDeps {
         })) {
           if (event.type === "token") text += event.text;
           else if (event.type === "tool_call") toolCalls.push(event.call);
-          else if (event.type === "refusal") refusal = event.reason;
+          else if (event.type === "refusal") refusal = event;
           else if (event.type === "final") {
             text = event.response.text || text;
             if (toolCalls.length === 0) toolCalls.push(...event.response.toolCalls);
@@ -58,7 +68,20 @@ export function liveDeps(conversationId: string): AgentDeps {
       } finally {
         await billed.settle();
       }
-      if (refusal && !text && toolCalls.length === 0) throw new ModelRefused(refusal);
+      if (refusal && !text && toolCalls.length === 0) {
+        if (
+          refusal.retryable &&
+          [
+            "provider_rate_limited",
+            "online_unavailable",
+            "empty_response",
+            "provider_failed",
+          ].includes(refusal.code)
+        ) {
+          throw new Unavailable();
+        }
+        throw new ModelRefused(refusal.reason);
+      }
       return { text, toolCalls };
     },
     startTask: (data) => startJarvisTask({ data }),

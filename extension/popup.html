@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>OCADE JARVIS</title>
+    <style>
+      body {
+        font:
+          13px system-ui,
+          sans-serif;
+        margin: 0;
+        padding: 14px;
+        width: 260px;
+        background: #0e0e0e;
+        color: #ececec;
+      }
+      h1 {
+        font-size: 14px;
+        margin: 0 0 8px;
+      }
+      p {
+        margin: 6px 0;
+        color: #b4b4b4;
+      }
+      button {
+        display: block;
+        width: 100%;
+        margin-top: 8px;
+        padding: 7px;
+        border-radius: 8px;
+        border: 1px solid #3a3a3a;
+        background: #1a1a1a;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+      button.primary {
+        background: #ececec;
+        color: #0e0e0e;
+        border: 0;
+      }
+      .mono {
+        font-family: ui-monospace, monospace;
+        color: #ececec;
+      }
+      [hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>OCADE JARVIS</h1>
+    <p id="status" role="status">Checking…</p>
+    <p id="fingerprint" hidden>Fingerprint <span class="mono"></span></p>
+    <button id="connect" class="primary" hidden>Connect this browser</button>
+    <button id="stop" hidden>STOP JARVIS</button>
+    <button id="open">Open OCADE JARVIS</button>
+    <button id="forget" hidden>Disconnect this browser</button>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

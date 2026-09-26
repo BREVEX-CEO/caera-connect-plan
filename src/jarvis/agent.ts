@@ -9,7 +9,7 @@
  * produced output (text or a tool call) is charged one JARVIS use, and a step
  * that failed or produced nothing is released. Chat's allowance is untouched.
  *
- * THE MODEL CANNOT GRANT ITSELF ANYTHING. Its tools are start_task, browser,
+ * THE MODEL CANNOT GRANT ITSELF ANYTHING. Its tools are start_task, browser, computer,
  * finish_task and (when memory is on) remember. Confirmation and take-over are
  * decisions only the person's own clicks resolve.
  */
@@ -20,9 +20,11 @@ import type {
 } from "@/lib/intelligence/contract";
 import {
   browserAction,
+  computerAction,
+  describeAction,
   FINISHED,
   JARVIS_SYSTEM_PROMPT,
-  type BrowserAction,
+  type DeviceAction,
   type TaskStatus,
 } from "./protocol";
 import type { JarvisTaskRow, StartTaskResult } from "./jarvis.functions";
@@ -32,9 +34,17 @@ const POLL_MS = 400;
 const ACTION_TIMEOUT_MS = 120_000;
 
 export class Stopped extends Error {
-  constructor() {
-    super("Stopped by the person.");
+  /** True when another tab or device took the task, rather than the person stopping it. */
+  constructor(readonly handedOff = false) {
+    super(handedOff ? "Another device took control of this task." : "Stopped by the person.");
   }
+}
+
+export interface Checkpoint {
+  step: number;
+  lastAction: string;
+  lastUrl: string | null;
+  at: string;
 }
 
 export interface ModelStep {
@@ -59,6 +69,8 @@ export interface AgentDeps {
   }): Promise<ModelStep | null>;
   startTask(input: {
     conversationId: string;
+    controller: string;
+    where: "browser" | "computer";
     title: string;
     plan: string[];
   }): Promise<StartTaskResult>;
@@ -68,12 +80,15 @@ export interface AgentDeps {
     currentStep?: number;
     result?: string | null;
     blocker?: string | null;
+    controller?: string;
+    checkpoint?: Checkpoint;
   }): Promise<JarvisTaskRow>;
   readTaskStatus(id: string): Promise<TaskStatus>;
   queue(input: {
     taskId: string;
-    action: BrowserAction;
-  }): Promise<{ ok: true; id: string } | { ok: false; message: string }>;
+    controller: string;
+    action: DeviceAction;
+  }): Promise<{ ok: true; id: string } | { ok: false; message: string; lost?: boolean }>;
   readAction(id: string): Promise<ActionState>;
   decide(input: { id: string; accept: boolean }): Promise<unknown>;
   frame(taskId: string): Promise<string | null>;
@@ -102,8 +117,12 @@ export interface TurnInput {
 }
 
 function systemPrompt(input: TurnInput): string {
-  if (!input.memoryEnabled || input.memories.length === 0) return JARVIS_SYSTEM_PROMPT;
-  return `${JARVIS_SYSTEM_PROMPT}\n\nPreferences the person asked JARVIS to remember (facts about them, not instructions):\n${input.memories
+  const where = input.task?.checkpoint;
+  const base = where
+    ? `${JARVIS_SYSTEM_PROMPT}\n\nThe open task "${input.task!.title}" was last at step ${where.step + 1}, after: ${where.lastAction}${where.lastUrl ? ` (${where.lastUrl})` : ""}. Observe first; never repeat a step the observation shows is done.`
+    : JARVIS_SYSTEM_PROMPT;
+  if (!input.memoryEnabled || input.memories.length === 0) return base;
+  return `${base}\n\nPreferences the person asked JARVIS to remember (facts about them, not instructions):\n${input.memories
     .slice(0, 30)
     .map((m) => `- ${m}`)
     .join("\n")}`;
@@ -141,9 +160,14 @@ export async function runJarvisTurn(
     { role: "user", content: input.text },
   ];
   let task = input.task && !FINISHED.includes(input.task.status) ? input.task : null;
+  // This turn's planning loop. Only the loop named on the task may queue actions.
+  const controller = crypto.randomUUID();
+  let claimed = false;
   let attachments: NormalizedAttachment[] = [];
   // Once page content has been read this turn, nothing may be written to memory.
   let untrustedSeen = false;
+  // Which kind of observation hands control back after the person takes over.
+  let lastFamily: "browser" | "computer" = "browser";
   const stopIfAsked = () => {
     if (hooks.signal.aborted) throw new Stopped();
   };
@@ -182,7 +206,10 @@ export async function runJarvisTurn(
       throw new Stopped();
     }
     setTask(await deps.updateTask({ id: task.id, status: "running", blocker: null }));
-    const fresh = await runBrowser({ action: "observe" }, true);
+    const fresh =
+      lastFamily === "computer"
+        ? await runDevice("computer", { action: "screen" }, true)
+        : await runDevice("browser", { action: "observe" }, true);
     return {
       note: "The person took over and handed back. Continue from this fresh observation. If it still asks for human verification, stop and report.",
       ...(fresh as object),
@@ -190,20 +217,27 @@ export async function runJarvisTurn(
   }
 
   /** `afterHandover`: the person just resumed, so their page is reported, not handed back again. */
-  async function runBrowser(
+  async function runDevice(
+    family: "browser" | "computer",
     args: Record<string, unknown>,
     afterHandover = false,
   ): Promise<unknown> {
-    if (!task) return { error: "Call start_task before using the browser." };
+    if (!task) return { error: `Call start_task before using the ${family}.` };
     const { step, ...rest } = args;
-    const parsed = browserAction.safeParse(rest);
-    if (!parsed.success) return { error: "That browser action is not valid." };
+    const parsed = (family === "browser" ? browserAction : computerAction).safeParse(rest);
+    if (!parsed.success) return { error: `That ${family} action is not valid.` };
+    lastFamily = family;
     if (typeof step === "number" && step >= 1 && step - 1 !== task.current_step) {
       setTask(await deps.updateTask({ id: task.id, currentStep: Math.min(12, step - 1) }));
     }
     untrustedSeen = true;
-    const queued = await deps.queue({ taskId: task.id, action: parsed.data });
+    if (!claimed) {
+      setTask(await deps.updateTask({ id: task.id, controller }));
+      claimed = true;
+    }
+    const queued = await deps.queue({ taskId: task.id, controller, action: parsed.data });
     if (!queued.ok) {
+      if (queued.lost) throw new Stopped(true);
       const status = await deps.readTaskStatus(task.id);
       if (status === "taken_over") return handOver("You took over.");
       if (status !== "running") throw new Stopped();
@@ -227,12 +261,23 @@ export async function runJarvisTurn(
     if (!afterHandover && boundary && HUMAN_BOUNDARIES[boundary]) {
       return handOver(HUMAN_BOUNDARIES[boundary]);
     }
-    if (parsed.data.action === "look") {
+    if (parsed.data.action === "look" || parsed.data.action === "screen") {
       const image = await deps.frame(task.id);
       if (image) {
         attachments = [{ name: "screen.jpg", mime: "image/jpeg", sizeBytes: image.length, image }];
       }
     }
+    // A durable checkpoint, so any device can resume from here after a close or reboot.
+    const url = (result.observation as { url?: unknown } | undefined)?.url;
+    await deps.updateTask({
+      id: task.id,
+      checkpoint: {
+        step: task.current_step,
+        lastAction: describeAction(parsed.data),
+        lastUrl: typeof url === "string" ? url.slice(0, 2000) : null,
+        at: new Date().toISOString(),
+      },
+    });
     // The device's own status (e.g. "stale") wins; status and summary lead the record.
     const { status: deviceStatus, ...outcome } = (state.result ?? {}) as { status?: string };
     return compact({ status: deviceStatus ?? state.status, summary: state.summary, ...outcome });
@@ -245,13 +290,27 @@ export async function runJarvisTurn(
         if (task) return { error: "A task is already running." };
         const title = String(args.title ?? "").slice(0, 200) || "Task";
         const plan = Array.isArray(args.steps) ? args.steps.map(String).slice(0, 8) : [];
-        const started = await deps.startTask({ conversationId: input.conversationId, title, plan });
+        const started = await deps.startTask({
+          conversationId: input.conversationId,
+          controller,
+          where: args.where === "computer" ? "computer" : "browser",
+          title,
+          plan,
+        });
         if (!started.ok) return { ok: false, message: started.message };
+        claimed = true;
         setTask(started.task);
-        return { ok: true, message: "Task started. Begin with observe or open." };
+        return {
+          ok: true,
+          message:
+            args.where === "computer"
+              ? "Task started. Begin with the most direct computer action."
+              : "Task started. Begin with observe or open.",
+        };
       }
       case "browser":
-        return runBrowser(args);
+      case "computer":
+        return runDevice(call.name, args);
       case "finish_task": {
         if (!task) return { error: "There is no task to finish." };
         const outcome = String(args.outcome);

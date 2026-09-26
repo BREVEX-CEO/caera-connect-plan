@@ -122,4 +122,36 @@ The working JARVIS runtime must not create a second customer identity or provide
 
 Deeper computer and mobile control begins only after the browser-controlled web mission is stable.
 
-Current documentation intentionally does not select or describe a desktop-wrapper technology.
+The earlier web-only restriction is complete. The approved next mission now documents a trusted Windows/macOS Device Agent and browser extension while preserving the website as the primary product surface.
+
+## Approved deeper-device architecture
+
+The completed browser/web architecture remains intact. The deeper-device extension adds a trusted local execution tier without creating a second customer identity, second intelligence authority or second conversation authority.
+
+```mermaid
+flowchart TD
+  U[User] --> WEB[OCADE Web / PWA]
+  WEB --> J[JARVIS Web UI]
+  J --> OI[OCADE Online Intelligence Authority]
+  J --> API[OCADE Device/Task Authority]
+  API --> AG[Windows/macOS Device Agent]
+  API --> EXT[Official Browser Extension]
+  AG --> PC[Apps / Files / Screen / System / Coding Workspace]
+  EXT --> RB[Authorized Real Browser]
+  MOB[Android/iOS Web/PWA] --> API
+  MOB --> J
+```
+
+Website, Device Agent and extension share one versioned protocol contract. Per-device cryptographic identity is unique, revocable and rotated automatically. The account/password is never the durable device credential.
+
+The local agent owns desktop execution. Supabase/OCADE cloud coordinates identity, permissions, commands, task/checkpoint state and signaling; desktop actions execute locally.
+
+An active desktop control session ends when OCADE/Chrome closes unless an already-authorized task is still running or Background/Wake Mode is explicitly enabled. A minimal supervisor may remain dormant for enrollment, secure updates and explicitly enabled background/wake behavior.
+
+Only one task may own mouse/keyboard/UI control at a time. Safe non-conflicting background work may run in parallel under resource limits.
+
+The browser extension is a narrow authorized-browser bridge, not a second application. Default browser automation remains isolated/safe; existing-profile Chrome is used only when authenticated context is genuinely required or explicitly requested.
+
+Mobile remains browser/PWA-first. Remote mobile-to-PC control is supported through the cloud/device authority. A web/PWA surface does not claim OS-wide control that the mobile platform does not expose.
+
+See `docs/JARVIS_DEVICE_ROADMAP.md` for the full approved lifecycle, security and capability rules.

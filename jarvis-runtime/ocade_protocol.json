@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "minimumVersion": 1,
+  "signing": {
+    "scheme": "ECDSA-P256-SHA256",
+    "prefix": "OCADE-DEVICE-1",
+    "skewSeconds": 300
+  },
+  "headers": {
+    "device": "x-ocade-device",
+    "protocol": "x-ocade-protocol",
+    "timestamp": "x-ocade-timestamp",
+    "signature": "x-ocade-signature"
+  },
+  "paths": {
+    "enroll": "/api/jarvis/enroll",
+    "exchange": "/api/jarvis/device"
+  },
+  "kinds": [
+    "agent",
+    "extension"
+  ],
+  "rotateAfterDays": 30,
+  "gates": {
+    "purchase": "\\b(buy( it)? now|place (your |my )?order|complete (your |my )?(purchase|order|payment)|confirm (and |& )?pay|pay( now)?|submit (order|payment)|purchase|make payment)\\b",
+    "sensitive": "\\b(submit|send|post|publish|tweet|reply|comment|delete|remove|transfer|sign|agree|accept|apply|file|confirm|save changes|change password|unsubscribe|book|reserve|register|donate)\\b"
+  }
+}

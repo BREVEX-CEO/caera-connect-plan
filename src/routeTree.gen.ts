@@ -27,7 +27,7 @@ import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthChallengeRouteImport } from './routes/auth.challenge'
 import { Route as AuthVerifyRouteImport } from './routes/auth.verify'
 import { Route as ApiJarvisDeviceRouteImport } from './routes/api/jarvis/device'
-import { Route as ApiJarvisPairRouteImport } from './routes/api/jarvis/pair'
+import { Route as ApiJarvisEnrollRouteImport } from './routes/api/jarvis/enroll'
 import { Route as ApiOfflineBytesReleaseRouteImport } from './routes/api/offline/bytes.$release'
 
 const IndexRoute = IndexRouteImport.update({
@@ -119,9 +119,9 @@ const ApiJarvisDeviceRoute = ApiJarvisDeviceRouteImport.update({
   path: '/api/jarvis/device',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiJarvisPairRoute = ApiJarvisPairRouteImport.update({
-  id: '/api/jarvis/pair',
-  path: '/api/jarvis/pair',
+const ApiJarvisEnrollRoute = ApiJarvisEnrollRouteImport.update({
+  id: '/api/jarvis/enroll',
+  path: '/api/jarvis/enroll',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiOfflineBytesReleaseRoute = ApiOfflineBytesReleaseRouteImport.update({
@@ -148,7 +148,7 @@ export interface FileRoutesByFullPath {
   '/auth/verify': typeof AuthVerifyRoute
   '/auth/': typeof AuthIndexRoute
   '/api/jarvis/device': typeof ApiJarvisDeviceRoute
-  '/api/jarvis/pair': typeof ApiJarvisPairRoute
+  '/api/jarvis/enroll': typeof ApiJarvisEnrollRoute
   '/api/offline/bytes/$release': typeof ApiOfflineBytesReleaseRoute
 }
 export interface FileRoutesByTo {
@@ -169,7 +169,7 @@ export interface FileRoutesByTo {
   '/auth/verify': typeof AuthVerifyRoute
   '/auth': typeof AuthIndexRoute
   '/api/jarvis/device': typeof ApiJarvisDeviceRoute
-  '/api/jarvis/pair': typeof ApiJarvisPairRoute
+  '/api/jarvis/enroll': typeof ApiJarvisEnrollRoute
   '/api/offline/bytes/$release': typeof ApiOfflineBytesReleaseRoute
 }
 export interface FileRoutesById {
@@ -192,7 +192,7 @@ export interface FileRoutesById {
   '/auth/verify': typeof AuthVerifyRoute
   '/auth/': typeof AuthIndexRoute
   '/api/jarvis/device': typeof ApiJarvisDeviceRoute
-  '/api/jarvis/pair': typeof ApiJarvisPairRoute
+  '/api/jarvis/enroll': typeof ApiJarvisEnrollRoute
   '/api/offline/bytes/$release': typeof ApiOfflineBytesReleaseRoute
 }
 export interface FileRouteTypes {
@@ -215,7 +215,7 @@ export interface FileRouteTypes {
     | '/auth/verify'
     | '/auth/'
     | '/api/jarvis/device'
-    | '/api/jarvis/pair'
+    | '/api/jarvis/enroll'
     | '/api/offline/bytes/$release'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -236,7 +236,7 @@ export interface FileRouteTypes {
     | '/auth/verify'
     | '/auth'
     | '/api/jarvis/device'
-    | '/api/jarvis/pair'
+    | '/api/jarvis/enroll'
     | '/api/offline/bytes/$release'
   id:
     | '__root__'
@@ -258,7 +258,7 @@ export interface FileRouteTypes {
     | '/auth/verify'
     | '/auth/'
     | '/api/jarvis/device'
-    | '/api/jarvis/pair'
+    | '/api/jarvis/enroll'
     | '/api/offline/bytes/$release'
   fileRoutesById: FileRoutesById
 }
@@ -279,7 +279,7 @@ export interface RootRouteChildren {
   AuthVerifyRoute: typeof AuthVerifyRoute
   AuthIndexRoute: typeof AuthIndexRoute
   ApiJarvisDeviceRoute: typeof ApiJarvisDeviceRoute
-  ApiJarvisPairRoute: typeof ApiJarvisPairRoute
+  ApiJarvisEnrollRoute: typeof ApiJarvisEnrollRoute
   ApiOfflineBytesReleaseRoute: typeof ApiOfflineBytesReleaseRoute
 }
 
@@ -411,11 +411,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiJarvisDeviceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/jarvis/pair': {
-      id: '/api/jarvis/pair'
-      path: '/api/jarvis/pair'
-      fullPath: '/api/jarvis/pair'
-      preLoaderRoute: typeof ApiJarvisPairRouteImport
+    '/api/jarvis/enroll': {
+      id: '/api/jarvis/enroll'
+      path: '/api/jarvis/enroll'
+      fullPath: '/api/jarvis/enroll'
+      preLoaderRoute: typeof ApiJarvisEnrollRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/offline/bytes/$release': {
@@ -458,7 +458,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthVerifyRoute: AuthVerifyRoute,
   AuthIndexRoute: AuthIndexRoute,
   ApiJarvisDeviceRoute: ApiJarvisDeviceRoute,
-  ApiJarvisPairRoute: ApiJarvisPairRoute,
+  ApiJarvisEnrollRoute: ApiJarvisEnrollRoute,
   ApiOfflineBytesReleaseRoute: ApiOfflineBytesReleaseRoute,
 }
 export const routeTree = rootRouteImport

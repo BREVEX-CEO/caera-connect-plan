@@ -136,7 +136,7 @@ Node selection reveals safe metadata rather than automatically opening full priv
 
 The GUI remains minimal, professional, dark/light capable, and monochrome-first.
 
-## Current docs intentionally avoid a desktop-wrapper architecture
+## Historical web-only architecture restriction
 
 ### Date
 
@@ -144,11 +144,11 @@ The GUI remains minimal, professional, dark/light capable, and monochrome-first.
 
 ### Status
 
-Accepted.
+Superseded later on 2026-09-26.
 
 ### Decision
 
-Current documentation focuses on the web-controlled mission and does not name or plan a desktop-wrapper technology before the owner starts that later mission.
+This restriction applied only until the owner explicitly started the deeper-device mission. The approved replacement is the Windows/macOS Device Agent and browser-extension roadmap in PLAN.md Phases 13–23 and docs/JARVIS_DEVICE_ROADMAP.md.
 
 ## JARVIS browser tasks run on a paired device, planned in the browser
 
@@ -199,3 +199,35 @@ Accepted.
 ### Decision
 
 JARVIS may open public sites unless the person turns them off in Allowed Apps, but loopback, private-network and local addresses are refused until the person allows that exact address, so page content cannot steer a device into its own network.
+
+## Deeper device mission is approved
+
+### Date
+
+2026-09-26.
+
+### Status
+
+Accepted.
+
+### Decision
+
+The web/browser mission remains preserved and the next active mission is the approved deeper-device roadmap in `docs/JARVIS_DEVICE_ROADMAP.md` and PLAN.md Phases 13–23.
+
+The trusted desktop execution path is a one-time OCADE Device Agent for Windows 10/11 and modern macOS, with one tiny tray/menu-bar presence, signed public releases, automatic updates, rollback, secure per-device credentials and a shared versioned protocol.
+
+Same-account devices enroll automatically without user-managed tokens or QR steps. Each device still receives a unique revocable cryptographic identity and triggers a new-device notification.
+
+The latest primary visual/code reference is `imports/UI OCADE JARVIS.zip`. It is preserved untouched and used as a donor/reference rather than shipped as a standalone prototype.
+
+Production JARVIS navigation is Conversations, Tasks, Activity, Allowed Apps and Devices. History is not a separate duplicate surface.
+
+JARVIS starts text-only. Microphone permission is requested only when Voice is first used. Optional PC `Hey OCADE` wake detection stays local and Background/Wake Mode is explicit.
+
+A Chrome extension is allowed when required for authorized real-browser control and should be prepared for Chrome Web Store publication. It uses minimal permissions and never exposes provider/model/vendor identity.
+
+One task at a time owns mouse/keyboard/UI control. Safe non-conflicting background tasks may run in parallel under bounded resources.
+
+Mobile remains website/PWA-first with Add to Home Screen and a dedicated Remote PC surface. No mandatory Android/iOS native companion is part of the approved roadmap, and unsupported OS-wide cross-app control is never faked.
+
+Online intelligence continues through the OCADE server authority with exactly three configured capacity/key slots. Slot-local failover is allowed; key cycling must not be used to evade a project-wide/provider-wide quota. If all Online capacity is unavailable, JARVIS enters a customer-safe timeout/unavailable state without exposing provider details.

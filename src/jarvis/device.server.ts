@@ -1,65 +1,268 @@
 /**
- * The paired-device side of JARVIS: pairing and the action exchange.
+ * The device side of JARVIS: enrollment, signed requests and the action exchange.
  *
- * A device authenticates with a random bearer token whose SHA-256 is the only
- * thing stored. Every write here is scoped to the device the token names, so
- * one device cannot claim, complete or observe another device's actions, and
- * nothing a device sends can change a permission or a task's status.
+ * ONE KEY PER DEVICE. A Device Agent or the browser extension makes its own
+ * P-256 key pair and enrolls only the public key; every request is signed over
+ * the protocol version, method, path, device, a strictly increasing timestamp
+ * and the body's hash (see `jarvis-runtime/ocade_protocol.json`, the one
+ * contract all three sides read). The server stores nothing that could
+ * impersonate a device, a captured request cannot be replayed, and every write
+ * here is scoped to the device the signature proves — so one device cannot
+ * claim, complete or observe another's actions, and nothing a device sends can
+ * change a permission or a task's status.
  */
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import contract from "../../jarvis-runtime/ocade_protocol.json";
 
 type Admin = SupabaseClient<Database>;
 
-export async function sha256Hex(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+export const PROTOCOL = contract;
+const ENROLLMENT_MS = 10 * 60_000;
+
+export async function sha256Hex(value: string | Uint8Array<ArrayBuffer>): Promise<string> {
+  const bytes = typeof value === "string" ? new TextEncoder().encode(value) : value;
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function token(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  return btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+function fromBase64Url(value: string): Uint8Array<ArrayBuffer> {
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  return Uint8Array.from(atob(base64 + "=".repeat((4 - (base64.length % 4)) % 4)), (c) =>
+    c.charCodeAt(0),
+  );
 }
 
-export const pairInput = z.object({
-  code: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .transform((code) => code.replace(/-/g, ""))
-    .pipe(z.string().regex(/^[A-Z0-9]{8}$/)),
+const publicKeyText = z.string().regex(/^[A-Za-z0-9_-]{80,200}$/);
+
+async function importKey(publicKey: string): Promise<CryptoKey | null> {
+  try {
+    return await crypto.subtle.importKey(
+      "spki",
+      fromBase64Url(publicKey),
+      { name: "ECDSA", namedCurve: "P-256" },
+      false,
+      ["verify"],
+    );
+  } catch {
+    return null;
+  }
+}
+
+/** The text a device signs. Every side builds exactly this string. */
+export async function canonical(input: {
+  protocol: number;
+  method: string;
+  path: string;
+  deviceId: string;
+  timestamp: number;
+  body: string;
+}): Promise<string> {
+  return [
+    PROTOCOL.signing.prefix,
+    String(input.protocol),
+    input.method.toUpperCase(),
+    input.path,
+    input.deviceId,
+    String(input.timestamp),
+    await sha256Hex(input.body),
+  ].join("\n");
+}
+
+/** A short, human-comparable fingerprint of a public key. */
+export async function fingerprint(publicKey: string): Promise<string> {
+  const hex = (await sha256Hex(publicKey)).slice(0, 16).toUpperCase();
+  return hex.match(/.{4}/g)!.join("-");
+}
+
+export type SignedRequest =
+  | { ok: true; body: string; deviceId: string; timestamp: number; protocol: number }
+  | { ok: false; status: number; error: string };
+
+/** Read the protocol headers and body. Signature checking needs the stored key. */
+export async function readSigned(request: Request): Promise<SignedRequest> {
+  const h = PROTOCOL.headers;
+  const protocol = Number(request.headers.get(h.protocol));
+  if (!Number.isInteger(protocol) || protocol < PROTOCOL.minimumVersion) {
+    // Fail closed, and say what to become: the agent updates itself on this.
+    return { ok: false, status: 426, error: "update_required" };
+  }
+  if (protocol > PROTOCOL.version) return { ok: false, status: 400, error: "unknown_protocol" };
+  const timestamp = Number(request.headers.get(h.timestamp));
+  if (
+    !Number.isSafeInteger(timestamp) ||
+    Math.abs(Date.now() - timestamp) > PROTOCOL.signing.skewSeconds * 1000
+  ) {
+    return { ok: false, status: 401, error: "clock_skew" };
+  }
+  const body = await request.text();
+  if (body.length > 600_000) return { ok: false, status: 413, error: "too_large" };
+  return {
+    ok: true,
+    body,
+    deviceId: request.headers.get(h.device) ?? "-",
+    timestamp,
+    protocol,
+  };
+}
+
+export async function verifySignature(
+  request: Request,
+  signed: Extract<SignedRequest, { ok: true }>,
+  publicKey: string,
+): Promise<boolean> {
+  const key = await importKey(publicKey);
+  const signature = request.headers.get(PROTOCOL.headers.signature);
+  if (!key || !signature || !/^[A-Za-z0-9_-]{80,90}$/.test(signature)) return false;
+  const text = await canonical({
+    protocol: signed.protocol,
+    method: request.method,
+    path: new URL(request.url).pathname,
+    deviceId: signed.deviceId,
+    timestamp: signed.timestamp,
+    body: signed.body,
+  });
+  return crypto.subtle.verify(
+    { name: "ECDSA", hash: "SHA-256" },
+    key,
+    fromBase64Url(signature),
+    new TextEncoder().encode(text),
+  );
+}
+
+export const enrollInput = z.object({
+  publicKey: publicKeyText,
   name: z.string().trim().min(1).max(120),
   platform: z.string().trim().max(60).optional(),
+  kind: z.enum(["agent", "extension"]),
+  softwareVersion: z.string().trim().max(40).optional(),
 });
 
-export async function pairDevice(
+/**
+ * A new device announces its public key and proves it holds the private half
+ * (the enroll request itself is signed). The row belongs to nobody until a
+ * signed-in person approves it in OCADE.
+ */
+export async function enroll(
   admin: Admin,
-  input: z.infer<typeof pairInput>,
-  now = new Date(),
-): Promise<{ deviceId: string; token: string } | null> {
-  const secret = token();
+  request: Request,
+): Promise<{ status: number; body: Record<string, unknown> }> {
+  const signed = await readSigned(request);
+  if (!signed.ok) return { status: signed.status, body: { error: signed.error } };
+  let parsed: z.infer<typeof enrollInput>;
+  try {
+    parsed = enrollInput.parse(JSON.parse(signed.body));
+  } catch {
+    return { status: 400, body: { error: "invalid_request" } };
+  }
+  if (signed.deviceId !== "-" || !(await verifySignature(request, signed, parsed.publicKey))) {
+    return { status: 401, body: { error: "signature_invalid" } };
+  }
+  // Enrollments nobody approved in time leave nothing behind.
+  await admin
+    .from("jarvis_devices")
+    .delete()
+    .is("user_id", null)
+    .lt("enrollment_expires_at", new Date().toISOString());
   const { data, error } = await admin
     .from("jarvis_devices")
-    .update({
-      token_hash: await sha256Hex(secret),
-      pairing_code_hash: null,
-      pairing_expires_at: null,
-      name: input.name,
-      platform: input.platform ?? null,
-      last_seen_at: now.toISOString(),
+    .insert({
+      name: parsed.name,
+      platform: parsed.platform ?? null,
+      kind: parsed.kind,
+      software_version: parsed.softwareVersion ?? null,
+      protocol_version: signed.protocol,
+      public_key: parsed.publicKey,
+      enrollment_expires_at: new Date(Date.now() + ENROLLMENT_MS).toISOString(),
+      last_request_ms: signed.timestamp,
     })
-    .eq("pairing_code_hash", await sha256Hex(input.code))
-    .is("token_hash", null)
-    .is("revoked_at", null)
-    .gt("pairing_expires_at", now.toISOString())
     .select("id")
+    .single();
+  if (error?.code === "23505") return { status: 409, body: { error: "already_enrolled" } };
+  if (error) throw new Error(error.message);
+  return {
+    status: 200,
+    body: {
+      deviceId: data.id,
+      fingerprint: await fingerprint(parsed.publicKey),
+      approve: `/ocade-jarvis?connect=${data.id}`,
+    },
+  };
+}
+
+export type DeviceIdentity =
+  | { ok: true; id: string; userId: string; body: unknown }
+  | { ok: false; status: number; error: string };
+
+/**
+ * The device a signed request proves, after its replay guard has advanced.
+ * A pending enrollment answers 202 until a person approves it.
+ */
+export async function authenticate(admin: Admin, request: Request): Promise<DeviceIdentity> {
+  const signed = await readSigned(request);
+  if (!signed.ok) return signed;
+  if (!z.string().uuid().safeParse(signed.deviceId).success) {
+    return { ok: false, status: 401, error: "device_not_enrolled" };
+  }
+  const { data: device, error } = await admin
+    .from("jarvis_devices")
+    .select("id, user_id, public_key, revoked_at, enrollment_expires_at")
+    .eq("id", signed.deviceId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return data ? { deviceId: data.id, token: secret } : null;
+  if (!device?.public_key || device.revoked_at) {
+    return { ok: false, status: 401, error: "device_not_enrolled" };
+  }
+  if (!(await verifySignature(request, signed, device.public_key))) {
+    return { ok: false, status: 401, error: "signature_invalid" };
+  }
+  const { data: advanced } = await admin
+    .from("jarvis_devices")
+    .update({
+      last_request_ms: signed.timestamp,
+      protocol_version: signed.protocol,
+      ...(device.user_id ? { last_seen_at: new Date().toISOString() } : {}),
+    })
+    .eq("id", device.id)
+    .lt("last_request_ms", signed.timestamp)
+    .select("id")
+    .maybeSingle();
+  if (!advanced) return { ok: false, status: 401, error: "replayed" };
+  if (!device.user_id) {
+    return Date.parse(device.enrollment_expires_at ?? "") > Date.now()
+      ? { ok: false, status: 202, error: "awaiting_approval" }
+      : { ok: false, status: 410, error: "enrollment_expired" };
+  }
+  let body: unknown = null;
+  try {
+    body = signed.body ? JSON.parse(signed.body) : {};
+  } catch {
+    return { ok: false, status: 400, error: "invalid_request" };
+  }
+  return { ok: true, id: device.id, userId: device.user_id, body };
+}
+
+/**
+ * Replace this device's key, signed by the key being replaced. The device
+ * rotates on its own schedule; the person never sees it.
+ */
+export async function rotateKey(
+  admin: Admin,
+  deviceId: string,
+  publicKey: string,
+): Promise<boolean> {
+  if (!publicKeyText.safeParse(publicKey).success || !(await importKey(publicKey))) return false;
+  const { data, error } = await admin
+    .from("jarvis_devices")
+    .update({ public_key: publicKey, key_rotated_at: new Date().toISOString() })
+    .eq("id", deviceId)
+    .is("revoked_at", null)
+    .select("id")
+    .maybeSingle();
+  if (error?.code === "23505") return false;
+  if (error) throw new Error(error.message);
+  return Boolean(data);
 }
 
 const RESULT_STATUSES = [
@@ -80,6 +283,8 @@ export const exchangeInput = z.object({
         summary: z.string().max(300).optional(),
         changed: z.array(z.string().max(20)).max(10).optional(),
         observation: z.unknown().optional(),
+        /** What a computer action returned: a listing, file text, command output. */
+        detail: z.unknown().optional(),
       }),
     )
     .max(20),
@@ -88,6 +293,13 @@ export const exchangeInput = z.object({
     .nullable()
     .optional(),
   capabilities: z.record(z.string().max(40), z.boolean()).optional(),
+  softwareVersion: z.string().trim().max(40).optional(),
+  apps: z.array(z.string().max(80)).max(300).optional(),
+  /** STOP JARVIS from the computer's own tray or mini-control. */
+  stop: z.boolean().optional(),
+  /** The device disconnects itself (Disconnect, or uninstall): its key stops working. */
+  forget: z.boolean().optional(),
+  rotate: z.object({ publicKey: publicKeyText }).optional(),
 });
 
 /** Matches how long the planning loop waits for one action. */
@@ -99,30 +311,100 @@ export interface DeviceCommand {
   action: Record<string, unknown>;
   confirmed: boolean;
   mode: "isolated" | "real";
+  /** The person chose to work alongside JARVIS: their input does not pause it. */
+  cowork: boolean;
 }
 
 export async function exchange(
   admin: Admin,
-  bearer: string,
+  device: { id: string; userId: string },
   input: z.infer<typeof exchangeInput>,
-): Promise<{ commands: DeviceCommand[] } | null> {
-  const { data: device, error } = await admin
-    .from("jarvis_devices")
-    .select("id, user_id")
-    .eq("token_hash", await sha256Hex(bearer))
-    .is("revoked_at", null)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!device) return null;
+): Promise<{
+  protocol: number;
+  deviceId: string;
+  busy: boolean;
+  background: boolean;
+  /** The open task, for the tray and mini-control: title and progress only. */
+  task: { title: string; step: number; steps: number; status: string } | null;
+  commands: DeviceCommand[];
+  rotated?: boolean;
+}> {
+  if (input.forget) {
+    const at = new Date().toISOString();
+    await admin
+      .from("jarvis_tasks")
+      .update({ status: "stopped", blocker: "The device was disconnected." })
+      .eq("device_id", device.id)
+      .in("status", ["running", "waiting", "taken_over"]);
+    await admin
+      .from("jarvis_devices")
+      .update({ revoked_at: at, public_key: null })
+      .eq("id", device.id);
+    return {
+      protocol: PROTOCOL.version,
+      deviceId: device.id,
+      busy: false,
+      background: false,
+      task: null,
+      commands: [],
+    };
+  }
+  if (input.stop) {
+    // The global Stop: every unfinished task on this device ends, and nothing
+    // queued for it runs.
+    const at = new Date().toISOString();
+    await admin
+      .from("jarvis_tasks")
+      .update({ status: "stopped", blocker: "Stopped from the computer." })
+      .eq("device_id", device.id)
+      .in("status", ["running", "waiting", "taken_over"]);
+    await admin
+      .from("jarvis_activity")
+      .update({ status: "cancelled", completed_at: at })
+      .eq("device_id", device.id)
+      .in("status", ["queued", "needs_confirmation"]);
+  }
+  const [{ data: open }, { data: self }] = await Promise.all([
+    admin
+      .from("jarvis_tasks")
+      .select("title, current_step, plan, status")
+      .eq("device_id", device.id)
+      .in("status", ["running", "waiting", "taken_over"])
+      .limit(1),
+    admin.from("jarvis_devices").select("background_enabled").eq("id", device.id).maybeSingle(),
+  ]);
+  // Every reply names the protocol and the device it is for, so a device can
+  // refuse work that was not addressed to it; `busy` and `background` decide
+  // whether it stays active or goes dormant.
+  const envelope = {
+    protocol: PROTOCOL.version,
+    deviceId: device.id,
+    busy: Boolean(open?.length),
+    background: Boolean(self?.background_enabled),
+    task: open?.[0]
+      ? {
+          title: open[0].title,
+          step: open[0].current_step,
+          steps: (open[0].plan as string[]).length,
+          status: open[0].status,
+        }
+      : null,
+  };
   const now = new Date().toISOString();
 
-  await admin
-    .from("jarvis_devices")
-    .update({
-      last_seen_at: now,
-      ...(input.capabilities ? { capabilities: input.capabilities } : {}),
-    })
-    .eq("id", device.id);
+  if (input.capabilities || input.softwareVersion || input.apps) {
+    await admin
+      .from("jarvis_devices")
+      .update({
+        ...(input.capabilities ? { capabilities: input.capabilities } : {}),
+        ...(input.softwareVersion ? { software_version: input.softwareVersion } : {}),
+        ...(input.apps ? { installed_apps: input.apps } : {}),
+      })
+      .eq("id", device.id);
+  }
+  const rotated = input.rotate
+    ? await rotateKey(admin, device.id, input.rotate.publicKey)
+    : undefined;
 
   for (const result of input.results) {
     // A person decides a confirmation; the result says one is needed.
@@ -131,6 +413,7 @@ export async function exchange(
       status: result.status,
       changed: result.changed ?? [],
       observation: result.observation ?? null,
+      ...(result.detail === undefined ? {} : { detail: result.detail }),
     });
     await admin
       .from("jarvis_activity")
@@ -179,7 +462,7 @@ export async function exchange(
     .eq("status", "queued")
     .order("created_at", { ascending: true })
     .limit(5);
-  if (!queued?.length) return { commands: [] };
+  if (!queued?.length) return { ...envelope, commands: [], rotated };
 
   const { data: tasks } = await admin
     .from("jarvis_tasks")
@@ -192,6 +475,16 @@ export async function exchange(
     )
     .limit(5);
   const running = new Map((tasks ?? []).map((task) => [task.id, task.browser_mode]));
+  const { data: cowork } = await admin
+    .from("jarvis_permissions")
+    .select("allowed, device_id")
+    .eq("user_id", device.userId)
+    .eq("capability", "cowork")
+    .limit(50);
+  const coworking =
+    (cowork ?? []).find((row) => row.device_id === device.id)?.allowed ??
+    (cowork ?? []).find((row) => row.device_id === null)?.allowed ??
+    false;
 
   const commands: DeviceCommand[] = [];
   for (const row of queued) {
@@ -211,8 +504,9 @@ export async function exchange(
         action: row.action as Record<string, unknown>,
         confirmed: row.confirmed,
         mode: mode as "isolated" | "real",
+        cowork: coworking,
       });
     }
   }
-  return { commands };
+  return { ...envelope, commands, rotated };
 }

@@ -49,7 +49,7 @@ The existing JARVIS ZIP is preserved as source provenance and becomes the basis 
 - Existing PyAutoGUI, computer-control, file-control, screen, app-launch, and related code is preserved.
 - The web product must not claim those capabilities are usable from a normal hosted browser until a trusted execution path is active and tested.
 - Browser-control work is completed before deeper device-control work begins.
-- Current docs do not introduce a desktop-wrapper implementation plan.
+- The owner has now explicitly approved the deeper-device mission; the trusted Windows/macOS Device Agent and browser extension are documented in PLAN.md Phases 13–23.
 
 ## Voice
 
@@ -106,4 +106,50 @@ The existing JARVIS ZIP is preserved as source provenance and becomes the basis 
 - Do not expose provider keys.
 - Do not delete the original ZIP or immutable snapshot.
 - Do not claim unsupported desktop/mobile control.
-- Do not mention a desktop-wrapper architecture before the web mission is complete.
+- Preserve the completed web mission while implementing only the now-approved Device Agent/extension architecture in PLAN.md Phases 13–23.
+
+## Approved deeper-device technical requirements
+
+The next implementation follows PLAN.md Phases 13–23 and `docs/JARVIS_DEVICE_ROADMAP.md`.
+
+### Shared protocol
+
+Create one explicit versioned contract for website, Device Agent and browser extension. Every device command/result must bind account, device, task, request, permission and protocol version.
+
+Each enrolled device receives a unique cryptographic credential automatically. Store only safe server-side verification material. Support credential rotation and immediate revocation.
+
+### Desktop packaging
+
+Support Windows 10/11 and modern macOS first. Package the active runtime so end users do not install Python or dependencies. Public builds require code signing/notarization. Auto-update from signed OCADE releases and rollback on failed health checks.
+
+A minimal supervisor may autostart at OS login. Keep idle CPU/RAM/network negligible. One tray/menu-bar identity only.
+
+### Browser extension
+
+Use Manifest V3 or the current store-supported equivalent at implementation time. Request minimum permissions. Provide secure OCADE account state, connection status and links to OCADE/JARVIS. Never embed Online provider secrets or provider identity.
+
+### Desktop execution
+
+Preferred automation order is native API/scripting, direct scoped file/project operation, accessibility/structured UI, local vision, then freshly observed coordinates.
+
+Only one UI-control lease exists per device at a time. User physical input cancels/pauses that lease until explicit Continue unless Co-work mode intentionally alternates control.
+
+### Coding sandbox
+
+Provide a lightweight OCADE-managed isolated execution environment where required. Prefer host-native virtualization/container capabilities, lazy installation and bounded CPU/RAM/storage. Do not require ordinary users to configure Docker Desktop manually.
+
+### Background and checkpointing
+
+Explicit background tasks persist durable checkpoints. Local-only safe steps may continue during network loss; Online-dependent work pauses. Reboot restores state and resumes only safe steps automatically.
+
+### Voice
+
+Startup is text-only. Microphone permission occurs on first Voice use. Optional PC wake-word detection remains local. Cloud audio must not run continuously before wake activation.
+
+### Online capacity
+
+Keep exactly three configured server-side capacity slots. Failover must distinguish slot-local failure from provider/project-wide quota. Never expose slot, provider, model or vendor identity to customers.
+
+### Mobile
+
+Android/iOS remain web/PWA-first. Implement Remote PC via existing authenticated task/device authorities. Do not technically represent unsupported OS-wide cross-app control as available.

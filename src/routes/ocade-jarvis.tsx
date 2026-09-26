@@ -8,7 +8,13 @@ import { JarvisWorkspace } from "@/jarvis/JarvisWorkspace";
  * here afterwards.
  */
 export const Route = createFileRoute("/ocade-jarvis")({
-  validateSearch: z.object({ c: z.string().uuid().optional() }),
+  validateSearch: z.object({
+    c: z.string().uuid().optional(),
+    /** A device waiting for this person to approve it. */
+    connect: z.string().uuid().optional(),
+    /** Opened by "Hey OCADE" on the person's computer: start with voice on. */
+    voice: z.coerce.number().optional(),
+  }),
   head: () => ({
     meta: [
       { title: "OCADE JARVIS" },
@@ -22,6 +28,12 @@ export const Route = createFileRoute("/ocade-jarvis")({
 });
 
 function JarvisPage() {
-  const { c } = Route.useSearch();
-  return <JarvisWorkspace conversationId={c ?? null} />;
+  const { c, connect, voice } = Route.useSearch();
+  return (
+    <JarvisWorkspace
+      conversationId={c ?? null}
+      connectId={connect ?? null}
+      startVoice={voice === 1}
+    />
+  );
 }

@@ -16,15 +16,21 @@ import { supabaseCommercialLedger } from "@/lib/commercial/supabase-ledger";
 import { resolveTierFor } from "@/lib/commercial/entitlement-resolver";
 import { ALLOWANCES, describeUsage } from "@/lib/commercial/usage-policy";
 import {
-  browserAction,
   CAPABILITIES,
+  deviceAction,
   describeAction,
   FINISHED,
   hostOf,
   TASK_STATUSES,
   type TaskStatus,
 } from "./protocol";
-import { isAllowed, refuseAction, type PermissionRow } from "./permissions";
+import {
+  appDecision,
+  isAllowed,
+  needsConfirmation,
+  refuseAction,
+  type PermissionRow,
+} from "./permissions";
 
 const uuid = z.string().uuid();
 /** A device counts as online when it asked for work this recently. */
@@ -54,6 +60,12 @@ export interface JarvisTaskRow {
   blocker: string | null;
   result: string | null;
   browser_mode: "isolated" | "real";
+  checkpoint: {
+    step: number;
+    lastAction: string;
+    lastUrl: string | null;
+    at: string;
+  } | null;
   created_at: string;
   updated_at: string;
 }
@@ -75,6 +87,9 @@ export interface JarvisState {
     last_seen_at: string | null;
     revoked_at: string | null;
     created_at: string;
+    kind: string;
+    software_version: string | null;
+    background_enabled: boolean;
     online: boolean;
   }[];
   permissions: PermissionRow[];
@@ -87,11 +102,13 @@ export interface JarvisState {
     created_at: string;
   }[];
   sites: string[];
+  /** Apps the person's computers found, with the Allowed Apps rule for each. */
+  apps: { name: string; rule: "always" | "ask" | "never" }[];
   usage: { remaining: number; allowance: number; resetsInMs: number } | null;
 }
 
 const TASK_COLUMNS =
-  "id, conversation_id, device_id, title, plan, current_step, status, blocker, result, browser_mode, created_at, updated_at";
+  "id, conversation_id, device_id, title, plan, current_step, status, blocker, result, browser_mode, checkpoint, created_at, updated_at";
 
 export const readJarvisState = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -113,7 +130,9 @@ export const readJarvisState = createServerFn({ method: "GET" })
         .limit(100),
       db
         .from("jarvis_devices")
-        .select("id, name, platform, capabilities, last_seen_at, revoked_at, created_at")
+        .select(
+          "id, name, platform, capabilities, last_seen_at, revoked_at, created_at, kind, software_version, background_enabled, installed_apps",
+        )
         .order("created_at", { ascending: false })
         .limit(50),
       db.from("jarvis_permissions").select("capability, allowed, device_id").limit(500),
@@ -143,6 +162,34 @@ export const readJarvisState = createServerFn({ method: "GET" })
       if (host) sites.add(host);
     }
 
+    const appNames = new Map<string, string>();
+    for (const device of devices.data ?? []) {
+      if (device.revoked_at) continue;
+      for (const name of (device.installed_apps ?? []) as string[]) {
+        appNames.set(name.toLowerCase(), name);
+      }
+    }
+    for (const row of permissionRows) {
+      if (row.capability.startsWith("app:") && !appNames.has(row.capability.slice(4))) {
+        appNames.set(row.capability.slice(4), row.capability.slice(4));
+      }
+    }
+    const apps = [...appNames.values()]
+      .sort((a, b) => a.localeCompare(b))
+      .slice(0, 300)
+      .map((name) => {
+        const decided = appDecision(permissionRows, name);
+        return {
+          name,
+          rule:
+            decided === true
+              ? ("always" as const)
+              : decided === false
+                ? ("never" as const)
+                : ("ask" as const),
+        };
+      });
+
     const entitlement = await resolveTierFor(context.userId);
     const ledger = supabaseCommercialLedger(service);
     const windows = ledger.readCurrent ? await ledger.readCurrent(context.userId, "jarvis") : [];
@@ -166,7 +213,7 @@ export const readJarvisState = createServerFn({ method: "GET" })
     return {
       conversations: conversations.data ?? [],
       tasks: (tasks.data ?? []) as JarvisTaskRow[],
-      devices: (devices.data ?? []).map((d) => ({
+      devices: (devices.data ?? []).map(({ installed_apps: _apps, ...d }) => ({
         ...d,
         capabilities: (d.capabilities ?? {}) as Record<string, boolean>,
         online: !d.revoked_at && !!d.last_seen_at && now - Date.parse(d.last_seen_at) < ONLINE_MS,
@@ -175,6 +222,7 @@ export const readJarvisState = createServerFn({ method: "GET" })
       memories: memories.data ?? [],
       activity: (activity.data ?? []).map(({ action: _action, ...rest }) => rest),
       sites: [...sites].sort().slice(0, 100),
+      apps,
       usage: shown[0]
         ? {
             remaining: shown[0].remaining,
@@ -208,6 +256,9 @@ export const startJarvisTask = createServerFn({ method: "POST" })
     z
       .object({
         conversationId: uuid,
+        controller: uuid,
+        /** Where the work happens: a browser, or the computer itself. */
+        where: z.enum(["browser", "computer"]).default("browser"),
         title: z.string().trim().min(1).max(200),
         plan: z.array(z.string().trim().min(1).max(200)).max(12),
       })
@@ -221,33 +272,46 @@ export const startJarvisTask = createServerFn({ method: "POST" })
     const service = await admin();
     const { data: devices, error } = await service
       .from("jarvis_devices")
-      .select("id, capabilities, last_seen_at")
+      .select("id, kind, capabilities, last_seen_at")
       .eq("user_id", context.userId)
       .is("revoked_at", null)
       .order("last_seen_at", { ascending: false })
       .limit(10);
     if (error) throw new Error(error.message);
     const now = Date.now();
-    const device = (devices ?? []).find(
+    const online = (devices ?? []).filter(
       (d) => d.last_seen_at && now - Date.parse(d.last_seen_at) < ONLINE_MS,
     );
+    const offers = (d: (typeof online)[number], capability: string) =>
+      (d.capabilities as Record<string, boolean> | null)?.[capability] === true;
+    // The computer's own work needs its Device Agent. Browser work prefers the
+    // person's own browser only where they allowed it, else the isolated one.
+    const agents = online.filter((d) => d.kind === "agent");
+    const ownBrowser = online.find(
+      (d) => offers(d, "browser_real") && isAllowed(rows, "browser_real", d.id),
+    );
+    const device =
+      data.where === "computer"
+        ? agents[0]
+        : (ownBrowser ?? agents.find((d) => offers(d, "browser_isolated")) ?? agents[0]);
     if (!device) {
       return {
         ok: false,
         reason: "no_device",
-        message: "No JARVIS device is online. Connect one in Devices to run browser tasks.",
+        message:
+          data.where === "computer"
+            ? "No computer with the OCADE Device Agent is online. Connect one in Devices."
+            : "No JARVIS device is online. Connect one in Devices to run browser tasks.",
       };
     }
-    if (!isAllowed(rows, "browser", device.id)) {
+    if (data.where === "browser" && !isAllowed(rows, "browser", device.id)) {
       return {
         ok: false,
         reason: "permission",
         message: "Browser control is turned off for this device.",
       };
     }
-    const real =
-      isAllowed(rows, "browser_real", device.id) &&
-      (device.capabilities as Record<string, boolean> | null)?.browser_real === true;
+    const real = device === ownBrowser;
     const { data: task, error: insertError } = await context.supabase
       .from("jarvis_tasks")
       .insert({
@@ -257,6 +321,7 @@ export const startJarvisTask = createServerFn({ method: "POST" })
         title: data.title,
         plan: data.plan.slice(0, 12),
         browser_mode: real ? "real" : "isolated",
+        controller: data.controller,
       })
       .select(TASK_COLUMNS)
       .single();
@@ -264,7 +329,9 @@ export const startJarvisTask = createServerFn({ method: "POST" })
       return {
         ok: false,
         reason: "permission",
-        message: "A task is already running in this conversation.",
+        message: insertError.message.includes("per_device")
+          ? "Your computer is already busy with another JARVIS task. Stop it or let it finish first."
+          : "A task is already running in this conversation.",
       };
     }
     if (insertError) throw new Error(insertError.message);
@@ -287,11 +354,23 @@ export const updateJarvisTask = createServerFn({ method: "POST" })
         currentStep: z.number().int().min(0).max(12).optional(),
         result: z.string().max(8000).nullable().optional(),
         blocker: z.string().max(300).nullable().optional(),
+        /** Claim the task for this planning loop; any other loop stops queueing. */
+        controller: uuid.optional(),
+        checkpoint: z
+          .object({
+            step: z.number().int().min(0).max(12),
+            lastAction: z.string().max(300),
+            lastUrl: z.string().max(2000).nullable(),
+            at: z.string().max(40),
+          })
+          .optional(),
       })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
     const patch: Record<string, unknown> = {};
+    if (data.controller !== undefined) patch.controller = data.controller;
+    if (data.checkpoint !== undefined) patch.checkpoint = data.checkpoint;
     if (data.status !== undefined) patch.status = data.status;
     if (data.currentStep !== undefined) patch.current_step = data.currentStep;
     if (data.result !== undefined) patch.result = data.result;
@@ -329,21 +408,42 @@ export const updateJarvisTask = createServerFn({ method: "POST" })
         task_id: data.id,
         summary: words[data.status],
       });
+      // A finished task is worth telling the person about wherever they are:
+      // OCADE's own notification history, never the task's private result.
+      if (data.status === "completed" || data.status === "failed" || data.status === "blocked") {
+        const { sendNotification } = await import("@/lib/notifications/send.server");
+        await sendNotification({
+          userId: context.userId,
+          category: "task_outcomes",
+          title: `JARVIS ${data.status === "completed" ? "finished" : "stopped"}: ${task.title.slice(0, 120)}`,
+          deepLink: `/ocade-jarvis?c=${task.conversation_id}`,
+          idempotencyKey: `jarvis-task-${data.status}:${task.id}`,
+        });
+      }
     }
     return task as JarvisTaskRow;
   });
 
 export const queueJarvisAction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((i) => z.object({ taskId: uuid, action: browserAction }).parse(i))
+  .validator((i) => z.object({ taskId: uuid, controller: uuid, action: deviceAction }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: task, error } = await context.supabase
       .from("jarvis_tasks")
-      .select("id, status, device_id, browser_mode")
+      .select("id, status, device_id, browser_mode, controller")
       .eq("id", data.taskId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!task) throw new Error("That task no longer exists.");
+    // One planning loop drives a task. Another tab or device that took it over
+    // owns it now, and this loop stops rather than racing it.
+    if (task.controller !== data.controller) {
+      return {
+        ok: false as const,
+        lost: true,
+        message: "Another device took control of this task.",
+      };
+    }
     if (task.status !== "running")
       return { ok: false as const, message: "The task is not running." };
     if (!task.device_id) return { ok: false as const, message: "The task has no device." };
@@ -351,23 +451,24 @@ export const queueJarvisAction = createServerFn({ method: "POST" })
     const service = await admin();
     const { data: device } = await service
       .from("jarvis_devices")
-      .select("id")
+      .select("id, capabilities")
       .eq("id", task.device_id)
       .eq("user_id", context.userId)
       .is("revoked_at", null)
       .maybeSingle();
     if (!device) return { ok: false as const, message: "The task's device was removed." };
 
-    const url =
-      data.action.action === "open" || data.action.action === "new_tab"
-        ? data.action.url
-        : undefined;
-    const refusal = refuseAction(await permissionsOf(context.supabase), {
+    const rows = await permissionsOf(context.supabase);
+    const refusal = refuseAction(rows, {
       deviceId: device.id,
       mode: task.browser_mode as "isolated" | "real",
-      url,
+      action: data.action,
+      offered: (device.capabilities ?? {}) as Record<string, boolean>,
     });
     if (refusal) return { ok: false as const, message: refusal.message };
+    // Deletions, system changes, risky commands and apps set to Ask wait for the
+    // person before the device ever sees them.
+    const ask = needsConfirmation(rows, data.action);
 
     const { data: row, error: insertError } = await service
       .from("jarvis_activity")
@@ -377,7 +478,7 @@ export const queueJarvisAction = createServerFn({ method: "POST" })
         device_id: device.id,
         summary: describeAction(data.action),
         action: data.action,
-        status: "queued",
+        status: ask ? "needs_confirmation" : "queued",
         // Model-issued actions are never pre-confirmed.
         confirmed: false,
       })
@@ -448,15 +549,36 @@ const capability = z.union([
     .string()
     .regex(/^site:[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/)
     .max(260),
+  z
+    .string()
+    .regex(/^app:[A-Za-z0-9_ .+&()'-]{1,80}$/)
+    .transform((value) => value.toLowerCase()),
 ]);
 
 export const setJarvisPermission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((i) =>
-    z.object({ capability, allowed: z.boolean(), deviceId: uuid.nullable().optional() }).parse(i),
+    z
+      .object({
+        capability,
+        /** null returns the capability to its default (for an app: Ask). */
+        allowed: z.boolean().nullable(),
+        deviceId: uuid.nullable().optional(),
+      })
+      .parse(i),
   )
   .handler(async ({ data, context }) => {
     const device = data.deviceId ?? null;
+    if (data.allowed === null) {
+      let clear = context.supabase
+        .from("jarvis_permissions")
+        .delete()
+        .eq("capability", data.capability);
+      clear = device ? clear.eq("device_id", device) : clear.is("device_id", null);
+      const { error } = await clear;
+      if (error) throw new Error(error.message);
+      return { ok: true as const };
+    }
     let existing = context.supabase
       .from("jarvis_permissions")
       .select("id")
@@ -480,30 +602,71 @@ export const setJarvisPermission = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-const PAIRING_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-
-export const createJarvisPairing = createServerFn({ method: "POST" })
+/** What a person sees before approving a device: never its key, only its fingerprint. */
+export const readJarvisEnrollment = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const bytes = crypto.getRandomValues(new Uint8Array(8));
-    const raw = [...bytes].map((b) => PAIRING_ALPHABET[b % PAIRING_ALPHABET.length]).join("");
-    const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
+  .validator((i) => z.object({ id: uuid }).parse(i))
+  .handler(async ({ data }) => {
     const service = await admin();
-    const { sha256Hex } = await import("./device.server");
-    // Codes that expired unused leave nothing behind.
-    await service
+    const { data: row, error } = await service
       .from("jarvis_devices")
-      .delete()
-      .eq("user_id", context.userId)
-      .is("token_hash", null)
-      .lt("pairing_expires_at", new Date().toISOString());
-    const { error } = await service.from("jarvis_devices").insert({
-      user_id: context.userId,
-      pairing_code_hash: await sha256Hex(raw),
-      pairing_expires_at: expiresAt,
-    });
+      .select("id, name, platform, kind, public_key, enrollment_expires_at")
+      .eq("id", data.id)
+      .is("user_id", null)
+      .gt("enrollment_expires_at", new Date().toISOString())
+      .maybeSingle();
     if (error) throw new Error(error.message);
-    return { code: `${raw.slice(0, 4)}-${raw.slice(4)}`, expiresAt };
+    if (!row?.public_key) return null;
+    const { fingerprint } = await import("./device.server");
+    return {
+      id: row.id,
+      name: row.name,
+      platform: row.platform,
+      kind: row.kind as "agent" | "extension",
+      fingerprint: await fingerprint(row.public_key),
+    };
+  });
+
+/**
+ * The person's one click that makes a pending device theirs. The account is
+ * the caller's verified identity, never a parameter; a device already claimed
+ * or expired cannot be claimed again.
+ */
+export const approveJarvisDevice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i) => z.object({ id: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const service = await admin();
+    const { data: row, error } = await service
+      .from("jarvis_devices")
+      .update({ user_id: context.userId, enrollment_expires_at: null })
+      .eq("id", data.id)
+      .is("user_id", null)
+      .gt("enrollment_expires_at", new Date().toISOString())
+      .select("id, name, kind")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) return { ok: false as const, message: "That connection request has expired." };
+    const { sendNotification } = await import("@/lib/notifications/send.server");
+    await sendNotification({
+      userId: context.userId,
+      category: "security",
+      title: "A new device was connected to OCADE JARVIS",
+      body: `“${row.name}” can now run JARVIS tasks you start. Remove it in JARVIS Devices if this was not you.`,
+      deepLink: "/ocade-jarvis",
+      idempotencyKey: `jarvis-device-connected:${row.id}`,
+    });
+    return { ok: true as const };
+  });
+
+/** Refuse a pending request that is not the person's. */
+export const declineJarvisDevice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i) => z.object({ id: uuid }).parse(i))
+  .handler(async ({ data }) => {
+    const service = await admin();
+    await service.from("jarvis_devices").delete().eq("id", data.id).is("user_id", null);
+    return { ok: true as const };
   });
 
 export const revokeJarvisDevice = createServerFn({ method: "POST" })
@@ -514,10 +677,17 @@ export const revokeJarvisDevice = createServerFn({ method: "POST" })
     const now = new Date().toISOString();
     const { error } = await service
       .from("jarvis_devices")
-      .update({ revoked_at: now, token_hash: null, pairing_code_hash: null })
+      .update({ revoked_at: now, public_key: null })
       .eq("id", data.id)
       .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
+    // A lost device stops at once: its unfinished tasks end with it.
+    await service
+      .from("jarvis_tasks")
+      .update({ status: "stopped", blocker: "The device was removed." })
+      .eq("device_id", data.id)
+      .eq("user_id", context.userId)
+      .in("status", ["running", "waiting", "taken_over"]);
     await service
       .from("jarvis_activity")
       .update({ status: "cancelled", completed_at: now })
@@ -525,6 +695,45 @@ export const revokeJarvisDevice = createServerFn({ method: "POST" })
       .eq("user_id", context.userId)
       .in("status", ["queued", "claimed", "needs_confirmation"]);
     return { ok: true as const };
+  });
+
+/**
+ * Background Mode for one computer: explicitly started work may continue while
+ * OCADE is closed. Device records are not browser-writable, so this is the door.
+ */
+export const setJarvisBackground = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i) => z.object({ id: uuid, enabled: z.boolean() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const service = await admin();
+    const { error } = await service
+      .from("jarvis_devices")
+      .update({ background_enabled: data.enabled })
+      .eq("id", data.id)
+      .eq("user_id", context.userId)
+      .is("revoked_at", null);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+/** STOP JARVIS: every unfinished task of this account, on every device, ends now. */
+export const stopAllJarvis = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const at = new Date().toISOString();
+    const { data: stopped, error } = await context.supabase
+      .from("jarvis_tasks")
+      .update({ status: "stopped", blocker: "You stopped JARVIS." })
+      .in("status", ["running", "waiting", "taken_over"])
+      .select("id");
+    if (error) throw new Error(error.message);
+    const service = await admin();
+    await service
+      .from("jarvis_activity")
+      .update({ status: "cancelled", completed_at: at })
+      .eq("user_id", context.userId)
+      .in("status", ["queued", "needs_confirmation"]);
+    return { stopped: stopped?.length ?? 0 };
   });
 
 export const rememberJarvis = createServerFn({ method: "POST" })

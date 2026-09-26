@@ -2,16 +2,17 @@
 export interface JarvisPreferences {
   accent: string | null;
   railExpanded: boolean;
-  micAsked: boolean;
   wake: boolean;
+  /** Read answers aloud while voice is on. Off keeps answers text-only. */
+  speak: boolean;
 }
 
 const KEY = "ocade:jarvis:v1";
 const DEFAULTS: JarvisPreferences = {
   accent: null,
   railExpanded: false,
-  micAsked: false,
   wake: false,
+  speak: true,
 };
 
 export function readPreferences(): JarvisPreferences {
@@ -21,8 +22,8 @@ export function readPreferences(): JarvisPreferences {
       accent:
         typeof raw.accent === "string" && /^#[0-9a-f]{6}$/i.test(raw.accent) ? raw.accent : null,
       railExpanded: raw.railExpanded === true,
-      micAsked: raw.micAsked === true,
       wake: raw.wake === true,
+      speak: raw.speak !== false,
     };
   } catch {
     return DEFAULTS;

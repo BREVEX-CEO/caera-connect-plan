@@ -100,3 +100,17 @@ User-selected orb/accent colors may alter the orb shader and restrained accent t
 - Do not expose secrets or implementation vocabulary.
 - Do not use tiny unreadable technical text as decoration.
 - Do not copy the reference image literally when a cleaner OCADE solution is better.
+
+## JARVIS deeper-device design direction
+
+The latest primary reference is `imports/UI OCADE JARVIS.zip`, used as a donor/reference rather than a standalone shipped application.
+
+The core visual is a round 3D aura/knowledge orb with real graph relationships. Keep the surrounding UI quiet, monochrome-first and content-focused.
+
+Primary navigation is Conversations, Tasks, Activity, Allowed Apps and Devices.
+
+Desktop device control may add a small optional movable round OCADE mini-control with compact rounded status/chat/progress UI. It should appear during active work by default and may be pinned by the user.
+
+Mobile web/PWA gets a matching compact launcher inside OCADE, not a fake OS-wide overlay.
+
+Every control state—Stop, Take Over, paused by user input, permission required, offline checkpoint, background mode and remote controller—must be visually distinct without exposing technical provider/runtime terminology.

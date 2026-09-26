@@ -19,7 +19,7 @@
  * Usage: node scripts/e2e/jarvis-journey.mjs [--base=…] [--supabase=…]
  */
 import { spawn, spawnSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -111,6 +111,11 @@ const browser = await chromium.launch({
 });
 let device = null;
 const deviceHome = mkdtempSync(path.join(tmpdir(), "ocade-jarvis-device-"));
+// The one folder the person lets JARVIS work in, and a private file beside it.
+const workspaceParent = mkdtempSync(path.join(tmpdir(), "ocade-jarvis-work-"));
+const workspace = path.join(workspaceParent, "project");
+mkdirSync(workspace);
+writeFileSync(path.join(workspaceParent, "outside.txt"), "private");
 const pythonReady =
   process.env.OCADE_JARVIS_DEVICE !== "skip" &&
   spawnSync("python3", ["-c", "import playwright"], { stdio: "ignore" }).status === 0;
@@ -251,56 +256,111 @@ try {
       "python3 with playwright is not available (or OCADE_JARVIS_DEVICE=skip)",
     );
   } else {
-    /* --- pair the runtime --------------------------------------------------- */
-    await rail("Devices").click();
-    await page.getByRole("button", { name: "Connect a device", exact: true }).click();
-    const code = await page.locator("[data-testid=pairing-code]").innerText();
+    /* --- connect the runtime: its own key, one click, no codes ---------------- */
     const env = {
       ...process.env,
       OCADE_JARVIS_HOME: deviceHome,
       OCADE_BROWSER_EXECUTABLE: EXECUTABLE,
     };
-    const paired = spawnSync(
+    const connectDevice = (home, name) => {
+      const child = spawn(
+        "python3",
+        [
+          "jarvis-runtime/ocade_device.py",
+          "connect",
+          "--server",
+          BASE,
+          "--no-browser",
+          "--name",
+          name,
+        ],
+        { env: { ...env, OCADE_JARVIS_HOME: home }, stdio: ["ignore", "pipe", "pipe"] },
+      );
+      let out = "";
+      child.stdout.on("data", (d) => (out += d));
+      child.stderr.on("data", (d) => (out += d));
+      const exit = new Promise((resolve) => child.on("exit", resolve));
+      return { child, exit, out: () => out };
+    };
+    const thief = connectDevice(mkdtempSync(path.join(tmpdir(), "thief-")), "Not mine");
+    await until(() => /OCADE: (\S+)/.test(thief.out()), 20_000);
+    await page.goto(/OCADE: (\S+)/.exec(thief.out())[1], { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "Not mine", exact: true }).click();
+    check(
+      "a device the person does not recognise is refused and keeps nothing",
+      (await thief.exit) !== 0 && thief.out().includes("not approved"),
+      thief.out().slice(-200),
+    );
+
+    const laptop = connectDevice(deviceHome, "Proof laptop");
+    await until(() => /OCADE: (\S+)/.test(laptop.out()), 20_000);
+    const approveUrl = /OCADE: (\S+)/.exec(laptop.out())[1];
+    const printed = /fingerprint (\S+)\./.exec(laptop.out())?.[1];
+    await page.goto(approveUrl, { waitUntil: "networkidle" });
+    const shown = await page.getByTestId("device-fingerprint").innerText();
+    check(
+      "OCADE shows the same key fingerprint the computer printed",
+      shown === printed,
+      `${shown} / ${printed}`,
+    );
+    check(
+      "no code or password is asked for",
+      (await page.getByRole("textbox").count()) === 0 ||
+        (await page.getByRole("dialog").getByRole("textbox").count()) === 0,
+    );
+    await page.getByRole("button", { name: "Connect", exact: true }).click();
+    check(
+      "one click connects the computer",
+      (await laptop.exit) === 0 && laptop.out().includes("Connected as Proof laptop"),
+      laptop.out().slice(-200),
+    );
+    const reused = spawnSync(
       "python3",
       [
-        "jarvis-runtime/ocade_device.py",
-        "pair",
-        "--server",
-        BASE,
-        "--code",
-        code,
-        "--name",
-        "Proof laptop",
+        "-c",
+        `import sys; sys.path.insert(0, "jarvis-runtime")
+from pathlib import Path
+import ocade_identity as i
+me = i.Identity(Path(${JSON.stringify(deviceHome)}))
+body = {"results": []}
+real = me._timestamp
+stamp = real()
+me._timestamp = lambda: stamp
+print("first", me.post(i.PROTOCOL["paths"]["exchange"], body)[0])
+print("replay", me.post(i.PROTOCOL["paths"]["exchange"], body)[0])
+me._timestamp = real
+old = me.key
+print("rotated", me.rotate())
+print("new key", me.post(i.PROTOCOL["paths"]["exchange"], body)[0])
+print("old key", me.post(i.PROTOCOL["paths"]["exchange"], body, key=old)[0])
+i.PROTOCOL["version"] = 0
+try:
+    me.post(i.PROTOCOL["paths"]["exchange"], body)
+    print("old protocol accepted")
+except i.UpdateRequired:
+    print("old protocol refused")`,
       ],
       { env, encoding: "utf8" },
     );
+    const said = reused.stdout + reused.stderr;
+    check("a signed request is accepted", said.includes("first 200"), said.slice(-300));
+    check("the same signed request cannot be replayed", said.includes("replay 401"));
     check(
-      "the runtime pairs with a one-time code",
-      paired.status === 0,
-      (paired.stderr || paired.stdout).slice(-200),
+      "the device rotates its own key and the old key stops working",
+      said.includes("rotated True") && said.includes("new key 200") && said.includes("old key 401"),
     );
-    const reuse = spawnSync(
+    check(
+      "an out-of-date protocol fails closed with an update request",
+      said.includes("old protocol refused"),
+    );
+    device = spawn(
       "python3",
-      [
-        "jarvis-runtime/ocade_device.py",
-        "pair",
-        "--server",
-        BASE,
-        "--code",
-        code,
-        "--name",
-        "Thief",
-      ],
+      ["jarvis-runtime/ocade_device.py", "run", "--headless", "--workspace", workspace],
       {
-        env: { ...env, OCADE_JARVIS_HOME: mkdtempSync(path.join(tmpdir(), "thief-")) },
-        encoding: "utf8",
+        env,
+        stdio: ["ignore", "pipe", "pipe"],
       },
     );
-    check("the same code cannot pair twice", reuse.status !== 0);
-    device = spawn("python3", ["jarvis-runtime/ocade_device.py", "run", "--headless"], {
-      env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
     let deviceLog = "";
     device.stdout.on("data", (d) => (deviceLog += d));
     device.stderr.on("data", (d) => (deviceLog += d));
@@ -311,6 +371,171 @@ try {
       await until(async () => (await page.getByText("Online").count()) >= 1, 30_000),
     );
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
+
+    /* --- computer work: off until allowed, inside the workspace, risky asks --- */
+    await script("computer-off", [
+      { tool: "start_task", args: { title: "Write notes", where: "computer", steps: ["Write"] } },
+      { tool: "computer", args: { action: "file_write", path: "notes.md", content: "x" } },
+      { tool: "finish_task", args: { outcome: "blocked", result: "Files are off." } },
+      { text: "Files are turned off." },
+    ]);
+    await say("computer-off write my notes");
+    await idle();
+    check(
+      "computer work is refused until the person turns it on for that computer",
+      (await boundary()).turns.some((t) =>
+        t.content.includes("Files is turned off for this device"),
+      ) && !existsSync(path.join(workspace, "notes.md")),
+    );
+    await rail("Devices").click();
+    await page.getByRole("switch", { name: /Files in the workspace/ }).click();
+    await page.getByRole("switch", { name: /Run commands in the workspace/ }).click();
+    await page.getByRole("button", { name: "Close", exact: true }).first().click();
+    await script("computer-task", [
+      {
+        tool: "start_task",
+        args: { title: "Write and check notes", where: "computer", steps: ["Write", "Check"] },
+      },
+      {
+        tool: "computer",
+        args: { action: "file_write", path: "notes.md", content: "OCADE was here" },
+      },
+      { tool: "computer", args: { action: "run", command: "cat notes.md" } },
+      { tool: "computer", args: { action: "file_read", path: "../outside.txt" } },
+      { tool: "computer", args: { action: "run", command: "git push origin main" } },
+      { tool: "finish_task", args: { outcome: "completed", result: "Notes written and checked." } },
+      { text: "Your notes are written." },
+    ]);
+    await say("computer-task write and check my notes");
+    const ask = page.getByRole("alertdialog", { name: "Confirm this step" });
+    const asked = await until(async () => (await ask.count()) === 1, 60_000);
+    check(
+      "publishing (git push) waits for the person",
+      asked && (await ask.innerText()).includes("Running git push origin main"),
+    );
+    if (asked) await ask.getByRole("button", { name: "Decline", exact: true }).click();
+    await idle();
+    const computerTurns = (await boundary()).turns.map((t) => t.content).join("\n");
+    check(
+      "JARVIS writes inside the workspace on the real computer",
+      existsSync(path.join(workspace, "notes.md")) &&
+        readFileSync(path.join(workspace, "notes.md"), "utf8") === "OCADE was here",
+    );
+    check(
+      "and runs a command there, reading its real output",
+      computerTurns.includes("OCADE was here"),
+    );
+    check(
+      "a path outside the workspace is refused on the device",
+      computerTurns.includes("outside the workspace"),
+    );
+    check("the declined push never ran", computerTurns.includes("The person declined this step"));
+
+    /* --- Online capacity unavailable: a calm OCADE state, the task saved -------- */
+    const setBoundary = (status) =>
+      fetch(`${SUPABASE}/__fixture/online-boundary`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+    await script("busy-task", [
+      {
+        tool: "start_task",
+        args: { title: "Tidy the notes", where: "computer", steps: ["List", "Tidy"] },
+      },
+      { tool: "computer", args: { action: "file_list", path: "." } },
+      { tool: "computer", args: { action: "file_list", path: "." } },
+      { tool: "computer", args: { action: "file_list", path: "." } },
+      { tool: "computer", args: { action: "file_list", path: "." } },
+      { tool: "finish_task", args: { outcome: "completed", result: "Tidied." } },
+    ]);
+    await say("busy-task tidy my notes");
+    await until(
+      async () =>
+        ((turns) =>
+          turns
+            .slice(turns.findLastIndex((t) => t.content.startsWith("busy-task")))
+            .some((t) => t.content.startsWith("Called computer")))((await boundary()).turns ?? []),
+      30_000,
+    );
+    await setBoundary(429);
+    const busy = page.getByRole("status").filter({ hasText: "busy right now" });
+    check(
+      "when OCADE's capacity is used up, JARVIS says so in OCADE's words",
+      await until(async () => (await busy.count()) === 1, 60_000),
+    );
+    const busyText = await busy.innerText().catch(() => "");
+    check(
+      "without naming any provider, model or capacity slot",
+      !/online intelligence|provider|model|gemini|google|primary|secondary|tertiary|offline/i.test(
+        busyText,
+      ),
+      busyText,
+    );
+    check(
+      "the task is saved, waiting, and no new turn can start",
+      busyText.includes("your task is saved") &&
+        (await page.locator("#jarvis-composer").getAttribute("placeholder"))?.includes("busy"),
+      (await page.locator("main").innerText()).replace(/\s+/g, " ").slice(-600),
+    );
+    await setBoundary(200);
+    check(
+      "when capacity returns, JARVIS continues the saved task by itself",
+      await until(
+        async () =>
+          (await busy.count()) === 0 &&
+          (await page.getByText("Continue the task from where it stopped.").count()) >= 1,
+        90_000,
+      ),
+    );
+    await idle();
+
+    // The resumed task is still open; one computer runs one task at a time.
+    await page.getByRole("button", { name: "Stop", exact: true }).first().click();
+    await until(async () => (await page.getByText("Tidy the notes").count()) >= 0);
+    await page.waitForTimeout(1000);
+
+    /* --- Remote PC from a phone-sized screen, and the global STOP JARVIS ------- */
+    await script("remote-task", [
+      { tool: "start_task", args: { title: "Long build", where: "computer", steps: ["Build"] } },
+      { tool: "computer", args: { action: "run", command: "sleep 90" } },
+      { tool: "finish_task", args: { outcome: "completed", result: "Built." } },
+    ]);
+    await say("remote-task run the long build");
+    await until(async () => (await page.getByText("Long build").count()) >= 1, 30_000);
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+    await rail("Devices").click();
+    const remote = page.getByRole("complementary", { name: "Devices" }).last();
+    check(
+      "a phone sees what the computer is doing under Remote PC",
+      await until(async () => (await remote.getByText("Long build").count()) >= 1, 20_000),
+    );
+    await page.keyboard.press("Escape");
+    check(
+      "Escape closes the phone drawer",
+      (await page.getByRole("button", { name: "Close navigation", exact: true }).count()) === 0,
+    );
+    const stopAll = page.getByRole("button", { name: "STOP JARVIS on every device" });
+    check("one round STOP JARVIS is within reach on the phone", (await stopAll.count()) === 1);
+    await stopAll.click();
+    await idle();
+    await rail("Tasks")
+      .click()
+      .catch(() => undefined);
+    check(
+      "STOP JARVIS stops the computer's task",
+      await until(async () => {
+        const state = await page.evaluate(() => document.body.innerText);
+        return state.includes("Long build") && (await stopAll.count()) === 0;
+      }, 30_000),
+    );
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page
+      .getByRole("button", { name: "Close", exact: true })
+      .first()
+      .click()
+      .catch(() => undefined);
 
     /* --- a private address needs the person's permission first ------------- */
     await script("private-task", [
@@ -625,6 +850,8 @@ try {
         "--headless",
         "--real-browser-cdp",
         `http://127.0.0.1:${cdpPort}`,
+        "--workspace",
+        workspace,
       ],
       { env, stdio: ["ignore", "pipe", "pipe"] },
     );
@@ -663,6 +890,111 @@ try {
     check("in a tab of its own, leaving theirs alone", urls.includes(`${SITE}/second`));
     userBrowser.kill("SIGKILL");
 
+    /* --- the official extension: its own key, one click, only its own tabs ---- */
+    const extDir = mkdtempSync(path.join(tmpdir(), "ocade-ext-"));
+    spawnSync("node", ["extension/build.mjs", "--server", BASE, "--out", extDir]);
+    const chrome = await chromium.launchPersistentContext(
+      mkdtempSync(path.join(tmpdir(), "ocade-chrome-")),
+      {
+        executablePath: EXECUTABLE,
+        headless: true,
+        args: [
+          "--no-sandbox",
+          `--disable-extensions-except=${extDir}`,
+          `--load-extension=${extDir}`,
+        ],
+      },
+    );
+    try {
+      const theirs = await chrome.newPage();
+      await theirs.goto(`${SITE}/second`);
+      const worker =
+        chrome.serviceWorkers()[0] ??
+        (await chrome.waitForEvent("serviceworker", { timeout: 15_000 }));
+      const extensionId = new URL(worker.url()).host;
+      const popup = await chrome.newPage();
+      await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+      await popup.getByRole("button", { name: "Connect this browser", exact: true }).click();
+      const approval = await until(
+        () => chrome.pages().some((p) => p.url().includes("/ocade-jarvis?connect=")),
+        20_000,
+      );
+      check("the extension asks the signed-in person to approve it, with no code", approval);
+      const approveAt = chrome
+        .pages()
+        .find((p) => p.url().includes("/ocade-jarvis?connect="))
+        ?.url();
+      await popup.reload();
+      const extPrint = (await popup.locator("#fingerprint .mono").innerText()).trim();
+      await page.goto(approveAt, { waitUntil: "networkidle" });
+      check(
+        "OCADE shows the extension's own key fingerprint",
+        (await page.getByTestId("device-fingerprint").innerText()) === extPrint,
+      );
+      await page.getByRole("button", { name: "Connect", exact: true }).click();
+      await popup.reload();
+      check(
+        "the extension connects",
+        await until(async () => {
+          await popup.reload();
+          return (await popup.getByRole("status").innerText()).includes("Connected");
+        }, 40_000),
+      );
+      await rail("Devices").click();
+      const laptopCard = page.locator("li", { hasText: "Proof laptop" });
+      if (await laptopCard.getByRole("switch", { name: /Use my own browser/ }).isChecked()) {
+        await laptopCard.getByRole("switch", { name: /Use my own browser/ }).click();
+      }
+      const extCard = page.locator("li", { hasText: "Browser extension" });
+      check(
+        "the extension shows as its own device",
+        await until(async () => (await extCard.count()) === 1, 40_000),
+        String(await extCard.count()),
+      );
+      await extCard.getByRole("switch", { name: /Use my own browser/ }).click();
+      await page.getByRole("button", { name: "Close", exact: true }).first().click();
+      await script("ext-task", [
+        {
+          tool: "start_task",
+          args: { title: "Open the lamp", where: "browser", steps: ["Open", "Click"] },
+        },
+        { tool: "browser", args: { action: "open", url: `${SITE}/shop` } },
+        { tool: "browser", args: { action: "click", name: "Lamp" } },
+        { tool: "finish_task", args: { outcome: "completed", result: "Opened the lamp." } },
+        { text: "Done in your browser." },
+      ]);
+      const lampBefore = hits.filter((h) => h === "/lamp").length;
+      await say("ext-task open the lamp in chrome");
+      await idle();
+      const tabs = chrome.pages().map((p) => p.url());
+      check(
+        "the task ran through the extension, in a tab it opened",
+        hits.filter((h) => h === "/lamp").length > lampBefore && tabs.includes(`${SITE}/lamp`),
+        tabs.join(" "),
+      );
+      check(
+        "the person's own tab was never touched",
+        theirs.url() === `${SITE}/second` &&
+          !theirs.isClosed() &&
+          (await theirs.evaluate(
+            () => !window.__ocade && !document.querySelector("[data-ocade-ref]"),
+          )),
+      );
+      await popup.getByRole("button", { name: "Disconnect this browser", exact: true }).click();
+      await rail("Devices").click();
+      check(
+        "Disconnect in the extension removes it from OCADE as well",
+        await until(async () => {
+          await page.reload({ waitUntil: "networkidle" });
+          await rail("Devices").click();
+          return (await page.locator("li", { hasText: "Browser extension" }).count()) === 0;
+        }, 30_000),
+      );
+      await page.getByRole("button", { name: "Close", exact: true }).first().click();
+    } finally {
+      await chrome.close();
+    }
+
     /* --- deleting a JARVIS conversation ----------------------------------------- */
     await rail("Conversations").click();
     const before = await page.getByRole("button", { name: /^Delete / }).count();
@@ -686,7 +1018,9 @@ try {
     const exited = await until(() => device.exitCode !== null, 30_000);
     check(
       "a removed device loses access at once",
-      exited && deviceLog.includes("no longer paired"),
+      exited &&
+        deviceLog.includes("no longer connected") &&
+        !existsSync(path.join(deviceHome, "device.key")),
       deviceLog.slice(-160),
     );
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
@@ -713,7 +1047,17 @@ try {
   await speech.addInitScript(
     ([key, value]) => {
       window.localStorage.setItem(key, value);
+      window.__micAsks = 0;
+      const media = navigator.mediaDevices;
+      const ask = media.getUserMedia.bind(media);
+      media.getUserMedia = (constraints) => {
+        window.__micAsks += 1;
+        return ask(constraints);
+      };
       class Recogniser {
+        static available() {
+          return Promise.resolve(window.__local === false ? "unavailable" : "available");
+        }
         start() {
           window.__recogniser = this;
         }
@@ -734,7 +1078,15 @@ try {
   );
   const talker = await speech.newPage();
   await talker.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
+  check(
+    "JARVIS opens text-only: no microphone request before Voice is pressed",
+    (await talker.evaluate(() => window.__micAsks)) === 0,
+  );
   await talker.getByRole("button", { name: "Start voice", exact: true }).click();
+  check(
+    "the microphone is requested when Voice is first used",
+    (await talker.evaluate(() => window.__micAsks)) === 1,
+  );
   const bar = talker.getByRole("status").filter({ hasText: /Listening|Paused|Speaking/ });
   check("voice starts listening", await until(async () => (await bar.innerText()) === "Listening"));
   await talker.getByRole("button", { name: "Pause", exact: true }).click();
@@ -743,6 +1095,13 @@ try {
   check("Continue resumes", (await bar.innerText()) === "Listening");
   await talker.getByRole("button", { name: "Interrupt", exact: true }).click();
   check("Interrupt returns to listening", (await bar.innerText()) === "Listening");
+  await talker.evaluate(() => window.__say("Pause"));
+  check(
+    "a spoken Pause pauses, and is not sent as a message",
+    (await until(async () => (await bar.innerText()) === "Paused")) &&
+      (await talker.getByText("Pause", { exact: true }).count()) === 0,
+  );
+  await talker.getByRole("button", { name: "Continue", exact: true }).click();
   await talker.getByRole("button", { name: "End", exact: true }).click();
   check(
     "End ends voice",
@@ -750,6 +1109,10 @@ try {
   );
   await talker.getByRole("button", { name: "Start voice", exact: true }).click();
   await talker.getByRole("checkbox", { name: /Hey OCADE/ }).check();
+  check(
+    "waiting for Hey OCADE runs on the on-device recogniser only",
+    await until(() => talker.evaluate(() => window.__recogniser?.processLocally === true)),
+  );
   await talker.evaluate(() => window.__say("tell me a secret"));
   await talker.waitForTimeout(1500);
   check(
@@ -787,15 +1150,67 @@ try {
     )) && (await talker.getByRole("button", { name: "Start voice", exact: true }).count()) === 1,
   );
   blocked("real speech service", "the browser's own recognition service is not reachable here");
+  const woken = await speech.newPage();
+  await woken.goto(`${BASE}/ocade-jarvis?voice=1`, { waitUntil: "networkidle" });
+  check(
+    '"Hey OCADE" on the computer opens JARVIS already listening',
+    (await until(
+      async () => (await woken.getByRole("status").filter({ hasText: "Listening" }).count()) === 1,
+    )) && !woken.url().includes("voice=1"),
+    `${woken.url()} ${(await woken.locator("body").innerText()).replace(/\s+/g, " ").slice(-300)}`,
+  );
+  await woken.close();
+  const cloudOnly = await speech.newPage();
+  await cloudOnly.addInitScript(() => (window.__local = false));
+  await cloudOnly.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
+  await cloudOnly.getByRole("button", { name: "Start voice", exact: true }).click();
+  check(
+    "without an on-device recogniser, Hey OCADE cannot be turned on",
+    await cloudOnly.getByRole("checkbox", { name: /Hey OCADE/ }).isDisabled(),
+  );
   await speech.close();
 
-  /* --- theme and layouts ------------------------------------------------------ */
-  await page.getByRole("button", { name: /theme/ }).first().click();
+  /* --- navigation, Settings, Orb Focus and layouts ------------------------------ */
   check(
-    "the theme switches",
-    await page.evaluate(() => document.documentElement.classList.contains("light")),
+    "the rail has exactly Conversations, Tasks, Activity, Allowed Apps and Devices",
+    (await page.getByRole("button", { name: "History", exact: true }).count()) === 0 &&
+      (await page.getByRole("button", { name: "Plugins", exact: true }).count()) === 0 &&
+      (await page.getByRole("button", { name: /theme/i }).count()) === 0,
   );
-  await page.getByRole("button", { name: /theme/ }).first().click();
+  await rail("Settings").click();
+  check(
+    "Settings opens OCADE's own Settings",
+    await until(async () => (await page.getByRole("dialog").count()) >= 1),
+  );
+  await page.keyboard.press("Escape");
+  // Double-click the empty space beside the conversation: the orb's space.
+  const box = await page.getByRole("region", { name: "Conversation" }).boundingBox();
+  await page.mouse.dblclick(box.x + 6, box.y + box.height / 2);
+  const header = page.locator("main header");
+  check(
+    "double-click enters Orb Focus",
+    (await page.getByRole("button", { name: "Leave focus", exact: true }).count()) === 1,
+    await page.evaluate(
+      ([x, y]) => document.elementFromPoint(x, y)?.outerHTML.slice(0, 200),
+      [box.x + 6, box.y + box.height / 2],
+    ),
+  );
+  await page.waitForTimeout(8600);
+  check(
+    "in Orb Focus the controls fade after eight quiet seconds",
+    (await header.evaluate((el) => getComputedStyle(el).opacity)) === "0",
+  );
+  await page.mouse.move(300, 300);
+  await page.waitForTimeout(700);
+  check(
+    "and come back on movement",
+    (await header.evaluate((el) => getComputedStyle(el).opacity)) === "1",
+  );
+  await page.keyboard.press("Escape");
+  check(
+    "Escape leaves Orb Focus",
+    (await page.getByRole("button", { name: "Focus orb", exact: true }).count()) === 1,
+  );
   for (const width of [375, 360, 820]) {
     await page.setViewportSize({ width, height: 800 });
     await page.waitForTimeout(300);

@@ -1,13 +1,18 @@
 """
 OCADE JARVIS device runtime — the active entry point of the working engine.
 
-It pairs this machine with an OCADE account, then runs the browser actions a
-JARVIS task queues for it. It holds no provider key and makes no model call:
+It connects this machine to an OCADE account, then runs the actions a JARVIS
+task queues for it. It holds no provider key and makes no model call:
 intelligence stays in OCADE's Online authority, and this process only executes
 and observes.
 
-    python ocade_device.py pair --server https://ocade.in --code ABCD-2345
+    python ocade_device.py connect --server https://ocade.in     # one click in OCADE, no codes
     python ocade_device.py run [--headless] [--real-browser-cdp http://127.0.0.1:9222]
+    python ocade_device.py forget                                  # remove this device's key
+
+`run` connects first when this machine is not connected yet. The device's own
+key (see ocade_identity.py) is the only credential; removing the device in OCADE
+ends its access at once and this process then deletes the local key.
 
 `--real-browser-cdp` is the explicit on-device authorization for the user's own
 browser (started by the user with --remote-debugging-port). Without it only the
@@ -20,38 +25,37 @@ import json
 import os
 import platform
 import sys
+import threading
 import time
 import urllib.error
-import urllib.request
+import webbrowser
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from ocade_computer import Computer, installed_apps  # noqa: E402
+from ocade_identity import SOFTWARE_VERSION, Identity, NotEnrolled, UpdateRequired  # noqa: E402
+
+BROWSER_ACTIONS = {"observe", "look", "open", "new_tab", "click", "type", "select", "press",
+                   "scroll", "switch_tab", "close_tab", "back", "forward", "wait", "click_at"}
+APPS_EVERY_S = 3600
+
 HOME = Path(os.environ.get("OCADE_JARVIS_HOME", Path.home() / ".ocade_jarvis"))
-CREDENTIAL = HOME / "device.json"
 POLL_IDLE_SECONDS = 1.0
 
 
-def _post(server: str, path: str, body: dict, token: str | None = None) -> dict:
-    request = urllib.request.Request(
-        server.rstrip("/") + path,
-        data=json.dumps(body).encode(),
-        headers={"Content-Type": "application/json",
-                 **({"Authorization": f"Bearer {token}"} if token else {})},
-        method="POST",
-    )
-    with urllib.request.urlopen(request, timeout=40) as response:
-        return json.loads(response.read().decode() or "{}")
-
-
-def pair(server: str, code: str, name: str) -> None:
-    reply = _post(server, "/api/jarvis/pair",
-                  {"code": code, "name": name, "platform": platform.system()[:60]})
-    HOME.mkdir(parents=True, exist_ok=True)
-    CREDENTIAL.write_text(json.dumps({"server": server, "token": reply["token"],
-                                      "deviceId": reply["deviceId"]}))
-    CREDENTIAL.chmod(0o600)
-    print(f"Paired as {name}. Run: python ocade_device.py run")
+def connect(server: str, name: str, open_browser: bool = True) -> Identity:
+    identity = Identity(HOME)
+    request = identity.enroll(server, name, platform.system()[:60])
+    print(f"Confirm this computer in OCADE: {request['url']}", flush=True)
+    print(f"It should show the fingerprint {request['fingerprint']}.", flush=True)
+    if open_browser:
+        webbrowser.open(request["url"])
+    if not identity.wait_for_approval():
+        identity.forget()
+        raise SystemExit("The connection was not approved. Nothing was kept.")
+    print(f"Connected as {name}.", flush=True)
+    return identity
 
 
 class Browsers:
@@ -66,9 +70,7 @@ class Browsers:
         self.sessions: dict = {}
 
     def capabilities(self) -> dict:
-        # Only what this runtime can genuinely execute today.
-        return {"browser_isolated": True, "browser_real": bool(self.cdp),
-                "computer_control": False, "files": False, "screen": False}
+        return {"browser_isolated": True, "browser_real": bool(self.cdp)}
 
     def run(self, mode: str, action: dict, confirmed: bool) -> dict:
         if mode == "real" and not self.cdp:
@@ -88,59 +90,136 @@ class Browsers:
             return None
 
 
-def run(headless: bool, cdp: str | None) -> None:
-    held = json.loads(CREDENTIAL.read_text())
-    server, token = held["server"], held["token"]
-    browsers = Browsers(headless, cdp)
-    results: list[dict] = []
-    frame: dict | None = None
-    print(f"OCADE JARVIS device running for {server}. Ctrl+C to stop.")
-    while True:
+class Agent:
+    """
+    The exchange loop, with the lifecycle the roadmap sets: busy while a task is
+    open, dormant otherwise (one quiet check every few seconds), results kept on
+    disk until OCADE has them, and an explicit global Stop.
+    """
+
+    DORMANT_S = 5.0
+
+    def __init__(self, identity: Identity, headless: bool, cdp: str | None, workspace: str | None):
+        self.identity = identity
+        self.browsers = Browsers(headless, cdp)
+        self.computer = Computer(workspace)
+        self.stop = threading.Event()
+        self.stop_all = threading.Event()
+        self.state = {"busy": False, "background": False, "connected": True, "update": False,
+                      "task": None}
+        self.pending_path = identity.home / "pending.json"
+
+    def _load_pending(self) -> list[dict]:
+        # Results finished before a crash, a reboot or a lost connection still reach OCADE.
         try:
-            reply = _post(server, "/api/jarvis/device",
-                          {"results": results, "frame": frame,
-                           "capabilities": browsers.capabilities()}, token)
-        except urllib.error.HTTPError as e:
-            if e.code in (401, 403):
-                print("This device is no longer paired. Pair it again from OCADE JARVIS.")
-                return
-            if e.code == 400:  # a malformed report is dropped, never resent forever
-                results, frame = [], None
-            time.sleep(3)
-            continue
-        except (urllib.error.URLError, TimeoutError):
-            time.sleep(3)
-            continue
-        results, frame = [], None
-        for command in reply.get("commands", []):
-            mode = command.get("mode", "isolated")
+            return json.loads(self.pending_path.read_text())
+        except (OSError, ValueError):
+            return []
+
+    def _keep_pending(self, results: list[dict]) -> None:
+        if results:
+            self.pending_path.write_text(json.dumps(results))
+            self.pending_path.chmod(0o600)
+        else:
+            self.pending_path.unlink(missing_ok=True)
+
+    def run(self) -> int:
+        results = self._load_pending()
+        frame: dict | None = None
+        apps_sent = 0.0
+        while not self.stop.is_set():
+            body = {"results": results, "frame": frame,
+                    "capabilities": {**self.browsers.capabilities(), **self.computer.capabilities()},
+                    "softwareVersion": SOFTWARE_VERSION}
+            if self.stop_all.is_set():
+                body["stop"] = True
+            if not apps_sent or time.monotonic() - apps_sent > APPS_EVERY_S:
+                body["apps"] = [app["name"] for app in installed_apps()]
             try:
-                outcome = browsers.run(mode, command["action"], bool(command.get("confirmed")))
-            except Exception as e:  # a crashed action is reported, never retried blindly
-                outcome = {"status": "failed", "summary": f"The browser action failed: {str(e)[:160]}"}
-            live = (outcome.get("observation") or {}).pop("frame", None) or browsers.frame(mode)
-            results.append({"id": command["id"], **outcome})
-            if live:
-                frame = {"taskId": command["taskId"], "jpeg": live}
-        if not reply.get("commands"):
-            time.sleep(POLL_IDLE_SECONDS)
+                reply = self.identity.exchange(body)
+            except NotEnrolled:
+                self.identity.forget()
+                self.pending_path.unlink(missing_ok=True)
+                self.state["connected"] = False
+                print("This device is no longer connected. Its key was removed.", flush=True)
+                return 2
+            except UpdateRequired:
+                self.state["update"] = True
+                print("OCADE needs a newer Device Agent. Nothing more runs until it updates.", flush=True)
+                return 3
+            except (urllib.error.URLError, TimeoutError, ConnectionError, OSError):
+                self._keep_pending(results)
+                self.stop.wait(3)
+                continue
+            self.state["reached"] = True
+            if "apps" in body:
+                apps_sent = time.monotonic()
+            if body.get("stop"):
+                self.stop_all.clear()
+            self.state.update(busy=bool(reply.get("busy")), background=bool(reply.get("background")),
+                              task=reply.get("task"))
+            results, frame = [], None
+            self._keep_pending(results)
+            for command in reply.get("commands", []):
+                if self.stop.is_set():
+                    break
+                outcome, live = self._execute(command)
+                results.append(outcome)
+                self._keep_pending(results)
+                if live:
+                    frame = {"taskId": command["taskId"], "jpeg": live}
+            if not reply.get("commands"):
+                self.stop.wait(POLL_IDLE_SECONDS if self.state["busy"] else self.DORMANT_S)
+        return 0
+
+    def _execute(self, command: dict) -> tuple[dict, str | None]:
+        mode = command.get("mode", "isolated")
+        action = command["action"]
+        confirmed = bool(command.get("confirmed"))
+        browser = action.get("action") in BROWSER_ACTIONS
+        try:
+            outcome = (self.browsers.run(mode, action, confirmed) if browser else
+                       self.computer.run(action, confirmed, bool(command.get("cowork"))))
+        except Exception as e:  # a crashed action is reported, never retried blindly
+            outcome = {"status": "failed", "summary": f"The action failed: {str(e)[:160]}"}
+        live = (outcome.get("observation") or {}).pop("frame", None) or (
+            self.browsers.frame(mode) if browser else None)
+        core = {k: outcome.pop(k) for k in ("status", "summary", "changed", "observation") if k in outcome}
+        return {"id": command["id"], **core, **({"detail": outcome} if outcome else {})}, live
+
+
+def run(headless: bool, cdp: str | None, server: str | None, workspace: str | None = None) -> int:
+    identity = Identity(HOME)
+    if not identity.connected:
+        if not server:
+            raise SystemExit("This computer is not connected. Run: ocade_device.py connect --server URL")
+        identity = connect(server, platform.node()[:120] or "My computer")
+    print(f"OCADE JARVIS device running for {identity.meta['server']}. Ctrl+C to stop.", flush=True)
+    return Agent(identity, headless, cdp, workspace).run()
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="ocade_device")
     sub = parser.add_subparsers(dest="command", required=True)
-    p = sub.add_parser("pair")
-    p.add_argument("--server", required=True)
-    p.add_argument("--code", required=True)
-    p.add_argument("--name", default=platform.node()[:120] or "My computer")
+    c = sub.add_parser("connect")
+    c.add_argument("--server", required=True)
+    c.add_argument("--name", default=platform.node()[:120] or "My computer")
+    c.add_argument("--no-browser", action="store_true", help="print the link instead of opening it")
     r = sub.add_parser("run")
+    r.add_argument("--server", default=None, help="connect to this OCADE first if needed")
     r.add_argument("--headless", action="store_true")
     r.add_argument("--real-browser-cdp", default=None)
+    r.add_argument("--workspace", default=None,
+                   help="the one folder JARVIS may read, change and run commands in")
+    sub.add_parser("forget")
     args = parser.parse_args()
-    if args.command == "pair":
-        pair(args.server, args.code, args.name)
+    if args.command == "connect":
+        connect(args.server, args.name, open_browser=not args.no_browser)
+    elif args.command == "forget":
+        Identity(HOME).forget()
+        print("This computer's OCADE key was removed.")
     else:
-        run(args.headless, args.real_browser_cdp)
+        sys.exit(run(args.headless, args.real_browser_cdp, args.server, args.workspace))
 
 
 if __name__ == "__main__":

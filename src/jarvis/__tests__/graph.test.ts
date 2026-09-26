@@ -10,6 +10,7 @@ const empty: JarvisState = {
   memories: [],
   activity: [],
   sites: [],
+  apps: [],
   usage: null,
 };
 
@@ -37,6 +38,7 @@ describe("the orb graph", () => {
           blocker: null,
           result: "Private result text",
           browser_mode: "isolated",
+          checkpoint: null,
           created_at: at,
           updated_at: at,
         },
@@ -50,6 +52,9 @@ describe("the orb graph", () => {
           last_seen_at: at,
           revoked_at: null,
           created_at: at,
+          kind: "agent",
+          software_version: null,
+          background_enabled: false,
           online: true,
         },
       ],

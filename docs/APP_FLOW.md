@@ -59,7 +59,7 @@ Permissions open in a focused drawer/modal.
 
 ## Voice flow
 
-1. JARVIS requests microphone permission when the user first enters JARVIS.
+1. JARVIS opens text-only and requests microphone permission only when the user first presses Voice.
 2. The user may type or use voice in the same JARVIS context.
 3. Hey OCADE is the default wake phrase where supported.
 4. Voice mode animates the orb.
@@ -88,3 +88,50 @@ Permissions open in a focused drawer/modal.
 Every async JARVIS operation terminates in success, bounded progress, stopped/cancelled, permission required, blocked, retryable error, or terminal error.
 
 No JARVIS task may remain in an endless spinner or ambiguous active state.
+
+## Device setup flow
+
+1. The user requests a capability that needs deep PC control.
+2. OCADE offers Set up this PC.
+3. One installer handles the trusted Device Agent setup automatically.
+4. The same signed-in OCADE account enrolls the device without user-managed codes/tokens.
+5. OCADE creates a unique cryptographic device identity, records the device and shows a new-device security notification.
+6. Required OS permissions are requested in simple customer language.
+7. The device becomes available in Devices.
+
+## Desktop-control flow
+
+1. A task chooses the strongest supported native/direct control method.
+2. One task obtains the device UI-control lease.
+3. JARVIS re-observes before coordinate fallback and after meaningful state changes.
+4. Physical user mouse/keyboard input pauses JARVIS.
+5. Continue re-observes before resuming.
+6. High-impact/system-changing actions request approval.
+7. STOP JARVIS immediately releases active automation.
+
+## Browser-extension flow
+
+1. OCADE uses its safe browser context by default.
+2. When an existing authenticated Chrome session is required, JARVIS uses the official authorized extension path.
+3. The extension controls only its authorized tab/session.
+4. CAPTCHA, OTP, passkey and equivalent boundaries hand control to the person.
+
+## Background/recovery flow
+
+1. An explicitly started/scheduled task may continue after the website closes.
+2. Safe local-only steps may continue through temporary network loss.
+3. JARVIS checkpoints before boundaries and pauses Online-dependent work.
+4. Reconnect/reboot restores state.
+5. Safe next steps may resume automatically; sensitive next steps request approval.
+
+## Mobile Remote PC flow
+
+1. Android/iPhone/iPad opens OCADE as web/PWA.
+2. The user selects a paired PC in Devices/Remote PC.
+3. Mobile can start, stop, observe and control the PC task.
+4. The phone browser may be minimized; execution continues on the PC Agent.
+5. Unsupported mobile OS-wide control is not simulated.
+
+## Voice update
+
+JARVIS opens text-only. Microphone access is requested on first Voice use, not on route entry. Optional PC `Hey OCADE` requires explicit Background/Wake Mode for closed-browser operation.

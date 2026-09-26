@@ -596,7 +596,7 @@ function jarvisStep(messages) {
   ).length;
   const step = jarvisScript.steps[taken];
   if (!step) return { text: "Nothing more to do." };
-  if (!step.args?.name) return step;
+  if (step.tool !== "browser" || !step.args?.name) return step;
   // The newest browser result that carries an observation: a declined or
   // refused step returns none, and the page it left is still the one on screen.
   let observation = null;
@@ -623,7 +623,15 @@ const jarvisTables = {};
 
 /** Column defaults the migration gives JARVIS rows. */
 const JARVIS_DEFAULTS = {
-  jarvis_devices: { name: "New device", capabilities: {}, revoked_at: null, last_seen_at: null },
+  jarvis_devices: {
+    name: "New device",
+    capabilities: {},
+    revoked_at: null,
+    last_seen_at: null,
+    kind: "agent",
+    last_request_ms: 0,
+    background_enabled: false,
+  },
   jarvis_tasks: {
     status: "running",
     current_step: 0,

@@ -1,5 +1,6 @@
 /** The rail's sections, the Permissions drawer and the graph node panel. */
 import { Fragment, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Trash2, X } from "lucide-react";
 import { deleteConversation } from "@/lib/ocade.functions";
 import { toast } from "sonner";
@@ -8,18 +9,21 @@ import { FINISHED, hostOf, type Capability } from "./protocol";
 import { isAllowed } from "./permissions";
 import type { GraphNode } from "./graph";
 import {
-  createJarvisPairing,
+  approveJarvisDevice,
+  declineJarvisDevice,
   forgetJarvis,
+  readJarvisEnrollment,
   revokeJarvisDevice,
+  setJarvisBackground,
   setJarvisPermission,
+  updateJarvisTask,
   type JarvisState,
 } from "./jarvis.functions";
 
-export type Section = "conversations" | "history" | "tasks" | "activity" | "apps" | "devices";
+export type Section = "conversations" | "tasks" | "activity" | "apps" | "devices";
 
 const TITLES: Record<Section, string> = {
   conversations: "Conversations",
-  history: "History",
   tasks: "Tasks",
   activity: "Activity",
   apps: "Allowed Apps",
@@ -33,7 +37,7 @@ const when = (iso: string) =>
 
 async function decide(
   capability: string,
-  allowed: boolean,
+  allowed: boolean | null,
   deviceId: string | null,
   done: () => void,
 ) {
@@ -144,19 +148,27 @@ function SectionBody({
   onChanged: () => void;
 }) {
   const [opened, setOpened] = useState<string | null>(null);
-  const [pairing, setPairing] = useState<{ code: string; expiresAt: string } | null>(null);
 
   if (section === "conversations" || section === "tasks") {
     const list =
       section === "conversations"
         ? state.conversations
             .filter((c) => !c.archived)
-            .map((c) => ({ id: c.id, title: c.title, sub: when(c.updated_at), open: c.id }))
+            .map((c) => ({
+              id: c.id,
+              title: c.title,
+              sub: when(c.updated_at),
+              open: c.id,
+              result: null as string | null,
+            }))
         : state.tasks.map((t) => ({
             id: t.id,
             title: t.title,
-            sub: `${t.status.replace("_", " ")} · step ${Math.min(t.current_step + 1, Math.max(1, t.plan.length))} of ${Math.max(1, t.plan.length)}`,
+            sub: FINISHED.includes(t.status)
+              ? `${t.status.replace("_", " ")} · ${when(t.updated_at)}`
+              : `${t.status.replace("_", " ")} · step ${Math.min(t.current_step + 1, Math.max(1, t.plan.length))} of ${Math.max(1, t.plan.length)}`,
             open: t.conversation_id,
+            result: t.result,
           }));
     if (list.length === 0) {
       return <p className="text-muted-foreground">Nothing here yet.</p>;
@@ -164,7 +176,7 @@ function SectionBody({
     return (
       <ul className="flex flex-col gap-0.5">
         {list.map((item) => (
-          <li key={item.id} className="flex items-center gap-1">
+          <li key={item.id} className="flex flex-wrap items-center gap-1">
             <button
               type="button"
               onClick={() => onOpenConversation(item.open)}
@@ -192,32 +204,14 @@ function SectionBody({
                 <Trash2 className="h-4 w-4" aria-hidden />
               </button>
             ) : null}
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  if (section === "history") {
-    const done = state.tasks.filter((t) => FINISHED.includes(t.status));
-    if (done.length === 0)
-      return <p className="text-muted-foreground">Finished tasks appear here.</p>;
-    return (
-      <ul className="flex flex-col gap-2">
-        {done.map((t) => (
-          <li key={t.id} className="rounded-md border border-border/60 p-2">
-            <p className="truncate font-medium">{t.title}</p>
-            <p className="text-xs text-muted-foreground">
-              {t.status} · {when(t.updated_at)}
-            </p>
-            {t.result ? (
-              opened === t.id ? (
-                <p className="mt-1 whitespace-pre-wrap text-xs">{t.result}</p>
+            {item.result ? (
+              opened === item.id ? (
+                <p className="w-full whitespace-pre-wrap px-2 pb-1 text-xs">{item.result}</p>
               ) : (
                 <button
                   type="button"
-                  onClick={() => setOpened(t.id)}
-                  className="mt-1 text-xs underline underline-offset-2"
+                  onClick={() => setOpened(item.id)}
+                  className="px-2 pb-1 text-xs underline underline-offset-2"
                 >
                   Show result
                 </button>
@@ -303,17 +297,99 @@ function SectionBody({
         <p className="mt-1 text-xs text-muted-foreground">
           Addresses on your own network need your permission first.
         </p>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Apps on your computer or phone: not available yet.
+        <h3 className="mt-4 text-sm font-medium">Apps on your computers</h3>
+        <p className="mb-2 text-xs text-muted-foreground">
+          Found by the OCADE Device Agent. Always opens without asking; Ask waits for you; Never is
+          refused.
         </p>
+        {state.apps.length === 0 ? (
+          <p className="text-muted-foreground">No computer has reported its apps yet.</p>
+        ) : null}
+        <ul className="flex flex-col gap-1">
+          {state.apps.map((app) => (
+            <li key={app.name} className="flex items-center gap-2">
+              <label htmlFor={`app-${app.name}`} className="min-w-0 flex-1 truncate">
+                {app.name}
+              </label>
+              <select
+                id={`app-${app.name}`}
+                value={app.rule}
+                onChange={(event) =>
+                  void decide(
+                    `app:${app.name.toLowerCase()}`,
+                    event.target.value === "always"
+                      ? true
+                      : event.target.value === "never"
+                        ? false
+                        : null,
+                    null,
+                    onChanged,
+                  )
+                }
+                className="rounded-md border border-border/60 bg-background px-1 py-0.5 text-xs"
+              >
+                <option value="always">Always</option>
+                <option value="ask">Ask</option>
+                <option value="never">Never</option>
+              </select>
+            </li>
+          ))}
+        </ul>
       </>
     );
   }
 
   // Devices
   const devices = state.devices.filter((d) => !d.revoked_at && d.last_seen_at);
+  const openTasks = state.tasks.filter((t) => !FINISHED.includes(t.status) && t.device_id);
   return (
     <>
+      <h3 className="mb-1 text-sm font-medium">Remote PC</h3>
+      <p className="mb-2 text-xs text-muted-foreground">
+        What JARVIS is doing on your computers, from any device. Each computer does one task at a
+        time.
+      </p>
+      {openTasks.length === 0 ? (
+        <p className="mb-3 text-muted-foreground">No computer is working on a task.</p>
+      ) : (
+        <ul className="mb-3 flex flex-col gap-2">
+          {openTasks.map((t) => {
+            const on = devices.find((d) => d.id === t.device_id);
+            return (
+              <li key={t.id} className="rounded-md border border-border/60 p-2">
+                <p className="truncate font-medium">{t.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {on ? `${on.name} · ${on.online ? "Online" : "Offline"} · ` : ""}
+                  {t.status.replace("_", " ")} · step{" "}
+                  {Math.min(t.current_step + 1, Math.max(1, t.plan.length))} of{" "}
+                  {Math.max(1, t.plan.length)}
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onOpenConversation(t.conversation_id)}
+                    className="rounded-md border border-border px-2 py-1 text-xs"
+                  >
+                    Open
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void updateJarvisTask({ data: { id: t.id, status: "stopped" } })
+                        .then(onChanged)
+                        .catch(() => toast.error("That task could not be stopped."))
+                    }
+                    className="rounded-md bg-foreground px-2 py-1 text-xs text-background"
+                  >
+                    Stop
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <h3 className="mb-1 text-sm font-medium">Connected</h3>
       {devices.length === 0 ? (
         <p className="text-muted-foreground">
           No device is connected. Browser tasks run on a connected computer.
@@ -326,6 +402,7 @@ function SectionBody({
             <p className="text-xs text-muted-foreground">
               {d.online ? "Online" : "Offline"}
               {d.platform ? ` · ${d.platform}` : ""}
+              {d.kind === "extension" ? " · Browser extension" : ""}
             </p>
             <Toggle
               label="Browser control"
@@ -339,9 +416,38 @@ function SectionBody({
               checked={isAllowed(state.permissions, "browser_real", d.id)}
               onChange={(allowed) => void decide("browser_real", allowed, d.id, onChanged)}
             />
-            <p className="text-xs text-muted-foreground">
-              Computer control, files and screen: not available yet.
-            </p>
+            {d.kind === "agent"
+              ? COMPUTER_TOGGLES.map(([capability, label, hint]) => (
+                  <Toggle
+                    key={capability}
+                    label={label}
+                    hint={d.capabilities[capability] ? hint : "Not available on this computer"}
+                    disabled={!d.capabilities[capability]}
+                    checked={isAllowed(state.permissions, capability, d.id)}
+                    onChange={(allowed) => void decide(capability, allowed, d.id, onChanged)}
+                  />
+                ))
+              : null}
+            {d.kind === "agent" ? (
+              <Toggle
+                label="Background Mode"
+                hint="This computer stays ready after you close OCADE here, so you can continue or stop its task from another device."
+                checked={d.background_enabled}
+                onChange={(enabled) =>
+                  void setJarvisBackground({ data: { id: d.id, enabled } })
+                    .then(onChanged)
+                    .catch(() => toast.error("That could not be saved."))
+                }
+              />
+            ) : null}
+            {d.kind === "agent" ? (
+              <Toggle
+                label="Co-work"
+                hint="Your own mouse and keyboard do not pause JARVIS on this computer."
+                checked={isAllowed(state.permissions, "cowork", d.id)}
+                onChange={(allowed) => void decide("cowork", allowed, d.id, onChanged)}
+              />
+            ) : null}
             <button
               type="button"
               onClick={() =>
@@ -356,46 +462,31 @@ function SectionBody({
           </li>
         ))}
       </ul>
-      <div className="mt-3 rounded-md border border-border/60 p-2">
-        {pairing ? (
-          <>
-            <p className="text-xs text-muted-foreground">On the computer, run:</p>
-            <code className="mt-1 block break-all rounded bg-secondary px-2 py-1 text-xs">
-              python ocade_device.py pair --server {window.location.origin} --code {pairing.code}
-            </code>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Code <span data-testid="pairing-code">{pairing.code}</span> works once, until{" "}
-              {when(pairing.expiresAt)}.
-            </p>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() =>
-              void createJarvisPairing()
-                .then((value) => {
-                  setPairing(value);
-                  onChanged();
-                })
-                .catch(() => toast.error("A pairing code could not be created."))
-            }
-            className="w-full rounded-md bg-primary px-3 py-1.5 text-primary-foreground"
-          >
-            Connect a device
-          </button>
-        )}
+      <div className="mt-3 rounded-md border border-border/60 p-2 text-xs text-muted-foreground">
+        <p className="font-medium text-foreground">Connect a computer</p>
+        <p className="mt-1">
+          Start the OCADE Device Agent on the computer. It opens OCADE here so you can confirm it
+          with one click — no codes or passwords. Each computer gets its own key, and you can remove
+          it at any time.
+        </p>
+        <p className="mt-1">The signed installer for Windows and macOS is not published yet.</p>
       </div>
     </>
   );
 }
 
 const UNAVAILABLE: [Capability, string][] = [
-  ["files", "Files"],
-  ["screen", "Screen"],
   ["camera", "Camera"],
-  ["apps", "Apps on your computer"],
   ["messaging", "Messaging"],
-  ["computer_control", "Computer control"],
+];
+
+/** Per-computer capabilities, each off until the person turns it on for that computer. */
+const COMPUTER_TOGGLES: [Capability, string, string][] = [
+  ["apps", "Open apps", "Only apps this computer found; Allowed Apps decides which."],
+  ["files", "Files in the workspace", "Only inside the folder chosen on the computer."],
+  ["terminal", "Run commands in the workspace", "Publishing, deleting or installing asks first."],
+  ["screen", "See the screen", "Used when nothing more direct works."],
+  ["computer_control", "Mouse and keyboard", "Your own input pauses JARVIS until you continue."],
 ];
 
 export function PermissionsDrawer({
@@ -595,5 +686,97 @@ export function NodePanel({
         <p className="mt-2 whitespace-pre-wrap text-xs">{memory.content}</p>
       ) : null}
     </section>
+  );
+}
+
+/**
+ * One click to connect a device the person is setting up right now. The
+ * fingerprint is shown so it can be compared with the one the device shows;
+ * "Not mine" deletes the request.
+ */
+export function ConnectDevice({
+  id,
+  onDone,
+}: {
+  id: string;
+  onDone: (connected: boolean) => void;
+}) {
+  const request = useQuery({
+    queryKey: ["jarvis", "enrollment", id],
+    queryFn: () => readJarvisEnrollment({ data: { id } }),
+  });
+  const [busy, setBusy] = useState(false);
+  const row = request.data;
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-label="Connect a device"
+        className="w-full max-w-sm rounded-xl bg-background p-4 text-sm"
+      >
+        {request.isLoading ? (
+          <p className="text-muted-foreground">Checking the request…</p>
+        ) : !row ? (
+          <>
+            <p>This connection request has expired or was already used.</p>
+            <button
+              type="button"
+              onClick={() => onDone(false)}
+              className="mt-3 rounded-md border border-border px-3 py-1.5"
+            >
+              Close
+            </button>
+          </>
+        ) : (
+          <>
+            <h2 className="text-base font-medium">
+              Connect {row.kind === "extension" ? "this browser" : `“${row.name}”`}?
+            </h2>
+            <p className="mt-2 text-muted-foreground">
+              {row.platform ? `${row.platform} · ` : ""}
+              It will run JARVIS tasks you start, within the permissions you set. Only connect a{" "}
+              {row.kind === "extension" ? "browser" : "computer"} you are setting up now.
+            </p>
+            <p className="mt-2">
+              Check that it shows{" "}
+              <span className="font-mono" data-testid="device-fingerprint">
+                {row.fingerprint}
+              </span>
+              .
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setBusy(true);
+                  void approveJarvisDevice({ data: { id } })
+                    .then((out) => {
+                      if (!out.ok) toast.error(out.message);
+                      onDone(out.ok);
+                    })
+                    .catch(() => toast.error("The device could not be connected."))
+                    .finally(() => setBusy(false));
+                }}
+                className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground"
+              >
+                Connect
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void declineJarvisDevice({ data: { id } }).finally(() => onDone(false))
+                }
+                className="rounded-md px-3 py-1.5 hover:bg-accent"
+              >
+                Not mine
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+    </div>
   );
 }

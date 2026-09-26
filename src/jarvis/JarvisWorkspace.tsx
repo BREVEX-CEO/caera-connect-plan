@@ -9,43 +9,49 @@ import {
   Activity,
   AppWindow,
   ArrowUp,
-  History,
   ListChecks,
   Menu,
   MessageSquare,
   MessagesSquare,
   Mic,
   MonitorSmartphone,
-  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   PenSquare,
+  Settings,
   ShieldCheck,
   Square,
-  Sun,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/session";
 import { useAppearance } from "@/lib/appearance";
+import { useSettingsPanel } from "@/components/settings/settings-panel";
 import { loadChatMessages, persistChatMessage } from "@/lib/ocade-chat-store";
 import { describeReset } from "@/lib/commercial/use-commercial-usage";
 import { cn } from "@/lib/utils";
 import { Orb } from "./Orb";
 import { buildGraph, type GraphNode } from "./graph";
 import { runJarvisTurn, Stopped } from "./agent";
-import { liveDeps, ModelRefused } from "./live-deps";
+import { liveDeps, ModelRefused, Unavailable } from "./live-deps";
 import { isAllowed } from "./permissions";
 import { FINISHED } from "./protocol";
 import { readPreferences, writePreferences, type JarvisPreferences } from "./preferences";
-import { useJarvisVoice } from "./use-voice";
+import { useJarvisVoice, voiceCommand } from "./use-voice";
 import {
   createJarvisConversation,
   readJarvisState,
+  stopAllJarvis,
   updateJarvisTask,
   type JarvisTaskRow,
 } from "./jarvis.functions";
-import { NodePanel, PermissionsDrawer, SectionPanel, type Section } from "./JarvisPanels";
+import {
+  ConnectDevice,
+  NodePanel,
+  PermissionsDrawer,
+  SectionPanel,
+  type Section,
+} from "./JarvisPanels";
 import { BrowserPanel, ConfirmBanner, TaskCard, TakeOverBanner, VoiceBar } from "./JarvisTask";
 
 const JARVIS_STATE_KEY = ["jarvis", "state"] as const;
@@ -58,24 +64,33 @@ interface Turn {
 
 const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: "conversations", label: "Conversations", icon: MessagesSquare },
-  { id: "history", label: "History", icon: History },
   { id: "tasks", label: "Tasks", icon: ListChecks },
   { id: "activity", label: "Activity", icon: Activity },
   { id: "apps", label: "Allowed Apps", icon: AppWindow },
   { id: "devices", label: "Devices", icon: MonitorSmartphone },
 ];
 
-export function JarvisWorkspace({ conversationId }: { conversationId: string | null }) {
+export function JarvisWorkspace({
+  conversationId,
+  connectId,
+  startVoice = false,
+}: {
+  conversationId: string | null;
+  connectId: string | null;
+  /** The person said "Hey OCADE" to their computer: voice starts at once. */
+  startVoice?: boolean;
+}) {
   const { user, loading } = useSession();
   const signedIn = Boolean(user);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { motionReduced, theme, setAppearance } = useAppearance();
+  const { motionReduced } = useAppearance();
+  const settings = useSettingsPanel();
   const [prefs, setPrefs] = useState<JarvisPreferences>({
     accent: null,
     railExpanded: false,
-    micAsked: true,
     wake: false,
+    speak: true,
   });
   useEffect(() => setPrefs(readPreferences()), []);
   const updatePrefs = (patch: Partial<JarvisPreferences>) =>
@@ -105,6 +120,17 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
   const [liveAnswer, setLiveAnswer] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [running, setRunning] = useState(false);
+  // OCADE's Online capacity is unavailable: no new turns until this time, then
+  // JARVIS continues the saved task by itself. The wait grows while it lasts.
+  const [busyUntil, setBusyState] = useState<number | null>(null);
+  // Read synchronously by send(), so a resume right after the wait is not refused.
+  const busyRef = useRef<number | null>(null);
+  const setBusyUntil = (until: number | null) => {
+    busyRef.current = until;
+    setBusyState(until);
+  };
+  const busyStrikes = useRef(0);
+  const resumeAfterBusy = useRef<string | null>(null);
   const abort = useRef<AbortController | null>(null);
   const [confirmAsk, setConfirmAsk] = useState<{
     summary: string;
@@ -119,6 +145,7 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
   const [browserOpen, setBrowserOpen] = useState(true);
   const [selected, setSelected] = useState<GraphNode | null>(null);
   const [focusOrb, setFocusOrb] = useState(false);
+  const [controlsHidden, setControlsHidden] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // The conversation's open task: the one this tab is running, else the newest unfinished one.
@@ -162,7 +189,22 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
   const sendRef = useRef<(text: string, fromVoice: boolean) => Promise<void>>(
     async () => undefined,
   );
-  const voice = useJarvisVoice((text) => void sendRef.current(text, true), prefs.wake);
+  const commandRef = useRef<(text: string) => boolean>(() => false);
+  const voice = useJarvisVoice((text) => {
+    if (!commandRef.current(text)) void sendRef.current(text, true);
+  }, prefs.wake);
+
+  const voiceStarted = useRef(false);
+  useEffect(() => {
+    if (!startVoice || !signedIn || !voice.supported || voiceStarted.current) return;
+    voiceStarted.current = true;
+    void voice.start();
+    void navigate({
+      to: "/ocade-jarvis",
+      search: conversationId ? { c: conversationId } : {},
+      replace: true,
+    });
+  }, [startVoice, signedIn, voice, conversationId, navigate]);
 
   // Signing out ends voice and anything running.
   const endVoice = voice.end;
@@ -175,7 +217,7 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
 
   const send = async (raw: string, fromVoice: boolean) => {
     const text = raw.trim();
-    if (!text || running) return;
+    if (!text || running || busyRef.current) return;
     if (!signedIn) {
       void navigate({ to: "/auth", search: { next: "/ocade-jarvis" } });
       return;
@@ -226,6 +268,7 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
         },
         liveDeps(id),
       );
+      busyStrikes.current = 0;
       if (out.answer) {
         const saved = await persistChatMessage({
           conversationId: id,
@@ -236,14 +279,35 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
           ...list,
           { id: saved.record.id, role: "assistant", content: out.answer },
         ]);
-        if (fromVoice || voice.state !== "off") voice.speak(out.answer);
+        if (prefs.speak && (fromVoice || voice.state !== "off")) voice.speak(out.answer);
       }
     } catch (error) {
       if (error instanceof Stopped) {
         setTurns((list) => [
           ...list,
-          { id: crypto.randomUUID(), role: "assistant", content: "Stopped." },
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: error.handedOff ? error.message : "Stopped.",
+          },
         ]);
+      } else if (error instanceof Unavailable) {
+        busyStrikes.current += 1;
+        const wait = Math.min(300_000, 30_000 * 2 ** (busyStrikes.current - 1));
+        setBusyUntil(Date.now() + wait);
+        const open = activeTaskRef.current;
+        if (open && !FINISHED.includes(open.status)) {
+          resumeAfterBusy.current = open.id;
+          setActiveTask(
+            await updateJarvisTask({
+              data: {
+                id: open.id,
+                status: "waiting",
+                blocker: "Waiting for OCADE JARVIS to be available again.",
+              },
+            }),
+          );
+        }
       } else if (error instanceof ModelRefused) {
         toast.error(error.message);
       } else {
@@ -261,6 +325,26 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
     }
   };
   sendRef.current = send;
+  const activeTaskRef = useRef<JarvisTaskRow | null>(null);
+  activeTaskRef.current = activeTask;
+
+  // When the wait is over, JARVIS is available again: a saved task continues by
+  // itself from its checkpoint; anything else simply becomes possible again.
+  useEffect(() => {
+    if (!busyUntil) return;
+    const timer = window.setTimeout(
+      () => {
+        setBusyUntil(null);
+        const id = resumeAfterBusy.current;
+        resumeAfterBusy.current = null;
+        if (id && conversationTask?.id === id && conversationTask.status === "waiting") {
+          void resume();
+        }
+      },
+      Math.max(0, busyUntil - Date.now()),
+    );
+    return () => window.clearTimeout(timer);
+  });
 
   const stop = async () => {
     abort.current?.abort();
@@ -299,6 +383,19 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
     void send("Continue the task from where it stopped.", false);
   };
 
+  // Spoken Stop, Pause, Continue and Cancel act at once and are never sent as messages.
+  commandRef.current = (text) => {
+    const command = voiceCommand(text);
+    if (command === "stop") void stop();
+    else if (command === "pause") voice.pause();
+    else if (command === "end") voice.end();
+    else if (command === "continue") {
+      if (takeover || conversationTask?.status === "taken_over") void resume();
+      else return false;
+    }
+    return command !== null;
+  };
+
   const openNode = (node: GraphNode) => {
     if (node.kind === "conversation" && node.recordId) {
       void navigate({ to: "/ocade-jarvis", search: { c: node.recordId } });
@@ -320,9 +417,44 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
     }
   };
 
+  // The phone drawer closes with Escape, whatever section is open inside it.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDrawerOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawerOpen]);
+
   const hasText = turns.length > 0 || liveAnswer !== null;
   const usage = state.data?.usage;
-  const showMicAsk = signedIn && !prefs.micAsked && voice.supported;
+
+  // Orb Focus stays until the person leaves it; the controls around it fade after
+  // eight quiet seconds and come back on any movement or key. Stop never fades.
+  useEffect(() => {
+    if (!focusOrb) {
+      setControlsHidden(false);
+      return;
+    }
+    let timer = window.setTimeout(() => setControlsHidden(true), 8000);
+    const wake = (event: Event) => {
+      if (event instanceof KeyboardEvent && event.key === "Escape") setFocusOrb(false);
+      setControlsHidden(false);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setControlsHidden(true), 8000);
+    };
+    const events = ["pointermove", "pointerdown", "keydown"] as const;
+    events.forEach((name) => window.addEventListener(name, wake));
+    return () => {
+      window.clearTimeout(timer);
+      events.forEach((name) => window.removeEventListener(name, wake));
+    };
+  }, [focusOrb]);
+  const fade = cn(
+    "transition-opacity duration-500",
+    controlsHidden && "pointer-events-none opacity-0",
+  );
 
   const rail = (mobile: boolean) => (
     <nav
@@ -361,10 +493,13 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
         onClick={() => setPermissionsOpen(true)}
       />
       <RailButton
-        icon={theme === "light" ? Moon : Sun}
-        label={theme === "light" ? "Dark theme" : "Light theme"}
+        icon={Settings}
+        label="Settings"
         expanded={mobile || prefs.railExpanded}
-        onClick={() => setAppearance({ theme: theme === "light" ? "dark" : "light" })}
+        onClick={() => {
+          setDrawerOpen(false);
+          settings.open();
+        }}
       />
       {mobile ? null : (
         <RailButton
@@ -406,7 +541,7 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
       <a href="#jarvis-composer" className="skip-link">
         Skip to the message box
       </a>
-      <div className="hidden h-full md:flex">
+      <div className={cn("hidden h-full md:flex", fade)}>
         {rail(false)}
         {sectionPanel}
       </div>
@@ -435,9 +570,11 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
           reducedMotion={motionReduced}
           selectedId={selected?.id ?? null}
           onSelect={setSelected}
+          onFocus={() => setFocusOrb((value) => !value)}
+          controlsHidden={controlsHidden}
         />
 
-        <header className="relative z-10 flex h-12 items-center gap-2 px-3">
+        <header className={cn("relative z-10 flex h-12 items-center gap-2 px-3", fade)}>
           <button
             type="button"
             aria-label="Open navigation"
@@ -454,25 +591,33 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
               {describeReset(usage.resetsInMs)}
             </p>
           ) : null}
-          {hasText ? (
-            <button
-              type="button"
-              aria-pressed={focusOrb}
-              onClick={() => setFocusOrb((value) => !value)}
-              className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              {focusOrb ? "Show conversation" : "Focus orb"}
-            </button>
-          ) : null}
+          <button
+            type="button"
+            aria-pressed={focusOrb}
+            onClick={() => setFocusOrb((value) => !value)}
+            className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            {focusOrb ? "Leave focus" : "Focus orb"}
+          </button>
         </header>
 
-        <div className="relative z-10 flex min-h-0 flex-1 flex-col lg:flex-row">
+        {/* The orb lies behind this layer; only what is on it takes the pointer. */}
+        <div className="pointer-events-none relative z-10 flex min-h-0 flex-1 flex-col lg:flex-row">
           <section
             aria-label="Conversation"
             className={cn(
               "ocade-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-4 transition-opacity",
-              focusOrb ? "pointer-events-none opacity-0" : "opacity-100",
+              focusOrb ? "opacity-0" : "opacity-100",
+              !focusOrb && (hasText || conversationTask) && "pointer-events-auto",
             )}
+            // Empty space around the conversation belongs to the orb behind it.
+            onDoubleClick={(event) => {
+              if (
+                event.target === event.currentTarget ||
+                event.target === event.currentTarget.firstChild
+              )
+                setFocusOrb(true);
+            }}
           >
             <div className="mx-auto flex max-w-2xl flex-col gap-4 pt-4">
               {!hasText && !loading ? (
@@ -545,37 +690,32 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
           ) : null}
         </div>
 
-        <div className="relative z-10 px-3 pb-3">
+        <div className={cn("relative z-10 px-3 pb-3", !running && !taskLive && fade)}>
           <div className="mx-auto max-w-2xl">
-            {showMicAsk ? (
-              <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-background/80 px-3 py-2 text-sm">
-                <span className="flex-1">
-                  JARVIS can listen when you turn voice on. Allow the microphone?
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    updatePrefs({ micAsked: true });
-                    void navigator.mediaDevices
-                      .getUserMedia({ audio: true })
-                      .then((media) => media.getTracks().forEach((t) => t.stop()))
-                      .catch(() => toast.message("Voice stays off. You can still type."));
-                  }}
-                  className="rounded-md bg-primary px-3 py-1 text-primary-foreground"
-                >
-                  Allow
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updatePrefs({ micAsked: true })}
-                  className="rounded-md px-3 py-1 text-muted-foreground hover:bg-accent"
-                >
-                  Not now
-                </button>
-              </div>
-            ) : null}
             {voice.state !== "off" ? (
-              <VoiceBar voice={voice} wake={prefs.wake} onWake={(wake) => updatePrefs({ wake })} />
+              <VoiceBar
+                voice={voice}
+                wake={prefs.wake}
+                onWake={(wake) => updatePrefs({ wake })}
+                speak={prefs.speak}
+                onSpeak={(speak) => updatePrefs({ speak })}
+              />
+            ) : null}
+            {busyUntil ? (
+              <p
+                role="status"
+                className="mb-2 rounded-lg border border-border/60 bg-background/80 px-3 py-2 text-sm"
+              >
+                OCADE JARVIS is busy right now. Nothing was charged
+                {resumeAfterBusy.current
+                  ? ", and your task is saved: it continues by itself"
+                  : ""}{" "}
+                at{" "}
+                {new Intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(
+                  new Date(busyUntil),
+                )}
+                .
+              </p>
             ) : null}
             {voice.error ? (
               <p role="alert" className="mb-2 text-xs text-destructive">
@@ -600,9 +740,11 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
                 placeholder={
                   !signedIn
                     ? "Sign in to message JARVIS"
-                    : jarvisOn
-                      ? "Ask JARVIS, or tell it what to do"
-                      : "JARVIS is turned off in Permissions"
+                    : busyUntil
+                      ? "OCADE JARVIS is busy. It will be back shortly."
+                      : jarvisOn
+                        ? "Ask JARVIS, or tell it what to do"
+                        : "JARVIS is turned off in Permissions"
                 }
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
@@ -668,6 +810,59 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
         ) : null}
       </main>
 
+      {signedIn && (state.data?.tasks ?? []).some((t) => !FINISHED.includes(t.status)) ? (
+        // The one global STOP JARVIS: round, always within reach, on every device.
+        <button
+          type="button"
+          onClick={() => {
+            abort.current?.abort();
+            void stopAllJarvis()
+              .then(({ stopped }) => {
+                toast.success(stopped ? "JARVIS stopped." : "Nothing was running.");
+                setActiveTask(null);
+                refresh();
+              })
+              .catch(() => toast.error("JARVIS could not be stopped. Try again."));
+          }}
+          className="fixed bottom-24 left-1/2 z-40 grid h-14 w-14 -translate-x-1/2 place-items-center rounded-full bg-foreground text-[10px] font-semibold tracking-wide text-background shadow-lg ring-4 ring-foreground/20 md:bottom-6 md:left-auto md:right-16 md:translate-x-0"
+        >
+          STOP
+          <span className="sr-only"> JARVIS on every device</span>
+        </button>
+      ) : null}
+      {connectId && !signedIn && !loading ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label="Connect a device"
+            className="w-full max-w-sm rounded-xl bg-background p-4 text-sm"
+          >
+            <p>Sign in to connect this device to your OCADE account.</p>
+            <Link
+              to="/auth"
+              search={{ next: `/ocade-jarvis?connect=${connectId}` }}
+              className="mt-3 inline-flex rounded-md bg-primary px-3 py-1.5 text-primary-foreground"
+            >
+              Sign in
+            </Link>
+          </section>
+        </div>
+      ) : null}
+      {connectId && signedIn ? (
+        <ConnectDevice
+          id={connectId}
+          onDone={(connected) => {
+            if (connected) toast.success("Device connected.");
+            refresh();
+            void navigate({
+              to: "/ocade-jarvis",
+              search: conversationId ? { c: conversationId } : {},
+              replace: true,
+            });
+          }}
+        />
+      ) : null}
       {permissionsOpen ? (
         <PermissionsDrawer
           state={state.data}

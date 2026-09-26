@@ -103,3 +103,43 @@ A JARVIS phase is done only when targeted tests pass, broader OCADE gates pass, 
 The final mission requires build, typecheck, lint, formatting, dependency/security scans, database checks, tests, verify:full, and an adversarial real-browser pass on the exact final tree.
 
 Existing Chat and Offline tests must remain green.
+
+## JARVIS deeper-device verification matrix
+
+The deeper-device mission adds these mandatory evidence classes without weakening the existing web/browser suite:
+
+- REAL WINDOWS
+- REAL macOS
+- REAL CHROME EXTENSION
+- REAL ANDROID WEB/PWA
+- REAL iOS WEB/PWA
+
+Verify at minimum:
+
+- same-account automatic enrollment produces unique per-device credentials;
+- device revoke kills further claims immediately;
+- credential rotation does not cross-bind devices;
+- protocol mismatch fails closed and guides update;
+- signed update succeeds and failed update rolls back;
+- only one tray/menu-bar presence exists;
+- close-browser lifecycle matches active-task/background/wake rules;
+- one UI-control lease per device;
+- physical mouse/keyboard input pauses automation;
+- Stop works from web, mini-control and tray;
+- multi-monitor target selection;
+- file/workspace scope escape attempts;
+- Trash vs permanent-delete behavior;
+- UAC/admin/CAPTCHA/OTP/passkey handoff;
+- extension touches only authorized tabs;
+- browser crash/reopen checkpoint recovery;
+- network loss/local-step continuation/pause boundary;
+- reboot checkpoint recovery;
+- concurrent remote-device requests;
+- mobile Remote PC start/observe/stop;
+- text-only startup and first-use microphone permission;
+- local wake detection does not continuously upload microphone audio;
+- slot-local Online failover and project-wide quota behavior;
+- customer errors contain no provider/model/vendor/key identity;
+- existing Chat, Offline Intelligence, JARVIS web/browser, source preservation and Supabase security tests remain green.
+
+A feature is not complete because source exists. Record SOURCE-PROVEN, LOCAL TEST, REAL BROWSER, REAL WINDOWS, REAL macOS, REAL ANDROID WEB/PWA, REAL iOS WEB/PWA, DATABASE TEST, LIVE, BLOCKED and UNTESTED independently.

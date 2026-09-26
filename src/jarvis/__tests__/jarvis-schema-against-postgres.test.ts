@@ -21,6 +21,13 @@ async function permit(user: string, key: string, surface: "chat" | "jarvis", lim
   return row!.outcome;
 }
 
+/** A service-role write, reporting the refusal instead of throwing. */
+const serviceWrite = (sql: string) =>
+  twin.asServiceRole(sql).then(
+    () => ({ errorCode: undefined as string | undefined }),
+    (error: { code?: string }) => ({ errorCode: error.code }),
+  );
+
 async function used(user: string, surface: "chat" | "jarvis") {
   const rows = await twin.asServiceRole<{ window_kind: string; used: string; held: string }>(
     `select window_kind, used_hundredths as used, reserved_hundredths as held
@@ -52,8 +59,8 @@ beforeAll(async () => {
     )
   ).rows[0]!.id;
   [{ id: device }] = await twin.asServiceRole<{ id: string }>(
-    `insert into public.jarvis_devices (user_id, name, token_hash)
-     values ('${A}', 'Laptop', repeat('a', 64)) returning id`,
+    `insert into public.jarvis_devices (user_id, name, public_key)
+     values ('${A}', 'Laptop', repeat('k', 122)) returning id`,
   );
 }, 240_000);
 
@@ -62,11 +69,11 @@ afterAll(async () => {
 });
 
 describe("the migration", () => {
-  it("passes its own verification script", async () => {
-    const result = await twin.runScript(
-      "supabase/verification",
-      "20260926090000_ocade_jarvis_web_verify.sql",
-    );
+  it.each([
+    "20260926090000_ocade_jarvis_web_verify.sql",
+    "20260927090000_jarvis_device_identity_verify.sql",
+  ])("passes %s", async (file) => {
+    const result = await twin.runScript("supabase/verification", file);
     expect(result.error).toBeUndefined();
     expect(result.ok).toBe(true);
   });
@@ -124,6 +131,23 @@ describe("tasks", () => {
     task = ok.rows[0]!.id;
   });
 
+  it("allow only one unfinished task per device, whichever conversation asks", async () => {
+    const other = (
+      await twin.asTenant<{ id: string }>(
+        A,
+        `insert into public.ocade_conversations (user_id, title, surface)
+         values ('${A}', 'other', 'jarvis') returning id`,
+      )
+    ).rows[0]!.id;
+    const second = await twin.asTenant(
+      A,
+      `insert into public.jarvis_tasks (user_id, conversation_id, device_id, title)
+       values ('${A}', '${other}', '${device}', 'Also on the laptop')`,
+    );
+    expect(second.errorCode).toBe("23505");
+    await twin.asSuperuser(`delete from public.ocade_conversations where id = '${other}'`);
+  });
+
   it("allow only one unfinished task per conversation", async () => {
     const second = await twin.asTenant(
       A,
@@ -156,9 +180,11 @@ describe("tasks", () => {
 });
 
 describe("devices", () => {
-  it("never expose credential hashes to a browser role", async () => {
-    const hashes = await twin.asTenant(A, `select token_hash from public.jarvis_devices`);
-    expect(hashes.errorCode).toBe("42501");
+  it("never expose key material or the replay counter to a browser role", async () => {
+    for (const column of ["public_key", "last_request_ms"]) {
+      const hidden = await twin.asTenant(A, `select ${column} from public.jarvis_devices`);
+      expect(hidden.errorCode).toBe("42501");
+    }
     const safe = await twin.asTenant<{ name: string }>(
       A,
       `select id, name from public.jarvis_devices`,
@@ -177,6 +203,34 @@ describe("devices", () => {
   it("are invisible to another account", async () => {
     const { rows } = await twin.asTenant(B, `select id from public.jarvis_devices`);
     expect(rows).toEqual([]);
+  });
+
+  it("hold a pending enrollment for nobody, and only while it has an expiry", async () => {
+    const pending = await twin.asServiceRole<{ id: string }>(
+      `insert into public.jarvis_devices (name, public_key, enrollment_expires_at)
+       values ('New PC', repeat('p', 122), now() + interval '10 minutes') returning id`,
+    );
+    expect(pending).toHaveLength(1);
+    for (const user of [A, B]) {
+      const { rows } = await twin.asTenant<{ name: string }>(
+        user,
+        `select name from public.jarvis_devices where name = 'New PC'`,
+      );
+      expect(rows).toEqual([]);
+    }
+    const orphan = await serviceWrite(
+      `insert into public.jarvis_devices (name, public_key) values ('Orphan', repeat('o', 122))`,
+    );
+    expect(orphan.errorCode).toBe("23514");
+    const keyless = await serviceWrite(
+      `insert into public.jarvis_devices (name, enrollment_expires_at) values ('No key', now())`,
+    );
+    expect(keyless.errorCode).toBe("23514");
+    const shared = await serviceWrite(
+      `insert into public.jarvis_devices (user_id, name, public_key)
+       values ('${B}', 'Copy', repeat('k', 122))`,
+    );
+    expect(shared.errorCode).toBe("23505");
   });
 });
 
@@ -298,6 +352,11 @@ describe("usage", () => {
 
 describe("the rollback", () => {
   it("runs cleanly and leaves Chat intact", async () => {
+    const identity = await twin.runScript(
+      "supabase/rollback",
+      "20260927090000_jarvis_device_identity_rollback.sql",
+    );
+    expect(identity.error).toBeUndefined();
     const result = await twin.runScript(
       "supabase/rollback",
       "20260926090000_ocade_jarvis_web_rollback.sql",
