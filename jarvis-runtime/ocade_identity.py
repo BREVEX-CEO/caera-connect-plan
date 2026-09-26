@@ -125,7 +125,9 @@ class Identity:
         h = PROTOCOL["headers"]
         request = urllib.request.Request(
             self.meta["server"].rstrip("/") + path, data=raw, method="POST",
+            # A named client: OCADE's edge refuses the default Python client string.
             headers={"Content-Type": "application/json",
+                     "User-Agent": f"OCADE-Device-Agent/{SOFTWARE_VERSION}",
                      h["device"]: device, h["protocol"]: str(PROTOCOL["version"]),
                      h["timestamp"]: str(stamp),
                      h["signature"]: sign(key, canonical("POST", path, device, stamp, raw))})

@@ -137,15 +137,21 @@ def mark_healthy(root: Path) -> None:
         _write_layout(root, layout)
 
 
+def _get(url: str, timeout: int) -> bytes:
+    request = urllib.request.Request(url, headers={"User-Agent": "OCADE-Device-Agent"})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return response.read()
+
+
 def check(server: str, root: Path, current_version: str) -> str | None:
     """Fetch, verify and install a newer release. Returns the new version, or None."""
     base = server.rstrip("/") + "/agent"
-    manifest = urllib.request.urlopen(f"{base}/manifest.json", timeout=30).read()
-    signature = urllib.request.urlopen(f"{base}/manifest.json.sig", timeout=30).read().decode().strip()
+    manifest = _get(f"{base}/manifest.json", 30)
+    signature = _get(f"{base}/manifest.json.sig", 30).decode().strip()
     parsed = verify_manifest(manifest, signature, UPDATE_PUBLIC_KEY)
     if tuple(int(p) for p in str(parsed["version"]).split(".")) <= \
             tuple(int(p) for p in current_version.split(".")):
         return None
     release = parsed["platforms"][platform_key()]
-    archive = urllib.request.urlopen(release["url"], timeout=300).read()
+    archive = _get(release["url"], 300)
     return install(root, parsed, archive)
