@@ -28,7 +28,7 @@ This plan replaces solved historical audit work as the active implementation pla
 - The original FastAPI phone dashboard is preserved but is not exposed as the final OCADE remote-control architecture.
 - Playwright and Playwright/MCP browser capability are integrated as first-class JARVIS browser-control tools.
 - Existing PyAutoGUI and desktop-control logic is preserved in the working runtime, but OCADE must not claim browser-only OS control that has not been genuinely proven.
-- Current docs must not mention or plan a desktop-wrapper architecture before the web mission is complete.
+- That restriction applied to the earlier web-only mission. The owner has now explicitly started the deeper-device mission, so the approved Device Agent, browser extension, remote/background and mobile-web roadmap may be documented and implemented while preserving the completed web/browser baseline.
 - Final purchase or payment actions are prohibited for JARVIS.
 - Smart autonomy is the default, and Autonomous mode remains permission-bound rather than unrestricted.
 
@@ -247,7 +247,7 @@ This plan replaces solved historical audit work as the active implementation pla
 - Do not claim they are browser-only capabilities when a trusted execution path is not active.
 - Finish and verify browser control first.
 - After browser control is stable, prepare the next implementation sequence for deeper computer control and then mobile control.
-- Keep current docs focused on the web mission and do not document a desktop-wrapper technology before the owner starts that later mission.
+- The owner has now started the later deeper-device mission. Preserve the completed browser mission and continue into the approved Device Agent, extension, deep PC control, background/remote and mobile-web phases defined below and in docs/JARVIS_DEVICE_ROADMAP.md.
 
 ### Done criteria
 
@@ -289,3 +289,192 @@ This plan replaces solved historical audit work as the active implementation pla
 The final handoff must state the exact source SHA, deployed SHA, database migration head, files added/changed/removed, original-source preservation state, working-runtime state, JARVIS route state, voice state, browser-control state, usage state, permissions state, test totals, browser-journey totals, remaining blockers, and exact next phase.
 
 The mission is not complete merely because the ZIP extracts or the GUI renders. It is complete only when the routed JARVIS web experience works end-to-end without breaking the existing OCADE product.
+
+
+# Approved continuation — deeper device mission
+
+The completed web/browser mission above remains authoritative and protected. Claude's last implementation stopped after the web/browser JARVIS build was merged and deployed, with the remaining proof gaps explicitly recorded: real Online-model path from the restricted sandbox, real speech service, and real-browser control on an actual desktop. The latest uploaded UI ZIP on main is `imports/UI OCADE JARVIS.zip`.
+
+The canonical continuation decisions live in `docs/JARVIS_DEVICE_ROADMAP.md`. The phases below extend the existing plan; they do not replace Phases 0–12.
+
+## Phase 13 — Reconcile latest UI reference and completed baseline
+
+- Preserve every completed browser/web phase and every already-green Chat/Offline regression.
+- Preserve `imports/UI OCADE JARVIS.zip` untouched as the latest primary visual/code reference.
+- Inspect and reuse useful UI source patterns/components without shipping prototype-only fake replies, random graph data, fake status values, duplicate theme controls, desktop-window chrome, placeholder alerts, Figma-only scaffolding or a customer Plugins surface.
+- Production JARVIS navigation becomes Conversations, Tasks, Activity, Allowed Apps and Devices. Remove duplicate History.
+- JARVIS Settings reuses OCADE Settings.
+- The orb becomes a genuine round 3D aura/knowledge graph driven by real conversations, JARVIS memory, tasks, apps, devices, projects and useful work relationships.
+- Double-click enters persistent Orb Focus; nonessential controls may fade after roughly eight seconds while focus remains.
+- Correct the earlier microphone behavior: JARVIS opens text-only and requests microphone permission only when Voice is first used.
+
+### Done criteria
+
+- Existing production behavior still passes its baseline.
+- The latest UI ZIP is preserved and documented.
+- Prototype-only fake behavior is gone from the production path.
+- Navigation and voice-permission behavior match owner decisions.
+
+## Phase 14 — Shared protocol and secure device authority
+
+- Create one versioned OCADE device protocol shared by website, Device Agent and browser extension.
+- Every paired device gets its own unique cryptographic device identity and automatically rotated credential; users never handle tokens.
+- Same-account device enrollment is automatic and effortless, with a customer-safe new-device notification.
+- Add instant remote revoke/kill for a lost device.
+- Bind commands/results to account, device, task, request, protocol version and permission state.
+- New website versions refuse unsafe commands to incompatible agents/extensions and trigger a safe update path.
+
+### Done criteria
+
+- Cross-device identity is unique, revocable and testable.
+- No password or shared account token is used as the durable device credential.
+- Old/incompatible protocol versions fail closed.
+
+## Phase 15 — Windows/macOS trusted Device Agent
+
+- Support Windows 10/11 and modern macOS first; Linux is later.
+- Package the working JARVIS runtime into an OCADE-controlled signed production executable/application so users never install Python or packages manually.
+- Use one tiny tray/menu-bar presence only; never duplicate icons.
+- Start a minimal dormant supervisor at OS login with bounded resource use.
+- Active control ends when OCADE/Chrome closes unless an already-authorized task is still running or the user explicitly enabled Background/Wake Mode.
+- Already-authorized background work may finish or pause safely, sync its state, then release active execution.
+- Exit stops control after warning about active tasks.
+- Uninstall removes the local agent/services/cache/device credentials and clearly states that PC control, background execution and wake features stop; cloud history remains separately managed.
+- Auto-update only from signed OCADE releases and roll back automatically when health checks fail.
+- Public production installers must be signed/notarized; unsigned artifacts are development-only.
+
+### Done criteria
+
+- One-click setup works without Python/package setup.
+- Background lifecycle matches the approved rules.
+- Update/rollback and uninstall are verified on real Windows and macOS before production claim.
+
+## Phase 16 — Official browser extension and real-browser control
+
+- Build a minimal official OCADE browser extension when the authorized real-browser path requires it.
+- Prepare it for Chrome Web Store publication with clear OCADE identity, secure account linking, navigation to `ocade.in` and `/ocade-jarvis`, visible connection/status controls and minimal permissions.
+- Chrome is first-class; Edge/Chromium follows where compatible; Safari support is only added when genuinely reliable.
+- Default automation uses a safe OCADE-controlled browser context.
+- Use the person's existing Chrome/profile only when the task needs their authenticated session or the user explicitly requests it.
+- Control only the authorized OCADE tab/session and never inject into or close unrelated tabs.
+- Browser/password-manager autofill may operate normally, but JARVIS never extracts stored passwords and pauses at CAPTCHA, OTP, passkey and equivalent boundaries.
+
+### Done criteria
+
+- The extension passes permission review and browser regression tests.
+- Existing-browser control is proven on a real desktop without profile-wide injection.
+
+## Phase 17 — Deep Windows/macOS control
+
+- Prefer application-native APIs/scripting, then direct file/project operations, then accessibility/UI automation, then local vision, then freshly observed coordinates as the last fallback.
+- Detect useful installed applications locally after permission.
+- Allowed Apps uses simple Always Allow / Ask / Never Allow rules.
+- One task at a time owns mouse/keyboard/UI control. Safe non-conflicting background tasks may run in parallel under limits.
+- Physical user mouse/keyboard input pauses UI automation immediately and stays paused until Continue, except in explicit Co-work mode.
+- Resolve monitor/window automatically from context and ask only when ambiguous.
+- Direct code/file operations stay inside the selected workspace unless broader scope is explicitly granted.
+- Whole-computer file access is never the silent default.
+- Prefer Trash/Recycle Bin; permanent deletion requires confirmation.
+- Program install/uninstall and major system-setting changes require confirmation at the system-changing step.
+- UAC/admin-password prompts are never bypassed.
+- Restart/shutdown/log-out requires confirmation unless the user's current instruction explicitly requested that exact action.
+
+### Done criteria
+
+- Real Windows and real macOS control is independently proven.
+- Stop, Take Over, Co-work, multi-monitor, scope and destructive-action rules all work.
+
+## Phase 18 — Coding workspace and lightweight sandbox/container execution
+
+- Within an explicitly selected project/workspace, JARVIS may directly edit files, run terminals, tests, builds, Git and development tools.
+- Local edits/tests/commits may run automatically inside approved scope.
+- Push, force-push, branch deletion, production deployment and destructive history changes use stronger permission/confirmation rules.
+- Provide an OCADE-managed lightweight sandbox/container capability without requiring ordinary users to manually configure Docker Desktop.
+- Prefer the smallest secure host-appropriate runtime; lazily install only what is needed.
+- Verify signed/checksummed runtime artifacts, isolate workloads, cap CPU/RAM/storage, shut idle environments down and remove unused temporary state.
+- Do not claim a runtime is bug-free or virus-proof; use integrity verification, isolation, least privilege and reproducible releases instead.
+
+### Done criteria
+
+- Coding tasks can execute safely and directly inside scoped workspaces.
+- Container/sandbox resource use stays bounded and setup remains effortless.
+
+## Phase 19 — Background execution, checkpointing and remote PC control
+
+- Explicitly started or scheduled tasks may continue after the website closes.
+- When internet is lost, continue only safe purely local steps that do not need network/intelligence, checkpoint state and pause at the next boundary.
+- Long-running tasks create durable checkpoints.
+- After reboot, restore state automatically, resume safe steps and request approval before a sensitive next action.
+- A signed-in phone/tablet/other device may remotely start, stop, observe and control work on a paired PC.
+- One controller/task owns active UI control at a time; others may observe status or queue.
+- Add web notifications plus optional OS notifications.
+- Provide one global STOP JARVIS control in the website, active mini-control and tray/menu-bar surface.
+
+### Done criteria
+
+- Close-browser, disconnect, reboot and cross-device recovery are proven without repeating completed steps.
+- Remote-device takeover cannot create concurrent UI-controller races.
+
+## Phase 20 — Voice, wake and mini-control surface
+
+- JARVIS starts text-only.
+- Voice/TTS begins only when the user presses Voice or enables wake/voice behavior.
+- If TTS is disabled, voice input can still be understood and responses remain text-only.
+- PC `Hey OCADE` wake-word detection stays local/private and only activates Online processing after wake detection.
+- Background wake requires explicit Background/Wake Mode.
+- Voice supports spoken and visible Stop, Pause, Continue and Cancel/End.
+- Preserve useful conversational/voice behavior from the original JARVIS source without restoring retired provider-key or old GUI architecture.
+- Desktop may expose an optional movable round OCADE mini-control. By default it appears during active device work; the user may pin it while control is enabled.
+- Mini-control shows compact chat/status, task progress, Stop/Continue and Open OCADE.
+
+### Done criteria
+
+- Voice, local wake detection and mini-control are real and interruptible.
+- No always-listening cloud audio path exists.
+
+## Phase 21 — Online capacity and customer-safe timeout state
+
+- JARVIS continues through the existing OCADE server-side Online Intelligence authority.
+- Provider/model/vendor/key identity remains hidden from customers.
+- Exactly three configured server-side capacity/key slots remain primary, secondary and tertiary.
+- Fail over only when the failure is actually slot-local or when independent capacity is genuinely available.
+- Do not rotate keys merely to evade a project-wide/provider-wide quota.
+- If all configured Online capacity is genuinely unavailable/exhausted, stop new JARVIS intelligence turns, preserve active task checkpoints and show a customer-safe temporary timeout/unavailable state until capacity returns.
+- Never surface provider names, model names, key-slot names or provider error bodies to customers.
+
+### Done criteria
+
+- Slot-local failover works.
+- Project-wide quota does not create pointless key cycling.
+- The timeout state is account-safe and recovers automatically.
+
+## Phase 22 — Mobile web/PWA and remote-PC control
+
+- Android, iPhone and iPad remain website/PWA-first with Add to Home Screen.
+- No mandatory native mobile companion/app is part of this roadmap.
+- Add a dedicated Remote PC subsection so mobile can start, stop, observe and control paired-PC tasks.
+- PC execution continues independently when the phone browser is minimized because the PC Agent owns the work.
+- A normal mobile website/PWA must not claim unrestricted OS-wide control of arbitrary third-party apps, persistent overlays over other apps or background wake that the platform does not actually permit.
+- Use supported browser/OS capabilities where genuinely available and show unsupported cross-app control as unavailable rather than faking it.
+- Provide a compact round launcher/control inside the installed PWA/web surface with clean rounded touch UI.
+
+### Done criteria
+
+- Android and iOS web/PWA journeys are verified separately.
+- Remote-PC control works from mobile.
+- No unsupported native capability is represented as complete.
+
+## Phase 23 — Full verification, adversarial completion and merge
+
+- Run the complete existing verification matrix plus real Windows, real macOS, Chrome-extension, Android web/PWA and iOS web/PWA tests.
+- Re-run source preservation, build, typecheck, lint, format, secret scan, dependency audit, database tests, Edge checks, unit/integration tests and browser journeys.
+- Test device revocation, credential rotation, update rollback, protocol mismatch, offline/reconnect, crash/reboot recovery, concurrent-device requests, user takeover, Stop, prompt injection, stale screen geometry, malicious page content, file-scope escape, destructive actions and extension-permission abuse.
+- Report SOURCE-PROVEN, LOCAL TEST, REAL BROWSER, REAL WINDOWS, REAL macOS, REAL ANDROID WEB/PWA, REAL iOS WEB/PWA, DATABASE TEST, LIVE, BLOCKED and UNTESTED separately.
+- Work on a dedicated branch and merge cleanly to `main` only when the relevant phase gates are green.
+- Do not treat GitHub Actions as the only release path; the current deployment history shows the Actions job can fail to receive a runner while Cloudflare still deploys from main.
+
+### Done criteria
+
+- All completed browser/web behavior remains green.
+- Every newly claimed device capability has real-hardware evidence.
+- The final source SHA, deployed SHA, protocol version, agent version, extension version and database migration head agree.
