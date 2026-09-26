@@ -2,6 +2,15 @@
 -- public key cannot be turned back into a token: each device must pair again.
 BEGIN;
 
+DELETE FROM public.jarvis_permissions
+ WHERE capability IN ('terminal', 'cowork') OR capability LIKE 'app:%';
+ALTER TABLE public.jarvis_permissions DROP CONSTRAINT IF EXISTS jarvis_permissions_capability_check;
+ALTER TABLE public.jarvis_permissions ADD CONSTRAINT jarvis_permissions_capability_check CHECK (
+  capability IN ('master', 'memory', 'autonomous', 'browser', 'browser_real', 'files',
+    'screen', 'microphone', 'camera', 'apps', 'messaging', 'devices', 'computer_control')
+  OR capability ~ '^site:[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$'
+);
+
 DROP INDEX IF EXISTS public.jarvis_tasks_one_open_per_device;
 ALTER TABLE public.jarvis_tasks DROP CONSTRAINT IF EXISTS jarvis_tasks_checkpoint_shape;
 ALTER TABLE public.jarvis_tasks DROP COLUMN IF EXISTS checkpoint, DROP COLUMN IF EXISTS controller;

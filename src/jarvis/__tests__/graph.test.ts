@@ -10,6 +10,7 @@ const empty: JarvisState = {
   memories: [],
   activity: [],
   sites: [],
+  apps: [],
   usage: null,
 };
 

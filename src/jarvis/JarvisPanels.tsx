@@ -35,7 +35,7 @@ const when = (iso: string) =>
 
 async function decide(
   capability: string,
-  allowed: boolean,
+  allowed: boolean | null,
   deviceId: string | null,
   done: () => void,
 ) {
@@ -295,9 +295,44 @@ function SectionBody({
         <p className="mt-1 text-xs text-muted-foreground">
           Addresses on your own network need your permission first.
         </p>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Apps on your computer or phone: not available yet.
+        <h3 className="mt-4 text-sm font-medium">Apps on your computers</h3>
+        <p className="mb-2 text-xs text-muted-foreground">
+          Found by the OCADE Device Agent. Always opens without asking; Ask waits for you; Never is
+          refused.
         </p>
+        {state.apps.length === 0 ? (
+          <p className="text-muted-foreground">No computer has reported its apps yet.</p>
+        ) : null}
+        <ul className="flex flex-col gap-1">
+          {state.apps.map((app) => (
+            <li key={app.name} className="flex items-center gap-2">
+              <label htmlFor={`app-${app.name}`} className="min-w-0 flex-1 truncate">
+                {app.name}
+              </label>
+              <select
+                id={`app-${app.name}`}
+                value={app.rule}
+                onChange={(event) =>
+                  void decide(
+                    `app:${app.name.toLowerCase()}`,
+                    event.target.value === "always"
+                      ? true
+                      : event.target.value === "never"
+                        ? false
+                        : null,
+                    null,
+                    onChanged,
+                  )
+                }
+                className="rounded-md border border-border/60 bg-background px-1 py-0.5 text-xs"
+              >
+                <option value="always">Always</option>
+                <option value="ask">Ask</option>
+                <option value="never">Never</option>
+              </select>
+            </li>
+          ))}
+        </ul>
       </>
     );
   }
@@ -332,9 +367,26 @@ function SectionBody({
               checked={isAllowed(state.permissions, "browser_real", d.id)}
               onChange={(allowed) => void decide("browser_real", allowed, d.id, onChanged)}
             />
-            <p className="text-xs text-muted-foreground">
-              Computer control, files and screen: not available yet.
-            </p>
+            {d.kind === "agent"
+              ? COMPUTER_TOGGLES.map(([capability, label, hint]) => (
+                  <Toggle
+                    key={capability}
+                    label={label}
+                    hint={d.capabilities[capability] ? hint : "Not available on this computer"}
+                    disabled={!d.capabilities[capability]}
+                    checked={isAllowed(state.permissions, capability, d.id)}
+                    onChange={(allowed) => void decide(capability, allowed, d.id, onChanged)}
+                  />
+                ))
+              : null}
+            {d.kind === "agent" ? (
+              <Toggle
+                label="Co-work"
+                hint="Your own mouse and keyboard do not pause JARVIS on this computer."
+                checked={isAllowed(state.permissions, "cowork", d.id)}
+                onChange={(allowed) => void decide("cowork", allowed, d.id, onChanged)}
+              />
+            ) : null}
             <button
               type="button"
               onClick={() =>
@@ -363,12 +415,17 @@ function SectionBody({
 }
 
 const UNAVAILABLE: [Capability, string][] = [
-  ["files", "Files"],
-  ["screen", "Screen"],
   ["camera", "Camera"],
-  ["apps", "Apps on your computer"],
   ["messaging", "Messaging"],
-  ["computer_control", "Computer control"],
+];
+
+/** Per-computer capabilities, each off until the person turns it on for that computer. */
+const COMPUTER_TOGGLES: [Capability, string, string][] = [
+  ["apps", "Open apps", "Only apps this computer found; Allowed Apps decides which."],
+  ["files", "Files in the workspace", "Only inside the folder chosen on the computer."],
+  ["terminal", "Run commands in the workspace", "Publishing, deleting or installing asks first."],
+  ["screen", "See the screen", "Used when nothing more direct works."],
+  ["computer_control", "Mouse and keyboard", "Your own input pauses JARVIS until you continue."],
 ];
 
 export function PermissionsDrawer({

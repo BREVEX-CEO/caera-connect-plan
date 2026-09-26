@@ -596,7 +596,7 @@ function jarvisStep(messages) {
   ).length;
   const step = jarvisScript.steps[taken];
   if (!step) return { text: "Nothing more to do." };
-  if (!step.args?.name) return step;
+  if (step.tool !== "browser" || !step.args?.name) return step;
   // The newest browser result that carries an observation: a declined or
   // refused step returns none, and the page it left is still the one on screen.
   let observation = null;

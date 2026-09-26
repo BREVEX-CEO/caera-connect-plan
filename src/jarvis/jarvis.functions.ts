@@ -24,7 +24,13 @@ import {
   TASK_STATUSES,
   type TaskStatus,
 } from "./protocol";
-import { isAllowed, needsConfirmation, refuseAction, type PermissionRow } from "./permissions";
+import {
+  appDecision,
+  isAllowed,
+  needsConfirmation,
+  refuseAction,
+  type PermissionRow,
+} from "./permissions";
 
 const uuid = z.string().uuid();
 /** A device counts as online when it asked for work this recently. */
@@ -96,6 +102,8 @@ export interface JarvisState {
     created_at: string;
   }[];
   sites: string[];
+  /** Apps the person's computers found, with the Allowed Apps rule for each. */
+  apps: { name: string; rule: "always" | "ask" | "never" }[];
   usage: { remaining: number; allowance: number; resetsInMs: number } | null;
 }
 
@@ -123,7 +131,7 @@ export const readJarvisState = createServerFn({ method: "GET" })
       db
         .from("jarvis_devices")
         .select(
-          "id, name, platform, capabilities, last_seen_at, revoked_at, created_at, kind, software_version, background_enabled",
+          "id, name, platform, capabilities, last_seen_at, revoked_at, created_at, kind, software_version, background_enabled, installed_apps",
         )
         .order("created_at", { ascending: false })
         .limit(50),
@@ -154,6 +162,34 @@ export const readJarvisState = createServerFn({ method: "GET" })
       if (host) sites.add(host);
     }
 
+    const appNames = new Map<string, string>();
+    for (const device of devices.data ?? []) {
+      if (device.revoked_at) continue;
+      for (const name of (device.installed_apps ?? []) as string[]) {
+        appNames.set(name.toLowerCase(), name);
+      }
+    }
+    for (const row of permissionRows) {
+      if (row.capability.startsWith("app:") && !appNames.has(row.capability.slice(4))) {
+        appNames.set(row.capability.slice(4), row.capability.slice(4));
+      }
+    }
+    const apps = [...appNames.values()]
+      .sort((a, b) => a.localeCompare(b))
+      .slice(0, 300)
+      .map((name) => {
+        const decided = appDecision(permissionRows, name);
+        return {
+          name,
+          rule:
+            decided === true
+              ? ("always" as const)
+              : decided === false
+                ? ("never" as const)
+                : ("ask" as const),
+        };
+      });
+
     const entitlement = await resolveTierFor(context.userId);
     const ledger = supabaseCommercialLedger(service);
     const windows = ledger.readCurrent ? await ledger.readCurrent(context.userId, "jarvis") : [];
@@ -177,7 +213,7 @@ export const readJarvisState = createServerFn({ method: "GET" })
     return {
       conversations: conversations.data ?? [],
       tasks: (tasks.data ?? []) as JarvisTaskRow[],
-      devices: (devices.data ?? []).map((d) => ({
+      devices: (devices.data ?? []).map(({ installed_apps: _apps, ...d }) => ({
         ...d,
         capabilities: (d.capabilities ?? {}) as Record<string, boolean>,
         online: !d.revoked_at && !!d.last_seen_at && now - Date.parse(d.last_seen_at) < ONLINE_MS,
@@ -186,6 +222,7 @@ export const readJarvisState = createServerFn({ method: "GET" })
       memories: memories.data ?? [],
       activity: (activity.data ?? []).map(({ action: _action, ...rest }) => rest),
       sites: [...sites].sort().slice(0, 100),
+      apps,
       usage: shown[0]
         ? {
             remaining: shown[0].remaining,
@@ -500,15 +537,36 @@ const capability = z.union([
     .string()
     .regex(/^site:[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/)
     .max(260),
+  z
+    .string()
+    .regex(/^app:[A-Za-z0-9_ .+&()'-]{1,80}$/)
+    .transform((value) => value.toLowerCase()),
 ]);
 
 export const setJarvisPermission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((i) =>
-    z.object({ capability, allowed: z.boolean(), deviceId: uuid.nullable().optional() }).parse(i),
+    z
+      .object({
+        capability,
+        /** null returns the capability to its default (for an app: Ask). */
+        allowed: z.boolean().nullable(),
+        deviceId: uuid.nullable().optional(),
+      })
+      .parse(i),
   )
   .handler(async ({ data, context }) => {
     const device = data.deviceId ?? null;
+    if (data.allowed === null) {
+      let clear = context.supabase
+        .from("jarvis_permissions")
+        .delete()
+        .eq("capability", data.capability);
+      clear = device ? clear.eq("device_id", device) : clear.is("device_id", null);
+      const { error } = await clear;
+      if (error) throw new Error(error.message);
+      return { ok: true as const };
+    }
     let existing = context.supabase
       .from("jarvis_permissions")
       .select("id")

@@ -19,7 +19,7 @@
  * Usage: node scripts/e2e/jarvis-journey.mjs [--base=…] [--supabase=…]
  */
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -111,6 +111,11 @@ const browser = await chromium.launch({
 });
 let device = null;
 const deviceHome = mkdtempSync(path.join(tmpdir(), "ocade-jarvis-device-"));
+// The one folder the person lets JARVIS work in, and a private file beside it.
+const workspaceParent = mkdtempSync(path.join(tmpdir(), "ocade-jarvis-work-"));
+const workspace = path.join(workspaceParent, "project");
+mkdirSync(workspace);
+writeFileSync(path.join(workspaceParent, "outside.txt"), "private");
 const pythonReady =
   process.env.OCADE_JARVIS_DEVICE !== "skip" &&
   spawnSync("python3", ["-c", "import playwright"], { stdio: "ignore" }).status === 0;
@@ -348,10 +353,14 @@ except i.UpdateRequired:
       "an out-of-date protocol fails closed with an update request",
       said.includes("old protocol refused"),
     );
-    device = spawn("python3", ["jarvis-runtime/ocade_device.py", "run", "--headless"], {
-      env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    device = spawn(
+      "python3",
+      ["jarvis-runtime/ocade_device.py", "run", "--headless", "--workspace", workspace],
+      {
+        env,
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
     let deviceLog = "";
     device.stdout.on("data", (d) => (deviceLog += d));
     device.stderr.on("data", (d) => (deviceLog += d));
@@ -362,6 +371,65 @@ except i.UpdateRequired:
       await until(async () => (await page.getByText("Online").count()) >= 1, 30_000),
     );
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
+
+    /* --- computer work: off until allowed, inside the workspace, risky asks --- */
+    await script("computer-off", [
+      { tool: "start_task", args: { title: "Write notes", where: "computer", steps: ["Write"] } },
+      { tool: "computer", args: { action: "file_write", path: "notes.md", content: "x" } },
+      { tool: "finish_task", args: { outcome: "blocked", result: "Files are off." } },
+      { text: "Files are turned off." },
+    ]);
+    await say("computer-off write my notes");
+    await idle();
+    check(
+      "computer work is refused until the person turns it on for that computer",
+      (await boundary()).turns.some((t) =>
+        t.content.includes("Files is turned off for this device"),
+      ) && !existsSync(path.join(workspace, "notes.md")),
+    );
+    await rail("Devices").click();
+    await page.getByRole("switch", { name: /Files in the workspace/ }).click();
+    await page.getByRole("switch", { name: /Run commands in the workspace/ }).click();
+    await page.getByRole("button", { name: "Close", exact: true }).first().click();
+    await script("computer-task", [
+      {
+        tool: "start_task",
+        args: { title: "Write and check notes", where: "computer", steps: ["Write", "Check"] },
+      },
+      {
+        tool: "computer",
+        args: { action: "file_write", path: "notes.md", content: "OCADE was here" },
+      },
+      { tool: "computer", args: { action: "run", command: "cat notes.md" } },
+      { tool: "computer", args: { action: "file_read", path: "../outside.txt" } },
+      { tool: "computer", args: { action: "run", command: "git push origin main" } },
+      { tool: "finish_task", args: { outcome: "completed", result: "Notes written and checked." } },
+      { text: "Your notes are written." },
+    ]);
+    await say("computer-task write and check my notes");
+    const ask = page.getByRole("alertdialog", { name: "Confirm this step" });
+    const asked = await until(async () => (await ask.count()) === 1, 60_000);
+    check(
+      "publishing (git push) waits for the person",
+      asked && (await ask.innerText()).includes("Running git push origin main"),
+    );
+    if (asked) await ask.getByRole("button", { name: "Decline", exact: true }).click();
+    await idle();
+    const computerTurns = (await boundary()).turns.map((t) => t.content).join("\n");
+    check(
+      "JARVIS writes inside the workspace on the real computer",
+      existsSync(path.join(workspace, "notes.md")) &&
+        readFileSync(path.join(workspace, "notes.md"), "utf8") === "OCADE was here",
+    );
+    check(
+      "and runs a command there, reading its real output",
+      computerTurns.includes("OCADE was here"),
+    );
+    check(
+      "a path outside the workspace is refused on the device",
+      computerTurns.includes("outside the workspace"),
+    );
+    check("the declined push never ran", computerTurns.includes("The person declined this step"));
 
     /* --- a private address needs the person's permission first ------------- */
     await script("private-task", [
@@ -676,6 +744,8 @@ except i.UpdateRequired:
         "--headless",
         "--real-browser-cdp",
         `http://127.0.0.1:${cdpPort}`,
+        "--workspace",
+        workspace,
       ],
       { env, stdio: ["ignore", "pipe", "pipe"] },
     );

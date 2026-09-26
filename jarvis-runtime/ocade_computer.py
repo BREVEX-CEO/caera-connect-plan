@@ -74,7 +74,9 @@ def installed_apps() -> list[dict]:
                         and fields.get("Type", "Application") == "Application" and fields.get("Exec"):
                     found.setdefault(fields["Name"].lower(),
                                      {"name": fields["Name"], "launch": str(entry)})
-    return sorted(found.values(), key=lambda a: a["name"].lower())[:300]
+    # Only names OCADE can refer to safely (the same pattern the website accepts).
+    usable = [a for a in found.values() if re.fullmatch(r"[A-Za-z0-9_ .+&()'-]{1,80}", a["name"])]
+    return sorted(usable, key=lambda a: a["name"].lower())[:300]
 
 
 def _desktop_fields(entry: Path) -> dict:

@@ -77,7 +77,10 @@ const COMPUTER_ACTIONS = [
   }),
   z.object({ action: z.literal("screen_scroll"), direction: z.enum(["up", "down"]) }),
   z.object({ action: z.literal("apps") }),
-  z.object({ action: z.literal("open_app"), name: z.string().regex(/^[\w .+&()'-]{1,80}$/) }),
+  z.object({
+    action: z.literal("open_app"),
+    name: z.string().regex(/^[A-Za-z0-9_ .+&()'-]{1,80}$/),
+  }),
   z.object({ action: z.literal("file_list"), path: workspacePath }),
   z.object({ action: z.literal("file_read"), path: workspacePath }),
   z.object({
