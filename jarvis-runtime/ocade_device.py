@@ -21,9 +21,11 @@ isolated automation browser exists, whatever the account settings say.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import platform
 import sys
+import threading
 import time
 import urllib.error
 import webbrowser
@@ -68,9 +70,7 @@ class Browsers:
         self.sessions: dict = {}
 
     def capabilities(self) -> dict:
-        # Only what this runtime can genuinely execute today.
-        return {"browser_isolated": True, "browser_real": bool(self.cdp),
-                "computer_control": False, "files": False, "screen": False}
+        return {"browser_isolated": True, "browser_real": bool(self.cdp)}
 
     def run(self, mode: str, action: dict, confirmed: bool) -> dict:
         if mode == "real" and not self.cdp:
@@ -90,57 +90,112 @@ class Browsers:
             return None
 
 
+class Agent:
+    """
+    The exchange loop, with the lifecycle the roadmap sets: busy while a task is
+    open, dormant otherwise (one quiet check every few seconds), results kept on
+    disk until OCADE has them, and an explicit global Stop.
+    """
+
+    DORMANT_S = 5.0
+
+    def __init__(self, identity: Identity, headless: bool, cdp: str | None, workspace: str | None):
+        self.identity = identity
+        self.browsers = Browsers(headless, cdp)
+        self.computer = Computer(workspace)
+        self.stop = threading.Event()
+        self.stop_all = threading.Event()
+        self.state = {"busy": False, "background": False, "connected": True, "update": False,
+                      "task": None}
+        self.pending_path = identity.home / "pending.json"
+
+    def _load_pending(self) -> list[dict]:
+        # Results finished before a crash, a reboot or a lost connection still reach OCADE.
+        try:
+            return json.loads(self.pending_path.read_text())
+        except (OSError, ValueError):
+            return []
+
+    def _keep_pending(self, results: list[dict]) -> None:
+        if results:
+            self.pending_path.write_text(json.dumps(results))
+            self.pending_path.chmod(0o600)
+        else:
+            self.pending_path.unlink(missing_ok=True)
+
+    def run(self) -> int:
+        results = self._load_pending()
+        frame: dict | None = None
+        apps_sent = 0.0
+        while not self.stop.is_set():
+            body = {"results": results, "frame": frame,
+                    "capabilities": {**self.browsers.capabilities(), **self.computer.capabilities()},
+                    "softwareVersion": SOFTWARE_VERSION}
+            if self.stop_all.is_set():
+                body["stop"] = True
+            if not apps_sent or time.monotonic() - apps_sent > APPS_EVERY_S:
+                body["apps"] = [app["name"] for app in installed_apps()]
+            try:
+                reply = self.identity.exchange(body)
+            except NotEnrolled:
+                self.identity.forget()
+                self.pending_path.unlink(missing_ok=True)
+                self.state["connected"] = False
+                print("This device is no longer connected. Its key was removed.", flush=True)
+                return 2
+            except UpdateRequired:
+                self.state["update"] = True
+                print("OCADE needs a newer Device Agent. Nothing more runs until it updates.", flush=True)
+                return 3
+            except (urllib.error.URLError, TimeoutError, ConnectionError, OSError):
+                self._keep_pending(results)
+                self.stop.wait(3)
+                continue
+            self.state["reached"] = True
+            if "apps" in body:
+                apps_sent = time.monotonic()
+            if body.get("stop"):
+                self.stop_all.clear()
+            self.state.update(busy=bool(reply.get("busy")), background=bool(reply.get("background")),
+                              task=reply.get("task"))
+            results, frame = [], None
+            self._keep_pending(results)
+            for command in reply.get("commands", []):
+                if self.stop.is_set():
+                    break
+                outcome, live = self._execute(command)
+                results.append(outcome)
+                self._keep_pending(results)
+                if live:
+                    frame = {"taskId": command["taskId"], "jpeg": live}
+            if not reply.get("commands"):
+                self.stop.wait(POLL_IDLE_SECONDS if self.state["busy"] else self.DORMANT_S)
+        return 0
+
+    def _execute(self, command: dict) -> tuple[dict, str | None]:
+        mode = command.get("mode", "isolated")
+        action = command["action"]
+        confirmed = bool(command.get("confirmed"))
+        browser = action.get("action") in BROWSER_ACTIONS
+        try:
+            outcome = (self.browsers.run(mode, action, confirmed) if browser else
+                       self.computer.run(action, confirmed, bool(command.get("cowork"))))
+        except Exception as e:  # a crashed action is reported, never retried blindly
+            outcome = {"status": "failed", "summary": f"The action failed: {str(e)[:160]}"}
+        live = (outcome.get("observation") or {}).pop("frame", None) or (
+            self.browsers.frame(mode) if browser else None)
+        core = {k: outcome.pop(k) for k in ("status", "summary", "changed", "observation") if k in outcome}
+        return {"id": command["id"], **core, **({"detail": outcome} if outcome else {})}, live
+
+
 def run(headless: bool, cdp: str | None, server: str | None, workspace: str | None = None) -> int:
     identity = Identity(HOME)
     if not identity.connected:
         if not server:
             raise SystemExit("This computer is not connected. Run: ocade_device.py connect --server URL")
         identity = connect(server, platform.node()[:120] or "My computer")
-    browsers = Browsers(headless, cdp)
-    computer = Computer(workspace)
-    results: list[dict] = []
-    frame: dict | None = None
-    apps_sent = 0.0
     print(f"OCADE JARVIS device running for {identity.meta['server']}. Ctrl+C to stop.", flush=True)
-    while True:
-        try:
-            body = {"results": results, "frame": frame,
-                    "capabilities": {**browsers.capabilities(), **computer.capabilities()},
-                    "softwareVersion": SOFTWARE_VERSION}
-            if time.monotonic() - apps_sent > APPS_EVERY_S or not apps_sent:
-                body["apps"] = [app["name"] for app in installed_apps()]
-                apps_sent = time.monotonic()
-            reply = identity.exchange(body)
-        except NotEnrolled:
-            identity.forget()
-            print("This device is no longer connected. Its key was removed.", flush=True)
-            return 2
-        except UpdateRequired:
-            print("OCADE needs a newer Device Agent. Nothing more runs until it updates.", flush=True)
-            return 3
-        except (urllib.error.URLError, TimeoutError, ConnectionError):
-            time.sleep(3)
-            continue
-        results, frame = [], None
-        for command in reply.get("commands", []):
-            mode = command.get("mode", "isolated")
-            action = command["action"]
-            confirmed = bool(command.get("confirmed"))
-            browser = action.get("action") in BROWSER_ACTIONS
-            try:
-                outcome = (browsers.run(mode, action, confirmed) if browser else
-                           computer.run(action, confirmed, bool(command.get("cowork"))))
-            except Exception as e:  # a crashed action is reported, never retried blindly
-                outcome = {"status": "failed", "summary": f"The action failed: {str(e)[:160]}"}
-            live = (outcome.get("observation") or {}).pop("frame", None) or (
-                browsers.frame(mode) if browser else None)
-            core = {k: outcome.pop(k) for k in ("status", "summary", "changed", "observation")
-                    if k in outcome}
-            results.append({"id": command["id"], **core, **({"detail": outcome} if outcome else {})})
-            if live:
-                frame = {"taskId": command["taskId"], "jpeg": live}
-        if not reply.get("commands"):
-            time.sleep(POLL_IDLE_SECONDS)
+    return Agent(identity, headless, cdp, workspace).run()
 
 
 def main() -> None:

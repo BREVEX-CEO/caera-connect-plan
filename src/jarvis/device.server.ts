@@ -295,6 +295,8 @@ export const exchangeInput = z.object({
   capabilities: z.record(z.string().max(40), z.boolean()).optional(),
   softwareVersion: z.string().trim().max(40).optional(),
   apps: z.array(z.string().max(80)).max(300).optional(),
+  /** STOP JARVIS from the computer's own tray or mini-control. */
+  stop: z.boolean().optional(),
   rotate: z.object({ publicKey: publicKeyText }).optional(),
 });
 
@@ -315,10 +317,57 @@ export async function exchange(
   admin: Admin,
   device: { id: string; userId: string },
   input: z.infer<typeof exchangeInput>,
-): Promise<{ protocol: number; deviceId: string; commands: DeviceCommand[]; rotated?: boolean }> {
+): Promise<{
+  protocol: number;
+  deviceId: string;
+  busy: boolean;
+  background: boolean;
+  /** The open task, for the tray and mini-control: title and progress only. */
+  task: { title: string; step: number; steps: number; status: string } | null;
+  commands: DeviceCommand[];
+  rotated?: boolean;
+}> {
+  if (input.stop) {
+    // The global Stop: every unfinished task on this device ends, and nothing
+    // queued for it runs.
+    const at = new Date().toISOString();
+    await admin
+      .from("jarvis_tasks")
+      .update({ status: "stopped", blocker: "Stopped from the computer." })
+      .eq("device_id", device.id)
+      .in("status", ["running", "waiting", "taken_over"]);
+    await admin
+      .from("jarvis_activity")
+      .update({ status: "cancelled", completed_at: at })
+      .eq("device_id", device.id)
+      .in("status", ["queued", "needs_confirmation"]);
+  }
+  const [{ data: open }, { data: self }] = await Promise.all([
+    admin
+      .from("jarvis_tasks")
+      .select("title, current_step, plan, status")
+      .eq("device_id", device.id)
+      .in("status", ["running", "waiting", "taken_over"])
+      .limit(1),
+    admin.from("jarvis_devices").select("background_enabled").eq("id", device.id).maybeSingle(),
+  ]);
   // Every reply names the protocol and the device it is for, so a device can
-  // refuse work that was not addressed to it.
-  const envelope = { protocol: PROTOCOL.version, deviceId: device.id };
+  // refuse work that was not addressed to it; `busy` and `background` decide
+  // whether it stays active or goes dormant.
+  const envelope = {
+    protocol: PROTOCOL.version,
+    deviceId: device.id,
+    busy: Boolean(open?.length),
+    background: Boolean(self?.background_enabled),
+    task: open?.[0]
+      ? {
+          title: open[0].title,
+          step: open[0].current_step,
+          steps: (open[0].plan as string[]).length,
+          status: open[0].status,
+        }
+      : null,
+  };
   const now = new Date().toISOString();
 
   if (input.capabilities || input.softwareVersion || input.apps) {

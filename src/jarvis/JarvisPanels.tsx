@@ -14,6 +14,7 @@ import {
   forgetJarvis,
   readJarvisEnrollment,
   revokeJarvisDevice,
+  setJarvisBackground,
   setJarvisPermission,
   type JarvisState,
 } from "./jarvis.functions";
@@ -379,6 +380,18 @@ function SectionBody({
                   />
                 ))
               : null}
+            {d.kind === "agent" ? (
+              <Toggle
+                label="Background Mode"
+                hint="This computer stays ready after you close OCADE here, so you can continue or stop its task from another device."
+                checked={d.background_enabled}
+                onChange={(enabled) =>
+                  void setJarvisBackground({ data: { id: d.id, enabled } })
+                    .then(onChanged)
+                    .catch(() => toast.error("That could not be saved."))
+                }
+              />
+            ) : null}
             {d.kind === "agent" ? (
               <Toggle
                 label="Co-work"

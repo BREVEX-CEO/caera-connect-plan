@@ -75,9 +75,14 @@ class Identity:
         self.key_path = home / "device.key"
         self.next_path = home / "device.next.key"
         self._last_ms = 0
-        self.meta: dict = json.loads(self.meta_path.read_text()) if self.meta_path.exists() else {}
-        self.key = (serialization.load_pem_private_key(self.key_path.read_bytes(), None)
-                    if self.key_path.exists() else None)
+        # A damaged file means "not connected", so the device can enroll again
+        # rather than crash at every start.
+        try:
+            self.meta: dict = json.loads(self.meta_path.read_text()) if self.meta_path.exists() else {}
+            self.key = (serialization.load_pem_private_key(self.key_path.read_bytes(), None)
+                        if self.key_path.exists() else None)
+        except (OSError, ValueError, TypeError):
+            self.meta, self.key = {}, None
 
     @property
     def connected(self) -> bool:

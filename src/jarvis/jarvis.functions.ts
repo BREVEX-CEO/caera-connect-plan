@@ -688,6 +688,25 @@ export const revokeJarvisDevice = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/**
+ * Background Mode for one computer: explicitly started work may continue while
+ * OCADE is closed. Device records are not browser-writable, so this is the door.
+ */
+export const setJarvisBackground = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i) => z.object({ id: uuid, enabled: z.boolean() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const service = await admin();
+    const { error } = await service
+      .from("jarvis_devices")
+      .update({ background_enabled: data.enabled })
+      .eq("id", data.id)
+      .eq("user_id", context.userId)
+      .is("revoked_at", null);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
 export const rememberJarvis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((i) => z.object({ content: z.string().trim().min(1).max(500) }).parse(i))
