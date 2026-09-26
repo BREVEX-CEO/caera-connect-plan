@@ -123,3 +123,32 @@ Do not use an always-maximal graph for an empty account.
 Do not expose provider, runtime, model, storage-engine, or infrastructure terminology.
 
 Do not make the UI look like a game.
+
+
+## Latest UI reference
+
+`imports/UI OCADE JARVIS.zip` is now the primary visual/code reference. Preserve it untouched and reuse useful patterns/components inside production `src/jarvis/`; do not ship its prototype scaffolding or fake data.
+
+Production left navigation is exactly:
+
+- Conversations
+- Tasks
+- Activity
+- Allowed Apps
+- Devices
+
+Do not duplicate Conversations with History. Do not show Plugins. Settings reuses OCADE Settings.
+
+The orb is a true round 3D aura/knowledge ball. It may have ambient decorative motion, but stored nodes/relationships come only from real conversations, JARVIS memory, tasks, apps, devices, projects and work relationships.
+
+Category differentiation is primarily shape, node size, structure and restrained accent use. Keep the product monochrome-first.
+
+Double-click enters Orb Focus until the user exits. Nonessential controls may fade after approximately eight seconds without ending focus.
+
+The conversation style may combine clean ChatGPT/Grok-like reading with restrained floating elements where they improve the JARVIS identity. Remove repetitive avatars.
+
+Desktop mini-control is an optional movable round OCADE control. Default visibility is active-task-only; users may pin it while device control is enabled. It opens a compact rounded mini-chat/status surface with progress, Stop/Continue and Open OCADE.
+
+JARVIS opens text-only. Voice controls appear near the orb while Voice is active. If spoken output is muted, voice commands still work and responses remain text.
+
+Mobile web/PWA uses a clean compact round launcher within the OCADE surface. Do not visually imply an OS-wide overlay when the platform does not support one.
