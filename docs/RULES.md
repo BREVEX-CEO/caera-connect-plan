@@ -79,7 +79,7 @@
 - Do not merge Chat into JARVIS.
 - Do not add Offline JARVIS.
 - Do not fake desktop/mobile control.
-- Do not mention a desktop-wrapper architecture before the owner starts that mission.
+- The owner has started the deeper-device mission; implement only the approved Device Agent/extension architecture in PLAN.md Phases 13–23 and docs/JARVIS_DEVICE_ROADMAP.md.
 - Do not weaken permission, security, validation, accessibility, or test boundaries for convenience.
 
 
