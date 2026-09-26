@@ -124,7 +124,6 @@ Deeper computer and mobile control begins only after the browser-controlled web 
 
 The earlier web-only restriction is complete. The approved next mission now documents a trusted Windows/macOS Device Agent and browser extension while preserving the website as the primary product surface.
 
-
 ## Approved deeper-device architecture
 
 The completed browser/web architecture remains intact. The deeper-device extension adds a trusted local execution tier without creating a second customer identity, second intelligence authority or second conversation authority.

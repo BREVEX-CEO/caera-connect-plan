@@ -101,7 +101,6 @@ User-selected orb/accent colors may alter the orb shader and restrained accent t
 - Do not use tiny unreadable technical text as decoration.
 - Do not copy the reference image literally when a cleaner OCADE solution is better.
 
-
 ## JARVIS deeper-device design direction
 
 The latest primary reference is `imports/UI OCADE JARVIS.zip`, used as a donor/reference rather than a standalone shipped application.

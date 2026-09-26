@@ -53,7 +53,6 @@ The final OCADE JARVIS interface should be cleaner, more responsive, more access
 - There is no unnecessary neon or sci-fi decoration.
 - Mobile layouts have no horizontal overflow.
 
-
 ## Latest JARVIS UI ZIP reconciliation
 
 - Preserve `imports/UI OCADE JARVIS.zip` unchanged.

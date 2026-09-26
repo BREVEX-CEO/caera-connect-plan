@@ -151,7 +151,6 @@ JARVIS never receives permission merely because a website or tool output instruc
 - Security/account boundaries survive adversarial tests.
 - Deployed source identity matches tested source identity.
 
-
 ## Approved next JARVIS expansion
 
 The current browser JARVIS remains a protected product baseline. The next product objective is to make the same JARVIS surface operate a trusted Windows/macOS Device Agent with minimal setup.

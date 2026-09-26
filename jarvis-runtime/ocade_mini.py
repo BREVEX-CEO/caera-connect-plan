@@ -40,13 +40,13 @@ class Mini:
         canvas = self.canvas = tk.Canvas(root, width=SIZE, height=SIZE, bg=TRANSPARENT,
                                          highlightthickness=0)
         canvas.pack()
-        canvas.create_oval(2, 2, SIZE - 2, SIZE - 2, fill="#141418", outline="#e6e6ea", width=2)
-        self.label = canvas.create_text(SIZE / 2, 42, text="OCADE", fill="#f2f2f5",
+        canvas.create_oval(2, 2, SIZE - 2, SIZE - 2, fill="#141414", outline="#e6e6e6", width=2)
+        self.label = canvas.create_text(SIZE / 2, 42, text="OCADE", fill="#f2f2f2",
                                         font=("Helvetica", 10), width=SIZE - 30, justify="center")
         self.stop = tk.Button(root, text="STOP", command=presence.stop_jarvis, relief="flat",
-                              bg="#f2f2f5", fg="#141418")
+                              bg="#f2f2f2", fg="#141414")
         self.open = tk.Button(root, text="Open OCADE", command=presence.open_ocade, relief="flat",
-                              bg="#141418", fg="#f2f2f5")
+                              bg="#141414", fg="#f2f2f2")
         canvas.create_window(SIZE / 2, 78, window=self.stop)
         canvas.create_window(SIZE / 2, 104, window=self.open)
         menu = tk.Menu(root, tearoff=0)

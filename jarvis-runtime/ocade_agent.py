@@ -156,7 +156,7 @@ class Presence:
         except Exception:
             return False
         image = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-        ImageDraw.Draw(image).ellipse((6, 6, 58, 58), fill=(20, 20, 24, 255), outline=(235, 235, 240, 255), width=4)
+        ImageDraw.Draw(image).ellipse((6, 6, 58, 58), fill=(20, 20, 20, 255), outline=(236, 236, 236, 255), width=4)
         menu = pystray.Menu(
             pystray.MenuItem(lambda _: "Working" if self.agent.state["busy"] else "Ready", None, enabled=False),
             pystray.MenuItem("Open OCADE JARVIS", lambda: self.open_ocade(), default=True),

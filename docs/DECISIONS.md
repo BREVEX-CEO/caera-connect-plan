@@ -200,7 +200,6 @@ Accepted.
 
 JARVIS may open public sites unless the person turns them off in Allowed Apps, but loopback, private-network and local addresses are refused until the person allows that exact address, so page content cannot steer a device into its own network.
 
-
 ## Deeper device mission is approved
 
 ### Date

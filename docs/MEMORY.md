@@ -112,7 +112,6 @@ Prove the authorized real-browser path on a real desktop, then begin the deeper 
 
 Every fresh Claude session runs /ponytail ultra and /caveman ultra first, then reads AGENTS.md, PLAN.md, this file, and JARVIS preservation instructions.
 
-
 ## Approved continuation after browser mission
 
 The latest repository baseline for the next JARVIS mission is main commit `907140a155d963b20519f679c0a40763b1bb619d`, created when the latest `imports/UI OCADE JARVIS.zip` reference was uploaded after the completed browser/web implementation.

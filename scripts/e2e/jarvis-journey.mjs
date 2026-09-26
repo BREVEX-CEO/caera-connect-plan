@@ -1155,8 +1155,7 @@ except i.UpdateRequired:
   check(
     '"Hey OCADE" on the computer opens JARVIS already listening',
     (await until(
-      async () =>
-        (await woken.getByRole("status").filter({ hasText: "Listening" }).count()) === 1,
+      async () => (await woken.getByRole("status").filter({ hasText: "Listening" }).count()) === 1,
     )) && !woken.url().includes("voice=1"),
   );
   await woken.close();

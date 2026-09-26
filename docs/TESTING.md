@@ -104,7 +104,6 @@ The final mission requires build, typecheck, lint, formatting, dependency/securi
 
 Existing Chat and Offline tests must remain green.
 
-
 ## JARVIS deeper-device verification matrix
 
 The deeper-device mission adds these mandatory evidence classes without weakening the existing web/browser suite:

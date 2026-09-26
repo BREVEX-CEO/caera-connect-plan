@@ -479,7 +479,8 @@ export async function exchange(
     .from("jarvis_permissions")
     .select("allowed, device_id")
     .eq("user_id", device.userId)
-    .eq("capability", "cowork");
+    .eq("capability", "cowork")
+    .limit(50);
   const coworking =
     (cowork ?? []).find((row) => row.device_id === device.id)?.allowed ??
     (cowork ?? []).find((row) => row.device_id === null)?.allowed ??

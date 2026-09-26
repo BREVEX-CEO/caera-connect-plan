@@ -257,14 +257,14 @@ export function Orb({
         core,
       );
       if (dark) {
-        body.addColorStop(0, "rgba(95,95,100,0.62)");
-        body.addColorStop(0.4, "rgba(35,35,40,0.72)");
-        body.addColorStop(0.85, "rgba(10,10,14,0.88)");
-        body.addColorStop(1, "rgba(5,5,8,0.96)");
+        body.addColorStop(0, "rgba(96,96,96,0.62)");
+        body.addColorStop(0.4, "rgba(36,36,36,0.72)");
+        body.addColorStop(0.85, "rgba(11,11,11,0.88)");
+        body.addColorStop(1, "rgba(6,6,6,0.96)");
       } else {
-        body.addColorStop(0, "rgba(240,240,245,0.88)");
-        body.addColorStop(0.4, "rgba(200,200,210,0.82)");
-        body.addColorStop(1, "rgba(150,150,165,0.92)");
+        body.addColorStop(0, "rgba(242,242,242,0.88)");
+        body.addColorStop(0.4, "rgba(204,204,204,0.82)");
+        body.addColorStop(1, "rgba(156,156,156,0.92)");
       }
       context.globalAlpha = 1;
       context.fillStyle = body;

@@ -108,7 +108,6 @@ The existing JARVIS ZIP is preserved as source provenance and becomes the basis 
 - Do not claim unsupported desktop/mobile control.
 - Preserve the completed web mission while implementing only the now-approved Device Agent/extension architecture in PLAN.md Phases 13–23.
 
-
 ## Approved deeper-device technical requirements
 
 The next implementation follows PLAN.md Phases 13–23 and `docs/JARVIS_DEVICE_ROADMAP.md`.

@@ -124,7 +124,6 @@ Do not expose provider, runtime, model, storage-engine, or infrastructure termin
 
 Do not make the UI look like a game.
 
-
 ## Latest UI reference
 
 `imports/UI OCADE JARVIS.zip` is now the primary visual/code reference. Preserve it untouched and reuse useful patterns/components inside production `src/jarvis/`; do not ship its prototype scaffolding or fake data.

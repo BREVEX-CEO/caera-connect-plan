@@ -26,23 +26,21 @@ BEGIN;
 DELETE FROM public.jarvis_devices WHERE token_hash IS NULL AND revoked_at IS NULL;
 
 ALTER TABLE public.jarvis_devices DROP CONSTRAINT IF EXISTS jarvis_devices_hash_shape;
-ALTER TABLE public.jarvis_devices
-  DROP COLUMN IF EXISTS token_hash,
-  DROP COLUMN IF EXISTS pairing_code_hash,
-  DROP COLUMN IF EXISTS pairing_expires_at;
+ALTER TABLE public.jarvis_devices DROP COLUMN IF EXISTS token_hash;
+ALTER TABLE public.jarvis_devices DROP COLUMN IF EXISTS pairing_code_hash;
+ALTER TABLE public.jarvis_devices DROP COLUMN IF EXISTS pairing_expires_at;
 
 ALTER TABLE public.jarvis_devices ALTER COLUMN user_id DROP NOT NULL;
-ALTER TABLE public.jarvis_devices
-  ADD COLUMN IF NOT EXISTS public_key text,
-  ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'agent',
-  ADD COLUMN IF NOT EXISTS protocol_version integer NOT NULL DEFAULT 1,
-  ADD COLUMN IF NOT EXISTS software_version text,
-  ADD COLUMN IF NOT EXISTS enrollment_expires_at timestamptz,
-  ADD COLUMN IF NOT EXISTS key_rotated_at timestamptz,
-  ADD COLUMN IF NOT EXISTS last_request_ms bigint NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS background_enabled boolean NOT NULL DEFAULT false,
-  -- Names of apps the device found locally, for Allowed Apps. Names only.
-  ADD COLUMN IF NOT EXISTS installed_apps jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE public.jarvis_devices ADD COLUMN IF NOT EXISTS public_key text;
+ALTER TABLE public.jarvis_devices ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'agent';
+ALTER TABLE public.jarvis_devices ADD COLUMN IF NOT EXISTS protocol_version integer NOT NULL DEFAULT 1;
+ALTER TABLE public.jarvis_devices ADD COLUMN IF NOT EXISTS software_version text;
+ALTER TABLE public.jarvis_devices ADD COLUMN IF NOT EXISTS enrollment_expires_at timestamptz;
+ALTER TABLE public.jarvis_devices ADD COLUMN IF NOT EXISTS key_rotated_at timestamptz;
+ALTER TABLE public.jarvis_devices ADD COLUMN IF NOT EXISTS last_request_ms bigint NOT NULL DEFAULT 0;
+ALTER TABLE public.jarvis_devices ADD COLUMN IF NOT EXISTS background_enabled boolean NOT NULL DEFAULT false;
+-- Names of apps the device found locally, for Allowed Apps. Names only.
+ALTER TABLE public.jarvis_devices ADD COLUMN IF NOT EXISTS installed_apps jsonb NOT NULL DEFAULT '[]'::jsonb;
 
 ALTER TABLE public.jarvis_devices
   DROP CONSTRAINT IF EXISTS jarvis_devices_public_key_unique,
@@ -90,9 +88,8 @@ ALTER TABLE public.jarvis_permissions ADD CONSTRAINT jarvis_permissions_capabili
 
 -- 3. One controller, one device, and a durable checkpoint --------------------------
 
-ALTER TABLE public.jarvis_tasks
-  ADD COLUMN IF NOT EXISTS controller uuid,
-  ADD COLUMN IF NOT EXISTS checkpoint jsonb;
+ALTER TABLE public.jarvis_tasks ADD COLUMN IF NOT EXISTS controller uuid;
+ALTER TABLE public.jarvis_tasks ADD COLUMN IF NOT EXISTS checkpoint jsonb;
 ALTER TABLE public.jarvis_tasks DROP CONSTRAINT IF EXISTS jarvis_tasks_checkpoint_shape;
 ALTER TABLE public.jarvis_tasks
   ADD CONSTRAINT jarvis_tasks_checkpoint_shape CHECK (

@@ -89,7 +89,6 @@ Every async JARVIS operation terminates in success, bounded progress, stopped/ca
 
 No JARVIS task may remain in an endless spinner or ambiguous active state.
 
-
 ## Device setup flow
 
 1. The user requests a capability that needs deep PC control.

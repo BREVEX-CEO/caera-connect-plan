@@ -110,7 +110,6 @@ Do not edit applied migrations to make history cleaner.
 
 Add verification SQL and rollback/provenance support consistent with current repository rules.
 
-
 ## Deeper-device schema requirements
 
 The next device migration should extend existing JARVIS device/task authorities rather than create duplicate account or task systems.
