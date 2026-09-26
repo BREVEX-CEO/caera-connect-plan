@@ -52,3 +52,17 @@ The final OCADE JARVIS interface should be cleaner, more responsive, more access
 - Typography is readable.
 - There is no unnecessary neon or sci-fi decoration.
 - Mobile layouts have no horizontal overflow.
+
+
+## Latest JARVIS UI ZIP reconciliation
+
+- Preserve `imports/UI OCADE JARVIS.zip` unchanged.
+- Treat it as the latest primary visual/code reference.
+- Reuse useful components/patterns inside `src/jarvis/` instead of creating a second application.
+- Remove prototype fake replies, random nodes, fake metrics/statuses, placeholder alerts, duplicate theme controls and decorative browser-window buttons.
+- Do not expose Plugins.
+- Use Conversations, Tasks, Activity, Allowed Apps and Devices.
+- Reuse OCADE Settings.
+- Implement a real round 3D aura graph with real data relationships.
+- Maintain reduced-motion and semantic/nonvisual graph access.
+- Test phone widths without horizontal overflow.
