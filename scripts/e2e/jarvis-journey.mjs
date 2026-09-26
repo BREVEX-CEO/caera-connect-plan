@@ -1157,6 +1157,7 @@ except i.UpdateRequired:
     (await until(
       async () => (await woken.getByRole("status").filter({ hasText: "Listening" }).count()) === 1,
     )) && !woken.url().includes("voice=1"),
+    `${woken.url()} ${(await woken.locator("body").innerText()).replace(/\s+/g, " ").slice(-300)}`,
   );
   await woken.close();
   const cloudOnly = await speech.newPage();

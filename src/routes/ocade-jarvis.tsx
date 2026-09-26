@@ -13,7 +13,7 @@ export const Route = createFileRoute("/ocade-jarvis")({
     /** A device waiting for this person to approve it. */
     connect: z.string().uuid().optional(),
     /** Opened by "Hey OCADE" on the person's computer: start with voice on. */
-    voice: z.literal("1").optional(),
+    voice: z.coerce.number().optional(),
   }),
   head: () => ({
     meta: [
@@ -33,7 +33,7 @@ function JarvisPage() {
     <JarvisWorkspace
       conversationId={c ?? null}
       connectId={connect ?? null}
-      startVoice={voice === "1"}
+      startVoice={voice === 1}
     />
   );
 }

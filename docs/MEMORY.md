@@ -94,7 +94,7 @@ Do not claim deeper computer/mobile control until genuinely implemented and test
 
 The ZIP is preserved byte-for-byte; `imports/ocade-jarvis/source-original/` matches it file for file (58 files) and `source-is-preserved.test.ts` pins both.
 
-`jarvis-runtime/` is the working engine: the old Qt GUI, `main.py`, the avatar, the local LLM client and every plaintext provider-key read are retired from it; all capability modules remain. `ocade_device.py` is the active entry point (pair, run).
+`jarvis-runtime/` is the working engine: the old Qt GUI, `main.py`, the avatar, the local LLM client and every plaintext provider-key read are retired from it; all capability modules remain. `ocade_agent.py` is the installed entry point; `ocade_device.py` connects and runs (connect, run, forget).
 
 `/ocade-jarvis` is live in the build: orb/graph GUI, compact rail, Permissions drawer, tasks, live browser panel, confirmation, Take Over, Stop, Resume and browser voice controls.
 
@@ -129,3 +129,19 @@ The Device Agent uses unique per-device credentials even though enrollment is ef
 Mobile has no mandatory native companion in the approved roadmap. Do not fake unsupported mobile OS-wide app control.
 
 The last implementation report's remaining proof gaps still matter: real Online-model path from the restricted sandbox, real speech service, and real authorized-browser proof on an actual desktop. These are evidence gaps, not reasons to discard the completed implementation.
+
+## Deeper-device implementation state (Phases 13–22, 2026-09-26)
+
+Evidence labels follow `docs/JARVIS_DEVICE_ROADMAP.md`. Nothing below is claimed on Windows, macOS, Android or iOS hardware: none was available.
+
+- **UI (Phase 13).** Rail is Conversations, Tasks, Activity, Allowed Apps, Devices; History merged into Tasks; the rail's theme toggle opens OCADE Settings. Glass orb core, category shapes and depth order from the UI ZIP, real data only. Double-click Orb Focus; controls fade after 8 s. Text-only start, microphone on first Voice. LOCAL TEST, REAL BROWSER (Chromium).
+- **Protocol and identity (Phase 14).** `jarvis-runtime/ocade_protocol.json` is the one contract (version 1, signing, headers, paths, gates) read by the website, the Device Agent and the extension. Each device enrolls its own P-256 public key; requests are signed with a strictly increasing timestamp (replay refused); old protocol answers 426; one-click approval with matching fingerprints; security notification; automatic key rotation that survives a lost reply; revoke and self-disconnect. Migration `20260927090000_jarvis_device_identity.sql` is applied LIVE (verification passed, rolled-back smoke passed). DATABASE TEST, LOCAL TEST, REAL BROWSER.
+- **Device Agent (Phase 15).** `ocade_agent.py`: one presence (second start exits), autostart, dormant unless a task is open or Background Mode is on, tray and round mini-control with STOP JARVIS, Exit warning, uninstall that revokes the key and removes autostart and cache. `ocade_update.py`: Ed25519-signed manifest, SHA-256, health check, keep one previous version, roll back after failed starts; refuses all updates until the owner sets `UPDATE_PUBLIC_KEY`. PyInstaller build proven on Linux (`--health` passes); Windows Inno Setup and macOS sign/notarize scripts prepared. LOCAL TEST (Linux). REAL WINDOWS / REAL macOS: UNTESTED. Signing, notarization and the release key: BLOCKED (owner credentials).
+- **Extension (Phase 16).** `extension/` MV3, permissions debugger/storage/alarms + the one OCADE host; own non-extractable key; acts only in tabs it opened via chrome.debugger; same page semantics file and gates as the agent. Journey-proven in Chromium with the person's tab untouched. Chrome Web Store submission: BLOCKED (owner account); notes in `extension/STORE.md`.
+- **Computer control (Phase 17–18).** Apps (locally detected, Always/Ask/Never), workspace-scoped files (Trash first, permanent delete confirmed), commands in the workspace under bubblewrap + rlimits (Linux), screen observe and fresh-observation clicks, physical input pauses until Continue unless Co-work. Risky commands (push, force, hard reset, recursive delete, install, deploy, sudo) and system changes wait for the person. LOCAL TEST (Linux/Xvfb). Windows UI Automation, macOS Accessibility and Windows Job Object limits: UNTESTED.
+- **Background, checkpoints, remote (Phase 19).** One controller per task (another tab or device taking over stops the old loop), one open task per device, checkpoints used on resume, results kept on disk across disconnects and restarts, Remote PC in Devices, global STOP JARVIS, task-result notifications. The planning loop still runs in an open OCADE tab (any device); continuing a plan with every OCADE tab closed needs a server-side step authority and is not built.
+- **Voice and wake (Phase 20).** Browser "Hey OCADE" runs only on an on-device recogniser; spoken Stop/Pause/Continue/Cancel; answers can stay text-only. PC wake listens locally only in Background/Wake Mode and opens JARVIS with voice on; the "Hey OCADE" model file does not exist yet: BLOCKED.
+- **Capacity (Phase 21).** Edge slot policy unchanged (v10). JARVIS shows an OCADE-worded busy state, saves the task and continues it by itself when the wait ends. LOCAL TEST.
+- **Mobile (Phase 22).** Manifest + home-screen icon (owner decision supersedes the earlier no-manifest rule), Remote PC and STOP at 375 px. REAL ANDROID / REAL iOS: UNTESTED.
+
+Next owner actions: provide the code-signing identities, the notarization profile, the update release key and the Chrome Web Store account; run the agent and extension once on real Windows and macOS; train or supply the "Hey OCADE" wake model.
