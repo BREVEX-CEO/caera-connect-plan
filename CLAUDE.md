@@ -49,3 +49,12 @@ Do not claim deep computer/mobile control as complete until later phases are act
 Run targeted tests and the full OCADE verification matrix on the exact reconciled tree. Perform an adversarial browser pass. Report live proof, browser proof, local proof, database proof, blocked cases, and untested cases separately.
 
 Never hide a failure, deployment mismatch, untested capability, security risk, or regression.
+
+
+## Current JARVIS continuation authority
+
+For any JARVIS work after the completed web/browser mission, read `docs/JARVIS_DEVICE_ROADMAP.md` and PLAN.md Phases 13–23 before editing.
+
+Preserve the proven Phases 0–12 baseline. The latest UI reference is `imports/UI OCADE JARVIS.zip` and must remain untouched.
+
+Do not guess unsupported mobile/desktop capability. Implement, test and label evidence honestly.
