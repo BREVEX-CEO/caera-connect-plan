@@ -149,3 +149,53 @@ Accepted.
 ### Decision
 
 Current documentation focuses on the web-controlled mission and does not name or plan a desktop-wrapper technology before the owner starts that later mission.
+
+## JARVIS browser tasks run on a paired device, planned in the browser
+
+### Date
+
+2026-09-26.
+
+### Status
+
+Accepted.
+
+### Decision
+
+The planning loop runs in the signed-in browser tab and calls OCADE's existing Online boundary on a `jarvis` surface, one permit per model step.
+
+Browser actions execute on a paired device running the working runtime (`jarvis-runtime/ocade_device.py`), which authenticates with a hashed device token, holds no provider key and makes no model call.
+
+The Worker exposes only `/api/jarvis/pair` and `/api/jarvis/device`; every queued action is validated and permission-checked by server functions before a device can claim it.
+
+A hosted automation browser is not part of this phase, and a task with no online device is refused rather than simulated.
+
+## JARVIS usage is a separate pool in the one ledger
+
+### Date
+
+2026-09-26.
+
+### Status
+
+Accepted.
+
+### Decision
+
+JARVIS permits use the existing permit lifecycle with their own window kinds (`jarvis_session`, `jarvis_week`) and the same Free/Pro/Max numbers as Chat, so the two allowances never spend each other.
+
+Every successful model step, including one that only calls a tool, costs one JARVIS use; a step that fails or produces nothing is released.
+
+## Private-network addresses need the person's permission
+
+### Date
+
+2026-09-26.
+
+### Status
+
+Accepted.
+
+### Decision
+
+JARVIS may open public sites unless the person turns them off in Allowed Apps, but loopback, private-network and local addresses are refused until the person allows that exact address, so page content cannot steer a device into its own network.

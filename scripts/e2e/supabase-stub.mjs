@@ -391,6 +391,11 @@ function handleRpc(name, args, userId) {
       jarvisTables.jarvis_activity = (jarvisTables.jarvis_activity ?? []).filter(
         (row) => row.user_id !== args.p_user_id || Date.parse(row.created_at) >= cutoff,
       );
+      for (const task of jarvisTables.jarvis_tasks ?? []) {
+        if (task.user_id === args.p_user_id && Date.parse(task.updated_at) < now - 3_600_000) {
+          task.live_frame = null;
+        }
+      }
       return before - jarvisTables.jarvis_activity.length;
     }
 
@@ -631,7 +636,7 @@ const JARVIS_DEFAULTS = {
 };
 
 /** What the online boundary answers with next, and what it last received. */
-const onlineBoundary = { status: 200, lastRequest: null, jarvisRequests: 0 };
+const onlineBoundary = { status: 200, lastRequest: null };
 
 /** The only code `/auth/v1/verify` accepts. Nothing is sent anywhere. */
 const OTP_CODE = "123456";
@@ -1135,7 +1140,6 @@ const server = createServer((request, response) => {
       if (onlineBoundary.status !== 200) {
         return send(onlineBoundary.status, { error: "provider_unavailable" });
       }
-      onlineBoundary.jarvisRequests += parsed.surface === "jarvis" ? 1 : 0;
       const scripted = parsed.surface === "jarvis" ? jarvisStep(parsed.messages ?? []) : null;
       if (scripted) {
         response.writeHead(200, {

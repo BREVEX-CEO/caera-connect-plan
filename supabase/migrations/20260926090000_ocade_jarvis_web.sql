@@ -652,7 +652,8 @@ CREATE POLICY jarvis_memories_own ON public.jarvis_memories FOR ALL
   USING ((SELECT auth.uid()) = user_id)
   WITH CHECK ((SELECT auth.uid()) = user_id);
 
--- 8. Retention: detailed activity lives 90 days; task results stay -------------------
+-- 8. Retention: detailed activity lives 90 days; task results stay; a frame
+--    left by a task nobody is running is gone within the hour -------------------
 
 CREATE OR REPLACE FUNCTION public.jarvis_purge_expired_activity(p_user_id uuid)
 RETURNS integer
@@ -666,6 +667,10 @@ BEGIN
   DELETE FROM public.jarvis_activity AS a
    WHERE a.user_id = p_user_id AND a.created_at < now() - INTERVAL '90 days';
   GET DIAGNOSTICS v_removed = ROW_COUNT;
+  UPDATE public.jarvis_tasks AS t
+     SET live_frame = NULL
+   WHERE t.user_id = p_user_id AND t.live_frame IS NOT NULL
+     AND t.updated_at < now() - INTERVAL '1 hour';
   RETURN v_removed;
 END;
 $$;

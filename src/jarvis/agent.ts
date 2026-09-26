@@ -18,7 +18,13 @@ import type {
   NormalizedMessage,
   NormalizedToolCall,
 } from "@/lib/intelligence/contract";
-import { browserAction, FINISHED, JARVIS_SYSTEM_PROMPT, type TaskStatus } from "./protocol";
+import {
+  browserAction,
+  FINISHED,
+  JARVIS_SYSTEM_PROMPT,
+  type BrowserAction,
+  type TaskStatus,
+} from "./protocol";
 import type { JarvisTaskRow, StartTaskResult } from "./jarvis.functions";
 
 export const MAX_MODEL_STEPS = 30;
@@ -66,7 +72,7 @@ export interface AgentDeps {
   readTaskStatus(id: string): Promise<TaskStatus>;
   queue(input: {
     taskId: string;
-    action: unknown;
+    action: BrowserAction;
   }): Promise<{ ok: true; id: string } | { ok: false; message: string }>;
   readAction(id: string): Promise<ActionState>;
   decide(input: { id: string; accept: boolean }): Promise<unknown>;
@@ -136,6 +142,8 @@ export async function runJarvisTurn(
   ];
   let task = input.task && !FINISHED.includes(input.task.status) ? input.task : null;
   let attachments: NormalizedAttachment[] = [];
+  // Once page content has been read this turn, nothing may be written to memory.
+  let untrustedSeen = false;
   const stopIfAsked = () => {
     if (hooks.signal.aborted) throw new Stopped();
   };
@@ -193,6 +201,7 @@ export async function runJarvisTurn(
     if (typeof step === "number" && step >= 1 && step - 1 !== task.current_step) {
       setTask(await deps.updateTask({ id: task.id, currentStep: Math.min(12, step - 1) }));
     }
+    untrustedSeen = true;
     const queued = await deps.queue({ taskId: task.id, action: parsed.data });
     if (!queued.ok) {
       const status = await deps.readTaskStatus(task.id);
@@ -260,6 +269,9 @@ export async function runJarvisTurn(
       }
       case "remember":
         if (!input.memoryEnabled) return { error: "Memory is turned off." };
+        if (untrustedSeen) {
+          return { error: "Memory can only hold what the person said, not what a page said." };
+        }
         return deps.remember(String(args.fact ?? "").slice(0, 500));
       default:
         return { error: "That tool does not exist. Only the person can change permissions." };

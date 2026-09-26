@@ -64,7 +64,7 @@ export function liveDeps(conversationId: string): AgentDeps {
     startTask: (data) => startJarvisTask({ data }),
     updateTask: (data) => updateJarvisTask({ data }),
     readTaskStatus: async (id) => (await readJarvisTask({ data: { id } })).status,
-    queue: (data) => queueJarvisAction({ data: data as never }),
+    queue: (data) => queueJarvisAction({ data }),
     readAction: (id) => readJarvisAction({ data: { id } }),
     decide: (data) => decideJarvisAction({ data }),
     frame: async (taskId) => (await readJarvisFrame({ data: { taskId } })).frame,

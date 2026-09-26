@@ -135,7 +135,7 @@ export async function exchange(
         status,
         ...(result.summary ? { summary: result.summary.slice(0, 300) } : {}),
         result:
-          outcome.length <= 60_000
+          outcome.length <= 40_000
             ? JSON.parse(outcome)
             : { status: result.status, truncated: true },
         completed_at: status === "needs_confirmation" ? null : now,

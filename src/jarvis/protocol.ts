@@ -59,15 +59,6 @@ export const TASK_STATUSES = [
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 export const FINISHED: readonly TaskStatus[] = ["stopped", "blocked", "failed", "completed"];
 
-export const ACTION_DONE = [
-  "done",
-  "failed",
-  "cancelled",
-  "blocked",
-  "human_required",
-  "stale",
-] as const;
-
 export const CAPABILITIES = [
   "master",
   "memory",

@@ -312,7 +312,32 @@ try {
     );
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
 
+    /* --- a private address needs the person's permission first ------------- */
+    await script("private-task", [
+      { tool: "start_task", args: { title: "Open a local page", steps: ["Open"] } },
+      { tool: "browser", args: { action: "open", url: `${SITE}/shop` } },
+      { tool: "finish_task", args: { outcome: "blocked", result: "Needs permission." } },
+      { text: "That address needs your permission." },
+    ]);
+    const shopBefore = hits.length;
+    await say("private-task open the local shop");
+    await idle();
+    check("a private-network address is refused until allowed", hits.length === shopBefore);
+    check(
+      "and the refusal says how to allow it",
+      (await boundary()).turns.some((t) => t.content.includes("is on a private network")),
+    );
+    await rail("Allowed Apps").click();
+    await page.locator("#jarvis-allow-site").fill("127.0.0.1");
+    await page.getByRole("button", { name: "Allow site", exact: true }).click();
+    check(
+      "the person can allow it in Allowed Apps",
+      await until(async () => await page.getByRole("switch", { name: "127.0.0.1" }).isChecked()),
+    );
+    await page.getByRole("button", { name: "Close", exact: true }).first().click();
+
     /* --- a real browser task across two tabs -------------------------------- */
+    await setJarvisRemaining(28);
     await script("shop-task", [
       {
         tool: "start_task",
@@ -355,6 +380,7 @@ try {
     check("a stale coordinate was refused, not clicked", shopTurns.includes('{"status":"stale"'));
 
     /* --- sensitive confirmation and purchase prohibition -------------------- */
+    await setJarvisRemaining(28);
     await script("sensitive-task", [
       { tool: "start_task", args: { title: "Send and buy", steps: ["Send", "Buy"] } },
       { tool: "browser", args: { action: "open", url: `${SITE}/shop` } },
@@ -389,6 +415,7 @@ try {
     );
 
     /* --- CAPTCHA hands over, and resumes from a fresh look ------------------- */
+    await setJarvisRemaining(28);
     await script("captcha-task", [
       { tool: "start_task", args: { title: "Get past a check", steps: ["Open"] } },
       { tool: "browser", args: { action: "open", url: `${SITE}/captcha` } },
@@ -414,6 +441,7 @@ try {
     check("resume re-observes before anything else", captchaTurns.includes("fresh observation"));
 
     /* --- Take Over, then Stop ------------------------------------------------ */
+    await setJarvisRemaining(28);
     await script("slow-task", [
       { tool: "start_task", args: { title: "Slow work", steps: ["Wait"] } },
       { tool: "browser", args: { action: "open", url: `${SITE}/shop` } },
@@ -504,6 +532,7 @@ try {
     );
     await siteSwitch.click();
     await until(async () => !(await siteSwitch.isChecked()));
+    await setJarvisRemaining(28);
     await script("site-task", [
       { tool: "start_task", args: { title: "Open a turned-off site", steps: ["Open"] } },
       { tool: "browser", args: { action: "open", url: `${SITE}/lamp` } },

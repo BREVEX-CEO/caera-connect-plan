@@ -41,17 +41,40 @@ export function isAllowed(
   return decided ? decided.allowed : DEFAULTS[capability];
 }
 
-/** A site is usable unless the person turned it (or a parent domain) off. */
+/** Loopback, private-network and link-local hosts: a device's own neighbourhood. */
+export function isPrivateHost(host: string): boolean {
+  return (
+    /(^|\.)(localhost|local|internal|lan|home)$/.test(host) ||
+    /^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    /^\[(::1?|f[cd]|fe[89ab])/i.test(host)
+  );
+}
+
+/** The person's explicit decision for this address or a parent domain, if any. */
+function siteDecision(rows: readonly PermissionRow[], host: string): boolean | null {
+  const labels = host.split(".");
+  // A name matches itself and its parent domains; an address or a bare name only itself.
+  const scopes =
+    /^[\d.]+$/.test(host) || labels.length === 1
+      ? [host]
+      : labels.slice(0, -1).map((_, at) => labels.slice(at).join("."));
+  for (const scope of scopes) {
+    const row = rows.find((r) => r.capability === `site:${scope}` && r.device_id === null);
+    if (row) return row.allowed;
+  }
+  return null;
+}
+
+/**
+ * A public site is usable unless the person turned it (or a parent domain)
+ * off. A private-network address is usable only after the person allowed it,
+ * so a page cannot steer JARVIS into the device's own network.
+ */
 export function siteAllowed(rows: readonly PermissionRow[], url: string): boolean {
   const host = hostOf(url);
   if (!host) return false;
-  const labels = host.split(".");
-  for (let at = 0; at < labels.length - 1; at += 1) {
-    const scope = `site:${labels.slice(at).join(".")}`;
-    const row = rows.find((r) => r.capability === scope && r.device_id === null);
-    if (row) return row.allowed;
-  }
-  return true;
+  return siteDecision(rows, host) ?? !isPrivateHost(host);
 }
 
 export type Refusal = { capability: Capability | "site"; message: string };
@@ -67,7 +90,15 @@ export function refuseAction(
     return { capability: "browser", message: "Browser control is turned off for this device." };
   if (input.mode === "real" && !isAllowed(rows, "browser_real", input.deviceId))
     return { capability: "browser_real", message: "Using your own browser is not allowed." };
-  if (input.url !== undefined && !siteAllowed(rows, input.url))
-    return { capability: "site", message: "That site is turned off in Allowed Apps." };
+  if (input.url !== undefined && !siteAllowed(rows, input.url)) {
+    const host = hostOf(input.url) ?? "";
+    return {
+      capability: "site",
+      message:
+        siteDecision(rows, host) === null && isPrivateHost(host)
+          ? `${host} is on a private network. Allow it in Allowed Apps first.`
+          : "That site is turned off in Allowed Apps.",
+    };
+  }
   return null;
 }

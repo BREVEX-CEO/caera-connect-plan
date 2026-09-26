@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { browserAction, describeAction, hostOf, jarvisTools } from "../protocol";
-import { isAllowed, refuseAction, siteAllowed, type PermissionRow } from "../permissions";
+import {
+  isAllowed,
+  isPrivateHost,
+  refuseAction,
+  siteAllowed,
+  type PermissionRow,
+} from "../permissions";
 import { heard } from "../use-voice";
 
 const row = (
@@ -107,5 +113,33 @@ describe("the wake phrase", () => {
     expect(heard("hey o cade what's up", true)).toBe("what's up");
     expect(heard("open the news", true)).toBeNull();
     expect(heard("Hey OCADE", true)).toBeNull();
+  });
+});
+
+describe("private networks", () => {
+  it("recognises loopback, private and local names", () => {
+    for (const host of [
+      "localhost",
+      "127.0.0.1",
+      "10.0.0.8",
+      "192.168.1.1",
+      "172.20.0.1",
+      "printer.local",
+      "169.254.1.1",
+    ]) {
+      expect(isPrivateHost(host)).toBe(true);
+    }
+    for (const host of ["example.com", "172.32.0.1", "8.8.8.8"]) {
+      expect(isPrivateHost(host)).toBe(false);
+    }
+  });
+
+  it("refuses a private address until the person allows it", () => {
+    expect(siteAllowed([], "http://192.168.1.1/admin")).toBe(false);
+    expect(
+      refuseAction([], { deviceId: "d", mode: "isolated", url: "http://127.0.0.1:8799" })?.message,
+    ).toContain("private network");
+    expect(siteAllowed([row("site:192.168.1.1", true)], "http://192.168.1.1/admin")).toBe(true);
+    expect(siteAllowed([row("site:1.1", true)], "http://192.168.1.1/")).toBe(false);
   });
 });

@@ -8,7 +8,7 @@
  * (semantic zoom); zoomed out, each category is one hub. With reduced motion
  * there is no auto-rotation and nothing animates on its own.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import type { Graph, GraphNode } from "./graph";
 import { cn } from "@/lib/utils";
@@ -65,11 +65,6 @@ export function Orb({
   const [hover, setHover] = useState<{ node: GraphNode; x: number; y: number } | null>(null);
   const [zoomShown, setZoomShown] = useState(1);
   const draw = useRef<() => void>(() => undefined);
-
-  const visible = useMemo(() => {
-    return (zoom: number) =>
-      graph.nodes.filter((n) => n.kind === "core" || n.kind === "hub" || zoom >= DETAIL_ZOOM);
-  }, [graph]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -135,7 +130,10 @@ export function Orb({
         context.fill();
       }
 
-      const shown = visible(v.zoom);
+      // Semantic zoom: categories until zoomed in, then every record.
+      const shown = graph.nodes.filter(
+        (n) => n.kind === "core" || n.kind === "hub" || v.zoom >= DETAIL_ZOOM,
+      );
       const ids = new Set(shown.map((n) => n.id));
       const at = new Map<string, ReturnType<typeof project>>();
       for (const node of shown) at.set(node.id, project(node.position));
@@ -197,7 +195,7 @@ export function Orb({
       cancelAnimationFrame(frame);
       resize.disconnect();
     };
-  }, [graph, accent, reducedMotion, selectedId, visible]);
+  }, [graph, accent, reducedMotion, selectedId]);
 
   useEffect(() => {
     if (reducedMotion) draw.current();

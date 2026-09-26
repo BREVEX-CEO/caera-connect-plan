@@ -233,6 +233,26 @@ describe("activity", () => {
   });
 });
 
+describe("temporary frames", () => {
+  it("are cleared from a task nobody has touched for an hour", async () => {
+    const [{ id }] = await twin.asServiceRole<{ id: string }>(
+      `insert into public.jarvis_tasks (user_id, conversation_id, title, live_frame)
+       values ('${A}', '${jarvis}', 'Abandoned', 'frame') returning id`,
+    );
+    await twin.execSuperuser(
+      `alter table public.jarvis_tasks disable trigger jarvis_tasks_frame_is_temporary;
+       update public.jarvis_tasks set updated_at = now() - interval '2 hours' where id = '${id}';
+       alter table public.jarvis_tasks enable trigger jarvis_tasks_frame_is_temporary;`,
+    );
+    await twin.asServiceRole(`select public.jarvis_purge_expired_activity('${A}'::uuid)`);
+    const [row] = await twin.asSuperuser<{ live_frame: string | null; status: string }>(
+      `select live_frame, status from public.jarvis_tasks where id = '${id}'`,
+    );
+    expect(row!.live_frame).toBeNull();
+    expect(row!.status).toBe("running");
+  });
+});
+
 describe("usage", () => {
   it("keeps the JARVIS and Chat allowances separate", async () => {
     expect(await permit(A, "chat-1", "chat")).toBe("granted");

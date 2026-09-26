@@ -1,9 +1,9 @@
 /** The rail's sections, the Permissions drawer and the graph node panel. */
-import { Fragment, useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { FINISHED, type Capability } from "./protocol";
+import { FINISHED, hostOf, type Capability } from "./protocol";
 import { isAllowed } from "./permissions";
 import type { GraphNode } from "./graph";
 import {
@@ -254,6 +254,36 @@ function SectionBody({
             onChange={(allowed) => void decide(`site:${site}`, allowed, null, onChanged)}
           />
         ))}
+        <form
+          className="mt-3 flex gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const input = event.currentTarget.elements.namedItem("site") as HTMLInputElement;
+            const host = hostOf(input.value);
+            if (!host || !/^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/.test(host)) {
+              toast.error("Enter a website address, such as example.com.");
+              return;
+            }
+            void decide(`site:${host}`, true, null, onChanged);
+            input.value = "";
+          }}
+        >
+          <label htmlFor="jarvis-allow-site" className="sr-only">
+            Website to allow
+          </label>
+          <input
+            id="jarvis-allow-site"
+            name="site"
+            placeholder="example.com"
+            className="min-w-0 flex-1 rounded-md border border-border/60 bg-transparent px-2 py-1"
+          />
+          <button type="submit" className="rounded-md border border-border px-2 py-1 text-xs">
+            Allow site
+          </button>
+        </form>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Addresses on your own network need your permission first.
+        </p>
         <p className="mt-3 text-xs text-muted-foreground">
           Apps on your computer or phone: not available yet.
         </p>
@@ -481,7 +511,21 @@ export function NodePanel({
     node.kind === "memory" ? state?.memories.find((m) => m.id === node.recordId) : undefined;
   const openable = node.kind !== "memory";
   return (
-    <Panel title={node.label} onClose={onClose}>
+    <section
+      aria-label={node.label}
+      className="glass-strong absolute bottom-28 left-3 right-3 z-20 rounded-xl p-3 sm:left-auto sm:w-72"
+    >
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h2 className="truncate text-sm font-medium">{node.label}</h2>
+        <button
+          type="button"
+          aria-label="Close"
+          onClick={onClose}
+          className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-accent"
+        >
+          <X className="h-4 w-4" aria-hidden />
+        </button>
+      </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
         {node.meta.map(([key, value]) => (
           <Fragment key={key}>
@@ -531,36 +575,6 @@ export function NodePanel({
       {memory && revealed ? (
         <p className="mt-2 whitespace-pre-wrap text-xs">{memory.content}</p>
       ) : null}
-    </Panel>
-  );
-}
-
-function Panel({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <section
-      aria-label={title}
-      className="glass-strong absolute bottom-28 left-3 right-3 z-20 rounded-xl p-3 sm:left-auto sm:w-72"
-    >
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="truncate text-sm font-medium">{title}</h2>
-        <button
-          type="button"
-          aria-label="Close"
-          onClick={onClose}
-          className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-accent"
-        >
-          <X className="h-4 w-4" aria-hidden />
-        </button>
-      </div>
-      {children}
     </section>
   );
 }

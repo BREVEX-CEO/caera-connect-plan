@@ -90,11 +90,23 @@ Do not mention a desktop-wrapper implementation until the web mission is complet
 
 Do not claim deeper computer/mobile control until genuinely implemented and tested.
 
+## Implementation state (2026-09-26)
+
+The ZIP is preserved byte-for-byte; `imports/ocade-jarvis/source-original/` matches it file for file (58 files) and `source-is-preserved.test.ts` pins both.
+
+`jarvis-runtime/` is the working engine: the old Qt GUI, `main.py`, the avatar, the local LLM client and every plaintext provider-key read are retired from it; all capability modules remain. `ocade_device.py` is the active entry point (pair, run).
+
+`/ocade-jarvis` is live in the build: orb/graph GUI, compact rail, Permissions drawer, tasks, live browser panel, confirmation, Take Over, Stop, Resume and browser voice controls.
+
+Intelligence goes through the existing Edge boundary with `surface = "jarvis"`; the Edge function and the migration `20260926090000_ocade_jarvis_web.sql` must be deployed before this works live.
+
+Browser control is proven locally end to end with a real paired runtime (`npm run audit:jarvis`); speech transcription and the real-browser (CDP) path are not proven here.
+
 ## Next steps
 
-Extract and inventory the ZIP, create the working runtime, build the new orb GUI, route /ocade-jarvis, remove active API-key entry, connect Online intelligence, implement JARVIS usage and voice, then build and harden the first real browser-control path.
+Deploy the migration and the Edge function, then run the JARVIS journey against the deployed project with a real model and a real paired computer.
 
-After the browser-controlled web mission is stable, prepare later deeper computer/mobile phases.
+Prove the authorized real-browser path on a real desktop, then begin the deeper computer-control phase from the preserved runtime modules.
 
 ## Session handoff
 

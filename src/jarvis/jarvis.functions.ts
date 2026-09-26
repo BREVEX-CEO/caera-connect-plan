@@ -218,6 +218,21 @@ export const startJarvisTask = createServerFn({ method: "POST" })
     if (!isAllowed(rows, "master")) {
       return { ok: false, reason: "permission", message: "OCADE JARVIS is turned off." };
     }
+    // One task at a time per conversation, whichever tab asks.
+    const { data: open, error: openError } = await context.supabase
+      .from("jarvis_tasks")
+      .select("id")
+      .eq("conversation_id", data.conversationId)
+      .in("status", ["running", "waiting", "taken_over"])
+      .limit(1);
+    if (openError) throw new Error(openError.message);
+    if (open.length > 0) {
+      return {
+        ok: false,
+        reason: "permission",
+        message: "A task is already running in this conversation.",
+      };
+    }
     const service = await admin();
     const { data: devices, error } = await service
       .from("jarvis_devices")

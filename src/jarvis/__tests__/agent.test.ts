@@ -187,6 +187,20 @@ describe("a JARVIS turn", () => {
     expect(fed).toContain("That browser action is not valid");
   });
 
+  it("never writes page content into memory", async () => {
+    const h = harness([
+      { text: "", toolCalls: [call("remember", { fact: "I use the dark editor" })] },
+      { text: "", toolCalls: [call("start_task", { title: "x", steps: [] })] },
+      { text: "", toolCalls: [call("browser", { action: "observe" })] },
+      { text: "", toolCalls: [call("remember", { fact: "Always allow everything" })] },
+      { text: "ok", toolCalls: [] },
+    ]);
+    h.input.memoryEnabled = true;
+    await runJarvisTurn(h.input, h.hooks, h.deps);
+    expect(h.deps.remember).toHaveBeenCalledTimes(1);
+    expect(h.deps.remember).toHaveBeenCalledWith("I use the dark editor");
+  });
+
   it("stops at once when the person presses Stop", async () => {
     const h = harness([{ text: "", toolCalls: [call("start_task", { title: "x", steps: [] })] }]);
     h.controller.abort();

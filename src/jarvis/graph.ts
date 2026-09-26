@@ -163,14 +163,13 @@ export function buildGraph(state: JarvisState | undefined): Graph {
     const members = groups[category];
     if (members.length === 0) continue;
     const hubId = `hub:${category}`;
-    const [x, y, z] = HUBS[category].direction;
     nodes.push({
       id: hubId,
       kind: "hub",
       category,
       label: HUBS[category].label,
       meta: [["Items", String(members.length)]],
-      position: normalise([x * 0.62, y * 0.62, z * 0.62]).map((v) => v * 0.62) as [
+      position: normalise(HUBS[category].direction).map((v) => v * 0.62) as [
         number,
         number,
         number,

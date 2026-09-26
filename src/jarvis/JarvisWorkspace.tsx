@@ -48,7 +48,7 @@ import {
 import { NodePanel, PermissionsDrawer, SectionPanel, type Section } from "./JarvisPanels";
 import { BrowserPanel, ConfirmBanner, TaskCard, TakeOverBanner, VoiceBar } from "./JarvisTask";
 
-export const JARVIS_STATE_KEY = ["jarvis", "state"] as const;
+const JARVIS_STATE_KEY = ["jarvis", "state"] as const;
 
 interface Turn {
   id: string;
@@ -499,9 +499,9 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
                   JARVIS is working
                 </p>
               ) : null}
-              {conversationTask || (activeTask && activeTask.conversation_id === conversationId) ? (
+              {conversationTask ? (
                 <TaskCard
-                  task={(conversationTask ?? activeTask)!}
+                  task={conversationTask}
                   running={running}
                   onStop={() => void stop()}
                   onTakeOver={() => void takeOverNow()}
