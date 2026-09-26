@@ -5,44 +5,47 @@
 
 ## First action of every session
 
-Before reading, planning, editing, debugging, reviewing, testing, continuing after compaction, or resuming interrupted work, **run these two commands first**:
+Before reading, planning, editing, debugging, reviewing, testing, resuming after compaction, or continuing an interrupted task, run **/ponytail ultra** and **/caveman ultra**.
 
-```text
-/ponytail ultra
-/caveman ultra
-```
+Then read AGENTS.md, the current owner request, PLAN.md, docs/MEMORY.md, and only the relevant canonical documents.
 
-After any new session, resumed session, context-compacted session, Auto Continue restart, or other fresh execution context, run them again before proceeding.
+## Active mission
 
-Then read `AGENTS.md`, the current task, `PLAN.md`, `docs/MEMORY.md`, and only the relevant canonical documents under `docs/`.
+The active mission is the OCADE JARVIS web integration defined in PLAN.md.
 
-## Working rule
+OCADE Chat remains protected and must keep working. OCADE JARVIS is a separate Online-only product surface at /ocade-jarvis.
 
-`AGENTS.md` is the permanent agent handbook. `PLAN.md` is the active mission authority and must not be rewritten unless the owner explicitly asks. Follow the owner-approved product decisions in the canonical docs.
+The original JARVIS ZIP and immutable extracted source are preservation artifacts. Never delete, rewrite, rename, format, dependency-upgrade, or Ponytail-debloat them.
 
-Work independently. Trace the repository and live authority, reproduce safely, fix root causes, add regression coverage, test, deliberately try to break the fix, simplify with YAGNI/KISS, and continue. Ask the owner only for a genuinely owner-only credential, payment, legal/business choice, destructive approval, or hardware/account interaction that the available environment cannot perform.
+The working extracted JARVIS runtime is the primary engine. Preserve its useful functionality, replace the active old GUI with the new OCADE JARVIS web GUI, remove active manual provider-key entry/plaintext provider-key configuration, and wire the runtime to OCADE's approved Online intelligence authority.
 
-Keep progress concise. Never hide a failed test, blocker, security/privacy risk, deployment mismatch, or the difference between live proof and simulation.
+## Execution doctrine
+
+Work independently from evidence. Inventory and continue directly into implementation rather than stopping after documentation unless a real owner-only action is required.
+
+Use one authority per responsibility. Prefer wiring and reuse over duplicate implementations. Apply Ponytail/YAGNI/KISS aggressively to new production integration code only after behavior is proven.
+
+Keep browser control as the first deep JARVIS control capability. Integrate Playwright/Playwright-MCP capability, use structured DOM/accessibility information before visual/coordinate fallback, re-observe after layout or viewport changes, and never trust stale coordinates.
+
+Do not claim deep computer/mobile control as complete until later phases are actually implemented and tested.
 
 ## Product invariants
 
-- Treat **CARCC** as the company and **OCADE** as the product, with no current CADANE branding.
-- Current product: website-only, Chat-first. Chat, Library, Settings, Offline Intelligence, usage/limits, Pricing, auth and public/legal surfaces come before any separate future mission.
-- Show the customer selector as **Auto | Online | Offline**.
-- Provider/model/vendor/runtime identities never appear in normal customer surfaces or client-visible diagnostics.
-- Offline model bytes/chunks/checkpoints/model metadata are stored **only in OPFS**.
-- A verified compatible Offline release must not redownload merely because the website was updated.
-- Explicit Remove suppresses automatic reinstall until the customer explicitly chooses Install Offline.
-- Manual Offline makes zero Online provider requests and does not accept image input.
-- One successful logical answer is one use; failure is zero; retries/fallback do not double-charge.
-- Enforce Free at 28/6h28m, Pro at 140/6h28m + 700/week, and Max at 1,400/6h28m + 7,000/week.
-- Paid checkout is closed. Do not add/revive Paddle.
-- GitHub Actions is optional; run equivalent verification locally/through available direct authorities.
+- CARCC is the company and OCADE is the product.
+- Chat and JARVIS are separate experiences.
+- JARVIS is Online-only.
+- JARVIS has separate usage accounting from Chat.
+- Signed-out users may view JARVIS, but execution requires sign-in.
+- Normal questions may be answered normally; explicit work requests become tasks.
+- Purchases are prohibited.
+- Sensitive submissions require confirmation.
+- The orb GUI is data-driven, responsive, accessible, and minimal.
+- Voice provides explicit Interrupt, Pause, Continue, and End controls.
+- The original generic plugin subsystem remains preserved but unused.
+- The old phone dashboard remains preserved but is not the final active remote-control architecture.
 
-## Engineering doctrine
+## Completion rule
 
-Use one canonical authority per responsibility. Prefer deletion/reuse over new abstractions. Use native/platform primitives before new dependencies. Remove dead, duplicate, stale and unreachable code when safe. Never remove required security, validation, accessibility, reliability, evidence, or tests merely to reduce line count.
+Run targeted tests and the full OCADE verification matrix on the exact reconciled tree. Perform an adversarial browser pass. Report live proof, browser proof, local proof, database proof, blocked cases, and untested cases separately.
 
-Customer-facing success must always be real. Never fake authentication, AI output, Offline readiness, synchronization, upload, payment, hardware acceleration, deployment or external integration.
-
-Before completion, run the relevant targeted tests and full verification on the exact reconciled tree, then perform an adversarial browser/QA pass that tries to break the real customer flows. Never claim external or hardware proof that was not actually performed.
+Never hide a failure, deployment mismatch, untested capability, security risk, or regression.
