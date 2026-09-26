@@ -35,6 +35,9 @@ export default tseslint.config(
       ".output*",
       ".codex/**",
       ".claude/**",
+      // Immutable JARVIS provenance: never linted, never autofixed.
+      "imports/ocade-jarvis/source-original/**",
+      "jarvis-runtime/**",
     ],
   },
   {
