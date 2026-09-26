@@ -86,7 +86,7 @@ Temporary JARVIS tasks are not part of the first mission.
 
 The JARVIS mission must not break existing Chat, Library, Settings, authentication, Offline Intelligence, usage, public/legal, or Admin behavior.
 
-Do not mention a desktop-wrapper implementation until the web mission is complete.
+The web mission is now complete enough to begin the explicitly approved deeper-device roadmap; preserve the completed baseline while extending it.
 
 Do not claim deeper computer/mobile control until genuinely implemented and tested.
 
@@ -111,3 +111,22 @@ Prove the authorized real-browser path on a real desktop, then begin the deeper 
 ## Session handoff
 
 Every fresh Claude session runs /ponytail ultra and /caveman ultra first, then reads AGENTS.md, PLAN.md, this file, and JARVIS preservation instructions.
+
+
+## Approved continuation after browser mission
+
+The latest repository baseline for the next JARVIS mission is main commit `907140a155d963b20519f679c0a40763b1bb619d`, created when the latest `imports/UI OCADE JARVIS.zip` reference was uploaded after the completed browser/web implementation.
+
+The completed browser baseline remains protected. The owner has now explicitly started the deeper-device mission documented in PLAN.md Phases 13–23 and `docs/JARVIS_DEVICE_ROADMAP.md`.
+
+The next work is: reconcile the latest UI ZIP, create the shared protocol, build secure signed Windows/macOS Device Agent packaging, publish-ready Chrome extension, deep PC control, coding/container support, background/checkpoint/remote control, opt-in local wake/voice, and mobile web/PWA Remote PC.
+
+Production sidebar target is Conversations, Tasks, Activity, Allowed Apps and Devices. History is removed as a duplicate.
+
+JARVIS starts text-only. Voice permission occurs on first Voice use.
+
+The Device Agent uses unique per-device credentials even though enrollment is effortless through the same OCADE account.
+
+Mobile has no mandatory native companion in the approved roadmap. Do not fake unsupported mobile OS-wide app control.
+
+The last implementation report's remaining proof gaps still matter: real Online-model path from the restricted sandbox, real speech service, and real authorized-browser proof on an actual desktop. These are evidence gaps, not reasons to discard the completed implementation.
