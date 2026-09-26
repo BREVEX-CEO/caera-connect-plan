@@ -98,13 +98,13 @@ The ZIP is preserved byte-for-byte; `imports/ocade-jarvis/source-original/` matc
 
 `/ocade-jarvis` is live in the build: orb/graph GUI, compact rail, Permissions drawer, tasks, live browser panel, confirmation, Take Over, Stop, Resume and browser voice controls.
 
-Intelligence goes through the existing Edge boundary with `surface = "jarvis"`; the Edge function and the migration `20260926090000_ocade_jarvis_web.sql` must be deployed before this works live.
+Intelligence goes through the existing Edge boundary with `surface = "jarvis"`. Migration `20260926090000_ocade_jarvis_web.sql` is applied to production (verification block passed; live permit smoke charged JARVIS, not Chat). `ocade-intelligence` v10 is deployed and its files match the repo.
 
-Browser control is proven locally end to end with a real paired runtime (`npm run audit:jarvis`); speech transcription and the real-browser (CDP) path are not proven here.
+Browser control is proven locally end to end with a real paired runtime (`npm run audit:jarvis`), including a real Chromium over CDP where JARVIS works in its own tab. Speech-to-text is proven with a fake recogniser; the real speech service and a real-model JARVIS turn were not reachable from the build sandbox.
 
 ## Next steps
 
-Deploy the migration and the Edge function, then run the JARVIS journey against the deployed project with a real model and a real paired computer.
+Run one signed-in JARVIS task on production with a real model and a real paired computer, including voice in a real browser.
 
 Prove the authorized real-browser path on a real desktop, then begin the deeper computer-control phase from the preserved runtime modules.
 
