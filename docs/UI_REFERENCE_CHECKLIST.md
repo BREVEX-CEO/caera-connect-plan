@@ -1,85 +1,54 @@
-# OCADE UI Reference Checklist
+# OCADE JARVIS UI Reference Checklist
 
-Use this before declaring a UI change complete.
+## Reference intent
 
-## Brand
+The supplied orb image is a visual reference, not a literal screen to copy.
 
-- [ ] Confirm that the product name shown to customers is OCADE.
-- [ ] Confirm that company attribution says CARCC where appropriate.
-- [ ] Confirm that no current CARCC CADANE or CADANE identity remains.
-- [ ] Tagline, where used, is “Command the Next Era.”
+The final OCADE JARVIS interface should be cleaner, more responsive, more accessible, and more functionally grounded than the reference.
 
-## Product scope
+## Orb checklist
 
-- [ ] Current navigation does not advertise Projects, Tasks, Automations, Monitors, Organizations, Code or native apps.
-- [ ] No Cowork or other future-product surface is present.
-- [ ] Confirm that no Paddle or live-checkout UI is present.
+- The screen has one clear central orb focal point.
+- A new account starts with a simple graph state.
+- Real data growth adds threads/nodes over time.
+- Nodes/edges correspond to real JARVIS relationships.
+- Cursor response is subtle and professional.
+- Pan and zoom remain smooth.
+- Semantic zoom reveals detail progressively.
+- Selection shows safe metadata rather than automatically opening private content.
+- Conversation overlays dim the orb rather than permanently removing it.
+- Reduced-motion mode remains functional.
+- Custom accent colors are optional and monochrome remains default.
 
-## Chat
+## Navigation checklist
 
-- [ ] Chat is primary home.
-- [ ] Auto | Online | Offline labels are clear.
-- [ ] Thinking/Research controls remain secondary.
-- [ ] Send ↔ Stop state is obvious.
-- [ ] Edit/Regenerate/Retry/Delete work without duplicate turns.
-- [ ] Helpful / Not helpful is discreet.
-- [ ] Confirm that sources stay attached to the answer they support.
-- [ ] Highlighted text can support Ask OCADE when implemented.
-- [ ] Temporary Chat is clearly temporary.
+- The sidebar is compact by default.
+- The sidebar can expand/collapse.
+- Conversations, History, Tasks, Activity/Logs, Allowed Apps, and Devices are available.
+- Plugins are not customer-facing.
+- Permissions use a focused drawer/modal.
 
-## Offline
+## Voice checklist
 
-- [ ] Confirm that customer UI does not expose provider, model, runtime or storage terminology.
-- [ ] Preparing/Downloading/Verifying/Ready/Repair/Removed language is customer-safe.
-- [ ] Removed state offers easy Install/Cancel.
-- [ ] Selecting Offline while missing offers Install.
-- [ ] Cellular warning allows Continue/Cancel.
-- [ ] Offline refuses image input clearly.
-- [ ] Site update does not cause a visible model redownload for unchanged release.
+- Voice uses the same orb.
+- Interrupt, Pause, Continue, and End are visible.
+- Ordinary orb clicks do not secretly interrupt speech.
+- Permission denial has a clear recovery path.
 
-## Library
+## Task/browser checklist
 
-- [ ] Uploaded and generated files share one Library concept.
-- [ ] Temporary attachments are not silently saved.
-- [ ] Confirm that loading, empty, error and Retry states exist where needed.
+- Active task status is concise.
+- Stop is prominent.
+- Take Over is prominent during browser automation.
+- A live browser panel is collapsible.
+- Resize/reflow does not break the layout.
+- The UI does not imply unsupported desktop/mobile control.
 
-## Settings
+## Theme checklist
 
-- [ ] Account, Appearance, Notifications, Data Controls, Usage & Limits, Billing, Advanced.
-- [ ] Phone category selector is compact.
-- [ ] Fields/labels stack rather than crush on narrow screens.
-- [ ] Confirm that Offline controls live under Data Controls.
-- [ ] Billing honestly says paid plans are not open.
-
-## Public pages
-
-- [ ] Confirm that About correctly describes CARCC as the company and OCADE as the product.
-- [ ] Confirm that Help links only to real product surfaces.
-- [ ] Confirm that Terms and Privacy match the current website-only product.
-- [ ] Confirm that non-public and account-only routes use appropriate noindex behavior.
-- [ ] Confirm that HTTP and www requests canonicalize to the HTTPS apex origin.
-
-## Responsive
-
-- [ ] Test the interface at 360 px width.
-- [ ] Test the interface at 375 px width.
-- [ ] Test the interface at a representative tablet width.
-- [ ] Test the interface at a representative desktop width.
-- [ ] Confirm that no page has horizontal overflow.
-- [ ] Confirm that no critical action depends on hover alone.
-- [ ] Confirm that touch targets remain usable.
-
-## Accessibility
-
-- [ ] Confirm keyboard navigation and focus behavior.
-- [ ] Confirm correct dialog semantics.
-- [ ] Confirm that interactive controls have accessible names.
-- [ ] Confirm sufficient visual contrast.
-- [ ] Confirm reduced-motion behavior.
-- [ ] Confirm meaningful live and error status announcements.
-
-## Technical secrecy
-
-- [ ] Confirm that no provider, vendor or model name appears in visible UI.
-- [ ] Confirm that OPFS, model file formats, WebGPU, WASM, R2 and Supabase jargon do not appear in normal UI.
-- [ ] Confirm that no secret or internal stack error is shown to customers.
+- Dark theme is polished.
+- Light theme is equally usable.
+- Glass is restrained.
+- Typography is readable.
+- There is no unnecessary neon or sci-fi decoration.
+- Mobile layouts have no horizontal overflow.
