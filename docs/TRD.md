@@ -1,144 +1,109 @@
 # OCADE Technical Requirements Document
 
-## Product/technical boundary
+## Technical direction
 
-CARCC is the company; OCADE is the product. The current technical mission is the OCADE website only.
+OCADE remains one repository with separate runtime boundaries for the web product and the JARVIS engine.
+
+The existing JARVIS ZIP is preserved as source provenance and becomes the basis of the active working runtime.
 
 ## Frontend
 
-- Use React 19 with TypeScript for the frontend.
-- Use TanStack Router, Query and Start for routing, server-state and application structure.
-- Use Vite for the frontend build pipeline.
-- Use Tailwind CSS for styling.
-- Reuse the existing shared UI tokens and components instead of creating a second design system.
+- The OCADE website uses React 19, TypeScript, TanStack Router/Query/Start, Vite, and Tailwind CSS.
+- The production JARVIS web UI lives under src/jarvis/.
+- The canonical JARVIS route is /ocade-jarvis.
+- The JARVIS orb/graph uses a performant browser rendering approach with reduced-motion fallback.
+- The JARVIS UI remains responsive across desktop, tablet, and phone.
 
-## Runtime and package management
+## JARVIS runtime
 
-- Use Node 22 or newer within the supported engine range.
-- npm and the checked-in lockfile are authoritative.
-- Prefer native browser/platform APIs and existing dependencies before adding libraries.
+- The original ZIP remains unchanged under imports/ocade-jarvis/.
+- The immutable extracted original lives under imports/ocade-jarvis/source-original/.
+- The working Python/runtime engine lives under jarvis-runtime/.
+- The working runtime initially preserves the meaningful original actions/, core/, memory/, dashboard/, voice, and related structure.
+- The old active GUI is removed from the production path but remains in source-original.
+- Active manual provider-key entry and plaintext provider-key configuration are removed from the working runtime.
+- Generic plugin code remains preserved but unused/customer-hidden.
+- The legacy phone dashboard remains preserved but is not the final active remote-control surface.
+
+## Intelligence
+
+- JARVIS is Online-only.
+- JARVIS uses the existing approved server-side OCADE Online intelligence boundary.
+- Provider keys never enter browser code or customer configuration.
+- Provider/model/vendor identity is hidden from customer surfaces.
+- JARVIS must not call the Chat Offline path.
+
+## Browser automation
+
+- Playwright and Playwright/MCP capability are built into the JARVIS browser-control layer.
+- The runtime supports an isolated automation browser and an authorized real-browser path.
+- The preferred hierarchy is DOM/accessibility semantics, Playwright/browser tooling, authorized browser integration, visual understanding, and coordinate fallback.
+- Raw coordinates are never durable element identity.
+- The controller re-observes after resize, zoom, responsive breakpoint changes, scroll-context changes, navigation, tab changes, and content reflow.
+- Meaningful actions are verified by observing resulting state.
+- Multi-tab tasks are supported.
+- Take Over and Stop are explicit session controls.
+
+## Existing desktop-control code
+
+- Existing PyAutoGUI, computer-control, file-control, screen, app-launch, and related code is preserved.
+- The web product must not claim those capabilities are usable from a normal hosted browser until a trusted execution path is active and tested.
+- Browser-control work is completed before deeper device-control work begins.
+- Current docs do not introduce a desktop-wrapper implementation plan.
+
+## Voice
+
+- Typed and voice tasks share JARVIS context.
+- Microphone permission is requested when the user first enters JARVIS.
+- Voice supports Interrupt, Pause, Continue, and End.
+- Wake behavior uses Hey OCADE by default where supported.
+- Audio/voice states terminate cleanly on stop, error, permission denial, navigation, or sign-out.
 
 ## Backend and database
 
-- Supabase Auth and PostgreSQL are the identity and durable account-data authorities.
-- User-owned rows require RLS plus appropriate grants/server-side authorization.
-- Supabase Storage is used only for account file content that belongs in cloud account storage.
-- Schema changes are versioned migrations with rollback/verification and regenerated TypeScript types.
-
-## Hosting and delivery
-
-- Serve the website through the Cloudflare Worker.
-- Use `https://ocade.in` as the canonical origin.
-- Private Cloudflare R2 delivery is used for the opaque Offline Intelligence release.
-- HTTP and `www` canonicalization must occur before application HTML is served.
+- Supabase remains the identity, PostgreSQL, and durable account-data authority.
+- JARVIS conversations reuse the existing conversation/message authority with a clear JARVIS discriminator.
+- JARVIS memory is a separate logical namespace from Chat memory.
+- JARVIS usage is a separate usage kind/ledger from Chat.
+- Detailed JARVIS activity has 90-day retention.
+- Important task results remain durable independently of activity expiry.
+- Per-device capability permissions are durable account-owned data with RLS/server authorization.
 
 ## Authentication
 
-Target OCADE website authentication:
-
-- Support Google sign-in.
-- Support six-digit email OTP.
-- Support password sign-in as a target authentication method.
-
-MFA/strong reauthentication is required for privileged administrative or destructive operations according to risk.
-
-## Online Intelligence
-
-There is one server-side Online Intelligence boundary. The browser sends a normalized OCADE request; the boundary verifies account identity and one generation permit, calls the configured provider, streams normalized events, and settles exactly once.
-
-Provider/model/vendor identity is private implementation configuration. Prefer generic OCADE secret/config names and server-only configuration. Do not place real provider/model identity in client bundles, public docs, normal telemetry, customer errors or customer-visible diagnostics.
-
-Changing the online provider/model is an owner-controlled operational change and must not change the customer contract `Auto | Online | Offline`.
-
-## Offline Intelligence
-
-One opaque OCADE release, one installer, one downloader, one model lifecycle.
-
-### OPFS-only model storage
-
-All Offline model **bytes, partial chunks/ranges, download checkpoints, integrity state, model metadata, active/previous model pointers and runtime-owned model assets** must live in OPFS.
-
-Do not use:
-
-- Do not store Offline model bytes or chunks in IndexedDB.
-- Do not store Offline model bytes or chunks in Cache Storage.
-- Do not store Offline model bytes, chunks or model metadata in localStorage.
-- Do not use the normal browser downloads folder as the model store.
-- Do not create a second model cache inside the runtime library.
-
-A non-model preference that must survive deletion of the model itself—such as “customer explicitly removed Offline Intelligence”—may be stored outside OPFS as a small product/device preference.
-
-### Transfer requirements
-
-- Use adaptive bounded range requests for model transfer.
-- Persist each completed and verified download range or checkpoint.
-- Resume the model transfer after refresh, restart or interruption.
-- Refresh expiring download authorization when required.
-- Verify expected byte length and full digest before activation.
-- Repair only the missing or corrupt model ranges.
-- Activate a verified model atomically.
-- Never redownload a verified compatible release because the website bundle changed.
-- Explicit Remove verifies deletion before saying Removed.
-
-### Execution
-
-Use the strongest proven local capability automatically and fall back before output. Backend/runtime labels are internal only. Manual Offline emits zero Online provider traffic.
-
-Offline images are unsupported: refuse image input before generation rather than pretending to process it.
-
-## Local pending account work
-
-Disconnected account work that must survive browser restart may use an encrypted local journal separate from model storage. It requires stable client/idempotency keys and exactly-once reconciliation to the canonical account database. Plaintext local persistence of conversations is not allowed.
-
-## Intelligence routing
-
-- **Auto** uses Online when healthy and connected, uses Offline when disconnected and ready, and allows fallback only before meaningful Online output.
-- **Online** uses the connected OCADE intelligence path only.
-- **Offline** uses the local intelligence path only.
-- One successful logical request uses one commercial permit regardless of internal routing/fallback.
-
-## Usage
-
-- The Free tier allows 28 successful uses per 6h28m window.
-- The Pro tier allows 140 successful uses per 6h28m window and 700 per week.
-- The Max tier allows 1,400 successful uses per 6h28m window and 7,000 per week.
-- Anchor usage windows to the account.
-- Use the same usage authority across every device and intelligence mode.
-- Failure/empty response releases/refunds the reservation.
-- Idempotency covers double clicks, retries, tabs, reconnects and failover.
-
-## Files
-
-Validate ownership, size, detected type, request aggregate limits and extraction bounds. Never execute uploaded data. Extracted text is untrusted content, never system/tool instruction.
-
-Offline refuses images. Temporary Chat does not persist files into Library without an explicit Save.
-
-## Commercial/payments
-
-The product retains pricing/tier metadata but paid checkout is closed. No Paddle runtime, webhook or checkout should be part of the current product target. Upgrade surfaces explain that paid plans are not open and perform no charge.
+- The /ocade-jarvis surface may render signed out.
+- Intelligence, account data, task execution, browser control, voice intelligence, and durable state require authentication.
+- Authentication returns to the requested JARVIS route.
 
 ## Security
 
-- Keep secrets only in server-side secret stores.
-- No service-role or provider secret in client code.
-- No provider/model/vendor identity in normal client/customer surfaces.
-- Require strong authentication for admin and grant operations.
-- Direct client writes to revocation/entitlement security fields are forbidden.
-- Sanitize internal errors before they reach customers.
-- CSP and canonical-origin controls remain strict.
+- Every action binds to account, JARVIS context, request, permission, and device identity.
+- JARVIS treats web content, screenshots, tool output, uploads, and model-generated instructions as untrusted.
+- Prompt injection cannot expand permissions.
+- Sensitive submissions require confirmation.
+- Final purchases are blocked.
+- One-time authentication secrets are ephemeral.
+- Any future encrypted credential vault remains separate from conversational memory.
+- Payment card security codes are never stored.
 
-## Performance
+## Usage
 
-- Use bounded reads and pagination.
-- Use indexed queries for account and admin search.
-- Stream large files/model verification rather than materializing them unnecessarily.
-- Keep Chat interactive while Offline downloads.
-- Mobile layouts must remain responsive during network/database/model activity.
+- Chat and JARVIS have separate plan allowances.
+- JARVIS internal successful resource-bearing steps may consume JARVIS usage.
+- Failed/no-result steps are reconciled.
+- Usage is enforced server-side and account-wide.
 
 ## Deployment
 
-A release is proven only when the Git SHA, website Worker, database migration/type state, Online Intelligence function/version and Offline release contract are compatible. A successful build alone is not production proof.
+- The website remains deployed through the current Cloudflare Worker authority.
+- Supabase Edge Functions and migrations follow existing deployment discipline.
+- JARVIS packaging must not leak secrets/provider identity into the public bundle.
 
-## Environment variables
+## Hard constraints
 
-Document **names, never values**. Public build variables may include Supabase public URL/key and auth-method feature flags. Server secrets must use generic OCADE provider naming where feasible and must not reveal secret values in source/logs.
+- Do not break existing Chat/Offline behavior.
+- Do not add Offline JARVIS.
+- Do not expose provider keys.
+- Do not delete the original ZIP or immutable snapshot.
+- Do not claim unsupported desktop/mobile control.
+- Do not mention a desktop-wrapper architecture before the web mission is complete.
