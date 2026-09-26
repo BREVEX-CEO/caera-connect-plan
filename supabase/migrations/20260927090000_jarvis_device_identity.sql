@@ -40,14 +40,17 @@ ALTER TABLE public.jarvis_devices
   ADD COLUMN IF NOT EXISTS enrollment_expires_at timestamptz,
   ADD COLUMN IF NOT EXISTS key_rotated_at timestamptz,
   ADD COLUMN IF NOT EXISTS last_request_ms bigint NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS background_enabled boolean NOT NULL DEFAULT false;
+  ADD COLUMN IF NOT EXISTS background_enabled boolean NOT NULL DEFAULT false,
+  -- Names of apps the device found locally, for Allowed Apps. Names only.
+  ADD COLUMN IF NOT EXISTS installed_apps jsonb NOT NULL DEFAULT '[]'::jsonb;
 
 ALTER TABLE public.jarvis_devices
   DROP CONSTRAINT IF EXISTS jarvis_devices_public_key_unique,
   DROP CONSTRAINT IF EXISTS jarvis_devices_public_key_shape,
   DROP CONSTRAINT IF EXISTS jarvis_devices_kind_check,
   DROP CONSTRAINT IF EXISTS jarvis_devices_software_version_check,
-  DROP CONSTRAINT IF EXISTS jarvis_devices_pending_shape;
+  DROP CONSTRAINT IF EXISTS jarvis_devices_pending_shape,
+  DROP CONSTRAINT IF EXISTS jarvis_devices_installed_apps_shape;
 ALTER TABLE public.jarvis_devices
   ADD CONSTRAINT jarvis_devices_public_key_unique UNIQUE (public_key),
   ADD CONSTRAINT jarvis_devices_public_key_shape
@@ -55,6 +58,9 @@ ALTER TABLE public.jarvis_devices
   ADD CONSTRAINT jarvis_devices_kind_check CHECK (kind IN ('agent', 'extension')),
   ADD CONSTRAINT jarvis_devices_software_version_check
     CHECK (software_version IS NULL OR length(software_version) <= 40),
+  ADD CONSTRAINT jarvis_devices_installed_apps_shape CHECK (
+    jsonb_typeof(installed_apps) = 'array' AND pg_column_size(installed_apps) <= 32768
+  ),
   -- A row without an account is a pending enrollment, and nothing else.
   ADD CONSTRAINT jarvis_devices_pending_shape CHECK (
     (user_id IS NULL) = (enrollment_expires_at IS NOT NULL)
@@ -67,7 +73,7 @@ CREATE INDEX IF NOT EXISTS jarvis_devices_pending_idx
 REVOKE ALL ON TABLE public.jarvis_devices FROM PUBLIC, anon, authenticated;
 GRANT SELECT (
   id, user_id, name, platform, capabilities, last_seen_at, revoked_at, created_at,
-  kind, protocol_version, software_version, key_rotated_at, background_enabled
+  kind, protocol_version, software_version, key_rotated_at, background_enabled, installed_apps
 ) ON public.jarvis_devices TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.jarvis_devices TO service_role;
 

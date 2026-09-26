@@ -10,6 +10,7 @@ DELETE FROM public.jarvis_devices;
 DROP INDEX IF EXISTS public.jarvis_devices_pending_idx;
 ALTER TABLE public.jarvis_devices
   DROP CONSTRAINT IF EXISTS jarvis_devices_pending_shape,
+  DROP CONSTRAINT IF EXISTS jarvis_devices_installed_apps_shape,
   DROP CONSTRAINT IF EXISTS jarvis_devices_software_version_check,
   DROP CONSTRAINT IF EXISTS jarvis_devices_kind_check,
   DROP CONSTRAINT IF EXISTS jarvis_devices_public_key_shape,
@@ -22,7 +23,8 @@ ALTER TABLE public.jarvis_devices
   DROP COLUMN IF EXISTS enrollment_expires_at,
   DROP COLUMN IF EXISTS key_rotated_at,
   DROP COLUMN IF EXISTS last_request_ms,
-  DROP COLUMN IF EXISTS background_enabled;
+  DROP COLUMN IF EXISTS background_enabled,
+  DROP COLUMN IF EXISTS installed_apps;
 ALTER TABLE public.jarvis_devices ALTER COLUMN user_id SET NOT NULL;
 ALTER TABLE public.jarvis_devices
   ADD COLUMN token_hash text UNIQUE,

@@ -31,7 +31,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from ocade_computer import Computer, installed_apps  # noqa: E402
 from ocade_identity import SOFTWARE_VERSION, Identity, NotEnrolled, UpdateRequired  # noqa: E402
+
+BROWSER_ACTIONS = {"observe", "look", "open", "new_tab", "click", "type", "select", "press",
+                   "scroll", "switch_tab", "close_tab", "back", "forward", "wait", "click_at"}
+APPS_EVERY_S = 3600
 
 HOME = Path(os.environ.get("OCADE_JARVIS_HOME", Path.home() / ".ocade_jarvis"))
 POLL_IDLE_SECONDS = 1.0
@@ -85,21 +90,27 @@ class Browsers:
             return None
 
 
-def run(headless: bool, cdp: str | None, server: str | None) -> int:
+def run(headless: bool, cdp: str | None, server: str | None, workspace: str | None = None) -> int:
     identity = Identity(HOME)
     if not identity.connected:
         if not server:
             raise SystemExit("This computer is not connected. Run: ocade_device.py connect --server URL")
         identity = connect(server, platform.node()[:120] or "My computer")
     browsers = Browsers(headless, cdp)
+    computer = Computer(workspace)
     results: list[dict] = []
     frame: dict | None = None
+    apps_sent = 0.0
     print(f"OCADE JARVIS device running for {identity.meta['server']}. Ctrl+C to stop.", flush=True)
     while True:
         try:
-            reply = identity.exchange({"results": results, "frame": frame,
-                                       "capabilities": browsers.capabilities(),
-                                       "softwareVersion": SOFTWARE_VERSION})
+            body = {"results": results, "frame": frame,
+                    "capabilities": {**browsers.capabilities(), **computer.capabilities()},
+                    "softwareVersion": SOFTWARE_VERSION}
+            if time.monotonic() - apps_sent > APPS_EVERY_S or not apps_sent:
+                body["apps"] = [app["name"] for app in installed_apps()]
+                apps_sent = time.monotonic()
+            reply = identity.exchange(body)
         except NotEnrolled:
             identity.forget()
             print("This device is no longer connected. Its key was removed.", flush=True)
@@ -113,12 +124,19 @@ def run(headless: bool, cdp: str | None, server: str | None) -> int:
         results, frame = [], None
         for command in reply.get("commands", []):
             mode = command.get("mode", "isolated")
+            action = command["action"]
+            confirmed = bool(command.get("confirmed"))
+            browser = action.get("action") in BROWSER_ACTIONS
             try:
-                outcome = browsers.run(mode, command["action"], bool(command.get("confirmed")))
+                outcome = (browsers.run(mode, action, confirmed) if browser else
+                           computer.run(action, confirmed, bool(command.get("cowork"))))
             except Exception as e:  # a crashed action is reported, never retried blindly
-                outcome = {"status": "failed", "summary": f"The browser action failed: {str(e)[:160]}"}
-            live = (outcome.get("observation") or {}).pop("frame", None) or browsers.frame(mode)
-            results.append({"id": command["id"], **outcome})
+                outcome = {"status": "failed", "summary": f"The action failed: {str(e)[:160]}"}
+            live = (outcome.get("observation") or {}).pop("frame", None) or (
+                browsers.frame(mode) if browser else None)
+            core = {k: outcome.pop(k) for k in ("status", "summary", "changed", "observation")
+                    if k in outcome}
+            results.append({"id": command["id"], **core, **({"detail": outcome} if outcome else {})})
             if live:
                 frame = {"taskId": command["taskId"], "jpeg": live}
         if not reply.get("commands"):
@@ -136,6 +154,8 @@ def main() -> None:
     r.add_argument("--server", default=None, help="connect to this OCADE first if needed")
     r.add_argument("--headless", action="store_true")
     r.add_argument("--real-browser-cdp", default=None)
+    r.add_argument("--workspace", default=None,
+                   help="the one folder JARVIS may read, change and run commands in")
     sub.add_parser("forget")
     args = parser.parse_args()
     if args.command == "connect":
@@ -144,7 +164,7 @@ def main() -> None:
         Identity(HOME).forget()
         print("This computer's OCADE key was removed.")
     else:
-        sys.exit(run(args.headless, args.real_browser_cdp, args.server))
+        sys.exit(run(args.headless, args.real_browser_cdp, args.server, args.workspace))
 
 
 if __name__ == "__main__":

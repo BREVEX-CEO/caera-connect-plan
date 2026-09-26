@@ -264,6 +264,7 @@ export type Database = {
           created_at: string
           enrollment_expires_at: string | null
           id: string
+          installed_apps: Json
           key_rotated_at: string | null
           kind: string
           last_request_ms: number
@@ -282,6 +283,7 @@ export type Database = {
           created_at?: string
           enrollment_expires_at?: string | null
           id?: string
+          installed_apps?: Json
           key_rotated_at?: string | null
           kind?: string
           last_request_ms?: number
@@ -300,6 +302,7 @@ export type Database = {
           created_at?: string
           enrollment_expires_at?: string | null
           id?: string
+          installed_apps?: Json
           key_rotated_at?: string | null
           kind?: string
           last_request_ms?: number

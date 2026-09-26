@@ -16,15 +16,15 @@ import { supabaseCommercialLedger } from "@/lib/commercial/supabase-ledger";
 import { resolveTierFor } from "@/lib/commercial/entitlement-resolver";
 import { ALLOWANCES, describeUsage } from "@/lib/commercial/usage-policy";
 import {
-  browserAction,
   CAPABILITIES,
+  deviceAction,
   describeAction,
   FINISHED,
   hostOf,
   TASK_STATUSES,
   type TaskStatus,
 } from "./protocol";
-import { isAllowed, refuseAction, type PermissionRow } from "./permissions";
+import { isAllowed, needsConfirmation, refuseAction, type PermissionRow } from "./permissions";
 
 const uuid = z.string().uuid();
 /** A device counts as online when it asked for work this recently. */
@@ -220,6 +220,8 @@ export const startJarvisTask = createServerFn({ method: "POST" })
       .object({
         conversationId: uuid,
         controller: uuid,
+        /** Where the work happens: a browser, or the computer itself. */
+        where: z.enum(["browser", "computer"]).default("browser"),
         title: z.string().trim().min(1).max(200),
         plan: z.array(z.string().trim().min(1).max(200)).max(12),
       })
@@ -233,33 +235,46 @@ export const startJarvisTask = createServerFn({ method: "POST" })
     const service = await admin();
     const { data: devices, error } = await service
       .from("jarvis_devices")
-      .select("id, capabilities, last_seen_at")
+      .select("id, kind, capabilities, last_seen_at")
       .eq("user_id", context.userId)
       .is("revoked_at", null)
       .order("last_seen_at", { ascending: false })
       .limit(10);
     if (error) throw new Error(error.message);
     const now = Date.now();
-    const device = (devices ?? []).find(
+    const online = (devices ?? []).filter(
       (d) => d.last_seen_at && now - Date.parse(d.last_seen_at) < ONLINE_MS,
     );
+    const offers = (d: (typeof online)[number], capability: string) =>
+      (d.capabilities as Record<string, boolean> | null)?.[capability] === true;
+    // The computer's own work needs its Device Agent. Browser work prefers the
+    // person's own browser only where they allowed it, else the isolated one.
+    const agents = online.filter((d) => d.kind === "agent");
+    const ownBrowser = online.find(
+      (d) => offers(d, "browser_real") && isAllowed(rows, "browser_real", d.id),
+    );
+    const device =
+      data.where === "computer"
+        ? agents[0]
+        : (ownBrowser ?? agents.find((d) => offers(d, "browser_isolated")) ?? agents[0]);
     if (!device) {
       return {
         ok: false,
         reason: "no_device",
-        message: "No JARVIS device is online. Connect one in Devices to run browser tasks.",
+        message:
+          data.where === "computer"
+            ? "No computer with the OCADE Device Agent is online. Connect one in Devices."
+            : "No JARVIS device is online. Connect one in Devices to run browser tasks.",
       };
     }
-    if (!isAllowed(rows, "browser", device.id)) {
+    if (data.where === "browser" && !isAllowed(rows, "browser", device.id)) {
       return {
         ok: false,
         reason: "permission",
         message: "Browser control is turned off for this device.",
       };
     }
-    const real =
-      isAllowed(rows, "browser_real", device.id) &&
-      (device.capabilities as Record<string, boolean> | null)?.browser_real === true;
+    const real = device === ownBrowser;
     const { data: task, error: insertError } = await context.supabase
       .from("jarvis_tasks")
       .insert({
@@ -362,7 +377,7 @@ export const updateJarvisTask = createServerFn({ method: "POST" })
 
 export const queueJarvisAction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((i) => z.object({ taskId: uuid, controller: uuid, action: browserAction }).parse(i))
+  .validator((i) => z.object({ taskId: uuid, controller: uuid, action: deviceAction }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: task, error } = await context.supabase
       .from("jarvis_tasks")
@@ -387,23 +402,24 @@ export const queueJarvisAction = createServerFn({ method: "POST" })
     const service = await admin();
     const { data: device } = await service
       .from("jarvis_devices")
-      .select("id")
+      .select("id, capabilities")
       .eq("id", task.device_id)
       .eq("user_id", context.userId)
       .is("revoked_at", null)
       .maybeSingle();
     if (!device) return { ok: false as const, message: "The task's device was removed." };
 
-    const url =
-      data.action.action === "open" || data.action.action === "new_tab"
-        ? data.action.url
-        : undefined;
-    const refusal = refuseAction(await permissionsOf(context.supabase), {
+    const rows = await permissionsOf(context.supabase);
+    const refusal = refuseAction(rows, {
       deviceId: device.id,
       mode: task.browser_mode as "isolated" | "real",
-      url,
+      action: data.action,
+      offered: (device.capabilities ?? {}) as Record<string, boolean>,
     });
     if (refusal) return { ok: false as const, message: refusal.message };
+    // Deletions, system changes, risky commands and apps set to Ask wait for the
+    // person before the device ever sees them.
+    const ask = needsConfirmation(rows, data.action);
 
     const { data: row, error: insertError } = await service
       .from("jarvis_activity")
@@ -413,7 +429,7 @@ export const queueJarvisAction = createServerFn({ method: "POST" })
         device_id: device.id,
         summary: describeAction(data.action),
         action: data.action,
-        status: "queued",
+        status: ask ? "needs_confirmation" : "queued",
         // Model-issued actions are never pre-confirmed.
         confirmed: false,
       })

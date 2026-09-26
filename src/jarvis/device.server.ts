@@ -283,6 +283,8 @@ export const exchangeInput = z.object({
         summary: z.string().max(300).optional(),
         changed: z.array(z.string().max(20)).max(10).optional(),
         observation: z.unknown().optional(),
+        /** What a computer action returned: a listing, file text, command output. */
+        detail: z.unknown().optional(),
       }),
     )
     .max(20),
@@ -292,6 +294,7 @@ export const exchangeInput = z.object({
     .optional(),
   capabilities: z.record(z.string().max(40), z.boolean()).optional(),
   softwareVersion: z.string().trim().max(40).optional(),
+  apps: z.array(z.string().max(80)).max(300).optional(),
   rotate: z.object({ publicKey: publicKeyText }).optional(),
 });
 
@@ -304,11 +307,13 @@ export interface DeviceCommand {
   action: Record<string, unknown>;
   confirmed: boolean;
   mode: "isolated" | "real";
+  /** The person chose to work alongside JARVIS: their input does not pause it. */
+  cowork: boolean;
 }
 
 export async function exchange(
   admin: Admin,
-  device: { id: string },
+  device: { id: string; userId: string },
   input: z.infer<typeof exchangeInput>,
 ): Promise<{ protocol: number; deviceId: string; commands: DeviceCommand[]; rotated?: boolean }> {
   // Every reply names the protocol and the device it is for, so a device can
@@ -316,12 +321,13 @@ export async function exchange(
   const envelope = { protocol: PROTOCOL.version, deviceId: device.id };
   const now = new Date().toISOString();
 
-  if (input.capabilities || input.softwareVersion) {
+  if (input.capabilities || input.softwareVersion || input.apps) {
     await admin
       .from("jarvis_devices")
       .update({
         ...(input.capabilities ? { capabilities: input.capabilities } : {}),
         ...(input.softwareVersion ? { software_version: input.softwareVersion } : {}),
+        ...(input.apps ? { installed_apps: input.apps } : {}),
       })
       .eq("id", device.id);
   }
@@ -336,6 +342,7 @@ export async function exchange(
       status: result.status,
       changed: result.changed ?? [],
       observation: result.observation ?? null,
+      ...(result.detail === undefined ? {} : { detail: result.detail }),
     });
     await admin
       .from("jarvis_activity")
@@ -397,6 +404,15 @@ export async function exchange(
     )
     .limit(5);
   const running = new Map((tasks ?? []).map((task) => [task.id, task.browser_mode]));
+  const { data: cowork } = await admin
+    .from("jarvis_permissions")
+    .select("allowed, device_id")
+    .eq("user_id", device.userId)
+    .eq("capability", "cowork");
+  const coworking =
+    (cowork ?? []).find((row) => row.device_id === device.id)?.allowed ??
+    (cowork ?? []).find((row) => row.device_id === null)?.allowed ??
+    false;
 
   const commands: DeviceCommand[] = [];
   for (const row of queued) {
@@ -416,6 +432,7 @@ export async function exchange(
         action: row.action as Record<string, unknown>,
         confirmed: row.confirmed,
         mode: mode as "isolated" | "real",
+        cowork: coworking,
       });
     }
   }
