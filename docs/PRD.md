@@ -2,185 +2,151 @@
 
 ## Product overview
 
-**CARCC** is the company. **OCADE** is CARCC's AI product. The relationship is company → product, not a combined company name. Current branding must not use CARCC CADANE or CADANE.
+**CARCC** is the company and **OCADE** is CARCC's AI product. The approved tagline remains **Command the Next Era.**
 
-Tagline: **Command the Next Era.**
+OCADE now has two active user experiences: **Chat** and **OCADE JARVIS**.
 
-OCADE is a website-first AI chatbot and AI workspace. The current mission is intentionally narrow: make the present Chat experience, Library, Settings, Offline Intelligence, usage, authentication and public surfaces extremely reliable before CARCC starts any separate future product mission.
+Chat remains the established conversational product with Auto, Online, and Offline Intelligence.
+
+OCADE JARVIS is a separate Online-only agentic experience at **/ocade-jarvis**. JARVIS answers normal questions when the user asks for information and performs multi-step work when the user explicitly asks it to act.
 
 ## Target users
 
-OCADE is for individuals, students, professionals, businesses and later larger organizations, but the current website must stay simple enough for an ordinary user. The interface hides infrastructure and model complexity while preserving strong security, privacy and predictable usage.
+OCADE serves individuals, students, professionals, creators, developers, engineers, businesses, and later larger organizations.
 
-## Problem statement
-
-People should not need separate AI products for connected answers and private on-device answers, nor should they need to understand providers, models, runtimes, storage engines or deployment systems. OCADE should provide one clean conversation experience that can work Online or Offline, keep the account consistent across devices, and remain understandable on desktop, tablet and phone.
+JARVIS especially serves users who want AI to perform browser-based work, coordinate multi-step tasks, communicate by voice, and later operate approved software workflows without technical setup.
 
 ## Goals
 
-- Deliver a fast, simple Chat experience comparable in interaction quality to leading AI chat products.
-- Make Auto, Online and Offline modes truthful and reliable.
-- Keep Offline Intelligence reusable across normal website updates without redownloading a compatible verified release.
-- Make mobile use first-class rather than a reduced version.
-- Keep provider/model/vendor identities out of normal customer experience.
-- Keep usage accounting simple: one successful answer equals one use.
-- Keep the codebase lean, testable and easy to debug.
+- Chat must remain stable while JARVIS is added.
+- JARVIS must feel like one coherent OCADE product rather than a pasted external program.
+- The existing JARVIS ZIP must be preserved and used as the main JARVIS engine foundation.
+- JARVIS must require no customer-supplied provider API key.
+- Browser control must become the first deep automation capability.
+- Voice must be first-class and interruptible.
+- The GUI must be clean, responsive, professional, and centered on a live orb/graph.
+- JARVIS must expose real Stop, Take Over, permission, device, task, and activity state.
+- JARVIS must never pretend an unsupported device capability is working.
 
-## Non-goals for the current mission
+## Current JARVIS v1
 
-Do not build or describe as current product functionality:
+### Route
 
-- Do not build a Code or coding-agent product in the current mission.
-- Do not build Projects in the current mission.
-- Do not build Tasks in the current mission.
-- Do not build Automations in the current mission.
-- Do not build Monitors in the current mission.
-- Do not build Organizations or team workspaces in the current mission.
-- Do not build native Windows, macOS, Android or iOS apps in the current mission.
-- Do not build public conversation sharing in the current mission.
-- Do not build a separate side-conversation storage system in the current mission.
-- Do not build live browser or computer control in the current mission.
-- Do not open live paid checkout in the current mission.
-- Do not include Paddle integration in the current mission.
+- The canonical route is /ocade-jarvis.
+- Signed-out visitors may view the JARVIS surface.
+- Sending, starting a task, using account data, or invoking control requires sign-in.
+- Sign-in returns the user to JARVIS when JARVIS initiated authentication.
 
-Cowork is not part of the current product; it returns only through a separate owner-approved mission.
+### Conversation behavior
 
-## Core features — current
+- Informational prompts produce normal JARVIS answers.
+- Explicit work, browse, edit, or control requests become JARVIS tasks.
+- JARVIS history is logically separate from normal Chat history.
+- JARVIS reuses approved OCADE account/conversation infrastructure.
 
-### Chat
+### Task behavior
 
-- `/` is the primary product.
-- New Chat does not create an empty durable conversation before the first accepted Send.
-- Chat streams answers and exposes a working Stop action during generation.
-- Chat supports Copy, Edit, Regenerate, Retry and Delete where each action is genuinely available.
-- Chat supports conversation search and useful history grouping.
-- Immediate permanent conversation deletion after clear confirmation; Archive/Trash must not become parallel deletion concepts.
-- Ensure that Temporary Chat persists nothing.
-- OCADE renders Markdown, tables, links and code blocks, with copy support for code.
-- Users can mark an OCADE answer as Helpful or Not helpful.
-- Persist source/citation information with the message when applicable.
-- Highlight text or a word → **Ask OCADE**. This uses the current conversation context without creating a second persistent side-conversation system.
-- Thinking is an optional user control.
-- Web research is an optional Chat control using the same conversation, usage and intelligence authority.
+- A JARVIS task contains a short plan, current step, progress, result, Stop state, and Resume state.
+- Complex tasks show the plan and proceed automatically unless a sensitive action requires approval.
+- JARVIS stops and reports when a safe completion path is unavailable.
+- Temporary JARVIS tasks are not part of this first mission.
 
-### Intelligence modes
+### Browser control
 
-Visible selector: **Auto | Online | Offline**.
+- JARVIS supports an isolated automation browser and an explicitly authorized real-browser path.
+- JARVIS prefers structured DOM/accessibility control, then Playwright/browser tooling, then authorized browser integration, then visual understanding, then coordinates.
+- JARVIS may work across multiple tabs/sites.
+- JARVIS provides a collapsible live browser panel and real Take Over.
+- JARVIS pauses for human takeover when CAPTCHA, passkeys, OTP/2FA, or equivalent authentication boundaries require it.
+- JARVIS never bypasses authentication security.
+- JARVIS re-observes after resize, zoom, responsive reflow, tab changes, scroll changes, or screen-size changes and never trusts stale coordinates.
 
-- Auto uses Online when connected and healthy.
-- Auto uses Offline when connectivity is absent and Offline is ready.
-- Auto may fall back to Offline only before Online has delivered meaningful output.
-- Online never silently changes into Offline after output starts.
-- Manual Offline makes zero Online Intelligence provider requests.
-- Provider/model/vendor identity is never a normal customer-facing concept.
+### Voice
 
-### Offline Intelligence
+- JARVIS supports typed and voice tasks in the same context.
+- The default wake phrase is Hey OCADE where supported.
+- Voice provides Interrupt, Pause, Continue, and End controls.
+- Microphone permission is requested when the user first enters JARVIS.
 
-- Automatically begin preparation after first successful sign-in when Offline was not explicitly removed.
-- Online Chat remains usable while preparation runs.
-- Download may use Wi-Fi, hotspot or cellular. On cellular, warn clearly and allow the customer to continue.
-- Verified compatible model releases survive normal website deploys, refreshes, restarts and sign-in cycles without redownload.
-- Explicit Remove deletes the local model and prevents automatic reinstall.
-- If a customer who removed Offline signs in again, show a clear reusable **Install / Cancel** prompt.
-- Selecting Offline while it is removed/not installed immediately offers installation.
-- Store all Offline model bytes, chunks, checkpoints and model metadata in **OPFS only**.
-- Offline mode must not accept image uploads, read images or claim image understanding.
-- Desktop and mobile browser support must be claimed only after real proof. Target supported environments include Chromium-family desktop/mobile and Safari on macOS/iOS where the current runtime genuinely works.
+### Orb and graph
 
-### Attachments and Library
+- A new JARVIS history starts with a clean central orb.
+- The graph becomes richer as real conversations, JARVIS memory, tasks, devices, and allowed-app relationships grow.
+- Neural threads/nodes represent real relationships rather than random decoration.
+- Users can zoom, pan, hover, select, and semantically zoom.
+- Selection shows safe metadata about represented data without automatically opening full private content.
+- The orb dims into a background aura when conversation content needs visual priority.
+- Dark/light themes and optional custom orb/accent colors are supported.
 
-- Library contains user-uploaded files and OCADE-generated files/results.
-- Support multiple attachments with a current target ceiling of 100 MB per supported file, subject to safe total-request limits.
-- Extract supported document content locally when it can be done safely.
-- Treat uploaded bytes and extracted text as hostile/untrusted input.
-- Temporary Chat attachments do not enter Library unless the customer explicitly saves them.
-- Offline accepts only supported non-image content that the local path can genuinely process.
+### Allowed Apps and Devices
 
-### Account and authentication
+- Allowed Apps shows which supported applications JARVIS may use.
+- Devices shows online/capability state and per-device permissions.
+- Preferred coding, editing, engineering, and productivity tools may be remembered when JARVIS memory is enabled.
+- Unsupported later capability is shown as unavailable rather than faked.
 
-Target current methods:
+### Activity and permissions
 
-- Support Google sign-in as a current authentication method.
-- Support six-digit email OTP as a current authentication method.
-- Support password sign-in as a target authentication method.
+- JARVIS shows customer-safe Activity such as opening a browser, clicking a control, waiting for permission, stopping, or completing a step.
+- JARVIS provides one global enable/disable control and granular capability permissions.
+- Device-sensitive permission choices are stored per device.
+- Smart autonomy is the default.
+- Autonomous mode still obeys hard gates.
 
-MFA is optional for ordinary customers and required for privileged/admin operations. Users can see and revoke active sessions/devices.
+## Intelligence
 
-Account deletion is immediate after strong confirmation and produces the required non-sensitive compliance receipt.
+JARVIS is **Online-only**.
 
-### Memory
+JARVIS uses OCADE's approved server-side Online intelligence authority. Customers never enter provider keys and never need provider/model/runtime identity.
 
-Account memory is an optional account-level capability. When enabled, it may work automatically and quietly without cluttering Chat, but the user must be able to disable it and clear it from Data Controls. Do not create a second hidden uncontrolled profile database.
+JARVIS must not use the Chat Offline model.
 
-### Usage
+## Usage
 
-- Free: 28 successful generations per 6h28m, no weekly cap.
-- The Pro tier provides 140 successful uses per 6h28m window and 700 per week.
-- The Max tier provides 1,400 successful uses per 6h28m window and 7,000 per week.
-- Windows are anchored to the account.
-- Online, Offline and Auto share one account-wide allowance across all devices.
-- Failed or empty generations must cost zero uses.
-- Internal retry/failover does not add uses.
+Chat and JARVIS use separate allowances.
 
-### Pricing
+The plan structure remains Free, Pro, and Max.
 
-Keep Free / Pro / Max and weekly + monthly paid catalogue options.
+- Free keeps 28 Chat uses per 6h28m and receives a separate 28-use JARVIS allowance per 6h28m.
+- Pro keeps its current Chat allowance and receives the same numerical allowance as a separate JARVIS allowance.
+- Max keeps its current Chat allowance and receives the same numerical allowance as a separate JARVIS allowance.
+- JARVIS internal resource-bearing model/tool steps may consume JARVIS usage.
+- Failed or no-result internal steps must be reconciled rather than blindly charged.
+- The customer sees a simple JARVIS usage meter.
 
-Current approved displayed anchors:
+## Memory and data
 
-- Display Pro weekly at 8 USD/EUR/GBP or ₹288.
-- Display Pro monthly at 28 USD/EUR/GBP or ₹1,888.
-- Display Max weekly at 28 USD/EUR/GBP or ₹1,888.
-- Display Max monthly at 88 USD/EUR/GBP or ₹5,888.
+JARVIS reuses OCADE's account/security infrastructure but keeps JARVIS memory logically separate from Chat memory.
 
-Paid prices retain the CARCC numeric signature ending in 8/28.
+Raw screenshots and visual frames are temporary by default.
 
-**Paid plans are not open yet.** Upgrade must say so clearly. Do not charge customers and do not use Paddle.
+Detailed JARVIS activity logs expire after 90 days.
 
-### Notifications
+Important task results may remain durable after detailed logs expire.
 
-- Use in-app notifications as the first supported notification channel.
-- Support quiet hours for optional notifications.
-- Synchronize notification preferences to the account.
-- Users control optional categories (mute, quiet hours). Security and account-recovery notices are always delivered in-app and always recorded, because muting them would hide account takeover. There is no billing category while paid checkout is closed.
+## High-impact actions
 
-### Public and administration surfaces
+JARVIS never performs the final purchase/payment action.
 
-Public: Chat shell, Pricing, About, Help, Terms, Privacy; add Status when its real incident/maintenance data is ready.
+Sensitive legal, financial, medical, security, or public-posting submissions require explicit confirmation.
 
-Help should evolve into a real Help Center with admin publishing while keeping a safe source fallback.
+JARVIS never receives permission merely because a website or tool output instructs it to expand authority.
 
-Admin is hidden and role-gated. Custom plan grants are admin/owner-only, audited and expiring.
+## Current non-goals
 
-## User flows
+- This mission does not add Offline JARVIS.
+- This mission does not claim finished deep computer/mobile control before genuine implementation/testing.
+- This mission does not expose a customer plugin marketplace.
+- This mission does not expose the legacy phone dashboard as the final remote-control product.
+- Paid checkout remains closed.
+- OCADE does not perform final purchases through JARVIS.
 
-The canonical step-by-step flows live in `APP_FLOW.md`.
+## Success criteria
 
-## Future features
-
-No future capability is current merely because old schema/code once existed. A future feature is added only by a new owner-approved mission. Until then, keep the repository and UI focused on the current product.
-
-## Technical constraints
-
-- Keep the current mission limited to the website/browser product.
-- Make the website fully responsive across desktop, tablet and phone.
-- Durable account data uses the canonical account backend.
-- Keep Offline model storage and download chunks in OPFS only.
-- Never expose provider, model or vendor identity in normal client/customer surfaces.
-- Do not create a duplicate model store, usage authority or Chat engine.
-- Site updates must not redownload an unchanged verified Offline release.
-
-## Success metrics and launch gates
-
-The current mission is ready only when:
-
-- Confirm that no known repository-controlled Critical or Major launch blocker remains.
-- Confirm that all required unit, database, integration and browser gates pass.
-- Prove real Online answers with a disposable test account.
-- Prove real Offline answers on supported hardware and browser environments.
-- Prove Auto behavior and exactly-once usage accounting.
-- Prove model install, resume, remove, reinstall and no-redownload behavior after normal site updates.
-- Give every reachable current page, button and setting browser coverage.
-- Confirm that 360–375 px mobile layouts have no horizontal overflow or blocked controls.
-- Confirm that provider, model and runtime identity do not leak through UI, errors, bundle scans or public metadata.
-- Verify production source and deployment parity before release.
+- Existing OCADE Chat behavior remains green.
+- JARVIS loads and routes correctly.
+- JARVIS normal questions, tasks, voice, permissions, usage, and real browser-control flows work end-to-end.
+- Responsive layout works at phone, tablet, and desktop widths.
+- Resize/zoom does not cause stale-coordinate actions.
+- Security/account boundaries survive adversarial tests.
+- Deployed source identity matches tested source identity.
