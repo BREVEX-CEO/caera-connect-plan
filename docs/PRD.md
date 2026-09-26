@@ -150,3 +150,40 @@ JARVIS never receives permission merely because a website or tool output instruc
 - Resize/zoom does not cause stale-coordinate actions.
 - Security/account boundaries survive adversarial tests.
 - Deployed source identity matches tested source identity.
+
+
+## Approved next JARVIS expansion
+
+The current browser JARVIS remains a protected product baseline. The next product objective is to make the same JARVIS surface operate a trusted Windows/macOS Device Agent with minimal setup.
+
+### Customer experience
+
+- One-time effortless PC setup; no Python/package installation.
+- Same OCADE account automatically enrolls the device.
+- One clean tray/menu-bar identity, optional round mini-control during active work, and clear uninstall/disable paths.
+- Normal informational questions still behave as conversation.
+- Explicit work requests can operate approved browser, application, file, coding and system workflows.
+- Stop, Take Over, Continue and permission state stay obvious.
+- Voice is opt-in and text-only is the startup default.
+- Mobile website/PWA can remotely start, observe, stop and control paired-PC tasks.
+- The product never exposes provider/model/vendor/key identities.
+
+### Capability priorities
+
+1. latest UI cleanup and real 3D aura graph;
+2. shared protocol and secure Device Agent;
+3. signed Windows/macOS packaging and updater;
+4. official Chrome extension and authorized real-browser path;
+5. deep desktop app/file/screen control;
+6. coding and lightweight sandbox/container work;
+7. background/checkpoint/reboot recovery and remote PC control;
+8. optional local wake-word and mini-control;
+9. Android/iOS web/PWA remote-PC experience.
+
+### Product constraints
+
+No native mobile app is mandatory. A web/PWA does not claim unrestricted arbitrary third-party-app control, OS-wide overlays or background capabilities that the platform does not genuinely provide.
+
+One task owns visible UI control at a time. Destructive, privilege-elevating and high-impact actions retain confirmation boundaries.
+
+When all configured Online capacity is unavailable, JARVIS pauses new intelligence work in a branded customer-safe timeout state and preserves resumable task state.
