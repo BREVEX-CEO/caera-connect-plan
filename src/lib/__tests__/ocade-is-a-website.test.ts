@@ -3,7 +3,11 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * OCADE IS NEVER OFFERED AS AN APPLICATION TO INSTALL.
+ * OCADE IS A WEBSITE THAT CAN BE ADDED TO A HOME SCREEN, AND NEVER NAGS.
+ *
+ * Updated by the owner's 2026-09-26 decision: Android, iPhone and iPad are
+ * website/PWA-first with Add to Home Screen. What still holds from the earlier
+ * decision is below the manifest tests: no install prompt, no install copy.
  *
  * The owner's decision, and it is narrower than "we have no install button":
  * the product had none, and Chrome offered to install it anyway. A web app
@@ -48,14 +52,13 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 describe("OCADE is a website", () => {
-  it("serves no web app manifest, which is what makes a browser offer to install", () => {
-    expect(existsSync("public/manifest.webmanifest")).toBe(false);
-    expect(ROOT).not.toMatch(/rel:\s*"manifest"/);
-  });
-
-  it("offers no home-screen shortcut either", () => {
-    expect(existsSync("public/apple-touch-icon.png")).toBe(false);
-    expect(ROOT).not.toMatch(/apple-touch-icon|apple-mobile-web-app/);
+  it("can be added to a home screen, opening a route that exists", () => {
+    const manifest = JSON.parse(readFileSync("public/manifest.webmanifest", "utf8"));
+    expect(ROOT).toMatch(/rel:\s*"manifest"/);
+    expect(manifest.start_url).toBe("/ocade-jarvis");
+    expect(existsSync("src/routes/ocade-jarvis.tsx")).toBe(true);
+    for (const icon of manifest.icons) expect(existsSync(`public${icon.src}`)).toBe(true);
+    expect(existsSync("public/apple-touch-icon.png")).toBe(true);
   });
 
   it("never listens for the browser's install prompt", () => {

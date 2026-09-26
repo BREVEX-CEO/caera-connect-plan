@@ -716,6 +716,26 @@ export const setJarvisBackground = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/** STOP JARVIS: every unfinished task of this account, on every device, ends now. */
+export const stopAllJarvis = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const at = new Date().toISOString();
+    const { data: stopped, error } = await context.supabase
+      .from("jarvis_tasks")
+      .update({ status: "stopped", blocker: "You stopped JARVIS." })
+      .in("status", ["running", "waiting", "taken_over"])
+      .select("id");
+    if (error) throw new Error(error.message);
+    const service = await admin();
+    await service
+      .from("jarvis_activity")
+      .update({ status: "cancelled", completed_at: at })
+      .eq("user_id", context.userId)
+      .in("status", ["queued", "needs_confirmation"]);
+    return { stopped: stopped?.length ?? 0 };
+  });
+
 export const rememberJarvis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((i) => z.object({ content: z.string().trim().min(1).max(500) }).parse(i))

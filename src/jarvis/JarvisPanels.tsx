@@ -16,6 +16,7 @@ import {
   revokeJarvisDevice,
   setJarvisBackground,
   setJarvisPermission,
+  updateJarvisTask,
   type JarvisState,
 } from "./jarvis.functions";
 
@@ -340,8 +341,55 @@ function SectionBody({
 
   // Devices
   const devices = state.devices.filter((d) => !d.revoked_at && d.last_seen_at);
+  const openTasks = state.tasks.filter((t) => !FINISHED.includes(t.status) && t.device_id);
   return (
     <>
+      <h3 className="mb-1 text-sm font-medium">Remote PC</h3>
+      <p className="mb-2 text-xs text-muted-foreground">
+        What JARVIS is doing on your computers, from any device. Each computer does one task at a
+        time.
+      </p>
+      {openTasks.length === 0 ? (
+        <p className="mb-3 text-muted-foreground">No computer is working on a task.</p>
+      ) : (
+        <ul className="mb-3 flex flex-col gap-2">
+          {openTasks.map((t) => {
+            const on = devices.find((d) => d.id === t.device_id);
+            return (
+              <li key={t.id} className="rounded-md border border-border/60 p-2">
+                <p className="truncate font-medium">{t.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {on ? `${on.name} · ${on.online ? "Online" : "Offline"} · ` : ""}
+                  {t.status.replace("_", " ")} · step{" "}
+                  {Math.min(t.current_step + 1, Math.max(1, t.plan.length))} of{" "}
+                  {Math.max(1, t.plan.length)}
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onOpenConversation(t.conversation_id)}
+                    className="rounded-md border border-border px-2 py-1 text-xs"
+                  >
+                    Open
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void updateJarvisTask({ data: { id: t.id, status: "stopped" } })
+                        .then(onChanged)
+                        .catch(() => toast.error("That task could not be stopped."))
+                    }
+                    className="rounded-md bg-foreground px-2 py-1 text-xs text-background"
+                  >
+                    Stop
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <h3 className="mb-1 text-sm font-medium">Connected</h3>
       {devices.length === 0 ? (
         <p className="text-muted-foreground">
           No device is connected. Browser tasks run on a connected computer.

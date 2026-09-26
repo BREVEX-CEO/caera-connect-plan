@@ -41,6 +41,7 @@ import { useJarvisVoice, voiceCommand } from "./use-voice";
 import {
   createJarvisConversation,
   readJarvisState,
+  stopAllJarvis,
   updateJarvisTask,
   type JarvisTaskRow,
 } from "./jarvis.functions";
@@ -400,6 +401,16 @@ export function JarvisWorkspace({
       if (target) setSection(target);
     }
   };
+
+  // The phone drawer closes with Escape, whatever section is open inside it.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDrawerOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawerOpen]);
 
   const hasText = turns.length > 0 || liveAnswer !== null;
   const usage = state.data?.usage;
@@ -784,6 +795,26 @@ export function JarvisWorkspace({
         ) : null}
       </main>
 
+      {signedIn && (state.data?.tasks ?? []).some((t) => !FINISHED.includes(t.status)) ? (
+        // The one global STOP JARVIS: round, always within reach, on every device.
+        <button
+          type="button"
+          onClick={() => {
+            abort.current?.abort();
+            void stopAllJarvis()
+              .then(({ stopped }) => {
+                toast.success(stopped ? "JARVIS stopped." : "Nothing was running.");
+                setActiveTask(null);
+                refresh();
+              })
+              .catch(() => toast.error("JARVIS could not be stopped. Try again."));
+          }}
+          className="fixed bottom-24 left-1/2 z-40 grid h-14 w-14 -translate-x-1/2 place-items-center rounded-full bg-foreground text-[10px] font-semibold tracking-wide text-background shadow-lg ring-4 ring-foreground/20 md:bottom-6 md:left-auto md:right-16 md:translate-x-0"
+        >
+          STOP
+          <span className="sr-only"> JARVIS on every device</span>
+        </button>
+      ) : null}
       {connectId && !signedIn && !loading ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
           <section

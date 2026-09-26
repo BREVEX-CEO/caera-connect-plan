@@ -490,6 +490,53 @@ except i.UpdateRequired:
     );
     await idle();
 
+    // The resumed task is still open; one computer runs one task at a time.
+    await page.getByRole("button", { name: "Stop", exact: true }).first().click();
+    await until(async () => (await page.getByText("Tidy the notes").count()) >= 0);
+    await page.waitForTimeout(1000);
+
+    /* --- Remote PC from a phone-sized screen, and the global STOP JARVIS ------- */
+    await script("remote-task", [
+      { tool: "start_task", args: { title: "Long build", where: "computer", steps: ["Build"] } },
+      { tool: "computer", args: { action: "run", command: "sleep 90" } },
+      { tool: "finish_task", args: { outcome: "completed", result: "Built." } },
+    ]);
+    await say("remote-task run the long build");
+    await until(async () => (await page.getByText("Long build").count()) >= 1, 30_000);
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+    await rail("Devices").click();
+    const remote = page.getByRole("complementary", { name: "Devices" }).last();
+    check(
+      "a phone sees what the computer is doing under Remote PC",
+      await until(async () => (await remote.getByText("Long build").count()) >= 1, 20_000),
+    );
+    await page.keyboard.press("Escape");
+    check(
+      "Escape closes the phone drawer",
+      (await page.getByRole("button", { name: "Close navigation", exact: true }).count()) === 0,
+    );
+    const stopAll = page.getByRole("button", { name: "STOP JARVIS on every device" });
+    check("one round STOP JARVIS is within reach on the phone", (await stopAll.count()) === 1);
+    await stopAll.click();
+    await idle();
+    await rail("Tasks")
+      .click()
+      .catch(() => undefined);
+    check(
+      "STOP JARVIS stops the computer's task",
+      await until(async () => {
+        const state = await page.evaluate(() => document.body.innerText);
+        return state.includes("Long build") && (await stopAll.count()) === 0;
+      }, 30_000),
+    );
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page
+      .getByRole("button", { name: "Close", exact: true })
+      .first()
+      .click()
+      .catch(() => undefined);
+
     /* --- a private address needs the person's permission first ------------- */
     await script("private-task", [
       { tool: "start_task", args: { title: "Open a local page", steps: ["Open"] } },
