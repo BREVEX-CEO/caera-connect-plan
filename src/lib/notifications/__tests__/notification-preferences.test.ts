@@ -41,8 +41,8 @@ function muted(overrides: Partial<NotificationPreferences> = {}): NotificationPr
 }
 
 describe("the categories", () => {
-  it("are the three the product can actually send", () => {
-    expect(NOTIFICATION_CATEGORIES).toHaveLength(3);
+  it("are the four the product can actually send", () => {
+    expect(NOTIFICATION_CATEGORIES).toHaveLength(4);
     for (const category of NOTIFICATION_CATEGORIES) {
       expect(category.title.length).toBeGreaterThan(2);
       expect(category.description.length).toBeGreaterThan(20);

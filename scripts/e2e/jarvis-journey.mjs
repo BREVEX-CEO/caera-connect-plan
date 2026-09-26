@@ -431,6 +431,65 @@ except i.UpdateRequired:
     );
     check("the declined push never ran", computerTurns.includes("The person declined this step"));
 
+    /* --- Online capacity unavailable: a calm OCADE state, the task saved -------- */
+    const setBoundary = (status) =>
+      fetch(`${SUPABASE}/__fixture/online-boundary`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+    await script("busy-task", [
+      {
+        tool: "start_task",
+        args: { title: "Tidy the notes", where: "computer", steps: ["List", "Tidy"] },
+      },
+      { tool: "computer", args: { action: "file_list", path: "." } },
+      { tool: "computer", args: { action: "file_list", path: "." } },
+      { tool: "computer", args: { action: "file_list", path: "." } },
+      { tool: "computer", args: { action: "file_list", path: "." } },
+      { tool: "finish_task", args: { outcome: "completed", result: "Tidied." } },
+    ]);
+    await say("busy-task tidy my notes");
+    await until(
+      async () =>
+        ((turns) =>
+          turns
+            .slice(turns.findLastIndex((t) => t.content.startsWith("busy-task")))
+            .some((t) => t.content.startsWith("Called computer")))((await boundary()).turns ?? []),
+      30_000,
+    );
+    await setBoundary(429);
+    const busy = page.getByRole("status").filter({ hasText: "busy right now" });
+    check(
+      "when OCADE's capacity is used up, JARVIS says so in OCADE's words",
+      await until(async () => (await busy.count()) === 1, 60_000),
+    );
+    const busyText = await busy.innerText().catch(() => "");
+    check(
+      "without naming any provider, model or capacity slot",
+      !/online intelligence|provider|model|gemini|google|primary|secondary|tertiary|offline/i.test(
+        busyText,
+      ),
+      busyText,
+    );
+    check(
+      "the task is saved, waiting, and no new turn can start",
+      busyText.includes("your task is saved") &&
+        (await page.locator("#jarvis-composer").getAttribute("placeholder"))?.includes("busy"),
+      (await page.locator("main").innerText()).replace(/\s+/g, " ").slice(-600),
+    );
+    await setBoundary(200);
+    check(
+      "when capacity returns, JARVIS continues the saved task by itself",
+      await until(
+        async () =>
+          (await busy.count()) === 0 &&
+          (await page.getByText("Continue the task from where it stopped.").count()) >= 1,
+        90_000,
+      ),
+    );
+    await idle();
+
     /* --- a private address needs the person's permission first ------------- */
     await script("private-task", [
       { tool: "start_task", args: { title: "Open a local page", steps: ["Open"] } },

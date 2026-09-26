@@ -336,7 +336,10 @@ export async function exchange(
       .update({ status: "stopped", blocker: "The device was disconnected." })
       .eq("device_id", device.id)
       .in("status", ["running", "waiting", "taken_over"]);
-    await admin.from("jarvis_devices").update({ revoked_at: at, public_key: null }).eq("id", device.id);
+    await admin
+      .from("jarvis_devices")
+      .update({ revoked_at: at, public_key: null })
+      .eq("id", device.id);
     return {
       protocol: PROTOCOL.version,
       deviceId: device.id,

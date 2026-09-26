@@ -408,6 +408,18 @@ export const updateJarvisTask = createServerFn({ method: "POST" })
         task_id: data.id,
         summary: words[data.status],
       });
+      // A finished task is worth telling the person about wherever they are:
+      // OCADE's own notification history, never the task's private result.
+      if (data.status === "completed" || data.status === "failed" || data.status === "blocked") {
+        const { sendNotification } = await import("@/lib/notifications/send.server");
+        await sendNotification({
+          userId: context.userId,
+          category: "task_outcomes",
+          title: `JARVIS ${data.status === "completed" ? "finished" : "stopped"}: ${task.title.slice(0, 120)}`,
+          deepLink: `/ocade-jarvis?c=${task.conversation_id}`,
+          idempotencyKey: `jarvis-task-${data.status}:${task.id}`,
+        });
+      }
     }
     return task as JarvisTaskRow;
   });
@@ -639,10 +651,7 @@ export const approveJarvisDevice = createServerFn({ method: "POST" })
     await sendNotification({
       userId: context.userId,
       category: "security",
-      title:
-        row.kind === "extension"
-          ? "A browser was connected to OCADE JARVIS"
-          : "A computer was connected to OCADE JARVIS",
+      title: "A new device was connected to OCADE JARVIS",
       body: `“${row.name}” can now run JARVIS tasks you start. Remove it in JARVIS Devices if this was not you.`,
       deepLink: "/ocade-jarvis",
       idempotencyKey: `jarvis-device-connected:${row.id}`,

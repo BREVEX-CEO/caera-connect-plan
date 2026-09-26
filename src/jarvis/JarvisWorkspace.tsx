@@ -33,7 +33,7 @@ import { cn } from "@/lib/utils";
 import { Orb } from "./Orb";
 import { buildGraph, type GraphNode } from "./graph";
 import { runJarvisTurn, Stopped } from "./agent";
-import { liveDeps, ModelRefused } from "./live-deps";
+import { liveDeps, ModelRefused, Unavailable } from "./live-deps";
 import { isAllowed } from "./permissions";
 import { FINISHED } from "./protocol";
 import { readPreferences, writePreferences, type JarvisPreferences } from "./preferences";
@@ -116,6 +116,17 @@ export function JarvisWorkspace({
   const [liveAnswer, setLiveAnswer] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [running, setRunning] = useState(false);
+  // OCADE's Online capacity is unavailable: no new turns until this time, then
+  // JARVIS continues the saved task by itself. The wait grows while it lasts.
+  const [busyUntil, setBusyState] = useState<number | null>(null);
+  // Read synchronously by send(), so a resume right after the wait is not refused.
+  const busyRef = useRef<number | null>(null);
+  const setBusyUntil = (until: number | null) => {
+    busyRef.current = until;
+    setBusyState(until);
+  };
+  const busyStrikes = useRef(0);
+  const resumeAfterBusy = useRef<string | null>(null);
   const abort = useRef<AbortController | null>(null);
   const [confirmAsk, setConfirmAsk] = useState<{
     summary: string;
@@ -190,7 +201,7 @@ export function JarvisWorkspace({
 
   const send = async (raw: string, fromVoice: boolean) => {
     const text = raw.trim();
-    if (!text || running) return;
+    if (!text || running || busyRef.current) return;
     if (!signedIn) {
       void navigate({ to: "/auth", search: { next: "/ocade-jarvis" } });
       return;
@@ -241,6 +252,7 @@ export function JarvisWorkspace({
         },
         liveDeps(id),
       );
+      busyStrikes.current = 0;
       if (out.answer) {
         const saved = await persistChatMessage({
           conversationId: id,
@@ -263,6 +275,23 @@ export function JarvisWorkspace({
             content: error.handedOff ? error.message : "Stopped.",
           },
         ]);
+      } else if (error instanceof Unavailable) {
+        busyStrikes.current += 1;
+        const wait = Math.min(300_000, 30_000 * 2 ** (busyStrikes.current - 1));
+        setBusyUntil(Date.now() + wait);
+        const open = activeTaskRef.current;
+        if (open && !FINISHED.includes(open.status)) {
+          resumeAfterBusy.current = open.id;
+          setActiveTask(
+            await updateJarvisTask({
+              data: {
+                id: open.id,
+                status: "waiting",
+                blocker: "Waiting for OCADE JARVIS to be available again.",
+              },
+            }),
+          );
+        }
       } else if (error instanceof ModelRefused) {
         toast.error(error.message);
       } else {
@@ -280,6 +309,26 @@ export function JarvisWorkspace({
     }
   };
   sendRef.current = send;
+  const activeTaskRef = useRef<JarvisTaskRow | null>(null);
+  activeTaskRef.current = activeTask;
+
+  // When the wait is over, JARVIS is available again: a saved task continues by
+  // itself from its checkpoint; anything else simply becomes possible again.
+  useEffect(() => {
+    if (!busyUntil) return;
+    const timer = window.setTimeout(
+      () => {
+        setBusyUntil(null);
+        const id = resumeAfterBusy.current;
+        resumeAfterBusy.current = null;
+        if (id && conversationTask?.id === id && conversationTask.status === "waiting") {
+          void resume();
+        }
+      },
+      Math.max(0, busyUntil - Date.now()),
+    );
+    return () => window.clearTimeout(timer);
+  });
 
   const stop = async () => {
     abort.current?.abort();
@@ -626,6 +675,22 @@ export function JarvisWorkspace({
                 onSpeak={(speak) => updatePrefs({ speak })}
               />
             ) : null}
+            {busyUntil ? (
+              <p
+                role="status"
+                className="mb-2 rounded-lg border border-border/60 bg-background/80 px-3 py-2 text-sm"
+              >
+                OCADE JARVIS is busy right now. Nothing was charged
+                {resumeAfterBusy.current
+                  ? ", and your task is saved: it continues by itself"
+                  : ""}{" "}
+                at{" "}
+                {new Intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(
+                  new Date(busyUntil),
+                )}
+                .
+              </p>
+            ) : null}
             {voice.error ? (
               <p role="alert" className="mb-2 text-xs text-destructive">
                 {voice.error}
@@ -649,9 +714,11 @@ export function JarvisWorkspace({
                 placeholder={
                   !signedIn
                     ? "Sign in to message JARVIS"
-                    : jarvisOn
-                      ? "Ask JARVIS, or tell it what to do"
-                      : "JARVIS is turned off in Permissions"
+                    : busyUntil
+                      ? "OCADE JARVIS is busy. It will be back shortly."
+                      : jarvisOn
+                        ? "Ask JARVIS, or tell it what to do"
+                        : "JARVIS is turned off in Permissions"
                 }
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
