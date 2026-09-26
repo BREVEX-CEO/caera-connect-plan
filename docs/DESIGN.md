@@ -2,111 +2,101 @@
 
 ## Design philosophy
 
-OCADE is conversational first: simple on the surface, powerful underneath. The interface should reduce decisions, not advertise architecture.
+OCADE should feel calm, premium, direct, and technically powerful without looking like a game, hacker console, or science-fiction movie interface.
+
+The JARVIS design combines modern conversational-AI clarity with a distinctive central orb and real neural graph.
 
 ## Visual direction
 
-- Keep the visual direction dark, premium and minimal.
-- Use a near-black or charcoal foundation.
-- Use a neutral white and grey hierarchy for text and surfaces.
-- Use restrained, medium-strength glassmorphism.
-- Use soft rounded geometry.
-- Keep borders and shadows minimal.
-- Use subtle motion only when it has a clear purpose.
+- Use black, white, charcoal, and neutral grey as the default system.
+- Allow a user-customizable orb/accent color without making the UI depend on a bright palette.
+- Use restrained glass morphism only where it improves depth or focus.
+- Keep shadows soft and minimal.
+- Keep controls visually quiet until relevant.
+- Avoid card-wall dashboards, noisy neon effects, and decorative telemetry.
 
-Reference interaction/layout screenshots exist under `docs/design-references/grok/`. Use them as inspiration together with the owner requirement for ChatGPT/Grok-like simplicity. Do not copy another company's brand assets.
+## JARVIS orb
 
-## Brand
+- The orb is the central visual anchor.
+- A new/empty JARVIS history starts with a visually simple orb.
+- Real history causes the graph to gain meaningful nodes, threads, clusters, and density.
+- The graph represents conversations, JARVIS memory, tasks, devices, and allowed-app relationships.
+- Neural threads feel organic and precise rather than random.
+- The orb/graph respond subtly to cursor movement.
+- Users can pan and zoom.
+- Semantic zoom reveals more metadata progressively.
+- Selecting a node shows safe metadata rather than immediately opening full private content.
+- The orb dims to a background aura when conversation text needs foreground priority.
+- Reduced-motion users receive a restrained equivalent state.
 
-CARCC is the company. OCADE is the product.
+## Voice visualization
 
-Product UI says OCADE. About/legal/company attribution may say CARCC. The former CARCC CADANE/CADANE identity is retired.
-
-Tagline: **Command the Next Era.**
-
-## Typography
-
-Use existing Inter UI font and JetBrains Mono for code where appropriate. Keep headings compact; body text readable; technical/code text clearly differentiated.
-
-## Spacing
-
-Use the existing Tailwind/token scale. Prefer consistent small-to-medium gaps over dense dashboard packing or oversized marketing whitespace inside the app.
-
-## Border radius
-
-Use existing rounded-md/lg/2xl patterns consistently. Conversation bubbles, composer, dialogs and glass panels may be more rounded than ordinary rows.
-
-## Shadows
-
-Subtle only. Glass/border contrast should carry most separation.
+- Voice uses the same orb rather than a separate product.
+- The orb may pulse, rotate, expand, ripple, or change thread intensity based on live audio.
+- User and JARVIS speech use one coherent professional visual language.
+- Voice controls remain explicit and do not depend on hidden orb gestures.
 
 ## Layout
 
-- On desktop, use a sidebar with a focused central workspace.
-- On tablet, use collapsible navigation.
-- On phones, use a drawer with a full-width workspace.
-- Reading/composer widths remain comfortable.
-- No horizontal overflow at 360–375 px.
+### Desktop
 
-## Responsive breakpoints
+- Use a compact icon-first left sidebar.
+- Allow the sidebar to expand/collapse.
+- Keep the orb centered.
+- Keep the composer near the bottom.
+- Allow a collapsible browser-control panel.
+- Keep Stop and Take Over obvious during automation.
 
-Use existing Tailwind breakpoints unless evidence proves a missing case. Mobile behavior is a first-class design, not a scaled desktop screenshot.
+### Tablet
 
-## Component patterns
+- Collapse navigation when required.
+- Preserve orb, chat, voice, task, Stop, and Take Over capability.
+- Avoid fixed panels that force horizontal scrolling.
 
-### Navigation
+### Phone
 
-Only current product surfaces. Avoid exposing dormant/future modules.
+- Use a compact drawer/navigation pattern.
+- Keep graph controls touch-operable.
+- Use full-width conversation/composer layouts.
+- Keep task controls reachable.
+- Support 360–375 px without horizontal overflow.
 
-### Composer
+## JARVIS navigation
 
-Clear input, attachment, mode selection, optional reasoning/research, microphone and Send/Stop. State changes should not cause large layout jumps.
+The initial sections are Conversations, History, Tasks, Activity/Logs, Allowed Apps, and Devices.
 
-### Settings
+The customer-facing Plugins section is removed.
 
-Compact category navigation; rows stack on small screens.
+Permissions use a focused drawer/modal.
 
-### Library
+## Composer
 
-Simple filters/search/list/grid only where useful. Generated and uploaded files belong to one Library concept.
+The JARVIS composer includes text input, Send/Stop state, voice control, attachment entry where supported, permissions, and task/device context when useful.
 
-### Admin
+The composer never exposes provider names, model names, runtime names, or infrastructure.
 
-Role-gated, information-dense enough for operations but still follows product typography/spacing.
+## Themes
 
-## Buttons
+Dark and light themes ship together.
 
-Native button semantics, clear focus, concise labels. Destructive actions use semantic destructive styling sparingly.
+Monochrome is the default.
 
-## Forms
-
-Accessible label, validation and error association. Do not rely on placeholder alone.
-
-## Loading states
-
-Skeleton or real progress when measurable. Permanent Loading/Reading is forbidden.
-
-## Empty states
-
-State what is empty and the next useful action. Do not invent fake data.
-
-## Error states
-
-Short, customer-safe explanation + Retry/recovery. Never expose provider/model/runtime/database internals.
-
-## Animations
-
-Subtle and interruptible. Honor reduced motion.
+User-selected orb/accent colors may alter the orb shader and restrained accent tokens while preserving accessibility.
 
 ## Accessibility
 
-WCAG-conscious contrast, keyboard navigation, focus visibility, semantic HTML, screen-reader labels, touch-friendly targets.
+- Every important control is keyboard accessible.
+- Focus indicators remain visible.
+- The graph has an accessible semantic representation for critical information.
+- Color is not the only state indicator.
+- Reduced motion is respected.
+- Contrast remains sufficient in both themes.
+- Important automation controls are never hover-only.
 
 ## Do not
 
-- Do not use CADANE branding.
-- Do not show provider, model, vendor or runtime names in the normal UI.
-- Do not show OPFS, model file formats, WebGPU, WASM, R2 or Supabase terminology in the normal UI.
-- Do not build card-wall dashboards.
-- Do not show unsupported or fake controls.
-- Do not show Projects, Tasks, Automations, Organizations or Code surfaces in the current scope.
+- Do not turn JARVIS into a cluttered dashboard.
+- Do not use random graph nodes unrelated to real data.
+- Do not expose secrets or implementation vocabulary.
+- Do not use tiny unreadable technical text as decoration.
+- Do not copy the reference image literally when a cleaner OCADE solution is better.
