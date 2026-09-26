@@ -136,7 +136,7 @@ Node selection reveals safe metadata rather than automatically opening full priv
 
 The GUI remains minimal, professional, dark/light capable, and monochrome-first.
 
-## Current docs intentionally avoid a desktop-wrapper architecture
+## Historical web-only architecture restriction
 
 ### Date
 
@@ -144,11 +144,11 @@ The GUI remains minimal, professional, dark/light capable, and monochrome-first.
 
 ### Status
 
-Accepted.
+Superseded later on 2026-09-26.
 
 ### Decision
 
-Current documentation focuses on the web-controlled mission and does not name or plan a desktop-wrapper technology before the owner starts that later mission.
+This restriction applied only until the owner explicitly started the deeper-device mission. The approved replacement is the Windows/macOS Device Agent and browser-extension roadmap in PLAN.md Phases 13–23 and docs/JARVIS_DEVICE_ROADMAP.md.
 
 ## JARVIS browser tasks run on a paired device, planned in the browser
 
