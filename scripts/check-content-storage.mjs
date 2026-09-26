@@ -61,6 +61,10 @@ const ALLOWED = new Map([
 
   // --- device preferences and per-device UI state -------------------------
   ["src/lib/appearance.tsx", "Theme, motion and contrast, which are per-device choices."],
+  [
+    "src/jarvis/preferences.ts",
+    "JARVIS orb colour, sidebar width and voice choices on this device.",
+  ],
   ["src/lib/browser-install-id.ts", "An opaque per-browser id, carrying no content."],
   [
     "src/lib/commercial/device-identity.ts",

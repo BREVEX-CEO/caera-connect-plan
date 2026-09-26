@@ -44,6 +44,7 @@ const DATABASE_BACKED = [
   "src/lib/commercial/__tests__/service-role-authority.test.ts",
   "src/lib/library/__tests__/library-schema.test.ts",
   "src/lib/notifications/__tests__/notification-schema.test.ts",
+  "src/jarvis/__tests__/jarvis-schema-against-postgres.test.ts",
 ];
 
 const alias = {

@@ -50,8 +50,11 @@ import {
   windowFor,
 } from "./usage-policy";
 
-/** Where a generation came from. Chat is the product's only surface. */
-export const GENERATION_SURFACES = ["chat"] as const;
+/**
+ * Where a generation came from. Each surface spends its own allowance: the
+ * ledger keeps Chat and JARVIS windows apart, so neither can exhaust the other.
+ */
+export const GENERATION_SURFACES = ["chat", "jarvis"] as const;
 export type GenerationSurface = (typeof GENERATION_SURFACES)[number];
 
 export type DurablePermitOutcome =
@@ -119,7 +122,7 @@ export interface CommercialUsageLedger {
   }): Promise<boolean>;
   expirePermits?(userId: string): Promise<number>;
   /** Read the exact server-authored windows used by durable acquisition. */
-  readCurrent?(userId: string): Promise<DurableWindowUsage[]>;
+  readCurrent?(userId: string, surface?: GenerationSurface): Promise<DurableWindowUsage[]>;
 }
 
 export class AllowanceExhausted extends Error {

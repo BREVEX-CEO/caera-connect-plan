@@ -151,14 +151,28 @@ function callerFrom(request, body) {
 
 /* ------------------------------------------------------------- PostgREST -- */
 
+/** Numbers compare as numbers; timestamps and text compare as their ISO/text order. */
+function compare(a, b) {
+  const x = Number(a);
+  const y = Number(b);
+  if (!Number.isNaN(x) && !Number.isNaN(y)) return x - y;
+  return String(a) < String(b) ? -1 : String(a) > String(b) ? 1 : 0;
+}
+
 const OPERATORS = {
   eq: (a, b) => String(a) === b,
   neq: (a, b) => String(a) !== b,
-  gt: (a, b) => Number(a) > Number(b),
-  gte: (a, b) => Number(a) >= Number(b),
-  lt: (a, b) => Number(a) < Number(b),
-  lte: (a, b) => Number(a) <= Number(b),
+  gt: (a, b) => a !== null && a !== undefined && compare(a, b) > 0,
+  gte: (a, b) => a !== null && a !== undefined && compare(a, b) >= 0,
+  lt: (a, b) => a !== null && a !== undefined && compare(a, b) < 0,
+  lte: (a, b) => a !== null && a !== undefined && compare(a, b) <= 0,
   is: (a, b) => (b === "null" ? a === null || a === undefined : String(a) === b),
+  in: (a, b) =>
+    b
+      .replace(/^\(|\)$/g, "")
+      .split(",")
+      .map((value) => value.replace(/^"|"$/g, ""))
+      .includes(String(a)),
   not: () => true,
 };
 
@@ -237,6 +251,9 @@ function addUsage(userId, kind, startsAt, hundredths) {
   if (row) row.usedHundredths = Math.max(0, row.usedHundredths + hundredths);
   else list.push({ kind, startsAt, usedHundredths: Math.max(0, hundredths) });
 }
+
+/** Each surface spends its own windows, as the migration's window kinds do. */
+const kindFor = (surface, kind) => (surface === "jarvis" ? `jarvis_${kind}` : kind);
 
 function handleRpc(name, args, userId) {
   const now = Date.now();
@@ -356,15 +373,26 @@ function handleRpc(name, args, userId) {
           window_kind: "session",
           window_start: new Date(session.startsAt).toISOString(),
           reset_at: new Date(session.endsAt).toISOString(),
-          used_hundredths: usedIn(userId, "session", session.startsAt),
+          used_hundredths: usedIn(userId, kindFor(args.p_surface, "session"), session.startsAt),
+          reserved_hundredths: 0,
         },
         {
           window_kind: "week",
           window_start: new Date(week.startsAt).toISOString(),
           reset_at: new Date(week.endsAt).toISOString(),
-          used_hundredths: usedIn(userId, "week", week.startsAt),
+          used_hundredths: usedIn(userId, kindFor(args.p_surface, "week"), week.startsAt),
+          reserved_hundredths: 0,
         },
       ];
+
+    case "jarvis_purge_expired_activity": {
+      const cutoff = now - 90 * 24 * 60 * 60 * 1000;
+      const before = (jarvisTables.jarvis_activity ?? []).length;
+      jarvisTables.jarvis_activity = (jarvisTables.jarvis_activity ?? []).filter(
+        (row) => row.user_id !== args.p_user_id || Date.parse(row.created_at) >= cutoff,
+      );
+      return before - jarvisTables.jarvis_activity.length;
+    }
 
     case "ocade_read_offline_usage":
       return [];
@@ -389,7 +417,8 @@ function handleRpc(name, args, userId) {
 
       const reserved = Number(args.p_reserved_hundredths) || 0;
       const sessionLimit = args.p_session_limit_hundredths;
-      const used = usedIn(userId, "session", session.startsAt);
+      const surface = args.p_surface;
+      const used = usedIn(userId, kindFor(surface, "session"), session.startsAt);
       if (sessionLimit !== null && sessionLimit !== undefined && used + reserved > sessionLimit) {
         return [
           {
@@ -409,11 +438,12 @@ function handleRpc(name, args, userId) {
         // The tier is stored at acquire because finalize prices by it, exactly
         // as the migration does.
         tier: args.p_tier,
+        surface,
         settled: false,
       };
       permits.push(permit);
-      addUsage(userId, "session", session.startsAt, reserved);
-      addUsage(userId, "week", week.startsAt, reserved);
+      addUsage(userId, kindFor(surface, "session"), session.startsAt, reserved);
+      addUsage(userId, kindFor(surface, "week"), week.startsAt, reserved);
       return [
         {
           permit_id: permit.id,
@@ -444,8 +474,8 @@ function handleRpc(name, args, userId) {
        */
       const charged = permit.tier === "free" ? 100 : Number(args.p_cost_hundredths) || 0;
       const difference = charged - permit.reserved;
-      addUsage(userId, "session", session.startsAt, difference);
-      addUsage(userId, "week", week.startsAt, difference);
+      addUsage(userId, kindFor(permit.surface, "session"), session.startsAt, difference);
+      addUsage(userId, kindFor(permit.surface, "week"), week.startsAt, difference);
       permit.settled = true;
       return [{ outcome: "succeeded", charged_hundredths: charged }];
     }
@@ -455,8 +485,8 @@ function handleRpc(name, args, userId) {
         (entry) => entry.idempotencyKey === args.p_idempotency_key,
       );
       if (!permit || permit.settled) return false;
-      addUsage(userId, "session", session.startsAt, -permit.reserved);
-      addUsage(userId, "week", week.startsAt, -permit.reserved);
+      addUsage(userId, kindFor(permit.surface, "session"), session.startsAt, -permit.reserved);
+      addUsage(userId, kindFor(permit.surface, "week"), week.startsAt, -permit.reserved);
       permit.settled = true;
       return true;
     }
@@ -544,8 +574,64 @@ function handleRpc(name, args, userId) {
 
 /* ------------------------------------------------------------- the server -- */
 
+/** The scripted JARVIS steps set by `/__fixture/jarvis-script`, or null. */
+let jarvisScript = null;
+
+/** The next scripted step for this conversation, or null for an ordinary answer. */
+function jarvisStep(messages) {
+  if (!jarvisScript) return null;
+  let typed = -1;
+  messages.forEach((message, index) => {
+    if (message.role === "user" && !String(message.content).startsWith("Result of ")) typed = index;
+  });
+  if (typed < 0 || !String(messages[typed].content).includes(jarvisScript.trigger)) return null;
+  const after = messages.slice(typed + 1);
+  const taken = after.filter(
+    (m) => m.role === "assistant" && String(m.content).startsWith("Called "),
+  ).length;
+  const step = jarvisScript.steps[taken];
+  if (!step) return { text: "Nothing more to do." };
+  if (!step.args?.name) return step;
+  // The newest browser result that carries an observation: a declined or
+  // refused step returns none, and the page it left is still the one on screen.
+  let observation = null;
+  for (const message of [...after].reverse()) {
+    const text = String(message.content);
+    if (message.role !== "user" || !text.startsWith("Result of browser")) continue;
+    try {
+      observation = JSON.parse(text.slice(text.indexOf("{"))).observation ?? null;
+    } catch {
+      observation = null;
+    }
+    if (observation) break;
+  }
+  const element = observation?.elements?.find((e) => e.name === step.args.name);
+  const { name: _name, ...rest } = step.args;
+  return {
+    tool: step.tool,
+    args: { ...rest, ref: element?.ref ?? "e0", observationId: observation?.observationId ?? "o0" },
+  };
+}
+
+/** JARVIS rows, shared across accounts and filtered per session (see the handler). */
+const jarvisTables = {};
+
+/** Column defaults the migration gives JARVIS rows. */
+const JARVIS_DEFAULTS = {
+  jarvis_devices: { name: "New device", capabilities: {}, revoked_at: null, last_seen_at: null },
+  jarvis_tasks: {
+    status: "running",
+    current_step: 0,
+    plan: [],
+    browser_mode: "isolated",
+    live_frame: null,
+  },
+  jarvis_activity: { status: "note", confirmed: false, action: null, result: null },
+  jarvis_permissions: { device_id: null },
+};
+
 /** What the online boundary answers with next, and what it last received. */
-const onlineBoundary = { status: 200, lastRequest: null };
+const onlineBoundary = { status: 200, lastRequest: null, jarvisRequests: 0 };
 
 /** The only code `/auth/v1/verify` accepts. Nothing is sent anywhere. */
 const OTP_CODE = "123456";
@@ -608,6 +694,21 @@ const server = createServer((request, response) => {
       return send(200, { ok: true });
     }
 
+    if (url.pathname === "/__fixture/jarvis-script") {
+      /*
+       * THE STEPS THE STUB "MODEL" TAKES FOR A JARVIS TASK.
+       *
+       * POST {trigger, steps}: when the person's message contains `trigger`, the
+       * boundary answers each turn with the next step — a tool call or text.
+       * A browser step naming an element by `name` is resolved to the ref in
+       * the latest observation the browser returned, so the proof runs through
+       * the real device, the real page and the real observation. It proves the
+       * loop, the permits and the device path; it proves nothing about a model.
+       */
+      jarvisScript = JSON.parse(body || "null");
+      return send(200, { ok: true });
+    }
+
     if (url.pathname === "/__fixture/auth-providers") {
       /*
        * Which providers the project reports at `/auth/v1/settings`.
@@ -653,13 +754,19 @@ const server = createServer((request, response) => {
       const week = windowFor("week", Date.now());
       const remaining = Number(parsed.remainingUses ?? 0);
       const capHundredths = Number(parsed.allowanceUses ?? 28) * 100;
+      // One surface at a time: spending JARVIS's allowance leaves Chat's alone.
+      const surface = parsed.surface === "jarvis" ? "jarvis" : "chat";
+      const others = (tablesFor(userId).__usage ?? []).filter(
+        (row) => (surface === "jarvis") !== row.kind.startsWith("jarvis_"),
+      );
       tablesFor(userId).__usage = [
+        ...others,
         {
-          kind: "session",
+          kind: kindFor(surface, "session"),
           startsAt: session.startsAt,
           usedHundredths: capHundredths - remaining * 100,
         },
-        { kind: "week", startsAt: week.startsAt, usedHundredths: 0 },
+        { kind: kindFor(surface, "week"), startsAt: week.startsAt, usedHundredths: 0 },
       ];
       return send(200, { ok: true, userId });
     }
@@ -799,6 +906,79 @@ const server = createServer((request, response) => {
     /* --- tables ---------------------------------------------------------- */
 
     const table = /^\/rest\/v1\/([a-z0-9_]+)$/.exec(url.pathname);
+    if (table && table[1].startsWith("jarvis_")) {
+      /*
+       * JARVIS TABLES ARE ONE SHARED STORE, FILTERED THE WAY RLS FILTERS.
+       *
+       * A paired device reaches its rows through the service role, with no
+       * account session at all, so per-account buckets cannot model it. A
+       * session sees and writes only its own rows; the service role sees all.
+       * This mirrors the policy for the proof; the policy itself is proven
+       * against PostgreSQL in jarvis-schema-against-postgres.test.ts.
+       */
+      const name = table[1];
+      const header = (request.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
+      const sessionUser = sessions.get(header) ?? null;
+      const store = (jarvisTables[name] ??= []);
+      const params = [...url.searchParams.entries()];
+      const select = url.searchParams.get("select");
+      const single = (request.headers.accept ?? "").includes("vnd.pgrst.object");
+      const scoped = (row) => !sessionUser || row.user_id === sessionUser;
+      const found = () =>
+        applyOrder(
+          store.filter((row) => scoped(row) && matches(row, params)),
+          url.searchParams.get("order"),
+        ).slice(0, Number(url.searchParams.get("limit") ?? 0) || undefined);
+      const answer = (list, status = 200) => {
+        const projected = list.map((row) => project(row, select));
+        return send(status, single ? (projected[0] ?? null) : projected);
+      };
+      if (request.method === "GET") return answer(found());
+      if (request.method === "POST") {
+        const payload = JSON.parse(body || "{}");
+        const incoming = Array.isArray(payload) ? payload : [payload];
+        if (sessionUser && incoming.some((row) => row.user_id && row.user_id !== sessionUser)) {
+          return send(403, {
+            code: "42501",
+            message: "new row violates row-level security policy",
+          });
+        }
+        const at = new Date().toISOString();
+        const written = incoming.map((row) => {
+          const created = {
+            id: randomUUID(),
+            created_at: at,
+            updated_at: at,
+            ...JARVIS_DEFAULTS[name],
+            ...row,
+            user_id: row.user_id ?? sessionUser,
+          };
+          store.push(created);
+          return created;
+        });
+        return answer(written, 201);
+      }
+      if (request.method === "PATCH") {
+        const patch = JSON.parse(body || "{}");
+        const changed = found();
+        for (const row of changed) {
+          Object.assign(row, patch, { updated_at: new Date().toISOString() });
+          if (
+            name === "jarvis_tasks" &&
+            ["stopped", "blocked", "failed", "completed"].includes(row.status)
+          ) {
+            row.live_frame = null;
+          }
+        }
+        return answer(changed);
+      }
+      if (request.method === "DELETE") {
+        const removed = found();
+        jarvisTables[name] = store.filter((row) => !removed.includes(row));
+        return answer(removed);
+      }
+    }
+
     if (table) {
       const name = table[1];
       const userId = callerFrom(request, body) ?? "anonymous";
@@ -858,6 +1038,7 @@ const server = createServer((request, response) => {
             updated_at: new Date().toISOString(),
             archived: false,
             pinned: false,
+            ...(name === "ocade_conversations" ? { surface: "chat" } : {}),
             ...row,
           };
           stored.push(created);
@@ -953,6 +1134,34 @@ const server = createServer((request, response) => {
       }
       if (onlineBoundary.status !== 200) {
         return send(onlineBoundary.status, { error: "provider_unavailable" });
+      }
+      onlineBoundary.jarvisRequests += parsed.surface === "jarvis" ? 1 : 0;
+      const scripted = parsed.surface === "jarvis" ? jarvisStep(parsed.messages ?? []) : null;
+      if (scripted) {
+        response.writeHead(200, {
+          "content-type": "text/event-stream",
+          "access-control-allow-origin": "*",
+          "cache-control": "no-store",
+        });
+        const emit = (event) => response.write(`data: ${JSON.stringify(event)}\n\n`);
+        emit({ type: "status", backend: "online", state: "streaming" });
+        const calls = scripted.tool
+          ? [{ id: "provider-tool-0", name: scripted.tool, arguments: scripted.args ?? {} }]
+          : [];
+        for (const call of calls) emit({ type: "tool_call", call });
+        if (scripted.text) emit({ type: "token", text: scripted.text });
+        emit({
+          type: "final",
+          response: {
+            text: scripted.text ?? "",
+            toolCalls: calls,
+            toolResults: [],
+            backend: "online",
+            stopReason: calls.length ? "tool_use" : "end_turn",
+          },
+        });
+        response.end();
+        return;
       }
       /*
        * THE ANSWER REPEATS WHAT THE FILE SAID.

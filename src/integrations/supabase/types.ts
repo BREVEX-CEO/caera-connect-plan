@@ -200,6 +200,230 @@ export type Database = {
         }
         Relationships: []
       }
+      jarvis_activity: {
+        Row: {
+          action: Json | null
+          completed_at: string | null
+          confirmed: boolean
+          created_at: string
+          device_id: string | null
+          id: string
+          result: Json | null
+          status: string
+          summary: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          action?: Json | null
+          completed_at?: string | null
+          confirmed?: boolean
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          result?: Json | null
+          status?: string
+          summary: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          action?: Json | null
+          completed_at?: string | null
+          confirmed?: boolean
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          result?: Json | null
+          status?: string
+          summary?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jarvis_activity_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "jarvis_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jarvis_activity_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "jarvis_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jarvis_devices: {
+        Row: {
+          capabilities: Json
+          created_at: string
+          id: string
+          last_seen_at: string | null
+          name: string
+          pairing_code_hash: string | null
+          pairing_expires_at: string | null
+          platform: string | null
+          revoked_at: string | null
+          token_hash: string | null
+          user_id: string
+        }
+        Insert: {
+          capabilities?: Json
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          name?: string
+          pairing_code_hash?: string | null
+          pairing_expires_at?: string | null
+          platform?: string | null
+          revoked_at?: string | null
+          token_hash?: string | null
+          user_id: string
+        }
+        Update: {
+          capabilities?: Json
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          name?: string
+          pairing_code_hash?: string | null
+          pairing_expires_at?: string | null
+          platform?: string | null
+          revoked_at?: string | null
+          token_hash?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      jarvis_memories: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      jarvis_permissions: {
+        Row: {
+          allowed: boolean
+          capability: string
+          device_id: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allowed: boolean
+          capability: string
+          device_id?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allowed?: boolean
+          capability?: string
+          device_id?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jarvis_permissions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "jarvis_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jarvis_tasks: {
+        Row: {
+          blocker: string | null
+          browser_mode: string
+          conversation_id: string
+          created_at: string
+          current_step: number
+          device_id: string | null
+          finished_at: string | null
+          id: string
+          live_frame: string | null
+          plan: Json
+          result: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          blocker?: string | null
+          browser_mode?: string
+          conversation_id: string
+          created_at?: string
+          current_step?: number
+          device_id?: string | null
+          finished_at?: string | null
+          id?: string
+          live_frame?: string | null
+          plan?: Json
+          result?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          blocker?: string | null
+          browser_mode?: string
+          conversation_id?: string
+          created_at?: string
+          current_step?: number
+          device_id?: string | null
+          finished_at?: string | null
+          id?: string
+          live_frame?: string | null
+          plan?: Json
+          result?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jarvis_tasks_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jarvis_tasks_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "jarvis_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_consent_receipts: {
         Row: {
           accepted_at: string
@@ -265,6 +489,7 @@ export type Database = {
           model_id: string | null
           pinned: boolean
           provider_id: string | null
+          surface: string
           title: string
           updated_at: string
           user_id: string
@@ -276,6 +501,7 @@ export type Database = {
           model_id?: string | null
           pinned?: boolean
           provider_id?: string | null
+          surface?: string
           title?: string
           updated_at?: string
           user_id: string
@@ -287,6 +513,7 @@ export type Database = {
           model_id?: string | null
           pinned?: boolean
           provider_id?: string | null
+          surface?: string
           title?: string
           updated_at?: string
           user_id?: string
@@ -1093,6 +1320,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      jarvis_purge_expired_activity: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       ocade_acquire_generation_permit: {
         Args: {
           p_generation_id: string
@@ -1282,7 +1513,7 @@ export type Database = {
         }[]
       }
       ocade_read_commercial_usage: {
-        Args: { p_user_id: string }
+        Args: { p_surface?: string; p_user_id: string }
         Returns: {
           reserved_hundredths: number
           reset_at: string
@@ -1393,6 +1624,10 @@ export type Database = {
         Returns: boolean
       }
       ocade_session_last_proof_at: { Args: never; Returns: string }
+      ocade_usage_window_kind: {
+        Args: { p_kind: string; p_surface: string }
+        Returns: string
+      }
       register_browser_device_for_current_user: {
         Args: {
           _browser_install_id: string

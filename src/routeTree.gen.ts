@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as OcadeJarvisRouteImport } from './routes/ocade-jarvis'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -25,6 +26,8 @@ import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthChallengeRouteImport } from './routes/auth.challenge'
 import { Route as AuthVerifyRouteImport } from './routes/auth.verify'
+import { Route as ApiJarvisDeviceRouteImport } from './routes/api/jarvis/device'
+import { Route as ApiJarvisPairRouteImport } from './routes/api/jarvis/pair'
 import { Route as ApiOfflineBytesReleaseRouteImport } from './routes/api/offline/bytes.$release'
 
 const IndexRoute = IndexRouteImport.update({
@@ -44,6 +47,11 @@ const AboutRoute = AboutRouteImport.update({
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OcadeJarvisRoute = OcadeJarvisRouteImport.update({
+  id: '/ocade-jarvis',
+  path: '/ocade-jarvis',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -106,6 +114,16 @@ const AuthVerifyRoute = AuthVerifyRouteImport.update({
   path: '/auth/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiJarvisDeviceRoute = ApiJarvisDeviceRouteImport.update({
+  id: '/api/jarvis/device',
+  path: '/api/jarvis/device',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiJarvisPairRoute = ApiJarvisPairRouteImport.update({
+  id: '/api/jarvis/pair',
+  path: '/api/jarvis/pair',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiOfflineBytesReleaseRoute = ApiOfflineBytesReleaseRouteImport.update({
   id: '/api/offline/bytes/$release',
   path: '/api/offline/bytes/$release',
@@ -116,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/help': typeof HelpRoute
+  '/ocade-jarvis': typeof OcadeJarvisRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -128,12 +147,15 @@ export interface FileRoutesByFullPath {
   '/auth/challenge': typeof AuthChallengeRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/auth/': typeof AuthIndexRoute
+  '/api/jarvis/device': typeof ApiJarvisDeviceRoute
+  '/api/jarvis/pair': typeof ApiJarvisPairRoute
   '/api/offline/bytes/$release': typeof ApiOfflineBytesReleaseRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/help': typeof HelpRoute
+  '/ocade-jarvis': typeof OcadeJarvisRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -146,6 +168,8 @@ export interface FileRoutesByTo {
   '/auth/challenge': typeof AuthChallengeRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/auth': typeof AuthIndexRoute
+  '/api/jarvis/device': typeof ApiJarvisDeviceRoute
+  '/api/jarvis/pair': typeof ApiJarvisPairRoute
   '/api/offline/bytes/$release': typeof ApiOfflineBytesReleaseRoute
 }
 export interface FileRoutesById {
@@ -154,6 +178,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/help': typeof HelpRoute
+  '/ocade-jarvis': typeof OcadeJarvisRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -166,6 +191,8 @@ export interface FileRoutesById {
   '/auth/challenge': typeof AuthChallengeRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/auth/': typeof AuthIndexRoute
+  '/api/jarvis/device': typeof ApiJarvisDeviceRoute
+  '/api/jarvis/pair': typeof ApiJarvisPairRoute
   '/api/offline/bytes/$release': typeof ApiOfflineBytesReleaseRoute
 }
 export interface FileRouteTypes {
@@ -174,6 +201,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/help'
+    | '/ocade-jarvis'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
@@ -186,12 +214,15 @@ export interface FileRouteTypes {
     | '/auth/challenge'
     | '/auth/verify'
     | '/auth/'
+    | '/api/jarvis/device'
+    | '/api/jarvis/pair'
     | '/api/offline/bytes/$release'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/help'
+    | '/ocade-jarvis'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
@@ -204,6 +235,8 @@ export interface FileRouteTypes {
     | '/auth/challenge'
     | '/auth/verify'
     | '/auth'
+    | '/api/jarvis/device'
+    | '/api/jarvis/pair'
     | '/api/offline/bytes/$release'
   id:
     | '__root__'
@@ -211,6 +244,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/about'
     | '/help'
+    | '/ocade-jarvis'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
@@ -223,6 +257,8 @@ export interface FileRouteTypes {
     | '/auth/challenge'
     | '/auth/verify'
     | '/auth/'
+    | '/api/jarvis/device'
+    | '/api/jarvis/pair'
     | '/api/offline/bytes/$release'
   fileRoutesById: FileRoutesById
 }
@@ -231,6 +267,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   HelpRoute: typeof HelpRoute
+  OcadeJarvisRoute: typeof OcadeJarvisRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -241,6 +278,8 @@ export interface RootRouteChildren {
   AuthChallengeRoute: typeof AuthChallengeRoute
   AuthVerifyRoute: typeof AuthVerifyRoute
   AuthIndexRoute: typeof AuthIndexRoute
+  ApiJarvisDeviceRoute: typeof ApiJarvisDeviceRoute
+  ApiJarvisPairRoute: typeof ApiJarvisPairRoute
   ApiOfflineBytesReleaseRoute: typeof ApiOfflineBytesReleaseRoute
 }
 
@@ -272,6 +311,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ocade-jarvis': {
+      id: '/ocade-jarvis'
+      path: '/ocade-jarvis'
+      fullPath: '/ocade-jarvis'
+      preLoaderRoute: typeof OcadeJarvisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -358,6 +404,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/jarvis/device': {
+      id: '/api/jarvis/device'
+      path: '/api/jarvis/device'
+      fullPath: '/api/jarvis/device'
+      preLoaderRoute: typeof ApiJarvisDeviceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/jarvis/pair': {
+      id: '/api/jarvis/pair'
+      path: '/api/jarvis/pair'
+      fullPath: '/api/jarvis/pair'
+      preLoaderRoute: typeof ApiJarvisPairRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/offline/bytes/$release': {
       id: '/api/offline/bytes/$release'
       path: '/api/offline/bytes/$release'
@@ -386,6 +446,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   HelpRoute: HelpRoute,
+  OcadeJarvisRoute: OcadeJarvisRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
@@ -396,6 +457,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthChallengeRoute: AuthChallengeRoute,
   AuthVerifyRoute: AuthVerifyRoute,
   AuthIndexRoute: AuthIndexRoute,
+  ApiJarvisDeviceRoute: ApiJarvisDeviceRoute,
+  ApiJarvisPairRoute: ApiJarvisPairRoute,
   ApiOfflineBytesReleaseRoute: ApiOfflineBytesReleaseRoute,
 }
 export const routeTree = rootRouteImport

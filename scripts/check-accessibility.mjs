@@ -31,7 +31,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, isAbsolute } from "node:path";
 
 const root = process.cwd();
-const ROOTS = (process.env.OCADE_A11Y_SCAN_ROOTS ?? "src/components,src/routes")
+const ROOTS = (process.env.OCADE_A11Y_SCAN_ROOTS ?? "src/components,src/routes,src/jarvis")
   .split(",")
   .map((entry) => entry.trim())
   .filter(Boolean);

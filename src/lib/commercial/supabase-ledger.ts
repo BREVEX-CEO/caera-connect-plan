@@ -163,9 +163,10 @@ export function supabaseCommercialLedger(admin: SupabaseClient<Database>): Comme
       return Number(data ?? 0);
     },
 
-    async readCurrent(userId) {
+    async readCurrent(userId, surface = "chat") {
       const { data, error } = await admin.rpc("ocade_read_commercial_usage", {
         p_user_id: userId,
+        ...(surface === "chat" ? {} : { p_surface: surface }),
       });
       if (error)
         throw new Error(`The usage ledger could not read current windows: ${error.message}`);

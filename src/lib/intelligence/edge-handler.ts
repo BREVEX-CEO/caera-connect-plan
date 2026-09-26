@@ -30,7 +30,7 @@ import {
  * `online-boundary.test.ts` fails if this list and `GENERATION_SURFACES` ever
  * disagree, so the duplication cannot drift into a second opinion.
  */
-const ALLOWED_SURFACES: readonly string[] = ["chat"];
+const ALLOWED_SURFACES: readonly string[] = ["chat", "jarvis"];
 
 /**
  * THE CEILING ON ONE REQUEST.

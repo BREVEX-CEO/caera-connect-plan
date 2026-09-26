@@ -18,7 +18,15 @@ import { COMPANY_FACTS } from "@/config/company-facts";
  * with its own sessions, storage and model download, advertised to search
  * engines as the place to index.
  */
-export const PUBLIC_PATHS = ["/", "/about", "/pricing", "/help", "/privacy", "/terms"] as const;
+export const PUBLIC_PATHS = [
+  "/",
+  "/ocade-jarvis",
+  "/about",
+  "/pricing",
+  "/help",
+  "/privacy",
+  "/terms",
+] as const;
 
 function escapeXml(value: string) {
   return value

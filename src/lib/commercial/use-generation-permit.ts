@@ -221,6 +221,15 @@ async function beginOfflineBilledRequest(input: {
   surface: GenerationSurface;
   explain?: boolean;
 }): Promise<BilledRequest | null> {
+  // JARVIS is Online-only: no offline allocation may pay for it or run it.
+  if (input.surface === "jarvis") {
+    if (input.explain) {
+      toast.error("OCADE JARVIS needs a connection.", {
+        description: "Nothing was sent and nothing was charged.",
+      });
+    }
+    return null;
+  }
   try {
     const identity = await getOfflineCurrentDeviceIdentity();
     if (!identity) throw new Error("This signed-in browser has no verified offline allocation.");

@@ -41,6 +41,8 @@ export const listConversations = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("ocade_conversations")
       .select(CONVERSATION_COLUMNS)
+      // JARVIS conversations live in the same authority and never in Chat's list.
+      .eq("surface", "chat")
       .order("pinned", { ascending: false })
       .order("updated_at", { ascending: false })
       .limit(LIST_CAP);

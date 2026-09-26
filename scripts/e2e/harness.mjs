@@ -44,6 +44,7 @@ const ALL = [
   "settings",
   "polish",
   "final",
+  "jarvis",
 ];
 
 const requested = process.argv.slice(2).filter((value) => !value.startsWith("--"));

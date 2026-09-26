@@ -21,7 +21,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-const ROOTS = ["src/components", "src/routes"];
+const ROOTS = ["src/components", "src/routes", "src/jarvis"];
 const jsonOnly = process.argv.includes("--json");
 
 function walk(dir, out = []) {

@@ -18,6 +18,7 @@ import {
   LibraryBig,
   Menu,
   MessageSquare,
+  Orbit,
   PanelLeftClose,
   PenSquare,
   Settings as SettingsIcon,
@@ -41,6 +42,7 @@ interface Destination {
 
 const DESTINATIONS: Destination[] = [
   { to: "/", label: "Chat", icon: MessageSquare },
+  { to: "/ocade-jarvis", label: "OCADE JARVIS", icon: Orbit },
   { to: "/library", label: "Library", icon: LibraryBig },
 ];
 
