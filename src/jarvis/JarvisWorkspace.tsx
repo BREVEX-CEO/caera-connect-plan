@@ -73,9 +73,12 @@ const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
 export function JarvisWorkspace({
   conversationId,
   connectId,
+  startVoice = false,
 }: {
   conversationId: string | null;
   connectId: string | null;
+  /** The person said "Hey OCADE" to their computer: voice starts at once. */
+  startVoice?: boolean;
 }) {
   const { user, loading } = useSession();
   const signedIn = Boolean(user);
@@ -190,6 +193,18 @@ export function JarvisWorkspace({
   const voice = useJarvisVoice((text) => {
     if (!commandRef.current(text)) void sendRef.current(text, true);
   }, prefs.wake);
+
+  const voiceStarted = useRef(false);
+  useEffect(() => {
+    if (!startVoice || !signedIn || !voice.supported || voiceStarted.current) return;
+    voiceStarted.current = true;
+    void voice.start();
+    void navigate({
+      to: "/ocade-jarvis",
+      search: conversationId ? { c: conversationId } : {},
+      replace: true,
+    });
+  }, [startVoice, signedIn, voice, conversationId, navigate]);
 
   // Signing out ends voice and anything running.
   const endVoice = voice.end;

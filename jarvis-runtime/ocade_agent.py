@@ -202,6 +202,22 @@ def _watch_health_and_updates(agent: ocade_device.Agent, root: Path | None, serv
             print(f"Update skipped: {e}", flush=True)
 
 
+def _wake_while_background(agent: ocade_device.Agent, home: Path, server: str) -> None:
+    """'Hey OCADE' listens locally only while Background/Wake Mode is on."""
+    import ocade_wake
+    listening: threading.Event | None = None
+    while not agent.stop.wait(2):
+        wanted = bool(agent.state.get("background")) and ocade_wake.available(home)
+        if wanted and listening is None:
+            listening = threading.Event()
+            threading.Thread(target=ocade_wake.listen, args=(home, server, listening), daemon=True).start()
+        elif not wanted and listening is not None:
+            listening.set()
+            listening = None
+    if listening is not None:
+        listening.set()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="ocade-agent")
     parser.add_argument("--server", default=os.environ.get("OCADE_SERVER", "https://ocade.in"))
@@ -235,6 +251,8 @@ def main() -> None:
     worker.start()
     threading.Thread(target=_watch_health_and_updates,
                      args=(agent, root, identity.meta["server"]), daemon=True).start()
+    threading.Thread(target=_wake_while_background,
+                     args=(agent, home, identity.meta["server"]), daemon=True).start()
     try:
         import ocade_mini
         ocade_mini.run(presence)  # owns the main thread while it lives

@@ -104,6 +104,18 @@ class LifecycleTest(unittest.TestCase):
         self.assertLessEqual(len(identity.bodies), 1)  # one quiet check, then waiting
 
 
+class WakeTest(unittest.TestCase):
+    def test_hey_ocade_is_unavailable_without_its_local_model_and_opens_voice_when_heard(self):
+        import ocade_wake
+        home = Path(tempfile.mkdtemp())
+        self.assertFalse(ocade_wake.available(home))
+        self.assertFalse(ocade_wake.listen(home, "https://ocade.test", threading.Event()))
+        opened = []
+        ocade_wake.webbrowser.open = opened.append
+        ocade_wake.open_voice("https://ocade.test/")
+        self.assertEqual(opened, ["https://ocade.test/ocade-jarvis?voice=1"])
+
+
 def _tk():
     try:
         import tkinter  # noqa: F401

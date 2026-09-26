@@ -12,6 +12,8 @@ export const Route = createFileRoute("/ocade-jarvis")({
     c: z.string().uuid().optional(),
     /** A device waiting for this person to approve it. */
     connect: z.string().uuid().optional(),
+    /** Opened by "Hey OCADE" on the person's computer: start with voice on. */
+    voice: z.literal("1").optional(),
   }),
   head: () => ({
     meta: [
@@ -26,6 +28,12 @@ export const Route = createFileRoute("/ocade-jarvis")({
 });
 
 function JarvisPage() {
-  const { c, connect } = Route.useSearch();
-  return <JarvisWorkspace conversationId={c ?? null} connectId={connect ?? null} />;
+  const { c, connect, voice } = Route.useSearch();
+  return (
+    <JarvisWorkspace
+      conversationId={c ?? null}
+      connectId={connect ?? null}
+      startVoice={voice === "1"}
+    />
+  );
 }

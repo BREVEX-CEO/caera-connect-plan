@@ -116,8 +116,11 @@ class WakeWordDetector:
     def __init__(self, on_detect: Callable[[], None],
                  threshold: float = DEFAULT_THRESHOLD,
                  logger: Callable[[str], None] = print,
-                 notify: Callable[[str], None] | None = None):
+                 notify: Callable[[str], None] | None = None,
+                 model: str = WAKE_MODEL):
         self._on_detect = on_detect
+        # A pretrained name, or the path of a local model (OCADE: "Hey OCADE").
+        self._model_name = model
         self._threshold = threshold
         self._logger    = logger
         # See PluginRegistry: `logger` is the console and gets everything,
@@ -136,7 +139,7 @@ class WakeWordDetector:
             return True
         try:
             from openwakeword.model import Model
-            self._model = Model(wakeword_models=[WAKE_MODEL], inference_framework="onnx")
+            self._model = Model(wakeword_models=[self._model_name], inference_framework="onnx")
         except Exception as e:
             self._logger(f"Wake word: could not load model — {e}")
             self._notify("Wake word unavailable — use the WAKE NOW button.")
@@ -146,7 +149,7 @@ class WakeWordDetector:
         self._ready = True
         self._thread = threading.Thread(target=self._loop, daemon=True, name="WakeWordThread")
         self._thread.start()
-        self._logger("Wake word: listening for 'Hey Jarvis'.")
+        self._logger(f"Wake word: listening locally ({Path(self._model_name).stem}).")
         return True
 
     def stop(self) -> None:
@@ -187,11 +190,8 @@ class WakeWordDetector:
                 scores = self._model.predict(np.asarray(frame, dtype=np.int16))
                 score = 0.0
                 if isinstance(scores, dict):
-                    # match the jarvis model regardless of exact key suffix
-                    for k, v in scores.items():
-                        if "jarvis" in k.lower():
-                            score = max(score, float(v))
-                    if score == 0.0 and scores:
+                    # one model is loaded, so its best score is the score
+                    if scores:
                         score = max(float(v) for v in scores.values())
                 if score >= self._threshold:
                     # drain any backlog so we don't double-fire on the same utterance

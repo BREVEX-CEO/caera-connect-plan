@@ -1150,6 +1150,16 @@ except i.UpdateRequired:
     )) && (await talker.getByRole("button", { name: "Start voice", exact: true }).count()) === 1,
   );
   blocked("real speech service", "the browser's own recognition service is not reachable here");
+  const woken = await speech.newPage();
+  await woken.goto(`${BASE}/ocade-jarvis?voice=1`, { waitUntil: "networkidle" });
+  check(
+    '"Hey OCADE" on the computer opens JARVIS already listening',
+    (await until(
+      async () =>
+        (await woken.getByRole("status").filter({ hasText: "Listening" }).count()) === 1,
+    )) && !woken.url().includes("voice=1"),
+  );
+  await woken.close();
   const cloudOnly = await speech.newPage();
   await cloudOnly.addInitScript(() => (window.__local = false));
   await cloudOnly.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
