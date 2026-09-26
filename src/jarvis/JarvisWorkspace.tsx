@@ -134,7 +134,11 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
     if (fresh && fresh.updated_at !== activeTask.updated_at) setActiveTask(fresh);
   }, [state.data, activeTask]);
 
+  // A conversation this tab just created is already on screen; reloading it
+  // mid-turn would wipe the turn in progress.
+  const createdHere = useRef<string | null>(null);
   useEffect(() => {
+    if (conversationId && conversationId === createdHere.current) return;
     setTurns([]);
     setLiveAnswer(null);
     setActiveTask(null);
@@ -161,12 +165,13 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
   const voice = useJarvisVoice((text) => void sendRef.current(text, true), prefs.wake);
 
   // Signing out ends voice and anything running.
+  const endVoice = voice.end;
   useEffect(() => {
     if (!loading && !signedIn) {
-      voice.end();
+      endVoice();
       abort.current?.abort();
     }
-  }, [loading, signedIn, voice]);
+  }, [loading, signedIn, endVoice]);
 
   const send = async (raw: string, fromVoice: boolean) => {
     const text = raw.trim();
@@ -185,6 +190,7 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
       if (!id) {
         id = crypto.randomUUID();
         await createJarvisConversation({ data: { id } });
+        createdHere.current = id;
         void navigate({ to: "/ocade-jarvis", search: { c: id }, replace: true });
       }
       const saved = await persistChatMessage({ conversationId: id, role: "user", content: text });
@@ -389,7 +395,7 @@ export function JarvisWorkspace({ conversationId }: { conversationId: string | n
       onClose={() => setSection(null)}
       onOpenConversation={(id) => {
         setDrawerOpen(false);
-        void navigate({ to: "/ocade-jarvis", search: { c: id } });
+        void navigate({ to: "/ocade-jarvis", search: id ? { c: id } : {} });
       }}
       onChanged={refresh}
     />

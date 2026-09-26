@@ -82,7 +82,10 @@ class Browsers:
 
     def frame(self, mode: str) -> str | None:
         session = self.sessions.get(mode)
-        return session.run(session.frame(), timeout=20) if session else None
+        try:
+            return session.run(session.frame(), timeout=20) if session else None
+        except Exception:  # a missed frame is only a missed picture
+            return None
 
 
 def run(headless: bool, cdp: str | None) -> None:
@@ -101,6 +104,8 @@ def run(headless: bool, cdp: str | None) -> None:
             if e.code in (401, 403):
                 print("This device is no longer paired. Pair it again from OCADE JARVIS.")
                 return
+            if e.code == 400:  # a malformed report is dropped, never resent forever
+                results, frame = [], None
             time.sleep(3)
             continue
         except (urllib.error.URLError, TimeoutError):

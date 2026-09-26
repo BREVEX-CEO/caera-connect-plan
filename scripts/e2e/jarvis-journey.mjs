@@ -602,6 +602,83 @@ try {
     );
     await setJarvisRemaining(28);
 
+    /* --- the person's own browser, attached over an endpoint they started ------ */
+    const cdpPort = 9333;
+    const userBrowser = spawn(
+      EXECUTABLE,
+      [
+        "--headless=new",
+        "--no-sandbox",
+        `--remote-debugging-port=${cdpPort}`,
+        `--user-data-dir=${mkdtempSync(path.join(tmpdir(), "ocade-user-browser-"))}`,
+        `${SITE}/second`,
+      ],
+      { stdio: "ignore" },
+    );
+    await until(() => fetch(`http://127.0.0.1:${cdpPort}/json/version`).then((r) => r.ok), 20_000);
+    device.kill("SIGKILL");
+    device = spawn(
+      "python3",
+      [
+        "jarvis-runtime/ocade_device.py",
+        "run",
+        "--headless",
+        "--real-browser-cdp",
+        `http://127.0.0.1:${cdpPort}`,
+      ],
+      { env, stdio: ["ignore", "pipe", "pipe"] },
+    );
+    device.stdout.on("data", (d) => (deviceLog += d));
+    device.stderr.on("data", (d) => (deviceLog += d));
+    await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
+    await rail("Devices").click();
+    const ownBrowser = page.getByRole("switch", { name: /Use my own browser/ });
+    check(
+      "the device reports the authorized real browser",
+      await until(async () => !(await ownBrowser.isDisabled()), 30_000),
+    );
+    await ownBrowser.click();
+    await until(async () => await ownBrowser.isChecked());
+    await page.getByRole("button", { name: "Close", exact: true }).first().click();
+    await setJarvisRemaining(28);
+    await script("real-task", [
+      { tool: "start_task", args: { title: "Use my browser", steps: ["Open"] } },
+      { tool: "browser", args: { action: "open", url: `${SITE}/lamp` } },
+      { tool: "finish_task", args: { outcome: "completed", result: "Opened in your browser." } },
+      { text: "Opened it in your browser." },
+    ]);
+    await say("real-task open the lamp in my browser");
+    check(
+      "the live panel says it is your browser",
+      await until(async () => (await page.getByText("Your browser").count()) >= 1, 60_000),
+    );
+    await idle();
+    const userTabs = await fetch(`http://127.0.0.1:${cdpPort}/json/list`).then((r) => r.json());
+    const urls = userTabs.filter((t) => t.type === "page").map((t) => t.url);
+    check(
+      "the task ran in the person's own browser",
+      urls.includes(`${SITE}/lamp`),
+      urls.join(" "),
+    );
+    check("in a tab of its own, leaving theirs alone", urls.includes(`${SITE}/second`));
+    userBrowser.kill("SIGKILL");
+
+    /* --- deleting a JARVIS conversation ----------------------------------------- */
+    await rail("Conversations").click();
+    const before = await page.getByRole("button", { name: /^Delete / }).count();
+    page.once("dialog", (dialog) => void dialog.accept());
+    await page
+      .getByRole("button", { name: /^Delete / })
+      .first()
+      .click();
+    check(
+      "a JARVIS conversation can be deleted",
+      await until(
+        async () => (await page.getByRole("button", { name: /^Delete / }).count()) === before - 1,
+      ),
+    );
+    await page.getByRole("button", { name: "Close", exact: true }).first().click();
+
     /* --- removing the device ends its access --------------------------------- */
     await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
     await rail("Devices").click();
@@ -615,30 +692,102 @@ try {
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
   }
 
-  /* --- voice controls -------------------------------------------------------- */
+  /* --- the browser's own recogniser, where it cannot reach its service -------- */
   const mic = page.getByRole("button", { name: "Start voice", exact: true });
-  if ((await mic.count()) === 0) {
-    blocked("voice", "this browser exposes no speech recogniser");
-  } else {
+  if ((await mic.count()) === 1) {
     await mic.click();
-    const bar = page.getByRole("status").filter({ hasText: /Listening|Paused|Speaking/ });
-    check(
-      "voice starts listening",
-      await until(async () => (await bar.innerText()) === "Listening", 10_000),
+    const outcome = await until(
+      async () =>
+        (await page.getByText("Speech recognition is not available right now").count()) >= 1 ||
+        (await page.getByRole("status").filter({ hasText: "Listening" }).count()) >= 1,
+      10_000,
     );
-    await page.getByRole("button", { name: "Pause", exact: true }).click();
-    check("Pause pauses", (await bar.innerText()) === "Paused");
-    await page.getByRole("button", { name: "Continue", exact: true }).click();
-    check("Continue resumes", (await bar.innerText()) === "Listening");
-    await page.getByRole("button", { name: "Interrupt", exact: true }).click();
-    check("Interrupt returns to listening", (await bar.innerText()) === "Listening");
-    await page.getByRole("button", { name: "End", exact: true }).click();
-    check(
-      "End ends voice",
-      (await page.getByRole("button", { name: "Start voice", exact: true }).count()) === 1,
-    );
-    blocked("speech transcription", "needs a real recognition service; not provable here");
+    check("the real recogniser either listens or says it cannot", outcome);
+    if ((await page.getByRole("button", { name: "End", exact: true }).count()) === 1) {
+      await page.getByRole("button", { name: "End", exact: true }).click();
+    }
   }
+
+  /* --- speech-to-text, through a recogniser the page cannot tell from real ------ */
+  const speech = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  await speech.addInitScript(
+    ([key, value]) => {
+      window.localStorage.setItem(key, value);
+      class Recogniser {
+        start() {
+          window.__recogniser = this;
+        }
+        stop() {
+          this.onend?.();
+        }
+        abort() {}
+      }
+      window.SpeechRecognition = Recogniser;
+      window.__say = (text) =>
+        window.__recogniser.onresult({
+          resultIndex: 0,
+          results: [Object.assign([{ transcript: text }], { isFinal: true })],
+        });
+      window.__fail = (error) => window.__recogniser.onerror({ error });
+    },
+    [storageKey, JSON.stringify(session)],
+  );
+  const talker = await speech.newPage();
+  await talker.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
+  await talker.getByRole("button", { name: "Start voice", exact: true }).click();
+  const bar = talker.getByRole("status").filter({ hasText: /Listening|Paused|Speaking/ });
+  check("voice starts listening", await until(async () => (await bar.innerText()) === "Listening"));
+  await talker.getByRole("button", { name: "Pause", exact: true }).click();
+  check("Pause pauses", (await bar.innerText()) === "Paused");
+  await talker.getByRole("button", { name: "Continue", exact: true }).click();
+  check("Continue resumes", (await bar.innerText()) === "Listening");
+  await talker.getByRole("button", { name: "Interrupt", exact: true }).click();
+  check("Interrupt returns to listening", (await bar.innerText()) === "Listening");
+  await talker.getByRole("button", { name: "End", exact: true }).click();
+  check(
+    "End ends voice",
+    (await talker.getByRole("button", { name: "Start voice", exact: true }).count()) === 1,
+  );
+  await talker.getByRole("button", { name: "Start voice", exact: true }).click();
+  await talker.getByRole("checkbox", { name: /Hey OCADE/ }).check();
+  await talker.evaluate(() => window.__say("tell me a secret"));
+  await talker.waitForTimeout(1500);
+  check(
+    "with the wake phrase on, other speech is not sent",
+    (await talker.getByText("tell me a secret").count()) === 0,
+  );
+  await talker.evaluate(() => window.__say("Hey OCADE, what is OCADE?"));
+  check(
+    '"Hey OCADE" sends what follows it',
+    await until(
+      async () => (await talker.getByText("what is OCADE?", { exact: true }).count()) >= 1,
+    ),
+  );
+  check(
+    "and the spoken question is answered in the same conversation",
+    await until(
+      async () =>
+        (await talker.getByText("This is a stubbed OCADE answer for the browser proof.").count()) >=
+        1,
+    ),
+  );
+  check(
+    "the answer is spoken",
+    await until(async () =>
+      /Speaking|Listening/.test(await talker.getByRole("status").last().innerText()),
+    ),
+  );
+  await talker.getByRole("button", { name: "Interrupt", exact: true }).click();
+  await talker.evaluate(() => window.__fail("network"));
+  check(
+    "a recogniser that cannot work ends voice and says so",
+    (await until(
+      async () =>
+        (await talker.getByText("Speech recognition is not available right now").count()) >= 1,
+    )) && (await talker.getByRole("button", { name: "Start voice", exact: true }).count()) === 1,
+  );
+  blocked("real speech service", "the browser's own recognition service is not reachable here");
+  await speech.close();
 
   /* --- theme and layouts ------------------------------------------------------ */
   await page.getByRole("button", { name: /theme/ }).first().click();

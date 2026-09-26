@@ -74,6 +74,7 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
   const audio = useRef<AudioContext | null>(null);
   const meter = useRef(0);
   const stateRef = useRef<VoiceState>("off");
+  const endRef = useRef<() => void>(() => undefined);
   const deliver = useRef(onHeard);
   deliver.current = onHeard;
   const wakeRef = useRef(wake);
@@ -102,10 +103,15 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
       }
     };
     r.onerror = (event) => {
-      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        setError("Microphone access was refused.");
-        set("off");
-      }
+      // Silence and our own aborts are routine; anything else ends voice and says why,
+      // rather than restarting a recogniser that cannot work.
+      if (event.error === "no-speech" || event.error === "aborted") return;
+      setError(
+        event.error === "not-allowed" || event.error === "service-not-allowed"
+          ? "Microphone access was refused."
+          : "Speech recognition is not available right now. You can still type.",
+      );
+      endRef.current();
     };
     r.onend = () => {
       recognition.current = null;
@@ -225,6 +231,8 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
     meter.current = 0;
     setLevel(0);
   }, [stopListening]);
+
+  endRef.current = end;
 
   // Leaving the page ends voice: no microphone outlives the screen.
   useEffect(() => () => end(), [end]);

@@ -124,6 +124,15 @@ describe("tasks", () => {
     task = ok.rows[0]!.id;
   });
 
+  it("allow only one unfinished task per conversation", async () => {
+    const second = await twin.asTenant(
+      A,
+      `insert into public.jarvis_tasks (user_id, conversation_id, title)
+       values ('${A}', '${jarvis}', 'Second')`,
+    );
+    expect(second.errorCode).toBe("23505");
+  });
+
   it("drops the temporary frame when the task stops and keeps the result", async () => {
     await twin.asTenant(
       A,

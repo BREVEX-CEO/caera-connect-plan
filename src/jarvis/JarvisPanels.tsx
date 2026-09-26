@@ -1,6 +1,7 @@
 /** The rail's sections, the Permissions drawer and the graph node panel. */
 import { Fragment, useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
+import { deleteConversation } from "@/lib/ocade.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FINISHED, hostOf, type Capability } from "./protocol";
@@ -91,7 +92,7 @@ export function SectionPanel({
   signedIn: boolean;
   activeConversation: string | null;
   onClose: () => void;
-  onOpenConversation: (id: string) => void;
+  onOpenConversation: (id: string | null) => void;
   onChanged: () => void;
 }) {
   return (
@@ -139,7 +140,7 @@ function SectionBody({
   section: Section;
   state: JarvisState;
   activeConversation: string | null;
-  onOpenConversation: (id: string) => void;
+  onOpenConversation: (id: string | null) => void;
   onChanged: () => void;
 }) {
   const [opened, setOpened] = useState<string | null>(null);
@@ -163,16 +164,34 @@ function SectionBody({
     return (
       <ul className="flex flex-col gap-0.5">
         {list.map((item) => (
-          <li key={item.id}>
+          <li key={item.id} className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => onOpenConversation(item.open)}
               aria-current={item.open === activeConversation ? "true" : undefined}
-              className="w-full rounded-md px-2 py-1.5 text-left hover:bg-accent"
+              className="min-w-0 flex-1 rounded-md px-2 py-1.5 text-left hover:bg-accent"
             >
               <span className="block truncate">{item.title}</span>
               <span className="block text-xs text-muted-foreground">{item.sub}</span>
             </button>
+            {section === "conversations" ? (
+              <button
+                type="button"
+                aria-label={`Delete ${item.title}`}
+                onClick={() => {
+                  if (!window.confirm("Delete this conversation and its tasks for good?")) return;
+                  void deleteConversation({ data: { id: item.id } })
+                    .then(() => {
+                      onChanged();
+                      if (item.id === activeConversation) onOpenConversation(null);
+                    })
+                    .catch(() => toast.error("That conversation could not be deleted."));
+                }}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" aria-hidden />
+              </button>
+            ) : null}
           </li>
         ))}
       </ul>

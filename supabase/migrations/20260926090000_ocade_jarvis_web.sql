@@ -550,6 +550,9 @@ CREATE TABLE IF NOT EXISTS public.jarvis_tasks (
 CREATE INDEX IF NOT EXISTS jarvis_tasks_user_idx ON public.jarvis_tasks (user_id, updated_at DESC);
 CREATE INDEX IF NOT EXISTS jarvis_tasks_conversation_idx ON public.jarvis_tasks (conversation_id);
 CREATE INDEX IF NOT EXISTS jarvis_tasks_device_idx ON public.jarvis_tasks (device_id);
+-- One unfinished task per conversation, whichever tab or request asks.
+CREATE UNIQUE INDEX IF NOT EXISTS jarvis_tasks_one_open_per_conversation
+  ON public.jarvis_tasks (conversation_id) WHERE status IN ('running', 'waiting', 'taken_over');
 
 -- A raw frame is temporary: it is gone the moment the task stops running.
 CREATE OR REPLACE FUNCTION public.jarvis_task_frame_is_temporary()

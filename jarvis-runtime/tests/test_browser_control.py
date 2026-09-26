@@ -183,3 +183,58 @@ class BrowserControlTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RealBrowserTest(unittest.TestCase):
+    """The person's own browser, attached over the endpoint they started."""
+
+    @classmethod
+    def setUpClass(cls):
+        BrowserControlTest.setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        BrowserControlTest.tearDownClass()
+
+    def test_works_in_its_own_tab_and_leaves_theirs_alone(self):
+        import json
+        import socket
+        import subprocess
+        import time
+        import urllib.request
+
+        exe = os.environ.get("OCADE_BROWSER_EXECUTABLE")
+        if not exe:
+            self.skipTest("needs OCADE_BROWSER_EXECUTABLE")
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", 0))
+            port = probe.getsockname()[1]
+        user = subprocess.Popen([exe, "--headless=new", "--no-sandbox", f"--remote-debugging-port={port}",
+                                 f"--user-data-dir={tempfile.mkdtemp()}", f"{BrowserControlTest.base}/index.html"],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        endpoint = f"http://127.0.0.1:{port}"
+        try:
+            for _ in range(50):
+                try:
+                    urllib.request.urlopen(f"{endpoint}/json/version", timeout=1)
+                    break
+                except Exception:
+                    time.sleep(0.2)
+            s = _BrowserSession("chrome", mode="real", cdp_endpoint=endpoint)
+            s.start()
+            failed = s.run(s.act({"action": "open", "url": "https://example.invalid"}), timeout=60)
+            self.assertEqual(failed["status"], "failed")
+            out = s.run(s.act({"action": "open", "url": f"{BrowserControlTest.base}/next.html"}), timeout=60)
+            self.assertEqual(out["status"], "done")
+            self.assertEqual(out["observation"]["title"], "Next")
+            tabs = [t["url"] for t in json.load(urllib.request.urlopen(f"{endpoint}/json/list"))
+                    if t.get("type") == "page"]
+            mine = f"{BrowserControlTest.base}/index.html"
+            self.assertIn(mine, tabs)
+            self.assertEqual(len(tabs), 2)
+            s.close()
+            tabs = [t["url"] for t in json.load(urllib.request.urlopen(f"{endpoint}/json/list"))
+                    if t.get("type") == "page"]
+            self.assertEqual(tabs, [mine])
+        finally:
+            user.kill()

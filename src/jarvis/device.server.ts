@@ -90,6 +90,9 @@ export const exchangeInput = z.object({
   capabilities: z.record(z.string().max(40), z.boolean()).optional(),
 });
 
+/** Matches how long the planning loop waits for one action. */
+export const ACTION_TTL_MS = 120_000;
+
 export interface DeviceCommand {
   id: string;
   taskId: string;
@@ -153,6 +156,21 @@ export async function exchange(
       .eq("device_id", device.id)
       .in("status", ["running", "waiting", "taken_over"]);
   }
+
+  // An action nobody ran in time never runs later against a page that moved on,
+  // and one a device claimed but never answered is reported as failed.
+  await admin
+    .from("jarvis_activity")
+    .update({ status: "cancelled", completed_at: now })
+    .eq("device_id", device.id)
+    .eq("status", "queued")
+    .lt("created_at", new Date(Date.now() - ACTION_TTL_MS).toISOString());
+  await admin
+    .from("jarvis_activity")
+    .update({ status: "failed", completed_at: now })
+    .eq("device_id", device.id)
+    .eq("status", "claimed")
+    .lt("created_at", new Date(Date.now() - 2 * ACTION_TTL_MS).toISOString());
 
   const { data: queued } = await admin
     .from("jarvis_activity")

@@ -218,21 +218,6 @@ export const startJarvisTask = createServerFn({ method: "POST" })
     if (!isAllowed(rows, "master")) {
       return { ok: false, reason: "permission", message: "OCADE JARVIS is turned off." };
     }
-    // One task at a time per conversation, whichever tab asks.
-    const { data: open, error: openError } = await context.supabase
-      .from("jarvis_tasks")
-      .select("id")
-      .eq("conversation_id", data.conversationId)
-      .in("status", ["running", "waiting", "taken_over"])
-      .limit(1);
-    if (openError) throw new Error(openError.message);
-    if (open.length > 0) {
-      return {
-        ok: false,
-        reason: "permission",
-        message: "A task is already running in this conversation.",
-      };
-    }
     const service = await admin();
     const { data: devices, error } = await service
       .from("jarvis_devices")
@@ -275,6 +260,13 @@ export const startJarvisTask = createServerFn({ method: "POST" })
       })
       .select(TASK_COLUMNS)
       .single();
+    if (insertError?.code === "23505") {
+      return {
+        ok: false,
+        reason: "permission",
+        message: "A task is already running in this conversation.",
+      };
+    }
     if (insertError) throw new Error(insertError.message);
     await service.from("jarvis_activity").insert({
       user_id: context.userId,
@@ -437,7 +429,8 @@ export const decideJarvisAction = createServerFn({ method: "POST" })
       .from("jarvis_activity")
       .update(
         data.accept
-          ? { status: "queued", confirmed: true }
+          ? // Queued from the moment the person confirmed, so it is not already stale.
+            { status: "queued", confirmed: true, created_at: new Date().toISOString() }
           : { status: "cancelled", completed_at: new Date().toISOString() },
       )
       .eq("id", data.id)
@@ -497,6 +490,13 @@ export const createJarvisPairing = createServerFn({ method: "POST" })
     const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
     const service = await admin();
     const { sha256Hex } = await import("./device.server");
+    // Codes that expired unused leave nothing behind.
+    await service
+      .from("jarvis_devices")
+      .delete()
+      .eq("user_id", context.userId)
+      .is("token_hash", null)
+      .lt("pairing_expires_at", new Date().toISOString());
     const { error } = await service.from("jarvis_devices").insert({
       user_id: context.userId,
       pairing_code_hash: await sha256Hex(raw),

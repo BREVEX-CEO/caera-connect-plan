@@ -638,6 +638,11 @@ class _BrowserSession:
             asyncio.run_coroutine_threadsafe(self._async_close(), self._loop).result(10)
 
     async def _async_close(self):
+        if self._context and self.mode == "real":
+            # Never close the person's own browser: only JARVIS's tab goes.
+            if self._page and not self._page.is_closed():
+                await self._page.close()
+            self._context = None
         if self._context:
             try:
                 await self._context.close()
@@ -1003,6 +1008,10 @@ class _BrowserSession:
                 raise RuntimeError("The real browser was not authorized on this device.")
             browser = await self._pw.chromium.connect_over_cdp(self.cdp_endpoint)
             self._context = browser.contexts[0] if browser.contexts else await browser.new_context()
+            # JARVIS works in a tab of its own; the person's tabs are only read if
+            # a task switches to them, and nothing is injected profile-wide.
+            self._page = await self._context.new_page()
+            return
         else:
             profile = Path(os.environ.get("OCADE_JARVIS_HOME", Path.home() / ".ocade_jarvis")) / "isolated-profile"
             profile.mkdir(parents=True, exist_ok=True)
@@ -1012,11 +1021,6 @@ class _BrowserSession:
                 kwargs["executable_path"] = self.executable
             self._context = await self._pw.chromium.launch_persistent_context(str(profile), **kwargs)
         await self._context.add_init_script(_OCADE_INIT)
-        for page in self._context.pages:
-            try:
-                await page.evaluate(_OCADE_INIT)
-            except Exception:
-                pass
         self._page = self._context.pages[0] if self._context.pages else await self._context.new_page()
 
     async def _geometry(self, page: Page) -> dict:
@@ -1035,6 +1039,7 @@ class _BrowserSession:
         except Exception:
             pass
         try:
+            await page.evaluate(_OCADE_INIT)  # idempotent; covers tabs JARVIS did not open
             snap = await page.evaluate(_OCADE_SNAPSHOT)
         except Exception as e:
             snap = {"elements": [], "text": "", "boundary": None, "error": str(e)[:200]}
@@ -1127,6 +1132,9 @@ class _BrowserSession:
                 await page.goto(url, wait_until="domcontentloaded", timeout=30_000)
             except PlaywrightTimeout:
                 pass
+            except Exception as e:
+                return {"status": "failed", "summary": f"Could not open that page ({str(e).split(chr(10))[0][:120]})",
+                        "observation": await self.observe()}
             detail = f"Opened {page.url[:120]}"
         elif kind == "switch_tab":
             pages = self._context.pages
