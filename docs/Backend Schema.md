@@ -1,132 +1,111 @@
-# OCADE Backend Schema
+# OCADE Backend Schema and Data Rules
 
-## Scope
+## Authority
 
-This document describes the current OCADE website data authority. Old migrations may contain historical product experiments; historical schema does not create a current product requirement.
+Supabase Auth and PostgreSQL remain the durable account/security authority.
 
-## Authentication
+JARVIS reuses approved OCADE authorities rather than creating a second account or conversation database.
 
-Supabase Auth is canonical. Product target methods are Google, email OTP and password. MFA/strong assurance gates privileged actions.
+## JARVIS conversations
 
-Never accept a request-supplied user id as ownership proof.
+JARVIS conversations reuse the existing conversation/message authority.
 
-## Current account tables
+The schema must distinguish JARVIS from ordinary Chat through a safe surface/type discriminator or equivalent canonical mechanism.
 
-Generated types currently include these current-product groups:
+RLS continues to scope every conversation/message to the owning account.
 
-### Identity/account
+Normal Chat queries must not accidentally return JARVIS conversations unless explicitly requested.
 
-- The `profiles` table stores the account profile record.
-- The `user_roles` table stores authorized account roles.
-- The `user_settings` table stores synchronized account settings.
-- The `user_private_records` table stores private account records that require restricted access.
-- Legal and security audit records are retained only where the current product or applicable requirements need them.
+JARVIS queries must not accidentally mix ordinary Chat history into JARVIS.
 
-### Chat
+## JARVIS tasks
 
-- The `ocade_conversations` table stores owned conversation records.
-- The `ocade_messages` table stores messages that belong to an owned conversation.
+The first mission represents JARVIS task state using approved conversation/message authority plus minimal execution-state metadata rather than reviving the retired generic Tasks product.
 
-Messages belong to an owned conversation. Client keys/idempotency prevent duplicate offline/retry insertion. Citations/reactions belong with the message where implemented.
+A task requires durable identifiers for account, conversation, task/request identity, status, current step/progress, result reference, and timestamps where current schema cannot represent them safely.
 
-### Library
+Do not revive historical project/task/automation tables merely because they exist in migration history.
 
-- The `ocade_library_items` table stores private Library item records.
-- Storage deletion or tombstone records are used only where safe cleanup requires them.
+## JARVIS memory
 
-Library objects are private to the owning account unless a future explicitly approved sharing product changes that rule.
+JARVIS memory remains logically separate from Chat memory.
 
-### Commercial usage and entitlement
+If current memory authority supports namespaces/surfaces, use a JARVIS namespace rather than creating an uncontrolled duplicate database.
 
-- The `ocade_commercial_usage` table stores authoritative account usage state.
-- The `ocade_generation_permits` table stores logical generation permits and settlement state.
-- The `ocade_entitlement_grants` table stores audited temporary entitlement grants.
-- Offline usage allocation, lease and event tables enforce account-wide Offline usage.
-- The `devices` table stores registered device records.
-- The `browser_grants` table stores browser-level device authorization state.
+Memory remains optional/account-controlled.
 
-The browser may read only what it needs. Security-sensitive device/grant state changes use narrow RPCs rather than generic direct UPDATE.
+Temporary raw screenshots do not become long-term memory by default.
 
-### Notifications
+## JARVIS activity
 
-- The `ocade_notification_preferences` table stores synchronized notification preferences.
-- The `ocade_notifications` table stores in-app notification history.
+Detailed JARVIS activity records customer-safe action events and security-relevant state.
 
-### Retired commercial records
+Detailed activity uses a 90-day retention policy.
 
-The provider payment tables (subscriptions, invoices, payment events, webhook events) were dropped by migration `20260923100000` after they were confirmed empty. Paid checkout is closed and Paddle is not a current product; tier comes only from audited entitlement grants.
+Important durable task results are not deleted merely because detailed logs expire.
 
-## Roles
+Raw provider/internal logs are not customer Activity.
 
-- An ordinary authenticated user may access only their own account data.
-- An admin or owner may perform hidden privileged operations only through audited server or RPC authorities.
-- The service role is server-only and must never be exposed to the client.
-- Anonymous users may access only explicitly public data and routes.
+## JARVIS usage
 
-## RLS principles
+JARVIS usage is a separate usage kind from Chat.
 
-- Enable row-level security on every user-owned table.
-- Prefer one clear policy per role/command rather than overlapping permissive policy sprawl.
-- Treat explicit grants and row-level security as separate required controls.
-- Parent/child ownership must be validated; a foreign key alone is not authorization.
-- Security-definer functions use pinned search paths and explicit auth checks.
+The server/database authority records successful resource-bearing internal JARVIS work according to approved plan rules.
 
-## Device/offline authority
+Failed or no-result internal steps are reconciled rather than blindly finalized as customer usage.
 
-An account currently allows the approved Offline-device cap (two per kind under current policy). Registration and revocation are transactional server functions.
+The client never decides entitlement or usage count.
 
-Offline model data itself is **not database content**. It stays in browser OPFS on the device.
+## Devices and permissions
 
-## OPFS model storage
+Devices remain account-owned and revocable.
 
-Only OPFS may contain:
+JARVIS capability permissions may use the current device authority or a minimal extension of it.
 
-- Store model bytes in OPFS only.
-- Store model range chunks and partials in OPFS only.
-- Store model download checkpoints in OPFS only.
-- Store model verification metadata in OPFS only.
-- Store active and previous release pointers in OPFS only.
-- Store runtime-owned model files and assets in OPFS only.
+The permission model supports global JARVIS enable/disable plus granular Browser, Files, Screen, Microphone, Camera, Apps, Messaging, Devices, and future Computer Control permissions.
 
-No model byte/chunk copy in IndexedDB, Cache Storage, localStorage or cloud account storage.
+Device-sensitive permission state is scoped per device.
 
-The explicit “user removed Offline” preference is not model data and must survive model deletion.
+## Allowed Apps
 
-## Account memory
+Allowed Apps are account/device capability configuration, not a generic executable plugin store.
 
-If memory is enabled, it is account-owned, controllable and clearable. Do not create a second uncontrolled hidden profile store. Memory must not ingest Temporary Chat.
+Any durable allowed-app record is owner-scoped and permission-checked.
 
-## File storage
+The original generic plugin subsystem remains code-preserved but is not exposed as a customer product surface.
 
-Cloud Library content is private account content. Validate ownership and detected file type. Temporary Chat files are not written to Library unless explicitly saved.
+## Secret material
 
-## API/RPC boundaries
+Provider/service-role credentials never enter customer tables.
 
-Critical RPC classes:
+If a future encrypted credential vault is implemented, it is a separate security subsystem with strong encryption/key management and explicit user control.
 
-- Use RPCs to acquire, finalize and release generation permits.
-- Use an RPC to read authoritative commercial usage.
-- Use RPCs to allocate, reconcile and return Offline usage.
-- Use RPCs to register and revoke browser devices.
-- Use RPCs to grant and revoke entitlements.
-- Use RPCs to list and revoke account sessions.
-- Use RPCs to read and save notification preferences and notification state.
-- atomic Chat mutation such as regenerate truncation where required.
+One-time authentication secrets remain ephemeral.
 
-## Admin grants
+Payment card security codes are never stored.
 
-Admin grants:
+## Visual/task data
 
-- Resolve the target account on the server side before applying a grant.
-- Require an admin or owner role plus strong authentication for grants.
-- Prevent self-granting whenever policy forbids it.
-- Require every grant to specify the tier, duration and reason.
-- Ensure that every admin grant is auditable and expiring.
+Raw screenshots and visual frames are temporary by default.
 
-## Data deletion
+Persist only structured task/memory information that has a documented user purpose.
 
-Account/conversation/Library deletion must be real, bounded and auditable where required. Current conversation product uses permanent Delete after confirmation rather than a separate user-facing Trash lifecycle.
+Treat uploaded/extracted/observed content as untrusted.
 
-## Historical schema rule
+## Security
 
-Do not surface Projects, Tasks, Automations, Monitors, Organizations, public shares or other retired product schema merely because an old migration mentions them. If obsolete live objects still exist, remove them only through safe migrations after confirming no current caller/data-retention requirement.
+Every user-owned table uses RLS plus explicit grants.
+
+Privileged server functions pin search_path and verify auth/role/permission explicitly.
+
+JARVIS action execution verifies account, context, permission, and device identity server-side/runtime-side rather than trusting browser claims.
+
+Prompt or website content cannot grant new permissions.
+
+## Migration discipline
+
+Use forward-only migrations for live schema changes.
+
+Do not edit applied migrations to make history cleaner.
+
+Add verification SQL and rollback/provenance support consistent with current repository rules.
