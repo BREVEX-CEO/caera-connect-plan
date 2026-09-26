@@ -2,76 +2,100 @@
 
 ## Current status
 
-- The company identity is **CARCC**. The product identity is **OCADE**. The approved tagline is **Command the Next Era.**
-- Production runs `main`: `/api/health` reports the deployed Git `commit`. Worker `ocade-web` deployment `5c447810-7c15-4dce-8610-58517a343960` served `eeae0a28` on 2026-09-25.
-- Supabase migrations `20260923100000` (Trash, payment tables, side threads) and `20260925140000` (orphan enums) are applied live. Edge Function `ocade-intelligence` v9 accepts Chat only.
-- Gates: `npm run verify:full` (15 gates) plus `node scripts/e2e/harness.mjs` (11 browser journeys against the local build and Supabase stub). `npm audit`: 0 vulnerabilities.
-- Deploy: the `Cloudflare production deployment` workflow or `npm run deploy:web` with Cloudflare credentials; agent sessions cannot reach the Cloudflare API.
+OCADE's established Chat product is protected and the new active mission is **OCADE JARVIS**.
 
-## Completed in this mission
+The canonical JARVIS route will be **/ocade-jarvis**.
 
-- Build/test gates green; entitlement comes from audited grants only; dead limits, Cowork, Trash/restore, side-thread columns and closed payment schema retired.
-- Chat: delivery is the first visible token (no free answers on chat switch); a partly read answer is kept with its own chat.
-- Offline: unsynced turns kept in an encrypted restart-safe journal and uploaded exactly once; one serialized generation slot that disposes the runtime after any unfinished generation (no cross-chat text); context sized to device memory with a packed transcript; OPFS `versions/pointers.json` is the only install authority (localStorage keys migrated once and cleared); cleanup no longer deletes that manifest.
-- Security: no browser role can write `user_roles`, TRUNCATE, or write grants/usage/tombstones; permits accept Chat only.
-- Deletion: account deletion checks every step before removing the sign-in identity; Library tombstones are acknowledged only after Storage confirms.
-- UX: `Auto | Online | Offline`, password sign-in behind "Use a password instead", highlight → Ask OCADE, Archive/Unarchive, truthful no-network banner, device rows distinguished by when added, Upgrade in the account menu, corrected social image and small brand mark.
+The original JARVIS ZIP is stored under imports/ocade-jarvis/ with README, LICENSE, and preservation-specific CLAUDE instructions.
 
-## Open items needing the owner
+The current main documentation now treats JARVIS as active rather than future/obsolete work.
 
-- Paid checkout: on hold by owner choice. Upgrade stays truthful and non-charging; no payment provider is built.
-- Supabase leaked-password protection (F14) is unavailable on the current plan.
-- Offline answer quality (F18/F21/F22): format steering and JSON grammar are unit-tested; a real-device evaluation with the installed model is still needed.
-- Research "busy": the request matches the provider's documented grounding format; the cause of earlier 429s needs provider quota evidence.
-- Two accounts still hold a duplicate device place created on 2026-08-24, before registration was keyed to one install id; neither has been active since. Remove the older one in Settings if wanted.
-- Agent sessions cannot delete remote branches; delete any non-`main` branch in GitHub's Branches page.
+## Current JARVIS decision
 
-## Important context
+The original ZIP is the main JARVIS engine foundation rather than a small donor sample.
 
-The owner is a non-coder/vibe coder and expects agents to make technical decisions independently. Ask only for genuine owner-only credentials, billing/legal/business choices, destructive approval or unavailable physical-device interaction.
+The uploaded ZIP remains untouched.
 
-GitHub Actions is optional because paid Actions cannot be relied on. Red/unavailable Actions are not an application failure.
+An immutable extracted copy will live under imports/ocade-jarvis/source-original/.
 
-## Product facts
+A working extracted runtime will live under jarvis-runtime/.
 
-- Current surfaces: Chat, Library, Settings, Pricing, auth, public/legal pages, hidden Admin.
-- Free 28/6h28m; Pro 140/6h28m + 700/week; Max 1,400/6h28m + 7,000/week.
-- Offline device cap: two per kind under current policy.
-- Current paid prices remain the approved 8/28 anchors, but paid checkout is closed.
-- Ensure that Temporary Chat persists nothing.
-- Manual Offline sends zero Online-provider traffic and refuses images.
-- Explicit Offline Remove is permanent until explicit Install.
-- Normal website updates must never redownload the same verified Offline release.
+The new OCADE web GUI will live under src/jarvis/.
 
-## Storage decisions
+The old active JARVIS GUI and manual provider-key entry are replacement targets in the working runtime.
 
-Offline model bytes/chunks/checkpoints/model metadata/pointers/runtime model assets: **OPFS only**.
+The original plugin system remains preserved but unused.
 
-No IndexedDB/Cache Storage/localStorage model copy.
+The original FastAPI phone dashboard remains preserved but is not exposed as the final remote-control product.
 
-The user-uninstalled preference is separate non-model state so it survives deleting the model.
+## Product decisions
 
-Offline unsynced turns survive restart in an AES-GCM encrypted IndexedDB journal (`src/lib/chat/unsynced-turns.ts`, non-extractable per-account key, deleted at sign-out) and upload exactly once through the server `clientKey` dedupe.
+JARVIS is Online-only.
 
-## Branding
+JARVIS uses OCADE's existing approved server-side Online intelligence authority.
 
-Remove current **CARCC CADANE**, **CADANE**, and old package branding. Use:
+JARVIS and Chat have separate usage allowances.
 
-- Use CARCC as the company name.
-- Use OCADE as the product name.
-- Use “OCADE by CARCC” as the formal attribution where company ownership context is useful.
+Signed-out users may view JARVIS, but execution requires sign-in.
 
-Founder/About remains publicly discoverable but secondary to the product.
+Normal questions receive normal answers and explicit work requests become JARVIS tasks.
+
+JARVIS voice supports Interrupt, Pause, Continue, and End.
+
+The default wake phrase is Hey OCADE where supported.
+
+Browser control is the first deep automation capability.
+
+Playwright/Playwright-MCP capability is integrated and automatically configured.
+
+The browser design supports isolated automation and an authorized real-browser path.
+
+The system re-observes after resize/zoom/layout changes instead of trusting stale coordinates.
+
+Purchases remain prohibited.
+
+## GUI decisions
+
+The GUI uses a clean central 3D orb and real neural graph.
+
+The graph starts simple and grows as JARVIS conversations, memory, tasks, devices, and allowed-app relationships grow.
+
+The graph supports cursor reaction, pan, zoom, hover, selection, and semantic zoom.
+
+Selecting a node shows safe metadata about represented data without automatically opening private underlying content.
+
+The interface supports dark/light themes and optional custom orb accents.
+
+The sidebar is compact by default and expands when needed.
+
+Initial sections are Conversations, History, Tasks, Activity/Logs, Allowed Apps, and Devices.
+
+## Data decisions
+
+JARVIS reuses the existing conversation/message authority with a JARVIS surface discriminator.
+
+JARVIS memory remains logically separate from Chat memory.
+
+Detailed JARVIS activity logs retain for 90 days.
+
+Raw screenshots/visual frames are temporary by default.
+
+Temporary JARVIS tasks are not part of the first mission.
+
+## Important constraints
+
+The JARVIS mission must not break existing Chat, Library, Settings, authentication, Offline Intelligence, usage, public/legal, or Admin behavior.
+
+Do not mention a desktop-wrapper implementation until the web mission is complete.
+
+Do not claim deeper computer/mobile control until genuinely implemented and tested.
+
+## Next steps
+
+Extract and inventory the ZIP, create the working runtime, build the new orb GUI, route /ocade-jarvis, remove active API-key entry, connect Online intelligence, implement JARVIS usage and voice, then build and harden the first real browser-control path.
+
+After the browser-controlled web mission is stable, prepare later deeper computer/mobile phases.
 
 ## Session handoff
 
-At the beginning of a new/resumed/context-compacted Claude session:
-
-1. run `/ponytail ultra`;
-2. run `/caveman ultra`;
-3. read `AGENTS.md`;
-4. read the current task and `PLAN.md`;
-5. read this file;
-6. read only the relevant canonical docs.
-
-Do not revive removed products from historical migrations. Do not rewrite `PLAN.md` without an explicit owner request. Prove implementation separately from documentation.
+Every fresh Claude session runs /ponytail ultra and /caveman ultra first, then reads AGENTS.md, PLAN.md, this file, and JARVIS preservation instructions.
