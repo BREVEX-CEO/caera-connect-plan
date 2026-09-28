@@ -79,3 +79,6 @@ Use the website/PWA as the only user-facing planning and control authority. Keep
 2. `OCADE-JARVIS-current-main-implementation-handoff-2026-09-27.md` — dependency-safe plan plus complete finding specifications.
 3. `OCADE-JARVIS-current-main-final-report-2026-09-27.md` — executive result, evidence limits, AI comparison and prompt inventory.
 
+## Post-audit execution note — 2026-09-28
+
+The historical evidence, counters, reproductions, and conclusions above remain preserved as audit evidence. Current implementation work must reproduce applicable findings on the latest main and must follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md` for MCP coordination, durable checkpoints, fix/retest loops, real-device evidence, context/rate-limit recovery, visual verification, cleanup regression, and release gating. This note does not convert historical blocked evidence into a pass and does not change the original audit counters.
