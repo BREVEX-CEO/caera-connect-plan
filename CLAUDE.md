@@ -1,11 +1,11 @@
-/ponytail ultra
 /caveman ultra
+/ponytail ultra
 
 # OCADE Claude Instructions
 
 ## First action of every session
 
-Before reading, planning, editing, debugging, reviewing, testing, resuming after compaction, or continuing an interrupted task, run **/ponytail ultra** and **/caveman ultra**.
+Before reading, planning, editing, debugging, reviewing, testing, resuming after compaction, or continuing an interrupted task, run **/caveman ultra** and **/ponytail ultra** by default. Treat them as the default engineering posture for simplification, cleanup awareness, and unnecessary-complexity detection; destructive cleanup still requires proof that the replaced behavior is working and must obey `ToRemove.md`.
 
 Then read AGENTS.md, the current owner request, PLAN.md, docs/MEMORY.md, and only the relevant canonical documents.
 
@@ -90,6 +90,18 @@ For long missions, checkpoint durable state before context compaction, restart, 
 
 Every reproduced bug must enter the fix loop: reproduce, isolate root cause, add/update regression coverage, fix, targeted retest, integration retest, real browser/device/physical verification, adversarial break attempt, and broader regression. Keep iterating until the applicable release gates are green.
 
+Do not stop after the first successful test. Continue testing, fixing, retesting, adversarial testing, cross-device checking, visual QA, restart/recovery testing, and performance validation until all discovered and reproducible bugs in the tested scope are removed, no known Critical or Major release blocker remains, and the product behaves consistently and feels extremely smooth, responsive, stable, and "liquid" in normal use.
+
+After the functionality and safety gates are proven, run **/caveman ultra** and **/ponytail ultra** again to simplify ownership, consolidate duplicate systems, remove proven dead code, reduce unnecessary files/dependencies/branches/abstractions, improve naming and structure, and make the active production codebase leaner. This cleanup must never weaken UI quality, performance, security, accessibility, device control, or verified behavior. Immediately rerun the affected targeted tests and the broader regression matrix after cleanup.
+
 Visual QA is mandatory. A DOM test cannot approve a visually clipped, crowded, badly spaced, overflowing, slow, or confusing interface.
 
 Do not ask the owner to perform work that the connected tools can safely perform. Ask only for genuinely owner-only credentials, MFA/passkeys, OS security prompts, destructive approvals, signing/payment/legal decisions, or unavailable physical hardware interaction.
+
+## Final default finish sequence
+
+Before declaring any implementation mission complete, run **/caveman ultra** and **/ponytail ultra** again by default after the product behavior is proven.
+
+Then perform the final sequence: verify every repaired bug, hunt for additional hidden/reproducible failures, test real browser/device/physical behavior where available, verify visual smoothness and loading/recovery states, simplify and debloat the active codebase, remove only proven dead/duplicate code, and rerun all affected regression gates.
+
+Do not finish merely because the build passes. Finish only when the shipped scope has no known Critical or Major release blocker, all discovered/reproducible bugs in the tested scope have been resolved or explicitly blocked by a genuine owner-only/platform/hardware dependency, the UI and device-control flows are smooth and stable, cleanup has not caused regressions, and the production/deployment evidence matches the final source.
