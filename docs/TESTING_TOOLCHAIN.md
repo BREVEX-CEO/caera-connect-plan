@@ -109,3 +109,16 @@ MCPs and external automation are test instruments. They do not become the custom
 - The final implementation branch must have no known Critical or Major release blocker for the capabilities being shipped.
 - Build, typecheck, lint, formatting, dependency/security checks, unit/integration/protocol tests, browser/device journeys, security tests, and deployment verification must be green or explicitly blocked with the affected public capability disabled.
 - Verify the deployed production source identity matches the merged main revision before declaring release completion.
+
+## Mandatory resilience addendum — 2026-09-28
+
+The complete orchestration rules live in `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md` and are mandatory.
+
+- Too many MCPs are treated as a coordination problem, not solved by invoking all of them concurrently.
+- Each test target has one active controller and an explicit lock. Independent tools verify after the actor releases the target.
+- Long testing is sharded into bounded waves with durable checkpoints so context/token/rate limits cannot erase progress.
+- A failed tool blocks only dependent evidence; every independent browser, backend, device, UI, or source test continues.
+- Every failed test is triaged into product defect, test defect, environment defect, permission/owner blocker, or unsupported-platform evidence before fixing.
+- Flaky tests are not repeatedly rerun until green. Reproduce the flake, identify the cause, stabilize the test/product state, and then retest.
+- Real visual inspection complements automated assertions for responsive/layout/design quality.
+- Every cleanup pass triggers targeted and broader regression again.
