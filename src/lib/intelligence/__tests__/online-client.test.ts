@@ -158,4 +158,45 @@ describe("online intelligence client", () => {
     }
     expect(events).toEqual([{ type: "token", text: "hello" }]);
   });
+
+  it("refreshes an expired browser token once and resends the same request", async () => {
+    const bodies: string[] = [];
+    const tokens: string[] = [];
+    const fetcher = vi.fn<typeof fetch>(async (_url, init) => {
+      bodies.push(String(init?.body));
+      const bearer = String((init?.headers as Record<string, string>).Authorization);
+      tokens.push(bearer);
+      if (bearer === "Bearer stale-jwt") return new Response("{}", { status: 401 });
+      return new Response(
+        `data: ${JSON.stringify({ type: "final", response: { text: "ok", toolCalls: [], toolResults: [], backend: "online", stopReason: "end_turn" } })}
+
+`,
+        { status: 200, headers: { "Content-Type": "text/event-stream" } },
+      );
+    });
+    const refresh = vi.fn(async () => "fresh-jwt");
+    const transport = createOnlineIntelligenceTransport({
+      ...deps(fetcher),
+      getAccessToken: async () => "stale-jwt",
+      refreshAccessToken: refresh,
+    });
+    const events = [];
+    for await (const event of transport.stream(request())) events.push(event);
+    expect(events.at(-1)).toMatchObject({ type: "final", response: { text: "ok" } });
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(tokens).toEqual(["Bearer stale-jwt", "Bearer fresh-jwt"]);
+    expect(bodies[0]).toBe(bodies[1]);
+  });
+
+  it("asks to sign in again when the refresh fails, and never loops", async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => new Response("{}", { status: 401 }));
+    const transport = createOnlineIntelligenceTransport({
+      ...deps(fetcher),
+      refreshAccessToken: async () => null,
+    });
+    const events = [];
+    for await (const event of transport.stream(request())) events.push(event);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(events.at(-1)).toMatchObject({ type: "refusal", reason: "Sign in again to continue." });
+  });
 });

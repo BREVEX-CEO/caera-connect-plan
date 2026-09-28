@@ -228,7 +228,7 @@ class Agent:
                        if browser else
                        self.computer.run(action, confirmed, bool(command.get("cowork")), cancel))
         except Exception as e:  # a crashed action is reported, never retried blindly
-            outcome = {"status": "failed", "summary": f"The action failed: {str(e)[:160]}"}
+            outcome = {"status": "failed", "summary": f"The action failed ({type(e).__name__})"}
         live = (outcome.get("observation") or {}).pop("frame", None) or (
             self.browsers.frame(mode) if browser else None)
         core = {k: outcome.pop(k) for k in ("status", "summary", "changed", "observation") if k in outcome}

@@ -102,8 +102,12 @@ export interface JarvisState {
     created_at: string;
   }[];
   sites: string[];
-  /** Apps the person's computers found, with the Allowed Apps rule for each. */
-  apps: { name: string; rule: "always" | "ask" | "never" }[];
+  /** Each computer's apps, with that computer's Allowed Apps rule for each. */
+  apps: {
+    deviceId: string;
+    deviceName: string;
+    apps: { name: string; rule: "always" | "ask" | "never" }[];
+  }[];
   usage: { remaining: number; allowance: number; resetsInMs: number } | null;
 }
 
@@ -162,33 +166,24 @@ export const readJarvisState = createServerFn({ method: "GET" })
       if (host) sites.add(host);
     }
 
-    const appNames = new Map<string, string>();
-    for (const device of devices.data ?? []) {
-      if (device.revoked_at) continue;
-      for (const name of (device.installed_apps ?? []) as string[]) {
-        appNames.set(name.toLowerCase(), name);
-      }
-    }
-    for (const row of permissionRows) {
-      if (row.capability.startsWith("app:") && !appNames.has(row.capability.slice(4))) {
-        appNames.set(row.capability.slice(4), row.capability.slice(4));
-      }
-    }
-    const apps = [...appNames.values()]
-      .sort((a, b) => a.localeCompare(b))
-      .slice(0, 300)
-      .map((name) => {
-        const decided = appDecision(permissionRows, name);
-        return {
-          name,
-          rule:
-            decided === true
-              ? ("always" as const)
-              : decided === false
-                ? ("never" as const)
-                : ("ask" as const),
-        };
-      });
+    // Allowed Apps per computer: the same app name on two computers is two
+    // rules, and a rule for one computer never applies to another.
+    const rule = (decided: boolean | null) =>
+      decided === true
+        ? ("always" as const)
+        : decided === false
+          ? ("never" as const)
+          : ("ask" as const);
+    const apps = (devices.data ?? [])
+      .filter((device) => !device.revoked_at && device.kind === "agent")
+      .map((device) => ({
+        deviceId: device.id,
+        deviceName: device.name,
+        apps: [...new Set((device.installed_apps ?? []) as string[])]
+          .sort((a, b) => a.localeCompare(b))
+          .slice(0, 300)
+          .map((name) => ({ name, rule: rule(appDecision(permissionRows, name, device.id)) })),
+      }));
 
     const entitlement = await resolveTierFor(context.userId);
     const ledger = supabaseCommercialLedger(service);
@@ -246,8 +241,31 @@ export const createJarvisConversation = createServerFn({ method: "POST" })
     return row;
   });
 
+/** Whether this account owns a JARVIS conversation with this id (not just "no messages"). */
+export const jarvisConversationExists = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((i) => z.object({ id: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("ocade_conversations")
+      .select("id")
+      .eq("id", data.id)
+      .eq("surface", "jarvis")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { exists: Boolean(row) };
+  });
+
+/** What the planner may know about the task's computer: never ids or paths. */
+export interface TaskDevice {
+  name: string;
+  platform: string | null;
+  /** What this computer offers right now (a permission never adds to it). */
+  can: string[];
+}
+
 export type StartTaskResult =
-  | { ok: true; task: JarvisTaskRow }
+  | { ok: true; task: JarvisTaskRow; device: TaskDevice }
   | { ok: false; reason: "no_device" | "permission"; message: string };
 
 export const startJarvisTask = createServerFn({ method: "POST" })
@@ -259,6 +277,8 @@ export const startJarvisTask = createServerFn({ method: "POST" })
         controller: uuid,
         /** Where the work happens: a browser, or the computer itself. */
         where: z.enum(["browser", "computer"]).default("browser"),
+        /** The computer the person chose (Remote PC); otherwise the only one online. */
+        deviceId: uuid.optional(),
         title: z.string().trim().min(1).max(200),
         plan: z.array(z.string().trim().min(1).max(200)).max(12),
       })
@@ -272,7 +292,7 @@ export const startJarvisTask = createServerFn({ method: "POST" })
     const service = await admin();
     const { data: devices, error } = await service
       .from("jarvis_devices")
-      .select("id, kind, capabilities, last_seen_at")
+      .select("id, name, platform, kind, capabilities, last_seen_at")
       .eq("user_id", context.userId)
       .is("revoked_at", null)
       .order("last_seen_at", { ascending: false })
@@ -286,10 +306,29 @@ export const startJarvisTask = createServerFn({ method: "POST" })
       (d.capabilities as Record<string, boolean> | null)?.[capability] === true;
     // The computer's own work needs its Device Agent. Browser work prefers the
     // person's own browser only where they allowed it, else the isolated one.
-    const agents = online.filter((d) => d.kind === "agent");
-    const ownBrowser = online.find(
+    const chosen = data.deviceId ? online.filter((d) => d.id === data.deviceId) : online;
+    if (data.deviceId && chosen.length === 0) {
+      return {
+        ok: false,
+        reason: "no_device",
+        message: "That computer is not online. Open OCADE on it or choose another in Devices.",
+      };
+    }
+    const agents = chosen.filter((d) => d.kind === "agent");
+    const ownBrowser = chosen.find(
       (d) => offers(d, "browser_real") && isAllowed(rows, "browser_real", d.id),
     );
+    // Work never goes to a computer the person did not mean: with several
+    // online and none chosen, they choose.
+    if (!data.deviceId && data.where === "computer" && agents.length > 1) {
+      return {
+        ok: false,
+        reason: "no_device",
+        message: `More than one computer is online (${agents
+          .map((d) => d.name)
+          .join(", ")}). Choose one in Devices, then ask again.`,
+      };
+    }
     const device =
       data.where === "computer"
         ? agents[0]
@@ -341,7 +380,16 @@ export const startJarvisTask = createServerFn({ method: "POST" })
       device_id: device.id,
       summary: `Started “${data.title}”`,
     });
-    return { ok: true, task: task as JarvisTaskRow };
+    const capabilities = (device.capabilities ?? {}) as Record<string, boolean>;
+    return {
+      ok: true,
+      task: task as JarvisTaskRow,
+      device: {
+        name: device.name,
+        platform: device.platform,
+        can: Object.keys(capabilities).filter((key) => capabilities[key] === true),
+      },
+    };
   });
 
 export const updateJarvisTask = createServerFn({ method: "POST" })
@@ -451,7 +499,7 @@ export const queueJarvisAction = createServerFn({ method: "POST" })
     const service = await admin();
     const { data: device } = await service
       .from("jarvis_devices")
-      .select("id, capabilities")
+      .select("id, capabilities, installed_apps")
       .eq("id", task.device_id)
       .eq("user_id", context.userId)
       .is("revoked_at", null)
@@ -466,9 +514,24 @@ export const queueJarvisAction = createServerFn({ method: "POST" })
       offered: (device.capabilities ?? {}) as Record<string, boolean>,
     });
     if (refusal) return { ok: false as const, message: refusal.message };
+    if (data.action.action === "open_app") {
+      const installed = (device.installed_apps ?? []) as string[];
+      const wanted = data.action.name.toLowerCase();
+      const exact = installed.find((name) => name.toLowerCase() === wanted);
+      if (!exact) {
+        const near = installed.filter((name) => name.toLowerCase().includes(wanted)).slice(0, 5);
+        return {
+          ok: false as const,
+          message: near.length
+            ? `No app is named "${data.action.name}" on this computer. Did you mean: ${near.join(", ")}?`
+            : `No app named "${data.action.name}" is installed on this computer. Use the apps action to list them.`,
+        };
+      }
+      data.action.name = exact;
+    }
     // Deletions, system changes, risky commands and apps set to Ask wait for the
     // person before the device ever sees them.
-    const ask = needsConfirmation(rows, data.action);
+    const ask = needsConfirmation(rows, data.action, device.id);
 
     const { data: row, error: insertError } = await service
       .from("jarvis_activity")

@@ -354,3 +354,44 @@ class EgressTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class IdentityRecoveryTest(unittest.TestCase):
+    """JARVIS-031: a damaged identity never silently becomes a second device."""
+
+    def test_damaged_identity_refuses_to_enroll_again(self):
+        from ocade_identity import Identity
+        home = Path(tempfile.mkdtemp())
+        (home / "device.json").write_text('{"deviceId": "d1", "appr')
+        (home / "device.key").write_text("not a key")
+        identity = Identity(home)
+        self.assertTrue(identity.damaged)
+        self.assertFalse(identity.connected)
+        with self.assertRaises(RuntimeError):
+            identity.enroll("https://ocade.test", "PC", "Windows")
+        self.assertEqual((home / "device.key").read_text(), "not a key")  # nothing overwritten
+        identity.forget()
+        self.assertFalse(Identity(home).damaged)
+
+
+class UninstallTest(unittest.TestCase):
+    """JARVIS-032: uninstall stops the running agent before removing its key."""
+
+    def test_uninstall_stops_the_running_agent_first(self):
+        import ocade_agent
+        guard = ocade_agent.single_instance()
+        if guard is None:
+            self.skipTest("an OCADE agent is running on this computer")
+        order: list[str] = []
+
+        def on_exit():
+            order.append("stopped")
+            guard.close()
+        ocade_agent.serve_exit(guard, on_exit)
+        home = Path(tempfile.mkdtemp())
+        (home / "device.key").write_text("k")
+        from unittest import mock
+        with mock.patch.object(ocade_agent, "remove_autostart", lambda: None):
+            ocade_agent.uninstall(home)
+        self.assertEqual(order, ["stopped"])
+        self.assertFalse(home.exists())

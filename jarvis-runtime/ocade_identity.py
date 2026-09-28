@@ -75,14 +75,16 @@ class Identity:
         self.key_path = home / "device.key"
         self.next_path = home / "device.next.key"
         self._last_ms = 0
-        # A damaged file means "not connected", so the device can enroll again
-        # rather than crash at every start.
+        # A damaged identity is NOT "never connected": enrolling again would
+        # leave the old device live in OCADE with nobody able to revoke it from
+        # here. It stays damaged until the person removes it (forget).
+        self.damaged = False
         try:
             self.meta: dict = json.loads(self.meta_path.read_text()) if self.meta_path.exists() else {}
             self.key = (serialization.load_pem_private_key(self.key_path.read_bytes(), None)
                         if self.key_path.exists() else None)
         except (OSError, ValueError, TypeError):
-            self.meta, self.key = {}, None
+            self.meta, self.key, self.damaged = {}, None, True
 
     @property
     def connected(self) -> bool:
@@ -103,14 +105,20 @@ class Identity:
         if key is not None:
             self._write_key(key, self.key_path)
             self.key = key
-        self.meta_path.write_text(json.dumps(self.meta))
-        self.meta_path.chmod(0o600)
+        tmp = self.meta_path.with_suffix(".tmp")
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as handle:
+            handle.write(json.dumps(self.meta))
+        os.replace(tmp, self.meta_path)  # atomic, like the key
+
+    DAMAGED = ("This computer's OCADE connection is damaged. Remove it in OCADE Devices, then run "
+               "'ocade-agent --uninstall' (or 'ocade_device.py forget') and connect again.")
 
     def forget(self) -> None:
         """Remove every local credential (exit after revoke, or uninstall)."""
         for path in (self.meta_path, self.key_path, self.next_path):
             path.unlink(missing_ok=True)
-        self.meta, self.key = {}, None
+        self.meta, self.key, self.damaged = {}, None, False
 
     def _timestamp(self) -> int:
         self._last_ms = max(int(time.time() * 1000), self._last_ms + 1)
@@ -145,6 +153,8 @@ class Identity:
 
     def enroll(self, server: str, name: str, platform: str, kind: str = "agent") -> dict:
         """Register a fresh key; the person approves it in OCADE. Returns the approval details."""
+        if self.damaged:
+            raise RuntimeError(self.DAMAGED)
         key = new_key()
         self.meta = {"server": server, "name": name}
         public = public_text(key)

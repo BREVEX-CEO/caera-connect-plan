@@ -8,6 +8,8 @@ import type {
 export interface OnlineClientDependencies {
   fetch: typeof fetch;
   getAccessToken(): Promise<string | null>;
+  /** A fresh token after the boundary rejected the current one; null when signed out. */
+  refreshAccessToken?(): Promise<string | null>;
   configuration(): {
     url?: string;
     publishableKey?: string;
@@ -20,6 +22,14 @@ async function browserAccessToken(): Promise<string | null> {
   const { supabase } = await import("@/integrations/supabase/client");
   const { data } = await supabase.auth.getSession();
   return data.session?.access_token ?? null;
+}
+
+async function refreshedAccessToken(): Promise<string | null> {
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { data, error } = await supabase.auth.refreshSession();
+  // A refresh that fails means this browser is signed out; say so everywhere.
+  if (error || !data.session) await supabase.auth.signOut({ scope: "local" }).catch(() => null);
+  return data.session?.access_token || null;
 }
 
 function defaults(): OnlineClientDependencies {
@@ -42,6 +52,7 @@ function defaults(): OnlineClientDependencies {
      */
     fetch: (input, init) => globalThis.fetch(input, init),
     getAccessToken: browserAccessToken,
+    refreshAccessToken: refreshedAccessToken,
     /*
      * NO SECOND SWITCH OVER WHETHER THE PRODUCT WORKS, AND THAT WAS THE OTHER
      * WHOLE BUG.
@@ -162,31 +173,47 @@ export function createOnlineIntelligenceTransport(
         return;
       }
 
-      const response = await deps.fetch(
-        `${config.url.replace(/\/$/, "")}/functions/v1/ocade-intelligence`,
-        {
+      const endpoint = `${config.url.replace(/\/$/, "")}/functions/v1/ocade-intelligence`;
+      const send = (bearer: string) =>
+        deps.fetch(endpoint, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
-            apikey: config.publishableKey,
+            Authorization: `Bearer ${bearer}`,
+            apikey: config.publishableKey!,
             "Content-Type": "application/json",
             Accept: "text/event-stream",
           },
-          body: JSON.stringify({
-            permit: request.permit,
-            generationId: request.generationId,
-            idempotencyKey: request.idempotencyKey,
-            surface: request.surface,
-            messages: request.messages,
-            tools: request.tools,
-            attachments: request.attachments,
-            privacy: request.privacy,
-            conversationId: request.conversationId,
-            research: request.research === true,
-          }),
+          body,
           signal: request.signal,
-        },
-      );
+        });
+      const body = JSON.stringify({
+        permit: request.permit,
+        generationId: request.generationId,
+        idempotencyKey: request.idempotencyKey,
+        surface: request.surface,
+        messages: request.messages,
+        tools: request.tools,
+        attachments: request.attachments,
+        privacy: request.privacy,
+        conversationId: request.conversationId,
+        research: request.research === true,
+      });
+      let response = await send(token);
+      if (response.status === 401 && deps.refreshAccessToken) {
+        // An expired browser token: refresh once and send the SAME request
+        // (same permit and idempotency key, so it is never charged twice).
+        const fresh = await deps.refreshAccessToken();
+        if (!fresh) {
+          yield {
+            type: "refusal",
+            code: "online_unavailable",
+            reason: "Sign in again to continue.",
+            retryable: false,
+          };
+          return;
+        }
+        response = await send(fresh);
+      }
 
       if (!response.ok) {
         const retryable = response.status === 429 || response.status >= 500;

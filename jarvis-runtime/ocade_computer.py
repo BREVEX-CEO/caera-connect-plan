@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import base64
 import io
+import json
 import os
 import platform
 import re
@@ -61,6 +62,10 @@ def installed_apps() -> list[dict]:
     """Useful apps found locally: name plus how to launch them. Nothing leaves the device but names."""
     found: dict[str, dict] = {}
     if SYSTEM == "Windows":
+        # Every app in Start, Store/UWP ones included, with the id Windows
+        # itself launches it by (an AppsFolder id), then plain shortcuts.
+        for app in _start_apps():
+            found.setdefault(app["name"].lower(), app)
         roots = [Path(os.environ.get("ProgramData", "C:/ProgramData")),
                  Path(os.environ.get("APPDATA", ""))]
         for root in roots:
@@ -87,6 +92,23 @@ def installed_apps() -> list[dict]:
     return sorted(usable, key=lambda a: a["name"].lower())[:300]
 
 
+def _start_apps() -> list[dict]:
+    """Windows' own list of Start apps (Get-StartApps): name and AppsFolder id."""
+    try:
+        out = subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+             "Get-StartApps | Select-Object Name, AppID | ConvertTo-Json -Compress"],
+            capture_output=True, timeout=30, check=True,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
+        rows = json.loads(out.decode("utf-8", errors="replace") or "[]")
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return []
+    rows = rows if isinstance(rows, list) else [rows]
+    return [{"name": r["Name"], "launch": r["AppID"], "aumid": True} for r in rows
+            if isinstance(r, dict) and r.get("Name") and r.get("AppID")
+            and "uninstall" not in r["Name"].lower()]
+
+
 def _desktop_fields(entry: Path) -> dict:
     fields, in_entry = {}, False
     try:
@@ -103,7 +125,10 @@ def _desktop_fields(entry: Path) -> dict:
 
 def _launch(app: dict) -> None:
     target = app["launch"]
-    if SYSTEM == "Windows":
+    if SYSTEM == "Windows" and app.get("aumid"):
+        # A fixed argument vector: explorer activates exactly this registered app.
+        subprocess.Popen(["explorer.exe", f"shell:AppsFolder\\{target}"])
+    elif SYSTEM == "Windows":
         os.startfile(target)  # type: ignore[attr-defined]  # the shortcut itself, never a shell string
     elif SYSTEM == "Darwin":
         subprocess.Popen(["open", target], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -197,7 +222,8 @@ class Computer:
         except ScopeError as e:
             return {"status": "blocked", "summary": str(e)}
         except Exception as e:  # reported, never retried blindly
-            return {"status": "failed", "summary": f"That did not work ({str(e)[:160]})"}
+            # Plain words only: an exception's text carries local paths and names.
+            return {"status": "failed", "summary": _plain(e)}
         return {"status": "failed", "summary": "Unknown computer action"}
 
     # -- apps ----------------------------------------------------------------------
@@ -447,6 +473,19 @@ class Computer:
 
 class ScopeError(Exception):
     pass
+
+
+def _plain(error: Exception) -> str:
+    """What went wrong, without paths, user names or anything else local."""
+    for kind, words in ((FileNotFoundError, "That file or folder does not exist"),
+                        (IsADirectoryError, "That is a folder, not a file"),
+                        (NotADirectoryError, "That is a file, not a folder"),
+                        (PermissionError, "This computer did not allow that"),
+                        (FileExistsError, "That already exists"),
+                        (TimeoutError, "That took too long")):
+        if isinstance(error, kind):
+            return words
+    return f"That did not work ({type(error).__name__})"
 
 
 def _limits() -> None:  # runs in the child, before the command

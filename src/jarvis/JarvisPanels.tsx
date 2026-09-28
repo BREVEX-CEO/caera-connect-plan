@@ -87,6 +87,8 @@ export function SectionPanel({
   state,
   signedIn,
   activeConversation,
+  target,
+  onTarget,
   onClose,
   onOpenConversation,
   onChanged,
@@ -95,6 +97,9 @@ export function SectionPanel({
   state: JarvisState | undefined;
   signedIn: boolean;
   activeConversation: string | null;
+  /** The computer new tasks go to, chosen by the person. */
+  target: string | null;
+  onTarget: (deviceId: string | null) => void;
   onClose: () => void;
   onOpenConversation: (id: string | null) => void;
   onChanged: () => void;
@@ -125,6 +130,8 @@ export function SectionPanel({
             section={section}
             state={state}
             activeConversation={activeConversation}
+            target={target}
+            onTarget={onTarget}
             onOpenConversation={onOpenConversation}
             onChanged={onChanged}
           />
@@ -138,16 +145,21 @@ function SectionBody({
   section,
   state,
   activeConversation,
+  target,
+  onTarget,
   onOpenConversation,
   onChanged,
 }: {
   section: Section;
   state: JarvisState;
   activeConversation: string | null;
+  target: string | null;
+  onTarget: (deviceId: string | null) => void;
   onOpenConversation: (id: string | null) => void;
   onChanged: () => void;
 }) {
   const [opened, setOpened] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
 
   if (section === "conversations" || section === "tasks") {
     const list =
@@ -299,48 +311,58 @@ function SectionBody({
         </p>
         <h3 className="mt-4 text-sm font-medium">Apps on your computers</h3>
         <p className="mb-2 text-xs text-muted-foreground">
-          Found by the OCADE Device Agent. Always opens without asking; Ask waits for you; Never is
-          refused.
+          Always opens without asking. Ask waits for you. Never is refused.
         </p>
-        {state.apps.length === 0 ? (
+        {state.apps.every((group) => group.apps.length === 0) ? (
           <p className="text-muted-foreground">No computer has reported its apps yet.</p>
         ) : null}
-        <ul className="flex flex-col gap-1">
-          {state.apps.map((app) => (
-            <li key={app.name} className="flex items-center gap-2">
-              <label htmlFor={`app-${app.name}`} className="min-w-0 flex-1 truncate">
-                {app.name}
-              </label>
-              <select
-                id={`app-${app.name}`}
-                value={app.rule}
-                onChange={(event) =>
-                  void decide(
-                    `app:${app.name.toLowerCase()}`,
-                    event.target.value === "always"
-                      ? true
-                      : event.target.value === "never"
-                        ? false
-                        : null,
-                    null,
-                    onChanged,
-                  )
-                }
-                className="rounded-md border border-border/60 bg-background px-1 py-0.5 text-xs"
-              >
-                <option value="always">Always</option>
-                <option value="ask">Ask</option>
-                <option value="never">Never</option>
-              </select>
-            </li>
+        {state.apps
+          .filter((group) => group.apps.length > 0)
+          .map((group) => (
+            <section key={group.deviceId} aria-label={group.deviceName} className="mb-3">
+              <p className="mb-1 text-xs font-medium text-muted-foreground">{group.deviceName}</p>
+              <ul className="flex flex-col gap-1">
+                {group.apps.map((app) => {
+                  const id = `app-${group.deviceId}-${app.name}`;
+                  return (
+                    <li key={app.name} className="flex items-center gap-2">
+                      <label htmlFor={id} className="min-w-0 flex-1 truncate">
+                        {app.name}
+                      </label>
+                      <select
+                        id={id}
+                        value={app.rule}
+                        onChange={(event) =>
+                          void decide(
+                            `app:${app.name.toLowerCase()}`,
+                            event.target.value === "always"
+                              ? true
+                              : event.target.value === "never"
+                                ? false
+                                : null,
+                            group.deviceId,
+                            onChanged,
+                          )
+                        }
+                        className="rounded-md border border-border/60 bg-background px-1 py-0.5 text-xs"
+                      >
+                        <option value="always">Always</option>
+                        <option value="ask">Ask</option>
+                        <option value="never">Never</option>
+                      </select>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
           ))}
-        </ul>
       </>
     );
   }
 
   // Devices
   const devices = state.devices.filter((d) => !d.revoked_at && d.last_seen_at);
+  const agentCount = devices.filter((d) => d.kind === "agent").length;
   const openTasks = state.tasks.filter((t) => !FINISHED.includes(t.status) && t.device_id);
   return (
     <>
@@ -404,6 +426,17 @@ function SectionBody({
               {d.platform ? ` · ${d.platform}` : ""}
               {d.kind === "extension" ? " · Browser extension" : ""}
             </p>
+            {d.kind === "agent" && agentCount > 1 ? (
+              <label className="mt-2 flex items-center gap-2 text-xs">
+                <input
+                  type="radio"
+                  name="jarvis-target"
+                  checked={target === d.id}
+                  onChange={() => onTarget(d.id)}
+                />
+                New tasks run on this computer
+              </label>
+            ) : null}
             <Toggle
               label="Browser control"
               checked={isAllowed(state.permissions, "browser", d.id)}
@@ -448,17 +481,44 @@ function SectionBody({
                 onChange={(allowed) => void decide("cowork", allowed, d.id, onChanged)}
               />
             ) : null}
-            <button
-              type="button"
-              onClick={() =>
-                void revokeJarvisDevice({ data: { id: d.id } })
-                  .then(onChanged)
-                  .catch(() => toast.error("That device could not be removed."))
-              }
-              className="mt-2 text-xs text-destructive underline underline-offset-2"
-            >
-              Remove device
-            </button>
+            {removing === d.id ? (
+              <div role="alertdialog" aria-label={`Remove ${d.name}`} className="mt-2 text-xs">
+                <p>
+                  Remove {d.name}? It stops working with OCADE at once
+                  {openTasks.some((t) => t.device_id === d.id) ? " and its task stops" : ""}.
+                </p>
+                <div className="mt-1 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRemoving(null);
+                      if (target === d.id) onTarget(null);
+                      void revokeJarvisDevice({ data: { id: d.id } })
+                        .then(onChanged)
+                        .catch(() => toast.error("That device could not be removed."));
+                    }}
+                    className="rounded-md bg-destructive px-2 py-1 text-destructive-foreground"
+                  >
+                    Remove
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRemoving(null)}
+                    className="rounded-md border border-border px-2 py-1"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setRemoving(d.id)}
+                className="mt-2 text-xs text-destructive underline underline-offset-2"
+              >
+                Remove device
+              </button>
+            )}
           </li>
         ))}
       </ul>

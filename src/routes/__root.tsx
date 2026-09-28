@@ -324,6 +324,11 @@ function BrowserBootstrap() {
           const previous = signedIn;
           signedIn = nowSignedIn;
           if (event === "SIGNED_IN") setTimeout(refreshOfflineAllowance, 0);
+          // Another account (or nobody) now: nothing cached for the last one may
+          // render, even for a frame. Public data simply loads again.
+          if (previous && previous !== nowSignedIn) {
+            router.options.context.queryClient.removeQueries();
+          }
           if (event === "SIGNED_OUT") {
             /*
              * What signing out clears is what this TAB was holding, never the

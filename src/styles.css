@@ -544,3 +544,27 @@ kbd {
     background-clip: padding-box;
   }
 }
+
+/* Loading placeholder: a soft shimmer on the surface colour; still under reduced motion. */
+@utility ocade-skeleton {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--muted) 70%, transparent) 0%,
+    color-mix(in oklch, var(--muted) 100%, var(--foreground) 6%) 50%,
+    color-mix(in oklch, var(--muted) 70%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  animation: ocade-shimmer 1.4s ease-in-out infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes ocade-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}

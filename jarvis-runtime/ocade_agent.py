@@ -23,6 +23,7 @@ import shutil
 import socket
 import sys
 import threading
+import time
 import webbrowser
 from pathlib import Path
 
@@ -46,6 +47,43 @@ def single_instance() -> socket.socket | None:
     except OSError:
         guard.close()
         return None
+
+
+def serve_exit(guard: socket.socket, on_exit) -> None:
+    """The single-instance port also answers the uninstaller's "exit", locally only."""
+    def loop() -> None:
+        while True:
+            try:
+                conn, _ = guard.accept()
+            except OSError:
+                return  # the guard closed: this agent is ending
+            with conn:
+                conn.settimeout(2)
+                try:
+                    if conn.recv(16) == b"exit":
+                        conn.sendall(b"ok")
+                        on_exit()
+                except OSError:
+                    pass
+    threading.Thread(target=loop, daemon=True, name="ocade-single-instance").start()
+
+
+def stop_running_agent(timeout_s: float = 8.0) -> bool:
+    """Ask a running agent to stop, and wait until it has. True when none is left running."""
+    try:
+        with socket.create_connection(("127.0.0.1", SINGLE_INSTANCE_PORT), timeout=2) as conn:
+            conn.sendall(b"exit")
+            conn.recv(8)
+    except OSError:
+        pass  # nothing is listening: no agent is running
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        probe = single_instance()
+        if probe is not None:
+            probe.close()
+            return True
+        time.sleep(0.2)
+    return False
 
 
 def _launch_command() -> list[str]:
@@ -106,6 +144,10 @@ def remove_autostart() -> None:
 
 def uninstall(home: Path) -> str:
     """Everything this agent put on the computer, except the program files the OS uninstaller owns."""
+    # The running agent stops first: its key is never deleted under it.
+    if not stop_running_agent():
+        raise SystemExit("OCADE Device Agent is still running and could not be stopped. "
+                         "Exit it from the tray, then uninstall again.")
     identity = Identity(home)
     if identity.connected:
         try:  # this computer's key stops working in OCADE too
@@ -142,6 +184,18 @@ class Presence:
         if self.icon is not None:
             self.icon.stop()
 
+    @staticmethod
+    def _notify(message: str) -> None:
+        print(message, flush=True)
+        try:
+            from tkinter import Tk, messagebox
+            root = Tk()
+            root.withdraw()
+            messagebox.showerror(APP_NAME, message)
+            root.destroy()
+        except Exception:
+            pass
+
     def _ask(self, question: str) -> bool:
         try:
             from tkinter import messagebox
@@ -149,12 +203,13 @@ class Presence:
         except Exception:
             return True  # no dialog available: the person chose Exit
 
-    def start_tray(self) -> bool:
+    def start_tray(self) -> str | None:
+        """None when the tray icon is up, else why not (kept in the local log)."""
         try:
             import pystray
             from PIL import Image, ImageDraw
-        except Exception:
-            return False
+        except Exception as e:
+            return f"tray unavailable ({type(e).__name__}: {e})"
         image = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
         ImageDraw.Draw(image).ellipse((6, 6, 58, 58), fill=(20, 20, 20, 255), outline=(236, 236, 236, 255), width=4)
         menu = pystray.Menu(
@@ -163,9 +218,27 @@ class Presence:
             pystray.MenuItem("STOP JARVIS", lambda: self.stop_jarvis()),
             pystray.MenuItem("Exit", lambda: self.exit()),
         )
-        self.icon = pystray.Icon("ocade", image, "OCADE JARVIS", menu)
-        self.icon.run_detached()
-        return True
+        try:
+            self.icon = pystray.Icon("ocade", image, "OCADE JARVIS", menu)
+            self.icon.run_detached()
+        except Exception as e:
+            return f"tray failed to start ({type(e).__name__}: {e})"
+        return None
+
+
+def health_check() -> int:
+    """0 only when this build can really run: every module and file it opens, and its tray."""
+    try:
+        import actions.browser_control as browser  # reads ocade_page.js and the protocol gates
+        import ocade_egress  # noqa: F401
+        assert browser._OCADE_PAGE and browser._GATES
+        import pystray
+        from PIL import Image
+        pystray.Icon("ocade-health", Image.new("RGBA", (16, 16)), "OCADE")
+    except Exception as e:  # the updater rolls back on anything but 0
+        print(f"unhealthy: {type(e).__name__}: {e}", file=sys.stderr)
+        return 1
+    return 0
 
 
 def install_root() -> Path | None:
@@ -228,7 +301,7 @@ def main() -> None:
     args = parser.parse_args()
     home = ocade_device.HOME
     if args.health:
-        sys.exit(0)
+        sys.exit(health_check())
     if args.uninstall:
         print(uninstall(home))
         return
@@ -242,11 +315,22 @@ def main() -> None:
         print("OCADE Device Agent is already running.")
         return
     identity = Identity(home)
+    if identity.damaged:
+        Presence._notify(Identity.DAMAGED)
+        guard.close()
+        return
     if not identity.connected:
         identity = ocade_device.connect(args.server, platform.node()[:120] or "My computer")
     agent = ocade_device.Agent(identity, headless=False, cdp=None, workspace=args.workspace)
     presence = Presence(agent, identity.meta["server"])
-    presence.start_tray()
+    serve_exit(guard, lambda: (agent.stop_everything(), agent.stop.set(),
+                               presence.icon.stop() if presence.icon else None))
+    tray = presence.start_tray()
+    if tray:
+        # The mini-control still offers STOP; the reason stays on this computer.
+        (home / "agent.log").parent.mkdir(parents=True, exist_ok=True)
+        with open(home / "agent.log", "a", encoding="utf-8") as log:
+            log.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {tray}\n")
     worker = threading.Thread(target=agent.run, daemon=True)
     worker.start()
     threading.Thread(target=_watch_health_and_updates,

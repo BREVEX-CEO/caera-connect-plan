@@ -276,6 +276,17 @@ const RESULT_STATUSES = [
   "stale",
 ] as const;
 
+/**
+ * The last line of defence for what a device says in Activity: local paths
+ * and the user names inside them never reach the account's cloud history.
+ */
+export function redactLocal(text: string): string {
+  return text
+    .replace(/\\\\[^\s"'<>|]+/g, "[path]")
+    .replace(/\b[A-Za-z]:[\\/][^\s"'<>|]*/g, "[path]")
+    .replace(/(?:~|\/(?:Users|home|root|var\/folders))\/[^\s"'<>|]*/g, "[path]");
+}
+
 export const exchangeInput = z.object({
   results: z
     .array(
@@ -428,7 +439,7 @@ export async function exchange(
       .from("jarvis_activity")
       .update({
         status,
-        ...(result.summary ? { summary: result.summary.slice(0, 300) } : {}),
+        ...(result.summary ? { summary: redactLocal(result.summary).slice(0, 300) } : {}),
         result:
           outcome.length <= 40_000
             ? JSON.parse(outcome)
@@ -545,7 +556,7 @@ export async function exchange(
         offered: (deviceRow.capabilities ?? {}) as Record<string, boolean>,
       })
     : { message: "This device was removed." };
-  if (refusal || (needsConfirmation(permissions, action) && !row.confirmed)) {
+  if (refusal || (needsConfirmation(permissions, action, device.id) && !row.confirmed)) {
     await admin
       .from("jarvis_activity")
       .update({

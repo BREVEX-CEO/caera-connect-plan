@@ -253,3 +253,15 @@ describe("STOP", () => {
     expect((await status(waiting)).status).toBe("cancelled");
   });
 });
+
+describe("Activity privacy (JARVIS-021)", () => {
+  it("never stores a local path or the user name inside it", async () => {
+    const { redactLocal } = await import("../device.server");
+    expect(
+      redactLocal(
+        "Failed: [Errno 2] No such file: 'C:\\Users\\haans\\Documents\\secret.txt' and /home/ana/x and \\\\server\\share\\y",
+      ),
+    ).toBe("Failed: [Errno 2] No such file: '[path]' and [path] and [path]");
+    expect(redactLocal("Wrote notes/today.md")).toBe("Wrote notes/today.md");
+  });
+});

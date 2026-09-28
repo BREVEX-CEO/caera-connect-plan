@@ -234,8 +234,9 @@ function AccountSettings() {
     <div>
       {/* Google and email OTP are the only identities; phone sign-in is removed. */}
       <Row label="Signed in as" description={user?.email ?? "Not signed in"} />
-      <SignInMethods />
-      <TwoStep />
+      {/* Keyed by the account: another account never sees the last one's methods. */}
+      {user ? <SignInMethods key={user.id} /> : null}
+      {user ? <TwoStep key={user.id} /> : null}
       <Row label="Sign out" description="Ends this session on this device only.">
         <button
           type="button"
