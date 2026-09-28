@@ -69,3 +69,12 @@ This section records categories that should be removed or consolidated only afte
 - Remove redundant upgrade marketing from paid plans and keep free-plan upgrade prompts contextual.
 
 Ponytail may perform these removals only after the replacement is proven and without compromising UI quality, performance, security, accessibility, or device-control capability. Caveman may simplify architecture and ownership before or alongside Ponytail, but neither tool may touch immutable imports.
+
+## MCP/test-tool cleanup rules — 2026-09-28
+
+- Remove paid/trial-only MCPs from the mandatory zero-extra-cost testing path.
+- Remove duplicate MCPs only when their evidence class is genuinely redundant and an equivalent free tool has proven coverage.
+- Do not remove an independent verifier merely because another tool can perform similar actions; independent verification is valuable when it is sequential and non-conflicting.
+- Remove stale MCP configuration, unused launch scripts, duplicate test harnesses, and obsolete environment instructions after proving the active toolchain.
+- Remove flaky tests only when replaced by stronger deterministic coverage; do not delete a failing test merely to make the suite green.
+- After MCP/tool cleanup, rerun tool health checks and the affected regression matrix.
