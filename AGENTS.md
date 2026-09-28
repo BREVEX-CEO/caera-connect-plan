@@ -132,3 +132,14 @@ Do not call a simulated or unavailable hardware path passed.
 - Use the test-tool roles defined in `docs/TESTING_TOOLCHAIN.md`. Do not let two physical-control tools race the same UI.
 - Use `/caveman ultra` and `/ponytail ultra` as cleanup/simplification passes only on active production code, never on immutable donor/import snapshots.
 - A release is not done because build/tests are mostly green. No known Critical or Major release blocker may remain for a shipped capability, and deployed source identity must be verified after merge.
+
+## MCP/tool resilience rules — 2026-09-28
+
+- Every agent must read `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md` before a multi-tool test/fix mission.
+- MCPs are coordinated roles, not parallel uncontrolled actors. One tool owns mutation of a target surface at a time.
+- Health-check required tools before relying on them. Tool failure becomes BLOCKED evidence, not a false pass and not a reason to abandon unrelated tests.
+- Preserve progress in a durable ledger so context compaction, model switching, rate limits, and resumed sessions do not repeat completed work or lose findings.
+- Bugs are closed only after root-cause repair plus targeted, integration, strongest-available runtime, adversarial, and broader regression evidence as applicable.
+- Visual/UI correctness is part of functional correctness.
+- Run Caveman/Ponytail only after behavior is proven, then rerun the same relevant tests after cleanup.
+- Do not merge product code while known Critical/Major release blockers remain for shipped capabilities.
