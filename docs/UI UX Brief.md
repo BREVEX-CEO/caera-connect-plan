@@ -151,3 +151,17 @@ Desktop mini-control is an optional movable round OCADE control. Default visibil
 JARVIS opens text-only. Voice controls appear near the orb while Voice is active. If spoken output is muted, voice commands still work and responses remain text.
 
 Mobile web/PWA uses a clean compact round launcher within the OCADE surface. Do not visually imply an OS-wide overlay when the platform does not support one.
+
+## Latest UI/UX continuation — 2026-09-28
+
+- The interface should be simpler than the current prototype/reference surfaces while retaining JARVIS's powerful identity.
+- Use Claude-like calm spacing and settings restraint, ChatGPT-like chat/loading polish, Grok-like compact dark strength, and an original OCADE silver-white orb/graph.
+- Keep black/white/silver as the main palette and use blue primarily for enabled/active state.
+- Use soft/bent corners, clean spacing, restrained glass, thin scrollbars, skeleton loading, subtle transitions, and a stable shell.
+- Remove unnecessary pages, buttons, settings, explanations, duplicate history, decorative metrics, and name-only features.
+- Chat stays reading-focused. JARVIS idle stays orb-focused. During tasks, current action/progress/Stop/Take Over become primary.
+- Settings use a small category list, search if useful, short descriptions, auto-save, and clear enabled states. Rare technical controls stay in Advanced diagnostics.
+- Free plans show exact remaining uses. Paid plans show plan name and a clean percentage/bar.
+- Task stages may use professional wording by default and optional personality where appropriate. Never invent a fake percentage.
+- Mobile keeps compact bottom navigation and clean touch targets. Android's OS-level floating bubble belongs to the companion, not to a fake PWA overlay.
+- The owner/admin dashboard may be denser than customer UI but must remain searchable, calm, and easy to operate.
