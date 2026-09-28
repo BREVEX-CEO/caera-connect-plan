@@ -133,7 +133,7 @@ try {
   check(
     "signed out: the composer asks for an account",
     (await guest.locator("#jarvis-composer").getAttribute("placeholder")) ===
-      "Sign in to message JARVIS",
+      "Sign in to talk to JARVIS",
   );
   await guest.locator("#jarvis-composer").fill("hello");
   await guest.getByRole("button", { name: "Sign in to send", exact: true }).click();
@@ -392,7 +392,13 @@ except i.UpdateRequired:
       ) && !existsSync(path.join(workspace, "notes.md")),
     );
     await rail("Devices").click();
-    await page.getByRole("switch", { name: /Files in the workspace/ }).click();
+    const files = page.getByRole("switch", { name: /Files in the workspace/ });
+    // The computer reports what it offers on its first exchange; wait for it.
+    check(
+      "a just-connected computer's switches become available by themselves",
+      await until(() => files.isEnabled(), 30_000),
+    );
+    await files.click();
     // Commands are offered only where the computer confines them (Linux
     // bubblewrap); anywhere else the switch is shown unavailable, not faked.
     const commands = page.getByRole("switch", { name: /Run commands in the workspace/ });
@@ -552,7 +558,7 @@ except i.UpdateRequired:
     check("one round STOP JARVIS is within reach on the phone", (await stopAll.count()) === 1);
     await stopAll.click();
     await idle();
-    await rail("Tasks")
+    await rail("Conversations")
       .click()
       .catch(() => undefined);
     check(
@@ -1264,7 +1270,7 @@ except i.UpdateRequired:
   await page.getByRole("button", { name: "Open navigation", exact: true }).click();
   check(
     "the phone drawer opens the JARVIS sections",
-    (await page.getByRole("button", { name: "Tasks", exact: true }).count()) >= 1,
+    (await page.getByRole("button", { name: "Devices", exact: true }).count()) >= 1,
   );
   await page
     .getByRole("button", { name: "Close navigation", exact: true })

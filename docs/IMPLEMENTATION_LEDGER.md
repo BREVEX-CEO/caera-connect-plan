@@ -60,7 +60,9 @@ Evidence labels: LOCAL TEST (this host), REAL WINDOWS, REAL BROWSER, SOURCE-PROV
 | 057           | Fixed                       | SOURCE                                                             | Voice input is offered when recognition exists; "Speak answers" appears only where speech output exists.                                                                                                                                                                                                                                                                                                                                          |
 | W-1, W-2      | Fixed                       | REAL WINDOWS                                                       | Runtime tests are platform-correct; autostart test writes and removes the real HKCU Run value (verified absent afterwards).                                                                                                                                                                                                                                                                                                                       |
 | Kill switch   | Added                       | DATABASE TEST                                                      | `JARVIS_EXECUTION_DISABLED=1` on the Worker: no device work, running actions cancelled, no task starts; Chat and answers unaffected.                                                                                                                                                                                                                                                                                                              |
-| others        | Open                        | —                                                                  | 007, 010, 012, 022, 025, 027, 028, 044, 045, 047, 048 and the UI/company phases.                                                                                                                                                                                                                                                                                                                                                                  |
+| 012           | Fixed                       | LOCAL TEST                                                         | A work request with no computer online shows "Connect a computer" and "Try again" (same saved question) instead of prose only.                                                                                                                                                                                                                                                                                                                    |
+| 022           | Mitigated                   | SOURCE                                                             | Failed or blocked tasks offer "Try again", which starts a fresh attempt in the same conversation; the failed attempt stays in history. Same-task idempotent retry needs a schema change (failure code, retry lease): open.                                                                                                                                                                                                                        |
+| others        | Open                        | —                                                                  | 010 (model quality eval), 028 (installer/signing: owner), 044 fixed in sw.js comment, 045 (Android WASM refusal) and the company phases.                                                                                                                                                                                                                                                                                                          |
 
 ## Windows follow-ups found this run
 
@@ -71,6 +73,30 @@ Evidence labels: LOCAL TEST (this host), REAL WINDOWS, REAL BROWSER, SOURCE-PROV
 ## Browser journey evidence
 
 - `node scripts/e2e/harness.mjs jarvis` on Windows with the real Python device runtime and Playwright Chromium: 117 PASS, 0 FAIL, 2 BLOCKED (confined terminal on this host; real speech service).
+
+## Phase 27 UI progress (visual journey evidence)
+
+- Visual journey (`scripts/e2e/visual-journey.mjs`): 9 screens × desktop/tablet/phone × dark/light, overflow and off-screen-control checks plus screenshots.
+- Found and fixed: strong glass was 5–7% opaque, so Settings over JARVIS in light theme was illegible with the orb showing through; now frosted (84–86%).
+- Found and fixed: the idle hint sat on top of the graph; removed — the idle screen is the orb and the composer. The composer placeholder wrapped and clipped at 375 px; now "Ask or tell JARVIS anything". Phones now show "N left".
+- Orb core redesigned as the silver-white glass sphere the design system names (halo, specular, rim light), neutral on both themes.
+- Semantic colours: blue active/enabled, green success, red destructive; one shared Settings switch (was duplicated) is blue when on; JARVIS switches use the same blue.
+- Rail: Tasks merged into Conversations (each row shows its latest task and state); no duplicate history destination.
+- Task card: truthful stages ("Working"), a progress bar only where a plan exists, finished tasks show the outcome not the plan.
+
+## Tool and environment health (this host)
+
+| Evidence class                 | State                                                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Playwright Chromium (bundled)  | Available; drives every journey.                                                                                    |
+| Real Windows desktop           | Available; used for app launch, autostart, packaged-agent health.                                                   |
+| Python device runtime          | Available (Python 3.12, pinned agent requirements installed).                                                       |
+| PyInstaller Windows package    | Built; `ocade-agent.exe --health` = 0; removing `actions/ocade_page.js` makes it 1.                                 |
+| Inno Setup (Windows installer) | Not installed; installing system software needs the owner's OK. Signed installer: BLOCKED (owner signing identity). |
+| Android (Appium, Mobile MCP)   | BLOCKED: no device, emulator or Android SDK on this host.                                                           |
+| Linux bubblewrap               | BLOCKED: no WSL or Docker on this host.                                                                             |
+| macOS / iOS hardware           | BLOCKED: none available.                                                                                            |
+| GitHub MCP                     | Failed to connect (authorization header); git CLI is used instead.                                                  |
 
 ## Next step
 

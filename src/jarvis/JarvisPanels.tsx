@@ -20,11 +20,10 @@ import {
   type JarvisState,
 } from "./jarvis.functions";
 
-export type Section = "conversations" | "tasks" | "activity" | "apps" | "devices";
+export type Section = "conversations" | "activity" | "apps" | "devices";
 
 const TITLES: Record<Section, string> = {
   conversations: "Conversations",
-  tasks: "Tasks",
   activity: "Activity",
   apps: "Allowed Apps",
   devices: "Devices",
@@ -72,7 +71,7 @@ function Toggle({
         checked={checked}
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
-        className="mt-0.5 h-4 w-4 accent-current"
+        className="mt-0.5 h-4 w-4 accent-info"
       />
       <span className="flex-1">
         {label}
@@ -81,6 +80,16 @@ function Toggle({
     </label>
   );
 }
+
+const TASK_WORDS: Record<string, string> = {
+  running: "working",
+  waiting: "waiting for you",
+  taken_over: "you have control",
+  stopped: "stopped",
+  blocked: "could not continue",
+  failed: "failed",
+  completed: "done",
+};
 
 const DEVICE_STATUS = {
   ready: { label: "Ready", tone: "bg-success/15 text-success" },
@@ -168,27 +177,25 @@ function SectionBody({
   const [opened, setOpened] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
 
-  if (section === "conversations" || section === "tasks") {
-    const list =
-      section === "conversations"
-        ? state.conversations
-            .filter((c) => !c.archived)
-            .map((c) => ({
-              id: c.id,
-              title: c.title,
-              sub: when(c.updated_at),
-              open: c.id,
-              result: null as string | null,
-            }))
-        : state.tasks.map((t) => ({
-            id: t.id,
-            title: t.title,
-            sub: FINISHED.includes(t.status)
-              ? `${t.status.replace("_", " ")} · ${when(t.updated_at)}`
-              : `${t.status.replace("_", " ")} · step ${Math.min(t.current_step + 1, Math.max(1, t.plan.length))} of ${Math.max(1, t.plan.length)}`,
-            open: t.conversation_id,
-            result: t.result,
-          }));
+  if (section === "conversations") {
+    // Tasks live in their conversations: each row names its latest task and
+    // how it stands, so there is no second list to keep in step.
+    const latestTask = (conversationId: string) =>
+      state.tasks.find((t) => t.conversation_id === conversationId);
+    const list = state.conversations
+      .filter((c) => !c.archived)
+      .map((c) => {
+        const task = latestTask(c.id);
+        return {
+          id: c.id,
+          title: c.title,
+          sub: task
+            ? `${task.title} · ${TASK_WORDS[task.status]} · ${when(task.updated_at)}`
+            : when(c.updated_at),
+          open: c.id,
+          result: task && FINISHED.includes(task.status) ? task.result : null,
+        };
+      });
     if (list.length === 0) {
       return <p className="text-muted-foreground">Nothing here yet.</p>;
     }

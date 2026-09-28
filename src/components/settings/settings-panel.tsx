@@ -40,7 +40,7 @@ import { DataControlsSection } from "./DataControlsSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { UsageSection } from "./UsageSection";
 import { BillingSection } from "./BillingSection";
-import { Action, Row } from "./rows";
+import { Action, Row, Toggle } from "./rows";
 import { DELETE_CONFIRMATION, deleteMyAccount } from "@/lib/account.functions";
 
 export type SettingsCategory =
@@ -188,37 +188,6 @@ function SettingsDialog({
         </div>
       </div>
     </div>
-  );
-}
-
-function Toggle({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: (next: boolean) => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={() => onChange(!checked)}
-      className={cn(
-        "relative h-6 w-10 rounded-full border border-border/60 transition-colors",
-        checked ? "bg-primary" : "bg-secondary",
-      )}
-    >
-      <span
-        className={cn(
-          "absolute top-0.5 h-4.5 w-4.5 rounded-full bg-background transition-[left]",
-          checked ? "left-[1.15rem]" : "left-0.5",
-        )}
-      />
-    </button>
   );
 }
 

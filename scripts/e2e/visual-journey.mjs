@@ -120,6 +120,13 @@ try {
               .filter((el) => {
                 const r = el.getBoundingClientRect();
                 const style = getComputedStyle(el);
+                // Skip links sit off-screen by design until they are focused.
+                if (el.classList.contains("skip-link")) return false;
+                // Inside a horizontal scroll strip (phone tabs) a control may sit past the edge.
+                for (let up = el.parentElement; up; up = up.parentElement) {
+                  const x = getComputedStyle(up).overflowX;
+                  if (x === "auto" || x === "scroll") return false;
+                }
                 if (r.width === 0 || style.visibility === "hidden" || style.display === "none") {
                   return false;
                 }

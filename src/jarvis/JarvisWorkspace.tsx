@@ -9,7 +9,6 @@ import {
   Activity,
   AppWindow,
   ArrowUp,
-  ListChecks,
   Menu,
   MessageSquare,
   MessagesSquare,
@@ -66,7 +65,6 @@ interface Turn {
 
 const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: "conversations", label: "Conversations", icon: MessagesSquare },
-  { id: "tasks", label: "Tasks", icon: ListChecks },
   { id: "activity", label: "Activity", icon: Activity },
   { id: "apps", label: "Allowed Apps", icon: AppWindow },
   { id: "devices", label: "Devices", icon: MonitorSmartphone },
@@ -115,7 +113,15 @@ export function JarvisWorkspace({
         opened.current = true;
       }),
     enabled: signedIn,
-    refetchInterval: taskLive ? 4000 : 30_000,
+    // Quick while a task runs or a computer that just connected has not yet
+    // said what it can do; otherwise a quiet refresh.
+    refetchInterval: (query) =>
+      taskLive ||
+      (query.state.data?.devices ?? []).some(
+        (d) => d.online && Object.keys(d.capabilities).length === 0,
+      )
+        ? 4000
+        : 30_000,
   });
   const jarvis = signedIn ? state.data : undefined;
   const refresh = useCallback(
@@ -130,6 +136,8 @@ export function JarvisWorkspace({
   const [liveAnswer, setLiveAnswer] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [running, setRunning] = useState(false);
+  // Work was asked for but no computer could take it: a way forward, not just prose.
+  const [noDevice, setNoDevice] = useState<string | null>(null);
   // OCADE's Online capacity is unavailable: no new turns until this time, then
   // JARVIS continues the saved task by itself. The wait grows while it lasts.
   const [busyUntil, setBusyState] = useState<number | null>(null);
@@ -200,6 +208,7 @@ export function JarvisWorkspace({
     setLiveAnswer(null);
     setActiveTask(null);
     setDraft("");
+    setNoDevice(null);
     if (!conversationId || !user) {
       shownFor.current = owner;
       setTranscript("ready");
@@ -308,6 +317,7 @@ export function JarvisWorkspace({
 
     const controller = new AbortController();
     abort.current = controller;
+    setNoDevice(null);
     setRunning(true);
     setLiveAnswer(null);
     const history = before.slice(-20).map((t) => ({ role: t.role, content: t.content }));
@@ -327,6 +337,7 @@ export function JarvisWorkspace({
           onText: (answer) => mine() && setLiveAnswer(answer),
           onTask: (task) => mine() && setActiveTask(task),
           onActivity: refresh,
+          onNoDevice: (message) => mine() && setNoDevice(message),
           // A question from a conversation no longer on screen is declined.
           confirm: (summary) =>
             mine()
@@ -482,7 +493,7 @@ export function JarvisWorkspace({
     } else if (node.category) {
       const map = {
         conversation: "conversations",
-        task: "tasks",
+        task: "conversations",
         memory: null,
         device: "devices",
         app: "apps",
@@ -673,9 +684,12 @@ export function JarvisWorkspace({
           <h1 className="text-sm font-medium tracking-wide">OCADE JARVIS</h1>
           <div className="flex-1" />
           {usage ? (
-            <p className="hidden text-xs text-muted-foreground sm:block">
-              {usage.remaining} of {usage.allowance} JARVIS uses left · resets{" "}
-              {describeReset(usage.resetsInMs)}
+            <p className="text-xs text-muted-foreground">
+              <span className="sm:hidden">{usage.remaining} left</span>
+              <span className="hidden sm:inline">
+                {usage.remaining} of {usage.allowance} JARVIS uses left · resets{" "}
+                {describeReset(usage.resetsInMs)}
+              </span>
             </p>
           ) : null}
           <button
@@ -742,12 +756,6 @@ export function JarvisWorkspace({
                     </button>
                   </div>
                 </div>
-              ) : !hasText && !loading ? (
-                <p className="mt-[28vh] text-center text-sm text-muted-foreground">
-                  {signedIn
-                    ? "Ask anything, or ask JARVIS to do something in your browser."
-                    : "Sign in to talk to JARVIS. You can explore the orb without an account."}
-                </p>
               ) : null}
               {turns.map((turn) => (
                 <p
@@ -780,6 +788,38 @@ export function JarvisWorkspace({
                   Retry
                 </button>
               ) : null}
+              {noDevice && !running ? (
+                <div
+                  role="status"
+                  className="self-start rounded-2xl border border-border/60 bg-background/80 px-4 py-3 text-sm"
+                >
+                  <p>{noDevice}</p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDrawerOpen(true);
+                        setSection("devices");
+                      }}
+                      className="rounded-full bg-foreground px-3 py-1 text-xs text-background"
+                    >
+                      Connect a computer
+                    </button>
+                    {retryTurn ? null : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const ask = [...turns].reverse().find((t) => t.role === "user");
+                          if (ask) void send(ask.content, false, ask.id);
+                        }}
+                        className="rounded-full border border-border px-3 py-1 text-xs"
+                      >
+                        Try again
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : null}
               {conversationTask ? (
                 <TaskCard
                   task={conversationTask}
@@ -787,6 +827,9 @@ export function JarvisWorkspace({
                   onStop={() => void stop()}
                   onTakeOver={() => void takeOverNow()}
                   onResume={() => void resume()}
+                  onRetry={() =>
+                    void send(`Try "${conversationTask.title}" again from the start.`, false)
+                  }
                 />
               ) : null}
               {confirmAsk ? (
@@ -869,11 +912,11 @@ export function JarvisWorkspace({
                 maxLength={8000}
                 placeholder={
                   !signedIn
-                    ? "Sign in to message JARVIS"
+                    ? "Sign in to talk to JARVIS"
                     : busyUntil
                       ? "OCADE JARVIS is busy. It will be back shortly."
                       : jarvisOn
-                        ? "Ask JARVIS, or tell it what to do"
+                        ? "Ask or tell JARVIS anything"
                         : "JARVIS is turned off in Permissions"
                 }
                 onChange={(event) => setDraft(event.target.value)}

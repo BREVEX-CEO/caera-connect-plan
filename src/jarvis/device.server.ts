@@ -531,7 +531,8 @@ export async function exchange(
       .from("jarvis_activity")
       .select("id, status, task_id")
       .eq("device_id", device.id)
-      .in("id", input.running);
+      .in("id", input.running)
+      .limit(1);
     const { data: liveTasks } = await admin
       .from("jarvis_tasks")
       .select("id")
@@ -540,7 +541,8 @@ export async function exchange(
       .in(
         "id",
         (live ?? []).map((row) => row.task_id),
-      );
+      )
+      .limit(1);
     const runningTasks = new Set((liveTasks ?? []).map((task) => task.id));
     for (const id of input.running) {
       const row = live?.find((r) => r.id === id);

@@ -7,7 +7,7 @@ import { readJarvisFrame, type JarvisTaskRow } from "./jarvis.functions";
 import type { JarvisVoice } from "./use-voice";
 
 const STATUS: Record<JarvisTaskRow["status"], string> = {
-  running: "Running",
+  running: "Working",
   waiting: "Waiting for you",
   taken_over: "You have control",
   stopped: "Stopped",
@@ -67,19 +67,21 @@ export function TaskCard({
   onStop,
   onTakeOver,
   onResume,
+  onRetry,
 }: {
   task: JarvisTaskRow;
   running: boolean;
   onStop: () => void;
   onTakeOver: () => void;
   onResume: () => void;
+  /** Ask JARVIS to try a task that failed or could not continue. */
+  onRetry?: () => void;
 }) {
   const total = Math.max(1, task.plan.length);
   const done = FINISHED.includes(task.status);
-  const progress =
-    task.status === "completed"
-      ? 100
-      : Math.round((Math.min(task.current_step, total) / total) * 100);
+  // A percentage only where there is a real plan to measure against.
+  const measurable = task.plan.length > 0 && task.status !== "completed";
+  const progress = Math.round((Math.min(task.current_step, total) / total) * 100);
   return (
     <section aria-label="Task" className="glass-strong rounded-xl p-3" data-testid="jarvis-task">
       <div className="mb-1 flex items-center justify-between gap-2">
@@ -88,20 +90,23 @@ export function TaskCard({
           {STATUS[task.status]}
         </span>
       </div>
-      <div
-        role="progressbar"
-        aria-label="Task progress"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={progress}
-        className="mb-2 h-1 overflow-hidden rounded-full bg-border/70"
-      >
+      {measurable && !done ? (
         <div
-          className="h-full bg-foreground/60 transition-[width]"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      {task.plan.length ? (
+          role="progressbar"
+          aria-label="Task progress"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={progress}
+          className="mb-2 h-1 overflow-hidden rounded-full bg-border/70"
+        >
+          <div
+            className="h-full bg-info transition-[width] duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      ) : null}
+      {/* A finished task shows its outcome, not its plan. */}
+      {task.plan.length && !done ? (
         <ol className="mb-2 list-decimal pl-5 text-xs text-muted-foreground">
           {task.plan.map((step, index) => (
             <li
@@ -126,6 +131,15 @@ export function TaskCard({
         </p>
       ) : null}
       <Controls task={task} onStop={onStop} onTakeOver={onTakeOver} onResume={onResume} />
+      {onRetry && (task.status === "failed" || task.status === "blocked") && !running ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="rounded-full border border-border px-3 py-1 text-xs hover:bg-accent"
+        >
+          Try again
+        </button>
+      ) : null}
     </section>
   );
 }

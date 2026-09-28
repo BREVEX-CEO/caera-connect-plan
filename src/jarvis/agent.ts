@@ -108,6 +108,8 @@ export interface AgentHooks {
   confirm(summary: string): Promise<boolean>;
   /** Resolves when the person resumes or stops after taking over. */
   takeOver(reason: string): Promise<"resume" | "stop">;
+  /** Work was asked for, but no computer or browser can do it right now. */
+  onNoDevice?(message: string): void;
 }
 
 export interface TurnInput {
@@ -314,7 +316,10 @@ export async function runJarvisTurn(
           title,
           plan,
         });
-        if (!started.ok) return { ok: false, message: started.message };
+        if (!started.ok) {
+          if (started.reason === "no_device") hooks.onNoDevice?.(started.message);
+          return { ok: false, message: started.message };
+        }
         claimed = true;
         setTask(started.task);
         const { device } = started;

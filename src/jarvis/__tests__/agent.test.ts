@@ -350,3 +350,20 @@ describe("the task's computer", () => {
     expect(call2[0].checkpoint!.step).toBe(call2[0].currentStep);
   });
 });
+
+describe("work with no computer online (JARVIS-012)", () => {
+  it("tells the screen so it can offer Connect and Try again", async () => {
+    const h = harness([
+      { text: "", toolCalls: [call("start_task", { title: "x", where: "computer", steps: [] })] },
+      { text: "No computer is online.", toolCalls: [] },
+    ]);
+    h.deps.startTask = vi.fn(async () => ({
+      ok: false as const,
+      reason: "no_device" as const,
+      message: "No computer with the OCADE Device Agent is online. Connect one in Devices.",
+    }));
+    const onNoDevice = vi.fn();
+    await runJarvisTurn(h.input, { ...h.hooks, onNoDevice }, h.deps);
+    expect(onNoDevice).toHaveBeenCalledWith(expect.stringContaining("No computer"));
+  });
+});
