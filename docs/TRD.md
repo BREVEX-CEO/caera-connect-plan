@@ -153,3 +153,17 @@ Keep exactly three configured server-side capacity slots. Failover must distingu
 ### Mobile
 
 Android/iOS remain web/PWA-first. Implement Remote PC via existing authenticated task/device authorities. Do not technically represent unsupported OS-wide cross-app control as available.
+
+## Latest technical continuation — 2026-09-28
+
+- Use one device-side action broker for execution authority. It owns current authorization, cancellation, workspace/path safety, app identity, network safety, OS permissions, result verification, and settlement.
+- Revalidate current permissions/capabilities at action dispatch.
+- Use stable app identifiers rather than trusting arbitrary model-generated app names.
+- Implement cancellable subprocess/task primitives so STOP can affect active work rather than only future queue claims.
+- Enforce canonical workspace/path handling against traversal, symlink/junction, predictable temporary-path, and shell escape.
+- Enforce browser network policy against DNS rebinding, private redirects, and private subresources at the executor/network boundary.
+- Android uses an OCADE-owned companion for deep local control and an optional floating mini JARVIS. MCP/Appium tooling is testing-only.
+- iPhone/iPad stay PWA/web-first with Apple-supported shortcuts/control surfaces and Remote PC. Unsupported global overlay/cross-app control is not represented as technically available.
+- Owner/admin is a separate privilege plane with server-side role/permission enforcement, audited mutations, and no raw credential/card exposure.
+- Payments use provider-tokenized methods and webhook-driven state.
+- Error monitoring uses redacted diagnostics and stable incident grouping.
