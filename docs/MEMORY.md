@@ -165,3 +165,13 @@ Next owner actions: provide the code-signing identities, the notarization profil
 - Long runs must checkpoint durable progress before context compaction, rate limits, restart, or handoff. Resumed work continues from the next unfinished item instead of repeating completed work.
 - A failure is not closed by a code change alone. Reproduce it, fix the root cause, run targeted and nearby integration tests, verify with the strongest available real browser/device/physical evidence, attempt to break the fix, and then run the broader regression slice.
 - If one MCP or environment is unavailable, mark only that evidence class blocked and continue every independent test. Never treat blocked or emulated evidence as a real-device pass.
+
+## Authority-repair release — 2026-09-28
+
+- Branch `jarvis/authority-repair` repaired the Error Audit 01 release blockers on top of main `a7e4634b`. `docs/IMPLEMENTATION_LEDGER.md` is the finding-by-finding record with evidence labels and is the resume point for the next session.
+- All four Critical findings (023 STOP, 037 terminal escape, 051 temp-file symlink, 053 private-network egress) are fixed; the terminal is offered only where bubblewrap confines it (Linux), so Windows and macOS show it unavailable.
+- Every Major is fixed except 028 (signed installer and update channel), which needs the owner's signing identity and release key.
+- Evidence on this Windows host: 956+ unit tests, real-PostgreSQL exchange tests, 54 runtime tests, the JARVIS browser journey (120 pass, 0 fail, 2 blocked) with the real Python device runtime, the visual journey (162 pass), `verify:full` (15 gates), packaged `ocade-agent.exe --health`, and a real Calculator launch.
+- New owner control: set `JARVIS_EXECUTION_DISABLED=1` on the Worker to stop all device work at once.
+- Colour rule changed with the design system: blue active, green success, red destructive, only through the three semantic tokens; the monochrome audit enforces that.
+- Blocked here: Android (no SDK or device), Linux bubblewrap run, macOS/iOS hardware, real speech service, Chrome Web Store upload, installer signing, Inno Setup installer build.

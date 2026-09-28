@@ -100,6 +100,6 @@ Evidence labels: LOCAL TEST (this host), REAL WINDOWS, REAL BROWSER, SOURCE-PROV
 
 ## Next step
 
-1. Remaining Majors: 028 (installer build, signing BLOCKED), 035 (store disclosure), 040 (update robustness), 041/042 (voice/wake), 046 (macOS TCC plist), 049 (enrollment abuse limit).
-2. Mediums: 005 (JARVIS loads Offline OCR bytes — reproduced as repeated 404s), 007 streaming, 012, 022, 025, 027, 047, 048, 050, 057.
-3. Phase 27 UI rebuild per docs/JARVIS_DESIGN_SYSTEM.md, then admin/billing/help phases.
+1. After release: verify production `/api/health` reports the merged commit, then a signed-in production JARVIS smoke (owner account) and a real device connection against ocade.in.
+2. Owner actions: signing identity + update release key (028), Chrome Web Store account (035 upload), Android SDK/emulator or device (Android phases), approval to install Inno Setup, a "Hey OCADE" wake model.
+3. Open work: 010 eval, 022 same-task retry (schema), 045 Android WASM refusal, admin company backend (roles, kill-switch UI, audit), billing provider (owner decision), Android companion, remaining Phase 27 polish (Settings categories per design system).
