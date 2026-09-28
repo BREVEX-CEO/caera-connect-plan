@@ -98,6 +98,15 @@ Evidence labels: LOCAL TEST (this host), REAL WINDOWS, REAL BROWSER, SOURCE-PROV
 | macOS / iOS hardware           | BLOCKED: none available.                                                                                            |
 | GitHub MCP                     | Failed to connect (authorization header); git CLI is used instead.                                                  |
 
+## Release evidence — LIVE
+
+- `main` = `848e27cfd4f8edadd709f81450aac05febcccd96` (merge of `jarvis/authority-repair`), pushed 2026-09-28.
+- Cloudflare deployed it within ~2 minutes: `https://ocade.in/api/health` reports commit `848e27cf…`, deployment `0f82cea0-892a-421a-a6ef-4a26cb53c883`.
+- LIVE HTTP: `GET /api/jarvis/device` and `/api/jarvis/enroll` → 405 JSON; `/`, `/ocade-jarvis`, `/help`, `/privacy` → 200; Help and Privacy serve the new JARVIS sections.
+- LIVE REAL BROWSER (built-in browser, signed out): `/ocade-jarvis` renders the new orb and "Sign in to talk to JARVIS" with no console errors.
+- No database migration was needed; Supabase and the Edge Function are unchanged.
+- Signed-in production smoke needs the owner's account (Google sign-in): BLOCKED on owner.
+
 ## Next step
 
 1. After release: verify production `/api/health` reports the merged commit, then a signed-in production JARVIS smoke (owner account) and a real device connection against ocade.in.
