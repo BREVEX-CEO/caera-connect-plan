@@ -190,3 +190,7 @@ A release candidate can merge only when all of the following are true.
 ## Final principle
 
 The agent should keep fixing and retesting until the defined release gates are satisfied or a genuinely owner-only/hardware/legal/payment/signing dependency blocks further proof. It must not stop merely because one tool failed, a context window changed, a rate limit occurred, or one pass was green. It must also not claim mathematical zero bugs; it must produce evidence for no known release blockers within the tested scope.
+
+## Authority linkage
+
+This document is directly referenced by PLAN.md, CLAUDE.md, AGENTS.md, TESTING.md, TESTING_TOOLCHAIN.md, RULES.md, and every mutable Markdown document through the 2026-09-28 full documentation sweep. If a local document gives a weaker testing instruction, this orchestration authority governs current execution unless a later owner-approved rule explicitly supersedes it.
