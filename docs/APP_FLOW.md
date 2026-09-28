@@ -135,3 +135,16 @@ No JARVIS task may remain in an endless spinner or ambiguous active state.
 ## Voice update
 
 JARVIS opens text-only. Microphone access is requested on first Voice use, not on route entry. Optional PC `Hey OCADE` requires explicit Background/Wake Mode for closed-browser operation.
+
+## Latest company/product flows — 2026-09-28
+
+- The default customer navigation should remain intentionally small. Chat, JARVIS, Library, shared Settings/Account, Help/Support, and contextually useful conversation history are the core customer flows.
+- Do not add a separate Code page. When a user asks for code, Chat/JARVIS returns code in conversation; when the user asks JARVIS to act, JARVIS may use the approved IDE, terminal, repository, or workspace on the selected device.
+- Do not add a separate Projects page unless later evidence proves it is necessary. Files, repositories, workspace context, conversations, and Library should carry project context first.
+- JARVIS tasks are shown primarily inside JARVIS. Active tasks show current stage, truthful progress, Stop, Take Over, and optional detail expansion rather than forcing the user into a separate dashboard.
+- Co-work is an optional JARVIS control mode. If physical user input occurs during normal automation, JARVIS pauses. Co-work can then deliberately coordinate control instead of allowing conflicting input.
+- The free plan shows exact remaining uses and reset information. Paid plans primarily show plan name and a clean percentage/bar.
+- Help/Support is a first-party OCADE flow with search, setup guides, billing, privacy/security, device help, and troubleshooting.
+- Owner/admin operations live on the secured OCADE admin domain and are never reachable merely by discovering a hidden customer route.
+- Android companion install begins from the OCADE site, guides installation/permissions, then offers the optional floating JARVIS mini-app. Settings and complex account flows open the website.
+- iPhone/iPad remain PWA/web-first with Apple-supported Shortcuts/Control Center/notifications/Remote PC paths. WebKit compatibility tests must not be represented as physical-iPhone proof.
