@@ -65,3 +65,20 @@ The final OCADE JARVIS interface should be cleaner, more responsive, more access
 - Implement a real round 3D aura graph with real data relationships.
 - Maintain reduced-motion and semantic/nonvisual graph access.
 - Test phone widths without horizontal overflow.
+
+## 2026-09-28 reference reconciliation checklist
+
+- Confirm no separate Code page exists unless explicitly reinstated by a later owner decision.
+- Confirm no unnecessary Projects page duplicates conversation/workspace/Library context.
+- Confirm JARVIS tasks are accessible in JARVIS without forcing a permanent extra navigation destination.
+- Confirm sidebar/navigation presents only genuinely useful destinations and does not duplicate History/Conversations.
+- Confirm black/white/silver dominate, blue indicates active/enabled state, and glass is restrained outside JARVIS.
+- Confirm orb/graph behavior is preserved from the donor reference while fake data/metrics/prototype scaffolding are absent.
+- Confirm settings auto-save, use short descriptions, and avoid excessive options.
+- Confirm free-tier exact usage and paid-plan progress-bar usage presentation.
+- Confirm skeleton loading on chat/history/settings/dashboard surfaces and stable layout without large jumps.
+- Confirm thin theme-aware scrollbars, soft corners, spacing, keyboard/focus, reduced motion, and no mobile horizontal overflow.
+- Confirm active tasks show truthful stage/progress with prominent Stop and Take Over.
+- Confirm Help contains long guidance that was intentionally removed from normal product UI.
+- Confirm Android bubble UI is compact and opens complex settings on the website.
+- Confirm no UI claims unsupported iOS/macOS physical control based only on WebKit.
