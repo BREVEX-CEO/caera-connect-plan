@@ -48,3 +48,24 @@ Never rewrite applied production migration history to make the repository look c
 Use forward migrations for live schema changes.
 
 Ponytail Ultra may aggressively simplify working production JARVIS integration after proof, but it must never touch the uploaded ZIP or immutable source-original snapshot.
+
+## 2026-09-28 cleanup continuation
+
+This section records categories that should be removed or consolidated only after current replacements are proven.
+
+- Remove duplicate or obsolete JARVIS navigation such as a separate History destination when Conversations already owns that concern.
+- Remove any active customer-facing Code or Projects surface that duplicates conversation/JARVIS/Library capability unless current implementation evidence proves a unique required workflow.
+- Remove placeholder/fake JARVIS nodes, metrics, alerts, replies, activity, decorative browser controls, duplicate theme controls, and prototype scaffolding that are not backed by real product state.
+- Remove dead/duplicate execution authorities after the single action broker and supported executors are proven.
+- Remove duplicate settings and low-value choice surfaces after automatic safe defaults and Help documentation cover the user need.
+- Remove provider/model/vendor/key references from ordinary customer UI, errors, logs, exports, and bundles.
+- Remove retired donor dependencies/modules from active packaging only after import/runtime/package tests prove they are not required. Never remove them from immutable donor/source snapshots.
+- Remove BrowserStack or other paid/trial-only mandatory testing configuration from the required zero-extra-cost testing path.
+- Remove unprofessional, stale, temporary, misleading, or duplicate filenames/folders by renaming or consolidating them during the final repo-structure pass. Preserve Git history and update imports/tests atomically.
+- Remove dead code and duplicate files only after dependency/import/search/runtime evidence proves they are unused.
+- Remove stale platform claims that present WebKit emulation as real iPhone/macOS proof.
+- Remove admin/customer paths that expose unnecessary technical IDs, stack traces, raw local paths, passwords, MFA secrets, full card data, provider secrets, or internal infrastructure names.
+- Remove unnecessary long explanations from normal product UI after equivalent Help/support content exists.
+- Remove redundant upgrade marketing from paid plans and keep free-plan upgrade prompts contextual.
+
+Ponytail may perform these removals only after the replacement is proven and without compromising UI quality, performance, security, accessibility, or device-control capability. Caveman may simplify architecture and ownership before or alongside Ponytail, but neither tool may touch immutable imports.

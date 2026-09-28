@@ -145,3 +145,15 @@ Evidence labels follow `docs/JARVIS_DEVICE_ROADMAP.md`. Nothing below is claimed
 - **Mobile (Phase 22).** Manifest + home-screen icon (owner decision supersedes the earlier no-manifest rule), Remote PC and STOP at 375 px. REAL ANDROID / REAL iOS: UNTESTED.
 
 Next owner actions: provide the code-signing identities, the notarization profile, the update release key and the Chrome Web Store account; run the agent and extension once on real Windows and macOS; train or supply the "Hey OCADE" wake model.
+
+## Current owner-approved state — 2026-09-28
+
+- OCADE is being expanded from Chat + early JARVIS into a company-scale AI operating product with a minimal customer UI and powerful execution underneath.
+- The newest active documentation includes `COMPANY_PRODUCT_AUTHORITY.md`, `JARVIS_DESIGN_SYSTEM.md`, `OWNER_ADMIN_BACKEND.md`, `BILLING_AND_GLOBAL_COMMERCE.md`, `MOBILE_DEVICE_CONTROL.md`, `TESTING_TOOLCHAIN.md`, and `SUPPORT_LEGAL_SECURITY.md`.
+- The canonical detailed audit is additionally available as `OCADE-JARVIS-ERROR-AUDIT-01.md`; its executive summary is `OCADE-JARVIS-ERROR-AUDIT-02.md`.
+- Current implementation priorities are to reproduce/fix the 57 historical audit findings on latest main, establish one execution authority, then rebuild/debloat UI and expand company/mobile/admin capabilities.
+- The design goal is a major simplification: Claude-like spacing/settings restraint, ChatGPT-like polish/loading/chat ergonomics, Grok-like dark compact power, and OCADE's 3D orb/graph identity.
+- There is no required separate Code page or Projects page. JARVIS can write code or control the user's IDE; conversations/workspaces/files/Library carry project context.
+- The mandatory free testing team includes Playwright Real Chrome, Chrome DevTools, WebKit mobile/desktop, Android mobile, Firefox, Edge, Appium, Mobile MCP, Physical Computer Use, and Filesystem MCP, with GitHub/Supabase/Cloudflare/Sentry tooling where available.
+- BrowserStack is not a mandatory dependency under the zero-extra-cost rule.
+- Native Apple device claims remain evidence-blocked until a legitimate real environment exists; WebKit does not become physical-proof by naming it iOS.

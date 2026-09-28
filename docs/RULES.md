@@ -101,3 +101,20 @@
 - JARVIS opens text-only; microphone permission is requested on first Voice use.
 - PC wake-word detection stays local before activation.
 - Mobile remains web/PWA-first; do not fake unsupported OS-wide third-party-app control, persistent overlays or background behavior.
+
+## Latest engineering/product rules — 2026-09-28
+
+- Use full-sentence requirements and reports. Do not compress important behavior into ambiguous one-word checklist items.
+- Reproduce historical bugs on latest main before fixing them. Do not assume an audit finding is still current merely because it existed on 2026-09-27.
+- Fix root causes and shared authorities rather than layering patches around symptoms.
+- Use automatic safe defaults to reduce customer choice stress; do not convert every backend option into a UI setting.
+- Keep normal UI clean and move long explanations into Help.
+- Never expose provider/model/vendor/key identities, customer/staff plaintext passwords, MFA secrets, raw tokens, full card data, or processor/provider secrets to ordinary product/admin UI.
+- Never bypass CAPTCHA, OTP, passkey, UAC, Android security prompts, Apple platform restrictions, or equivalent human/security boundaries.
+- A legitimate OS warning should be reduced through proper signing/trust/reproducible packaging, not hidden by unsafe bypasses.
+- Use the MCP/testing stack as test instrumentation only. Shipping JARVIS uses OCADE-owned runtimes.
+- One UI automation actor controls a target at a time; independent tools verify in separate passes.
+- Use Caveman and Ponytail only on active production code. Preserve immutable donor/import snapshots byte-for-byte.
+- Delete or rename code only after ToRemove.md evidence and relevant tests.
+- Do not claim "zero bugs", "unhackable", "real iPhone proof", or similar absolutes that evidence cannot support.
+- Merge product implementation only when no known Critical or Major release blocker remains for shipped capabilities and final deployment identity is verified.

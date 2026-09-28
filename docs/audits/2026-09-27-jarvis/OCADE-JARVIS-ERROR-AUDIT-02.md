@@ -4,7 +4,7 @@
 
 OCADE JARVIS is **NO-GO for commercial production** as a PC-control product. The audit proves useful components and several successful real Windows/Chrome flows, but it also proves failures in stop authority, workspace confinement, session ownership, task persistence, packaging, browser network boundaries, permission revocation, updates, voice/wake, multi-device routing and distribution readiness. The signed-in web conversation can remain a restricted preview only after session/privacy blockers are fixed and unavailable device capabilities are clearly disabled.
 
-This report summarizes the canonical ledger. The detailed evidence authority is `docs/audits/2026-09-27-jarvis/OCADE-JARVIS-canonical-audit-ledger-2026-09-27.md`.
+This report summarizes the canonical ledger. The detailed evidence authority is `docs/audits/2026-09-27-jarvis/OCADE-JARVIS-ERROR-AUDIT-01.md`.
 
 ## 1. What was tested
 

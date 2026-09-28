@@ -206,3 +206,15 @@ Report separately:
 - UNTESTED
 
 The completed web/browser baseline remains protected throughout this roadmap.
+
+## Latest deeper-device continuation — 2026-09-28
+
+- The roadmap now targets one general execution architecture rather than a set of isolated demo automations.
+- Windows remains the first physical desktop proof target. Test install, tray, autostart, device enrollment, common apps, UWP/Store apps, files, terminal boundaries, browser work, multi-app workflows, STOP, Take Over, Co-work, update, rollback, uninstall, and reinstall on a real Windows computer.
+- Professional software support is not limited to CAD. JARVIS should use direct APIs/scripting/CLI/macros where available, structured accessibility/UI where not, local visual understanding as fallback, and fresh coordinates last.
+- Android receives an OCADE-owned companion with direct OCADE-domain distribution, guided setup, permission health, optional floating mini JARVIS, app/intent/accessibility/notification/media/share flows, background task state, and safe uninstall.
+- Android testing uses Playwright mobile Chromium for web/PWA, a free emulator such as BlueStacks for Android OS behavior, Appium as primary mobile automation, and Mobile MCP as an independent verifier.
+- iPhone/iPad remain PWA/web-first in the current zero-cost mission. Use Apple-supported Shortcuts/Control Center/notifications/Remote PC where supported; do not claim unsupported global overlay or arbitrary third-party app control.
+- WebKit iPhone-like testing is compatibility evidence only. Continue seeking legitimate zero-cost physical Apple evidence without downgrading evidence standards.
+- macOS deep control requires a trusted Device Agent, TCC permission health, supported APIs, signing/notarization for public distribution, and real macOS runtime proof.
+- MCPs are not JARVIS's product engine. The shipping runtime is OCADE's own Device Agent/mobile companion.

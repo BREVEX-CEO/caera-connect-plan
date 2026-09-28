@@ -231,3 +231,23 @@ One task at a time owns mouse/keyboard/UI control. Safe non-conflicting backgrou
 Mobile remains website/PWA-first with Add to Home Screen and a dedicated Remote PC surface. No mandatory Android/iOS native companion is part of the approved roadmap, and unsupported OS-wide cross-app control is never faked.
 
 Online intelligence continues through the OCADE server authority with exactly three configured capacity/key slots. Slot-local failover is allowed; key cycling must not be used to evade a project-wide/provider-wide quota. If all Online capacity is unavailable, JARVIS enters a customer-safe timeout/unavailable state without exposing provider details.
+
+## Owner-approved decisions — 2026-09-28
+
+- OCADE is being developed as a global AI operating product, not only a chatbot.
+- JARVIS is the main execution differentiator and should control browsers, files, development tools, common desktop applications, professional software, and supported mobile actions through one safe hierarchy.
+- There is no separate Code page in the current direction. Code is produced in conversation or executed in the user's selected development environment.
+- A dedicated Projects page is not currently required. Conversations, files, repositories, workspaces, and Library should satisfy the project-context need first.
+- JARVIS tasks are primarily embedded in JARVIS. Co-work is an optional control mode rather than a separate product.
+- The design target is Claude-like calm/minimal structure, ChatGPT-like polish, Grok-like compact power, and an original OCADE orb/graph identity.
+- The primary palette is black, white, charcoal, and silver; blue indicates enabled/active state, green success, and red destructive/error.
+- The product should remove choices when OCADE can make a safe predictable default. Long explanations belong in Help.
+- Free-tier usage shows exact remaining uses; paid plans primarily show plan name and a percentage/bar.
+- One subscription provides Chat and JARVIS access according to plan allowances.
+- OCADE must provide a secure owner/admin backend on the OCADE domain with roles, usage/plan controls, payments/refunds, support, staff, security, incidents, and system health.
+- Owner/staff plaintext passwords, MFA secrets, raw tokens, full payment-card data, and provider secrets are never exposed by the dashboard.
+- Android receives an OCADE-owned companion with a guided direct-install flow and optional floating mini JARVIS, subject to Android's required permission/security prompts.
+- iPhone/iPad remain PWA/web-first with Apple-supported shortcuts/control surfaces and Remote PC; unsupported OS-wide cross-app control is not faked.
+- The mandatory zero-extra-cost testing path excludes paid/trial-only BrowserStack dependence.
+- The test team uses each MCP/tool for its strongest evidence and does not allow multiple controllers to fight over the same UI.
+- The release target is no known Critical or Major release blocker and no reproducible hidden blocker within tested scope, not an unverifiable claim of zero bugs or unhackability.

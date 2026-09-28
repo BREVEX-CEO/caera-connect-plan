@@ -155,3 +155,16 @@ The browser extension is a narrow authorized-browser bridge, not a second applic
 Mobile remains browser/PWA-first. Remote mobile-to-PC control is supported through the cloud/device authority. A web/PWA surface does not claim OS-wide control that the mobile platform does not expose.
 
 See `docs/JARVIS_DEVICE_ROADMAP.md` for the full approved lifecycle, security and capability rules.
+
+## Company-scale architecture continuation — 2026-09-28
+
+- The website/PWA remains the customer-facing control plane. It owns conversation, task presentation, approvals, device selection, billing/account UX, Help, and Remote PC status.
+- A single versioned action/task protocol connects the web control plane to trusted device runtimes.
+- The desktop Device Agent and Android companion own local OS permissions and execution. They are OCADE product components; development MCPs are not shipped as the customer runtime.
+- One action broker per device is the enforceable authority for cancellation, current permission revalidation, confirmation digests, canonical workspace scope, network/private-address rules, app identity, execution, verification, and result settlement.
+- Execution preference is direct/native API or structured file/app operation first, accessibility/structured UI second, visual understanding third, and freshly observed coordinates last.
+- Physical user input normally pauses UI automation. Co-work is an explicit controlled arbitration state.
+- Owner/admin is a separate privilege plane with server-side RBAC/RLS and audit logging. It must not rely on client-side hidden menus.
+- Billing uses provider-tokenized payment methods. Raw card numbers/CVV and plaintext passwords/MFA secrets are not application data.
+- Error monitoring and diagnostics use redaction and stable incident identities.
+- Chat and JARVIS stay separate product experiences but share account, security, plan, and infrastructure authorities where appropriate.

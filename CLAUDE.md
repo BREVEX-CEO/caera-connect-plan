@@ -58,3 +58,24 @@ For any JARVIS work after the completed web/browser mission, read `docs/JARVIS_D
 Preserve the proven Phases 0–12 baseline. The latest UI reference is `imports/UI OCADE JARVIS.zip` and must remain untouched.
 
 Do not guess unsupported mobile/desktop capability. Implement, test and label evidence honestly.
+
+## Owner-approved continuation — 2026-09-28
+
+Read the new authorities before making product changes:
+
+- `docs/COMPANY_PRODUCT_AUTHORITY.md` defines the company-scale product direction.
+- `docs/JARVIS_DESIGN_SYSTEM.md` defines the clean Claude/ChatGPT/Grok-inspired OCADE design system and JARVIS orb identity.
+- `docs/OWNER_ADMIN_BACKEND.md` defines owner/admin/staff operations.
+- `docs/BILLING_AND_GLOBAL_COMMERCE.md` defines plans, payment, country, refund, and global-commerce behavior.
+- `docs/MOBILE_DEVICE_CONTROL.md` defines Windows/macOS/Android/iPhone/iPad execution boundaries.
+- `docs/TESTING_TOOLCHAIN.md` defines the current zero-extra-cost MCP/test team and how tools must coordinate.
+- `docs/SUPPORT_LEGAL_SECURITY.md` defines Help, error handling, legal/privacy surfaces, and security UX.
+- `docs/audits/2026-09-27-jarvis/OCADE-JARVIS-ERROR-AUDIT-01.md` is the detailed error ledger and Error Audit 02 is its executive summary.
+
+Do not add a separate Code page or Projects page under the current direction. Keep the customer UI intentionally small and allow JARVIS to do complex work through conversation and device execution.
+
+For the next implementation mission, reproduce current audit findings first, fix root causes, test with the strongest available runtime evidence, use Caveman and Ponytail only after replacements are proven, and merge product code only when Critical/Major release blockers are cleared for shipped capabilities.
+
+Use each MCP/tool for its strongest evidence class. Playwright drives browser flows; DevTools diagnoses browser internals; Physical Computer Use handles native Windows UI; Appium and Mobile MCP run independent mobile passes; WebKit checks Apple-browser compatibility; GitHub/Supabase/Cloudflare/Sentry tools verify source/backend/deployment/incident state. Never have competing UI-control tools act simultaneously.
+
+The design goal is a major debloat/rebuild where needed: minimal options, clean spacing, soft corners, skeleton loading, restrained glass, strong JARVIS orb/graph identity, truthful task progress, simple settings, first-party Help, and no visible implementation clutter.

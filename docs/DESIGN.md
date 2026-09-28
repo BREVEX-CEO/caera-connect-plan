@@ -114,3 +114,18 @@ Desktop device control may add a small optional movable round OCADE mini-control
 Mobile web/PWA gets a matching compact launcher inside OCADE, not a fake OS-wide overlay.
 
 Every control state—Stop, Take Over, paused by user input, permission required, offline checkpoint, background mode and remote controller—must be visually distinct without exposing technical provider/runtime terminology.
+
+## Latest product design authority — 2026-09-28
+
+`docs/JARVIS_DESIGN_SYSTEM.md` is the detailed current design authority and supersedes older conflicting UI details.
+
+- OCADE should appear calm, premium, and minimal. Power should come from automatic behavior and execution capability, not from many visible options.
+- Use black, white, charcoal, and silver as the primary visual language. Use blue mainly for enabled/active states, green for success, and red for destructive/error.
+- Keep soft rounded corners, generous spacing, restrained borders/shadows, theme-aware thin scrollbars, skeleton loading, progressive hydration, and subtle 150–200ms interface motion.
+- Reserve stronger liquid-glass/futuristic effects for JARVIS and the orb rather than applying translucent cards everywhere.
+- Preserve and reproduce the useful 3D orb, graph, cursor-reactive behavior, semantic zoom, pan/zoom, real-data node growth, voice reaction, and task reaction from the UI donor reference without copying fake/prototype data.
+- Remove redundant pages, settings, cards, descriptions, repeated avatars, fake metrics, and decorative controls.
+- Settings should use a small set of clear categories, auto-save, short explanations, and Claude-like blue enabled states where appropriate.
+- Free usage can show exact counts. Paid usage should prefer plan name plus a clean progress bar/percentage.
+- Task UI shows current stage, truthful progress, Stop and Take Over, while details remain collapsed until requested.
+- The Help experience contains long explanations so the normal product can remain concise.

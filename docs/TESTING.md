@@ -143,3 +143,20 @@ Verify at minimum:
 - existing Chat, Offline Intelligence, JARVIS web/browser, source preservation and Supabase security tests remain green.
 
 A feature is not complete because source exists. Record SOURCE-PROVEN, LOCAL TEST, REAL BROWSER, REAL WINDOWS, REAL macOS, REAL ANDROID WEB/PWA, REAL iOS WEB/PWA, DATABASE TEST, LIVE, BLOCKED and UNTESTED independently.
+
+## Latest autonomous testing authority — 2026-09-28
+
+`docs/TESTING_TOOLCHAIN.md` defines the detailed current test-team roles and must be read before JARVIS/device release work.
+
+- Use Playwright Real Chrome for real browser journeys and Chrome DevTools for browser internals.
+- Use Edge, Firefox, desktop WebKit, Android mobile Chromium, and iPhone-like WebKit for cross-browser/web compatibility.
+- Use Physical Computer Use or approved Claude Computer control for real Windows installer, tray, Settings, native app, mouse/keyboard, update, uninstall, and physical-result verification.
+- Use Appium as primary Android structured automation and Mobile MCP as an independent second pass. Do not let both drive the same screen simultaneously.
+- Use BlueStacks or another zero-cost Android environment for Android OS testing when physical Android hardware is unavailable.
+- Treat WebKit as Apple-browser compatibility, not native Apple hardware proof.
+- Use GitHub, Supabase, Cloudflare, and Sentry-connected tooling to verify source, backend, deployment, and incident state.
+- Remove paid/trial-only BrowserStack from the required zero-cost path.
+- Test JARVIS security/authority first, then Windows/extension, Android/mobile, Apple web compatibility, then the entire OCADE website.
+- Continue independent tests when one subsystem fails and report blocked cases instead of stopping the audit.
+- After every cleanup/debloat pass, rerun targeted tests because removal can break previously working paths.
+- Final release requires no known Critical or Major release blocker for shipped capabilities plus successful broader regression and deployed-source verification.

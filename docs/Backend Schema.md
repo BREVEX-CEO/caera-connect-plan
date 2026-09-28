@@ -129,3 +129,16 @@ Persist only the minimum durable state needed for:
 Keep raw device secrets out of normal tables/logs. Keep RLS and server authorization aligned with existing account ownership. Device credentials must not authorize another account/device through identifier substitution.
 
 Do not create mobile-native-app-specific schema merely to simulate capabilities that remain web/PWA-only.
+
+## Company operations and entitlement schema continuation — 2026-09-28
+
+- Add or reuse durable role/permission authorities for Owner, Admin, Support, Billing, Developer/Operations, and Read-only staff access. Server-side checks and RLS must enforce these roles.
+- Represent owner unlimited product access as an entitlement while continuing to record usage/cost internally.
+- Usage adjustments, plan changes, complimentary grants, reset actions, refunds, reversals, and staff mutations must append auditable events rather than rewriting historical rows.
+- Store payment-provider customer/subscription/payment/invoice/refund/dispute references and only permitted metadata such as brand/last-four where provided. Never store raw card numbers, CVV/CVC, bank credentials, or processor secrets.
+- Store staff invite/status, MFA requirement state, session metadata, revocation state, role assignments, permission overrides, and immutable audit events.
+- Store support cases/internal notes separately from customer-visible notes. Internal notes must not leak to the customer UI.
+- Device permissions and Allowed Apps are scoped to the correct device where policy is device-sensitive; do not collapse all computers into one ambiguous account-wide app-name policy.
+- Stable application identifiers should be used where possible so policy cannot be bypassed by a model inventing an alias.
+- Every queued/executed JARVIS action must be revalidated against current account/device/permission/capability state at dispatch.
+- Add durable state needed for idempotent action claims, checkpoints, retry authority, result settlement, controller leases, and explicit device targets.

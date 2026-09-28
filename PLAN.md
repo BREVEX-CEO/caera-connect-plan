@@ -478,3 +478,132 @@ The canonical continuation decisions live in `docs/JARVIS_DEVICE_ROADMAP.md`. Th
 - All completed browser/web behavior remains green.
 - Every newly claimed device capability has real-hardware evidence.
 - The final source SHA, deployed SHA, protocol version, agent version, extension version and database migration head agree.
+
+## Owner-approved company-scale continuation — 2026-09-28
+
+This continuation is the newest active authority. It extends the completed and in-progress JARVIS phases above; it does not erase their evidence. Where an earlier phase describes now-superseded navigation, microphone timing, mobile scope, usage presentation, or cleanup order, this continuation wins for current implementation.
+
+### Current authority set
+
+- Read `AGENTS.md`, `CLAUDE.md`, this `PLAN.md`, `ToRemove.md`, `docs/COMPANY_PRODUCT_AUTHORITY.md`, `docs/JARVIS_DESIGN_SYSTEM.md`, `docs/OWNER_ADMIN_BACKEND.md`, `docs/BILLING_AND_GLOBAL_COMMERCE.md`, `docs/MOBILE_DEVICE_CONTROL.md`, `docs/TESTING_TOOLCHAIN.md`, `docs/SUPPORT_LEGAL_SECURITY.md`, and the canonical product/technical docs before implementation.
+- Read `docs/audits/2026-09-27-jarvis/OCADE-JARVIS-ERROR-AUDIT-01.md` before fixing JARVIS. It is the detailed 57-finding error ledger.
+- Read `docs/audits/2026-09-27-jarvis/OCADE-JARVIS-ERROR-AUDIT-02.md` for the executive audit conclusion.
+- Preserve the original canonical audit filenames as historical compatibility evidence if they still exist. New implementation references use Error Audit 01 and Error Audit 02.
+- Preserve `imports/ocade-jarvis/`, `imports/ocade-jarvis/source-original/`, and `imports/UI OCADE JARVIS.zip` unchanged.
+- Run `/caveman ultra` and then `/ponytail ultra` against active production code at appropriate cleanup checkpoints. Both are required, but neither may alter immutable imports, weaken security, hide required UI state, remove device-control capability, or delete code without ToRemove.md evidence.
+
+### Company/product outcome
+
+- OCADE is one global AI product with Chat and JARVIS as the core customer experiences.
+- JARVIS is the execution layer for browser, computer, software, coding, files, voice, tasks, multi-application work, Remote PC, and supported mobile-device actions.
+- Do not add a separate Code page. Code is produced in conversation or executed through the user's selected IDE/workspace when JARVIS is asked to act.
+- Do not add a separate Projects page unless real product evidence later proves a dedicated surface is necessary. Conversations, workspaces, repositories, files, and Library carry project context.
+- Tasks primarily live inside JARVIS. A separate permanent Tasks destination is not required unless later evidence proves it materially improves navigation.
+- Give JARVIS its own clean Library/output experience while continuing to reuse common OCADE storage and account authorities where appropriate.
+- One customer subscription grants Chat and JARVIS access according to the plan's allowances. Free-tier usage remains account-wide and follows the approved 28-use model where applicable.
+
+### Phase 24 — Authority reconciliation and baseline
+
+- Re-read the latest `main` and record the exact source SHA, deployed Cloudflare identity, Supabase migration head, Edge Function identity, extension version, Device Agent version, protocol version, and current test state.
+- Reconcile every live behavior against the newest authority documents and Error Audit 01. Do not trust the 2026-09-27 audit as current truth without reproducing each applicable finding on the latest code.
+- Build a single implementation ledger that marks every Error Audit 01 finding as reproduced, fixed, no longer reproducible, blocked, superseded, or intentionally removed.
+- Reconcile the current code and `imports/UI OCADE JARVIS.zip` so useful orb/graph/motion behavior is reused without importing prototype fake data, duplicate systems, obsolete scaffolding, or donor-only dependencies.
+- Confirm the testing MCP/toolchain is available and assign one actor and one verifier per test path. Do not allow competing physical-control tools to click/type simultaneously.
+
+### Phase 25 — Critical and Major safety repair
+
+- Reproduce and repair all four Critical findings before expanding execution capability: active-action STOP/cancellation, workspace terminal escape, temporary-file/symlink workspace escape, and browser private-network/DNS/redirect/subresource boundary bypass.
+- Reproduce and repair every Major finding that remains valid on current main, including session ownership, stale authentication, late responses, drafts, browser-history identity, extension packaging, app inventory/identity, planner OS context, task authority, device permissions, installer/update/uninstall, identity duplication, debugger detach, fresh-screen input binding, voice cleanup, Remote PC target selection, enrollment abuse controls, raw-shell confirmation, and dispatch-time revalidation.
+- Do not call a finding fixed because code changed. Require targeted regression evidence and strongest-available runtime evidence.
+
+### Phase 26 — One execution authority
+
+- Implement one device-side action broker used by Windows/macOS executors and shared conceptually by the Android companion.
+- Every action binds account, device, task, request, permission, confirmation digest where required, protocol version, and idempotency identity.
+- Revalidate permissions and capabilities when the action is dispatched, not only when it is queued.
+- Make cancellation propagate into subprocesses, browser actions, file operations, accessibility actions, vision loops, and coordinate actions wherever technically possible.
+- Enforce canonical workspace handles and safe path resolution. Symlink, junction, temp-path, shell, redirect, DNS, and private-network boundaries must fail closed.
+- Prefer typed/native actions first, accessibility/structured UI second, local visual understanding third, and fresh coordinates last. Re-observe before coordinate actions after any screen/layout/focus change.
+- Verify the physical or data result before reporting Done.
+
+### Phase 27 — Product UI rebuild and debloat
+
+- Rebuild the customer-facing experience toward `docs/JARVIS_DESIGN_SYSTEM.md`. The expected outcome is a substantially cleaner interface rather than a cosmetic reskin.
+- Remove redundant pages, duplicate history/navigation, unnecessary settings, verbose explanations, weak placeholder cards, decorative fake metrics, duplicate theme controls, and exposed internal terminology.
+- Keep Chat, JARVIS, Library, Settings/account access, Support/Help, and contextually useful history/navigation easy to reach.
+- Make automatic safe defaults replace avoidable settings. Put long explanations into Help.
+- Use black/white/silver as the main palette, blue for enabled/active states, green for success, and red for destructive/error states.
+- Preserve the silver-white 3D orb, graph, cursor reaction, semantic zoom, pan/zoom, real-data nodes, voice animation, task animation, and reduced-motion equivalent.
+- Use skeleton loading, progressive hydration, thin theme-aware scrollbars, soft corners, clean spacing, minimal text, concise errors, and responsive desktop/tablet/mobile states.
+- Free users see exact remaining usage. Paid users primarily see plan name and a clean usage percentage/bar.
+- Task progress uses truthful stages and only uses percentages when measurable. Detailed logs remain collapsed until requested.
+
+### Phase 28 — Windows and professional-software execution
+
+- Build and test the Windows companion as a polished customer product with guided install, one OCADE tray identity, lightweight autostart supervisor, local exit, website disable, signed/verified update path, rollback, clean uninstall, and credential removal.
+- Test real physical Windows using Physical Computer Use/Claude Computer for native UI and Playwright/DevTools for browser verification.
+- Support multi-application tasks and professional software through general execution logic rather than hardcoding a few demo applications.
+- Test Office applications, IDEs, file workflows, browser workflows, Store/UWP apps, editing software, and at least representative complex/engineering software paths where legally available.
+- JARVIS may inspect app-specific CLI, scripting, accessibility, plugin, or macro options before falling back to raw UI control. Installing an integration/plugin requires appropriate user authorization.
+- Co-work is a real arbitration mode. Physical user input normally pauses automation; Co-work explicitly coordinates handoff instead of allowing two actors to fight.
+
+### Phase 29 — Android companion and floating JARVIS
+
+- Implement the Android companion as an OCADE-owned runtime distributed through the owner-approved direct OCADE-domain path rather than depending on Google Play.
+- Guide installation and every required Android permission. Never bypass Android security prompts, restricted-setting protections, overlay/accessibility consent, notification permission, or screen-capture consent.
+- Implement the movable edge-snapping JARVIS mini-app/bubble with quick chat, composer, voice, current task, Stop, expand/open OCADE, permission state, and compact status.
+- Keep settings/account complexity on the website rather than bloating the bubble.
+- Implement app-launch, intent, notification, gallery/file, share/import, contact/message/call, accessibility/UI, vision, and fresh-coordinate paths within granted Android permissions.
+- Prefer Trash/reversible cleanup. Never delete personal media because the model merely guesses it is unused.
+- Test using Playwright Android mobile for web/PWA, BlueStacks or another free Android environment for OS behavior, Appium as primary structured automation, and Mobile MCP as independent verification.
+
+### Phase 30 — iPhone/iPad and macOS supported control
+
+- Keep iPhone/iPad web/PWA-first and use Apple-supported Home Screen, Siri/Shortcuts/App Intents where available, Control Center integration where supported, share flows, notifications, and Remote PC.
+- Do not claim that a PWA can create an Android-style overlay above every iOS app or arbitrarily drive every third-party application.
+- Use WebKit for iPhone/iPad browser compatibility but label it emulated compatibility rather than physical-device proof.
+- Keep looking for legitimate zero-cost Apple test environments, but never relabel simulation as real iOS/macOS evidence.
+- Build the macOS Device Agent only against supported APIs, TCC permissions, signing/notarization requirements, and a real macOS test environment when available.
+- When Apple blocks a local control path, use Remote PC or another supported workflow rather than faking success.
+
+### Phase 31 — Owner/admin company backend
+
+- Implement `admin.ocade.in` as the secure company operations surface, using server-side roles/RLS/authorization rather than frontend hiding.
+- Support Owner, Admin, Support, Billing, Developer/Operations, and Read-only roles with least privilege and audited actions.
+- Let the owner search and manage customers, usage adjustments, reset windows, plans, complimentary access, subscriptions, invoices, refunds, disputes, sessions, devices, support, staff, incidents, and system health.
+- Never expose plaintext customer/staff passwords, MFA secrets, full payment-card data, provider secrets, or raw authentication secrets.
+- Represent the owner's unlimited entitlement without disabling cost/usage telemetry.
+- Implement a global emergency JARVIS execution kill switch and scoped feature kill switches.
+- Conversation-content access is owner-only by default and must require a deliberate, logged, reasoned access path. Staff do not inherit it automatically.
+
+### Phase 32 — Global commerce, support, and legal surfaces
+
+- Implement one-plan access to Chat and JARVIS with clean free/paid usage presentation.
+- Use provider-hosted/tokenized payment entry; never store raw card numbers or security codes.
+- Support local currency where practical, billing-country confirmation, anti-VPN/anti-abuse controls, receipts, invoices, refunds, partial refunds, dunning, grace periods, cancellation, disputes, and local payment methods where the provider supports the needed lifecycle.
+- Do not hardcode an unverified tax threshold. Tax/GST/VAT/sales-tax behavior follows current verified legal/accounting requirements and selected provider capabilities.
+- Build first-party Help/Support on the OCADE domain with search, Getting Started, Chat, JARVIS, Devices, Mobile, Billing, Privacy & Security, Troubleshooting, visual guides, and contextual error links.
+- Keep Terms, Privacy, Acceptable Use, Refund/Cancellation, and device-control disclosures clean, readable, and integrated where acknowledgement is genuinely required.
+
+### Phase 33 — Autonomous testing team
+
+- Use the tool roles in `docs/TESTING_TOOLCHAIN.md`: Playwright Real Chrome, Chrome DevTools, Playwright WebKit iOS-like, WebKit Desktop, Android Mobile, Firefox, Edge, Appium Mobile, Mobile MCP, Physical Computer Use, and Filesystem MCP, plus GitHub/Supabase/Cloudflare/Sentry-connected tooling where available.
+- BrowserStack or any paid/trial-only real-device service is not a mandatory dependency under the zero-extra-cost rule.
+- One tool acts while another verifies. Appium and Mobile MCP do not simultaneously drive the same screen. Playwright and physical-computer automation do not race the same foreground browser.
+- Test JARVIS first, then Windows/extension, Android/mobile, Apple web compatibility, then the complete OCADE site including Chat, Offline, Library, Settings, authentication, admin, billing, support/legal, accessibility, responsive UI, and deployment.
+- Continue independent tests when one subsystem fails. Never stop the entire audit merely because one tool or platform is blocked.
+- Aggressively hunt concurrency, stale state, permission races, cancellation, workspace escape, DNS/private-network, prompt injection, authentication, cross-account, cross-device, protocol-skew, installer/update/uninstall, mobile permission, loading, and responsive hidden bugs.
+
+### Phase 34 — Cleanup, release, and production proof
+
+- Run Caveman and Ponytail after functionality/security are proven and again on the final candidate. They must simplify active production code without weakening control, security, performance, UI, accessibility, or supported device behavior.
+- Conduct a dedicated repo-structure audit for professional filenames, clear folder ownership, duplicate systems, obsolete dependencies, dead files, giant mixed-responsibility modules, pointless one-function files, and stale prototypes.
+- Re-run all targeted and broader tests after cleanup.
+- Product implementation merges to main only when no known Critical or Major release blocker remains for the shipped capabilities, required tests are green, blocked capabilities are disabled or honestly marked, and the branch is cleaner than the baseline.
+- Merge through a reviewed branch/PR flow. Do not rely on paid GitHub Actions. Use the trusted local/connector verification and existing deployment pipeline.
+- Verify production after merge and prove the deployed source identity corresponds to the merged main revision.
+- Customer updates after a valid release should be verified, automatic where safe, health-checked, rollback-capable, and require minimal user effort.
+
+### Final definition of done
+
+The mission is complete only when the code, docs, database, deployed product, Device Agent, extension, Android companion/PWA, supported Apple web paths, owner/admin backend, commerce/support surfaces, and public product claims agree with one another. The target is no known Critical or Major release blocker and no reproducible hidden blocker within the tested scope, not a dishonest mathematical claim of zero bugs or an unhackable product.
