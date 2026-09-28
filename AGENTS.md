@@ -117,3 +117,18 @@ Do not call a simulated or unavailable hardware path passed.
 - Do not describe unbuilt deep computer/mobile control as current functionality.
 - Do not mention a desktop-wrapper architecture until the owner starts that mission.
 - Do not weaken security, tests, accessibility, or evidence to reduce line count.
+
+## Latest company-scale authority — 2026-09-28
+
+- Every coding agent must treat `docs/COMPANY_PRODUCT_AUTHORITY.md`, `docs/JARVIS_DESIGN_SYSTEM.md`, `docs/OWNER_ADMIN_BACKEND.md`, `docs/BILLING_AND_GLOBAL_COMMERCE.md`, `docs/MOBILE_DEVICE_CONTROL.md`, `docs/TESTING_TOOLCHAIN.md`, and `docs/SUPPORT_LEGAL_SECURITY.md` as current canonical extensions of the documents listed above.
+- Before JARVIS repair, read `docs/audits/2026-09-27-jarvis/OCADE-JARVIS-ERROR-AUDIT-01.md` and `OCADE-JARVIS-ERROR-AUDIT-02.md`. Reproduce findings on current main before changing product code; historical failures are evidence, not permission to guess.
+- OCADE's customer experience is Chat + JARVIS + Library + shared Settings/Account + Support/Help. Do not create a separate Code page or Projects page unless a future owner-approved requirement explicitly reinstates one.
+- JARVIS tasks live primarily inside JARVIS. Co-work is an optional control mode, not a separate competing product.
+- Safe automatic defaults and progressive disclosure are required. Do not add settings merely because a backend parameter exists.
+- Provider/model/vendor/key identities remain hidden from ordinary customers. The server-side intelligence provider is an implementation detail.
+- Customer and staff plaintext passwords, MFA secrets, raw tokens, full payment-card data, and provider secrets are never displayed in admin/customer UI.
+- The admin/owner backend must enforce roles server-side; frontend-hidden controls are not authorization.
+- MCPs and external automation test OCADE; they are not the customer runtime. The product ships its own Device Agent/mobile companion.
+- Use the test-tool roles defined in `docs/TESTING_TOOLCHAIN.md`. Do not let two physical-control tools race the same UI.
+- Use `/caveman ultra` and `/ponytail ultra` as cleanup/simplification passes only on active production code, never on immutable donor/import snapshots.
+- A release is not done because build/tests are mostly green. No known Critical or Major release blocker may remain for a shipped capability, and deployed source identity must be verified after merge.
