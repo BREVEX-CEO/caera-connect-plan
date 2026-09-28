@@ -186,3 +186,16 @@ No native mobile app is mandatory. A web/PWA does not claim unrestricted arbitra
 One task owns visible UI control at a time. Destructive, privilege-elevating and high-impact actions retain confirmation boundaries.
 
 When all configured Online capacity is unavailable, JARVIS pauses new intelligence work in a branded customer-safe timeout state and preserves resumable task state.
+
+## Latest product requirements — 2026-09-28
+
+- OCADE's strategic product is a global AI operating layer combining Chat, JARVIS execution, Library, devices, voice, tasks, support, account/billing, and company operations.
+- The primary customer experience must remain minimal and low-effort despite the broad capability set.
+- JARVIS must support multi-application work and verify outcomes before declaring success.
+- Do not require a separate Code page or Projects page under the current product direction.
+- One plan provides Chat and JARVIS access. Free usage keeps the approved 28-use model where applicable; paid usage presentation is simplified.
+- Build a secure owner/admin backend so normal operations do not require direct Supabase-dashboard access.
+- Build first-party Help/Support and clean legal/privacy/payment surfaces on the OCADE domain.
+- Build the Android companion/floating mini JARVIS and supported Apple web/shortcut/Remote PC experience without making false platform claims.
+- Keep provider/model/vendor identities hidden from customers.
+- Product quality is measured by real task success, security, speed, clean UI, recovery, cross-device reliability, low user effort, and evidence-backed public claims.
