@@ -2,19 +2,9 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Hand, Pause, Play, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FINISHED } from "./protocol";
+import { FINISHED, TASK_STATUS } from "./protocol";
 import { readJarvisFrame, type JarvisTaskRow } from "./jarvis.functions";
 import type { JarvisVoice } from "./use-voice";
-
-const STATUS: Record<JarvisTaskRow["status"], string> = {
-  running: "Working",
-  waiting: "Waiting for you",
-  taken_over: "You have control",
-  stopped: "Stopped",
-  blocked: "Could not safely continue",
-  failed: "Failed",
-  completed: "Completed",
-};
 
 function Controls({
   task,
@@ -87,7 +77,7 @@ export function TaskCard({
       <div className="mb-1 flex items-center justify-between gap-2">
         <h2 className="truncate text-sm font-medium">{task.title}</h2>
         <span className="shrink-0 text-xs text-muted-foreground" data-testid="jarvis-task-status">
-          {STATUS[task.status]}
+          {TASK_STATUS[task.status]}
         </span>
       </div>
       {measurable && !done ? (

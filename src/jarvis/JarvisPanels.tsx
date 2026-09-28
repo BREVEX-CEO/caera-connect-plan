@@ -5,7 +5,7 @@ import { Trash2, X } from "lucide-react";
 import { deleteConversation } from "@/lib/ocade.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { FINISHED, hostOf, type Capability } from "./protocol";
+import { FINISHED, hostOf, type Capability, TASK_STATUS } from "./protocol";
 import { isAllowed } from "./permissions";
 import type { GraphNode } from "./graph";
 import {
@@ -80,16 +80,6 @@ function Toggle({
     </label>
   );
 }
-
-const TASK_WORDS: Record<string, string> = {
-  running: "working",
-  waiting: "waiting for you",
-  taken_over: "you have control",
-  stopped: "stopped",
-  blocked: "could not continue",
-  failed: "failed",
-  completed: "done",
-};
 
 const DEVICE_STATUS = {
   ready: { label: "Ready", tone: "bg-success/15 text-success" },
@@ -190,7 +180,7 @@ function SectionBody({
           id: c.id,
           title: c.title,
           sub: task
-            ? `${task.title} · ${TASK_WORDS[task.status]} · ${when(task.updated_at)}`
+            ? `${task.title} · ${TASK_STATUS[task.status].toLowerCase()} · ${when(task.updated_at)}`
             : when(c.updated_at),
           open: c.id,
           result: task && FINISHED.includes(task.status) ? task.result : null,
