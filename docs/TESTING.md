@@ -160,3 +160,14 @@ A feature is not complete because source exists. Record SOURCE-PROVEN, LOCAL TES
 - Continue independent tests when one subsystem fails and report blocked cases instead of stopping the audit.
 - After every cleanup/debloat pass, rerun targeted tests because removal can break previously working paths.
 - Final release requires no known Critical or Major release blocker for shipped capabilities plus successful broader regression and deployed-source verification.
+
+## MCP conflict, context, and fix-loop requirement — 2026-09-28
+
+- Follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md` for all multi-MCP runs.
+- Start with tool health checks and surface ownership.
+- Shard large cross-platform test programs into bounded waves and checkpoint between waves.
+- Preserve exact source SHA, environment, device/browser identity, test evidence, and next unfinished step so a resumed context continues rather than restarts.
+- When a test fails, reproduce and classify it before changing code.
+- After fixing, run targeted, integration, strongest-available real runtime/device, adversarial, and subsystem regression checks.
+- Do not rerun a flaky test blindly until it passes.
+- Visual regressions are failures even when automated selectors/assertions pass.
