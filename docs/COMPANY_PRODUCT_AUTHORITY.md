@@ -95,3 +95,11 @@ This document records the latest owner-approved company-scale product direction 
 - OCADE must not claim that software is mathematically bug-free, unhackable, or guaranteed never to show an operating-system security warning.
 - The engineering target is no known Critical or Major release blocker, no reproducible hidden blocker in the tested scope, aggressive adversarial testing, clean code, reliable recovery, and explicit reporting of remaining blocked evidence.
 - Product release evidence must distinguish source inspection, unit/integration tests, emulation, real browser tests, real Windows tests, real Android tests, real macOS tests, real iPhone/iPad tests, live deployment checks, and blocked/unavailable hardware evidence.
+
+## MCP orchestration and autonomous verification linkage — 2026-09-28
+
+- Current implementation and verification governed by this document must also follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.
+- When multiple MCPs can touch the same surface, one tool acts and the others observe or verify sequentially so browsers, devices, files, and operating-system state are not corrupted by competing automation.
+- Long runs must checkpoint durable progress before context compaction, rate limits, restart, or handoff. Resumed work continues from the next unfinished item instead of repeating completed work.
+- A failure is not closed by a code change alone. Reproduce it, fix the root cause, run targeted and nearby integration tests, verify with the strongest available real browser/device/physical evidence, attempt to break the fix, and then run the broader regression slice.
+- If one MCP or environment is unavailable, mark only that evidence class blocked and continue every independent test. Never treat blocked or emulated evidence as a real-device pass.

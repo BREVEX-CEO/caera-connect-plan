@@ -118,3 +118,16 @@
 - Delete or rename code only after ToRemove.md evidence and relevant tests.
 - Do not claim "zero bugs", "unhackable", "real iPhone proof", or similar absolutes that evidence cannot support.
 - Merge product implementation only when no known Critical or Major release blocker remains for shipped capabilities and final deployment identity is verified.
+
+## Multi-MCP operating rules — 2026-09-28
+
+- Do not launch every MCP simultaneously. Assign one active controller per target surface.
+- Do not let Playwright and physical desktop automation control the same browser at the same time.
+- Do not let Appium and Mobile MCP drive the same emulator/device at the same time.
+- Use DevTools primarily as a browser observer/debugger while Playwright acts.
+- Record durable checkpoints before long-context limits, rate limits, restarts, or handoffs.
+- Continue independent tests when one tool is blocked.
+- Never convert a blocked test into a pass.
+- Never fix by repeatedly rerunning a flaky test until it happens to turn green.
+- Require real visual QA for material UI changes.
+- Use the full autonomous fix loop in `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.

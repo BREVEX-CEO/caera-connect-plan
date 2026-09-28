@@ -85,3 +85,11 @@ This document defines the operational backend required to run OCADE as a company
 - Provide feature-level kill switches for browser extension, Device Agent command claims, mobile companion control, voice/wake, and other high-risk execution paths.
 - Every kill switch is server-authoritative, visible in audit history, and reversible only by appropriately privileged identities.
 - Owner/admin access must be protected against IDOR, privilege escalation, stale-session leakage, cross-account reads, CSRF where relevant, unsafe service-role exposure, and frontend-only authorization.
+
+## MCP orchestration and autonomous verification linkage — 2026-09-28
+
+- Current implementation and verification governed by this document must also follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.
+- When multiple MCPs can touch the same surface, one tool acts and the others observe or verify sequentially so browsers, devices, files, and operating-system state are not corrupted by competing automation.
+- Long runs must checkpoint durable progress before context compaction, rate limits, restart, or handoff. Resumed work continues from the next unfinished item instead of repeating completed work.
+- A failure is not closed by a code change alone. Reproduce it, fix the root cause, run targeted and nearby integration tests, verify with the strongest available real browser/device/physical evidence, attempt to break the fix, and then run the broader regression slice.
+- If one MCP or environment is unavailable, mark only that evidence class blocked and continue every independent test. Never treat blocked or emulated evidence as a real-device pass.

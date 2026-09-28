@@ -55,3 +55,10 @@ capability as unavailable (`core/gemini.py`).
 ```
 OCADE_BROWSER_EXECUTABLE=/path/to/chromium python -m unittest discover -s tests
 ```
+
+## Current runtime verification discipline — 2026-09-28
+
+- Active runtime development and Device Agent verification must follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.
+- Real Windows behavior must be verified with a single physical-computer actor at a time, with browser/mobile tools assigned separate surfaces.
+- Runtime fixes require reproduction, root-cause repair, targeted/integration tests, physical-result verification where applicable, adversarial interruption/restart/permission testing, and broader regression before closure.
+- Context-window changes, MCP failures, or rate limits must not reset completed runtime work; checkpoint and resume from the durable implementation ledger.

@@ -218,3 +218,11 @@ The completed web/browser baseline remains protected throughout this roadmap.
 - WebKit iPhone-like testing is compatibility evidence only. Continue seeking legitimate zero-cost physical Apple evidence without downgrading evidence standards.
 - macOS deep control requires a trusted Device Agent, TCC permission health, supported APIs, signing/notarization for public distribution, and real macOS runtime proof.
 - MCPs are not JARVIS's product engine. The shipping runtime is OCADE's own Device Agent/mobile companion.
+
+## MCP orchestration and autonomous verification linkage — 2026-09-28
+
+- Current implementation and verification governed by this document must also follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.
+- When multiple MCPs can touch the same surface, one tool acts and the others observe or verify sequentially so browsers, devices, files, and operating-system state are not corrupted by competing automation.
+- Long runs must checkpoint durable progress before context compaction, rate limits, restart, or handoff. Resumed work continues from the next unfinished item instead of repeating completed work.
+- A failure is not closed by a code change alone. Reproduce it, fix the root cause, run targeted and nearby integration tests, verify with the strongest available real browser/device/physical evidence, attempt to break the fix, and then run the broader regression slice.
+- If one MCP or environment is unavailable, mark only that evidence class blocked and continue every independent test. Never treat blocked or emulated evidence as a real-device pass.

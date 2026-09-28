@@ -607,3 +607,15 @@ This continuation is the newest active authority. It extends the completed and i
 ### Final definition of done
 
 The mission is complete only when the code, docs, database, deployed product, Device Agent, extension, Android companion/PWA, supported Apple web paths, owner/admin backend, commerce/support surfaces, and public product claims agree with one another. The target is no known Critical or Major release blocker and no reproducible hidden blocker within the tested scope, not a dishonest mathematical claim of zero bugs or an unhackable product.
+
+## MCP orchestration and autonomous fix-loop mandate — 2026-09-28
+
+- `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md` is mandatory for every long-running implementation, audit, test, cleanup, and release mission.
+- The presence of many MCPs must increase evidence quality rather than create contention. Assign one actor per browser, desktop, mobile device/emulator, repository write path, database mutation path, and deployment mutation path. Other tools observe or run independent sequential verification.
+- Before a test wave, health-check required MCPs and record which evidence classes are available. A broken MCP blocks only its dependent evidence class; continue every independent test.
+- Maintain a durable implementation/test ledger so context-window exhaustion, compaction, model fallback, restart, or rate limiting cannot erase progress. Record branch, base/main SHA, completed findings, test results, blockers, tool health, and exact next unfinished step before any handoff.
+- Divide the mission into bounded waves instead of trying to build/test all platforms concurrently in one context. Use authority/security, browser, Windows, Android, Apple web compatibility, UI, admin/billing, whole-site regression, cleanup, and final-release waves with explicit entry/exit criteria.
+- Every defect follows reproduce → root-cause analysis → regression test → fix → targeted retest → nearby integration test → strongest real runtime/device test → adversarial break attempt → broader subsystem regression. A code change alone never closes a bug.
+- Visual errors are real bugs. Responsive layout, spacing, overflow, loading, skeletons, scrollbars, orb/graph behavior, task progress, settings density, mobile bubble, admin UI, and dark/light/reduced-motion states require visual verification in addition to DOM/unit assertions.
+- Continue fixing and retesting until release gates are met or a genuine owner-only, hardware, legal, signing, payment, or platform dependency blocks further proof. Tool failure, rate limits, context changes, and a single green pass are not valid reasons to stop.
+- Never claim mathematical zero bugs. The release target is no known Critical/Major release blocker, no reproducible hidden blocker in tested scope, and explicit disclosure of blocked evidence.

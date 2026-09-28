@@ -251,3 +251,11 @@ Online intelligence continues through the OCADE server authority with exactly th
 - The mandatory zero-extra-cost testing path excludes paid/trial-only BrowserStack dependence.
 - The test team uses each MCP/tool for its strongest evidence and does not allow multiple controllers to fight over the same UI.
 - The release target is no known Critical or Major release blocker and no reproducible hidden blocker within tested scope, not an unverifiable claim of zero bugs or unhackability.
+
+## MCP orchestration and autonomous verification linkage — 2026-09-28
+
+- Current implementation and verification governed by this document must also follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.
+- When multiple MCPs can touch the same surface, one tool acts and the others observe or verify sequentially so browsers, devices, files, and operating-system state are not corrupted by competing automation.
+- Long runs must checkpoint durable progress before context compaction, rate limits, restart, or handoff. Resumed work continues from the next unfinished item instead of repeating completed work.
+- A failure is not closed by a code change alone. Reproduce it, fix the root cause, run targeted and nearby integration tests, verify with the strongest available real browser/device/physical evidence, attempt to break the fix, and then run the broader regression slice.
+- If one MCP or environment is unavailable, mark only that evidence class blocked and continue every independent test. Never treat blocked or emulated evidence as a real-device pass.

@@ -79,3 +79,17 @@ For the next implementation mission, reproduce current audit findings first, fix
 Use each MCP/tool for its strongest evidence class. Playwright drives browser flows; DevTools diagnoses browser internals; Physical Computer Use handles native Windows UI; Appium and Mobile MCP run independent mobile passes; WebKit checks Apple-browser compatibility; GitHub/Supabase/Cloudflare/Sentry tools verify source/backend/deployment/incident state. Never have competing UI-control tools act simultaneously.
 
 The design goal is a major debloat/rebuild where needed: minimal options, clean spacing, soft corners, skeleton loading, restrained glass, strong JARVIS orb/graph identity, truthful task progress, simple settings, first-party Help, and no visible implementation clutter.
+
+## MCP team operating protocol — 2026-09-28
+
+Before using any MCP or external control tool, read `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.
+
+Act as a coordinated engineering team rather than launching every MCP at once. Assign one actor to each controlled surface and use other tools as observers or later independent verifiers. Playwright owns browser interaction, DevTools diagnoses it, Physical Computer Use owns real Windows native interaction, Appium owns the first Android pass, and Mobile MCP owns an independent second Android pass. Never let two active controllers fight over the same UI.
+
+For long missions, checkpoint durable state before context compaction, restart, model fallback, or rate limits. Resume from the exact next unfinished item rather than restarting completed work. Continue independent tests when one MCP is blocked.
+
+Every reproduced bug must enter the fix loop: reproduce, isolate root cause, add/update regression coverage, fix, targeted retest, integration retest, real browser/device/physical verification, adversarial break attempt, and broader regression. Keep iterating until the applicable release gates are green.
+
+Visual QA is mandatory. A DOM test cannot approve a visually clipped, crowded, badly spaced, overflowing, slow, or confusing interface.
+
+Do not ask the owner to perform work that the connected tools can safely perform. Ask only for genuinely owner-only credentials, MFA/passkeys, OS security prompts, destructive approvals, signing/payment/legal decisions, or unavailable physical hardware interaction.

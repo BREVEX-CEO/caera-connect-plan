@@ -4126,3 +4126,7 @@ These findings came from a separate read-only reread after all 64 test sections 
 ## Post-audit source-review disposition
 
 The reread found five additional defects without changing the original runtime counters. The final canonical severity total is **Critical 4 | Major 30 | Medium 17 | Small 4 | Minor 2 = 57**. JARVIS-053 through JARVIS-056 add release conditions; JARVIS-057 blocks the documented partial-voice experience. These findings must enter the same dependency-safe repair program rather than a separate backlog.
+
+## Post-audit execution note — 2026-09-28
+
+The historical evidence, counters, reproductions, and conclusions above remain preserved as audit evidence. Current implementation work must reproduce applicable findings on the latest main and must follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md` for MCP coordination, durable checkpoints, fix/retest loops, real-device evidence, context/rate-limit recovery, visual verification, cleanup regression, and release gating. This note does not convert historical blocked evidence into a pass and does not change the original audit counters.
