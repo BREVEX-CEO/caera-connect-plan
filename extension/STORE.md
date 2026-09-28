@@ -30,3 +30,9 @@ No remote code is loaded: the page-reading script ships in the package.
 - JARVIS never reads saved passwords, never enters payment card details, never
   completes a purchase, and hands CAPTCHA, one-time codes and passkeys to the
   person.
+
+## Current test and release discipline — 2026-09-28
+
+- Extension build, package, install, authorization, owned-tab isolation, debugger attach/detach, disable/re-enable, browser restart, revoke, update, unrelated-tab protection, private-network defenses, and store-readiness must follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.
+- Playwright Real Chrome is the primary browser actor and Chrome DevTools is the debugger/observer. Physical desktop automation must not fight Playwright for the same Chrome window.
+- A packaging or lifecycle defect is fixed only after targeted retest, clean-profile/browser verification, adversarial checks, and the relevant broader browser regression are green.
