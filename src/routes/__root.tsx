@@ -6,10 +6,11 @@ import {
   createRootRouteWithContext,
   redirect,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { AppearanceProvider } from "@/lib/appearance";
@@ -227,6 +228,16 @@ function refreshOfflineAllowance() {
     .catch(() => {});
 }
 
+/** True once this tab has been anywhere but JARVIS; it never turns back off. */
+function useOfflineWanted(pathname: string): boolean {
+  const [wanted, setWanted] = useState(false);
+  const outsideJarvis = !pathname.startsWith("/ocade-jarvis");
+  useEffect(() => {
+    if (outsideJarvis) setWanted(true);
+  }, [outsideJarvis]);
+  return wanted || outsideJarvis;
+}
+
 function BrowserBootstrap() {
   const router = useRouter();
   /*
@@ -244,7 +255,14 @@ function BrowserBootstrap() {
    * restored from storage, without a second trigger for each.
    */
   const { user } = useSession();
-  useInstallationBootstrap({ enabled: Boolean(user) });
+  /*
+   * JARVIS IS ONLINE-ONLY. Opening /ocade-jarvis directly never starts the
+   * Offline Intelligence download or loads its model; the first visit to a
+   * Chat screen does, and after that the prepared state simply stays.
+   */
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const offlineWanted = useOfflineWanted(pathname);
+  useInstallationBootstrap({ enabled: Boolean(user) && offlineWanted });
 
   /*
    * REGISTER THE SERVICE WORKER, WHICH NOTHING WAS DOING.
@@ -269,14 +287,14 @@ function BrowserBootstrap() {
    * the device is running low.
    */
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !offlineWanted) return;
     const timer = setTimeout(refreshOfflineAllowance, 2000);
     window.addEventListener("online", refreshOfflineAllowance);
     return () => {
       clearTimeout(timer);
       window.removeEventListener("online", refreshOfflineAllowance);
     };
-  }, []);
+  }, [offlineWanted]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
@@ -324,6 +342,11 @@ function BrowserBootstrap() {
           const previous = signedIn;
           signedIn = nowSignedIn;
           if (event === "SIGNED_IN") setTimeout(refreshOfflineAllowance, 0);
+          // Another account (or nobody) now: nothing cached for the last one may
+          // render, even for a frame. Public data simply loads again.
+          if (previous && previous !== nowSignedIn) {
+            router.options.context.queryClient.removeQueries();
+          }
           if (event === "SIGNED_OUT") {
             /*
              * What signing out clears is what this TAB was holding, never the

@@ -160,20 +160,22 @@ export function buildGraph(state: JarvisState | undefined): Graph {
       })),
       // Computer apps the person made a decision about. An app only found on a
       // computer is a list entry, not yet a relationship.
-      ...(state.apps ?? [])
-        .filter((app) => app.rule !== "ask")
-        .map((app): GraphNode => ({
-          id: `app:computer:${app.name.toLowerCase()}`,
-          kind: "app" as const,
-          category: "app" as const,
-          label: app.name,
-          recordId: app.name,
-          meta: [
-            ["Type", "App on your computer"],
-            ["Allowed", app.rule === "always" ? "Always" : "Never"],
-          ] as [string, string][],
-          position: around(HUBS.app.direction, `computer:${app.name}`),
-        })),
+      ...(state.apps ?? []).flatMap((group) =>
+        group.apps
+          .filter((app) => app.rule !== "ask")
+          .map((app): GraphNode => ({
+            id: `app:computer:${group.deviceId}:${app.name.toLowerCase()}`,
+            kind: "app" as const,
+            category: "app" as const,
+            label: app.name,
+            recordId: app.name,
+            meta: [
+              ["Type", `App on ${group.deviceName}`],
+              ["Allowed", app.rule === "always" ? "Always" : "Never"],
+            ] as [string, string][],
+            position: around(HUBS.app.direction, `computer:${group.deviceId}:${app.name}`),
+          })),
+      ),
     ].slice(0, MAX_PER_CATEGORY),
   };
 

@@ -51,10 +51,13 @@ function recogniser(): RecognitionConstructor | null {
   return scope.SpeechRecognition ?? scope.webkitSpeechRecognition ?? null;
 }
 
-export type VoiceState = "off" | "listening" | "speaking" | "paused";
+export type VoiceState = "off" | "starting" | "listening" | "speaking" | "paused";
 
 export interface JarvisVoice {
+  /** Speech can be heard here (input). */
   supported: boolean;
+  /** Answers can be spoken here (output); without it they stay text. */
+  speaks: boolean;
   /** True only where "Hey OCADE" can be heard without audio leaving the device. */
   wakeLocal: boolean;
   state: VoiceState;
@@ -94,6 +97,7 @@ export function voiceCommand(text: string): VoiceCommand | null {
 
 export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): JarvisVoice {
   const [supported, setSupported] = useState(false);
+  const [speaks, setSpeaks] = useState(false);
   const [wakeLocal, setWakeLocal] = useState(false);
   const [state, setState] = useState<VoiceState>("off");
   const [level, setLevel] = useState(0);
@@ -116,7 +120,9 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
 
   useEffect(() => {
     const Recogniser = recogniser();
-    setSupported(Recogniser !== null && "speechSynthesis" in window);
+    // Hearing and speaking are separate: without speech output, answers stay text.
+    setSupported(Recogniser !== null);
+    setSpeaks("speechSynthesis" in window);
     void Recogniser?.available?.({ langs: [navigator.language || "en-US"], processLocally: true })
       .then((answer) => setWakeLocal(answer === "available"))
       .catch(() => setWakeLocal(false));
@@ -124,9 +130,10 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
   const wakeLocalRef = useRef(wakeLocal);
   wakeLocalRef.current = wakeLocal;
 
-  const listen = useCallback(() => {
+  const listen = useCallback((): boolean => {
     const Recogniser = recogniser();
-    if (!Recogniser || recognition.current) return;
+    if (!Recogniser) return false;
+    if (recognition.current) return true;
     const r = new Recogniser();
     // Waiting for the wake phrase happens on the device, or not at all.
     // A browser without one ignores the wake choice: pressing Voice already asked.
@@ -161,8 +168,10 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
     try {
       r.start();
       recognition.current = r;
+      return true;
     } catch {
       recognition.current = null;
+      return false;
     }
   }, []);
 
@@ -185,9 +194,16 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
 
   const start = useCallback(async () => {
     setError(null);
+    set("starting");
     try {
       const media = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.current = media;
+      // Ended (End, sign-out, leaving) while the permission prompt was open:
+      // the microphone is released at once instead of left running.
+      if (stateRef.current !== "starting") {
+        endRef.current();
+        return;
+      }
       const context = new AudioContext();
       audio.current = context;
       const analyser = context.createAnalyser();
@@ -215,11 +231,16 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
       };
       requestAnimationFrame(sample);
     } catch {
+      // Whatever part started is released; nothing keeps the microphone.
+      endRef.current();
       setError("Microphone access was refused.");
       return;
     }
     set("listening");
-    listen();
+    if (!listen()) {
+      endRef.current();
+      setError("Speech recognition is not available right now. You can still type.");
+    }
   }, [listen]);
 
   const speak = useCallback(
@@ -285,5 +306,18 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
   // Leaving the page ends voice: no microphone outlives the screen.
   useEffect(() => () => end(), [end]);
 
-  return { supported, wakeLocal, state, level, error, start, speak, interrupt, pause, resume, end };
+  return {
+    supported,
+    speaks,
+    wakeLocal,
+    state,
+    level,
+    error,
+    start,
+    speak,
+    interrupt,
+    pause,
+    resume,
+    end,
+  };
 }

@@ -10,6 +10,7 @@ import platform
 import shutil
 import subprocess
 import threading
+import time
 import webbrowser
 from pathlib import Path
 from typing import Optional
@@ -502,7 +503,7 @@ class _BrowserSession:
 
     def __init__(self, browser_name: str, mode: str = "native",
                  headless: bool = False, executable: str | None = None,
-                 cdp_endpoint: str | None = None):
+                 cdp_endpoint: str | None = None, egress=None):
         self.browser_name = browser_name
         self._spec        = _resolve_browser(browser_name)
         # OCADE modes: "isolated" = a dedicated automation profile,
@@ -512,6 +513,11 @@ class _BrowserSession:
         self.headless     = headless
         self.executable   = executable
         self.cdp_endpoint = cdp_endpoint
+        # OCADE network boundary (ocade_egress.EgressProxy): the isolated browser
+        # sends everything through it; JARVIS's own tabs in the real browser are
+        # checked per request and per response address.
+        self.egress = egress
+        self._private_hit: str | None = None
         self._observations: dict[str, dict] = {}
         self._observation_seq = 0
         self._boundary: str | None = None
@@ -545,11 +551,21 @@ class _BrowserSession:
     async def _async_init(self):
         self._pw = await async_playwright().start()
 
-    def run(self, coro, timeout: int = 60) -> str:
+    def run(self, coro, timeout: int = 60, cancel: threading.Event | None = None) -> str:
         if not self._loop:
             raise RuntimeError(f"Session for '{self.browser_name}' not started.")
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
-        return future.result(timeout=timeout)
+        if cancel is None:
+            return future.result(timeout=timeout)
+        deadline = time.monotonic() + timeout
+        while not future.done():
+            if cancel.wait(0.1):
+                future.cancel()  # cancels the page operation inside the browser loop
+                return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+            if time.monotonic() > deadline:
+                future.cancel()
+                raise TimeoutError("The browser did not answer in time")
+        return future.result()
 
     def close(self):
         if self._loop:
@@ -702,9 +718,49 @@ class _BrowserSession:
         await self._launch()
         # If somehow page got closed, open a fresh one
         if self._page is None or self._page.is_closed():
-            self._page = await self._context.new_page()
+            self._page = await self._new_page()
             await asyncio.sleep(0.2)
         return self._page
+
+    async def _new_page(self) -> Page:
+        page = await self._context.new_page()
+        if self.mode == "real":
+            await self._guard(page)
+        return page
+
+    async def _guard(self, page: Page) -> None:
+        """The network boundary for a JARVIS tab in the person's own browser."""
+        policy = self.egress.policy if self.egress else None
+        if policy is None:
+            return
+        from ocade_egress import Blocked, is_public, scope_match
+        from urllib.parse import urlsplit
+        loop = asyncio.get_running_loop()
+
+        async def check(route):
+            url = urlsplit(route.request.url)
+            if url.scheme in ("http", "https", "ws", "wss") and url.hostname:
+                try:
+                    await loop.run_in_executor(None, policy.resolve, url.hostname,
+                                               url.port or (443 if url.scheme in ("https", "wss") else 80))
+                except Blocked:  # a private address is recorded in policy.blocked
+                    await route.abort("blockedbyclient")
+                    return
+            await route.continue_()
+
+        async def seen(response):
+            # The browser resolves names itself; if it still reached a private
+            # address (DNS changed after the check), nothing from it is used.
+            try:
+                addr = await response.server_addr()
+            except Exception:
+                return
+            host = urlsplit(response.url).hostname or ""
+            if addr and not is_public(addr["ipAddress"]) and not scope_match(host, policy.allowed):
+                self._private_hit = f"{host} reached a private network address"
+
+        await page.route("**/*", check)
+        page.on("response", lambda r: asyncio.ensure_future(seen(r)))
 
     async def go_to(self, url: str) -> str:
 
@@ -928,13 +984,18 @@ class _BrowserSession:
             self._context = browser.contexts[0] if browser.contexts else await browser.new_context()
             # JARVIS works in a tab of its own; the person's tabs are only read if
             # a task switches to them, and nothing is injected profile-wide.
-            self._page = await self._context.new_page()
+            self._page = await self._new_page()
             return
         else:
             profile = Path(os.environ.get("OCADE_JARVIS_HOME", Path.home() / ".ocade_jarvis")) / "isolated-profile"
             profile.mkdir(parents=True, exist_ok=True)
             kwargs: dict = {"headless": self.headless, "viewport": {"width": 1280, "height": 800},
                             "timeout": 25_000}
+            if self.egress is not None:
+                # Everything, loopback included, goes through the egress proxy;
+                # WebRTC may not open its own UDP paths around it.
+                kwargs["args"] = [f"--proxy-server={self.egress.url}", "--proxy-bypass-list=<-loopback>",
+                                  "--force-webrtc-ip-handling-policy=disable_non_proxied_udp"]
             if self.executable:
                 kwargs["executable_path"] = self.executable
             self._context = await self._pw.chromium.launch_persistent_context(str(profile), **kwargs)
@@ -1022,6 +1083,22 @@ class _BrowserSession:
 
     async def act(self, action: dict, confirmed: bool = False) -> dict:
         """Run one action, then verify it by observing the resulting state."""
+        policy = self.egress.policy if self.egress else None
+        self._private_hit = None
+        if policy:
+            policy.blocked = None
+        outcome = await self._act(action, confirmed)
+        self._private_hit = self._private_hit or (policy.blocked if policy else None)
+        if self._private_hit:
+            # Nothing observed on a private address leaves the device.
+            try:
+                await (await self._get_page()).goto("about:blank")
+            except Exception:
+                pass
+            return {"status": "blocked", "summary": f"Stopped: {self._private_hit[:200]}"}
+        return outcome
+
+    async def _act(self, action: dict, confirmed: bool) -> dict:
         kind = str(action.get("action", ""))
         page = await self._get_page()
         before = await self._geometry(page)
@@ -1044,7 +1121,7 @@ class _BrowserSession:
             if not url.startswith(("https://", "http://")):
                 return {"status": "blocked", "summary": "Only web addresses can be opened"}
             if kind == "new_tab" or action.get("newTab"):
-                page = await self._context.new_page()
+                page = await self._new_page()
                 self._page = page
             try:
                 await page.goto(url, wait_until="domcontentloaded", timeout=30_000)

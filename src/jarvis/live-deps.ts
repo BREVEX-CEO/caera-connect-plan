@@ -34,7 +34,7 @@ export class Unavailable extends Error {
 
 export function liveDeps(conversationId: string): AgentDeps {
   return {
-    async model({ messages, memory, attachments, signal }) {
+    async model({ messages, memory, attachments, signal, onText }) {
       const billed = await beginBilledRequest({ surface: "jarvis" });
       if (!billed) return null;
       let text = "";
@@ -54,8 +54,10 @@ export function liveDeps(conversationId: string): AgentDeps {
           conversationId,
           signal,
         })) {
-          if (event.type === "token") text += event.text;
-          else if (event.type === "tool_call") toolCalls.push(event.call);
+          if (event.type === "token") {
+            text += event.text;
+            onText?.(text);
+          } else if (event.type === "tool_call") toolCalls.push(event.call);
           else if (event.type === "refusal") refusal = event;
           else if (event.type === "final") {
             text = event.response.text || text;

@@ -5,7 +5,7 @@ import { Trash2, X } from "lucide-react";
 import { deleteConversation } from "@/lib/ocade.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { FINISHED, hostOf, type Capability } from "./protocol";
+import { FINISHED, hostOf, type Capability, TASK_STATUS } from "./protocol";
 import { isAllowed } from "./permissions";
 import type { GraphNode } from "./graph";
 import {
@@ -20,11 +20,10 @@ import {
   type JarvisState,
 } from "./jarvis.functions";
 
-export type Section = "conversations" | "tasks" | "activity" | "apps" | "devices";
+export type Section = "conversations" | "activity" | "apps" | "devices";
 
 const TITLES: Record<Section, string> = {
   conversations: "Conversations",
-  tasks: "Tasks",
   activity: "Activity",
   apps: "Allowed Apps",
   devices: "Devices",
@@ -72,7 +71,7 @@ function Toggle({
         checked={checked}
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
-        className="mt-0.5 h-4 w-4 accent-current"
+        className="mt-0.5 h-4 w-4 accent-info"
       />
       <span className="flex-1">
         {label}
@@ -82,11 +81,20 @@ function Toggle({
   );
 }
 
+const DEVICE_STATUS = {
+  ready: { label: "Ready", tone: "bg-success/15 text-success" },
+  busy: { label: "Working", tone: "bg-info/15 text-info" },
+  needs_permission: { label: "Needs permission", tone: "bg-muted text-foreground" },
+  offline: { label: "Offline", tone: "bg-muted text-muted-foreground" },
+} as const;
+
 export function SectionPanel({
   section,
   state,
   signedIn,
   activeConversation,
+  target,
+  onTarget,
   onClose,
   onOpenConversation,
   onChanged,
@@ -95,6 +103,9 @@ export function SectionPanel({
   state: JarvisState | undefined;
   signedIn: boolean;
   activeConversation: string | null;
+  /** The computer new tasks go to, chosen by the person. */
+  target: string | null;
+  onTarget: (deviceId: string | null) => void;
   onClose: () => void;
   onOpenConversation: (id: string | null) => void;
   onChanged: () => void;
@@ -125,6 +136,8 @@ export function SectionPanel({
             section={section}
             state={state}
             activeConversation={activeConversation}
+            target={target}
+            onTarget={onTarget}
             onOpenConversation={onOpenConversation}
             onChanged={onChanged}
           />
@@ -138,38 +151,41 @@ function SectionBody({
   section,
   state,
   activeConversation,
+  target,
+  onTarget,
   onOpenConversation,
   onChanged,
 }: {
   section: Section;
   state: JarvisState;
   activeConversation: string | null;
+  target: string | null;
+  onTarget: (deviceId: string | null) => void;
   onOpenConversation: (id: string | null) => void;
   onChanged: () => void;
 }) {
   const [opened, setOpened] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
 
-  if (section === "conversations" || section === "tasks") {
-    const list =
-      section === "conversations"
-        ? state.conversations
-            .filter((c) => !c.archived)
-            .map((c) => ({
-              id: c.id,
-              title: c.title,
-              sub: when(c.updated_at),
-              open: c.id,
-              result: null as string | null,
-            }))
-        : state.tasks.map((t) => ({
-            id: t.id,
-            title: t.title,
-            sub: FINISHED.includes(t.status)
-              ? `${t.status.replace("_", " ")} · ${when(t.updated_at)}`
-              : `${t.status.replace("_", " ")} · step ${Math.min(t.current_step + 1, Math.max(1, t.plan.length))} of ${Math.max(1, t.plan.length)}`,
-            open: t.conversation_id,
-            result: t.result,
-          }));
+  if (section === "conversations") {
+    // Tasks live in their conversations: each row names its latest task and
+    // how it stands, so there is no second list to keep in step.
+    const latestTask = (conversationId: string) =>
+      state.tasks.find((t) => t.conversation_id === conversationId);
+    const list = state.conversations
+      .filter((c) => !c.archived)
+      .map((c) => {
+        const task = latestTask(c.id);
+        return {
+          id: c.id,
+          title: c.title,
+          sub: task
+            ? `${task.title} · ${TASK_STATUS[task.status].toLowerCase()} · ${when(task.updated_at)}`
+            : when(c.updated_at),
+          open: c.id,
+          result: task && FINISHED.includes(task.status) ? task.result : null,
+        };
+      });
     if (list.length === 0) {
       return <p className="text-muted-foreground">Nothing here yet.</p>;
     }
@@ -299,48 +315,58 @@ function SectionBody({
         </p>
         <h3 className="mt-4 text-sm font-medium">Apps on your computers</h3>
         <p className="mb-2 text-xs text-muted-foreground">
-          Found by the OCADE Device Agent. Always opens without asking; Ask waits for you; Never is
-          refused.
+          Always opens without asking. Ask waits for you. Never is refused.
         </p>
-        {state.apps.length === 0 ? (
+        {state.apps.every((group) => group.apps.length === 0) ? (
           <p className="text-muted-foreground">No computer has reported its apps yet.</p>
         ) : null}
-        <ul className="flex flex-col gap-1">
-          {state.apps.map((app) => (
-            <li key={app.name} className="flex items-center gap-2">
-              <label htmlFor={`app-${app.name}`} className="min-w-0 flex-1 truncate">
-                {app.name}
-              </label>
-              <select
-                id={`app-${app.name}`}
-                value={app.rule}
-                onChange={(event) =>
-                  void decide(
-                    `app:${app.name.toLowerCase()}`,
-                    event.target.value === "always"
-                      ? true
-                      : event.target.value === "never"
-                        ? false
-                        : null,
-                    null,
-                    onChanged,
-                  )
-                }
-                className="rounded-md border border-border/60 bg-background px-1 py-0.5 text-xs"
-              >
-                <option value="always">Always</option>
-                <option value="ask">Ask</option>
-                <option value="never">Never</option>
-              </select>
-            </li>
+        {state.apps
+          .filter((group) => group.apps.length > 0)
+          .map((group) => (
+            <section key={group.deviceId} aria-label={group.deviceName} className="mb-3">
+              <p className="mb-1 text-xs font-medium text-muted-foreground">{group.deviceName}</p>
+              <ul className="flex flex-col gap-1">
+                {group.apps.map((app) => {
+                  const id = `app-${group.deviceId}-${app.name}`;
+                  return (
+                    <li key={app.name} className="flex items-center gap-2">
+                      <label htmlFor={id} className="min-w-0 flex-1 truncate">
+                        {app.name}
+                      </label>
+                      <select
+                        id={id}
+                        value={app.rule}
+                        onChange={(event) =>
+                          void decide(
+                            `app:${app.name.toLowerCase()}`,
+                            event.target.value === "always"
+                              ? true
+                              : event.target.value === "never"
+                                ? false
+                                : null,
+                            group.deviceId,
+                            onChanged,
+                          )
+                        }
+                        className="rounded-md border border-border/60 bg-background px-1 py-0.5 text-xs"
+                      >
+                        <option value="always">Always</option>
+                        <option value="ask">Ask</option>
+                        <option value="never">Never</option>
+                      </select>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
           ))}
-        </ul>
       </>
     );
   }
 
   // Devices
   const devices = state.devices.filter((d) => !d.revoked_at && d.last_seen_at);
+  const agentCount = devices.filter((d) => d.kind === "agent").length;
   const openTasks = state.tasks.filter((t) => !FINISHED.includes(t.status) && t.device_id);
   return (
     <>
@@ -398,12 +424,37 @@ function SectionBody({
       <ul className="flex flex-col gap-2">
         {devices.map((d) => (
           <li key={d.id} className="rounded-md border border-border/60 p-2">
-            <p className="font-medium">{d.name}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="min-w-0 truncate font-medium">{d.name}</p>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-2 py-0.5 text-[11px]",
+                  DEVICE_STATUS[d.status].tone,
+                )}
+              >
+                {DEVICE_STATUS[d.status].label}
+              </span>
+            </div>
             <p className="text-xs text-muted-foreground">
-              {d.online ? "Online" : "Offline"}
+              {d.status === "needs_permission"
+                ? "Turn on what JARVIS may do below"
+                : d.status === "offline"
+                  ? "Open the OCADE Device Agent on it"
+                  : "Can work now"}
               {d.platform ? ` · ${d.platform}` : ""}
               {d.kind === "extension" ? " · Browser extension" : ""}
             </p>
+            {d.kind === "agent" && agentCount > 1 ? (
+              <label className="mt-2 flex items-center gap-2 text-xs">
+                <input
+                  type="radio"
+                  name="jarvis-target"
+                  checked={target === d.id}
+                  onChange={() => onTarget(d.id)}
+                />
+                New tasks run on this computer
+              </label>
+            ) : null}
             <Toggle
               label="Browser control"
               checked={isAllowed(state.permissions, "browser", d.id)}
@@ -448,17 +499,44 @@ function SectionBody({
                 onChange={(allowed) => void decide("cowork", allowed, d.id, onChanged)}
               />
             ) : null}
-            <button
-              type="button"
-              onClick={() =>
-                void revokeJarvisDevice({ data: { id: d.id } })
-                  .then(onChanged)
-                  .catch(() => toast.error("That device could not be removed."))
-              }
-              className="mt-2 text-xs text-destructive underline underline-offset-2"
-            >
-              Remove device
-            </button>
+            {removing === d.id ? (
+              <div role="alertdialog" aria-label={`Remove ${d.name}`} className="mt-2 text-xs">
+                <p>
+                  Remove {d.name}? It stops working with OCADE at once
+                  {openTasks.some((t) => t.device_id === d.id) ? " and its task stops" : ""}.
+                </p>
+                <div className="mt-1 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRemoving(null);
+                      if (target === d.id) onTarget(null);
+                      void revokeJarvisDevice({ data: { id: d.id } })
+                        .then(onChanged)
+                        .catch(() => toast.error("That device could not be removed."));
+                    }}
+                    className="rounded-md bg-destructive px-2 py-1 text-destructive-foreground"
+                  >
+                    Remove
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRemoving(null)}
+                    className="rounded-md border border-border px-2 py-1"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setRemoving(d.id)}
+                className="mt-2 text-xs text-destructive underline underline-offset-2"
+              >
+                Remove device
+              </button>
+            )}
           </li>
         ))}
       </ul>

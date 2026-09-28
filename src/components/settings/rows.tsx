@@ -146,3 +146,35 @@ export function describeWhen(iso: string): string {
   if (hours < 48) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
   return `${Math.round(hours / 24)} days ago`;
 }
+
+/** The one on/off switch in Settings: blue when on (docs/JARVIS_DESIGN_SYSTEM.md). */
+export function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative h-6 w-10 shrink-0 rounded-full border transition-colors duration-150",
+        checked ? "border-transparent bg-info" : "border-border/60 bg-secondary",
+      )}
+    >
+      <span
+        className={cn(
+          "absolute top-0.5 h-4.5 w-4.5 rounded-full bg-background shadow-sm transition-[left] duration-150",
+          checked ? "left-[1.15rem]" : "left-0.5",
+        )}
+      />
+    </button>
+  );
+}

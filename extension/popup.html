@@ -46,13 +46,46 @@
       [hidden] {
         display: none;
       }
+      #disclosure {
+        margin-top: 10px;
+        padding: 8px;
+        border: 1px solid #2a2a2a;
+        border-radius: 8px;
+        font-size: 12px;
+      }
+      #disclosure p {
+        margin: 0 0 6px;
+      }
+      #disclosure label {
+        display: flex;
+        gap: 6px;
+        align-items: flex-start;
+        color: #ececec;
+      }
+      a {
+        color: #ececec;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
     </style>
   </head>
   <body>
     <h1>OCADE JARVIS</h1>
     <p id="status" role="status">Checking…</p>
     <p id="fingerprint" hidden>Fingerprint <span class="mono"></span></p>
-    <button id="connect" class="primary" hidden>Connect this browser</button>
+    <div id="disclosure" hidden>
+      <p>
+        While a JARVIS task you started runs, this extension sends OCADE the text, structure,
+        address, title and screenshots of the tabs it opened for that task, so JARVIS can do it.
+        Nothing is read from other tabs, saved passwords or payment details. Stop or disconnect at
+        any time.
+        <a id="privacy" href="#" target="_blank" rel="noopener">How OCADE uses this</a>
+      </p>
+      <label><input id="consent" type="checkbox" /> I agree</label>
+    </div>
+    <button id="connect" class="primary" hidden disabled>Connect this browser</button>
     <button id="stop" hidden>STOP JARVIS</button>
     <button id="open">Open OCADE JARVIS</button>
     <button id="forget" hidden>Disconnect this browser</button>

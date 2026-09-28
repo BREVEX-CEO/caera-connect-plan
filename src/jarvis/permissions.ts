@@ -87,11 +87,19 @@ export function siteAllowed(rows: readonly PermissionRow[], url: string): boolea
 
 export type Refusal = { capability: Capability | "site" | "app"; message: string };
 
-/** Allowed Apps: Always (true), Never (false) or Ask (no decision). */
-export function appDecision(rows: readonly PermissionRow[], name: string): boolean | null {
-  const row = rows.find(
-    (r) => r.capability === `app:${name.toLowerCase()}` && r.device_id === null,
-  );
+/**
+ * Allowed Apps: Always (true), Never (false) or Ask (no decision). A rule set
+ * for this computer wins over the account-wide one for the same app.
+ */
+export function appDecision(
+  rows: readonly PermissionRow[],
+  name: string,
+  deviceId: string | null = null,
+): boolean | null {
+  const key = `app:${name.toLowerCase()}`;
+  const row =
+    (deviceId ? rows.find((r) => r.capability === key && r.device_id === deviceId) : undefined) ??
+    rows.find((r) => r.capability === key && r.device_id === null);
   return row ? row.allowed : null;
 }
 
@@ -147,16 +155,23 @@ export function refuseAction(
           : "That site is turned off in Allowed Apps.",
     };
   }
-  if (input.action.action === "open_app" && appDecision(rows, input.action.name) === false)
+  if (
+    input.action.action === "open_app" &&
+    appDecision(rows, input.action.name, input.deviceId) === false
+  )
     return { capability: "app", message: `${input.action.name} is set to Never in Allowed Apps.` };
   return null;
 }
 
 /** Whether the person must confirm this action before the device runs it. */
-export function needsConfirmation(rows: readonly PermissionRow[], action: DeviceAction): boolean {
+export function needsConfirmation(
+  rows: readonly PermissionRow[],
+  action: DeviceAction,
+  deviceId: string | null = null,
+): boolean {
   switch (action.action) {
     case "open_app":
-      return appDecision(rows, action.name) !== true;
+      return appDecision(rows, action.name, deviceId) !== true;
     case "file_delete":
     case "system":
       return true;

@@ -17,3 +17,6 @@ release/**/*.json
 # Immutable JARVIS provenance and the Python runtime: never reformatted.
 imports/ocade-jarvis/source-original/
 jarvis-runtime/
+
+# Audit evidence, preserved verbatim.
+docs/audits/

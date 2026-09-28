@@ -32,6 +32,15 @@ const auditFiles = [...sourceFiles, ...productBuiltFiles];
 
 const problems = [];
 
+/*
+ * THE THREE SEMANTIC COLOURS (docs/JARVIS_DESIGN_SYSTEM.md): blue for active,
+ * green for success, red for destructive. A hue is allowed only as the value
+ * of one of these tokens, so every coloured pixel still comes from one place.
+ */
+const SEMANTIC = /--(?:state-success|state-info|destructive)\s*:\s*$/;
+const semanticToken = (source, offset) =>
+  SEMANTIC.test(source.slice(Math.max(0, offset - 40), offset));
+
 function report(file, offset, message) {
   const line = readFileSync(file, "utf8").slice(0, offset).split(/\r?\n/).length;
   problems.push(`${file}:${line} ${message}`);
@@ -48,6 +57,7 @@ for (const file of auditFiles) {
         : raw.length === 6 || raw.length === 8
           ? [raw.slice(0, 2), raw.slice(2, 4), raw.slice(4, 6)]
           : [];
+    if (semanticToken(source, match.index)) continue;
     if (channels.length === 3 && !(channels[0] === channels[1] && channels[1] === channels[2])) {
       report(file, match.index, `non-neutral hex #${raw}`);
     }
@@ -56,12 +66,14 @@ for (const file of auditFiles) {
   for (const match of source.matchAll(
     /rgba?\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)/g,
   )) {
+    if (semanticToken(source, match.index)) continue;
     if (!(match[1] === match[2] && match[2] === match[3])) {
       report(file, match.index, `non-neutral rgb(${match[1]}, ${match[2]}, ${match[3]})`);
     }
   }
 
   for (const match of source.matchAll(/oklch\(\s*[\d.]+\s+([\d.]+)/g)) {
+    if (semanticToken(source, match.index)) continue;
     if (Number(match[1]) !== 0) {
       report(file, match.index, `non-neutral oklch chroma ${match[1]}`);
     }

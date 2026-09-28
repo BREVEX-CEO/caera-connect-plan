@@ -13,6 +13,12 @@ const json = (status: number, body: unknown) =>
 export const Route = createFileRoute("/api/jarvis/device")({
   server: {
     handlers: {
+      // Only POST is part of the device protocol; anything else is not a page.
+      GET: () =>
+        new Response(JSON.stringify({ error: "method_not_allowed" }), {
+          status: 405,
+          headers: { "content-type": "application/json", allow: "POST" },
+        }),
       POST: async ({ request }) => {
         const { authenticate, exchangeInput, exchange, PROTOCOL } =
           await import("@/jarvis/device.server");

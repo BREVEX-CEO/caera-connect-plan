@@ -10,6 +10,13 @@ and a new observation is returned instead.
 SCOPE. Files and commands stay inside the one workspace folder the person chose
 on this computer (`--workspace`); a path that resolves outside it, including
 through a symlink, is refused. Whole-computer file access is never the default.
+Commands run only where the operating system confines them to that folder
+(bubblewrap); elsewhere the terminal is reported unavailable, never faked.
+Unconfirmed commands also run without network access.
+
+STOP. Every action receives the cancellation token of the action being run;
+a command is killed with its whole process group and typing stops between
+chunks the moment it is set.
 Trash is the default for removal; permanent deletion, system changes and
 risky commands arrive here only after the person confirmed them in OCADE, and
 this module refuses them otherwise.
@@ -22,6 +29,7 @@ from __future__ import annotations
 
 import base64
 import io
+import json
 import os
 import platform
 import re
@@ -30,6 +38,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -53,6 +62,10 @@ def installed_apps() -> list[dict]:
     """Useful apps found locally: name plus how to launch them. Nothing leaves the device but names."""
     found: dict[str, dict] = {}
     if SYSTEM == "Windows":
+        # Every app in Start, Store/UWP ones included, with the id Windows
+        # itself launches it by (an AppsFolder id), then plain shortcuts.
+        for app in _start_apps():
+            found.setdefault(app["name"].lower(), app)
         roots = [Path(os.environ.get("ProgramData", "C:/ProgramData")),
                  Path(os.environ.get("APPDATA", ""))]
         for root in roots:
@@ -79,6 +92,23 @@ def installed_apps() -> list[dict]:
     return sorted(usable, key=lambda a: a["name"].lower())[:300]
 
 
+def _start_apps() -> list[dict]:
+    """Windows' own list of Start apps (Get-StartApps): name and AppsFolder id."""
+    try:
+        out = subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+             "Get-StartApps | Select-Object Name, AppID | ConvertTo-Json -Compress"],
+            capture_output=True, timeout=30, check=True,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
+        rows = json.loads(out.decode("utf-8", errors="replace") or "[]")
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return []
+    rows = rows if isinstance(rows, list) else [rows]
+    return [{"name": r["Name"], "launch": r["AppID"], "aumid": True} for r in rows
+            if isinstance(r, dict) and r.get("Name") and r.get("AppID")
+            and "uninstall" not in r["Name"].lower()]
+
+
 def _desktop_fields(entry: Path) -> dict:
     fields, in_entry = {}, False
     try:
@@ -95,7 +125,10 @@ def _desktop_fields(entry: Path) -> dict:
 
 def _launch(app: dict) -> None:
     target = app["launch"]
-    if SYSTEM == "Windows":
+    if SYSTEM == "Windows" and app.get("aumid"):
+        # A fixed argument vector: explorer activates exactly this registered app.
+        subprocess.Popen(["explorer.exe", f"shell:AppsFolder\\{target}"])
+    elif SYSTEM == "Windows":
         os.startfile(target)  # type: ignore[attr-defined]  # the shortcut itself, never a shell string
     elif SYSTEM == "Darwin":
         subprocess.Popen(["open", target], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -145,8 +178,8 @@ class Computer:
         self._obs_seq = 0
         self._observation: dict | None = None
         self._lock = threading.Lock()  # one controller of mouse and keyboard at a time
-        self.sandbox = "bubblewrap" if SYSTEM == "Linux" and shutil.which("bwrap") else (
-            "limits" if SYSTEM != "Windows" else "timeout")
+        # Only a real filesystem boundary counts; a timeout or rlimits are not isolation.
+        self.sandbox = "bubblewrap" if SYSTEM == "Linux" and shutil.which("bwrap") else None
 
     # -- what this computer offers ------------------------------------------------
 
@@ -160,13 +193,21 @@ class Computer:
 
     def capabilities(self) -> dict:
         gui = self._gui() is not None
-        return {"screen": gui, "computer_control": gui, "apps": True,
-                "files": self.root is not None, "terminal": self.root is not None}
+        screen, control = gui, gui
+        if SYSTEM == "Darwin":
+            # macOS decides these in System Settings > Privacy & Security; a
+            # capability macOS has not granted is reported unavailable, not tried.
+            screen, control = gui and _macos_screen_allowed(), gui and _macos_accessibility_allowed()
+        return {"screen": screen, "computer_control": control, "apps": True,
+                "files": self.root is not None,
+                "terminal": self.root is not None and self.sandbox is not None}
 
     # -- one action ----------------------------------------------------------------
 
-    def run(self, action: dict, confirmed: bool = False, cowork: bool = False) -> dict:
+    def run(self, action: dict, confirmed: bool = False, cowork: bool = False,
+            cancel: threading.Event | None = None) -> dict:
         kind = str(action.get("action", ""))
+        cancel = cancel or threading.Event()
         try:
             if kind == "apps":
                 apps = installed_apps()
@@ -177,16 +218,17 @@ class Computer:
             if kind.startswith("file_"):
                 return self._file(kind, action, confirmed)
             if kind == "run":
-                return self._run(str(action.get("command", "")), action.get("cwd"))
+                return self._run(str(action.get("command", "")), action.get("cwd"), confirmed, cancel)
             if kind == "system":
                 return self._system(str(action.get("op", "")), confirmed)
             if kind.startswith("screen"):
                 with self._lock:
-                    return self._screen(kind, action, confirmed, cowork)
+                    return self._screen(kind, action, confirmed, cowork, cancel)
         except ScopeError as e:
             return {"status": "blocked", "summary": str(e)}
         except Exception as e:  # reported, never retried blindly
-            return {"status": "failed", "summary": f"That did not work ({str(e)[:160]})"}
+            # Plain words only: an exception's text carries local paths and names.
+            return {"status": "failed", "summary": _plain(e)}
         return {"status": "failed", "summary": "Unknown computer action"}
 
     # -- apps ----------------------------------------------------------------------
@@ -227,10 +269,21 @@ class Computer:
                     "truncated": path.stat().st_size > MAX_READ}
         if kind == "file_write":
             path.parent.mkdir(parents=True, exist_ok=True)
-            self._inside(str(path.parent.relative_to(self.root)))
-            tmp = path.with_name(f".{path.name}.ocade-tmp")
-            tmp.write_text(str(action.get("content", "")), encoding="utf-8")
-            os.replace(tmp, path)
+            parent = self._inside(str(path.parent.relative_to(self.root)))
+            # A fresh random name created exclusively (O_EXCL never follows an
+            # existing entry), so nothing planted in the workspace can redirect it.
+            fd, tmp = tempfile.mkstemp(dir=parent, prefix=".ocade-", suffix=".tmp")
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as out:
+                    out.write(str(action.get("content", "")))
+                    out.flush()
+                    os.fsync(out.fileno())
+                if Path(tmp).resolve().parent != parent or self._inside(rel) != path:
+                    raise ScopeError("The workspace changed while writing")
+                os.replace(tmp, path)
+            finally:
+                if os.path.lexists(tmp):
+                    os.unlink(tmp)
             return {"status": "done", "summary": f"Wrote {rel}"}
         if path == self.root:
             raise ScopeError("The workspace itself cannot be removed")
@@ -247,50 +300,56 @@ class Computer:
 
     # -- commands: inside the workspace, bounded, isolated where the host allows -----
 
-    def _run(self, command: str, cwd: str | None) -> dict:
+    def _run(self, command: str, cwd: str | None, confirmed: bool, cancel: threading.Event) -> dict:
+        if self.sandbox is None:
+            return {"status": "blocked",
+                    "summary": "Running commands is not available on this computer yet"}
         folder = self._inside(cwd or ".")
         if not folder.is_dir():
             return {"status": "failed", "summary": "That folder does not exist"}
-        argv, extra = self._sandboxed(command, folder)
+        argv, extra = self._sandboxed(command, folder, network=confirmed)
         started = time.monotonic()
         process = subprocess.Popen(argv, cwd=folder, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                    stdin=subprocess.DEVNULL, **extra)
-        try:
-            out, err = process.communicate(timeout=RUN_TIMEOUT_S)
-        except subprocess.TimeoutExpired:
-            self._kill(process)
-            out, err = process.communicate()
-            return {"status": "failed", "summary": f"The command ran over {RUN_TIMEOUT_S} seconds and was stopped",
-                    "stdout": out.decode(errors="replace")[-MAX_OUTPUT:],
-                    "stderr": err.decode(errors="replace")[-MAX_OUTPUT:]}
+        while True:
+            try:
+                out, err = process.communicate(timeout=0.2)  # a retry after timeout loses no output
+                break
+            except subprocess.TimeoutExpired:
+                over = time.monotonic() - started > RUN_TIMEOUT_S
+                if cancel.is_set() or over:
+                    self._kill(process)
+                    out, err = process.communicate()
+                    return {"status": "failed", "stopped": True,
+                            "summary": f"The command ran over {RUN_TIMEOUT_S} seconds and was stopped"
+                            if over else "Stopped before it finished",
+                            "stdout": out.decode(errors="replace")[-MAX_OUTPUT:],
+                            "stderr": err.decode(errors="replace")[-MAX_OUTPUT:]}
         return {"status": "done" if process.returncode == 0 else "failed",
                 "summary": f"Exited with {process.returncode} after {time.monotonic() - started:.1f}s",
                 "exitCode": process.returncode, "isolation": self.sandbox,
                 "stdout": out.decode(errors="replace")[-MAX_OUTPUT:],
                 "stderr": err.decode(errors="replace")[-MAX_OUTPUT:]}
 
-    def _sandboxed(self, command: str, folder: Path) -> tuple[list[str], dict]:
-        if SYSTEM == "Windows":
-            # ponytail: timeout + own process group only; Job Object CPU/RAM caps when Windows is proven.
-            return (["cmd", "/c", command],
-                    {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP})  # type: ignore[attr-defined]
-        extra = {"start_new_session": True, "preexec_fn": _limits}
-        if self.sandbox == "bubblewrap":
-            # The whole system read-only, the workspace and a private /tmp writable:
-            # a command can build and test the project, and cannot change anything else.
-            return (["bwrap", "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc",
-                     "--tmpfs", "/tmp", "--bind", str(self.root), str(self.root),
-                     "--unshare-pid", "--unshare-ipc", "--unshare-uts", "--die-with-parent",
-                     "--chdir", str(folder), "/bin/sh", "-c", command], extra)
-        return (["/bin/sh", "-c", command], extra)
+    def _sandboxed(self, command: str, folder: Path, network: bool) -> tuple[list[str], dict]:
+        # The system read-only, the workspace and a private /tmp writable, the
+        # home folder hidden, no inherited secrets, and no network unless the
+        # person confirmed this exact command.
+        # ponytail: Linux bubblewrap only; Windows AppContainer / macOS sandbox when proven there.
+        return (["bwrap", "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc",
+                 "--tmpfs", "/tmp", "--tmpfs", str(Path.home()),
+                 "--bind", str(self.root), str(self.root),
+                 "--unshare-pid", "--unshare-ipc", "--unshare-uts", "--new-session",
+                 "--die-with-parent", *([] if network else ["--unshare-net"]),
+                 "--clearenv", "--setenv", "PATH", os.environ.get("PATH", "/usr/bin:/bin"),
+                 "--setenv", "HOME", str(self.root), "--setenv", "LANG", "C.UTF-8",
+                 "--chdir", str(folder), "/bin/sh", "-c", command],
+                {"start_new_session": True, "preexec_fn": _limits})
 
     @staticmethod
     def _kill(process: subprocess.Popen) -> None:
-        try:
-            if SYSTEM == "Windows":
-                process.kill()
-            else:
-                os.killpg(process.pid, signal.SIGKILL)
+        try:  # the whole group; bwrap --die-with-parent takes the rest
+            os.killpg(process.pid, signal.SIGKILL) if hasattr(os, "killpg") else process.kill()
         except (ProcessLookupError, PermissionError):
             pass
 
@@ -360,7 +419,8 @@ class Computer:
                 return f"The screen changed: {label}."
         return None
 
-    def _screen(self, kind: str, action: dict, confirmed: bool, cowork: bool) -> dict:
+    def _screen(self, kind: str, action: dict, confirmed: bool, cowork: bool,
+                cancel: threading.Event) -> dict:
         gui = self._gui()
         if gui is None:
             return {"status": "blocked", "summary": "This computer does not allow screen control"}
@@ -373,10 +433,12 @@ class Computer:
             return {"status": "needs_confirmation",
                     "summary": "You used the mouse or keyboard, so JARVIS paused. Continue?"}
         self.guard.user_input_at = 0.0
+        # Every input lands on the screen it was planned against: a changed
+        # window or size, or an old observation, gets a fresh look instead.
+        why = self._stale(str(action.get("observationId", "")))
+        if why:
+            return {"status": "stale", "summary": why, "observation": self.observe()}
         if kind == "screen_click":
-            why = self._stale(str(action.get("observationId", "")))
-            if why:
-                return {"status": "stale", "summary": why, "observation": self.observe()}
             scale = self._observation["scale"]
             x, y = float(action.get("x", -1)) * scale, float(action.get("y", -1)) * scale
             width, height = self._observation["geometry"]["w"], self._observation["geometry"]["h"]
@@ -386,8 +448,17 @@ class Computer:
             gui.click(x, y)
             detail = "Clicked on the screen"
         elif kind == "screen_type":
-            self.guard.ours()
-            gui.write(str(action.get("text", ""))[:2000], interval=0.01)
+            text = str(action.get("text", ""))[:2000]
+            for at in range(0, len(text), 40):
+                if cancel.is_set():
+                    return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+                if at and (self._stale(self._observation["id"]) or
+                           (self.guard.user_input_at and not cowork)):
+                    return {"status": "needs_confirmation",
+                            "summary": "The screen changed while typing, so JARVIS paused. Continue?"}
+                self.guard.ours()
+                gui.write(text[at:at + 40], interval=0.01)
+                self.guard.ours()
             detail = "Typed"
         elif kind == "screen_keys":
             keys = [str(k) for k in action.get("keys", [])][:4]
@@ -407,6 +478,39 @@ class Computer:
 
 class ScopeError(Exception):
     pass
+
+
+def _macos_accessibility_allowed() -> bool:
+    try:
+        import ctypes
+        services = ctypes.cdll.LoadLibrary(
+            "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices")
+        return bool(services.AXIsProcessTrusted())
+    except (OSError, AttributeError):
+        return False
+
+
+def _macos_screen_allowed() -> bool:
+    try:
+        import ctypes
+        graphics = ctypes.cdll.LoadLibrary(
+            "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")
+        return bool(graphics.CGPreflightScreenCaptureAccess())
+    except (OSError, AttributeError):
+        return False
+
+
+def _plain(error: Exception) -> str:
+    """What went wrong, without paths, user names or anything else local."""
+    for kind, words in ((FileNotFoundError, "That file or folder does not exist"),
+                        (IsADirectoryError, "That is a folder, not a file"),
+                        (NotADirectoryError, "That is a file, not a folder"),
+                        (PermissionError, "This computer did not allow that"),
+                        (FileExistsError, "That already exists"),
+                        (TimeoutError, "That took too long")):
+        if isinstance(error, kind):
+            return words
+    return f"That did not work ({type(error).__name__})"
 
 
 def _limits() -> None:  # runs in the child, before the command

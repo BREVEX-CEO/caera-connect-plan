@@ -1,0 +1,19 @@
+# The OCADE Device Agent: exactly what ocade_agent.py and the modules it runs
+# import, pinned so every build is the same build. The broader requirements.txt
+# serves the preserved donor modules (plugins, dashboard, media tools) and is
+# not part of the Device Agent.
+#
+#   python -m pip install -r requirements-agent.txt
+#   python -m playwright install chromium
+cryptography==50.0.0
+playwright==1.62.0
+pillow==12.3.0
+mss==10.1.0
+pyautogui==0.9.54
+pynput==1.8.2
+pystray==0.19.5
+send2trash==1.8.3
+# Local "Hey OCADE" listening in Background/Wake Mode only.
+sounddevice==0.5.2
+# Build only.
+pyinstaller==6.16.0

@@ -63,24 +63,29 @@ class Browsers:
 
     def __init__(self, headless: bool, cdp: str | None):
         from actions.browser_control import _BrowserSession
+        from ocade_egress import EgressProxy
+        self.egress = EgressProxy()
         self._make = lambda mode: _BrowserSession(
             "chrome", mode=mode, headless=headless,
-            executable=os.environ.get("OCADE_BROWSER_EXECUTABLE") or None, cdp_endpoint=cdp)
+            executable=os.environ.get("OCADE_BROWSER_EXECUTABLE") or None, cdp_endpoint=cdp,
+            egress=self.egress)
         self.cdp = cdp
         self.sessions: dict = {}
 
     def capabilities(self) -> dict:
         return {"browser_isolated": True, "browser_real": bool(self.cdp)}
 
-    def run(self, mode: str, action: dict, confirmed: bool) -> dict:
+    def run(self, mode: str, action: dict, confirmed: bool, sites: list[str],
+            cancel: threading.Event) -> dict:
         if mode == "real" and not self.cdp:
             return {"status": "blocked",
                     "summary": "Your own browser is not authorized on this device"}
+        self.egress.policy.allowed = frozenset(s.lower() for s in sites)
         session = self.sessions.get(mode)
         if session is None:
             session = self.sessions[mode] = self._make(mode)
             session.start()
-        return session.run(session.act(action, confirmed), timeout=90)
+        return session.run(session.act(action, confirmed), timeout=90, cancel=cancel)
 
     def frame(self, mode: str) -> str | None:
         session = self.sessions.get(mode)
@@ -105,21 +110,35 @@ class Agent:
         self.computer = Computer(workspace)
         self.stop = threading.Event()
         self.stop_all = threading.Event()
+        # The cancellation token of the action running now; every STOP sets it
+        # synchronously, before any network round trip.
+        self.cancel = threading.Event()
         self.state = {"busy": False, "background": False, "connected": True, "update": False,
                       "task": None}
         self.pending_path = identity.home / "pending.json"
+
+    def stop_everything(self) -> None:
+        """STOP JARVIS on this computer: the running action now, the rest at OCADE."""
+        self.cancel.set()
+        self.stop_all.set()
 
     def _load_pending(self) -> list[dict]:
         # Results finished before a crash, a reboot or a lost connection still reach OCADE.
         try:
             return json.loads(self.pending_path.read_text())
+        except FileNotFoundError:
+            return []
         except (OSError, ValueError):
+            # Kept for diagnosis rather than silently overwritten.
+            self.pending_path.replace(self.pending_path.with_suffix(".damaged"))
             return []
 
     def _keep_pending(self, results: list[dict]) -> None:
         if results:
-            self.pending_path.write_text(json.dumps(results))
-            self.pending_path.chmod(0o600)
+            tmp = self.pending_path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(results))
+            tmp.chmod(0o600)
+            os.replace(tmp, self.pending_path)  # never a half-written journal
         else:
             self.pending_path.unlink(missing_ok=True)
 
@@ -127,14 +146,31 @@ class Agent:
         results = self._load_pending()
         frame: dict | None = None
         apps_sent = 0.0
+        found: dict = {}  # the app inventory, found off this loop (it can take seconds)
+        finder: threading.Thread | None = None
+        active: dict | None = None  # {"id", "thread", "outcome"} of the action running now
         while not self.stop.is_set():
+            if active and not active["thread"].is_alive():
+                outcome, live = active["outcome"]
+                results.append(outcome)
+                self._keep_pending(results)
+                if live:
+                    frame = {"taskId": active["taskId"], "jpeg": live}
+                active = None
             body = {"results": results, "frame": frame,
                     "capabilities": {**self.browsers.capabilities(), **self.computer.capabilities()},
-                    "softwareVersion": SOFTWARE_VERSION}
+                    "softwareVersion": SOFTWARE_VERSION,
+                    "running": [active["id"]] if active else []}
             if self.stop_all.is_set():
                 body["stop"] = True
-            if not apps_sent or time.monotonic() - apps_sent > APPS_EVERY_S:
-                body["apps"] = [app["name"] for app in installed_apps()]
+            due = not apps_sent or time.monotonic() - apps_sent > APPS_EVERY_S
+            if due and "apps" in found:
+                body["apps"] = found.pop("apps")
+            elif due and (finder is None or not finder.is_alive()):
+                finder = threading.Thread(
+                    target=lambda: found.update(apps=[a["name"] for a in installed_apps()]),
+                    daemon=True, name="ocade-apps")
+                finder.start()
             try:
                 reply = self.identity.exchange(body)
             except NotEnrolled:
@@ -149,7 +185,7 @@ class Agent:
                 return 3
             except (urllib.error.URLError, TimeoutError, ConnectionError, OSError):
                 self._keep_pending(results)
-                self.stop.wait(3)
+                self.stop.wait(3 if not active else POLL_IDLE_SECONDS)
                 continue
             self.state["reached"] = True
             if "apps" in body:
@@ -160,28 +196,47 @@ class Agent:
                               task=reply.get("task"))
             results, frame = [], None
             self._keep_pending(results)
-            for command in reply.get("commands", []):
-                if self.stop.is_set():
-                    break
-                outcome, live = self._execute(command)
-                results.append(outcome)
-                self._keep_pending(results)
-                if live:
-                    frame = {"taskId": command["taskId"], "jpeg": live}
-            if not reply.get("commands"):
+            if active and active["id"] in reply.get("cancel", []):
+                self.cancel.set()  # stopped in OCADE (web STOP, Take Over, task ended)
+            # OCADE hands out work only while nothing runs; one action at a time
+            # owns this computer, and this loop keeps listening for STOP meanwhile.
+            commands = [] if active else reply.get("commands", [])[:1]
+            if commands and not self.stop.is_set():
+                active = self._start(commands[0])
+            if active:
+                active["thread"].join(POLL_IDLE_SECONDS)  # returns as soon as the action ends
+            else:
                 self.stop.wait(POLL_IDLE_SECONDS if self.state["busy"] else self.DORMANT_S)
+        if active:
+            self.cancel.set()
+            active["thread"].join(5)
         return 0
 
-    def _execute(self, command: dict) -> tuple[dict, str | None]:
+    def _start(self, command: dict) -> dict:
+        self.cancel = threading.Event()
+        cancel = self.cancel
+        active = {"id": command["id"], "taskId": command["taskId"],
+                  "outcome": ({"id": command["id"], "status": "failed", "summary": "The action failed"}, None)}
+
+        def work() -> None:
+            active["outcome"] = self._execute(command, cancel)
+
+        active["thread"] = threading.Thread(target=work, daemon=True, name="ocade-action")
+        active["thread"].start()
+        return active
+
+    def _execute(self, command: dict, cancel: threading.Event | None = None) -> tuple[dict, str | None]:
+        cancel = cancel or threading.Event()
         mode = command.get("mode", "isolated")
         action = command["action"]
         confirmed = bool(command.get("confirmed"))
         browser = action.get("action") in BROWSER_ACTIONS
         try:
-            outcome = (self.browsers.run(mode, action, confirmed) if browser else
-                       self.computer.run(action, confirmed, bool(command.get("cowork"))))
+            outcome = (self.browsers.run(mode, action, confirmed, command.get("sites", []), cancel)
+                       if browser else
+                       self.computer.run(action, confirmed, bool(command.get("cowork")), cancel))
         except Exception as e:  # a crashed action is reported, never retried blindly
-            outcome = {"status": "failed", "summary": f"The action failed: {str(e)[:160]}"}
+            outcome = {"status": "failed", "summary": f"The action failed ({type(e).__name__})"}
         live = (outcome.get("observation") or {}).pop("frame", None) or (
             self.browsers.frame(mode) if browser else None)
         core = {k: outcome.pop(k) for k in ("status", "summary", "changed", "observation") if k in outcome}

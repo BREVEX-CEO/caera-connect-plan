@@ -18,6 +18,9 @@ function show(state) {
         : (words[state.status] ?? words.connected)
       : "Not connected. JARVIS cannot use this browser.";
   $("connect").hidden = connected;
+  // Consent comes before any connection: nothing is collected until then.
+  $("disclosure").hidden = connected;
+  $("privacy").href = `${state.server}/privacy#jarvis`;
   $("stop").hidden = !connected || !state.approved;
   $("forget").hidden = !connected;
   $("fingerprint").hidden = !(connected && !state.approved);
@@ -25,7 +28,10 @@ function show(state) {
   $("open").onclick = () => chrome.tabs.create({ url: `${state.server}/ocade-jarvis` });
 }
 
-$("connect").onclick = async () => show(await send("connect"));
+$("consent").onchange = () => ($("connect").disabled = !$("consent").checked);
+$("connect").onclick = async () => {
+  if ($("consent").checked) show(await send("connect"));
+};
 $("stop").onclick = async () => show(await send("stop"));
 $("forget").onclick = async () => show(await send("forget"));
 show(await send("poll"));

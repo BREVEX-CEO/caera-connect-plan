@@ -20,6 +20,8 @@
 *.xml text eol=lf
 *.yaml text eol=lf
 *.yml text eol=lf
+*.webmanifest text eol=lf
+*.sha256 text eol=lf
 
 # Native Windows launcher syntax is accepted by cmd.exe with CRLF everywhere.
 *.bat text eol=crlf

@@ -32,6 +32,7 @@ const arg = (name, fallback) => {
 const BASE = arg("base", "http://127.0.0.1:8788");
 const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
 const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const PYTHON = process.env.PYTHON ?? (process.platform === "win32" ? "python" : "python3");
 const SITE_PORT = 8799;
 const SITE = `http://127.0.0.1:${SITE_PORT}`;
 
@@ -118,7 +119,7 @@ mkdirSync(workspace);
 writeFileSync(path.join(workspaceParent, "outside.txt"), "private");
 const pythonReady =
   process.env.OCADE_JARVIS_DEVICE !== "skip" &&
-  spawnSync("python3", ["-c", "import playwright"], { stdio: "ignore" }).status === 0;
+  spawnSync(PYTHON, ["-c", "import playwright"], { stdio: "ignore" }).status === 0;
 
 try {
   /* --- signed out -------------------------------------------------------- */
@@ -132,7 +133,7 @@ try {
   check(
     "signed out: the composer asks for an account",
     (await guest.locator("#jarvis-composer").getAttribute("placeholder")) ===
-      "Sign in to message JARVIS",
+      "Sign in to talk to JARVIS",
   );
   await guest.locator("#jarvis-composer").fill("hello");
   await guest.getByRole("button", { name: "Sign in to send", exact: true }).click();
@@ -264,7 +265,7 @@ try {
     };
     const connectDevice = (home, name) => {
       const child = spawn(
-        "python3",
+        PYTHON,
         [
           "jarvis-runtime/ocade_device.py",
           "connect",
@@ -315,7 +316,7 @@ try {
       laptop.out().slice(-200),
     );
     const reused = spawnSync(
-      "python3",
+      PYTHON,
       [
         "-c",
         `import sys; sys.path.insert(0, "jarvis-runtime")
@@ -354,7 +355,7 @@ except i.UpdateRequired:
       said.includes("old protocol refused"),
     );
     device = spawn(
-      "python3",
+      PYTHON,
       ["jarvis-runtime/ocade_device.py", "run", "--headless", "--workspace", workspace],
       {
         env,
@@ -367,8 +368,11 @@ except i.UpdateRequired:
     await page.reload({ waitUntil: "networkidle" });
     await rail("Devices").click();
     check(
-      "the device shows online",
-      await until(async () => (await page.getByText("Online").count()) >= 1, 30_000),
+      "the device shows online, with one readiness state",
+      await until(
+        async () => (await page.getByText(/^(Ready|Needs permission)$/).count()) >= 1,
+        30_000,
+      ),
     );
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
 
@@ -388,8 +392,24 @@ except i.UpdateRequired:
       ) && !existsSync(path.join(workspace, "notes.md")),
     );
     await rail("Devices").click();
-    await page.getByRole("switch", { name: /Files in the workspace/ }).click();
-    await page.getByRole("switch", { name: /Run commands in the workspace/ }).click();
+    const files = page.getByRole("switch", { name: /Files in the workspace/ });
+    // The computer reports what it offers on its first exchange; wait for it.
+    check(
+      "a just-connected computer's switches become available by themselves",
+      await until(() => files.isEnabled(), 30_000),
+    );
+    await files.click();
+    // Commands are offered only where the computer confines them (Linux
+    // bubblewrap); anywhere else the switch is shown unavailable, not faked.
+    const commands = page.getByRole("switch", { name: /Run commands in the workspace/ });
+    const terminal = await commands.isEnabled();
+    if (terminal) await commands.click();
+    else {
+      check(
+        "running commands is shown unavailable where it cannot be confined",
+        process.platform !== "linux",
+      );
+    }
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
     await script("computer-task", [
       {
@@ -400,20 +420,28 @@ except i.UpdateRequired:
         tool: "computer",
         args: { action: "file_write", path: "notes.md", content: "OCADE was here" },
       },
-      { tool: "computer", args: { action: "run", command: "cat notes.md" } },
+      terminal
+        ? { tool: "computer", args: { action: "run", command: "cat notes.md" } }
+        : { tool: "computer", args: { action: "file_read", path: "notes.md" } },
       { tool: "computer", args: { action: "file_read", path: "../outside.txt" } },
-      { tool: "computer", args: { action: "run", command: "git push origin main" } },
+      ...(terminal
+        ? [{ tool: "computer", args: { action: "run", command: "git push origin main" } }]
+        : []),
       { tool: "finish_task", args: { outcome: "completed", result: "Notes written and checked." } },
       { text: "Your notes are written." },
     ]);
     await say("computer-task write and check my notes");
-    const ask = page.getByRole("alertdialog", { name: "Confirm this step" });
-    const asked = await until(async () => (await ask.count()) === 1, 60_000);
-    check(
-      "publishing (git push) waits for the person",
-      asked && (await ask.innerText()).includes("Running git push origin main"),
-    );
-    if (asked) await ask.getByRole("button", { name: "Decline", exact: true }).click();
+    if (terminal) {
+      const ask = page.getByRole("alertdialog", { name: "Confirm this step" });
+      const asked = await until(async () => (await ask.count()) === 1, 60_000);
+      check(
+        "publishing (git push) waits for the person",
+        asked && (await ask.innerText()).includes("Running git push origin main"),
+      );
+      if (asked) await ask.getByRole("button", { name: "Decline", exact: true }).click();
+    } else {
+      blocked("publishing (git push) waits for the person", "no confined terminal on this host");
+    }
     await idle();
     const computerTurns = (await boundary()).turns.map((t) => t.content).join("\n");
     check(
@@ -422,14 +450,18 @@ except i.UpdateRequired:
         readFileSync(path.join(workspace, "notes.md"), "utf8") === "OCADE was here",
     );
     check(
-      "and runs a command there, reading its real output",
+      terminal
+        ? "and runs a command there, reading its real output"
+        : "and reads the file back from the real computer",
       computerTurns.includes("OCADE was here"),
     );
     check(
       "a path outside the workspace is refused on the device",
       computerTurns.includes("outside the workspace"),
     );
-    check("the declined push never ran", computerTurns.includes("The person declined this step"));
+    if (terminal) {
+      check("the declined push never ran", computerTurns.includes("The person declined this step"));
+    }
 
     /* --- Online capacity unavailable: a calm OCADE state, the task saved -------- */
     const setBoundary = (status) =>
@@ -498,7 +530,13 @@ except i.UpdateRequired:
     /* --- Remote PC from a phone-sized screen, and the global STOP JARVIS ------- */
     await script("remote-task", [
       { tool: "start_task", args: { title: "Long build", where: "computer", steps: ["Build"] } },
-      { tool: "computer", args: { action: "run", command: "sleep 90" } },
+      // A long step, so STOP lands while the computer is working.
+      ...(terminal
+        ? [{ tool: "computer", args: { action: "run", command: "sleep 90" } }]
+        : Array.from({ length: 12 }, () => ({
+            tool: "browser",
+            args: { action: "wait", seconds: 5 },
+          }))),
       { tool: "finish_task", args: { outcome: "completed", result: "Built." } },
     ]);
     await say("remote-task run the long build");
@@ -520,7 +558,7 @@ except i.UpdateRequired:
     check("one round STOP JARVIS is within reach on the phone", (await stopAll.count()) === 1);
     await stopAll.click();
     await idle();
-    await rail("Tasks")
+    await rail("Conversations")
       .click()
       .catch(() => undefined);
     check(
@@ -843,7 +881,7 @@ except i.UpdateRequired:
     await until(() => fetch(`http://127.0.0.1:${cdpPort}/json/version`).then((r) => r.ok), 20_000);
     device.kill("SIGKILL");
     device = spawn(
-      "python3",
+      PYTHON,
       [
         "jarvis-runtime/ocade_device.py",
         "run",
@@ -914,7 +952,10 @@ except i.UpdateRequired:
       const extensionId = new URL(worker.url()).host;
       const popup = await chrome.newPage();
       await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-      await popup.getByRole("button", { name: "Connect this browser", exact: true }).click();
+      const connectButton = popup.getByRole("button", { name: "Connect this browser" });
+      check("the extension asks for consent before connecting", await connectButton.isDisabled());
+      await popup.getByRole("checkbox", { name: "I agree" }).check();
+      await connectButton.click();
       const approval = await until(
         () => chrome.pages().some((p) => p.url().includes("/ocade-jarvis?connect=")),
         20_000,
@@ -1015,6 +1056,12 @@ except i.UpdateRequired:
     await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
     await rail("Devices").click();
     await page.getByRole("button", { name: "Remove device", exact: true }).click();
+    const confirmRemove = page.getByRole("alertdialog", { name: /^Remove / });
+    check(
+      "removing a device asks first and names the computer",
+      (await confirmRemove.count()) === 1 && (await confirmRemove.innerText()).includes("Remove"),
+    );
+    await confirmRemove.getByRole("button", { name: "Remove", exact: true }).click();
     const exited = await until(() => device.exitCode !== null, 30_000);
     check(
       "a removed device loses access at once",
@@ -1223,7 +1270,7 @@ except i.UpdateRequired:
   await page.getByRole("button", { name: "Open navigation", exact: true }).click();
   check(
     "the phone drawer opens the JARVIS sections",
-    (await page.getByRole("button", { name: "Tasks", exact: true }).count()) >= 1,
+    (await page.getByRole("button", { name: "Devices", exact: true }).count()) >= 1,
   );
   await page
     .getByRole("button", { name: "Close navigation", exact: true })

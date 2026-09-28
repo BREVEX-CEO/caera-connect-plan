@@ -30,6 +30,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleVersion</key><string>${OCADE_VERSION}</string>
   <key>LSUIElement</key><true/>
   <key>NSAppleEventsUsageDescription</key><string>OCADE JARVIS opens and controls apps only when you ask it to.</string>
+  <key>NSMicrophoneUsageDescription</key><string>OCADE listens for "Hey OCADE" on this Mac only while Background/Wake Mode is on. Audio stays on this Mac until the phrase is heard.</string>
 </dict></plist>
 PLIST
 codesign --force --deep --options runtime --timestamp \

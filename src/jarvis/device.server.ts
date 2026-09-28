@@ -15,11 +15,30 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import contract from "../../jarvis-runtime/ocade_protocol.json";
+import { isAllowed, needsConfirmation, refuseAction } from "./permissions";
+import type { DeviceAction } from "./protocol";
 
 type Admin = SupabaseClient<Database>;
 
 export const PROTOCOL = contract;
+
+/**
+ * THE EMERGENCY STOP FOR ALL DEVICE WORK. When the owner sets the Worker
+ * variable `JARVIS_EXECUTION_DISABLED=1`, no device receives work, every
+ * running action is cancelled at its next check, and no task can start.
+ * Accounts, Chat and ordinary JARVIS answers keep working. Reversible only by
+ * whoever controls the deployment's variables.
+ */
+export function executionDisabled(): boolean {
+  return process.env.JARVIS_EXECUTION_DISABLED === "1";
+}
 const ENROLLMENT_MS = 10 * 60_000;
+/**
+ * Enrollment is public (a device has no account yet), so waiting requests are
+ * capped: each expires in ten minutes, and past this many at once new ones
+ * are asked to try again rather than filling the table.
+ */
+export const MAX_PENDING_ENROLLMENTS = 200;
 
 export async function sha256Hex(value: string | Uint8Array<ArrayBuffer>): Promise<string> {
   const bytes = typeof value === "string" ? new TextEncoder().encode(value) : value;
@@ -165,6 +184,13 @@ export async function enroll(
     .delete()
     .is("user_id", null)
     .lt("enrollment_expires_at", new Date().toISOString());
+  const { count } = await admin
+    .from("jarvis_devices")
+    .select("id", { count: "exact", head: true })
+    .is("user_id", null);
+  if ((count ?? 0) >= MAX_PENDING_ENROLLMENTS) {
+    return { status: 429, body: { error: "busy" } };
+  }
   const { data, error } = await admin
     .from("jarvis_devices")
     .insert({
@@ -274,6 +300,17 @@ const RESULT_STATUSES = [
   "stale",
 ] as const;
 
+/**
+ * The last line of defence for what a device says in Activity: local paths
+ * and the user names inside them never reach the account's cloud history.
+ */
+export function redactLocal(text: string): string {
+  return text
+    .replace(/\\\\[^\s"'<>|]+/g, "[path]")
+    .replace(/\b[A-Za-z]:[\\/][^\s"'<>|]*/g, "[path]")
+    .replace(/(?:~|\/(?:Users|home|root|var\/folders))\/[^\s"'<>|]*/g, "[path]");
+}
+
 export const exchangeInput = z.object({
   results: z
     .array(
@@ -295,6 +332,8 @@ export const exchangeInput = z.object({
   capabilities: z.record(z.string().max(40), z.boolean()).optional(),
   softwareVersion: z.string().trim().max(40).optional(),
   apps: z.array(z.string().max(80)).max(300).optional(),
+  /** The action the device is executing now; the reply says whether to cancel it. */
+  running: z.array(z.string().uuid()).max(1).optional(),
   /** STOP JARVIS from the computer's own tray or mini-control. */
   stop: z.boolean().optional(),
   /** The device disconnects itself (Disconnect, or uninstall): its key stops working. */
@@ -313,6 +352,8 @@ export interface DeviceCommand {
   mode: "isolated" | "real";
   /** The person chose to work alongside JARVIS: their input does not pause it. */
   cowork: boolean;
+  /** Sites the person allowed; only these may resolve to a private network address. */
+  sites: string[];
 }
 
 export async function exchange(
@@ -327,6 +368,10 @@ export async function exchange(
   /** The open task, for the tray and mini-control: title and progress only. */
   task: { title: string; step: number; steps: number; status: string } | null;
   commands: DeviceCommand[];
+  /** Running actions the device must cancel now (STOP, Take Over, task ended). */
+  cancel: string[];
+  /** What happened to each reported result: kept, or why not. */
+  acks?: { id: string; outcome: "accepted" | "stopped" | "unknown" }[];
   rotated?: boolean;
 }> {
   if (input.forget) {
@@ -347,11 +392,12 @@ export async function exchange(
       background: false,
       task: null,
       commands: [],
+      cancel: input.running ?? [],
     };
   }
   if (input.stop) {
     // The global Stop: every unfinished task on this device ends, and nothing
-    // queued for it runs.
+    // queued, waiting or running for it continues.
     const at = new Date().toISOString();
     await admin
       .from("jarvis_tasks")
@@ -362,7 +408,7 @@ export async function exchange(
       .from("jarvis_activity")
       .update({ status: "cancelled", completed_at: at })
       .eq("device_id", device.id)
-      .in("status", ["queued", "needs_confirmation"]);
+      .in("status", ["queued", "needs_confirmation", "claimed"]);
   }
   const [{ data: open }, { data: self }] = await Promise.all([
     admin
@@ -376,7 +422,9 @@ export async function exchange(
   // Every reply names the protocol and the device it is for, so a device can
   // refuse work that was not addressed to it; `busy` and `background` decide
   // whether it stays active or goes dormant.
+  const acks: { id: string; outcome: "accepted" | "stopped" | "unknown" }[] = [];
   const envelope = {
+    acks,
     protocol: PROTOCOL.version,
     deviceId: device.id,
     busy: Boolean(open?.length),
@@ -415,11 +463,11 @@ export async function exchange(
       observation: result.observation ?? null,
       ...(result.detail === undefined ? {} : { detail: result.detail }),
     });
-    await admin
+    const { data: settled } = await admin
       .from("jarvis_activity")
       .update({
         status,
-        ...(result.summary ? { summary: result.summary.slice(0, 300) } : {}),
+        ...(result.summary ? { summary: redactLocal(result.summary).slice(0, 300) } : {}),
         result:
           outcome.length <= 40_000
             ? JSON.parse(outcome)
@@ -428,7 +476,23 @@ export async function exchange(
       })
       .eq("id", result.id)
       .eq("device_id", device.id)
-      .eq("status", "claimed");
+      .eq("status", "claimed")
+      .select("id");
+    if (settled?.length) {
+      acks.push({ id: result.id, outcome: "accepted" });
+      continue;
+    }
+    // A result for an action that was stopped meanwhile never counts as done;
+    // it is kept only as the device's acknowledgement of the Stop.
+    const { data: stopped } = await admin
+      .from("jarvis_activity")
+      .update({ result: { status: "stopped", late: result.status } })
+      .eq("id", result.id)
+      .eq("device_id", device.id)
+      .eq("status", "cancelled")
+      .is("result", null)
+      .select("id");
+    acks.push({ id: result.id, outcome: stopped?.length ? "stopped" : "unknown" });
   }
 
   if (input.frame) {
@@ -455,58 +519,120 @@ export async function exchange(
     .eq("status", "claimed")
     .lt("created_at", new Date(Date.now() - 2 * ACTION_TTL_MS).toISOString());
 
+  // The action the device runs now continues only while it is still claimed
+  // and its task still running; anything else (STOP, Take Over, the task
+  // ended, the action timed out) cancels it on the device.
+  if (executionDisabled()) {
+    return { ...envelope, commands: [], cancel: input.running ?? [], rotated };
+  }
+  const cancel: string[] = [];
+  if (input.running?.length) {
+    const { data: live } = await admin
+      .from("jarvis_activity")
+      .select("id, status, task_id")
+      .eq("device_id", device.id)
+      .in("id", input.running)
+      .limit(1);
+    const { data: liveTasks } = await admin
+      .from("jarvis_tasks")
+      .select("id")
+      .eq("device_id", device.id)
+      .eq("status", "running")
+      .in(
+        "id",
+        (live ?? []).map((row) => row.task_id),
+      )
+      .limit(1);
+    const runningTasks = new Set((liveTasks ?? []).map((task) => task.id));
+    for (const id of input.running) {
+      const row = live?.find((r) => r.id === id);
+      if (!row || row.status !== "claimed" || !runningTasks.has(row.task_id)) cancel.push(id);
+    }
+    // One action at a time owns the device: nothing new while one runs.
+    return { ...envelope, commands: [], cancel, rotated };
+  }
+
   const { data: queued } = await admin
     .from("jarvis_activity")
     .select("id, task_id, action, confirmed")
     .eq("device_id", device.id)
     .eq("status", "queued")
     .order("created_at", { ascending: true })
-    .limit(5);
-  if (!queued?.length) return { ...envelope, commands: [], rotated };
+    .limit(1);
+  if (!queued?.length) return { ...envelope, commands: [], cancel, rotated };
+  const row = queued[0];
 
-  const { data: tasks } = await admin
-    .from("jarvis_tasks")
-    .select("id, browser_mode")
-    .eq("device_id", device.id)
-    .eq("status", "running")
-    .in(
-      "id",
-      queued.map((row) => row.task_id),
-    )
-    .limit(5);
-  const running = new Map((tasks ?? []).map((task) => [task.id, task.browser_mode]));
-  const { data: cowork } = await admin
-    .from("jarvis_permissions")
-    .select("allowed, device_id")
-    .eq("user_id", device.userId)
-    .eq("capability", "cowork")
-    .limit(50);
-  const coworking =
-    (cowork ?? []).find((row) => row.device_id === device.id)?.allowed ??
-    (cowork ?? []).find((row) => row.device_id === null)?.allowed ??
-    false;
-
-  const commands: DeviceCommand[] = [];
-  for (const row of queued) {
-    const mode = running.get(row.task_id);
-    if (!mode) continue;
-    const { data: claimed } = await admin
+  const [{ data: task }, { data: rows }, { data: deviceRow }] = await Promise.all([
+    admin
+      .from("jarvis_tasks")
+      .select("id, browser_mode")
+      .eq("id", row.task_id)
+      .eq("device_id", device.id)
+      .eq("status", "running")
+      .maybeSingle(),
+    admin
+      .from("jarvis_permissions")
+      .select("capability, allowed, device_id")
+      .eq("user_id", device.userId)
+      .limit(500),
+    admin
+      .from("jarvis_devices")
+      .select("capabilities")
+      .eq("id", device.id)
+      .is("revoked_at", null)
+      .maybeSingle(),
+  ]);
+  if (!task) return { ...envelope, commands: [], cancel, rotated };
+  const permissions = rows ?? [];
+  const action = row.action as DeviceAction;
+  const mode = task.browser_mode as "isolated" | "real";
+  // Permission is checked again when the action leaves for the device, not
+  // only when it was queued: a switch turned off meanwhile stops it here.
+  const refusal = deviceRow
+    ? refuseAction(permissions, {
+        deviceId: device.id,
+        mode,
+        action,
+        offered: (deviceRow.capabilities ?? {}) as Record<string, boolean>,
+      })
+    : { message: "This device was removed." };
+  if (refusal || (needsConfirmation(permissions, action, device.id) && !row.confirmed)) {
+    await admin
       .from("jarvis_activity")
-      .update({ status: "claimed" })
+      .update({
+        status: "cancelled",
+        completed_at: now,
+        result: { status: "refused", reason: refusal?.message ?? "Needs confirmation again." },
+      })
       .eq("id", row.id)
-      .eq("status", "queued")
-      .select("id")
-      .maybeSingle();
-    if (claimed) {
-      commands.push({
+      .eq("status", "queued");
+    return { ...envelope, commands: [], cancel, rotated };
+  }
+
+  const { data: claimed } = await admin
+    .from("jarvis_activity")
+    .update({ status: "claimed" })
+    .eq("id", row.id)
+    .eq("status", "queued")
+    .select("id")
+    .maybeSingle();
+  if (!claimed) return { ...envelope, commands: [], cancel, rotated };
+  return {
+    ...envelope,
+    commands: [
+      {
         id: row.id,
         taskId: row.task_id,
         action: row.action as Record<string, unknown>,
         confirmed: row.confirmed,
-        mode: mode as "isolated" | "real",
-        cowork: coworking,
-      });
-    }
-  }
-  return { ...envelope, commands, rotated };
+        mode,
+        cowork: isAllowed(permissions, "cowork", device.id),
+        sites: permissions
+          .filter((p) => p.allowed && p.device_id === null && p.capability.startsWith("site:"))
+          .map((p) => p.capability.slice(5)),
+      },
+    ],
+    cancel,
+    rotated,
+  };
 }

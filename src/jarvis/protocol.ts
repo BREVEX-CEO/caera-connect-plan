@@ -158,6 +158,17 @@ export const TASK_STATUSES = [
   "failed",
   "completed",
 ] as const;
+
+/** How a task stands, in the words the person sees everywhere. */
+export const TASK_STATUS: Record<TaskStatus, string> = {
+  running: "Working",
+  waiting: "Waiting for you",
+  taken_over: "You have control",
+  stopped: "Stopped",
+  blocked: "Could not safely continue",
+  failed: "Failed",
+  completed: "Completed",
+};
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 export const FINISHED: readonly TaskStatus[] = ["stopped", "blocked", "failed", "completed"];
 

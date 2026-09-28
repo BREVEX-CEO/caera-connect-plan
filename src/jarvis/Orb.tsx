@@ -245,47 +245,51 @@ export function Orb({
         hits.push({ node, x: p.x, y: p.y, r: Math.max(10, r + 4) });
       }
 
-      // The glass core, after the reference: a dark (or pale) sphere with a
-      // specular highlight and a faint rim, breathing with the voice level.
-      const core = radius * 0.16 * (1 + levelRef.current * 0.15);
+      // The core: a silver-white glass sphere (docs/JARVIS_DESIGN_SYSTEM.md)
+      // with a soft halo, a specular highlight and a rim light, breathing
+      // with the voice level. Neutral silver on both themes.
+      const core = radius * 0.24 * (1 + levelRef.current * 0.12);
+      const halo = context.createRadialGradient(cx, cy, core * 0.8, cx, cy, core * 2.4);
+      halo.addColorStop(0, dark ? "rgba(255,255,255,0.14)" : "rgba(120,120,120,0.18)");
+      halo.addColorStop(1, "rgba(255,255,255,0)");
+      context.globalAlpha = 1;
+      context.fillStyle = halo;
+      context.beginPath();
+      context.arc(cx, cy, core * 2.4, 0, Math.PI * 2);
+      context.fill();
       const body = context.createRadialGradient(
-        cx - core * 0.3,
-        cy - core * 0.3,
-        core * 0.04,
+        cx - core * 0.35,
+        cy - core * 0.4,
+        core * 0.05,
         cx,
         cy,
         core,
       );
-      if (dark) {
-        body.addColorStop(0, "rgba(96,96,96,0.62)");
-        body.addColorStop(0.4, "rgba(36,36,36,0.72)");
-        body.addColorStop(0.85, "rgba(11,11,11,0.88)");
-        body.addColorStop(1, "rgba(6,6,6,0.96)");
-      } else {
-        body.addColorStop(0, "rgba(242,242,242,0.88)");
-        body.addColorStop(0.4, "rgba(204,204,204,0.82)");
-        body.addColorStop(1, "rgba(156,156,156,0.92)");
-      }
-      context.globalAlpha = 1;
+      body.addColorStop(0, "rgba(255,255,255,0.98)");
+      body.addColorStop(0.35, dark ? "rgba(216,216,216,0.94)" : "rgba(230,230,230,0.97)");
+      body.addColorStop(0.78, dark ? "rgba(140,140,140,0.9)" : "rgba(172,172,172,0.96)");
+      body.addColorStop(1, dark ? "rgba(70,70,70,0.92)" : "rgba(118,118,118,0.96)");
       context.fillStyle = body;
       context.beginPath();
       context.arc(cx, cy, core, 0, Math.PI * 2);
       context.fill();
       const spec = context.createRadialGradient(
-        cx - core * 0.35,
-        cy - core * 0.35,
+        cx - core * 0.4,
+        cy - core * 0.45,
         0,
-        cx - core * 0.2,
-        cy - core * 0.2,
-        core * 0.6,
+        cx - core * 0.3,
+        cy - core * 0.35,
+        core * 0.45,
       );
-      spec.addColorStop(0, `rgba(255,255,255,${dark ? 0.28 : 0.55})`);
+      spec.addColorStop(0, "rgba(255,255,255,0.9)");
       spec.addColorStop(1, "rgba(255,255,255,0)");
       context.fillStyle = spec;
       context.fill();
-      context.globalAlpha = dark ? 0.12 : 0.25;
-      context.lineWidth = 0.7;
+      context.globalAlpha = dark ? 0.35 : 0.5;
+      context.strokeStyle = dark ? "rgba(255,255,255,0.8)" : "rgba(90,90,90,0.8)";
+      context.lineWidth = 1;
       context.stroke();
+      context.strokeStyle = ink;
       context.fillStyle = ink;
       projected.current = hits;
       context.globalAlpha = 1;

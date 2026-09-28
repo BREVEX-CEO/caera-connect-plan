@@ -172,15 +172,102 @@ async function ownTabs() {
 const saveTabs = (tabs) => chrome.storage.session.set({ tabs });
 
 const attached = new Set();
+// Set by detachAll: the running action may not re-attach and carry on.
+let halted = false;
 chrome.debugger.onDetach.addListener(({ tabId }) => attached.delete(tabId));
 async function cdp(tabId, method, params = {}) {
   if (!(await ownTabs()).includes(tabId)) throw new Error("not an OCADE tab");
+  if (halted) throw new Error("Stopped before it finished");
   if (!attached.has(tabId)) {
     await chrome.debugger.attach({ tabId }, "1.3");
     attached.add(tabId);
+    // Every request of an OCADE tab passes the network guard from here on.
+    await chrome.debugger.sendCommand({ tabId }, "Fetch.enable", {
+      patterns: [{ urlPattern: "*" }],
+    });
+    await chrome.debugger.sendCommand({ tabId }, "Network.enable", {});
   }
   return chrome.debugger.sendCommand({ tabId }, method, params);
 }
+
+/** Let go of every OCADE tab: Stop, disconnect, revoke and task end all end control. */
+async function detachAll() {
+  halted = true;
+  for (const tabId of [...attached]) {
+    await chrome.debugger.detach({ tabId }).catch(() => null);
+    attached.delete(tabId);
+  }
+}
+
+/* --- the network guard: OCADE tabs never reach the device's own network ------------ */
+
+// Sites the person allowed in OCADE (sent with each command): only these may be private.
+let allowedSites = [];
+let privateHit = null;
+const allowed = (host) => {
+  const labels = host.split(".");
+  return labels.some((_, at) => allowedSites.includes(labels.slice(at).join(".")));
+};
+function privateAddress(raw) {
+  let host = raw.replace(/^\[|\]$/g, "").toLowerCase();
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(host);
+  if (mapped) host = mapped[1];
+  if (/^(localhost|.*\.localhost|.*\.local|.*\.internal|.*\.lan|.*\.home)$/.test(host)) return true;
+  const v4 = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(host);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    return (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 198 && (b === 18 || b === 19)) ||
+      a >= 224
+    );
+  }
+  if (host.includes(":")) return /^(::1?$|f[cd]|fe[89ab]|ff)/.test(host);
+  return false;
+}
+chrome.debugger.onEvent.addListener(({ tabId }, method, params) => {
+  if (!attached.has(tabId)) return;
+  if (method === "Fetch.requestPaused") {
+    let host = "";
+    try {
+      host = new URL(params.request.url).hostname;
+    } catch {
+      /* data:, blob: and similar stay in the page */
+    }
+    if (host && privateAddress(host) && !allowed(host)) {
+      privateHit = `${host} is on a private network`;
+      chrome.debugger
+        .sendCommand({ tabId }, "Fetch.failRequest", {
+          requestId: params.requestId,
+          errorReason: "BlockedByClient",
+        })
+        .catch(() => null);
+    } else {
+      chrome.debugger
+        .sendCommand({ tabId }, "Fetch.continueRequest", { requestId: params.requestId })
+        .catch(() => null);
+    }
+  } else if (method === "Network.responseReceived") {
+    // A public-looking name that resolved privately (the browser resolves it
+    // itself): nothing seen there is used, and the tab leaves the page.
+    const address = params.response?.remoteIPAddress;
+    let host = "";
+    try {
+      host = new URL(params.response.url).hostname;
+    } catch {
+      /* not a network response */
+    }
+    if (address && privateAddress(address) && !allowed(host)) {
+      privateHit = `${host} reached a private network address`;
+    }
+  }
+});
 async function run(tabId, body, arg) {
   const expression = `(() => { ${await page()}\n return (${body})(${JSON.stringify(arg ?? null)}); })()`;
   const out = await cdp(tabId, "Runtime.evaluate", {
@@ -340,19 +427,29 @@ async function key(tabId, name) {
 
 async function open(url, newTab) {
   const tabs = await ownTabs();
-  if (!newTab && active !== null && tabs.includes(active)) {
-    await chrome.tabs.update(active, { url });
-  } else {
-    const tab = await chrome.tabs.create({ url, active: false });
+  if (newTab || active === null || !tabs.includes(active)) {
+    // A blank tab first, so the network guard is in place before the first request.
+    const tab = await chrome.tabs.create({ url: "about:blank", active: false });
     await saveTabs([...tabs, tab.id]);
     active = tab.id;
   }
+  await cdp(active, "Page.navigate", { url });
   await new Promise((r) => setTimeout(r, 300));
   await settle(active);
 }
 
-/** One action, verified by observing the page it leaves. */
+/** One action inside the network guard: a private address ends it with nothing read. */
 async function act(action, confirmed) {
+  privateHit = null;
+  halted = false;
+  const outcome = await actOnce(action, confirmed);
+  if (!privateHit) return outcome;
+  if (active !== null) await cdp(active, "Page.navigate", { url: "about:blank" }).catch(() => null);
+  return { status: "blocked", summary: `Stopped: ${privateHit.slice(0, 200)}` };
+}
+
+/** One action, verified by observing the page it leaves. */
+async function actOnce(action, confirmed) {
   const kind = action.action;
   const tabs = await ownTabs();
   if (!tabs.includes(active)) active = tabs.at(-1) ?? null;
@@ -533,10 +630,16 @@ async function poll() {
         continue;
       }
       if ([401, 403, 410].includes(reply.status)) {
+        await detachAll();
         await forget(false);
         return;
       }
       if (reply.status === 426) {
+        await setState({ status: "update" });
+        return;
+      }
+      if (reply.status === 200 && Number(reply.body.protocol) > CONTRACT.version) {
+        // OCADE speaks a newer protocol: ask for an update rather than guess.
         await setState({ status: "update" });
         return;
       }
@@ -549,16 +652,34 @@ async function poll() {
       });
       results = [];
       shot = null;
-      for (const command of reply.body.commands ?? []) {
+      if (!reply.body.busy && !(reply.body.commands ?? []).length) await detachAll();
+      for (const command of (reply.body.commands ?? []).slice(0, 1)) {
+        allowedSites = command.sites ?? [];
         let outcome;
-        try {
-          outcome = await act(command.action, Boolean(command.confirmed));
-        } catch (error) {
-          outcome = {
+        let settled = false;
+        const running = act(command.action, Boolean(command.confirmed))
+          .catch((error) => ({
             status: "failed",
             summary: `The action failed: ${String(error.message ?? error).slice(0, 160)}`,
+          }))
+          .finally(() => (settled = true));
+        // While it runs, keep asking OCADE whether to stop (web STOP, Take Over),
+        // and let the popup's STOP through at once. Detaching ends the action.
+        while (!settled) {
+          await Promise.race([running, new Promise((r) => setTimeout(r, 1000))]);
+          if (settled) break;
+          const check = {
+            results: [],
+            running: [command.id],
+            ...(stopRequested && { stop: true }),
           };
+          const live = await post(CONTRACT.paths.exchange, check, keyPair, deviceId).catch(
+            () => null,
+          );
+          if (live?.status === 200) stopRequested = false;
+          if (stopRequested || live?.body?.cancel?.includes(command.id)) await detachAll();
         }
+        outcome = await running;
         const picture =
           outcome.observation?.frame ?? (active !== null ? await frame(active) : null);
         if (outcome.observation) delete outcome.observation.frame;
@@ -581,9 +702,13 @@ chrome.runtime.onMessage.addListener((message, _sender, reply) => {
     if (message === "connect") await connect();
     if (message === "stop") {
       stopRequested = true;
+      await detachAll(); // ends whatever JARVIS is doing in its tabs now
       await poll();
     }
-    if (message === "forget") await forget();
+    if (message === "forget") {
+      await detachAll();
+      await forget();
+    }
     if (message === "poll") await poll();
     reply({ ...(await state()), server: SERVER });
   })().catch((error) => reply({ error: String(error.message ?? error), server: SERVER }));
