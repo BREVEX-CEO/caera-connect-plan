@@ -37,7 +37,7 @@ describe("the original JARVIS source", () => {
     const expected = new Map(
       readFileSync(MANIFEST, "utf8")
         .trim()
-        .split("\n")
+        .split(/\r?\n/)
         .map((line) => [line.slice(66), line.slice(0, 64)] as const),
     );
     const actual = new Map(

@@ -131,13 +131,13 @@ class Presence:
         webbrowser.open(f"{self.server}/ocade-jarvis")
 
     def stop_jarvis(self) -> None:
-        self.agent.stop_all.set()
+        self.agent.stop_everything()
 
     def exit(self) -> None:
         if self.agent.state["busy"] and not self._ask("JARVIS is working on a task. Stop it and exit?"):
             return
         if self.agent.state["busy"]:
-            self.agent.stop_all.set()
+            self.agent.stop_everything()
         self.agent.stop.set()
         if self.icon is not None:
             self.icon.stop()

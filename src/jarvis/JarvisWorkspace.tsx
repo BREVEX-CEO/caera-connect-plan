@@ -40,6 +40,7 @@ import { readPreferences, writePreferences, type JarvisPreferences } from "./pre
 import { useJarvisVoice, voiceCommand } from "./use-voice";
 import {
   createJarvisConversation,
+  readJarvisAction,
   readJarvisState,
   stopAllJarvis,
   updateJarvisTask,
@@ -817,10 +818,35 @@ export function JarvisWorkspace({
           onClick={() => {
             abort.current?.abort();
             void stopAllJarvis()
-              .then(({ stopped }) => {
-                toast.success(stopped ? "JARVIS stopped." : "Nothing was running.");
+              .then(async ({ stopped, running }) => {
                 setActiveTask(null);
                 refresh();
+                if (!running.length) {
+                  toast.success(stopped ? "JARVIS stopped." : "Nothing was running.");
+                  return;
+                }
+                // A step already running on a computer ends there; say so only
+                // once that computer confirms it.
+                const id = toast.loading("Stopping…");
+                const deadline = Date.now() + 8000;
+                while (Date.now() < deadline) {
+                  await new Promise((r) => setTimeout(r, 1000));
+                  const acks = await Promise.all(
+                    running.map((a) => readJarvisAction({ data: { id: a } }).catch(() => null)),
+                  );
+                  if (
+                    acks.every(
+                      (a) => (a?.result as { status?: string } | null)?.status === "stopped",
+                    )
+                  ) {
+                    toast.success("JARVIS stopped.", { id });
+                    return;
+                  }
+                }
+                toast.warning(
+                  "Your computer has not confirmed the stop yet. Check that it is online.",
+                  { id },
+                );
               })
               .catch(() => toast.error("JARVIS could not be stopped. Try again."));
           }}

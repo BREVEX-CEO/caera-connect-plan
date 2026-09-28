@@ -392,7 +392,7 @@ export const updateJarvisTask = createServerFn({ method: "POST" })
           .update({ status: "cancelled", completed_at: new Date().toISOString() })
           .eq("task_id", data.id)
           .eq("user_id", context.userId)
-          .in("status", ["queued", "needs_confirmation"]);
+          .in("status", ["queued", "needs_confirmation", "claimed"]);
       }
       const words: Record<TaskStatus, string> = {
         running: "Resumed",
@@ -728,12 +728,24 @@ export const stopAllJarvis = createServerFn({ method: "POST" })
       .select("id");
     if (error) throw new Error(error.message);
     const service = await admin();
+    // Running actions too: the device learns it on its next check (about a
+    // second) and kills them; a late result is never counted as done.
+    const { data: running } = await service
+      .from("jarvis_activity")
+      .update({ status: "cancelled", completed_at: at })
+      .eq("user_id", context.userId)
+      .eq("status", "claimed")
+      .select("id");
     await service
       .from("jarvis_activity")
       .update({ status: "cancelled", completed_at: at })
       .eq("user_id", context.userId)
       .in("status", ["queued", "needs_confirmation"]);
-    return { stopped: stopped?.length ?? 0 };
+    return {
+      stopped: stopped?.length ?? 0,
+      /** Actions a device was running: the UI waits for each device to confirm. */
+      running: (running ?? []).map((row) => row.id as string),
+    };
   });
 
 export const rememberJarvis = createServerFn({ method: "POST" })
