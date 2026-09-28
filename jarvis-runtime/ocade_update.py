@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import io
 import json
 import os
 import platform
@@ -76,6 +77,15 @@ def _executable(folder: Path) -> Path:
     return folder / name
 
 
+def _health(exe: Path) -> bool:
+    """The staged build answers `--health` (it loads everything it runs) in time."""
+    try:
+        return subprocess.run([str(exe), "--health"], timeout=HEALTH_TIMEOUT_S,
+                              capture_output=True).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
 def install(root: Path, manifest: dict, archive: bytes) -> str:
     """Stage, verify, health-check, then switch. Returns the version now current."""
     release = manifest.get("platforms", {}).get(platform_key())
@@ -89,21 +99,23 @@ def install(root: Path, manifest: dict, archive: bytes) -> str:
     staged = root / "versions" / version
     shutil.rmtree(staged, ignore_errors=True)
     staged.mkdir(parents=True)
-    archive_path = root / "download.zip"
-    archive_path.write_bytes(archive)
-    with zipfile.ZipFile(archive_path) as bundle:
-        for member in bundle.namelist():  # never write outside the staged folder
-            if Path(member).is_absolute() or ".." in Path(member).parts:
-                raise UpdateRefused("The release archive is malformed")
-        bundle.extractall(staged)
-    archive_path.unlink()
-    exe = _executable(staged)
-    exe.chmod(0o755)
+    # Anything wrong with the archive (malformed, missing the program, not
+    # runnable) is an unhealthy build: it is removed and nothing switches.
     try:
-        healthy = subprocess.run([str(exe), "--health"], timeout=HEALTH_TIMEOUT_S,
-                                 capture_output=True).returncode == 0
-    except (OSError, subprocess.TimeoutExpired):
-        healthy = False
+        with zipfile.ZipFile(io.BytesIO(archive)) as bundle:
+            for member in bundle.namelist():  # never write outside the staged folder
+                if Path(member).is_absolute() or ".." in Path(member).parts:
+                    raise UpdateRefused("The release archive is malformed")
+            bundle.extractall(staged)
+        exe = _executable(staged)
+        if not exe.is_file():
+            raise UpdateRefused(f"Version {version} does not contain the agent program")
+        exe.chmod(0o755)
+        healthy = _health(exe)
+    except (UpdateRefused, zipfile.BadZipFile, OSError) as e:
+        shutil.rmtree(staged, ignore_errors=True)
+        raise e if isinstance(e, UpdateRefused) else UpdateRefused(
+            f"Version {version} could not be prepared ({type(e).__name__})") from e
     layout = _layout(root)
     if not healthy:
         shutil.rmtree(staged, ignore_errors=True)

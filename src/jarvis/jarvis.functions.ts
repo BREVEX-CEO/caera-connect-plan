@@ -91,6 +91,8 @@ export interface JarvisState {
     software_version: string | null;
     background_enabled: boolean;
     online: boolean;
+    /** One summary a person can act on; the switches stay the detail. */
+    status: "ready" | "busy" | "needs_permission" | "offline";
   }[];
   permissions: PermissionRow[];
   memories: { id: string; content: string; created_at: string }[];
@@ -116,10 +118,14 @@ const TASK_COLUMNS =
 
 export const readJarvisState = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<JarvisState> => {
+  .validator((i) => z.object({ maintain: z.boolean().default(false) }).parse(i ?? {}))
+  .handler(async ({ data: input, context }): Promise<JarvisState> => {
     const db = context.supabase;
     const service = await admin();
-    await service.rpc("jarvis_purge_expired_activity", { p_user_id: context.userId });
+    // Retention housekeeping runs when JARVIS opens, not on every live refresh.
+    if (input.maintain) {
+      await service.rpc("jarvis_purge_expired_activity", { p_user_id: context.userId });
+    }
     const [conversations, tasks, devices, permissions, memories, activity] = await Promise.all([
       db
         .from("ocade_conversations")
@@ -208,11 +214,33 @@ export const readJarvisState = createServerFn({ method: "GET" })
     return {
       conversations: conversations.data ?? [],
       tasks: (tasks.data ?? []) as JarvisTaskRow[],
-      devices: (devices.data ?? []).map(({ installed_apps: _apps, ...d }) => ({
-        ...d,
-        capabilities: (d.capabilities ?? {}) as Record<string, boolean>,
-        online: !d.revoked_at && !!d.last_seen_at && now - Date.parse(d.last_seen_at) < ONLINE_MS,
-      })),
+      devices: (devices.data ?? []).map(({ installed_apps: _apps, ...d }) => {
+        const online =
+          !d.revoked_at && !!d.last_seen_at && now - Date.parse(d.last_seen_at) < ONLINE_MS;
+        const busy = (tasks.data ?? []).some(
+          (t) => t.device_id === d.id && !FINISHED.includes(t.status as TaskStatus),
+        );
+        const offers = (d.capabilities ?? {}) as Record<string, boolean>;
+        // Ready: JARVIS is on and this computer can do at least one kind of work.
+        const usable =
+          isAllowed(permissionRows, "master") &&
+          ((isAllowed(permissionRows, "browser", d.id) &&
+            (offers.browser_isolated === true || offers.browser_real === true)) ||
+            (offers.files === true && isAllowed(permissionRows, "files", d.id)) ||
+            (offers.apps === true && isAllowed(permissionRows, "apps", d.id)));
+        return {
+          ...d,
+          capabilities: (d.capabilities ?? {}) as Record<string, boolean>,
+          online,
+          status: !online
+            ? ("offline" as const)
+            : busy
+              ? ("busy" as const)
+              : usable
+                ? ("ready" as const)
+                : ("needs_permission" as const),
+        };
+      }),
       permissions: permissionRows,
       memories: memories.data ?? [],
       activity: (activity.data ?? []).map(({ action: _action, ...rest }) => rest),
@@ -288,6 +316,14 @@ export const startJarvisTask = createServerFn({ method: "POST" })
     const rows = await permissionsOf(context.supabase);
     if (!isAllowed(rows, "master")) {
       return { ok: false, reason: "permission", message: "OCADE JARVIS is turned off." };
+    }
+    const { executionDisabled } = await import("./device.server");
+    if (executionDisabled()) {
+      return {
+        ok: false,
+        reason: "permission",
+        message: "Working on computers is paused by OCADE right now. Answers still work.",
+      };
     }
     const service = await admin();
     const { data: devices, error } = await service

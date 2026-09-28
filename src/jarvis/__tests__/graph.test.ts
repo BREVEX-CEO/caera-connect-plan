@@ -56,6 +56,7 @@ describe("the orb graph", () => {
           software_version: null,
           background_enabled: false,
           online: true,
+          status: "ready" as const,
         },
       ],
       memories: [{ id: "m1", content: "I prefer the private editor", created_at: at }],

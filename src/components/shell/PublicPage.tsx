@@ -124,9 +124,17 @@ function BackToTop() {
 }
 
 /** One titled block of a long legal or help document. */
-export function PublicSection({ title, children }: { title: string; children: ReactNode }) {
+export function PublicSection({
+  id,
+  title,
+  children,
+}: {
+  id?: string;
+  title: string;
+  children: ReactNode;
+}) {
   return (
-    <section className="mt-8">
+    <section id={id} className="mt-8 scroll-mt-20">
       <h2 className="text-sm font-semibold text-foreground">{title}</h2>
       <div className="mt-2 space-y-3 text-sm leading-6 text-muted-foreground">{children}</div>
     </section>

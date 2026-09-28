@@ -193,7 +193,12 @@ class Computer:
 
     def capabilities(self) -> dict:
         gui = self._gui() is not None
-        return {"screen": gui, "computer_control": gui, "apps": True,
+        screen, control = gui, gui
+        if SYSTEM == "Darwin":
+            # macOS decides these in System Settings > Privacy & Security; a
+            # capability macOS has not granted is reported unavailable, not tried.
+            screen, control = gui and _macos_screen_allowed(), gui and _macos_accessibility_allowed()
+        return {"screen": screen, "computer_control": control, "apps": True,
                 "files": self.root is not None,
                 "terminal": self.root is not None and self.sandbox is not None}
 
@@ -473,6 +478,26 @@ class Computer:
 
 class ScopeError(Exception):
     pass
+
+
+def _macos_accessibility_allowed() -> bool:
+    try:
+        import ctypes
+        services = ctypes.cdll.LoadLibrary(
+            "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices")
+        return bool(services.AXIsProcessTrusted())
+    except (OSError, AttributeError):
+        return False
+
+
+def _macos_screen_allowed() -> bool:
+    try:
+        import ctypes
+        graphics = ctypes.cdll.LoadLibrary(
+            "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")
+        return bool(graphics.CGPreflightScreenCaptureAccess())
+    except (OSError, AttributeError):
+        return False
 
 
 def _plain(error: Exception) -> str:

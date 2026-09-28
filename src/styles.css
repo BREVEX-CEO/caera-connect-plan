@@ -194,7 +194,7 @@
   --muted-foreground: oklch(0.76 0 0);
   --accent: oklch(0.245 0 0);
   --accent-foreground: oklch(0.95 0 0);
-  --destructive: oklch(0.62 0 0);
+  --destructive: oklch(0.64 0.19 25);
   --destructive-foreground: oklch(0.98 0 0);
   /* Hairlines are silver at low alpha, never pure white: white borders on near
      black flare and make a bordered grid look like a spreadsheet. */
@@ -231,10 +231,14 @@
   --accent-madee: oklch(0.7 0 0); /* graphite silver */
   --accent-cania: oklch(0.62 0 0); /* graphite silver */
 
-  /* States share neutral colour; their semantic label, icon and shape carry meaning. */
-  --state-success: oklch(0.84 0 0);
+  /*
+   * THE ONLY COLOUR IN OCADE (docs/JARVIS_DESIGN_SYSTEM.md): blue for what is
+   * on or active, green for success, red for destructive and errors. Everything
+   * else stays black, white and silver; labels and icons still carry meaning.
+   */
+  --state-success: oklch(0.74 0.15 152);
   --state-warning: oklch(0.8 0 0);
-  --state-info: oklch(0.85 0 0);
+  --state-info: oklch(0.72 0.13 250);
   --state-pending: oklch(0.7 0 0);
 
   /*
@@ -311,7 +315,7 @@
   --muted-foreground: oklch(0.42 0 0);
   --accent: oklch(0.9 0 0);
   --accent-foreground: oklch(0.16 0 0);
-  --destructive: oklch(0.52 0 0);
+  --destructive: oklch(0.55 0.2 25);
   --destructive-foreground: oklch(0.99 0 0);
   --border: oklch(0.2 0 0 / 15%);
   --input: oklch(0.2 0 0 / 17%);
@@ -333,9 +337,9 @@
   --accent-ficia: oklch(0.42 0 0);
   --accent-madee: oklch(0.52 0 0);
   --accent-cania: oklch(0.48 0 0);
-  --state-success: oklch(0.42 0 0);
+  --state-success: oklch(0.5 0.13 152);
   --state-warning: oklch(0.46 0 0);
-  --state-info: oklch(0.4 0 0);
+  --state-info: oklch(0.5 0.15 255);
   --state-pending: oklch(0.46 0 0);
   --surface-glass: oklch(0.2 0 0 / 3%);
   --surface-glass-strong: oklch(0.2 0 0 / 5%);

@@ -44,7 +44,8 @@ class WorkspaceTest(unittest.TestCase):
         self.assertIn("src", names)
         self.assertEqual(self.pc.run({"action": "file_trash", "path": "notes.md"})["status"], "done")
         self.assertFalse((self.root / "notes.md").exists())
-        self.assertTrue(any(Path(self.home, ".local/share/Trash/files").iterdir()))
+        if sys.platform.startswith("linux"):  # elsewhere it is the system Recycle Bin / Trash
+            self.assertTrue(any(Path(self.home, ".local/share/Trash/files").iterdir()))
         self.assertEqual(self.pc.run({"action": "file_trash", "path": "."})["status"], "blocked")
 
     def test_permanent_deletion_needs_the_person(self):
@@ -55,6 +56,9 @@ class WorkspaceTest(unittest.TestCase):
         self.assertFalse((self.root / "src").exists())
 
     def test_commands_run_in_the_workspace_and_cannot_write_outside_it(self):
+        if self.pc.sandbox is None:
+            self.assertEqual(self.pc.run({"action": "run", "command": "echo x"})["status"], "blocked")
+            return
         out = self.pc.run({"action": "run", "command": "pwd && echo built > out.txt"})
         self.assertEqual(out["status"], "done", out)
         self.assertEqual(out["stdout"].strip().splitlines()[0], str(self.root))
@@ -70,6 +74,8 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(self.pc.run({"action": "run", "command": "ls", "cwd": ".."})["status"], "blocked")
 
     def test_a_runaway_command_is_stopped(self):
+        if self.pc.sandbox is None:
+            self.skipTest("no confined terminal on this computer")
         old = ocade_computer.RUN_TIMEOUT_S
         ocade_computer.RUN_TIMEOUT_S = 1
         try:
@@ -88,6 +94,12 @@ class WorkspaceTest(unittest.TestCase):
 
 
 class AppsTest(unittest.TestCase):
+    @unittest.skipUnless(sys.platform == "win32", "Windows Start apps")
+    def test_windows_lists_store_apps_by_their_appsfolder_id(self):
+        apps = ocade_computer.installed_apps()
+        self.assertTrue(any(a.get("aumid") and "!" in a["launch"] for a in apps))
+
+    @unittest.skipUnless(sys.platform.startswith("linux"), "Linux .desktop entries")
     def test_finds_installed_apps_and_launches_only_those(self):
         data = Path(tempfile.mkdtemp())
         marker = data / "launched"

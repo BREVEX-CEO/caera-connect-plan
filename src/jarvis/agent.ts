@@ -66,6 +66,8 @@ export interface AgentDeps {
     memory: boolean;
     attachments: NormalizedAttachment[];
     signal: AbortSignal;
+    /** The answer so far, as it streams in (customer-facing text only). */
+    onText?: (text: string) => void;
   }): Promise<ModelStep | null>;
   startTask(input: {
     deviceId?: string;
@@ -382,6 +384,7 @@ export async function runJarvisTurn(
         memory: input.memoryEnabled,
         attachments,
         signal: hooks.signal,
+        onText: hooks.onText,
       });
     } catch (error) {
       // Stop mid-answer surfaces from the stream as an abort error: it is a Stop.

@@ -31,6 +31,35 @@ No remote code is loaded: the page-reading script ships in the package.
   completes a purchase, and hands CAPTCHA, one-time codes and passkeys to the
   person.
 
+## Listing copy
+
+- **Name:** OCADE JARVIS
+- **Short description (manifest):** Lets OCADE JARVIS work in tabs it opens in this browser, only when you ask it to and only where you allow it.
+- **Category:** Productivity
+- **Long description:** OCADE JARVIS is the part of OCADE that does things for you. With this extension, JARVIS can carry out browser tasks you ask for in your own Chrome — using your own sign-ins — in tabs it opens itself. You see every step, can take over at any moment, and one STOP ends everything. JARVIS never reads other tabs, never touches saved passwords or payment details, never completes a purchase, and hands CAPTCHA, one-time codes and passkeys to you. Connecting needs your OCADE account and your explicit consent in the extension.
+- **Homepage:** https://ocade.in/ocade-jarvis
+- **Support:** https://ocade.in/help
+- **Privacy policy:** https://ocade.in/privacy#jarvis
+
+## Privacy practices answers (must match behavior and the policy)
+
+- **Data collected:** Web browsing activity and website content — only for tabs this extension opened for a task the person started (page text and structure, URL, title, screenshots for the live view).
+- **Purpose:** Functionality of the single purpose above. Not sold, not transferred for unrelated purposes, not used for creditworthiness or lending, not used for advertising, not used to train models.
+- **Prominent disclosure and consent:** the popup shows the categories, purpose and destination before Connect, and Connect stays disabled until "I agree" is ticked.
+- **Remote code:** none. The page-reading script ships in the package.
+
+## Reviewer instructions
+
+1. Install the package and open the popup. Read the disclosure, tick "I agree", press "Connect this browser".
+2. A tab opens at ocade.in; sign in with the reviewer test account (provided in the dashboard's reviewer notes by the owner), compare the fingerprint, and approve the browser.
+3. In OCADE JARVIS, ask: "Open example.com and tell me the page title." JARVIS opens its own tab, reads it, and answers. Chrome shows its debugging bar only on that tab.
+4. Press STOP in the popup or on the website: the tab is released at once. "Disconnect this browser" removes the connection on both sides.
+
+## Required assets still to capture
+
+- 1280×800 screenshots: the popup with its disclosure; a JARVIS task running in its own tab; the Devices panel showing the browser. Captured from the release build during visual QA, never mocked.
+- 440×280 promotional tile.
+
 ## Current test and release discipline — 2026-09-28
 
 - Extension build, package, install, authorization, owned-tab isolation, debugger attach/detach, disable/re-enable, browser restart, revoke, update, unrelated-tab protection, private-network defenses, and store-readiness must follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.

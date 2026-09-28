@@ -82,6 +82,13 @@ function Toggle({
   );
 }
 
+const DEVICE_STATUS = {
+  ready: { label: "Ready", tone: "bg-success/15 text-success" },
+  busy: { label: "Working", tone: "bg-info/15 text-info" },
+  needs_permission: { label: "Needs permission", tone: "bg-muted text-foreground" },
+  offline: { label: "Offline", tone: "bg-muted text-muted-foreground" },
+} as const;
+
 export function SectionPanel({
   section,
   state,
@@ -420,9 +427,23 @@ function SectionBody({
       <ul className="flex flex-col gap-2">
         {devices.map((d) => (
           <li key={d.id} className="rounded-md border border-border/60 p-2">
-            <p className="font-medium">{d.name}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="min-w-0 truncate font-medium">{d.name}</p>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-2 py-0.5 text-[11px]",
+                  DEVICE_STATUS[d.status].tone,
+                )}
+              >
+                {DEVICE_STATUS[d.status].label}
+              </span>
+            </div>
             <p className="text-xs text-muted-foreground">
-              {d.online ? "Online" : "Offline"}
+              {d.status === "needs_permission"
+                ? "Turn on what JARVIS may do below"
+                : d.status === "offline"
+                  ? "Open the OCADE Device Agent on it"
+                  : "Can work now"}
               {d.platform ? ` · ${d.platform}` : ""}
               {d.kind === "extension" ? " · Browser extension" : ""}
             </p>

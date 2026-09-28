@@ -21,7 +21,24 @@ import type { DeviceAction } from "./protocol";
 type Admin = SupabaseClient<Database>;
 
 export const PROTOCOL = contract;
+
+/**
+ * THE EMERGENCY STOP FOR ALL DEVICE WORK. When the owner sets the Worker
+ * variable `JARVIS_EXECUTION_DISABLED=1`, no device receives work, every
+ * running action is cancelled at its next check, and no task can start.
+ * Accounts, Chat and ordinary JARVIS answers keep working. Reversible only by
+ * whoever controls the deployment's variables.
+ */
+export function executionDisabled(): boolean {
+  return process.env.JARVIS_EXECUTION_DISABLED === "1";
+}
 const ENROLLMENT_MS = 10 * 60_000;
+/**
+ * Enrollment is public (a device has no account yet), so waiting requests are
+ * capped: each expires in ten minutes, and past this many at once new ones
+ * are asked to try again rather than filling the table.
+ */
+export const MAX_PENDING_ENROLLMENTS = 200;
 
 export async function sha256Hex(value: string | Uint8Array<ArrayBuffer>): Promise<string> {
   const bytes = typeof value === "string" ? new TextEncoder().encode(value) : value;
@@ -167,6 +184,13 @@ export async function enroll(
     .delete()
     .is("user_id", null)
     .lt("enrollment_expires_at", new Date().toISOString());
+  const { count } = await admin
+    .from("jarvis_devices")
+    .select("id", { count: "exact", head: true })
+    .is("user_id", null);
+  if ((count ?? 0) >= MAX_PENDING_ENROLLMENTS) {
+    return { status: 429, body: { error: "busy" } };
+  }
   const { data, error } = await admin
     .from("jarvis_devices")
     .insert({
@@ -346,6 +370,8 @@ export async function exchange(
   commands: DeviceCommand[];
   /** Running actions the device must cancel now (STOP, Take Over, task ended). */
   cancel: string[];
+  /** What happened to each reported result: kept, or why not. */
+  acks?: { id: string; outcome: "accepted" | "stopped" | "unknown" }[];
   rotated?: boolean;
 }> {
   if (input.forget) {
@@ -396,7 +422,9 @@ export async function exchange(
   // Every reply names the protocol and the device it is for, so a device can
   // refuse work that was not addressed to it; `busy` and `background` decide
   // whether it stays active or goes dormant.
+  const acks: { id: string; outcome: "accepted" | "stopped" | "unknown" }[] = [];
   const envelope = {
+    acks,
     protocol: PROTOCOL.version,
     deviceId: device.id,
     busy: Boolean(open?.length),
@@ -435,7 +463,7 @@ export async function exchange(
       observation: result.observation ?? null,
       ...(result.detail === undefined ? {} : { detail: result.detail }),
     });
-    await admin
+    const { data: settled } = await admin
       .from("jarvis_activity")
       .update({
         status,
@@ -448,16 +476,23 @@ export async function exchange(
       })
       .eq("id", result.id)
       .eq("device_id", device.id)
-      .eq("status", "claimed");
+      .eq("status", "claimed")
+      .select("id");
+    if (settled?.length) {
+      acks.push({ id: result.id, outcome: "accepted" });
+      continue;
+    }
     // A result for an action that was stopped meanwhile never counts as done;
     // it is kept only as the device's acknowledgement of the Stop.
-    await admin
+    const { data: stopped } = await admin
       .from("jarvis_activity")
       .update({ result: { status: "stopped", late: result.status } })
       .eq("id", result.id)
       .eq("device_id", device.id)
       .eq("status", "cancelled")
-      .is("result", null);
+      .is("result", null)
+      .select("id");
+    acks.push({ id: result.id, outcome: stopped?.length ? "stopped" : "unknown" });
   }
 
   if (input.frame) {
@@ -487,6 +522,9 @@ export async function exchange(
   // The action the device runs now continues only while it is still claimed
   // and its task still running; anything else (STOP, Take Over, the task
   // ended, the action timed out) cancels it on the device.
+  if (executionDisabled()) {
+    return { ...envelope, commands: [], cancel: input.running ?? [], rotated };
+  }
   const cancel: string[] = [];
   if (input.running?.length) {
     const { data: live } = await admin

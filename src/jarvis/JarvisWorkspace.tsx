@@ -104,12 +104,18 @@ export function JarvisWorkspace({
 
   const [activeTask, setActiveTask] = useState<JarvisTaskRow | null>(null);
   const taskLive = Boolean(activeTask && !FINISHED.includes(activeTask.status));
+  const opened = useRef(false);
   // Account-owned: keyed by the account, and never read once signed out.
   const state = useQuery({
     queryKey: [...JARVIS_STATE_KEY, user?.id ?? ""],
-    queryFn: () => readJarvisState(),
+    // The first read opens JARVIS (and runs retention housekeeping); live
+    // refreshes only read.
+    queryFn: () =>
+      readJarvisState({ data: { maintain: !opened.current } }).finally(() => {
+        opened.current = true;
+      }),
     enabled: signedIn,
-    refetchInterval: taskLive ? 2500 : 30_000,
+    refetchInterval: taskLive ? 4000 : 30_000,
   });
   const jarvis = signedIn ? state.data : undefined;
   const refresh = useCallback(
@@ -164,7 +170,9 @@ export function JarvisWorkspace({
   useEffect(() => {
     if (!activeTask) return;
     const fresh = jarvis?.tasks.find((t) => t.id === activeTask.id);
-    if (fresh && fresh.updated_at !== activeTask.updated_at) setActiveTask(fresh);
+    // Only a newer row replaces the one on screen: a slow refresh never undoes a change.
+    if (fresh && Date.parse(fresh.updated_at) > Date.parse(activeTask.updated_at))
+      setActiveTask(fresh);
   }, [jarvis, activeTask]);
 
   // ONE OWNER for everything on screen: this account and this conversation.

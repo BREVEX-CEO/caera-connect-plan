@@ -638,6 +638,11 @@ async function poll() {
         await setState({ status: "update" });
         return;
       }
+      if (reply.status === 200 && Number(reply.body.protocol) > CONTRACT.version) {
+        // OCADE speaks a newer protocol: ask for an update rather than guess.
+        await setState({ status: "update" });
+        return;
+      }
       if (reply.status !== 200 || reply.body.deviceId !== deviceId) return;
       stopRequested = false;
       await setState({

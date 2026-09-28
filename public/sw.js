@@ -46,10 +46,9 @@ const OPTIONAL_PRECACHE = [
    * went looking for an icon that had never been stored, and logged "Download
    * error or resource isn't a valid image" against a perfectly valid PNG.
    *
-   * There is no manifest now: OCADE is a website and is never offered as an
-   * app to install. The 192 survives because Background Fetch shows it while a
-   * download runs in the background, which is a browser capability rather than
-   * an install prompt.
+   * The web app manifest (public/manifest.webmanifest) names its own icons;
+   * this list only keeps the ones something here still needs offline. The 192
+   * also serves Background Fetch while a download runs in the background.
    */
   // Also the shell's 28px brand mark, so one small file serves both.
   "/icons/ocade-192.png",

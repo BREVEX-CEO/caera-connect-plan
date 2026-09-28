@@ -281,6 +281,7 @@ export function TakeOverBanner({
 
 const VOICE_WORDS = {
   off: "Voice off",
+  starting: "Starting…",
   listening: "Listening",
   speaking: "Speaking",
   paused: "Paused",
@@ -338,14 +339,16 @@ export function VoiceBar({
       >
         End
       </button>
-      <label className="flex items-center gap-1.5">
-        <input
-          type="checkbox"
-          checked={speak}
-          onChange={(event) => onSpeak(event.target.checked)}
-        />
-        Speak answers
-      </label>
+      {voice.speaks ? (
+        <label className="flex items-center gap-1.5">
+          <input
+            type="checkbox"
+            checked={speak}
+            onChange={(event) => onSpeak(event.target.checked)}
+          />
+          Speak answers
+        </label>
+      ) : null}
       <label
         className={
           voice.wakeLocal ? "flex items-center gap-1.5" : "flex items-center gap-1.5 opacity-50"

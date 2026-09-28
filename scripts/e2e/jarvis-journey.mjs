@@ -368,8 +368,11 @@ except i.UpdateRequired:
     await page.reload({ waitUntil: "networkidle" });
     await rail("Devices").click();
     check(
-      "the device shows online",
-      await until(async () => (await page.getByText("Online").count()) >= 1, 30_000),
+      "the device shows online, with one readiness state",
+      await until(
+        async () => (await page.getByText(/^(Ready|Needs permission)$/).count()) >= 1,
+        30_000,
+      ),
     );
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
 
@@ -943,7 +946,10 @@ except i.UpdateRequired:
       const extensionId = new URL(worker.url()).host;
       const popup = await chrome.newPage();
       await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-      await popup.getByRole("button", { name: "Connect this browser", exact: true }).click();
+      const connectButton = popup.getByRole("button", { name: "Connect this browser" });
+      check("the extension asks for consent before connecting", await connectButton.isDisabled());
+      await popup.getByRole("checkbox", { name: "I agree" }).check();
+      await connectButton.click();
       const approval = await until(
         () => chrome.pages().some((p) => p.url().includes("/ocade-jarvis?connect=")),
         20_000,
@@ -1044,6 +1050,12 @@ except i.UpdateRequired:
     await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
     await rail("Devices").click();
     await page.getByRole("button", { name: "Remove device", exact: true }).click();
+    const confirmRemove = page.getByRole("alertdialog", { name: /^Remove / });
+    check(
+      "removing a device asks first and names the computer",
+      (await confirmRemove.count()) === 1 && (await confirmRemove.innerText()).includes("Remove"),
+    );
+    await confirmRemove.getByRole("button", { name: "Remove", exact: true }).click();
     const exited = await until(() => device.exitCode !== null, 30_000);
     check(
       "a removed device loses access at once",

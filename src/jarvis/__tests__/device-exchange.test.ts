@@ -265,3 +265,41 @@ describe("Activity privacy (JARVIS-021)", () => {
     expect(redactLocal("Wrote notes/today.md")).toBe("Wrote notes/today.md");
   });
 });
+
+describe("the emergency stop", () => {
+  it("hands out nothing and cancels running work while execution is disabled", async () => {
+    const t = await task();
+    await permit("files", true);
+    const running = await queue(t, { action: "file_list", path: "." });
+    await run({ results: [] });
+    await queue(t, { action: "file_list", path: "src" });
+    process.env.JARVIS_EXECUTION_DISABLED = "1";
+    try {
+      const reply = await run({ results: [], running: [running] });
+      expect(reply.cancel).toEqual([running]);
+      expect((await run({ results: [] })).commands).toEqual([]);
+    } finally {
+      delete process.env.JARVIS_EXECUTION_DISABLED;
+    }
+  });
+});
+
+describe("results (JARVIS-027)", () => {
+  it("answers every reported result: kept, stopped, or unknown", async () => {
+    const t = await task();
+    await permit("files", true);
+    const id = await queue(t, { action: "file_list", path: "." });
+    await run({ results: [] });
+    const unknown = "0276ec3b-3462-468d-864b-bd218fd7d28e";
+    const reply = await run({
+      results: [
+        { id, status: "done" },
+        { id: unknown, status: "done" },
+      ],
+    });
+    expect(reply.acks).toEqual([
+      { id, outcome: "accepted" },
+      { id: unknown, outcome: "unknown" },
+    ]);
+  });
+});

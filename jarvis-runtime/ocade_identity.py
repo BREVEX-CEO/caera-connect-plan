@@ -198,6 +198,8 @@ class Identity:
             raise NotEnrolled(reply.get("error", "device_not_enrolled"))
         if status != 200:
             raise urllib.error.URLError(f"exchange failed with {status}")
+        if int(reply.get("protocol") or 0) > PROTOCOL["version"]:
+            raise UpdateRequired()  # OCADE speaks a newer protocol: update, never guess
         if reply.get("deviceId") != self.meta["deviceId"]:
             # Work addressed to another device is never run here.
             raise urllib.error.URLError("reply was not addressed to this device")

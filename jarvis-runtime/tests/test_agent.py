@@ -52,18 +52,35 @@ class LifecycleTest(unittest.TestCase):
 
     def test_autostart_and_uninstall_leave_nothing_behind(self):
         ocade_agent.install_autostart()
-        entry = ocade_agent.autostart_path()
-        self.assertIn("ocade_agent.py", entry.read_text())
-        (self.home / "device.key").write_text("k")
-        message = ocade_agent.uninstall(self.home)
-        self.assertFalse(entry.exists())
+        try:
+            self.assertIn("ocade_agent.py", self._autostart_entry() or "")
+            (self.home / "device.key").write_text("k")
+            message = ocade_agent.uninstall(self.home)
+        finally:
+            ocade_agent.remove_autostart()  # never leave a login item behind on a real machine
+        self.assertIsNone(self._autostart_entry())
         self.assertFalse(self.home.exists())
         self.assertIn("PC control, background tasks and wake features have stopped", message)
+
+    @staticmethod
+    def _autostart_entry():
+        """The login item's command (Windows: the HKCU Run value), or None."""
+        if sys.platform == "win32":
+            import winreg
+            try:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                                    r"Software\Microsoft\Windows\CurrentVersion\Run") as key:
+                    return winreg.QueryValueEx(key, "OCADE")[0]
+            except FileNotFoundError:
+                return None
+        entry = ocade_agent.autostart_path()
+        return entry.read_text() if entry.exists() else None
 
     def _agent(self, replies):
         identity = FakeIdentity(self.home, replies)
         agent = ocade_device.Agent(identity, headless=True, cdp=None, workspace=str(self.home))
-        agent.browsers.run = lambda mode, action, confirmed: {"status": "done", "summary": "ok"}
+        agent.browsers.run = lambda mode, action, confirmed, sites, cancel: {
+            "status": "done", "summary": "ok"}
         return agent, identity
 
     def test_results_survive_a_lost_connection_and_a_restart(self):

@@ -146,6 +146,8 @@ class Agent:
         results = self._load_pending()
         frame: dict | None = None
         apps_sent = 0.0
+        found: dict = {}  # the app inventory, found off this loop (it can take seconds)
+        finder: threading.Thread | None = None
         active: dict | None = None  # {"id", "thread", "outcome"} of the action running now
         while not self.stop.is_set():
             if active and not active["thread"].is_alive():
@@ -161,8 +163,14 @@ class Agent:
                     "running": [active["id"]] if active else []}
             if self.stop_all.is_set():
                 body["stop"] = True
-            if not apps_sent or time.monotonic() - apps_sent > APPS_EVERY_S:
-                body["apps"] = [app["name"] for app in installed_apps()]
+            due = not apps_sent or time.monotonic() - apps_sent > APPS_EVERY_S
+            if due and "apps" in found:
+                body["apps"] = found.pop("apps")
+            elif due and (finder is None or not finder.is_alive()):
+                finder = threading.Thread(
+                    target=lambda: found.update(apps=[a["name"] for a in installed_apps()]),
+                    daemon=True, name="ocade-apps")
+                finder.start()
             try:
                 reply = self.identity.exchange(body)
             except NotEnrolled:

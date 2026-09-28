@@ -10,6 +10,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -18,13 +19,21 @@ from cryptography.hazmat.primitives import serialization  # noqa: E402
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey  # noqa: E402
 
 
-def build(healthy: bool) -> bytes:
+PROGRAM = up._executable(Path(".")).name  # ocade-agent.exe on Windows
+
+
+def build(healthy: bool, program: str = PROGRAM) -> bytes:
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w") as bundle:
-        info = zipfile.ZipInfo("ocade-agent")
+        info = zipfile.ZipInfo(program)
         info.external_attr = 0o755 << 16
-        bundle.writestr(info, f"#!/bin/sh\nexit {0 if healthy else 1}\n")
+        bundle.writestr(info, "healthy" if healthy else "sick")
     return out.getvalue()
+
+
+def fake_health(exe: Path) -> bool:
+    """The platform's real process launch is replaced by reading the fixture's verdict."""
+    return exe.read_text() == "healthy"
 
 
 class UpdateTest(unittest.TestCase):
@@ -33,6 +42,9 @@ class UpdateTest(unittest.TestCase):
         self.public = base64.b64encode(self.key.public_key().public_bytes(
             serialization.Encoding.Raw, serialization.PublicFormat.Raw)).decode()
         self.root = Path(tempfile.mkdtemp())
+        patcher = mock.patch.object(up, "_health", fake_health)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def release(self, version: str, archive: bytes) -> tuple[bytes, str, dict]:
         manifest = json.dumps({"version": version, "platforms": {up.platform_key(): {
@@ -74,11 +86,20 @@ class UpdateTest(unittest.TestCase):
         for version in ("1.0.0", "2.0.0"):
             archive = build(True)
             up.install(self.root, self.release(version, archive)[2], archive)
-        self.assertTrue(str(up.launch_target(self.root)).endswith("2.0.0/ocade-agent"))
+        self.assertEqual(up.launch_target(self.root).parent.name, "2.0.0")
         up.launch_target(self.root)  # it never reported healthy: second failed start
-        self.assertTrue(str(up.launch_target(self.root)).endswith("1.0.0/ocade-agent"))
+        self.assertEqual(up.launch_target(self.root).parent.name, "1.0.0")
         up.mark_healthy(self.root)
         self.assertEqual(json.loads((self.root / "current.json").read_text())["failedStarts"], 0)
+
+    def test_a_release_without_the_program_or_a_broken_archive_changes_nothing(self):
+        good = build(True)
+        up.install(self.root, self.release("1.0.0", good)[2], good)
+        for archive in (build(True, program="something-else"), b"not a zip at all"):
+            with self.assertRaises(up.UpdateRefused):
+                up.install(self.root, self.release("2.0.0", archive)[2], archive)
+            self.assertEqual(json.loads((self.root / "current.json").read_text())["current"], "1.0.0")
+            self.assertFalse((self.root / "versions/2.0.0").exists())
 
 
 if __name__ == "__main__":

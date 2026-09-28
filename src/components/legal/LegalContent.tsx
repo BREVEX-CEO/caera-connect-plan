@@ -474,7 +474,29 @@ export function PrivacyContent() {
         </p>
       </PublicSection>
 
-      <PublicSection title="9. Support tickets and sensitive secrets">
+      <PublicSection
+        id="jarvis"
+        title="9. OCADE JARVIS, the Device Agent and the browser extension"
+      >
+        <p>
+          When you ask OCADE JARVIS to do something on a computer or in a browser you connected, the
+          OCADE Device Agent or the OCADE JARVIS browser extension sends your OCADE account what it
+          needs for that task: the text and structure of the page or window it is working in, its
+          address and title, screenshots for the live view, and the result of each step. It does
+          this only while a task you started is running, only in the tabs and the workspace folder
+          JARVIS was given, and only to OCADE.
+        </p>
+        <p>
+          The extension never reads other tabs, saved passwords or payment details, and hands
+          CAPTCHA, one-time codes and passkeys to you. Page content is used to carry out your task,
+          is not sold, is not used for advertising and is not used to train models. Detailed task
+          activity is kept for 90 days; screenshots are kept only while a task runs. Disconnect the
+          extension or remove the computer in JARVIS Devices at any time; its key stops working at
+          once, and you can delete JARVIS conversations and activity from your account.
+        </p>
+      </PublicSection>
+
+      <PublicSection title="10. Support tickets and sensitive secrets">
         <p>
           Support tickets may contain the information you choose to provide and may be reviewed in
           the administrative support workspace. Do not place passwords, one-time codes, PINs,
@@ -483,7 +505,7 @@ export function PrivacyContent() {
         </p>
       </PublicSection>
 
-      <PublicSection title="10. Retention, deletion and backups">
+      <PublicSection title="11. Retention, deletion and backups">
         <p>
           Device-only data remains subject to your device controls. Cloud records are intended to be
           retained only while reasonably necessary for the account, requested service, security,
@@ -492,7 +514,7 @@ export function PrivacyContent() {
         </p>
       </PublicSection>
 
-      <PublicSection title="11. Your privacy choices and rights">
+      <PublicSection title="12. Your privacy choices and rights">
         <p>
           Depending on applicable law, you may have rights to access, correct or erase personal
           information, withdraw consent, object to certain processing or raise a grievance. Use the
@@ -500,7 +522,7 @@ export function PrivacyContent() {
         </p>
       </PublicSection>
 
-      <PublicSection title="12. Users aged 16 or 17">
+      <PublicSection title="13. Users aged 16 or 17">
         <p>
           OCADE is intended for users aged 16 or older, but age rules differ by jurisdiction. Where
           applicable law treats a 16- or 17-year-old as a child for personal-data processing, the
@@ -513,7 +535,7 @@ export function PrivacyContent() {
         </p>
       </PublicSection>
 
-      <PublicSection title="13. Security">
+      <PublicSection title="14. Security">
         <p>
           OCADE uses measures including access controls, row-level security, restricted storage
           patterns and security checks appropriate to the relevant feature. No device, network or
@@ -521,7 +543,7 @@ export function PrivacyContent() {
         </p>
       </PublicSection>
 
-      <PublicSection title="14. Changes and contact">
+      <PublicSection title="15. Changes and contact">
         <p>
           CARCC may update this notice as OCADE changes. Material privacy changes will be identified
           through an appropriate notice and fresh consent will be requested where the law requires
