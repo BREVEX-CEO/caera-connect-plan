@@ -61,6 +61,53 @@ export async function executionDisabled(admin: Admin, kind?: string): Promise<bo
   );
 }
 const ENROLLMENT_MS = 10 * 60_000;
+
+/** A running task whose planning loop has not written for this long has no driver. */
+export const ORPHAN_MS = 3 * 60_000;
+export const ORPHANED_BLOCKER =
+  "Paused because JARVIS was closed. Resume to continue from where it stopped.";
+
+/**
+ * TRUTH ABOUT TASKS NOBODY DRIVES. The planning loop runs in an open OCADE
+ * surface and touches its task every minute. When that surface closes, the
+ * task would read "Working" for ever; instead it waits at its checkpoint, and
+ * any surface resumes it. A task with work queued, running or awaiting the
+ * person's confirmation is never paused here.
+ */
+export async function pauseOrphanedTasks(
+  admin: Admin,
+  scope: { deviceId: string } | { userId: string },
+): Promise<number> {
+  const cutoff = new Date(Date.now() - ORPHAN_MS).toISOString();
+  let stale = admin
+    .from("jarvis_tasks")
+    .select("id")
+    .eq("status", "running")
+    .lt("updated_at", cutoff)
+    .limit(10);
+  stale =
+    "deviceId" in scope ? stale.eq("device_id", scope.deviceId) : stale.eq("user_id", scope.userId);
+  const { data: tasks } = await stale;
+  let paused = 0;
+  for (const task of tasks ?? []) {
+    const { data: busy, error } = await admin
+      .from("jarvis_activity")
+      .select("id")
+      .eq("task_id", task.id)
+      .in("status", ["queued", "claimed", "needs_confirmation"])
+      .limit(1);
+    if (error || busy?.length) continue; // unsure is never "abandoned"
+    const { data: done } = await admin
+      .from("jarvis_tasks")
+      .update({ status: "waiting", blocker: ORPHANED_BLOCKER })
+      .eq("id", task.id)
+      .eq("status", "running")
+      .lt("updated_at", cutoff)
+      .select("id");
+    paused += done?.length ?? 0;
+  }
+  return paused;
+}
 /**
  * Enrollment is public (a device has no account yet), so waiting requests are
  * capped: each expires in ten minutes, and past this many at once new ones
@@ -455,6 +502,7 @@ export async function exchange(
       .eq("device_id", device.id)
       .eq("status", "taken_over");
   }
+  await pauseOrphanedTasks(admin, { deviceId: device.id });
   const [{ data: open }, { data: self }] = await Promise.all([
     admin
       .from("jarvis_tasks")

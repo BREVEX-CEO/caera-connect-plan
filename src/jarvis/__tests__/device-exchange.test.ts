@@ -287,6 +287,47 @@ describe("Pause and Resume from the computer's tray", () => {
   });
 });
 
+describe("a task nobody drives any more", () => {
+  const taskRow = async (id: string) =>
+    (
+      await twin.asServiceRole<{ status: string; blocker: string | null }>(
+        `select status, blocker from public.jarvis_tasks where id = '${id}'`,
+      )
+    )[0]!;
+  const age = (id: string, minutes: number) =>
+    twin.execSuperuser(
+      `alter table public.jarvis_tasks disable trigger user;
+       update public.jarvis_tasks set updated_at = now() - interval '${minutes} minutes' where id = '${id}';
+       alter table public.jarvis_tasks enable trigger user;`,
+    );
+
+  it("waits at its checkpoint when its planning loop has gone quiet", async () => {
+    const t = await task();
+    await age(t, 5);
+    const reply = await run({ results: [] });
+    const row = await taskRow(t);
+    expect(row.status).toBe("waiting");
+    expect(row.blocker).toMatch(/Resume to continue/);
+    expect(reply.task?.status).toBe("waiting");
+  });
+
+  it("keeps running while work is queued, running or awaiting the person", async () => {
+    await permit("files", true);
+    const t = await task();
+    await queue(t, { action: "file_list", path: "." });
+    await age(t, 5);
+    await run({ results: [], running: [] });
+    expect((await taskRow(t)).status).toBe("running");
+  });
+
+  it("leaves a recently touched task alone", async () => {
+    const t = await task();
+    await age(t, 1);
+    await run({ results: [] });
+    expect((await taskRow(t)).status).toBe("running");
+  });
+});
+
 describe("Activity privacy (JARVIS-021)", () => {
   it("never stores a local path or the user name inside it", async () => {
     const { redactLocal } = await import("../device.server");

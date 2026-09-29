@@ -125,6 +125,8 @@ export const readJarvisState = createServerFn({ method: "GET" })
     // Retention housekeeping runs when JARVIS opens, not on every live refresh.
     if (input.maintain) {
       await service.rpc("jarvis_purge_expired_activity", { p_user_id: context.userId });
+      const { pauseOrphanedTasks } = await import("./device.server");
+      await pauseOrphanedTasks(service, { userId: context.userId });
     }
     const [conversations, tasks, devices, permissions, memories, activity] = await Promise.all([
       db

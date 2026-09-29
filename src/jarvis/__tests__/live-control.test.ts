@@ -212,3 +212,62 @@ describe("a turn hears the person between steps", () => {
     await expect(turn).rejects.toBeInstanceOf(Stopped);
   });
 });
+
+describe("the planning loop's heartbeat", () => {
+  it("touches its task every minute while it drives it, and stops when the turn ends", async () => {
+    vi.useFakeTimers();
+    try {
+      const { HEARTBEAT_MS } = await import("../agent");
+      const live = new LiveControl();
+      const { d } = deps([
+        { text: "", toolCalls: [call("start_task", { title: "Report", steps: ["open"] })] },
+        { text: "", toolCalls: [call("computer", { action: "file_list", path: "." })] },
+      ]);
+      // The person pauses right after the task starts: the loop holds with a task it drives.
+      const model = vi.mocked(d.model).getMockImplementation()!;
+      vi.mocked(d.model).mockImplementation(async (input) => {
+        const step = await model(input);
+        if (step?.toolCalls[0]?.name === "computer") live.pause();
+        return step;
+      });
+      const controller = new AbortController();
+      const turn = runJarvisTurn(
+        {
+          conversationId: "c1",
+          history: [],
+          text: "go",
+          memories: [],
+          memoryEnabled: false,
+          task: null,
+        },
+        {
+          signal: controller.signal,
+          onText: vi.fn(),
+          onTask: vi.fn(),
+          onActivity: vi.fn(),
+          confirm: vi.fn(async () => true),
+          takeOver: vi.fn(async () => "resume" as const),
+          live,
+        },
+        d,
+      );
+      const outcome = turn.catch((error: unknown) => error);
+      await vi.advanceTimersByTimeAsync(10);
+      expect(live.paused).toBe(true);
+      const before = vi.mocked(d.updateTask).mock.calls.length;
+      await vi.advanceTimersByTimeAsync(HEARTBEAT_MS * 3);
+      const beats = vi
+        .mocked(d.updateTask)
+        .mock.calls.slice(before)
+        .filter(([input]) => input.controller && Object.keys(input).length === 2);
+      expect(beats.length).toBe(3);
+      controller.abort();
+      expect(await outcome).toBeInstanceOf(Stopped);
+      const after = vi.mocked(d.updateTask).mock.calls.length;
+      await vi.advanceTimersByTimeAsync(HEARTBEAT_MS * 2);
+      expect(vi.mocked(d.updateTask).mock.calls.length).toBe(after);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
