@@ -1,139 +1,91 @@
 # OCADE Design System
 
-## Design philosophy
+## Goal
 
-OCADE should feel calm, premium, direct, and technically powerful without looking like a game, hacker console, or science-fiction movie interface.
+OCADE should feel calm, premium, fast and technically powerful without looking like a hacker console or movie prop.
 
-The JARVIS design combines modern conversational-AI clarity with a distinctive central orb and real neural graph.
+## Palette
 
-## Visual direction
+Primary: black, white, charcoal, silver.
 
-- Use black, white, charcoal, and neutral grey as the default system.
-- Allow a user-customizable orb/accent color without making the UI depend on a bright palette.
-- Use restrained glass morphism only where it improves depth or focus.
-- Keep shadows soft and minimal.
-- Keep controls visually quiet until relevant.
-- Avoid card-wall dashboards, noisy neon effects, and decorative telemetry.
+Blue: active/enabled/listening/selected.
+Green: success.
+Red: destructive/error/security warning.
 
-## JARVIS orb
+Use restrained glass and subtle depth. Keep normal product surfaces clean.
 
-- The orb is the central visual anchor.
-- A new/empty JARVIS history starts with a visually simple orb.
-- Real history causes the graph to gain meaningful nodes, threads, clusters, and density.
-- The graph represents conversations, JARVIS memory, tasks, devices, and allowed-app relationships.
-- Neural threads feel organic and precise rather than random.
-- The orb/graph respond subtly to cursor movement.
-- Users can pan and zoom.
-- Semantic zoom reveals more metadata progressively.
-- Selecting a node shows safe metadata rather than immediately opening full private content.
-- The orb dims to a background aura when conversation text needs foreground priority.
-- Reduced-motion users receive a restrained equivalent state.
+## JARVIS
 
-## Voice visualization
+The 3D orb/graph is the distinctive JARVIS visual anchor.
 
-- Voice uses the same orb rather than a separate product.
-- The orb may pulse, rotate, expand, ripple, or change thread intensity based on live audio.
-- User and JARVIS speech use one coherent professional visual language.
-- Voice controls remain explicit and do not depend on hidden orb gestures.
+It grows from real conversations, JARVIS memory, tasks, devices, apps/projects and meaningful relationships. Do not fake stored graph relationships.
 
-## Layout
+During conversation/task content, reduce orb emphasis for readability.
 
-### Desktop
+Voice uses the same orb.
 
-- Use a compact icon-first left sidebar.
-- Allow the sidebar to expand/collapse.
-- Keep the orb centered.
-- Keep the composer near the bottom.
-- Allow a collapsible browser-control panel.
-- Keep Stop and Take Over obvious during automation.
+## Desktop
 
-### Tablet
+Customer product remains web-first.
 
-- Collapse navigation when required.
-- Preserve orb, chat, voice, task, Stop, and Take Over capability.
-- Avoid fixed panels that force horizontal scrolling.
+Windows device execution is represented by one tray identity, not a required floating desktop mini-control.
 
-### Phone
+Active task UI in the web surface shows truthful status, Stop and Take Over.
 
-- Use a compact drawer/navigation pattern.
-- Keep graph controls touch-operable.
-- Use full-width conversation/composer layouts.
-- Keep task controls reachable.
-- Support 360–375 px without horizontal overflow.
+## Android
 
-## JARVIS navigation
+The floating JARVIS bubble is a real mobile control surface.
 
-The initial sections are Conversations, History, Tasks, Activity/Logs, Allowed Apps, and Devices.
+Collapsed: restrained OCADE identity.
 
-The customer-facing Plugins section is removed.
+Expanded: chat, voice, current task/progress, STOP, Open full JARVIS.
 
-Permissions use a focused drawer/modal.
+Complex settings/account management stay in the main OCADE UI.
 
-## Composer
+## Owner/Staff
 
-The JARVIS composer includes text input, Send/Stop state, voice control, attachment entry where supported, permissions, and task/device context when useful.
+Owner/Staff Console may be denser than customer UI but still uses clean OCADE hierarchy, search and progressive disclosure.
 
-The composer never exposes provider names, model names, runtime names, or infrastructure.
+Role-specific account-menu labels:
+- Owner Console;
+- Staff Console.
 
-## Themes
+Customers see neither.
 
-Dark and light themes ship together.
+## States
 
-Monochrome is the default.
+Every action/button supports coherent:
+- idle;
+- hover/focus;
+- loading;
+- disabled;
+- success;
+- error;
+- permission required;
+- stopped/cancelled.
 
-User-selected orb/accent colors may alter the orb shader and restrained accent tokens while preserving accessibility.
+Do not display fake percentages or statuses.
 
 ## Accessibility
 
-- Every important control is keyboard accessible.
-- Focus indicators remain visible.
-- The graph has an accessible semantic representation for critical information.
-- Color is not the only state indicator.
-- Reduced motion is respected.
-- Contrast remains sufficient in both themes.
-- Important automation controls are never hover-only.
+- keyboard navigation;
+- visible focus;
+- reduced motion;
+- semantic graph alternatives;
+- sufficient contrast;
+- no color-only state;
+- touch-friendly mobile controls.
 
-## Do not
+## Responsive
 
-- Do not turn JARVIS into a cluttered dashboard.
-- Do not use random graph nodes unrelated to real data.
-- Do not expose secrets or implementation vocabulary.
-- Do not use tiny unreadable technical text as decoration.
-- Do not copy the reference image literally when a cleaner OCADE solution is better.
+Prove 360/375 phone, tablet and desktop.
 
-## JARVIS deeper-device design direction
+No horizontal overflow.
 
-The latest primary reference is `imports/UI OCADE JARVIS.zip`, used as a donor/reference rather than a standalone shipped application.
+Mobile keyboard must not cover essential controls.
 
-The core visual is a round 3D aura/knowledge orb with real graph relationships. Keep the surrounding UI quiet, monochrome-first and content-focused.
+## Implementation language
 
-Primary navigation is Conversations, Tasks, Activity, Allowed Apps and Devices.
+Do not expose internal terms such as provider names, CDP, Playwright, PyAutoGUI, MCP, Supabase or Cloudflare to normal customers.
 
-Desktop device control may add a small optional movable round OCADE mini-control with compact rounded status/chat/progress UI. It should appear during active work by default and may be pinned by the user.
-
-Mobile web/PWA gets a matching compact launcher inside OCADE, not a fake OS-wide overlay.
-
-Every control state—Stop, Take Over, paused by user input, permission required, offline checkpoint, background mode and remote controller—must be visually distinct without exposing technical provider/runtime terminology.
-
-## Latest product design authority — 2026-09-28
-
-`docs/JARVIS_DESIGN_SYSTEM.md` is the detailed current design authority and supersedes older conflicting UI details.
-
-- OCADE should appear calm, premium, and minimal. Power should come from automatic behavior and execution capability, not from many visible options.
-- Use black, white, charcoal, and silver as the primary visual language. Use blue mainly for enabled/active states, green for success, and red for destructive/error.
-- Keep soft rounded corners, generous spacing, restrained borders/shadows, theme-aware thin scrollbars, skeleton loading, progressive hydration, and subtle 150–200ms interface motion.
-- Reserve stronger liquid-glass/futuristic effects for JARVIS and the orb rather than applying translucent cards everywhere.
-- Preserve and reproduce the useful 3D orb, graph, cursor-reactive behavior, semantic zoom, pan/zoom, real-data node growth, voice reaction, and task reaction from the UI donor reference without copying fake/prototype data.
-- Remove redundant pages, settings, cards, descriptions, repeated avatars, fake metrics, and decorative controls.
-- Settings should use a small set of clear categories, auto-save, short explanations, and Claude-like blue enabled states where appropriate.
-- Free usage can show exact counts. Paid usage should prefer plan name plus a clean progress bar/percentage.
-- Task UI shows current stage, truthful progress, Stop and Take Over, while details remain collapsed until requested.
-- The Help experience contains long explanations so the normal product can remain concise.
-
-## MCP orchestration and autonomous verification linkage — 2026-09-28
-
-- Current implementation and verification governed by this document must also follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.
-- When multiple MCPs can touch the same surface, one tool acts and the others observe or verify sequentially so browsers, devices, files, and operating-system state are not corrupted by competing automation.
-- Long runs must checkpoint durable progress before context compaction, rate limits, restart, or handoff. Resumed work continues from the next unfinished item instead of repeating completed work.
-- A failure is not closed by a code change alone. Reproduce it, fix the root cause, run targeted and nearby integration tests, verify with the strongest available real browser/device/physical evidence, attempt to break the fix, and then run the broader regression slice.
-- If one MCP or environment is unavailable, mark only that evidence class blocked and continue every independent test. Never treat blocked or emulated evidence as a real-device pass.
+Customer errors explain what happened and what the user can do next.

@@ -191,3 +191,33 @@ Evidence:
 1. After release: verify production `/api/health` reports the merged commit, then a signed-in production JARVIS smoke (owner account) and a real device connection against ocade.in.
 2. Owner actions: signing identity + update release key (028), Chrome Web Store account (035 upload), Android SDK/emulator or device (Android phases), approval to install Inno Setup, a "Hey OCADE" wake model.
 3. Open work: 010 eval (needs the real model), staff roles and support/payment operations in admin (owner decisions), scoped feature kill switches, billing provider (owner decision), Android companion (needs SDK/device).
+
+
+---
+
+## Owner authority reset — 2026-09-29
+
+This ledger preserves earlier evidence exactly as historical context. The current implementation authority is now `PLAN.md` Phases 35–49.
+
+New owner decisions:
+- no active OCADE customer browser add-on dependency;
+- existing browser/profile first using CDP/DevTools/Playwright where available, then accessibility/vision/PyAutoGUI;
+- approximately 98% useful donor capability/logic reuse by copy/adapt/wire into `jarvis-runtime/`;
+- immutable donor remains untouched;
+- Windows final desktop presence is tray-only;
+- Android floating bubble/deep control remains active direction;
+- JARVIS is Online-only and must lock rather than use Chat Offline when Online intelligence is unavailable;
+- JARVIS remains conversational while working;
+- Owner/Backup Owner/Admin/Staff backend is required;
+- current TOTP enrollment failure is a tracked bug;
+- device removal during active action and safety-control fail-closed behavior require new adversarial proof;
+- Appium + Mobile MCP Android testing is now expected because the owner installed the Android environment;
+- Inno Setup is installed;
+- Sentry, payment-provider work, paid leaked-password protection and public browser-store work are deferred/non-blocking;
+- each phase reports evidence-based commercial-launch readiness percentage.
+
+Historical references above to now-retired product paths, previous blocked Android setup, prior owner-account absence or prior tool configuration remain evidence of what was true in those earlier waves; they are not current product authority.
+
+### Next step
+
+Begin `PLAN.md` Phase 35 on the latest reconciled main. Build the donor capability ledger, re-health-check MCP/device environments, then continue Phases 36–49 without restarting already proven unrelated work.

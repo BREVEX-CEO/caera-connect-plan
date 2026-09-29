@@ -1,178 +1,160 @@
 # OCADE Architecture
 
-## System overview
+## Boundaries
 
-OCADE is one repository with a protected Chat product and a new OCADE JARVIS product surface.
+OCADE is one repository with distinct runtime boundaries:
 
-JARVIS is integrated as a web-controlled agentic experience while preserving the original JARVIS source and working runtime as separate runtime layers.
+- web product: React/TypeScript under `src/`;
+- JARVIS web surface: `src/jarvis/`;
+- active local execution runtime: `jarvis-runtime/`;
+- immutable donor/provenance: `imports/ocade-jarvis/`;
+- Supabase: identity/data/security authority;
+- Cloudflare: deployed web/runtime authority.
 
-## High-level architecture
+Python runtime files stay outside React `src/`.
 
-```mermaid
-flowchart TD
-  U[User] --> W[OCADE Web]
-  W --> C[Chat]
-  W --> J[OCADE JARVIS]
-  J --> JU[JARVIS Web UI / src/jarvis]
-  JU --> OI[OCADE Online Intelligence]
-  JU --> BC[JARVIS Browser Control]
-  JU --> JT[JARVIS Task / Voice / Permission Layer]
-  BC --> PW[Playwright / Browser Tooling]
-  JT --> JR[jarvis-runtime]
-  C --> CA[Existing Chat Authorities]
-  OI --> S[Supabase / Edge Authority]
-  CA --> S
-  JT --> S
-```
+## Product surfaces
 
-## Repository structure
+Chat and JARVIS are separate.
 
-- imports/ocade-jarvis/ stores the uploaded original ZIP and preservation documentation.
-- imports/ocade-jarvis/source-original/ stores the immutable extracted original source.
-- jarvis-runtime/ stores the active working JARVIS Python/runtime engine.
-- src/jarvis/ stores the production web UI and browser-facing JARVIS integration.
-- src/routes/ continues to own TanStack routes, including /ocade-jarvis.
-- supabase/ continues to own database migrations and Edge Functions.
+Chat may use Offline Intelligence according to product rules.
 
-## Preservation boundary
+JARVIS is Online-only and never silently routes to Offline.
 
-The uploaded ZIP and source-original snapshot are immutable evidence.
+## Donor-to-runtime architecture
 
-The working jarvis-runtime is allowed to change as required for OCADE integration.
+The immutable donor is not executed as production authority.
 
-Ponytail cleanup never targets immutable source.
+For each capability:
+donor source -> inspect -> copy/adapt to active runtime -> route through OCADE broker -> harden -> test -> cleanup duplicate active code.
 
-## Product boundary
-
-Chat and JARVIS share authentication, account identity, server security patterns, and approved storage authorities.
-
-Chat and JARVIS remain distinct user experiences.
-
-JARVIS is Online-only and must not use Chat Offline inference.
-
-## Conversation and data boundary
-
-JARVIS reuses the existing conversation/message authority with a clear JARVIS surface discriminator or equivalent schema mechanism.
-
-The system must never mix normal Chat and JARVIS history unintentionally.
-
-JARVIS memory is logically separate from Chat memory even though both use Supabase account security.
-
-Detailed JARVIS activity has a 90-day retention policy.
+Approximately 98% donor capability/logic reuse is the target where safe, but architecture/security authorities may replace donor structure.
 
 ## Intelligence boundary
 
-All active JARVIS intelligence routes through OCADE's approved server-side Online intelligence authority.
+Provider keys remain server-side.
 
-The original local/manual provider-key route is disabled in production.
+Device runtimes receive validated actions and return results; they do not receive provider API keys.
 
-The provider key is never sent to the browser or exposed in the working runtime UI.
+Primary/secondary/tertiary server capacity is internal implementation detail.
 
-## Browser-control boundary
+## Action broker
 
-Browser control is the first deep JARVIS control capability.
+One action broker owns execution validation and cancellation.
 
-The hierarchy is semantic DOM/accessibility targeting first, Playwright/browser tooling second, authorized browser integration third, visual understanding fourth, and coordinates last.
+Input:
+- account;
+- conversation/task;
+- target device;
+- action;
+- capability;
+- scope;
+- confirmation;
+- control lease;
+- idempotency.
 
-Coordinate actions are ephemeral observations, not stable selectors.
+Output:
+- verified command/refusal;
+- customer-safe activity;
+- result verification;
+- settlement.
 
-Every resize, zoom, scroll-context change, responsive reflow, navigation, or tab switch invalidates stale geometry and requires re-observation.
+## Browser architecture
 
-Take Over pauses automation, and Resume begins from a new observation.
+No OCADE customer browser add-on is required.
 
-## Runtime boundary
+For existing-browser work:
+- attach to existing browser when securely possible through CDP/DevTools/Playwright;
+- use semantic accessibility;
+- OS UI Automation;
+- vision;
+- fresh PyAutoGUI fallback.
 
-The existing Python JARVIS modules remain the primary runtime foundation.
+Isolated browser context may be chosen for risky research that does not need personal session state.
 
-Existing voice, desktop, file, screen, system, task, undo, confirmation, development-agent, and related modules are preserved unless the owner explicitly rejected active behavior.
+Never extract browser password/cookie stores.
 
-Unsupported runtime capabilities are capability-gated rather than simulated.
+## Desktop architecture
 
-## Voice boundary
+Windows/macOS Device Agent is a small trusted local runtime.
 
-Voice is a JARVIS interaction mode rather than a separate product.
+Windows:
+- one tray;
+- dormant autostart;
+- app discovery;
+- browser/apps/files/terminal/screen/system executors;
+- local STOP;
+- update/rollback;
+- clean uninstall.
 
-Voice and typed input share the same JARVIS conversation/task state.
+Coordinates are observation-bound and stale-safe.
 
-## Permission boundary
+## Android architecture
 
-The system supports a global JARVIS enable/disable control plus granular capability permissions.
+OCADE mobile installation begins from the website and may use native Android components where the OS requires them for real overlay/accessibility/background functionality.
 
-Device-sensitive permissions are evaluated per device.
+One OCADE identity exposes PWA/full UI and floating bubble.
 
-Prompt or website content never grants permissions.
+## Apple architecture
 
-## Usage boundary
+iPhone/iPad: PWA/Home Screen + Apple-supported integrations + Remote PC.
 
-Chat and JARVIS have separate plan usage authorities.
+macOS: Device Agent/menu-bar.
 
-JARVIS can account for multiple resource-bearing internal steps.
+Real Apple evidence is separate from WebKit compatibility.
 
-Failed/no-result steps are reconciled.
+## Data architecture
 
-## Deployment boundary
+Supabase remains durable identity/data authority.
 
-The web product remains deployed through the current Cloudflare Worker path.
+Keep one canonical authority for:
+- conversations/messages;
+- JARVIS tasks/activity;
+- device identity;
+- permissions;
+- usage;
+- roles/permissions;
+- staff audit;
+- support cases.
 
-Supabase remains the durable account/security authority.
+Do not revive duplicate historical systems without need.
 
-The working JARVIS runtime must not create a second customer identity or provider-secret system.
+## Storage
 
-## Planned later capability boundary
+Offline Chat model must not redownload merely because code was merged/deployed.
 
-Deeper computer and mobile control begins only after the browser-controlled web mission is stable.
+Browser installations use stable OPFS/release identity/integrity state. Completed ranges persist immediately; repair is targeted.
 
-The earlier web-only restriction is complete. The approved next mission now documents a trusted Windows/macOS Device Agent and browser extension while preserving the website as the primary product surface.
+Explicit Remove/Clear Data deletes local storage according to product/platform rules.
 
-## Approved deeper-device architecture
+## Owner/staff architecture
 
-The completed browser/web architecture remains intact. The deeper-device extension adds a trusted local execution tier without creating a second customer identity, second intelligence authority or second conversation authority.
+Privileged UI is separate at `admin.ocade.in`, but auth uses OCADE identity.
 
-```mermaid
-flowchart TD
-  U[User] --> WEB[OCADE Web / PWA]
-  WEB --> J[JARVIS Web UI]
-  J --> OI[OCADE Online Intelligence Authority]
-  J --> API[OCADE Device/Task Authority]
-  API --> AG[Windows/macOS Device Agent]
-  API --> EXT[Official Browser Extension]
-  AG --> PC[Apps / Files / Screen / System / Coding Workspace]
-  EXT --> RB[Authorized Real Browser]
-  MOB[Android/iOS Web/PWA] --> API
-  MOB --> J
-```
+Authorization is server/RLS enforced.
 
-Website, Device Agent and extension share one versioned protocol contract. Per-device cryptographic identity is unique, revocable and rotated automatically. The account/password is never the durable device credential.
+Roles and permission overrides map to stable user UUIDs.
 
-The local agent owns desktop execution. Supabase/OCADE cloud coordinates identity, permissions, commands, task/checkpoint state and signaling; desktop actions execute locally.
+## Security
 
-An active desktop control session ends when OCADE/Chrome closes unless an already-authorized task is still running or Background/Wake Mode is explicitly enabled. A minimal supervisor may remain dormant for enrollment, secure updates and explicitly enabled background/wake behavior.
+Treat model/page/file/screenshot/tool output as untrusted.
 
-Only one task may own mouse/keyboard/UI control at a time. Safe non-conflicting background work may run in parallel under resource limits.
+No prompt/tool output grants permission.
 
-The browser extension is a narrow authorized-browser bridge, not a second application. Default browser automation remains isolated/safe; existing-profile Chrome is used only when authenticated context is genuinely required or explicitly requested.
+Fail physical execution closed when safety-control state is unreadable.
 
-Mobile remains browser/PWA-first. Remote mobile-to-PC control is supported through the cloud/device authority. A web/PWA surface does not claim OS-wide control that the mobile platform does not expose.
+Sensitive actions use confirmation/strong auth according to policy.
 
-See `docs/JARVIS_DEVICE_ROADMAP.md` for the full approved lifecycle, security and capability rules.
+## Observability
 
-## Company-scale architecture continuation — 2026-09-28
+Customer Activity is concise and safe.
 
-- The website/PWA remains the customer-facing control plane. It owns conversation, task presentation, approvals, device selection, billing/account UX, Help, and Remote PC status.
-- A single versioned action/task protocol connects the web control plane to trusted device runtimes.
-- The desktop Device Agent and Android companion own local OS permissions and execution. They are OCADE product components; development MCPs are not shipped as the customer runtime.
-- One action broker per device is the enforceable authority for cancellation, current permission revalidation, confirmation digests, canonical workspace scope, network/private-address rules, app identity, execution, verification, and result settlement.
-- Execution preference is direct/native API or structured file/app operation first, accessibility/structured UI second, visual understanding third, and freshly observed coordinates last.
-- Physical user input normally pauses UI automation. Co-work is an explicit controlled arbitration state.
-- Owner/admin is a separate privilege plane with server-side RBAC/RLS and audit logging. It must not rely on client-side hidden menus.
-- Billing uses provider-tokenized payment methods. Raw card numbers/CVV and plaintext passwords/MFA secrets are not application data.
-- Error monitoring and diagnostics use redaction and stable incident identities.
-- Chat and JARVIS stay separate product experiences but share account, security, plan, and infrastructure authorities where appropriate.
+Detailed diagnostics are redacted and privileged.
 
-## MCP orchestration and autonomous verification linkage — 2026-09-28
+Raw screenshots are transient by default.
 
-- Current implementation and verification governed by this document must also follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.
-- When multiple MCPs can touch the same surface, one tool acts and the others observe or verify sequentially so browsers, devices, files, and operating-system state are not corrupted by competing automation.
-- Long runs must checkpoint durable progress before context compaction, rate limits, restart, or handoff. Resumed work continues from the next unfinished item instead of repeating completed work.
-- A failure is not closed by a code change alone. Reproduce it, fix the root cause, run targeted and nearby integration tests, verify with the strongest available real browser/device/physical evidence, attempt to break the fix, and then run the broader regression slice.
-- If one MCP or environment is unavailable, mark only that evidence class blocked and continue every independent test. Never treat blocked or emulated evidence as a real-device pass.
+## Deployment
+
+Main/source/deployed identities must agree before final release claim.
+
+GitHub Actions is optional, not required evidence.
