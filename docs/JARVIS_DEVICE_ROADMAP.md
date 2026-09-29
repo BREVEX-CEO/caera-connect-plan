@@ -1,228 +1,179 @@
-# OCADE JARVIS Deep Device Roadmap
+# OCADE JARVIS Device and Execution Roadmap
 
-## Status
+## Authority
 
-Approved by owner on 2026-09-26.
+This roadmap implements the current owner direction in `PLAN.md` and replaces older conflicting browser/device plans.
+
+The website/JARVIS UI remains the primary interaction surface. Desktop and Android execution are OCADE-owned runtimes, not developer tools.
+
+## Donor-first implementation
+
+The preserved JARVIS source is the execution donor. Before implementing a capability, inspect its donor path, then copy/adapt useful logic into active `jarvis-runtime/`.
+
+Key donor families include:
+- `actions/browser_control.py`;
+- `actions/computer_control.py`;
+- `actions/computer_settings.py`;
+- `actions/open_app.py`;
+- `actions/file_controller.py`;
+- `actions/file_processor.py`;
+- `actions/code_helper.py`;
+- `actions/dev_agent.py`;
+- `actions/screen_processor.py`;
+- `actions/send_message.py`;
+- `actions/reminder.py`;
+- `actions/background_monitor.py`;
+- `actions/system_monitor.py`;
+- `core/action_loader.py`;
+- `core/confirm.py`;
+- `core/undo.py`;
+- `core/hotkey.py`;
+- `core/stt.py`;
+- `core/tts.py`;
+- `core/wake_word.py`;
+- donor remote-control/dashboard concepts.
 
-This document extends the already-implemented OCADE JARVIS web/browser mission. It does not replace or invalidate completed browser work, source-preservation rules, Chat protections, or existing verified Supabase authorities.
+The old GUI/provider-key/plugin product paths are not copied into active product behavior.
 
-The starting repository state for this extension is main commit `907140a155d963b20519f679c0a40763b1bb619d`, which contains the completed JARVIS web/browser implementation plus the uploaded `imports/UI OCADE JARVIS.zip` visual reference.
+## Shared action broker
 
-## Product direction
+One device-side action broker owns:
+- dispatch-time authorization;
+- account/device/task binding;
+- permission/capability checks;
+- app/site scope;
+- confirmation;
+- idempotency/retry authority;
+- cancellation;
+- user-control lease;
+- path/network safety;
+- result verification;
+- settlement.
 
-OCADE JARVIS remains a website-first product at `/ocade-jarvis`. It must answer ordinary questions like a normal conversational assistant and perform explicit work/control requests through permission-bound tasks.
+Model output never becomes executable authority by itself.
 
-The website/PWA remains the primary interface on desktop, tablet, Android, iPhone and iPad. Desktop deep control is provided by a one-time trusted OCADE Device Agent for Windows and macOS. Mobile remains web/PWA-first; no mandatory Android or iOS application is part of this roadmap.
+## Control hierarchy
 
-Provider, model, vendor, runtime, storage and infrastructure identities remain hidden from ordinary customer surfaces.
+Use the strongest safe method available:
+1. native/direct API or file/document operation;
+2. application scripting/CLI/macros;
+3. browser DOM/CDP/accessibility;
+4. OS accessibility/UI Automation;
+5. local vision;
+6. freshly observed coordinates/PyAutoGUI.
 
-## Latest UI reference
+Never reuse coordinates after state/layout/focus/monitor changes.
 
-`imports/UI OCADE JARVIS.zip` is the latest primary visual/code reference. Preserve the ZIP untouched.
+## Existing browser
 
-Use useful source patterns/components from it as a donor/reference for the production `src/jarvis/` UI, but do not ship its standalone scaffold, fake responses, random graph data, fake status claims, decorative desktop window buttons, duplicate theme controls, placeholder alerts, or unsupported navigation.
+Use the user's existing appropriate browser/profile for user-requested work when possible.
 
-Production navigation is:
+Chrome is first-class. Support other installed/default browsers where technically sound.
 
-- Conversations
-- Tasks
-- Activity
-- Allowed Apps
-- Devices
+Existing session state is used by operating the authorized browser itself, not by extracting browser credential stores.
 
-Do not expose a customer Plugins tab. Reuse OCADE Settings instead of creating a duplicate settings product. Permissions remain contextual.
+Human auth boundaries pause for the person.
 
-The central graph/orb is a genuine round 3D aura/knowledge graph. It starts clean and grows only from real OCADE JARVIS data: conversations, JARVIS memory, tasks, apps, devices, projects and useful work relationships. Ambient visual lines may exist only when clearly decorative and must never imply fake stored relationships.
+For risky untrusted browsing that needs no personal session, an isolated context may be chosen deliberately.
 
-Double-click enters Orb Focus mode until exit. After approximately eight seconds, nonessential controls may fade while focus remains active.
+## Windows Device Agent
 
-## Desktop Device Agent
+Windows 10/11 is the first real desktop proof target.
 
-Support Windows 10/11 and modern macOS first. Linux is later.
+The Device Agent:
+- installs once;
+- autostarts lightweight;
+- uses one tray identity;
+- remains dormant when idle;
+- discovers useful installed apps;
+- supports browser/apps/files/terminal/screen/system work;
+- updates from verified releases;
+- health-checks and rolls back;
+- exits/uninstalls cleanly;
+- removes local authority on disconnect/uninstall.
 
-The Device Agent must be effortless to install and normally invisible. A tiny dormant supervisor may start with the operating system and consume minimal resources. The active control session closes when OCADE/Chrome closes unless one of these conditions applies:
+No floating desktop mini-control is required.
 
-- an already-authorized task is still running;
-- the user explicitly enabled Background/Wake Mode;
-- a resumable scheduled/background task is active.
+Tray provides status, Open OCADE, STOP, Pause/Resume where applicable, Exit.
 
-If no such condition exists, the execution session ends. The supervisor remains only as required for safe update, enrollment and explicitly enabled background/wake capability.
+## Real PC control
 
-One tray/menu-bar OCADE presence is allowed. Never create duplicate tray icons.
+Support:
+- application discovery and aliases;
+- existing-window preference;
+- focus/window verification;
+- multi-monitor;
+- DPI scaling;
+- mouse, drag, scroll and keyboard;
+- clipboard with restoration where practical;
+- direct files;
+- Office;
+- IDEs;
+- professional apps;
+- process control;
+- system operations;
+- user takeover and Co-work.
 
-The user can exit or uninstall the Device Agent. Exit stops device control after warning about active tasks. Uninstall removes local executables/services/cache/device credentials and clearly explains that PC control, background execution and wake features will stop. Cloud conversations/task history remain until separately deleted.
+Avoid unnecessary visible terminals.
 
-Public production installers must be signed/notarized. Unsigned builds are private development/test artifacts only.
+STOP locally cancels active owned work immediately.
 
-The agent automatically updates from signed OCADE releases and rolls back when a new release fails health checks. Website, agent and browser extension share one versioned protocol contract; incompatible versions fail safely and guide an automatic update.
+## Files and projects
 
-## Device enrollment and security
+Normal scope is user-granted folder/workspace. Explicit task language can grant a clear named folder such as Downloads for that task. Whole-disk access is never a silent default.
 
-Same-account devices pair automatically without QR codes or manual token handling.
+Prefer Trash/Recycle Bin. Protect overwrites. Preserve donor undo concepts where reliable.
 
-Each device still receives its own unique cryptographic device identity and encrypted/rotated credentials automatically. A new-device security notification is shown to the account. A lost device can be revoked immediately from OCADE.
+## Office
 
-Passwords are never used as persistent device credentials. Stored browser passwords are never extracted by JARVIS. Normal password-manager/browser autofill may be used, and CAPTCHA, OTP, passkey, UAC, administrator-password and equivalent human-authentication boundaries pause for the person.
+Excel execution is a first-class acceptance target. Use workbook understanding, formulas, fill, tables, direct operations and real Excel UI appropriately. Preserve unrelated workbook features and macros.
 
-High-risk actions produce an auditable receipt describing intended action, actual result and approval state.
+Apply the same hybrid direct/API + real UI + verification model to Word and PowerPoint. Read/search PDFs directly before visual fallback.
 
-## Chrome extension
+## Development
 
-A small official OCADE Chrome extension may be used when genuinely needed for authorized real-browser control.
+Use filesystem, terminal, Git and tests directly. Open/use VS Code when helpful rather than forcing every edit through GUI.
 
-The extension should be prepared for Chrome Web Store publication. It must have a clear OCADE identity, secure login/account linking, navigation back to `ocade.in` and `/ocade-jarvis`, visible connection/status controls, minimal permissions, and no provider/model/vendor disclosure.
+Remote publish/destructive Git actions follow stronger authorization.
 
-Chrome is first-class. Edge/Chromium follows where compatible. Safari support is added only where technically reliable.
+## Voice and wake
 
-Default browser automation uses a safe OCADE-controlled browser context. The person's existing Chrome/profile is used only when the task needs their authenticated session or the user explicitly requests it. JARVIS controls only its authorized tab/session and never injects into or closes unrelated user tabs.
+JARVIS converses during work.
 
-## Deep PC control
+Hey OCADE is locally detected after the user enables it. Download/verify the model once and retain it.
 
-Prefer execution methods in this order:
+User voice can ask status, pause, continue, stop or change direction while a task is active.
 
-1. application-native API/scripting/automation;
-2. direct file/project operations when safer than visible typing;
-3. structured accessibility/UI automation;
-4. local screen/vision understanding;
-5. re-observed coordinate interaction as the last fallback.
+## Background and recovery
 
-JARVIS automatically detects useful installed applications locally after permission. Allowed Apps uses simple Always Allow / Ask / Never Allow choices.
+Authorized long tasks checkpoint.
 
-One task at a time may own mouse/keyboard/UI control. Safe non-conflicting background tasks may run in parallel under bounded resource limits. Physical user mouse/keyboard input immediately pauses UI automation and it remains paused until Continue, except during an explicitly enabled Co-work mode.
+On network/process/reboot recovery, reconcile completed work before resuming. Never blindly repeat destructive actions.
 
-Multiple monitors are resolved automatically from task context and JARVIS asks only when genuinely ambiguous.
+Multiple devices are supported. One UI-control lease exists per device, while different devices may work concurrently.
 
-Direct file/code operations remain inside the selected workspace/task scope unless the person explicitly grants broader access. Whole-computer access is never the silent default. Recycle Bin/Trash is preferred; permanent deletion requires confirmation.
+## Android
 
-Program installation/uninstallation and major system changes require confirmation at the system-changing step. Restart/shutdown/log-out require confirmation unless the user's current instruction explicitly requested that exact operation.
+OCADE installed mobile experience is acquired from `ocade.in`, presents one OCADE identity, and may use native Android components required for true overlay/accessibility/background behavior.
 
-## Coding and local execution
+Bubble supports chat, voice, status/progress, STOP and full JARVIS.
 
-Within an explicitly selected project/workspace, JARVIS may directly edit files, use terminals, run tests/builds, use Git, perform local commits and use local development tools.
+Control order: intents/native APIs -> accessibility -> vision -> fresh coordinates.
 
-Push, force-push, branch deletion, production deployment and destructive history operations follow stronger permission/confirmation rules.
+Android-owned permission/security prompts are never bypassed.
 
-Provide an OCADE-managed lightweight sandbox/container capability for coding and tool execution. Prefer the smallest secure implementation supported by the host OS. Do not require ordinary users to manually configure Docker Desktop.
+## Apple
 
-Where a bundled/container runtime is necessary, install it automatically only when needed, verify signed/checksummed artifacts, minimize disk usage, enforce CPU/RAM/storage limits and shut idle environments down. Never claim software is bug-free or virus-proof; instead use signed releases, integrity verification, least privilege and isolation.
+iPhone/iPad: PWA/Home Screen + Siri/Shortcuts + notifications/share + Remote PC.
 
-## Background, remote and recovery
+macOS: trusted Device Agent/menu-bar + native scripting/accessibility + files/browser/vision.
 
-An explicitly started or scheduled device task may continue after the website closes.
+WebKit is compatibility evidence only. Real hardware/cloud-device proof is recorded separately and billed testing requires owner approval.
 
-If internet connectivity is lost, complete only safe purely local steps that do not require network/intelligence, checkpoint state, then pause at the next boundary. Resume after authenticated reconnect.
+## Evidence
 
-Long-running tasks use durable checkpoints. After reboot, restore state automatically, resume safe steps and request approval before a sensitive next action.
+A capability is not complete from source inspection alone.
 
-Phone, tablet or another signed-in device may remotely control a paired PC. One controller/task owns active UI control at a time; other devices may observe status or queue work.
+Use LOCAL TEST, REAL BROWSER, REAL WINDOWS, REAL ANDROID, REAL APPLE, DATABASE TEST, LIVE, BLOCKED and UNTESTED distinctly.
 
-Completion can use OCADE web notifications plus optional OS notifications. A global STOP JARVIS control must be available from the web UI, active mini-control and tray/menu-bar surface.
-
-## Mini control surface
-
-Desktop may expose an optional movable round OCADE control. By default it appears during active device control; the user may pin it while JARVIS/device control is enabled.
-
-Clicking opens a compact professional mini-chat/status surface with rounded UI and quick access to progress, Stop/Continue, current controller state and Open OCADE.
-
-It must not create duplicate tray icons or become permanent clutter.
-
-## Voice and wake behavior
-
-JARVIS starts text-only.
-
-Voice is enabled only when the user presses Voice or explicitly enables wake/voice behavior. Microphone permission is requested on first Voice use, not when the JARVIS page initially opens.
-
-If TTS is disabled, spoken commands may still be understood and responses remain text-only.
-
-`Hey OCADE` is optional. On PC, wake-word detection should remain local/private and only activate online audio/intelligence after the wake phrase is detected. Background wake requires explicitly enabled Background/Wake Mode.
-
-Voice supports spoken and visible Stop, Pause, Continue and Cancel/End. Speech must be clear and concise and should preserve useful interaction behavior from the preserved original JARVIS source without reviving retired provider-key or old GUI architecture.
-
-## Online intelligence and three capacity slots
-
-JARVIS continues through the existing OCADE server-side Online Intelligence authority and never exposes provider, model or vendor identity.
-
-Exactly three configured server-side capacity/key slots exist: primary, secondary and tertiary.
-
-Failover must remain compliant and technically correct. Rotate to another configured slot only when the failure is actually slot-local or independent capacity is genuinely available. Do not rotate keys merely to evade a project-wide/provider-wide quota.
-
-If all configured Online capacity is genuinely unavailable or exhausted, stop new JARVIS intelligence turns, show a customer-safe temporary timeout/unavailable state, preserve active task checkpoints, and restore service automatically when capacity returns.
-
-The customer sees only OCADE availability/usage language, never the provider or key-slot reason.
-
-## Mobile web/PWA
-
-Android, iPhone and iPad remain website/PWA-first. Add to Home Screen is supported.
-
-No mandatory native mobile app or companion is part of this roadmap.
-
-Mobile has a dedicated Remote PC subsection so a signed-in phone/tablet can start, stop, observe and control tasks on a paired PC even when the phone browser is later minimized, because execution occurs on the PC Agent.
-
-A normal mobile website/PWA must not claim unrestricted OS-wide control of arbitrary third-party apps, persistent always-on-top overlays over other apps, or background wake behavior that the platform does not actually allow. Where the browser/OS exposes supported web capabilities, use them. Unsupported cross-app control is shown as unavailable rather than faked.
-
-The mobile JARVIS UI may provide a compact round launcher/control inside the installed PWA/web surface. It must remain clean, professional and touch-friendly.
-
-## Data and graph
-
-Keep Chat and JARVIS logically separate while reusing approved account/conversation authorities.
-
-JARVIS graph data may include real relationships between conversations, JARVIS memory, tasks, apps, devices, projects and work context. Categories are primarily distinguished through shape, size, structure and restrained accent use rather than a rainbow palette.
-
-Node selection opens a small safe inspector with category, title/summary, date, relationship metadata and type of stored data. Navigation to an underlying object is explicit.
-
-## Implementation sequence
-
-1. Reconcile docs and latest UI ZIP.
-2. Preserve and verify current browser JARVIS baseline.
-3. Clean/integrate the new JARVIS UI reference.
-4. Create the shared website/agent/extension protocol contract.
-5. Build the trusted Windows/macOS Device Agent packaging, secure enrollment, updater and rollback.
-6. Publish-ready Chrome extension and authorized real-browser path.
-7. Deep PC application/file/screen/system control.
-8. Coding workspace and lightweight sandbox/container execution.
-9. Background execution, checkpointing, reboot recovery and remote device control.
-10. Voice/wake and mini-control surface.
-11. Mobile PWA + Remote PC control.
-12. Only then explore additional mobile-browser capabilities that are genuinely supported.
-13. Run full adversarial/security/performance/device verification.
-14. Reconcile cleanly and merge to main only when evidence is green.
-
-## Release evidence
-
-No capability is called complete from source code alone.
-
-Report separately:
-
-- SOURCE-PROVEN
-- LOCAL TEST
-- REAL BROWSER
-- REAL WINDOWS
-- REAL macOS
-- REAL ANDROID WEB/PWA
-- REAL iOS WEB/PWA
-- DATABASE TEST
-- LIVE
-- BLOCKED
-- UNTESTED
-
-The completed web/browser baseline remains protected throughout this roadmap.
-
-## Latest deeper-device continuation — 2026-09-28
-
-- The roadmap now targets one general execution architecture rather than a set of isolated demo automations.
-- Windows remains the first physical desktop proof target. Test install, tray, autostart, device enrollment, common apps, UWP/Store apps, files, terminal boundaries, browser work, multi-app workflows, STOP, Take Over, Co-work, update, rollback, uninstall, and reinstall on a real Windows computer.
-- Professional software support is not limited to CAD. JARVIS should use direct APIs/scripting/CLI/macros where available, structured accessibility/UI where not, local visual understanding as fallback, and fresh coordinates last.
-- Android receives an OCADE-owned companion with direct OCADE-domain distribution, guided setup, permission health, optional floating mini JARVIS, app/intent/accessibility/notification/media/share flows, background task state, and safe uninstall.
-- Android testing uses Playwright mobile Chromium for web/PWA, a free emulator such as BlueStacks for Android OS behavior, Appium as primary mobile automation, and Mobile MCP as an independent verifier.
-- iPhone/iPad remain PWA/web-first in the current zero-cost mission. Use Apple-supported Shortcuts/Control Center/notifications/Remote PC where supported; do not claim unsupported global overlay or arbitrary third-party app control.
-- WebKit iPhone-like testing is compatibility evidence only. Continue seeking legitimate zero-cost physical Apple evidence without downgrading evidence standards.
-- macOS deep control requires a trusted Device Agent, TCC permission health, supported APIs, signing/notarization for public distribution, and real macOS runtime proof.
-- MCPs are not JARVIS's product engine. The shipping runtime is OCADE's own Device Agent/mobile companion.
-
-## MCP orchestration and autonomous verification linkage — 2026-09-28
-
-- Current implementation and verification governed by this document must also follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.
-- When multiple MCPs can touch the same surface, one tool acts and the others observe or verify sequentially so browsers, devices, files, and operating-system state are not corrupted by competing automation.
-- Long runs must checkpoint durable progress before context compaction, rate limits, restart, or handoff. Resumed work continues from the next unfinished item instead of repeating completed work.
-- A failure is not closed by a code change alone. Reproduce it, fix the root cause, run targeted and nearby integration tests, verify with the strongest available real browser/device/physical evidence, attempt to break the fix, and then run the broader regression slice.
-- If one MCP or environment is unavailable, mark only that evidence class blocked and continue every independent test. Never treat blocked or emulated evidence as a real-device pass.
+Each phase reports commercial-launch readiness percentage and exact evidence.

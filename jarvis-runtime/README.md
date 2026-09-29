@@ -1,64 +1,101 @@
-# OCADE JARVIS — working device runtime
+# OCADE JARVIS — Active Runtime
 
-This is the active JARVIS engine, created from the original source package
-(preserved unchanged in `imports/ocade-jarvis/source-original/`). It runs on a
-person's own computer, pairs with their OCADE account, and executes the browser
-actions an OCADE JARVIS task asks for. It holds no provider key and makes no
-model call: intelligence runs only in OCADE's server-side Online authority.
+This directory is the active local execution engine.
 
-## Use
+The immutable owner-supplied donor remains under `imports/ocade-jarvis/source-original/` and is never modified.
 
-```
-python setup.py                                    # dependencies + Playwright Chromium
-python ocade_device.py connect --server https://ocade.in
-python ocade_device.py run                         # isolated JARVIS browser
-python ocade_device.py run --real-browser-cdp http://127.0.0.1:9222   # also your own browser
-python ocade_device.py forget                      # remove this computer's key
-```
+## Donor reuse
 
-`connect` creates this computer's own P-256 key, sends OCADE only the public
-half, and opens OCADE so the signed-in person can confirm it with one click
-(the page shows the same fingerprint the terminal prints). There are no codes,
-tokens or passwords to copy. The private key stays in `~/.ocade_jarvis/`
-(owner-only), every request is signed over `ocade_protocol.json` — the one
-contract the website and the browser extension also read — and the key rotates
-itself every 30 days. Removing the device in OCADE ends its access at once and
-the runtime deletes its local key.
+The current owner direction is to reuse approximately 98% of useful donor capability/logic where safe.
 
-`--real-browser-cdp` is the on-device authorization for your own browser: start
-it yourself with `--remote-debugging-port=9222`, and turn on "Use my own browser"
-for this device in OCADE. Without both, only the isolated browser exists.
+For each capability:
+1. inspect the matching donor file;
+2. copy/adapt useful logic into this runtime;
+3. rename/wire it into OCADE authorities;
+4. remove obsolete GUI/provider-key/customer-plugin behavior;
+5. harden scope/cancellation/security;
+6. add tests;
+7. prove real behavior.
 
-## What is live
+Production must not import from immutable donor files.
 
-Browser control (`actions/browser_control.py`, OCADE structured control):
-semantic DOM/accessibility targeting with per-observation element identity,
-Playwright actions with fresh geometry, multi-tab work, a screenshot for visual
-understanding, and coordinate clicks only while the observed geometry is still
-on screen. Every action is verified from the page it leaves. Purchases are never
-performed, sensitive submissions wait for a person's confirmation, passwords,
-CAPTCHA, one-time codes and passkeys are left to the person, and payment card
-fields are never filled.
+## Intelligence
 
-## Preserved, not wired yet
+This runtime holds no provider API key and does not make provider/model decisions.
 
-Desktop and computer control (PyAutoGUI), files, screen and camera capture,
-apps, messaging, reminders, system monitoring, the development agent, voice
-(STT/TTS/wake word/echo guard), undo and confirmation modules, the generic
-plugin loader, and the FastAPI phone dashboard remain in this runtime for later
-phases. They are not reachable from OCADE today and are not offered as live
-capabilities. Modules that used a device-side provider key now report that
-capability as unavailable (`core/gemini.py`).
+JARVIS intelligence is server-side Online-only OCADE authority.
 
-## Tests
+If Online intelligence is unavailable, JARVIS locks into a customer-safe unavailable state. It never silently uses Chat Offline Intelligence.
 
-```
-OCADE_BROWSER_EXECUTABLE=/path/to/chromium python -m unittest discover -s tests
-```
+## Execution model
 
-## Current runtime verification discipline — 2026-09-28
+One action broker validates account/device/task/permission/confirmation/lease/idempotency/cancellation state before dispatch.
 
-- Active runtime development and Device Agent verification must follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.
-- Real Windows behavior must be verified with a single physical-computer actor at a time, with browser/mobile tools assigned separate surfaces.
-- Runtime fixes require reproduction, root-cause repair, targeted/integration tests, physical-result verification where applicable, adversarial interruption/restart/permission testing, and broader regression before closure.
-- Context-window changes, MCP failures, or rate limits must not reset completed runtime work; checkpoint and resume from the durable implementation ledger.
+Preferred execution order:
+- direct/native APIs and file/document operations;
+- app scripting/CLI/macros;
+- browser DOM/CDP/accessibility;
+- OS accessibility/UI Automation;
+- vision;
+- PyAutoGUI fresh coordinates.
+
+## Browser
+
+No customer browser add-on is required.
+
+Prefer the user's existing authorized Chrome/browser profile where appropriate.
+
+Use secure CDP/Playwright/DevTools-capable paths, then accessibility/vision/PyAutoGUI fallbacks.
+
+Never extract browser password/cookie stores.
+
+## Windows
+
+The Device Agent is a lightweight tray-based runtime.
+
+No required floating desktop mini-control is part of the final Windows product.
+
+STOP must cancel active local owned work immediately.
+
+Physical user input pauses normal automation unless Co-work is active.
+
+## Files/Office/development
+
+Use direct scoped file/document operations where safer than GUI clicking.
+
+Excel is a first-class target: workbook inspection, formulas, smart fill, formatting, preservation, save/reopen and real verification.
+
+Coding uses filesystem/terminal/Git/tests first and VS Code UI when useful.
+
+Avoid unnecessary visible terminal windows.
+
+## Voice/wake
+
+JARVIS may converse while working.
+
+Hey OCADE uses a small local wake model downloaded/verified once when enabled. Pre-wake audio stays local.
+
+## Android/Apple
+
+Android deep mobile runtime is an OCADE-owned installed experience with legitimate Android permissions and floating bubble.
+
+iPhone/iPad remain PWA/Home Screen + Apple-supported integrations + Remote PC.
+
+## Safety
+
+- human auth boundaries remain human;
+- final purchase/payment prohibited;
+- scoped files;
+- Trash default;
+- stale coordinates refused;
+- device removal cancels active work;
+- unreadable server safety-control state fails closed;
+- late cancelled results cannot resurrect execution.
+
+## Testing
+
+Follow `docs/TESTING_TOOLCHAIN.md` and `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.
+
+Real Windows acceptance must prove browser, Excel, files, VS Code, multi-app work, STOP, takeover, tray lifecycle and active device revoke.
+
+Every phase reports commercial-launch readiness percentage.

@@ -1,177 +1,154 @@
 # OCADE Technical Requirements Document
 
-## Technical direction
+## Runtime layout
 
-OCADE remains one repository with separate runtime boundaries for the web product and the JARVIS engine.
+- React/TypeScript web product under `src/`.
+- JARVIS UI under `src/jarvis/`.
+- active Python/device runtime under `jarvis-runtime/`.
+- immutable donor under `imports/ocade-jarvis/source-original/`.
+- Cloudflare deployed web authority.
+- Supabase Auth/PostgreSQL authority.
 
-The existing JARVIS ZIP is preserved as source provenance and becomes the basis of the active working runtime.
+## Donor integration requirements
 
-## Frontend
+Production must not import from the immutable donor.
 
-- The OCADE website uses React 19, TypeScript, TanStack Router/Query/Start, Vite, and Tailwind CSS.
-- The production JARVIS web UI lives under src/jarvis/.
-- The canonical JARVIS route is /ocade-jarvis.
-- The JARVIS orb/graph uses a performant browser rendering approach with reduced-motion fallback.
-- The JARVIS UI remains responsive across desktop, tablet, and phone.
+Copy/adapt useful donor logic into active runtime and preserve donor snapshot unchanged.
 
-## JARVIS runtime
+Target approximately 98% donor capability/logic reuse where safe.
 
-- The original ZIP remains unchanged under imports/ocade-jarvis/.
-- The immutable extracted original lives under imports/ocade-jarvis/source-original/.
-- The working Python/runtime engine lives under jarvis-runtime/.
-- The working runtime initially preserves the meaningful original actions/, core/, memory/, dashboard/, voice, and related structure.
-- The old active GUI is removed from the production path but remains in source-original.
-- Active manual provider-key entry and plaintext provider-key configuration are removed from the working runtime.
-- Generic plugin code remains preserved but unused/customer-hidden.
-- The legacy phone dashboard remains preserved but is not the final active remote-control surface.
+Do not carry forward:
+- old donor GUI;
+- donor provider-key entry/config;
+- donor generic customer plugin product;
+- duplicate phone dashboard UI;
+- insecure/duplicate authorities.
+
+Create/maintain a donor capability ledger.
 
 ## Intelligence
 
-- JARVIS is Online-only.
-- JARVIS uses the existing approved server-side OCADE Online intelligence boundary.
-- Provider keys never enter browser code or customer configuration.
-- Provider/model/vendor identity is hidden from customer surfaces.
-- JARVIS must not call the Chat Offline path.
+JARVIS is Online-only.
 
-## Browser automation
+Provider keys are server-side.
 
-- Playwright and Playwright/MCP capability are built into the JARVIS browser-control layer.
-- The runtime supports an isolated automation browser and an authorized real-browser path.
-- The preferred hierarchy is DOM/accessibility semantics, Playwright/browser tooling, authorized browser integration, visual understanding, and coordinate fallback.
-- Raw coordinates are never durable element identity.
-- The controller re-observes after resize, zoom, responsive breakpoint changes, scroll-context changes, navigation, tab changes, and content reflow.
-- Meaningful actions are verified by observing resulting state.
-- Multi-tab tasks are supported.
-- Take Over and Stop are explicit session controls.
+No provider/model/vendor identity in customer UI.
 
-## Existing desktop-control code
+If all Online capacity is unavailable, JARVIS enters a bounded unavailable/locked state and never silently switches to Offline.
 
-- Existing PyAutoGUI, computer-control, file-control, screen, app-launch, and related code is preserved.
-- The web product must not claim those capabilities are usable from a normal hosted browser until a trusted execution path is active and tested.
-- Browser-control work is completed before deeper device-control work begins.
-- The owner has now explicitly approved the deeper-device mission; the trusted Windows/macOS Device Agent and browser extension are documented in PLAN.md Phases 13–23.
+## Browser technical requirements
 
-## Voice
+No OCADE customer browser add-on dependency.
 
-- Typed and voice tasks share JARVIS context.
-- Microphone permission is requested when the user first enters JARVIS.
-- Voice supports Interrupt, Pause, Continue, and End.
-- Wake behavior uses Hey OCADE by default where supported.
-- Audio/voice states terminate cleanly on stop, error, permission denial, navigation, or sign-out.
+Support existing Chrome/profile first using CDP/DevTools/Playwright where available.
 
-## Backend and database
+Support additional installed/default browsers where feasible.
 
-- Supabase remains the identity, PostgreSQL, and durable account-data authority.
-- JARVIS conversations reuse the existing conversation/message authority with a clear JARVIS discriminator.
-- JARVIS memory is a separate logical namespace from Chat memory.
-- JARVIS usage is a separate usage kind/ledger from Chat.
-- Detailed JARVIS activity has 90-day retention.
-- Important task results remain durable independently of activity expiry.
-- Per-device capability permissions are durable account-owned data with RLS/server authorization.
+Fallback hierarchy: semantic browser/accessibility -> OS accessibility -> vision -> PyAutoGUI fresh coordinates.
 
-## Authentication
+Human auth boundaries pause.
 
-- The /ocade-jarvis surface may render signed out.
-- Intelligence, account data, task execution, browser control, voice intelligence, and durable state require authentication.
-- Authentication returns to the requested JARVIS route.
+Existing browser credential stores are not extracted.
 
-## Security
+## Computer-control requirements
 
-- Every action binds to account, JARVIS context, request, permission, and device identity.
-- JARVIS treats web content, screenshots, tool output, uploads, and model-generated instructions as untrusted.
-- Prompt injection cannot expand permissions.
-- Sensitive submissions require confirmation.
-- Final purchases are blocked.
-- One-time authentication secrets are ephemeral.
-- Any future encrypted credential vault remains separate from conversational memory.
-- Payment card security codes are never stored.
+One action broker.
 
-## Usage
+All actions have cancellation tokens.
 
-- Chat and JARVIS have separate plan allowances.
-- JARVIS internal successful resource-bearing steps may consume JARVIS usage.
-- Failed/no-result steps are reconciled.
-- Usage is enforced server-side and account-wide.
+STOP is local/synchronous.
 
-## Deployment
+Task-owned process trees can be terminated.
 
-- The website remains deployed through the current Cloudflare Worker authority.
-- Supabase Edge Functions and migrations follow existing deployment discipline.
-- JARVIS packaging must not leak secrets/provider identity into the public bundle.
+Foreground window/state verified before input.
 
-## Hard constraints
+Multi-monitor and DPI-aware.
 
-- Do not break existing Chat/Offline behavior.
-- Do not add Offline JARVIS.
-- Do not expose provider keys.
-- Do not delete the original ZIP or immutable snapshot.
-- Do not claim unsupported desktop/mobile control.
-- Preserve the completed web mission while implementing only the now-approved Device Agent/extension architecture in PLAN.md Phases 13–23.
+Input guard detects physical user control.
 
-## Approved deeper-device technical requirements
+Co-work uses explicit lease ownership.
 
-The next implementation follows PLAN.md Phases 13–23 and `docs/JARVIS_DEVICE_ROADMAP.md`.
+No unnecessary visible terminal windows.
 
-### Shared protocol
+## Files
 
-Create one explicit versioned contract for website, Device Agent and browser extension. Every device command/result must bind account, device, task, request, permission and protocol version.
+Canonical path/scope validation protects against traversal, symlink/junction escape and unsafe temporary paths.
 
-Each enrolled device receives a unique cryptographic credential automatically. Store only safe server-side verification material. Support credential rotation and immediate revocation.
+User-granted workspace/folder is default scope.
 
-### Desktop packaging
+Trash/Recycling is default delete.
 
-Support Windows 10/11 and modern macOS first. Package the active runtime so end users do not install Python or dependencies. Public builds require code signing/notarization. Auto-update from signed OCADE releases and rollback on failed health checks.
+Undo supported where reliable.
 
-A minimal supervisor may autostart at OS login. Keep idle CPU/RAM/network negligible. One tray/menu-bar identity only.
+## Office/document requirements
 
-### Browser extension
+Excel:
+- structural workbook inspection;
+- formulas/ranges/tables;
+- smart fill/structured operations;
+- formatting/charts/filters when requested;
+- preserve unrelated formatting/formulas/macros;
+- real Excel verification for major tasks.
 
-Use Manifest V3 or the current store-supported equivalent at implementation time. Request minimum permissions. Provide secure OCADE account state, connection status and links to OCADE/JARVIS. Never embed Online provider secrets or provider identity.
+Word/PowerPoint: hybrid direct manipulation + app verification.
 
-### Desktop execution
+PDF: direct extraction/search before visual fallback.
 
-Preferred automation order is native API/scripting, direct scoped file/project operation, accessibility/structured UI, local vision, then freshly observed coordinates.
+## Developer requirements
 
-Only one UI-control lease exists per device at a time. User physical input cancels/pauses that lease until explicit Continue unless Co-work mode intentionally alternates control.
+Filesystem + terminal/Git + tests first; VS Code UI where useful.
 
-### Coding sandbox
+Risky remote/destructive Git operations require stronger authorization.
 
-Provide a lightweight OCADE-managed isolated execution environment where required. Prefer host-native virtualization/container capabilities, lazy installation and bounded CPU/RAM/storage. Do not require ordinary users to configure Docker Desktop manually.
+## Voice/wake
 
-### Background and checkpointing
+Voice works during execution.
 
-Explicit background tasks persist durable checkpoints. Local-only safe steps may continue during network loss; Online-dependent work pauses. Reboot restores state and resumes only safe steps automatically.
+Wake model downloaded/verified once when enabled; pre-wake audio local.
 
-### Voice
+## Android
 
-Startup is text-only. Microphone permission occurs on first Voice use. Optional PC wake-word detection remains local. Cloud audio must not run continuously before wake activation.
+Support OCADE installed experience, floating bubble, supported deep app control and Remote PC.
 
-### Online capacity
+Use Android APIs/intents/accessibility legitimately and never bypass security prompts.
 
-Keep exactly three configured server-side capacity slots. Failover must distinguish slot-local failure from provider/project-wide quota. Never expose slot, provider, model or vendor identity to customers.
+## Apple
 
-### Mobile
+WebKit compatibility required.
 
-Android/iOS remain web/PWA-first. Implement Remote PC via existing authenticated task/device authorities. Do not technically represent unsupported OS-wide cross-app control as available.
+iPhone/iPad PWA/Apple-supported features.
 
-## Latest technical continuation — 2026-09-28
+macOS Device Agent supported only with real platform proof.
 
-- Use one device-side action broker for execution authority. It owns current authorization, cancellation, workspace/path safety, app identity, network safety, OS permissions, result verification, and settlement.
-- Revalidate current permissions/capabilities at action dispatch.
-- Use stable app identifiers rather than trusting arbitrary model-generated app names.
-- Implement cancellable subprocess/task primitives so STOP can affect active work rather than only future queue claims.
-- Enforce canonical workspace/path handling against traversal, symlink/junction, predictable temporary-path, and shell escape.
-- Enforce browser network policy against DNS rebinding, private redirects, and private subresources at the executor/network boundary.
-- Android uses an OCADE-owned companion for deep local control and an optional floating mini JARVIS. MCP/Appium tooling is testing-only.
-- iPhone/iPad stay PWA/web-first with Apple-supported shortcuts/control surfaces and Remote PC. Unsupported global overlay/cross-app control is not represented as technically available.
-- Owner/admin is a separate privilege plane with server-side role/permission enforcement, audited mutations, and no raw credential/card exposure.
-- Payments use provider-tokenized methods and webhook-driven state.
-- Error monitoring uses redacted diagnostics and stable incident grouping.
+## Auth/admin
 
-## MCP orchestration and autonomous verification linkage — 2026-09-28
+Stable UUID-based Owner/Staff roles.
 
-- Current implementation and verification governed by this document must also follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.
-- When multiple MCPs can touch the same surface, one tool acts and the others observe or verify sequentially so browsers, devices, files, and operating-system state are not corrupted by competing automation.
-- Long runs must checkpoint durable progress before context compaction, rate limits, restart, or handoff. Resumed work continues from the next unfinished item instead of repeating completed work.
-- A failure is not closed by a code change alone. Reproduce it, fix the root cause, run targeted and nearby integration tests, verify with the strongest available real browser/device/physical evidence, attempt to break the fix, and then run the broader regression slice.
-- If one MCP or environment is unavailable, mark only that evidence class blocked and continue every independent test. Never treat blocked or emulated evidence as a real-device pass.
+No frontend email authorization.
+
+Fix TOTP enrollment.
+
+Privileged mutations use appropriate strong auth and audit.
+
+## Safety-critical requirements
+
+- device removal mid-action cancels local execution before authority is forgotten;
+- backend safety-control read failure stops physical execution;
+- late results cannot resurrect cancelled work;
+- task/account/device ownership revalidated at dispatch/settlement;
+- final purchases blocked;
+- prompt injection cannot expand authority.
+
+## Offline Chat model persistence
+
+Deployment/source code updates must not trigger model redownload.
+
+Use stable release identity, OPFS/storage persistence, immediate completed-range persistence, resumable repair and explicit Remove semantics.
+
+## Testing
+
+Every phase requires local + applicable MCP/real evidence.
+
+Use existing Chrome/CDP + DevTools, browser compatibility matrix, Physical Computer Use, Appium, Mobile MCP, Filesystem, Supabase, Cloudflare and GitHub as appropriate.
+
+Report commercial-launch readiness percentage after each phase.

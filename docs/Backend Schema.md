@@ -1,152 +1,155 @@
 # OCADE Backend Schema and Data Rules
 
-## Authority
+## Authorities
 
-Supabase Auth and PostgreSQL remain the durable account/security authority.
+Supabase Auth and PostgreSQL remain the durable identity/data/security authority.
 
-JARVIS reuses approved OCADE authorities rather than creating a second account or conversation database.
+Do not create duplicate account, role, usage, conversation, device or task systems when an approved authority already exists.
 
-## JARVIS conversations
+## JARVIS conversations and tasks
 
-JARVIS conversations reuse the existing conversation/message authority.
+Chat and JARVIS remain logically separate.
 
-The schema must distinguish JARVIS from ordinary Chat through a safe surface/type discriminator or equivalent canonical mechanism.
+JARVIS conversations use a clear canonical discriminator so ordinary Chat queries cannot accidentally mix JARVIS state.
 
-RLS continues to scope every conversation/message to the owning account.
+JARVIS tasks require durable:
+- owner account;
+- conversation;
+- task/request identity;
+- target device;
+- status;
+- checkpoint;
+- action/idempotency state;
+- result;
+- timestamps.
 
-Normal Chat queries must not accidentally return JARVIS conversations unless explicitly requested.
+Detailed activity remains customer-safe; raw internal provider/tool traces are not customer Activity.
 
-JARVIS queries must not accidentally mix ordinary Chat history into JARVIS.
+## JARVIS Online-only rule
 
-## JARVIS tasks
+No schema or fallback route may silently route JARVIS to Chat Offline Intelligence.
 
-The first mission represents JARVIS task state using approved conversation/message authority plus minimal execution-state metadata rather than reviving the retired generic Tasks product.
+If Online capacity is unavailable, persist safe task/checkpoint state and surface bounded unavailable state.
 
-A task requires durable identifiers for account, conversation, task/request identity, status, current step/progress, result reference, and timestamps where current schema cannot represent them safely.
+## Device identity
 
-Do not revive historical project/task/automation tables merely because they exist in migration history.
+Each device has unique revocable cryptographic identity.
 
-## JARVIS memory
+Persist only safe verification material server-side.
 
-JARVIS memory remains logically separate from Chat memory.
+Support:
+- credential rotation;
+- revocation;
+- device kind/platform;
+- software/protocol version;
+- capabilities;
+- permission state;
+- last health/seen metadata needed for product behavior.
 
-If current memory authority supports namespaces/surfaces, use a JARVIS namespace rather than creating an uncontrolled duplicate database.
+Never use account passwords as device credentials.
 
-Memory remains optional/account-controlled.
+## Action broker state
 
-Temporary raw screenshots do not become long-term memory by default.
+Persist minimum state required for:
+- dispatch-time revalidation;
+- idempotent claim;
+- retry authority;
+- cancellation;
+- active control lease;
+- checkpoint/resume;
+- late-result rejection;
+- verified result settlement.
 
-## JARVIS activity
+Removing a device must cancel open task/activity authority before credentials become unusable.
 
-Detailed JARVIS activity records customer-safe action events and security-relevant state.
+## Safety controls
 
-Detailed activity uses a 90-day retention policy.
+Physical execution controls are server-authoritative.
 
-Important durable task results are not deleted merely because detailed logs expire.
+Unreadable safety-control state must not be treated as allowed execution.
 
-Raw provider/internal logs are not customer Activity.
+Use forward migrations to retire obsolete browser-bridge control/device state after replacement proof. Never edit old applied migrations.
 
-## JARVIS usage
+## Owner/Staff roles
 
-JARVIS usage is a separate usage kind from Chat.
+The role model must support:
+- primary_owner;
+- backup_owner;
+- admin;
+- support;
+- billing;
+- developer_operations;
+- read_only;
+- normal customer/user state;
+- granular permission overrides.
 
-The server/database authority records successful resource-bearing internal JARVIS work according to approved plan rules.
+Legacy `admin | moderator | user` representation must be migrated carefully rather than merely relabeled in frontend code.
 
-Failed or no-result internal steps are reconciled rather than blindly finalized as customer usage.
+Role grants bind stable user UUIDs, not email strings.
 
-The client never decides entitlement or usage count.
+Store staff invite/status, role assignment, permission override, 2FA/assurance-related operational state, privileged session revocation state and audit.
 
-## Devices and permissions
+## Audit
 
-Devices remain account-owned and revocable.
+Privileged mutations append records including relevant:
+- actor;
+- role;
+- target;
+- action;
+- old/new state;
+- reason;
+- time;
+- session/device context.
 
-JARVIS capability permissions may use the current device authority or a minimal extension of it.
+History is append-only.
 
-The permission model supports global JARVIS enable/disable plus granular Browser, Files, Screen, Microphone, Camera, Apps, Messaging, Devices, and future Computer Control permissions.
+## Conversation support access
 
-Device-sensitive permission state is scoped per device.
+Customer conversations remain private.
 
-## Allowed Apps
+Temporary support access requires a scoped case/grant with:
+- named staff identity;
+- target account/conversation;
+- reason;
+- issuer;
+- start;
+- expiry/revoke;
+- audit.
 
-Allowed Apps are account/device capability configuration, not a generic executable plugin store.
+No broad staff conversation read policy.
 
-Any durable allowed-app record is owner-scoped and permission-checked.
+## Usage/entitlement
 
-The original generic plugin subsystem remains code-preserved but is not exposed as a customer product surface.
+Owner unlimited product access is an entitlement, not disabled metering.
 
-## Secret material
+Usage adjustments and plan/complimentary grants append auditable changes rather than rewriting event history.
 
-Provider/service-role credentials never enter customer tables.
+## Files/screenshots
 
-If a future encrypted credential vault is implemented, it is a separate security subsystem with strong encryption/key management and explicit user control.
+Raw screen frames are transient by default.
 
-One-time authentication secrets remain ephemeral.
+Persist only structured result/evidence with documented purpose.
 
-Payment card security codes are never stored.
+## Offline Chat model metadata
 
-## Visual/task data
+The browser/local model authority must persist:
+- release identity;
+- completed byte/range state;
+- integrity metadata;
+- explicit removed/tombstone state where needed.
 
-Raw screenshots and visual frames are temporary by default.
+Deployment/source changes do not imply model release changes.
 
-Persist only structured task/memory information that has a documented user purpose.
-
-Treat uploaded/extracted/observed content as untrusted.
+Do not redownload a complete valid installed artifact merely because the app was redeployed.
 
 ## Security
 
 Every user-owned table uses RLS plus explicit grants.
 
-Privileged server functions pin search_path and verify auth/role/permission explicitly.
+Privileged functions pin search_path and verify caller role/permission.
 
-JARVIS action execution verifies account, context, permission, and device identity server-side/runtime-side rather than trusting browser claims.
+Prompt/page/tool content cannot alter authorization.
 
-Prompt or website content cannot grant new permissions.
+One-time auth secrets remain ephemeral.
 
-## Migration discipline
-
-Use forward-only migrations for live schema changes.
-
-Do not edit applied migrations to make history cleaner.
-
-Add verification SQL and rollback/provenance support consistent with current repository rules.
-
-## Deeper-device schema requirements
-
-The next device migration should extend existing JARVIS device/task authorities rather than create duplicate account or task systems.
-
-Persist only the minimum durable state needed for:
-
-- unique device public identity / server-verifiable credential material;
-- credential rotation metadata and revocation state;
-- protocol/agent/extension versions;
-- device capability and permission state;
-- active UI-control lease ownership;
-- durable task checkpoints and resumability metadata;
-- background/wake enablement;
-- customer-safe new-device/security notifications;
-- signed update/rollback state where server coordination is required.
-
-Keep raw device secrets out of normal tables/logs. Keep RLS and server authorization aligned with existing account ownership. Device credentials must not authorize another account/device through identifier substitution.
-
-Do not create mobile-native-app-specific schema merely to simulate capabilities that remain web/PWA-only.
-
-## Company operations and entitlement schema continuation — 2026-09-28
-
-- Add or reuse durable role/permission authorities for Owner, Admin, Support, Billing, Developer/Operations, and Read-only staff access. Server-side checks and RLS must enforce these roles.
-- Represent owner unlimited product access as an entitlement while continuing to record usage/cost internally.
-- Usage adjustments, plan changes, complimentary grants, reset actions, refunds, reversals, and staff mutations must append auditable events rather than rewriting historical rows.
-- Store payment-provider customer/subscription/payment/invoice/refund/dispute references and only permitted metadata such as brand/last-four where provided. Never store raw card numbers, CVV/CVC, bank credentials, or processor secrets.
-- Store staff invite/status, MFA requirement state, session metadata, revocation state, role assignments, permission overrides, and immutable audit events.
-- Store support cases/internal notes separately from customer-visible notes. Internal notes must not leak to the customer UI.
-- Device permissions and Allowed Apps are scoped to the correct device where policy is device-sensitive; do not collapse all computers into one ambiguous account-wide app-name policy.
-- Stable application identifiers should be used where possible so policy cannot be bypassed by a model inventing an alias.
-- Every queued/executed JARVIS action must be revalidated against current account/device/permission/capability state at dispatch.
-- Add durable state needed for idempotent action claims, checkpoints, retry authority, result settlement, controller leases, and explicit device targets.
-
-## MCP orchestration and autonomous verification linkage — 2026-09-28
-
-- Current implementation and verification governed by this document must also follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.
-- When multiple MCPs can touch the same surface, one tool acts and the others observe or verify sequentially so browsers, devices, files, and operating-system state are not corrupted by competing automation.
-- Long runs must checkpoint durable progress before context compaction, rate limits, restart, or handoff. Resumed work continues from the next unfinished item instead of repeating completed work.
-- A failure is not closed by a code change alone. Reproduce it, fix the root cause, run targeted and nearby integration tests, verify with the strongest available real browser/device/physical evidence, attempt to break the fix, and then run the broader regression slice.
-- If one MCP or environment is unavailable, mark only that evidence class blocked and continue every independent test. Never treat blocked or emulated evidence as a real-device pass.
+No provider keys, raw payment secrets, CVV/CVC or plaintext passwords/MFA secrets in customer/admin tables.

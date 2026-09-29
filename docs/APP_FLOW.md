@@ -1,158 +1,145 @@
 # OCADE App Flow
 
-## Primary navigation
+## Customer navigation
 
-The active product navigation includes Chat, OCADE JARVIS, Library, and the existing account/settings entry points.
+Keep the normal product small:
+- Chat;
+- JARVIS;
+- Library;
+- Account/Settings;
+- Help/Support.
 
-JARVIS opens at **/ocade-jarvis**.
+No separate Code or Projects product is required.
 
-The JARVIS sidebar uses compact icons by default and expands when needed. Its sections are Conversations, History, Tasks, Activity/Logs, Allowed Apps, and Devices.
+## JARVIS normal question
 
-Permissions open in a focused drawer/modal.
+1. User asks a normal question.
+2. JARVIS answers conversationally using approved Online intelligence.
+3. No artificial task is created unless execution is requested.
 
-## Signed-out JARVIS flow
+If Online intelligence is unavailable, JARVIS shows a bounded unavailable/locked state and does not fall back to Chat Offline.
 
-1. A visitor may open /ocade-jarvis and see the JARVIS interface.
-2. The visitor may explore the non-sensitive visual surface.
-3. When the visitor tries to send, speak to intelligence, start a task, use account data, or control anything, OCADE requests authentication.
-4. After successful authentication, OCADE returns the user to /ocade-jarvis.
+## JARVIS work request
 
-## JARVIS idle flow
+1. User requests work.
+2. JARVIS identifies target device/browser/workspace.
+3. JARVIS forms a concise plan.
+4. Action broker validates permission/scope.
+5. Work begins automatically when safe.
+6. JARVIS observes each meaningful result.
+7. User may talk/type during execution.
+8. Stop/Take Over/Continue remain available.
+9. Completion is reported only after verification.
 
-1. JARVIS opens to a clean central orb when there is no active conversation.
-2. The orb begins visually simple for a new JARVIS user.
-3. Real conversations, JARVIS memories, tasks, devices, and allowed-app relationships gradually add nodes and neural threads.
-4. The user may pan, zoom, hover, and select graph structures.
-5. Selecting a graph structure shows safe metadata about the represented data without automatically opening private underlying content.
+## Existing-browser flow
 
-## Normal question flow
+1. Select user's existing appropriate browser/profile.
+2. Use secure CDP/DevTools/Playwright path where available.
+3. Fall back to browser/OS accessibility, vision, then fresh PyAutoGUI.
+4. Re-observe after state changes.
+5. Human handles CAPTCHA/OTP/passkey/security verification.
+6. Password-manager autofill may be used without extracting secrets.
+7. Stop before final purchase/payment.
 
-1. The user types or speaks a normal informational question.
-2. JARVIS treats it as a conversation rather than manufacturing a control task.
-3. JARVIS uses the approved Online intelligence path.
-4. The answer appears in the JARVIS conversation.
-5. The orb remains a restrained background visual when text needs priority.
+## Windows setup
 
-## Work/task flow
-
-1. The user asks JARVIS to perform work.
-2. JARVIS creates a Task with a concise plan.
-3. JARVIS begins automatically unless permission or sensitive confirmation is required.
-4. The Task view shows current step, progress, activity, Stop, and Resume state.
-5. JARVIS observes each meaningful result before continuing.
-6. If the plan fails safely, JARVIS stops and explains the blocker.
-7. The durable result remains after detailed activity logs expire.
-
-## Browser-control flow
-
-1. JARVIS selects an isolated browser or uses the user's authorized real browser according to the task.
-2. JARVIS chooses the strongest semantic control method automatically.
-3. The user may open a collapsible live browser panel.
-4. JARVIS may work across multiple tabs/sites.
-5. JARVIS re-observes after navigation, resize, zoom, tab changes, responsive reflow, and scroll changes.
-6. JARVIS never uses stale coordinates as if the page had not moved.
-7. The user may select Take Over to pause automation and act manually.
-8. Resume starts from a freshly observed state.
-9. CAPTCHA, passkeys, OTP/2FA, and equivalent boundaries pause for user participation.
-10. Sensitive submissions request confirmation.
-11. Final purchase/payment actions remain unavailable.
-
-## Voice flow
-
-1. JARVIS opens text-only and requests microphone permission only when the user first presses Voice.
-2. The user may type or use voice in the same JARVIS context.
-3. Hey OCADE is the default wake phrase where supported.
-4. Voice mode animates the orb.
-5. Explicit Interrupt, Pause, Continue, and End controls are available.
-6. Ordinary orb clicks do not act as hidden speech-interrupt controls.
-7. Ending voice returns to the same JARVIS conversation/task.
-
-## Allowed Apps flow
-
-1. Allowed Apps shows applications or web services JARVIS knows how to use.
-2. Web/browser capabilities may become active during the first mission.
-3. Later desktop/mobile capabilities are shown only when genuinely available.
-4. The user controls which capability is allowed.
-5. JARVIS may remember preferred tools when memory is enabled.
-6. JARVIS asks when multiple tools are plausible and no reliable preference resolves the ambiguity.
-
-## Devices flow
-
-1. Devices shows account-owned endpoints and capability state.
-2. Device-sensitive permissions are managed per device.
-3. The user may disable JARVIS globally while retaining granular settings.
-4. Unsupported control is shown as unavailable rather than simulated.
-
-## Error and cancellation flow
-
-Every async JARVIS operation terminates in success, bounded progress, stopped/cancelled, permission required, blocked, retryable error, or terminal error.
-
-No JARVIS task may remain in an endless spinner or ambiguous active state.
-
-## Device setup flow
-
-1. The user requests a capability that needs deep PC control.
+1. User requests deep PC control.
 2. OCADE offers Set up this PC.
-3. One installer handles the trusted Device Agent setup automatically.
-4. The same signed-in OCADE account enrolls the device without user-managed codes/tokens.
-5. OCADE creates a unique cryptographic device identity, records the device and shows a new-device security notification.
-6. Required OS permissions are requested in simple customer language.
-7. The device becomes available in Devices.
+3. Trusted Device Agent installer runs.
+4. Same account pairs device.
+5. Unique device identity is created.
+6. Necessary permissions are explained/requested.
+7. One tray presence remains.
+8. Device becomes Ready.
 
-## Desktop-control flow
+## Windows task
 
-1. A task chooses the strongest supported native/direct control method.
-2. One task obtains the device UI-control lease.
-3. JARVIS re-observes before coordinate fallback and after meaningful state changes.
-4. Physical user mouse/keyboard input pauses JARVIS.
-5. Continue re-observes before resuming.
-6. High-impact/system-changing actions request approval.
-7. STOP JARVIS immediately releases active automation.
+1. Prefer native/direct method.
+2. Use existing app window where appropriate.
+3. Verify focus.
+4. Execute.
+5. Physical user input pauses normal automation.
+6. Continue re-observes.
+7. STOP cancels local work immediately.
+8. Verify actual result.
 
-## Browser-extension flow
+## Excel flow
 
-1. OCADE uses its safe browser context by default.
-2. When an existing authenticated Chrome session is required, JARVIS uses the official authorized extension path.
-3. The extension controls only its authorized tab/session.
-4. CAPTCHA, OTP, passkey and equivalent boundaries hand control to the person.
+1. Inspect workbook programmatically.
+2. Determine formula/structured solution.
+3. Preserve existing workbook behavior.
+4. Apply efficient edits.
+5. Use Excel UI where needed.
+6. Verify calculations/formatting.
+7. Save/reopen major tasks.
+8. Report exact changes.
 
-## Background/recovery flow
+## Voice during work
 
-1. An explicitly started/scheduled task may continue after the website closes.
-2. Safe local-only steps may continue through temporary network loss.
-3. JARVIS checkpoints before boundaries and pauses Online-dependent work.
-4. Reconnect/reboot restores state.
-5. Safe next steps may resume automatically; sensitive next steps request approval.
+User may ask “what are you doing?” or redirect while task runs. JARVIS answers truthfully from current task state and continues unless instructed otherwise.
 
-## Mobile Remote PC flow
+## Wake
 
-1. Android/iPhone/iPad opens OCADE as web/PWA.
-2. The user selects a paired PC in Devices/Remote PC.
-3. Mobile can start, stop, observe and control the PC task.
-4. The phone browser may be minimized; execution continues on the PC Agent.
-5. Unsupported mobile OS-wide control is not simulated.
+First enable:
+1. explain local wake;
+2. download/verify small Hey OCADE model;
+3. store once;
+4. keep across updates/restarts;
+5. pre-wake audio remains local.
 
-## Voice update
+## Android install
 
-JARVIS opens text-only. Microphone access is requested on first Voice use, not on route entry. Optional PC `Hey OCADE` requires explicit Background/Wake Mode for closed-browser operation.
+1. User opens OCADE on Android.
+2. Chooses Install OCADE.
+3. Website guides required installation/permissions.
+4. One OCADE identity is installed.
+5. User can enable floating bubble and relevant Android permissions.
+6. Bubble offers chat, voice, status, STOP and full JARVIS.
+7. Remote PC and supported local actions become available.
 
-## Latest company/product flows — 2026-09-28
+## iPhone/iPad
 
-- The default customer navigation should remain intentionally small. Chat, JARVIS, Library, shared Settings/Account, Help/Support, and contextually useful conversation history are the core customer flows.
-- Do not add a separate Code page. When a user asks for code, Chat/JARVIS returns code in conversation; when the user asks JARVIS to act, JARVIS may use the approved IDE, terminal, repository, or workspace on the selected device.
-- Do not add a separate Projects page unless later evidence proves it is necessary. Files, repositories, workspace context, conversations, and Library should carry project context first.
-- JARVIS tasks are shown primarily inside JARVIS. Active tasks show current stage, truthful progress, Stop, Take Over, and optional detail expansion rather than forcing the user into a separate dashboard.
-- Co-work is an optional JARVIS control mode. If physical user input occurs during normal automation, JARVIS pauses. Co-work can then deliberately coordinate control instead of allowing conflicting input.
-- The free plan shows exact remaining uses and reset information. Paid plans primarily show plan name and a clean percentage/bar.
-- Help/Support is a first-party OCADE flow with search, setup guides, billing, privacy/security, device help, and troubleshooting.
-- Owner/admin operations live on the secured OCADE admin domain and are never reachable merely by discovering a hidden customer route.
-- Android companion install begins from the OCADE site, guides installation/permissions, then offers the optional floating JARVIS mini-app. Settings and complex account flows open the website.
-- iPhone/iPad remain PWA/web-first with Apple-supported Shortcuts/Control Center/notifications/Remote PC paths. WebKit compatibility tests must not be represented as physical-iPhone proof.
+1. Add OCADE to Home Screen.
+2. Use JARVIS web/PWA.
+3. Optional Siri/Shortcut/notification/share integration.
+4. Use Remote PC for deep computer work.
+5. Unsupported Android-style local overlay/control is not claimed.
 
-## MCP orchestration and autonomous verification linkage — 2026-09-28
+## Owner Console
 
-- Current implementation and verification governed by this document must also follow `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FIX_LOOP.md`.
-- When multiple MCPs can touch the same surface, one tool acts and the others observe or verify sequentially so browsers, devices, files, and operating-system state are not corrupted by competing automation.
-- Long runs must checkpoint durable progress before context compaction, rate limits, restart, or handoff. Resumed work continues from the next unfinished item instead of repeating completed work.
-- A failure is not closed by a code change alone. Reproduce it, fix the root cause, run targeted and nearby integration tests, verify with the strongest available real browser/device/physical evidence, attempt to break the fix, and then run the broader regression slice.
-- If one MCP or environment is unavailable, mark only that evidence class blocked and continue every independent test. Never treat blocked or emulated evidence as a real-device pass.
+1. Primary Owner signs into normal OCADE.
+2. Account menu shows Owner Console.
+3. Secure SSO opens `admin.ocade.in`.
+4. During 2FA bootstrap, view access may work while sensitive mutations remain locked.
+5. After strong auth, Owner manages permitted operations.
+
+## Staff grant
+
+1. Owner enters email.
+2. Server resolves stable verified user identity.
+3. Owner selects role/permissions.
+4. Review + fresh auth where required.
+5. Grant is audited.
+6. Staff's active authorization updates immediately.
+7. Staff sees Staff Console only when granted.
+
+## Customer privileged-route attempt
+
+Return to normal customer product without exposing privileged internals.
+
+## Device removal
+
+If device is active:
+1. local cancellation;
+2. active task-owned input/process stops;
+3. task/activity cancelled;
+4. credential revoked;
+5. late results rejected.
+
+## Recovery
+
+Long tasks checkpoint. Crash/reboot/network recovery reconciles completed steps before continuing. Destructive work is never blindly replayed.
+
+## Remove/uninstall
+
+Explicit removal stops runtime authority, removes local credentials/cache according to product setting, disconnects the device and leaves cloud conversations unless separately deleted.
