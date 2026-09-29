@@ -179,6 +179,25 @@ class LifecycleTest(unittest.TestCase):
 
 
 class WakeTest(unittest.TestCase):
+    def test_the_model_is_kept_only_when_its_hash_matches_and_never_downloaded_twice(self):
+        import hashlib
+        import io
+        import ocade_wake
+        home = Path(tempfile.mkdtemp())
+        blob = b"onnx-model-bytes"
+        calls = []
+
+        def opener(url, timeout):
+            calls.append(url)
+            return io.BytesIO(blob)
+        self.assertFalse(ocade_wake.install(home, "https://ocade.test/m", "0" * 64, opener))
+        self.assertFalse(ocade_wake.model_path(home).exists())
+        good = hashlib.sha256(blob).hexdigest()
+        self.assertTrue(ocade_wake.install(home, "https://ocade.test/m", good, opener))
+        self.assertTrue(ocade_wake.install(home, "https://ocade.test/m", good, opener))
+        self.assertEqual(len(calls), 2)  # the second install found it already verified
+        self.assertEqual(ocade_wake.model_path(home).read_bytes(), blob)
+
     def test_hey_ocade_is_unavailable_without_its_local_model_and_opens_voice_when_heard(self):
         import ocade_wake
         home = Path(tempfile.mkdtemp())
