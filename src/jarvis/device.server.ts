@@ -29,20 +29,30 @@ export const PROTOCOL = contract;
  * paused no device receives work, every running action is cancelled at its
  * next check, and no task can start. Chat and ordinary answers keep working.
  */
-let pausedCache: { at: number; paused: boolean } | null = null;
-export async function executionDisabled(admin: Admin): Promise<boolean> {
+let pausedCache: { at: number; paused: Set<string> } | null = null;
+/**
+ * `kind` narrows to one device family: the Device Agent (`agent`) or the
+ * browser extension (`extension`) can be paused on their own, and pausing all
+ * device work pauses both.
+ */
+export async function executionDisabled(admin: Admin, kind?: string): Promise<boolean> {
   if (process.env.JARVIS_EXECUTION_DISABLED === "1") return true;
   // A few seconds of caching keeps a device's once-a-second exchange cheap.
-  if (pausedCache && Date.now() - pausedCache.at < 5000) return pausedCache.paused;
-  const { data, error } = await admin
-    .from("ocade_service_controls")
-    .select("paused")
-    .eq("key", "jarvis_execution")
-    .maybeSingle();
-  // Unreadable is not "paused": the Worker variable remains the fallback.
-  const paused = !error && Boolean(data?.paused);
-  pausedCache = { at: Date.now(), paused };
-  return paused;
+  if (!pausedCache || Date.now() - pausedCache.at >= 5000) {
+    const { data, error } = await admin
+      .from("ocade_service_controls")
+      .select("key, paused")
+      .limit(10);
+    // Unreadable is not "paused": the Worker variable remains the fallback.
+    pausedCache = {
+      at: Date.now(),
+      paused: new Set(error ? [] : (data ?? []).filter((row) => row.paused).map((row) => row.key)),
+    };
+  }
+  return (
+    pausedCache.paused.has("jarvis_execution") ||
+    (kind !== undefined && pausedCache.paused.has(`jarvis_${kind}`))
+  );
 }
 const ENROLLMENT_MS = 10 * 60_000;
 /**
@@ -230,7 +240,7 @@ export async function enroll(
 }
 
 export type DeviceIdentity =
-  | { ok: true; id: string; userId: string; body: unknown }
+  | { ok: true; id: string; userId: string; kind: string; body: unknown }
   | { ok: false; status: number; error: string };
 
 /**
@@ -245,7 +255,7 @@ export async function authenticate(admin: Admin, request: Request): Promise<Devi
   }
   const { data: device, error } = await admin
     .from("jarvis_devices")
-    .select("id, user_id, public_key, revoked_at, enrollment_expires_at")
+    .select("id, user_id, kind, public_key, revoked_at, enrollment_expires_at")
     .eq("id", signed.deviceId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -278,7 +288,7 @@ export async function authenticate(admin: Admin, request: Request): Promise<Devi
   } catch {
     return { ok: false, status: 400, error: "invalid_request" };
   }
-  return { ok: true, id: device.id, userId: device.user_id, body };
+  return { ok: true, id: device.id, userId: device.user_id, kind: device.kind, body };
 }
 
 /**
@@ -370,7 +380,7 @@ export interface DeviceCommand {
 
 export async function exchange(
   admin: Admin,
-  device: { id: string; userId: string },
+  device: { id: string; userId: string; kind?: string },
   input: z.infer<typeof exchangeInput>,
 ): Promise<{
   protocol: number;
@@ -534,7 +544,7 @@ export async function exchange(
   // The action the device runs now continues only while it is still claimed
   // and its task still running; anything else (STOP, Take Over, the task
   // ended, the action timed out) cancels it on the device.
-  if (await executionDisabled(admin)) {
+  if (await executionDisabled(admin, device.kind)) {
     return { ...envelope, commands: [], cancel: input.running ?? [], rotated };
   }
   const cancel: string[] = [];

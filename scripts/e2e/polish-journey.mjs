@@ -369,6 +369,32 @@ try {
 
   check("the document declares its language", true);
   check("no uncaught page errors", pageErrors.length === 0, pageErrors.join("; "));
+
+  /* --- words typed while a slow phone is still loading are kept ------------ */
+  for (const [path, field] of [
+    ["/", "#ocade-composer"],
+    ["/ocade-jarvis", "#jarvis-composer"],
+  ]) {
+    const slow = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    await slow.addInitScript(
+      ([key, value]) => window.localStorage.setItem(key, value),
+      [storageKey(SUPABASE), JSON.stringify(session)],
+    );
+    const early = await slow.newPage();
+    const cpu = await slow.newCDPSession(early);
+    await cpu.send("Emulation.setCPUThrottlingRate", { rate: 12 });
+    await early.goto(`${BASE}${path}`, { waitUntil: "commit" });
+    await early.locator(field).waitFor({ state: "attached" });
+    await early.locator(field).fill("typed while loading");
+    await early.waitForTimeout(8000);
+    await cpu.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+    check(
+      `${path}: words typed before the page finished loading are kept and can be sent`,
+      (await early.locator(field).inputValue()) === "typed while loading" &&
+        (await early.getByRole("button", { name: "Send", exact: true }).isEnabled()),
+    );
+    await slow.close();
+  }
 } finally {
   await browser.close();
 }

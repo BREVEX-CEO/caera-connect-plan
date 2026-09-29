@@ -7,17 +7,22 @@ import { useSyncExternalStore } from "react";
 
 /* --- the quick ask, handed to the JARVIS page in memory (never a link) ----- */
 
-let pendingAsk: string | null = null;
+/** A question for the JARVIS page; `savedId` when the bubble already saved it. */
+export interface HandedQuestion {
+  text: string;
+  savedId?: string;
+}
+let pending: HandedQuestion | null = null;
 
 /** Hand a question to the JARVIS page, which asks it once it is open. */
-export function handOff(text: string): void {
-  pendingAsk = text;
+export function handOff(question: HandedQuestion): void {
+  pending = question;
 }
-/** The question typed into the bubble, taken once by the JARVIS page. */
-export function takeHandOff(): string | null {
-  const text = pendingAsk;
-  pendingAsk = null;
-  return text;
+/** The question handed over by the bubble, taken once by the JARVIS page. */
+export function takeHandOff(): HandedQuestion | null {
+  const question = pending;
+  pending = null;
+  return question;
 }
 
 /* --- where the bubble sits and whether it is shown, per device ------------- */

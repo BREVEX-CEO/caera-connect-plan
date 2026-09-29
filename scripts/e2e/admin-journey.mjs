@@ -130,9 +130,86 @@ try {
     `${SUPABASE}/rest/v1/jarvis_devices?id=eq.${deviceId}&select=revoked_at,public_key`,
   ).then((response) => response.json());
   check("the device's key is gone on the server", Boolean(stored[0]?.revoked_at));
+  /* --- the stops: all device work, the Device Agent, the extension --------- */
+  const stops = strong.getByRole("region", { name: "JARVIS device work" });
+  check(
+    "three stops, all running",
+    (await stops.getByText("Running", { exact: true }).count()) === 3,
+  );
+  const pauseAgent = stops.getByRole("button", { name: "Pause Device Agent" });
+  check("a stop waits for a reason", await pauseAgent.isDisabled());
+  await stops.getByPlaceholder("Why (at least ten characters)").fill("agent release under review");
+  await pauseAgent.click();
+  check(
+    "the Device Agent alone is paused",
+    await stops
+      .getByRole("button", { name: "Resume Device Agent" })
+      .waitFor({ timeout: 10_000 })
+      .then(
+        () => true,
+        () => false,
+      ),
+  );
+  check(
+    "and the other two keep running",
+    (await stops.getByText("Running", { exact: true }).count()) === 2,
+  );
+
+  // A customer with an online computer cannot start computer work meanwhile.
+  await fetch(`${SUPABASE}/rest/v1/jarvis_devices`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${customer.access_token}`,
+    },
+    body: JSON.stringify({
+      name: "Desk PC",
+      platform: "Windows",
+      kind: "agent",
+      last_seen_at: new Date().toISOString(),
+      capabilities: { files: true },
+    }),
+  });
+  await fetch(`${SUPABASE}/__fixture/jarvis-script`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      trigger: "paused-agent",
+      steps: [
+        { tool: "start_task", args: { title: "Tidy files", where: "computer", steps: ["Tidy"] } },
+        { text: "Computer work is paused right now." },
+      ],
+    }),
+  });
+  await person.goto(`${BASE}/ocade-jarvis`, { waitUntil: "load" });
+  await person.locator("#jarvis-composer").waitFor();
+  await person.waitForTimeout(1500);
+  await person.locator("#jarvis-composer").fill("paused-agent tidy my files");
+  await person.getByRole("button", { name: "Send", exact: true }).click();
+  await person.getByText("Computer work is paused right now.").waitFor({ timeout: 30_000 });
+  const turns = await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) => r.json());
+  check(
+    "a customer's computer task is refused while the Device Agent is paused",
+    turns.turns.some((turn) => turn.content.includes("paused by OCADE")),
+  );
+  await stops
+    .getByPlaceholder("Why (at least ten characters)")
+    .fill("agent release approved again");
+  await stops.getByRole("button", { name: "Resume Device Agent" }).click();
+  check(
+    "and it resumes",
+    await stops
+      .getByRole("button", { name: "Pause Device Agent" })
+      .waitFor({ timeout: 10_000 })
+      .then(
+        () => true,
+        () => false,
+      ),
+  );
+
   check("no page errors", errors.length === 0, errors.join(" | "));
 } catch (error) {
-  check("the admin journey runs", false, String(error).slice(0, 300));
+  check("the admin journey runs", false, String(error).slice(0, 900));
 } finally {
   await browser.close();
 }

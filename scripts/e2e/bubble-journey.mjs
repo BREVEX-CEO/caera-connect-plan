@@ -159,22 +159,48 @@ try {
   ).then((response) => response.json());
   check("and the task is stopped on the server", stored[0]?.status === "stopped");
 
-  /* --- a quick ask, handed to JARVIS once ----------------------------------- */
+  /* --- the mini chat answers in the bubble --------------------------------- */
   await panel.getByPlaceholder("Ask JARVIS…").fill("What is 2 + 2?");
   await panel.getByRole("button", { name: "Send", exact: true }).click();
-  await page.waitForURL(/ocade-jarvis/, { timeout: 10_000 });
-  check("a quick ask opens JARVIS", (await bubble.count()) === 0);
-  check("and is answered there", await visible(page.getByText("stubbed OCADE answer")));
+  const mini = panel.locator("[aria-label='Mini chat']");
+  check(
+    "a question is answered inside the bubble",
+    await visible(mini.getByText("stubbed OCADE answer")),
+  );
+  check("without leaving the page", page.url().includes("/library"));
+
+  /* --- work moves to the full page, asked exactly once ---------------------- */
+  await fetch(`${SUPABASE}/__fixture/jarvis-script`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      trigger: "bubble-work",
+      steps: [
+        { tool: "start_task", args: { title: "Open a page", where: "browser", steps: ["Open"] } },
+        { text: "That needs a connected device." },
+      ],
+    }),
+  });
+  await panel.getByPlaceholder("Ask JARVIS…").fill("bubble-work open example.com");
+  await panel.getByRole("button", { name: "Send", exact: true }).click();
+  await page.waitForURL(/ocade-jarvis\?c=/, { timeout: 20_000 });
+  check("asking for work opens full JARVIS", (await bubble.count()) === 0);
+  check(
+    "where the same conversation carries on",
+    await visible(page.getByText("That needs a connected device.").last(), 30_000),
+  );
   await page.goBack({ waitUntil: "load" });
   await page.waitForTimeout(1000);
   await page.goForward({ waitUntil: "load" });
   await page.waitForTimeout(2500);
+  const transcript = page.locator("section[aria-label=Conversation]");
   check(
-    "and asked exactly once, even after Back and Forward",
-    (await page
-      .locator("section[aria-label=Conversation]")
-      .getByText("What is 2 + 2?", { exact: true })
-      .count()) === 1,
+    "the work request was saved once, even after Back and Forward",
+    (await transcript.getByText("bubble-work open example.com", { exact: true }).count()) === 1,
+  );
+  check(
+    "and the bubble's earlier answer is in the same conversation",
+    (await transcript.getByText("What is 2 + 2?", { exact: true }).count()) === 1,
   );
 
   /* --- hide, and bring back from Settings ----------------------------------- */

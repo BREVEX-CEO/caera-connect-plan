@@ -14,6 +14,7 @@ import {
   revokeAccountAccess,
   setJarvisExecution,
   type AdminAccountRow,
+  type ControlKey,
 } from "@/lib/admin/access.functions";
 
 /**
@@ -211,6 +212,12 @@ function AdminPage() {
  * THE EMERGENCY STOP FOR JARVIS DEVICE WORK. One switch, a reason on the
  * record, and a second factor, all enforced by the database function.
  */
+const CONTROL_NAMES: Record<ControlKey, string> = {
+  jarvis_execution: "All device work",
+  jarvis_agent: "Device Agent",
+  jarvis_extension: "Browser extension",
+};
+
 function EmergencyStop() {
   const queryClient = useQueryClient();
   const [reason, setReason] = useState("");
@@ -219,59 +226,70 @@ function EmergencyStop() {
     queryFn: () => readJarvisExecution(),
   });
   const change = useMutation({
-    mutationFn: (paused: boolean) => setJarvisExecution({ data: { paused, reason } }),
-    onSuccess: async ({ paused }) => {
-      toast.success(paused ? "JARVIS device work is paused." : "JARVIS device work is running.");
+    mutationFn: (input: { key: ControlKey; paused: boolean }) =>
+      setJarvisExecution({ data: { ...input, reason } }),
+    onSuccess: async ({ paused }, { key }) => {
+      toast.success(`${CONTROL_NAMES[key]}: ${paused ? "paused" : "running"}.`);
       setReason("");
       await queryClient.invalidateQueries({ queryKey: ["admin", "jarvis-execution"] });
     },
     onError: (error: unknown) => toast.error(messageOf(error)),
   });
   if (!state.data) return null;
-  const paused = state.data.paused;
+  const ready = reason.trim().length >= 10 && !change.isPending;
   return (
     <section
       aria-label="JARVIS device work"
       className="mt-5 rounded-xl border border-border/60 p-4 text-sm"
     >
-      <div className="flex items-center justify-between gap-3">
-        <p className="font-medium text-foreground">JARVIS device work</p>
-        <span
-          className={
-            paused
-              ? "rounded-full bg-destructive/15 px-2 py-0.5 text-xs text-destructive"
-              : "rounded-full bg-success/15 px-2 py-0.5 text-xs text-success"
-          }
-        >
-          {paused ? "Paused" : "Running"}
-        </span>
-      </div>
-      {state.data.reason ? (
-        <p className="mt-1 text-[13px] text-muted-foreground">Last change: {state.data.reason}</p>
-      ) : null}
-      <div className="mt-3 flex flex-wrap gap-2">
-        <label className="min-w-0 flex-1">
-          <span className="sr-only">Reason</span>
-          <input
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-            placeholder="Why (at least ten characters)"
-            className="h-8 w-full rounded-md border border-border bg-transparent px-3 text-sm outline-none focus-visible:border-ring"
-          />
-        </label>
-        <button
-          type="button"
-          disabled={reason.trim().length < 10 || change.isPending}
-          onClick={() => change.mutate(!paused)}
-          className={
-            paused
-              ? "h-8 rounded-md border border-border px-3 disabled:opacity-50"
-              : "h-8 rounded-md bg-destructive px-3 text-destructive-foreground disabled:opacity-50"
-          }
-        >
-          {paused ? "Resume device work" : "Pause all device work"}
-        </button>
-      </div>
+      <p className="font-medium text-foreground">JARVIS device work</p>
+      <ul className="mt-2 divide-y divide-border/50">
+        {state.data.map((control) => (
+          <li key={control.key} className="flex items-center justify-between gap-3 py-2">
+            <span className="min-w-0">
+              <span className="block text-foreground">{CONTROL_NAMES[control.key]}</span>
+              {control.reason ? (
+                <span className="block truncate text-[13px] text-muted-foreground">
+                  Last change: {control.reason}
+                </span>
+              ) : null}
+            </span>
+            <span className="flex shrink-0 items-center gap-2">
+              <span
+                className={
+                  control.paused
+                    ? "rounded-full bg-destructive/15 px-2 py-0.5 text-xs text-destructive"
+                    : "rounded-full bg-success/15 px-2 py-0.5 text-xs text-success"
+                }
+              >
+                {control.paused ? "Paused" : "Running"}
+              </span>
+              <button
+                type="button"
+                disabled={!ready}
+                onClick={() => change.mutate({ key: control.key, paused: !control.paused })}
+                aria-label={`${control.paused ? "Resume" : "Pause"} ${CONTROL_NAMES[control.key]}`}
+                className={
+                  control.paused
+                    ? "h-7 rounded-md border border-border px-2 disabled:opacity-50"
+                    : "h-7 rounded-md border border-destructive/50 px-2 text-destructive disabled:opacity-50"
+                }
+              >
+                {control.paused ? "Resume" : "Pause"}
+              </button>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <label className="mt-2 block">
+        <span className="sr-only">Reason</span>
+        <input
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          placeholder="Why (at least ten characters)"
+          className="h-8 w-full rounded-md border border-border bg-transparent px-3 text-sm outline-none focus-visible:border-ring"
+        />
+      </label>
     </section>
   );
 }

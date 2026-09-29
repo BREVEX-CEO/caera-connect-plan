@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
-import { JarvisBubble } from "@/jarvis/JarvisBubble";
+import { JarvisBubble } from "@/jarvis/JarvisBubbleGate";
 import {
   Outlet,
   Link,
