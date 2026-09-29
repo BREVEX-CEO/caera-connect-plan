@@ -97,3 +97,13 @@ class FileOperationsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WriteExactlyTest(unittest.TestCase):
+    def test_line_endings_are_kept_exactly(self):
+        root = Path(tempfile.mkdtemp())
+        pc = Computer(str(root))
+        pc.run({"action": "file_write", "path": "unix.sh", "content": "a\nb\n"})
+        pc.run({"action": "file_write", "path": "dos.txt", "content": "a\r\nb\r\n"})
+        self.assertEqual((root / "unix.sh").read_bytes(), b"a\nb\n")
+        self.assertEqual((root / "dos.txt").read_bytes(), b"a\r\nb\r\n")

@@ -307,7 +307,7 @@ class Computer:
             # existing entry), so nothing planted in the workspace can redirect it.
             fd, tmp = tempfile.mkstemp(dir=parent, prefix=".ocade-", suffix=".tmp")
             try:
-                with os.fdopen(fd, "w", encoding="utf-8") as out:
+                with os.fdopen(fd, "w", encoding="utf-8", newline="") as out:  # byte-exact: no CR added on Windows
                     out.write(str(action.get("content", "")))
                     out.flush()
                     os.fsync(out.fileno())

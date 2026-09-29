@@ -401,7 +401,7 @@ except i.UpdateRequired:
     await files.click();
     // Commands are offered only where the computer confines them (Linux
     // bubblewrap); anywhere else the switch is shown unavailable, not faked.
-    const commands = page.getByRole("switch", { name: /Run commands in the workspace/ });
+    const commands = page.getByRole("switch", { name: /Run commands in the work folder/ });
     const terminal = await commands.isEnabled();
     if (terminal) await commands.click();
     else {

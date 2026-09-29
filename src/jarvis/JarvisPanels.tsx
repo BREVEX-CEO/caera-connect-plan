@@ -557,7 +557,11 @@ function SectionBody({
 const COMPUTER_TOGGLES: [Capability, string, string][] = [
   ["apps", "Open apps", "Only apps this computer found; Allowed Apps decides which."],
   ["files", "Files in the workspace", "Only inside the folder chosen on the computer."],
-  ["terminal", "Run commands in the workspace", "Publishing, deleting or installing asks first."],
+  [
+    "terminal",
+    "Run commands in the work folder",
+    "Commands run with your access to that folder. Publishing, deleting or installing asks first.",
+  ],
   ["screen", "See the screen", "Used when nothing more direct works."],
   ["computer_control", "Mouse and keyboard", "Your own input pauses JARVIS until you continue."],
 ];
