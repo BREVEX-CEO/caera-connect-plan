@@ -54,6 +54,7 @@ import {
   type Section,
 } from "./JarvisPanels";
 import { BrowserPanel, ConfirmBanner, TaskCard, TakeOverBanner, VoiceBar } from "./JarvisTask";
+import { takeHandOff } from "./bubble-state";
 
 const JARVIS_STATE_KEY = ["jarvis", "state"] as const;
 
@@ -524,6 +525,15 @@ export function JarvisWorkspace({
   const hasText = turns.length > 0 || liveAnswer !== null;
   // No JARVIS uses left: the composer locks with the reset time, nothing else.
   const spent = Boolean(jarvis?.usage && jarvis.usage.remaining <= 0);
+
+  // A question typed into the phone bubble is asked here, once, when ready.
+  useEffect(() => {
+    if (!signedIn || !jarvis || transcript !== "ready" || running) return;
+    const handed = takeHandOff();
+    // Out of uses or turned off: the question waits in the composer, not lost.
+    if (handed && (spent || !jarvisOn)) setDraft(handed);
+    else if (handed) void sendRef.current(handed, false);
+  }, [signedIn, jarvis, transcript, running, spent, jarvisOn]);
   // The last question that has no answer (or was stopped) can be asked again.
   const last = turns.at(-1);
   const retryTurn =

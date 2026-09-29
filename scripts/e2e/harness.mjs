@@ -49,6 +49,7 @@ const ALL = [
   "visual",
   "browsers",
   "admin",
+  "bubble",
 ];
 
 const requested = process.argv.slice(2).filter((value) => !value.startsWith("--"));

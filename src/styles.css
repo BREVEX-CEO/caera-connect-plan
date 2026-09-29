@@ -573,3 +573,18 @@ kbd {
     background-position: -100% 0;
   }
 }
+
+/* A panel growing out of the control that opened it (the JARVIS bubble). */
+.ocade-pop {
+  animation: ocade-pop 220ms var(--ease-premium);
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes ocade-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}

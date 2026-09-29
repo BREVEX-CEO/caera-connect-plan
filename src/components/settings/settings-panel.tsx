@@ -22,6 +22,7 @@ import {
 import { Bell, CreditCard, Monitor, Moon, ShieldCheck, User, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppearance } from "@/lib/appearance";
+import { useBubblePlacement, writePlacement } from "@/jarvis/bubble-state";
 import { useSession } from "@/lib/session";
 import { AdvancedSection } from "./AdvancedSection";
 import { SignInMethods } from "./SignInMethods";
@@ -280,6 +281,23 @@ function AccountSettings() {
   );
 }
 
+/** The floating JARVIS bubble on phones; kept on this device only. */
+function BubbleSetting() {
+  const { hidden } = useBubblePlacement();
+  return (
+    <Row
+      label="JARVIS bubble"
+      description="A small JARVIS button on phones, outside the JARVIS page."
+    >
+      <Toggle
+        checked={!hidden}
+        onChange={(next) => writePlacement({ hidden: !next })}
+        label="JARVIS bubble"
+      />
+    </Row>
+  );
+}
+
 function AppearanceSettings() {
   const { theme, reducedMotion, highContrast, setAppearance, saveError } = useAppearance();
 
@@ -321,6 +339,7 @@ function AppearanceSettings() {
           label="High contrast"
         />
       </Row>
+      <BubbleSetting />
       {saveError ? (
         <p className="pt-3 text-[13px] text-muted-foreground" role="status">
           {saveError}
