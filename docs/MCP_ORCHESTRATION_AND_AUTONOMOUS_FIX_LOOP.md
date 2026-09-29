@@ -143,3 +143,8 @@ After every phase give an evidence-based commercial-launch percentage.
 The number may decrease if new blockers are found. It is a release-health estimate, not a promise.
 
 100% requires all executable release gates green and only explicitly accepted external/deferred dependencies remaining.
+
+
+## Master Phase 1–49 authority
+
+Implementation order, phase gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting follow the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves working behavior, repairs evidence-backed gaps, and continues through Phase 49.

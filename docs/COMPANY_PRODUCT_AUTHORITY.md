@@ -93,3 +93,8 @@ Commercial readiness is measured by:
 Each implementation phase reports an evidence-based commercial-launch readiness percentage.
 
 Never use unsupported absolute claims such as “zero bugs” or “unhackable”.
+
+
+## Master execution roadmap
+
+The canonical implementation roadmap is `PLAN.md` Phase 1–49. On a fresh clone start at Phase 1, prove current behavior, repair gaps, and continue sequentially. Product claims must follow the evidence accumulated by those phase gates.

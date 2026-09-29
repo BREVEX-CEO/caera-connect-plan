@@ -11,7 +11,9 @@ Re-read the exact latest `main` SHA before making claims. Preserve unfinished lo
 
 ## Active mission
 
-Continue the OCADE JARVIS commercial-readiness mission in `PLAN.md`.
+Execute the OCADE JARVIS master commercial-readiness mission in `PLAN.md` from **Phase 1 through Phase 49**.
+
+On a fresh clean clone, start at Phase 1. Phases 1–34 are validation-and-repair gates as well as implementation phases: inspect the current implementation, preserve anything already correct, run the phase proof, fix every gap found, and do not rebuild working code merely because the phase is older. Then continue directly through Phases 35–49.
 
 The current owner direction is:
 - no OCADE browser add-on dependency;
@@ -227,4 +229,6 @@ After every phase report:
 
 The percentage must reflect actual release gates, not optimism.
 
-Do not stop the mission merely because one external dependency is blocked. Continue every executable independent item through final cleanup and production proof.
+Do not stop the mission merely because one external dependency is blocked. Continue every executable independent item through Phase 49, final cleanup and production proof.
+
+The phase order is authoritative. After each phase update the durable ledger and report the commercial-launch readiness percentage. Continue to the next phase automatically unless an owner-only destructive/paid/legal/hardware action is genuinely required.

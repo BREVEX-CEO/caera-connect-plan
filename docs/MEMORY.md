@@ -6,7 +6,7 @@ Repository: `BREVEX-CEO/caera-connect-plan`.
 
 Baseline main when the latest owner-authority plan was authored: `8e4828928d4bfac3edeb79a956b717e538a123d4`. Re-check before implementation.
 
-The active mission is `PLAN.md` Phases 35–49.
+The active mission is the unified `PLAN.md` **Phases 1–49**. A fresh clean clone starts at Phase 1; Phases 1–34 are revalidated/repaired rather than blindly rebuilt, then work continues through Phase 49.
 
 ## Product
 
@@ -119,3 +119,8 @@ Real evidence:
 After each phase report commercial-launch readiness percentage.
 
 Historical audits and ledger entries remain evidence; newer owner authority wins on current direction.
+
+
+## Master-plan reset — 2026-09-29
+
+The older Phase 1–34 roadmap has been restored into the active master plan and reconciled with the newer Phase 35–49 owner direction. The obsolete customer browser-add-on phase was rewritten as existing-browser autonomous control. The plan now intentionally covers the entire build, repair, hardening, admin, Android, Apple, real-PC, conversational JARVIS, cleanup and commercial-release sequence in one numbered Phase 1–49 mission.

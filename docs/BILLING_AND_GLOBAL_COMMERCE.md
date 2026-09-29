@@ -48,3 +48,8 @@ JARVIS may research products and prepare non-sensitive information but never com
 When payment work resumes, add provider sandbox/webhook/refund/dunning/dispute tests plus real Owner/Staff permission and audit tests before exposing modules.
 
 Commercial-launch readiness reporting must state payment scope truthfully rather than pretending deferred work is complete.
+
+
+## Master Phase 1–49 authority
+
+Implementation order, phase entry/exit gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting are governed by the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves current working behavior, repairs gaps proven by current evidence, and continues sequentially through Phase 49. This document supplies domain-specific requirements and does not replace a phase gate.

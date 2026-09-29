@@ -99,3 +99,8 @@ Follow `docs/TESTING_TOOLCHAIN.md` and `docs/MCP_ORCHESTRATION_AND_AUTONOMOUS_FI
 Real Windows acceptance must prove browser, Excel, files, VS Code, multi-app work, STOP, takeover, tray lifecycle and active device revoke.
 
 Every phase reports commercial-launch readiness percentage.
+
+
+## Master Phase 1–49 authority
+
+Implementation order, phase gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting follow the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves working behavior, repairs evidence-backed gaps, and continues through Phase 49.

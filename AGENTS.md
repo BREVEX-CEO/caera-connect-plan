@@ -116,6 +116,10 @@ Normal customers see no privileged wording, links, route hints, or data. Owner s
 
 Privileged mutations require appropriate role, fresh 2FA where required, reason, and append-only audit. Conversation content access is exceptional and scoped.
 
+## Master-plan execution
+
+`PLAN.md` contains the complete Phase 1–49 roadmap. On a fresh clone start at Phase 1. Older phases are not historical decoration: revalidate them on current main, keep already-correct implementation, fix gaps, record evidence, and continue. Never skip directly to later phases merely because an older report once called an earlier phase complete.
+
 ## Testing doctrine
 
 MCP use is mandatory where applicable. A server starting is not test evidence.

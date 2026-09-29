@@ -158,3 +158,8 @@ Raw screenshots are transient by default.
 Main/source/deployed identities must agree before final release claim.
 
 GitHub Actions is optional, not required evidence.
+
+
+## Master Phase 1–49 authority
+
+Implementation order, phase entry/exit gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting are governed by the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves current working behavior, repairs gaps proven by current evidence, and continues sequentially through Phase 49. This document supplies domain-specific requirements and does not replace a phase gate.

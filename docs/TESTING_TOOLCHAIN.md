@@ -282,3 +282,8 @@ After every phase report:
 - source/deploy identity.
 
 No known Critical/Major blocker may remain for a shipped capability before release.
+
+
+## Master Phase 1–49 authority
+
+Implementation order, phase gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting follow the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves working behavior, repairs evidence-backed gaps, and continues through Phase 49.
