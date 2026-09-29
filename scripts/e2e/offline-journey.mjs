@@ -80,7 +80,7 @@ try {
 
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();
-  await page.getByRole("button", { name: "Data Controls" }).click();
+  await page.getByRole("button", { name: "Privacy & Security" }).click();
   check(
     "Offline Intelligence has a screen a person can reach",
     (await page.getByText("Offline Intelligence", { exact: true }).count()) >= 1,
@@ -142,7 +142,7 @@ try {
   );
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();
-  await page.getByRole("button", { name: "Data Controls" }).click();
+  await page.getByRole("button", { name: "Privacy & Security" }).click();
 
   /* --- removal is deliberate ---------------------------------------------- */
 
@@ -177,7 +177,7 @@ try {
   await page.reload({ waitUntil: "networkidle" });
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();
-  await page.getByRole("button", { name: "Data Controls" }).click();
+  await page.getByRole("button", { name: "Privacy & Security" }).click();
   await page.waitForTimeout(2500);
   check(
     "a reload does not quietly start it downloading again",

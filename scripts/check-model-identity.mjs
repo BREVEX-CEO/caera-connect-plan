@@ -58,12 +58,17 @@ const SEARCHED = [
  *
  * `docs/MEMORY.md` is the record of what was done and why, written for the next
  * agent. A history that cannot describe what it removed is not a history.
+ *
+ * `CLAUDE.md` is the owner's instruction file for coding agents. It names the
+ * command that launches a desktop-control test tool, whose package name
+ * contains one of these words; it is never built, bundled or served.
  */
 const ALLOWED = new Set([
   "scripts/check-model-identity.mjs",
   "scripts/build-offline-artifact.mjs",
   "scripts/prove-offline-artifact.mjs",
   "docs/MEMORY.md",
+  "CLAUDE.md",
   "package-lock.json",
 ]);
 

@@ -97,6 +97,9 @@ function userRecord(id, email) {
  * that does. The middleware's own check — three segments, then ask the auth
  * server who this is — is what the shape exists to satisfy.
  */
+/** An address starting "admin" is an operator; "+mfa" in it means a second factor was used. */
+const assuranceOf = (email) => (email.includes("+mfa") ? "aal2" : "aal1");
+
 function shapedJwt(userId, email) {
   const encode = (value) =>
     Buffer.from(JSON.stringify(value))
@@ -110,7 +113,7 @@ function shapedJwt(userId, email) {
     email,
     role: "authenticated",
     aud: "authenticated",
-    aal: "aal1",
+    aal: assuranceOf(email),
     // Real tokens carry this, and Advanced reads it to tell "this device" from
     // the others. Without it every session looks like somebody else's.
     session_id: "session-current",
@@ -123,6 +126,9 @@ function shapedJwt(userId, email) {
 function openSession(email) {
   const id = idForEmail(email);
   emails.set(id, email);
+  if (email.startsWith("admin") && !rows(id, "user_roles").length) {
+    rows(id, "user_roles").push({ id: randomUUID(), user_id: id, role: "admin" });
+  }
   const accessToken = shapedJwt(id, email);
   sessions.set(accessToken, id);
   return {
@@ -161,6 +167,11 @@ function compare(a, b) {
 
 const OPERATORS = {
   eq: (a, b) => String(a) === b,
+  // `%term%` only, which is what the operator search sends.
+  ilike: (a, b) =>
+    String(a ?? "")
+      .toLowerCase()
+      .includes(b.replace(/%/g, "").toLowerCase()),
   neq: (a, b) => String(a) !== b,
   gt: (a, b) => a !== null && a !== undefined && compare(a, b) > 0,
   gte: (a, b) => a !== null && a !== undefined && compare(a, b) >= 0,
@@ -179,6 +190,18 @@ const OPERATORS = {
 function matches(row, params) {
   for (const [key, raw] of params) {
     if (["select", "order", "limit", "offset", "on_conflict", "columns", "count"].includes(key)) {
+      continue;
+    }
+    if (key === "or") {
+      // `or=(a.op.x,b.op.y)`: any clause holds. The operator search is the only user.
+      const clauses = raw.replace(/^\(|\)$/g, "").split(",");
+      if (
+        !clauses.some((clause) =>
+          matches(row, [[clause.split(".")[0], clause.slice(clause.indexOf(".") + 1)]]),
+        )
+      ) {
+        return false;
+      }
       continue;
     }
     const [operator, ...rest] = raw.split(".");
@@ -257,6 +280,7 @@ const kindFor = (surface, kind) => (surface === "jarvis" ? `jarvis_${kind}` : ki
 
 function handleRpc(name, args, userId) {
   const now = Date.now();
+  const isAdmin = (id) => rows(id, "user_roles").some((row) => row.role === "admin");
   const session = windowFor("session", now);
   const week = windowFor("week", now);
 
@@ -549,6 +573,40 @@ function handleRpc(name, args, userId) {
 
     case "ocade_session_is_live":
       return true;
+
+    case "has_role":
+      return rows(args._user_id, "user_roles").some((row) => row.role === args._role);
+
+    /* The operator's device removal, with the refusals the function makes. */
+    case "ocade_admin_remove_device": {
+      const refuse = (message) => ({ __error: { code: "42501", message } });
+      if (!isAdmin(userId)) return refuse("Only support admins may remove a device.");
+      if (assuranceOf(emails.get(userId) ?? "") !== "aal2") {
+        return refuse("Removing a device needs a recent second factor.");
+      }
+      if (String(args.remove_reason ?? "").trim().length < 10) {
+        return refuse("Say why, in at least ten characters.");
+      }
+      const device = (jarvisTables.jarvis_devices ?? []).find(
+        (row) => row.id === args.device && !row.revoked_at,
+      );
+      if (!device) return false;
+      device.revoked_at = new Date(now).toISOString();
+      device.public_key = null;
+      for (const task of jarvisTables.jarvis_tasks ?? []) {
+        if (
+          task.device_id === device.id &&
+          ["running", "waiting", "taken_over"].includes(task.status)
+        ) {
+          Object.assign(task, {
+            status: "stopped",
+            blocker: "The device was removed.",
+            live_frame: null,
+          });
+        }
+      }
+      return true;
+    }
 
     case "ocade_record_notification":
       return null;
@@ -997,7 +1055,19 @@ const server = createServer((request, response) => {
       const userId = callerFrom(request, body) ?? "anonymous";
       const params = [...url.searchParams.entries()];
       const select = url.searchParams.get("select");
-      const stored = rows(userId, name);
+      // The service role reads every account's profile and roles, as the operator screen needs.
+      const stored =
+        userId === "anonymous" && (name === "profiles" || name === "user_roles")
+          ? name === "profiles"
+            ? [...emails].map(([id, email]) => ({
+                id,
+                email,
+                display_name: null,
+                created_at: "2026-09-01T00:00:00Z",
+                ...rows(id, "profiles")[0],
+              }))
+            : [...tables.values()].flatMap((owned) => owned.user_roles ?? [])
+          : rows(userId, name);
       const single = (request.headers.accept ?? "").includes("vnd.pgrst.object");
 
       if (request.method === "GET") {

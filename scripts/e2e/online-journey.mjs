@@ -373,7 +373,7 @@ try {
     await currentPage.click('aside button[aria-haspopup="menu"]');
     await currentPage.getByRole("menuitem", { name: "Settings" }).click();
     // The count lives under Usage & Limits. Billing is about plans.
-    await currentPage.getByRole("button", { name: "Usage & Limits" }).click();
+    await currentPage.getByRole("button", { name: "Billing & Usage" }).click();
     await currentPage.waitForSelector("text=of 28 left", { timeout: 15_000 });
     const text = await currentPage.getByText(EXACT_COUNT).innerText();
     await currentPage.keyboard.press("Escape");

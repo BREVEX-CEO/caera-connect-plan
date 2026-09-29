@@ -58,6 +58,10 @@ const ALLOWED = new Map([
   ["src/lib/brain/model-store.ts", "Offline Intelligence chunks in OPFS."],
   ["src/lib/brain/model-vault.ts", "The model's own install state and verified digests."],
   ["src/lib/brain/installation-authority.ts", "Which model version this device has verified."],
+  [
+    "src/lib/brain/adapters/browser-wasm.ts",
+    "Which model release this device cannot hold in memory.",
+  ],
 
   // --- device preferences and per-device UI state -------------------------
   ["src/lib/appearance.tsx", "Theme, motion and contrast, which are per-device choices."],

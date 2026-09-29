@@ -157,7 +157,7 @@ try {
 
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();
-  await page.getByRole("button", { name: "Data Controls" }).click();
+  await page.getByRole("button", { name: "Privacy & Security" }).click();
   await page.waitForSelector("text=1 item", { timeout: 15_000 });
   check("Data Controls says how much is in the library", true);
 

@@ -8,7 +8,11 @@ import { requireAdminRole } from "@/lib/admin/route-gate";
 import {
   grantAccountAccess,
   listAccountAccess,
+  listAccountDevices,
+  removeAccountDevice,
+  readJarvisExecution,
   revokeAccountAccess,
+  setJarvisExecution,
   type AdminAccountRow,
 } from "@/lib/admin/access.functions";
 
@@ -46,6 +50,7 @@ const DEFAULT_DAYS = 30;
 function AdminPage() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<string | null>(null);
+  const [devicesOf, setDevicesOf] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   /*
@@ -100,6 +105,7 @@ function AdminPage() {
             : "The most recent accounts, their roles, and the access given to them by hand. Search to reach any other."}
         </p>
         <SecondFactorNotice />
+        <EmergencyStop />
 
         <label className="mt-5 block">
           <span className="sr-only">Search accounts</span>
@@ -128,15 +134,25 @@ function AdminPage() {
                     <span className="block truncate text-sm text-foreground">
                       {row.displayName ?? row.email ?? row.id}
                     </span>
-                    <span className="block truncate text-[13px] text-muted-foreground">
-                      {row.email ?? "No email"}
-                    </span>
+                    {row.displayName ? (
+                      <span className="block truncate text-[13px] text-muted-foreground">
+                        {row.email ?? "No email"}
+                      </span>
+                    ) : null}
                   </span>
                   <span className="flex shrink-0 items-center gap-3 text-[13px]">
                     <AccessBadge row={row} />
                     {row.roles.length > 0 ? (
                       <span className="text-muted-foreground">{row.roles.join(", ")}</span>
                     ) : null}
+                    <button
+                      type="button"
+                      onClick={() => setDevicesOf(devicesOf === row.id ? null : row.id)}
+                      aria-expanded={devicesOf === row.id}
+                      className="h-7 rounded-md border border-border px-2 text-foreground transition-colors hover:bg-accent"
+                    >
+                      Devices
+                    </button>
                     {row.grant ? (
                       <button
                         type="button"
@@ -173,6 +189,7 @@ function AdminPage() {
                     onSubmit={(values) => grant.mutate({ userId: row.id, ...values })}
                   />
                 ) : null}
+                {devicesOf === row.id ? <AccountDevices userId={row.id} /> : null}
               </li>
             ))}
             {visible.length === 0 ? (
@@ -187,6 +204,152 @@ function AdminPage() {
         )}
       </div>
     </AppShell>
+  );
+}
+
+/**
+ * THE EMERGENCY STOP FOR JARVIS DEVICE WORK. One switch, a reason on the
+ * record, and a second factor, all enforced by the database function.
+ */
+function EmergencyStop() {
+  const queryClient = useQueryClient();
+  const [reason, setReason] = useState("");
+  const state = useQuery({
+    queryKey: ["admin", "jarvis-execution"],
+    queryFn: () => readJarvisExecution(),
+  });
+  const change = useMutation({
+    mutationFn: (paused: boolean) => setJarvisExecution({ data: { paused, reason } }),
+    onSuccess: async ({ paused }) => {
+      toast.success(paused ? "JARVIS device work is paused." : "JARVIS device work is running.");
+      setReason("");
+      await queryClient.invalidateQueries({ queryKey: ["admin", "jarvis-execution"] });
+    },
+    onError: (error: unknown) => toast.error(messageOf(error)),
+  });
+  if (!state.data) return null;
+  const paused = state.data.paused;
+  return (
+    <section
+      aria-label="JARVIS device work"
+      className="mt-5 rounded-xl border border-border/60 p-4 text-sm"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-medium text-foreground">JARVIS device work</p>
+        <span
+          className={
+            paused
+              ? "rounded-full bg-destructive/15 px-2 py-0.5 text-xs text-destructive"
+              : "rounded-full bg-success/15 px-2 py-0.5 text-xs text-success"
+          }
+        >
+          {paused ? "Paused" : "Running"}
+        </span>
+      </div>
+      {state.data.reason ? (
+        <p className="mt-1 text-[13px] text-muted-foreground">Last change: {state.data.reason}</p>
+      ) : null}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <label className="min-w-0 flex-1">
+          <span className="sr-only">Reason</span>
+          <input
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="Why (at least ten characters)"
+            className="h-8 w-full rounded-md border border-border bg-transparent px-3 text-sm outline-none focus-visible:border-ring"
+          />
+        </label>
+        <button
+          type="button"
+          disabled={reason.trim().length < 10 || change.isPending}
+          onClick={() => change.mutate(!paused)}
+          className={
+            paused
+              ? "h-8 rounded-md border border-border px-3 disabled:opacity-50"
+              : "h-8 rounded-md bg-destructive px-3 text-destructive-foreground disabled:opacity-50"
+          }
+        >
+          {paused ? "Resume device work" : "Pause all device work"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * ONE ACCOUNT'S JARVIS DEVICES. Removing one ends its key and its open work;
+ * the database requires a second factor and a reason and keeps the record.
+ */
+function AccountDevices({ userId }: { userId: string }) {
+  const queryClient = useQueryClient();
+  const [reason, setReason] = useState("");
+  const devices = useQuery({
+    queryKey: ["admin", "devices", userId],
+    queryFn: () => listAccountDevices({ data: { userId } }),
+  });
+  const remove = useMutation({
+    mutationFn: (deviceId: string) => removeAccountDevice({ data: { deviceId, reason } }),
+    onSuccess: async ({ removed }) => {
+      toast[removed ? "success" : "error"](
+        removed ? "Device removed." : "That device was already removed.",
+      );
+      setReason("");
+      await queryClient.invalidateQueries({ queryKey: ["admin", "devices", userId] });
+    },
+    onError: (error: unknown) => toast.error(messageOf(error)),
+  });
+  if (!devices.data) {
+    return (
+      <div className="mt-3">
+        <Pending query={devices} loading="Loading devices…" problem="Devices could not be read." />
+      </div>
+    );
+  }
+  if (devices.data.length === 0) {
+    return <p className="mt-3 text-[13px] text-muted-foreground">No JARVIS devices.</p>;
+  }
+  const canRemove = reason.trim().length >= 10 && !remove.isPending;
+  return (
+    <div className="mt-3 rounded-md border border-border p-3 text-[13px]">
+      <ul className="space-y-2">
+        {devices.data.map((device) => (
+          <li key={device.id} className="flex items-center justify-between gap-3">
+            <span className="min-w-0">
+              <span className="block truncate text-foreground">{device.name}</span>
+              <span className="block truncate text-muted-foreground">
+                {device.kind === "extension" ? "Browser" : (device.platform ?? "Computer")} ·{" "}
+                {device.lastSeenAt
+                  ? `seen ${new Date(device.lastSeenAt).toLocaleString()}`
+                  : "never connected"}
+              </span>
+            </span>
+            {device.removedAt ? (
+              <span className="shrink-0 text-muted-foreground">Removed</span>
+            ) : (
+              <button
+                type="button"
+                disabled={!canRemove}
+                onClick={() => remove.mutate(device.id)}
+                className="h-7 shrink-0 rounded-md border border-border px-2 text-destructive transition-colors hover:bg-accent disabled:opacity-50"
+              >
+                Remove
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+      {devices.data.some((device) => !device.removedAt) ? (
+        <label className="mt-3 block">
+          <span className="sr-only">Reason for removing a device</span>
+          <input
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="Why a device is being removed (at least ten characters)"
+            className="h-8 w-full rounded-md border border-border bg-transparent px-3 text-sm outline-none focus-visible:border-ring"
+          />
+        </label>
+      ) : null}
+    </div>
   );
 }
 

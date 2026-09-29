@@ -171,7 +171,11 @@ class Identity:
     def wait_for_approval(self, timeout_s: float = 600, poll_s: float = 2) -> bool:
         deadline = time.time() + timeout_s
         while time.time() < deadline:
-            status, _ = self.post(PROTOCOL["paths"]["exchange"], {"results": []})
+            try:
+                status, _ = self.post(PROTOCOL["paths"]["exchange"], {"results": []})
+            except (urllib.error.URLError, TimeoutError, ConnectionError, OSError):
+                time.sleep(poll_s)  # a network blip while the person approves is not a refusal
+                continue
             if status == 200:
                 self.meta["approved"] = True
                 self._save()

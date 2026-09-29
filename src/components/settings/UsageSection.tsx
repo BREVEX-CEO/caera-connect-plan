@@ -1,5 +1,4 @@
 import { useSyncExternalStore, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Action, Confirm, Pending, Row, describeWhen } from "./rows";
 import {
@@ -51,13 +50,7 @@ export function UsageSection() {
             ? "Free. Requests are shared across every device you sign in on."
             : `${usage.data.tier === "pro" ? "Pro" : "Max"}. Requests are shared across every device you sign in on.`
         }
-      >
-        {usage.data.tier === "max" ? null : (
-          <Link to="/pricing" className="text-sm text-foreground underline underline-offset-2">
-            See plans
-          </Link>
-        )}
-      </Row>
+      ></Row>
       {session ? <WindowRow label="This session" window={session} /> : null}
       {week ? <WindowRow label="This week" window={week} /> : null}
       <OfflineRow held={session?.offlineAllocated ?? 0} />

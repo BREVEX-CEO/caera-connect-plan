@@ -136,7 +136,8 @@ class WakeTest(unittest.TestCase):
 def _tk():
     try:
         import tkinter  # noqa: F401
-        return bool(os.environ.get("DISPLAY"))
+        # Windows and macOS always have a display; Linux needs one (xvfb-run).
+        return sys.platform != "linux" or bool(os.environ.get("DISPLAY"))
     except ImportError:
         return False
 

@@ -23,6 +23,7 @@
  *   node scripts/e2e/harness.mjs                 # every journey
  *   node scripts/e2e/harness.mjs chat usage      # only those
  *   node scripts/e2e/harness.mjs --no-build chat # reuse the current build
+ *   node scripts/e2e/harness.mjs --serve         # build, then keep it running
  */
 import { spawn, spawnSync } from "node:child_process";
 import path from "node:path";
@@ -46,6 +47,8 @@ const ALL = [
   "final",
   "jarvis",
   "visual",
+  "browsers",
+  "admin",
 ];
 
 const requested = process.argv.slice(2).filter((value) => !value.startsWith("--"));
@@ -180,6 +183,15 @@ children.push(
   ),
 );
 await waitForPort(BASE, "the served build");
+
+// `--serve`: stand the product up and keep it running for MCP/manual testing.
+if (process.argv.includes("--serve")) {
+  console.log(`
+Serving ${BASE} against the stub at ${SUPABASE_URL}. Ctrl+C to stop.`);
+  // An unresolved promise does not keep Node alive; a timer does.
+  setInterval(() => {}, 1 << 30);
+  await new Promise(() => {});
+}
 
 let failed = 0;
 for (const journey of journeys) {

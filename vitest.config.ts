@@ -46,6 +46,8 @@ const DATABASE_BACKED = [
   "src/lib/notifications/__tests__/notification-schema.test.ts",
   "src/jarvis/__tests__/jarvis-schema-against-postgres.test.ts",
   "src/jarvis/__tests__/device-exchange.test.ts",
+  "src/lib/admin/__tests__/jarvis-execution-control.test.ts",
+  "src/lib/admin/__tests__/admin-device-removal.test.ts",
 ];
 
 const alias = {

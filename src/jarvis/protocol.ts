@@ -107,9 +107,7 @@ export const deviceAction = z.discriminatedUnion("action", [
 ]);
 export type DeviceAction = z.infer<typeof deviceAction>;
 export const browserAction = z.discriminatedUnion("action", [...BROWSER_ACTIONS]);
-export type BrowserAction = z.infer<typeof browserAction>;
 export const computerAction = z.discriminatedUnion("action", [...COMPUTER_ACTIONS]);
-export type ComputerAction = z.infer<typeof computerAction>;
 
 /** The permission each action needs on its device. */
 export function capabilityFor(action: DeviceAction): Capability {

@@ -66,8 +66,24 @@ function appCsp(): string {
      * agree about media hosts in BOTH directions, so neither can drift again.
      */
     "media-src 'self' blob: data:",
-    "upgrade-insecure-requests",
+    /*
+     * Everywhere OCADE really runs, the backend is HTTPS and every request is
+     * upgraded. Only a build pointed at the plain-HTTP loopback stub leaves it
+     * out: Firefox and WebKit would otherwise upgrade 127.0.0.1 to HTTPS and
+     * nothing would load in the browser proofs.
+     */
+    ...(loopbackBackend() ? [] : ["upgrade-insecure-requests"]),
   ].join("; ");
+}
+
+function loopbackBackend(): boolean {
+  const configured = getSupabaseBrowserConfiguration().url;
+  try {
+    const { protocol, hostname } = new URL(configured ?? "");
+    return protocol === "http:" && (hostname === "127.0.0.1" || hostname === "localhost");
+  } catch {
+    return false;
+  }
 }
 
 /**

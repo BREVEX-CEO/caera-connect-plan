@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "autoPort": true
+    },
+    {
+      "name": "ocade-stub",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/e2e/harness.mjs", "--serve"],
+      "port": 8788
     }
   ]
 }

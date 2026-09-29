@@ -115,7 +115,7 @@ try {
   await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();
-  await page.getByRole("button", { name: "Usage & Limits" }).click();
+  await page.getByRole("button", { name: "Billing & Usage" }).click();
   await page.waitForSelector("text=of 28 left", { timeout: 15_000 });
   const opening = await page.getByText(EXACT_COUNT).innerText();
   check("a free account starts with 28 requests", opening.startsWith("28 of 28"), opening);
@@ -136,7 +136,7 @@ try {
   await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();
-  await page.getByRole("button", { name: "Usage & Limits" }).click();
+  await page.getByRole("button", { name: "Billing & Usage" }).click();
   /*
    * Waits for the settled number rather than reading the first frame. The panel
    * shows what it has while it refetches, and asserting on that frame would be
@@ -197,7 +197,7 @@ try {
   );
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();
-  await page.getByRole("button", { name: "Usage & Limits" }).click();
+  await page.getByRole("button", { name: "Billing & Usage" }).click();
   await page.waitForSelector("text=of 28 left", { timeout: 15_000 });
   const afterDouble = await page.getByText(EXACT_COUNT).innerText();
   check("and one charge, not two", afterDouble.startsWith("19 of 28"), afterDouble);
@@ -277,7 +277,7 @@ try {
     "Settings still opens",
     (await page.getByRole("dialog", { name: "Settings" }).count()) === 1,
   );
-  await page.getByRole("button", { name: "Usage & Limits" }).click();
+  await page.getByRole("button", { name: "Billing & Usage" }).click();
   await page.waitForSelector("text=of 28 left", { timeout: 15_000 });
   const exhausted = await page.getByText(EXACT_COUNT).innerText();
   check(
@@ -293,7 +293,7 @@ try {
 
   /* --- Billing is about plans, and never pretends a checkout exists -------- */
 
-  await page.getByRole("button", { name: "Billing", exact: true }).click();
+  await page.getByRole("button", { name: "Billing & Usage", exact: true }).click();
   const billing = await page.getByRole("dialog", { name: "Settings" }).innerText();
   check(
     "Billing names all three plans and which one this account is on",
@@ -346,7 +346,7 @@ try {
 
     await tab.click('aside button[aria-haspopup="menu"]');
     await tab.getByRole("menuitem", { name: "Settings" }).click();
-    await tab.getByRole("button", { name: "Usage & Limits" }).click();
+    await tab.getByRole("button", { name: "Billing & Usage" }).click();
     // The refusal arrives from the same background task, so the screen is read
     // until it says something rather than once, at a moment chosen by a timer.
     const dialog = tab.getByRole("dialog", { name: "Settings" });
