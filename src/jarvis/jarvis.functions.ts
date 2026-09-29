@@ -380,6 +380,13 @@ export const startJarvisTask = createServerFn({ method: "POST" })
             : "No JARVIS device is online. Connect one in Devices to run browser tasks.",
       };
     }
+    if (await executionDisabled(service, device.kind)) {
+      return {
+        ok: false,
+        reason: "permission",
+        message: "Work on this kind of device is paused by OCADE right now. Answers still work.",
+      };
+    }
     if (data.where === "browser" && !isAllowed(rows, "browser", device.id)) {
       return {
         ok: false,

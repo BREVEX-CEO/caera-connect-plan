@@ -28,7 +28,7 @@ import { useAppearance } from "@/lib/appearance";
 import { useSettingsPanel } from "@/components/settings/settings-panel";
 import { loadChatMessages, persistChatMessage } from "@/lib/ocade-chat-store";
 import { describeReset } from "@/lib/commercial/use-commercial-usage";
-import { cn } from "@/lib/utils";
+import { cn, typedBeforeHydration } from "@/lib/utils";
 import { Orb } from "./Orb";
 import { buildGraph, type GraphNode } from "./graph";
 import { runJarvisTurn, Stopped } from "./agent";
@@ -54,6 +54,7 @@ import {
   type Section,
 } from "./JarvisPanels";
 import { BrowserPanel, ConfirmBanner, TaskCard, TakeOverBanner, VoiceBar } from "./JarvisTask";
+import { takeHandOff } from "./bubble-state";
 
 const JARVIS_STATE_KEY = ["jarvis", "state"] as const;
 
@@ -135,6 +136,11 @@ export function JarvisWorkspace({
   const [turns, setTurns] = useState<Turn[]>([]);
   const [liveAnswer, setLiveAnswer] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  // Words typed while the page was still loading become the draft.
+  useEffect(() => {
+    const typed = typedBeforeHydration("jarvis-composer");
+    if (typed) setDraft((current) => current || typed);
+  }, []);
   const [running, setRunning] = useState(false);
   // Work was asked for but no computer could take it: a way forward, not just prose.
   const [noDevice, setNoDevice] = useState<string | null>(null);
@@ -207,7 +213,9 @@ export function JarvisWorkspace({
     setTurns([]);
     setLiveAnswer(null);
     setActiveTask(null);
-    setDraft("");
+    // A draft belongs to the account and conversation it was typed in. The
+    // first screen, and the session arriving, keep what was already typed.
+    if (shownFor.current && !shownFor.current.startsWith(":")) setDraft("");
     setNoDevice(null);
     if (!conversationId || !user) {
       shownFor.current = owner;
@@ -239,7 +247,7 @@ export function JarvisWorkspace({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [owner, reloads]);
 
-  const sendRef = useRef<(text: string, fromVoice: boolean) => Promise<void>>(
+  const sendRef = useRef<(text: string, fromVoice: boolean, retryOf?: string) => Promise<void>>(
     async () => undefined,
   );
   const commandRef = useRef<(text: string) => boolean>(() => false);
@@ -524,6 +532,20 @@ export function JarvisWorkspace({
   const hasText = turns.length > 0 || liveAnswer !== null;
   // No JARVIS uses left: the composer locks with the reset time, nothing else.
   const spent = Boolean(jarvis?.usage && jarvis.usage.remaining <= 0);
+
+  // A question typed into the phone bubble is asked here, once, when ready.
+  useEffect(() => {
+    if (!signedIn || !jarvis || transcript !== "ready" || running) return;
+    const handed = takeHandOff();
+    if (!handed) return;
+    // Out of uses or turned off: the question waits in the composer, not lost.
+    if (spent || !jarvisOn) setDraft(handed.text);
+    else {
+      // Already saved by the bubble: answered again, never saved twice.
+      const saved = handed.savedId && turns.some((t) => t.id === handed.savedId);
+      void sendRef.current(handed.text, false, saved ? handed.savedId : undefined);
+    }
+  }, [signedIn, jarvis, transcript, running, spent, jarvisOn, turns]);
   // The last question that has no answer (or was stopped) can be asked again.
   const last = turns.at(-1);
   const retryTurn =

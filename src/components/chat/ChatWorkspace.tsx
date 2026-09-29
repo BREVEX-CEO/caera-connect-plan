@@ -35,7 +35,7 @@ import {
 } from "@/lib/commercial/use-commercial-usage";
 import { ConversationList } from "./ConversationList";
 import { MessageList } from "./MessageList";
-import { cn } from "@/lib/utils";
+import { cn, typedBeforeHydration } from "@/lib/utils";
 
 const CHOICES: { id: IntelligenceChoice; label: string }[] = [
   { id: "auto", label: "Auto" },
@@ -79,6 +79,11 @@ export function ChatWorkspace() {
   const navigate = useNavigate();
   const chat = useChat();
   const [draft, setDraft] = useState("");
+  // Words typed while the page was still loading become the draft.
+  useEffect(() => {
+    const typed = typedBeforeHydration("ocade-composer");
+    if (typed) setDraft((current) => current || typed);
+  }, []);
   const [choice, setChoice] = useState<IntelligenceChoice>("auto");
   const online = useOnline();
   const [thinking, setThinking] = useState(false);

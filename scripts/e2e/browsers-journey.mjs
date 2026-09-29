@@ -112,6 +112,18 @@ for (const run of RUNS) {
 
     const conversation = page.url();
     await page.goto(`${BASE}/help`, { waitUntil: "load" });
+    const bubble = page.getByRole("button", { name: /^JARVIS, / });
+    if (narrow) {
+      await bubble.waitFor({ timeout: 15_000 }).catch(() => {});
+      await bubble.click().catch(() => {});
+      check(
+        label("the JARVIS bubble opens on a phone"),
+        (await page.getByRole("dialog", { name: "JARVIS" }).count()) === 1,
+      );
+      await page.keyboard.press("Escape");
+    } else {
+      check(label("no JARVIS bubble on a wide screen"), (await bubble.count()) === 0);
+    }
     await page.locator("#help-search").fill("take over");
     await page.waitForTimeout(400);
     check(

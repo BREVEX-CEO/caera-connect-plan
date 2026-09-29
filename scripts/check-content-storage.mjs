@@ -58,6 +58,7 @@ const ALLOWED = new Map([
   ["src/lib/brain/model-store.ts", "Offline Intelligence chunks in OPFS."],
   ["src/lib/brain/model-vault.ts", "The model's own install state and verified digests."],
   ["src/lib/brain/installation-authority.ts", "Which model version this device has verified."],
+  ["src/jarvis/bubble-state.ts", "Where the phone JARVIS bubble sits and whether it is shown."],
   [
     "src/lib/brain/adapters/browser-wasm.ts",
     "Which model release this device cannot hold in memory.",

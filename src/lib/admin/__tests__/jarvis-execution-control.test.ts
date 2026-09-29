@@ -69,6 +69,28 @@ describe("the JARVIS emergency stop", () => {
     expect(events.every((e) => e.changed_by === ADMIN)).toBe(true);
   });
 
+  it("the Device Agent and the extension pause on their own, recorded the same way", async () => {
+    const result = await twin.runScript(
+      "supabase/verification",
+      "20260929110000_scoped_jarvis_controls_verify.sql",
+    );
+    expect(result.error).toBeUndefined();
+    const paused = await twin.asTenant<{ key: string; paused: boolean }>(
+      ADMIN,
+      `select key, paused from public.ocade_set_service_control('jarvis_extension', true, 'extension incident under review')`,
+      { aal: "aal2" },
+    );
+    expect(paused.rows[0]).toEqual({ key: "jarvis_extension", paused: true });
+    const rows = await twin.asServiceRole<{ key: string; paused: boolean }>(
+      `select key, paused from public.ocade_service_controls order by key`,
+    );
+    expect(rows).toEqual([
+      { key: "jarvis_agent", paused: false },
+      { key: "jarvis_execution", paused: false },
+      { key: "jarvis_extension", paused: true },
+    ]);
+  });
+
   it("no signed-in browser reads or writes the tables directly", async () => {
     expect(
       (await twin.asTenant(ADMIN, `select * from public.ocade_service_controls`)).error,

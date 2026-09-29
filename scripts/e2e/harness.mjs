@@ -49,6 +49,7 @@ const ALL = [
   "visual",
   "browsers",
   "admin",
+  "bubble",
 ];
 
 const requested = process.argv.slice(2).filter((value) => !value.startsWith("--"));
@@ -75,6 +76,17 @@ const BUILD_ENVIRONMENT = {
 };
 
 const children = [];
+let stopping = false;
+
+/** A server that dies mid-run says so, with how it ended, instead of vanishing. */
+function watched(name, child) {
+  child.on("exit", (code, signal) => {
+    if (!stopping)
+      console.log(`\n!!! ${name} stopped unexpectedly (code ${code}, signal ${signal})`);
+  });
+  children.push(child);
+  return child;
+}
 
 /**
  * Kill the GROUP, not the process.
@@ -87,6 +99,7 @@ const children = [];
  * the negative pid takes the whole tree with it.
  */
 function stopEverything() {
+  stopping = true;
   for (const child of children) {
     try {
       if (process.platform === "win32") {
@@ -156,7 +169,8 @@ const STUB_VARS = [
 ].flatMap((pair) => ["--var", pair]);
 
 console.log("=== supabase stub ===");
-children.push(
+watched(
+  "the Supabase stub",
   spawn(process.execPath, ["scripts/e2e/supabase-stub.mjs", String(SUPABASE_PORT)], {
     stdio: "inherit",
     detached: true,
@@ -165,23 +179,26 @@ children.push(
 await waitForPort(`${SUPABASE_URL}/auth/v1/settings`, "the Supabase stub");
 
 console.log("=== served production build ===");
-children.push(
-  spawn(
-    process.execPath,
-    [
-      path.join("node_modules", "wrangler", "bin", "wrangler.js"),
-      "dev",
-      "--config",
-      "wrangler.json",
-      ...STUB_VARS,
-      "--ip",
-      "127.0.0.1",
-      "--port",
-      String(WEB_PORT),
-    ],
-    { stdio: ["ignore", "inherit", "inherit"], detached: true },
-  ),
-);
+const serve = () =>
+  watched(
+    "the served build",
+    spawn(
+      process.execPath,
+      [
+        path.join("node_modules", "wrangler", "bin", "wrangler.js"),
+        "dev",
+        "--config",
+        "wrangler.json",
+        ...STUB_VARS,
+        "--ip",
+        "127.0.0.1",
+        "--port",
+        String(WEB_PORT),
+      ],
+      { stdio: ["ignore", "inherit", "inherit"], detached: true },
+    ),
+  );
+serve();
 await waitForPort(BASE, "the served build");
 
 // `--serve`: stand the product up and keep it running for MCP/manual testing.
@@ -196,6 +213,18 @@ Serving ${BASE} against the stub at ${SUPABASE_URL}. Ctrl+C to stop.`);
 let failed = 0;
 for (const journey of journeys) {
   console.log(`\n=== ${journey} ===`);
+  // A server that died during the last journey is started again, loudly, so
+  // one failure does not become every later journey's failure.
+  if (
+    !(await fetch(BASE).then(
+      () => true,
+      () => false,
+    ))
+  ) {
+    console.log("!!! the served build was down; starting it again");
+    serve();
+    await waitForPort(BASE, "the served build");
+  }
   const result = spawnSync(
     process.execPath,
     [`scripts/e2e/${journey}-journey.mjs`, `--base=${BASE}`, `--supabase=${SUPABASE_URL}`],

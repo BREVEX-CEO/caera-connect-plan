@@ -578,6 +578,35 @@ function handleRpc(name, args, userId) {
       return rows(args._user_id, "user_roles").some((row) => row.role === args._role);
 
     /* The operator's device removal, with the refusals the function makes. */
+    /* The JARVIS stops: global, Device Agent, browser extension. */
+    case "ocade_read_service_controls":
+      if (!isAdmin(userId)) {
+        return {
+          __error: { code: "42501", message: "Only support admins may read service controls." },
+        };
+      }
+      return serviceControls;
+
+    case "ocade_set_service_control": {
+      const refuse = (message) => ({ __error: { code: "42501", message } });
+      if (!isAdmin(userId)) return refuse("Only support admins may change a service control.");
+      if (assuranceOf(emails.get(userId) ?? "") !== "aal2") {
+        return refuse("Changing a service control needs a recent second factor.");
+      }
+      if (String(args.change_reason ?? "").trim().length < 10) {
+        return refuse("Say why, in at least ten characters.");
+      }
+      const control = serviceControls.find((row) => row.key === args.control_key);
+      if (!control) return refuse("Unknown service control.");
+      Object.assign(control, {
+        paused: args.pause,
+        reason: String(args.change_reason).trim(),
+        changed_by: userId,
+        changed_at: new Date(now).toISOString(),
+      });
+      return control;
+    }
+
     case "ocade_admin_remove_device": {
       const refuse = (message) => ({ __error: { code: "42501", message } });
       if (!isAdmin(userId)) return refuse("Only support admins may remove a device.");
@@ -675,6 +704,15 @@ function jarvisStep(messages) {
     args: { ...rest, ref: element?.ref ?? "e0", observationId: observation?.observationId ?? "o0" },
   };
 }
+
+/** The JARVIS stops, one set for the whole service as in production. */
+const serviceControls = ["jarvis_execution", "jarvis_agent", "jarvis_extension"].map((key) => ({
+  key,
+  paused: false,
+  reason: null,
+  changed_by: null,
+  changed_at: new Date().toISOString(),
+}));
 
 /** JARVIS rows, shared across accounts and filtered per session (see the handler). */
 const jarvisTables = {};
@@ -1057,17 +1095,19 @@ const server = createServer((request, response) => {
       const select = url.searchParams.get("select");
       // The service role reads every account's profile and roles, as the operator screen needs.
       const stored =
-        userId === "anonymous" && (name === "profiles" || name === "user_roles")
-          ? name === "profiles"
-            ? [...emails].map(([id, email]) => ({
-                id,
-                email,
-                display_name: null,
-                created_at: "2026-09-01T00:00:00Z",
-                ...rows(id, "profiles")[0],
-              }))
-            : [...tables.values()].flatMap((owned) => owned.user_roles ?? [])
-          : rows(userId, name);
+        name === "ocade_service_controls"
+          ? serviceControls
+          : userId === "anonymous" && (name === "profiles" || name === "user_roles")
+            ? name === "profiles"
+              ? [...emails].map(([id, email]) => ({
+                  id,
+                  email,
+                  display_name: null,
+                  created_at: "2026-09-01T00:00:00Z",
+                  ...rows(id, "profiles")[0],
+                }))
+              : [...tables.values()].flatMap((owned) => owned.user_roles ?? [])
+            : rows(userId, name);
       const single = (request.headers.accept ?? "").includes("vnd.pgrst.object");
 
       if (request.method === "GET") {
