@@ -41,6 +41,8 @@ Remove it from active packaging/runtime only after tray status/STOP/Pause-Resume
 
 The Android floating bubble remains required and is unrelated to this desktop retirement.
 
+**Status 2026-09-29: removed.** Replacement proven on real Windows with the installed agent: one tray icon with truthful status (Ready/Working/Waiting for you/Paused/Stopping/Offline), STOP (command tree killed in under a second), Pause/Resume, work folder, Exit, autostart, duplicate-launch refusal, removal mid-action and uninstall/reinstall. `jarvis-runtime/ocade_mini.py` deleted and dropped from the package.
+
 ### Donor generic plugin product path
 
 Do not expose or maintain a customer plugin marketplace/system from the donor.

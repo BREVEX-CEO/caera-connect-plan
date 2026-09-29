@@ -1,7 +1,7 @@
 """The Device Agent lifecycle: one presence, autostart, uninstall, durable results, global Stop.
 
 Run: python -m unittest discover -s jarvis-runtime/tests -p 'test_agent.py'
-The mini-control test needs Tk and a display (xvfb-run) and skips otherwise.
+The tray itself needs a desktop session; its status and Pause/Resume logic are tested here.
 """
 import json
 import os
@@ -190,49 +190,59 @@ class WakeTest(unittest.TestCase):
         self.assertEqual(opened, ["https://ocade.test/ocade-jarvis?voice=1"])
 
 
-def _tk():
-    try:
-        import tkinter  # noqa: F401
-        # Windows and macOS always have a display; Linux needs one (xvfb-run).
-        return sys.platform != "linux" or bool(os.environ.get("DISPLAY"))
-    except ImportError:
-        return False
+class TrayStatusTest(unittest.TestCase):
+    """The tray says one truthful word, and Pause/Resume reach OCADE exactly once."""
 
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
 
-@unittest.skipUnless(_tk(), "needs Tk and a display")
-class MiniControlTest(unittest.TestCase):
-    def test_appears_while_working_and_stops_jarvis(self):
-        import ocade_mini
+    def test_status_words(self):
+        identity = FakeIdentity(self.home, [])
+        agent = ocade_device.Agent(identity, headless=True, cdp=None, workspace=str(self.home))
+        self.assertEqual(agent.status(), "Ready")
+        agent.state.update(busy=True, task={"status": "running"})
+        self.assertEqual(agent.status(), "Working")
+        agent.state["task"] = {"status": "waiting"}
+        self.assertEqual(agent.status(), "Waiting for you")
+        agent.pause()
+        self.assertEqual(agent.status(), "Paused")
+        self.assertTrue(agent.cancel.is_set(), "pausing ends the step in progress")
+        agent.resume()
+        agent.state["offline"] = True
+        self.assertEqual(agent.status(), "Offline")
+        agent.stop_everything()
+        self.assertEqual(agent.status(), "Stopping")
 
-        class Presence:
-            def __init__(self):
-                self.agent = type("A", (), {})()
-                self.agent.state = {"busy": False, "task": None}
-                self.agent.stop = threading.Event()
-                self.stopped = False
+    def test_work_folder_is_chosen_once_and_remembered(self):
+        identity = FakeIdentity(self.home, [])
+        agent = ocade_device.Agent(identity, headless=True, cdp=None, workspace=None)
+        self.assertFalse(agent.computer.capabilities()["files"])
+        folder = self.home / "Projects"
+        folder.mkdir()
+        agent.set_workspace(str(folder))
+        self.assertTrue(agent.computer.capabilities()["files"])
+        again = ocade_device.Agent(identity, headless=True, cdp=None, workspace=None)
+        self.assertEqual(again.computer.root, folder.resolve())
+        for too_broad in (str(Path.home()), str(Path(folder.anchor))):
+            with self.assertRaises(ValueError):
+                agent.set_workspace(too_broad)
 
-            def stop_jarvis(self):
-                self.stopped = True
-
-            def open_ocade(self):
-                pass
-
-            def exit(self):
-                pass
-
-        presence = Presence()
-        mini = ocade_mini.Mini(presence, Path(tempfile.mkdtemp()))
-        mini.root.update()
-        self.assertEqual(mini.root.state(), "withdrawn")
-        presence.agent.state = {"busy": True, "task": {"title": "Tidy notes", "step": 1, "steps": 3}}
-        mini.tick()
-        mini.root.update()
-        self.assertEqual(mini.root.state(), "normal")
-        self.assertIn("Step 2 of 3", mini.status_text())
-        mini.stop.invoke()
-        self.assertTrue(presence.stopped)
-        presence.agent.stop.set()
-        mini.tick()
+    def test_pause_then_resume_reach_ocade_once_each(self):
+        identity = FakeIdentity(self.home, [{"commands": [], "busy": True}] * 6)
+        agent = ocade_device.Agent(identity, headless=True, cdp=None, workspace=str(self.home))
+        agent.pause()
+        runner = threading.Thread(target=agent.run)
+        runner.start()
+        time.sleep(1.5)
+        agent.resume()
+        time.sleep(1.5)
+        agent.stop.set()
+        runner.join(10)
+        pauses = [b.get("pause") for b in identity.bodies]
+        resumes = [b.get("resume") for b in identity.bodies]
+        self.assertEqual(pauses.count(True), 1)
+        self.assertEqual(resumes.count(True), 1)
+        self.assertLess(pauses.index(True), resumes.index(True))
 
 
 if __name__ == "__main__":

@@ -254,6 +254,39 @@ describe("STOP", () => {
   });
 });
 
+describe("Pause and Resume from the computer's tray", () => {
+  const taskStatus = async (id: string) =>
+    (
+      await twin.asServiceRole<{ status: string; blocker: string | null }>(
+        `select status, blocker from public.jarvis_tasks where id = '${id}'`,
+      )
+    )[0]!;
+
+  it("pause hands the task to the person and cancels the step in progress", async () => {
+    const t = await task();
+    await permit("files", true);
+    const running = await queue(t, { action: "file_list", path: "." });
+    await run({ results: [] });
+    const reply = await run({ results: [], running: [running], pause: true });
+    expect(await taskStatus(t)).toEqual({
+      status: "taken_over",
+      blocker: "Paused on the computer.",
+    });
+    expect(reply.cancel).toEqual([running]);
+    expect(reply.task?.status).toBe("taken_over");
+  });
+
+  it("resume gives it back, and never revives a task that ended", async () => {
+    const t = await task();
+    await run({ results: [], pause: true });
+    await run({ results: [], resume: true });
+    expect(await taskStatus(t)).toEqual({ status: "running", blocker: null });
+    await twin.asServiceRole(`update public.jarvis_tasks set status = 'stopped' where id = '${t}'`);
+    await run({ results: [], resume: true });
+    expect((await taskStatus(t)).status).toBe("stopped");
+  });
+});
+
 describe("Activity privacy (JARVIS-021)", () => {
   it("never stores a local path or the user name inside it", async () => {
     const { redactLocal } = await import("../device.server");

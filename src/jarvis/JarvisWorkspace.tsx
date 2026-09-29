@@ -544,6 +544,22 @@ export function JarvisWorkspace({
     refresh();
   };
 
+  // Resumed somewhere else (the computer's tray, another tab): the waiting turn continues.
+  const sawTakenOver = useRef(false);
+  useEffect(() => {
+    if (!takeover) {
+      sawTakenOver.current = false;
+      return;
+    }
+    const status = conversationTask?.status;
+    if (status === "taken_over") sawTakenOver.current = true;
+    else if (status === "running" && sawTakenOver.current) {
+      sawTakenOver.current = false;
+      takeover.resolve("resume");
+      setTakeover(null);
+    }
+  }, [takeover, conversationTask?.status]);
+
   const takeOverNow = async () => {
     const task = conversationTask;
     if (!task || task.status !== "running") return;

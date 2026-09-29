@@ -7,8 +7,9 @@ The OCADE Device Agent: what a person installs once and then forgets.
 It starts with the computer as a dormant supervisor (see Agent.DORMANT_S) and
 becomes active only while a JARVIS task is open on this computer or the person
 turned on Background Mode. There is exactly one OCADE presence: a second start
-finds the first one and exits. The tray offers Open OCADE JARVIS, STOP JARVIS
-and Exit; the round mini-control appears while JARVIS is working.
+finds the first one and exits. The tray icon is the whole desktop presence: its
+status (Ready, Working, Waiting for you, Paused, Stopping, Offline), Open OCADE
+JARVIS, STOP JARVIS, Pause/Resume while a task is open, and Exit.
 
 Everything here is the lifecycle. The work itself is ocade_device.Agent; the
 identity is ocade_identity; updates are ocade_update.
@@ -162,7 +163,7 @@ def uninstall(home: Path) -> str:
 
 
 class Presence:
-    """The one tray icon (where the platform offers one) and the mini-control."""
+    """The one tray icon: OCADE's whole presence on the desktop."""
 
     def __init__(self, agent: ocade_device.Agent, server: str):
         self.agent = agent
@@ -174,6 +175,31 @@ class Presence:
 
     def stop_jarvis(self) -> None:
         self.agent.stop_everything()
+
+    def _folder_label(self) -> str:
+        root = self.agent.computer.root
+        return f"Work folder: {root.name}" if root else "Choose work folder..."
+
+    def choose_folder(self) -> None:
+        """Files, spreadsheets and commands stay inside the one folder chosen here."""
+        try:
+            from tkinter import Tk, filedialog
+            root = Tk()
+            root.withdraw()
+            root.attributes("-topmost", True)
+            folder = filedialog.askdirectory(title="Choose the folder JARVIS may work in")
+            root.destroy()
+        except Exception as e:
+            self._notify(f"The folder could not be chosen ({type(e).__name__}).")
+            return
+        if folder:
+            try:
+                self.agent.set_workspace(folder)
+            except ValueError as e:
+                self._notify(str(e))
+                return
+            if self.icon is not None:
+                self.icon.update_menu()
 
     def exit(self) -> None:
         if self.agent.state["busy"] and not self._ask("JARVIS is working on a task. Stop it and exit?"):
@@ -196,6 +222,16 @@ class Presence:
         except Exception:
             pass
 
+    def notify(self, message: str) -> None:
+        """A system notification from the tray icon (never a blocking dialog)."""
+        print(message, flush=True)
+        try:
+            if self.icon is not None:
+                self.icon.notify(message, APP_NAME)
+                time.sleep(3)
+        except Exception:
+            pass
+
     def _ask(self, question: str) -> bool:
         try:
             from tkinter import messagebox
@@ -213,9 +249,14 @@ class Presence:
         image = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
         ImageDraw.Draw(image).ellipse((6, 6, 58, 58), fill=(20, 20, 20, 255), outline=(236, 236, 236, 255), width=4)
         menu = pystray.Menu(
-            pystray.MenuItem(lambda _: "Working" if self.agent.state["busy"] else "Ready", None, enabled=False),
+            pystray.MenuItem(lambda _: self.agent.status(), None, enabled=False),
             pystray.MenuItem("Open OCADE JARVIS", lambda: self.open_ocade(), default=True),
             pystray.MenuItem("STOP JARVIS", lambda: self.stop_jarvis()),
+            pystray.MenuItem("Pause JARVIS", lambda: self.agent.pause(),
+                             visible=lambda _: self.agent.status() in ("Working", "Waiting for you")),
+            pystray.MenuItem("Resume JARVIS", lambda: self.agent.resume(),
+                             visible=lambda _: self.agent.status() == "Paused"),
+            pystray.MenuItem(lambda _: self._folder_label(), lambda: self.choose_folder()),
             pystray.MenuItem("Exit", lambda: self.exit()),
         )
         try:
@@ -227,13 +268,13 @@ class Presence:
         return None
 
     def _follow_status(self) -> None:
-        """Windows builds the tray menu once; rebuild it whenever Ready/Working changes."""
+        """Windows builds the tray menu once; rebuild it whenever the status changes."""
         shown = None
         while not self.agent.stop.wait(1):
-            busy = bool(self.agent.state["busy"])
-            if busy != shown and self.icon is not None:
-                shown = busy
-                self.icon.title = "OCADE JARVIS · Working" if busy else "OCADE JARVIS"
+            status = self.agent.status()
+            if status != shown and self.icon is not None:
+                shown = status
+                self.icon.title = f"OCADE JARVIS · {status}"
                 self.icon.update_menu()
 
 
@@ -242,7 +283,13 @@ def health_check() -> int:
     try:
         import actions.browser_control as browser  # reads ocade_page.js and the protocol gates
         import ocade_egress  # noqa: F401
+        import ocade_existing_browser  # noqa: F401
+        import ocade_documents  # noqa: F401
+        import ocade_sheets
+        import openpyxl  # noqa: F401
+        import pypdf  # noqa: F401
         assert browser._OCADE_PAGE and browser._GATES
+        assert (Path(ocade_sheets.__file__).resolve().parent / "actions" / "ocade_excel.ps1").is_file()
         import pystray
         from PIL import Image
         pystray.Icon("ocade-health", Image.new("RGBA", (16, 16)), "OCADE")
@@ -338,21 +385,37 @@ def main() -> None:
                                presence.icon.stop() if presence.icon else None))
     tray = presence.start_tray()
     if tray:
-        # The mini-control still offers STOP; the reason stays on this computer.
+        # Without a tray there is no local control: say so and keep the reason on this computer.
         (home / "agent.log").parent.mkdir(parents=True, exist_ok=True)
         with open(home / "agent.log", "a", encoding="utf-8") as log:
             log.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {tray}\n")
-    worker = threading.Thread(target=agent.run, daemon=True)
+        Presence._notify("OCADE could not show its tray icon, so it cannot be stopped from this "
+                         "computer. JARVIS will not run here until it can. " + tray)
+        guard.close()
+        return
+    def work() -> None:
+        code = agent.run()
+        if code == 2:
+            # Removed in OCADE: the work already stopped and the key is gone. Nothing
+            # starts at login any more; opening the app again connects afresh.
+            remove_autostart()
+            presence.notify("This computer was removed from OCADE. "
+                            "Open OCADE Device Agent to connect it again.")
+        elif code == 3:
+            presence.notify("OCADE needs a newer Device Agent. Install the latest version from ocade.in.")
+        agent.stop.set()
+
+    worker = threading.Thread(target=work, daemon=True)
     worker.start()
     threading.Thread(target=_watch_health_and_updates,
                      args=(agent, root, identity.meta["server"]), daemon=True).start()
     threading.Thread(target=_wake_while_background,
                      args=(agent, home, identity.meta["server"]), daemon=True).start()
-    try:
-        import ocade_mini
-        ocade_mini.run(presence)  # owns the main thread while it lives
-    except ImportError:
-        worker.join()
+    while not agent.stop.wait(1):
+        pass  # the tray and the worker threads do the work; this thread keeps the process alive
+    worker.join(15)
+    if presence.icon is not None:
+        presence.icon.stop()
     guard.close()
 
 

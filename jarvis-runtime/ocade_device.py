@@ -160,20 +160,66 @@ class Agent:
     def __init__(self, identity: Identity, headless: bool, cdp: str | None, workspace: str | None):
         self.identity = identity
         self.browsers = Browsers(headless, cdp)
-        self.computer = Computer(workspace)
+        self.settings_path = identity.home / "settings.json"
+        # The work folder the person chose (tray: Choose work folder...), unless one was given here.
+        self.computer = Computer(workspace or self._settings().get("workspace"))
         self.stop = threading.Event()
         self.stop_all = threading.Event()
+        # Pause/Resume from the tray: OCADE hands the task to the person, then back.
+        self.pause_asked = threading.Event()
+        self.resume_asked = threading.Event()
         # The cancellation token of the action running now; every STOP sets it
         # synchronously, before any network round trip.
         self.cancel = threading.Event()
         self.state = {"busy": False, "background": False, "connected": True, "update": False,
-                      "task": None}
+                      "task": None, "offline": False}
         self.pending_path = identity.home / "pending.json"
+
+    def _settings(self) -> dict:
+        try:
+            return json.loads(self.settings_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+
+    def set_workspace(self, folder: str | None) -> None:
+        """The one folder files, spreadsheets and commands may use. Never a whole drive or the home folder."""
+        if folder:
+            chosen = Path(folder).resolve()
+            if chosen == chosen.parent or chosen == Path.home().resolve() or not chosen.is_dir():
+                raise ValueError("Choose a specific folder, not a whole drive or your home folder")
+        settings = {**self._settings(), "workspace": str(Path(folder).resolve()) if folder else None}
+        tmp = self.settings_path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(settings), encoding="utf-8")
+        os.replace(tmp, self.settings_path)
+        self.computer.root = Path(folder).resolve() if folder else None
 
     def stop_everything(self) -> None:
         """STOP JARVIS on this computer: the running action now, the rest at OCADE."""
         self.cancel.set()
         self.stop_all.set()
+
+    def pause(self) -> None:
+        """The person takes control: the step in progress ends, and nothing new runs until Resume."""
+        self.cancel.set()
+        self.resume_asked.clear()
+        self.pause_asked.set()
+
+    def resume(self) -> None:
+        self.pause_asked.clear()
+        self.resume_asked.set()
+
+    def status(self) -> str:
+        """One truthful word for the tray."""
+        task = self.state.get("task") or {}
+        if self.stop_all.is_set():
+            return "Stopping"
+        if self.state.get("offline"):
+            return "Offline"
+        if self.pause_asked.is_set() or task.get("status") == "taken_over":
+            return "Paused"
+        if task.get("status") == "waiting":
+            return "Waiting for you"
+        return "Working" if self.state.get("busy") else "Ready"
 
     def _load_pending(self) -> list[dict]:
         # Results finished before a crash, a reboot or a lost connection still reach OCADE.
@@ -224,6 +270,10 @@ class Agent:
                     "running": [active["id"]] if active else []}
             if self.stop_all.is_set():
                 body["stop"] = True
+            elif self.pause_asked.is_set():
+                body["pause"] = True
+            elif self.resume_asked.is_set():
+                body["resume"] = True
             due = not apps_sent or time.monotonic() - apps_sent > APPS_EVERY_S
             if due and "apps" in found:
                 body["apps"] = found.pop("apps")
@@ -253,15 +303,21 @@ class Agent:
                 # Fail closed: work OCADE can no longer see or stop does not continue.
                 if active and time.monotonic() - reached > CONTROL_LOSS_S:
                     self.cancel.set()
+                self.state["offline"] = time.monotonic() - reached > CONTROL_LOSS_S
                 self._keep_pending(results)
                 self.stop.wait(3 if not active else POLL_IDLE_SECONDS)
                 continue
             self.state["reached"] = True
+            self.state["offline"] = False
             reached = time.monotonic()
             if "apps" in body:
                 apps_sent = time.monotonic()
             if body.get("stop"):
                 self.stop_all.clear()
+            if body.get("pause"):
+                self.pause_asked.clear()
+            if body.get("resume"):
+                self.resume_asked.clear()
             self.state.update(busy=bool(reply.get("busy")), background=bool(reply.get("background")),
                               task=reply.get("task"))
             results, frame = [], None

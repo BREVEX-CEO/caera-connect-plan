@@ -362,8 +362,12 @@ export const exchangeInput = z.object({
   apps: z.array(z.string().max(80)).max(300).optional(),
   /** The action the device is executing now; the reply says whether to cancel it. */
   running: z.array(z.string().uuid()).max(1).optional(),
-  /** STOP JARVIS from the computer's own tray or mini-control. */
+  /** STOP JARVIS from the computer's own tray. */
   stop: z.boolean().optional(),
+  /** Pause from the tray: the person takes control of this computer's task. */
+  pause: z.boolean().optional(),
+  /** Resume from the tray: the task continues from a fresh observation. */
+  resume: z.boolean().optional(),
   /** The device disconnects itself (Disconnect, or uninstall): its key stops working. */
   forget: z.boolean().optional(),
   rotate: z.object({ publicKey: publicKeyText }).optional(),
@@ -393,7 +397,7 @@ export async function exchange(
   deviceId: string;
   busy: boolean;
   background: boolean;
-  /** The open task, for the tray and mini-control: title and progress only. */
+  /** The open task, for the tray: title, progress and status only. */
   task: { title: string; step: number; steps: number; status: string } | null;
   commands: DeviceCommand[];
   /** Running actions the device must cancel now (STOP, Take Over, task ended). */
@@ -437,6 +441,19 @@ export async function exchange(
       .update({ status: "cancelled", completed_at: at })
       .eq("device_id", device.id)
       .in("status", ["queued", "needs_confirmation", "claimed"]);
+  }
+  if (input.pause && !input.stop) {
+    await admin
+      .from("jarvis_tasks")
+      .update({ status: "taken_over", blocker: "Paused on the computer." })
+      .eq("device_id", device.id)
+      .in("status", ["running", "waiting"]);
+  } else if (input.resume && !input.stop) {
+    await admin
+      .from("jarvis_tasks")
+      .update({ status: "running", blocker: null })
+      .eq("device_id", device.id)
+      .eq("status", "taken_over");
   }
   const [{ data: open }, { data: self }] = await Promise.all([
     admin

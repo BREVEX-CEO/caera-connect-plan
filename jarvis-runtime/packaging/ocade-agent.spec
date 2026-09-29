@@ -21,7 +21,7 @@ a = Analysis(
            (str(root / "actions" / "ocade_page.js"), "actions"),
            (str(root / "actions" / "ocade_excel.ps1"), "actions")],
     hiddenimports=[
-        "ocade_device", "ocade_identity", "ocade_computer", "ocade_update", "ocade_mini",
+        "ocade_device", "ocade_identity", "ocade_computer", "ocade_update",
         "ocade_egress", "ocade_wake", "ocade_existing_browser", "ocade_documents", "ocade_sheets", "actions.browser_control",
         "pystray", "pystray._win32", "pystray._darwin", "pystray._xorg",
         "pynput.keyboard", "pynput.mouse",

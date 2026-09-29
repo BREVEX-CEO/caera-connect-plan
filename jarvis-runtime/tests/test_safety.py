@@ -75,7 +75,7 @@ class StopTest(unittest.TestCase):
         runner = self._run(agent, 0)
         time.sleep(2.5)
         stopped_at = time.monotonic()
-        agent.stop_everything()  # tray / mini-control STOP JARVIS
+        agent.stop_everything()  # the tray's STOP JARVIS
         time.sleep(1.5)
         agent.stop.set()
         runner.join(10)
