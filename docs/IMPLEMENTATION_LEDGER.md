@@ -157,6 +157,8 @@ Evidence:
 - `verify:full`: 15 gates pass.
 - Still BLOCKED (environment): Firefox MCP native input and WebKit MCP 0×0 viewport (server browser build mismatch).
 
+Production: merge `d8f51375` deployed; `/api/health` reports that commit. Android-sized and Edge MCP on ocade.in: six public pages 200 with no horizontal overflow, signed-out `/admin` goes to sign-in without naming the area, signed-out JARVIS asks for sign-in, no page errors.
+
 Not done in this wave (owner decision or no hardware): staff roles beyond admin (no staff yet), payment operations (no provider chosen), scoped per-feature kill switches beyond the global JARVIS stop, Android companion.
 
 ## Next step
