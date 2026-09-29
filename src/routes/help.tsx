@@ -224,13 +224,24 @@ const QUESTIONS: {
   {
     category: "Mobile",
     question: "Can I use OCADE on my phone?",
-    words: "android iphone ipad home screen pwa",
+    words: "android iphone ipad home screen pwa bubble floating shortcut siri",
     answer: (
-      <p>
-        Yes, in the browser. Add OCADE to your home screen to open it like an app. From your phone
-        you can start, watch and stop work on a computer you connected, under Devices. A phone's own
-        apps are not controlled from the website.
-      </p>
+      <>
+        <p>
+          Yes, in the browser. Add OCADE to your home screen to open it like an app. From your phone
+          you can start, watch and stop work on a computer you connected, under Devices. A phone's
+          own apps are not controlled from the website.
+        </p>
+        <p className="mt-2">
+          On a phone, a small JARVIS bubble floats over OCADE's pages. Drag it to either edge, tap
+          it for the current task, Stop, or a quick question. It stays inside OCADE, not over other
+          apps. Hide it from the bubble; Settings › Appearance brings it back.
+        </p>
+        <p className="mt-2">
+          To open JARVIS from a shortcut, for example in the iPhone Shortcuts app, use the address
+          ocade.in/ocade-jarvis.
+        </p>
+      </>
     ),
   },
   {
