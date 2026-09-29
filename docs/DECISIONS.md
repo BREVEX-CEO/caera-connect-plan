@@ -49,3 +49,12 @@ This file records current owner-approved decisions. Later explicit owner decisio
 - Caveman/Ponytail after proof;
 - real MCP/device/browser evidence;
 - no fake completion claims.
+
+
+## Master-plan numbering decision — 2026-09-29
+
+- The active roadmap is one continuous Phase 1–49 plan.
+- The older baseline Phase 0 responsibilities are folded into Phase 1 so numbering begins at 1.
+- Older Phase 1–34 scopes are retained but reconciled to current owner decisions; they are current validation/repair gates, not blindly trusted historical completion.
+- The old browser-extension phase is replaced by existing-browser autonomous control with no OCADE customer add-on dependency.
+- Claude starts at Phase 1 on a fresh clone, preserves correct implementation, repairs gaps, and continues through Phase 49.

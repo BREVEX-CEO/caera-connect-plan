@@ -101,3 +101,8 @@ Run Caveman/Ponytail after proof. Consult ToRemove.md. Preserve donor/audits/app
 ## Reporting
 
 Every phase includes commercial-launch readiness percentage and exact evidence.
+
+
+## Master Phase 1–49 authority
+
+Implementation order, phase gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting follow the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves working behavior, repairs evidence-backed gaps, and continues through Phase 49.

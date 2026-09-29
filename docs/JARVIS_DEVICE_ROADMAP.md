@@ -177,3 +177,8 @@ A capability is not complete from source inspection alone.
 Use LOCAL TEST, REAL BROWSER, REAL WINDOWS, REAL ANDROID, REAL APPLE, DATABASE TEST, LIVE, BLOCKED and UNTESTED distinctly.
 
 Each phase reports commercial-launch readiness percentage and exact evidence.
+
+
+## Relationship to the master plan
+
+This device roadmap is implemented through the unified `PLAN.md` Phase 1–49 sequence. Earlier device foundations are revalidated in the earlier phases; commercial hardening and final evidence occur in the later phases. If this document conflicts with a newer explicit Phase 1–49 requirement, `PLAN.md` wins.

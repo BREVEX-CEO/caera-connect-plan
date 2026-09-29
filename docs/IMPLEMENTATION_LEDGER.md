@@ -221,3 +221,18 @@ Historical references above to now-retired product paths, previous blocked Andro
 ### Next step
 
 Begin `PLAN.md` Phase 35 on the latest reconciled main. Build the donor capability ledger, re-health-check MCP/device environments, then continue Phases 36–49 without restarting already proven unrelated work.
+
+
+---
+
+## Master Phase 1–49 reset — 2026-09-29
+
+Historical evidence above remains preserved and may contain obsolete product terms that were true at the time. It is not current product authority.
+
+Current authority is the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude starts at Phase 1, revalidates and repairs Phases 1–34 against current main without needlessly rebuilding correct work, then continues Phases 35–49.
+
+The former customer browser-extension requirement is superseded. Current product browser control uses the existing authorized browser/profile with CDP/Playwright/DevTools where available and accessibility/vision/PyAutoGUI fallback.
+
+### Next step
+
+Start Phase 1 on latest `main`, record current environment/source/deploy/database state, complete the donor capability ledger, and continue sequentially through Phase 49 while updating this ledger after every phase.
