@@ -478,6 +478,36 @@ export type Database = {
         }
         Relationships: []
       }
+      ocade_admin_actions: {
+        Row: {
+          action: string
+          actor: string | null
+          created_at: string
+          id: string
+          reason: string
+          subject: string | null
+          target_user: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          created_at?: string
+          id?: string
+          reason: string
+          subject?: string | null
+          target_user?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          created_at?: string
+          id?: string
+          reason?: string
+          subject?: string | null
+          target_user?: string | null
+        }
+        Relationships: []
+      }
       ocade_commercial_usage: {
         Row: {
           id: string
@@ -1398,6 +1428,10 @@ export type Database = {
       jarvis_purge_expired_activity: {
         Args: { p_user_id: string }
         Returns: number
+      }
+      ocade_admin_remove_device: {
+        Args: { device: string; remove_reason: string }
+        Returns: boolean
       }
       ocade_acquire_generation_permit: {
         Args: {

@@ -268,7 +268,14 @@ export function JarvisWorkspace({
     }
   }, [loading, signedIn, endVoice]);
 
-  const send = async (raw: string, fromVoice: boolean, retryOf?: string) => {
+  // `task` is passed when the caller has just changed it (Resume, Try again):
+  // this render's copy is still the old one.
+  const send = async (
+    raw: string,
+    fromVoice: boolean,
+    retryOf?: string,
+    task: JarvisTaskRow | null = conversationTask,
+  ) => {
     const text = raw.trim();
     if (!text || running || busyRef.current || transcript !== "ready" || spent) return;
     if (!signedIn) {
@@ -329,7 +336,7 @@ export function JarvisWorkspace({
           text,
           memories: (jarvis?.memories ?? []).map((m) => m.content),
           memoryEnabled: isAllowed(permissions, "memory"),
-          task: conversationTask,
+          task,
           deviceId: target,
         },
         {
@@ -463,10 +470,11 @@ export function JarvisWorkspace({
     }
     const task = conversationTask;
     if (!task) return;
-    setActiveTask(
-      await updateJarvisTask({ data: { id: task.id, status: "running", blocker: null } }),
-    );
-    void send("Continue the task from where it stopped.", false);
+    const resumed = await updateJarvisTask({
+      data: { id: task.id, status: "running", blocker: null },
+    });
+    setActiveTask(resumed);
+    void send("Continue the task from where it stopped.", false, undefined, resumed);
   };
 
   // Spoken Stop, Pause, Continue and Cancel act at once and are never sent as messages.
@@ -829,8 +837,11 @@ export function JarvisWorkspace({
                   onStop={() => void stop()}
                   onTakeOver={() => void takeOverNow()}
                   onResume={() => void resume()}
+                  // The same task again, from its checkpoint: its history stays one record.
                   onRetry={() =>
-                    void send(`Try "${conversationTask.title}" again from the start.`, false)
+                    void resume().catch(() =>
+                      toast.error("That task cannot restart now. Is its computer busy or offline?"),
+                    )
                   }
                 />
               ) : null}

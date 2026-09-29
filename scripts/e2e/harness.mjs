@@ -48,6 +48,7 @@ const ALL = [
   "jarvis",
   "visual",
   "browsers",
+  "admin",
 ];
 
 const requested = process.argv.slice(2).filter((value) => !value.startsWith("--"));

@@ -262,6 +262,13 @@ export class BrowserWasmAdapter implements BrainAdapter {
       );
     }
 
+    if (deviceRefused(model.releaseId)) {
+      return unavailable(
+        "unsupported_device",
+        "This device does not have enough memory for Offline Intelligence. OCADE answers online here.",
+      );
+    }
+
     this.cachedModel = model;
     return {
       available: true,
@@ -482,7 +489,21 @@ export class BrowserWasmAdapter implements BrainAdapter {
     if (!blob) {
       throw new Error("OCADE's prepared engine could not be read back from this device.");
     }
-    await instance.loadModel([blob], this.loadParams());
+    try {
+      await instance.loadModel([blob], this.loadParams());
+    } catch (error) {
+      // A partly started engine is released, and a device that cannot hold
+      // this release is remembered, so Auto answers online instead of trying
+      // again on every message.
+      await instance.exit().catch(() => undefined);
+      if (isAllocationFailure(error)) {
+        rememberRefusal(model.releaseId);
+        throw new Error(
+          "This device does not have enough memory for Offline Intelligence. OCADE answers online here.",
+        );
+      }
+      throw error;
+    }
 
     this.instance = instance;
     this.loadedRelease = model.releaseId;
@@ -638,5 +659,38 @@ export class BrowserWasmAdapter implements BrainAdapter {
     }
     this.instance = null;
     this.loadedRelease = null;
+  }
+}
+
+/*
+ * A DEVICE THAT CANNOT HOLD A RELEASE, REMEMBERED PER RELEASE.
+ *
+ * Phones can report WebAssembly support and still fail the model's memory
+ * allocation (or its 64-bit sizes). That is a fact about this device and this
+ * release, so it is kept locally: a new release, or clearing site data, lets
+ * it try again.
+ */
+const REFUSAL_KEY = "ocade:offline:refused";
+
+export function isAllocationFailure(error: unknown): boolean {
+  const text = String((error as { message?: unknown })?.message ?? error);
+  return /allocate|out of memory|WebAssembly\.Memory|BigInt value to a number|RangeError/i.test(
+    text,
+  );
+}
+
+function deviceRefused(releaseId: string): boolean {
+  try {
+    return window.localStorage.getItem(REFUSAL_KEY) === releaseId;
+  } catch {
+    return false;
+  }
+}
+
+function rememberRefusal(releaseId: string): void {
+  try {
+    window.localStorage.setItem(REFUSAL_KEY, releaseId);
+  } catch {
+    /* Storage refused: the next attempt fails the same way and says so again. */
   }
 }

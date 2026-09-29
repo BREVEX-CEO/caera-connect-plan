@@ -411,6 +411,20 @@ except i.UpdateRequired:
       );
     }
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
+    // Try again continues the same task: one record, one history, not a copy.
+    await script("Continue the task from where it stopped", [
+      { tool: "computer", args: { action: "file_write", path: "retried.md", content: "retried" } },
+      { tool: "finish_task", args: { outcome: "completed", result: "Written." } },
+      { text: "Written this time." },
+    ]);
+    await page.getByRole("button", { name: "Try again", exact: true }).click();
+    await idle();
+    check(
+      "Try again finishes the same task instead of starting a new one",
+      (await page.locator("[data-testid=jarvis-task-status]").count()) === 1 &&
+        (await page.locator("[data-testid=jarvis-task-status]").innerText()) === "Completed" &&
+        existsSync(path.join(workspace, "retried.md")),
+    );
     await script("computer-task", [
       {
         tool: "start_task",
@@ -849,11 +863,13 @@ except i.UpdateRequired:
 
     await setJarvisRemaining(0);
     await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
-    await say("One more question");
+    const composer = page.locator("#jarvis-composer");
     check(
-      "a spent JARVIS allowance refuses honestly",
+      "a spent JARVIS allowance locks the composer with the reset time",
       await until(
-        async () => (await page.getByText("You have used this session's allowance.").count()) >= 1,
+        async () =>
+          (await composer.isDisabled()) &&
+          /reset/.test((await composer.getAttribute("placeholder")) ?? ""),
         15_000,
       ),
     );
