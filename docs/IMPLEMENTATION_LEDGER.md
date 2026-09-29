@@ -107,6 +107,36 @@ Evidence labels: LOCAL TEST (this host), REAL WINDOWS, REAL BROWSER, SOURCE-PROV
 - No database migration was needed; Supabase and the Edge Function are unchanged.
 - Signed-in production smoke needs the owner's account (Google sign-in): BLOCKED on owner.
 
+## MCP wave 1 — 2026-09-29 (owner mandate in CLAUDE.md)
+
+MCP health (minimal safe operation per server):
+
+| MCP                                     | State                                                                                                                                                                                       |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| playwright-real-chrome                  | BLOCKED: needs the Playwright extension installed in the owner's Chrome profile (owner action).                                                                                             |
+| chrome-devtools-real-chrome             | BLOCKED: Chrome is not running with remote debugging enabled for autoConnect (owner action: enable it in chrome://inspect).                                                                 |
+| playwright-edge                         | Healthy; primary browser actor this wave.                                                                                                                                                   |
+| playwright-android-mobile               | Healthy.                                                                                                                                                                                    |
+| playwright-firefox                      | Navigation and scripting work; native mouse input broken (server expects Firefox 1549, only 1553 installable). Signed-in local flows ran through the repo's own Playwright Firefox instead. |
+| playwright-webkit-desktop / -ios-webkit | Renders blank with a 0-width window (server expects WebKit 2365). Replaced by the repo's Playwright WebKit (2336) in `browsers-journey`.                                                    |
+| physical-computer-use                   | Healthy for app windows; the notification area is not exposed, so tray tests used Windows UI Automation plus real mouse input.                                                              |
+| filesystem                              | BLOCKED: its tool schema is rejected (JSON Schema dialect); file effects checked with shell reads instead.                                                                                  |
+| Supabase                                | Healthy (production reads, advisors, migration apply).                                                                                                                                      |
+| Cloudflare                              | Healthy (Worker `ocade-web` listed).                                                                                                                                                        |
+| Sentry                                  | Connected, but the organization has no project: OCADE sends nothing to Sentry. BLOCKED until the owner creates a project/DSN.                                                               |
+| Appium / Mobile MCP                     | BLOCKED: no Android SDK, emulator or device.                                                                                                                                                |
+
+Evidence from this wave:
+
+- EDGE (local stub): sign-in, answer, separate meter, deep link; Account B cannot open Account A's conversation ("not available") and sees an empty list.
+- EDGE + REAL WINDOWS: device enrolled with matching fingerprint and approved in Edge; exactly one agent (second launch exits); exactly one tray icon; tray menu Ready/Open/STOP/Exit; tray STOP ended a running task; mini-control appears while working and its STOP works; tray Exit ends the process and frees the port; JARVIS opened Calculator after the confirmation (process verified, then closed); workspace write succeeded, `../escaped.md` and `C:/Windows/win.ini` refused, nothing written outside; screen observation and Take Over with a live frame.
+- Defects found and fixed: tray status never refreshed ("Ready" while working); approval wait crashed on a network blip; a refused permit mid-task orphaned the task; no locked state at zero uses; missing meter before first use; duplicate "See plans"; Offline download started from Help; loopback CSP blocked Firefox/WebKit.
+- `browsers-journey`: Chromium, Firefox, WebKit desktop, WebKit iPhone-sized, Chromium Android-sized — 50/50 PASS signed in.
+- Public production pages in Firefox MCP and Android-mobile MCP: all 200, no overflow, no page errors.
+- SUPABASE LIVE: RLS on every JARVIS table; migration `jarvis_execution_control` applied and verified in production (control present, running, not browser-accessible).
+- Advisor note for the owner: leaked-password protection is off in Supabase Auth.
+- Minor, recorded: Chromium logs a font-preload timing warning; the font loads once and is used.
+
 ## Next step
 
 1. After release: verify production `/api/health` reports the merged commit, then a signed-in production JARVIS smoke (owner account) and a real device connection against ocade.in.
