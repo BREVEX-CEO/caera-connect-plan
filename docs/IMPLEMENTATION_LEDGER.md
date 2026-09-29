@@ -137,8 +137,30 @@ Evidence from this wave:
 - Advisor note for the owner: leaked-password protection is off in Supabase Auth.
 - Minor, recorded: Chromium logs a font-preload timing warning; the font loads once and is used.
 
+## Wave 2 — 2026-09-29
+
+Fixed and proven:
+
+- JARVIS-022: Try again continues the same task from its checkpoint. Root cause of a failing first attempt: `send` read the render's stale (finished) task, so a resumed blocked/failed task refused its tools. The resumed task is now passed through. Real-browser check in the JARVIS journey.
+- JARVIS-045: a phone that cannot allocate the Offline model is remembered per release and answers online instead of failing each message (unit test; declared as a device store in the storage gate).
+- Phase 31 increment: an operator can list an account's JARVIS devices and remove one. Database function requires the admin role, a second factor and a reason; open tasks stop, queued actions are cancelled, the key is cleared, and `ocade_admin_actions` keeps an append-only record. Migration `20260929100000_admin_device_removal` applied to production and verified (RLS on, not browser-readable, not callable signed out).
+- Device Agent mini-control test now runs on Windows (its skip condition was Linux-only).
+- Identity gate: `CLAUDE.md` allowed (owner's MCP launch command, never shipped).
+
+Evidence:
+
+- All 15 browser journeys: 655 PASS, 0 FAIL, 2 BLOCKED (confined terminal on Windows; browser speech service).
+- Admin journey (new, 10 checks): customer redirected from /admin; refusal without second factor shown in words; removal with second factor; phone width without overflow; key cleared server-side.
+- EDGE MCP: admin Devices panel removal flow, screenshot reviewed (no overflow, clean spacing); duplicate email line removed.
+- Real PostgreSQL (PGlite twin): device removal 4/4; unit suite 970 pass.
+- Device Agent Python: 54 pass; real-Chromium browser control 17/17 with `OCADE_BROWSER_EXECUTABLE`; mini-control on real Windows Tk 7/7.
+- `verify:full`: 15 gates pass.
+- Still BLOCKED (environment): Firefox MCP native input and WebKit MCP 0×0 viewport (server browser build mismatch).
+
+Not done in this wave (owner decision or no hardware): staff roles beyond admin (no staff yet), payment operations (no provider chosen), scoped per-feature kill switches beyond the global JARVIS stop, Android companion.
+
 ## Next step
 
 1. After release: verify production `/api/health` reports the merged commit, then a signed-in production JARVIS smoke (owner account) and a real device connection against ocade.in.
 2. Owner actions: signing identity + update release key (028), Chrome Web Store account (035 upload), Android SDK/emulator or device (Android phases), approval to install Inno Setup, a "Hey OCADE" wake model.
-3. Open work: 010 eval, 022 same-task retry (schema), 045 Android WASM refusal, admin company backend (roles, kill-switch UI, audit), billing provider (owner decision), Android companion, remaining Phase 27 polish (Settings categories per design system).
+3. Open work: 010 eval (needs the real model), staff roles and support/payment operations in admin (owner decisions), scoped feature kill switches, billing provider (owner decision), Android companion (needs SDK/device).
