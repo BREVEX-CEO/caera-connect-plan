@@ -228,14 +228,14 @@ function refreshOfflineAllowance() {
     .catch(() => {});
 }
 
-/** True once this tab has been anywhere but JARVIS; it never turns back off. */
+/** True once this tab has opened Chat, where Offline answers; it never turns back off. */
 function useOfflineWanted(pathname: string): boolean {
   const [wanted, setWanted] = useState(false);
-  const outsideJarvis = !pathname.startsWith("/ocade-jarvis");
+  const inChat = pathname === "/";
   useEffect(() => {
-    if (outsideJarvis) setWanted(true);
-  }, [outsideJarvis]);
-  return wanted || outsideJarvis;
+    if (inChat) setWanted(true);
+  }, [inChat]);
+  return wanted || inChat;
 }
 
 function BrowserBootstrap() {
@@ -256,9 +256,9 @@ function BrowserBootstrap() {
    */
   const { user } = useSession();
   /*
-   * JARVIS IS ONLINE-ONLY. Opening /ocade-jarvis directly never starts the
-   * Offline Intelligence download or loads its model; the first visit to a
-   * Chat screen does, and after that the prepared state simply stays.
+   * OFFLINE BELONGS TO CHAT. JARVIS is Online-only, and Help, Pricing or the
+   * legal pages need no model: only opening Chat starts the Offline
+   * Intelligence download, and after that the prepared state simply stays.
    */
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const offlineWanted = useOfflineWanted(pathname);

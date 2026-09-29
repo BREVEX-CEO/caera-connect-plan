@@ -28,3 +28,6 @@ supabase/.temp/
 .idea
 .DS_Store
 .claude/settings.local.json
+
+# MCP browser snapshots
+.playwright-mcp/

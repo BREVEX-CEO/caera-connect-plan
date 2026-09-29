@@ -398,7 +398,20 @@ export async function runJarvisTurn(
     }
     stopIfAsked();
     attachments = [];
-    if (!reply) return { answer, task };
+    if (!reply) {
+      // No use was available (the allowance ran out, or the gate refused): an
+      // open task waits to be resumed rather than staying "running" unattended.
+      if (task && !FINISHED.includes(task.status)) {
+        setTask(
+          await deps.updateTask({
+            id: task.id,
+            status: "waiting",
+            blocker: "Out of JARVIS uses for now. Resume when they reset.",
+          }),
+        );
+      }
+      return { answer, task };
+    }
     if (reply.text) {
       answer = reply.text;
       hooks.onText(answer);

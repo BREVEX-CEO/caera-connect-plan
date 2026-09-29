@@ -262,6 +262,45 @@ function adminFailure(message: string): string {
     "Revoking an entitlement needs a recent second factor.",
     "An entitlement cannot be granted to the account granting it.",
     "A grant runs for between 1 and 366 days.",
+    "Only support admins may change a service control.",
+    "Only support admins may read service controls.",
+    "Changing a service control needs a recent second factor.",
+    "Say why, in at least ten characters.",
   ];
   return known.find((sentence) => message.includes(sentence)) ?? "That change was not applied.";
 }
+
+/** JARVIS device work: running or paused, and the last change's reason. */
+export const readJarvisExecution = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase.rpc("ocade_read_service_controls");
+    if (error) throw new Error(adminFailure(error.message));
+    const row = (data ?? []).find((control) => control.key === "jarvis_execution");
+    return {
+      paused: Boolean(row?.paused),
+      reason: row?.reason ?? null,
+      changedAt: row?.changed_at ?? null,
+    };
+  });
+
+/**
+ * Pause or resume every JARVIS device action at once. The database requires
+ * the admin role, a recent second factor and a reason, and keeps the record.
+ */
+export const setJarvisExecution = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) =>
+    z.object({ paused: z.boolean(), reason: z.string().trim().min(10).max(500) }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ paused: boolean }> => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data: row, error } = await context.supabase.rpc("ocade_set_service_control", {
+      control_key: "jarvis_execution",
+      pause: data.paused,
+      change_reason: data.reason,
+    });
+    if (error) throw new Error(adminFailure(error.message));
+    return { paused: Boolean(row?.paused) };
+  });

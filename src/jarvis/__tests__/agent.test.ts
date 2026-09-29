@@ -367,3 +367,14 @@ describe("work with no computer online (JARVIS-012)", () => {
     expect(onNoDevice).toHaveBeenCalledWith(expect.stringContaining("No computer"));
   });
 });
+
+describe("no JARVIS use available mid-task", () => {
+  it("parks the open task as waiting instead of leaving it running unattended", async () => {
+    const h = harness([
+      { text: "", toolCalls: [call("start_task", { title: "x", steps: ["a"] })] },
+      null,
+    ]);
+    await runJarvisTurn(h.input, h.hooks, h.deps);
+    expect(h.status()).toBe("waiting");
+  });
+});

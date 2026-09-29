@@ -1104,6 +1104,57 @@ export type Database = {
           },
         ]
       }
+      ocade_service_control_events: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          key: string
+          paused: boolean
+          reason: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          key: string
+          paused: boolean
+          reason: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          key?: string
+          paused?: boolean
+          reason?: string
+        }
+        Relationships: []
+      }
+      ocade_service_controls: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          key: string
+          paused: boolean
+          reason: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          key: string
+          paused?: boolean
+          reason?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          key?: string
+          paused?: boolean
+          reason?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1572,6 +1623,22 @@ export type Database = {
           week_window_start: string
         }[]
       }
+      ocade_read_service_controls: {
+        Args: never
+        Returns: {
+          changed_at: string
+          changed_by: string | null
+          key: string
+          paused: boolean
+          reason: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ocade_service_controls"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       ocade_recent_proof_window: { Args: never; Returns: string }
       ocade_reconcile_offline_usage: {
         Args: {
@@ -1648,6 +1715,22 @@ export type Database = {
         Returns: boolean
       }
       ocade_session_last_proof_at: { Args: never; Returns: string }
+      ocade_set_service_control: {
+        Args: { change_reason: string; control_key: string; pause: boolean }
+        Returns: {
+          changed_at: string
+          changed_by: string | null
+          key: string
+          paused: boolean
+          reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ocade_service_controls"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       ocade_usage_window_kind: {
         Args: { p_kind: string; p_surface: string }
         Returns: string

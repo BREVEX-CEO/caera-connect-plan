@@ -77,7 +77,7 @@ async function remaining(page) {
 async function heldOffline(page) {
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();
-  await page.getByRole("button", { name: "Usage & Limits" }).click();
+  await page.getByRole("button", { name: "Billing & Usage" }).click();
   const panel = await page.getByRole("dialog", { name: "Settings" }).innerText();
   await page.keyboard.press("Escape");
   return Number(/(\d+) of this session's requests are held/.exec(panel)?.[1] ?? 0);
@@ -177,9 +177,9 @@ try {
 
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();
-  await page.getByRole("button", { name: "Usage & Limits" }).click();
+  await page.getByRole("button", { name: "Billing & Usage" }).click();
   await page.getByText(new RegExp(`^${afterLease} of \\d+ left$`)).waitFor();
-  await page.getByRole("button", { name: "Billing", exact: true }).click();
+  await page.getByRole("button", { name: "Billing & Usage", exact: true }).click();
   assert(!/could not be read/i.test(await page.getByRole("dialog").innerText()));
   await page.getByText("Your plan", { exact: true }).waitFor();
   assert((await page.getByRole("dialog").innerText()).includes("Free"));
@@ -241,7 +241,7 @@ try {
 
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();
-  await page.getByRole("button", { name: "Data Controls" }).click();
+  await page.getByRole("button", { name: "Privacy & Security" }).click();
   await page.getByText("Ready", { exact: true }).waitFor({ timeout: OFFLINE_READY_MS });
   await page.keyboard.press("Escape");
 

@@ -110,7 +110,7 @@ export interface JarvisState {
     deviceName: string;
     apps: { name: string; rule: "always" | "ask" | "never" }[];
   }[];
-  usage: { remaining: number; allowance: number; resetsInMs: number } | null;
+  usage: { remaining: number; allowance: number; resetsInMs: number | null } | null;
 }
 
 const TASK_COLUMNS =
@@ -246,13 +246,14 @@ export const readJarvisState = createServerFn({ method: "GET" })
       activity: (activity.data ?? []).map(({ action: _action, ...rest }) => rest),
       sites: [...sites].sort().slice(0, 100),
       apps,
+      // Before the first use no window has started: the whole allowance is left.
       usage: shown[0]
         ? {
             remaining: shown[0].remaining,
             allowance: shown[0].allowance,
             resetsInMs: shown[0].resetsInMs,
           }
-        : null,
+        : { remaining: allowance.session, allowance: allowance.session, resetsInMs: null },
     };
   });
 
@@ -317,15 +318,15 @@ export const startJarvisTask = createServerFn({ method: "POST" })
     if (!isAllowed(rows, "master")) {
       return { ok: false, reason: "permission", message: "OCADE JARVIS is turned off." };
     }
+    const service = await admin();
     const { executionDisabled } = await import("./device.server");
-    if (executionDisabled()) {
+    if (await executionDisabled(service)) {
       return {
         ok: false,
         reason: "permission",
         message: "Working on computers is paused by OCADE right now. Answers still work.",
       };
     }
-    const service = await admin();
     const { data: devices, error } = await service
       .from("jarvis_devices")
       .select("id, name, platform, kind, capabilities, last_seen_at")

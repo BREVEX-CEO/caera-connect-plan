@@ -19,17 +19,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import {
-  Bell,
-  CreditCard,
-  Database,
-  Gauge,
-  Monitor,
-  Moon,
-  ShieldCheck,
-  User,
-  X,
-} from "lucide-react";
+import { Bell, CreditCard, Monitor, Moon, ShieldCheck, User, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppearance } from "@/lib/appearance";
 import { useSession } from "@/lib/session";
@@ -43,8 +33,7 @@ import { BillingSection } from "./BillingSection";
 import { Action, Row, Toggle } from "./rows";
 import { DELETE_CONFIRMATION, deleteMyAccount } from "@/lib/account.functions";
 
-export type SettingsCategory =
-  "account" | "appearance" | "notifications" | "data" | "usage" | "billing" | "advanced";
+export type SettingsCategory = "account" | "appearance" | "notifications" | "privacy" | "billing";
 
 interface SettingsPanelValue {
   open: (category?: SettingsCategory) => void;
@@ -86,14 +75,18 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/*
+ * FIVE CATEGORIES (docs/JARVIS_DESIGN_SYSTEM.md, Settings). Data controls and
+ * signed-in sessions are both privacy and security; the allowance and the plan
+ * are both billing and usage. JARVIS's own permissions stay in JARVIS, where
+ * they are used.
+ */
 const CATEGORIES: { id: SettingsCategory; label: string; group: string; icon: typeof User }[] = [
   { id: "account", label: "Account", group: "General", icon: User },
   { id: "appearance", label: "Appearance", group: "General", icon: Monitor },
   { id: "notifications", label: "Notifications", group: "General", icon: Bell },
-  { id: "data", label: "Data Controls", group: "Data", icon: Database },
-  { id: "usage", label: "Usage & Limits", group: "Account", icon: Gauge },
-  { id: "billing", label: "Billing", group: "Account", icon: CreditCard },
-  { id: "advanced", label: "Advanced", group: "Account", icon: ShieldCheck },
+  { id: "privacy", label: "Privacy & Security", group: "Your data", icon: ShieldCheck },
+  { id: "billing", label: "Billing & Usage", group: "Your data", icon: CreditCard },
 ];
 
 function SettingsDialog({
@@ -181,10 +174,18 @@ function SettingsDialog({
           {category === "account" ? <AccountSettings /> : null}
           {category === "appearance" ? <AppearanceSettings /> : null}
           {category === "notifications" ? <NotificationsSection /> : null}
-          {category === "data" ? <DataControlsSection /> : null}
-          {category === "advanced" ? <AdvancedSection /> : null}
-          {category === "usage" ? <UsageSection /> : null}
-          {category === "billing" ? <BillingSection /> : null}
+          {category === "privacy" ? (
+            <>
+              <DataControlsSection />
+              <AdvancedSection />
+            </>
+          ) : null}
+          {category === "billing" ? (
+            <>
+              <UsageSection />
+              <BillingSection />
+            </>
+          ) : null}
         </div>
       </div>
     </div>

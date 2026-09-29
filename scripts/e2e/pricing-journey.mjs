@@ -144,7 +144,7 @@ try {
   await member.goto(`${BASE}/`, { waitUntil: "networkidle" });
   await member.click('aside button[aria-haspopup="menu"]');
   await member.getByRole("menuitem", { name: "Settings" }).click();
-  await member.getByRole("button", { name: "Billing" }).click();
+  await member.getByRole("button", { name: "Billing & Usage" }).click();
   await member.getByRole("link", { name: "See plans" }).click();
   await member.waitForURL(/\/pricing$/, { timeout: 15_000 });
   check("Billing leads to the plans", member.url().endsWith("/pricing"));

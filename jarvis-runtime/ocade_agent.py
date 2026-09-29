@@ -223,7 +223,18 @@ class Presence:
             self.icon.run_detached()
         except Exception as e:
             return f"tray failed to start ({type(e).__name__}: {e})"
+        threading.Thread(target=self._follow_status, daemon=True, name="ocade-tray-status").start()
         return None
+
+    def _follow_status(self) -> None:
+        """Windows builds the tray menu once; rebuild it whenever Ready/Working changes."""
+        shown = None
+        while not self.agent.stop.wait(1):
+            busy = bool(self.agent.state["busy"])
+            if busy != shown and self.icon is not None:
+                shown = busy
+                self.icon.title = "OCADE JARVIS · Working" if busy else "OCADE JARVIS"
+                self.icon.update_menu()
 
 
 def health_check() -> int:

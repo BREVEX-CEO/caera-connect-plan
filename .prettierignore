@@ -20,3 +20,5 @@ jarvis-runtime/
 
 # Audit evidence, preserved verbatim.
 docs/audits/
+
+.playwright-mcp/

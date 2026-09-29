@@ -270,7 +270,7 @@ export function JarvisWorkspace({
 
   const send = async (raw: string, fromVoice: boolean, retryOf?: string) => {
     const text = raw.trim();
-    if (!text || running || busyRef.current || transcript !== "ready") return;
+    if (!text || running || busyRef.current || transcript !== "ready" || spent) return;
     if (!signedIn) {
       void navigate({ to: "/auth", search: { next: "/ocade-jarvis" } });
       return;
@@ -514,10 +514,12 @@ export function JarvisWorkspace({
   }, [drawerOpen]);
 
   const hasText = turns.length > 0 || liveAnswer !== null;
+  // No JARVIS uses left: the composer locks with the reset time, nothing else.
+  const spent = Boolean(jarvis?.usage && jarvis.usage.remaining <= 0);
   // The last question that has no answer (or was stopped) can be asked again.
   const last = turns.at(-1);
   const retryTurn =
-    !running && !busyUntil && last
+    !running && !busyUntil && !spent && last
       ? last.role === "user"
         ? last
         : last.content === "Stopped."
@@ -687,8 +689,8 @@ export function JarvisWorkspace({
             <p className="text-xs text-muted-foreground">
               <span className="sm:hidden">{usage.remaining} left</span>
               <span className="hidden sm:inline">
-                {usage.remaining} of {usage.allowance} JARVIS uses left · resets{" "}
-                {describeReset(usage.resetsInMs)}
+                {usage.remaining} of {usage.allowance} JARVIS uses left
+                {usage.resetsInMs === null ? "" : ` · resets ${describeReset(usage.resetsInMs)}`}
               </span>
             </p>
           ) : null}
@@ -908,16 +910,21 @@ export function JarvisWorkspace({
               <textarea
                 id="jarvis-composer"
                 value={draft}
+                disabled={signedIn && spent}
                 rows={1}
                 maxLength={8000}
                 placeholder={
                   !signedIn
                     ? "Sign in to talk to JARVIS"
-                    : busyUntil
-                      ? "OCADE JARVIS is busy. It will be back shortly."
-                      : jarvisOn
-                        ? "Ask or tell JARVIS anything"
-                        : "JARVIS is turned off in Permissions"
+                    : spent
+                      ? jarvis?.usage?.resetsInMs
+                        ? `JARVIS uses reset ${describeReset(jarvis.usage.resetsInMs)}`
+                        : "No JARVIS uses left right now"
+                      : busyUntil
+                        ? "OCADE JARVIS is busy. It will be back shortly."
+                        : jarvisOn
+                          ? "Ask or tell JARVIS anything"
+                          : "JARVIS is turned off in Permissions"
                 }
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {

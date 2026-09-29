@@ -32,10 +32,8 @@ const CATEGORY_NAMES = [
   "Account",
   "Appearance",
   "Notifications",
-  "Data Controls",
-  "Usage & Limits",
-  "Billing",
-  "Advanced",
+  "Privacy & Security",
+  "Billing & Usage",
 ];
 
 const results = [];
@@ -98,9 +96,8 @@ try {
   const dialog = page.getByRole("dialog", { name: "Settings" });
   const categories = await dialog.locator("nav button").allInnerTexts();
   check(
-    "Settings offers exactly the seven categories the plan names",
-    categories.join("|") ===
-      "Account|Appearance|Notifications|Data Controls|Usage & Limits|Billing|Advanced",
+    "Settings offers exactly the five categories the design system names",
+    categories.join("|") === "Account|Appearance|Notifications|Privacy & Security|Billing & Usage",
     categories.join("|"),
   );
 
@@ -156,7 +153,7 @@ try {
 
   /* --- Data Controls ------------------------------------------------------- */
 
-  await openSettings(page, "Data Controls");
+  await openSettings(page, "Privacy & Security");
   const data = await dialog.innerText();
   check(
     "Data Controls covers conversations, Library, an export and Offline Intelligence",
@@ -168,7 +165,7 @@ try {
 
   /* --- Advanced ------------------------------------------------------------ */
 
-  await page.getByRole("button", { name: "Advanced", exact: true }).click();
+  await page.getByRole("button", { name: "Privacy & Security", exact: true }).click();
   // The list is a server read; waiting for the heading only proves the section
   // mounted, not that the sessions arrived.
   await page.waitForSelector("text=this device", { timeout: 15_000 });
@@ -190,9 +187,8 @@ try {
     "Account",
     "Appearance",
     "Notifications",
-    "Data Controls",
-    "Usage & Limits",
-    "Billing",
+    "Privacy & Security",
+    "Billing & Usage",
   ]) {
     await page.getByRole("button", { name: category, exact: true }).click();
     await page.waitForTimeout(400);

@@ -8,7 +8,9 @@ import { requireAdminRole } from "@/lib/admin/route-gate";
 import {
   grantAccountAccess,
   listAccountAccess,
+  readJarvisExecution,
   revokeAccountAccess,
+  setJarvisExecution,
   type AdminAccountRow,
 } from "@/lib/admin/access.functions";
 
@@ -100,6 +102,7 @@ function AdminPage() {
             : "The most recent accounts, their roles, and the access given to them by hand. Search to reach any other."}
         </p>
         <SecondFactorNotice />
+        <EmergencyStop />
 
         <label className="mt-5 block">
           <span className="sr-only">Search accounts</span>
@@ -187,6 +190,75 @@ function AdminPage() {
         )}
       </div>
     </AppShell>
+  );
+}
+
+/**
+ * THE EMERGENCY STOP FOR JARVIS DEVICE WORK. One switch, a reason on the
+ * record, and a second factor, all enforced by the database function.
+ */
+function EmergencyStop() {
+  const queryClient = useQueryClient();
+  const [reason, setReason] = useState("");
+  const state = useQuery({
+    queryKey: ["admin", "jarvis-execution"],
+    queryFn: () => readJarvisExecution(),
+  });
+  const change = useMutation({
+    mutationFn: (paused: boolean) => setJarvisExecution({ data: { paused, reason } }),
+    onSuccess: async ({ paused }) => {
+      toast.success(paused ? "JARVIS device work is paused." : "JARVIS device work is running.");
+      setReason("");
+      await queryClient.invalidateQueries({ queryKey: ["admin", "jarvis-execution"] });
+    },
+    onError: (error: unknown) => toast.error(messageOf(error)),
+  });
+  if (!state.data) return null;
+  const paused = state.data.paused;
+  return (
+    <section
+      aria-label="JARVIS device work"
+      className="mt-5 rounded-xl border border-border/60 p-4 text-sm"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-medium text-foreground">JARVIS device work</p>
+        <span
+          className={
+            paused
+              ? "rounded-full bg-destructive/15 px-2 py-0.5 text-xs text-destructive"
+              : "rounded-full bg-success/15 px-2 py-0.5 text-xs text-success"
+          }
+        >
+          {paused ? "Paused" : "Running"}
+        </span>
+      </div>
+      {state.data.reason ? (
+        <p className="mt-1 text-[13px] text-muted-foreground">Last change: {state.data.reason}</p>
+      ) : null}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <label className="min-w-0 flex-1">
+          <span className="sr-only">Reason</span>
+          <input
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="Why (at least ten characters)"
+            className="h-8 w-full rounded-md border border-border bg-transparent px-3 text-sm outline-none focus-visible:border-ring"
+          />
+        </label>
+        <button
+          type="button"
+          disabled={reason.trim().length < 10 || change.isPending}
+          onClick={() => change.mutate(!paused)}
+          className={
+            paused
+              ? "h-8 rounded-md border border-border px-3 disabled:opacity-50"
+              : "h-8 rounded-md bg-destructive px-3 text-destructive-foreground disabled:opacity-50"
+          }
+        >
+          {paused ? "Resume device work" : "Pause all device work"}
+        </button>
+      </div>
+    </section>
   );
 }
 

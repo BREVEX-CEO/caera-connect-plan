@@ -553,11 +553,6 @@ function SectionBody({
   );
 }
 
-const UNAVAILABLE: [Capability, string][] = [
-  ["camera", "Camera"],
-  ["messaging", "Messaging"],
-];
-
 /** Per-computer capabilities, each off until the person turns it on for that computer. */
 const COMPUTER_TOGGLES: [Capability, string, string][] = [
   ["apps", "Open apps", "Only apps this computer found; Allowed Apps decides which."],
@@ -607,7 +602,7 @@ export function PermissionsDrawer({
         className="relative flex h-full w-full max-w-sm flex-col overflow-y-auto bg-background p-4"
       >
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-base font-medium">Permissions</h2>
+          <h2 className="text-base font-medium">What JARVIS may do</h2>
           <button
             type="button"
             aria-label="Close"
@@ -643,14 +638,8 @@ export function PermissionsDrawer({
               onChange={(v) => set("memory", v)}
             />
             <p className="mt-2 text-xs text-muted-foreground">
-              Mode: Smart. JARVIS never makes purchases and asks before sensitive submissions.
+              JARVIS never makes purchases and asks before anything sensitive.
             </p>
-            <h3 className="mt-4 text-sm font-medium">Not available yet</h3>
-            <ul className="text-sm text-muted-foreground">
-              {UNAVAILABLE.map(([key, label]) => (
-                <li key={key}>{label}</li>
-              ))}
-            </ul>
           </>
         ) : (
           <p className="text-sm text-muted-foreground">Sign in to manage what JARVIS may do.</p>

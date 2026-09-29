@@ -23,14 +23,26 @@ type Admin = SupabaseClient<Database>;
 export const PROTOCOL = contract;
 
 /**
- * THE EMERGENCY STOP FOR ALL DEVICE WORK. When the owner sets the Worker
- * variable `JARVIS_EXECUTION_DISABLED=1`, no device receives work, every
- * running action is cancelled at its next check, and no task can start.
- * Accounts, Chat and ordinary JARVIS answers keep working. Reversible only by
- * whoever controls the deployment's variables.
+ * THE EMERGENCY STOP FOR ALL DEVICE WORK. Paused by an admin in Administration
+ * (the `jarvis_execution` service control), or by the Worker variable
+ * `JARVIS_EXECUTION_DISABLED=1` when the database itself is in doubt. While
+ * paused no device receives work, every running action is cancelled at its
+ * next check, and no task can start. Chat and ordinary answers keep working.
  */
-export function executionDisabled(): boolean {
-  return process.env.JARVIS_EXECUTION_DISABLED === "1";
+let pausedCache: { at: number; paused: boolean } | null = null;
+export async function executionDisabled(admin: Admin): Promise<boolean> {
+  if (process.env.JARVIS_EXECUTION_DISABLED === "1") return true;
+  // A few seconds of caching keeps a device's once-a-second exchange cheap.
+  if (pausedCache && Date.now() - pausedCache.at < 5000) return pausedCache.paused;
+  const { data, error } = await admin
+    .from("ocade_service_controls")
+    .select("paused")
+    .eq("key", "jarvis_execution")
+    .maybeSingle();
+  // Unreadable is not "paused": the Worker variable remains the fallback.
+  const paused = !error && Boolean(data?.paused);
+  pausedCache = { at: Date.now(), paused };
+  return paused;
 }
 const ENROLLMENT_MS = 10 * 60_000;
 /**
@@ -522,7 +534,7 @@ export async function exchange(
   // The action the device runs now continues only while it is still claimed
   // and its task still running; anything else (STOP, Take Over, the task
   // ended, the action timed out) cancels it on the device.
-  if (executionDisabled()) {
+  if (await executionDisabled(admin)) {
     return { ...envelope, commands: [], cancel: input.running ?? [], rotated };
   }
   const cancel: string[] = [];
