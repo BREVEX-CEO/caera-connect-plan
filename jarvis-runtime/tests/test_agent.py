@@ -79,7 +79,7 @@ class LifecycleTest(unittest.TestCase):
     def _agent(self, replies):
         identity = FakeIdentity(self.home, replies)
         agent = ocade_device.Agent(identity, headless=True, cdp=None, workspace=str(self.home))
-        agent.browsers.run = lambda mode, action, confirmed, sites, cancel: {
+        agent.browsers.run = lambda *_: {
             "status": "done", "summary": "ok"}
         return agent, identity
 

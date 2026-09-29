@@ -133,6 +133,12 @@ export function refuseAction(
   const label = LABELS[needed] ?? "That";
   if (!isAllowed(rows, needed, input.deviceId))
     return { capability: needed, message: `${label} is turned off for this device.` };
+  // Moving a file through a page needs the browser as well as the work folder.
+  if (
+    (input.action.action === "upload" || input.action.action === "download") &&
+    !isAllowed(rows, "browser", input.deviceId)
+  )
+    return { capability: "browser", message: "Browser control is turned off for this device." };
   if (needed !== "browser" && input.offered && input.offered[needed] !== true)
     return { capability: needed, message: `${label} is not available on this device.` };
   if (

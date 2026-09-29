@@ -71,3 +71,41 @@ def find(dirs: dict[str, list[Path]] | None = None) -> dict | None:
             if _listening(port):
                 return {"browser": name, "endpoint": f"ws://127.0.0.1:{port}{path}"}
     return None
+
+
+EXECUTABLES = {"chrome": ("chrome", "chrome.exe", "Google Chrome", "google-chrome"),
+               "edge": ("msedge", "msedge.exe", "Microsoft Edge", "microsoft-edge"),
+               "brave": ("brave", "brave.exe", "Brave Browser", "brave-browser")}
+
+
+def _running(image: str) -> bool:
+    import subprocess
+    out = subprocess.run(["tasklist", "/FI", f"IMAGENAME eq {image}", "/NH"], capture_output=True,
+                         text=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
+    return image.lower() in out.lower()
+
+
+def open_default() -> bool:
+    """Start the person's own browser, normal profile, when it is not running. True if started."""
+    import shutil
+    import subprocess
+    name = _default_first(list(EXECUTABLES))[0]
+    registry, image, mac_app, linux_bin = EXECUTABLES[name]
+    try:
+        if SYSTEM == "Windows":
+            from actions.browser_control import _find_exe_windows
+            exe = _find_exe_windows(registry)
+            if not exe or _running(image):
+                return False
+            subprocess.Popen([exe], creationflags=getattr(subprocess, "DETACHED_PROCESS", 0))
+        elif SYSTEM == "Darwin":
+            subprocess.Popen(["open", "-g", "-a", mac_app])
+        else:
+            exe = shutil.which(linux_bin)
+            if not exe:
+                return False
+            subprocess.Popen([exe], start_new_session=True, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL)
+    except OSError:
+        return False
+    return True

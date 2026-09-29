@@ -238,3 +238,61 @@ class RealBrowserTest(unittest.TestCase):
             self.assertEqual(tabs, [mine])
         finally:
             user.kill()
+
+
+class UploadDownloadTest(unittest.TestCase):
+    """Files cross the browser only from and into the person's work folder."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.site = tempfile.mkdtemp()
+        Path(cls.site, "files.html").write_text(
+            "<title>Files</title><label>Attach <input type=file id=f "
+            "onchange=\"document.title=this.files[0].name\"></label>"
+            "<a href='/report.csv' download>Get report</a>")
+        Path(cls.site, "report.csv").write_text("a,b\n1,2\n")
+        handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=cls.site)
+        cls.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+        threading.Thread(target=cls.server.serve_forever, daemon=True).start()
+        cls.url = f"http://127.0.0.1:{cls.server.server_address[1]}/files.html"
+        os.environ["OCADE_JARVIS_HOME"] = tempfile.mkdtemp()
+        import ocade_device
+        cls.browsers = ocade_device.Browsers(headless=True, cdp=None)
+        cls.root = Path(tempfile.mkdtemp()).resolve()
+        (cls.root / "cv.pdf").write_bytes(b"%PDF-1.4 test")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.browsers.close()
+        cls.server.shutdown()
+
+    def run_(self, action, root="default"):
+        return self.browsers.run("isolated", action, False, ["127.0.0.1"], threading.Event(),
+                                 self.root if root == "default" else root)
+
+    def test_upload_and_download_stay_in_the_work_folder(self):
+        obs = self.run_({"action": "open", "url": self.url})["observation"]
+        field = next(e["ref"] for e in obs["elements"] if e["name"] == "Attach")
+        up = self.run_({"action": "upload", "ref": field, "observationId": obs["observationId"],
+                        "path": "cv.pdf"})
+        self.assertEqual(up["status"], "done", up)
+        self.assertEqual(up["observation"]["title"], "cv.pdf")
+        obs = up["observation"]
+        link = next(e["ref"] for e in obs["elements"] if e["name"] == "Get report")
+        for _ in range(2):
+            down = self.run_({"action": "download", "ref": link, "observationId": obs["observationId"]})
+            self.assertEqual(down["status"], "done", down)
+            obs = down["observation"]
+            link = next(e["ref"] for e in obs["elements"] if e["name"] == "Get report")
+        saved = sorted(p.name for p in (self.root / "Downloads").iterdir())
+        self.assertEqual(saved, ["report (2).csv", "report.csv"])  # never overwritten
+        self.assertEqual((self.root / "Downloads/report.csv").read_text(), "a,b\n1,2\n")
+
+    def test_nothing_outside_the_work_folder(self):
+        outside = Path(tempfile.mkdtemp()) / "secret.txt"
+        outside.write_text("x")
+        for path in ("../secret.txt", str(outside), "missing.pdf"):
+            out = self.run_({"action": "upload", "ref": "e1", "observationId": "o1", "path": path})
+            self.assertEqual(out["status"], "blocked", path)
+        self.assertEqual(self.run_({"action": "download", "ref": "e1", "observationId": "o1"},
+                                   root=None)["status"], "blocked")

@@ -1183,6 +1183,33 @@ class _BrowserSession:
             else:
                 await loc.select_option(label=str(action.get("option", "")), timeout=8_000)
                 detail = f"Chose “{action.get('option', '')}”"
+        elif kind in ("upload", "download"):
+            # `_file` and `_folder` are set by the device from the person's work
+            # folder; the model only names the element and the workspace path.
+            loc, why = await self._target(page, str(action.get("ref", "")), action.get("observationId"))
+            if loc is None:
+                return {"status": "stale", "summary": why, "observation": await self.observe()}
+            if kind == "upload":
+                await loc.set_input_files(str(action["_file"]), timeout=8_000)
+                detail = f"Attached {Path(action['_file']).name}"
+            else:
+                info = await loc.evaluate(_OCADE_IDENTITY)
+                gate = _gate("click", info, confirmed)
+                if gate:
+                    return gate
+                async with page.expect_download(timeout=60_000) as waiting:
+                    await loc.click(timeout=8_000)
+                download = await waiting.value
+                folder = Path(action["_folder"])
+                folder.mkdir(parents=True, exist_ok=True)
+                name = Path(download.suggested_filename).name or "download"
+                target = folder / name
+                stem, suffix, n = target.stem, target.suffix, 1
+                while target.exists():  # never overwrite what is already there
+                    n += 1
+                    target = folder / f"{stem} ({n}){suffix}"
+                await download.save_as(str(target))
+                detail = f"Downloaded {target.name} to {folder.name}"
         elif kind == "press":
             key = str(action.get("key", "Enter"))
             if key not in _KEYS:

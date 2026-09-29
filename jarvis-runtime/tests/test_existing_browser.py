@@ -116,3 +116,43 @@ class AttachTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@unittest.skipUnless(_chromium(), "needs Playwright Chromium")
+class RestartTest(unittest.TestCase):
+    """The person's browser restarts mid-task: the old connection is dropped and the next step reconnects."""
+
+    def _start(self):
+        browser = subprocess.Popen(
+            [_chromium(), f"--user-data-dir={self.profile}", "--remote-debugging-port=0",
+             "--headless=new", "--no-first-run", "about:blank"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline and not ocade_existing_browser.find({"chrome": [self.profile]}):
+            time.sleep(0.2)
+        return browser
+
+    def test_reconnects_after_the_browser_restarts(self):
+        import ocade_device
+        self.profile = Path(tempfile.mkdtemp())
+        original = ocade_existing_browser.find
+        ocade_existing_browser.find = lambda dirs=None: original({"chrome": [self.profile]})
+        browsers = ocade_device.Browsers(headless=True, cdp=None)
+        try:
+            first = self._start()
+            cancel = threading.Event()
+            ok = browsers.run("real", {"action": "observe"}, False, [], cancel)
+            self.assertEqual(ok["status"], "done", ok)
+            old = browsers.sessions["real"].cdp_endpoint
+            first.kill()
+            first.wait(10)
+            (self.profile / "DevToolsActivePort").unlink(missing_ok=True)
+            second = self._start()
+            browsers._found = (-1e9, None)
+            again = browsers.run("real", {"action": "observe"}, False, [], cancel)
+            self.assertEqual(again["status"], "done", again)
+            self.assertNotEqual(browsers.sessions["real"].cdp_endpoint, old)
+            second.kill()
+        finally:
+            ocade_existing_browser.find = original
+            browsers.close()

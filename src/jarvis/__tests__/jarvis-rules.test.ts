@@ -299,3 +299,25 @@ describe("spreadsheet and file actions", () => {
     ).toBe("files");
   });
 });
+
+describe("files through the browser", () => {
+  it("needs both the browser and the work folder", async () => {
+    const { browserAction } = await import("../protocol");
+    const { refuseAction } = await import("../permissions");
+    const action = browserAction.parse({
+      action: "upload",
+      ref: "e3",
+      observationId: "o2",
+      path: "cv.pdf",
+    });
+    const input = { deviceId: "d1", mode: "isolated" as const, action, offered: { files: true } };
+    expect(refuseAction([], input)?.capability).toBe("files");
+    const files = { capability: "files", allowed: true, device_id: null };
+    expect(refuseAction([files], input)).toBeNull();
+    const noBrowser = { capability: "browser", allowed: false, device_id: null };
+    expect(refuseAction([files, noBrowser], input)?.capability).toBe("browser");
+    expect(refuseAction([files], { ...input, offered: { files: false } })?.capability).toBe(
+      "files",
+    );
+  });
+});

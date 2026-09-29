@@ -39,7 +39,8 @@ from ocade_computer import Computer, installed_apps  # noqa: E402
 from ocade_identity import SOFTWARE_VERSION, Identity, NotEnrolled, UpdateRequired  # noqa: E402
 
 BROWSER_ACTIONS = {"observe", "look", "open", "new_tab", "click", "type", "select", "press",
-                   "scroll", "switch_tab", "close_tab", "back", "forward", "wait", "click_at"}
+                   "scroll", "switch_tab", "close_tab", "back", "forward", "wait", "click_at",
+                   "upload", "download"}
 APPS_EVERY_S = 3600
 # With OCADE out of reach this long, a running action is stopped: nobody could STOP it remotely.
 CONTROL_LOSS_S = 15.0
@@ -105,9 +106,28 @@ class Browsers:
             cdp_endpoint=self.endpoint() if mode == "real" else None, egress=self.egress)
 
     def run(self, mode: str, action: dict, confirmed: bool, sites: list[str],
-            cancel: threading.Event) -> dict:
+            cancel: threading.Event, root: Path | None = None) -> dict:
+        if action.get("action") in ("upload", "download"):
+            if root is None:
+                return {"status": "blocked", "summary": "Choose a work folder in the OCADE tray first"}
+            action = dict(action)
+            if action["action"] == "upload":
+                target = (root / str(action.get("path", ""))).resolve()
+                if target != root and root not in target.parents or not target.is_file():
+                    return {"status": "blocked", "summary": "Only a file inside the work folder can be attached"}
+                action["_file"] = str(target)
+            else:
+                action["_folder"] = str(root / "Downloads")
         if mode == "real":
             endpoint = self.endpoint()
+            if not endpoint and not self.explicit:
+                import ocade_existing_browser
+                # Closed: open the person's own browser (normal profile) and look again.
+                if ocade_existing_browser.open_default():
+                    deadline = time.monotonic() + 15
+                    while not endpoint and time.monotonic() < deadline and not cancel.wait(0.5):
+                        self._found = (-1e9, None)
+                        endpoint = self.endpoint()
             if not endpoint:
                 return {"status": "blocked",
                         "summary": "Your browser is closed or does not allow JARVIS. Open it and "
@@ -356,7 +376,8 @@ class Agent:
         confirmed = bool(command.get("confirmed"))
         browser = action.get("action") in BROWSER_ACTIONS
         try:
-            outcome = (self.browsers.run(mode, action, confirmed, command.get("sites", []), cancel)
+            outcome = (self.browsers.run(mode, action, confirmed, command.get("sites", []), cancel,
+                                         self.computer.root)
                        if browser else
                        self.computer.run(action, confirmed, bool(command.get("cowork")), cancel))
         except Exception as e:  # a crashed action is reported, never retried blindly
