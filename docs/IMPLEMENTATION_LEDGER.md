@@ -161,6 +161,30 @@ Production: merge `d8f51375` deployed; `/api/health` reports that commit. Androi
 
 Not done in this wave (owner decision or no hardware): staff roles beyond admin (no staff yet), payment operations (no provider chosen), scoped per-feature kill switches beyond the global JARVIS stop, Android companion.
 
+## Wave 3 — 2026-09-29
+
+Phases 29-31 and 34 work:
+
+- Phase 29 (web/PWA scope): floating JARVIS bubble on phone-width screens outside the JARVIS page. Drag with edge snap and persisted placement, off-screen clamp, expand/collapse, current task with progress and Stop, an inline mini chat that runs the same JARVIS turn and saves to a real JARVIS conversation, in-bubble voice with listening/speaking status, hand-off of work requests to full JARVIS (saved once), hide with a Settings > Appearance toggle. Lazy-loaded, so desktop and signed-out first visits do not download it. A bubble over other apps needs the native Android companion (BLOCKED: no Android SDK/device).
+- Phase 30 (web scope): Help explains the bubble, Home Screen use and opening JARVIS from an iPhone Shortcut. Voice auto-start from a shortcut is not claimed (needs a gesture on iOS; unverified on a real iPhone).
+- Phase 31: the Device Agent and the browser extension can each be paused apart from all device work (admin role, second factor, reason, append-only record). Migration `20260929110000_scoped_jarvis_controls` applied and verified in production.
+- Windows mini-control: drawn progress ring and spinner, orb core, rounded STOP, Open OCADE link, glide to the nearer edge after a drag. Rendered and exercised on real Windows (STOP invoked, hides when idle).
+
+Bugs found and fixed:
+
+- Words typed before the page finished loading were wiped by hydration in both Chat and JARVIS and Send stayed off (reproduced with CPU-throttled Chromium; regression check in the polish journey).
+- JARVIS cleared the draft when the session arrived (signed-out to signed-in counted as switching owner).
+- The bubble raised first-visit JavaScript to 978 KiB (over the 1 MB budget); now lazy, 947 KiB.
+- A verification script without a catalogue check (SQL discipline test).
+- Test infrastructure: the served build could die from a console Ctrl+C event (exit 0xC000013A) and fail every later journey. The harness now reports a server that stops and restarts it before the next journey.
+
+Evidence:
+
+- All 16 browser journeys: 691 PASS, 0 FAIL, 2 BLOCKED (confined terminal on Windows; browser speech service). Bubble journey 23 checks, admin journey 16 checks.
+- Android-sized MCP: bubble drag/snap/persist, keyboard, account isolation, Stop, mini chat screenshots reviewed.
+- `verify:full`: 15 gates. Unit suite 973 pass. Device Agent Python 55 pass.
+- Production: owner account `careacadane28@gmail.com` does not exist in Auth yet (owner must sign up and enroll a second factor; then one admin-role grant).
+
 ## Next step
 
 1. After release: verify production `/api/health` reports the merged commit, then a signed-in production JARVIS smoke (owner account) and a real device connection against ocade.in.
