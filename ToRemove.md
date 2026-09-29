@@ -19,6 +19,7 @@ No item is removed merely because it looks old. Replacement behavior must be pro
 Owner direction no longer permits a separate customer browser bridge/add-on dependency.
 
 Retire the active browser-bridge directory, packaging/store material, device kind, service-control entries, UI copy, tests and runtime branches only after the replacement existing-browser path is proven with:
+
 - existing Chrome/profile;
 - CDP/DevTools/Playwright where available;
 - accessibility/UI Automation;
@@ -81,6 +82,7 @@ One action broker must own validation/cancellation/dispatch. Keep specialized ex
 ## Cleanup proof sequence
 
 For each removal:
+
 1. identify replacement authority;
 2. reproduce old behavior or prove it is no longer desired;
 3. prove replacement with targeted tests;
@@ -93,7 +95,6 @@ For each removal:
 10. record the result in the implementation ledger.
 
 Do not use cleanup as permission to weaken security, accessibility, UI quality or evidence.
-
 
 ## Master Phase 1–49 authority
 

@@ -246,3 +246,56 @@ describe("private networks", () => {
     expect(siteAllowed([row("site:1.1", true)], "http://192.168.1.1/")).toBe(false);
   });
 });
+
+describe("screen input carries the observation it was planned against", () => {
+  it("keeps observationId on typing, keys and scrolling, and refuses them without it", async () => {
+    const { computerAction } = await import("../protocol");
+    for (const action of [
+      { action: "screen_type", text: "hello" },
+      { action: "screen_keys", keys: ["ctrl", "s"] },
+      { action: "screen_scroll", direction: "down" },
+    ]) {
+      expect(computerAction.safeParse(action).success).toBe(false);
+      const parsed = computerAction.parse({ ...action, observationId: "s7" });
+      expect(parsed).toMatchObject({ observationId: "s7" });
+    }
+  });
+});
+
+describe("spreadsheet and file actions", () => {
+  it("accepts structured workbook edits and refuses formulas that leave the workbook", async () => {
+    const { computerAction, capabilityFor, describeAction } = await import("../protocol");
+    const edit = computerAction.parse({
+      action: "sheet_edit",
+      path: "sales.xlsx",
+      sheet: "Orders",
+      ops: [
+        { op: "fill", range: "E2:E7", formula: "=C2*D2" },
+        { op: "set", cell: "A9", value: "see https://example.com later" },
+        { op: "format", range: "D2:F8", numberFormat: "$#,##0.00", border: "thin" },
+      ],
+    });
+    expect(capabilityFor(edit)).toBe("files");
+    expect(describeAction(edit)).toBe("Updating the workbook sales.xlsx (3 changes)");
+    for (const bad of [
+      { op: "set", cell: "A1", value: '=WEBSERVICE("https://x.test")' },
+      { op: "fill", range: "A1:A2", formula: "=[Other.xlsx]S!A1" },
+      { op: "fill", range: "A1:A2", formula: "=cmd|' /C calc'!A0" },
+      { op: "fill", range: "A1:A2", formula: "C2*D2" },
+      { op: "set", cell: "A1:ZZZZ9", value: 1 },
+    ]) {
+      expect(
+        computerAction.safeParse({ action: "sheet_edit", path: "a.xlsx", ops: [bad] }).success,
+        JSON.stringify(bad),
+      ).toBe(false);
+    }
+  });
+
+  it("file moves need both ends and count as file work", async () => {
+    const { computerAction, capabilityFor } = await import("../protocol");
+    expect(computerAction.safeParse({ action: "file_move", path: "a.txt" }).success).toBe(false);
+    expect(
+      capabilityFor(computerAction.parse({ action: "file_copy", path: "a.txt", to: "b" })),
+    ).toBe("files");
+  });
+});

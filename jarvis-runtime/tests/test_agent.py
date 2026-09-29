@@ -111,6 +111,63 @@ class LifecycleTest(unittest.TestCase):
         self.assertEqual(stops[0], True)
         self.assertNotIn(True, stops[1:])
 
+    def _long_action(self, agent):
+        """A computer action that keeps working until its cancellation token is set."""
+        seen = {"started": threading.Event(), "stopped_at": None}
+
+        def run(action, confirmed, cowork, cancel):
+            seen["started"].set()
+            while not cancel.wait(0.05):
+                pass
+            seen["stopped_at"] = time.monotonic()
+            return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+
+        agent.computer.run = run
+        return seen
+
+    def test_removing_the_device_stops_the_running_action_before_the_key_goes(self):
+        command = {"id": "a1", "taskId": "t1", "action": {"action": "file_list", "path": "."}}
+        agent, identity = self._agent([{"commands": [command], "busy": True},
+                                       {"commands": [], "busy": True}])
+        seen = self._long_action(agent)
+        forgot = {}
+
+        def forget():
+            forgot["at"] = time.monotonic()
+            forgot["action_alive"] = any(t.name == "ocade-action" and t.is_alive()
+                                         for t in threading.enumerate())
+
+        identity.forget = forget
+        runner = threading.Thread(target=agent.run)
+        runner.start()
+        self.assertTrue(seen["started"].wait(5))
+        identity.replies.append(ocade_device.NotEnrolled())
+        runner.join(15)
+        self.assertFalse(runner.is_alive())
+        self.assertIsNotNone(seen["stopped_at"], "the action kept running after removal")
+        self.assertLessEqual(seen["stopped_at"], forgot["at"])
+        self.assertFalse(forgot["action_alive"], "the key went while the action still ran")
+        self.assertFalse((self.home / "pending.json").exists())  # no late result survives
+
+    def test_losing_ocade_during_an_action_stops_it(self):
+        command = {"id": "a1", "taskId": "t1", "action": {"action": "file_list", "path": "."}}
+        agent, identity = self._agent([{"commands": [command], "busy": True}]
+                                      + [urllib.error.URLError("offline")] * 50)
+        seen = self._long_action(agent)
+        old, ocade_device.CONTROL_LOSS_S = ocade_device.CONTROL_LOSS_S, 0.5
+        try:
+            runner = threading.Thread(target=agent.run)
+            runner.start()
+            self.assertTrue(seen["started"].wait(5))
+            deadline = time.monotonic() + 10
+            while seen["stopped_at"] is None and time.monotonic() < deadline:
+                time.sleep(0.1)
+            agent.stop.set()
+            runner.join(15)
+        finally:
+            ocade_device.CONTROL_LOSS_S = old
+        self.assertIsNotNone(seen["stopped_at"], "the action continued without a control channel")
+
     def test_dormant_without_a_task(self):
         agent, identity = self._agent([])
         runner = threading.Thread(target=agent.run)

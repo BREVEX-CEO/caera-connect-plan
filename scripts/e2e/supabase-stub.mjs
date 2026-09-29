@@ -31,7 +31,7 @@
  * Usage: node scripts/e2e/supabase-stub.mjs [port]
  */
 import { createServer } from "node:http";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
 
 const PORT = Number(process.argv[2] ?? 54321);
 
@@ -46,6 +46,16 @@ const tables = new Map();
 const sessions = new Map();
 /** userId -> email */
 const emails = new Map();
+/** accessToken -> "aal1" | "aal2": what that session proved. */
+const tokenAal = new Map();
+/** refreshToken -> { userId, aal } */
+const refreshes = new Map();
+/** userId -> TOTP factors, secrets included (never sent back after enrollment). */
+const factors = new Map();
+/** challengeId -> { factorId, userId, expiresAt } */
+const challenges = new Map();
+/** The assurance of the session making the current request. */
+let requestAal = "aal1";
 
 function idForEmail(address) {
   // Derived rather than random, so the same address is the same account across
@@ -85,6 +95,7 @@ function userRecord(id, email) {
     app_metadata: { provider: "email", providers: ["email"] },
     user_metadata: {},
     identities: [],
+    factors: (factors.get(id) ?? []).map(publicFactor),
   };
 }
 
@@ -100,7 +111,41 @@ function userRecord(id, email) {
 /** An address starting "admin" is an operator; "+mfa" in it means a second factor was used. */
 const assuranceOf = (email) => (email.includes("+mfa") ? "aal2" : "aal1");
 
-function shapedJwt(userId, email) {
+/** Seconds a TOTP challenge stays answerable; OCADE_STUB_CHALLENGE_SECONDS shortens it for the expiry check. */
+const CHALLENGE_SECONDS = Number(process.env.OCADE_STUB_CHALLENGE_SECONDS ?? 300);
+
+const publicFactor = ({ secret: _secret, lastStep: _step, ...visible }) => visible;
+
+const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+function base32(bytes) {
+  let bits = "";
+  for (const byte of bytes) bits += byte.toString(2).padStart(8, "0");
+  return bits
+    .match(/.{1,5}/g)
+    .map((chunk) => BASE32[parseInt(chunk.padEnd(5, "0"), 2)])
+    .join("");
+}
+
+function fromBase32(text) {
+  let bits = "";
+  for (const char of text.replace(/=+$/, "").toUpperCase()) {
+    bits += BASE32.indexOf(char).toString(2).padStart(5, "0");
+  }
+  return Buffer.from(bits.match(/.{8}/g).map((byte) => parseInt(byte, 2)));
+}
+
+/** RFC 6238 TOTP (SHA-1, 6 digits, 30 s): exactly what an authenticator app computes. */
+function totp(secret, counter) {
+  const message = Buffer.alloc(8);
+  message.writeBigUInt64BE(BigInt(counter));
+  const mac = createHmac("sha1", fromBase32(secret)).update(message).digest();
+  const offset = mac[mac.length - 1] & 0xf;
+  const value = (mac.readUInt32BE(offset) & 0x7fffffff) % 1_000_000;
+  return String(value).padStart(6, "0");
+}
+
+function shapedJwt(userId, email, aal = assuranceOf(email)) {
   const encode = (value) =>
     Buffer.from(JSON.stringify(value))
       .toString("base64")
@@ -113,7 +158,8 @@ function shapedJwt(userId, email) {
     email,
     role: "authenticated",
     aud: "authenticated",
-    aal: assuranceOf(email),
+    aal,
+    amr: aal === "aal2" ? [{ method: "password" }, { method: "totp" }] : [{ method: "password" }],
     // Real tokens carry this, and Advanced reads it to tell "this device" from
     // the others. Without it every session looks like somebody else's.
     session_id: "session-current",
@@ -123,20 +169,23 @@ function shapedJwt(userId, email) {
   return `${header}.${payload}.stub-signature-not-a-signature`;
 }
 
-function openSession(email) {
+function openSession(email, aal = assuranceOf(email)) {
   const id = idForEmail(email);
   emails.set(id, email);
   if (email.startsWith("admin") && !rows(id, "user_roles").length) {
     rows(id, "user_roles").push({ id: randomUUID(), user_id: id, role: "admin" });
   }
-  const accessToken = shapedJwt(id, email);
+  const accessToken = shapedJwt(id, email, aal);
   sessions.set(accessToken, id);
+  tokenAal.set(accessToken, aal);
+  const refreshToken = `stub-refresh-${randomUUID()}`;
+  refreshes.set(refreshToken, { userId: id, aal });
   return {
     access_token: accessToken,
     token_type: "bearer",
     expires_in: 3600,
     expires_at: Math.floor(Date.now() / 1000) + 3600,
-    refresh_token: `stub-refresh-${randomUUID()}`,
+    refresh_token: refreshToken,
     user: userRecord(id, email),
   };
 }
@@ -590,7 +639,7 @@ function handleRpc(name, args, userId) {
     case "ocade_set_service_control": {
       const refuse = (message) => ({ __error: { code: "42501", message } });
       if (!isAdmin(userId)) return refuse("Only support admins may change a service control.");
-      if (assuranceOf(emails.get(userId) ?? "") !== "aal2") {
+      if (requestAal !== "aal2") {
         return refuse("Changing a service control needs a recent second factor.");
       }
       if (String(args.change_reason ?? "").trim().length < 10) {
@@ -610,7 +659,7 @@ function handleRpc(name, args, userId) {
     case "ocade_admin_remove_device": {
       const refuse = (message) => ({ __error: { code: "42501", message } });
       if (!isAdmin(userId)) return refuse("Only support admins may remove a device.");
-      if (assuranceOf(emails.get(userId) ?? "") !== "aal2") {
+      if (requestAal !== "aal2") {
         return refuse("Removing a device needs a recent second factor.");
       }
       if (String(args.remove_reason ?? "").trim().length < 10) {
@@ -674,7 +723,15 @@ function jarvisStep(messages) {
   if (!jarvisScript) return null;
   let typed = -1;
   messages.forEach((message, index) => {
-    if (message.role === "user" && !String(message.content).startsWith("Result of ")) typed = index;
+    const content = String(message.content);
+    // Tool results and mid-task words are not a new request.
+    if (
+      message.role === "user" &&
+      !content.startsWith("Result of ") &&
+      !content.startsWith("While you were working")
+    ) {
+      typed = index;
+    }
   });
   if (typed < 0 || !String(messages[typed].content).includes(jarvisScript.trigger)) return null;
   const after = messages.slice(typed + 1);
@@ -785,6 +842,8 @@ const server = createServer((request, response) => {
     };
 
     if (request.method === "OPTIONS") return send(204);
+    requestAal =
+      tokenAal.get((request.headers.authorization ?? "").replace(/^Bearer\s+/i, "")) ?? "aal1";
 
     /* --- fixtures -------------------------------------------------------- */
 
@@ -886,8 +945,12 @@ const server = createServer((request, response) => {
       const parsed = JSON.parse(body || "{}");
       const grant = url.searchParams.get("grant_type");
       if (grant === "refresh_token") {
-        const email = emails.get(sessions.get(parsed.refresh_token)) ?? "proof@ocade.test";
-        return send(200, openSession(email));
+        const held = refreshes.get(parsed.refresh_token);
+        if (!held) {
+          return send(400, { error_code: "refresh_token_not_found", msg: "Invalid Refresh Token" });
+        }
+        refreshes.delete(parsed.refresh_token);
+        return send(200, openSession(emails.get(held.userId), held.aal));
       }
       // One password the stub refuses, so a wrong one can be proved refused.
       if (grant === "password" && parsed.password === "wrong-password") {
@@ -948,9 +1011,98 @@ const server = createServer((request, response) => {
       return send(200, openSession(identity));
     }
 
-    if (url.pathname === "/auth/v1/factors") {
-      // No enrolled factor: the assurance gate must leave this account alone.
-      return send(200, { all: [], totp: [] });
+    const factorPath = /^\/auth\/v1\/factors(?:\/([^/]+))?(?:\/(challenge|verify))?$/.exec(
+      url.pathname,
+    );
+    if (factorPath) {
+      const userId = callerFrom(request, "");
+      if (!userId) return send(401, { error_code: "no_authorization", msg: "no session" });
+      const [, factorId, step] = factorPath;
+      const own = factors.get(userId) ?? [];
+      factors.set(userId, own);
+      const parsed = JSON.parse(body || "{}");
+      if (!factorId && request.method === "POST") {
+        const name = String(parsed.friendly_name ?? "");
+        if (own.some((f) => f.friendly_name === name)) {
+          return send(422, {
+            error_code: "mfa_factor_name_conflict",
+            msg: `A factor with the friendly name "${name}" for this user already exists`,
+          });
+        }
+        const secret = base32(randomBytes(20));
+        const issuer = String(parsed.issuer || "localhost");
+        own.push({
+          id: randomUUID(),
+          friendly_name: name,
+          factor_type: "totp",
+          status: "unverified",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          secret,
+          lastStep: -1,
+        });
+        const factor = own[own.length - 1];
+        const label = encodeURIComponent(`${issuer}:${emails.get(userId) ?? ""}`);
+        return send(200, {
+          id: factor.id,
+          type: "totp",
+          friendly_name: name,
+          totp: {
+            qr_code:
+              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#fff"/><rect x="1" y="1" width="3" height="3"/><rect x="6" y="1" width="3" height="3"/><rect x="1" y="6" width="3" height="3"/></svg>',
+            secret,
+            uri: `otpauth://totp/${label}?secret=${secret}&issuer=${encodeURIComponent(issuer)}`,
+          },
+        });
+      }
+      const factor = own.find((f) => f.id === factorId);
+      if (!factor)
+        return send(404, { error_code: "mfa_factor_not_found", msg: "Factor not found" });
+      if (request.method === "DELETE") {
+        if (factor.status === "verified" && requestAal !== "aal2") {
+          return send(422, {
+            error_code: "insufficient_aal",
+            msg: "AAL2 required to unenroll verified factor",
+          });
+        }
+        factors.set(
+          userId,
+          own.filter((f) => f !== factor),
+        );
+        return send(200, { id: factor.id });
+      }
+      if (step === "challenge") {
+        const id = randomUUID();
+        const expiresAt = Math.floor(Date.now() / 1000) + CHALLENGE_SECONDS;
+        challenges.set(id, { factorId, userId, expiresAt });
+        return send(200, { id, type: "totp", expires_at: expiresAt });
+      }
+      if (step === "verify") {
+        const challenge = challenges.get(parsed.challenge_id);
+        challenges.delete(parsed.challenge_id);
+        if (!challenge || challenge.factorId !== factorId || challenge.userId !== userId) {
+          return send(422, { error_code: "mfa_challenge_expired", msg: "Challenge not found" });
+        }
+        if (challenge.expiresAt * 1000 < Date.now()) {
+          return send(422, { error_code: "mfa_challenge_expired", msg: "Challenge has expired" });
+        }
+        const now = Math.floor(Date.now() / 30_000);
+        const matched = [now - 1, now, now + 1].find(
+          (counter) => totp(factor.secret, counter) === String(parsed.code ?? ""),
+        );
+        // An already-used (or older) code is refused: a replayed code proves nothing.
+        if (matched === undefined || matched <= factor.lastStep) {
+          return send(422, {
+            error_code: "mfa_verification_failed",
+            msg: "Invalid TOTP code entered",
+          });
+        }
+        factor.lastStep = matched;
+        factor.status = "verified";
+        factor.updated_at = new Date().toISOString();
+        return send(200, openSession(emails.get(userId) ?? "proof@ocade.test", "aal2"));
+      }
+      return send(405, { msg: "method not allowed" });
     }
 
     /* --- private object storage ------------------------------------------ */

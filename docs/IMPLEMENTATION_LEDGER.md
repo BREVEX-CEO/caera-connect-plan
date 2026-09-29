@@ -192,7 +192,6 @@ Evidence:
 2. Owner actions: signing identity + update release key (028), Chrome Web Store account (035 upload), Android SDK/emulator or device (Android phases), approval to install Inno Setup, a "Hey OCADE" wake model.
 3. Open work: 010 eval (needs the real model), staff roles and support/payment operations in admin (owner decisions), scoped feature kill switches, billing provider (owner decision), Android companion (needs SDK/device).
 
-
 ---
 
 ## Owner authority reset — 2026-09-29
@@ -200,6 +199,7 @@ Evidence:
 This ledger preserves earlier evidence exactly as historical context. The current implementation authority is now `PLAN.md` Phases 35–49.
 
 New owner decisions:
+
 - no active OCADE customer browser add-on dependency;
 - existing browser/profile first using CDP/DevTools/Playwright where available, then accessibility/vision/PyAutoGUI;
 - approximately 98% useful donor capability/logic reuse by copy/adapt/wire into `jarvis-runtime/`;
@@ -222,7 +222,6 @@ Historical references above to now-retired product paths, previous blocked Andro
 
 Begin `PLAN.md` Phase 35 on the latest reconciled main. Build the donor capability ledger, re-health-check MCP/device environments, then continue Phases 36–49 without restarting already proven unrelated work.
 
-
 ---
 
 ## Master Phase 1–49 reset — 2026-09-29
@@ -236,3 +235,24 @@ The former customer browser-extension requirement is superseded. Current product
 ### Next step
 
 Start Phase 1 on latest `main`, record current environment/source/deploy/database state, complete the donor capability ledger, and continue sequentially through Phase 49 while updating this ledger after every phase.
+
+---
+
+## Master Phase run — session of 2026-09-29 (branch `jarvis/master-phases`)
+
+Baseline: `main` = production = `5d72f73d` (`/api/health`, deployment `3152b6cc`). Donor 58/58 hashes unchanged. Unit 974 pass / 1 skip; runtime Python 55 pass / 5 skip. Supabase migration head (source) `20260929110000_scoped_jarvis_controls`.
+
+MCP health this session: Physical Computer Use, Mobile MCP (Pixel 7, Android 15), Chrome DevTools on the owner's real Chrome — healthy. Playwright real-Chrome MCP BLOCKED (wants its extension), Filesystem MCP BLOCKED (schema dialect), Supabase/Cloudflare MCP absent, GitHub MCP failed auth (git CLI used).
+
+Found and fixed (root causes):
+
+- Device removed during a running action: the agent forgot its key and exited while the action thread kept working. Now the action is cancelled and joined first, browser sessions closed, and no late result is kept (`ocade_device._halt`). Regression: `test_removing_the_device_stops_the_running_action_before_the_key_goes`.
+- Unreadable execution controls counted as "not paused" (fail-open). Now device work stops and no task starts until the controls read again (`executionDisabled`). Regression in `execution-controls.test.ts`.
+- Lost control channel: an action kept running with OCADE unreachable. Now cancelled after 15 s without a successful exchange. Regression: `test_losing_ocade_during_an_action_stops_it`.
+- 2FA setup (owner-reported rejection of fresh codes): no QR code was shown (only a 32-character key to type by hand), each retry silently replaced the key, the app entry was named after the auth host, and every code box had `maxLength=6`, so a pasted "123 456" became "12345". Fixed: QR from Supabase, key grouped with Copy, issuer "OCADE", digits-only box without truncation (Settings, sign-in challenge, email code), fresh-key recovery after two refusals, and an "Enter your code" link when a change needs aal2.
+- Talking to JARVIS while it works was impossible: `send` returned early while a turn ran, so typed or spoken "what are you doing?", "wait", "use the other file" were dropped. New `live-control.ts`: status answered at once from the real task, wait/continue pause the loop at the next safe point, redirects reach the planner as the person's words, stop stops.
+- Existing browser: the tray agent never used the person's Chrome (`cdp=None`). New `ocade_existing_browser.py` finds a running Chrome/Edge/Brave through the `DevToolsActivePort` the browser writes when remote debugging is on; no add-on. Proven on the owner's running Chrome: JARVIS opened its own tab, clicked, read the result, closed only its tab.
+- Windows had no commands at all ("no confined terminal"). Owner direction needs coding work on Windows: commands now run as one program without a shell, inside the workspace, with workspace-bound path arguments, secrets removed from the environment, a hidden window, whole-tree kill on STOP, and non-development programs waiting for confirmation. Linux keeps bubblewrap.
+- Test infrastructure: journeys defaulted to a Linux-only browser path; the Playwright headless-shell build crashes on `/ocade-jarvis` (full Chromium does not) — harness now uses full Chromium; stub refresh tokens always returned the default account; stub had no MFA; screen tests never ran on Windows (`$DISPLAY` gate) and simulated user input with `SetCursorPos`, which fires no input hook.
+
+Evidence: 17 browser journeys (mfa new) — 16/17 green in the full run with 865+ checks; live-talk 6/6 and MFA 24/25 (the last fixed after) on real browser + real device runtime. Runtime Python 69 pass / 3 skip (screen tests now run on real Windows). Unit 202 JARVIS/security pass.

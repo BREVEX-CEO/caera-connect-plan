@@ -43,10 +43,16 @@ export async function executionDisabled(admin: Admin, kind?: string): Promise<bo
       .from("ocade_service_controls")
       .select("key, paused")
       .limit(10);
-    // Unreadable is not "paused": the Worker variable remains the fallback.
+    if (error || !data) {
+      // FAIL CLOSED: a stop nobody can read must still stop physical work.
+      // Not cached, so the next exchange reads again and work resumes as soon
+      // as the controls are readable.
+      pausedCache = null;
+      return true;
+    }
     pausedCache = {
       at: Date.now(),
-      paused: new Set(error ? [] : (data ?? []).filter((row) => row.paused).map((row) => row.key)),
+      paused: new Set(data.filter((row) => row.paused).map((row) => row.key)),
     };
   }
   return (

@@ -17,7 +17,7 @@ import { chromium } from "playwright-core";
 
 const baseArgument = process.argv.find((argument) => argument.startsWith("--base="));
 const BASE = baseArgument ? baseArgument.slice("--base=".length) : "http://127.0.0.1:8788";
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 
 const results = [];
 let failures = 0;

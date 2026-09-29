@@ -16,7 +16,7 @@ import { chromium } from "playwright-core";
 
 const ROOT = process.cwd();
 const ARTIFACT = path.resolve(process.argv[2] ?? path.join(ROOT, ".artifact", "artifact.bin"));
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 const PORT = 8799;
 const PROOF_TIMEOUT_MS = 600_000;
 const ARTIFACT_SIZE = statSync(ARTIFACT).size;

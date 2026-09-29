@@ -9,6 +9,7 @@ Unit tests are necessary but insufficient for browser/device/UI capabilities.
 ## Per-change gate
 
 For each meaningful change:
+
 1. targeted unit/regression;
 2. nearby integration;
 3. applicable MCP/real UI;
@@ -19,6 +20,7 @@ For each meaningful change:
 ## Browser
 
 Use:
+
 - existing Chrome by CDP where available;
 - Chrome DevTools;
 - clean Chrome;
@@ -32,6 +34,7 @@ Test existing session state, tabs, navigation, downloads/uploads, auth boundarie
 ## Windows
 
 Real tasks must include:
+
 - Device Agent/tray;
 - existing Chrome;
 - Excel formulas/format/save/reopen;
@@ -71,6 +74,7 @@ Test interrupted download, resume, integrity repair, explicit Remove and browser
 ## Safety
 
 Test:
+
 - prompt injection;
 - stale state;
 - account switch;
@@ -95,7 +99,6 @@ No unexplained required-tool failure.
 Production SHA matches final source.
 
 Report commercial-launch readiness percentage after every phase.
-
 
 ## Master Phase 1–49 authority
 

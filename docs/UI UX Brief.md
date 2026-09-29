@@ -3,6 +3,7 @@
 ## Core experience
 
 Keep customer navigation intentionally small:
+
 - Chat;
 - JARVIS;
 - Library;
@@ -60,6 +61,7 @@ Few clear categories, safe defaults, auto-save where appropriate, advanced diagn
 ## Error UX
 
 Explain:
+
 - what happened;
 - whether work stopped;
 - what the user can do.
@@ -74,7 +76,6 @@ Reduced motion.
 Visible focus.
 Touch-friendly.
 Stable mobile keyboard/composer behavior.
-
 
 ## Master Phase 1–49 authority
 

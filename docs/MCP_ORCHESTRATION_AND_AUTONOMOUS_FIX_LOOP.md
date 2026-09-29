@@ -24,6 +24,7 @@ Never race controllers.
 ## Health check
 
 At the start of each wave:
+
 - verify target exists;
 - perform a minimal safe read;
 - record tool state;
@@ -60,6 +61,7 @@ Every reproduced defect enters:
 11. Record evidence and remaining uncertainty.
 
 Do not:
+
 - patch around symptoms indefinitely;
 - rerun flaky tests until green;
 - hide blocked evidence;
@@ -71,6 +73,7 @@ Do not:
 A function/button is complete only when its visible state and backend authority agree.
 
 For actionable UI verify:
+
 - loading;
 - enabled/disabled;
 - auth/role;
@@ -89,6 +92,7 @@ For actionable UI verify:
 ## PC-control proof
 
 For each donor-adapted execution family:
+
 - identify donor source;
 - prove copied/adapted active implementation;
 - test direct method;
@@ -116,6 +120,7 @@ Real Apple hardware/remote-device evidence requires a legitimate environment. Pa
 ## Long-run resilience
 
 Before context compaction/rate limit/restart:
+
 - commit or checkpoint durable work;
 - update implementation ledger;
 - record exact next unfinished item;
@@ -126,6 +131,7 @@ On resume, continue from the next unfinished item. Do not restart completed phas
 ## Cleanup loop
 
 After functional proof:
+
 1. run Caveman/Ponytail;
 2. inspect duplicate/dead authorities;
 3. consult ToRemove.md;
@@ -143,7 +149,6 @@ After every phase give an evidence-based commercial-launch percentage.
 The number may decrease if new blockers are found. It is a release-health estimate, not a promise.
 
 100% requires all executable release gates green and only explicitly accepted external/deferred dependencies remaining.
-
 
 ## Master Phase 1–49 authority
 

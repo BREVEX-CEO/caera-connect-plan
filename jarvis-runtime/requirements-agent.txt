@@ -13,6 +13,10 @@ pyautogui==0.9.54
 pynput==1.8.2
 pystray==0.19.5
 send2trash==1.8.3
+# Documents and spreadsheets read and edited directly (no Office library, no model).
+openpyxl==3.1.5
+et_xmlfile==2.0.0
+pypdf==6.19.0
 # Local "Hey OCADE" listening in Background/Wake Mode only.
 sounddevice==0.5.2
 # Build only.

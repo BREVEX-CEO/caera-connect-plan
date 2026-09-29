@@ -14,9 +14,11 @@ and observes.
 key (see ocade_identity.py) is the only credential; removing the device in OCADE
 ends its access at once and this process then deletes the local key.
 
-`--real-browser-cdp` is the explicit on-device authorization for the user's own
-browser (started by the user with --remote-debugging-port). Without it only the
-isolated automation browser exists, whatever the account settings say.
+The person's own browser is used when they allowed it twice: on this device
+(remote debugging turned on in that browser, found through its own
+DevToolsActivePort file, or `--real-browser-cdp` given here) and in OCADE (the
+"Your own browser" permission for this computer). Otherwise only the isolated
+automation browser exists.
 """
 from __future__ import annotations
 
@@ -39,6 +41,10 @@ from ocade_identity import SOFTWARE_VERSION, Identity, NotEnrolled, UpdateRequir
 BROWSER_ACTIONS = {"observe", "look", "open", "new_tab", "click", "type", "select", "press",
                    "scroll", "switch_tab", "close_tab", "back", "forward", "wait", "click_at"}
 APPS_EVERY_S = 3600
+# With OCADE out of reach this long, a running action is stopped: nobody could STOP it remotely.
+CONTROL_LOSS_S = 15.0
+# How long a stopped action gets to end before the device lets go of it.
+HALT_JOIN_S = 10.0
 
 HOME = Path(os.environ.get("OCADE_JARVIS_HOME", Path.home() / ".ocade_jarvis"))
 POLL_IDLE_SECONDS = 1.0
@@ -59,33 +65,80 @@ def connect(server: str, name: str, open_browser: bool = True) -> Identity:
 
 
 class Browsers:
-    """One isolated session, plus the user's real browser only when authorized here."""
+    """
+    One isolated session, plus the person's own running browser when it allows attaching.
+
+    The own browser is found on this device (ocade_existing_browser: the
+    DevToolsActivePort the browser itself writes when the person turns remote
+    debugging on) or named explicitly with --real-browser-cdp. No add-on.
+    """
+
+    FIND_EVERY_S = 5.0
 
     def __init__(self, headless: bool, cdp: str | None):
         from actions.browser_control import _BrowserSession
         from ocade_egress import EgressProxy
         self.egress = EgressProxy()
-        self._make = lambda mode: _BrowserSession(
-            "chrome", mode=mode, headless=headless,
-            executable=os.environ.get("OCADE_BROWSER_EXECUTABLE") or None, cdp_endpoint=cdp,
-            egress=self.egress)
-        self.cdp = cdp
+        self._session = _BrowserSession
+        self.headless = headless
+        self.explicit = cdp
+        self._found: tuple[float, dict | None] = (-1e9, None)
         self.sessions: dict = {}
 
+    def endpoint(self) -> str | None:
+        if self.explicit:
+            return self.explicit
+        at, found = self._found
+        if time.monotonic() - at > self.FIND_EVERY_S:
+            import ocade_existing_browser
+            found = ocade_existing_browser.find()
+            self._found = (time.monotonic(), found)
+        return found["endpoint"] if found else None
+
     def capabilities(self) -> dict:
-        return {"browser_isolated": True, "browser_real": bool(self.cdp)}
+        return {"browser_isolated": True, "browser_real": bool(self.endpoint())}
+
+    def _make(self, mode: str):
+        return self._session(
+            "chrome", mode=mode, headless=self.headless,
+            executable=os.environ.get("OCADE_BROWSER_EXECUTABLE") or None,
+            cdp_endpoint=self.endpoint() if mode == "real" else None, egress=self.egress)
 
     def run(self, mode: str, action: dict, confirmed: bool, sites: list[str],
             cancel: threading.Event) -> dict:
-        if mode == "real" and not self.cdp:
-            return {"status": "blocked",
-                    "summary": "Your own browser is not authorized on this device"}
+        if mode == "real":
+            endpoint = self.endpoint()
+            if not endpoint:
+                return {"status": "blocked",
+                        "summary": "Your browser is closed or does not allow JARVIS. Open it and "
+                                   "turn on remote debugging at chrome://inspect/#remote-debugging"}
+            held = self.sessions.get("real")
+            if held is not None and held.cdp_endpoint != endpoint:
+                # The browser restarted: the old connection is gone.
+                self._drop("real")
         self.egress.policy.allowed = frozenset(s.lower() for s in sites)
         session = self.sessions.get(mode)
         if session is None:
             session = self.sessions[mode] = self._make(mode)
             session.start()
-        return session.run(session.act(action, confirmed), timeout=90, cancel=cancel)
+        try:
+            return session.run(session.act(action, confirmed), timeout=90, cancel=cancel)
+        except Exception:
+            if mode == "real":
+                self._drop("real")  # reconnect on the next action, never replay this one
+            raise
+
+    def _drop(self, mode: str) -> None:
+        session = self.sessions.pop(mode, None)
+        if session is not None:
+            try:
+                session.close()
+            except Exception:  # a dead connection has nothing left to close
+                pass
+
+    def close(self) -> None:
+        for mode in list(self.sessions):
+            self._drop(mode)
 
     def frame(self, mode: str) -> str | None:
         session = self.sessions.get(mode)
@@ -142,8 +195,16 @@ class Agent:
         else:
             self.pending_path.unlink(missing_ok=True)
 
+    def _halt(self, active: dict | None) -> None:
+        """Cancel the running action and wait for it to end, before anything else happens."""
+        self.cancel.set()
+        if active:
+            active["thread"].join(HALT_JOIN_S)
+        self.browsers.close()
+
     def run(self) -> int:
         results = self._load_pending()
+        reached = time.monotonic()
         frame: dict | None = None
         apps_sent = 0.0
         found: dict = {}  # the app inventory, found off this loop (it can take seconds)
@@ -174,20 +235,29 @@ class Agent:
             try:
                 reply = self.identity.exchange(body)
             except NotEnrolled:
+                # Removed in OCADE: the physical work stops first, then the key goes,
+                # and nothing this device finishes afterwards is ever reported.
+                self._halt(active)
+                active = None
                 self.identity.forget()
                 self.pending_path.unlink(missing_ok=True)
                 self.state["connected"] = False
                 print("This device is no longer connected. Its key was removed.", flush=True)
                 return 2
             except UpdateRequired:
+                self._halt(active)
                 self.state["update"] = True
                 print("OCADE needs a newer Device Agent. Nothing more runs until it updates.", flush=True)
                 return 3
             except (urllib.error.URLError, TimeoutError, ConnectionError, OSError):
+                # Fail closed: work OCADE can no longer see or stop does not continue.
+                if active and time.monotonic() - reached > CONTROL_LOSS_S:
+                    self.cancel.set()
                 self._keep_pending(results)
                 self.stop.wait(3 if not active else POLL_IDLE_SECONDS)
                 continue
             self.state["reached"] = True
+            reached = time.monotonic()
             if "apps" in body:
                 apps_sent = time.monotonic()
             if body.get("stop"):
@@ -207,9 +277,7 @@ class Agent:
                 active["thread"].join(POLL_IDLE_SECONDS)  # returns as soon as the action ends
             else:
                 self.stop.wait(POLL_IDLE_SECONDS if self.state["busy"] else self.DORMANT_S)
-        if active:
-            self.cancel.set()
-            active["thread"].join(5)
+        self._halt(active)
         return 0
 
     def _start(self, command: dict) -> dict:

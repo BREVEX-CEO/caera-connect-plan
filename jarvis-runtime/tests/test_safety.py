@@ -144,7 +144,7 @@ class JournalTest(unittest.TestCase):
 
 
 class TerminalTest(unittest.TestCase):
-    """JARVIS-037/055: commands run only inside a real OS boundary, otherwise not at all."""
+    """JARVIS-037/055: Linux confines commands in bubblewrap; Windows/macOS run one program directly."""
 
     def setUp(self):
         self.root = Path(tempfile.mkdtemp(), "workspace")
@@ -158,10 +158,14 @@ class TerminalTest(unittest.TestCase):
         self.assertEqual(out["status"], "blocked")
         self.assertFalse((self.root.parent / "outside.txt").exists())
 
-    def test_windows_and_macos_never_offer_the_terminal(self):
-        if ocade_computer.SYSTEM != "Linux":
-            self.assertIsNone(self.pc.sandbox)
-            self.assertFalse(self.pc.capabilities()["terminal"])
+    def test_windows_and_macos_run_one_program_without_a_shell(self):
+        if ocade_computer.SYSTEM == "Linux":
+            self.skipTest("Linux uses bubblewrap")
+        self.assertEqual(self.pc.sandbox, "workspace")
+        self.assertTrue(self.pc.capabilities()["terminal"])
+        out = self.pc.run({"action": "run", "command": "echo escaped>..\outside.txt"})
+        self.assertEqual(out["status"], "blocked")
+        self.assertFalse((self.root.parent / "outside.txt").exists())
 
     def test_unconfirmed_commands_have_no_network(self):
         argv, _ = self.pc._sandboxed("true", self.root, network=False)
@@ -171,7 +175,7 @@ class TerminalTest(unittest.TestCase):
         self.assertNotIn("--unshare-net", argv)
 
     def test_stop_kills_a_running_command(self):
-        self.pc.sandbox = "test"
+        self.pc.sandbox = "bubblewrap"
         self.pc._sandboxed = lambda command, folder, network: (
             [sys.executable, "-c", "import time; time.sleep(30)"], {})
         cancel = threading.Event()

@@ -49,4 +49,20 @@ describe("executionDisabled", () => {
     fresh();
     expect(await executionDisabled(admin([]), "agent")).toBe(false);
   });
+
+  it("unreadable controls stop device work, and work resumes once they read again", async () => {
+    vi.useFakeTimers();
+    fresh();
+    const broken = {
+      from: () => ({
+        select: () => ({
+          limit: async () => ({ data: null, error: { message: "connection refused" } }),
+        }),
+      }),
+    } as never;
+    expect(await executionDisabled(broken, "agent")).toBe(true);
+    expect(await executionDisabled(broken)).toBe(true);
+    // Not cached: the very next read decides again.
+    expect(await executionDisabled(admin([]), "agent")).toBe(false);
+  });
 });

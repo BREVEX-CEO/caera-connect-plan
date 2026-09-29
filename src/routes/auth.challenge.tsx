@@ -148,7 +148,6 @@ function ChallengePage() {
               inputMode="numeric"
               autoComplete="one-time-code"
               autoFocus
-              maxLength={6}
               placeholder="000000"
               className="h-12 w-full rounded-md border border-border bg-transparent text-center font-mono text-xl tracking-[0.4em] text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
             />

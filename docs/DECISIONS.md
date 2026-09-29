@@ -50,7 +50,6 @@ This file records current owner-approved decisions. Later explicit owner decisio
 - real MCP/device/browser evidence;
 - no fake completion claims.
 
-
 ## Master-plan numbering decision — 2026-09-29
 
 - The active roadmap is one continuous Phase 1–49 plan.

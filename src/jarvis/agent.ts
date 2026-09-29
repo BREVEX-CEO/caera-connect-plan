@@ -28,6 +28,7 @@ import {
   type TaskStatus,
 } from "./protocol";
 import type { JarvisTaskRow, StartTaskResult } from "./jarvis.functions";
+import { interjectionMessage, type LiveControl } from "./live-control";
 
 export const MAX_MODEL_STEPS = 30;
 const POLL_MS = 400;
@@ -110,6 +111,8 @@ export interface AgentHooks {
   takeOver(reason: string): Promise<"resume" | "stop">;
   /** Work was asked for, but no computer or browser can do it right now. */
   onNoDevice?(message: string): void;
+  /** What the person says while the turn runs, and their Pause/Continue. */
+  live?: LiveControl;
 }
 
 export interface TurnInput {
@@ -189,6 +192,13 @@ export async function runJarvisTurn(
   const stopIfAsked = () => {
     if (hooks.signal.aborted) throw new Stopped();
   };
+  /** The safe point between steps: honour a Pause, then hear what the person said. */
+  const listen = async () => {
+    await hooks.live?.waitIfPaused(hooks.signal);
+    stopIfAsked();
+    const said = hooks.live?.drain() ?? [];
+    if (said.length) messages.push({ role: "user", content: interjectionMessage(said) });
+  };
 
   const setTask = (next: JarvisTaskRow | null) => {
     task = next;
@@ -248,6 +258,9 @@ export async function runJarvisTurn(
     if (typeof step === "number" && step >= 1 && step - 1 !== task.current_step) {
       setTask(await deps.updateTask({ id: task.id, currentStep: Math.min(12, step - 1) }));
     }
+    // Paused: nothing new reaches the computer until the person says continue.
+    await hooks.live?.waitIfPaused(hooks.signal);
+    stopIfAsked();
     untrustedSeen = true;
     if (!claimed) {
       setTask(await deps.updateTask({ id: task.id, controller }));
@@ -382,6 +395,7 @@ export async function runJarvisTurn(
   let nudged = false;
   for (let step = 0; step < MAX_MODEL_STEPS; step += 1) {
     stopIfAsked();
+    await listen();
     let reply: ModelStep | null;
     try {
       reply = await deps.model({

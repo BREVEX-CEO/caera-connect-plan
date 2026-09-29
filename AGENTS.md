@@ -5,6 +5,7 @@
 CARCC is the company. OCADE is the product. Retired CADANE branding must not return.
 
 OCADE has two protected product experiences:
+
 - Chat: conversational product with Auto, Online, and Offline Intelligence.
 - OCADE JARVIS: separate Online-only conversational execution product at `/ocade-jarvis`.
 
@@ -33,6 +34,7 @@ Target approximately 98% donor capability/logic reuse where safe. Reuse means co
 Production must never import from or mutate the immutable donor snapshot. Copy/adapt required logic into `jarvis-runtime/` or the correct active runtime location. Python runtime code must not be dumped into React `src/`.
 
 The deliberate donor replacements are:
+
 - old desktop GUI -> OCADE web/JARVIS UI plus tray/mobile bubble;
 - donor provider-key handling -> OCADE server-side hidden intelligence authority;
 - donor generic customer plugin system -> not used;
@@ -46,6 +48,7 @@ OCADE UI -> Online intelligence/planner -> action broker -> device/browser/file/
 Every action binds the current account, conversation/task, target device, capability, permission, confirmation state, request/idempotency identity, current control lease, and cancellation token.
 
 Preferred execution order:
+
 1. direct file/API/application automation;
 2. native OS/app launch or scripting;
 3. structured browser/DOM/CDP/accessibility control;
@@ -130,6 +133,7 @@ implement -> local targeted tests -> applicable MCP -> real visible workflow -> 
 Use Playwright/CDP against the user's existing Chrome where available, Chrome DevTools diagnostics, clean browser passes, Edge, Firefox, WebKit, Android mobile, Appium, Mobile MCP, Physical Computer Use, Filesystem, Supabase, Cloudflare and GitHub as appropriate.
 
 Every phase must report:
+
 - Complete / Partial / Blocked;
 - exact work completed;
 - bugs found and fixed;

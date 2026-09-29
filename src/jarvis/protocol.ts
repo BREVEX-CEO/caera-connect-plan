@@ -54,6 +54,96 @@ const workspacePath = z
   .max(500)
   .refine((p) => !p.includes("\0"), "invalid path");
 
+const cellRange = z
+  .string()
+  .regex(
+    /^\$?[A-Z]{1,3}\$?[0-9]{1,7}(:\$?[A-Z]{1,3}\$?[0-9]{1,7})?$|^\$?[A-Z]{1,3}:\$?[A-Z]{1,3}$/,
+  );
+const sheetName = z.string().regex(/^[^[\]:*?/\\]{1,31}$/);
+const colour = z.string().regex(/^#?[0-9A-Fa-f]{6}$/);
+/** Formulas that reach outside the workbook (network, code, other files) are refused. */
+const insideWorkbook = (text: string) =>
+  !/\b(WEBSERVICE|FILTERXML|CALL|REGISTER|RTD|EXEC|DDE|HYPERLINK)\s*\(|\[|https?:|\|/i.test(
+    text.replace(/"[^"]*"/g, '""'),
+  );
+const cellText = z
+  .string()
+  .max(2000)
+  .refine((t) => !t.startsWith("=") || insideWorkbook(t), "formula reaches outside the workbook");
+const formula = z
+  .string()
+  .max(2000)
+  .startsWith("=")
+  .refine(insideWorkbook, "formula reaches outside the workbook");
+/**
+ * One spreadsheet operation, as a skilled Excel user would do it: formulas
+ * and fills, not typed results. The device checks every one again.
+ */
+const sheetOp = z.discriminatedUnion("op", [
+  z.object({
+    op: z.literal("set"),
+    cell: cellRange,
+    value: z.union([cellText, z.number(), z.boolean(), z.null()]),
+  }),
+  z.object({ op: z.literal("fill"), range: cellRange, formula }),
+  z.object({
+    op: z.literal("format"),
+    range: cellRange,
+    numberFormat: z.string().max(100).optional(),
+    bold: z.boolean().optional(),
+    italic: z.boolean().optional(),
+    fontColor: colour.optional(),
+    fillColor: colour.optional(),
+    align: z.enum(["left", "center", "right"]).optional(),
+    wrap: z.boolean().optional(),
+    border: z.enum(["thin", "medium", "none"]).optional(),
+    columnWidth: z.union([z.literal("auto"), z.number().min(1).max(255)]).optional(),
+  }),
+  z.object({
+    op: z.literal("conditional"),
+    range: cellRange,
+    rule: z.enum(["greater", "less", "equal", "between", "text_contains", "duplicate", "top"]),
+    value: z.union([z.number(), z.string().max(200)]).optional(),
+    value2: z.number().optional(),
+    fillColor: colour.optional(),
+    fontColor: colour.optional(),
+  }),
+  z.object({
+    op: z.literal("table"),
+    range: cellRange,
+    name: z
+      .string()
+      .regex(/^[A-Za-z_][A-Za-z0-9_.]{0,254}$/)
+      .optional(),
+    style: z
+      .string()
+      .regex(/^TableStyle(Light|Medium|Dark)\d{1,2}$/)
+      .optional(),
+  }),
+  z.object({ op: z.literal("filter"), range: cellRange }),
+  z.object({ op: z.literal("freeze"), cell: cellRange }),
+  z.object({ op: z.literal("sheet_add"), name: sheetName }),
+  z.object({ op: z.literal("sheet_rename"), from: sheetName, to: sheetName }),
+  z.object({
+    op: z.literal("name"),
+    name: z.string().regex(/^[A-Za-z_][A-Za-z0-9_.]{0,254}$/),
+    range: cellRange,
+  }),
+  z.object({
+    op: z.literal("chart"),
+    kind: z.enum(["column", "bar", "line", "pie"]),
+    source: cellRange,
+    anchor: cellRange,
+    title: z.string().max(200).optional(),
+  }),
+  z.object({
+    op: z.literal("sort"),
+    range: cellRange,
+    by: cellRange,
+    descending: z.boolean().optional(),
+  }),
+]);
+
 /**
  * Computer actions, run by the Device Agent. Native and direct operations come
  * first (apps, files, commands); the screen actions are the fallback, and a
@@ -67,15 +157,26 @@ const COMPUTER_ACTIONS = [
     y: z.number().min(0).max(20_000),
     observationId: screenObservation,
   }),
-  z.object({ action: z.literal("screen_type"), text: z.string().max(2000) }),
+  // Typing, keys and scrolling land on the screen they were planned against,
+  // so they carry its observationId like a click (the device refuses a stale one).
+  z.object({
+    action: z.literal("screen_type"),
+    text: z.string().max(2000),
+    observationId: screenObservation,
+  }),
   z.object({
     action: z.literal("screen_keys"),
     keys: z
       .array(z.string().regex(/^[a-z0-9]{1,12}$/))
       .min(1)
       .max(4),
+    observationId: screenObservation,
   }),
-  z.object({ action: z.literal("screen_scroll"), direction: z.enum(["up", "down"]) }),
+  z.object({
+    action: z.literal("screen_scroll"),
+    direction: z.enum(["up", "down"]),
+    observationId: screenObservation,
+  }),
   z.object({ action: z.literal("apps") }),
   z.object({
     action: z.literal("open_app"),
@@ -89,6 +190,36 @@ const COMPUTER_ACTIONS = [
     content: z.string().max(200_000),
   }),
   z.object({ action: z.literal("file_trash"), path: workspacePath }),
+  z.object({ action: z.literal("file_mkdir"), path: workspacePath }),
+  z.object({ action: z.literal("file_info"), path: workspacePath }),
+  z.object({ action: z.literal("file_extract"), path: workspacePath }),
+  z.object({
+    action: z.literal("file_find"),
+    path: workspacePath,
+    name: z.string().max(200).optional(),
+    extension: z
+      .string()
+      .regex(/^\.?[A-Za-z0-9]{1,10}$/)
+      .optional(),
+  }),
+  z.object({ action: z.literal("file_move"), path: workspacePath, to: workspacePath }),
+  z.object({
+    action: z.literal("sheet_inspect"),
+    path: workspacePath,
+    sheet: sheetName.optional(),
+  }),
+  z.object({
+    action: z.literal("sheet_edit"),
+    path: workspacePath,
+    sheet: sheetName.optional(),
+    ops: z.array(sheetOp).min(1).max(50),
+  }),
+  z.object({ action: z.literal("file_copy"), path: workspacePath, to: workspacePath }),
+  z.object({
+    action: z.literal("file_rename"),
+    path: workspacePath,
+    name: z.string().min(1).max(255),
+  }),
   z.object({ action: z.literal("file_delete"), path: workspacePath }),
   z.object({
     action: z.literal("run"),
@@ -128,6 +259,15 @@ export function capabilityFor(action: DeviceAction): Capability {
     case "file_write":
     case "file_trash":
     case "file_delete":
+    case "file_mkdir":
+    case "file_info":
+    case "file_extract":
+    case "file_find":
+    case "file_move":
+    case "file_copy":
+    case "file_rename":
+    case "sheet_inspect":
+    case "sheet_edit":
       return "files";
     case "run":
       return "terminal";
@@ -230,6 +370,24 @@ export function describeAction(action: DeviceAction): string {
       return `Moving ${action.path.slice(0, 120)} to the Trash`;
     case "file_delete":
       return `Permanently deleting ${action.path.slice(0, 120)}`;
+    case "file_mkdir":
+      return `Creating the folder ${action.path.slice(0, 120)}`;
+    case "file_info":
+      return `Checking ${action.path.slice(0, 120)}`;
+    case "file_extract":
+      return `Reading the text of ${action.path.slice(0, 120)}`;
+    case "file_find":
+      return `Searching ${action.path.slice(0, 120)}`;
+    case "file_move":
+      return `Moving ${action.path.slice(0, 80)} to ${action.to.slice(0, 80)}`;
+    case "file_copy":
+      return `Copying ${action.path.slice(0, 80)} to ${action.to.slice(0, 80)}`;
+    case "sheet_inspect":
+      return `Looking through the workbook ${action.path.slice(0, 120)}`;
+    case "sheet_edit":
+      return `Updating the workbook ${action.path.slice(0, 100)} (${action.ops.length} changes)`;
+    case "file_rename":
+      return `Renaming ${action.path.slice(0, 80)} to ${action.name.slice(0, 80)}`;
     case "run":
       return `Running ${action.command.slice(0, 120)}`;
     case "system": {
@@ -285,6 +443,7 @@ Browser rules:
 - If humanBoundary is captcha, otp or passkey, or a password is needed, stop and ask the person to take over.
 Computer rules:
 - Prefer the most direct way: open_app, file actions and run inside the workspace before anything visual. Use screen, then screen_click with the current screen observationId, only when nothing more direct works, and look again after the screen changes.
+- Spreadsheets: call sheet_inspect first to learn the sheets, headers, existing formulas and formats. Then one sheet_edit with formulas and fills (a relative formula filled down a range), lookups, totals and formatting, never values you calculated yourself and typed in. Check the read-back values it returns before saying it is done.
 - Files and commands stay inside the workspace the person selected. Deleting permanently, risky commands and system changes wait for the person.
 - If an action says the person used the mouse or keyboard, stop and wait; never fight them for control.
 - When the work is finished or cannot safely continue, call finish_task with an honest result.
@@ -340,16 +499,29 @@ export function jarvisTools(memory: boolean): NormalizedToolDefinition[] {
     {
       name: "computer",
       description:
-        "Work on the task's computer. Actions: apps, open_app, file_list, file_read, file_write, file_trash, file_delete, run, screen, screen_click, screen_type, screen_keys, screen_scroll, system.",
+        "Work on the task's computer. Actions: apps, open_app, file_list, file_read, file_write, file_extract (text of PDF, Word, PowerPoint, Excel), sheet_inspect, sheet_edit, file_find, file_info, file_mkdir, file_move, file_copy, file_rename, file_trash, file_delete, run, screen, screen_click, screen_type, screen_keys, screen_scroll, system.",
       inputSchema: obj(
         {
           action: str("The computer action."),
-          name: str("App name, for open_app."),
+          name: str(
+            "App name for open_app, part of a file name for file_find, new name for file_rename.",
+          ),
           path: str("Path inside the workspace, for file actions."),
+          to: str("Destination inside the workspace, for file_move and file_copy."),
+          extension: str("File extension, for file_find."),
+          sheet: str("Worksheet name, for sheet_inspect and sheet_edit."),
+          ops: {
+            type: "ARRAY",
+            description:
+              "For sheet_edit: operations like {op:'fill',range:'E2:E50',formula:'=C2*D2'}, {op:'set',cell:'E51',value:'=SUM(E2:E50)'}, {op:'format',range,numberFormat,bold,fillColor,fontColor,align,border,columnWidth}, {op:'conditional',range,rule,value,fillColor}, table, filter, freeze, name, chart, sort, sheet_add, sheet_rename.",
+            items: { type: "OBJECT" },
+          },
           content: str("For file_write."),
           command: str("For run: one command, run in the workspace."),
           cwd: str("Optional folder inside the workspace, for run."),
-          observationId: str("The screen observationId a click point came from."),
+          observationId: str(
+            "The current screen observationId, for screen_click, screen_type, screen_keys and screen_scroll.",
+          ),
           x: num("For screen_click."),
           y: num("For screen_click."),
           text: str("For screen_type."),

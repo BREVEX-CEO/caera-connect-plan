@@ -11,6 +11,7 @@ The website/JARVIS UI remains the primary interaction surface. Desktop and Andro
 The preserved JARVIS source is the execution donor. Before implementing a capability, inspect its donor path, then copy/adapt useful logic into active `jarvis-runtime/`.
 
 Key donor families include:
+
 - `actions/browser_control.py`;
 - `actions/computer_control.py`;
 - `actions/computer_settings.py`;
@@ -38,6 +39,7 @@ The old GUI/provider-key/plugin product paths are not copied into active product
 ## Shared action broker
 
 One device-side action broker owns:
+
 - dispatch-time authorization;
 - account/device/task binding;
 - permission/capability checks;
@@ -55,6 +57,7 @@ Model output never becomes executable authority by itself.
 ## Control hierarchy
 
 Use the strongest safe method available:
+
 1. native/direct API or file/document operation;
 2. application scripting/CLI/macros;
 3. browser DOM/CDP/accessibility;
@@ -81,6 +84,7 @@ For risky untrusted browsing that needs no personal session, an isolated context
 Windows 10/11 is the first real desktop proof target.
 
 The Device Agent:
+
 - installs once;
 - autostarts lightweight;
 - uses one tray identity;
@@ -99,6 +103,7 @@ Tray provides status, Open OCADE, STOP, Pause/Resume where applicable, Exit.
 ## Real PC control
 
 Support:
+
 - application discovery and aliases;
 - existing-window preference;
 - focus/window verification;
@@ -177,7 +182,6 @@ A capability is not complete from source inspection alone.
 Use LOCAL TEST, REAL BROWSER, REAL WINDOWS, REAL ANDROID, REAL APPLE, DATABASE TEST, LIVE, BLOCKED and UNTESTED distinctly.
 
 Each phase reports commercial-launch readiness percentage and exact evidence.
-
 
 ## Relationship to the master plan
 

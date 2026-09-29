@@ -59,38 +59,121 @@ class WorkspaceTest(unittest.TestCase):
         if self.pc.sandbox is None:
             self.assertEqual(self.pc.run({"action": "run", "command": "echo x"})["status"], "blocked")
             return
+        if self.pc.sandbox == "workspace":
+            self.skipTest("direct runner: see DirectCommandTest")
         out = self.pc.run({"action": "run", "command": "pwd && echo built > out.txt"})
         self.assertEqual(out["status"], "done", out)
         self.assertEqual(out["stdout"].strip().splitlines()[0], str(self.root))
         self.assertEqual((self.root / "out.txt").read_text().strip(), "built")
-        if self.pc.sandbox == "bubblewrap":
-            probe = Path(__file__).resolve().parent / "escaped-probe.txt"
-            escape = self.pc.run({"action": "run", "command": f"echo x > {probe}"})
-            self.assertEqual(escape["status"], "failed")
-            self.assertFalse(probe.exists())
-            self.pc.run({"action": "run", "command": f"echo x > {self.home}/escaped.txt"})
-            self.assertFalse(Path(self.home, "escaped.txt").exists())
+        probe = Path(__file__).resolve().parent / "escaped-probe.txt"
+        escape = self.pc.run({"action": "run", "command": f"echo x > {probe}"})
+        self.assertEqual(escape["status"], "failed")
+        self.assertFalse(probe.exists())
+        self.pc.run({"action": "run", "command": f"echo x > {self.home}/escaped.txt"})
+        self.assertFalse(Path(self.home, "escaped.txt").exists())
         self.assertEqual(self.pc.run({"action": "run", "command": "exit 3"})["exitCode"], 3)
         self.assertEqual(self.pc.run({"action": "run", "command": "ls", "cwd": ".."})["status"], "blocked")
 
     def test_a_runaway_command_is_stopped(self):
         if self.pc.sandbox is None:
-            self.skipTest("no confined terminal on this computer")
+            self.skipTest("no terminal on this computer")
+        (self.root / "forever.py").write_text("import time\nwhile True:\n    time.sleep(1)\n")
+        command = "sleep 30" if self.pc.sandbox == "bubblewrap" else "python forever.py"
         old = ocade_computer.RUN_TIMEOUT_S
         ocade_computer.RUN_TIMEOUT_S = 1
         try:
             started = time.monotonic()
-            out = self.pc.run({"action": "run", "command": "sleep 30"})
+            out = self.pc.run({"action": "run", "command": command})
         finally:
             ocade_computer.RUN_TIMEOUT_S = old
         self.assertEqual(out["status"], "failed")
         self.assertLess(time.monotonic() - started, 10)
+
 
     def test_system_changes_wait_for_the_person(self):
         os.environ["OCADE_JARVIS_DRY_SYSTEM"] = "1"
         out = self.pc.run({"action": "system", "op": "restart"})
         self.assertEqual(out["status"], "needs_confirmation")
         self.assertIn("Would run", self.pc.run({"action": "system", "op": "restart"}, confirmed=True)["summary"])
+
+
+@unittest.skipUnless(Computer(tempfile.mkdtemp()).sandbox == "workspace",
+                     "the direct runner is the Windows/macOS path")
+class DirectCommandTest(unittest.TestCase):
+    """Windows/macOS: one program, no shell, inside the workspace, killed as a tree on STOP."""
+
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
+        self.root = self.home / "project"
+        self.root.mkdir()
+        self.pc = Computer(str(self.root))
+
+    def run_(self, command, **kw):
+        return self.pc.run({"action": "run", "command": command, **kw.pop("extra", {})}, **kw)
+
+    def test_a_development_command_runs_there_and_reports_its_output(self):
+        (self.root / "calc.py").write_text("import os\nprint(21 * 2)\nprint(os.getcwd())\n")
+        out = self.run_("python calc.py")
+        self.assertEqual(out["status"], "done", out)
+        lines = out["stdout"].split()
+        self.assertEqual(lines[0], "42")
+        self.assertEqual(Path(lines[1]).resolve(), self.root.resolve())
+        self.assertEqual(out["isolation"], "workspace")
+        (self.root / "fail.py").write_text("raise SystemExit(3)\n")
+        self.assertEqual(self.run_("python fail.py")["exitCode"], 3)
+
+    def test_git_works_in_the_workspace(self):
+        self.assertEqual(self.run_("git init")["status"], "done")
+        status = self.run_("git status --short")
+        self.assertEqual(status["status"], "done", status)
+
+    def test_no_shell_no_escape(self):
+        for command in ("python a.py && del x", "git log | more", "python a.py > ../out.txt",
+                        "echo %USERPROFILE%", "python a.py; calc"):
+            self.assertEqual(self.run_(command)["status"], "blocked", command)
+        for command in ("python ../outside.py", f"python {self.home / 'outside.py'}",
+                        "git -C .. status", "python sub/../../x.py"):
+            self.assertEqual(self.run_(command)["status"], "blocked", command)
+        self.assertEqual(self.run_("python a.py", extra={"cwd": ".."})["status"], "blocked")
+
+    def test_other_programs_wait_for_the_person(self):
+        self.assertEqual(self.run_("notepad")["status"] if __import__("shutil").which("notepad")
+                         else "needs_confirmation", "needs_confirmation")
+        self.assertEqual(self.run_("no-such-program-ocade")["status"], "failed")
+
+    def test_secrets_stay_out_of_the_command(self):
+        os.environ["OCADE_TEST_API_KEY"] = "sk-should-not-leak"
+        try:
+            (self.root / "env.py").write_text("import os\nprint(os.environ.get('OCADE_TEST_API_KEY'))\n")
+            self.assertEqual(self.run_("python env.py")["stdout"].strip(), "None")
+        finally:
+            os.environ.pop("OCADE_TEST_API_KEY")
+
+    def test_stop_kills_the_whole_tree(self):
+        (self.root / "parent.py").write_text(
+            "import subprocess, sys, time\n"
+            "child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
+            "open('child.pid', 'w').write(str(child.pid))\n"
+            "time.sleep(60)\n")
+        cancel = __import__("threading").Event()
+        timer = __import__("threading").Timer(2.0, cancel.set)
+        timer.start()
+        started = time.monotonic()
+        out = self.pc.run({"action": "run", "command": "python parent.py"}, cancel=cancel)
+        self.assertTrue(out.get("stopped"), out)
+        self.assertLess(time.monotonic() - started, 10)
+        pid = int((self.root / "child.pid").read_text())
+        time.sleep(0.5)
+        if sys.platform == "win32":
+            alive = str(pid) in subprocess.run(["tasklist", "/FI", f"PID eq {pid}"],
+                                               capture_output=True, text=True).stdout
+        else:
+            try:
+                os.kill(pid, 0)
+                alive = True
+            except OSError:
+                alive = False
+        self.assertFalse(alive, "the command's child kept running after STOP")
 
 
 class AppsTest(unittest.TestCase):
@@ -121,7 +204,20 @@ class AppsTest(unittest.TestCase):
         self.assertEqual(pc.run({"action": "open_app", "name": "Hidden"})["status"], "failed")
 
 
-@unittest.skipUnless(os.environ.get("DISPLAY"), "needs a display (run under xvfb-run)")
+def _other_hand(x: int, y: int) -> None:
+    """Mouse movement JARVIS did not make: the person's own hand."""
+    if sys.platform.startswith("linux"):
+        subprocess.run(["xdotool", "mousemove", str(x), str(y)], check=True)
+    else:
+        # SendInput, like a real mouse: SetCursorPos (pyautogui.moveTo) fires no input hook.
+        from pynput.mouse import Controller
+        mouse = Controller()
+        px, py = mouse.position
+        mouse.move(x - px, y - py)
+
+
+@unittest.skipUnless(os.environ.get("DISPLAY") or sys.platform in ("win32", "darwin"),
+                     "needs a display (run under xvfb-run)")
 class ScreenTest(unittest.TestCase):
     def setUp(self):
         self.pc = Computer(None)
@@ -143,17 +239,17 @@ class ScreenTest(unittest.TestCase):
         obs = self.pc.run({"action": "screen"})["observation"]["observationId"]
         self.pc.run({"action": "screen_click", "x": 3, "y": 3, "observationId": obs})  # starts the guard
         time.sleep(0.6)
-        subprocess.run(["xdotool", "mousemove", "200", "200"], check=True)  # someone else's hand
+        _other_hand(200, 200)
         time.sleep(0.5)
-        paused = self.pc.run({"action": "screen_keys", "keys": ["shift"]})
+        look = lambda: self.pc.run({"action": "screen"})["observation"]["observationId"]  # noqa: E731
+        keys = {"action": "screen_keys", "keys": ["shift"]}
+        paused = self.pc.run({**keys, "observationId": look()})
         self.assertEqual(paused["status"], "needs_confirmation")
-        self.assertEqual(self.pc.run({"action": "screen_keys", "keys": ["shift"]},
-                                     confirmed=True)["status"], "done")
+        self.assertEqual(self.pc.run({**keys, "observationId": look()}, confirmed=True)["status"], "done")
         time.sleep(0.6)
-        subprocess.run(["xdotool", "mousemove", "100", "100"], check=True)
+        _other_hand(100, 100)
         time.sleep(0.5)
-        self.assertEqual(self.pc.run({"action": "screen_keys", "keys": ["shift"]},
-                                     cowork=True)["status"], "done")
+        self.assertEqual(self.pc.run({**keys, "observationId": look()}, cowork=True)["status"], "done")
 
 
 if __name__ == "__main__":

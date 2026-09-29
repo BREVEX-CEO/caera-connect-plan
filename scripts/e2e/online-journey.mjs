@@ -39,7 +39,7 @@ const BASE = arg("base", "http://127.0.0.1:8788");
  */
 const EXACT_COUNT = /^\d+ of 28 left$/;
 const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 
 const results = [];
 let failures = 0;

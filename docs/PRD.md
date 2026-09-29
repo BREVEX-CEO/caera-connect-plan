@@ -3,6 +3,7 @@
 ## Product
 
 OCADE combines:
+
 - Chat;
 - OCADE JARVIS;
 - Library;
@@ -35,6 +36,7 @@ It can navigate, use tabs, download/upload scoped files, use existing sessions, 
 ## PC work
 
 With Device Agent, JARVIS can use:
+
 - browsers;
 - Office;
 - files;
@@ -93,7 +95,6 @@ No capability is called complete until real evidence exists.
 Visual polish, accessibility, performance, recovery and account isolation are product requirements, not optional QA.
 
 Each phase reports commercial-launch readiness percentage.
-
 
 ## Master Phase 1–49 authority
 

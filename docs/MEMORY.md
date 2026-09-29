@@ -25,6 +25,7 @@ Immutable source lives under `imports/ocade-jarvis/source-original/`.
 Active runtime lives under `jarvis-runtime/`.
 
 Owner wants approximately 98% donor capability/logic reuse where safe:
+
 - copy/adapt donor implementation into active runtime;
 - rename/wire cleanly;
 - do not cut/move/modify donor;
@@ -82,6 +83,7 @@ Canonical privileged surface: `admin.ocade.in`.
 ## Manual setup status
 
 Done:
+
 - Inno Setup installed.
 - Android Studio/Pixel emulator/ADB installed.
 - Appium package + UiAutomator2 driver installed.
@@ -89,6 +91,7 @@ Done:
 - Chrome remote debugging enabled.
 
 Deferred/skipped:
+
 - Sentry project/DSN.
 - payment provider/tax/legal provider decisions.
 - paid Supabase leaked-password protection.
@@ -107,6 +110,7 @@ Deferred/skipped:
 Use MCPs during coding, not only at the end.
 
 Real evidence:
+
 - existing Chrome/CDP + DevTools;
 - browser compatibility matrix;
 - Physical Computer Use;
@@ -119,7 +123,6 @@ Real evidence:
 After each phase report commercial-launch readiness percentage.
 
 Historical audits and ledger entries remain evidence; newer owner authority wins on current direction.
-
 
 ## Master-plan reset — 2026-09-29
 

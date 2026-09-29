@@ -41,6 +41,8 @@ export interface EnrollmentStarted {
   uri: string;
   /** The same secret, for typing in by hand when a camera is not an option. */
   secret: string;
+  /** The QR code Supabase drew for `uri`, as an image URL. */
+  qr: string | null;
 }
 
 type Client = SupabaseClient<never, never, never>;
@@ -185,12 +187,19 @@ export async function startEnrollment(
   ).auth.mfa.enroll({
     factorType: "totp",
     friendlyName: name,
+    // The label the authenticator app shows; without it the entry is named after the auth host.
+    issuer: "OCADE",
   });
   if (error) throw new Error(describeMfaError(error));
   if (!data?.totp?.uri || !data.totp.secret) {
     throw new Error("OCADE could not start the setup. Try again in a moment.");
   }
-  return { factorId: data.id, uri: data.totp.uri, secret: data.totp.secret };
+  return {
+    factorId: data.id,
+    uri: data.totp.uri,
+    secret: data.totp.secret,
+    qr: data.totp.qr_code || null,
+  };
 }
 
 /**
@@ -214,7 +223,7 @@ export async function verifyEnrollment(
   const { error } = await supabaseClient.auth.mfa.verify({
     factorId,
     challengeId: challenge.id,
-    code: code.replace(/\s/g, ""),
+    code: code.replace(/\D/g, ""),
   });
   if (error) throw new Error(describeMfaError(error));
 }

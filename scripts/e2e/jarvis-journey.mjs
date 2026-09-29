@@ -31,7 +31,7 @@ const arg = (name, fallback) => {
 };
 const BASE = arg("base", "http://127.0.0.1:8788");
 const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 const PYTHON = process.env.PYTHON ?? (process.platform === "win32" ? "python" : "python3");
 const SITE_PORT = 8799;
 const SITE = `http://127.0.0.1:${SITE_PORT}`;
@@ -435,7 +435,17 @@ except i.UpdateRequired:
         args: { action: "file_write", path: "notes.md", content: "OCADE was here" },
       },
       terminal
-        ? { tool: "computer", args: { action: "run", command: "cat notes.md" } }
+        ? {
+            tool: "computer",
+            args: {
+              action: "run",
+              // One program, no shell: the same command on Linux (bubblewrap) and Windows.
+              command:
+                process.platform === "win32"
+                  ? `python -c "print(open('notes.md').read())"`
+                  : "cat notes.md",
+            },
+          }
         : { tool: "computer", args: { action: "file_read", path: "notes.md" } },
       { tool: "computer", args: { action: "file_read", path: "../outside.txt" } },
       ...(terminal
@@ -476,6 +486,70 @@ except i.UpdateRequired:
     if (terminal) {
       check("the declined push never ran", computerTurns.includes("The person declined this step"));
     }
+
+    /* --- Talking to JARVIS while it works ------------------------------------ */
+
+    await script("live-task", [
+      {
+        tool: "start_task",
+        args: { title: "Tidy the notes", where: "browser", steps: ["Look", "Look again"] },
+      },
+      { tool: "browser", args: { action: "wait", seconds: 5, step: 1 } },
+      { tool: "browser", args: { action: "wait", seconds: 5, step: 2 } },
+      { tool: "finish_task", args: { outcome: "completed", result: "Tidied." } },
+      { text: "All tidy." },
+    ]);
+    await say("live-task tidy my notes");
+    const working = await until(
+      async () =>
+        (await page.getByText("You can keep talking").count()) === 1 &&
+        (await page.locator("[data-testid=jarvis-task-status]").count()) === 1,
+      30_000,
+    );
+    check("while it works, JARVIS invites the person to keep talking", working);
+    const interject = async (text) => {
+      await page.locator("#jarvis-composer").fill(text);
+      await page.getByRole("button", { name: "Send to JARVIS while it works" }).click();
+    };
+    await interject("OCADE what are you doing?");
+    check(
+      "“what are you doing?” is answered at once from the real task",
+      await until(
+        async () => (await page.getByText(/I'm working on “Tidy the notes”/).count()) >= 1,
+        5_000,
+      ),
+    );
+    await interject("wait");
+    check(
+      "“wait” pauses the work",
+      await until(
+        async () =>
+          (await page.getByRole("button", { name: "Continue", exact: true }).count()) >= 1,
+        5_000,
+      ),
+    );
+    const pausedAt = (await boundary()).turns.length;
+    await page.waitForTimeout(7_000);
+    check(
+      "nothing new is asked of the model while paused",
+      (await boundary()).turns.length === pausedAt,
+    );
+    await interject("use the other file");
+    await page.getByRole("button", { name: "Continue", exact: true }).first().click();
+    await idle();
+    const liveTurns = (await boundary()).turns.map((t) => t.content).join("\n");
+    check(
+      "a mid-task redirect reaches the planner as the person's words",
+      liveTurns.includes('While you were working, the person said: [\\"use the other file\\"]') ||
+        liveTurns.includes('While you were working, the person said: ["use the other file"]'),
+    );
+    check(
+      "and the task still finishes",
+      (await page.locator("[data-testid=jarvis-task-status]").innerText()) === "Completed",
+    );
+    // The live-talk proof spent uses of its own; the later proofs start from a full allowance.
+    await setJarvisRemaining(28);
+    await page.reload({ waitUntil: "networkidle" });
 
     /* --- Online capacity unavailable: a calm OCADE state, the task saved -------- */
     const setBoundary = (status) =>

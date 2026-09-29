@@ -11,6 +11,7 @@ OCADE is a global AI operating product, not only a chatbot. Its core experiences
 JARVIS is the primary execution differentiator.
 
 It must:
+
 - converse naturally;
 - answer ordinary questions without manufacturing a task;
 - perform explicit work through secure tasks;
@@ -69,6 +70,7 @@ Privileged mutations use strong auth, reasoned audit and immediate revocation se
 ## Deferred business integrations
 
 Current coding mission does not wait on:
+
 - Sentry project creation;
 - payment-provider integration;
 - paid leaked-password protection setting;
@@ -79,6 +81,7 @@ These must be reported honestly as deferred/non-blocking rather than silently tr
 ## Product quality
 
 Commercial readiness is measured by:
+
 - real task success;
 - security;
 - account isolation;
@@ -93,7 +96,6 @@ Commercial readiness is measured by:
 Each implementation phase reports an evidence-based commercial-launch readiness percentage.
 
 Never use unsupported absolute claims such as “zero bugs” or “unhackable”.
-
 
 ## Master execution roadmap
 

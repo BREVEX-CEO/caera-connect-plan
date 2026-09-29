@@ -10,9 +10,12 @@ and a new observation is returned instead.
 SCOPE. Files and commands stay inside the one workspace folder the person chose
 on this computer (`--workspace`); a path that resolves outside it, including
 through a symlink, is refused. Whole-computer file access is never the default.
-Commands run only where the operating system confines them to that folder
-(bubblewrap); elsewhere the terminal is reported unavailable, never faked.
-Unconfirmed commands also run without network access.
+On Linux commands run confined to that folder by bubblewrap, without network
+unless confirmed. On Windows and macOS there is no such confinement, so a
+command is one program started directly (no shell: no chains, pipes or
+redirects), in the workspace, with path arguments inside it and secrets
+removed from its environment; programs outside the development set wait for
+the person's confirmation. It runs with the person's own access, and says so.
 
 STOP. Every action receives the cancellation token of the action being run;
 a command is killed with its whole process group and typing stops between
@@ -48,6 +51,18 @@ MAX_READ = 30_000   # what one result can carry back (OCADE keeps results under 
 MAX_OUTPUT = 12_000
 RUN_TIMEOUT_S = 300
 FRAME_WIDTH = 1280
+
+# Programs a coding task runs in the workspace without asking (risky arguments
+# such as `git push` or `install` still wait for the person at OCADE).
+DEV_PROGRAMS = frozenset({
+    "git", "python", "python3", "py", "pip", "pip3", "pytest", "node", "npm", "npx", "pnpm",
+    "yarn", "bun", "deno", "tsc", "eslint", "prettier", "vitest", "jest", "ruff", "black",
+    "mypy", "dotnet", "cargo", "rustc", "go", "java", "javac", "mvn", "gradle", "make",
+    "cmake", "code"})
+# Anything a shell (or cmd.exe for .cmd/.bat programs) would interpret.
+SHELL_META = re.compile(r"[&|;<>^`$%!\r\n]")
+SECRET_ENV = re.compile(r"KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|COOKIE|SESSION|AUTH",
+                        re.IGNORECASE)
 
 
 def _jpeg(image) -> str:
@@ -178,8 +193,9 @@ class Computer:
         self._obs_seq = 0
         self._observation: dict | None = None
         self._lock = threading.Lock()  # one controller of mouse and keyboard at a time
-        # Only a real filesystem boundary counts; a timeout or rlimits are not isolation.
-        self.sandbox = "bubblewrap" if SYSTEM == "Linux" and shutil.which("bwrap") else None
+        # Linux: a real filesystem boundary. Elsewhere: one direct program in the workspace.
+        self.sandbox = "bubblewrap" if SYSTEM == "Linux" and shutil.which("bwrap") else (
+            None if SYSTEM == "Linux" else "workspace")
 
     # -- what this computer offers ------------------------------------------------
 
@@ -217,6 +233,8 @@ class Computer:
                 return self._open_app(str(action.get("name", "")), confirmed)
             if kind.startswith("file_"):
                 return self._file(kind, action, confirmed)
+            if kind in ("sheet_inspect", "sheet_edit"):
+                return self._sheet(kind, action, cancel)
             if kind == "run":
                 return self._run(str(action.get("command", "")), action.get("cwd"), confirmed, cancel)
             if kind == "system":
@@ -285,8 +303,30 @@ class Computer:
                 if os.path.lexists(tmp):
                     os.unlink(tmp)
             return {"status": "done", "summary": f"Wrote {rel}"}
+        if kind == "file_mkdir":
+            existed = path.is_dir()
+            path.mkdir(parents=True, exist_ok=True)
+            return {"status": "done", "summary": f"{rel} already existed" if existed else f"Created folder {rel}"}
+        if kind == "file_info":
+            info = path.stat()
+            return {"status": "done", "summary": f"Details of {rel}",
+                    "info": {"name": path.name, "folder": path.is_dir(), "size": info.st_size,
+                             "modified": time.strftime("%Y-%m-%d %H:%M", time.localtime(info.st_mtime)),
+                             "extension": path.suffix or None}}
+        if kind == "file_find":
+            return self._find(path, rel, str(action.get("name", "")), str(action.get("extension", "")))
+        if kind == "file_extract":
+            from ocade_documents import Unreadable, extract_text
+            try:
+                text, pages = extract_text(path, MAX_READ)
+            except Unreadable as e:
+                return {"status": "failed", "summary": str(e)}
+            return {"status": "done", "summary": f"Read the text of {rel}", "content": text,
+                    "truncated": len(text) >= MAX_READ, **({"pages": pages} if pages else {})}
         if path == self.root:
             raise ScopeError("The workspace itself cannot be removed")
+        if kind in ("file_move", "file_copy", "file_rename"):
+            return self._relocate(kind, path, rel, action)
         if kind == "file_trash":
             from send2trash import send2trash
             send2trash(str(path))
@@ -298,6 +338,74 @@ class Computer:
             return {"status": "done", "summary": f"Deleted {rel} permanently"}
         return {"status": "failed", "summary": "Unknown file action"}
 
+    def _sheet(self, kind: str, action: dict, cancel: threading.Event) -> dict:
+        import ocade_sheets
+        path = self._inside(str(action.get("path", "")))
+        rel = str(path.relative_to(self.root))
+        sheet = action.get("sheet")
+        try:
+            if kind == "sheet_inspect":
+                return {"status": "done", "summary": f"Inspected {rel}",
+                        "workbook": ocade_sheets.inspect(path, sheet)}
+            home = Path(os.environ.get("OCADE_JARVIS_HOME", Path.home() / ".ocade_jarvis"))
+            out = ocade_sheets.edit(path, sheet, list(action.get("ops") or []), home / "undo", cancel)
+        except ocade_sheets.SheetError as e:
+            return {"status": "failed", "summary": str(e)}
+        except KeyError:
+            return {"status": "failed", "summary": "That sheet does not exist in the workbook"}
+        if not out.get("ok"):
+            return {"status": "failed", "stopped": bool(out.get("stopped")),
+                    "summary": f"The workbook was not changed: {str(out.get('error', ''))[:200]}"}
+        return {"status": "done", "summary": f"Updated {rel} ({len(out['applied'])} changes, "
+                                             f"{'in Excel' if out['engine'] == 'excel' else 'in the file'})",
+                **{k: v for k, v in out.items() if k != "ok"}}
+
+    def _find(self, folder: Path, rel: str, name: str, extension: str) -> dict:
+        """Donor find_files: name and/or extension, bounded, inside the workspace only."""
+        if not folder.is_dir():
+            return {"status": "failed", "summary": f"{rel} is not a folder"}
+        found, folders = [], 0
+        for item in folder.rglob("*"):
+            if item.is_dir():
+                folders += 1
+                if folders > 2000:
+                    break
+                continue
+            if extension and item.suffix.lower() != ("." + extension.lower().lstrip(".")):
+                continue
+            if name and name.lower() not in item.name.lower():
+                continue
+            found.append({"path": str(item.relative_to(self.root)), "size": item.stat().st_size})
+            if len(found) >= 100:
+                break
+        return {"status": "done", "summary": f"Found {len(found)} file(s)", "entries": found}
+
+    def _relocate(self, kind: str, source: Path, rel: str, action: dict) -> dict:
+        """Donor move/copy/rename: never over an existing file, both ends inside the workspace."""
+        if not source.exists():
+            return {"status": "failed", "summary": f"{rel} does not exist"}
+        if kind == "file_rename":
+            new = str(action.get("name", ""))
+            if not new or re.search(r"[\\/:*?\"<>|]", new) or new in (".", ".."):
+                return {"status": "failed", "summary": "That is not a usable name"}
+            target = self._inside(str((source.parent / new).relative_to(self.root)))
+        else:
+            target = self._inside(str(action.get("to", "")))
+            if target.is_dir():
+                target = self._inside(str((target / source.name).relative_to(self.root)))
+        if target.exists():
+            return {"status": "failed",
+                    "summary": f"{target.relative_to(self.root)} already exists; nothing was overwritten"}
+        if source in target.parents:
+            return {"status": "failed", "summary": "A folder cannot go inside itself"}
+        target.parent.mkdir(parents=True, exist_ok=True)
+        to = str(target.relative_to(self.root))
+        if kind == "file_copy":
+            shutil.copytree(source, target) if source.is_dir() else shutil.copy2(source, target)
+            return {"status": "done", "summary": f"Copied {rel} to {to}"}
+        shutil.move(str(source), str(target))
+        return {"status": "done", "summary": f"{'Renamed' if kind == 'file_rename' else 'Moved'} {rel} to {to}"}
+
     # -- commands: inside the workspace, bounded, isolated where the host allows -----
 
     def _run(self, command: str, cwd: str | None, confirmed: bool, cancel: threading.Event) -> dict:
@@ -307,7 +415,13 @@ class Computer:
         folder = self._inside(cwd or ".")
         if not folder.is_dir():
             return {"status": "failed", "summary": "That folder does not exist"}
-        argv, extra = self._sandboxed(command, folder, network=confirmed)
+        if self.sandbox == "bubblewrap":
+            argv, extra = self._sandboxed(command, folder, network=confirmed)
+        else:
+            direct = self._direct(command, folder, confirmed)
+            if isinstance(direct, dict):
+                return direct
+            argv, extra = direct
         started = time.monotonic()
         process = subprocess.Popen(argv, cwd=folder, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                    stdin=subprocess.DEVNULL, **extra)
@@ -346,8 +460,50 @@ class Computer:
                  "--chdir", str(folder), "/bin/sh", "-c", command],
                 {"start_new_session": True, "preexec_fn": _limits})
 
+    def _direct(self, command: str, folder: Path, confirmed: bool) -> tuple[list[str], dict] | dict:
+        """One program, no shell, arguments that name paths kept inside the workspace."""
+        if SHELL_META.search(command):
+            return {"status": "blocked",
+                    "summary": "Run one program at a time here: chains, pipes and redirects are not allowed"}
+        try:
+            argv = [a[1:-1] if len(a) > 1 and a[0] == a[-1] and a[0] in "\"'" else a
+                    for a in shlex.split(command, posix=False)]
+        except ValueError:
+            return {"status": "failed", "summary": "That command could not be read"}
+        if not argv:
+            return {"status": "failed", "summary": "No command was given"}
+        program = shutil.which(argv[0])
+        if program is None:
+            return {"status": "failed", "summary": f"{Path(argv[0]).name[:60]} is not installed here"}
+        if Path(argv[0]).stem.lower() not in DEV_PROGRAMS and not confirmed:
+            return {"status": "needs_confirmation",
+                    "summary": f"Run {Path(argv[0]).name[:60]} on this computer?"}
+        for arg in argv[1:]:
+            if arg.startswith("-") and "=" not in arg:
+                continue
+            value = arg.split("=", 1)[1] if arg.startswith("-") else arg
+            looks_like_path = bool(re.match(r"^([A-Za-z]:|[\\/~]|\.\.?([\\/]|$))", value)) \
+                or ".." in re.split(r"[\\/]", value)
+            if looks_like_path:
+                target = (folder / value).resolve()
+                if target != self.root and self.root not in target.parents:
+                    raise ScopeError("That path is outside the workspace")
+        env = {k: v for k, v in os.environ.items() if not SECRET_ENV.search(k)}
+        extra: dict = {"env": env}
+        if SYSTEM == "Windows":
+            extra["creationflags"] = (getattr(subprocess, "CREATE_NO_WINDOW", 0)
+                                      | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0))
+        else:
+            extra["start_new_session"] = True
+        return [program, *argv[1:]], extra
+
     @staticmethod
     def _kill(process: subprocess.Popen) -> None:
+        if SYSTEM == "Windows":
+            # The whole tree the command started, not just the program itself.
+            subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                           capture_output=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            return
         try:  # the whole group; bwrap --die-with-parent takes the rest
             os.killpg(process.pid, signal.SIGKILL) if hasattr(os, "killpg") else process.kill()
         except (ProcessLookupError, PermissionError):

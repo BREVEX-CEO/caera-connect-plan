@@ -11,6 +11,7 @@ The interface should feel like a capable partner, not a dashboard full of implem
 Use the OCADE silver-white round 3D orb/knowledge graph as the central identity.
 
 Real data may create nodes/relationships for:
+
 - conversations;
 - JARVIS memory;
 - tasks;
@@ -28,6 +29,7 @@ Support pan, zoom, semantic detail, hover/selection and reduced-motion alternati
 Execution never removes conversational quality.
 
 During a task, the user can type/speak naturally:
+
 - “What are you doing?”
 - “Use the other file.”
 - “Wait.”
@@ -41,6 +43,7 @@ JARVIS answers from truthful current task state and updates/replans accordingly.
 Show concise current action/stage and truthful progress only when measurable.
 
 Prominent controls:
+
 - Stop;
 - Take Over;
 - Continue when paused.
@@ -61,6 +64,7 @@ Android is the floating mini-control platform.
 
 Collapsed bubble is minimal.
 Expanded bubble includes:
+
 - chat;
 - voice;
 - task status/progress;
@@ -110,6 +114,7 @@ Use restrained glass outside JARVIS focal surfaces.
 ## QA
 
 Material UI changes require screenshot/real visual verification across:
+
 - desktop;
 - tablet;
 - 360/375 phone;
@@ -118,7 +123,6 @@ Material UI changes require screenshot/real visual verification across:
 - loading/error/empty/permission/limit states.
 
 Visual bugs fail the phase.
-
 
 ## Master Phase 1–49 authority
 

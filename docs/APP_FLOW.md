@@ -3,6 +3,7 @@
 ## Customer navigation
 
 Keep the normal product small:
+
 - Chat;
 - JARVIS;
 - Library;
@@ -81,6 +82,7 @@ User may ask “what are you doing?” or redirect while task runs. JARVIS answe
 ## Wake
 
 First enable:
+
 1. explain local wake;
 2. download/verify small Hey OCADE model;
 3. store once;
@@ -130,6 +132,7 @@ Return to normal customer product without exposing privileged internals.
 ## Device removal
 
 If device is active:
+
 1. local cancellation;
 2. active task-owned input/process stops;
 3. task/activity cancelled;
@@ -143,7 +146,6 @@ Long tasks checkpoint. Crash/reboot/network recovery reconciles completed steps 
 ## Remove/uninstall
 
 Explicit removal stops runtime authority, removes local credentials/cache according to product setting, disconnects the device and leaves cloud conversations unless separately deleted.
-
 
 ## Master Phase 1–49 authority
 

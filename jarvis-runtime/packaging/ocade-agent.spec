@@ -18,10 +18,11 @@ a = Analysis(
     # Every file the runtime opens by path. `--health` opens them all, so a
     # build that forgot one fails its own health check before it ships.
     datas=[(str(root / "ocade_protocol.json"), "."),
-           (str(root / "actions" / "ocade_page.js"), "actions")],
+           (str(root / "actions" / "ocade_page.js"), "actions"),
+           (str(root / "actions" / "ocade_excel.ps1"), "actions")],
     hiddenimports=[
         "ocade_device", "ocade_identity", "ocade_computer", "ocade_update", "ocade_mini",
-        "ocade_egress", "ocade_wake", "actions.browser_control",
+        "ocade_egress", "ocade_wake", "ocade_existing_browser", "ocade_documents", "ocade_sheets", "actions.browser_control",
         "pystray", "pystray._win32", "pystray._darwin", "pystray._xorg",
         "pynput.keyboard", "pynput.mouse",
     ],

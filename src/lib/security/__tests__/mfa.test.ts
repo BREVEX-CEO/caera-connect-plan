@@ -50,7 +50,11 @@ function fakeSupabase(
         return {
           data: options.enrollResult ?? {
             id: "factor-1",
-            totp: { uri: "otpauth://totp/OCADE:me?secret=ABC", secret: "ABC" },
+            totp: {
+              uri: "otpauth://totp/OCADE:me?secret=ABC",
+              secret: "ABC",
+              qr_code: "data:image/svg+xml;utf-8,<svg/>",
+            },
           },
           error: null,
         };
@@ -136,10 +140,22 @@ describe("enrollment", () => {
   it("returns both a QR URI and a typeable secret", async () => {
     // A camera is not always an option — a desktop authenticator, a locked-down
     // phone, a person who cannot use one. The secret is the way in without it.
-    const started = await startEnrollment("iPhone", fakeSupabase().client);
+    const fake = fakeSupabase();
+    const started = await startEnrollment("iPhone", fake.client);
     expect(started.uri).toContain("otpauth://");
     expect(started.secret).toBe("ABC");
     expect(started.factorId).toBe("factor-1");
+    expect(started.qr).toMatch(/^data:image\/svg\+xml/);
+    // The app entry is named OCADE, not the auth server's host name.
+    expect(fake.calls[0]?.args).toMatchObject({ factorType: "totp", issuer: "OCADE" });
+  });
+
+  it("sends only the digits of a typed code", async () => {
+    const fake = fakeSupabase();
+    await verifyEnrollment("factor-1", " 12-34 56", fake.client);
+    expect(fake.calls.find((call) => call.name === "verify")?.args).toMatchObject({
+      code: "123456",
+    });
   });
 
   it("insists on a name, before calling Supabase at all", async () => {

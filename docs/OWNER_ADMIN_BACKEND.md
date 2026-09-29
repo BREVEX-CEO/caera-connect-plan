@@ -48,6 +48,7 @@ Never display passwords, MFA secrets, raw tokens, provider secrets or full payme
 ## Staff grant workflow
 
 Owner Console:
+
 1. enter existing user's email;
 2. server resolves verified account to stable UUID;
 3. choose role;
@@ -68,6 +69,7 @@ Provide emergency “Revoke all staff privileged sessions”.
 ## Dashboard modules
 
 Build real modules only:
+
 - Overview;
 - Customers;
 - Staff;
@@ -86,6 +88,7 @@ No fake/demo operational metrics. If data has no real authority, hide it or show
 ## Button/function completeness rule
 
 Every visible actionable control must have:
+
 - real backend authority;
 - role/permission check;
 - loading state;
@@ -105,6 +108,7 @@ A rendered button with no proven backend/result path is incomplete.
 Based on permission, Owner/Admin/Support can search by approved identifiers and view safe operational state.
 
 Supported actions include:
+
 - plan/entitlement view/change where currently supported;
 - usage adjustment;
 - supported reset-window action;
@@ -143,6 +147,7 @@ If execution-control state cannot be read, physical execution fails closed.
 ## Audit
 
 Every privileged mutation should record, where relevant:
+
 - actor;
 - role;
 - target;
@@ -160,6 +165,7 @@ Audit is append-only and not a substitute for authorization.
 Use Primary Owner + Staff + Customer A + Customer B.
 
 Test:
+
 - hidden privileged surface for customers;
 - direct URL attempts;
 - privilege escalation;
@@ -174,7 +180,6 @@ Test:
 - emergency controls.
 
 Every phase reports commercial-launch readiness percentage.
-
 
 ## Master Phase 1–49 authority
 

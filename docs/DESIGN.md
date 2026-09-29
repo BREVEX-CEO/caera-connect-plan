@@ -47,6 +47,7 @@ Complex settings/account management stay in the main OCADE UI.
 Owner/Staff Console may be denser than customer UI but still uses clean OCADE hierarchy, search and progressive disclosure.
 
 Role-specific account-menu labels:
+
 - Owner Console;
 - Staff Console.
 
@@ -55,6 +56,7 @@ Customers see neither.
 ## States
 
 Every action/button supports coherent:
+
 - idle;
 - hover/focus;
 - loading;
@@ -89,7 +91,6 @@ Mobile keyboard must not cover essential controls.
 Do not expose internal terms such as provider names, CDP, Playwright, PyAutoGUI, MCP, Supabase or Cloudflare to normal customers.
 
 Customer errors explain what happened and what the user can do next.
-
 
 ## Master Phase 1–49 authority
 

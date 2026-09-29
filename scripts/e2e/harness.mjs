@@ -27,6 +27,11 @@
  */
 import { spawn, spawnSync } from "node:child_process";
 import path from "node:path";
+import { chromium } from "playwright-core";
+
+// The full Chromium build, never Playwright's separate headless shell: the shell
+// build shipped with this Playwright crashes on pages real Chrome renders.
+process.env.PLAYWRIGHT_CHROMIUM ||= chromium.executablePath();
 
 const WEB_PORT = 8788;
 const SUPABASE_PORT = 54321;
@@ -50,6 +55,7 @@ const ALL = [
   "browsers",
   "admin",
   "bubble",
+  "mfa",
 ];
 
 const requested = process.argv.slice(2).filter((value) => !value.startsWith("--"));

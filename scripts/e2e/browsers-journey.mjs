@@ -14,7 +14,7 @@ const arg = (name, fallback) => {
 };
 const BASE = arg("base", "http://127.0.0.1:8788");
 const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
-const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 
 let failures = 0;
 function check(name, ok, detail = "") {

@@ -32,6 +32,7 @@ import { cn, typedBeforeHydration } from "@/lib/utils";
 import { Orb } from "./Orb";
 import { buildGraph, type GraphNode } from "./graph";
 import { runJarvisTurn, Stopped } from "./agent";
+import { LiveControl, statusReply, workIntent } from "./live-control";
 import { liveDeps, ModelRefused, Unavailable } from "./live-deps";
 import { isAllowed } from "./permissions";
 import { FINISHED } from "./protocol";
@@ -156,6 +157,9 @@ export function JarvisWorkspace({
   const busyStrikes = useRef(0);
   const resumeAfterBusy = useRef<string | null>(null);
   const abort = useRef<AbortController | null>(null);
+  // The running turn's mailbox and pause switch: the person talks while JARVIS works.
+  const live = useRef<LiveControl | null>(null);
+  const [paused, setPaused] = useState(false);
   const [confirmAsk, setConfirmAsk] = useState<{
     summary: string;
     resolve: (ok: boolean) => void;
@@ -285,7 +289,13 @@ export function JarvisWorkspace({
     task: JarvisTaskRow | null = conversationTask,
   ) => {
     const text = raw.trim();
-    if (!text || running || busyRef.current || transcript !== "ready" || spent) return;
+    if (!text) return;
+    if (running && live.current && !retryOf) {
+      setDraft("");
+      void interject(text, fromVoice);
+      return;
+    }
+    if (running || busyRef.current || transcript !== "ready" || spent) return;
     if (!signedIn) {
       void navigate({ to: "/auth", search: { next: "/ocade-jarvis" } });
       return;
@@ -332,6 +342,9 @@ export function JarvisWorkspace({
 
     const controller = new AbortController();
     abort.current = controller;
+    const liveControl = new LiveControl();
+    live.current = liveControl;
+    setPaused(false);
     setNoDevice(null);
     setRunning(true);
     setLiveAnswer(null);
@@ -353,6 +366,7 @@ export function JarvisWorkspace({
           onTask: (task) => mine() && setActiveTask(task),
           onActivity: refresh,
           onNoDevice: (message) => mine() && setNoDevice(message),
+          live: liveControl,
           // A question from a conversation no longer on screen is declined.
           confirm: (summary) =>
             mine()
@@ -422,9 +436,77 @@ export function JarvisWorkspace({
         setTakeover(null);
       }
       if (abort.current === controller) abort.current = null;
+      // Said in the last moment of the turn: answered as the next turn, not lost.
+      const unheard = liveControl.drain();
+      if (live.current === liveControl) {
+        live.current = null;
+        setPaused(false);
+      }
       refresh();
+      if (unheard.length && mine() && !controller.signal.aborted) {
+        window.setTimeout(() => void sendRef.current(unheard.join("\n"), fromVoice), 0);
+      }
     }
   };
+
+  /** Something said while JARVIS works: answered now, acted on at the next safe point. */
+  const interject = async (text: string, fromVoice: boolean) => {
+    const control = live.current;
+    const id = conversationId;
+    if (!control || !id) return;
+    const intent = workIntent(text);
+    if (intent === "stop") {
+      void stop();
+      return;
+    }
+    const task = activeTaskRef.current;
+    let reply: string;
+    if (intent === "pause") {
+      control.pause();
+      setPaused(true);
+      reply =
+        "Paused. I'll finish only the step in progress and wait. Say continue when you're ready.";
+    } else if (intent === "continue") {
+      if (control.paused) {
+        control.resume();
+        setPaused(false);
+        reply = "Continuing.";
+      } else if (takeover) {
+        void resume();
+        reply = "Taking it back from here.";
+      } else {
+        reply = statusReply(task, false, lastActivityOf(task));
+      }
+    } else if (intent === "status") {
+      reply = statusReply(task, control.paused, lastActivityOf(task));
+    } else {
+      control.tell(text);
+      reply = control.paused
+        ? "Noted. I'll use that when you say continue."
+        : "Got it. I'll adjust at the next step.";
+    }
+    const owner = ownerRef.current;
+    const add = (role: Turn["role"], content: string, saved: string) =>
+      ownerRef.current === owner && setTurns((list) => [...list, { id: saved, role, content }]);
+    try {
+      const asked = await persistChatMessage({ conversationId: id, role: "user", content: text });
+      add("user", text, asked.record.id);
+      const answered = await persistChatMessage({
+        conversationId: id,
+        role: "assistant",
+        content: reply,
+      });
+      add("assistant", reply, answered.record.id);
+    } catch {
+      // The reply still reaches the person; only the record failed.
+      add("user", text, crypto.randomUUID());
+      add("assistant", reply, crypto.randomUUID());
+    }
+    if (prefs.speak && (fromVoice || voice.state !== "off")) voice.speak(reply);
+  };
+
+  const lastActivityOf = (task: JarvisTaskRow | null) =>
+    task ? (jarvis?.activity.find((a) => a.task_id === task.id)?.summary ?? null) : null;
   sendRef.current = send;
   const activeTaskRef = useRef<JarvisTaskRow | null>(null);
   activeTaskRef.current = activeTask;
@@ -449,6 +531,8 @@ export function JarvisWorkspace({
 
   const stop = async () => {
     abort.current?.abort();
+    live.current?.resume();
+    setPaused(false);
     confirmAsk?.resolve(false);
     takeover?.resolve("stop");
     setConfirmAsk(null);
@@ -489,10 +573,14 @@ export function JarvisWorkspace({
   commandRef.current = (text) => {
     const command = voiceCommand(text);
     if (command === "stop") void stop();
-    else if (command === "pause") voice.pause();
-    else if (command === "end") voice.end();
+    else if (command === "pause") {
+      // While JARVIS works, "pause" pauses the work; otherwise it pauses listening.
+      if (live.current) void interject(text, true);
+      else voice.pause();
+    } else if (command === "end") voice.end();
     else if (command === "continue") {
-      if (takeover || conversationTask?.status === "taken_over") void resume();
+      if (live.current?.paused) void interject(text, true);
+      else if (takeover || conversationTask?.status === "taken_over") void resume();
       else return false;
     }
     return command !== null;
@@ -807,9 +895,20 @@ export function JarvisWorkspace({
                   {liveAnswer}
                 </p>
               ) : null}
-              {running ? (
+              {running && paused ? (
+                <div role="status" className="flex items-center gap-2 self-start text-xs">
+                  <span className="text-muted-foreground">Paused</span>
+                  <button
+                    type="button"
+                    onClick={() => void interject("continue", false)}
+                    className="rounded-full bg-foreground px-3 py-1 text-background"
+                  >
+                    Continue
+                  </button>
+                </div>
+              ) : running ? (
                 <p role="status" className="self-start text-xs text-muted-foreground">
-                  JARVIS is working
+                  JARVIS is working. You can keep talking.
                 </p>
               ) : retryTurn ? (
                 <button
@@ -953,11 +1052,13 @@ export function JarvisWorkspace({
                       ? jarvis?.usage?.resetsInMs
                         ? `JARVIS uses reset ${describeReset(jarvis.usage.resetsInMs)}`
                         : "No JARVIS uses left right now"
-                      : busyUntil
-                        ? "OCADE JARVIS is busy. It will be back shortly."
-                        : jarvisOn
-                          ? "Ask or tell JARVIS anything"
-                          : "JARVIS is turned off in Permissions"
+                      : running
+                        ? "Talk to JARVIS while it works"
+                        : busyUntil
+                          ? "OCADE JARVIS is busy. It will be back shortly."
+                          : jarvisOn
+                            ? "Ask or tell JARVIS anything"
+                            : "JARVIS is turned off in Permissions"
                 }
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
@@ -989,7 +1090,7 @@ export function JarvisWorkspace({
                   <Mic className="h-4 w-4" aria-hidden />
                 </button>
               ) : null}
-              {running ? (
+              {running && !draft.trim() ? (
                 <button
                   type="button"
                   aria-label="Stop"
@@ -997,6 +1098,14 @@ export function JarvisWorkspace({
                   className="grid h-10 w-10 place-items-center rounded-full bg-foreground text-background"
                 >
                   <Square className="h-4 w-4" aria-hidden />
+                </button>
+              ) : running ? (
+                <button
+                  type="submit"
+                  aria-label="Send to JARVIS while it works"
+                  className="grid h-10 w-10 place-items-center rounded-full bg-foreground text-background"
+                >
+                  <ArrowUp className="h-4 w-4" aria-hidden />
                 </button>
               ) : (
                 <button

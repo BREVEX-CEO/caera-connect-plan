@@ -11,6 +11,7 @@ Do not show fake live billing operations in Owner/Staff Console. Payment-specifi
 ## Preserved business rules
 
 When payment work resumes:
+
 - one OCADE subscription may cover Chat and JARVIS according to plan allowances;
 - Chat and JARVIS may retain separate server-side usage ledgers;
 - provider-hosted/tokenized payment entry is required;
@@ -23,6 +24,7 @@ When payment work resumes:
 ## Current owner/admin behavior
 
 Until payment work resumes:
+
 - hide payment-specific dashboard modules/actions that have no real backend;
 - do not seed fake revenue/payment metrics;
 - entitlement/usage/customer operations that already have real OCADE authority may continue independently.
@@ -30,6 +32,7 @@ Until payment work resumes:
 ## Deferred owner decisions
 
 Later:
+
 - payment provider/Merchant of Record;
 - tax/accounting treatment;
 - refund policy details;
@@ -48,7 +51,6 @@ JARVIS may research products and prepare non-sensitive information but never com
 When payment work resumes, add provider sandbox/webhook/refund/dunning/dispute tests plus real Owner/Staff permission and audit tests before exposing modules.
 
 Commercial-launch readiness reporting must state payment scope truthfully rather than pretending deferred work is complete.
-
 
 ## Master Phase 1–49 authority
 
