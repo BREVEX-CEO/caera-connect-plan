@@ -174,6 +174,9 @@ watched(
   spawn(process.execPath, ["scripts/e2e/supabase-stub.mjs", String(SUPABASE_PORT)], {
     stdio: "inherit",
     detached: true,
+    // Detached on Windows means a console window of its own; hidden, nobody can
+    // close it or Ctrl+C it mid-run (exit 0xC000013A / 129 before this).
+    windowsHide: true,
   }),
 );
 await waitForPort(`${SUPABASE_URL}/auth/v1/settings`, "the Supabase stub");
@@ -195,10 +198,10 @@ const serve = () =>
         "--port",
         String(WEB_PORT),
       ],
-      { stdio: ["ignore", "inherit", "inherit"], detached: true },
+      { stdio: ["ignore", "inherit", "inherit"], detached: true, windowsHide: true },
     ),
   );
-serve();
+let served = serve();
 await waitForPort(BASE, "the served build");
 
 // `--serve`: stand the product up and keep it running for MCP/manual testing.
@@ -213,16 +216,13 @@ Serving ${BASE} against the stub at ${SUPABASE_URL}. Ctrl+C to stop.`);
 let failed = 0;
 for (const journey of journeys) {
   console.log(`\n=== ${journey} ===`);
-  // A server that died during the last journey is started again, loudly, so
-  // one failure does not become every later journey's failure.
-  if (
-    !(await fetch(BASE).then(
-      () => true,
-      () => false,
-    ))
-  ) {
-    console.log("!!! the served build was down; starting it again");
-    serve();
+  // A server that EXITED during the last journey is started again, loudly, so
+  // one failure does not become every later journey's failure. Only an exit
+  // counts: a probe that misses once would start a second server that cannot
+  // bind the port.
+  if (served.exitCode !== null) {
+    console.log("!!! the served build had stopped; starting it again");
+    served = serve();
     await waitForPort(BASE, "the served build");
   }
   const result = spawnSync(

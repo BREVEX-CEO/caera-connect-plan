@@ -176,7 +176,8 @@ Bugs found and fixed:
 - JARVIS cleared the draft when the session arrived (signed-out to signed-in counted as switching owner).
 - The bubble raised first-visit JavaScript to 978 KiB (over the 1 MB budget); now lazy, 947 KiB.
 - A verification script without a catalogue check (SQL discipline test).
-- Test infrastructure: the served build could die from a console Ctrl+C event (exit 0xC000013A) and fail every later journey. The harness now reports a server that stops and restarts it before the next journey.
+- Test infrastructure: on Windows the detached local servers had visible console windows, and one was stopped by a console Ctrl+C (exit 0xC000013A), failing every later journey. The windows are hidden now, the harness reports a server that exits and restarts it only after a real exit (a probe-based restart started duplicate servers that could not bind, exit 129).
+- Dependabot (moderate): `undici` 7.29.0 inside `wrangler`'s local `miniflare` (development server only, not the shipped Worker). Upstream wrangler 4.143.0 still pins it; forcing 7.29.1 made the local server unstable, so it waits for an upstream release.
 
 Evidence:
 
