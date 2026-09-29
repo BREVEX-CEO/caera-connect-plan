@@ -51,6 +51,7 @@ MAX_READ = 30_000   # what one result can carry back (OCADE keeps results under 
 MAX_OUTPUT = 12_000
 RUN_TIMEOUT_S = 300
 FRAME_WIDTH = 1280
+PASTE_OVER = 40  # longer text is pasted (and the clipboard restored) instead of typed key by key
 
 # Programs a coding task runs in the workspace without asking (risky arguments
 # such as `git push` or `install` still wait for the person at OCADE).
@@ -215,6 +216,7 @@ class Computer:
             # capability macOS has not granted is reported unavailable, not tried.
             screen, control = gui and _macos_screen_allowed(), gui and _macos_accessibility_allowed()
         return {"screen": screen, "computer_control": control, "apps": True,
+                "accessibility": SYSTEM == "Windows",
                 "files": self.root is not None,
                 "terminal": self.root is not None and self.sandbox is not None}
 
@@ -242,6 +244,19 @@ class Computer:
             if kind.startswith("screen"):
                 with self._lock:
                     return self._screen(kind, action, confirmed, cowork, cancel)
+            if kind in ("ui_inspect", "ui_act"):
+                if SYSTEM != "Windows":
+                    return {"status": "blocked", "summary": "App controls are read on Windows only so far"}
+                import ocade_accessibility
+                with self._lock:
+                    if kind == "ui_inspect":
+                        return ocade_accessibility.inspect(action.get("title"))
+                    return ocade_accessibility.act(action, confirmed)
+            if kind in ("window_list", "window"):
+                if self._gui() is None:
+                    return {"status": "blocked", "summary": "This computer does not allow screen control"}
+                with self._lock:
+                    return self._window(kind, action, confirmed)
         except ScopeError as e:
             return {"status": "blocked", "summary": str(e)}
         except Exception as e:  # reported, never retried blindly
@@ -536,15 +551,19 @@ class Computer:
     # -- the screen: the fallback, always against a fresh observation ---------------
 
     def _geometry(self) -> dict:
+        """The whole desktop across every monitor (its origin can be negative) and the front window."""
+        import mss
+        with (getattr(mss, "MSS", None) or mss.mss)() as grab:
+            desk = grab.monitors[0]
+            monitors = len(grab.monitors) - 1
         gui = self._gui()
-        size = gui.size() if gui else (0, 0)
-        title = None
-        try:
-            window = gui.getActiveWindow() if gui and hasattr(gui, "getActiveWindow") else None
-            title = window.title if window else None
+        try:  # the same GUI that types reports the window it would type into
+            front = gui.getActiveWindow() if gui is not None else None
+            window = front.title if front else None
         except Exception:
-            title = None
-        return {"w": size[0], "h": size[1], "window": title}
+            window = None
+        return {"x": desk["left"], "y": desk["top"], "w": desk["width"], "h": desk["height"],
+                "monitors": monitors, "window": window}
 
     def observe(self) -> dict:
         import mss
@@ -559,8 +578,91 @@ class Computer:
         self._observation = {"id": f"s{self._obs_seq}", "geometry": geometry, "scale": scale,
                              "at": time.monotonic()}
         return {"observationId": f"s{self._obs_seq}", "screen": {"w": geometry["w"], "h": geometry["h"]},
-                "activeWindow": geometry["window"],
+                "monitors": geometry["monitors"], "activeWindow": geometry["window"],
+                "windows": _windows()[:30],
                 "imageScale": round(1 / scale, 4), "frame": _jpeg(image)}
+
+    def _point(self, x, y) -> tuple[float, float] | None:
+        """A point in the observed image, as a desktop coordinate (every monitor, any DPI)."""
+        held = self._observation
+        try:
+            px, py = float(x) * held["scale"], float(y) * held["scale"]
+        except (TypeError, ValueError):
+            return None
+        geo = held["geometry"]
+        if not (0 <= px < geo["w"] and 0 <= py < geo["h"]):
+            return None
+        return geo["x"] + px, geo["y"] + py
+
+    def _paste(self, gui, text: str, cowork: bool) -> dict | None:
+        import pyperclip
+        try:
+            before = pyperclip.paste()
+        except Exception:  # the clipboard held something that is not text
+            before = None
+        try:
+            pyperclip.copy(text)
+            if self._stale(self._observation["id"]) or (self.guard.user_input_at and not cowork):
+                return {"status": "needs_confirmation",
+                        "summary": "The screen changed before typing, so JARVIS paused. Continue?"}
+            self.guard.ours()
+            gui.hotkey("command" if SYSTEM == "Darwin" else "ctrl", "v")
+            self.guard.ours()
+            time.sleep(0.3)  # the app reads the clipboard after the key press
+        finally:
+            if before is not None:
+                try:
+                    pyperclip.copy(before)
+                except Exception:
+                    pass
+        return None
+
+    def _window(self, kind: str, action: dict, confirmed: bool) -> dict:
+        """Existing app windows first (donor focus_window, without building a script from a title)."""
+        import pygetwindow
+        if kind == "window_list":
+            return {"status": "done", "summary": "Listed the open windows", "windows": _windows()}
+        wanted = str(action.get("title", "")).strip().lower()
+        matches = [w for w in pygetwindow.getAllWindows() if w.title.strip() and wanted in w.title.lower()]
+        exact = [w for w in matches if w.title.strip().lower() == wanted]
+        if not wanted or not matches:
+            return {"status": "failed", "summary": "No open window has that title",
+                    "windows": _windows()}
+        # Store apps show the same title twice (frame and content): one app, one window.
+        distinct = {w.title.strip().lower() for w in (exact or matches)}
+        if len(distinct) > 1:
+            return {"status": "failed", "summary": "Several windows match; use the full title",
+                    "windows": [w.title for w in matches][:10]}
+        window = max(exact or matches, key=lambda w: (w.visible, w.width * w.height))
+        title = window.title  # read now: a closed window has no title left to report
+        state = str(action.get("state", "focus"))
+        if state == "close" and not confirmed:
+            return {"status": "needs_confirmation", "summary": f"Close “{window.title[:80]}”?"}
+        self.guard.ours()
+        if state == "minimize":
+            window.minimize()
+        elif state == "maximize":
+            window.maximize()
+        elif state == "restore":
+            window.restore()
+        elif state == "close":
+            for same in exact or [window]:  # a Store app's frame and content close together
+                same.close()
+        else:
+            if window.isMinimized:
+                window.restore()
+            try:
+                window.activate()
+            except Exception:  # Windows refuses focus theft sometimes; a click on the window works
+                window.minimize()
+                window.restore()
+            time.sleep(0.4)
+            if _front_window_title() != window.title:
+                return {"status": "failed", "summary": f"Windows did not bring “{window.title[:80]}” to the front",
+                        "observation": self.observe()}
+        time.sleep(0.3)
+        return {"status": "done", "summary": f"{state.capitalize()} “{title[:80]}”",
+                "observation": self.observe()}
 
     def _stale(self, observation_id: str) -> str | None:
         held = self._observation
@@ -570,6 +672,8 @@ class Computer:
             return "That screen observation is too old."
         now = self._geometry()
         for key, label in (("w", "the screen size changed"), ("h", "the screen size changed"),
+                           ("x", "a monitor changed"), ("y", "a monitor changed"),
+                           ("monitors", "a monitor was added or removed"),
                            ("window", "a different window is in front")):
             if now.get(key) != held["geometry"].get(key):
                 return f"The screen changed: {label}."
@@ -594,15 +698,29 @@ class Computer:
         why = self._stale(str(action.get("observationId", "")))
         if why:
             return {"status": "stale", "summary": why, "observation": self.observe()}
-        if kind == "screen_click":
-            scale = self._observation["scale"]
-            x, y = float(action.get("x", -1)) * scale, float(action.get("y", -1)) * scale
-            width, height = self._observation["geometry"]["w"], self._observation["geometry"]["h"]
-            if not (0 <= x < width and 0 <= y < height):
+        if kind in ("screen_click", "screen_drag"):
+            points = [self._point(action.get("x"), action.get("y"))]
+            if kind == "screen_drag":
+                points.append(self._point(action.get("toX"), action.get("toY")))
+            if None in points:
                 return {"status": "failed", "summary": "That point is outside the screen"}
             self.guard.ours()
-            gui.click(x, y)
-            detail = "Clicked on the screen"
+            if kind == "screen_drag":
+                gui.moveTo(*points[0])
+                self.guard.ours()
+                gui.dragTo(*points[1], duration=0.4, button="left")
+                detail = "Dragged on the screen"
+            else:
+                button = "right" if action.get("button") == "right" else "left"
+                clicks = 2 if action.get("double") else 1
+                gui.click(*points[0], button=button, clicks=clicks, interval=0.08)
+                detail = f"{'Double-clicked' if clicks == 2 else 'Right-clicked' if button == 'right' else 'Clicked'} on the screen"
+        elif kind == "screen_type" and len(str(action.get("text", ""))) > PASTE_OVER:
+            # Long text goes in by paste (donor _smart_type), then the clipboard is put back.
+            outcome = self._paste(gui, str(action.get("text", ""))[:20_000], cowork)
+            if outcome:
+                return outcome
+            detail = "Typed"
         elif kind == "screen_type":
             text = str(action.get("text", ""))[:2000]
             for at in range(0, len(text), 40):
@@ -634,6 +752,29 @@ class Computer:
 
 class ScopeError(Exception):
     pass
+
+
+def _front_window_title() -> str | None:
+    try:
+        import pygetwindow
+        window = pygetwindow.getActiveWindow()
+        return window.title if window else None
+    except Exception:
+        return None
+
+
+def _windows() -> list[dict]:
+    """Visible top-level windows, front first: what JARVIS can switch to instead of opening again."""
+    try:
+        import pygetwindow
+        front = _front_window_title()
+        out = []
+        for w in pygetwindow.getAllWindows():
+            if w.title.strip() and w.visible and w.width > 50 and w.height > 50:
+                out.append({"title": w.title[:120], "front": w.title == front, "minimized": w.isMinimized})
+        return sorted(out, key=lambda w: not w["front"])[:60]
+    except Exception:
+        return []
 
 
 def _macos_accessibility_allowed() -> bool:

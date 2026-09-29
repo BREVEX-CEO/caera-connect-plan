@@ -254,3 +254,59 @@ class ScreenTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MultiMonitorTest(unittest.TestCase):
+    """A point in the observed image maps onto the whole desktop, whatever monitor it is on."""
+
+    def test_points_map_through_scale_and_origin(self):
+        pc = Computer(None)
+        pc._observation = {"id": "s1", "scale": 2.0, "at": time.monotonic(),
+                           "geometry": {"x": -1920, "y": 0, "w": 3840, "h": 1080, "monitors": 2,
+                                        "window": "x"}}
+        self.assertEqual(pc._point(100, 50), (-1920 + 200, 100))    # on the left monitor
+        self.assertEqual(pc._point(1500, 10), (-1920 + 3000, 20))   # on the primary
+        self.assertIsNone(pc._point(1920, 10))                      # past the right edge
+        self.assertIsNone(pc._point(-1, 10))
+        self.assertIsNone(pc._point("x", 10))
+
+
+@unittest.skipUnless(sys.platform == "win32", "Windows window management")
+class WindowTest(unittest.TestCase):
+    def test_lists_windows_and_refuses_unknown_or_unconfirmed_close(self):
+        pc = Computer(None)
+        listed = pc.run({"action": "window_list"})
+        self.assertEqual(listed["status"], "done")
+        self.assertTrue(listed["windows"])
+        self.assertEqual(pc.run({"action": "window", "title": "no-such-window-ocade"})["status"], "failed")
+        front = next(w["title"] for w in listed["windows"] if w["front"])
+        self.assertEqual(pc.run({"action": "window", "title": front, "state": "close"})["status"],
+                         "needs_confirmation")
+
+
+@unittest.skipUnless(sys.platform == "win32" and Computer(None).capabilities()["accessibility"],
+                     "Windows UI Automation")
+class AccessibilityTest(unittest.TestCase):
+    """A native app driven by its controls, not by pixels: Windows Calculator."""
+
+    def test_calculator_by_its_buttons(self):
+        pc = Computer(None)
+        pc.run({"action": "open_app", "name": "Calculator"})
+        for _ in range(20):
+            seen = pc.run({"action": "ui_inspect", "title": "Calculator"})
+            if seen["status"] == "done" and any(e["name"] == "Seven" for e in seen["observation"]["elements"]):
+                break
+            time.sleep(0.5)
+        obs = seen["observation"]
+        try:
+            for name in ("Clear", "Seven", "Multiply by", "Six", "Equals"):
+                ref = next(e["ref"] for e in obs["elements"] if e["name"] == name)
+                out = pc.run({"action": "ui_act", "ref": ref, "observationId": obs["observationId"],
+                              "op": "invoke"})
+                self.assertEqual(out["status"], "done", out)
+                obs = out["observation"]
+            self.assertIn("Display is 42", [e["name"] for e in obs["elements"]])
+            stale = pc.run({"action": "ui_act", "ref": "a1", "observationId": "u0", "op": "invoke"})
+            self.assertEqual(stale["status"], "stale")
+        finally:
+            pc.run({"action": "window", "title": "Calculator", "state": "close"}, confirmed=True)

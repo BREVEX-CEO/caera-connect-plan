@@ -11,6 +11,12 @@ pillow==12.3.0
 mss==10.1.0
 pyautogui==0.9.54
 pynput==1.8.2
+# Windows to switch to instead of reopening, and paste-then-restore for long text.
+pygetwindow==0.0.9
+# Native app controls through Windows UI Automation (Windows only).
+uiautomation==2.0.29; sys_platform == "win32"
+comtypes==1.4.16; sys_platform == "win32"
+pyperclip==1.11.0
 pystray==0.19.5
 send2trash==1.8.3
 # Documents and spreadsheets read and edited directly (no Office library, no model).

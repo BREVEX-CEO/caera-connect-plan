@@ -278,6 +278,9 @@ class ScreenInputTest(unittest.TestCase):
         self.assertEqual(self.gui.typed, [])
 
     def test_typing_stops_when_the_window_changes_midway(self):
+        import ocade_computer
+        self.addCleanup(setattr, ocade_computer, "PASTE_OVER", ocade_computer.PASTE_OVER)
+        ocade_computer.PASTE_OVER = 10_000  # key-by-key typing, checked every chunk
         obs = self._observe()["observationId"]
         original = self.gui.write
 
@@ -288,6 +291,21 @@ class ScreenInputTest(unittest.TestCase):
         out = self.pc.run({"action": "screen_type", "text": "x" * 200, "observationId": obs})
         self.assertEqual(out["status"], "needs_confirmation")
         self.assertEqual(len(self.gui.typed), 1)
+
+    def test_long_text_is_pasted_only_into_the_planned_window_and_the_clipboard_comes_back(self):
+        import pyperclip
+        pyperclip.copy("mine")
+        obs = self._observe()["observationId"]
+        out = self.pc.run({"action": "screen_type", "text": "y" * 200, "observationId": obs})
+        self.assertEqual(out["status"], "done", out)
+        self.assertEqual(self.gui.typed, ["ctrl+v"])
+        self.assertEqual(pyperclip.paste(), "mine")
+        obs = self._observe()["observationId"]
+        self.gui.window = "Chat"
+        out = self.pc.run({"action": "screen_type", "text": "z" * 200, "observationId": obs})
+        self.assertEqual(out["status"], "stale")
+        self.assertEqual(self.gui.typed, ["ctrl+v"])
+        self.assertEqual(pyperclip.paste(), "mine")
 
     def test_stop_ends_typing(self):
         obs = self._observe()["observationId"]

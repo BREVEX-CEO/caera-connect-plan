@@ -181,6 +181,9 @@ export function needsConfirmation(
     case "file_delete":
     case "system":
       return true;
+    case "window":
+      // Closing a window can lose unsaved work.
+      return action.state === "close";
     case "run":
       return commandNeedsConfirmation(action.command);
     default:

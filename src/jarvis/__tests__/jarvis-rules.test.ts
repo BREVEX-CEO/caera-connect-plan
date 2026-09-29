@@ -321,3 +321,40 @@ describe("files through the browser", () => {
     );
   });
 });
+
+describe("windows and richer screen input", () => {
+  it("switching needs mouse and keyboard control, closing waits for the person", async () => {
+    const { computerAction, capabilityFor } = await import("../protocol");
+    const { needsConfirmation } = await import("../permissions");
+    const focus = computerAction.parse({ action: "window", title: "Budget.xlsx - Excel" });
+    expect(focus).toMatchObject({ state: "focus" });
+    expect(capabilityFor(focus)).toBe("computer_control");
+    expect(capabilityFor(computerAction.parse({ action: "window_list" }))).toBe("screen");
+    expect(needsConfirmation([], focus)).toBe(false);
+    const close = computerAction.parse({ action: "window", title: "x", state: "close" });
+    expect(needsConfirmation([], close)).toBe(true);
+    expect(
+      computerAction.safeParse({ action: "screen_drag", x: 1, y: 1, toX: 5, toY: 5 }).success,
+    ).toBe(false);
+  });
+});
+
+describe("app controls through accessibility", () => {
+  it("reading an app is seeing the screen, using a control is computer control", async () => {
+    const { computerAction, capabilityFor } = await import("../protocol");
+    expect(capabilityFor(computerAction.parse({ action: "ui_inspect", title: "Excel" }))).toBe(
+      "screen",
+    );
+    const act = computerAction.parse({
+      action: "ui_act",
+      ref: "a12",
+      observationId: "u3",
+      op: "invoke",
+    });
+    expect(capabilityFor(act)).toBe("computer_control");
+    expect(
+      computerAction.safeParse({ action: "ui_act", ref: "e1", observationId: "u3", op: "invoke" })
+        .success,
+    ).toBe(false);
+  });
+});

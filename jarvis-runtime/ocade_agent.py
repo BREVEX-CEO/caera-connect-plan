@@ -288,6 +288,9 @@ def health_check() -> int:
         import ocade_sheets
         import openpyxl  # noqa: F401
         import pypdf  # noqa: F401
+        if sys.platform == "win32":
+            import ocade_accessibility  # noqa: F401
+            import uiautomation  # noqa: F401
         assert browser._OCADE_PAGE and browser._GATES
         assert (Path(ocade_sheets.__file__).resolve().parent / "actions" / "ocade_excel.ps1").is_file()
         import pystray
