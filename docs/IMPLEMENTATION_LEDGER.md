@@ -319,3 +319,7 @@ All 29 function bodies on production hash identically to the repository files. T
 Advisor after deployment: 26 definer functions callable by signed-in users (13 existing, 13 staff RPCs) and 13 RLS tables without policies (10 existing, 3 staff tables, none with any client grant). All intended; every staff RPC's refusals are regression-tested. Leaked-password protection remains a paid feature.
 
 Still to do when the console release reaches production: remove the inert legacy admin rows (`ToRemove.md`).
+
+#### Two-step recovery — 2026-09-30
+
+Recovery codes restored (they had been deleted because nothing issued them): ten 100-bit codes made and shown once when two-step is turned on; "I lost my authenticator" on the code screen redeems one, which removes the factor and ends every session and signs nobody in. The database holds only SHA-256 hashes, so no server secret is needed. Operators with `sessions.manage` can turn off a customer's two-step when the codes are lost too (`20260930094000_staff_can_turn_off_a_lost_second_factor`, applied to production with its verification in the same transaction; live function body hashes identically to the repository). Proof: mfa journey 40 checks, admin journey 55, unit and PostgreSQL tests 1101.
