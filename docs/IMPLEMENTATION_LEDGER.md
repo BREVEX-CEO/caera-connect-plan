@@ -303,3 +303,19 @@ Found while building it:
 Browser proof: admin journey 52 checks (customer, Admin without and with a second factor on a phone-sized screen, Support, Owner: grant, invitation, removal, permission change, case open/read/close, audit, emergency sign-out, copied token refused).
 
 Supabase advisor review (production, 2026-09-30): 13 definer functions callable by signed-in users — each inspected live: pinned search path, not callable anonymously, every statement scoped to `auth.uid()`; the five operator RPCs add role, second factor and recency. Accepted as intended. 10 RLS tables without policies hold no grants at all for `anon`/`authenticated`: intended, server-only. Unindexed foreign keys on `ocade_service_controls.changed_by` (3 rows) and `ocade_service_control_events.changed_by` (operator events): no query or delete path justifies an index yet. Leaked-password protection is a paid feature: not a blocker.
+
+#### Production database — staff authority deployed 2026-09-30
+
+Applied through the Supabase connector, each in one all-or-nothing call that runs the migration, its verification script and the history record together (the connector runs a multi-statement call as one transaction; proven first with a probe that created a table and then failed — the table did not survive):
+
+| Version | Name | Live evidence |
+| --- | --- | --- |
+| `20260930092500` | `an_ended_session_stops_at_once` | A real live session served; the same account with an unknown session refused `PT401`; anonymous served |
+| `20260930093000` | `one_staff_authority` | One staff row: the previous sole admin is Primary Owner. Owner with password only: reads, every change refused for the authenticator code; with an hour-old proof: refused; a customer with a fresh second factor: not staff, no matrix, table `42501`, grant "Not found", stop refused, sees only their own profile; anonymous `42501` over real HTTP on table and RPCs |
+| `20260930093500` | `a_staff_refusal_reads_correctly` | Live sentence: "Confirm it is you before making this change." |
+
+All 29 function bodies on production hash identically to the repository files. The live site (`main`, `5d72f73d`, deployment `3152b6cc`) answers 200 on `/`, `/ocade-jarvis`, `/api/health` after the change; it keeps working against the new database because the legacy `user_roles` admin row was left in place and `has_role` answers from the staff table.
+
+Advisor after deployment: 26 definer functions callable by signed-in users (13 existing, 13 staff RPCs) and 13 RLS tables without policies (10 existing, 3 staff tables, none with any client grant). All intended; every staff RPC's refusals are regression-tested. Leaked-password protection remains a paid feature.
+
+Still to do when the console release reaches production: remove the inert legacy admin rows (`ToRemove.md`).
