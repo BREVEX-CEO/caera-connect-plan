@@ -434,6 +434,21 @@ describe("which computer does the work", () => {
   });
   const own = { capability: "browser_real", allowed: true, device_id: null };
 
+  it("works on a phone only when the person chose it, or when it is the only device", async () => {
+    const { chooseTaskDevice } = await import("../permissions");
+    const phone = { id: "Phone", name: "Pixel", kind: "android", capabilities: { apps: true } };
+    const desk = pc("Desk", { browser_isolated: true });
+    expect(chooseTaskDevice([desk, phone], [], "computer")).toMatchObject({
+      ok: true,
+      device: desk,
+    });
+    expect(chooseTaskDevice([desk, phone], [], "computer", "Phone")).toMatchObject({
+      ok: true,
+      device: phone,
+    });
+    expect(chooseTaskDevice([phone], [], "computer")).toMatchObject({ ok: true, device: phone });
+  });
+
   it("asks when several computers could do it, and never guesses", async () => {
     const { chooseTaskDevice } = await import("../permissions");
     const two = [pc("Laptop", { browser_isolated: true }), pc("Desk", { browser_isolated: true })];

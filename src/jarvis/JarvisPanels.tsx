@@ -414,7 +414,7 @@ function SectionBody({
 
   // Devices
   const devices = state.devices.filter((d) => !d.revoked_at && d.last_seen_at);
-  const agentCount = devices.filter((d) => d.kind === "agent").length;
+  const agentCount = devices.filter((d) => d.kind !== "extension").length;
   const openTasks = state.tasks.filter((t) => !FINISHED.includes(t.status) && t.device_id);
   return (
     <>
@@ -487,12 +487,14 @@ function SectionBody({
               {d.status === "needs_permission"
                 ? "Turn on what JARVIS may do below"
                 : d.status === "offline"
-                  ? "Open the OCADE Device Agent on it"
+                  ? d.kind === "android"
+                    ? "Open OCADE on the phone"
+                    : "Open the OCADE Device Agent on it"
                   : "Can work now"}
               {d.platform ? ` · ${d.platform}` : ""}
               {d.kind === "extension" ? " · Browser extension" : ""}
             </p>
-            {d.kind === "agent" && agentCount > 1 ? (
+            {d.kind !== "extension" && agentCount > 1 ? (
               <label className="mt-2 flex items-center gap-2 text-xs">
                 <input
                   type="radio"
@@ -500,27 +502,37 @@ function SectionBody({
                   checked={target === d.id}
                   onChange={() => onTarget(d.id)}
                 />
-                New tasks run on this computer
+                New tasks run on this {d.kind === "android" ? "phone" : "computer"}
               </label>
             ) : null}
-            <Toggle
-              label="Browser control"
-              checked={isAllowed(state.permissions, "browser", d.id)}
-              onChange={(allowed) => void decide("browser", allowed, d.id, onChanged)}
-            />
-            <Toggle
-              label="Use my own browser"
-              hint={d.capabilities.browser_real ? undefined : "Not authorized on this device"}
-              disabled={!d.capabilities.browser_real}
-              checked={isAllowed(state.permissions, "browser_real", d.id)}
-              onChange={(allowed) => void decide("browser_real", allowed, d.id, onChanged)}
-            />
-            {d.kind === "agent"
+            {d.kind === "android" ? null : (
+              <>
+                <Toggle
+                  label="Browser control"
+                  checked={isAllowed(state.permissions, "browser", d.id)}
+                  onChange={(allowed) => void decide("browser", allowed, d.id, onChanged)}
+                />
+                <Toggle
+                  label="Use my own browser"
+                  hint={d.capabilities.browser_real ? undefined : "Not authorized on this device"}
+                  disabled={!d.capabilities.browser_real}
+                  checked={isAllowed(state.permissions, "browser_real", d.id)}
+                  onChange={(allowed) => void decide("browser_real", allowed, d.id, onChanged)}
+                />
+              </>
+            )}
+            {d.kind !== "extension"
               ? COMPUTER_TOGGLES.map(([capability, label, hint]) => (
                   <Toggle
                     key={capability}
                     label={label}
-                    hint={d.capabilities[capability] ? hint : "Not available on this computer"}
+                    hint={
+                      d.capabilities[capability]
+                        ? hint
+                        : d.kind === "android"
+                          ? "Not available on this phone"
+                          : "Not available on this computer"
+                    }
                     disabled={!d.capabilities[capability]}
                     checked={isAllowed(state.permissions, capability, d.id)}
                     onChange={(allowed) => void decide(capability, allowed, d.id, onChanged)}

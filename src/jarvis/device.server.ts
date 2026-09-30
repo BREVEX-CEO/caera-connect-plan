@@ -260,7 +260,7 @@ export const enrollInput = z.object({
   publicKey: publicKeyText,
   name: z.string().trim().min(1).max(120),
   platform: z.string().trim().max(60).optional(),
-  kind: z.enum(["agent", "extension"]),
+  kind: z.enum(["agent", "extension", "android"]),
   softwareVersion: z.string().trim().max(40).optional(),
 });
 

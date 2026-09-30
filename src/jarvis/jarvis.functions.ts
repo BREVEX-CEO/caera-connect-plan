@@ -180,7 +180,7 @@ export const readJarvisState = createServerFn({ method: "GET" })
           ? ("never" as const)
           : ("ask" as const);
     const apps = (devices.data ?? [])
-      .filter((device) => !device.revoked_at && device.kind === "agent")
+      .filter((device) => !device.revoked_at && device.kind !== "extension")
       .map((device) => ({
         deviceId: device.id,
         deviceName: device.name,

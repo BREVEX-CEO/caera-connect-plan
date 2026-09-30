@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OCADE</string>
+    <string name="accessibility_label">OCADE JARVIS</string>
+    <string name="accessibility_description">Lets OCADE JARVIS read and use the apps on this phone when you ask it to, one step at a time. Anything that needs you still waits for you, and STOP ends it at once.</string>
+</resources>

@@ -219,7 +219,10 @@ export function chooseTaskDevice<T extends OnlineDevice>(
       message: "That computer is not online. Open OCADE on it or choose another in Devices.",
     };
   }
-  const agents = chosen.filter((d) => d.kind === "agent");
+  // Computers first: a phone works on a task only when the person chose it.
+  const workers = chosen.filter((d) => d.kind === "agent" || d.kind === "android");
+  const computers = workers.filter((d) => d.kind === "agent");
+  const agents = deviceId || computers.length === 0 ? workers : computers;
   const ownBrowsers = chosen.filter(
     (d) => offers(d, "browser_real") && isAllowed(rows, "browser_real", d.id),
   );
