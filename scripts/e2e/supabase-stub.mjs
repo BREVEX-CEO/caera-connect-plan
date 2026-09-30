@@ -1333,6 +1333,13 @@ const server = createServer((request, response) => {
       return send(200, { ok: true });
     }
 
+    if (url.pathname === "/__fixture/age-tasks") {
+      const silent = new Date(Date.now() - 10 * 60_000).toISOString();
+      const aged = (jarvisTables.jarvis_tasks ?? []).filter((task) => task.status === "running");
+      for (const task of aged) task.updated_at = silent;
+      return send(200, { aged: aged.length });
+    }
+
     if (url.pathname === "/__fixture/jarvis-script") {
       /*
        * THE STEPS THE STUB "MODEL" TAKES FOR A JARVIS TASK.
@@ -1757,8 +1764,9 @@ const server = createServer((request, response) => {
           ? serviceControls
           : userId === "anonymous" && name in STAFF_STORES
             ? STAFF_STORES[name]()
-            : userId === "anonymous" && name === "ocade_conversations"
-              ? [...tables.values()].flatMap((owned) => owned.ocade_conversations ?? [])
+            : userId === "anonymous" &&
+                (name === "ocade_conversations" || name === "ocade_messages")
+              ? [...tables.values()].flatMap((owned) => owned[name] ?? [])
               : userId === "anonymous" && (name === "profiles" || name === "user_roles")
                 ? name === "profiles"
                   ? [...emails].map(([id, email]) => ({
@@ -1834,7 +1842,8 @@ const server = createServer((request, response) => {
             ...(name === "ocade_conversations" ? { surface: "chat" } : {}),
             ...row,
           };
-          stored.push(created);
+          // The service role names the account a row belongs to.
+          (userId === "anonymous" && row.user_id ? rows(row.user_id, name) : stored).push(created);
           return created;
         });
         const projected = written.map((row) => project(row, select));
@@ -1867,7 +1876,8 @@ const server = createServer((request, response) => {
 
     /* --- the online intelligence boundary -------------------------------- */
 
-    if (url.pathname === "/functions/v1/ocade-intelligence") {
+    const serverDoor = url.pathname === "/functions/v1/ocade-intelligence-service";
+    if (url.pathname === "/functions/v1/ocade-intelligence" || serverDoor) {
       /*
        * The Edge Function's own event shape, so the online path can be driven
        * end to end. It is not Gemini: an answer from here proves the browser's
@@ -1887,7 +1897,14 @@ const server = createServer((request, response) => {
         }
       })();
       onlineBoundary.lastRequest = {
-        authorized: /^Bearer\s+\S+$/i.test(request.headers.authorization ?? ""),
+        // Browsers bring a session; OCADE's own server brings a server key and
+        // names the person it works for, and never a session.
+        authorized: serverDoor
+          ? request.headers.apikey === "sb_secret_loopback_stub" &&
+            /^[0-9a-f-]{36}$/.test(request.headers["x-ocade-user"] ?? "") &&
+            !request.headers.authorization
+          : /^Bearer\s+\S+$/i.test(request.headers.authorization ?? ""),
+        door: serverDoor ? "server" : "browser",
         permitId: parsed.permit?.id ?? null,
         generationId: parsed.generationId ?? null,
         idempotencyKey: parsed.idempotencyKey ?? null,

@@ -308,11 +308,11 @@ Supabase advisor review (production, 2026-09-30): 13 definer functions callable 
 
 Applied through the Supabase connector, each in one all-or-nothing call that runs the migration, its verification script and the history record together (the connector runs a multi-statement call as one transaction; proven first with a probe that created a table and then failed — the table did not survive):
 
-| Version | Name | Live evidence |
-| --- | --- | --- |
-| `20260930092500` | `an_ended_session_stops_at_once` | A real live session served; the same account with an unknown session refused `PT401`; anonymous served |
-| `20260930093000` | `one_staff_authority` | One staff row: the previous sole admin is Primary Owner. Owner with password only: reads, every change refused for the authenticator code; with an hour-old proof: refused; a customer with a fresh second factor: not staff, no matrix, table `42501`, grant "Not found", stop refused, sees only their own profile; anonymous `42501` over real HTTP on table and RPCs |
-| `20260930093500` | `a_staff_refusal_reads_correctly` | Live sentence: "Confirm it is you before making this change." |
+| Version          | Name                              | Live evidence                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `20260930092500` | `an_ended_session_stops_at_once`  | A real live session served; the same account with an unknown session refused `PT401`; anonymous served                                                                                                                                                                                                                                                                   |
+| `20260930093000` | `one_staff_authority`             | One staff row: the previous sole admin is Primary Owner. Owner with password only: reads, every change refused for the authenticator code; with an hour-old proof: refused; a customer with a fresh second factor: not staff, no matrix, table `42501`, grant "Not found", stop refused, sees only their own profile; anonymous `42501` over real HTTP on table and RPCs |
+| `20260930093500` | `a_staff_refusal_reads_correctly` | Live sentence: "Confirm it is you before making this change."                                                                                                                                                                                                                                                                                                            |
 
 All 29 function bodies on production hash identically to the repository files. The live site (`main`, `5d72f73d`, deployment `3152b6cc`) answers 200 on `/`, `/ocade-jarvis`, `/api/health` after the change; it keeps working against the new database because the legacy `user_roles` admin row was left in place and `has_role` answers from the staff table.
 
@@ -341,3 +341,19 @@ Real evidence on this Windows 11 computer: silent install, login entry, Windows 
 Donor (Phase 37): `computer_settings`, `system_monitor` and `undo` adapted (`ocade_settings.py`, `ocade_computer` `undo`): volume, mute, brightness and dark mode through the system's own interfaces and read back after every change; a system snapshot; a ten-deep reversal list for file writes (an overwrite now keeps the previous file first), folders, moves, renames, copies and workbook/document edits, which never overwrites what appeared since.
 
 Not executable here: a public installer needs the owner's Windows code-signing certificate (unsigned builds are private test artifacts and SmartScreen warns on them); the release key must be backed up by the owner; macOS packaging is unbuilt (no Apple hardware).
+
+### The computer carries on (Phase 43, and the Phase 22 gap) — 2026-09-30
+
+Before: the planning loop lived in the surface that started the task, so a locked phone or a closed tab left the task waiting at its checkpoint until someone came back.
+
+Now, with Background Mode on for the task's computer, the computer asks OCADE for each next step (`/api/jarvis/continue`, signed with its device key). OCADE plans exactly one step from what the database holds (the conversation, every action of the task and its result) and queues it through the same `queueTaskAction` a tab uses, so permissions, Allowed Apps and confirmations are decided in one place and checked again at dispatch. The loop's lease is the task's `controller`: the computer's id while it holds the loop; a surface that speaks again takes it back and the computer stops at its next write. Deletions, system changes, human checks and questions wait for the person, who is notified. Runaway plans stop at 60 actions. Each step is a billed permit on the `jarvis` surface, charged only when something was delivered.
+
+Model steps for a person who is not there go through a second Edge Function, `ocade-intelligence-service` (platform JWT check off; the handler accepts only a project server key plus the person's id, only for JARVIS, and still claims that person's permit). The browser function is unchanged and keeps the platform JWT check; both share `supabase/functions/_shared/boundary.ts`.
+
+A question about a task driven elsewhere ("what are you doing?") is answered from the task's real state without a model call and without taking the loop over; "stop" and "wait" act on it.
+
+Task changes and the action queue moved into one module (`task-authority.server.ts`) used by the server functions and the computer-held loop.
+
+Proof: PostgreSQL tests 17 (`carry-on.test.ts`: which task may be continued, lease, other devices and accounts, STOP and take-back mid-plan, confirmation, refused permission, invalid action, human check, question, no use, busy, runaway, emergency stop, JARVIS off); handler tests for the server door (wrong key, no key, session token, chat surface, refused permit); runtime tests for the device side; browser journey `carry-on` 24 checks with the real device runtime (tab closed mid-task, computer finishes and writes the file, notification, reopened on a phone; deletion waits; status question costs nothing and takes nothing; STOP from a phone cancels the computer's running step). Unit + database 1128 passed / 1 skipped; runtime 124 passed / 3 skipped; journeys jarvis, bubble, carry-on, online, chat passed.
+
+Release step (with the code release, not before): deploy `ocade-intelligence-service` with `verify_jwt = false` (it reads the same project secrets as `ocade-intelligence`).

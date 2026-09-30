@@ -38,8 +38,12 @@ const ACTION_TIMEOUT_MS = 120_000;
 
 export class Stopped extends Error {
   /** True when another tab or device took the task, rather than the person stopping it. */
-  constructor(readonly handedOff = false) {
-    super(handedOff ? "Another device took control of this task." : "Stopped by the person.");
+  constructor(
+    readonly handedOff = false,
+    /** Who has the task now, in words for the person: the computer itself, or another device. */
+    taker = "Another device took control of this task.",
+  ) {
+    super(handedOff ? taker : "Stopped by the person.");
   }
 }
 
@@ -132,7 +136,8 @@ export interface TurnInput {
   deviceId?: string | null;
 }
 
-function systemPrompt(input: TurnInput): string {
+/** OCADE's rules, plus where an open task was last seen, so it is continued and never replayed. */
+export function systemPrompt(input: { task: JarvisTaskRow | null }): string {
   const where = input.task?.checkpoint;
   const base = where
     ? `${JARVIS_SYSTEM_PROMPT}\n\nThe open task "${input.task!.title}" was last at step ${where.step + 1}, after: ${where.lastAction}${where.lastUrl ? ` (${where.lastUrl})` : ""}. Observe first; never repeat a step the observation shows is done.`
@@ -144,7 +149,10 @@ function systemPrompt(input: TurnInput): string {
  * Remembered preferences travel as quoted data in the conversation, never in
  * the system policy: a saved sentence cannot outrank OCADE's rules.
  */
-function memoryMessage(input: TurnInput): NormalizedMessage[] {
+export function memoryMessage(input: {
+  memoryEnabled: boolean;
+  memories: string[];
+}): NormalizedMessage[] {
   if (!input.memoryEnabled || input.memories.length === 0) return [];
   return [
     {
@@ -155,7 +163,7 @@ function memoryMessage(input: TurnInput): NormalizedMessage[] {
 }
 
 /** The observation a model needs, and nothing that could bloat the next request. */
-function compact(result: unknown): unknown {
+export function compact(result: unknown): unknown {
   if (!result || typeof result !== "object") return result;
   const value = result as { observation?: { elements?: unknown[]; text?: string } };
   if (!value.observation) return result;
@@ -169,7 +177,7 @@ function compact(result: unknown): unknown {
   };
 }
 
-const HUMAN_BOUNDARIES: Record<string, string> = {
+export const HUMAN_BOUNDARIES: Record<string, string> = {
   captcha: "This page asks you to prove you are human. Take over to continue.",
   otp: "This page needs a one-time code. Take over to enter it.",
   passkey: "This page needs your passkey or security key. Take over to continue.",
@@ -280,7 +288,7 @@ export async function runJarvisTurn(
     }
     const queued = await deps.queue({ taskId: task.id, controller, action: parsed.data });
     if (!queued.ok) {
-      if (queued.lost) throw new Stopped(true);
+      if (queued.lost) throw new Stopped(true, queued.message);
       const status = await deps.readTaskStatus(task.id);
       if (status === "taken_over") return handOver("You took over.");
       if (status !== "running") throw new Stopped();

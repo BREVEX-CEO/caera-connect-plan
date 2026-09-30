@@ -483,7 +483,7 @@ function SectionBody({
             {d.kind === "agent" ? (
               <Toggle
                 label="Background Mode"
-                hint="This computer stays ready after you close OCADE here, so you can continue or stop its task from another device."
+                hint="This computer keeps working on its task after you close OCADE here. You can watch or stop it from any device, and anything that needs you waits for you."
                 checked={d.background_enabled}
                 onChange={(enabled) =>
                   void setJarvisBackground({ data: { id: d.id, enabled } })

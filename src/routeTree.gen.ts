@@ -27,6 +27,7 @@ import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthChallengeRouteImport } from './routes/auth.challenge'
 import { Route as AuthVerifyRouteImport } from './routes/auth.verify'
+import { Route as ApiJarvisContinueRouteImport } from './routes/api/jarvis/continue'
 import { Route as ApiJarvisDeviceRouteImport } from './routes/api/jarvis/device'
 import { Route as ApiJarvisEnrollRouteImport } from './routes/api/jarvis/enroll'
 import { Route as ApiOfflineBytesReleaseRouteImport } from './routes/api/offline/bytes.$release'
@@ -120,6 +121,11 @@ const AuthVerifyRoute = AuthVerifyRouteImport.update({
   path: '/auth/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiJarvisContinueRoute = ApiJarvisContinueRouteImport.update({
+  id: '/api/jarvis/continue',
+  path: '/api/jarvis/continue',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiJarvisDeviceRoute = ApiJarvisDeviceRouteImport.update({
   id: '/api/jarvis/device',
   path: '/api/jarvis/device',
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/auth/challenge': typeof AuthChallengeRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/auth/': typeof AuthIndexRoute
+  '/api/jarvis/continue': typeof ApiJarvisContinueRoute
   '/api/jarvis/device': typeof ApiJarvisDeviceRoute
   '/api/jarvis/enroll': typeof ApiJarvisEnrollRoute
   '/api/offline/bytes/$release': typeof ApiOfflineBytesReleaseRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/auth/challenge': typeof AuthChallengeRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/auth': typeof AuthIndexRoute
+  '/api/jarvis/continue': typeof ApiJarvisContinueRoute
   '/api/jarvis/device': typeof ApiJarvisDeviceRoute
   '/api/jarvis/enroll': typeof ApiJarvisEnrollRoute
   '/api/offline/bytes/$release': typeof ApiOfflineBytesReleaseRoute
@@ -200,6 +208,7 @@ export interface FileRoutesById {
   '/auth/challenge': typeof AuthChallengeRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/auth/': typeof AuthIndexRoute
+  '/api/jarvis/continue': typeof ApiJarvisContinueRoute
   '/api/jarvis/device': typeof ApiJarvisDeviceRoute
   '/api/jarvis/enroll': typeof ApiJarvisEnrollRoute
   '/api/offline/bytes/$release': typeof ApiOfflineBytesReleaseRoute
@@ -224,6 +233,7 @@ export interface FileRouteTypes {
     | '/auth/challenge'
     | '/auth/verify'
     | '/auth/'
+    | '/api/jarvis/continue'
     | '/api/jarvis/device'
     | '/api/jarvis/enroll'
     | '/api/offline/bytes/$release'
@@ -246,6 +256,7 @@ export interface FileRouteTypes {
     | '/auth/challenge'
     | '/auth/verify'
     | '/auth'
+    | '/api/jarvis/continue'
     | '/api/jarvis/device'
     | '/api/jarvis/enroll'
     | '/api/offline/bytes/$release'
@@ -269,6 +280,7 @@ export interface FileRouteTypes {
     | '/auth/challenge'
     | '/auth/verify'
     | '/auth/'
+    | '/api/jarvis/continue'
     | '/api/jarvis/device'
     | '/api/jarvis/enroll'
     | '/api/offline/bytes/$release'
@@ -291,6 +303,7 @@ export interface RootRouteChildren {
   AuthChallengeRoute: typeof AuthChallengeRoute
   AuthVerifyRoute: typeof AuthVerifyRoute
   AuthIndexRoute: typeof AuthIndexRoute
+  ApiJarvisContinueRoute: typeof ApiJarvisContinueRoute
   ApiJarvisDeviceRoute: typeof ApiJarvisDeviceRoute
   ApiJarvisEnrollRoute: typeof ApiJarvisEnrollRoute
   ApiOfflineBytesReleaseRoute: typeof ApiOfflineBytesReleaseRoute
@@ -424,6 +437,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/jarvis/continue': {
+      id: '/api/jarvis/continue'
+      path: '/api/jarvis/continue'
+      fullPath: '/api/jarvis/continue'
+      preLoaderRoute: typeof ApiJarvisContinueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/jarvis/device': {
       id: '/api/jarvis/device'
       path: '/api/jarvis/device'
@@ -478,6 +498,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthChallengeRoute: AuthChallengeRoute,
   AuthVerifyRoute: AuthVerifyRoute,
   AuthIndexRoute: AuthIndexRoute,
+  ApiJarvisContinueRoute: ApiJarvisContinueRoute,
   ApiJarvisDeviceRoute: ApiJarvisDeviceRoute,
   ApiJarvisEnrollRoute: ApiJarvisEnrollRoute,
   ApiOfflineBytesReleaseRoute: ApiOfflineBytesReleaseRoute,

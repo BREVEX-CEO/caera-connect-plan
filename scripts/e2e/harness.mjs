@@ -56,6 +56,7 @@ const ALL = [
   "admin",
   "bubble",
   "mfa",
+  "carry-on",
 ];
 
 const requested = process.argv.slice(2).filter((value) => !value.startsWith("--"));

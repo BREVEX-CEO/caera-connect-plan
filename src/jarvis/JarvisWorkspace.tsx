@@ -302,6 +302,28 @@ export function JarvisWorkspace({
       void interject(text, fromVoice);
       return;
     }
+    // The open task is being driven somewhere else (the computer itself with
+    // Background Mode, or another tab). A question about it is answered from its
+    // real state, Stop stops it and Wait hands it to the person: asking never
+    // takes the work over. Anything else is a new instruction, and does.
+    // (`task === conversationTask`: not when the caller just resumed it here.)
+    if (!running && !retryOf && conversationId && task === conversationTask) {
+      const elsewhere = task?.status === "running" ? task : null;
+      const intent = elsewhere ? workIntent(text) : "tell";
+      if (elsewhere && intent !== "tell") {
+        setDraft("");
+        if (intent === "stop") return void stop();
+        if (intent === "pause") void takeOverNow();
+        return void record(
+          conversationId,
+          text,
+          intent === "pause"
+            ? `Pausing “${elsewhere.title}”: only the step in progress finishes. Resume when you're ready.`
+            : statusReply(elsewhere, false, lastActivityOf(elsewhere)),
+          fromVoice,
+        );
+      }
+    }
     if (running || busyRef.current || transcript !== "ready" || spent) {
       // Said while JARVIS cannot answer yet: kept in the composer, never lost.
       if (fromVoice && !running) setDraft(text);
@@ -496,6 +518,11 @@ export function JarvisWorkspace({
         ? "Noted. I'll use that when you say continue."
         : "Got it. I'll adjust at the next step.";
     }
+    await record(id, text, reply, fromVoice);
+  };
+
+  /** What the person said and OCADE's own answer to it (no model): shown, kept and spoken. */
+  const record = async (id: string, text: string, reply: string, fromVoice: boolean) => {
     const owner = ownerRef.current;
     const add = (role: Turn["role"], content: string, saved: string) =>
       ownerRef.current === owner && setTurns((list) => [...list, { id: saved, role, content }]);

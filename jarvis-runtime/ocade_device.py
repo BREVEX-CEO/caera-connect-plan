@@ -36,7 +36,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ocade_computer import Computer, installed_apps  # noqa: E402
-from ocade_identity import (SOFTWARE_VERSION, ClockSkew, Identity, NotEnrolled,  # noqa: E402
+from ocade_identity import (PROTOCOL, SOFTWARE_VERSION, ClockSkew, Identity, NotEnrolled,  # noqa: E402
                             UpdateRequired)
 
 BROWSER_ACTIONS = {"observe", "look", "open", "new_tab", "click", "type", "select", "press",
@@ -45,6 +45,10 @@ BROWSER_ACTIONS = {"observe", "look", "open", "new_tab", "click", "type", "selec
 APPS_EVERY_S = 3600
 # With OCADE out of reach this long, a running action is stopped: nobody could STOP it remotely.
 CONTROL_LOSS_S = 15.0
+# Planning one step can take OCADE as long as its slowest answer; a step that
+# failed or had nothing to do is not asked for again sooner than this.
+CARRY_ON_TIMEOUT_S = 150.0
+CARRY_ON_RETRY_S = 15.0
 # How long a stopped action gets to end before the device lets go of it.
 HALT_JOIN_S = 10.0
 
@@ -195,6 +199,31 @@ class Agent:
         self.state = {"busy": False, "background": False, "connected": True, "update": False,
                       "task": None, "offline": False}
         self.pending_path = identity.home / "pending.json"
+        self._planning: threading.Thread | None = None
+        self._plan_after = 0.0
+
+    def _carry_on(self, task_id: str) -> None:
+        """
+        Background Mode, and the person closed OCADE: ask OCADE for the task's
+        next step. OCADE plans it and queues it like any other action, so it
+        arrives through the exchange with every check made again; nothing is
+        decided here. Asked off the exchange loop, which keeps listening for STOP.
+        """
+        if (self._planning and self._planning.is_alive()) or time.monotonic() < self._plan_after:
+            return
+
+        def ask() -> None:
+            try:
+                status, reply = self.identity.post(PROTOCOL["paths"]["continue"], {"taskId": task_id},
+                                                   timeout=CARRY_ON_TIMEOUT_S)
+                quiet = status != 200 or reply.get("state") == "idle"
+            except Exception:
+                quiet = True
+            if quiet:  # never a tight loop against a step that cannot be planned
+                self._plan_after = time.monotonic() + CARRY_ON_RETRY_S
+
+        self._planning = threading.Thread(target=ask, daemon=True, name="ocade-carry-on")
+        self._planning.start()
 
     def _settings(self) -> dict:
         try:
@@ -354,6 +383,8 @@ class Agent:
             commands = [] if active else reply.get("commands", [])[:1]
             if commands and not self.stop.is_set():
                 active = self._start(commands[0])
+            elif reply.get("continue") and not active and not self.stop.is_set():
+                self._carry_on(str(reply["continue"]))
             if active:
                 active["thread"].join(POLL_IDLE_SECONDS)  # returns as soon as the action ends
             else:

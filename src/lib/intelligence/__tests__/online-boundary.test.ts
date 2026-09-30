@@ -18,7 +18,7 @@ import { PROVIDER_KEY_ENVIRONMENT, PROVIDER_KEY_SLOTS } from "../online-models";
  */
 
 const EDGE_HANDLER = readFileSync("src/lib/intelligence/edge-handler.ts", "utf8");
-const EDGE_ENTRY = readFileSync("supabase/functions/ocade-intelligence/index.ts", "utf8");
+const EDGE_ENTRY = readFileSync("supabase/functions/_shared/boundary.ts", "utf8");
 
 function sourceFiles(directory: string): string[] {
   const out: string[] = [];

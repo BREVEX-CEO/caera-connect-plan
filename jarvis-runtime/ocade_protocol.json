@@ -14,7 +14,8 @@
   },
   "paths": {
     "enroll": "/api/jarvis/enroll",
-    "exchange": "/api/jarvis/device"
+    "exchange": "/api/jarvis/device",
+    "continue": "/api/jarvis/continue"
   },
   "kinds": [
     "agent",

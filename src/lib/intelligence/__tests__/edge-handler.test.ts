@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { handleOnlineIntelligence, type OnlineHandlerDependencies } from "../edge-handler";
+import {
+  handleOnlineIntelligence,
+  isServiceKey,
+  SERVICE_USER_HEADER,
+  type OnlineHandlerDependencies,
+} from "../edge-handler";
 
 const ORIGIN = "https://ocade.example";
 
@@ -720,5 +725,90 @@ describe("capacity failures that must not look like each other", () => {
     );
     await response.text();
     expect(finalize).not.toHaveBeenCalled();
+  });
+});
+
+describe("the door for OCADE's own server", () => {
+  const USER = "22222222-2222-4222-8222-222222222222";
+  const jarvis = () => {
+    const value = body();
+    return { ...value, surface: "jarvis", permit: { ...value.permit, surface: "jarvis" } };
+  };
+  const serverRequest = (value: unknown, headers: Record<string, string>) =>
+    new Request("https://project.supabase.co/functions/v1/ocade-intelligence-service", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify(value),
+    });
+  const door = (patch: Partial<OnlineHandlerDependencies> = {}) =>
+    dependencies({
+      allowedOrigins: new Set(),
+      verifyJwt: vi.fn(async () => null),
+      verifyService: async (request) =>
+        (await isServiceKey(request.headers.get("apikey"), ["server-key", "older-server-key"]))
+          ? { userId: request.headers.get(SERVICE_USER_HEADER)! }
+          : null,
+      ...patch,
+    });
+
+  it("serves a holder of a server key, for the person it names and that person's permit", async () => {
+    const deps = door();
+    const response = await handleOnlineIntelligence(
+      serverRequest(jarvis(), { apikey: "older-server-key", [SERVICE_USER_HEADER]: USER }),
+      deps,
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    expect(await response.text()).toContain('"type":"final"');
+    expect(deps.claimPermit).toHaveBeenCalledWith(expect.objectContaining({ userId: USER }));
+    expect(deps.verifyJwt).not.toHaveBeenCalled();
+  });
+
+  it("refuses a wrong key, a missing key, a session token, and anything but JARVIS work", async () => {
+    const attempts: Record<string, string>[] = [
+      { apikey: "guess", [SERVICE_USER_HEADER]: USER },
+      { [SERVICE_USER_HEADER]: USER },
+      { Authorization: "Bearer user-token", [SERVICE_USER_HEADER]: USER },
+    ];
+    for (const headers of attempts) {
+      const deps = door();
+      const response = await handleOnlineIntelligence(serverRequest(jarvis(), headers), deps);
+      expect(response.status).toBe(401);
+      expect(deps.claimPermit).not.toHaveBeenCalled();
+      expect(deps.callProvider).not.toHaveBeenCalled();
+    }
+    const chat = await handleOnlineIntelligence(
+      serverRequest(body(), { apikey: "server-key", [SERVICE_USER_HEADER]: USER }),
+      door(),
+    );
+    expect(chat.status).toBe(400);
+    // Without naming a person it is an ordinary request, and this function allows no origin.
+    const anonymous = await handleOnlineIntelligence(
+      serverRequest(jarvis(), { apikey: "server-key", Origin: ORIGIN }),
+      door(),
+    );
+    expect(anonymous.status).toBe(403);
+  });
+
+  it("does not exist on the function browsers use, whatever header is sent", async () => {
+    const deps = dependencies({ verifyJwt: vi.fn(async () => null) });
+    const response = await handleOnlineIntelligence(
+      request(jarvis(), { apikey: "server-key", [SERVICE_USER_HEADER]: USER }),
+      deps,
+    );
+    expect(response.status).toBe(401);
+    expect(deps.callProvider).not.toHaveBeenCalled();
+  });
+
+  it("a refused permit stops it before any provider call", async () => {
+    const deps = door({
+      claimPermit: vi.fn(async () => ({ ok: false as const, reason: "no such permit" })),
+    });
+    const response = await handleOnlineIntelligence(
+      serverRequest(jarvis(), { apikey: "server-key", [SERVICE_USER_HEADER]: USER }),
+      deps,
+    );
+    expect(response.status).toBe(409);
+    expect(deps.callProvider).not.toHaveBeenCalled();
   });
 });

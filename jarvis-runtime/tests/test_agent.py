@@ -137,6 +137,35 @@ class LifecycleTest(unittest.TestCase):
         again.stop.set()
         self.assertEqual(again._load_pending()[0]["id"], "a1")
 
+    def test_background_mode_asks_ocade_for_the_next_step_and_never_in_a_tight_loop(self):
+        """The computer carries on: it asks, OCADE plans and queues; nothing is decided here."""
+        agent, identity = self._agent([{"commands": [], "busy": True, "continue": "t1"}] * 4)
+        asked = []
+
+        def post(path, body, timeout=40):
+            asked.append((path, body, timeout))
+            return 200, {"state": "idle"}  # nothing could be planned
+
+        identity.post = post
+        runner = threading.Thread(target=agent.run)
+        runner.start()
+        time.sleep(3.5)
+        agent.stop.set()
+        runner.join(10)
+        self.assertEqual(asked, [("/api/jarvis/continue", {"taskId": "t1"}, ocade_device.CARRY_ON_TIMEOUT_S)])
+
+    def test_an_action_to_run_comes_before_asking_for_another(self):
+        command = {"id": "a1", "taskId": "t1", "action": {"action": "file_list", "path": "."}}
+        agent, identity = self._agent([{"commands": [command], "busy": True, "continue": "t1"}])
+        asked = []
+        identity.post = lambda *a, **k: (asked.append(a), (200, {"state": "queued"}))[1]
+        runner = threading.Thread(target=agent.run)
+        runner.start()
+        time.sleep(0.8)
+        agent.stop.set()
+        runner.join(10)
+        self.assertEqual(asked, [])
+
     def test_stop_jarvis_reaches_ocade_once(self):
         agent, identity = self._agent([{"commands": [], "busy": True}] * 3)
         agent.stop_all.set()

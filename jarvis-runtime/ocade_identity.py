@@ -136,7 +136,7 @@ class Identity:
         return self._last_ms
 
     def post(self, path: str, body: dict, key: ec.EllipticCurvePrivateKey | None = None,
-             device: str | None = None) -> tuple[int, dict]:
+             device: str | None = None, timeout: float = 40) -> tuple[int, dict]:
         raw = json.dumps(body).encode()
         key = key or self.key
         device = device or self.meta.get("deviceId") or "-"
@@ -151,7 +151,7 @@ class Identity:
                      h["timestamp"]: str(stamp),
                      h["signature"]: sign(key, canonical("POST", path, device, stamp, raw))})
         try:
-            with urllib.request.urlopen(request, timeout=40) as response:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
                 return response.status, json.loads(response.read().decode() or "{}")
         except urllib.error.HTTPError as e:
             try:

@@ -480,6 +480,8 @@ export async function exchange(
   cancel: string[];
   /** What happened to each reported result: kept, or why not. */
   acks?: { id: string; outcome: "accepted" | "stopped" | "unknown" }[];
+  /** Background Mode: the running task this computer should ask OCADE to continue now. */
+  continue?: string;
   rotated?: boolean;
 }> {
   if (input.forget) {
@@ -541,7 +543,11 @@ export async function exchange(
       .eq("device_id", device.id)
       .eq("status", "taken_over");
   }
-  await pauseOrphanedTasks(admin, { deviceId: device.id });
+  // A task nobody drives waits at its checkpoint, unless this computer may
+  // carry on with it (Background Mode): then it is told to ask for the next step.
+  const { taskToCarryOn } = await import("./background.server");
+  const carry = await taskToCarryOn(admin, device);
+  if (!carry) await pauseOrphanedTasks(admin, { deviceId: device.id });
   const [{ data: open }, { data: self }] = await Promise.all([
     admin
       .from("jarvis_tasks")
@@ -691,7 +697,9 @@ export async function exchange(
     .eq("status", "queued")
     .order("created_at", { ascending: true })
     .limit(1);
-  if (!queued?.length) return { ...envelope, commands: [], cancel, rotated };
+  if (!queued?.length) {
+    return { ...envelope, commands: [], cancel, rotated, ...(carry ? { continue: carry } : {}) };
+  }
   const row = queued[0];
 
   const [
