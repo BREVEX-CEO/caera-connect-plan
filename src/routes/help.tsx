@@ -269,6 +269,21 @@ const QUESTIONS: {
   },
   {
     category: "Privacy & security",
+    question: "What is two-step verification, and what if I lose my phone?",
+    words: "two step 2fa authenticator code recovery codes lost phone locked out",
+    answer: (
+      <p>
+        Turn it on in Settings, under Account: signing in then also asks for a code from your
+        authenticator app, so a stolen password alone cannot reach your account. When you turn it
+        on, OCADE shows ten recovery codes once. Save them somewhere other than your phone. If you
+        lose the phone, choose “I lost my authenticator” on the code screen and enter one: it turns
+        two-step verification off and signs you out everywhere, then you sign in and set it up
+        again. Each code works once, and you can make a new set in Settings at any time.
+      </p>
+    ),
+  },
+  {
+    category: "Privacy & security",
     question: "Where is my data kept?",
     words: "data storage export delete",
     answer: (

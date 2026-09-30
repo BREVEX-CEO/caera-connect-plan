@@ -29,6 +29,7 @@ import {
   readCustomer,
   readMyStaff,
   ready,
+  resetCustomerSecondFactor,
   STAFF_ROLE_NAMES,
   type MyStaff,
   type StaffRole,
@@ -363,6 +364,20 @@ function CustomerDetail({
     },
     onError: (error) => toast.error(messageOf(error)),
   });
+  const reset = useMutation({
+    mutationFn: () =>
+      withProof(() => resetCustomerSecondFactor({ data: { userId: row.id, reason: why } })),
+    onSuccess: ({ removed }) => {
+      toast.success(
+        removed
+          ? "Their two-step verification is off, and they are signed out everywhere."
+          : "They had no two-step verification to turn off.",
+      );
+      setWhy("");
+      void detail.refetch();
+    },
+    onError: (error) => toast.error(messageOf(error)),
+  });
   const validHours = Number.isInteger(Number(hours)) && Number(hours) >= 1 && Number(hours) <= 72;
 
   return (
@@ -427,6 +442,17 @@ function CustomerDetail({
                 className="h-7 rounded-md border border-destructive/50 px-2 text-destructive disabled:opacity-50"
               >
                 {end.isPending ? "Ending…" : "End all their sessions"}
+              </button>
+            ) : null}
+            {may("sessions.manage") && detail.data?.security?.secondFactor ? (
+              // Only for somebody who lost their phone and their recovery codes.
+              <button
+                type="button"
+                disabled={!ready(why) || reset.isPending}
+                onClick={() => reset.mutate()}
+                className="h-7 rounded-md border border-destructive/50 px-2 text-destructive disabled:opacity-50"
+              >
+                {reset.isPending ? "Turning off…" : "Turn off their two-step"}
               </button>
             ) : null}
             {may("cases.manage") ? (

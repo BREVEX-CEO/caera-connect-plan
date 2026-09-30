@@ -402,6 +402,42 @@ describe("sessions", () => {
     expect(still.rows[0]!.ok).toBe(true);
   });
 
+  it("an Admin turns off a customer's lost two-step: sessions and old codes go, and it is recorded", async () => {
+    await twin.execSuperuser(
+      `delete from auth.sessions;
+       insert into auth.sessions (user_id) values ('${CUSTOMER_A}'), ('${CUSTOMER_B}');
+       insert into public.ocade_mfa_recovery_codes (user_id, code_hash)
+       values ('${CUSTOMER_A}', repeat('a', 64)), ('${CUSTOMER_B}', repeat('b', 64));`,
+    );
+    const reset = (actor: string, user: string) =>
+      twin.asTenant<{ ok: boolean }>(
+        actor,
+        `select public.ocade_staff_reset_second_factor('${user}', 'Lost phone and recovery codes') as ok`,
+        fresh,
+      );
+    expect((await reset(ADMIN, OWNER)).error).toMatch(/changed by the owner/);
+    expect((await reset(ADMIN, BACKUP)).error).toMatch(/changed by the owner/);
+    expect((await reset(ADMIN, ADMIN)).error).toMatch(/their own/);
+    expect((await reset(ADMIN, CUSTOMER_A)).rows[0]!.ok).toBe(true);
+    // Only that account: its sessions and its old codes.
+    const left = await twin.asSuperuser<{ user_id: string }>(`select user_id from auth.sessions`);
+    expect(left.map((row) => row.user_id)).toEqual([CUSTOMER_B]);
+    const codes = await twin.asSuperuser<{ user_id: string }>(
+      `select user_id from public.ocade_mfa_recovery_codes`,
+    );
+    expect(codes.map((row) => row.user_id)).toEqual([CUSTOMER_B]);
+    const [audit] = await twin.asServiceRole<{ actor: string; target_user: string }>(
+      `select actor, target_user from public.ocade_admin_actions where action = 'second_factor_reset'`,
+    );
+    expect(audit).toEqual({ actor: ADMIN, target_user: CUSTOMER_A });
+    const verify = await twin.runScript(
+      "supabase/verification",
+      "20260930094000_staff_can_turn_off_a_lost_second_factor_verify.sql",
+    );
+    expect(verify.error).toBeUndefined();
+    await twin.execSuperuser(`delete from public.ocade_mfa_recovery_codes`);
+  });
+
   it("support cannot end a customer's sessions; an Admin can, but not an owner's", async () => {
     await twin.execSuperuser(
       `insert into auth.sessions (user_id) values ('${CUSTOMER_B}'), ('${BACKUP}')`,
@@ -533,6 +569,7 @@ describe("attacked from a browser", () => {
     transfer: `select public.ocade_staff_transfer_ownership('${BACKUP}', 'Stepping back from operations')`,
     endAll: `select public.ocade_staff_end_all_sessions('Suspected staff credential leak')`,
     endCustomer: `select public.ocade_staff_end_customer_sessions('${CUSTOMER_A}', 'Account reported as taken over')`,
+    resetFactor: `select public.ocade_staff_reset_second_factor('${CUSTOMER_A}', 'Lost phone and recovery codes')`,
     caseOpen: `select public.ocade_case_open('${CUSTOMER_A}', 'Customer reported export failure', 24)`,
     caseClose: `select public.ocade_case_close('00000000-0000-4000-8000-000000000000', 'Resolved: export works again')`,
   };
@@ -614,6 +651,7 @@ describe("attacked from a browser", () => {
       "transfer",
       "endAll",
       "endCustomer",
+      "resetFactor",
       "caseOpen",
     ]) {
       expect((await twin.asTenant(SUPPORT, MUTATIONS[name]!, fresh)).error, name).toBe("Not found");

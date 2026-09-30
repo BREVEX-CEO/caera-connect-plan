@@ -56,7 +56,13 @@ const customerEmail = `customer-${stamp}@ocade.test`;
 const otherEmail = `other-${stamp}@ocade.test`;
 const hireEmail = `newhire-${stamp}@ocade.test`;
 const customer = await signIn(customerEmail);
-await signIn(otherEmail); // exists, so the owner's grant resolves it to an account
+const other = await signIn(otherEmail); // exists, so the owner's grant resolves it to an account
+// It has two-step on, and (the story goes) lost the phone and the recovery codes.
+await fetch(`${SUPABASE}/__fixture/enroll-factor`, {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ userId: other.user.id }),
+});
 const [device] = await post(customer, "jarvis_devices", {
   name: `Office PC ${stamp}`,
   platform: "Windows",
@@ -199,6 +205,25 @@ try {
     `${SUPABASE}/rest/v1/jarvis_devices?id=eq.${device.id}&select=revoked_at,public_key`,
   ).then((response) => response.json());
   check("the device's key is gone on the server", Boolean(stored[0]?.revoked_at));
+
+  /* --- a customer who lost their phone and their recovery codes ------------- */
+  await strong.getByPlaceholder("Search by email, name or account id").fill(`other-${stamp}`);
+  const lostRow = strong.locator("li", { hasText: otherEmail });
+  await lostRow.getByRole("button", { name: "Open", exact: true }).click();
+  await lostRow.getByText(/Two-step on/).waitFor({ timeout: 10_000 });
+  const turnOff = lostRow.getByRole("button", { name: "Turn off their two-step" });
+  check("turning off a customer's two-step waits for a reason", await turnOff.isDisabled());
+  await lostRow.getByPlaceholder(/^Why \(/).fill("Lost phone and codes, identity checked");
+  await turnOff.click();
+  check(
+    "an Admin turns off a lost second factor, and the account shows it",
+    (await seen(strong.getByText(/Their two-step verification is off/))) &&
+      (await seen(lostRow.getByText(/Two-step off/))),
+  );
+  const factorsLeft = await fetch(`${SUPABASE}/auth/v1/user`, {
+    headers: { authorization: `Bearer ${(await signIn(otherEmail)).access_token}` },
+  }).then((response) => response.json());
+  check("the factor is gone on the server", (factorsLeft.factors ?? []).length === 0);
 
   /* --- the stops: all device work, the Device Agent, the extension --------- */
   await tab(strong, "System").click();
@@ -416,6 +441,7 @@ try {
       "Invited staff",
       "Invitation accepted",
       "Removed staff access",
+      "Turned off a customer's two-step verification",
       "Opened a case",
       "Read a conversation under a case",
       "Closed a case",

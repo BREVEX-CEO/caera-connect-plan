@@ -183,6 +183,31 @@ try {
   await page.getByRole("button", { name: "Confirm", exact: true }).click();
   await page.getByText("On. OCADE asks for a code").waitFor({ timeout: 10_000 });
   check("a fresh code turns two-step On", true);
+
+  /* --- recovery codes are made with it, and shown once -------------------------- */
+  const sheet = page.getByRole("region", { name: "Your recovery codes" });
+  await sheet.waitFor({ timeout: 10_000 });
+  const firstSheet = await sheet.locator("li").allInnerTexts();
+  check(
+    "turning two-step on hands over ten recovery codes",
+    firstSheet.length === 10 &&
+      firstSheet.every((code) => /^[0-9A-Z]{5}(-[0-9A-Z]{5}){3}$/.test(code)) &&
+      new Set(firstSheet).size === 10,
+    firstSheet[0],
+  );
+  await sheet.getByRole("button", { name: "I saved them" }).click();
+  check(
+    "then only how many are left is shown, never the codes",
+    (await page.getByText("10 left. Each works once").count()) === 1 &&
+      !(await dialogText(page)).includes(firstSheet[0]),
+  );
+  check(
+    "the codes never reach the console or storage",
+    !console.some((line) => line.includes(firstSheet[0])) &&
+      !(await page.evaluate(() => JSON.stringify({ ...window.localStorage }))).includes(
+        firstSheet[0],
+      ),
+  );
   const verified = (await factorsOf(sessionA.access_token)).filter((f) => f.status === "verified");
   check("exactly one verified factor on the account", verified.length === 1);
   const stored = await page.evaluate(
@@ -284,6 +309,82 @@ try {
   const file = await downloaded;
   check("then the export completes", file.suggestedFilename().startsWith("ocade-account-export-"));
   await contextC.close();
+
+  /* --- a lost phone: a recovery code turns two-step off, and signs nobody in ----- */
+  const EMAIL_D = `mfa-d-${stamp}@ocade.test`;
+  const contextD = await contextFor(await signIn(EMAIL_D));
+  const pageD = await contextD.newPage();
+  await pageD.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  await openAccount(pageD);
+  await pageD.getByRole("button", { name: "Set up", exact: true }).click();
+  await pageD.getByLabel("Setup key").waitFor();
+  const keyD = await readKey(pageD);
+  await pageD.getByLabel("Six-digit code from your authenticator app").fill(totp(keyD));
+  await pageD.getByRole("button", { name: "Confirm", exact: true }).click();
+  const sheetD = pageD.getByRole("region", { name: "Your recovery codes" });
+  await sheetD.waitFor({ timeout: 10_000 });
+  const codes = await sheetD.locator("li").allInnerTexts();
+  await sheetD.getByRole("button", { name: "I saved them" }).click();
+
+  // Making a new sheet retires the old one.
+  await pageD.getByRole("button", { name: "Make new codes", exact: true }).click();
+  await sheetD.waitFor({ timeout: 10_000 });
+  const newCodes = await sheetD.locator("li").allInnerTexts();
+  check(
+    "a new sheet is ten different codes",
+    newCodes.length === 10 && !newCodes.some((code) => codes.includes(code)),
+  );
+  await contextD.close();
+
+  // The phone is gone. A new sign-in stops at the code screen.
+  const lost = await contextFor(await signIn(EMAIL_D));
+  const pageLost = await lost.newPage();
+  await pageLost.goto(`${BASE}/library`, { waitUntil: "networkidle" });
+  await pageLost.waitForURL(/\/auth\/challenge/, { timeout: 10_000 });
+  await pageLost.getByRole("button", { name: "I lost my authenticator" }).click();
+  const recoveryBox = pageLost.getByLabel("Recovery code");
+  const useCode = pageLost.getByRole("button", { name: "Use this code" });
+  check("a recovery code is asked for, and the button waits for one", await useCode.isDisabled());
+  await recoveryBox.fill(codes[0]);
+  await useCode.click();
+  await pageLost.getByRole("alert").waitFor({ timeout: 10_000 });
+  check(
+    "a code from the replaced sheet no longer works",
+    (await pageLost.getByRole("alert").innerText()).includes("not accepted"),
+  );
+  // Typed the way people type it back: lower case, spaces for hyphens.
+  await recoveryBox.fill(newCodes[4].toLowerCase().replaceAll("-", " "));
+  await useCode.click();
+  await pageLost.getByRole("heading", { name: "Two-step verification is off" }).waitFor({
+    timeout: 15_000,
+  });
+  check("a current code turns two-step off", true);
+  check(
+    "and removes the authenticator from the account",
+    (await factorsOf((await signIn(EMAIL_D)).access_token)).length === 0,
+  );
+  check(
+    "without signing anybody in",
+    (await pageLost.evaluate((key) => window.localStorage.getItem(key), storageKey(SUPABASE))) ===
+      null,
+  );
+  check(
+    "the way back is an ordinary sign-in",
+    (await pageLost.getByRole("button", { name: "Go to sign in" }).count()) === 1,
+  );
+  await lost.close();
+
+  // Signed in again: no code screen, and the account can set two-step up anew.
+  const back = await contextFor(await signIn(EMAIL_D));
+  const pageBack = await back.newPage();
+  await pageBack.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  check("the next sign-in is not stopped for a code", !pageBack.url().includes("/auth/challenge"));
+  await openAccount(pageBack);
+  check(
+    "and two-step reads Off, ready to be set up on the new phone",
+    (await dialogText(pageBack)).includes("Off. Add an authenticator app"),
+  );
+  await back.close();
 } catch (error) {
   check("journey completed", false, String(error).split("\n")[0]);
 } finally {

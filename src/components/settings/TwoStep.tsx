@@ -12,6 +12,7 @@ import { Action, Confirm, Row } from "./rows";
 import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { checkAssurance } from "@/lib/security/reauthentication";
 import { HIGH_RISK_REQUIREMENT } from "@/lib/security/assurance";
+import { issueRecoveryCodes, readRecoveryCodes } from "@/lib/security/recovery.functions";
 
 /**
  * THE SECOND FACTOR HAD EVERY PART EXCEPT A WAY TO CREATE ONE.
@@ -43,6 +44,10 @@ export function TwoStep() {
   const [offAsked, setOffAsked] = useState(false);
   const { withProof, dialog } = useConfirmIdentity();
   const [copied, setCopied] = useState(false);
+  // The sheet, held only while it is on screen: it cannot be shown again.
+  const [sheet, setSheet] = useState<string[] | null>(null);
+  const [codesLeft, setCodesLeft] = useState<number | null>(null);
+  const [sheetCopied, setSheetCopied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,6 +66,34 @@ export function TwoStep() {
   }, []);
 
   const on = (factors?.length ?? 0) > 0;
+
+  useEffect(() => {
+    if (!on) return;
+    let cancelled = false;
+    void readRecoveryCodes().then(
+      (status) => !cancelled && setCodesLeft(status.remaining),
+      // Unknown is said as unknown, never as "none left".
+      () => !cancelled && setCodesLeft(null),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [on, sheet]);
+
+  /** A new sheet replaces the old one, so it asks for a fresh proof like any high-risk change. */
+  async function makeCodes() {
+    setBusy(true);
+    setProblem(null);
+    try {
+      const { codes } = await withProof(() => issueRecoveryCodes());
+      setSheetCopied(false);
+      setSheet(codes);
+    } catch (error) {
+      setProblem(messageOf(error));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function begin() {
     setBusy(true);
@@ -90,6 +123,9 @@ export function TwoStep() {
       setCode("");
       setRejected(0);
       setFactors(await listVerifiedFactors());
+      // Two-step without a way back is a locked account the day the phone is
+      // lost, so the codes are made and shown in the same step.
+      await makeCodes();
     } catch (error) {
       setProblem(messageOf(error));
       setCode("");
@@ -241,6 +277,75 @@ export function TwoStep() {
               </button>
             </p>
           ) : null}
+        </div>
+      ) : null}
+
+      {on && !sheet ? (
+        <Row
+          label="Recovery codes"
+          description={
+            codesLeft === null
+              ? "One-time codes that turn two-step verification off if you lose your phone."
+              : codesLeft === 0
+                ? "None left. Make new codes now: without them a lost phone locks this account."
+                : `${codesLeft} left. Each works once, and turns two-step verification off if you lose your phone.`
+          }
+        >
+          <Action
+            label={busy ? "Making…" : "Make new codes"}
+            busy={busy}
+            onClick={() => void makeCodes()}
+          />
+        </Row>
+      ) : null}
+
+      {sheet ? (
+        <div
+          className="border-b border-border/50 py-4 last:border-b-0"
+          role="region"
+          aria-label="Your recovery codes"
+        >
+          <p className="text-sm text-foreground">Save these recovery codes now</p>
+          <p className="mt-1 text-[13px] leading-5 text-muted-foreground">
+            They are shown once. If you lose your phone, one of them turns two-step verification off
+            so you can sign in and set it up again. Keep them somewhere other than your phone. Codes
+            made earlier no longer work.
+          </p>
+          <ul className="mt-3 grid gap-1 font-mono text-[13px] tracking-wide text-foreground sm:grid-cols-2">
+            {sheet.map((code) => (
+              <li key={code}>{code}</li>
+            ))}
+          </ul>
+          <div className="mt-3 flex flex-wrap gap-3 text-[13px]">
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard?.writeText(sheet.join("\n")).then(
+                  () => setSheetCopied(true),
+                  () => setSheetCopied(false),
+                );
+              }}
+              className="text-foreground underline underline-offset-2"
+            >
+              {sheetCopied ? "Codes copied" : "Copy codes"}
+            </button>
+            <a
+              href={`data:text/plain;charset=utf-8,${encodeURIComponent(
+                `OCADE recovery codes\n\n${sheet.join("\n")}\n`,
+              )}`}
+              download="ocade-recovery-codes.txt"
+              className="text-foreground underline underline-offset-2"
+            >
+              Download
+            </a>
+            <button
+              type="button"
+              onClick={() => setSheet(null)}
+              className="text-foreground underline underline-offset-2"
+            >
+              I saved them
+            </button>
+          </div>
         </div>
       ) : null}
 

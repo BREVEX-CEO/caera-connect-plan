@@ -62,6 +62,8 @@ function staffFailure(message: string): string {
     "Only the Primary Owner hands over ownership.",
     "Ownership goes to the Backup Owner. Name one first.",
     "An owner's sessions are ended by the owner.",
+    "An owner's two-step verification is changed by the owner.",
+    "Nobody turns off their own two-step verification this way.",
     "A case lasts between 1 and 72 hours.",
     "A case is about somebody else's account.",
     "This case is closed or has expired.",
@@ -338,6 +340,51 @@ export const endCustomerSessions = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(staffFailure(error.message));
     return { ended: Number(ended ?? 0) };
+  });
+
+/**
+ * Turn off a customer's two-step verification: the phone and the recovery
+ * codes are both gone. The database authorises and records it and ends their
+ * sessions; the factor itself is removed through the Auth API, which also
+ * tells the account by email.
+ */
+export const resetCustomerSecondFactor = createServerFn({ method: "POST" })
+  .middleware([requireAssurance(HIGH_RISK)])
+  .validator((input) => z.object({ userId: uuid, reason }).parse(input))
+  .handler(async ({ data, context }): Promise<{ removed: number }> => {
+    const { data: allowed, error } = await context.supabase.rpc("ocade_staff_reset_second_factor", {
+      p_user: data.userId,
+      p_reason: data.reason,
+    });
+    if (error) throw new Error(staffFailure(error.message));
+    if (allowed !== true) return { removed: 0 };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: factors, error: listError } = await supabaseAdmin.auth.admin.mfa.listFactors({
+      userId: data.userId,
+    });
+    if (listError) {
+      throw new Error("It was recorded, but their authenticator could not be read. Try again.");
+    }
+    let removed = 0;
+    for (const factor of factors?.factors ?? []) {
+      const { error: removeError } = await supabaseAdmin.auth.admin.mfa.deleteFactor({
+        id: factor.id,
+        userId: data.userId,
+      });
+      if (removeError) {
+        throw new Error("It was recorded, but their authenticator was not removed. Try again.");
+      }
+      removed += 1;
+    }
+    const { sendNotification } = await import("@/lib/notifications/send.server");
+    await sendNotification({
+      userId: data.userId,
+      category: "security",
+      title: "OCADE turned off two-step verification on your account",
+      body: "You asked for this because your authenticator was lost. If you did not, change your password and turn it on again now.",
+      idempotencyKey: `second-factor-reset:${data.userId}:${new Date().toISOString().slice(0, 13)}`,
+    }).catch(() => undefined);
+    return { removed };
   });
 
 /* ---------------------------------------------------------------- cases -- */

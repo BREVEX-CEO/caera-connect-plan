@@ -774,6 +774,7 @@ const ACTION_NAMES: Record<string, string> = {
   staff_revoke: "Removed staff access",
   staff_sessions_ended: "Signed all staff out",
   customer_sessions_ended: "Ended a customer's sessions",
+  second_factor_reset: "Turned off a customer's two-step verification",
   case_open: "Opened a case",
   case_close: "Closed a case",
   case_read: "Read a conversation under a case",

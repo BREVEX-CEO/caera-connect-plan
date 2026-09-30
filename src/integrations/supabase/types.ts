@@ -1855,6 +1855,10 @@ export type Database = {
         Args: never
         Returns: { permissions: string[]; role: string }[]
       }
+      ocade_staff_reset_second_factor: {
+        Args: { p_reason: string; p_user: string }
+        Returns: boolean
+      }
       ocade_staff_revoke: { Args: { p_reason: string; p_user: string }; Returns: boolean }
       ocade_staff_set_permissions: {
         Args: { p_denied: string[]; p_granted: string[]; p_reason: string; p_user: string }

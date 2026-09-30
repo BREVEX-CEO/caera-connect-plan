@@ -72,6 +72,8 @@ const formerStaff = new Set();
 const staffInvites = [];
 const supportCases = [];
 const adminActions = [];
+/** userId -> { hashes: Map<hash, used>, failed } — the recovery sheet, as the database holds it. */
+const recoverySheets = new Map();
 /** What the server recorded as notifications, for `/__fixture/notifications`. */
 const recordedNotifications = [];
 const ALL_PERMISSIONS = [
@@ -721,8 +723,40 @@ function handleRpc(name, args, userId) {
       );
       return null;
 
-    case "ocade_count_mfa_recovery_codes":
-      return 0;
+    case "ocade_count_mfa_recovery_codes": {
+      const sheet = recoverySheets.get(userId);
+      const all = [...(sheet?.hashes.values() ?? [])];
+      return {
+        remaining: all.filter((used) => !used).length,
+        total: all.length,
+        generated_at: sheet ? sheet.at : null,
+      };
+    }
+
+    case "ocade_replace_mfa_recovery_codes":
+      recoverySheets.set(userId, {
+        hashes: new Map(args.p_code_hashes.map((hash) => [hash, false])),
+        failed: 0,
+        at: new Date(now).toISOString(),
+      });
+      return args.p_code_hashes.length;
+
+    // Single use, and five wrong guesses lock it, as the database function does.
+    case "ocade_consume_mfa_recovery_code": {
+      const sheet = recoverySheets.get(userId) ?? { hashes: new Map(), failed: 0 };
+      recoverySheets.set(userId, sheet);
+      if (sheet.failed >= 5) return "locked";
+      if (sheet.hashes.get(args.p_code_hash) !== false) {
+        sheet.failed += 1;
+        return sheet.failed >= 5 ? "locked" : "rejected";
+      }
+      sheet.hashes.set(args.p_code_hash, true);
+      sheet.failed = 0;
+      return "consumed";
+    }
+
+    case "ocade_revoke_other_account_sessions":
+      return endSessions(new Set([userId]));
 
     case "ocade_list_account_sessions":
       /*
@@ -934,6 +968,23 @@ function handleRpc(name, args, userId) {
       const ended = endSessions(new Set([args.p_user]));
       record(userId, "customer_sessions_ended", String(args.p_reason).trim(), args.p_user);
       return ended;
+    }
+
+    case "ocade_staff_reset_second_factor": {
+      const denied = requireStaff("sessions.manage", "turn off a customer's two-step verification");
+      if (denied) return denied;
+      if (short(args.p_reason)) return short(args.p_reason);
+      if (args.p_user === userId) {
+        return refuse("Nobody turns off their own two-step verification this way.");
+      }
+      if (["primary_owner", "backup_owner"].includes(roleOf(args.p_user))) {
+        return refuse("An owner's two-step verification is changed by the owner.");
+      }
+      if (!emails.has(args.p_user)) return false;
+      endSessions(new Set([args.p_user]));
+      recoverySheets.delete(args.p_user);
+      record(userId, "second_factor_reset", String(args.p_reason).trim(), args.p_user);
+      return true;
     }
 
     case "ocade_case_open": {
@@ -1254,6 +1305,15 @@ const server = createServer((request, response) => {
     }
 
     if (url.pathname === "/__fixture/notifications") return send(200, recordedNotifications);
+    // An account that already has two-step on, without driving an authenticator.
+    if (url.pathname === "/__fixture/enroll-factor") {
+      const { userId: target } = JSON.parse(body || "{}");
+      factors.set(target, [
+        ...(factors.get(target) ?? []),
+        { id: randomUUID(), status: "verified", factor_type: "totp", friendly_name: "Phone" },
+      ]);
+      return send(200, { ok: true });
+    }
     if (url.pathname === "/__fixture/audit") return send(200, adminActions);
 
     /* --- fixtures -------------------------------------------------------- */
@@ -1386,6 +1446,18 @@ const server = createServer((request, response) => {
       return send(200, openSession(parsed.email ?? "proof@ocade.test"));
     }
 
+    const adminFactor = /^\/auth\/v1\/admin\/users\/([0-9a-f-]+)\/factors\/([^/]+)$/.exec(
+      url.pathname,
+    );
+    if (adminFactor && request.method === "DELETE") {
+      if (sessions.has(requestToken)) return send(403, { message: "not the service role" });
+      const [, id, factorId] = adminFactor;
+      factors.set(
+        id,
+        (factors.get(id) ?? []).filter((factor) => factor.id !== factorId),
+      );
+      return send(200, { id: factorId });
+    }
     const adminUser = /^\/auth\/v1\/admin\/users\/([0-9a-f-]+)(\/factors)?$/.exec(url.pathname);
     if (adminUser && request.method === "GET") {
       // The service key only: a session token is a customer's, and gets nothing here.
