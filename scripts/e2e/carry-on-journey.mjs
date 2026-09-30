@@ -143,7 +143,7 @@ try {
   const commands = desk.page.getByRole("switch", { name: /Run commands in the work folder/ });
   const terminal = await commands.isEnabled();
   if (terminal) await commands.click();
-  const backgroundSwitch = desk.page.getByRole("switch", { name: /Background Mode/ });
+  const backgroundSwitch = desk.page.getByRole("switch", { name: /^Background Mode/ });
   check(
     "Background Mode says what it does",
     (await desk.page.getByText(/keeps working on its task after you close OCADE here/).count()) ===
@@ -401,6 +401,155 @@ try {
     !existsSync(path.join(workspace, "never.txt")) && (await tasks())[2].status === "stopped",
   );
   await stopper.context.close();
+
+  /* --- 4. reminders and scheduled work, on OCADE's own clock ------------------ */
+  const clockTick = async () => {
+    await post("/__fixture/due-schedules", {});
+    // What the Worker's cron does every minute, asked for now.
+    await fetch(`${BASE}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}`);
+  };
+  const soon = new Date(Date.now() + 3_600_000).toISOString();
+  const planner = await open({ width: 1440, height: 900 });
+  const plan = planner.page;
+  await plan.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
+  await script("remind-check", [
+    { tool: "schedule", args: { what: "Call the bank", when: soon, repeat: "none" } },
+    { text: "I'll remind you in an hour." },
+  ]);
+  await say(plan, "remind-check remind me in an hour to call the bank");
+  await until(
+    async () => (await plan.getByText("I'll remind you in an hour.").count()) >= 1,
+    30_000,
+  );
+  const told = await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) => r.json());
+  check(
+    "JARVIS is told the time now in the person's own zone",
+    /The time now is \d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d \(/.test(told.clock ?? ""),
+    told.clock,
+  );
+  const rail = (name) =>
+    plan.getByRole("navigation", { name: "JARVIS" }).getByRole("button", { name });
+  await rail("Activity").click();
+  const scheduled = plan.getByRole("region", { name: "Scheduled" });
+  check(
+    "the reminder is listed under Scheduled, as a reminder",
+    await until(async () => (await scheduled.getByText("Call the bank").count()) === 1, 20_000),
+  );
+  await clockTick();
+  check(
+    "at its time the person is notified",
+    await until(
+      async () => (await notifications()).some((t) => t === "Reminder: Call the bank"),
+      30_000,
+    ),
+    JSON.stringify(await notifications()).slice(-200),
+  );
+  await plan.reload({ waitUntil: "networkidle" });
+  check(
+    "and it is said in its conversation",
+    await until(async () => (await plan.getByText("Reminder: Call the bank").count()) >= 1, 20_000),
+  );
+  await clockTick();
+  check(
+    "a one-off reminder is not repeated",
+    (await notifications()).filter((t) => t === "Reminder: Call the bank").length === 1,
+  );
+
+  // Scheduled work is off until the person turns it on for that computer.
+  await script("later-check", [
+    {
+      tool: "schedule",
+      args: { what: "later-work write the later file", when: soon, on_computer: true },
+    },
+    { text: "Scheduled." },
+  ]);
+  await say(plan, "later-check write the later file in an hour");
+  await until(
+    async () => (await plan.getByText("Scheduled.", { exact: true }).count()) >= 1,
+    30_000,
+  );
+  await clockTick();
+  check(
+    "scheduled work does not start until the person allows it on that computer",
+    (await until(
+      async () =>
+        (await notifications()).some(
+          (t) => t === "JARVIS could not start: later-work write the later file",
+        ),
+      30_000,
+    )) && !existsSync(path.join(workspace, "later.txt")),
+  );
+
+  await rail("Devices").click();
+  const scheduledWork = plan.getByRole("switch", { name: /Scheduled work/ });
+  await until(() => scheduledWork.isEnabled(), 20_000);
+  await scheduledWork.click();
+  await until(
+    async () =>
+      (await scheduledWork.getAttribute("aria-checked")) === "true" ||
+      (await scheduledWork.isChecked()),
+  );
+  await plan.getByRole("button", { name: "Close", exact: true }).first().click();
+  await script("later-check", [
+    {
+      tool: "schedule",
+      args: { what: "later-work write the later file", when: soon, on_computer: true },
+    },
+    { text: "Scheduled again." },
+  ]);
+  await say(plan, "later-check write the later file in an hour");
+  await until(async () => (await plan.getByText("Scheduled again.").count()) >= 1, 30_000);
+  // What the computer does when it runs: the person's instruction, then the steps.
+  await script("later-work", [
+    { text: "(the task was started by OCADE's clock)" },
+    { tool: "computer", args: { action: "file_write", path: "later.txt", content: "on time" } },
+    { tool: "finish_task", args: { outcome: "completed", result: "The later file is written." } },
+  ]);
+  await plan.context().close();
+  await clockTick();
+  check(
+    "at its time the work starts on the computer and is finished there, with nobody watching",
+    (await until(() => existsSync(path.join(workspace, "later.txt")), 60_000)) &&
+      (await until(
+        async () =>
+          (await notifications()).some(
+            (t) => t === "JARVIS finished: later-work write the later file",
+          ),
+        45_000,
+      )),
+    JSON.stringify(await notifications()).slice(-300),
+  );
+
+  // Removing one from the list really removes it.
+  const lister = await open({ width: 390, height: 844 });
+  await post("/__fixture/jarvis-script", { trigger: "zz-none", steps: [] });
+  await lister.page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
+  await script("keep-check", [
+    { tool: "schedule", args: { what: "Water the plants", when: soon, repeat: "daily" } },
+    { text: "Every day." },
+  ]);
+  await say(lister.page, "keep-check remind me every day to water the plants");
+  await until(async () => (await lister.page.getByText("Every day.").count()) >= 1, 30_000);
+  const schedules = () =>
+    table("jarvis_schedules", `user_id=eq.${USER}&active=eq.true&select=id,what`);
+  check(
+    "a repeating reminder is kept",
+    (await schedules()).some((row) => row.what === "Water the plants"),
+  );
+  await lister.page.getByRole("button", { name: "Open navigation" }).click();
+  await lister.page
+    .getByRole("navigation", { name: "JARVIS" })
+    .getByRole("button", { name: "Activity" })
+    .click();
+  await lister.page.getByRole("button", { name: "Remove Water the plants" }).click();
+  check(
+    "Remove takes it off the list and out of OCADE",
+    await until(
+      async () => !(await schedules()).some((row) => row.what === "Water the plants"),
+      20_000,
+    ),
+  );
+  await lister.context.close();
 } finally {
   device?.kill();
   await browser.close();

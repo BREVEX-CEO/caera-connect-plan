@@ -15,6 +15,7 @@ import {
   readJarvisFrame,
   readJarvisTask,
   rememberJarvis,
+  scheduleJarvis,
   startJarvisTask,
   updateJarvisTask,
 } from "./jarvis.functions";
@@ -100,6 +101,7 @@ export function liveDeps(conversationId: string): AgentDeps {
     decide: (data) => decideJarvisAction({ data }),
     frame: async (taskId) => (await readJarvisFrame({ data: { taskId } })).frame,
     remember: (content) => rememberJarvis({ data: { content } }),
+    schedule: (data) => scheduleJarvis({ data }),
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   };
 }

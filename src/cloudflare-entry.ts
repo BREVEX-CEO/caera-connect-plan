@@ -5,6 +5,17 @@ import { useNitroApp as getNitroApp, useNitroHooks as getNitroHooks } from "nitr
 
 import { canonicalOriginRedirect, withPublicSecurityHeaders } from "./lib/security/public-response";
 
+async function runJarvisClock(): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("./integrations/supabase/client.server");
+    const { runDueSchedules } = await import("./jarvis/schedules.server");
+    await runDueSchedules(supabaseAdmin);
+  } catch (error) {
+    // Kept to the Worker's own log; the next minute tries again.
+    console.error("jarvis.schedules", error instanceof Error ? error.message : "failed");
+  }
+}
+
 type WaitUntilContext = {
   waitUntil(promise: Promise<unknown>): void;
 };
@@ -127,8 +138,12 @@ export default {
   ) {
     setGlobalEnvironment(env);
     context.waitUntil(
-      nitroHooks.callHook("cloudflare:scheduled", { controller, env, context }) ??
-        Promise.resolve(),
+      Promise.all([
+        nitroHooks.callHook("cloudflare:scheduled", { controller, env, context }) ??
+          Promise.resolve(),
+        // Every minute: JARVIS reminders and scheduled work that are due.
+        runJarvisClock(),
+      ]),
     );
   },
 

@@ -1237,6 +1237,14 @@ const JARVIS_DEFAULTS = {
   },
   jarvis_activity: { status: "note", confirmed: false, action: null, result: null },
   jarvis_permissions: { device_id: null },
+  jarvis_schedules: {
+    device_id: null,
+    repeat: "none",
+    time_zone: "UTC",
+    active: true,
+    last_run_at: null,
+    last_outcome: null,
+  },
 };
 
 /** What the online boundary answers with next, and what it last received. */
@@ -1331,6 +1339,13 @@ const server = createServer((request, response) => {
       if (request.method === "GET") return send(200, onlineBoundary.lastRequest ?? {});
       onlineBoundary.status = Number(JSON.parse(body || "{}").status ?? 200);
       return send(200, { ok: true });
+    }
+
+    if (url.pathname === "/__fixture/due-schedules") {
+      const due = new Date(Date.now() - 60_000).toISOString();
+      const waiting = (jarvisTables.jarvis_schedules ?? []).filter((row) => row.active !== false);
+      for (const row of waiting) row.next_at = due;
+      return send(200, { due: waiting.length });
     }
 
     if (url.pathname === "/__fixture/age-tasks") {
@@ -1922,6 +1937,13 @@ const server = createServer((request, response) => {
         systemPrompts: (parsed.messages ?? [])
           .filter((message) => message?.role === "system")
           .map((message) => String(message.content).slice(0, 200)),
+        // The time the model was told it is, which the prompt ends with.
+        clock:
+          /The time now is [^\n]*/.exec(
+            String(
+              (parsed.messages ?? []).find((message) => message?.role === "system")?.content ?? "",
+            ),
+          )?.[0] ?? null,
         /*
          * THE EXACT CONVERSATION, IN ORDER.
          *

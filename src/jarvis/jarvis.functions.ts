@@ -71,6 +71,16 @@ export interface JarvisState {
   }[];
   permissions: PermissionRow[];
   memories: { id: string; content: string; created_at: string }[];
+  /** Reminders and scheduled work still to come. */
+  schedules: {
+    id: string;
+    conversation_id: string;
+    device_id: string | null;
+    what: string;
+    next_at: string;
+    repeat: string;
+    last_outcome: string | null;
+  }[];
   activity: {
     id: string;
     task_id: string;
@@ -100,38 +110,53 @@ export const readJarvisState = createServerFn({ method: "GET" })
       const { pauseOrphanedTasks } = await import("./device.server");
       await pauseOrphanedTasks(service, { userId: context.userId });
     }
-    const [conversations, tasks, devices, permissions, memories, activity] = await Promise.all([
-      db
-        .from("ocade_conversations")
-        .select("id, title, archived, updated_at, created_at")
-        .eq("surface", "jarvis")
-        .order("updated_at", { ascending: false })
-        .limit(200),
-      db
-        .from("jarvis_tasks")
-        .select(TASK_COLUMNS)
-        .order("updated_at", { ascending: false })
-        .limit(100),
-      db
-        .from("jarvis_devices")
-        .select(
-          "id, name, platform, capabilities, last_seen_at, revoked_at, created_at, kind, software_version, background_enabled, installed_apps",
-        )
-        .order("created_at", { ascending: false })
-        .limit(50),
-      db.from("jarvis_permissions").select("capability, allowed, device_id").limit(500),
-      db
-        .from("jarvis_memories")
-        .select("id, content, created_at")
-        .order("created_at", { ascending: false })
-        .limit(200),
-      db
-        .from("jarvis_activity")
-        .select("id, task_id, summary, status, created_at, action")
-        .order("created_at", { ascending: false })
-        .limit(200),
-    ]);
-    for (const result of [conversations, tasks, devices, permissions, memories, activity]) {
+    const [conversations, tasks, devices, permissions, memories, activity, schedules] =
+      await Promise.all([
+        db
+          .from("ocade_conversations")
+          .select("id, title, archived, updated_at, created_at")
+          .eq("surface", "jarvis")
+          .order("updated_at", { ascending: false })
+          .limit(200),
+        db
+          .from("jarvis_tasks")
+          .select(TASK_COLUMNS)
+          .order("updated_at", { ascending: false })
+          .limit(100),
+        db
+          .from("jarvis_devices")
+          .select(
+            "id, name, platform, capabilities, last_seen_at, revoked_at, created_at, kind, software_version, background_enabled, installed_apps",
+          )
+          .order("created_at", { ascending: false })
+          .limit(50),
+        db.from("jarvis_permissions").select("capability, allowed, device_id").limit(500),
+        db
+          .from("jarvis_memories")
+          .select("id, content, created_at")
+          .order("created_at", { ascending: false })
+          .limit(200),
+        db
+          .from("jarvis_activity")
+          .select("id, task_id, summary, status, created_at, action")
+          .order("created_at", { ascending: false })
+          .limit(200),
+        db
+          .from("jarvis_schedules")
+          .select("id, conversation_id, device_id, what, next_at, repeat, last_outcome")
+          .eq("active", true)
+          .order("next_at", { ascending: true })
+          .limit(100),
+      ]);
+    for (const result of [
+      conversations,
+      tasks,
+      devices,
+      permissions,
+      memories,
+      activity,
+      schedules,
+    ]) {
       if (result.error) throw new Error(result.error.message);
     }
 
@@ -217,6 +242,7 @@ export const readJarvisState = createServerFn({ method: "GET" })
       }),
       permissions: permissionRows,
       memories: memories.data ?? [],
+      schedules: schedules.data ?? [],
       activity: (activity.data ?? []).map(({ action: _action, ...rest }) => rest),
       sites: [...sites].sort().slice(0, 100),
       apps,
@@ -704,6 +730,110 @@ export const rememberJarvis = createServerFn({ method: "POST" })
       .insert({ user_id: context.userId, content: data.content });
     if (error) throw new Error(error.message);
     return { ok: true as const };
+  });
+
+/** A person can have this many reminders and scheduled tasks waiting at once. */
+export const MAX_SCHEDULES = 50;
+
+/**
+ * A reminder, or work JARVIS starts later on a computer, as the person asked.
+ * Only from the person's own turn: the planning loop refuses it once a page's
+ * content has been read, so nothing a page says can set up future work.
+ */
+export const scheduleJarvis = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) =>
+    z
+      .object({
+        conversationId: uuid,
+        what: z.string().trim().min(1).max(500),
+        when: z.string().datetime({ offset: true }),
+        repeat: z.enum(["none", "daily", "weekdays", "weekly"]).default("none"),
+        timeZone: z.string().max(64).default("UTC"),
+        onComputer: z.boolean().default(false),
+        deviceId: uuid.optional(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }): Promise<{ ok: boolean; message: string }> => {
+    const at = Date.parse(data.when);
+    if (at < Date.now() - 60_000) return { ok: false, message: "That time has already passed." };
+    if (at > Date.now() + 366 * 86_400_000) {
+      return { ok: false, message: "Schedules can be at most a year ahead." };
+    }
+    const { data: conversation } = await context.supabase
+      .from("ocade_conversations")
+      .select("id")
+      .eq("id", data.conversationId)
+      .eq("surface", "jarvis")
+      .maybeSingle();
+    if (!conversation) return { ok: false, message: "That conversation does not exist." };
+    const service = await admin();
+    const { count } = await service
+      .from("jarvis_schedules")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", context.userId)
+      .eq("active", true);
+    if ((count ?? 0) >= MAX_SCHEDULES) {
+      return {
+        ok: false,
+        message: `You already have ${MAX_SCHEDULES} reminders and scheduled tasks. Remove one first.`,
+      };
+    }
+    let deviceId: string | null = null;
+    let computer = "";
+    if (data.onComputer) {
+      const { data: agents } = await service
+        .from("jarvis_devices")
+        .select("id, name")
+        .eq("user_id", context.userId)
+        .eq("kind", "agent")
+        .is("revoked_at", null)
+        .limit(20);
+      const chosen = data.deviceId
+        ? (agents ?? []).filter((d) => d.id === data.deviceId)
+        : (agents ?? []);
+      if (chosen.length !== 1) {
+        return {
+          ok: false,
+          message: chosen.length
+            ? "More than one computer could do it. Choose one in Devices, then ask again."
+            : "No computer with the OCADE Device Agent is connected. Connect one in Devices.",
+        };
+      }
+      deviceId = chosen[0]!.id;
+      computer = chosen[0]!.name;
+    }
+    const { safeZone } = await import("./schedule-time");
+    const { error } = await service.from("jarvis_schedules").insert({
+      user_id: context.userId,
+      conversation_id: data.conversationId,
+      device_id: deviceId,
+      what: data.what,
+      next_at: new Date(at).toISOString(),
+      repeat: data.repeat,
+      time_zone: safeZone(data.timeZone),
+    });
+    if (error) throw new Error(error.message);
+    return {
+      ok: true,
+      message: deviceId
+        ? `Scheduled on ${computer}. It starts only while Background Mode and Scheduled work are on for that computer.`
+        : "Reminder set.",
+    };
+  });
+
+export const removeJarvisSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ id: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("jarvis_schedules")
+      .delete()
+      .eq("id", data.id)
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { removed: true };
   });
 
 export const forgetJarvis = createServerFn({ method: "POST" })

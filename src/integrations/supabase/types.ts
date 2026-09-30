@@ -376,6 +376,51 @@ export type Database = {
           },
         ]
       }
+      jarvis_schedules: {
+        Row: {
+          active: boolean
+          conversation_id: string
+          created_at: string
+          device_id: string | null
+          id: string
+          last_outcome: string | null
+          last_run_at: string | null
+          next_at: string
+          repeat: string
+          time_zone: string
+          user_id: string
+          what: string
+        }
+        Insert: {
+          active?: boolean
+          conversation_id: string
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          last_outcome?: string | null
+          last_run_at?: string | null
+          next_at: string
+          repeat?: string
+          time_zone?: string
+          user_id: string
+          what: string
+        }
+        Update: {
+          active?: boolean
+          conversation_id?: string
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          last_outcome?: string | null
+          last_run_at?: string | null
+          next_at?: string
+          repeat?: string
+          time_zone?: string
+          user_id?: string
+          what?: string
+        }
+        Relationships: []
+      }
       jarvis_tasks: {
         Row: {
           checkpoint: Json | null

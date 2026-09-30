@@ -14,6 +14,7 @@ import {
   declineJarvisDevice,
   forgetJarvis,
   readJarvisEnrollment,
+  removeJarvisSchedule,
   revokeJarvisDevice,
   setJarvisBackground,
   setJarvisPermission,
@@ -241,8 +242,54 @@ function SectionBody({
   }
 
   if (section === "activity") {
+    const REPEATS: Record<string, string> = {
+      none: "once",
+      daily: "every day",
+      weekdays: "every weekday",
+      weekly: "every week",
+    };
     return (
       <>
+        {state.schedules.length ? (
+          <section aria-label="Scheduled" className="mb-3">
+            <h3 className="mb-1 text-xs font-medium text-muted-foreground">Scheduled</h3>
+            <ul className="flex flex-col gap-1">
+              {state.schedules.map((s) => (
+                <li key={s.id} className="flex items-start gap-2 border-b border-border/40 py-1">
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words">{s.what}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {s.device_id
+                        ? `On ${state.devices.find((d) => d.id === s.device_id)?.name ?? "a computer"}`
+                        : "Reminder"}
+                      {` · ${when(s.next_at)} · ${REPEATS[s.repeat] ?? s.repeat}`}
+                    </p>
+                    {s.last_outcome &&
+                    s.last_outcome !== "Started" &&
+                    s.last_outcome !== "Reminded" ? (
+                      <p className="text-xs text-muted-foreground">Last time: {s.last_outcome}</p>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${s.what}`}
+                    disabled={removing === s.id}
+                    onClick={() => {
+                      setRemoving(s.id);
+                      void removeJarvisSchedule({ data: { id: s.id } })
+                        .then(onChanged)
+                        .catch(() => toast.error("That could not be removed. Try again."))
+                        .finally(() => setRemoving(null));
+                    }}
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
         <p className="mb-2 text-xs text-muted-foreground">
           Detailed activity is kept for 90 days. Task results stay.
         </p>
@@ -490,6 +537,19 @@ function SectionBody({
                     .then(onChanged)
                     .catch(() => toast.error("That could not be saved."))
                 }
+              />
+            ) : null}
+            {d.kind === "agent" ? (
+              <Toggle
+                label="Scheduled work"
+                hint={
+                  d.background_enabled
+                    ? "JARVIS may start work you scheduled, on its own, at the time you chose. Anything that needs you still waits for you."
+                    : "Needs Background Mode on this computer."
+                }
+                disabled={!d.background_enabled}
+                checked={d.background_enabled && isAllowed(state.permissions, "autonomous", d.id)}
+                onChange={(allowed) => void decide("autonomous", allowed, d.id, onChanged)}
               />
             ) : null}
             {d.kind === "agent" ? (

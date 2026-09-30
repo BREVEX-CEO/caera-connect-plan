@@ -8,6 +8,7 @@ const empty: JarvisState = {
   devices: [],
   permissions: [],
   memories: [],
+  schedules: [],
   activity: [],
   sites: [],
   apps: [],

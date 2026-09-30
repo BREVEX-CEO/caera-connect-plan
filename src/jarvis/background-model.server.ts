@@ -79,8 +79,8 @@ export const serverModel: BackgroundDeps["model"] = async ({
       surface: "jarvis",
       mode: "online",
       messages,
-      // Nothing is saved to memory while the person is away.
-      tools: jarvisTools(false),
+      // Nothing is saved to memory, and nothing is scheduled, while the person is away.
+      tools: jarvisTools(false, false),
       attachments,
       privacy: { onlineInferenceConsented: true, sealed: false },
       conversationId,

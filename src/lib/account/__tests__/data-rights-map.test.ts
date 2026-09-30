@@ -165,7 +165,14 @@ describe("what may and may not be erased", () => {
 
   it("offers every other class for erasure", () => {
     const deletable = deletableAccountDataClasses().map((entry) => entry.id);
-    expect(deletable).toEqual(["conversations", "library", "activity", "devices", "settings"]);
+    expect(deletable).toEqual([
+      "conversations",
+      "library",
+      "activity",
+      "jarvis",
+      "devices",
+      "settings",
+    ]);
   });
 
   it("exports every class, including the ones it will not delete", () => {
@@ -186,5 +193,16 @@ describe("what may and may not be erased", () => {
     const deletionPath = ["ocade_conversations", "user_settings", "devices", "profiles"];
     const covered = new Set(ACCOUNT_DATA_CLASSES.flatMap((entry) => exportedTablesFor(entry)));
     for (const table of deletionPath) expect([...covered], table).toContain(table);
+  });
+
+  it("exports every JARVIS table an account owns", () => {
+    // JARVIS kept tasks, activity, memories, schedules, permissions and computers
+    // outside the export entirely until this check existed.
+    const covered = new Set(ACCOUNT_DATA_CLASSES.flatMap((entry) => exportedTablesFor(entry)));
+    const owned = [...ownerColumns]
+      .map((column) => column.split(".")[0]!)
+      .filter((table) => table.startsWith("jarvis_"));
+    expect(owned.length).toBeGreaterThan(4);
+    for (const table of owned) expect([...covered], table).toContain(table);
   });
 });

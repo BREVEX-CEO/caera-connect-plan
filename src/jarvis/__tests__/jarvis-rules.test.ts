@@ -61,8 +61,15 @@ describe("the action contract", () => {
 
   it("offers no tool that changes permissions, and memory only when enabled", () => {
     const names = jarvisTools(false).map((tool) => tool.name);
-    expect(names).toEqual(["start_task", "browser", "computer", "finish_task"]);
+    expect(names).toEqual(["start_task", "browser", "computer", "finish_task", "schedule"]);
     expect(jarvisTools(true).map((tool) => tool.name)).toContain("remember");
+    // While the person is away nothing is remembered and nothing new is scheduled.
+    expect(jarvisTools(false, false).map((tool) => tool.name)).toEqual([
+      "start_task",
+      "browser",
+      "computer",
+      "finish_task",
+    ]);
   });
 });
 

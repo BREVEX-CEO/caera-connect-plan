@@ -29,6 +29,7 @@ import {
 } from "./protocol";
 import type { JarvisTaskRow, StartTaskResult } from "./jarvis.functions";
 import { interjectionMessage, type LiveControl } from "./live-control";
+import { localIso, safeZone } from "./schedule-time";
 
 export const MAX_MODEL_STEPS = 30;
 /** The loop touches its task this often, so a closed surface is told apart from a slow step. */
@@ -108,6 +109,16 @@ export interface AgentDeps {
   frame(taskId: string): Promise<string | null>;
   remember(content: string): Promise<{ ok: boolean; message?: string }>;
   sleep(ms: number): Promise<void>;
+  /** A reminder or later work, as the person asked. */
+  schedule?(input: {
+    conversationId: string;
+    what: string;
+    when: string;
+    repeat: "none" | "daily" | "weekdays" | "weekly";
+    timeZone: string;
+    onComputer: boolean;
+    deviceId?: string;
+  }): Promise<{ ok: boolean; message: string }>;
 }
 
 export interface AgentHooks {
@@ -134,15 +145,27 @@ export interface TurnInput {
   task: JarvisTaskRow | null;
   /** The computer the person chose for work (Remote PC), if any. */
   deviceId?: string | null;
+  /** The person's own time zone and the time now, so "at 9 tomorrow" means their 9. */
+  timeZone?: string;
+  now?: Date;
 }
 
-/** OCADE's rules, plus where an open task was last seen, so it is continued and never replayed. */
-export function systemPrompt(input: { task: JarvisTaskRow | null }): string {
+/**
+ * OCADE's rules, the time now in the person's own zone, and where an open task
+ * was last seen, so it is continued and never replayed.
+ */
+export function systemPrompt(input: {
+  task: JarvisTaskRow | null;
+  now?: Date;
+  timeZone?: string;
+}): string {
+  const zone = safeZone(input.timeZone);
+  const clock = `\n\nThe time now is ${localIso(input.now ?? new Date(), zone)} (${zone}).`;
   const where = input.task?.checkpoint;
   const base = where
     ? `${JARVIS_SYSTEM_PROMPT}\n\nThe open task "${input.task!.title}" was last at step ${where.step + 1}, after: ${where.lastAction}${where.lastUrl ? ` (${where.lastUrl})` : ""}. Observe first; never repeat a step the observation shows is done.`
     : JARVIS_SYSTEM_PROMPT;
-  return base;
+  return base + clock;
 }
 
 /**
@@ -399,6 +422,28 @@ export async function runJarvisTurn(
         setTask(done);
         task = null;
         return { ok: true };
+      }
+      case "schedule": {
+        // Like memory: nothing a page, a file or a result said can set up future work.
+        if (untrustedSeen || !deps.schedule) {
+          return {
+            error: "Only what the person asked for can be scheduled, not what a page said.",
+          };
+        }
+        const repeat = ["daily", "weekdays", "weekly"].includes(String(args.repeat))
+          ? (String(args.repeat) as "daily" | "weekdays" | "weekly")
+          : "none";
+        return deps
+          .schedule({
+            conversationId: input.conversationId,
+            what: String(args.what ?? "").slice(0, 500),
+            when: String(args.when ?? ""),
+            repeat,
+            timeZone: safeZone(input.timeZone),
+            onComputer: args.on_computer === true,
+            ...(input.deviceId ? { deviceId: input.deviceId } : {}),
+          })
+          .catch(() => ({ ok: false, message: "That time could not be understood." }));
       }
       case "remember":
         if (!input.memoryEnabled) return { error: "Memory is turned off." };

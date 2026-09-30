@@ -392,6 +392,7 @@ export function JarvisWorkspace({
           memoryEnabled: isAllowed(permissions, "memory"),
           task,
           deviceId: target,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
         {
           signal: controller.signal,

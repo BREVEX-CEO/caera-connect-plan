@@ -8,11 +8,13 @@ import type { DatabaseTwin } from "../../../scripts/db-twin.mts";
 export const lit = (v: unknown): string =>
   v === null
     ? "null"
-    : typeof v === "number" || typeof v === "boolean"
-      ? String(v)
-      : typeof v === "object"
-        ? `'${JSON.stringify(v).replace(/'/g, "''")}'::jsonb`
-        : `'${String(v).replace(/'/g, "''")}'`;
+    : v instanceof Date
+      ? `'${v.toISOString()}'`
+      : typeof v === "number" || typeof v === "boolean"
+        ? String(v)
+        : typeof v === "object"
+          ? `'${JSON.stringify(v).replace(/'/g, "''")}'::jsonb`
+          : `'${String(v).replace(/'/g, "''")}'`;
 
 export function restOver(twin: DatabaseTwin) {
   return {
@@ -49,6 +51,7 @@ export function restOver(twin: DatabaseTwin) {
         eq: (c: string, v: unknown) => (where.push(`${c} = ${lit(v)}`), q),
         neq: (c: string, v: unknown) => (where.push(`${c} <> ${lit(v)}`), q),
         lt: (c: string, v: unknown) => (where.push(`${c} < ${lit(v)}`), q),
+        lte: (c: string, v: unknown) => (where.push(`${c} <= ${lit(v)}`), q),
         is: (c: string, v: unknown) => (where.push(`${c} is ${lit(v)}`), q),
         in: (c: string, vs: unknown[]) => (
           where.push(vs.length ? `${c} in (${vs.map(lit).join(",")})` : "false"),
@@ -61,7 +64,7 @@ export function restOver(twin: DatabaseTwin) {
         limit: (n: number) => ((tail += ` limit ${n}`), q),
         maybeSingle: () => ((one = "maybe"), q),
         single: () => ((one = "single"), q),
-        then(resolve: (r: unknown) => void, reject: (e: unknown) => void) {
+        then(resolve: (r: unknown) => void) {
           const w = where.length ? ` where ${where.join(" and ")}` : "";
           const t = `public.${table}`;
           const sql =
@@ -87,7 +90,8 @@ export function restOver(twin: DatabaseTwin) {
           }
           twin.asServiceRole(sql).then(
             (rows) => resolve({ data: one ? (rows[0] ?? null) : rows, error: null }),
-            (error) => (one ? reject(error) : resolve({ data: null, error })),
+            // As supabase-js: a failed statement resolves with its error, it never throws.
+            (error) => resolve({ data: null, error }),
           );
         },
       };

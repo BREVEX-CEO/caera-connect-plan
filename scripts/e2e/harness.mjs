@@ -204,6 +204,8 @@ const serve = () =>
         "127.0.0.1",
         "--port",
         String(WEB_PORT),
+        // `/cdn-cgi/handler/scheduled` runs the cron handler on demand (JARVIS reminders and schedules).
+        "--test-scheduled",
       ],
       { stdio: ["ignore", "inherit", "inherit"], detached: true, windowsHide: true },
     ),
