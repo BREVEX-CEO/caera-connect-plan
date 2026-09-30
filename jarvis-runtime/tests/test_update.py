@@ -180,6 +180,13 @@ class UpdateTest(unittest.TestCase):
         with self.served("1.11.0", build(True)):
             self.assertEqual(up.check("https://ocade.test", self.root, "1.10.0"), "1.11.0")
 
+    def test_a_mislabelled_release_is_not_reinstalled_over_itself(self):
+        """The package says 1.0.0 inside, the manifest says 2.0.0: install once, not on every check."""
+        self.placed_by_installer("1.0.0")
+        with self.served("2.0.0", build(True)):
+            self.assertEqual(up.check("https://ocade.test", self.root, "1.0.0"), "2.0.0")
+            self.assertIsNone(up.check("https://ocade.test", self.root, "1.0.0"))
+
     def test_a_release_with_a_bad_version_no_build_or_a_plain_link_is_refused(self):
         self.placed_by_installer("1.0.0")
         for version in ("2.0.0-beta", "../2", "two"):
@@ -376,6 +383,28 @@ class AgentStartTest(unittest.TestCase):
             with mock.patch.object(sys, "executable", str(newer)):
                 self.agent_module._run_current_build(self.root)
         self.assertEqual(self.layout()["failedStarts"], 1)
+
+    def test_a_current_build_that_is_gone_or_unrunnable_rolls_back_at_once(self):
+        """No error box at login and no endless retry: the launcher carries on as the agent."""
+        up.adopt(self.root, "1.0.0")
+        newer = self.root / "versions" / "2.0.0" / PROGRAM
+        for damage in ("missing", "unrunnable"):
+            newer.parent.mkdir(exist_ok=True)
+            newer.write_text("healthy")
+            up._write_layout(self.root, {"current": "2.0.0", "previous": "1.0.0", "failedStarts": 0,
+                                         "installed": "1.0.0"})
+            if damage == "missing":
+                newer.unlink()
+
+            def refuse(path, argv):
+                raise OSError(8, "Exec format error")
+
+            with mock.patch.object(sys, "executable", str(self.exe)),                     mock.patch.object(os, "execv", refuse):
+                self.agent_module._run_current_build(self.root)  # returns: this build runs
+            layout = self.layout()
+            self.assertEqual((layout["current"], layout["rolledBackFrom"]), ("1.0.0", "2.0.0"), damage)
+            self.assertNotIn(self.agent_module.HANDED_OVER, os.environ)
+        self.assertEqual(up.rollback(self.root), "1.0.0")  # nothing further back: stays put
 
     def test_a_staged_update_restarts_an_idle_agent_and_never_a_working_one(self):
         up.adopt(self.root, "1.0.0")

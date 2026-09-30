@@ -185,6 +185,23 @@ def launch_target(root: Path) -> Path | None:
     return _executable(root / "versions" / layout["current"])
 
 
+def rollback(root: Path) -> str | None:
+    """
+    Give up on the current build now: its program is missing or cannot be run at
+    all, which no second attempt will change. Back to the build before it, or to
+    the installed one. Returns the build that is current afterwards.
+    """
+    layout = _layout(root)
+    bad = layout.get("current")
+    back = next((v for v in (layout.get("previous"), layout.get("installed"))
+                 if v and v != bad and _executable(root / "versions" / v).is_file()), None)
+    if back is None:
+        return bad
+    _write_layout(root, {"current": back, "previous": None, "failedStarts": 0,
+                         "rolledBackFrom": bad, "installed": layout.get("installed")})
+    return back
+
+
 def mark_healthy(root: Path) -> None:
     """Called by a running agent once it has reached OCADE: this build works."""
     layout = _layout(root)
@@ -211,7 +228,10 @@ def check(server: str, root: Path, current_version: str) -> str | None:
         return None
     # A build this agent already tried and rolled back from is not tried again
     # until a newer one exists: otherwise every check reinstalls the same failure.
-    if str(parsed["version"]) == _layout(root).get("rolledBackFrom"):
+    # Nor one that is already the current build: a release whose label and
+    # contents disagree would otherwise be reinstalled over itself on every check.
+    layout = _layout(root)
+    if str(parsed["version"]) in (layout.get("rolledBackFrom"), layout.get("current")):
         return None
     release = parsed.get("platforms", {}).get(platform_key())
     url = str((release or {}).get("url", ""))

@@ -325,10 +325,20 @@ def _run_current_build(root: Path | None) -> None:
     if os.environ.pop(HANDED_OVER, None) == str(me):
         return
     ocade_update.adopt(root, me.parent.name)  # the build an installer just placed
-    target = ocade_update.launch_target(root)
-    if target and target.resolve() != me and target.exists():
-        os.environ[HANDED_OVER] = str(target.resolve())
-        os.execv(str(target), [str(target), *sys.argv[1:]])
+    for _ in range(2):  # the build that is current, then the one it rolls back to
+        target = ocade_update.launch_target(root)
+        if target is None or target.resolve() == me:
+            return
+        if target.is_file():
+            os.environ[HANDED_OVER] = str(target.resolve())
+            try:
+                os.execv(str(target), [str(target), *sys.argv[1:]])
+            except OSError:
+                os.environ.pop(HANDED_OVER, None)
+        # Its program is gone or cannot be run at all. That is not a start worth
+        # counting twice, and never an error box at login: roll back now, and
+        # this build (always a complete agent) carries on if it is the one left.
+        ocade_update.rollback(root)
 
 
 def _watch_health_and_updates(agent: ocade_device.Agent, root: Path | None, server: str,
