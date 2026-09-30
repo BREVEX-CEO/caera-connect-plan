@@ -15,7 +15,11 @@ import re
 import time
 from pathlib import Path
 
-MAX_NODES = 400
+MAX_NODES = 2500
+MAX_ELEMENTS = 250
+# Controls a person acts on come first when a big window has to be trimmed.
+PRIORITY = ("Edit", "ComboBox", "Button", "SplitButton", "MenuItem", "CheckBox", "RadioButton", "TabItem",
+            "Hyperlink", "Document", "Slider", "Spinner")
 MAX_DEPTH = 25
 ROLES_WORTH_LISTING = {
     "Button", "CheckBox", "ComboBox", "Edit", "Hyperlink", "ListItem", "MenuItem", "RadioButton",
@@ -51,9 +55,18 @@ def _window(title: str | None):
         control = auto.GetForegroundControl()
         return control.GetTopLevelControl() if control else None
     wanted = title.lower()
-    for window in auto.GetRootControl().GetChildren():
+    tops = auto.GetRootControl().GetChildren()
+    for window in tops:
         if window.Name and wanted in window.Name.lower():
             return window
+    # A modal dialog (Open, Save, Import) often sits under the window that owns it.
+    for window in tops:
+        try:
+            for child in window.GetChildren():
+                if child.ControlTypeName == "WindowControl" and child.Name and wanted in child.Name.lower():
+                    return child
+        except Exception:
+            continue
     return None
 
 
@@ -80,7 +93,7 @@ def _walk(window):
             stack.extend((child, depth + 1) for child in reversed(children))
 
 
-def inspect(title: str | None = None) -> dict:
+def inspect(title: str | None = None, find: str | None = None) -> dict:
     auto = _uia()
     with auto.UIAutomationInitializerInThread():
         window = _window(title)
@@ -94,9 +107,13 @@ def inspect(title: str | None = None) -> dict:
             name = (control.Name or "").strip()
             if role not in ROLES_WORTH_LISTING or (not name and role not in ("Edit", "Document")):
                 continue
+            if find and find.lower() not in name.lower():
+                continue
             ref = f"a{len(refs) + 1}"
             refs[ref] = (tuple(control.GetRuntimeId()), role, name)
             item = {"ref": ref, "role": role, "name": name[:120]}
+            if control.AutomationId and not control.AutomationId.isdigit() or control.AutomationId in ("1", "2"):
+                item["id"] = control.AutomationId[:60]  # tells same-named controls apart (a dialog's OK is "1")
             if not control.IsEnabled:
                 item["disabled"] = True
             if control.HasKeyboardFocus:
@@ -108,9 +125,29 @@ def inspect(title: str | None = None) -> dict:
                 item["password"] = True
             elements.append(item)
         _State.held = {obs_id: {"window": tuple(window.GetRuntimeId()), "refs": refs}}
+        if len(elements) > MAX_ELEMENTS:
+            rank = {role: i for i, role in enumerate(PRIORITY)}
+            kept = sorted(elements, key=lambda e: rank.get(e["role"], len(PRIORITY)))[:MAX_ELEMENTS]
+            order = {id(e): i for i, e in enumerate(elements)}
+            elements = sorted(kept, key=lambda e: order[id(e)])  # back in reading order
         return {"status": "done", "summary": f"Read the controls of “{window.Name[:80]}”",
                 "observation": {"observationId": obs_id, "window": window.Name[:120],
-                                "elements": elements[:250]}}
+                                "elements": elements, "complete": len(refs) <= MAX_ELEMENTS}}
+
+
+def _by_runtime_id(runtime_id: tuple):
+    """The observed window again: top level, or a dialog under one."""
+    auto = _uia()
+    for window in auto.GetRootControl().GetChildren():
+        try:
+            if tuple(window.GetRuntimeId()) == runtime_id:
+                return window
+            for child in window.GetChildren():
+                if child.ControlTypeName == "WindowControl" and tuple(child.GetRuntimeId()) == runtime_id:
+                    return child
+        except Exception:
+            continue
+    return None
 
 
 def _find(window, runtime_id: tuple):
@@ -133,8 +170,7 @@ def act(action: dict, confirmed: bool) -> dict:
                 "observation": inspect().get("observation")}
     runtime_id, role, name = held["refs"][ref]
     with auto.UIAutomationInitializerInThread():
-        window = next((w for w in auto.GetRootControl().GetChildren()
-                       if tuple(w.GetRuntimeId()) == held["window"]), None)
+        window = _by_runtime_id(held["window"])
         control = _find(window, runtime_id) if window else None
         if control is None or control.ControlTypeName.replace("Control", "") != role \
                 or (control.Name or "").strip() != name:
@@ -177,5 +213,5 @@ def act(action: dict, confirmed: bool) -> dict:
         time.sleep(0.4)
         title = window.Name
     after = inspect(title)
-    return {"status": "done", "summary": f"{op.replace('_', ' ').capitalize()} “{name[:60]}”",
+    return {"status": "done", "summary": f"{op.replace('_', ' ').capitalize()} “{name[:60] or role}”",
             "observation": after.get("observation")}

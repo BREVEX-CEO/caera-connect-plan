@@ -252,7 +252,7 @@ class Computer:
                 import ocade_accessibility
                 with self._lock:
                     if kind == "ui_inspect":
-                        return ocade_accessibility.inspect(action.get("title"))
+                        return ocade_accessibility.inspect(action.get("title"), action.get("find"))
                     return ocade_accessibility.act(action, confirmed)
             if kind in ("window_list", "window"):
                 if self._gui() is None:

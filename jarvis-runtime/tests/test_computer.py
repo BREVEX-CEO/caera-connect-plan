@@ -306,6 +306,8 @@ class AccessibilityTest(unittest.TestCase):
                 self.assertEqual(out["status"], "done", out)
                 obs = out["observation"]
             self.assertIn("Display is 42", [e["name"] for e in obs["elements"]])
+            found = pc.run({"action": "ui_inspect", "title": "Calculator", "find": "Seven"})
+            self.assertEqual([e["name"] for e in found["observation"]["elements"]], ["Seven"])
             stale = pc.run({"action": "ui_act", "ref": "a1", "observationId": "u0", "op": "invoke"})
             self.assertEqual(stale["status"], "stale")
         finally:
