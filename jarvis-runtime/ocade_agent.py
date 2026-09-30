@@ -311,30 +311,51 @@ def install_root() -> Path | None:
     return here.parent.parent if here.parent.name == "versions" else None
 
 
+HANDED_OVER = "OCADE_AGENT_HANDED_OVER"
+STARTED_OK_S = 20  # a build still running after this long has started
+
+
 def _run_current_build(root: Path | None) -> None:
     """Hand over to the build current.json names (rolling back after failed starts)."""
     if root is None:
         return
-    if not (root / "current.json").exists():  # the build the installer just placed
-        (root / "current.json").write_text(
-            json.dumps({"current": Path(sys.executable).resolve().parent.name}))
+    me = Path(sys.executable).resolve()
+    # The launcher already counted this start and chose this build: counting it
+    # again here gave a new build one failed start before rollback, not two.
+    if os.environ.pop(HANDED_OVER, None) == str(me):
+        return
+    ocade_update.adopt(root, me.parent.name)  # the build an installer just placed
     target = ocade_update.launch_target(root)
-    if target and target.resolve() != Path(sys.executable).resolve() and target.exists():
+    if target and target.resolve() != me and target.exists():
+        os.environ[HANDED_OVER] = str(target.resolve())
         os.execv(str(target), [str(target), *sys.argv[1:]])
 
 
-def _watch_health_and_updates(agent: ocade_device.Agent, root: Path | None, server: str) -> None:
-    while not agent.stop.wait(5):
-        if agent.state.get("reached") and root is not None:
-            ocade_update.mark_healthy(root)
-            break
-    # One signed-update check per start, and again whenever OCADE asks for a newer protocol.
-    if root is not None and ocade_update.UPDATE_PUBLIC_KEY:
-        try:
-            if ocade_update.check(server, root, SOFTWARE_VERSION):
-                print("A signed update was installed; it starts next time.", flush=True)
-        except Exception as e:  # an update that cannot be verified is simply not installed
-            print(f"Update skipped: {e}", flush=True)
+def _watch_health_and_updates(agent: ocade_device.Agent, root: Path | None, server: str,
+                              started_ok_s: float = STARTED_OK_S, every_s: float = 15) -> None:
+    """
+    A build that stays up has started: that, not reaching OCADE, is what makes it
+    healthy. It used to wait for the first successful exchange, so a laptop that
+    logged in without a network twice rolled a perfectly good build back.
+    Then signed updates: looked for while idle, started once the agent is idle.
+    """
+    if root is None or agent.stop.wait(started_ok_s):
+        return
+    ocade_update.mark_healthy(root)
+    if not ocade_update.UPDATE_PUBLIC_KEY:
+        return  # no release key in this build: nothing could be verified, so nothing is fetched
+    schedule = ocade_update.Schedule(lambda: ocade_update.check(server, root, SOFTWARE_VERSION))
+    reported = None
+    while not agent.stop.wait(every_s):
+        busy = bool(agent.state.get("busy") or agent.state.get("task"))
+        if schedule.tick(busy, asked=bool(agent.state.get("update"))):
+            print(f"Starting the signed update {schedule.staged}.", flush=True)
+            agent.state["restart"] = True
+            agent.stop.set()
+            return
+        if schedule.last_error and schedule.last_error != reported:
+            reported = schedule.last_error
+            print(f"Update skipped: {reported}", flush=True)
 
 
 def _wake_while_background(agent: ocade_device.Agent, home: Path, server: str) -> None:
@@ -398,7 +419,13 @@ def main() -> None:
         guard.close()
         return
     def work() -> None:
-        code = agent.run()
+        try:
+            code = agent.run()
+        except Exception as e:  # a build whose work loop dies has not started: end, so it counts
+            with open(home / "agent.log", "a", encoding="utf-8") as log:
+                log.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} stopped: {type(e).__name__}: {e}\n")
+            agent.stop.set()
+            return
         if code == 2:
             # Removed in OCADE: the work already stopped and the key is gone. Nothing
             # starts at login any more; opening the app again connects afresh.
@@ -421,6 +448,13 @@ def main() -> None:
     if presence.icon is not None:
         presence.icon.stop()
     guard.close()
+    if agent.state.get("restart"):
+        # The staged build starts through the same launcher as any login: it is
+        # counted as a start, and a build that cannot start is rolled back.
+        import subprocess
+        subprocess.Popen(_launch_command() + sys.argv[1:], close_fds=True,
+                         creationflags=getattr(subprocess, "DETACHED_PROCESS", 0)
+                         | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0))
 
 
 if __name__ == "__main__":
