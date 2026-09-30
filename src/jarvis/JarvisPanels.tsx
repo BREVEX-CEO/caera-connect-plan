@@ -5,6 +5,7 @@ import { Trash2, X } from "lucide-react";
 import { deleteConversation } from "@/lib/ocade.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { readAgentRelease } from "@/lib/agent/release.functions";
 import { FINISHED, hostOf, type Capability, TASK_STATUS } from "./protocol";
 import { isAllowed } from "./permissions";
 import type { GraphNode } from "./graph";
@@ -547,8 +548,57 @@ function SectionBody({
           with one click — no codes or passwords. Each computer gets its own key, and you can remove
           it at any time.
         </p>
-        <p className="mt-1">The signed installer for Windows and macOS is not published yet.</p>
+        <AgentDownload />
       </div>
+    </>
+  );
+}
+
+/**
+ * The installer, offered only when one is really published. Nothing here links
+ * to a file that is not there, and an installer Windows cannot yet name the
+ * publisher of is said to be one.
+ */
+function AgentDownload() {
+  const release = useQuery({
+    queryKey: ["agent", "release"],
+    queryFn: () => readAgentRelease(),
+    staleTime: 10 * 60_000,
+  });
+  if (release.isPending) return <p className="mt-1">Checking for the installer…</p>;
+  if (release.isError) {
+    return (
+      <p className="mt-1">
+        OCADE could not check for the installer.{" "}
+        <button
+          type="button"
+          onClick={() => void release.refetch()}
+          className="text-foreground underline underline-offset-2"
+        >
+          Try again
+        </button>
+      </p>
+    );
+  }
+  if (!release.data?.windows) {
+    return <p className="mt-1">The installer for Windows and macOS is not published yet.</p>;
+  }
+  return (
+    <>
+      <a
+        href={release.data.windows}
+        download
+        className="mt-2 inline-flex h-8 items-center rounded-md bg-foreground px-3 text-xs font-medium text-background"
+      >
+        Get the Device Agent for Windows
+      </a>
+      <p className="mt-1">
+        Version {release.data.version}. It starts with Windows and keeps itself up to date.
+        {release.data.publisherVerified
+          ? ""
+          : " Windows may say the publisher is not verified yet; choose More info, then Run anyway."}{" "}
+        The macOS installer is not published yet.
+      </p>
     </>
   );
 }

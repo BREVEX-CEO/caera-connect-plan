@@ -24,7 +24,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 
 PROTOCOL = json.loads((Path(__file__).resolve().parent / "ocade_protocol.json").read_text())
-SOFTWARE_VERSION = "0.2.0"
+SOFTWARE_VERSION = "0.3.0"
 
 
 class UpdateRequired(Exception):

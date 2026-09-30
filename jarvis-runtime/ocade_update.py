@@ -39,8 +39,11 @@ from pathlib import Path
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-# OCADE's release verification key (raw Ed25519, base64). Set by the release owner.
-UPDATE_PUBLIC_KEY: str | None = None
+# OCADE's release verification key (raw Ed25519, base64). The private half is
+# the release owner's file (packaging/release.py says where); it is never in
+# the repository. Replacing this value strands every installed agent on its
+# current version, so it changes only with a new installer.
+UPDATE_PUBLIC_KEY: str | None = "dirhc1T54k1q9CWiOQKDSuuArV0FYJzCcf6TTHi0Qho="
 HEALTH_TIMEOUT_S = 30
 MAX_FAILED_STARTS = 2
 CHECK_EVERY_S = 6 * 3600
@@ -211,7 +214,9 @@ def check(server: str, root: Path, current_version: str) -> str | None:
     if str(parsed["version"]) == _layout(root).get("rolledBackFrom"):
         return None
     release = parsed.get("platforms", {}).get(platform_key())
-    if not release or not str(release.get("url", "")).startswith("https://"):
+    url = str((release or {}).get("url", ""))
+    # Over TLS, or from this computer itself (a developer's own server): never plain HTTP across a network.
+    if not (url.startswith("https://") or url.startswith("http://127.0.0.1:")):
         raise UpdateRefused(f"No build for {platform_key()} in this release")
     archive = _get(release["url"], 300)
     return install(root, parsed, archive)

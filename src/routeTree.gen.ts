@@ -22,6 +22,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
+import { Route as AgentFileRouteImport } from './routes/agent.$file'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthChallengeRouteImport } from './routes/auth.challenge'
@@ -94,6 +95,11 @@ const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
   path: '/library',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AgentFileRoute = AgentFileRouteImport.update({
+  id: '/agent/$file',
+  path: '/agent/$file',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthIndexRoute = AuthIndexRouteImport.update({
   id: '/auth/',
   path: '/auth/',
@@ -143,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/library': typeof AuthenticatedLibraryRoute
+  '/agent/$file': typeof AgentFileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/challenge': typeof AuthChallengeRoute
   '/auth/verify': typeof AuthVerifyRoute
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/library': typeof AuthenticatedLibraryRoute
+  '/agent/$file': typeof AgentFileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/challenge': typeof AuthChallengeRoute
   '/auth/verify': typeof AuthVerifyRoute
@@ -187,6 +195,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
+  '/agent/$file': typeof AgentFileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/challenge': typeof AuthChallengeRoute
   '/auth/verify': typeof AuthVerifyRoute
@@ -210,6 +219,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/admin'
     | '/library'
+    | '/agent/$file'
     | '/auth/callback'
     | '/auth/challenge'
     | '/auth/verify'
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/admin'
     | '/library'
+    | '/agent/$file'
     | '/auth/callback'
     | '/auth/challenge'
     | '/auth/verify'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_authenticated/admin'
     | '/_authenticated/library'
+    | '/agent/$file'
     | '/auth/callback'
     | '/auth/challenge'
     | '/auth/verify'
@@ -274,6 +286,7 @@ export interface RootRouteChildren {
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  AgentFileRoute: typeof AgentFileRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthChallengeRoute: typeof AuthChallengeRoute
   AuthVerifyRoute: typeof AuthVerifyRoute
@@ -376,6 +389,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLibraryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/agent/$file': {
+      id: '/agent/$file'
+      path: '/agent/$file'
+      fullPath: '/agent/$file'
+      preLoaderRoute: typeof AgentFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/': {
       id: '/auth/'
       path: '/auth'
@@ -453,6 +473,7 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  AgentFileRoute: AgentFileRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthChallengeRoute: AuthChallengeRoute,
   AuthVerifyRoute: AuthVerifyRoute,

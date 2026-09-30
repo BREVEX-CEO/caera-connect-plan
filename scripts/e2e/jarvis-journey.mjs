@@ -375,6 +375,31 @@ except i.UpdateRequired:
         30_000,
       ),
     );
+    // The installer is offered only when it is really there: a link that downloads a
+    // program, or the plain sentence that it is not published yet. Never a dead link.
+    const getAgent = page.getByRole("link", { name: "Get the Device Agent for Windows" });
+    await until(
+      async () =>
+        (await getAgent.count()) === 1 ||
+        (await page.getByText("is not published yet").count()) >= 1,
+      15_000,
+    );
+    if ((await getAgent.count()) === 1) {
+      const href = new URL(await getAgent.getAttribute("href"), BASE).href;
+      const response = await fetch(href);
+      const firstBytes = Buffer.from(await response.arrayBuffer())
+        .subarray(0, 2)
+        .toString();
+      check(
+        "the Device Agent download is a real installer",
+        response.status === 200 &&
+          firstBytes === "MZ" &&
+          (await page.getByText(/Version \d+\.\d+/).count()) >= 1,
+        `${href} ${response.status}`,
+      );
+    } else {
+      check("with no installer published, the panel says so instead of linking to nothing", true);
+    }
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
 
     /* --- computer work: off until allowed, inside the workspace, risky asks --- */
