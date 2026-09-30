@@ -295,7 +295,7 @@ describe("granting access by email", () => {
           provedSecondsAgo: 3600,
         } as never)
       ).error,
-    ).toMatch(/Confirm it is you/);
+    ).toMatch(/Confirm it is you before making this change\./);
     expect(await staff(CUSTOMER_B)).toBeNull();
   });
 });
