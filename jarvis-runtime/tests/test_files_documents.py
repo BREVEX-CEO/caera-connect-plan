@@ -107,3 +107,65 @@ class WriteExactlyTest(unittest.TestCase):
         pc.run({"action": "file_write", "path": "dos.txt", "content": "a\r\nb\r\n"})
         self.assertEqual((root / "unix.sh").read_bytes(), b"a\nb\n")
         self.assertEqual((root / "dos.txt").read_bytes(), b"a\r\nb\r\n")
+
+
+def _minimal_docx(path: Path, paragraphs: list[str]) -> None:
+    """The smallest package Word opens: content types, the package relationship, the body."""
+    body = "".join(f"<w:p><w:r><w:t>{p}</w:t></w:r></w:p>" for p in paragraphs)
+    with zipfile.ZipFile(path, "w") as z:
+        z.writestr("[Content_Types].xml",
+                   '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+                   '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+                   '<Default Extension="xml" ContentType="application/xml"/>'
+                   '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>')
+        z.writestr("_rels/.rels",
+                   '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                   '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>')
+        z.writestr("word/document.xml",
+                   '<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                   f'<w:body>{body}</w:body></w:document>')
+
+
+class WordValidationTest(unittest.TestCase):
+    def test_refuses_what_word_should_not_get(self):
+        import ocade_documents
+        for ops in ([], [{"op": "macro"}], [{"op": "replace", "find": "", "with": "x"}],
+                    [{"op": "append", "text": "x", "style": "Evil"}],
+                    [{"op": "table", "rows": [["a", "b"], ["c"]]}]):
+            with self.assertRaises(ocade_documents.DocumentError, msg=str(ops)):
+                ocade_documents.validate_word(ops)
+
+
+@unittest.skipUnless(__import__("ocade_documents").word_available(), "needs Microsoft Word (Windows)")
+class RealWordTest(unittest.TestCase):
+    """A report finished in the person's Word: replaced, styled, formatted, a table, saved and reopened."""
+
+    def test_finish_a_report_in_word(self):
+        root = Path(tempfile.mkdtemp())
+        _minimal_docx(root / "report.docx", ["Quarterly report DRAFT", "Revenue grew in every region.",
+                                             "Contact: TBD"])
+        pc = Computer(str(root))
+        out = pc.run({"action": "doc_edit", "path": "report.docx", "_close": True, "ops": [
+            {"op": "replace", "find": "DRAFT", "with": "Q3 2026"},
+            {"op": "replace", "find": "TBD", "with": "finance@example.com"},
+            {"op": "style", "find": "Quarterly report", "style": "Title"},
+            {"op": "bold", "find": "every region"},
+            {"op": "append", "text": "Regional results", "style": "Heading 1"},
+            {"op": "table", "rows": [["Region", "Revenue"], ["North", "$3,800"], ["South", "$2,750"]]},
+            {"op": "append", "text": "Prepared by JARVIS."},
+        ]})
+        self.assertEqual(out["status"], "done", out)
+        self.assertTrue(out["savedAndReopened"])
+        text = out["read"]["text"]
+        self.assertIn("Quarterly report Q3 2026", text)
+        self.assertIn("finance@example.com", text)
+        self.assertNotIn("DRAFT", text)
+        self.assertEqual(out["read"]["tables"], 1)
+        headings = out["read"]["headings"]
+        self.assertTrue(any(h.endswith("|Quarterly report Q3 2026") for h in headings), headings)
+        self.assertTrue(any(h.endswith("|Regional results") for h in headings), headings)
+        # The saved file itself carries the result, for any program that opens it next.
+        import ocade_documents
+        saved, _ = ocade_documents.extract_text(root / "report.docx", 30_000)
+        self.assertIn("North", saved)
+        self.assertIn("Prepared by JARVIS.", saved)

@@ -237,6 +237,8 @@ class Computer:
                 return self._file(kind, action, confirmed)
             if kind in ("sheet_inspect", "sheet_edit"):
                 return self._sheet(kind, action, cancel)
+            if kind == "doc_edit":
+                return self._doc(action, cancel)
             if kind == "run":
                 return self._run(str(action.get("command", "")), action.get("cwd"), confirmed, cancel)
             if kind == "system":
@@ -373,6 +375,24 @@ class Computer:
                     "summary": f"The workbook was not changed: {str(out.get('error', ''))[:200]}"}
         return {"status": "done", "summary": f"Updated {rel} ({len(out['applied'])} changes, "
                                              f"{'in Excel' if out['engine'] == 'excel' else 'in the file'})",
+                **{k: v for k, v in out.items() if k != "ok"}}
+
+    def _doc(self, action: dict, cancel: threading.Event) -> dict:
+        import ocade_documents
+        path = self._inside(str(action.get("path", "")))
+        rel = str(path.relative_to(self.root))
+        if not path.is_file():
+            return {"status": "failed", "summary": f"{rel} does not exist"}
+        home = Path(os.environ.get("OCADE_JARVIS_HOME", Path.home() / ".ocade_jarvis"))
+        try:
+            out = ocade_documents.edit_word(path, list(action.get("ops") or []), home / "undo", cancel,
+                                            close=bool(action.get("_close")))
+        except ocade_documents.DocumentError as e:
+            return {"status": "failed", "summary": str(e)}
+        if not out.get("ok"):
+            return {"status": "failed", "stopped": bool(out.get("stopped")),
+                    "summary": f"The document was not changed: {str(out.get('error', ''))[:200]}"}
+        return {"status": "done", "summary": f"Updated {rel} in Word ({len(out['applied'])} changes)",
                 **{k: v for k, v in out.items() if k != "ok"}}
 
     def _find(self, folder: Path, rel: str, name: str, extension: str) -> dict:

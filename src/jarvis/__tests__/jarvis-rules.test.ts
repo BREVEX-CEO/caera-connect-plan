@@ -358,3 +358,28 @@ describe("app controls through accessibility", () => {
     ).toBe(false);
   });
 });
+
+describe("Word documents", () => {
+  it("accepts structured edits and refuses unknown styles or ragged tables", async () => {
+    const { computerAction, capabilityFor } = await import("../protocol");
+    const edit = computerAction.parse({
+      action: "doc_edit",
+      path: "report.docx",
+      ops: [
+        { op: "replace", find: "DRAFT", with: "Final" },
+        { op: "append", text: "Results", style: "Heading 1" },
+        { op: "table", rows: [["a", "b"]] },
+      ],
+    });
+    expect(capabilityFor(edit)).toBe("files");
+    for (const bad of [
+      { op: "append", text: "x", style: "Evil" },
+      { op: "macro", code: "x" },
+      { op: "replace", find: "", with: "x" },
+    ]) {
+      expect(
+        computerAction.safeParse({ action: "doc_edit", path: "a.docx", ops: [bad] }).success,
+      ).toBe(false);
+    }
+  });
+});

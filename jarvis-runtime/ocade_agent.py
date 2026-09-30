@@ -292,7 +292,8 @@ def health_check() -> int:
             import ocade_accessibility  # noqa: F401
             import uiautomation  # noqa: F401
         assert browser._OCADE_PAGE and browser._GATES
-        assert (Path(ocade_sheets.__file__).resolve().parent / "actions" / "ocade_excel.ps1").is_file()
+        actions = Path(ocade_sheets.__file__).resolve().parent / "actions"
+        assert (actions / "ocade_excel.ps1").is_file() and (actions / "ocade_word.ps1").is_file()
         import pystray
         from PIL import Image
         pystray.Icon("ocade-health", Image.new("RGBA", (16, 16)), "OCADE")

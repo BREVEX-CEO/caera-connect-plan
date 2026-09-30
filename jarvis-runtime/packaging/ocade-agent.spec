@@ -24,7 +24,8 @@ a = Analysis(
     # build that forgot one fails its own health check before it ships.
     datas=[(str(root / "ocade_protocol.json"), "."),
            (str(root / "actions" / "ocade_page.js"), "actions"),
-           (str(root / "actions" / "ocade_excel.ps1"), "actions"), *uia_bin],
+           (str(root / "actions" / "ocade_excel.ps1"), "actions"),
+           (str(root / "actions" / "ocade_word.ps1"), "actions"), *uia_bin],
     hiddenimports=[
         "ocade_device", "ocade_identity", "ocade_computer", "ocade_update",
         "ocade_egress", "ocade_wake", "ocade_existing_browser", "ocade_documents", "ocade_sheets", "ocade_accessibility",
