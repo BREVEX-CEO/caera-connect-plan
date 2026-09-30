@@ -1,6 +1,6 @@
 /** Authenticated usage operations. Account identity comes only from verified Supabase claims. */
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSession } from "@/lib/security/session-middleware";
 import {
   CommercialGenerationGate,
   GENERATION_SURFACES,
@@ -68,7 +68,7 @@ export async function assertActiveGenerationPermit(input: {
 }
 
 export const acquireGenerationPermit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator(
     (data: { idempotencyKey: string; generationId?: string; surface?: GenerationSurface }) => {
       const key = data?.idempotencyKey?.trim();
@@ -117,7 +117,7 @@ export const acquireGenerationPermit = createServerFn({ method: "POST" })
   });
 
 export const finalizeGenerationPermit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((data: { idempotencyKey: string }) => {
     const key = data?.idempotencyKey?.trim();
     if (!key) throw new Error("A request key is required.");
@@ -134,7 +134,7 @@ export const finalizeGenerationPermit = createServerFn({ method: "POST" })
   });
 
 export const releaseGenerationPermit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((data: { idempotencyKey: string; reason?: string }) => {
     const key = data?.idempotencyKey?.trim();
     if (!key) throw new Error("A request key is required.");
@@ -174,7 +174,7 @@ export interface CommercialUsageView {
  * READ-ONLY, and the numbers are the ones the person is shown: "18 of 28 left".
  */
 export const readCommercialUsage = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .handler(async ({ context }): Promise<CommercialUsageView> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const entitlement = await resolveTierFor(context.userId);

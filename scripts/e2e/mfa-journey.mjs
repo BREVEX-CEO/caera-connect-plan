@@ -235,6 +235,8 @@ try {
   await challenge.goto(`${BASE}/`, { waitUntil: "networkidle" });
   await openAccount(challenge);
   await challenge.getByRole("button", { name: "Turn off", exact: true }).click();
+  // Turning protection off is confirmed explicitly, never one click.
+  await challenge.getByRole("button", { name: "Turn off two-step", exact: true }).click();
   await challenge
     .getByText("Off. Add an authenticator app")
     .waitFor({ timeout: 10_000 })
@@ -246,6 +248,33 @@ try {
     });
   check("Turn off works from an aal2 session", true);
   await again.close();
+  /* --- an old proof: "Confirm it's you", then the action completes ------------ */
+  const staleEmail = `mfa-c-${stamp}@ocade.test`;
+  const stale = await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: staleEmail, password: "stale-proof" }),
+  }).then((response) => response.json());
+  const contextC = await contextFor(stale);
+  const pageC = await contextC.newPage();
+  await pageC.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  await pageC.click('aside button[aria-haspopup="menu"]');
+  await pageC.getByRole("menuitem", { name: "Settings" }).click();
+  await pageC.getByRole("button", { name: "Privacy & Security", exact: true }).click();
+  const downloaded = pageC.waitForEvent("download", { timeout: 20_000 });
+  await pageC.getByRole("button", { name: "Export", exact: true }).click();
+  const ask = pageC.getByRole("dialog", { name: "Confirm it's you" });
+  await ask.waitFor({ timeout: 10_000 });
+  check("an hour-old proof asks to confirm it's you", (await ask.innerText()).includes(staleEmail));
+  await ask.getByLabel("Verification code").fill("000000");
+  await ask.getByRole("button", { name: "Confirm", exact: true }).click();
+  await ask.getByRole("alert").waitFor({ timeout: 10_000 });
+  check("a wrong emailed code is refused", true);
+  await ask.getByLabel("Verification code").fill("123456");
+  await ask.getByRole("button", { name: "Confirm", exact: true }).click();
+  const file = await downloaded;
+  check("then the export completes", file.suggestedFilename().startsWith("ocade-account-export-"));
+  await contextC.close();
 } catch (error) {
   check("journey completed", false, String(error).split("\n")[0]);
 } finally {

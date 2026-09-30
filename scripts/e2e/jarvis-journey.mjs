@@ -345,7 +345,8 @@ except i.UpdateRequired:
     );
     const said = reused.stdout + reused.stderr;
     check("a signed request is accepted", said.includes("first 200"), said.slice(-300));
-    check("the same signed request cannot be replayed", said.includes("replay 401"));
+    // 409, not 401: a replay is refused without ever reading as "this computer was removed".
+    check("the same signed request cannot be replayed", said.includes("replay 409"));
     check(
       "the device rotates its own key and the old key stops working",
       said.includes("rotated True") && said.includes("new key 200") && said.includes("old key 401"),
@@ -597,6 +598,20 @@ except i.UpdateRequired:
       busyText.includes("your task is saved") &&
         (await page.locator("#jarvis-composer").getAttribute("placeholder"))?.includes("busy"),
       (await page.locator("main").innerText()).replace(/\s+/g, " ").slice(-600),
+    );
+    // Pressing Resume during the wait must not mark the task Working with nobody driving it.
+    await page.getByRole("button", { name: "Resume", exact: true }).first().click();
+    check(
+      "Resume during the wait is remembered, not a Working task nobody drives",
+      await until(
+        async () =>
+          (await page
+            .getByText("JARVIS will continue this task as soon as it is available again.")
+            .count()) >= 1 &&
+          (await busy.count()) === 1 &&
+          (await page.getByRole("button", { name: "Take Over", exact: true }).count()) === 0,
+        10_000,
+      ),
     );
     await setBoundary(200);
     check(

@@ -71,6 +71,10 @@ const MAX_ATTACHMENT_IMAGE = 7 * 1_048_576;
  */
 const MAX_OUTPUT_TOKENS = 8_192;
 const PROVIDER_TIMEOUT_MS = 110_000;
+/** How long one key may take to START answering before the next key is tried. */
+const ATTEMPT_TIMEOUT_MS = 25_000;
+/** Finish reasons that mean the content itself was refused: never a capacity problem. */
+const BLOCKED_FINISH = new Set(["SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII"]);
 const MAX_PROVIDER_ATTEMPTS = 3;
 
 interface OnlineRequestBody {
@@ -124,6 +128,12 @@ export interface OnlineHandlerDependencies {
    * opinion about a logging service.
    */
   observe?(record: HealthRecord): void;
+  /**
+   * Charge the permit the moment an answer was delivered. The server decides,
+   * not the browser: a client that "releases" after reading an answer would
+   * otherwise use OCADE for free.
+   */
+  finalizePermit?(input: { userId: string; permit: IntelligencePermit }): Promise<void>;
 }
 
 function json(status: number, body: Record<string, unknown>, origin?: string): Response {
@@ -401,7 +411,20 @@ function normalizeProviderChunk(
    * read, and the client would treat a delivered answer as a failure. The
    * answer is real, it is charged, and it ends where it ends.
    */
+  const blockedPrompt =
+    isRecord(value.promptFeedback) && typeof value.promptFeedback.blockReason === "string";
   if (
+    blockedPrompt ||
+    (first && typeof first.finishReason === "string" && BLOCKED_FINISH.has(first.finishReason))
+  ) {
+    // The request itself was refused. Retrying it, or treating it as an outage, never helps.
+    events.push({
+      type: "refusal",
+      code: "content_blocked",
+      reason: "OCADE can't help with that request. Try asking in a different way.",
+      retryable: false,
+    });
+  } else if (
     first &&
     typeof first.finishReason === "string" &&
     first.finishReason !== "STOP" &&
@@ -423,10 +446,12 @@ function normalizedProviderStream(
   signal: AbortSignal,
   cleanup: () => void,
   cancelProvider: (reason: unknown) => void,
+  delivered: () => Promise<void> = async () => undefined,
 ): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
     async start(controller) {
       let answer = "";
+      let refused = false;
       const toolCalls: NormalizedToolCall[] = [];
       let usage: NormalizedUsage | undefined;
       const toolIndex = { value: 0 };
@@ -452,6 +477,7 @@ function normalizedProviderStream(
                 if (event.type === "token") answer += event.text;
                 if (event.type === "tool_call") toolCalls.push(event.call);
                 if (event.type === "usage") usage = event.usage;
+                if (event.type === "refusal") refused = true;
                 controller.enqueue(sse(event));
               }
             }
@@ -460,6 +486,8 @@ function normalizedProviderStream(
         }
         if (buffer.trim()) throw new Error("Provider ended with an incomplete stream event.");
         if (!answer.trim() && toolCalls.length === 0) {
+          // Already refused with its real reason: never add a retryable "empty" on top.
+          if (refused) return;
           controller.enqueue(
             sse({
               type: "refusal",
@@ -469,6 +497,8 @@ function normalizedProviderStream(
             }),
           );
         } else {
+          // Charged by the server before the person is told it is complete.
+          await delivered().catch(() => undefined);
           controller.enqueue(
             sse({
               type: "final",
@@ -484,13 +514,16 @@ function normalizedProviderStream(
           );
         }
       } catch {
+        const timedOut =
+          signal.reason instanceof DOMException && signal.reason.name === "TimeoutError";
         controller.enqueue(
           sse({
             type: "refusal",
-            code: signal.aborted ? "cancelled" : "provider_failed",
-            reason: signal.aborted
-              ? "Stopped by the user."
-              : "Online Intelligence stopped before completing the response.",
+            code: signal.aborted && !timedOut ? "cancelled" : "provider_failed",
+            reason:
+              signal.aborted && !timedOut
+                ? "Stopped by the user."
+                : "Online Intelligence stopped before completing the response.",
             retryable: !signal.aborted && !answer.trim() && toolCalls.length === 0,
           }),
         );
@@ -663,26 +696,40 @@ async function runOnlineIntelligence(
     outer: for (const slot of slots) {
       for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS; attempt += 1) {
         let response: Response;
+        /*
+         * One key that hangs must not hold the whole request: it has its own
+         * deadline to START answering. Only to start: the timer is cleared the
+         * moment headers arrive, so a long answer is never cut off by it.
+         */
+        const hung = new AbortController();
+        const attemptTimer = setTimeout(
+          () => hung.abort(new DOMException("Provider key timeout", "TimeoutError")),
+          ATTEMPT_TIMEOUT_MS,
+        );
         try {
           attempted.slot = slot;
           attempted.attempts += 1;
           response = await deps.callProvider({
             model: configured,
             body: providerBody(body),
-            signal: controller.signal,
+            signal: AbortSignal.any([controller.signal, hung.signal]),
             slot,
           });
         } catch (cause) {
           /*
            * A THROW IS A TRANSPORT FAILURE OF THIS SLOT — unless we asked for
-           * it. An abort is the person leaving or the timeout firing, and
-           * trying the next key after that would be spending their allowance
-           * on a request nobody is waiting for.
+           * it. An abort is the person leaving or the whole request's deadline,
+           * and trying the next key after that would be spending their
+           * allowance on a request nobody is waiting for. A key that only hung
+           * past its own deadline is failed over like any transport fault.
            */
           if (controller.signal.aborted) throw cause;
-          if (attempt === MAX_PROVIDER_ATTEMPTS - 1) continue outer;
+          // A key that hung once gets no second 25 seconds of the person's wait.
+          if (hung.signal.aborted || attempt === MAX_PROVIDER_ATTEMPTS - 1) continue outer;
           await sleep(retryAfter(new Response(null, { status: 503 }), attempt), controller.signal);
           continue;
+        } finally {
+          clearTimeout(attemptTimer);
         }
 
         provider = response;
@@ -697,6 +744,12 @@ async function runOnlineIntelligence(
          * per request, and a provider outage is exactly when every request takes
          * all nine.
          */
+        if (response.status === 400) {
+          // Google reports a bad or expired key as 400: that is THIS key, not the request.
+          const detail = await response.text().catch(() => "");
+          if (/API_KEY_INVALID|API key (not valid|expired)/i.test(detail)) continue outer;
+          return json(503, { error: "provider_unavailable" }, origin);
+        }
         void response.body?.cancel().catch(() => undefined);
 
         if (response.status === 401 || response.status === 403) continue outer;
@@ -723,9 +776,17 @@ async function runOnlineIntelligence(
     }
     handedOff = true;
     return new Response(
-      normalizedProviderStream(provider, controller.signal, cleanup, (reason) => {
-        if (!controller.signal.aborted) controller.abort(reason);
-      }),
+      normalizedProviderStream(
+        provider,
+        controller.signal,
+        cleanup,
+        (reason) => {
+          if (!controller.signal.aborted) controller.abort(reason);
+        },
+        () =>
+          deps.finalizePermit?.({ userId: identity.userId, permit: body.permit }) ??
+          Promise.resolve(),
+      ),
       {
         status: 200,
         headers: {
@@ -736,6 +797,11 @@ async function runOnlineIntelligence(
         },
       },
     );
+  } catch (cause) {
+    // The person left, or the whole deadline passed, before any answer began:
+    // an honest refusal the browser can read, never an unhandled 500 without CORS.
+    if (controller.signal.aborted) return json(503, { error: "provider_unavailable" }, origin);
+    throw cause;
   } finally {
     // A successful response still has work in flight after this function
     // returns. Its stream owns cleanup; early refusals clean up here.

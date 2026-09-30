@@ -444,7 +444,9 @@ export async function runJarvisTurn(
             await update({
               id: task.id,
               status: "waiting",
-              blocker: "Out of JARVIS uses for now. Resume when they reset.",
+              // Out of uses, or the allowance could not be checked: the toast
+              // already said which. This line must be true in both cases.
+              blocker: "No JARVIS use was available just now. Resume to try again.",
             }),
           );
         }

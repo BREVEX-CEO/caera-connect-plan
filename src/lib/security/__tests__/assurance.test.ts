@@ -216,3 +216,41 @@ describe("reading the facts out of a token", () => {
     }
   });
 });
+
+describe("every signed-in server function asks the database about the second factor", () => {
+  const client = (answer: { data: unknown; error: unknown }) => {
+    const calls: string[] = [];
+    return {
+      calls,
+      rpc: async (fn: string) => {
+        calls.push(fn);
+        return answer as { data: unknown; error: null };
+      },
+    };
+  };
+
+  it("lets an answered (aal2) session through without asking", async () => {
+    const { meetsSecondFactor } = await import("../session-middleware");
+    const db = client({ data: false, error: null });
+    expect(await meetsSecondFactor(db, { aal: "aal2", sub: "u1" })).toBe(true);
+    expect(db.calls).toEqual([]);
+  });
+
+  it("refuses an enrolled account's password-only session, as the database says", async () => {
+    const { meetsSecondFactor } = await import("../session-middleware");
+    const refused = client({ data: null, error: { code: "42501", hint: "factor_required" } });
+    expect(await meetsSecondFactor(refused, { aal: "aal1", sub: "u2", session_id: "s2" })).toBe(
+      false,
+    );
+    const plain = client({ data: true, error: null });
+    expect(await meetsSecondFactor(plain, { aal: "aal1", sub: "u3", session_id: "s3" })).toBe(true);
+  });
+
+  it("fails closed when the database cannot answer", async () => {
+    const { meetsSecondFactor } = await import("../session-middleware");
+    const down = client({ data: null, error: { code: "08006", message: "connection failure" } });
+    await expect(
+      meetsSecondFactor(down, { aal: "aal1", sub: "u4", session_id: "s4" }),
+    ).rejects.toThrow(/could not check/);
+  });
+});

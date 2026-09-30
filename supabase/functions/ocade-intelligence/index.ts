@@ -127,6 +127,25 @@ Deno.serve((request) =>
             reason: "The generation permit is invalid or was already used.",
           };
     },
+    async finalizePermit({ userId, permit }) {
+      // One use, charged here the moment the answer is complete. The browser's
+      // own finalize then finds it settled; its "release" can no longer refund it.
+      await fetch(`${SUPABASE_URL}/rest/v1/rpc/ocade_finalize_generation_permit`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          "Content-Type": "application/json",
+          ...(!SUPABASE_SERVICE_ROLE_KEY.startsWith("sb_secret_")
+            ? { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` }
+            : {}),
+        },
+        body: JSON.stringify({
+          p_user_id: userId,
+          p_idempotency_key: permit.idempotencyKey,
+          p_cost_hundredths: 100,
+        }),
+      });
+    },
     callProvider({ model, body, signal, slot }) {
       return fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,

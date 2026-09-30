@@ -223,7 +223,7 @@ function AuthPage() {
         saveThrottle("password_signin", address, recordFailure(state, Date.now()));
         // One sentence whether the account exists or not.
         setError("That email and password did not match.");
-        setHint("Forgot it? Sign in with a code, then set a new password under Account.");
+        setHint("Forgot it? Choose “Use an email code instead” below, or reset your password.");
         setBusy(false);
         return;
       }

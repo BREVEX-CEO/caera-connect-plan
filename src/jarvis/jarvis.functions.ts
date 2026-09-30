@@ -11,7 +11,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSession } from "@/lib/security/session-middleware";
 import { supabaseCommercialLedger } from "@/lib/commercial/supabase-ledger";
 import { resolveTierFor } from "@/lib/commercial/entitlement-resolver";
 import { ALLOWANCES, describeUsage } from "@/lib/commercial/usage-policy";
@@ -118,7 +118,7 @@ const TASK_COLUMNS =
   "id, conversation_id, device_id, title, plan, current_step, status, blocker, result, browser_mode, checkpoint, created_at, updated_at";
 
 export const readJarvisState = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ maintain: z.boolean().default(false) }).parse(i ?? {}))
   .handler(async ({ data: input, context }): Promise<JarvisState> => {
     const db = context.supabase;
@@ -261,7 +261,7 @@ export const readJarvisState = createServerFn({ method: "GET" })
   });
 
 export const createJarvisConversation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
@@ -275,7 +275,7 @@ export const createJarvisConversation = createServerFn({ method: "POST" })
 
 /** Whether this account owns a JARVIS conversation with this id (not just "no messages"). */
 export const jarvisConversationExists = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
@@ -301,7 +301,7 @@ export type StartTaskResult =
   | { ok: false; reason: "no_device" | "permission"; message: string };
 
 export const startJarvisTask = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) =>
     z
       .object({
@@ -401,7 +401,7 @@ export const startJarvisTask = createServerFn({ method: "POST" })
   });
 
 export const updateJarvisTask = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) =>
     z
       .object({
@@ -499,7 +499,7 @@ export const updateJarvisTask = createServerFn({ method: "POST" })
   });
 
 export const queueJarvisAction = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ taskId: uuid, controller: uuid, action: deviceAction }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: task, error } = await context.supabase
@@ -578,7 +578,7 @@ export const queueJarvisAction = createServerFn({ method: "POST" })
   });
 
 export const readJarvisTask = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
@@ -591,7 +591,7 @@ export const readJarvisTask = createServerFn({ method: "GET" })
   });
 
 export const readJarvisAction = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
@@ -611,7 +611,7 @@ export const readJarvisAction = createServerFn({ method: "GET" })
 
 /** A step the planner stopped waiting for: it never runs, and a late result never counts. */
 export const cancelJarvisAction = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const service = await admin();
@@ -629,7 +629,7 @@ export const cancelJarvisAction = createServerFn({ method: "POST" })
 
 /** Only a person's click reaches this. The planning loop never calls it. */
 export const decideJarvisAction = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid, accept: z.boolean() }).parse(i))
   .handler(async ({ data, context }) => {
     const service = await admin();
@@ -663,7 +663,7 @@ const capability = z.union([
 ]);
 
 export const setJarvisPermission = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) =>
     z
       .object({
@@ -711,7 +711,7 @@ export const setJarvisPermission = createServerFn({ method: "POST" })
 
 /** What a person sees before approving a device: never its key, only its fingerprint. */
 export const readJarvisEnrollment = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data }) => {
     const service = await admin();
@@ -740,13 +740,14 @@ export const readJarvisEnrollment = createServerFn({ method: "GET" })
  * or expired cannot be claimed again.
  */
 export const approveJarvisDevice = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const service = await admin();
     const { data: row, error } = await service
       .from("jarvis_devices")
-      .update({ user_id: context.userId, enrollment_expires_at: null })
+      // Approved: where it asked from is no longer anybody's business.
+      .update({ user_id: context.userId, enrollment_expires_at: null, enrollment_source: null })
       .eq("id", data.id)
       .is("user_id", null)
       .gt("enrollment_expires_at", new Date().toISOString())
@@ -768,7 +769,7 @@ export const approveJarvisDevice = createServerFn({ method: "POST" })
 
 /** Refuse a pending request that is not the person's. */
 export const declineJarvisDevice = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data }) => {
     const service = await admin();
@@ -777,7 +778,7 @@ export const declineJarvisDevice = createServerFn({ method: "POST" })
   });
 
 export const revokeJarvisDevice = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const service = await admin();
@@ -809,7 +810,7 @@ export const revokeJarvisDevice = createServerFn({ method: "POST" })
  * OCADE is closed. Device records are not browser-writable, so this is the door.
  */
 export const setJarvisBackground = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid, enabled: z.boolean() }).parse(i))
   .handler(async ({ data, context }) => {
     const service = await admin();
@@ -825,7 +826,7 @@ export const setJarvisBackground = createServerFn({ method: "POST" })
 
 /** STOP JARVIS: every unfinished task of this account, on every device, ends now. */
 export const stopAllJarvis = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .handler(async ({ context }) => {
     const at = new Date().toISOString();
     const { data: stopped, error } = await context.supabase
@@ -856,7 +857,7 @@ export const stopAllJarvis = createServerFn({ method: "POST" })
   });
 
 export const rememberJarvis = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ content: z.string().trim().min(1).max(500) }).parse(i))
   .handler(async ({ data, context }) => {
     if (!isAllowed(await permissionsOf(context.supabase), "memory")) {
@@ -870,7 +871,7 @@ export const rememberJarvis = createServerFn({ method: "POST" })
   });
 
 export const forgetJarvis = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("jarvis_memories").delete().eq("id", data.id);
@@ -879,7 +880,7 @@ export const forgetJarvis = createServerFn({ method: "POST" })
   });
 
 export const readJarvisFrame = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ taskId: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase

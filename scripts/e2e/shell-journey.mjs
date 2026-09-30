@@ -138,6 +138,31 @@ try {
     await small.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
   );
 
+  /*
+   * THE ENGINE SURVIVES A DEPLOY. A runtime-fetched asset (the offline engine's
+   * `.wasm` above all) must land in the cache a new worker version keeps, not
+   * in the versioned shell cache its activation deletes.
+   */
+  const assets = await small.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+    const asset = [...performance.getEntriesByType("resource")]
+      .map((entry) => new URL(entry.name).pathname)
+      .find((path) => path.startsWith("/assets/") && path.endsWith(".js"));
+    if (!asset) return { asset: null, kept: false };
+    // Once more through the now-controlling worker, which is what keeps it.
+    await fetch(asset);
+    const cache = await caches.open("ocade-assets");
+    for (let i = 0; i < 20 && !(await cache.match(asset)); i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return { asset, kept: Boolean(await cache.match(asset)) };
+  });
+  check(
+    "a runtime asset is kept where a new app version will not delete it",
+    assets.asset !== null && assets.kept,
+    JSON.stringify(assets),
+  );
+
   check("no uncaught page errors", consoleErrors.length === 0, consoleErrors.join("; "));
 } finally {
   await browser.close();

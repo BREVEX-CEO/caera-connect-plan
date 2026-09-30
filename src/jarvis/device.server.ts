@@ -121,7 +121,29 @@ export async function pauseOrphanedTasks(
  * capped: each expires in ten minutes, and past this many at once new ones
  * are asked to try again rather than filling the table.
  */
-export const MAX_PENDING_ENROLLMENTS = 200;
+export const MAX_PENDING_ENROLLMENTS = 5000;
+/**
+ * And per source: one address may hold only a few at once. The total alone
+ * was 200, which one script generating key pairs could fill, stopping every
+ * new computer everywhere from connecting.
+ */
+export const MAX_PENDING_PER_SOURCE = 5;
+
+/** Who is asking, as a hash: an IPv6 client is its /64, which one host controls whole. */
+export async function enrollmentSource(request: Request): Promise<string> {
+  const ip = request.headers.get("cf-connecting-ip")?.trim() || "unknown";
+  // ponytail: "::"-compressed addresses group slightly differently; still one bucket per network.
+  return sha256Hex(ip.includes(":") ? ip.split(":").slice(0, 4).join(":") : ip);
+}
+
+/** Room for one more pending enrollment, from this source and in total. Unreadable is no room. */
+export async function enrollmentRoom(admin: Admin, source: string): Promise<boolean> {
+  const pending = () =>
+    admin.from("jarvis_devices").select("id", { count: "exact", head: true }).is("user_id", null);
+  const [all, mine] = await Promise.all([pending(), pending().eq("enrollment_source", source)]);
+  if (all.error || mine.error) return false;
+  return (all.count ?? 0) < MAX_PENDING_ENROLLMENTS && (mine.count ?? 0) < MAX_PENDING_PER_SOURCE;
+}
 
 export async function sha256Hex(value: string | Uint8Array<ArrayBuffer>): Promise<string> {
   const bytes = typeof value === "string" ? new TextEncoder().encode(value) : value;
@@ -268,11 +290,8 @@ export async function enroll(
     .delete()
     .is("user_id", null)
     .lt("enrollment_expires_at", new Date().toISOString());
-  const { count } = await admin
-    .from("jarvis_devices")
-    .select("id", { count: "exact", head: true })
-    .is("user_id", null);
-  if ((count ?? 0) >= MAX_PENDING_ENROLLMENTS) {
+  const source = await enrollmentSource(request);
+  if (!(await enrollmentRoom(admin, source))) {
     return { status: 429, body: { error: "busy" } };
   }
   const { data, error } = await admin
@@ -285,6 +304,7 @@ export async function enroll(
       protocol_version: signed.protocol,
       public_key: parsed.publicKey,
       enrollment_expires_at: new Date(Date.now() + ENROLLMENT_MS).toISOString(),
+      enrollment_source: source,
       last_request_ms: signed.timestamp,
     })
     .select("id")

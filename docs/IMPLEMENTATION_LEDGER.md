@@ -256,3 +256,32 @@ Found and fixed (root causes):
 - Test infrastructure: journeys defaulted to a Linux-only browser path; the Playwright headless-shell build crashes on `/ocade-jarvis` (full Chromium does not) — harness now uses full Chromium; stub refresh tokens always returned the default account; stub had no MFA; screen tests never ran on Windows (`$DISPLAY` gate) and simulated user input with `SetCursorPos`, which fires no input hook.
 
 Evidence: 17 browser journeys (mfa new) — 16/17 green in the full run with 865+ checks; live-talk 6/6 and MFA 24/25 (the last fixed after) on real browser + real device runtime. Runtime Python 69 pass / 3 skip (screen tests now run on real Windows). Unit 202 JARVIS/security pass.
+
+## Master Phase run — session of 2026-09-30 (branch `jarvis/master-phases`)
+
+Auth / 2FA (Phase 36 depth, pulled forward because privileged work depended on it):
+
+- An enrolled account was reachable with a stolen password alone: the second-factor challenge was only a client redirect, and PostgREST/Storage/server functions accepted aal1 tokens. Now one database authority (`ocade_enforce_second_factor` as PostgREST `db_pre_request`, a restrictive Storage policy, and `requireSession` for every server function) refuses an aal1 session of an account with a verified factor. DB regressions in `second-factor-enforced.test.ts`.
+- Operator RPCs checked `aal2` but not recency: a day-old second factor could still grant plans or stop JARVIS for everyone. They now also require a proof from the last ten minutes. The UI asks for it in place ("Confirm it's you": authenticator code, else an emailed code) and retries once — export, delete account, end sessions, turn off two-step, every admin mutation.
+- Turning off two-step needed no fresh proof; "Use a different account" on the challenge kept the old session; sign-out ended every device's session instead of this one.
+
+Online capacity (Phase 21):
+
+- A key Google calls invalid (HTTP 400 `API_KEY_INVALID`) ended the request instead of failing over; a hung key held the whole 110 s budget; an abort during a retry wait escaped as an uncaught 500 without CORS; a safety-blocked prompt produced a non-retryable refusal followed by a retryable "empty answer", which JARVIS treated as an outage and re-sent for ever; the charge for a delivered answer was decided only by the browser, so a modified client could read an answer and release its permit. Fixed in `edge-handler.ts` (per-key 25 s header deadline, immediate failover on key-local 400, `content_blocked`, single refusal, server-side finalize before `final`). 5 regressions fail on the old handler.
+- Resume pressed during the busy wait marked the task Working with nobody driving it; a spoken question during the wait was dropped; an allowance-check outage parked the task as "Out of JARVIS uses".
+
+Mobile / Remote PC (Phase 22):
+
+- A service-worker version bump deleted runtime-cached assets — the lazily loaded chunks and `wllama.wasm` — so the first visit after a deploy could leave Offline Chat unable to start offline. Runtime assets now live in a count-capped cache that survives deploys (browser-proven in the shell journey).
+- The phone bubble sent a spoken "stop" to the model as a billed question; it now stops everything, and "what are you doing?", "wait" and "continue" act on the real task (bubble journey). Bubble Stop is the confirmed global STOP (all tasks, "Stopped" only once each computer confirms), shared with the page's round STOP.
+- A chosen Remote PC target that was removed (or belonged to the previous account) made every task start fail; a phone watching a task it did not start refreshed every 30 s.
+
+Security:
+
+- Device enrollment had one global cap of 200 pending requests, which one script could fill to stop every new computer connecting. Now 5 per source (hashed client address, IPv6 /64) under a 5000 total; the source is server-only and cleared on approval (`20260930092000_enrollment_cap_per_source`).
+- OCADE's last operator could delete their own account.
+- Terms/Privacy described a support-ticket queue and admin support workspace that were removed (`20260912120000`); corrected.
+
+Owner actions recorded (not executable here): apply migrations `20260930090000`, `20260930091000`, `20260930092000` and deploy `ocade-intelligence` (Supabase MCP absent); enable Supabase security-notification emails for MFA removal; publish a verified support channel on Help.
+
+Phase 22 gap carried to Phase 43: the planning loop runs in the tab that started the turn, so a phone that is minimized long enough leaves the task waiting at its checkpoint (it resumes cleanly). A computer-held planning loop is the Phase 43 build.

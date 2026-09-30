@@ -145,7 +145,12 @@ function totp(secret, counter) {
   return String(value).padStart(6, "0");
 }
 
-function shapedJwt(userId, email, aal = assuranceOf(email)) {
+function shapedJwt(
+  userId,
+  email,
+  aal = assuranceOf(email),
+  provedAt = Math.floor(Date.now() / 1000),
+) {
   const encode = (value) =>
     Buffer.from(JSON.stringify(value))
       .toString("base64")
@@ -159,7 +164,14 @@ function shapedJwt(userId, email, aal = assuranceOf(email)) {
     role: "authenticated",
     aud: "authenticated",
     aal,
-    amr: aal === "aal2" ? [{ method: "password" }, { method: "totp" }] : [{ method: "password" }],
+    // Supabase reports when each method was proved, in seconds; a refresh keeps them.
+    amr:
+      aal === "aal2"
+        ? [
+            { method: "password", timestamp: provedAt },
+            { method: "totp", timestamp: provedAt },
+          ]
+        : [{ method: "password", timestamp: provedAt }],
     // Real tokens carry this, and Advanced reads it to tell "this device" from
     // the others. Without it every session looks like somebody else's.
     session_id: "session-current",
@@ -169,17 +181,17 @@ function shapedJwt(userId, email, aal = assuranceOf(email)) {
   return `${header}.${payload}.stub-signature-not-a-signature`;
 }
 
-function openSession(email, aal = assuranceOf(email)) {
+function openSession(email, aal = assuranceOf(email), provedAt = Math.floor(Date.now() / 1000)) {
   const id = idForEmail(email);
   emails.set(id, email);
   if (email.startsWith("admin") && !rows(id, "user_roles").length) {
     rows(id, "user_roles").push({ id: randomUUID(), user_id: id, role: "admin" });
   }
-  const accessToken = shapedJwt(id, email, aal);
+  const accessToken = shapedJwt(id, email, aal, provedAt);
   sessions.set(accessToken, id);
   tokenAal.set(accessToken, aal);
   const refreshToken = `stub-refresh-${randomUUID()}`;
-  refreshes.set(refreshToken, { userId: id, aal });
+  refreshes.set(refreshToken, { userId: id, aal, provedAt });
   return {
     access_token: accessToken,
     token_type: "bearer",
@@ -620,6 +632,22 @@ function handleRpc(name, args, userId) {
         },
       ];
 
+    case "ocade_session_meets_second_factor": {
+      // What PostgREST's pre-request check does: an enrolled account's
+      // password-only session is refused before the call runs.
+      const enrolled = (factors.get(userId) ?? []).some((f) => f.status === "verified");
+      if (requestAal !== "aal2" && enrolled) {
+        return {
+          __error: {
+            code: "42501",
+            message: "This account needs its second factor for this session.",
+            hint: "factor_required",
+          },
+        };
+      }
+      return true;
+    }
+
     case "ocade_session_is_live":
       return true;
 
@@ -950,7 +978,7 @@ const server = createServer((request, response) => {
           return send(400, { error_code: "refresh_token_not_found", msg: "Invalid Refresh Token" });
         }
         refreshes.delete(parsed.refresh_token);
-        return send(200, openSession(emails.get(held.userId), held.aal));
+        return send(200, openSession(emails.get(held.userId), held.aal, held.provedAt));
       }
       // One password the stub refuses, so a wrong one can be proved refused.
       if (grant === "password" && parsed.password === "wrong-password") {
@@ -958,6 +986,14 @@ const server = createServer((request, response) => {
           error: "invalid_grant",
           error_description: "Invalid login credentials",
         });
+      }
+      // A session whose last proof is an hour old: what "Confirm it's you" exists for.
+      if (grant === "password" && parsed.password === "stale-proof") {
+        const email = parsed.email ?? "proof@ocade.test";
+        return send(
+          200,
+          openSession(email, assuranceOf(email), Math.floor(Date.now() / 1000) - 3600),
+        );
       }
       return send(200, openSession(parsed.email ?? "proof@ocade.test"));
     }

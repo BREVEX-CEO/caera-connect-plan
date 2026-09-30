@@ -263,6 +263,7 @@ export type Database = {
           capabilities: Json
           created_at: string
           enrollment_expires_at: string | null
+          enrollment_source: string | null
           id: string
           installed_apps: Json
           key_rotated_at: string | null
@@ -282,6 +283,7 @@ export type Database = {
           capabilities?: Json
           created_at?: string
           enrollment_expires_at?: string | null
+          enrollment_source?: string | null
           id?: string
           installed_apps?: Json
           key_rotated_at?: string | null
@@ -301,6 +303,7 @@ export type Database = {
           capabilities?: Json
           created_at?: string
           enrollment_expires_at?: string | null
+          enrollment_source?: string | null
           id?: string
           installed_apps?: Json
           key_rotated_at?: string | null
@@ -1425,6 +1428,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      ocade_enforce_second_factor: { Args: never; Returns: undefined }
+      ocade_session_meets_second_factor: { Args: never; Returns: boolean }
       jarvis_purge_expired_activity: {
         Args: { p_user_id: string }
         Returns: number

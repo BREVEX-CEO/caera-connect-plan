@@ -27,6 +27,7 @@ import { useSession } from "@/lib/session";
 import { AdvancedSection } from "./AdvancedSection";
 import { SignInMethods } from "./SignInMethods";
 import { TwoStep } from "./TwoStep";
+import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { DataControlsSection } from "./DataControlsSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { UsageSection } from "./UsageSection";
@@ -200,9 +201,11 @@ function AccountSettings() {
   const [problem, setProblem] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const { withProof, dialog } = useConfirmIdentity();
 
   return (
     <div>
+      {dialog}
       {/* Google and email OTP are the only identities; phone sign-in is removed. */}
       <Row label="Signed in as" description={user?.email ?? "Not signed in"} />
       {/* Keyed by the account: another account never sees the last one's methods. */}
@@ -213,7 +216,8 @@ function AccountSettings() {
           type="button"
           onClick={() =>
             void import("@/integrations/supabase/on-demand").then(({ loadSupabaseClient }) =>
-              loadSupabaseClient().then((supabase) => supabase.auth.signOut()),
+              // This device only: signing out here must not end the person's other devices.
+              loadSupabaseClient().then((supabase) => supabase.auth.signOut({ scope: "local" })),
             )
           }
           className="h-8 rounded-md border border-border px-3 text-sm text-foreground transition-colors hover:bg-accent"
@@ -253,7 +257,9 @@ function AccountSettings() {
                 setDeleting(true);
                 setProblem(null);
                 try {
-                  const result = await deleteMyAccount({ data: { confirmation: phrase } });
+                  const result = await withProof(() =>
+                    deleteMyAccount({ data: { confirmation: phrase } }),
+                  );
                   setReceipt(`Deleted. Your reference is ${result.receipt.reference}.`);
                 } catch (error) {
                   setProblem(error instanceof Error ? error.message : "That could not be done.");

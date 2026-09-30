@@ -22,7 +22,8 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSession } from "@/lib/security/session-middleware";
+import { HIGH_RISK, requireAssurance } from "@/lib/security/assurance-middleware";
 import type { PlanTier } from "@/lib/payments/pricing";
 
 export interface AdminAccountRow {
@@ -104,7 +105,7 @@ export interface AdminAccountPage {
  * whether that customer happens to be among the most recent.
  */
 export const listAccountAccess = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((input) =>
     z.object({ query: z.string().trim().max(200).optional() }).parse(input ?? {}),
   )
@@ -199,7 +200,7 @@ export const listAccountAccess = createServerFn({ method: "GET" })
  * is what revoke is for.
  */
 export const grantAccountAccess = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAssurance(HIGH_RISK)])
   .validator((input) =>
     z
       .object({
@@ -231,7 +232,7 @@ export const grantAccountAccess = createServerFn({ method: "POST" })
 
 /** Take a manual grant back. The record keeps it, revoked and attributed. */
 export const revokeAccountAccess = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAssurance(HIGH_RISK)])
   .validator((input) =>
     z
       .object({ grantId: z.string().uuid(), reason: z.string().trim().min(3).max(500) })
@@ -277,7 +278,7 @@ export type ControlKey = (typeof CONTROL_KEYS)[number];
 
 /** JARVIS device work, all of it and per device family: running or paused, and why. */
 export const readJarvisExecution = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase.rpc("ocade_read_service_controls");
@@ -294,7 +295,7 @@ export const readJarvisExecution = createServerFn({ method: "GET" })
  * keeps the record.
  */
 export const setJarvisExecution = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAssurance(HIGH_RISK)])
   .validator((input) =>
     z
       .object({
@@ -326,7 +327,7 @@ export interface AdminDeviceRow {
 
 /** One account's JARVIS computers and browsers, newest first. Never their keys. */
 export const listAccountDevices = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((input) => z.object({ userId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<AdminDeviceRow[]> => {
     await assertAdmin(context.supabase, context.userId);
@@ -354,7 +355,7 @@ export const listAccountDevices = createServerFn({ method: "GET" })
  * keeps the record.
  */
 export const removeAccountDevice = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAssurance(HIGH_RISK)])
   .validator((input) =>
     z
       .object({ deviceId: z.string().uuid(), reason: z.string().trim().min(10).max(500) })

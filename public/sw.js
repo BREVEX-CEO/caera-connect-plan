@@ -26,6 +26,29 @@ const SHELL_CACHE_PREFIX = "ocade-shell-v";
 const VERSION = `${SHELL_CACHE_PREFIX}13`;
 const OFFLINE_URL = "/offline.html";
 
+/*
+ * RUNTIME ASSETS OUTLIVE A DEPLOY. The versioned cache above is deleted on
+ * every activation, and it used to hold everything fetched at runtime too —
+ * the lazily loaded chunks and `wllama.wasm`, the engine that runs the
+ * installed model. So the first visit after a deploy (the one that installs
+ * this worker) quietly threw them away, and the next time the person was
+ * offline the app opened without its engine. Content-hashed assets never change
+ * under one URL, so they are safe to keep across versions; the oldest are
+ * pruned by count so old builds cannot pile up.
+ */
+const ASSET_CACHE = "ocade-assets";
+const ASSET_CACHE_LIMIT = 200;
+
+async function keepAsset(request, response) {
+  const cache = await caches.open(ASSET_CACHE);
+  // put() re-appends an existing URL, so the list stays oldest-first.
+  await cache.put(request, response);
+  const keys = await cache.keys();
+  await Promise.all(
+    keys.slice(0, Math.max(0, keys.length - ASSET_CACHE_LIMIT)).map((key) => cache.delete(key)),
+  );
+}
+
 /**
  * The smallest set that makes the app open offline.
  *
@@ -274,8 +297,7 @@ self.addEventListener("fetch", (event) => {
         // Only successful, same-origin, basic responses are worth storing.
         // An opaque or error response cached here would be served forever.
         if (response.ok && response.type === "basic") {
-          const copy = response.clone();
-          await caches.open(VERSION).then((cache) => cache.put(request, copy));
+          await keepAsset(request, response.clone());
         }
         return response;
       })

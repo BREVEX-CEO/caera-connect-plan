@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { AppShell } from "@/components/shell/AppShell";
 import { Pending } from "@/components/settings/rows";
 import { requireAdminRole } from "@/lib/admin/route-gate";
@@ -70,10 +71,11 @@ function AdminPage() {
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin", "access"] });
+  const { withProof, dialog } = useConfirmIdentity();
 
   const grant = useMutation({
     mutationFn: (input: { userId: string; tier: "pro" | "max"; days: number; reason: string }) =>
-      grantAccountAccess({ data: input }),
+      withProof(() => grantAccountAccess({ data: input })),
     onSuccess: async () => {
       toast.success("Access granted.");
       setOpen(null);
@@ -84,7 +86,7 @@ function AdminPage() {
 
   const revoke = useMutation({
     mutationFn: (input: { grantId: string; reason: string }) =>
-      revokeAccountAccess({ data: input }),
+      withProof(() => revokeAccountAccess({ data: input })),
     onSuccess: async (result) => {
       toast[result.revoked ? "success" : "error"](
         result.revoked ? "Access revoked." : "That grant was already revoked.",
@@ -98,6 +100,7 @@ function AdminPage() {
 
   return (
     <AppShell>
+      {dialog}
       <div className="mx-auto w-full max-w-4xl px-5 py-8">
         <h1 className="text-lg font-semibold tracking-tight text-foreground">Administration</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -225,9 +228,10 @@ function EmergencyStop() {
     queryKey: ["admin", "jarvis-execution"],
     queryFn: () => readJarvisExecution(),
   });
+  const { withProof, dialog } = useConfirmIdentity();
   const change = useMutation({
     mutationFn: (input: { key: ControlKey; paused: boolean }) =>
-      setJarvisExecution({ data: { ...input, reason } }),
+      withProof(() => setJarvisExecution({ data: { ...input, reason } })),
     onSuccess: async ({ paused }, { key }) => {
       toast.success(`${CONTROL_NAMES[key]}: ${paused ? "paused" : "running"}.`);
       setReason("");
@@ -235,13 +239,29 @@ function EmergencyStop() {
     },
     onError: (error: unknown) => toast.error(messageOf(error)),
   });
-  if (!state.data) return null;
+  if (!state.data) {
+    // The emergency stop never silently disappears: loading and failure are said, with a retry.
+    return (
+      <section
+        aria-label="JARVIS device work"
+        className="mt-5 rounded-xl border border-border/60 p-4 text-sm"
+      >
+        <p className="font-medium text-foreground">JARVIS device work</p>
+        <Pending
+          query={state}
+          loading="Reading whether JARVIS device work is running…"
+          problem="The emergency stop could not be read. Try again before relying on it."
+        />
+      </section>
+    );
+  }
   const ready = reason.trim().length >= 10 && !change.isPending;
   return (
     <section
       aria-label="JARVIS device work"
       className="mt-5 rounded-xl border border-border/60 p-4 text-sm"
     >
+      {dialog}
       <p className="font-medium text-foreground">JARVIS device work</p>
       <ul className="mt-2 divide-y divide-border/50">
         {state.data.map((control) => (
@@ -305,8 +325,10 @@ function AccountDevices({ userId }: { userId: string }) {
     queryKey: ["admin", "devices", userId],
     queryFn: () => listAccountDevices({ data: { userId } }),
   });
+  const { withProof, dialog } = useConfirmIdentity();
   const remove = useMutation({
-    mutationFn: (deviceId: string) => removeAccountDevice({ data: { deviceId, reason } }),
+    mutationFn: (deviceId: string) =>
+      withProof(() => removeAccountDevice({ data: { deviceId, reason } })),
     onSuccess: async ({ removed }) => {
       toast[removed ? "success" : "error"](
         removed ? "Device removed." : "That device was already removed.",
@@ -329,6 +351,7 @@ function AccountDevices({ userId }: { userId: string }) {
   const canRemove = reason.trim().length >= 10 && !remove.isPending;
   return (
     <div className="mt-3 rounded-md border border-border p-3 text-[13px]">
+      {dialog}
       <ul className="space-y-2">
         {devices.data.map((device) => (
           <li key={device.id} className="flex items-center justify-between gap-3">

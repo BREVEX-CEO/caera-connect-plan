@@ -99,6 +99,17 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // OCADE's last operator cannot delete themselves: nobody would be left to
+    // grant access, stop JARVIS for everyone or answer an incident.
+    const admins = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
+    if (admins.error) throw new Error("OCADE could not check this account just now. Try again.");
+    const operators = (admins.data ?? []) as { user_id: string }[];
+    if (operators.length === 1 && operators[0]!.user_id === userId) {
+      throw new Error(
+        "This is OCADE's only operator account. Give another account operator access first.",
+      );
+    }
+
     /*
      * THE ORGANIZATION CHECK IS GONE WITH ORGANIZATIONS.
      *

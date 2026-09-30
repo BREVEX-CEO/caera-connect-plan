@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
@@ -101,9 +101,20 @@ function ChallengePage() {
       title="Confirm it is you"
       subtitle="Open your authenticator app and enter the six-digit code it is showing."
       footer={
-        <Link to="/auth" className="transition-colors hover:text-foreground">
+        <button
+          type="button"
+          onClick={() =>
+            // Leaving the challenge must end this half-signed-in session first,
+            // or "a different account" lands back in the same one.
+            void import("@/integrations/supabase/on-demand")
+              .then(({ loadSupabaseClient }) => loadSupabaseClient())
+              .then((supabase) => supabase.auth.signOut({ scope: "local" }))
+              .finally(() => window.location.assign("/auth"))
+          }
+          className="transition-colors hover:text-foreground"
+        >
           Use a different account
-        </Link>
+        </button>
       }
     >
       {factors === null && error ? (

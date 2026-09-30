@@ -24,7 +24,7 @@
  * a bounded window, not an instant kill, and the copy on the page says so.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSession } from "@/lib/security/session-middleware";
 import { HIGH_RISK, requireAssurance } from "./assurance-middleware";
 import { describeAgent } from "./user-agent";
 import { sendNotification } from "@/lib/notifications/send.server";
@@ -66,7 +66,7 @@ function callerSessionId(claims: Record<string, unknown> | null | undefined): st
  * Revoking is the privileged half.
  */
 export const listAccountSessions = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .handler(async ({ context }): Promise<{ sessions: AccountSession[]; unavailable?: string }> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin.rpc("ocade_list_account_sessions", {

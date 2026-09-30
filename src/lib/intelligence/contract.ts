@@ -138,6 +138,8 @@ export type IntelligenceRefusalCode =
   | "local_unavailable"
   | "provider_rate_limited"
   | "provider_failed"
+  /** The request itself was refused by the model's content rules: never retried. */
+  | "content_blocked"
   | "empty_response";
 
 export type IntelligenceEvent =

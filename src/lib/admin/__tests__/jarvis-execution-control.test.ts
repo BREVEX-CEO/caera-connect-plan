@@ -105,3 +105,20 @@ describe("the JARVIS emergency stop", () => {
     ).toBeDefined();
   });
 });
+
+describe("an admin change needs a RECENT second factor, not just one this session once had", () => {
+  it("refuses an aal2 session whose last proof is an hour old, accepts a fresh one", async () => {
+    const stale = await twin.asTenant(
+      ADMIN,
+      `select paused from public.ocade_set_service_control('jarvis_execution', true, 'incident drill for recency')`,
+      { aal: "aal2", provedSecondsAgo: 3600 },
+    );
+    expect(stale.error).toMatch(/Confirm it is you/);
+    const fresh = await twin.asTenant<{ paused: boolean }>(
+      ADMIN,
+      `select paused from public.ocade_set_service_control('jarvis_execution', false, 'incident drill for recency')`,
+      { aal: "aal2", provedSecondsAgo: 30 },
+    );
+    expect(fresh.error).toBeUndefined();
+  });
+});

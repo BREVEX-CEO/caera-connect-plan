@@ -23,10 +23,11 @@
  * of it be checked without a server.
  */
 import { createMiddleware } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSession } from "@/lib/security/session-middleware";
 import {
   assuranceFromClaims,
   decideAssurance,
+  HIGH_RISK_REQUIREMENT,
   type AssuranceRequirement,
   type SessionAssurance,
 } from "./assurance";
@@ -78,7 +79,7 @@ export async function readSessionAssurance(context: {
  */
 export function requireAssurance(requires: AssuranceRequirement) {
   return createMiddleware({ type: "function" })
-    .middleware([requireSupabaseAuth])
+    .middleware([requireSession])
     .server(async ({ next, context }) => {
       const session = await readSessionAssurance(
         context as unknown as Parameters<typeof readSessionAssurance>[0],
@@ -104,4 +105,4 @@ export function requireAssurance(requires: AssuranceRequirement) {
  * `{ level: "aal2" }` somewhere else is how one of them quietly ends up with a
  * different rule.
  */
-export const HIGH_RISK: AssuranceRequirement = { level: "aal2" };
+export const HIGH_RISK: AssuranceRequirement = HIGH_RISK_REQUIREMENT;

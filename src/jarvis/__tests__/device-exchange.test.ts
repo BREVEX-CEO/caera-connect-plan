@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DatabaseTwin } from "../../../scripts/db-twin.mts";
-import { exchange } from "../device.server";
+import { enrollmentRoom, exchange, MAX_PENDING_PER_SOURCE } from "../device.server";
 
 /**
  * The device exchange against real PostgreSQL with the real migrations
@@ -31,9 +31,11 @@ function rest() {
       let tail = "";
       let returning = false;
       let one: "single" | "maybe" | null = null;
+      let counting = false;
       const q = {
-        select(cols = "*") {
+        select(cols = "*", options?: { head?: boolean }) {
           columns = cols;
+          counting = options?.head === true;
           returning = verb !== "select";
           return q;
         },
@@ -83,6 +85,13 @@ function rest() {
                     )
                       .map(lit)
                       .join(",")}) returning ${columns}`;
+          if (counting) {
+            twin.asServiceRole<{ n: number }>(`select count(*)::int as n from ${t}${w}`).then(
+              (rows) => resolve({ count: rows[0]!.n, error: null }),
+              (error) => resolve({ count: null, error }),
+            );
+            return;
+          }
           twin.asServiceRole(sql).then(
             (rows) => resolve({ data: one ? (rows[0] ?? null) : rows, error: null }),
             (error) => (one ? reject(error) : resolve({ data: null, error })),
@@ -388,5 +397,28 @@ describe("results (JARVIS-027)", () => {
       { id, outcome: "accepted" },
       { id: unknown, outcome: "unknown" },
     ]);
+  });
+});
+
+describe("enrollment is public, so one source cannot fill it", () => {
+  it("refuses one more pending enrollment from a full source while others still get in", async () => {
+    const [crowded, other] = ["a".repeat(64), "b".repeat(64)];
+    for (let i = 0; i < MAX_PENDING_PER_SOURCE; i += 1) {
+      await twin.asServiceRole(
+        `insert into public.jarvis_devices (name, public_key, enrollment_expires_at, enrollment_source)
+         values ('Pending', '${"p".repeat(90)}${i}', now() + interval '10 minutes', '${crowded}')`,
+      );
+    }
+    try {
+      expect(await enrollmentRoom(rest() as never, crowded)).toBe(false);
+      expect(await enrollmentRoom(rest() as never, other)).toBe(true);
+    } finally {
+      await twin.asServiceRole(`delete from public.jarvis_devices where user_id is null`);
+    }
+  });
+
+  it("keeps the source private to the server", async () => {
+    const read = await twin.asTenant(A, `select enrollment_source from public.jarvis_devices`);
+    expect(read).toMatchObject({ errorCode: "42501" });
   });
 });

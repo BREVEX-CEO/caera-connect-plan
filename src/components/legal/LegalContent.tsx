@@ -338,10 +338,8 @@ export function TermsContent() {
 
       <PublicSection title="25. Support, privacy, legal, security and investor enquiries">
         <p>
-          OCADE uses a ticket-based support system rather than publishing unverified email
-          addresses. Signed-in requests can be stored in the OCADE support queue and reviewed in the
-          administrative support workspace. Supported categories include Account, Billing,
-          Technical, Privacy, Security, Feedback, Legal, Investor and Partnership.
+          OCADE does not publish unverified email addresses. Support, privacy, legal, security and
+          investor enquiries are accepted only through channels OCADE has activated and verified.
         </p>
         <p>
           Visit the{" "}
@@ -382,7 +380,6 @@ export function PrivacyContent() {
           <li>Account identifiers and authentication events when you sign in.</li>
           <li>Basic profile, settings and device registrations.</li>
           <li>Conversations, messages and files under the storage mode you choose.</li>
-          <li>Support tickets, support messages and information you choose to include in them.</li>
           <li>
             Security, abuse-prevention and failure records designed to minimize raw user content.
           </li>
@@ -496,12 +493,11 @@ export function PrivacyContent() {
         </p>
       </PublicSection>
 
-      <PublicSection title="10. Support tickets and sensitive secrets">
+      <PublicSection title="10. Support requests and sensitive secrets">
         <p>
-          Support tickets may contain the information you choose to provide and may be reviewed in
-          the administrative support workspace. Do not place passwords, one-time codes, PINs,
-          recovery codes, private keys, full card numbers, CVVs or other authentication or payment
-          secrets in a ticket.
+          A support request may contain the information you choose to provide. Never include
+          passwords, one-time codes, PINs, recovery codes, private keys, full card numbers, CVVs or
+          other authentication or payment secrets.
         </p>
       </PublicSection>
 
@@ -518,7 +514,8 @@ export function PrivacyContent() {
         <p>
           Depending on applicable law, you may have rights to access, correct or erase personal
           information, withdraw consent, object to certain processing or raise a grievance. Use the
-          data-rights route where available or create a Privacy ticket through OCADE Support.
+          data-rights controls in Settings (export and deletion), or a verified privacy channel
+          listed on the Help page.
         </p>
       </PublicSection>
 

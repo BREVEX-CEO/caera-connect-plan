@@ -8,7 +8,10 @@ import {
   type EnrollmentStarted,
   type SecondFactor,
 } from "@/lib/security/mfa";
-import { Action, Row } from "./rows";
+import { Action, Confirm, Row } from "./rows";
+import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
+import { checkAssurance } from "@/lib/security/reauthentication";
+import { HIGH_RISK_REQUIREMENT } from "@/lib/security/assurance";
 
 /**
  * THE SECOND FACTOR HAD EVERY PART EXCEPT A WAY TO CREATE ONE.
@@ -37,6 +40,8 @@ export function TwoStep() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [rejected, setRejected] = useState(0);
+  const [offAsked, setOffAsked] = useState(false);
+  const { withProof, dialog } = useConfirmIdentity();
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -98,7 +103,13 @@ export function TwoStep() {
     setBusy(true);
     setProblem(null);
     try {
-      await removeFactor(factor.id);
+      await withProof(async () => {
+        // Removing protection is itself high risk: a fresh proof, not just this session's old one.
+        const decision = await checkAssurance(HIGH_RISK_REQUIREMENT);
+        if (!decision.allowed) throw new Error(decision.message);
+        await removeFactor(factor.id);
+      });
+      setOffAsked(false);
       setFactors(await listVerifiedFactors());
     } catch (error) {
       setProblem(messageOf(error));
@@ -109,6 +120,7 @@ export function TwoStep() {
 
   return (
     <>
+      {dialog}
       <Row
         label="Two-step verification"
         description={
@@ -120,7 +132,16 @@ export function TwoStep() {
         }
       >
         {factors === null ? null : on ? (
-          <Action label="Turn off" busy={busy} destructive onClick={() => turnOff(factors[0]!)} />
+          offAsked ? (
+            <Confirm
+              label={busy ? "Turning off…" : "Turn off two-step"}
+              busy={busy}
+              onConfirm={() => turnOff(factors[0]!)}
+              onCancel={() => setOffAsked(false)}
+            />
+          ) : (
+            <Action label="Turn off" destructive onClick={() => setOffAsked(true)} />
+          )
         ) : enrolling ? null : (
           <Action label={busy ? "Starting…" : "Set up"} busy={busy} onClick={begin} />
         )}

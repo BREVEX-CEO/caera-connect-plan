@@ -587,3 +587,138 @@ describe("the health record this function leaves behind", () => {
     expect(await response.text()).toContain('"type":"refusal"');
   });
 });
+
+describe("capacity failures that must not look like each other", () => {
+  function events(stream: string) {
+    return stream
+      .split("\n\n")
+      .filter((frame) => frame.startsWith("data: "))
+      .map((frame) => JSON.parse(frame.slice(6)) as Record<string, unknown>);
+  }
+
+  it("refuses a blocked prompt once, not retryable, with no 'empty answer' after it", async () => {
+    for (const chunk of [
+      { promptFeedback: { blockReason: "SAFETY" } },
+      { candidates: [{ content: { parts: [] }, finishReason: "PROHIBITED_CONTENT" }] },
+    ]) {
+      const finalize = vi.fn(async () => undefined);
+      const response = await handleOnlineIntelligence(
+        request(),
+        dependencies({
+          callProvider: vi.fn(async () => provider([chunk])),
+          finalizePermit: finalize,
+        }),
+      );
+      const refusals = events(await response.text()).filter((event) => event.type === "refusal");
+      expect(refusals).toEqual([
+        expect.objectContaining({ code: "content_blocked", retryable: false }),
+      ]);
+      expect(finalize).not.toHaveBeenCalled();
+    }
+  });
+
+  it("moves to the next key when Google calls THIS key invalid with a 400", async () => {
+    const call = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            error: { status: "INVALID_ARGUMENT", details: [{ reason: "API_KEY_INVALID" }] },
+          }),
+          { status: 400 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        provider([{ candidates: [{ content: { parts: [{ text: "ok" }] } }] }]),
+      );
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ callProvider: call }),
+    );
+    expect(response.status).toBe(200);
+    await response.text();
+    expect(call.mock.calls.map(([input]) => input.slot)).toEqual(["primary", "secondary"]);
+  });
+
+  it("does not spend other keys on a 400 about the request itself", async () => {
+    const call = vi.fn(
+      async () => new Response('{"error":{"message":"bad schema"}}', { status: 400 }),
+    );
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ callProvider: call }),
+    );
+    expect(response.status).toBe(503);
+    expect(call).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives a key that never starts answering its own deadline, then uses the next key", async () => {
+    vi.useFakeTimers();
+    try {
+      const call = vi
+        .fn<OnlineHandlerDependencies["callProvider"]>()
+        .mockImplementationOnce(
+          ({ signal }) =>
+            new Promise((_, reject) =>
+              signal.addEventListener("abort", () => reject(signal.reason)),
+            ),
+        )
+        .mockResolvedValueOnce(
+          provider([{ candidates: [{ content: { parts: [{ text: "ok" }] } }] }]),
+        );
+      const pending = handleOnlineIntelligence(request(), dependencies({ callProvider: call }));
+      await vi.advanceTimersByTimeAsync(25_000);
+      const response = await pending;
+      expect(response.status).toBe(200);
+      expect(await response.text()).toContain('"text":"ok"');
+      expect(call.mock.calls.map(([input]) => input.slot)).toEqual(["primary", "secondary"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("answers a readable 503, not an unhandled throw, when the person leaves during a retry wait", async () => {
+    const leaving = new AbortController();
+    const response = await handleOnlineIntelligence(
+      new Request(request(), { signal: leaving.signal }),
+      dependencies({
+        callProvider: vi.fn(async () => new Response(null, { status: 503 })),
+        sleep: vi.fn(
+          (_ms: number, signal: AbortSignal) =>
+            new Promise<void>((_, reject) => {
+              signal.addEventListener("abort", () => reject(signal.reason));
+              leaving.abort(new DOMException("gone", "AbortError"));
+            }),
+        ),
+      }),
+    );
+    expect(response.status).toBe(503);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(ORIGIN);
+  });
+
+  it("charges the permit on the server before telling the person the answer is complete", async () => {
+    const order: string[] = [];
+    const finalize = vi.fn(
+      async (input: { userId: string; permit: { idempotencyKey: string } }) => {
+        order.push(`charged ${input.userId} ${input.permit.idempotencyKey}`);
+      },
+    );
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ finalizePermit: finalize }),
+    );
+    for (const event of events(await response.text())) order.push(String(event.type));
+    expect(finalize).toHaveBeenCalledTimes(1);
+    expect(order.indexOf("charged user-1 idempotency-1")).toBeLessThan(order.indexOf("final"));
+  });
+
+  it("never charges for an answer that did not arrive", async () => {
+    const finalize = vi.fn(async () => undefined);
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ callProvider: vi.fn(async () => provider([])), finalizePermit: finalize }),
+    );
+    await response.text();
+    expect(finalize).not.toHaveBeenCalled();
+  });
+});

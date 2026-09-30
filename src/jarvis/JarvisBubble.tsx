@@ -25,7 +25,9 @@ import { createJarvisConversation, readJarvisState, updateJarvisTask } from "./j
 import { liveDeps, ModelRefused, Unavailable } from "./live-deps";
 import { isAllowed } from "./permissions";
 import { FINISHED } from "./protocol";
-import { useJarvisVoice } from "./use-voice";
+import { stopEverywhere } from "./stop-everywhere";
+import { useJarvisVoice, voiceCommand } from "./use-voice";
+import { statusReply, workIntent } from "./live-control";
 
 const SIZE = 52;
 const EDGE = 8;
@@ -72,7 +74,13 @@ export function Bubble({ userId, placement }: { userId: string; placement: Place
   const permissions = state.data?.permissions ?? [];
   const jarvisOn = !state.data || isAllowed(permissions, "master");
   const spent = Boolean(state.data?.usage && state.data.usage.remaining <= 0);
-  const voice = useJarvisVoice((heard) => void ask(heard, true), false);
+  const voice = useJarvisVoice((heard) => {
+    // Voice-only words, as in full JARVIS: "cancel" ends listening, "pause" with nothing running pauses it.
+    const command = voiceCommand(heard);
+    if (command === "end") voice.end();
+    else if (command === "pause" && task?.status !== "running") voice.pause();
+    else void ask(heard, true);
+  }, false);
   const listening = voice.state === "listening" || voice.state === "starting";
   const status = listening
     ? "Listening…"
@@ -156,15 +164,50 @@ export function Bubble({ userId, placement }: { userId: string; placement: Place
     setDrag(null);
   };
 
-  const stop = async () => {
+  // The phone's Stop is STOP JARVIS: every task, every computer, "Stopped" only once confirmed.
+  const stop = () =>
+    stopEverywhere(() => void queryClient.invalidateQueries({ queryKey: ["jarvis"] }));
+
+  const setTaskStatus = async (status: "running" | "taken_over", blocker: string | null) => {
     if (!task) return;
     try {
-      await updateJarvisTask({ data: { id: task.id, status: "stopped" } });
-      toast.success("JARVIS stopped.");
+      await updateJarvisTask({ data: { id: task.id, status, blocker } });
     } catch {
-      toast.error("JARVIS could not be stopped from here. Open JARVIS and press Stop.");
+      toast.error("JARVIS could not do that from here. Open JARVIS and try again.");
     }
     await queryClient.invalidateQueries({ queryKey: ["jarvis"] });
+  };
+
+  /**
+   * STOP, wait, continue and "what are you doing?" act at once while something
+   * runs — never sent as a new question the model would merely talk about.
+   * Pausing from here is Take Over: the tab driving the task waits at its
+   * checkpoint and carries on when this says continue.
+   */
+  const control = (text: string, fromVoice: boolean): boolean => {
+    const intent = workIntent(text);
+    if (intent === "stop" && (task || abort.current)) {
+      abort.current?.abort();
+      void stop();
+      return true;
+    }
+    if (!task) return false;
+    if (intent === "status") {
+      const reply = statusReply(task, false);
+      say({ id: crypto.randomUUID(), role: "user", content: text });
+      say({ id: crypto.randomUUID(), role: "assistant", content: reply });
+      if (fromVoice) voice.speak(reply);
+      return true;
+    }
+    if (intent === "pause" && task.status === "running") {
+      void setTaskStatus("taken_over", "Paused from the JARVIS bubble.");
+      return true;
+    }
+    if (intent === "continue" && task.status === "taken_over") {
+      void setTaskStatus("running", null);
+      return true;
+    }
+    return false;
   };
 
   const openJarvis = (c = conversation.current ?? task?.conversation_id) => {
@@ -176,7 +219,12 @@ export function Bubble({ userId, placement }: { userId: string; placement: Place
 
   async function ask(raw: string, fromVoice = false) {
     const text = raw.trim();
-    if (!text || abort.current || spent) return;
+    if (!text) return;
+    if (control(text, fromVoice)) {
+      setDraft("");
+      return;
+    }
+    if (abort.current || spent) return;
     if (!jarvisOn) {
       toast.error("OCADE JARVIS is turned off.", { description: "Turn it on in JARVIS." });
       return;
