@@ -383,3 +383,47 @@ describe("Word documents", () => {
     }
   });
 });
+
+describe("which computer does the work", () => {
+  const pc = (id: string, caps: Record<string, boolean>) => ({
+    id,
+    name: id,
+    kind: "agent",
+    capabilities: caps,
+  });
+  const own = { capability: "browser_real", allowed: true, device_id: null };
+
+  it("asks when several computers could do it, and never guesses", async () => {
+    const { chooseTaskDevice } = await import("../permissions");
+    const two = [pc("Laptop", { browser_isolated: true }), pc("Desk", { browser_isolated: true })];
+    expect(chooseTaskDevice(two, [], "computer")).toMatchObject({ ok: false });
+    expect(chooseTaskDevice(two, [], "browser")).toMatchObject({ ok: false });
+    expect(chooseTaskDevice(two, [], "browser", "Desk")).toMatchObject({
+      ok: true,
+      device: { id: "Desk" },
+    });
+  });
+
+  it("uses the one computer allowed to use the person's own browser", async () => {
+    const { chooseTaskDevice } = await import("../permissions");
+    const devices = [
+      pc("Laptop", { browser_isolated: true }),
+      pc("Desk", { browser_isolated: true, browser_real: true }),
+    ];
+    expect(chooseTaskDevice(devices, [own], "browser")).toMatchObject({
+      ok: true,
+      device: { id: "Desk" },
+      real: true,
+    });
+    expect(chooseTaskDevice(devices, [own], "computer")).toMatchObject({ ok: false });
+  });
+
+  it("says plainly when the chosen computer is offline or none is connected", async () => {
+    const { chooseTaskDevice } = await import("../permissions");
+    expect(chooseTaskDevice([pc("Laptop", {})], [], "computer", "Gone")).toMatchObject({
+      ok: false,
+      message: expect.stringContaining("not online"),
+    });
+    expect(chooseTaskDevice([], [], "computer")).toMatchObject({ ok: false });
+  });
+});

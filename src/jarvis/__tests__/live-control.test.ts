@@ -259,13 +259,95 @@ describe("the planning loop's heartbeat", () => {
       const beats = vi
         .mocked(d.updateTask)
         .mock.calls.slice(before)
-        .filter(([input]) => input.controller && Object.keys(input).length === 2);
+        .filter(([input]) => input.owner && Object.keys(input).length === 2);
       expect(beats.length).toBe(3);
       controller.abort();
       expect(await outcome).toBeInstanceOf(Stopped);
       const after = vi.mocked(d.updateTask).mock.calls.length;
       await vi.advanceTimersByTimeAsync(HEARTBEAT_MS * 2);
       expect(vi.mocked(d.updateTask).mock.calls.length).toBe(after);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("a loop that lost its task", () => {
+  it("stops instead of writing over the surface that took over", async () => {
+    const { d } = deps([
+      { text: "", toolCalls: [call("start_task", { title: "Report", steps: ["open"] })] },
+      { text: "", toolCalls: [call("computer", { action: "file_list", path: "." })] },
+      { text: "", toolCalls: [call("finish_task", { outcome: "completed", result: "x" })] },
+    ]);
+    // Another tab took over after the first step: owner-filtered writes are refused.
+    vi.mocked(d.updateTask).mockImplementation(async (input) => {
+      if (input.owner) throw new Stopped(true);
+      return { ...TASK, status: input.status ?? "running" };
+    });
+    const turn = runJarvisTurn(
+      {
+        conversationId: "c1",
+        history: [],
+        text: "go",
+        memories: [],
+        memoryEnabled: false,
+        task: null,
+      },
+      {
+        signal: new AbortController().signal,
+        onText: vi.fn(),
+        onTask: vi.fn(),
+        onActivity: vi.fn(),
+        confirm: vi.fn(async () => true),
+        takeOver: vi.fn(async () => "resume" as const),
+      },
+      d,
+    );
+    await expect(turn).rejects.toMatchObject({ handedOff: true });
+    const finished = vi
+      .mocked(d.updateTask)
+      .mock.calls.some(([i]) => i.status === "completed" && !i.owner);
+    expect(finished).toBe(false);
+  });
+
+  it("cancels a step it stopped waiting for", async () => {
+    vi.useFakeTimers();
+    try {
+      const { d } = deps([
+        { text: "", toolCalls: [call("start_task", { title: "Report", steps: ["open"] })] },
+        { text: "", toolCalls: [call("computer", { action: "file_list", path: "." })] },
+      ]);
+      vi.mocked(d.readAction).mockResolvedValue({
+        status: "claimed",
+        summary: "",
+        result: {},
+        taskStatus: "running",
+      });
+      d.cancelAction = vi.fn(async () => ({ cancelled: true }));
+      d.sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      const turn = runJarvisTurn(
+        {
+          conversationId: "c1",
+          history: [],
+          text: "go",
+          memories: [],
+          memoryEnabled: false,
+          task: null,
+        },
+        {
+          signal: new AbortController().signal,
+          onText: vi.fn(),
+          onTask: vi.fn(),
+          onActivity: vi.fn(),
+          confirm: vi.fn(async () => true),
+          takeOver: vi.fn(async () => "resume" as const),
+        },
+        d,
+      );
+      await vi.advanceTimersByTimeAsync(130_000);
+      expect(d.cancelAction).toHaveBeenCalledWith("a1");
+      await vi.advanceTimersByTimeAsync(400_000);
+      await turn.catch(() => undefined);
     } finally {
       vi.useRealTimers();
     }

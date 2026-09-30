@@ -31,6 +31,17 @@ class UpdateRequired(Exception):
     """OCADE no longer speaks this agent's protocol version."""
 
 
+class ClockSkew(urllib.error.URLError):
+    """OCADE refused this computer's timestamp: its clock is wrong. Nothing is forgotten."""
+
+    def __init__(self):
+        super().__init__("clock_skew")
+
+
+# Only these mean OCADE no longer knows this device; anything else is retried.
+REMOVED = ("device_not_enrolled", "enrollment_expired")
+
+
 class NotEnrolled(Exception):
     """The device was removed from OCADE, or never approved."""
 
@@ -172,7 +183,7 @@ class Identity:
         deadline = time.time() + timeout_s
         while time.time() < deadline:
             try:
-                status, _ = self.post(PROTOCOL["paths"]["exchange"], {"results": []})
+                status, reply = self.post(PROTOCOL["paths"]["exchange"], {"results": []})
             except (urllib.error.URLError, TimeoutError, ConnectionError, OSError):
                 time.sleep(poll_s)  # a network blip while the person approves is not a refusal
                 continue
@@ -180,9 +191,9 @@ class Identity:
                 self.meta["approved"] = True
                 self._save()
                 return True
-            if status != 202:
+            if status in (401, 410) and reply.get("error") in (*REMOVED, "signature_invalid"):
                 return False
-            time.sleep(poll_s)
+            time.sleep(poll_s)  # 202 (still waiting), a wrong clock or a server hiccup: keep waiting
         return False
 
     def exchange(self, body: dict) -> dict:
@@ -198,8 +209,10 @@ class Identity:
             self.meta["rotatedAt"] = int(time.time())
             self._save()
             status, reply = self.post(PROTOCOL["paths"]["exchange"], body)
-        if status in (401, 403, 410):
-            raise NotEnrolled(reply.get("error", "device_not_enrolled"))
+        if reply.get("error") in REMOVED:
+            raise NotEnrolled(reply["error"])
+        if reply.get("error") == "clock_skew":
+            raise ClockSkew()
         if status != 200:
             raise urllib.error.URLError(f"exchange failed with {status}")
         if int(reply.get("protocol") or 0) > PROTOCOL["version"]:

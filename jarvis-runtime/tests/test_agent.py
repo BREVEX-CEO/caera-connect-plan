@@ -266,3 +266,40 @@ class TrayStatusTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RemovalSignalTest(unittest.TestCase):
+    """Only OCADE saying 'not enrolled' makes a device forget itself; a wrong clock never does."""
+
+    def _identity(self, answer):
+        import ocade_identity
+        identity = ocade_identity.Identity(Path(tempfile.mkdtemp()))
+        identity.meta = {"deviceId": "d1", "rotatedAt": int(time.time()), "server": "https://ocade.test"}
+        identity.post = lambda path, body, key=None: answer
+        return identity, ocade_identity
+
+    def test_answers(self):
+        identity, module = self._identity((409, {"error": "clock_skew"}))
+        with self.assertRaises(module.ClockSkew):
+            identity.exchange({"results": []})
+        for answer in ((409, {"error": "replayed"}), (401, {"error": "signature_invalid"}),
+                       (500, {}), (503, {"error": "busy"})):
+            identity, module = self._identity(answer)
+            with self.assertRaises(urllib.error.URLError, msg=str(answer)):
+                identity.exchange({"results": []})
+        for error in ("device_not_enrolled", "enrollment_expired"):
+            identity, module = self._identity((401, {"error": error}))
+            with self.assertRaises(module.NotEnrolled):
+                identity.exchange({"results": []})
+
+    def test_a_wrong_clock_shows_in_the_tray_and_keeps_the_key(self):
+        import ocade_identity
+        agent = ocade_device.Agent(FakeIdentity(Path(tempfile.mkdtemp()), [ocade_identity.ClockSkew()] * 5),
+                                   headless=True, cdp=None, workspace=None)
+        runner = threading.Thread(target=agent.run)
+        runner.start()
+        time.sleep(1.5)
+        self.assertEqual(agent.status(), "Check this computer's clock")
+        agent.stop.set()
+        runner.join(10)
+        self.assertTrue(agent.state["connected"])

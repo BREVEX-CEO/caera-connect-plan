@@ -190,3 +190,60 @@ export function needsConfirmation(
       return false;
   }
 }
+
+export interface OnlineDevice {
+  id: string;
+  name: string;
+  kind: string;
+  capabilities: unknown;
+}
+
+/**
+ * WHICH COMPUTER DOES THE WORK. The computer's own work needs its Device
+ * Agent. Browser work goes to the one computer allowed to use the person's own
+ * browser, else one with the isolated browser. With several possible and none
+ * chosen, the person chooses: work never goes to a computer they did not mean.
+ */
+export function chooseTaskDevice<T extends OnlineDevice>(
+  online: readonly T[],
+  rows: readonly PermissionRow[],
+  where: "browser" | "computer",
+  deviceId?: string,
+): { ok: true; device: T; real: boolean } | { ok: false; message: string } {
+  const offers = (d: T, capability: string) =>
+    (d.capabilities as Record<string, boolean> | null)?.[capability] === true;
+  const chosen = deviceId ? online.filter((d) => d.id === deviceId) : online;
+  if (deviceId && chosen.length === 0) {
+    return {
+      ok: false,
+      message: "That computer is not online. Open OCADE on it or choose another in Devices.",
+    };
+  }
+  const agents = chosen.filter((d) => d.kind === "agent");
+  const ownBrowsers = chosen.filter(
+    (d) => offers(d, "browser_real") && isAllowed(rows, "browser_real", d.id),
+  );
+  if (!deviceId && agents.length > 1 && (where === "computer" || ownBrowsers.length !== 1)) {
+    return {
+      ok: false,
+      message: `More than one computer is online (${agents
+        .map((d) => d.name)
+        .join(", ")}). Choose one in Devices, then ask again.`,
+    };
+  }
+  const own = ownBrowsers[0];
+  const device =
+    where === "computer"
+      ? agents[0]
+      : (own ?? agents.find((d) => offers(d, "browser_isolated")) ?? agents[0]);
+  if (!device) {
+    return {
+      ok: false,
+      message:
+        where === "computer"
+          ? "No computer with the OCADE Device Agent is online. Connect one in Devices."
+          : "No JARVIS device is online. Connect one in Devices to run browser tasks.",
+    };
+  }
+  return { ok: true, device, real: device === own };
+}

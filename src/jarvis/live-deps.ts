@@ -5,9 +5,10 @@
 import { createOnlineIntelligenceTransport } from "@/lib/intelligence/online-client";
 import { beginBilledRequest } from "@/lib/commercial/use-generation-permit";
 import type { NormalizedToolCall } from "@/lib/intelligence/contract";
-import type { AgentDeps } from "./agent";
+import { Stopped, type AgentDeps } from "./agent";
 import { jarvisTools } from "./protocol";
 import {
+  cancelJarvisAction,
   decideJarvisAction,
   queueJarvisAction,
   readJarvisAction,
@@ -87,7 +88,12 @@ export function liveDeps(conversationId: string): AgentDeps {
       return { text, toolCalls };
     },
     startTask: (data) => startJarvisTask({ data }),
-    updateTask: (data) => updateJarvisTask({ data }),
+    updateTask: async (data) => {
+      const task = await updateJarvisTask({ data });
+      if (!task) throw new Stopped(true); // another tab or device took over this task
+      return task;
+    },
+    cancelAction: (id) => cancelJarvisAction({ data: { id } }),
     readTaskStatus: async (id) => (await readJarvisTask({ data: { id } })).status,
     queue: (data) => queueJarvisAction({ data }),
     readAction: (id) => readJarvisAction({ data: { id } }),

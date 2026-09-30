@@ -26,6 +26,7 @@ import {
 } from "./protocol";
 import {
   appDecision,
+  chooseTaskDevice,
   isAllowed,
   needsConfirmation,
   refuseAction,
@@ -341,47 +342,9 @@ export const startJarvisTask = createServerFn({ method: "POST" })
     const online = (devices ?? []).filter(
       (d) => d.last_seen_at && now - Date.parse(d.last_seen_at) < ONLINE_MS,
     );
-    const offers = (d: (typeof online)[number], capability: string) =>
-      (d.capabilities as Record<string, boolean> | null)?.[capability] === true;
-    // The computer's own work needs its Device Agent. Browser work prefers the
-    // person's own browser only where they allowed it, else the isolated one.
-    const chosen = data.deviceId ? online.filter((d) => d.id === data.deviceId) : online;
-    if (data.deviceId && chosen.length === 0) {
-      return {
-        ok: false,
-        reason: "no_device",
-        message: "That computer is not online. Open OCADE on it or choose another in Devices.",
-      };
-    }
-    const agents = chosen.filter((d) => d.kind === "agent");
-    const ownBrowser = chosen.find(
-      (d) => offers(d, "browser_real") && isAllowed(rows, "browser_real", d.id),
-    );
-    // Work never goes to a computer the person did not mean: with several
-    // online and none chosen, they choose.
-    if (!data.deviceId && data.where === "computer" && agents.length > 1) {
-      return {
-        ok: false,
-        reason: "no_device",
-        message: `More than one computer is online (${agents
-          .map((d) => d.name)
-          .join(", ")}). Choose one in Devices, then ask again.`,
-      };
-    }
-    const device =
-      data.where === "computer"
-        ? agents[0]
-        : (ownBrowser ?? agents.find((d) => offers(d, "browser_isolated")) ?? agents[0]);
-    if (!device) {
-      return {
-        ok: false,
-        reason: "no_device",
-        message:
-          data.where === "computer"
-            ? "No computer with the OCADE Device Agent is online. Connect one in Devices."
-            : "No JARVIS device is online. Connect one in Devices to run browser tasks.",
-      };
-    }
+    const choice = chooseTaskDevice(online, rows, data.where, data.deviceId);
+    if (!choice.ok) return { ok: false, reason: "no_device", message: choice.message };
+    const { device, real } = choice;
     if (await executionDisabled(service, device.kind)) {
       return {
         ok: false,
@@ -396,7 +359,6 @@ export const startJarvisTask = createServerFn({ method: "POST" })
         message: "Browser control is turned off for this device.",
       };
     }
-    const real = device === ownBrowser;
     const { data: task, error: insertError } = await context.supabase
       .from("jarvis_tasks")
       .insert({
@@ -450,6 +412,12 @@ export const updateJarvisTask = createServerFn({ method: "POST" })
         blocker: z.string().max(300).nullable().optional(),
         /** Claim the task for this planning loop; any other loop stops queueing. */
         controller: uuid.optional(),
+        /**
+         * Write only while this loop still owns the task. A loop that lost it
+         * (another tab or device took over) changes nothing and is told so (null).
+         * Alone, it is the loop's heartbeat.
+         */
+        owner: uuid.optional(),
         checkpoint: z
           .object({
             step: z.number().int().min(0).max(12),
@@ -461,22 +429,34 @@ export const updateJarvisTask = createServerFn({ method: "POST" })
       })
       .parse(i),
   )
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<JarvisTaskRow | null> => {
     const patch: Record<string, unknown> = {};
     if (data.controller !== undefined) patch.controller = data.controller;
+    else if (data.owner !== undefined) patch.controller = data.owner; // same value: a touch
     if (data.checkpoint !== undefined) patch.checkpoint = data.checkpoint;
     if (data.status !== undefined) patch.status = data.status;
     if (data.currentStep !== undefined) patch.current_step = data.currentStep;
     if (data.result !== undefined) patch.result = data.result;
     if (data.blocker !== undefined) patch.blocker = data.blocker;
-    const { data: task, error } = await context.supabase
+    let write = context.supabase
       .from("jarvis_tasks")
       .update(patch as never)
-      .eq("id", data.id)
-      .select(TASK_COLUMNS)
-      .maybeSingle();
+      .eq("id", data.id);
+    if (data.owner !== undefined) write = write.eq("controller", data.owner);
+    const { data: task, error } = await write.select(TASK_COLUMNS).maybeSingle();
     if (error) throw new Error(error.message);
+    if (!task && data.owner !== undefined) return null; // control moved elsewhere
     if (!task) throw new Error("That task no longer exists.");
+    if (data.controller !== undefined) {
+      // A new loop took over: steps the old one queued or left for confirmation never run.
+      const service = await admin();
+      await service
+        .from("jarvis_activity")
+        .update({ status: "cancelled", completed_at: new Date().toISOString() })
+        .eq("task_id", data.id)
+        .eq("user_id", context.userId)
+        .in("status", ["queued", "needs_confirmation"]);
+    }
     if (data.status) {
       const service = await admin();
       // Anything not yet run for a task that is no longer running never runs.
@@ -627,6 +607,24 @@ export const readJarvisAction = createServerFn({ method: "GET" })
       .eq("id", row.task_id)
       .maybeSingle();
     return { ...row, taskStatus: (task?.status ?? "stopped") as TaskStatus };
+  });
+
+/** A step the planner stopped waiting for: it never runs, and a late result never counts. */
+export const cancelJarvisAction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i) => z.object({ id: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const service = await admin();
+    const { data: row, error } = await service
+      .from("jarvis_activity")
+      .update({ status: "cancelled", completed_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .eq("user_id", context.userId)
+      .in("status", ["queued", "claimed", "needs_confirmation"])
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { cancelled: Boolean(row) };
   });
 
 /** Only a person's click reaches this. The planning loop never calls it. */

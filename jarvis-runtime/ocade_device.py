@@ -36,7 +36,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ocade_computer import Computer, installed_apps  # noqa: E402
-from ocade_identity import SOFTWARE_VERSION, Identity, NotEnrolled, UpdateRequired  # noqa: E402
+from ocade_identity import (SOFTWARE_VERSION, ClockSkew, Identity, NotEnrolled,  # noqa: E402
+                            UpdateRequired)
 
 BROWSER_ACTIONS = {"observe", "look", "open", "new_tab", "click", "type", "select", "press",
                    "scroll", "switch_tab", "close_tab", "back", "forward", "wait", "click_at",
@@ -233,6 +234,8 @@ class Agent:
         task = self.state.get("task") or {}
         if self.stop_all.is_set():
             return "Stopping"
+        if self.state.get("clock"):
+            return "Check this computer's clock"
         if self.state.get("offline"):
             return "Offline"
         if self.pause_asked.is_set() or task.get("status") == "taken_over":
@@ -319,7 +322,8 @@ class Agent:
                 self.state["update"] = True
                 print("OCADE needs a newer Device Agent. Nothing more runs until it updates.", flush=True)
                 return 3
-            except (urllib.error.URLError, TimeoutError, ConnectionError, OSError):
+            except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
+                self.state["clock"] = isinstance(e, ClockSkew)
                 # Fail closed: work OCADE can no longer see or stop does not continue.
                 if active and time.monotonic() - reached > CONTROL_LOSS_S:
                     self.cancel.set()
@@ -329,6 +333,7 @@ class Agent:
                 continue
             self.state["reached"] = True
             self.state["offline"] = False
+            self.state["clock"] = False
             reached = time.monotonic()
             if "apps" in body:
                 apps_sent = time.monotonic()

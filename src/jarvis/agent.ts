@@ -87,6 +87,8 @@ export interface AgentDeps {
     result?: string | null;
     blocker?: string | null;
     controller?: string;
+    /** Write only while this loop owns the task; a loop that lost it gets Stopped(true). */
+    owner?: string;
     checkpoint?: Checkpoint;
   }): Promise<JarvisTaskRow>;
   readTaskStatus(id: string): Promise<TaskStatus>;
@@ -97,6 +99,8 @@ export interface AgentDeps {
   }): Promise<{ ok: true; id: string } | { ok: false; message: string; lost?: boolean }>;
   readAction(id: string): Promise<ActionState>;
   decide(input: { id: string; accept: boolean }): Promise<unknown>;
+  /** Stop waiting for a step for good: it never runs, and a late result never counts. */
+  cancelAction?(id: string): Promise<unknown>;
   frame(taskId: string): Promise<string | null>;
   remember(content: string): Promise<{ ok: boolean; message?: string }>;
   sleep(ms: number): Promise<void>;
@@ -202,6 +206,10 @@ export async function runJarvisTurn(
     if (said.length) messages.push({ role: "user", content: interjectionMessage(said) });
   };
 
+  /** Every task write after the claim is made as this loop's owner. */
+  const update: AgentDeps["updateTask"] = (change) =>
+    deps.updateTask(claimed && !change.controller ? { ...change, owner: controller } : change);
+
   const setTask = (next: JarvisTaskRow | null) => {
     task = next;
     hooks.onTask(next);
@@ -218,9 +226,11 @@ export async function runJarvisTurn(
       if (state.taskStatus !== "running") return state;
       await deps.sleep(POLL_MS);
     }
+    // Given up on: cancelled, so it cannot still run or report "done" after the planner moved on.
+    await deps.cancelAction?.(id);
     return {
       status: "failed",
-      summary: "The device did not answer in time.",
+      summary: "The device did not answer in time, so that step was cancelled.",
       result: null,
       taskStatus: "running",
     };
@@ -229,13 +239,13 @@ export async function runJarvisTurn(
   /** Pause for the person, then continue from a fresh observation or stop. */
   async function handOver(reason: string): Promise<unknown> {
     if (!task) throw new Stopped();
-    setTask(await deps.updateTask({ id: task.id, status: "taken_over", blocker: reason }));
+    setTask(await update({ id: task.id, status: "taken_over", blocker: reason }));
     const decision = await hooks.takeOver(reason);
     if (decision === "stop" || hooks.signal.aborted) {
-      setTask(await deps.updateTask({ id: task.id, status: "stopped" }));
+      setTask(await update({ id: task.id, status: "stopped" }));
       throw new Stopped();
     }
-    setTask(await deps.updateTask({ id: task.id, status: "running", blocker: null }));
+    setTask(await update({ id: task.id, status: "running", blocker: null }));
     const fresh =
       lastFamily === "computer"
         ? await runDevice("computer", { action: "screen" }, true)
@@ -258,7 +268,7 @@ export async function runJarvisTurn(
     if (!parsed.success) return { error: `That ${family} action is not valid.` };
     lastFamily = family;
     if (typeof step === "number" && step >= 1 && step - 1 !== task.current_step) {
-      setTask(await deps.updateTask({ id: task.id, currentStep: Math.min(12, step - 1) }));
+      setTask(await update({ id: task.id, currentStep: Math.min(12, step - 1) }));
     }
     // Paused: nothing new reaches the computer until the person says continue.
     await hooks.live?.waitIfPaused(hooks.signal);
@@ -302,7 +312,7 @@ export async function runJarvisTurn(
     }
     // A durable checkpoint, so any device can resume from here after a close or reboot.
     const url = (result.observation as { url?: unknown } | undefined)?.url;
-    await deps.updateTask({
+    await update({
       id: task.id,
       checkpoint: {
         step: task.current_step,
@@ -366,7 +376,7 @@ export async function runJarvisTurn(
           outcome === "completed" ? "completed" : outcome === "blocked" ? "blocked" : "failed";
         const step = status === "completed" ? task.plan.length : task.current_step;
         // Progress and the recovery checkpoint always agree, finished or not.
-        const done = await deps.updateTask({
+        const done = await update({
           id: task.id,
           status,
           result: String(args.result ?? "").slice(0, 8000) || null,
@@ -395,7 +405,7 @@ export async function runJarvisTurn(
 
   const heartbeat = setInterval(() => {
     if (task && claimed && !hooks.signal.aborted) {
-      void deps.updateTask({ id: task.id, controller }).catch(() => undefined);
+      void deps.updateTask({ id: task.id, owner: controller }).catch(() => undefined);
     }
   }, HEARTBEAT_MS);
   try {
@@ -431,7 +441,7 @@ export async function runJarvisTurn(
         // open task waits to be resumed rather than staying "running" unattended.
         if (task && !FINISHED.includes(task.status)) {
           setTask(
-            await deps.updateTask({
+            await update({
               id: task.id,
               status: "waiting",
               blocker: "Out of JARVIS uses for now. Resume when they reset.",
@@ -458,7 +468,7 @@ export async function runJarvisTurn(
           continue;
         }
         setTask(
-          await deps.updateTask({
+          await update({
             id: task.id,
             status: "waiting",
             blocker: "JARVIS needs your answer to continue.",
@@ -481,7 +491,7 @@ export async function runJarvisTurn(
     // A plan that will not converge stops honestly rather than spinning.
     if (task) {
       setTask(
-        await deps.updateTask({
+        await update({
           id: task.id,
           status: "blocked",
           result: "Stopped after too many steps without finishing.",

@@ -320,6 +320,19 @@ describe("a task nobody drives any more", () => {
     expect((await taskRow(t)).status).toBe("running");
   });
 
+  it("withdraws a confirmation nobody is left to answer", async () => {
+    await permit("files", true);
+    const t = await task();
+    const asked = await queue(t, { action: "file_delete", path: "old.txt" });
+    await twin.asServiceRole(
+      `update public.jarvis_activity set status = 'needs_confirmation' where id = '${asked}'`,
+    );
+    await age(t, 5);
+    await run({ results: [] });
+    expect((await taskRow(t)).status).toBe("waiting");
+    expect((await status(asked)).status).toBe("cancelled");
+  });
+
   it("leaves a recently touched task alone", async () => {
     const t = await task();
     await age(t, 1);

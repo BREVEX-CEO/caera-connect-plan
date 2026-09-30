@@ -96,6 +96,9 @@ describe("the device protocol", () => {
     expect(
       await check(await device.request("{}", { ts: Date.now() - 10 * 60_000 }), device.publicKey),
     ).toBe("clock_skew");
+    // Not 401: a device treats only "not enrolled" as removal, never a wrong clock.
+    const skewed = await readSigned(await device.request("{}", { ts: Date.now() - 10 * 60_000 }));
+    expect(skewed.ok ? 200 : skewed.status).toBe(409);
   });
 
   it.skipIf(!pythonAgent)("verifies what the Python Device Agent signs", async () => {

@@ -94,9 +94,9 @@ export async function pauseOrphanedTasks(
       .from("jarvis_activity")
       .select("id")
       .eq("task_id", task.id)
-      .in("status", ["queued", "claimed", "needs_confirmation"])
+      .in("status", ["queued", "claimed"])
       .limit(1);
-    if (error || busy?.length) continue; // unsure is never "abandoned"
+    if (error || busy?.length) continue; // the device is working on it, or we cannot tell
     const { data: done } = await admin
       .from("jarvis_tasks")
       .update({ status: "waiting", blocker: ORPHANED_BLOCKER })
@@ -104,7 +104,15 @@ export async function pauseOrphanedTasks(
       .eq("status", "running")
       .lt("updated_at", cutoff)
       .select("id");
-    paused += done?.length ?? 0;
+    if (done?.length) {
+      // A confirmation nobody is left to answer is withdrawn; Resume asks again.
+      await admin
+        .from("jarvis_activity")
+        .update({ status: "cancelled", completed_at: new Date().toISOString() })
+        .eq("task_id", task.id)
+        .eq("status", "needs_confirmation");
+      paused += 1;
+    }
   }
   return paused;
 }
@@ -188,7 +196,8 @@ export async function readSigned(request: Request): Promise<SignedRequest> {
     !Number.isSafeInteger(timestamp) ||
     Math.abs(Date.now() - timestamp) > PROTOCOL.signing.skewSeconds * 1000
   ) {
-    return { ok: false, status: 401, error: "clock_skew" };
+    // 409, not 401: a wrong clock is fixable and must never read as "removed".
+    return { ok: false, status: 409, error: "clock_skew" };
   }
   const body = await request.text();
   if (body.length > 600_000) return { ok: false, status: 413, error: "too_large" };
@@ -329,7 +338,7 @@ export async function authenticate(admin: Admin, request: Request): Promise<Devi
     .lt("last_request_ms", signed.timestamp)
     .select("id")
     .maybeSingle();
-  if (!advanced) return { ok: false, status: 401, error: "replayed" };
+  if (!advanced) return { ok: false, status: 409, error: "replayed" };
   if (!device.user_id) {
     return Date.parse(device.enrollment_expires_at ?? "") > Date.now()
       ? { ok: false, status: 202, error: "awaiting_approval" }
@@ -456,6 +465,11 @@ export async function exchange(
   if (input.forget) {
     const at = new Date().toISOString();
     await admin
+      .from("jarvis_activity")
+      .update({ status: "cancelled", completed_at: at })
+      .eq("device_id", device.id)
+      .in("status", ["queued", "needs_confirmation", "claimed"]);
+    await admin
       .from("jarvis_tasks")
       .update({ status: "stopped", blocker: "The device was disconnected." })
       .eq("device_id", device.id)
@@ -478,16 +492,21 @@ export async function exchange(
     // The global Stop: every unfinished task on this device ends, and nothing
     // queued, waiting or running for it continues.
     const at = new Date().toISOString();
-    await admin
-      .from("jarvis_tasks")
-      .update({ status: "stopped", blocker: "Stopped from the computer." })
-      .eq("device_id", device.id)
-      .in("status", ["running", "waiting", "taken_over"]);
-    await admin
-      .from("jarvis_activity")
-      .update({ status: "cancelled", completed_at: at })
-      .eq("device_id", device.id)
-      .in("status", ["queued", "needs_confirmation", "claimed"]);
+    const stopped = await Promise.all([
+      admin
+        .from("jarvis_tasks")
+        .update({ status: "stopped", blocker: "Stopped from the computer." })
+        .eq("device_id", device.id)
+        .in("status", ["running", "waiting", "taken_over"]),
+      admin
+        .from("jarvis_activity")
+        .update({ status: "cancelled", completed_at: at })
+        .eq("device_id", device.id)
+        .in("status", ["queued", "needs_confirmation", "claimed"]),
+    ]);
+    // Unsaved, the computer must not believe its STOP arrived: it keeps asking.
+    const failed = stopped.find((write) => write.error);
+    if (failed?.error) throw new Error(failed.error.message);
   }
   if (input.pause && !input.stop) {
     await admin
@@ -655,7 +674,11 @@ export async function exchange(
   if (!queued?.length) return { ...envelope, commands: [], cancel, rotated };
   const row = queued[0];
 
-  const [{ data: task }, { data: rows }, { data: deviceRow }] = await Promise.all([
+  const [
+    { data: task, error: taskError },
+    { data: rows, error: rowsError },
+    { data: deviceRow, error: deviceError },
+  ] = await Promise.all([
     admin
       .from("jarvis_tasks")
       .select("id, browser_mode")
@@ -675,8 +698,12 @@ export async function exchange(
       .is("revoked_at", null)
       .maybeSingle(),
   ]);
-  if (!task) return { ...envelope, commands: [], cancel, rotated };
-  const permissions = rows ?? [];
+  // Nothing leaves for the device unless its task, the person's permissions and
+  // the device itself were all read: an unreadable permission is not a default.
+  if (!task || taskError || rowsError || deviceError || !rows) {
+    return { ...envelope, commands: [], cancel, rotated };
+  }
+  const permissions = rows;
   const action = row.action as DeviceAction;
   const mode = task.browser_mode as "isolated" | "real";
   // Permission is checked again when the action leaves for the device, not

@@ -539,7 +539,14 @@ export function JarvisWorkspace({
     setTakeover(null);
     const task = conversationTask;
     if (task && !FINISHED.includes(task.status)) {
-      setActiveTask(await updateJarvisTask({ data: { id: task.id, status: "stopped" } }));
+      try {
+        setActiveTask(await updateJarvisTask({ data: { id: task.id, status: "stopped" } }));
+      } catch {
+        // Never "Stopped." while the computer may still be working: say so, keep STOP in reach.
+        toast.error("JARVIS could not stop that task on your computer.", {
+          description: "Check your connection and press STOP again.",
+        });
+      }
     }
     refresh();
   };
