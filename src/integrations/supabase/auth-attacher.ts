@@ -37,8 +37,27 @@ export const attachSupabaseAuth = createMiddleware({ type: "function" }).client(
     const supabase = await loadSupabaseClient();
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
-    return next({
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    try {
+      return await next({
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+    } catch (error) {
+      /*
+       * The server would not accept this token. If the auth server itself says
+       * the same (the session was ended here, elsewhere, or by an operator),
+       * this tab stops too, at once, instead of answering every click with a
+       * failure until the token expires. The auth server is asked first: a
+       * server that merely could not verify a token this once, or a network
+       * blip, signs nobody out.
+       */
+      if (token && error instanceof Error && error.message.includes("Unauthorized:")) {
+        void supabase.auth.getUser().then(async ({ error: refused }) => {
+          if (!refused) return;
+          const { mayUseCachedSession } = await import("@/lib/auth/session-failure");
+          if (!mayUseCachedSession(refused)) await supabase.auth.signOut({ scope: "local" });
+        });
+      }
+      throw error;
+    }
   },
 );

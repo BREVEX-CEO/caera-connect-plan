@@ -365,6 +365,43 @@ describe("sessions", () => {
     expect(left.map((row) => row.user_id).sort()).toEqual([OWNER, CUSTOMER_A].sort());
   });
 
+  it("a staff token whose session was ended is no longer staff, straight at the database", async () => {
+    await twin.execSuperuser(`delete from auth.sessions`);
+    const [{ id: owners }] = await twin.asSuperuser<{ id: string }>(
+      `insert into auth.sessions (user_id) values ('${OWNER}') returning id`,
+    );
+    const [{ id: admins }] = await twin.asSuperuser<{ id: string }>(
+      `insert into auth.sessions (user_id) values ('${ADMIN}') returning id`,
+    );
+    const asAdmin = (sql: string) =>
+      twin.asTenant<{ ok: boolean }>(ADMIN, sql, { aal: "aal2", sessionId: admins });
+    expect(
+      (await asAdmin(`select public.ocade_staff_can('customers.read') as ok`)).rows[0]!.ok,
+    ).toBe(true);
+    const ended = await twin.asTenant(
+      OWNER,
+      `select public.ocade_staff_end_all_sessions('Suspected staff credential leak')`,
+      { aal: "aal2", sessionId: owners },
+    );
+    expect(ended.error).toBeUndefined();
+    // The copied token is still signed and unexpired; the session behind it is gone.
+    expect(
+      (await asAdmin(`select public.ocade_staff_can('customers.read') as ok`)).rows[0]!.ok,
+    ).toBe(false);
+    expect((await asAdmin(`select * from public.ocade_my_staff()`)).rows).toHaveLength(1);
+    const pause = await asAdmin(
+      `select paused from public.ocade_set_service_control('jarvis_execution', true, 'With a token from an ended session') as ok`,
+    );
+    expect(pause.errorCode).toBe("42501");
+    // The owner who asked keeps working.
+    const still = await twin.asTenant<{ ok: boolean }>(
+      OWNER,
+      `select public.ocade_staff_can('staff.manage') as ok`,
+      { aal: "aal2", sessionId: owners },
+    );
+    expect(still.rows[0]!.ok).toBe(true);
+  });
+
   it("support cannot end a customer's sessions; an Admin can, but not an owner's", async () => {
     await twin.execSuperuser(
       `insert into auth.sessions (user_id) values ('${CUSTOMER_B}'), ('${BACKUP}')`,

@@ -58,3 +58,45 @@ describe("the second factor, enforced by the database", () => {
     expect(anon.error).toBeUndefined();
   });
 });
+
+describe("a session that was ended stops at once", () => {
+  const gate = (sessionId?: string) =>
+    twin.asTenant(PLAIN, `select public.ocade_enforce_second_factor()`, { sessionId });
+
+  it("passes its verification script", async () => {
+    const result = await twin.runScript(
+      "supabase/verification",
+      "20260930092500_an_ended_session_stops_at_once_verify.sql",
+    );
+    expect(result.error).toBeUndefined();
+  });
+
+  it("serves a live session and refuses the same token the moment the session is gone", async () => {
+    const [{ id }] = await twin.asSuperuser<{ id: string }>(
+      `insert into auth.sessions (user_id) values ('${PLAIN}') returning id`,
+    );
+    expect((await gate(id)).error).toBeUndefined();
+    await twin.execSuperuser(`delete from auth.sessions where id = '${id}'`);
+    const after = await gate(id);
+    // PT401: PostgREST answers 401, which a browser treats as signed out.
+    expect(after.errorCode).toBe("PT401");
+    expect(after.error).toMatch(/signed out/);
+  });
+
+  it("does not accept another account's live session as its own", async () => {
+    const [{ id }] = await twin.asSuperuser<{ id: string }>(
+      `insert into auth.sessions (user_id) values ('${ENROLLED}') returning id`,
+    );
+    expect((await gate(id)).errorCode).toBe("PT401");
+  });
+
+  it("leaves anonymous visitors and tokens that name no session alone", async () => {
+    expect((await gate()).error).toBeUndefined();
+    expect(
+      (await twin.asAnon(`select public.ocade_enforce_second_factor()`)).error,
+    ).toBeUndefined();
+    expect((await twin.asAnon(`select private.ocade_caller_session_live()`)).errorCode).toBe(
+      "42501",
+    );
+  });
+});

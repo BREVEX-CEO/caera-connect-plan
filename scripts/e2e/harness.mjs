@@ -231,11 +231,47 @@ for (const journey of journeys) {
     served = serve();
     await waitForPort(BASE, "the served build");
   }
-  const result = spawnSync(
-    process.execPath,
-    [`scripts/e2e/${journey}-journey.mjs`, `--base=${BASE}`, `--supabase=${SUPABASE_URL}`],
-    { stdio: "inherit" },
-  );
+  const run = () =>
+    spawnSync(
+      process.execPath,
+      [`scripts/e2e/${journey}-journey.mjs`, `--base=${BASE}`, `--supabase=${SUPABASE_URL}`],
+      { stdio: "inherit" },
+    );
+  let result = run();
+  /*
+   * A SERVER THAT STOPPED ANSWERING IS NOT A PRODUCT FAILURE, AND MUST NOT LOOK
+   * LIKE ONE. `wrangler` can stay alive while its `workerd` is gone, so the exit
+   * check above sees nothing and every later check fails with "connection
+   * refused" as if the product were broken. Said out loud, the server is
+   * replaced (whole tree), and the journey it interrupted runs once more.
+   */
+  if (
+    result.status !== 0 &&
+    !(await fetch(BASE).then(
+      () => true,
+      () => false,
+    ))
+  ) {
+    console.log(
+      `!!! the served build stopped answering during ${journey}; restarting it and running ${journey} again`,
+    );
+    if (process.platform === "win32") {
+      spawnSync("taskkill", ["/pid", String(served.pid), "/T", "/F"], {
+        windowsHide: true,
+        stdio: "ignore",
+      });
+    } else {
+      try {
+        process.kill(-served.pid, "SIGKILL");
+      } catch {
+        /* Already gone. */
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    served = serve();
+    await waitForPort(BASE, "the served build");
+    result = run();
+  }
   if (result.status !== 0) failed += 1;
 }
 

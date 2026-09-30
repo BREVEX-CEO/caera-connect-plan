@@ -1237,6 +1237,22 @@ const server = createServer((request, response) => {
     requestToken = (request.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
     requestAal = tokenAal.get(requestToken) ?? "aal1";
 
+    // What PostgREST's pre-request check does with a token whose session was ended.
+    if (
+      url.pathname.startsWith("/rest/v1/") &&
+      requestToken.endsWith(".stub-signature-not-a-signature") &&
+      !sessions.has(requestToken)
+    ) {
+      // Said out loud: a journey that meets this unexpectedly should see why.
+      process.stdout.write(`session-ended 401 ${request.method} ${url.pathname}
+`);
+      return send(401, {
+        code: "PT401",
+        message: "This session has been signed out.",
+        hint: "session_ended",
+      });
+    }
+
     if (url.pathname === "/__fixture/notifications") return send(200, recordedNotifications);
     if (url.pathname === "/__fixture/audit") return send(200, adminActions);
 

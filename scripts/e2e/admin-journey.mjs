@@ -155,7 +155,8 @@ try {
   );
 
   /* --- an Admin with a second factor, on a phone-sized screen -------------- */
-  const strong = await open(await signIn(`admin+mfa-${stamp}@ocade.test`), {
+  const strongSession = await signIn(`admin+mfa-${stamp}@ocade.test`);
+  const strong = await open(strongSession, {
     width: 390,
     height: 844,
   });
@@ -465,7 +466,17 @@ try {
     "every other staff session ends",
     await seen(owner.getByText(/Every other staff session ended/)),
   );
-  await strong.reload({ waitUntil: "load" });
+  const copied = await asCustomer(strongSession, "/rest/v1/rpc/ocade_staff_can", {
+    method: "POST",
+    body: JSON.stringify({ p_permission: "customers.read" }),
+  });
+  check(
+    "a copied Admin token is refused straight at the API, before it expires",
+    copied.status === 401,
+    String(copied.status),
+  );
+  // No reload: the tab that was open learns on its next request and leaves by itself.
+  await tab(strong, "Audit").click();
   check(
     "a signed-out Admin is back at sign-in",
     await until(async () => new URL(strong.url()).pathname.startsWith("/auth"), 15_000),

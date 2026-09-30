@@ -229,28 +229,43 @@ describe("every signed-in server function asks the database about the second fac
     };
   };
 
-  it("lets an answered (aal2) session through without asking", async () => {
-    const { meetsSecondFactor } = await import("../session-middleware");
-    const db = client({ data: false, error: null });
-    expect(await meetsSecondFactor(db, { aal: "aal2", sub: "u1" })).toBe(true);
-    expect(db.calls).toEqual([]);
+  it("asks the database even for an answered (aal2) session, because it may have been ended", async () => {
+    const { sessionStanding } = await import("../session-middleware");
+    const live = client({ data: true, error: null });
+    expect(await sessionStanding(live, { aal: "aal2", sub: "u1", session_id: "s1" })).toBe("ok");
+    expect(live.calls).toHaveLength(1);
+    const ended = client({ data: null, error: { code: "PT401", hint: "session_ended" } });
+    expect(await sessionStanding(ended, { aal: "aal2", sub: "u5", session_id: "s5" })).toBe(
+      "ended",
+    );
   });
 
   it("refuses an enrolled account's password-only session, as the database says", async () => {
-    const { meetsSecondFactor } = await import("../session-middleware");
+    const { sessionStanding } = await import("../session-middleware");
     const refused = client({ data: null, error: { code: "42501", hint: "factor_required" } });
-    expect(await meetsSecondFactor(refused, { aal: "aal1", sub: "u2", session_id: "s2" })).toBe(
-      false,
+    expect(await sessionStanding(refused, { aal: "aal1", sub: "u2", session_id: "s2" })).toBe(
+      "factor_required",
     );
     const plain = client({ data: true, error: null });
-    expect(await meetsSecondFactor(plain, { aal: "aal1", sub: "u3", session_id: "s3" })).toBe(true);
+    expect(await sessionStanding(plain, { aal: "aal1", sub: "u3", session_id: "s3" })).toBe("ok");
   });
 
   it("fails closed when the database cannot answer", async () => {
-    const { meetsSecondFactor } = await import("../session-middleware");
+    const { sessionStanding } = await import("../session-middleware");
     const down = client({ data: null, error: { code: "08006", message: "connection failure" } });
     await expect(
-      meetsSecondFactor(down, { aal: "aal1", sub: "u4", session_id: "s4" }),
+      sessionStanding(down, { aal: "aal1", sub: "u4", session_id: "s4" }),
     ).rejects.toThrow(/could not check/);
+  });
+
+  it("remembers an answer for seconds, not minutes: signed out means signed out", async () => {
+    const { sessionStanding } = await import("../session-middleware");
+    const claims = { aal: "aal2", sub: "u6", session_id: "s6", exp: 1 };
+    const live = client({ data: true, error: null });
+    expect(await sessionStanding(live, claims, 1_000)).toBe("ok");
+    expect(await sessionStanding(live, claims, 4_000)).toBe("ok");
+    expect(live.calls).toHaveLength(1);
+    const ended = client({ data: null, error: { code: "PT401", hint: "session_ended" } });
+    expect(await sessionStanding(ended, claims, 7_000)).toBe("ended");
   });
 });

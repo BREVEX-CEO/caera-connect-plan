@@ -130,7 +130,8 @@ SECURITY DEFINER
 SET search_path TO ''
 AS $$ SELECT role FROM public.ocade_staff WHERE user_id = p_user $$;
 
--- Does the caller hold this permission at all (role default or override)?
+-- Does the caller hold this permission at all (role default or override), on a
+-- session that has not been ended?
 CREATE OR REPLACE FUNCTION private.ocade_staff_has(p_permission text)
 RETURNS boolean
 LANGUAGE sql
@@ -144,7 +145,7 @@ AS $$
        AND (p_permission = ANY (private.ocade_role_permissions(s.role))
             OR p_permission = ANY (s.granted))
        AND NOT (p_permission = ANY (s.denied))
-  );
+  ) AND private.ocade_caller_session_live();
 $$;
 
 -- May the caller use it now? Staff other than the Primary Owner must also have

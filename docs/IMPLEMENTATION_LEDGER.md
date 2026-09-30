@@ -285,3 +285,21 @@ Security:
 Owner actions recorded (not executable here): apply migrations `20260930090000`, `20260930091000`, `20260930092000` and deploy `ocade-intelligence` (Supabase MCP absent); enable Supabase security-notification emails for MFA removal; publish a verified support channel on Help.
 
 Phase 22 gap carried to Phase 43: the planning loop runs in the tab that started the turn, so a phone that is minimized long enough leaves the task waiting at its checkpoint (it resumes cleanly). A computer-held planning loop is the Phase 43 build.
+
+### Owner / Admin / Staff (Phases 31, 36, 46) — 2026-09-30
+
+One authority: `public.ocade_staff` (migration `20260930093000_one_staff_authority`). Roles Primary Owner, Backup Owner, Admin, Support, Billing, Operations, Read-only, each with a default permission set and per-person additions and removals. `has_role('admin')`, the support-admin check and the four operator RPCs read it; nothing on the server decides anything from `user_roles` any more (legacy `admin` rows stay inert until the console release is live — `ToRemove.md`).
+
+Rules enforced in the database and proven against PostgreSQL (`staff-authority.test.ts`, 40 tests): access is given by email and held by the account's stable id, or waits as an invitation that one verified sign-up redeems once; removal takes effect on the next request; every change needs the permission, a second factor and a proof from the last ten minutes, and is audited; staff other than the Primary Owner read nothing without this session's second factor; the Primary Owner cannot be removed, locked out or self-deleted and hands ownership only to the Backup Owner; conversations are read only under a case (reason, ≤72 h, customer notified, each read audited); emergency sign-out ends every staff session but the caller's. Attack cases covered: direct table and RPC access as anonymous, customer and staff; AAL1; stale AAL2; self-grant and escalation by every route; replaced, withdrawn, expired and spent invitations; replays; expired cases; forged legacy admin row; rollback and re-apply.
+
+Found while building it:
+
+- An ended session's access token stayed valid at the database until it expired (up to an hour), so "signed out everywhere" and the staff emergency sign-out did not stop a copied token used straight against the API, and server functions verified tokens locally without asking. Fixed (`20260930092500_an_ended_session_stops_at_once`): the per-request check refuses a token whose session is gone (HTTP 401), Storage has the same rule, staff checks require a live session, and `requireSession` asks the database on every call (5 s cache).
+- Older RLS policies let an Admin read every profile and usage row through `has_role` with a password alone. `has_role('admin')` now needs this session's second factor for everybody but the Primary Owner.
+- An unused policy let a browser session read every account's manual grants; dropped (also the advisor's duplicate-policy warning).
+- Closing a case with a short reason surfaced a raw constraint error.
+- The test backend answered every `count` query with nothing, so count-based logic (the enrollment cap, system health) was never exercised in a browser; it counts now.
+
+Browser proof: admin journey 52 checks (customer, Admin without and with a second factor on a phone-sized screen, Support, Owner: grant, invitation, removal, permission change, case open/read/close, audit, emergency sign-out, copied token refused).
+
+Supabase advisor review (production, 2026-09-30): 13 definer functions callable by signed-in users — each inspected live: pinned search path, not callable anonymously, every statement scoped to `auth.uid()`; the five operator RPCs add role, second factor and recency. Accepted as intended. 10 RLS tables without policies hold no grants at all for `anon`/`authenticated`: intended, server-only. Unindexed foreign keys on `ocade_service_controls.changed_by` (3 rows) and `ocade_service_control_events.changed_by` (operator events): no query or delete path justifies an index yet. Leaked-password protection is a paid feature: not a blocker.
