@@ -85,8 +85,20 @@ describe("delete is for good", () => {
 describe("browser roles cannot write authority", () => {
   it("cannot grant itself a role, even as an admin", async () => {
     await twin.execSuperuser(
-      `insert into public.user_roles (user_id, role) values ('${OWNER}', 'admin') on conflict do nothing`,
+      `insert into public.ocade_staff (user_id, role) values ('${OWNER}', 'admin') on conflict do nothing`,
     );
+    const promote = await twin.asTenant(
+      OWNER,
+      `insert into public.ocade_staff (user_id, role) values ('${STRANGER}', 'primary_owner')`,
+      { aal: "aal2" },
+    );
+    expect(promote.error).toBeDefined();
+    const raise = await twin.asTenant(
+      OWNER,
+      `update public.ocade_staff set role = 'primary_owner' where user_id = '${OWNER}'`,
+      { aal: "aal2" },
+    );
+    expect(raise.error).toBeDefined();
     const attempt = await twin.asTenant(
       OWNER,
       `insert into public.user_roles (user_id, role) values ('${STRANGER}', 'admin')`,
@@ -102,7 +114,12 @@ describe("browser roles cannot write authority", () => {
   });
 
   it("cannot truncate past row-level security", async () => {
-    for (const table of ["ocade_messages", "user_roles", "ocade_entitlement_grants"]) {
+    for (const table of [
+      "ocade_messages",
+      "user_roles",
+      "ocade_staff",
+      "ocade_entitlement_grants",
+    ]) {
       const attempt = await twin.asTenant(OWNER, `truncate public.${table}`);
       expect(attempt.error, `authenticated truncated ${table}`).toBeDefined();
     }

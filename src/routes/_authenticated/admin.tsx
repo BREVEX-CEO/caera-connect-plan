@@ -5,71 +5,196 @@ import { toast } from "sonner";
 import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { AppShell } from "@/components/shell/AppShell";
 import { Pending } from "@/components/settings/rows";
-import { requireAdminRole } from "@/lib/admin/route-gate";
+import {
+  AuditModule,
+  CasesModule,
+  Reason,
+  StaffModule,
+  SystemModule,
+} from "@/components/admin/ConsoleModules";
+import { requireStaff } from "@/lib/admin/route-gate";
 import {
   grantAccountAccess,
   listAccountAccess,
   listAccountDevices,
   removeAccountDevice,
-  readJarvisExecution,
   revokeAccountAccess,
-  setJarvisExecution,
   type AdminAccountRow,
-  type ControlKey,
+  type StaffPermission,
 } from "@/lib/admin/access.functions";
+import {
+  endCustomerSessions,
+  messageOf,
+  openCase,
+  readCustomer,
+  readMyStaff,
+  ready,
+  STAFF_ROLE_NAMES,
+  type MyStaff,
+  type StaffRole,
+} from "@/lib/admin/staff.functions";
 
 /**
- * THE WHOLE OF ADMINISTRATION: ONE HIDDEN SCREEN.
+ * THE OWNER CONSOLE AND THE STAFF CONSOLE: ONE ROUTE, SHOWN BY PERMISSION.
  *
- * It was nine routes — a directory, accounts, billing, operations, support,
- * help publishing, status, a launch gate and a payments checklist — each with
- * its own data layer. `docs/PRD.md` keeps admin only where the service still
- * requires it and keeps it out of customer navigation entirely.
- *
- * What the service requires is two things, and until now it could only do one.
- * Looking an account up and seeing its roles was here. GIVING somebody access,
- * which `PLAN.md` Phase 3 asks for by name — search, current tier, grant
- * Free/Pro/Max, an end time, a reason, revoke, told apart from a payment, and
- * audited — was not, so the one operational task the plan names was a SQL
- * console job. It is here now, through the database functions that already
- * enforce the admin role, a recent second factor and a written reason.
- *
- * Operational history still lives in the database, where an operator reads it
- * with the database's own tools rather than through a dashboard OCADE has to
- * maintain.
+ * Who is staff, and what each may do, is `public.ocade_staff` in the database
+ * (Primary Owner, Backup Owner, Admin, Support, Billing, Operations, Read-only,
+ * with per-person changes). This page asks the database which modules to show;
+ * every read and change it makes is checked there again. Customers are sent
+ * back to Chat without a word, and nothing on their screens names this place.
  */
 export const Route = createFileRoute("/_authenticated/admin")({
   ssr: false,
   head: () => ({
-    meta: [{ title: "Administration — OCADE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Console — OCADE" }, { name: "robots", content: "noindex" }],
   }),
-  beforeLoad: () => requireAdminRole(),
-  component: AdminPage,
+  beforeLoad: () => requireStaff(),
+  component: ConsolePage,
 });
+
+type Module = "customers" | "cases" | "staff" | "system" | "audit";
+
+const MODULES: { id: Module; name: string; needs: StaffPermission[] }[] = [
+  { id: "customers", name: "Customers", needs: ["customers.read"] },
+  { id: "cases", name: "Cases", needs: ["cases.read", "cases.manage"] },
+  { id: "staff", name: "Staff", needs: ["staff.manage"] },
+  { id: "system", name: "System", needs: ["health.read", "execution.manage"] },
+  { id: "audit", name: "Audit", needs: ["audit.read"] },
+];
 
 const DEFAULT_DAYS = 30;
 
-function AdminPage() {
+function ConsolePage() {
+  /*
+   * Read again here, not only in the gate, and again whenever the tab is
+   * looked at: access removed elsewhere leaves this screen at once instead of
+   * sitting on a stale copy of what it used to be allowed.
+   */
+  const me = useQuery({
+    queryKey: ["staff", "me", "console"],
+    queryFn: () => readMyStaff(),
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
+  });
+  const [module, setModule] = useState<Module | null>(null);
+
+  if (me.isSuccess && me.data === null) {
+    // No longer staff: back to Chat, told nothing, exactly as a customer is.
+    window.location.replace("/");
+    return null;
+  }
+  if (!me.data) {
+    return (
+      <AppShell>
+        <div className="mx-auto w-full max-w-4xl px-5 py-8">
+          <Pending
+            query={me}
+            loading="Opening the console…"
+            problem="The console could not open."
+          />
+        </div>
+      </AppShell>
+    );
+  }
+  const staff = me.data;
+  const owner = staff.role === "primary_owner" || staff.role === "backup_owner";
+  const visible = MODULES.filter((m) => m.needs.some((p) => staff.permissions.includes(p)));
+  const current = visible.find((m) => m.id === module) ?? visible[0];
+  const blocked = !staff.secondFactor && staff.role !== "primary_owner";
+
+  return (
+    <AppShell>
+      <div className="mx-auto w-full max-w-4xl px-5 py-8">
+        <h1 className="text-lg font-semibold tracking-tight text-foreground">
+          {owner ? "Owner Console" : "Staff Console"}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {STAFF_ROLE_NAMES[staff.role]}. You see what your role allows; every change asks for a
+          recent code and is written to the audit record.
+        </p>
+        {staff.secondFactor ? null : <SecondFactorNotice blocking={blocked} />}
+        {blocked ? null : (
+          <>
+            <nav aria-label="Console" className="mt-5 flex flex-wrap gap-1.5">
+              {visible.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  aria-current={current?.id === m.id ? "page" : undefined}
+                  onClick={() => setModule(m.id)}
+                  className={
+                    current?.id === m.id
+                      ? "h-8 rounded-md bg-accent px-3 text-sm text-foreground"
+                      : "h-8 rounded-md px-3 text-sm text-muted-foreground hover:text-foreground"
+                  }
+                >
+                  {m.name}
+                </button>
+              ))}
+            </nav>
+            {current?.id === "customers" ? (
+              <CustomersModule me={staff} onOpenCases={() => setModule("cases")} />
+            ) : null}
+            {current?.id === "cases" ? <CasesModule me={staff} /> : null}
+            {current?.id === "staff" ? <StaffModule me={staff} /> : null}
+            {current?.id === "system" ? <SystemModule me={staff} /> : null}
+            {current?.id === "audit" ? <AuditModule /> : null}
+          </>
+        )}
+      </div>
+    </AppShell>
+  );
+}
+
+/**
+ * THE SECOND FACTOR, SAID BEFORE ANYTHING IS TRIED. Staff other than the
+ * Primary Owner read nothing until this session answered it; the Primary Owner
+ * may look while setting it up, and changes nothing until then.
+ */
+function SecondFactorNotice({ blocking }: { blocking: boolean }) {
+  const assurance = useQuery({
+    queryKey: ["admin", "assurance"],
+    queryFn: async () => (await import("@/lib/security/mfa")).currentAssurance(),
+    retry: false,
+  });
+  const enrolled = assurance.data?.next === "aal2";
+  return (
+    <p
+      className="mt-3 rounded-md border border-border/60 p-3 text-[13px] text-foreground"
+      role="status"
+    >
+      {blocking
+        ? "The console opens once this session has answered your second factor."
+        : "Changes need your second factor."}{" "}
+      {enrolled ? (
+        <a href="/auth/challenge?next=/admin" className="underline underline-offset-2">
+          Enter your code
+        </a>
+      ) : (
+        "Set up two-step verification under Settings → Account, then come back."
+      )}
+    </p>
+  );
+}
+
+/* ------------------------------------------------------------ customers -- */
+
+function CustomersModule({ me, onOpenCases }: { me: MyStaff; onOpenCases: () => void }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<string | null>(null);
-  const [devicesOf, setDevicesOf] = useState<string | null>(null);
+  const [grantFor, setGrantFor] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const may = (permission: StaffPermission) => me.permissions.includes(permission);
 
   /*
-   * THE DATABASE SEARCHES, NOT THIS PAGE.
-   *
-   * Filtering happened here over the 200 newest profiles, so the two hundred and
-   * first account was unfindable and the screen said "No matching accounts"
-   * about a real customer. The term goes to the server, which is also why it is
-   * part of the query key: a different term is a different answer, cached
-   * separately rather than overwriting the last one.
+   * THE DATABASE SEARCHES, NOT THIS PAGE. The term goes to the server, which is
+   * also why it is part of the query key: a different term is a different answer.
    */
   const term = query.trim();
   const accounts = useQuery({
     queryKey: ["admin", "access", term],
     queryFn: () => listAccountAccess({ data: { query: term } }),
   });
-
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin", "access"] });
   const { withProof, dialog } = useConfirmIdentity();
 
@@ -78,12 +203,11 @@ function AdminPage() {
       withProof(() => grantAccountAccess({ data: input })),
     onSuccess: async () => {
       toast.success("Access granted.");
-      setOpen(null);
+      setGrantFor(null);
       await refresh();
     },
     onError: (error: unknown) => toast.error(messageOf(error)),
   });
-
   const revoke = useMutation({
     mutationFn: (input: { grantId: string; reason: string }) =>
       withProof(() => revokeAccountAccess({ data: input })),
@@ -97,220 +221,243 @@ function AdminPage() {
   });
 
   const visible = accounts.data?.accounts ?? [];
-
   return (
-    <AppShell>
+    <>
       {dialog}
-      <div className="mx-auto w-full max-w-4xl px-5 py-8">
-        <h1 className="text-lg font-semibold tracking-tight text-foreground">Administration</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {term.length > 0
-            ? "Accounts matching your search, their roles, and the access given to them by hand."
-            : "The most recent accounts, their roles, and the access given to them by hand. Search to reach any other."}
-        </p>
-        <SecondFactorNotice />
-        <EmergencyStop />
-
-        <label className="mt-5 block">
-          <span className="sr-only">Search accounts</span>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by email, name or account id"
-            className="h-8 w-full max-w-sm rounded-md border border-border bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+      <label className="mt-5 block">
+        <span className="sr-only">Search accounts</span>
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search by email, name or account id"
+          className="h-8 w-full max-w-sm rounded-md border border-border bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+        />
+      </label>
+      {accounts.isPending || accounts.isError ? (
+        <div className="mt-6">
+          <Pending
+            query={accounts}
+            loading="Loading accounts…"
+            problem="Accounts could not be read."
           />
-        </label>
-
-        {accounts.isPending || accounts.isError ? (
-          <div className="mt-6">
-            <Pending
-              query={accounts}
-              loading="Loading accounts…"
-              problem="Accounts could not be read."
-            />
-          </div>
-        ) : (
-          <ul className="mt-6 divide-y divide-border/50 border-y border-border/50">
-            {visible.map((row) => (
-              <li key={row.id} className="py-3">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm text-foreground">
-                      {row.displayName ?? row.email ?? row.id}
-                    </span>
-                    {row.displayName ? (
-                      <span className="block truncate text-[13px] text-muted-foreground">
-                        {row.email ?? "No email"}
-                      </span>
-                    ) : null}
+        </div>
+      ) : (
+        <ul className="mt-6 divide-y divide-border/50 border-y border-border/50">
+          {visible.map((row) => (
+            <li key={row.id} className="py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="min-w-0">
+                  <span className="block truncate text-sm text-foreground">
+                    {row.displayName ?? row.email ?? row.id}
                   </span>
-                  <span className="flex shrink-0 items-center gap-3 text-[13px]">
-                    <AccessBadge row={row} />
-                    {row.roles.length > 0 ? (
-                      <span className="text-muted-foreground">{row.roles.join(", ")}</span>
-                    ) : null}
+                  {row.displayName ? (
+                    <span className="block truncate text-[13px] text-muted-foreground">
+                      {row.email ?? "No email"}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="flex shrink-0 flex-wrap items-center gap-2 text-[13px]">
+                  <AccessBadge row={row} />
+                  {row.roles.length > 0 ? (
+                    <span className="text-muted-foreground">
+                      {row.roles.map((r) => STAFF_ROLE_NAMES[r as StaffRole] ?? r).join(", ")}
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => setOpen(open === row.id ? null : row.id)}
+                    aria-expanded={open === row.id}
+                    className="h-7 rounded-md border border-border px-2 text-foreground transition-colors hover:bg-accent"
+                  >
+                    {open === row.id ? "Close" : "Open"}
+                  </button>
+                  {!may("grants.manage") ? null : row.grant ? (
                     <button
                       type="button"
-                      onClick={() => setDevicesOf(devicesOf === row.id ? null : row.id)}
-                      aria-expanded={devicesOf === row.id}
+                      onClick={() => {
+                        const reason = window.prompt("Why is this access being taken back?");
+                        if (reason && reason.trim().length >= 3) {
+                          revoke.mutate({ grantId: row.grant!.id, reason: reason.trim() });
+                        }
+                      }}
+                      disabled={revoke.isPending}
+                      className="h-7 rounded-md border border-border px-2 text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+                    >
+                      {revoke.isPending ? "Revoking…" : "Revoke"}
+                    </button>
+                  ) : row.isSelf ? (
+                    <span className="text-muted-foreground">Someone else grants yours</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setGrantFor(grantFor === row.id ? null : row.id)}
+                      aria-expanded={grantFor === row.id}
                       className="h-7 rounded-md border border-border px-2 text-foreground transition-colors hover:bg-accent"
                     >
-                      Devices
+                      Give access
                     </button>
-                    {row.grant ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const reason = window.prompt("Why is this access being taken back?");
-                          if (reason && reason.trim().length >= 3) {
-                            revoke.mutate({ grantId: row.grant!.id, reason: reason.trim() });
-                          }
-                        }}
-                        disabled={revoke.isPending}
-                        className="h-7 rounded-md border border-border px-2 text-foreground transition-colors hover:bg-accent disabled:opacity-50"
-                      >
-                        Revoke
-                      </button>
-                    ) : row.isSelf ? (
-                      <span className="text-muted-foreground">Another admin grants yours</span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setOpen(open === row.id ? null : row.id)}
-                        aria-expanded={open === row.id}
-                        className="h-7 rounded-md border border-border px-2 text-foreground transition-colors hover:bg-accent"
-                      >
-                        Give access
-                      </button>
-                    )}
-                  </span>
-                </div>
-
-                {open === row.id && !row.isSelf ? (
-                  <GrantForm
-                    busy={grant.isPending}
-                    onCancel={() => setOpen(null)}
-                    onSubmit={(values) => grant.mutate({ userId: row.id, ...values })}
-                  />
-                ) : null}
-                {devicesOf === row.id ? <AccountDevices userId={row.id} /> : null}
-              </li>
-            ))}
-            {visible.length === 0 ? (
-              <li className="py-3 text-sm text-muted-foreground">No matching accounts.</li>
-            ) : null}
-            {accounts.data?.more ? (
-              <li className="py-3 text-sm text-muted-foreground">
-                More accounts match than are shown. Narrow the search, or paste the account id.
-              </li>
-            ) : null}
-          </ul>
-        )}
-      </div>
-    </AppShell>
+                  )}
+                </span>
+              </div>
+              {grantFor === row.id && !row.isSelf ? (
+                <GrantForm
+                  busy={grant.isPending}
+                  onCancel={() => setGrantFor(null)}
+                  onSubmit={(values) => grant.mutate({ userId: row.id, ...values })}
+                />
+              ) : null}
+              {open === row.id ? (
+                <CustomerDetail row={row} me={me} onOpenCases={onOpenCases} />
+              ) : null}
+            </li>
+          ))}
+          {visible.length === 0 ? (
+            <li className="py-3 text-sm text-muted-foreground">No matching accounts.</li>
+          ) : null}
+          {accounts.data?.more ? (
+            <li className="py-3 text-sm text-muted-foreground">
+              More accounts match than are shown. Narrow the search, or paste the account id.
+            </li>
+          ) : null}
+        </ul>
+      )}
+    </>
   );
 }
 
-/**
- * THE EMERGENCY STOP FOR JARVIS DEVICE WORK. One switch, a reason on the
- * record, and a second factor, all enforced by the database function.
- */
-const CONTROL_NAMES: Record<ControlKey, string> = {
-  jarvis_execution: "All device work",
-  jarvis_agent: "Device Agent",
-  jarvis_extension: "Browser extension",
-};
-
-function EmergencyStop() {
-  const queryClient = useQueryClient();
-  const [reason, setReason] = useState("");
-  const state = useQuery({
-    queryKey: ["admin", "jarvis-execution"],
-    queryFn: () => readJarvisExecution(),
+/** One customer, in the parts this staff member may see. */
+function CustomerDetail({
+  row,
+  me,
+  onOpenCases,
+}: {
+  row: AdminAccountRow;
+  me: MyStaff;
+  onOpenCases: () => void;
+}) {
+  const may = (permission: StaffPermission) => me.permissions.includes(permission);
+  const detail = useQuery({
+    queryKey: ["admin", "customer", row.id],
+    queryFn: () => readCustomer({ data: { userId: row.id } }),
   });
   const { withProof, dialog } = useConfirmIdentity();
-  const change = useMutation({
-    mutationFn: (input: { key: ControlKey; paused: boolean }) =>
-      withProof(() => setJarvisExecution({ data: { ...input, reason } })),
-    onSuccess: async ({ paused }, { key }) => {
-      toast.success(`${CONTROL_NAMES[key]}: ${paused ? "paused" : "running"}.`);
-      setReason("");
-      await queryClient.invalidateQueries({ queryKey: ["admin", "jarvis-execution"] });
+  const [why, setWhy] = useState("");
+  const [hours, setHours] = useState("24");
+  const end = useMutation({
+    mutationFn: () =>
+      withProof(() => endCustomerSessions({ data: { userId: row.id, reason: why } })),
+    onSuccess: ({ ended }) => {
+      toast.success(`Sessions ended (${ended}). They sign in again on every device.`);
+      setWhy("");
+      void detail.refetch();
     },
-    onError: (error: unknown) => toast.error(messageOf(error)),
+    onError: (error) => toast.error(messageOf(error)),
   });
-  if (!state.data) {
-    // The emergency stop never silently disappears: loading and failure are said, with a retry.
-    return (
-      <section
-        aria-label="JARVIS device work"
-        className="mt-5 rounded-xl border border-border/60 p-4 text-sm"
-      >
-        <p className="font-medium text-foreground">JARVIS device work</p>
-        <Pending
-          query={state}
-          loading="Reading whether JARVIS device work is running…"
-          problem="The emergency stop could not be read. Try again before relying on it."
-        />
-      </section>
-    );
-  }
-  const ready = reason.trim().length >= 10 && !change.isPending;
+  const kase = useMutation({
+    mutationFn: () =>
+      withProof(() => openCase({ data: { userId: row.id, reason: why, hours: Number(hours) } })),
+    onSuccess: () => {
+      toast.success("Case opened. The customer has been told.");
+      setWhy("");
+      onOpenCases();
+    },
+    onError: (error) => toast.error(messageOf(error)),
+  });
+  const validHours = Number.isInteger(Number(hours)) && Number(hours) >= 1 && Number(hours) <= 72;
+
   return (
-    <section
-      aria-label="JARVIS device work"
-      className="mt-5 rounded-xl border border-border/60 p-4 text-sm"
-    >
+    <div className="mt-3 space-y-3 rounded-md border border-border p-3 text-[13px]">
       {dialog}
-      <p className="font-medium text-foreground">JARVIS device work</p>
-      <ul className="mt-2 divide-y divide-border/50">
-        {state.data.map((control) => (
-          <li key={control.key} className="flex items-center justify-between gap-3 py-2">
-            <span className="min-w-0">
-              <span className="block text-foreground">{CONTROL_NAMES[control.key]}</span>
-              {control.reason ? (
-                <span className="block truncate text-[13px] text-muted-foreground">
-                  Last change: {control.reason}
-                </span>
-              ) : null}
-            </span>
-            <span className="flex shrink-0 items-center gap-2">
-              <span
-                className={
-                  control.paused
-                    ? "rounded-full bg-destructive/15 px-2 py-0.5 text-xs text-destructive"
-                    : "rounded-full bg-success/15 px-2 py-0.5 text-xs text-success"
-                }
-              >
-                {control.paused ? "Paused" : "Running"}
-              </span>
+      {detail.data ? (
+        <>
+          {detail.data.security ? (
+            <p className="text-muted-foreground">
+              Two-step {detail.data.security.secondFactor ? "on" : "off"} ·{" "}
+              {detail.data.security.sessions} active session
+              {detail.data.security.sessions === 1 ? "" : "s"} · last sign-in{" "}
+              {detail.data.security.lastSignIn
+                ? new Date(detail.data.security.lastSignIn).toLocaleString()
+                : "never"}
+            </p>
+          ) : null}
+          {detail.data.usage ? (
+            <p className="text-muted-foreground">
+              Usage:{" "}
+              {detail.data.usage.length
+                ? detail.data.usage.map((w) => `${w.kind} ${w.used}`).join(" · ")
+                : "none yet"}
+            </p>
+          ) : null}
+          {detail.data.tasks ? (
+            detail.data.tasks.length ? (
+              <ul className="space-y-1">
+                {detail.data.tasks.map((task, index) => (
+                  <li key={index} className="flex justify-between gap-2">
+                    <span className="truncate text-foreground">{task.title}</span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {task.status} · {new Date(task.updatedAt).toLocaleDateString()}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground">No JARVIS tasks.</p>
+            )
+          ) : null}
+        </>
+      ) : (
+        <Pending
+          query={detail}
+          loading="Loading the account…"
+          problem="The account could not be read."
+        />
+      )}
+      {may("devices.read") ? (
+        <AccountDevices userId={row.id} canRemove={may("devices.manage")} />
+      ) : null}
+      {!row.isSelf && (may("sessions.manage") || may("cases.manage")) ? (
+        <div className="space-y-2 border-t border-border/50 pt-3">
+          <Reason value={why} onChange={setWhy} label="Why" />
+          <div className="flex flex-wrap items-center gap-2">
+            {may("sessions.manage") ? (
               <button
                 type="button"
-                disabled={!ready}
-                onClick={() => change.mutate({ key: control.key, paused: !control.paused })}
-                aria-label={`${control.paused ? "Resume" : "Pause"} ${CONTROL_NAMES[control.key]}`}
-                className={
-                  control.paused
-                    ? "h-7 rounded-md border border-border px-2 disabled:opacity-50"
-                    : "h-7 rounded-md border border-destructive/50 px-2 text-destructive disabled:opacity-50"
-                }
+                disabled={!ready(why) || end.isPending}
+                onClick={() => end.mutate()}
+                className="h-7 rounded-md border border-destructive/50 px-2 text-destructive disabled:opacity-50"
               >
-                {control.paused ? "Resume" : "Pause"}
+                {end.isPending ? "Ending…" : "End all their sessions"}
               </button>
-            </span>
-          </li>
-        ))}
-      </ul>
-      <label className="mt-2 block">
-        <span className="sr-only">Reason</span>
-        <input
-          value={reason}
-          onChange={(event) => setReason(event.target.value)}
-          placeholder="Why (at least ten characters)"
-          className="h-8 w-full rounded-md border border-border bg-transparent px-3 text-sm outline-none focus-visible:border-ring"
-        />
-      </label>
-    </section>
+            ) : null}
+            {may("cases.manage") ? (
+              <>
+                <label className="flex items-center gap-1 text-muted-foreground">
+                  <span>Case for</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={72}
+                    value={hours}
+                    onChange={(event) => setHours(event.target.value)}
+                    aria-label="Case length in hours"
+                    className="h-7 w-16 rounded-md border border-border bg-transparent px-2 text-foreground outline-none focus-visible:border-ring"
+                  />
+                  <span>hours</span>
+                </label>
+                <button
+                  type="button"
+                  disabled={!ready(why) || !validHours || kase.isPending}
+                  onClick={() => kase.mutate()}
+                  className="h-7 rounded-md border border-border px-2 text-foreground disabled:opacity-50"
+                >
+                  {kase.isPending ? "Opening…" : "Open a case"}
+                </button>
+              </>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -318,7 +465,7 @@ function EmergencyStop() {
  * ONE ACCOUNT'S JARVIS DEVICES. Removing one ends its key and its open work;
  * the database requires a second factor and a reason and keeps the record.
  */
-function AccountDevices({ userId }: { userId: string }) {
+function AccountDevices({ userId, canRemove: allowed }: { userId: string; canRemove: boolean }) {
   const queryClient = useQueryClient();
   const [reason, setReason] = useState("");
   const devices = useQuery({
@@ -348,7 +495,7 @@ function AccountDevices({ userId }: { userId: string }) {
   if (devices.data.length === 0) {
     return <p className="mt-3 text-[13px] text-muted-foreground">No JARVIS devices.</p>;
   }
-  const canRemove = reason.trim().length >= 10 && !remove.isPending;
+  const canRemove = allowed && reason.trim().length >= 10 && !remove.isPending;
   return (
     <div className="mt-3 rounded-md border border-border p-3 text-[13px]">
       {dialog}
@@ -366,7 +513,7 @@ function AccountDevices({ userId }: { userId: string }) {
             </span>
             {device.removedAt ? (
               <span className="shrink-0 text-muted-foreground">Removed</span>
-            ) : (
+            ) : !allowed ? null : (
               <button
                 type="button"
                 disabled={!canRemove}
@@ -379,7 +526,7 @@ function AccountDevices({ userId }: { userId: string }) {
           </li>
         ))}
       </ul>
-      {devices.data.some((device) => !device.removedAt) ? (
+      {allowed && devices.data.some((device) => !device.removedAt) ? (
         <label className="mt-3 block">
           <span className="sr-only">Reason for removing a device</span>
           <input
@@ -391,34 +538,6 @@ function AccountDevices({ userId }: { userId: string }) {
         </label>
       ) : null}
     </div>
-  );
-}
-
-/**
- * WHETHER A GRANT CAN BE SUBMITTED AT ALL, SAID BEFORE IT IS TRIED.
- *
- * `ocade_grant_entitlement` refuses without `aal2`, and it is right to. What was
- * missing was any way to reach `aal2`: nothing in the product enrolled a second
- * factor, so an operator filled in the form, pressed the button, and was told
- * the change needed something OCADE gave them no way to obtain. Enrollment lives
- * in Settings now, and this says so while the session cannot grant.
- *
- * The check is a prompt, not the protection — the database refuses regardless —
- * so an unreadable answer says nothing rather than blocking the screen.
- */
-function SecondFactorNotice() {
-  const assurance = useQuery({
-    queryKey: ["admin", "assurance"],
-    queryFn: async () => (await import("@/lib/security/mfa")).currentAssurance(),
-    retry: false,
-  });
-  if (assurance.data?.current === "aal2" || assurance.data === undefined) return null;
-  return (
-    <p className="mt-3 text-[13px] text-foreground" role="status">
-      {assurance.data.next === "aal2"
-        ? "Giving or taking back access needs your second factor. Open any signed-in page to be asked for your code, then come back."
-        : "Giving or taking back access needs a second factor. Set up two-step verification under Settings → Account, then come back."}
-    </p>
   );
 }
 
@@ -528,10 +647,4 @@ function GrantForm({
       </button>
     </form>
   );
-}
-
-/** A server function rejects with a Response; its body is the sentence. */
-function messageOf(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  return "That change was not applied.";
 }

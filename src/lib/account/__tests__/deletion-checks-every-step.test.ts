@@ -25,7 +25,7 @@ const deleteUser = vi.fn(async () => ({ error: null }));
 const updates: { values: Record<string, unknown>; ids: unknown }[] = [];
 let storageError: { message: string } | null = null;
 let owed: { id: string; bucket: string; storage_path: string; attempts: number }[] = [];
-let admins: { user_id: string }[] = [];
+let staffRole: string | null = null;
 
 function table(name: string) {
   const chain: Record<string, unknown> = {};
@@ -41,8 +41,11 @@ function table(name: string) {
       owed = [];
       return { data: rows, error: null };
     };
-    read.then = (resolve: (v: unknown) => void) =>
-      resolve(name === "user_roles" ? { data: admins, error: null } : { count: owed.length });
+    read.maybeSingle = async () => ({
+      data: name === "ocade_staff" && staffRole ? { role: staffRole } : null,
+      error: null,
+    });
+    read.then = (resolve: (v: unknown) => void) => resolve({ count: owed.length });
     return read;
   };
   chain.update = (values: Record<string, unknown>) => ({
@@ -78,18 +81,18 @@ beforeEach(() => {
   updates.length = 0;
   storageError = null;
   owed = [];
-  admins = [];
+  staffRole = null;
 });
 
-describe("the last operator", () => {
+describe("the Primary Owner", () => {
   it("cannot delete their own account, and nothing is removed", async () => {
-    admins = [{ user_id: "u1" }];
-    await expect(run()).rejects.toThrow(/only operator/);
+    staffRole = "primary_owner";
+    await expect(run()).rejects.toThrow(/Primary Owner/);
     expect(deleteUser).not.toHaveBeenCalled();
   });
 
-  it("can once another account also operates OCADE", async () => {
-    admins = [{ user_id: "u1" }, { user_id: "u2" }];
+  it("other staff can: their role goes with the account", async () => {
+    staffRole = "support";
     await run();
     expect(deleteUser).toHaveBeenCalledOnce();
   });

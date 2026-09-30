@@ -265,7 +265,16 @@ try {
   await pageC.getByRole("button", { name: "Export", exact: true }).click();
   const ask = pageC.getByRole("dialog", { name: "Confirm it's you" });
   await ask.waitFor({ timeout: 10_000 });
-  check("an hour-old proof asks to confirm it's you", (await ask.innerText()).includes(staleEmail));
+  // The dialog opens on "One moment…" while the code is sent; wait for what it then says.
+  await ask
+    .getByText(staleEmail)
+    .waitFor({ timeout: 10_000 })
+    .catch(() => undefined);
+  check(
+    "an hour-old proof asks to confirm it's you",
+    (await ask.innerText()).includes(staleEmail),
+    (await ask.innerText()).replace(/\s+/g, " ").slice(0, 200),
+  );
   await ask.getByLabel("Verification code").fill("000000");
   await ask.getByRole("button", { name: "Confirm", exact: true }).click();
   await ask.getByRole("alert").waitFor({ timeout: 10_000 });

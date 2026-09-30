@@ -1188,6 +1188,102 @@ export type Database = {
         }
         Relationships: []
       }
+      ocade_staff: {
+        Row: {
+          created_at: string
+          denied: string[]
+          granted: string[]
+          granted_by: string | null
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          denied?: string[]
+          granted?: string[]
+          granted_by?: string | null
+          role: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          denied?: string[]
+          granted?: string[]
+          granted_by?: string | null
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ocade_staff_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          role: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          invited_by?: string | null
+          role: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: []
+      }
+      ocade_support_cases: {
+        Row: {
+          closed_at: string | null
+          customer: string
+          expires_at: string
+          id: string
+          opened_at: string
+          opened_by: string | null
+          reason: string
+        }
+        Insert: {
+          closed_at?: string | null
+          customer: string
+          expires_at: string
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          reason: string
+        }
+        Update: {
+          closed_at?: string | null
+          customer?: string
+          expires_at?: string
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          reason?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1731,6 +1827,46 @@ export type Database = {
       ocade_revoke_account_session: {
         Args: { p_session_id: string; p_user_id: string }
         Returns: number
+      }
+      ocade_case_close: { Args: { p_case: string; p_reason: string }; Returns: boolean }
+      ocade_case_messages: {
+        Args: { p_case: string; p_conversation: string }
+        Returns: { content: string; created_at: string; role: string }[]
+      }
+      ocade_case_open: {
+        Args: { p_customer: string; p_hours: number; p_reason: string }
+        Returns: string
+      }
+      ocade_my_staff: {
+        Args: never
+        Returns: { permissions: string[]; role: string; second_factor: boolean }[]
+      }
+      ocade_staff_can: { Args: { p_permission: string }; Returns: boolean }
+      ocade_staff_end_all_sessions: { Args: { p_reason: string }; Returns: number }
+      ocade_staff_end_customer_sessions: {
+        Args: { p_reason: string; p_user: string }
+        Returns: number
+      }
+      ocade_staff_grant: {
+        Args: { p_email: string; p_reason: string; p_role: string }
+        Returns: Json
+      }
+      ocade_staff_role_defaults: {
+        Args: never
+        Returns: { permissions: string[]; role: string }[]
+      }
+      ocade_staff_revoke: { Args: { p_reason: string; p_user: string }; Returns: boolean }
+      ocade_staff_set_permissions: {
+        Args: { p_denied: string[]; p_granted: string[]; p_reason: string; p_user: string }
+        Returns: boolean
+      }
+      ocade_staff_transfer_ownership: {
+        Args: { p_reason: string; p_to: string }
+        Returns: boolean
+      }
+      ocade_staff_withdraw_invite: {
+        Args: { p_invite: string; p_reason: string }
+        Returns: boolean
       }
       ocade_revoke_entitlement: {
         Args: { grant_id: string; revoke_reason: string }

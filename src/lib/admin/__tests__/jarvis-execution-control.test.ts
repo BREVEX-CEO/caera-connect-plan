@@ -24,7 +24,7 @@ beforeAll(async () => {
   await twin.execSuperuser(
     `insert into auth.users (id, email) values ('${ADMIN}', 'admin@ocade.invalid'),
        ('${PERSON}', 'person@ocade.invalid') on conflict do nothing;
-     insert into public.user_roles (user_id, role) values ('${ADMIN}', 'admin') on conflict do nothing;`,
+     insert into public.ocade_staff (user_id, role) values ('${ADMIN}', 'admin') on conflict do nothing;`,
   );
 }, 240_000);
 

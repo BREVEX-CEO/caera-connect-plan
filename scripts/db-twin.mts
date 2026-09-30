@@ -269,6 +269,8 @@ export interface TenantSession {
   provedSecondsAgo?: number;
   /** Suppress the authentication-methods list entirely, as some tokens do. */
   omitAmr?: boolean;
+  /** The `session_id` claim, for functions that must spare the caller's own session. */
+  sessionId?: string;
 }
 
 function claimsFor(userId: string, session: TenantSession): Record<string, unknown> {
@@ -277,6 +279,7 @@ function claimsFor(userId: string, session: TenantSession): Record<string, unkno
     role: "authenticated",
     aal: session.aal ?? "aal1",
   };
+  if (session.sessionId) claims["session_id"] = session.sessionId;
   if (!session.omitAmr) {
     // Supabase reports these in SECONDS, which is the detail a millisecond
     // reading gets wrong by a factor of a thousand and silently.

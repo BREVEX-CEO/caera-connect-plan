@@ -168,7 +168,13 @@ try {
   await page.getByRole("button", { name: "Privacy & Security", exact: true }).click();
   // The list is a server read; waiting for the heading only proves the section
   // mounted, not that the sessions arrived.
+  // "this device" is also in the section's own words, so wait for what only the
+  // loaded list brings: the control for the OTHER sessions.
   await page.waitForSelector("text=this device", { timeout: 15_000 });
+  await page
+    .getByRole("button", { name: "Sign out everywhere else" })
+    .waitFor({ timeout: 15_000 })
+    .catch(() => undefined);
   const advanced = await dialog.innerText();
   check("Advanced shows where the account is signed in", /this device/i.test(advanced));
   check(

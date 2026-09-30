@@ -56,6 +56,85 @@ const factors = new Map();
 const challenges = new Map();
 /** The assurance of the session making the current request. */
 let requestAal = "aal1";
+/** The token of the session making the current request (the one an emergency sign-out spares). */
+let requestToken = "";
+
+/*
+ * THE STAFF AUTHORITY (public.ocade_staff), with the rules the migration
+ * enforces. The rules themselves are proven against PostgreSQL in
+ * staff-authority.test.ts; this exists so the consoles can be driven in a
+ * real browser against the same refusals in the same words.
+ */
+/** userId -> { role, granted, denied } */
+const staffRoles = new Map();
+/** Accounts whose access was removed: signing in again must not hand it back. */
+const formerStaff = new Set();
+const staffInvites = [];
+const supportCases = [];
+const adminActions = [];
+/** What the server recorded as notifications, for `/__fixture/notifications`. */
+const recordedNotifications = [];
+const ALL_PERMISSIONS = [
+  "customers.read",
+  "usage.read",
+  "devices.read",
+  "devices.manage",
+  "tasks.read",
+  "security.read",
+  "sessions.manage",
+  "grants.manage",
+  "execution.manage",
+  "health.read",
+  "audit.read",
+  "staff.manage",
+  "cases.read",
+  "cases.manage",
+];
+const ROLE_PERMISSIONS = {
+  primary_owner: ALL_PERMISSIONS,
+  backup_owner: ALL_PERMISSIONS,
+  admin: ALL_PERMISSIONS.filter((p) => p !== "staff.manage" && p !== "cases.manage"),
+  support: ["customers.read", "devices.read", "tasks.read", "cases.read"],
+  billing: ["customers.read", "usage.read", "grants.manage"],
+  operations: ["devices.read", "devices.manage", "tasks.read", "health.read", "execution.manage"],
+  read_only: [
+    "customers.read",
+    "usage.read",
+    "devices.read",
+    "tasks.read",
+    "health.read",
+    "audit.read",
+  ],
+};
+/** An address's prefix names its role: owner, backup, admin, support, billing, ops, readonly. */
+const ROLE_BY_PREFIX = {
+  owner: "primary_owner",
+  backup: "backup_owner",
+  admin: "admin",
+  support: "support",
+  billing: "billing",
+  ops: "operations",
+  readonly: "read_only",
+};
+const roleOf = (id) => staffRoles.get(id)?.role ?? null;
+const staffHas = (id, permission) => {
+  const member = staffRoles.get(id);
+  return (
+    Boolean(member) &&
+    (ROLE_PERMISSIONS[member.role].includes(permission) || member.granted.includes(permission)) &&
+    !member.denied.includes(permission)
+  );
+};
+const record = (actor, action, reason, target_user = null, subject = null) =>
+  adminActions.push({
+    id: randomUUID(),
+    created_at: new Date().toISOString(),
+    actor,
+    action,
+    reason,
+    target_user,
+    subject,
+  });
 
 function idForEmail(address) {
   // Derived rather than random, so the same address is the same account across
@@ -184,8 +263,23 @@ function shapedJwt(
 function openSession(email, aal = assuranceOf(email), provedAt = Math.floor(Date.now() / 1000)) {
   const id = idForEmail(email);
   emails.set(id, email);
-  if (email.startsWith("admin") && !rows(id, "user_roles").length) {
-    rows(id, "user_roles").push({ id: randomUUID(), user_id: id, role: "admin" });
+  const named = ROLE_BY_PREFIX[email.split(/[-+@]/)[0]];
+  if (named && !staffRoles.has(id) && !formerStaff.has(id)) {
+    staffRoles.set(id, { role: named, granted: [], denied: [] });
+  }
+  // A verified address with an open invitation: it becomes access, once.
+  const invite = staffInvites.find(
+    (row) =>
+      row.email === email.toLowerCase() &&
+      !row.accepted_at &&
+      !row.withdrawn_at &&
+      Date.parse(row.expires_at) > Date.now(),
+  );
+  if (invite && !staffRoles.has(id)) {
+    staffRoles.set(id, { role: invite.role, granted: [], denied: [] });
+    invite.accepted_at = new Date().toISOString();
+    invite.accepted_by = id;
+    record(invite.invited_by, "staff_invite_accepted", "The invited address was verified.", id);
   }
   const accessToken = shapedJwt(id, email, aal, provedAt);
   sessions.set(accessToken, id);
@@ -341,7 +435,32 @@ const kindFor = (surface, kind) => (surface === "jarvis" ? `jarvis_${kind}` : ki
 
 function handleRpc(name, args, userId) {
   const now = Date.now();
-  const isAdmin = (id) => rows(id, "user_roles").some((row) => row.role === "admin");
+  const refuse = (message, code = "42501") => ({ __error: { code, message } });
+  /** A privileged change: the permission, then a second factor this session. */
+  const requireStaff = (permission, action) =>
+    !staffHas(userId, permission)
+      ? refuse("Not found")
+      : requestAal !== "aal2"
+        ? refuse(`Confirm the code from your authenticator app to ${action}.`)
+        : null;
+  const short = (reason) =>
+    String(reason ?? "").trim().length < 10
+      ? refuse("Say why, in at least ten characters.", "22023")
+      : null;
+  const endSessions = (users, spare = "") => {
+    let ended = 0;
+    for (const [token, owner] of [...sessions]) {
+      if (users.has(owner) && token !== spare) {
+        sessions.delete(token);
+        tokenAal.delete(token);
+        ended += 1;
+      }
+    }
+    for (const [token, held] of [...refreshes]) {
+      if (users.has(held.userId)) refreshes.delete(token);
+    }
+    return ended;
+  };
   const session = windowFor("session", now);
   const week = windowFor("week", now);
 
@@ -652,21 +771,246 @@ function handleRpc(name, args, userId) {
       return true;
 
     case "has_role":
-      return rows(args._user_id, "user_roles").some((row) => row.role === args._role);
+      return args._role === "admin"
+        ? ["primary_owner", "backup_owner", "admin"].includes(roleOf(args._user_id))
+        : rows(args._user_id, "user_roles").some((row) => row.role === args._role);
+
+    case "ocade_staff_can":
+      return (
+        staffHas(userId, args.p_permission) &&
+        (roleOf(userId) === "primary_owner" || requestAal === "aal2")
+      );
+
+    case "ocade_my_staff": {
+      const member = staffRoles.get(userId);
+      if (!member) return [];
+      return [
+        {
+          role: member.role,
+          permissions: ALL_PERMISSIONS.filter((permission) => staffHas(userId, permission)),
+          second_factor: requestAal === "aal2",
+        },
+      ];
+    }
+
+    case "ocade_staff_role_defaults":
+      return staffHas(userId, "staff.manage") &&
+        (roleOf(userId) === "primary_owner" || requestAal === "aal2")
+        ? Object.entries(ROLE_PERMISSIONS).map(([role, permissions]) => ({ role, permissions }))
+        : [];
+
+    case "ocade_staff_grant": {
+      const denied = requireStaff("staff.manage", "change who operates OCADE");
+      if (denied) return denied;
+      if (!Object.values(ROLE_BY_PREFIX).includes(args.p_role) || args.p_role === "primary_owner") {
+        return refuse("That is not a staff role.", "22023");
+      }
+      if (short(args.p_reason)) return short(args.p_reason);
+      if (args.p_role === "backup_owner" && roleOf(userId) !== "primary_owner") {
+        return refuse("Only the Primary Owner names a Backup Owner.");
+      }
+      const address = String(args.p_email).trim().toLowerCase();
+      const target = [...emails].find(([, email]) => email.toLowerCase() === address)?.[0];
+      if (!target) {
+        for (const row of staffInvites) {
+          if (row.email === address && !row.accepted_at && !row.withdrawn_at) {
+            row.withdrawn_at = new Date(now).toISOString();
+          }
+        }
+        staffInvites.push({
+          id: randomUUID(),
+          email: address,
+          role: args.p_role,
+          invited_by: userId,
+          created_at: new Date(now).toISOString(),
+          expires_at: new Date(now + 14 * 86_400_000).toISOString(),
+          accepted_at: null,
+          accepted_by: null,
+          withdrawn_at: null,
+        });
+        record(userId, "staff_invite", String(args.p_reason).trim());
+        return { status: "invited" };
+      }
+      if (target === userId) return refuse("Nobody changes their own access.");
+      if (roleOf(target) === "primary_owner") {
+        return refuse("The Primary Owner's access is changed only by handing ownership over.");
+      }
+      if (roleOf(target) === "backup_owner" && roleOf(userId) !== "primary_owner") {
+        return refuse("Only the Primary Owner changes the Backup Owner.");
+      }
+      staffRoles.set(target, {
+        granted: [],
+        denied: [],
+        ...staffRoles.get(target),
+        role: args.p_role,
+      });
+      formerStaff.delete(target);
+      record(userId, "staff_grant", String(args.p_reason).trim(), target);
+      return { status: "granted", user_id: target };
+    }
+
+    case "ocade_staff_set_permissions": {
+      const denied = requireStaff("staff.manage", "change who operates OCADE");
+      if (denied) return denied;
+      if (short(args.p_reason)) return short(args.p_reason);
+      if (args.p_user === userId) return refuse("Nobody changes their own access.");
+      const member = staffRoles.get(args.p_user);
+      if (!member) return false;
+      if (
+        member.role === "primary_owner" ||
+        (member.role === "backup_owner" && roleOf(userId) !== "primary_owner")
+      ) {
+        return refuse("Only the Primary Owner changes an owner's access.");
+      }
+      member.granted = args.p_granted ?? [];
+      member.denied = args.p_denied ?? [];
+      record(userId, "staff_permissions", String(args.p_reason).trim(), args.p_user);
+      return true;
+    }
+
+    case "ocade_staff_revoke": {
+      const denied = requireStaff("staff.manage", "change who operates OCADE");
+      if (denied) return denied;
+      if (short(args.p_reason)) return short(args.p_reason);
+      const role = roleOf(args.p_user);
+      if (!role) return false;
+      if (role === "primary_owner") {
+        return refuse("The Primary Owner is removed only by handing ownership over.");
+      }
+      if (role === "backup_owner" && roleOf(userId) !== "primary_owner") {
+        return refuse("Only the Primary Owner removes the Backup Owner.");
+      }
+      staffRoles.delete(args.p_user);
+      formerStaff.add(args.p_user);
+      record(userId, "staff_revoke", String(args.p_reason).trim(), args.p_user);
+      return true;
+    }
+
+    case "ocade_staff_withdraw_invite": {
+      const denied = requireStaff("staff.manage", "change who operates OCADE");
+      if (denied) return denied;
+      if (short(args.p_reason)) return short(args.p_reason);
+      const invite = staffInvites.find(
+        (row) => row.id === args.p_invite && !row.accepted_at && !row.withdrawn_at,
+      );
+      if (!invite) return false;
+      invite.withdrawn_at = new Date(now).toISOString();
+      record(userId, "staff_invite_withdrawn", String(args.p_reason).trim(), null, invite.id);
+      return true;
+    }
+
+    case "ocade_staff_transfer_ownership": {
+      const denied = requireStaff("staff.manage", "hand over ownership");
+      if (denied) return denied;
+      if (roleOf(userId) !== "primary_owner") {
+        return refuse("Only the Primary Owner hands over ownership.");
+      }
+      if (roleOf(args.p_to) !== "backup_owner") {
+        return refuse("Ownership goes to the Backup Owner. Name one first.", "22023");
+      }
+      if (short(args.p_reason)) return short(args.p_reason);
+      staffRoles.get(userId).role = "backup_owner";
+      Object.assign(staffRoles.get(args.p_to), { role: "primary_owner", denied: [] });
+      record(userId, "owner_transfer", String(args.p_reason).trim(), args.p_to);
+      return true;
+    }
+
+    case "ocade_staff_end_all_sessions": {
+      const denied = requireStaff("staff.manage", "sign every staff member out");
+      if (denied) return denied;
+      if (short(args.p_reason)) return short(args.p_reason);
+      const ended = endSessions(new Set(staffRoles.keys()), requestToken);
+      record(userId, "staff_sessions_ended", String(args.p_reason).trim());
+      return ended;
+    }
+
+    case "ocade_staff_end_customer_sessions": {
+      const denied = requireStaff("sessions.manage", "end a customer's sessions");
+      if (denied) return denied;
+      if (short(args.p_reason)) return short(args.p_reason);
+      if (["primary_owner", "backup_owner"].includes(roleOf(args.p_user))) {
+        return refuse("An owner's sessions are ended by the owner.");
+      }
+      const ended = endSessions(new Set([args.p_user]));
+      record(userId, "customer_sessions_ended", String(args.p_reason).trim(), args.p_user);
+      return ended;
+    }
+
+    case "ocade_case_open": {
+      const denied = requireStaff("cases.manage", "open a support case");
+      if (denied) return denied;
+      if (short(args.p_reason)) return short(args.p_reason);
+      const hours = Number(args.p_hours);
+      if (!Number.isInteger(hours) || hours < 1 || hours > 72) {
+        return refuse("A case lasts between 1 and 72 hours.", "22023");
+      }
+      if (args.p_customer === userId) {
+        return refuse("A case is about somebody else's account.", "22023");
+      }
+      const id = randomUUID();
+      supportCases.push({
+        id,
+        customer: args.p_customer,
+        opened_by: userId,
+        reason: String(args.p_reason).trim(),
+        opened_at: new Date(now).toISOString(),
+        expires_at: new Date(now + hours * 3_600_000).toISOString(),
+        closed_at: null,
+      });
+      record(userId, "case_open", String(args.p_reason).trim(), args.p_customer, id);
+      return id;
+    }
+
+    case "ocade_case_close": {
+      const denied = requireStaff("cases.manage", "close a support case");
+      if (denied) return denied;
+      if (short(args.p_reason)) return short(args.p_reason);
+      const open = supportCases.find((row) => row.id === args.p_case && !row.closed_at);
+      if (!open) return false;
+      open.closed_at = new Date(now).toISOString();
+      record(userId, "case_close", String(args.p_reason).trim(), open.customer, open.id);
+      return true;
+    }
+
+    case "ocade_case_messages": {
+      if (
+        !staffHas(userId, "cases.read") ||
+        (roleOf(userId) !== "primary_owner" && requestAal !== "aal2")
+      ) {
+        return refuse("Not found");
+      }
+      const open = supportCases.find(
+        (row) => row.id === args.p_case && !row.closed_at && Date.parse(row.expires_at) > now,
+      );
+      if (!open) return refuse("This case is closed or has expired.");
+      const owns = rows(open.customer, "ocade_conversations").some(
+        (row) => row.id === args.p_conversation,
+      );
+      if (!owns) return refuse("Not found");
+      record(
+        userId,
+        "case_read",
+        "Read a conversation under an open case.",
+        open.customer,
+        open.id,
+      );
+      return rows(open.customer, "ocade_messages")
+        .filter((row) => row.conversation_id === args.p_conversation)
+        .map(({ role, content, created_at }) => ({ role, content, created_at }));
+    }
 
     /* The operator's device removal, with the refusals the function makes. */
     /* The JARVIS stops: global, Device Agent, browser extension. */
     case "ocade_read_service_controls":
-      if (!isAdmin(userId)) {
-        return {
-          __error: { code: "42501", message: "Only support admins may read service controls." },
-        };
+      if (!staffHas(userId, "execution.manage") && !staffHas(userId, "health.read")) {
+        return refuse("Only support admins may read service controls.");
       }
       return serviceControls;
 
     case "ocade_set_service_control": {
-      const refuse = (message) => ({ __error: { code: "42501", message } });
-      if (!isAdmin(userId)) return refuse("Only support admins may change a service control.");
+      if (!staffHas(userId, "execution.manage")) {
+        return refuse("Only support admins may change a service control.");
+      }
       if (requestAal !== "aal2") {
         return refuse("Changing a service control needs a recent second factor.");
       }
@@ -685,8 +1029,9 @@ function handleRpc(name, args, userId) {
     }
 
     case "ocade_admin_remove_device": {
-      const refuse = (message) => ({ __error: { code: "42501", message } });
-      if (!isAdmin(userId)) return refuse("Only support admins may remove a device.");
+      if (!staffHas(userId, "devices.manage")) {
+        return refuse("Only support admins may remove a device.");
+      }
       if (requestAal !== "aal2") {
         return refuse("Removing a device needs a recent second factor.");
       }
@@ -715,6 +1060,12 @@ function handleRpc(name, args, userId) {
     }
 
     case "ocade_record_notification":
+      recordedNotifications.push({
+        user_id: args.p_user_id,
+        category: args.p_category,
+        title: args.p_title,
+        body: args.p_body,
+      });
       return null;
 
     case "ocade_save_notification_preferences": {
@@ -799,6 +1150,19 @@ const serviceControls = ["jarvis_execution", "jarvis_agent", "jarvis_extension"]
   changed_at: new Date().toISOString(),
 }));
 
+/** What only the service role reads: the staff tables, never reachable with a session. */
+const STAFF_STORES = {
+  ocade_staff: () =>
+    [...staffRoles].map(([user_id, member]) => ({
+      user_id,
+      created_at: "2026-09-01T00:00:00Z",
+      ...member,
+    })),
+  ocade_staff_invites: () => staffInvites,
+  ocade_support_cases: () => supportCases,
+  ocade_admin_actions: () => adminActions,
+};
+
 /** JARVIS rows, shared across accounts and filtered per session (see the handler). */
 const jarvisTables = {};
 
@@ -870,8 +1234,11 @@ const server = createServer((request, response) => {
     };
 
     if (request.method === "OPTIONS") return send(204);
-    requestAal =
-      tokenAal.get((request.headers.authorization ?? "").replace(/^Bearer\s+/i, "")) ?? "aal1";
+    requestToken = (request.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
+    requestAal = tokenAal.get(requestToken) ?? "aal1";
+
+    if (url.pathname === "/__fixture/notifications") return send(200, recordedNotifications);
+    if (url.pathname === "/__fixture/audit") return send(200, adminActions);
 
     /* --- fixtures -------------------------------------------------------- */
 
@@ -1001,6 +1368,18 @@ const server = createServer((request, response) => {
     if (url.pathname === "/auth/v1/signup") {
       const parsed = JSON.parse(body || "{}");
       return send(200, openSession(parsed.email ?? "proof@ocade.test"));
+    }
+
+    const adminUser = /^\/auth\/v1\/admin\/users\/([0-9a-f-]+)(\/factors)?$/.exec(url.pathname);
+    if (adminUser && request.method === "GET") {
+      // The service key only: a session token is a customer's, and gets nothing here.
+      if (sessions.has(requestToken)) return send(403, { message: "not the service role" });
+      const [, id, wantsFactors] = adminUser;
+      if (wantsFactors) return send(200, (factors.get(id) ?? []).map(publicFactor));
+      return send(200, {
+        ...userRecord(id, emails.get(id) ?? ""),
+        last_sign_in_at: emails.has(id) ? new Date().toISOString() : null,
+      });
     }
 
     if (url.pathname === "/auth/v1/user") {
@@ -1230,6 +1609,9 @@ const server = createServer((request, response) => {
         const projected = list.map((row) => project(row, select));
         return send(status, single ? (projected[0] ?? null) : projected);
       };
+      if (request.method === "HEAD") {
+        return send(200, undefined, { "content-range": `*/${found().length}` });
+      }
       if (request.method === "GET") return answer(found());
       if (request.method === "POST") {
         const payload = JSON.parse(body || "{}");
@@ -1285,19 +1667,31 @@ const server = createServer((request, response) => {
       const stored =
         name === "ocade_service_controls"
           ? serviceControls
-          : userId === "anonymous" && (name === "profiles" || name === "user_roles")
-            ? name === "profiles"
-              ? [...emails].map(([id, email]) => ({
-                  id,
-                  email,
-                  display_name: null,
-                  created_at: "2026-09-01T00:00:00Z",
-                  ...rows(id, "profiles")[0],
-                }))
-              : [...tables.values()].flatMap((owned) => owned.user_roles ?? [])
-            : rows(userId, name);
+          : userId === "anonymous" && name in STAFF_STORES
+            ? STAFF_STORES[name]()
+            : userId === "anonymous" && name === "ocade_conversations"
+              ? [...tables.values()].flatMap((owned) => owned.ocade_conversations ?? [])
+              : userId === "anonymous" && (name === "profiles" || name === "user_roles")
+                ? name === "profiles"
+                  ? [...emails].map(([id, email]) => ({
+                      id,
+                      email,
+                      display_name: null,
+                      created_at: "2026-09-01T00:00:00Z",
+                      ...rows(id, "profiles")[0],
+                    }))
+                  : [...tables.values()].flatMap((owned) => owned.user_roles ?? [])
+                : rows(userId, name);
       const single = (request.headers.accept ?? "").includes("vnd.pgrst.object");
 
+      // A signed-in session never reads a staff table directly, exactly as the grants say.
+      if (userId !== "anonymous" && name in STAFF_STORES) {
+        return send(403, { code: "42501", message: `permission denied for table ${name}` });
+      }
+      if (request.method === "HEAD") {
+        const counted = stored.filter((row) => matches(row, params));
+        return send(200, undefined, { "content-range": `*/${counted.length}` });
+      }
       if (request.method === "GET") {
         if (process.env.OCADE_STUB_TRACE) {
           process.stdout.write(`get ${name} ${url.search} rows=${stored.length}\n`);

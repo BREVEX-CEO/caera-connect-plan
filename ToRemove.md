@@ -81,6 +81,10 @@ One action broker must own validation/cancellation/dispatch. Keep specialized ex
 - unused plugin-loader paths;
 - stale docs that conflict with `PLAN.md`.
 
+## Legacy operator rows (remove after the new console is live on production)
+
+`public.user_roles` rows with `role = 'admin'` are inert after migration `20260930093000_one_staff_authority`: `has_role` and the support-admin check read `public.ocade_staff`. They are kept only because the release still on production opens its admin screen by reading that row. Once the Owner/Staff Console release is deployed to production, a follow-up migration deletes them (`DELETE FROM public.user_roles WHERE role = 'admin'`) and drops the `has_role` non-admin branch if nothing uses `moderator`/`user` roles by then.
+
 ## Cleanup proof sequence
 
 For each removal:

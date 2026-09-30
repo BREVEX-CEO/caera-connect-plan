@@ -54,20 +54,38 @@ export interface AdminAccountRow {
  */
 const ACCOUNT_LIMIT = 50;
 
-/** Refuse before reading anything if the caller is not an admin. */
-async function assertAdmin(
+/** The permissions a staff role can hold; the database decides who holds which. */
+export type StaffPermission =
+  | "customers.read"
+  | "usage.read"
+  | "devices.read"
+  | "devices.manage"
+  | "tasks.read"
+  | "security.read"
+  | "sessions.manage"
+  | "grants.manage"
+  | "execution.manage"
+  | "health.read"
+  | "audit.read"
+  | "staff.manage"
+  | "cases.read"
+  | "cases.manage";
+
+/**
+ * Refuse before reading anything unless the caller may use this permission now
+ * (the database also requires a second factor this session for all but the
+ * Primary Owner). Asked through the CALLER'S client, so it is about the caller.
+ */
+export async function assertStaff(
   supabase: {
     rpc: (
-      name: "has_role",
-      args: { _user_id: string; _role: "admin" },
-    ) => PromiseLike<{
-      data: unknown;
-      error: unknown;
-    }>;
+      name: "ocade_staff_can",
+      args: { p_permission: string },
+    ) => PromiseLike<{ data: unknown; error: unknown }>;
   },
-  userId: string,
+  permission: StaffPermission,
 ): Promise<void> {
-  const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+  const { data, error } = await supabase.rpc("ocade_staff_can", { p_permission: permission });
   if (error || data !== true) {
     // Deliberately the same sentence a missing page would give. A hidden area
     // that explains itself tells anybody who guessed the URL that it is there.
@@ -110,7 +128,7 @@ export const listAccountAccess = createServerFn({ method: "GET" })
     z.object({ query: z.string().trim().max(200).optional() }).parse(input ?? {}),
   )
   .handler(async ({ data, context }): Promise<AdminAccountPage> => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertStaff(context.supabase, "customers.read");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const term = searchableAccountTerm(data.query ?? "");
@@ -138,13 +156,14 @@ export const listAccountAccess = createServerFn({ method: "GET" })
      * growing read for a shrinking answer.
      */
     const [roles, grants] = await Promise.all([
-      supabaseAdmin
-        .from("user_roles")
-        .select("user_id, role")
-        .in("user_id", ids)
-        // Each read is already bounded by the page it is for; the limits are
-        // the ceiling on how many rows one of those accounts could contribute.
-        .limit(ACCOUNT_LIMIT * 8),
+      // Staff roles, shown only to whoever manages staff.
+      (async (): Promise<{ data: { user_id: string; role: string }[] | null; error: unknown }> => {
+        const manages = await context.supabase.rpc("ocade_staff_can", {
+          p_permission: "staff.manage",
+        });
+        if (manages.data !== true) return { data: [], error: null };
+        return supabaseAdmin.from("ocade_staff").select("user_id, role").in("user_id", ids);
+      })(),
       supabaseAdmin
         .from("ocade_entitlement_grants")
         .select("id, user_id, tier, reason, ends_at")
@@ -156,9 +175,8 @@ export const listAccountAccess = createServerFn({ method: "GET" })
         .limit(ACCOUNT_LIMIT * 20),
     ]);
 
-    for (const result of [roles, grants]) {
-      if (result.error) throw new Error(result.error.message);
-    }
+    if (roles.error) throw new Error("Accounts could not be read.");
+    if (grants.error) throw new Error(grants.error.message);
 
     const rolesByUser = new Map<string, string[]>();
     for (const row of roles.data ?? []) {
@@ -213,7 +231,7 @@ export const grantAccountAccess = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertStaff(context.supabase, "grants.manage");
     /*
      * THE CALLER'S CLIENT, NOT THE ADMIN ONE. The function checks the admin
      * role and a recent second factor from the JWT it is called with; going
@@ -239,7 +257,7 @@ export const revokeAccountAccess = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }): Promise<{ revoked: boolean }> => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertStaff(context.supabase, "grants.manage");
     const { data: revoked, error } = await context.supabase.rpc("ocade_revoke_entitlement", {
       grant_id: data.grantId,
       revoke_reason: data.reason,
@@ -280,7 +298,12 @@ export type ControlKey = (typeof CONTROL_KEYS)[number];
 export const readJarvisExecution = createServerFn({ method: "GET" })
   .middleware([requireSession])
   .handler(async ({ context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    // Whoever can pause JARVIS or watches health; the database function re-checks.
+    const [pauses, watches] = await Promise.all([
+      context.supabase.rpc("ocade_staff_can", { p_permission: "execution.manage" }),
+      context.supabase.rpc("ocade_staff_can", { p_permission: "health.read" }),
+    ]);
+    if (pauses.data !== true && watches.data !== true) throw new Error("Not found");
     const { data, error } = await context.supabase.rpc("ocade_read_service_controls");
     if (error) throw new Error(adminFailure(error.message));
     return CONTROL_KEYS.map((key) => {
@@ -306,7 +329,7 @@ export const setJarvisExecution = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }): Promise<{ paused: boolean }> => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertStaff(context.supabase, "execution.manage");
     const { data: row, error } = await context.supabase.rpc("ocade_set_service_control", {
       control_key: data.key,
       pause: data.paused,
@@ -330,7 +353,7 @@ export const listAccountDevices = createServerFn({ method: "GET" })
   .middleware([requireSession])
   .validator((input) => z.object({ userId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<AdminDeviceRow[]> => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertStaff(context.supabase, "devices.read");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("jarvis_devices")
@@ -362,7 +385,7 @@ export const removeAccountDevice = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }): Promise<{ removed: boolean }> => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertStaff(context.supabase, "devices.manage");
     const { data: removed, error } = await context.supabase.rpc("ocade_admin_remove_device", {
       device: data.deviceId,
       remove_reason: data.reason,

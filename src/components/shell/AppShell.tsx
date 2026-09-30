@@ -11,6 +11,7 @@
  * The drawer is the same markup, translated, with a backdrop and Escape.
  */
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import {
   ArrowUpCircle,
@@ -22,6 +23,7 @@ import {
   PanelLeftClose,
   PenSquare,
   Settings as SettingsIcon,
+  ShieldCheck,
   X,
 } from "lucide-react";
 import { BrandMark } from "./BrandMark";
@@ -218,6 +220,15 @@ function AccountRow() {
   const container = useRef<HTMLDivElement>(null);
   const settings = useSettingsPanel();
   const usage = useCommercialUsage(Boolean(user) && !loading);
+  // Asked only when the menu opens: a customer's pages make no extra call, and
+  // only staff ever see the entry.
+  const staff = useQuery({
+    queryKey: ["staff", "me", user?.id ?? ""],
+    queryFn: () => import("@/lib/admin/staff.functions").then((m) => m.readMyStaff()),
+    enabled: open && Boolean(user),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -284,6 +295,19 @@ function AccountRow() {
             <Images className="h-4 w-4 text-muted-foreground" aria-hidden />
             Library
           </Link>
+          {staff.data ? (
+            <Link
+              to="/admin"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent"
+            >
+              <ShieldCheck className="h-4 w-4 text-muted-foreground" aria-hidden />
+              {staff.data.role === "primary_owner" || staff.data.role === "backup_owner"
+                ? "Owner Console"
+                : "Staff Console"}
+            </Link>
+          ) : null}
           {usage.data && usage.data.tier !== "max" ? (
             <Link
               to="/pricing"

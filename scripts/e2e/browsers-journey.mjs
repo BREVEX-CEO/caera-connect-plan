@@ -67,7 +67,15 @@ for (const run of RUNS) {
     );
     const page = await context.newPage();
     const errors = [];
-    page.on("pageerror", (error) => errors.push(String(error).slice(0, 160)));
+    // Where and when: a WebKit fetch cut off by navigation reads as an access-control error.
+    let navigating = false;
+    page.on("framenavigated", () => (navigating = false));
+    page.on("pageerror", (error) =>
+      errors.push(
+        `${navigating ? "[during navigation] " : ""}${page.url()} ${String(error).slice(0, 160)}`,
+      ),
+    );
+    const leave = (go) => ((navigating = true), go());
     const label = (what) => `${run.name}: ${what}`;
     const overflow = () =>
       page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -111,7 +119,7 @@ for (const run of RUNS) {
     await page.keyboard.press("Escape");
 
     const conversation = page.url();
-    await page.goto(`${BASE}/help`, { waitUntil: "load" });
+    await leave(() => page.goto(`${BASE}/help`, { waitUntil: "load" }));
     const bubble = page.getByRole("button", { name: /^JARVIS, / });
     if (narrow) {
       await bubble.waitFor({ timeout: 15_000 }).catch(() => {});
@@ -130,7 +138,7 @@ for (const run of RUNS) {
       label("Help search finds the answer"),
       (await page.getByRole("button", { name: /Stop and Take Over/ }).count()) === 1,
     );
-    await page.goBack({ waitUntil: "load" });
+    await leave(() => page.goBack({ waitUntil: "load" }));
     await page.waitForTimeout(1500);
     check(label("Back returns to the same conversation"), page.url() === conversation);
     check(
