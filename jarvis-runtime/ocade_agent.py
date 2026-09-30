@@ -32,7 +32,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import ocade_device  # noqa: E402
 import ocade_update  # noqa: E402
-from ocade_identity import SOFTWARE_VERSION, Identity  # noqa: E402
+from ocade_identity import SOFTWARE_VERSION, Identity, UpdateRequired  # noqa: E402
 
 SINGLE_INSTANCE_PORT = 47831
 APP_NAME = "OCADE Device Agent"
@@ -85,6 +85,26 @@ def stop_running_agent(timeout_s: float = 8.0) -> bool:
             return True
         time.sleep(0.2)
     return False
+
+
+def end_other_agents() -> bool:
+    """End every other process of this installed program. True when some were ended."""
+    root = install_root()
+    if root is None:
+        return False  # not an installed build: nothing here is ours to end
+    import psutil
+    ended = []
+    for process in psutil.process_iter(["pid", "exe"]):
+        try:
+            exe = Path(process.info["exe"] or "").resolve()
+            if process.info["pid"] != os.getpid() and root in exe.parents and exe.name == Path(sys.executable).name:
+                for each in (*process.children(recursive=True), process):
+                    each.kill()
+                ended.append(process)
+        except (psutil.Error, OSError):
+            continue
+    psutil.wait_procs(ended, timeout=5)
+    return bool(ended)
 
 
 def _launch_command() -> list[str]:
@@ -145,8 +165,11 @@ def remove_autostart() -> None:
 
 def uninstall(home: Path) -> str:
     """Everything this agent put on the computer, except the program files the OS uninstaller owns."""
-    # The running agent stops first: its key is never deleted under it.
-    if not stop_running_agent():
+    # Whatever happens next, it no longer starts at login.
+    remove_autostart()
+    # The running agent stops first: its key is never deleted under it. One that
+    # does not answer is ended: an uninstall must not leave a program running.
+    if not stop_running_agent() and not (end_other_agents() and stop_running_agent(3)):
         raise SystemExit("OCADE Device Agent is still running and could not be stopped. "
                          "Exit it from the tray, then uninstall again.")
     identity = Identity(home)
@@ -155,7 +178,6 @@ def uninstall(home: Path) -> str:
             identity.exchange({"results": [], "forget": True})
         except Exception:
             pass  # offline: the person can still remove it in OCADE Devices
-    remove_autostart()
     shutil.rmtree(home, ignore_errors=True)  # the key, pending results and the cache
     return ("OCADE Device Agent was removed from this computer. PC control, background tasks and "
             "wake features have stopped. Your OCADE conversations and task history stay in your "
@@ -243,11 +265,9 @@ class Presence:
         """None when the tray icon is up, else why not (kept in the local log)."""
         try:
             import pystray
-            from PIL import Image, ImageDraw
         except Exception as e:
             return f"tray unavailable ({type(e).__name__}: {e})"
-        image = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-        ImageDraw.Draw(image).ellipse((6, 6, 58, 58), fill=(20, 20, 20, 255), outline=(236, 236, 236, 255), width=4)
+        image = _tray_image()
         menu = pystray.Menu(
             pystray.MenuItem(lambda _: self.agent.status(), None, enabled=False),
             pystray.MenuItem("Open OCADE JARVIS", lambda: self.open_ocade(), default=True),
@@ -278,6 +298,99 @@ class Presence:
                 self.icon.update_menu()
 
 
+def _tray_image():
+    from PIL import Image, ImageDraw
+    image = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    ImageDraw.Draw(image).ellipse((6, 6, 58, 58), fill=(20, 20, 20, 255), outline=(236, 236, 236, 255), width=4)
+    return image
+
+
+RETRY_CONNECT_S = 15
+
+
+def await_connection(server: str, name: str, show, open_page, again: threading.Event,
+                     can_ask_again: bool, identity_at=Identity, retry_s: float = RETRY_CONNECT_S) -> Identity:
+    """
+    Ask OCADE to connect this computer and wait for the person to approve it.
+
+    Offline, it keeps trying quietly. Not approved, it opens nothing by itself
+    again: the person asks from the tray. The page opens once per request.
+    """
+    while True:
+        identity = identity_at(ocade_device.HOME)
+        try:
+            request = identity.enroll(server, name, platform.system()[:60])
+        except UpdateRequired:
+            raise
+        except RuntimeError:  # OCADE answered and refused (too many requests waiting, or a damaged key)
+            show("Not connected", None)
+            if not can_ask_again:
+                raise SystemExit("OCADE did not accept the connection request.")
+            again.wait()
+            again.clear()
+            continue
+        except OSError:  # no network yet: a laptop that starts before its Wi-Fi
+            show("Offline", None)
+            if again.wait(retry_s):
+                again.clear()
+            continue
+        print(f"Confirm this computer in OCADE: {request['url']}", flush=True)
+        print(f"It should show the fingerprint {request['fingerprint']}.", flush=True)
+        show("Waiting to be connected", request["url"])
+        open_page(request["url"])
+        if identity.wait_for_approval():
+            return identity
+        identity.forget()
+        show("Not connected", None)
+        if not can_ask_again:
+            raise SystemExit("The connection was not approved. Nothing was kept.")
+        again.wait()
+        again.clear()
+
+
+def connect_with_tray(server: str, name: str, ending: dict) -> Identity:
+    """
+    First start. OCADE is already its one tray icon while it waits, so the
+    person can see it, open the page again and exit it, and an uninstall can end
+    it. It used to wait with no icon and no way to stop it: uninstalling then
+    left the program running and still starting at every login.
+    """
+    state = {"status": "Connecting", "url": None}
+    again = threading.Event()
+    icon = None
+
+    def reconnect() -> None:
+        webbrowser.open(state["url"]) if state["url"] else again.set()
+
+    try:
+        import pystray
+        icon = pystray.Icon("ocade", _tray_image(), "OCADE JARVIS", pystray.Menu(
+            pystray.MenuItem(lambda _: state["status"], None, enabled=False),
+            pystray.MenuItem("Connect this computer", lambda: reconnect(), default=True),
+            pystray.MenuItem("Exit", lambda: ending["stop"]())))
+        icon.run_detached()
+    except Exception:
+        icon = None  # the agent's own tray start reports why, once connected
+
+    def stop() -> None:
+        if icon is not None:
+            icon.stop()
+        os._exit(0)  # nothing is running yet: no task, no browser, no key in use
+
+    def show(status: str, url: str | None) -> None:
+        state.update(status=status, url=url)
+        if icon is not None:
+            icon.title = f"OCADE JARVIS · {status}"
+            icon.update_menu()
+
+    ending["stop"] = stop
+    try:
+        return await_connection(server, name, show, webbrowser.open, again, can_ask_again=icon is not None)
+    finally:
+        if icon is not None:
+            icon.stop()
+
+
 def health_check() -> int:
     """0 only when this build can really run: every module and file it opens, and its tray."""
     try:
@@ -285,11 +398,14 @@ def health_check() -> int:
         import ocade_egress  # noqa: F401
         import ocade_existing_browser  # noqa: F401
         import ocade_documents  # noqa: F401
+        import ocade_settings  # noqa: F401
         import ocade_sheets
         import openpyxl  # noqa: F401
+        import psutil  # noqa: F401
         import pypdf  # noqa: F401
         if sys.platform == "win32":
             import ocade_accessibility  # noqa: F401
+            import pycaw.pycaw  # noqa: F401
             import uiautomation  # noqa: F401
         assert browser._OCADE_PAGE and browser._GATES
         actions = Path(ocade_sheets.__file__).resolve().parent / "actions"
@@ -315,6 +431,21 @@ HANDED_OVER = "OCADE_AGENT_HANDED_OVER"
 STARTED_OK_S = 20  # a build still running after this long has started
 
 
+def _become(argv: list[str]) -> None:
+    """
+    Replace this process with another program. Windows has no exec: os.execv
+    there starts a new process from an unquoted command line, so the space in
+    "Device Agent" cut the program's own path in two, and the newer build ended
+    at once with a usage error nobody saw. No installed agent could start an update.
+    """
+    if sys.platform == "win32":
+        import subprocess
+        subprocess.Popen(argv, close_fds=True,
+                         creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP)
+        sys.exit(0)
+    os.execv(argv[0], argv)
+
+
 def _run_current_build(root: Path | None) -> None:
     """Hand over to the build current.json names (rolling back after failed starts)."""
     if root is None:
@@ -332,7 +463,7 @@ def _run_current_build(root: Path | None) -> None:
         if target.is_file():
             os.environ[HANDED_OVER] = str(target.resolve())
             try:
-                os.execv(str(target), [str(target), *sys.argv[1:]])
+                _become([str(target), *sys.argv[1:]])
             except OSError:
                 os.environ.pop(HANDED_OVER, None)
         # Its program is gone or cannot be run at all. That is not a start worth
@@ -412,12 +543,21 @@ def main() -> None:
         Presence._notify(Identity.DAMAGED)
         guard.close()
         return
+    # "exit" is answered from the first moment: an uninstall must be able to end
+    # an agent that is still waiting to be connected.
+    ending = {"stop": lambda: os._exit(0)}
+    serve_exit(guard, lambda: ending["stop"]())
     if not identity.connected:
-        identity = ocade_device.connect(args.server, platform.node()[:120] or "My computer")
+        try:
+            identity = connect_with_tray(args.server, platform.node()[:120] or "My computer", ending)
+        except UpdateRequired:
+            Presence._notify("OCADE needs a newer Device Agent. Install the latest version from ocade.in.")
+            guard.close()
+            return
     agent = ocade_device.Agent(identity, headless=False, cdp=None, workspace=args.workspace)
     presence = Presence(agent, identity.meta["server"])
-    serve_exit(guard, lambda: (agent.stop_everything(), agent.stop.set(),
-                               presence.icon.stop() if presence.icon else None))
+    ending["stop"] = lambda: (agent.stop_everything(), agent.stop.set(),
+                              presence.icon.stop() if presence.icon else None)
     tray = presence.start_tray()
     if tray:
         # Without a tray there is no local control: say so and keep the reason on this computer.

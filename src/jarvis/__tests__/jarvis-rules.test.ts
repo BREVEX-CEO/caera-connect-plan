@@ -322,6 +322,40 @@ describe("files through the browser", () => {
   });
 });
 
+describe("settings, status and undo", () => {
+  it("are typed, need the right permission and never wait for a confirmation", async () => {
+    const { computerAction, capabilityFor, describeAction } = await import("../protocol");
+    const { needsConfirmation } = await import("../permissions");
+    const volume = computerAction.parse({ action: "setting", name: "volume", level: 30 });
+    const dark = computerAction.parse({ action: "setting", name: "dark_mode", on: true });
+    const read = computerAction.parse({ action: "setting", name: "brightness" });
+    const status = computerAction.parse({ action: "system_status" });
+    const undo = computerAction.parse({ action: "undo" });
+    expect([volume, dark, read].map(capabilityFor)).toEqual(Array(3).fill("computer_control"));
+    expect(capabilityFor(status)).toBe("apps");
+    expect(capabilityFor(undo)).toBe("files");
+    expect([volume, dark, read, status, undo].map(describeAction)).toEqual([
+      "Changing the volume",
+      "Changing dark mode",
+      "Checking the screen brightness",
+      "Checking how the computer is doing",
+      "Undoing the last file change",
+    ]);
+    for (const action of [volume, dark, status, undo]) {
+      expect(needsConfirmation([], action)).toBe(false);
+    }
+    for (const bad of [
+      { action: "setting", name: "wifi", on: false },
+      { action: "setting", name: "volume", level: 101 },
+      { action: "setting", name: "volume", level: -1 },
+      { action: "setting", name: "volume", level: "loud" },
+      { action: "setting" },
+    ]) {
+      expect(computerAction.safeParse(bad).success).toBe(false);
+    }
+  });
+});
+
 describe("windows and richer screen input", () => {
   it("switching needs mouse and keyboard control, closing waits for the person", async () => {
     const { computerAction, capabilityFor } = await import("../protocol");

@@ -310,6 +310,17 @@ const COMPUTER_ACTIONS = [
     action: z.literal("system"),
     op: z.enum(["lock", "log_out", "restart", "shut_down"]),
   }),
+  // Volume, mute, brightness and dark mode through the system's own interface.
+  // Without a level or on it only reads; a change answers with the value before it.
+  z.object({
+    action: z.literal("setting"),
+    name: z.enum(["volume", "mute", "brightness", "dark_mode"]),
+    level: z.number().min(0).max(100).optional(),
+    on: z.boolean().optional(),
+  }),
+  z.object({ action: z.literal("system_status") }),
+  // Reverses the newest file change JARVIS made on that computer.
+  z.object({ action: z.literal("undo") }),
 ] as const;
 
 export const deviceAction = z.discriminatedUnion("action", [
@@ -335,9 +346,11 @@ export function capabilityFor(action: DeviceAction): Capability {
     case "screen_keys":
     case "screen_scroll":
     case "system":
+    case "setting":
       return "computer_control";
     case "apps":
     case "open_app":
+    case "system_status":
       return "apps";
     case "file_list":
     case "file_read":
@@ -354,6 +367,7 @@ export function capabilityFor(action: DeviceAction): Capability {
     case "sheet_inspect":
     case "sheet_edit":
     case "doc_edit":
+    case "undo":
       return "files";
     case "run":
       return "terminal";
@@ -502,6 +516,19 @@ export function describeAction(action: DeviceAction): string {
       };
       return `${words[action.op]} the computer`;
     }
+    case "setting": {
+      const words = {
+        volume: "the volume",
+        mute: "mute",
+        brightness: "the screen brightness",
+        dark_mode: "dark mode",
+      };
+      return `${action.level === undefined && action.on === undefined ? "Checking" : "Changing"} ${words[action.name]}`;
+    }
+    case "system_status":
+      return "Checking how the computer is doing";
+    case "undo":
+      return "Undoing the last file change";
     case "open":
     case "new_tab":
       return `Opening ${hostOf(action.url) ?? "a page"}`;
@@ -553,6 +580,7 @@ Computer rules:
 - Spreadsheets: call sheet_inspect first to learn the sheets, headers, existing formulas and formats. Then one sheet_edit with formulas and fills (a relative formula filled down a range), lookups, totals and formatting, never values you calculated yourself and typed in. Check the read-back values it returns before saying it is done.
 - Word documents: read them with file_extract, then one doc_edit with the changes; check the read-back text before saying it is done.
 - Files and commands stay inside the workspace the person selected. Deleting permanently, risky commands and system changes wait for the person.
+- Volume, mute, brightness and dark mode: use setting (name, with level 0-100 or on true/false), never keys or the screen. It answers with the value before the change; to put a setting back, set that value again. To take back a file change you made (write, move, rename, copy, new folder, workbook or document edit), use undo: it reverses the newest one.
 - If an action says the person used the mouse or keyboard, stop and wait; never fight them for control.
 - When the work is finished or cannot safely continue, call finish_task with an honest result.
 Never mention model names, providers or internal systems.`;
@@ -608,13 +636,15 @@ export function jarvisTools(memory: boolean): NormalizedToolDefinition[] {
     {
       name: "computer",
       description:
-        "Work on the task's computer. Actions: apps, open_app, ui_inspect (an app's buttons, fields and menus by ref), ui_act (invoke, set_value, toggle, select, expand, collapse, focus a ref), window_list, window (focus/minimize/maximize/restore/close an open window by title), file_list, file_read, file_write, file_extract (text of PDF, Word, PowerPoint, Excel), sheet_inspect, sheet_edit, doc_edit (Word: replace, append with style, style, bold/italic/highlight, table), file_find, file_info, file_mkdir, file_move, file_copy, file_rename, file_trash, file_delete, run, screen, screen_click (button, double), screen_drag, screen_type, screen_keys, screen_scroll, system.",
+        "Work on the task's computer. Actions: apps, open_app, ui_inspect (an app's buttons, fields and menus by ref), ui_act (invoke, set_value, toggle, select, expand, collapse, focus a ref), window_list, window (focus/minimize/maximize/restore/close an open window by title), file_list, file_read, file_write, file_extract (text of PDF, Word, PowerPoint, Excel), sheet_inspect, sheet_edit, doc_edit (Word: replace, append with style, style, bold/italic/highlight, table), file_find, file_info, file_mkdir, file_move, file_copy, file_rename, file_trash, file_delete, run, screen, screen_click (button, double), screen_drag, screen_type, screen_keys, screen_scroll, system, setting (volume, mute, brightness, dark_mode: read, or change with level or on), system_status (processor, memory, disk, battery), undo (reverse the newest file change JARVIS made).",
       inputSchema: obj(
         {
           action: str("The computer action."),
           name: str(
-            "App name for open_app, part of a file name for file_find, new name for file_rename.",
+            "App name for open_app, part of a file name for file_find, new name for file_rename, or for setting: volume, mute, brightness or dark_mode.",
           ),
+          level: num("For setting volume or brightness: 0 to 100."),
+          on: { type: "BOOLEAN", description: "For setting mute or dark_mode." },
           path: str("Path inside the workspace, for file actions."),
           to: str("Destination inside the workspace, for file_move and file_copy."),
           extension: str("File extension, for file_find."),

@@ -52,6 +52,7 @@ MAX_OUTPUT = 12_000
 RUN_TIMEOUT_S = 300
 FRAME_WIDTH = 1280
 PASTE_OVER = 40  # longer text is pasted (and the clipboard restored) instead of typed key by key
+UNDO_DEPTH = 10  # donor core/undo.py: roughly "this conversation"
 
 # Programs a coding task runs in the workspace without asking (risky arguments
 # such as `git push` or `install` still wait for the person at OCADE).
@@ -194,6 +195,7 @@ class Computer:
         self._obs_seq = 0
         self._observation: dict | None = None
         self._lock = threading.Lock()  # one controller of mouse and keyboard at a time
+        self._undo: list[tuple[str, object]] = []  # (what was done, how to reverse it), newest last
         # Linux: a real filesystem boundary. Elsewhere: one direct program in the workspace.
         self.sandbox = "bubblewrap" if SYSTEM == "Linux" and shutil.which("bwrap") else (
             None if SYSTEM == "Linux" else "workspace")
@@ -243,6 +245,15 @@ class Computer:
                 return self._run(str(action.get("command", "")), action.get("cwd"), confirmed, cancel)
             if kind == "system":
                 return self._system(str(action.get("op", "")), confirmed)
+            if kind == "setting":
+                import ocade_settings
+                return ocade_settings.setting(str(action.get("name", "")),
+                                              action.get("on") if "on" in action else action.get("level"))
+            if kind == "system_status":
+                import ocade_settings
+                return ocade_settings.status()
+            if kind == "undo":
+                return self._undo_last()
             if kind.startswith("screen"):
                 with self._lock:
                     return self._screen(kind, action, confirmed, cowork, cancel)
@@ -303,6 +314,8 @@ class Computer:
                     "content": data.decode("utf-8", errors="replace"),
                     "truncated": path.stat().st_size > MAX_READ}
         if kind == "file_write":
+            # An overwrite keeps what was there first (donor undo: act, and remember how to reverse it).
+            kept = self._keep(path) if path.is_file() else None
             path.parent.mkdir(parents=True, exist_ok=True)
             parent = self._inside(str(path.parent.relative_to(self.root)))
             # A fresh random name created exclusively (O_EXCL never follows an
@@ -319,10 +332,14 @@ class Computer:
             finally:
                 if os.path.lexists(tmp):
                     os.unlink(tmp)
+            self._remember(f"writing {rel}", (lambda: self._put_back(kept, path)) if kept
+                           else (lambda: self._to_trash(path)))
             return {"status": "done", "summary": f"Wrote {rel}"}
         if kind == "file_mkdir":
             existed = path.is_dir()
             path.mkdir(parents=True, exist_ok=True)
+            if not existed:
+                self._remember(f"creating the folder {rel}", lambda: self._remove_empty(path))
             return {"status": "done", "summary": f"{rel} already existed" if existed else f"Created folder {rel}"}
         if kind == "file_info":
             info = path.stat()
@@ -364,8 +381,7 @@ class Computer:
             if kind == "sheet_inspect":
                 return {"status": "done", "summary": f"Inspected {rel}",
                         "workbook": ocade_sheets.inspect(path, sheet)}
-            home = Path(os.environ.get("OCADE_JARVIS_HOME", Path.home() / ".ocade_jarvis"))
-            out = ocade_sheets.edit(path, sheet, list(action.get("ops") or []), home / "undo", cancel)
+            out = ocade_sheets.edit(path, sheet, list(action.get("ops") or []), self._undo_dir(), cancel)
         except ocade_sheets.SheetError as e:
             return {"status": "failed", "summary": str(e)}
         except KeyError:
@@ -373,6 +389,8 @@ class Computer:
         if not out.get("ok"):
             return {"status": "failed", "stopped": bool(out.get("stopped")),
                     "summary": f"The workbook was not changed: {str(out.get('error', ''))[:200]}"}
+        kept = self._undo_dir() / str(out["backup"])
+        self._remember(f"updating {rel}", lambda: self._put_back(kept, path))
         return {"status": "done", "summary": f"Updated {rel} ({len(out['applied'])} changes, "
                                              f"{'in Excel' if out['engine'] == 'excel' else 'in the file'})",
                 **{k: v for k, v in out.items() if k != "ok"}}
@@ -383,15 +401,16 @@ class Computer:
         rel = str(path.relative_to(self.root))
         if not path.is_file():
             return {"status": "failed", "summary": f"{rel} does not exist"}
-        home = Path(os.environ.get("OCADE_JARVIS_HOME", Path.home() / ".ocade_jarvis"))
         try:
-            out = ocade_documents.edit_word(path, list(action.get("ops") or []), home / "undo", cancel,
+            out = ocade_documents.edit_word(path, list(action.get("ops") or []), self._undo_dir(), cancel,
                                             close=bool(action.get("_close")))
         except ocade_documents.DocumentError as e:
             return {"status": "failed", "summary": str(e)}
         if not out.get("ok"):
             return {"status": "failed", "stopped": bool(out.get("stopped")),
                     "summary": f"The document was not changed: {str(out.get('error', ''))[:200]}"}
+        kept = self._undo_dir() / str(out["backup"])
+        self._remember(f"updating {rel}", lambda: self._put_back(kept, path))
         return {"status": "done", "summary": f"Updated {rel} in Word ({len(out['applied'])} changes)",
                 **{k: v for k, v in out.items() if k != "ok"}}
 
@@ -437,9 +456,68 @@ class Computer:
         to = str(target.relative_to(self.root))
         if kind == "file_copy":
             shutil.copytree(source, target) if source.is_dir() else shutil.copy2(source, target)
+            self._remember(f"copying {rel} to {to}", lambda: self._to_trash(target))
             return {"status": "done", "summary": f"Copied {rel} to {to}"}
         shutil.move(str(source), str(target))
+        self._remember(f"{'renaming' if kind == 'file_rename' else 'moving'} {rel} to {to}",
+                       lambda: self._move_back(target, source))
         return {"status": "done", "summary": f"{'Renamed' if kind == 'file_rename' else 'Moved'} {rel} to {to}"}
+
+    # -- undo: what JARVIS changed in the workspace, newest first (donor core/undo.py) --
+
+    @staticmethod
+    def _undo_dir() -> Path:
+        return Path(os.environ.get("OCADE_JARVIS_HOME", Path.home() / ".ocade_jarvis")) / "undo"
+
+    def _keep(self, path: Path) -> Path:
+        import ocade_sheets
+        return ocade_sheets.backup(path, self._undo_dir())
+
+    def _remember(self, label: str, reverse) -> None:
+        self._undo.append((label, reverse))
+        del self._undo[:-UNDO_DEPTH]  # the recent past is what people ask to undo
+
+    def _undo_last(self) -> dict:
+        if not self._undo:
+            return {"status": "failed", "summary": "There is nothing to undo. Only file changes JARVIS made "
+                                                   "here since it started can be undone."}
+        # Taken off first: a failing undo is not retried against files that have moved on.
+        label, reverse = self._undo.pop()
+        try:
+            reverse()
+        except ScopeError as e:
+            return {"status": "failed", "summary": f"Could not undo {label}: {e}"}
+        except Exception as e:
+            return {"status": "failed", "summary": f"Could not undo {label}: {_plain(e)}"}
+        return {"status": "done", "summary": f"Undone: {label}", "remaining": len(self._undo)}
+
+    def _here(self, path: Path) -> Path:
+        """The same place, checked again: the workspace may have changed since the action."""
+        return self._inside(str(path.relative_to(self.root)))
+
+    def _put_back(self, kept: Path, path: Path) -> None:
+        if not kept.is_file():
+            raise ScopeError("the copy kept before the change is no longer there")
+        shutil.copy2(kept, self._here(path))
+
+    def _to_trash(self, path: Path) -> None:
+        if not self._here(path).exists():
+            raise ScopeError("it is no longer there")
+        from send2trash import send2trash
+        send2trash(str(path))
+
+    def _remove_empty(self, path: Path) -> None:
+        if any(self._here(path).iterdir()):
+            raise ScopeError("the folder has things in it now")
+        path.rmdir()
+
+    def _move_back(self, now: Path, before: Path) -> None:
+        if not self._here(now).exists():
+            raise ScopeError("it is no longer where JARVIS put it")
+        if self._here(before).exists():
+            raise ScopeError("something else is at the old place now; nothing was overwritten")
+        before.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(now), str(before))
 
     # -- commands: inside the workspace, bounded, isolated where the host allows -----
 

@@ -417,3 +417,27 @@ class UninstallTest(unittest.TestCase):
             ocade_agent.uninstall(home)
         self.assertEqual(order, ["stopped"])
         self.assertFalse(home.exists())
+
+    def test_an_agent_that_does_not_answer_is_ended_and_nothing_starts_at_login(self):
+        """
+        Found on a real install: an agent still waiting to be connected did not
+        answer "exit", so uninstalling left it running and starting at every login.
+        """
+        import ocade_agent
+        guard = ocade_agent.single_instance()  # held, and nobody answers
+        if guard is None:
+            self.skipTest("an OCADE agent is running on this computer")
+        order: list[str] = []
+
+        def end() -> bool:
+            order.append("ended")
+            guard.close()
+            return True
+        home = Path(tempfile.mkdtemp())
+        (home / "device.key").write_text("k")
+        from unittest import mock
+        with mock.patch.object(ocade_agent, "remove_autostart", lambda: order.append("no login entry")), \
+                mock.patch.object(ocade_agent, "end_other_agents", end):
+            ocade_agent.uninstall(home)
+        self.assertEqual(order, ["no login entry", "ended"])
+        self.assertFalse(home.exists())

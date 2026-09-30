@@ -10,6 +10,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 import unittest
 import zipfile
 from unittest import mock
@@ -369,12 +370,12 @@ class AgentStartTest(unittest.TestCase):
                                      "installed": "1.0.0"})
         handed = {}
 
-        def fake_exec(path, argv):
-            handed["to"] = path
-            raise SystemExit  # execv never returns
+        def fake_exec(argv):
+            handed["to"] = argv[0]
+            raise SystemExit  # the launcher ends there
 
         with mock.patch.object(sys, "executable", str(self.exe)), \
-                mock.patch.object(os, "execv", fake_exec), \
+                mock.patch.object(self.agent_module, "_become", fake_exec), \
                 mock.patch.dict(os.environ, {}, clear=False):
             with self.assertRaises(SystemExit):
                 self.agent_module._run_current_build(self.root)
@@ -396,15 +397,41 @@ class AgentStartTest(unittest.TestCase):
             if damage == "missing":
                 newer.unlink()
 
-            def refuse(path, argv):
+            def refuse(argv):
                 raise OSError(8, "Exec format error")
 
-            with mock.patch.object(sys, "executable", str(self.exe)),                     mock.patch.object(os, "execv", refuse):
+            with mock.patch.object(sys, "executable", str(self.exe)), \
+                    mock.patch.object(self.agent_module, "_become", refuse):
                 self.agent_module._run_current_build(self.root)  # returns: this build runs
             layout = self.layout()
             self.assertEqual((layout["current"], layout["rolledBackFrom"]), ("1.0.0", "2.0.0"), damage)
             self.assertNotIn(self.agent_module.HANDED_OVER, os.environ)
         self.assertEqual(up.rollback(self.root), "1.0.0")  # nothing further back: stays put
+
+    def test_handing_over_keeps_a_path_with_a_space_in_one_piece(self):
+        """
+        The agent installs into "...\\OCADE\\Device Agent". On Windows os.execv
+        passed that path on unquoted, the newer build saw two arguments and ended.
+        Really handed over here: a second program starts and reports what it got.
+        """
+        import subprocess
+        folder = self.root / "Device Agent"
+        folder.mkdir()
+        report = folder / "got it.json"
+        echo = folder / "echo args.py"
+        echo.write_text("import json, sys\nopen(sys.argv[1], 'w').write(json.dumps(sys.argv[1:]))\n")
+        runtime = str(Path(self.agent_module.__file__).resolve().parent)
+        launcher = subprocess.run(
+            [sys.executable, "-c",
+             "import sys; sys.path.insert(0, sys.argv[1]); import ocade_agent; "
+             "ocade_agent._become([sys.executable, *sys.argv[2:]])",
+             runtime, str(echo), str(report), "a b"], capture_output=True, text=True, timeout=60)
+        self.assertEqual(launcher.returncode, 0, launcher.stderr)
+        for _ in range(100):
+            if report.is_file() and report.read_text():
+                break
+            time.sleep(0.1)
+        self.assertEqual(json.loads(report.read_text()), [str(report), "a b"])
 
     def test_a_staged_update_restarts_an_idle_agent_and_never_a_working_one(self):
         up.adopt(self.root, "1.0.0")

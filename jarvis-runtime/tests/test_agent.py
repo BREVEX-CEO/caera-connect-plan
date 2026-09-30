@@ -62,6 +62,44 @@ class LifecycleTest(unittest.TestCase):
         self.assertFalse(self.home.exists())
         self.assertIn("PC control, background tasks and wake features have stopped", message)
 
+    def test_a_first_start_waits_offline_and_asks_again_only_when_the_person_says(self):
+        shown, opened = [], []
+        again = threading.Event()
+        plan = [urllib.error.URLError("offline"), False, True]  # offline, not approved, approved
+
+        class Waiting:
+            def __init__(self, home):
+                pass
+
+            def enroll(self, server, name, system):
+                if isinstance(plan[0], Exception):
+                    raise plan.pop(0)
+                return {"url": "https://ocade.test/connect", "fingerprint": "AAAA"}
+
+            def wait_for_approval(self):
+                return plan.pop(0)
+
+            def forget(self):
+                shown.append("forgot the unapproved key")
+
+        def show(status, url):
+            shown.append(status)
+            if status == "Not connected":
+                again.set()  # the person chooses "Connect this computer" in the tray
+
+        identity = ocade_agent.await_connection("https://ocade.test", "PC", show, opened.append, again,
+                                                can_ask_again=True, identity_at=Waiting, retry_s=0.01)
+        self.assertIsInstance(identity, Waiting)
+        self.assertEqual(shown, ["Offline", "Waiting to be connected", "forgot the unapproved key",
+                                 "Not connected", "Waiting to be connected"])
+        self.assertEqual(len(opened), 2)  # the page opens once per request, never by itself
+
+        # With no tray to ask from, a refusal ends the agent: it never waits unseen for ever.
+        plan[:] = [False]
+        with self.assertRaises(SystemExit):
+            ocade_agent.await_connection("https://ocade.test", "PC", show, opened.append, again,
+                                         can_ask_again=False, identity_at=Waiting)
+
     @staticmethod
     def _autostart_entry():
         """The login item's command (Windows: the HKCU Run value), or None."""

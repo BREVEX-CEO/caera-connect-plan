@@ -29,6 +29,7 @@ a = Analysis(
     hiddenimports=[
         "ocade_device", "ocade_identity", "ocade_computer", "ocade_update",
         "ocade_egress", "ocade_wake", "ocade_existing_browser", "ocade_documents", "ocade_sheets", "ocade_accessibility",
+        "ocade_settings", "psutil", "pycaw", "pycaw.pycaw",
         "uiautomation", "comtypes", "actions.browser_control",
         "pystray", "pystray._win32", "pystray._darwin", "pystray._xorg",
         "pynput.keyboard", "pynput.mouse",

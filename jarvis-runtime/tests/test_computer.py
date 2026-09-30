@@ -9,6 +9,7 @@ import sys
 import tempfile
 import time
 import unittest
+import unittest.mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -95,6 +96,118 @@ class WorkspaceTest(unittest.TestCase):
         out = self.pc.run({"action": "system", "op": "restart"})
         self.assertEqual(out["status"], "needs_confirmation")
         self.assertIn("Would run", self.pc.run({"action": "system", "op": "restart"}, confirmed=True)["summary"])
+
+
+class UndoTest(unittest.TestCase):
+    """Donor undo: act at once, remember how to reverse it, newest first."""
+
+    def setUp(self):
+        self.home = tempfile.mkdtemp()
+        os.environ["OCADE_JARVIS_HOME"] = str(Path(self.home, "agent"))
+        self.root = Path(self.home, "project")
+        self.root.mkdir()
+        (self.root / "notes.md").write_text("first")
+        self.pc = Computer(str(self.root))
+
+    def do(self, **action):
+        out = self.pc.run(action)
+        self.assertEqual(out["status"], "done", out)
+        return out
+
+    def test_every_file_change_is_reversed_newest_first(self):
+        self.do(action="file_write", path="notes.md", content="second")  # an overwrite
+        self.do(action="file_write", path="new.txt", content="x")        # a new file
+        self.do(action="file_mkdir", path="drafts")
+        self.do(action="file_move", path="notes.md", to="drafts")
+        self.do(action="file_rename", path="drafts/notes.md", name="plan.md")
+        self.do(action="file_copy", path="drafts/plan.md", to="copy.md")
+        self.assertEqual(sorted(p.name for p in self.root.iterdir()), ["copy.md", "drafts", "new.txt"])
+
+        self.assertIn("copying", self.do(action="undo")["summary"])
+        self.assertFalse((self.root / "copy.md").exists())
+        self.do(action="undo")  # the rename
+        self.assertTrue((self.root / "drafts/notes.md").is_file())
+        self.do(action="undo")  # the move
+        self.assertEqual((self.root / "notes.md").read_text(), "second")
+        self.do(action="undo")  # the folder
+        self.assertFalse((self.root / "drafts").exists())
+        self.do(action="undo")  # the new file
+        self.assertFalse((self.root / "new.txt").exists())
+        self.assertEqual(self.do(action="undo")["remaining"], 0)  # the overwrite
+        self.assertEqual((self.root / "notes.md").read_text(), "first")
+        out = self.pc.run({"action": "undo"})
+        self.assertEqual(out["status"], "failed")
+        self.assertIn("nothing to undo", out["summary"])
+
+    def test_an_undo_never_overwrites_what_appeared_since(self):
+        self.do(action="file_move", path="notes.md", to="moved.md")
+        (self.root / "notes.md").write_text("the person wrote this meanwhile")
+        out = self.pc.run({"action": "undo"})
+        self.assertEqual(out["status"], "failed")
+        self.assertIn("nothing was overwritten", out["summary"])
+        self.assertEqual((self.root / "notes.md").read_text(), "the person wrote this meanwhile")
+        self.assertEqual((self.root / "moved.md").read_text(), "first")
+        # Taken off the list: it is not tried again against files that moved on.
+        self.assertIn("nothing to undo", self.pc.run({"action": "undo"})["summary"])
+
+        self.do(action="file_mkdir", path="kept")
+        (self.root / "kept/theirs.txt").write_text("x")
+        self.assertIn("things in it", self.pc.run({"action": "undo"})["summary"])
+        self.assertTrue((self.root / "kept/theirs.txt").is_file())
+
+    def test_only_the_recent_past_is_kept(self):
+        for n in range(ocade_computer.UNDO_DEPTH + 3):
+            self.do(action="file_mkdir", path=f"d{n}")
+        for _ in range(ocade_computer.UNDO_DEPTH):
+            self.do(action="undo")
+        self.assertEqual(self.pc.run({"action": "undo"})["status"], "failed")
+        self.assertEqual(sorted(p.name for p in self.root.iterdir() if p.is_dir()), ["d0", "d1", "d2"])
+
+
+class SettingsTest(unittest.TestCase):
+    """Donor computer_settings and system_monitor, through the system's own interfaces."""
+
+    def test_status_reports_this_computer(self):
+        out = Computer(None).run({"action": "system_status"})
+        self.assertEqual(out["status"], "done", out)
+        facts = out["system"]
+        self.assertTrue(0 <= facts["memoryPercent"] <= 100 and facts["memoryTotalGb"] > 0)
+        self.assertTrue(0 <= facts["diskPercent"] <= 100 and facts["processes"] > 1)
+
+    def test_a_setting_is_checked_before_and_after_and_wrong_values_change_nothing(self):
+        import ocade_settings
+        state = {"volume": 40, "mute": False}
+        with unittest.mock.patch.dict(ocade_settings._READ, {k: (lambda k=k: state[k]) for k in state}), \
+                unittest.mock.patch.dict(ocade_settings._SET,
+                                         {k: (lambda v, k=k: state.__setitem__(k, v)) for k in state}):
+            pc = Computer(None)
+            self.assertEqual(pc.run({"action": "setting", "name": "volume"})["value"], 40)
+            out = pc.run({"action": "setting", "name": "volume", "level": 15})
+            self.assertEqual((out["status"], out["before"], out["value"]), ("done", 40, 15))
+            self.assertEqual(pc.run({"action": "setting", "name": "mute", "on": True})["value"], True)
+            for wrong in ({"name": "volume", "on": True}, {"name": "mute", "level": 50},
+                          {"name": "wifi", "on": False}, {"name": "volume", "level": "loud"}):
+                self.assertEqual(pc.run({"action": "setting", **wrong})["status"], "failed", wrong)
+            self.assertEqual(state, {"volume": 15, "mute": True})
+            # A system that ignores the change is reported, not assumed.
+            with unittest.mock.patch.dict(ocade_settings._SET, {"volume": lambda v: None}):
+                out = pc.run({"action": "setting", "name": "volume", "level": 90})
+            self.assertEqual(out["status"], "failed")
+            self.assertIn("did not change", out["summary"])
+
+    @unittest.skipUnless(sys.platform == "win32", "the real Windows audio endpoint")
+    def test_the_real_volume_changes_and_is_put_back(self):
+        pc = Computer(None)
+        before = pc.run({"action": "setting", "name": "volume"})
+        if before["status"] != "done":
+            self.skipTest("no audio device on this computer")
+        try:
+            target = 30 if before["value"] != 30 else 35
+            out = pc.run({"action": "setting", "name": "volume", "level": target})
+            self.assertEqual((out["status"], out["value"], out["before"]), ("done", target, before["value"]), out)
+        finally:
+            back = pc.run({"action": "setting", "name": "volume", "level": before["value"]})
+        self.assertEqual(back["value"], before["value"])
 
 
 @unittest.skipUnless(Computer(tempfile.mkdtemp()).sandbox == "workspace",

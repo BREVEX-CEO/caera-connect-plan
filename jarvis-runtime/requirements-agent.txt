@@ -16,6 +16,9 @@ pygetwindow==0.0.9
 # Native app controls through Windows UI Automation (Windows only).
 uiautomation==2.0.29; sys_platform == "win32"
 comtypes==1.4.16; sys_platform == "win32"
+# Volume through the audio endpoint (Windows), and the system snapshot.
+pycaw==20251023; sys_platform == "win32"
+psutil==7.1.0
 pyperclip==1.11.0
 pystray==0.19.5
 send2trash==1.8.3
