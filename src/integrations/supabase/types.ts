@@ -1754,6 +1754,10 @@ export type Database = {
         Args: { p_now?: string; p_user_id: string }
         Returns: number
       }
+      ocade_factor_added_since_sign_in: {
+        Args: { p_unverified_too?: boolean }
+        Returns: boolean
+      }
       ocade_finalize_generation_permit: {
         Args: {
           p_cost_hundredths: number

@@ -157,6 +157,67 @@ describe("staff authority belongs to the console's session", () => {
   });
 });
 
+describe("a factor added after signing in counts only after the next sign-in", () => {
+  it("a stolen session cannot enroll its own authenticator into staff authority or recent proof", async () => {
+    const S = sessions[ADMIN]!;
+    await twin.execSuperuser(
+      `update auth.sessions set created_at = now() - interval '1 hour'
+        where id in ('${S.site}', '${S.console}')`,
+    );
+    const mutate = (where: "site" | "console") =>
+      ask(
+        ADMIN,
+        `select public.ocade_set_service_control('jarvis_execution', false, 'A fresh console session works')`,
+        where,
+      );
+    expect(await can(ADMIN, "customers.read", "console")).toBe(true);
+
+    // Enrolled from the stolen site session, not yet answered.
+    const [{ id: factor }] = await twin.asSuperuser<{ id: string }>(
+      `insert into auth.mfa_factors (user_id, status) values ('${ADMIN}', 'unverified') returning id`,
+    );
+    const since = async (unverifiedToo: boolean) =>
+      (
+        await ask<{ newer: boolean }>(
+          ADMIN,
+          `select public.ocade_factor_added_since_sign_in(${unverifiedToo}) as newer`,
+          "site",
+        )
+      ).rows[0]!.newer;
+    // The hand-over to the console refuses even one merely started.
+    expect(await since(true)).toBe(true);
+    expect(await since(false)).toBe(false);
+
+    // Answered: the sessions it is newer than lose the console and recent proof.
+    await twin.execSuperuser(
+      `update auth.mfa_factors set status = 'verified' where id = '${factor}'`,
+    );
+    expect(await can(ADMIN, "customers.read", "console")).toBe(false);
+    expect((await mutate("console")).errorCode).toBe("42501");
+    // Every staff change and high-risk action asks this, from a definer like this one.
+    await twin.execSuperuser(
+      `create function public.ocade_test_recent() returns void language sql security definer
+         set search_path to '' as $$ select public.ocade_require_recent_strong_auth('testing') $$;
+       grant execute on function public.ocade_test_recent() to authenticated;`,
+    );
+    const recent = await ask(ADMIN, `select public.ocade_test_recent()`, "site");
+    await twin.execSuperuser(`drop function public.ocade_test_recent()`);
+    expect(recent.errorCode, recent.error).toBe("PT403");
+    expect(recent.error).toMatch(/after signing in here\. Sign in again/);
+
+    // A console session that began after the factor is the console's again.
+    const fresh = await newSession(ADMIN);
+    await twin.execSuperuser(
+      `insert into public.ocade_console_sessions (session_id, user_id) values ('${fresh}', '${ADMIN}')`,
+    );
+    sessions[ADMIN] = { site: S.site, console: fresh };
+    expect(await can(ADMIN, "customers.read", "console")).toBe(true);
+    expect((await mutate("console")).error).toBeUndefined();
+    sessions[ADMIN] = S;
+    await twin.execSuperuser(`delete from auth.mfa_factors where id = '${factor}'`);
+  });
+});
+
 describe("rolled back and applied again", () => {
   it("undoes cleanly and verifies after reapplying", async () => {
     const undo = await twin.runScript("supabase/rollback", `${MIGRATION}_rollback.sql`);

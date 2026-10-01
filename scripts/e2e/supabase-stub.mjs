@@ -144,8 +144,22 @@ const holds = (id, permission) => {
     !member.denied.includes(permission)
   );
 };
-/** Is the current request's session one the console opened (migration 20261001090000)? */
-const inConsole = () => consoleSessions.has(tokenSession.get(requestToken));
+/**
+ * Was a factor of this account added after the current session began
+ * (public.ocade_factor_added_since_sign_in, 20261001095000)? Only answered
+ * ones count unless `unverifiedToo`.
+ */
+const factorAddedSinceSignIn = (unverifiedToo = false) => {
+  const id = tokenSession.get(requestToken);
+  const began = sessionFacts.get(id)?.createdAt ?? 0;
+  const owner = sessions.get(requestToken);
+  return (factors.get(owner) ?? []).some(
+    (f) => (unverifiedToo || f.status === "verified") && Date.parse(f.created_at) > began,
+  );
+};
+/** Is the current request's session one the console opened (20261001090000, 095100)? */
+const inConsole = () =>
+  consoleSessions.has(tokenSession.get(requestToken)) && !factorAddedSinceSignIn();
 /** private.ocade_staff_has: held, and asked from the console's own session. */
 const staffHas = (id, permission) => holds(id, permission) && inConsole();
 const record = (actor, action, reason, target_user = null, subject = null) =>
@@ -821,6 +835,9 @@ function handleRpc(name, args, userId) {
       }
       return [...seen.values()];
     }
+
+    case "ocade_factor_added_since_sign_in":
+      return factorAddedSinceSignIn(args.p_unverified_too === true);
 
     case "ocade_session_meets_second_factor": {
       // What PostgREST's pre-request check does: an enrolled account's

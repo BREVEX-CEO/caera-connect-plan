@@ -32,6 +32,22 @@ export const openConsole = createServerFn({ method: "POST" })
     if (error) throw new Error(COULD_NOT_OPEN);
     const email = typeof context.claims.email === "string" ? context.claims.email : "";
     if (!staff?.[0] || !email) throw new Error("Not found");
+    /*
+     * The hand-over mints a NEW session, which any factor enrolled before it
+     * looks older than. So nothing may have been enrolled since THIS session
+     * began, answered or not: a stolen site token could otherwise add its own
+     * authenticator and answer it in the console (20261001095000).
+     */
+    const { data: newer, error: factorError } = await context.supabase.rpc(
+      "ocade_factor_added_since_sign_in",
+      { p_unverified_too: true },
+    );
+    if (factorError) throw new Error(COULD_NOT_OPEN);
+    if (newer) {
+      throw new Error(
+        "You set up two-step verification after signing in here. Sign out, sign in again, then open the console.",
+      );
+    }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: link, error: linkError } = await supabaseAdmin.auth.admin.generateLink({

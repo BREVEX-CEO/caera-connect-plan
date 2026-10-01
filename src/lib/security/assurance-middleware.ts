@@ -92,6 +92,30 @@ export function requireAssurance(requires: AssuranceRequirement) {
           decision.enrollmentWouldHelp,
         );
       }
+      /*
+       * A factor added after this session signed in proves nothing yet: a
+       * stolen token could enroll its own and answer it. The database rule
+       * (20261001095000), asked here for the actions only the server performs.
+       * Every requirement carries recency (decideAssurance), so every one asks.
+       */
+      const { data: newer, error } = await (
+        context as unknown as {
+          supabase: {
+            rpc: (fn: "ocade_factor_added_since_sign_in") => PromiseLike<{
+              data: unknown;
+              error: unknown;
+            }>;
+          };
+        }
+      ).supabase.rpc("ocade_factor_added_since_sign_in");
+      if (error) throw new Error("OCADE could not check this session just now. Try again.");
+      if (newer === true) {
+        throw new AssuranceRequiredError(
+          "reauthentication_required",
+          "You set up two-step verification after signing in here. Sign in again, then try this.",
+          false,
+        );
+      }
       return next({ context: { assurance: session } });
     });
 }

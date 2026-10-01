@@ -224,7 +224,19 @@ try {
       body: JSON.stringify({ challenge_id: challenge.id, code: totp(factor.totp.secret, offset) }),
     }).then((r) => r.json());
   };
-  const siteStrong = await confirmOn(bare, 0);
+  // The session that set two-step up: its new factor is not trusted to open the console.
+  const settingUp = await confirmOn(bare, -1);
+  const stale = await open(settingUp);
+  await stale.goto(`${SITE}/admin`, { waitUntil: "load" });
+  await stale.getByRole("button", { name: "Open the console" }).click();
+  check(
+    "the session two-step was set up in must sign in again before the console opens",
+    (await seen(stale.getByText(/set up two-step verification after signing in here/))) &&
+      new URL(stale.url()).origin === SITE,
+    stale.url(),
+  );
+  await stale.context().close();
+  const siteStrong = await confirmOn(await signIn(totpEmail), 0);
   const handed = [];
   const guarded = await open(siteStrong);
   guarded.on("framenavigated", (frame) => {
