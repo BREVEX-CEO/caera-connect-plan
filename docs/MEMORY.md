@@ -100,10 +100,14 @@ Deferred/skipped:
 
 ## Current known risks to reproduce
 
-1. TOTP enrollment failure.
-2. Device removal during active action may not synchronously cancel/join the local action before returning NotEnrolled.
-3. Device execution safety-control database read currently risks fail-open semantics unless repaired.
-4. Moderate development-only undici/Wrangler issue remains an upstream/local-tooling concern from prior report; re-check current dependency state rather than assuming historical status.
+The 2026-09-29 list (TOTP enrollment, removal during an action, fail-open execution control) is fixed and covered (mfa journey, `test_safety`, `jarvis-execution-control.test.ts`). The second attack audit (2026-10-01, `docs/IMPLEMENTATION_LEDGER.md`) is fixed; what it accepted is listed there.
+
+## Release order (owner approval first; never before)
+
+1. Deploy the Edge Functions (`ocade-intelligence`, `ocade-intelligence-service`, verify_jwt off) — they settle claimed permits themselves.
+2. Deploy the Worker from the approved merge (creates `admin.ocade.in`; build with `VITE_WEB_PUSH_PUBLIC_KEY`, secret `WEB_PUSH_PRIVATE_KEY` from `~/.ocade-release/web-push.json`).
+3. Apply `20261001090000`, `20261001092000`, `20261001094000`, `20261001095100` in that order (`091000`, `093000`, `095000`, `096000`, `096100` are already applied).
+4. Remove the legacy `user_roles` admin row (ToRemove.md); sign the Device Agent and the Android release with the owner's keys.
 
 ## Testing posture
 

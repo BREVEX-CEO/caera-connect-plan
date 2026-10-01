@@ -1275,13 +1275,15 @@ function jarvisStep(messages) {
   ).length;
   const step = jarvisScript.steps[taken];
   if (!step) return { text: "Nothing more to do." };
-  if (step.tool !== "browser" || !step.args?.name) return step;
-  // The newest browser result that carries an observation: a declined or
+  // A control named rather than referenced: a browser element, or an app control (ui_act).
+  const named = step.args?.name && (step.tool === "browser" || step.args.action === "ui_act");
+  if (!named) return step;
+  // The newest result of that kind that carries an observation: a declined or
   // refused step returns none, and the page it left is still the one on screen.
   let observation = null;
   for (const message of [...after].reverse()) {
     const text = String(message.content);
-    if (message.role !== "user" || !text.startsWith("Result of browser")) continue;
+    if (message.role !== "user" || !text.startsWith(`Result of ${step.tool}`)) continue;
     try {
       observation = JSON.parse(text.slice(text.indexOf("{"))).observation ?? null;
     } catch {

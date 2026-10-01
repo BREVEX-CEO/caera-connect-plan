@@ -296,6 +296,8 @@ try {
         },
         { tool: "computer", args: { action: "open_app", name: "Settings" } },
         { tool: "computer", args: { action: "ui_inspect" } },
+        // A control used by its name in the observation, through the same hard rules.
+        { tool: "computer", args: { action: "ui_act", op: "invoke", name: "Network & internet" } },
         { tool: "finish_task", args: { outcome: "completed", result: "Settings is open." } },
       ],
     }),
@@ -322,6 +324,16 @@ try {
     45_000,
   );
   check("and reads its controls, by ref, through accessibility", read);
+  check(
+    "and uses one of them by its ref, past the same payment and confirmation rules",
+    await until(
+      async () =>
+        JSON.stringify(
+          await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) => r.json()),
+        ).includes("Used the control"),
+      45_000,
+    ),
+  );
   await until(async () => (await web.getByText("Settings is open.").count()) >= 1, 30_000);
 
   /* --- STOP from the bubble ------------------------------------------------ */
