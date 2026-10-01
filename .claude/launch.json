@@ -4,33 +4,19 @@
     {
       "name": "ocade",
       "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run",
-        "dev"
-      ],
+      "runtimeArgs": ["run", "dev"],
       "autoPort": true
     },
     {
       "name": "ocade-stub",
       "runtimeExecutable": "node",
-      "runtimeArgs": [
-        "scripts/e2e/harness.mjs",
-        "--serve"
-      ],
+      "runtimeArgs": ["scripts/e2e/harness.mjs", "--serve"],
       "port": 8788
     },
     {
       "name": "ocade-dev-stub",
       "runtimeExecutable": "npx",
-      "runtimeArgs": [
-        "vite",
-        "dev",
-        "--port",
-        "5179",
-        "--strictPort",
-        "--host",
-        "127.0.0.1"
-      ],
+      "runtimeArgs": ["vite", "dev", "--port", "5179", "--strictPort", "--host", "127.0.0.1"],
       "port": 5179,
       "env": {
         "VITE_SUPABASE_URL": "http://127.0.0.1:54321",
