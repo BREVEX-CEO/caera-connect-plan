@@ -80,9 +80,19 @@ for (const run of RUNS) {
     const overflow = () =>
       page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 
-    await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "load" });
+    // The tab's first visit, through a link that carries its words: an engine
+    // that cannot isolate reloads once, and the link's query must survive it.
+    await page.goto(`${BASE}/ocade-jarvis?ask=${encodeURIComponent("Plan my week")}`, {
+      waitUntil: "load",
+    });
     await page.locator("#jarvis-composer").waitFor();
     await page.waitForTimeout(1500);
+    check(
+      label("a link's words reach the box on the first visit"),
+      (await page.locator("#jarvis-composer").inputValue()) === "Plan my week",
+      page.url(),
+    );
+    await page.locator("#jarvis-composer").fill("");
     check(
       label("JARVIS opens signed in"),
       /JARVIS uses left|left/.test(await page.locator("header").innerText()),

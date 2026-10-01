@@ -127,9 +127,15 @@ export function upgradeIsolationInBrowser(): IsolationOutcome {
         /* Nothing to clear. */
       }
     },
-    // `replace`, not `assign`: the un-isolated version of this same URL should
-    // not sit in history, where Back would return the user to a page that
-    // immediately tries to leave again.
-    navigate: (to) => window.location.replace(to),
+    /*
+     * THE SAME ADDRESS, RELOADED — not the path alone. Navigating to the path
+     * dropped the query and the fragment: on a browser that cannot isolate
+     * (Safari: no `credentialless`) the first visit in a tab to
+     * /ocade-jarvis?connect=… or ?c=… or ?ask=… came back as bare
+     * /ocade-jarvis, so approving a computer from its link did nothing there.
+     * A reload adds no history entry, so Back never returns to a page that
+     * immediately tries to leave again.
+     */
+    navigate: () => window.location.reload(),
   });
 }
