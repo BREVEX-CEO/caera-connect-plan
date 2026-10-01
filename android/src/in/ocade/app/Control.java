@@ -8,7 +8,6 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.Path;
-import android.graphics.Rect;
 import android.hardware.HardwareBuffer;
 import android.os.Bundle;
 import android.util.Base64;
@@ -378,12 +377,5 @@ final class Control {
     static void cancelGestures() {
         CountDownLatch waiting = gestureWait.getAndSet(null);
         if (waiting != null) waiting.countDown();
-    }
-
-    @SuppressWarnings("unused")
-    private static Rect bounds(AccessibilityNodeInfo node) {
-        Rect rect = new Rect();
-        node.getBoundsInScreen(rect);
-        return rect;
     }
 }

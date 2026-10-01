@@ -1,7 +1,6 @@
 # The OCADE Device Agent: exactly what ocade_agent.py and the modules it runs
-# import, pinned so every build is the same build. The broader requirements.txt
-# serves the preserved donor modules (plugins, dashboard, media tools) and is
-# not part of the Device Agent.
+# import, pinned so every build is the same build. (The donor's own broad list
+# stays with the donor, under imports/ocade-jarvis/source-original/.)
 #
 #   python -m pip install -r requirements-agent.txt
 #   python -m playwright install chromium
