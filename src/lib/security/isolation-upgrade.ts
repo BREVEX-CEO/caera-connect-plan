@@ -96,6 +96,13 @@ function upgradeIsolation(deps: UpgradeDeps): IsolationOutcome {
 /** The browser wiring. Never throws; a refusal simply means single-threaded. */
 export function upgradeIsolationInBrowser(): IsolationOutcome {
   if (typeof window === "undefined" || typeof document === "undefined") return "no_document";
+  /*
+   * A BROWSER THAT CANNOT BE ISOLATED THIS WAY IS NOT RELOADED TO FIND OUT.
+   * Isolation here rests on COEP `credentialless`, which ships with the
+   * credentialless iframe; Safari has neither, so its one reload per tab bought
+   * nothing and cut short whatever the page was already fetching.
+   */
+  if (!("credentialless" in HTMLIFrameElement.prototype)) return "unavailable";
 
   return upgradeIsolation({
     pathname: window.location.pathname,

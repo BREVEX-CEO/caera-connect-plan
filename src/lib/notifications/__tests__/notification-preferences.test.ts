@@ -59,7 +59,9 @@ describe("the categories", () => {
    */
   it("describe nothing the product no longer has", () => {
     for (const category of NOTIFICATION_CATEGORIES) {
-      expect(category.description).not.toMatch(/recovery code|phone|sms/i);
+      // Text messages and phone numbers were removed (no SMS provider). Recovery
+      // codes came back (2026-09-30) and are told under Security.
+      expect(category.description).not.toMatch(/phone|sms/i);
     }
   });
 

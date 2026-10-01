@@ -226,14 +226,18 @@ export function decideDelivery(input: {
     return { channels: [], held: true, reason: "Unknown notification category.", recorded: true };
   }
 
-  const availableIds = new Set(
-    input.channels.filter((channel) => channel.available).map((channel) => channel.id),
-  );
-  const chosen = (input.preferences.categories[category.id]?.channels ?? ["in_app"]).filter(
-    (channel) => availableIds.has(channel),
-  );
-
+  const available = input.channels
+    .filter((channel) => channel.available)
+    .map((channel) => channel.id);
   const mutable = isMutable(category.id);
+  /*
+   * A KIND IS ON OR OFF; WHERE IT GOES IS EVERY CHANNEL THIS DEPLOYMENT HAS.
+   * Browser notifications reach only the browsers whose person turned them on
+   * there, so that choice is made per browser, not per kind. A protected kind
+   * always goes everywhere it can.
+   */
+  const on = !mutable || (input.preferences.categories[category.id]?.channels ?? []).length > 0;
+  const chosen = on ? available : [];
 
   if (mutable && input.preferences.muteOptional) {
     return {

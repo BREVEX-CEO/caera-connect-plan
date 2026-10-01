@@ -211,13 +211,14 @@ const QUESTIONS: {
   },
   {
     category: "Devices",
-    question: "How does the browser extension work?",
-    words: "chrome extension own browser tabs",
+    question: "Can JARVIS work in my own browser?",
+    words: "chrome own browser tabs sign-ins extension add-on",
     answer: (
       <p>
-        The OCADE JARVIS extension lets JARVIS work in your own Chrome, with your own sign-ins, but
-        only in tabs it opens itself. It shows what it collects before you connect it, and
-        Disconnect in the extension removes it from OCADE as well.
+        Yes, with no add-on. On a computer with the OCADE Device Agent, turn on “Use my own browser”
+        for it under JARVIS › Devices, and allow remote debugging in Chrome when Chrome asks. JARVIS
+        then works with your own sign-ins, only in tabs it opens itself, and leaves your other tabs
+        alone. Without it, JARVIS uses a separate browser of its own on that computer.
       </p>
     ),
   },
@@ -245,6 +246,19 @@ const QUESTIONS: {
           you to press Send.
         </p>
       </>
+    ),
+  },
+  {
+    category: "Mobile",
+    question: "Can OCADE notify me when it is closed?",
+    words: "notification push alert reminder phone closed browser",
+    answer: (
+      <p>
+        Yes. Open Settings › Notifications and turn on “On this device” in each browser you want
+        alerts in; your browser asks once. Security alerts always arrive; JARVIS results and
+        reminders arrive when that kind is on. On iPhone and iPad, Apple shows them only for OCADE
+        opened from the Home Screen. Signing out stops them in that browser.
+      </p>
     ),
   },
   {

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
 import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { AppShell } from "@/components/shell/AppShell";
@@ -14,7 +14,7 @@ import {
 } from "@/components/admin/ConsoleModules";
 import { requireStaff } from "@/lib/admin/route-gate";
 import { isConsoleHost, onSite } from "@/lib/admin/console-host";
-import { openConsole } from "@/lib/admin/console.functions";
+import { enterTheConsole } from "@/lib/admin/open-console";
 import { BrandMark } from "@/components/shell/BrandMark";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { useSession } from "@/lib/session";
@@ -76,43 +76,40 @@ function ConsolePage() {
 }
 
 /**
- * ON THE SITE: ASK FOR THE WAY IN AND GO. `replace`, so Back from the console
- * returns to where the person was rather than bouncing through here again.
+ * ON THE SITE: THE WAY ACROSS, ON A PRESS. A way in is minted only when the
+ * person asks for it here (or from the account menu), never because a link
+ * opened this address.
  */
 function OpenConsole() {
   const [problem, setProblem] = useState<string | null>(null);
-  const [attempt, setAttempt] = useState(0);
-  useEffect(() => {
-    let current = true;
-    openConsole()
-      .then(({ url }) => window.location.replace(url))
-      .catch((cause) => {
-        if (current) setProblem(messageOf(cause));
-      });
-    return () => {
-      current = false;
-    };
-  }, [attempt]);
+  const [busy, setBusy] = useState(false);
   return (
     <AppShell>
-      <div className="mx-auto w-full max-w-4xl px-5 py-8" role={problem ? "alert" : "status"}>
+      <div className="mx-auto w-full max-w-4xl px-5 py-8">
+        <h1 className="text-lg font-semibold tracking-tight text-foreground">Console</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          The console opens on its own address and asks for your authenticator code there.
+        </p>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            setProblem(null);
+            void enterTheConsole().catch((cause: unknown) => {
+              setProblem(messageOf(cause));
+              setBusy(false);
+            });
+          }}
+          className="mt-4 h-9 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
+        >
+          {busy ? "Opening…" : "Open the console"}
+        </button>
         {problem ? (
-          <>
-            <p className="text-sm text-foreground">{problem}</p>
-            <button
-              type="button"
-              onClick={() => {
-                setProblem(null);
-                setAttempt((n) => n + 1);
-              }}
-              className="mt-3 h-8 rounded-md border border-border px-3 text-sm text-foreground hover:bg-accent"
-            >
-              Try again
-            </button>
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground">Opening the console…</p>
-        )}
+          <p className="mt-3 text-sm text-foreground" role="alert">
+            {problem}
+          </p>
+        ) : null}
       </div>
     </AppShell>
   );
@@ -620,7 +617,7 @@ function AccountDevices({ userId, canRemove: allowed }: { userId: string; canRem
             <span className="min-w-0">
               <span className="block truncate text-foreground">{device.name}</span>
               <span className="block truncate text-muted-foreground">
-                {device.kind === "extension" ? "Browser" : (device.platform ?? "Computer")} ·{" "}
+                {device.platform ?? (device.kind === "android" ? "Phone" : "Computer")} ·{" "}
                 {device.lastSeenAt
                   ? `seen ${new Date(device.lastSeenAt).toLocaleString()}`
                   : "never connected"}

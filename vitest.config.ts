@@ -53,6 +53,7 @@ const DATABASE_BACKED = [
   "src/lib/security/__tests__/second-factor-enforced.test.ts",
   "src/lib/admin/__tests__/staff-authority.test.ts",
   "src/lib/admin/__tests__/console-sessions.test.ts",
+  "src/lib/notifications/__tests__/push-subscriptions.test.ts",
 ];
 
 const alias = {

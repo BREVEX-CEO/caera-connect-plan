@@ -26,7 +26,8 @@
  *   node scripts/e2e/harness.mjs --serve         # build, then keep it running
  */
 import { spawn, spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { generateKeyPairSync } from "node:crypto";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright-core";
 
@@ -59,6 +60,8 @@ const ALL = [
   "mfa",
   "carry-on",
   "office",
+  "push",
+  "controls",
 ];
 
 const requested = process.argv.slice(2).filter((value) => !value.startsWith("--"));
@@ -79,9 +82,35 @@ if (unknown.length > 0) {
  * exercise the same path production does rather than a build flag standing in
  * for it.
  */
+/*
+ * A VAPID key pair for browser notifications, made once on this machine and
+ * kept beside Wrangler's own local state (never committed): the public half
+ * goes into the build, the private half to the served Worker, and a build
+ * reused with --no-build still matches the key the Worker signs with.
+ */
+const VAPID_FILE = path.join(".wrangler", "e2e-vapid.json");
+const VAPID = (() => {
+  try {
+    return JSON.parse(readFileSync(VAPID_FILE, "utf8"));
+  } catch {
+    const { privateKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
+    const jwk = privateKey.export({ format: "jwk" });
+    const point = Buffer.concat([
+      Buffer.from([4]),
+      Buffer.from(jwk.x, "base64url"),
+      Buffer.from(jwk.y, "base64url"),
+    ]);
+    const made = { publicKey: point.toString("base64url"), privateKey: jwk.d };
+    mkdirSync(".wrangler", { recursive: true });
+    writeFileSync(VAPID_FILE, JSON.stringify(made));
+    return made;
+  }
+})();
+
 const BUILD_ENVIRONMENT = {
   VITE_SUPABASE_URL: SUPABASE_URL,
   VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_loopback_stub",
+  VITE_WEB_PUSH_PUBLIC_KEY: VAPID.publicKey,
 };
 
 const children = [];
@@ -175,6 +204,7 @@ const STUB_VARS = [
   `SUPABASE_URL:${SUPABASE_URL}`,
   `SUPABASE_PUBLISHABLE_KEY:${BUILD_ENVIRONMENT.VITE_SUPABASE_PUBLISHABLE_KEY}`,
   "SUPABASE_SERVICE_ROLE_KEY:sb_secret_loopback_stub",
+  `WEB_PUSH_PRIVATE_KEY:${VAPID.privateKey}`,
 ].flatMap((pair) => ["--var", pair]);
 
 console.log("=== supabase stub ===");

@@ -165,6 +165,12 @@ try {
 
   /* --- Advanced ------------------------------------------------------------ */
 
+  // The same account signed in somewhere else, so there is another session to end.
+  await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: EMAIL, password: "proof" }),
+  });
   await page.getByRole("button", { name: "Privacy & Security", exact: true }).click();
   // The list is a server read; waiting for the heading only proves the section
   // mounted, not that the sessions arrived.

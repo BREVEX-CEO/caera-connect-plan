@@ -448,7 +448,7 @@ def _open_native(url: str, browser_name: Optional[str]) -> str:
 # Page content is untrusted: these scripts only READ the page and label
 # elements; nothing a page says can change what an action is allowed to do.
 
-# The page semantics live in one file the browser extension shares.
+# The page semantics live in one file, the same for JARVIS's own browser and the person's.
 _OCADE_PAGE = (Path(__file__).resolve().parent / "ocade_page.js").read_text(encoding="utf-8")
 _OCADE_INIT = _OCADE_PAGE
 

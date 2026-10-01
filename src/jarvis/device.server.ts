@@ -1,7 +1,7 @@
 /**
  * The device side of JARVIS: enrollment, signed requests and the action exchange.
  *
- * ONE KEY PER DEVICE. A Device Agent or the browser extension makes its own
+ * ONE KEY PER DEVICE. A Device Agent or the OCADE app on a phone makes its own
  * P-256 key pair and enrolls only the public key; every request is signed over
  * the protocol version, method, path, device, a strictly increasing timestamp
  * and the body's hash (see `jarvis-runtime/ocade_protocol.json`, the one
@@ -31,8 +31,8 @@ export const PROTOCOL = contract;
  */
 let pausedCache: { at: number; paused: Set<string> } | null = null;
 /**
- * `kind` narrows to one device family: the Device Agent (`agent`) or the
- * browser extension (`extension`) can be paused on their own, and pausing all
+ * `kind` narrows to one device family: the Device Agent (`agent`) and the
+ * OCADE app on phones (`android`) can be paused on their own, and pausing all
  * device work pauses both.
  */
 export async function executionDisabled(admin: Admin, kind?: string): Promise<boolean> {
@@ -260,7 +260,7 @@ export const enrollInput = z.object({
   publicKey: publicKeyText,
   name: z.string().trim().min(1).max(120),
   platform: z.string().trim().max(60).optional(),
-  kind: z.enum(["agent", "extension", "android"]),
+  kind: z.enum(["agent", "android"]),
   softwareVersion: z.string().trim().max(40).optional(),
 });
 

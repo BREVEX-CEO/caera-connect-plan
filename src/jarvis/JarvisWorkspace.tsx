@@ -151,7 +151,8 @@ export function JarvisWorkspace({
   useEffect(() => {
     if (!ask?.trim() || asked.current) return;
     asked.current = true;
-    setDraft((current) => current || ask.trim());
+    // One line, as a person would read it in the box: nothing hidden below the fold.
+    setDraft((current) => current || ask.replace(/\s+/g, " ").trim().slice(0, 1000));
     void navigate({
       to: "/ocade-jarvis",
       search: (previous) => ({ ...previous, ask: undefined }),

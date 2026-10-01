@@ -134,6 +134,7 @@ const tab = (page, name) =>
 /** The site's /admin hands over to the console's own origin, which signs in by itself. */
 async function consoleOf(page, heading) {
   await page.goto(`${SITE}/admin`, { waitUntil: "load" });
+  await page.getByRole("button", { name: "Open the console" }).click();
   await page.waitForURL((url) => url.origin === CONSOLE, { timeout: 20_000 }).catch(() => {});
   return (
     new URL(page.url()).origin === CONSOLE &&
@@ -231,6 +232,13 @@ try {
     if (found && !handed.includes(found[1])) handed.push(found[1]);
   });
   await guarded.goto(`${SITE}/admin`, { waitUntil: "load" });
+  await guarded.waitForTimeout(2000);
+  check(
+    "opening /admin from a link mints nothing until the person presses",
+    handed.length === 0 && new URL(guarded.url()).origin === SITE,
+    guarded.url(),
+  );
+  await guarded.getByRole("button", { name: "Open the console" }).click();
   await guarded.waitForURL(/\/auth\/challenge/, { timeout: 20_000 }).catch(() => {});
   check(
     "the console's new session answers its own second factor, whatever the site's had",
@@ -274,6 +282,19 @@ try {
   await replay.goto(`${CONSOLE}/auth/console#t=${handed[0] ?? "0".repeat(56)}`, {
     waitUntil: "load",
   });
+  const plantedSite = await open(siteStrong);
+  await plantedSite.goto(
+    `${CONSOLE}/admin#access_token=${consoleSession.access_token}&refresh_token=${consoleSession.refresh_token}&expires_in=3600&token_type=bearer`,
+    { waitUntil: "load" },
+  );
+  await plantedSite.waitForTimeout(2500);
+  check(
+    "a session put in the console's address is never taken up there",
+    // Taken up, it would have opened the console; refused, the console has no session and sends the person to the site.
+    new URL(plantedSite.url()).origin === SITE &&
+      (await plantedSite.getByRole("heading", { name: /Console/ }).count()) === 0,
+    plantedSite.url(),
+  );
   check(
     "the one-time way in does not work twice",
     handed.length === 1 && (await seen(replay.getByText(/already been used or has expired/))),

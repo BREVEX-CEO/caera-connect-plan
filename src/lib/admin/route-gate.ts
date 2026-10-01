@@ -11,13 +11,24 @@
  */
 import { redirect } from "@tanstack/react-router";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
+import { isConsoleHost, onSite } from "./console-host";
 import { readMyStaff, type MyStaff } from "./staff.functions";
+
+/** Somewhere on the site; from the console's origin that is a real navigation away. */
+function toSite(path: string) {
+  return typeof window !== "undefined" && isConsoleHost(window.location.hostname)
+    ? redirect({
+        href: onSite(new URL(path, window.location.href)).toString(),
+        reloadDocument: true,
+      })
+    : redirect({ to: path });
+}
 
 export async function requireStaff(): Promise<MyStaff> {
   const supabase = await loadSupabaseClient();
   const { data } = await supabase.auth.getUser();
-  if (!data.user) throw redirect({ to: "/auth" });
+  if (!data.user) throw toSite("/auth");
   const staff = await readMyStaff().catch(() => null);
-  if (!staff) throw redirect({ to: "/" });
+  if (!staff) throw toSite("/");
   return staff;
 }

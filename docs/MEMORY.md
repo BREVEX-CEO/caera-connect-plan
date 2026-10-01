@@ -72,13 +72,13 @@ Seek legitimate real Apple environment. Paid allocation requires owner approval.
 
 Primary Owner account exists and can sign in.
 
-Current OCADE 2FA/TOTP enrollment has repeatedly rejected fresh authenticator codes and is tracked as a bug for Claude to reproduce/fix.
+The 2FA/TOTP enrollment defect (fresh codes rejected) was fixed on 2026-09-29: QR code, grouped key, no truncation of pasted codes (mfa journey).
 
 Roles required: Primary Owner, Backup Owner, Admin, Support, Billing, Developer/Operations, Read-only + granular overrides.
 
 Normal customer sees no privileged UI.
 
-Canonical privileged surface: `admin.ocade.in`.
+Canonical privileged surface: `admin.ocade.in` — built 2026-10-01: the site's account menu hands over a one-time sign-in; staff authority works only in that console session, which answers its own second factor (docs/OWNER_ADMIN_BACKEND.md).
 
 ## Manual setup status
 

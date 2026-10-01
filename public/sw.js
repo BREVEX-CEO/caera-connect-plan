@@ -23,7 +23,7 @@
  */
 
 const SHELL_CACHE_PREFIX = "ocade-shell-v";
-const VERSION = `${SHELL_CACHE_PREFIX}14`;
+const VERSION = `${SHELL_CACHE_PREFIX}16`;
 const OFFLINE_URL = "/offline.html";
 
 /*
@@ -271,7 +271,16 @@ self.addEventListener("fetch", (event) => {
           !/\b(?:private|no-store)\b/i.test(cacheControl)
         ) {
           const copy = response.clone();
-          await caches.open(VERSION).then((cache) => cache.put(request, copy));
+          /*
+           * Under the page's PATH, not its full address. The fallback below
+           * ignores the query anyway, and keeping one copy per address kept
+           * one per conversation (?c=) and per Shortcut (?ask=…, the words in
+           * it) for as long as the cache lived.
+           */
+          const page = new URL(request.url);
+          await caches
+            .open(VERSION)
+            .then((cache) => cache.put(new Request(page.origin + page.pathname), copy));
         }
         return response;
       })
@@ -280,7 +289,7 @@ self.addEventListener("fetch", (event) => {
          * Offline. This page as it was last seen (its query aside: a Chat
          * link with ?c= is still Chat), else the offline page. Never another
          * page's markup: Chat's document served for /auth showed Chat at the
-         * sign-in address and failed to hydrate (React #418), measured on
+         * sign-in address and failed to hydrate (React error 418), measured on
          * WebKit when the network dropped mid-navigation.
          */
         const cached = await caches.match(request, { ignoreSearch: true });
@@ -312,4 +321,60 @@ self.addEventListener("fetch", (event) => {
   // Content-hashed assets never change under one URL, so the cached copy is
   // served immediately while the registered network refresh runs behind it.
   event.respondWith(cachedResponse.then((cached) => cached ?? network));
+});
+
+/* ---------------------------------------------------- browser notifications -- */
+
+/*
+ * A push from OCADE: show it, always (a push that shows nothing is refused by
+ * browsers, and would be a secret one). The message is what the server wrote:
+ * a title, a line, a same-origin path, and a tag so a resend replaces rather
+ * than stacks.
+ */
+self.addEventListener("push", (event) => {
+  let message = {};
+  try {
+    message = event.data ? event.data.json() : {};
+  } catch {
+    message = {};
+  }
+  const title = typeof message.title === "string" && message.title ? message.title : "OCADE";
+  // Only an OCADE page, decided by the URL parser (so `/\evil` is not one).
+  let path = "/";
+  try {
+    const target = new URL(
+      typeof message.url === "string" ? message.url : "/",
+      self.location.origin,
+    );
+    if (target.origin === self.location.origin)
+      path = target.pathname + target.search + target.hash;
+  } catch {
+    path = "/";
+  }
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: typeof message.body === "string" ? message.body : "",
+      tag: typeof message.tag === "string" ? message.tag : undefined,
+      icon: "/icons/ocade-192.png",
+      badge: "/icons/ocade-192.png",
+      data: { url: path },
+    }),
+  );
+});
+
+/* Pressed: the open OCADE window goes there, or a new one opens. Same origin only. */
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url ?? "/", self.location.origin);
+  if (target.origin !== self.location.origin) return;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (windows) => {
+      const open = windows.find((client) => new URL(client.url).origin === target.origin);
+      if (open) {
+        await open.focus();
+        return open.navigate(target.href).catch(() => self.clients.openWindow(target.href));
+      }
+      return self.clients.openWindow(target.href);
+    }),
+  );
 });

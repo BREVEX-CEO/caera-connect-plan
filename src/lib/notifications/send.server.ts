@@ -29,7 +29,15 @@ import {
   type NotificationChannel,
 } from "./channels";
 import type { NotificationCategoryId } from "./categories";
-import { deliveryReport, type DeliveryReport } from "./delivery";
+import { COMPANY_FACTS } from "@/config/company-facts";
+import { isMutable } from "./categories";
+import {
+  DELIVERY_ATTEMPTS,
+  deliveryReport,
+  type DeliveryReport,
+  type DeliveryState,
+} from "./delivery";
+import { sendPush, type PushOutcome } from "./web-push";
 import { decideDelivery, defaultPreferences, normalisePreferences } from "./preferences";
 
 export interface NotificationToSend {
@@ -88,11 +96,16 @@ export async function sendNotification(input: NotificationToSend): Promise<SendO
       p_delivery: delivery as unknown as Json,
     });
     if (error) return { id: null, delivery, heldReason: error.message };
-    return {
-      id: (data as string | null) ?? null,
-      delivery,
-      heldReason: decision.held ? decision.reason : "",
-    };
+    const id = (data as string | null) ?? null;
+    if (id && decision.channels.includes("web_push")) {
+      delivery.web_push = await pushToBrowsers(input, id);
+      await supabaseAdmin.rpc("ocade_set_notification_delivery", {
+        p_id: id,
+        p_channel: "web_push",
+        p_state: delivery.web_push,
+      });
+    }
+    return { id, delivery, heldReason: decision.held ? decision.reason : "" };
   } catch (cause) {
     return {
       id: null,
@@ -128,6 +141,69 @@ async function readPreferences(userId: string, channels: readonly NotificationCh
     },
     availableIds,
   );
+}
+
+/**
+ * To every browser of this account that turned notifications on.
+ *
+ * "sent" once any push service accepted it; "held" when no browser of the
+ * account asked for them; "dead_letter" when every service refused three times.
+ * A browser its service no longer knows (404/410) is forgotten at once. The
+ * notification's id is its tag, so a retried send replaces rather than repeats.
+ */
+async function pushToBrowsers(input: NotificationToSend, id: string): Promise<DeliveryState> {
+  const publicKey = (import.meta.env as Record<string, string | undefined>)
+    .VITE_WEB_PUSH_PUBLIC_KEY;
+  const privateKey = process.env.WEB_PUSH_PRIVATE_KEY;
+  if (!publicKey || !privateKey) return "dead_letter";
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: browsers } = await supabaseAdmin
+    .from("ocade_push_subscriptions")
+    .select("endpoint, p256dh, auth, failures")
+    .eq("user_id", input.userId)
+    .limit(20);
+  if (!browsers?.length) return "held";
+  // One encrypted record holds about 4 KB: a title and a line, never more.
+  const message = {
+    title: input.title.slice(0, 200),
+    body: (input.body ?? "").slice(0, 1000),
+    url: input.deepLink ?? "/",
+    tag: id,
+  };
+  // A local proof's stand-in push service lives beside its stand-in database.
+  const allowLoopback = /^http:\/\/127\.0\.0\.1[:/]/.test(process.env.SUPABASE_URL ?? "");
+  const outcomes = await Promise.all(
+    browsers.map(async (subscription) => {
+      let outcome: PushOutcome = "refused";
+      for (let attempt = 1; attempt <= DELIVERY_ATTEMPTS && outcome === "refused"; attempt += 1) {
+        if (attempt > 1) await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+        outcome = await sendPush({
+          subscription,
+          message,
+          publicKey,
+          privateKey,
+          subject: COMPANY_FACTS.siteOrigin,
+          urgent: !isMutable(input.category),
+          allowLoopback,
+        }).catch((): PushOutcome => "refused");
+      }
+      const row = supabaseAdmin.from("ocade_push_subscriptions");
+      // Forgotten when the service says the browser is gone, or after five sends it never took.
+      if (outcome === "gone" || (outcome !== "sent" && subscription.failures + 1 >= 5))
+        await row.delete().eq("endpoint", subscription.endpoint);
+      else if (outcome === "sent")
+        await row
+          .update({ last_sent_at: new Date().toISOString(), failures: 0 })
+          .eq("endpoint", subscription.endpoint);
+      else
+        await row
+          .update({ failures: subscription.failures + 1 })
+          .eq("endpoint", subscription.endpoint);
+      return outcome;
+    }),
+  );
+  if (outcomes.includes("sent")) return "sent";
+  return outcomes.every((outcome) => outcome === "gone") ? "held" : "dead_letter";
 }
 
 function unavailableEverywhere(channels: readonly NotificationChannel[]): DeliveryReport {

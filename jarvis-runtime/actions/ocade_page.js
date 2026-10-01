@@ -2,8 +2,9 @@
  * OCADE page semantics — the ONE authority for how JARVIS reads a web page.
  *
  * Loaded by the Device Agent (actions/browser_control.py, through Playwright)
- * and by the OCADE browser extension (through chrome.debugger), so both see
- * the same elements, names, refs, geometry and human-verification boundaries.
+ * into JARVIS's own browser and into the person's own Chrome alike, so both
+ * see the same elements, names, refs, geometry and human-verification
+ * boundaries.
  * Idempotent: running it again on the same document changes nothing.
  */
 (() => {

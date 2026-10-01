@@ -258,6 +258,17 @@ describe("every signed-in server function asks the database about the second fac
     ).rejects.toThrow(/could not check/);
   });
 
+  it("does not carry an aal1 answer over to the same session's aal2 token", async () => {
+    const { sessionStanding } = await import("../session-middleware");
+    // Issued in the same second, so only the assurance tells them apart.
+    const before = { aal: "aal1", sub: "u7", session_id: "s7", exp: 9 };
+    const after = { ...before, aal: "aal2" };
+    const refused = client({ data: null, error: { code: "42501", hint: "factor_required" } });
+    expect(await sessionStanding(refused, before, 1_000)).toBe("factor_required");
+    const answered = client({ data: true, error: null });
+    expect(await sessionStanding(answered, after, 1_500)).toBe("ok");
+  });
+
   it("remembers an answer for seconds, not minutes: signed out means signed out", async () => {
     const { sessionStanding } = await import("../session-middleware");
     const claims = { aal: "aal2", sub: "u6", session_id: "s6", exp: 1 };

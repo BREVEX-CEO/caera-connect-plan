@@ -4,7 +4,7 @@ import { canonical, PROTOCOL, readSigned, verifySignature } from "../device.serv
 
 /**
  * The shared device protocol: the website verifies exactly what the Device
- * Agent (Python) and the browser extension (WebCrypto) sign, and refuses old
+ * Agent (Python) and a raw-signature client (WebCrypto; Android converts to it) sign, and refuses old
  * protocol versions, stale clocks and tampered requests.
  */
 const BASE = "https://ocade.test";
@@ -71,7 +71,7 @@ async function check(request: Request, publicKey: string) {
 }
 
 describe("the device protocol", () => {
-  it("verifies a WebCrypto signature, as the browser extension makes it", async () => {
+  it("verifies a raw r||s signature, as WebCrypto and the Android app send it", async () => {
     const device = await webcryptoDevice();
     expect(await check(await device.request('{"results":[]}'), device.publicKey)).toBe("ok");
   });

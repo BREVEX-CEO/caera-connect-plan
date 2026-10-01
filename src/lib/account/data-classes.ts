@@ -140,10 +140,12 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
   {
     id: "devices",
     label: "Devices and grants",
-    description: "Browsers and devices registered to this account, and what each may do.",
+    description:
+      "Browsers and devices registered to this account, what each may do, and which browsers show its notifications.",
     tables: [
       { table: "devices", owner: "user_id" },
       { table: "browser_grants", owner: "user_id" },
+      { table: "ocade_push_subscriptions", owner: "user_id" },
     ],
     retention: null,
   },

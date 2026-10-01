@@ -69,26 +69,37 @@ describe("the JARVIS emergency stop", () => {
     expect(events.every((e) => e.changed_by === ADMIN)).toBe(true);
   });
 
-  it("the Device Agent and the extension pause on their own, recorded the same way", async () => {
+  it("the Device Agent and phones pause on their own, recorded the same way", async () => {
     const result = await twin.runScript(
       "supabase/verification",
-      "20260929110000_scoped_jarvis_controls_verify.sql",
+      "20261001092000_retire_browser_extension_verify.sql",
     );
     expect(result.error).toBeUndefined();
     const paused = await twin.asTenant<{ key: string; paused: boolean }>(
       ADMIN,
-      `select key, paused from public.ocade_set_service_control('jarvis_extension', true, 'extension incident under review')`,
+      `select key, paused from public.ocade_set_service_control('jarvis_android', true, 'phone release under review')`,
       { aal: "aal2" },
     );
-    expect(paused.rows[0]).toEqual({ key: "jarvis_extension", paused: true });
+    expect(paused.rows[0]).toEqual({ key: "jarvis_android", paused: true });
     const rows = await twin.asServiceRole<{ key: string; paused: boolean }>(
       `select key, paused from public.ocade_service_controls order by key`,
     );
     expect(rows).toEqual([
       { key: "jarvis_agent", paused: false },
+      { key: "jarvis_android", paused: true },
       { key: "jarvis_execution", paused: false },
-      { key: "jarvis_extension", paused: true },
     ]);
+    // The retired extension's stop is gone, and so is the kind.
+    const retired = await twin.asTenant(
+      ADMIN,
+      `select public.ocade_set_service_control('jarvis_extension', true, 'extension is retired now')`,
+      { aal: "aal2" },
+    );
+    expect(retired.error).toMatch(/Unknown service control/);
+    const extension = await twin.asServiceRole<{ ok: boolean }>(
+      `select pg_get_constraintdef((select oid from pg_constraint where conname = 'jarvis_devices_kind_check')) like '%extension%' as ok`,
+    );
+    expect(extension[0]!.ok).toBe(false);
   });
 
   it("no signed-in browser reads or writes the tables directly", async () => {

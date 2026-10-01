@@ -33,6 +33,8 @@ Retire the active browser-bridge directory, packaging/store material, device kin
 
 Use forward schema migration to retire obsolete browser-bridge kinds/controls. Do not rewrite old migrations or historical audits.
 
+**Status 2026-10-01: removed.** Replacement proven: the Device Agent drives the person's own Chrome through Chrome's remote debugging (`ocade_existing_browser.py`, no add-on; proven on the owner's running Chrome in wave 1), JARVIS's own isolated browser otherwise, STOP/Take Over and multi-tab in the jarvis journey, private-network refusal, and the browsers matrix (Chromium, Firefox, WebKit). Removed: `extension/`, the `extension` device kind and its stop (migration `20261001092000_retire_browser_extension`; the stop now pauses phones, which had none), every UI branch, the Help answer and the Privacy wording. Production had no extension device.
+
 ### Windows floating mini-control
 
 Owner direction is tray-only on desktop. The floating Windows mini-control is not part of the final desktop product.

@@ -360,6 +360,10 @@ function BrowserBootstrap() {
           // render, even for a frame. Public data simply loads again.
           if (previous && previous !== nowSignedIn) {
             router.options.context.queryClient.removeQueries();
+            // This browser stops receiving the last account's notifications.
+            void import("@/lib/notifications/push-device")
+              .then((module) => module.forgetPushOnThisBrowser())
+              .catch(() => {});
           }
           if (event === "SIGNED_OUT") {
             /*

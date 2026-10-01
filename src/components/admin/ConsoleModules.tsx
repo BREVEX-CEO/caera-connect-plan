@@ -625,7 +625,7 @@ function CaseReader({
 const CONTROL_NAMES: Record<ControlKey, string> = {
   jarvis_execution: "All device work",
   jarvis_agent: "Device Agent",
-  jarvis_extension: "Browser extension",
+  jarvis_android: "Phones",
 };
 
 export function SystemModule({ me }: { me: MyStaff }) {

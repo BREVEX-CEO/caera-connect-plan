@@ -414,7 +414,7 @@ function SectionBody({
 
   // Devices
   const devices = state.devices.filter((d) => !d.revoked_at && d.last_seen_at);
-  const agentCount = devices.filter((d) => d.kind !== "extension").length;
+  const agentCount = devices.length;
   const openTasks = state.tasks.filter((t) => !FINISHED.includes(t.status) && t.device_id);
   return (
     <>
@@ -492,9 +492,8 @@ function SectionBody({
                     : "Open the OCADE Device Agent on it"
                   : "Can work now"}
               {d.platform ? ` · ${d.platform}` : ""}
-              {d.kind === "extension" ? " · Browser extension" : ""}
             </p>
-            {d.kind !== "extension" && agentCount > 1 ? (
+            {agentCount > 1 ? (
               <label className="mt-2 flex items-center gap-2 text-xs">
                 <input
                   type="radio"
@@ -521,24 +520,22 @@ function SectionBody({
                 />
               </>
             )}
-            {d.kind !== "extension"
-              ? COMPUTER_TOGGLES.map(([capability, label, hint]) => (
-                  <Toggle
-                    key={capability}
-                    label={label}
-                    hint={
-                      d.capabilities[capability]
-                        ? hint
-                        : d.kind === "android"
-                          ? "Not available on this phone"
-                          : "Not available on this computer"
-                    }
-                    disabled={!d.capabilities[capability]}
-                    checked={isAllowed(state.permissions, capability, d.id)}
-                    onChange={(allowed) => void decide(capability, allowed, d.id, onChanged)}
-                  />
-                ))
-              : null}
+            {COMPUTER_TOGGLES.map(([capability, label, hint]) => (
+              <Toggle
+                key={capability}
+                label={label}
+                hint={
+                  d.capabilities[capability]
+                    ? hint
+                    : d.kind === "android"
+                      ? "Not available on this phone"
+                      : "Not available on this computer"
+                }
+                disabled={!d.capabilities[capability]}
+                checked={isAllowed(state.permissions, capability, d.id)}
+                onChange={(allowed) => void decide(capability, allowed, d.id, onChanged)}
+              />
+            ))}
             {d.kind === "agent" ? (
               <Toggle
                 label="Background Mode"
@@ -923,13 +920,11 @@ export function ConnectDevice({
           </>
         ) : (
           <>
-            <h2 className="text-base font-medium">
-              Connect {row.kind === "extension" ? "this browser" : `“${row.name}”`}?
-            </h2>
+            <h2 className="text-base font-medium">Connect “{row.name}”?</h2>
             <p className="mt-2 text-muted-foreground">
               {row.platform ? `${row.platform} · ` : ""}
               It will run JARVIS tasks you start, within the permissions you set. Only connect a{" "}
-              {row.kind === "extension" ? "browser" : "computer"} you are setting up now.
+              {row.kind === "android" ? "phone" : "computer"} you are setting up now.
             </p>
             <p className="mt-2">
               Check that it shows{" "}

@@ -51,6 +51,10 @@ export function describeIdentityError(error: { message?: string } | null): strin
   if (/manual linking.*disabled|not enabled/i.test(raw)) {
     return "Linking another sign-in method is not enabled on this deployment.";
   }
+  // The browser's own words for "no answer" differ (Chrome, Firefox, Safari); none helps a person.
+  if (/failed to fetch|networkerror|load failed|fetch failed|network request failed/i.test(raw)) {
+    return "OCADE could not reach its sign-in service just now. Check your connection and try again.";
+  }
   if (/reauthentication|aal2|assurance/i.test(raw)) {
     return "Confirm it is you before changing how you sign in.";
   }

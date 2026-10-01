@@ -299,7 +299,14 @@ function AccountRow() {
             <Link
               to="/admin"
               role="menuitem"
-              onClick={() => setOpen(false)}
+              onClick={(event) => {
+                // One press opens the console; /admin is where a failure explains itself.
+                event.preventDefault();
+                setOpen(false);
+                void import("@/lib/admin/open-console")
+                  .then((module) => module.enterTheConsole())
+                  .catch(() => window.location.assign("/admin"));
+              }}
               className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent"
             >
               <ShieldCheck className="h-4 w-4 text-muted-foreground" aria-hidden />

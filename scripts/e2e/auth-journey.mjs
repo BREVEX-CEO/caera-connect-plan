@@ -201,6 +201,48 @@ try {
     page.url(),
   );
 
+  /*
+   * GOOGLE, AND ONLY THE FLOW THIS BROWSER STARTED. Google answers with a
+   * one-time code that this browser alone can exchange (PKCE); tokens planted
+   * in an address sign nobody in.
+   */
+  const google = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+  const viaGoogle = await google.newPage();
+  viaGoogle.on("pageerror", (error) => pageErrors.push(String(error)));
+  await viaGoogle.goto(`${BASE}/auth?next=%2Flibrary`, { waitUntil: "networkidle" });
+  await viaGoogle.getByRole("button", { name: "Continue with Google" }).click();
+  check(
+    "Continue with Google signs in and lands where the person was going",
+    await viaGoogle
+      .waitForURL((url) => url.pathname === "/library", { timeout: 20_000 })
+      .then(() =>
+        viaGoogle.waitForSelector('aside button[aria-haspopup="menu"]', { timeout: 15_000 }),
+      )
+      .then(
+        () => true,
+        () => false,
+      ),
+    viaGoogle.url(),
+  );
+  const planted = await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: `planted-${Date.now()}@ocade.test`, password: "proof" }),
+  }).then((r) => r.json());
+  const victim = await (await browser.newContext()).newPage();
+  await victim.goto(
+    `${BASE}/#access_token=${planted.access_token}&refresh_token=${planted.refresh_token}&expires_in=3600&token_type=bearer`,
+    { waitUntil: "networkidle" },
+  );
+  await victim.waitForTimeout(2000);
+  check(
+    "a link carrying somebody else's tokens signs nobody in",
+    (await victim.getByText(planted.user.email).count()) === 0 &&
+      (await victim.evaluate(() =>
+        Object.keys(localStorage).every((key) => !/auth-token$/.test(key)),
+      )),
+  );
+
   check("no uncaught page errors", pageErrors.length === 0, pageErrors.join("; "));
 } finally {
   await browser.close();

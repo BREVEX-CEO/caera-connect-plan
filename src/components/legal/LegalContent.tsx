@@ -473,23 +473,24 @@ export function PrivacyContent() {
 
       <PublicSection
         id="jarvis"
-        title="9. OCADE JARVIS, the Device Agent and the browser extension"
+        title="9. OCADE JARVIS, the Device Agent and the OCADE app on phones"
       >
         <p>
-          When you ask OCADE JARVIS to do something on a computer or in a browser you connected, the
-          OCADE Device Agent or the OCADE JARVIS browser extension sends your OCADE account what it
-          needs for that task: the text and structure of the page or window it is working in, its
-          address and title, screenshots for the live view, and the result of each step. It does
-          this only while a task you started is running, only in the tabs and the workspace folder
-          JARVIS was given, and only to OCADE.
+          When you ask OCADE JARVIS to do something on a computer or phone you connected, the OCADE
+          Device Agent or the OCADE app sends your OCADE account what it needs for that task: the
+          text and structure of the page, window or screen it is working in, its address and title,
+          screenshots for the live view, and the result of each step. It does this only while a task
+          you started is running, only in the tabs, apps and workspace folder JARVIS was given, and
+          only to OCADE.
         </p>
         <p>
-          The extension never reads other tabs, saved passwords or payment details, and hands
-          CAPTCHA, one-time codes and passkeys to you. Page content is used to carry out your task,
-          is not sold, is not used for advertising and is not used to train models. Detailed task
-          activity is kept for 90 days; screenshots are kept only while a task runs. Disconnect the
-          extension or remove the computer in JARVIS Devices at any time; its key stops working at
-          once, and you can delete JARVIS conversations and activity from your account.
+          In your own browser, JARVIS works only in tabs it opened; it never reads other tabs, saved
+          passwords or payment details, and hands CAPTCHA, one-time codes and passkeys to you. Page
+          content is used to carry out your task, is not sold, is not used for advertising and is
+          not used to train models. Detailed task activity is kept for 90 days; screenshots are kept
+          only while a task runs. Remove a computer or phone in JARVIS Devices at any time; its key
+          stops working at once, and you can delete JARVIS conversations and activity from your
+          account.
         </p>
       </PublicSection>
 

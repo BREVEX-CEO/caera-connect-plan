@@ -19,7 +19,6 @@
   },
   "kinds": [
     "agent",
-    "extension",
     "android"
   ],
   "rotateAfterDays": 30,

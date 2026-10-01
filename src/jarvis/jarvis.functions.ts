@@ -180,7 +180,7 @@ export const readJarvisState = createServerFn({ method: "GET" })
           ? ("never" as const)
           : ("ask" as const);
     const apps = (devices.data ?? [])
-      .filter((device) => !device.revoked_at && device.kind !== "extension")
+      .filter((device) => !device.revoked_at)
       .map((device) => ({
         deviceId: device.id,
         deviceName: device.name,
@@ -591,7 +591,7 @@ export const readJarvisEnrollment = createServerFn({ method: "GET" })
       id: row.id,
       name: row.name,
       platform: row.platform,
-      kind: row.kind as "agent" | "extension",
+      kind: row.kind as "agent" | "android",
       fingerprint: await fingerprint(row.public_key),
     };
   });

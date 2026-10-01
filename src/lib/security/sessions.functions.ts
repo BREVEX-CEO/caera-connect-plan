@@ -165,7 +165,7 @@ export const revokeAccountSession = createServerFn({ method: "POST" })
       category: "security",
       title: "A session was signed out",
       body: "Somebody with access to this account ended another signed-in session.",
-      deepLink: "/settings/security",
+      deepLink: "/?settings=privacy",
       idempotencyKey: `session-revoked:${data.sessionId}`,
     });
     return { ok: true, revoked: count };
@@ -209,7 +209,7 @@ export const revokeOtherAccountSessions = createServerFn({ method: "POST" })
         category: "security",
         title: `${count} other ${count === 1 ? "session was" : "sessions were"} signed out`,
         body: "Every other signed-in session for this account was ended.",
-        deepLink: "/settings/security",
+        deepLink: "/?settings=privacy",
         idempotencyKey: `sessions-revoked-others:${keep ?? "all"}:${count}`,
       });
     }

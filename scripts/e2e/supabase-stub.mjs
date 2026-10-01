@@ -56,8 +56,14 @@ const factors = new Map();
 const challenges = new Map();
 /** accessToken -> session id (the JWT's `session_id`). */
 const tokenSession = new Map();
+/** session id -> { createdAt, agent }: what auth.sessions knows about each sign-in. */
+const sessionFacts = new Map();
+/** The browser making the current request, for a session it opens. */
+let requestAgent = "";
 /** Session ids the console's server recorded (public.ocade_console_sessions). */
 const consoleSessions = new Set();
+/** auth code -> { challenge, email }: a provider sign-in (PKCE) waiting to be exchanged once. */
+const pkceCodes = new Map();
 /** hashed_token -> { email, expiresAt }: one-time sign-ins from generateLink, used once. */
 const oneTimeSignIns = new Map();
 /** The assurance of the session making the current request. */
@@ -82,6 +88,10 @@ const adminActions = [];
 const recoverySheets = new Map();
 /** What the server recorded as notifications, for `/__fixture/notifications`. */
 const recordedNotifications = [];
+/** endpoint -> { endpoint, user_id, p256dh, auth, failures, last_sent_at }: browsers that turned notifications on. */
+const pushSubscriptions = new Map();
+/** What the stand-in push service at /__push/<name> received, for `/__fixture/pushes`. */
+const pushesReceived = [];
 const ALL_PERMISSIONS = [
   "customers.read",
   "usage.read",
@@ -278,7 +288,7 @@ function openSession(
   email,
   aal = assuranceOf(email),
   provedAt = Math.floor(Date.now() / 1000),
-  sessionId = "session-current",
+  sessionId = randomUUID(),
 ) {
   const id = idForEmail(email);
   emails.set(id, email);
@@ -304,6 +314,9 @@ function openSession(
   sessions.set(accessToken, id);
   tokenAal.set(accessToken, aal);
   tokenSession.set(accessToken, sessionId);
+  if (!sessionFacts.has(sessionId)) {
+    sessionFacts.set(sessionId, { createdAt: Date.now(), agent: requestAgent });
+  }
   const refreshToken = `stub-refresh-${randomUUID()}`;
   refreshes.set(refreshToken, { userId: id, aal, provedAt, sessionId });
   return {
@@ -467,20 +480,28 @@ function handleRpc(name, args, userId) {
     String(reason ?? "").trim().length < 10
       ? refuse("Say why, in at least ten characters.", "22023")
       : null;
-  const endSessions = (users, spare = "") => {
-    let ended = 0;
+  const endSessions = (users, spareSession = null, only = null) => {
+    const ended = new Set();
     for (const [token, owner] of [...sessions]) {
-      if (users.has(owner) && token !== spare) {
-        sessions.delete(token);
-        tokenAal.delete(token);
-        ended += 1;
+      const id = tokenSession.get(token);
+      if (!users.has(owner) || id === spareSession || (only && id !== only)) continue;
+      sessions.delete(token);
+      tokenAal.delete(token);
+      ended.add(id);
+      // Its console record and its browsers' notifications go with it (the foreign keys).
+      consoleSessions.delete(id);
+      for (const [endpoint, row] of pushSubscriptions) {
+        if (row.session_id === id) pushSubscriptions.delete(endpoint);
       }
     }
     for (const [token, held] of [...refreshes]) {
-      if (users.has(held.userId)) refreshes.delete(token);
+      if (!users.has(held.userId) || held.sessionId === spareSession) continue;
+      if (only && held.sessionId !== only) continue;
+      refreshes.delete(token);
     }
-    return ended;
+    return ended.size;
   };
+  const callerSession = tokenSession.get(requestToken) ?? null;
   const session = windowFor("session", now);
   const week = windowFor("week", now);
 
@@ -774,34 +795,32 @@ function handleRpc(name, args, userId) {
     }
 
     case "ocade_revoke_other_account_sessions":
-      return endSessions(new Set([userId]));
+      // The server names the session to keep; without one, every session goes.
+      return endSessions(new Set([args.p_user_id ?? userId]), args.p_keep_session_id ?? null);
 
-    case "ocade_list_account_sessions":
-      /*
-       * Two, because the interesting case is the second one: a person can only
-       * discover a session they did not start if the list shows more than
-       * "this device".
-       */
-      return [
-        {
-          session_id: "session-current",
-          created_at: new Date(now - 3_600_000).toISOString(),
-          last_seen_at: new Date(now - 60_000).toISOString(),
+    case "ocade_revoke_account_session":
+      return endSessions(new Set([args.p_user_id]), null, args.p_session_id);
+
+    case "ocade_list_account_sessions": {
+      const target = args.p_user_id ?? userId;
+      const seen = new Map();
+      for (const [token, owner] of sessions) {
+        if (owner !== target) continue;
+        const id = tokenSession.get(token);
+        if (!id || seen.has(id)) continue;
+        const facts = sessionFacts.get(id) ?? { createdAt: now, agent: "" };
+        seen.set(id, {
+          session_id: id,
+          created_at: new Date(facts.createdAt).toISOString(),
+          last_seen_at: new Date(now).toISOString(),
           expires_at: null,
-          assurance: "aal1",
-          user_agent: "Mozilla/5.0 (X11; Linux x86_64) Chrome/140.0",
+          assurance: tokenAal.get(token) ?? "aal1",
+          user_agent: facts.agent,
           ip_address: null,
-        },
-        {
-          session_id: "session-other",
-          created_at: new Date(now - 86_400_000).toISOString(),
-          last_seen_at: new Date(now - 7_200_000).toISOString(),
-          expires_at: null,
-          assurance: "aal1",
-          user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0) Safari/605",
-          ip_address: null,
-        },
-      ];
+        });
+      }
+      return [...seen.values()];
+    }
 
     case "ocade_session_meets_second_factor": {
       // What PostgREST's pre-request check does: an enrolled account's
@@ -972,7 +991,7 @@ function handleRpc(name, args, userId) {
       const denied = requireStaff("staff.manage", "sign every staff member out");
       if (denied) return denied;
       if (short(args.p_reason)) return short(args.p_reason);
-      const ended = endSessions(new Set(staffRoles.keys()), requestToken);
+      const ended = endSessions(new Set(staffRoles.keys()), callerSession);
       record(userId, "staff_sessions_ended", String(args.p_reason).trim());
       return ended;
     }
@@ -1070,7 +1089,7 @@ function handleRpc(name, args, userId) {
     }
 
     /* The operator's device removal, with the refusals the function makes. */
-    /* The JARVIS stops: global, Device Agent, browser extension. */
+    /* The JARVIS stops: global, Device Agent, phones. */
     case "ocade_read_service_controls":
       if (!staffHas(userId, "execution.manage") && !staffHas(userId, "health.read")) {
         return refuse("Only support admins may read service controls.");
@@ -1129,14 +1148,64 @@ function handleRpc(name, args, userId) {
       return true;
     }
 
-    case "ocade_record_notification":
-      recordedNotifications.push({
+    case "ocade_record_notification": {
+      // One record per event, as the database's unique key makes it.
+      const same = recordedNotifications.find(
+        (row) => row.user_id === args.p_user_id && row.idempotency_key === args.p_idempotency_key,
+      );
+      if (same) return same.id;
+      const row = {
+        id: randomUUID(),
         user_id: args.p_user_id,
         category: args.p_category,
         title: args.p_title,
         body: args.p_body,
+        deep_link: args.p_deep_link ?? null,
+        idempotency_key: args.p_idempotency_key,
+        delivery: args.p_delivery ?? {},
+      };
+      recordedNotifications.push(row);
+      return row.id;
+    }
+
+    case "ocade_set_notification_delivery": {
+      if (userId !== "anonymous") return refuse("permission denied for function");
+      const row = recordedNotifications.find((entry) => entry.id === args.p_id);
+      if (row) row.delivery = { ...row.delivery, [args.p_channel]: args.p_state };
+      return null;
+    }
+
+    case "ocade_push_subscribe": {
+      if (userId === "anonymous") return refuse("Sign in to turn on notifications.");
+      if (
+        !/^(https:\/\/|http:\/\/127\.0\.0\.1:)/.test(String(args.p_endpoint ?? "")) ||
+        !/^[A-Za-z0-9_-]{80,100}$/.test(String(args.p_p256dh ?? "")) ||
+        !/^[A-Za-z0-9_-]{16,32}$/.test(String(args.p_auth ?? ""))
+      ) {
+        return refuse("That is not a browser's notification address.", "22023");
+      }
+      const held = pushSubscriptions.get(args.p_endpoint);
+      // Moves to another account only when the same browser (the same keys) asks.
+      if (held && (held.p256dh !== args.p_p256dh || held.auth !== args.p_auth)) {
+        return refuse("That is not a browser's notification address.", "22023");
+      }
+      pushSubscriptions.set(args.p_endpoint, {
+        endpoint: args.p_endpoint,
+        user_id: userId,
+        session_id: tokenSession.get(requestToken) ?? "session-current",
+        p256dh: args.p_p256dh,
+        auth: args.p_auth,
+        failures: 0,
+        last_sent_at: null,
       });
       return null;
+    }
+
+    case "ocade_push_unsubscribe": {
+      const held = pushSubscriptions.get(args.p_endpoint);
+      if (held && held.user_id === userId) pushSubscriptions.delete(args.p_endpoint);
+      return null;
+    }
 
     case "ocade_save_notification_preferences": {
       /*
@@ -1212,7 +1281,7 @@ function jarvisStep(messages) {
 }
 
 /** The JARVIS stops, one set for the whole service as in production. */
-const serviceControls = ["jarvis_execution", "jarvis_agent", "jarvis_extension"].map((key) => ({
+const serviceControls = ["jarvis_execution", "jarvis_agent", "jarvis_android"].map((key) => ({
   key,
   paused: false,
   reason: null,
@@ -1294,17 +1363,21 @@ const objects = new Map();
 const server = createServer((request, response) => {
   const url = new URL(request.url, `http://127.0.0.1:${PORT}`);
   let body = "";
+  // The bytes as sent, for the one caller that is not text (an encrypted push).
+  const pieces = [];
   request.on("data", (chunk) => {
+    pieces.push(chunk);
     body += chunk;
   });
   request.on("end", () => {
+    const rawBody = Buffer.concat(pieces);
     const send = (status, payload, headers = {}) => {
       const text = payload === undefined ? "" : JSON.stringify(payload);
       response.writeHead(status, {
         "content-type": "application/json",
         "access-control-allow-origin": "*",
         "access-control-allow-headers": "*",
-        "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
+        "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
         "access-control-expose-headers": "content-range",
         ...headers,
       });
@@ -1313,6 +1386,7 @@ const server = createServer((request, response) => {
 
     if (request.method === "OPTIONS") return send(204);
     requestToken = (request.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
+    requestAgent = String(request.headers["user-agent"] ?? "");
     requestAal = tokenAal.get(requestToken) ?? "aal1";
 
     // What PostgREST's pre-request check does with a token whose session was ended.
@@ -1332,6 +1406,26 @@ const server = createServer((request, response) => {
     }
 
     if (url.pathname === "/__fixture/notifications") return send(200, recordedNotifications);
+    if (url.pathname === "/__fixture/pushes") return send(200, pushesReceived);
+    if (url.pathname === "/__fixture/push-subscriptions")
+      return send(200, [...pushSubscriptions.values()]);
+    /*
+     * A STAND-IN PUSH SERVICE. It keeps exactly what a real one would relay —
+     * the encrypted body and OCADE's VAPID header — so a journey can decrypt
+     * it with the browser key it registered and see what the person would.
+     * `/__push/gone-…` answers 410, as a service does for an expired browser.
+     */
+    const pushed = /^\/__push\/([A-Za-z0-9_-]+)$/.exec(url.pathname);
+    if (pushed && request.method === "POST") {
+      pushesReceived.push({
+        name: pushed[1],
+        authorization: request.headers.authorization ?? "",
+        encoding: request.headers["content-encoding"] ?? "",
+        urgency: request.headers.urgency ?? "",
+        body: Buffer.from(rawBody).toString("base64url"),
+      });
+      return send(pushed[1].startsWith("gone-") ? 410 : 201, {});
+    }
     // An account that already has two-step on, without driving an authenticator.
     if (url.pathname === "/__fixture/enroll-factor") {
       const { userId: target } = JSON.parse(body || "{}");
@@ -1453,9 +1547,43 @@ const server = createServer((request, response) => {
 
     /* --- auth ------------------------------------------------------------ */
 
+    /*
+     * GOOGLE, STOOD IN FOR. The provider's consent is skipped: the person is
+     * sent straight back with a one-time code, kept against the PKCE
+     * challenge the browser sent, exactly as the real exchange requires.
+     */
+    if (url.pathname === "/auth/v1/authorize") {
+      const back = new URL(
+        url.searchParams.get("redirect_to") ?? "http://127.0.0.1:8788/auth/callback",
+      );
+      const code = randomUUID();
+      pkceCodes.set(code, {
+        challenge: url.searchParams.get("code_challenge") ?? "",
+        method: url.searchParams.get("code_challenge_method") ?? "",
+        email: `google-${Date.now()}@ocade.test`,
+      });
+      back.searchParams.set("code", code);
+      response.writeHead(302, { location: back.toString() });
+      return response.end();
+    }
+
     if (url.pathname === "/auth/v1/token") {
       const parsed = JSON.parse(body || "{}");
       const grant = url.searchParams.get("grant_type");
+      if (grant === "pkce") {
+        const held = pkceCodes.get(String(parsed.auth_code ?? ""));
+        pkceCodes.delete(String(parsed.auth_code ?? ""));
+        const proof = createHash("sha256")
+          .update(String(parsed.code_verifier ?? ""))
+          .digest("base64url");
+        if (!held || held.method.toLowerCase() !== "s256" || proof !== held.challenge) {
+          return send(400, {
+            error_code: "bad_code_verifier",
+            msg: "code challenge does not match previously saved code verifier",
+          });
+        }
+        return send(200, openSession(held.email));
+      }
       if (grant === "refresh_token") {
         const held = refreshes.get(parsed.refresh_token);
         if (!held) {
@@ -1539,7 +1667,15 @@ const server = createServer((request, response) => {
 
     if (url.pathname === "/auth/v1/logout") {
       const header = request.headers.authorization ?? "";
-      sessions.delete(header.replace(/^Bearer\s+/i, ""));
+      const token = header.replace(/^Bearer\s+/i, "");
+      // A browser's notifications end with its session, as the foreign key makes them.
+      const ended = tokenSession.get(token);
+      for (const [endpoint, row] of pushSubscriptions) {
+        if (ended && row.session_id === ended && row.user_id === sessions.get(token)) {
+          pushSubscriptions.delete(endpoint);
+        }
+      }
+      sessions.delete(token);
       return send(204);
     }
 
@@ -1751,6 +1887,30 @@ const server = createServer((request, response) => {
     /* --- tables ---------------------------------------------------------- */
 
     const table = /^\/rest\/v1\/([a-z0-9_]+)$/.exec(url.pathname);
+    if (table && table[1] === "ocade_push_subscriptions") {
+      if (sessions.has(requestToken)) {
+        return send(403, {
+          code: "42501",
+          message: "permission denied for table ocade_push_subscriptions",
+        });
+      }
+      const params = [...url.searchParams.entries()];
+      const found = [...pushSubscriptions.values()].filter((row) => matches(row, params));
+      if (request.method === "GET")
+        return send(
+          200,
+          found.map((row) => project(row, url.searchParams.get("select"))),
+        );
+      if (request.method === "DELETE") {
+        for (const row of found) pushSubscriptions.delete(row.endpoint);
+        return send(200, found);
+      }
+      if (request.method === "PATCH") {
+        const patch = JSON.parse(body || "{}");
+        for (const row of found) Object.assign(row, patch);
+        return send(200, found);
+      }
+    }
     if (table && table[1] === "ocade_console_sessions") {
       if (sessions.has(requestToken)) {
         return send(403, {

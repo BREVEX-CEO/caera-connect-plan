@@ -176,9 +176,17 @@ try {
 
   await page.keyboard.press("Escape");
   await page.goto(`${BASE}/library`, { waitUntil: "networkidle" });
+  // The list loads after the page settles; wait for its answer rather than racing it.
+  const emptied = await page
+    .getByText("Nothing here yet")
+    .waitFor({ timeout: 15_000 })
+    .then(
+      () => true,
+      () => false,
+    );
   check(
     "and the library really is empty afterwards",
-    (await page.getByText("Nothing here yet").count()) === 1,
+    emptied && (await page.getByText("one.txt").count()) === 0,
   );
 
   check("no uncaught page errors", pageErrors.length === 0, pageErrors.join("; "));

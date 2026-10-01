@@ -1200,6 +1200,39 @@ export type Database = {
           },
         ]
       }
+      ocade_push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          failures: number
+          last_sent_at: string | null
+          p256dh: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          failures?: number
+          last_sent_at?: string | null
+          p256dh: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          failures?: number
+          last_sent_at?: string | null
+          p256dh?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_service_control_events: {
         Row: {
           changed_at: string
@@ -1850,6 +1883,11 @@ export type Database = {
         }
         Returns: number
       }
+      ocade_push_subscribe: {
+        Args: { p_auth: string; p_endpoint: string; p_p256dh: string }
+        Returns: undefined
+      }
+      ocade_push_unsubscribe: { Args: { p_endpoint: string }; Returns: undefined }
       ocade_record_notification: {
         Args: {
           p_body: string
@@ -1957,6 +1995,10 @@ export type Database = {
         Returns: boolean
       }
       ocade_session_last_proof_at: { Args: never; Returns: string }
+      ocade_set_notification_delivery: {
+        Args: { p_channel: string; p_id: string; p_state: string }
+        Returns: undefined
+      }
       ocade_set_service_control: {
         Args: { change_reason: string; control_key: string; pause: boolean }
         Returns: {

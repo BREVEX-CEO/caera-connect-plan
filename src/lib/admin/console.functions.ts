@@ -10,7 +10,11 @@
  * anything opens — whatever the site session had already proved.
  *
  * Anyone who reads the one-time sign-in off the site's page gets exactly that:
- * a session that still needs the authenticator app.
+ * a session that still needs the authenticator app — except the Primary Owner
+ * before any factor is enrolled, who may look and never change (the bootstrap
+ * rule in 20260930093000), the same as before the console moved. The console
+ * also refuses sessions arriving in an address (client.ts), so a session
+ * minted elsewhere cannot be planted in it for the owner to upgrade.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
@@ -34,6 +38,8 @@ export const openConsole = createServerFn({ method: "POST" })
       type: "magiclink",
       email,
     });
+    // Only ever this caller's own account, whatever the address resolves to.
+    if (!linkError && link.user?.id !== context.userId) throw new Error("Not found");
     if (linkError || !link.properties?.hashed_token) {
       throw new Error(
         linkError?.status === 429 ? "Wait a minute, then open the console again." : COULD_NOT_OPEN,

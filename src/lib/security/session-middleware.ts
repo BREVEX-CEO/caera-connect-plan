@@ -46,7 +46,9 @@ export async function sessionStanding(
   claims: Record<string, unknown> | null | undefined,
   now = Date.now(),
 ): Promise<Standing> {
-  const key = `${String(claims?.sub)}:${String(claims?.session_id)}:${String(claims?.exp)}`;
+  // The assurance is part of the question: a session's aal1 and aal2 tokens can
+  // be issued in the same second, and an answer for one is not an answer for the other.
+  const key = `${String(claims?.sub)}:${String(claims?.session_id)}:${String(claims?.exp)}:${String(claims?.aal)}`;
   const held = answered.get(key);
   if (held && now - held.at < CACHE_MS) return held.standing;
   const { data, error } = await supabase.rpc("ocade_session_meets_second_factor");

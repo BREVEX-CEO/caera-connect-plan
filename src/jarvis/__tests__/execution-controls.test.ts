@@ -7,7 +7,7 @@ const admin = (paused: string[]) =>
     from: () => ({
       select: () => ({
         limit: async () => ({
-          data: ["jarvis_execution", "jarvis_agent", "jarvis_extension"].map((key) => ({
+          data: ["jarvis_execution", "jarvis_agent", "jarvis_android"].map((key) => ({
             key,
             paused: paused.includes(key),
           })),
@@ -31,17 +31,17 @@ describe("executionDisabled", () => {
     vi.useFakeTimers();
     fresh();
     expect(await executionDisabled(admin(["jarvis_execution"]), "agent")).toBe(true);
-    expect(await executionDisabled(admin(["jarvis_execution"]), "extension")).toBe(true);
+    expect(await executionDisabled(admin(["jarvis_execution"]), "android")).toBe(true);
     expect(await executionDisabled(admin(["jarvis_execution"]))).toBe(true);
   });
 
   it("a family's stop pauses that family only", async () => {
     vi.useFakeTimers();
     fresh();
-    const extensionOff = admin(["jarvis_extension"]);
-    expect(await executionDisabled(extensionOff, "extension")).toBe(true);
-    expect(await executionDisabled(extensionOff, "agent")).toBe(false);
-    expect(await executionDisabled(extensionOff)).toBe(false);
+    const phonesOff = admin(["jarvis_android"]);
+    expect(await executionDisabled(phonesOff, "android")).toBe(true);
+    expect(await executionDisabled(phonesOff, "agent")).toBe(false);
+    expect(await executionDisabled(phonesOff)).toBe(false);
   });
 
   it("nothing paused, nothing stops", async () => {

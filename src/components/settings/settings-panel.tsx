@@ -35,7 +35,14 @@ import { BillingSection } from "./BillingSection";
 import { Action, Row, Toggle } from "./rows";
 import { DELETE_CONFIRMATION, deleteMyAccount } from "@/lib/account.functions";
 
-export type SettingsCategory = "account" | "appearance" | "notifications" | "privacy" | "billing";
+const SETTINGS_CATEGORIES = [
+  "account",
+  "appearance",
+  "notifications",
+  "privacy",
+  "billing",
+] as const;
+export type SettingsCategory = (typeof SETTINGS_CATEGORIES)[number];
 
 interface SettingsPanelValue {
   open: (category?: SettingsCategory) => void;
@@ -57,6 +64,22 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
   const open = useCallback((next: SettingsCategory = "account") => setCategory(next), []);
   const close = useCallback(() => setCategory(null), []);
   const value = useMemo<SettingsPanelValue>(() => ({ open, close }), [open, close]);
+
+  /*
+   * A LINK CAN OPEN SETTINGS: `?settings=privacy` on any page. Settings is a
+   * panel, not a page, so a notification about sessions or two-step has no
+   * address of its own to point at; this is that address. Taken once and
+   * dropped from the bar, so a reload or Back does not open it again.
+   */
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const asked = url.searchParams.get("settings");
+    if (!asked) return;
+    if (SETTINGS_CATEGORIES.includes(asked as SettingsCategory))
+      setCategory(asked as SettingsCategory);
+    url.searchParams.delete("settings");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, []);
 
   useEffect(() => {
     if (!category) return;
@@ -209,8 +232,11 @@ function AccountSettings() {
       {/* Google and email OTP are the only identities; phone sign-in is removed. */}
       <Row label="Signed in as" description={user?.email ?? "Not signed in"} />
       {/* Keyed by the account: another account never sees the last one's methods. */}
-      {user ? <SignInMethods key={user.id} /> : null}
-      {user ? <TwoStep key={user.id} /> : null}
+      {/* Keyed by account so another account starts fresh, and by section so the
+          two never share a key: siblings with one key were duplicated by React on
+          every account update (an email change showed three copies of this form). */}
+      {user ? <SignInMethods key={`sign-in-${user.id}`} /> : null}
+      {user ? <TwoStep key={`two-step-${user.id}`} /> : null}
       <Row label="Sign out" description="Ends this session on this device only.">
         <button
           type="button"

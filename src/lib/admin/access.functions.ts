@@ -295,7 +295,7 @@ function adminFailure(message: string): string {
   return known.find((sentence) => message.includes(sentence)) ?? "That change was not applied.";
 }
 
-const CONTROL_KEYS = ["jarvis_execution", "jarvis_agent", "jarvis_extension"] as const;
+const CONTROL_KEYS = ["jarvis_execution", "jarvis_agent", "jarvis_android"] as const;
 export type ControlKey = (typeof CONTROL_KEYS)[number];
 
 /** JARVIS device work, all of it and per device family: running or paused, and why. */

@@ -19,7 +19,7 @@ export const Route = createFileRoute("/ocade-jarvis")({
      * Shortcuts, Siri, a home-screen link) can open JARVIS with a request ready,
      * and the person still presses Send. A link is not the person asking.
      */
-    ask: z.string().max(4000).optional().catch(undefined),
+    ask: z.string().max(1000).optional().catch(undefined),
   }),
   head: () => ({
     meta: [
