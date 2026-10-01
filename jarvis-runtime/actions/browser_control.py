@@ -729,10 +729,15 @@ class _BrowserSession:
         return page
 
     async def _guard(self, page: Page) -> None:
-        """The network boundary for a JARVIS tab in the person's own browser."""
+        """
+        The network boundary for a tab JARVIS works in, in the person's own
+        browser: one it opened, one of theirs it switched to, and any popup
+        either opens. The person's other tabs are theirs and left alone.
+        """
         policy = self.egress.policy if self.egress else None
-        if policy is None:
+        if policy is None or getattr(page, "_ocade_guarded", False):
             return
+        page._ocade_guarded = True
         from ocade_egress import Blocked, is_public, scope_match
         from urllib.parse import urlsplit
         loop = asyncio.get_running_loop()
@@ -761,6 +766,7 @@ class _BrowserSession:
 
         await page.route("**/*", check)
         page.on("response", lambda r: asyncio.ensure_future(seen(r)))
+        page.on("popup", lambda popup: asyncio.ensure_future(self._guard(popup)))
 
     async def go_to(self, url: str) -> str:
 
@@ -1101,6 +1107,8 @@ class _BrowserSession:
     async def _act(self, action: dict, confirmed: bool) -> dict:
         kind = str(action.get("action", ""))
         page = await self._get_page()
+        if self.mode == "real":
+            await self._guard(page)  # whichever of the person's tabs JARVIS is in now
         before = await self._geometry(page)
         detail = ""
 
@@ -1137,6 +1145,8 @@ class _BrowserSession:
             if not 0 <= index < len(pages):
                 return {"status": "failed", "summary": "That tab does not exist"}
             self._page = page = pages[index]
+            if self.mode == "real":
+                await self._guard(page)
             await page.bring_to_front()
             detail = f"Switched to tab {index + 1}"
         elif kind == "close_tab":

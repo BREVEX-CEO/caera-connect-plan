@@ -285,9 +285,12 @@ class Computer:
         if self.root is None:
             raise ScopeError("No workspace is selected on this computer")
         target = (self.root / raw).resolve()
-        if target != self.root and self.root not in target.parents:
+        if not self._holds(target):
             raise ScopeError("That path is outside the workspace")
         return target
+
+    def _holds(self, resolved: Path) -> bool:
+        return resolved == self.root or self.root in resolved.parents
 
     def _file(self, kind: str, action: dict, confirmed: bool) -> dict:
         path = self._inside(str(action.get("path", "")))
@@ -448,7 +451,13 @@ class Computer:
         target.parent.mkdir(parents=True, exist_ok=True)
         to = str(target.relative_to(self.root))
         if kind == "file_copy":
-            shutil.copytree(source, target) if source.is_dir() else shutil.copy2(source, target)
+            if source.is_dir():
+                # A link inside the folder that leads out of the workspace is left
+                # behind, never followed into a copy JARVIS could then read.
+                shutil.copytree(source, target, ignore=lambda folder, names: [
+                    n for n in names if not self._holds((Path(folder) / n).resolve())])
+            else:
+                shutil.copy2(source, target)
             self._remember(f"copying {rel} to {to}", lambda: self._to_trash(target))
             return {"status": "done", "summary": f"Copied {rel} to {to}"}
         shutil.move(str(source), str(target))
@@ -771,6 +780,17 @@ class Computer:
                 return f"The screen changed: {label}."
         return None
 
+    @staticmethod
+    def _gate(x: int | None, y: int | None, confirmed: bool) -> dict | None:
+        """The browser's and the app controls' hard rules, for coordinates too (Windows UI Automation)."""
+        if SYSTEM != "Windows":
+            return None  # ponytail: macOS AX lookup when the agent ships there
+        try:
+            import ocade_accessibility
+            return ocade_accessibility.gate_at(x, y, confirmed)
+        except Exception:  # unreadable (an elevated window, say): the click goes ahead as it would have
+            return None
+
     def _screen(self, kind: str, action: dict, confirmed: bool, cowork: bool,
                 cancel: threading.Event) -> dict:
         gui = self._gui()
@@ -796,6 +816,9 @@ class Computer:
                 points.append(self._point(action.get("toX"), action.get("toY")))
             if None in points:
                 return {"status": "failed", "summary": "That point is outside the screen"}
+            gated = self._gate(points[0][0], points[0][1], confirmed)
+            if gated:
+                return gated
             self.guard.ours()
             if kind == "screen_drag":
                 gui.moveTo(*points[0])
@@ -807,6 +830,8 @@ class Computer:
                 clicks = 2 if action.get("double") else 1
                 gui.click(*points[0], button=button, clicks=clicks, interval=0.08)
                 detail = f"{'Double-clicked' if clicks == 2 else 'Right-clicked' if button == 'right' else 'Clicked'} on the screen"
+        elif kind == "screen_type" and (gated := self._gate(None, None, confirmed)):
+            return gated
         elif kind == "screen_type" and len(str(action.get("text", ""))) > PASTE_OVER:
             # Long text goes in by paste (donor _smart_type), then the clipboard is put back.
             outcome = self._paste(gui, str(action.get("text", ""))[:20_000], cowork)

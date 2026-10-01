@@ -370,3 +370,32 @@ class RemovalSignalTest(unittest.TestCase):
         agent.stop.set()
         runner.join(10)
         self.assertTrue(agent.state["connected"])
+
+
+class RotationTest(unittest.TestCase):
+    """A rotation whose answer was lost never strands the device."""
+
+    def test_a_lost_rotation_answer_is_recovered_on_the_next_exchange(self):
+        import ocade_identity
+        identity = ocade_identity.Identity(Path(tempfile.mkdtemp()))
+        identity.meta = {"deviceId": "d1", "rotatedAt": 0, "server": "https://ocade.test"}
+        identity._save(ocade_identity.new_key())
+        server = {"key": ocade_identity.public_text(identity.key), "lost": True}
+
+        def post(path, body, key=None, **_):
+            if ocade_identity.public_text(key or identity.key) != server["key"]:
+                return 401, {"error": "signature_invalid"}
+            if "rotate" in body:
+                server["key"] = body["rotate"]["publicKey"]
+                if server["lost"]:  # applied by OCADE, the answer lost on the way
+                    server["lost"] = False
+                    raise urllib.error.URLError("connection reset")
+                return 200, {"rotated": True}
+            return 200, {"deviceId": "d1", "protocol": ocade_identity.PROTOCOL["version"]}
+        identity.post = post
+        with self.assertRaises(urllib.error.URLError):
+            identity.exchange({"results": []})
+        # The next exchange (rotation still due) finds the key OCADE now holds.
+        self.assertEqual(identity.exchange({"results": []})["deviceId"], "d1")
+        self.assertEqual(ocade_identity.public_text(identity.key), server["key"])
+        self.assertFalse(identity.next_path.exists())

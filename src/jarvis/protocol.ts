@@ -560,7 +560,7 @@ export function describeAction(action: DeviceAction): string {
     case "wait":
       return "Waiting for the page";
     case "upload":
-      return `Attaching ${action.path.slice(0, 120)}`;
+      return `Attaching ${action.path.slice(0, 200)} to the open page`;
     case "download":
       return "Downloading a file to the work folder";
   }

@@ -178,6 +178,12 @@ public final class AgentService extends Service {
                 JSONArray stopNow = reply.body.optJSONArray("cancel");
                 if (step != null && stopNow != null && stopNow.toString().contains(stepId)) cancel.set(true);
                 JSONArray commands = reply.body.optJSONArray("commands");
+                // STOP pressed while this exchange was on its way: what it handed out never starts.
+                if (step == null && commands != null && commands.length() > 0 && stopAll.get()) {
+                    results.put(new JSONObject().put("id", commands.getJSONObject(0).getString("id"))
+                            .put("status", "failed").put("summary", "Stopped before it started"));
+                    commands = null;
+                }
                 if (step == null && commands != null && commands.length() > 0) {
                     JSONObject command = commands.getJSONObject(0);
                     stepId = command.getString("id");
@@ -185,10 +191,11 @@ public final class AgentService extends Service {
                     cancel = new AtomicBoolean(false);
                     AtomicBoolean mine = cancel;
                     JSONObject action = command.getJSONObject("action");
+                    boolean confirmed = command.optBoolean("confirmed");
                     outcome[0] = Control.result("failed", "The step failed");
                     step = new Thread(() -> {
                         try {
-                            outcome[0] = Control.run(this, action, mine);
+                            outcome[0] = Control.run(this, action, confirmed, mine);
                         } catch (Exception e) {
                             try {
                                 outcome[0] = Control.result("failed", "The step failed (" + e.getClass().getSimpleName() + ")");

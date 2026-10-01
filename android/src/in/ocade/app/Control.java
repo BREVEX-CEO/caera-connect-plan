@@ -19,6 +19,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +28,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 /**
  * The work JARVIS does on this phone, one step at a time, in the order of
@@ -73,8 +75,10 @@ final class Control {
     }
 
     /** One action; `cancel` is STOP, checked before anything reaches the screen. */
-    static JSONObject run(Context context, JSONObject action, AtomicBoolean cancel) throws Exception {
+    static JSONObject run(Context context, JSONObject action, boolean confirmed, AtomicBoolean cancel)
+            throws Exception {
         String kind = action.optString("action");
+        gates(context);
         if (cancel.get()) return result("failed", "Stopped before it started");
         switch (kind) {
             case "apps": {
@@ -95,7 +99,7 @@ final class Control {
             case "ui_inspect":
                 return inspect(a11y);
             case "ui_act":
-                return act(a11y, action);
+                return act(a11y, action, confirmed);
             case "window_list":
                 return windows(a11y);
             case "screen":
@@ -104,7 +108,7 @@ final class Control {
             case "screen_type":
             case "screen_keys":
             case "screen_scroll":
-                return screenStep(a11y, kind, action, cancel);
+                return screenStep(a11y, kind, action, confirmed, cancel);
             default:
                 return result("failed", "That is not something JARVIS can do on this phone");
         }
@@ -195,7 +199,53 @@ final class Control {
         return name.isEmpty() ? "Text" : name.replace("View", "").isEmpty() ? "Text" : name;
     }
 
-    private static JSONObject act(OcadeAccessibility a11y, JSONObject action) throws Exception {
+    // -- the hard rules the browser and the Device Agent keep (ocade_protocol.json "gates") --
+
+    private static Pattern purchase;
+    private static Pattern sensitive;
+
+    private static synchronized void gates(Context context) throws Exception {
+        if (purchase != null) return;
+        try (InputStream in = context.getAssets().open("ocade_protocol.json")) {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            byte[] chunk = new byte[8192];
+            for (int n; (n = in.read(chunk)) > 0; ) bytes.write(chunk, 0, n);
+            JSONObject found = new JSONObject(bytes.toString("UTF-8")).getJSONObject("gates");
+            purchase = Pattern.compile(found.getString("purchase"), Pattern.CASE_INSENSITIVE);
+            sensitive = Pattern.compile(found.getString("sensitive"), Pattern.CASE_INSENSITIVE);
+        }
+    }
+
+    /** A payment control is refused, a sensitive one asked about: whichever way it is pressed. */
+    private static JSONObject gate(AccessibilityNodeInfo node, boolean confirmed) throws Exception {
+        for (AccessibilityNodeInfo at = node; at != null; at = at.getParent()) {
+            String name = label(at);
+            if (purchase.matcher(name).find()) {
+                return result("blocked", "JARVIS never completes a purchase or payment");
+            }
+            if (sensitive.matcher(name).find() && !confirmed) {
+                return result("needs_confirmation", "Confirm before JARVIS presses “"
+                        + name.substring(0, Math.min(60, name.length())) + "”");
+            }
+            if (at.isClickable()) break; // the control itself; what holds it is not the button
+        }
+        return null;
+    }
+
+    /** The deepest control under a point on the screen, if Android shows one there. */
+    private static AccessibilityNodeInfo under(AccessibilityNodeInfo node, int x, int y) {
+        if (node == null) return null;
+        android.graphics.Rect box = new android.graphics.Rect();
+        node.getBoundsInScreen(box);
+        if (!box.contains(x, y)) return null;
+        for (int i = node.getChildCount() - 1; i >= 0; i--) {
+            AccessibilityNodeInfo deeper = under(node.getChild(i), x, y);
+            if (deeper != null) return deeper;
+        }
+        return node;
+    }
+
+    private static JSONObject act(OcadeAccessibility a11y, JSONObject action, boolean confirmed) throws Exception {
         if (!action.optString("observationId").equals(uiObservation)) {
             JSONObject fresh = inspect(a11y);
             fresh.put("status", "stale").put("summary", "The screen changed since it was read: read it again");
@@ -206,6 +256,11 @@ final class Control {
             return result("stale", "That control is no longer on screen");
         }
         String op = action.optString("op");
+        if (node.isPassword()) return result("human_required", "A password is needed. Take over and type it yourself.");
+        if (!op.equals("set_value") && !op.equals("focus") && !op.equals("expand") && !op.equals("collapse")) {
+            JSONObject gated = gate(node, confirmed);
+            if (gated != null) return gated;
+        }
         boolean ok;
         switch (op) {
             case "set_value": {
@@ -279,7 +334,7 @@ final class Control {
     }
 
     private static JSONObject screenStep(OcadeAccessibility a11y, String kind, JSONObject action,
-                                         AtomicBoolean cancel) throws Exception {
+                                         boolean confirmed, AtomicBoolean cancel) throws Exception {
         if (!action.optString("observationId").equals(screenObservation)) {
             JSONObject fresh = look(a11y);
             fresh.put("status", "stale").put("summary", "The screen may have changed: look at it again first");
@@ -295,6 +350,9 @@ final class Control {
                 if (x < 0 || y < 0 || x > size.widthPixels || y > size.heightPixels) {
                     return result("failed", "That point is outside the screen");
                 }
+                AccessibilityNodeInfo target = under(a11y.getRootInActiveWindow(), Math.round(x), Math.round(y));
+                JSONObject gated = target == null ? null : gate(target, confirmed);
+                if (gated != null) return gated;
                 Path at = new Path();
                 at.moveTo(x, y);
                 boolean twice = action.optBoolean("double");
@@ -315,6 +373,9 @@ final class Control {
                 AccessibilityNodeInfo focused = a11y.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
                 if (focused == null || !focused.isEditable()) {
                     return result("failed", "No text box is selected: tap one first");
+                }
+                if (focused.isPassword()) {
+                    return result("human_required", "A password is needed. Take over and type it yourself.");
                 }
                 CharSequence before = focused.getText();
                 Bundle text = new Bundle();

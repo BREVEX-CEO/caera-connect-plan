@@ -331,6 +331,9 @@ describe("files through the browser", () => {
     expect(refuseAction([files], { ...input, offered: { files: false } })?.capability).toBe(
       "files",
     );
+    // A file leaving for a website is the person's decision, every time.
+    const { needsConfirmation } = await import("../permissions");
+    expect(needsConfirmation([files], action)).toBe(true);
   });
 });
 

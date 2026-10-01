@@ -108,6 +108,27 @@ class StopTest(unittest.TestCase):
         self.assertEqual(len(self.ended), 1)
         self.assertLess(self.ended[0] - started, 2.5)  # cancelled on the next check, not after 30 s
 
+    def test_stop_during_an_exchange_never_starts_what_it_returns(self):
+        started = []
+        agent = None
+
+        def reply(body):
+            if len(identity.bodies) == 1:
+                agent.stop_everything()  # pressed while this exchange was on its way
+                return {"commands": [self.command], "busy": True}
+            return {"commands": [], "busy": False}
+
+        agent, identity = _agent(self.home, reply)
+        agent.computer.run = lambda *a: started.append(1) or {"status": "done", "summary": "x"}
+        runner = self._run(agent, 0)
+        time.sleep(1.5)
+        agent.stop.set()
+        runner.join(10)
+        self.assertEqual(started, [])
+        self.assertTrue(identity.bodies[1].get("stop"))
+        self.assertEqual(identity.bodies[1]["results"],
+                         [{"id": "a1", "status": "failed", "summary": "Stopped before it started"}])
+
     def test_only_one_action_runs_at_a_time(self):
         second = {**self.command, "id": "a2"}
 
@@ -207,6 +228,38 @@ class WorkspaceWriteTest(unittest.TestCase):
         self.assertEqual((root / "victim.txt").read_text(), "ESCAPED")
         self.assertFalse((root / "victim.txt").is_symlink())
         self.assertEqual([p.name for p in root.iterdir() if p.name.startswith(".ocade-")], [])
+
+    @staticmethod
+    def _link_folder(link: Path, to: Path) -> bool:
+        try:  # a junction on Windows needs no privilege; a symlink elsewhere
+            if sys.platform == "win32":
+                import subprocess
+                return subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(to)],
+                                      capture_output=True).returncode == 0
+            link.symlink_to(to, target_is_directory=True)
+            return True
+        except OSError:
+            return False
+
+    def test_a_folder_link_out_of_the_workspace_is_not_copied_or_downloaded_into(self):
+        base = Path(tempfile.mkdtemp())
+        root, outside = base / "workspace", base / "private"
+        (root / "src").mkdir(parents=True)
+        outside.mkdir()
+        (outside / "secret.txt").write_text("PRIVATE")
+        (root / "src" / "main.py").write_text("print(1)")
+        if not self._link_folder(root / "src" / "private", outside):
+            self.skipTest("this account cannot create folder links")
+        pc = Computer(str(root))
+        self.assertEqual(pc.run({"action": "file_copy", "path": "src", "to": "copy"})["status"], "done")
+        self.assertTrue((root / "copy" / "main.py").is_file())
+        self.assertFalse((root / "copy" / "private").exists())
+        # A Downloads folder that is really a link elsewhere takes no download.
+        self.assertTrue(self._link_folder(root / "Downloads", outside))
+        out = ocade_device.Browsers(True, None).run(
+            "isolated", {"action": "download", "url": "https://example.com/a.pdf"}, False, [],
+            threading.Event(), root.resolve())
+        self.assertEqual(out["status"], "blocked")
 
     def test_symlinked_destination_is_refused(self):
         base = Path(tempfile.mkdtemp())
@@ -417,6 +470,24 @@ class UninstallTest(unittest.TestCase):
             ocade_agent.uninstall(home)
         self.assertEqual(order, ["stopped"])
         self.assertFalse(home.exists())
+
+    def test_another_process_without_the_secret_cannot_end_the_agent(self):
+        import socket
+        import ocade_agent
+        guard = ocade_agent.single_instance()
+        if guard is None:
+            self.skipTest("an OCADE agent is running on this computer")
+        ended: list[str] = []
+        ocade_agent.serve_exit(guard, lambda: ended.append("ended"))
+        try:
+            for word in (b"exit", b"exit 0000"):
+                with socket.create_connection(("127.0.0.1", ocade_agent.SINGLE_INSTANCE_PORT), 2) as conn:
+                    conn.sendall(word)
+                    conn.settimeout(3)
+                    self.assertEqual(conn.recv(8), b"")
+            self.assertEqual(ended, [])
+        finally:
+            guard.close()
 
     def test_an_agent_that_does_not_answer_is_ended_and_nothing_starts_at_login(self):
         """

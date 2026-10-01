@@ -37,7 +37,13 @@ try {
   $word.DisplayAlerts = 0
   $full = [IO.Path]::GetFullPath($job.path)
   foreach ($candidate in $word.Documents) { if ($candidate.FullName -ieq $full) { $doc = $candidate } }
-  if ($null -eq $doc) { $doc = $word.Documents.Open($full); $opened = $true }
+  if ($null -eq $doc) {
+    # A document JARVIS opens never runs its macros (3 = force disable).
+    $security = $word.AutomationSecurity
+    $word.AutomationSecurity = 3
+    try { $doc = $word.Documents.Open($full); $opened = $true }
+    finally { $word.AutomationSecurity = $security }
+  }
   if ($doc.ReadOnly) { throw "The document is open read-only somewhere else" }
 
   foreach ($op in $job.ops) {

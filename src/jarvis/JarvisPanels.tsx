@@ -6,6 +6,7 @@ import { deleteConversation } from "@/lib/ocade.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { readAgentRelease } from "@/lib/agent/release.functions";
+import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { FINISHED, hostOf, type Capability, TASK_STATUS } from "./protocol";
 import { isAllowed } from "./permissions";
 import type { GraphNode } from "./graph";
@@ -896,9 +897,25 @@ export function ConnectDevice({
     queryFn: () => readJarvisEnrollment({ data: { id } }),
   });
   const [busy, setBusy] = useState(false);
+  const [code, setCode] = useState("");
+  const { withProof, dialog } = useConfirmIdentity();
   const row = request.data;
+  const device = row?.kind === "android" ? "phone" : "computer";
+  const connect = () => {
+    setBusy(true);
+    void withProof(() => approveJarvisDevice({ data: { id, ...(code ? { code } : {}) } }))
+      .then((out) => {
+        if (!out.ok) toast.error(out.message);
+        else onDone(true);
+      })
+      .catch((cause: unknown) =>
+        toast.error(cause instanceof Error ? cause.message : "The device could not be connected."),
+      )
+      .finally(() => setBusy(false));
+  };
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
+      {dialog}
       <section
         role="dialog"
         aria-modal="true"
@@ -924,30 +941,38 @@ export function ConnectDevice({
             <p className="mt-2 text-muted-foreground">
               {row.platform ? `${row.platform} · ` : ""}
               It will run JARVIS tasks you start, within the permissions you set. Only connect a{" "}
-              {row.kind === "android" ? "phone" : "computer"} you are setting up now.
+              {device} you are setting up now.
             </p>
-            <p className="mt-2">
-              Check that it shows{" "}
-              <span className="font-mono" data-testid="device-fingerprint">
-                {row.fingerprint}
-              </span>
-              .
-            </p>
+            {row.fingerprint ? (
+              <p className="mt-2">
+                Check that it shows{" "}
+                <span className="font-mono" data-testid="device-fingerprint">
+                  {row.fingerprint}
+                </span>
+                .
+              </p>
+            ) : (
+              <label className="mt-2 block">
+                <span>
+                  This request came from another network. Type the fingerprint your {device} shows.
+                  If somebody sent you this link or a code, choose Not mine.
+                </span>
+                <input
+                  value={code}
+                  onChange={(event) => setCode(event.target.value.slice(0, 40))}
+                  aria-label="Fingerprint the device shows"
+                  placeholder="0000-0000-0000-0000"
+                  autoComplete="off"
+                  className="mt-2 h-9 w-full rounded-md border border-border bg-transparent px-2 font-mono uppercase text-foreground outline-none focus-visible:border-ring"
+                />
+              </label>
+            )}
             <div className="mt-4 flex gap-2">
               <button
                 type="button"
-                disabled={busy}
-                onClick={() => {
-                  setBusy(true);
-                  void approveJarvisDevice({ data: { id } })
-                    .then((out) => {
-                      if (!out.ok) toast.error(out.message);
-                      onDone(out.ok);
-                    })
-                    .catch(() => toast.error("The device could not be connected."))
-                    .finally(() => setBusy(false));
-                }}
-                className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground"
+                disabled={busy || (!row.fingerprint && code.replace(/[^0-9a-f]/gi, "").length < 16)}
+                onClick={connect}
+                className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground disabled:opacity-60"
               >
                 Connect
               </button>

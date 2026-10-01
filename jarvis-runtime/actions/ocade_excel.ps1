@@ -52,7 +52,13 @@ try {
   foreach ($candidate in $excel.Workbooks) {
     if ($candidate.FullName -ieq $full) { $book = $candidate }
   }
-  if ($null -eq $book) { $book = $excel.Workbooks.Open($full); $opened = $true }
+  if ($null -eq $book) {
+    # A workbook JARVIS opens never runs its macros (3 = force disable), whatever it is named.
+    $security = $excel.AutomationSecurity
+    $excel.AutomationSecurity = 3
+    try { $book = $excel.Workbooks.Open($full); $opened = $true }
+    finally { $excel.AutomationSecurity = $security }
+  }
   if ($book.ReadOnly) { throw "The workbook is open read-only somewhere else" }
   if ($job.sheet) { $sheet = $book.Worksheets.Item([string]$job.sheet) }
   elseif ($opened) { $sheet = $book.Worksheets.Item(1) }

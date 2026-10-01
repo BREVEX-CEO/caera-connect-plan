@@ -301,6 +301,33 @@ try {
     };
     const thief = connectDevice(mkdtempSync(path.join(tmpdir(), "thief-")), "Not mine");
     await until(() => /OCADE: (\S+)/.test(thief.out()), 20_000);
+    // The link sent to somebody on another network: nothing to copy, a code to type.
+    const elsewhere = await browser.newContext({
+      viewport: { width: 1280, height: 860 },
+      extraHTTPHeaders: { "cf-connecting-ip": "203.0.113.9" },
+    });
+    await elsewhere.addInitScript(
+      ([key, value]) => window.localStorage.setItem(key, value),
+      [storageKey, JSON.stringify(session)],
+    );
+    const phished = await elsewhere.newPage();
+    await phished.goto(/OCADE: (\S+)/.exec(thief.out())[1], { waitUntil: "networkidle" });
+    const typed = phished.getByRole("textbox", { name: "Fingerprint the device shows" });
+    check(
+      "a connect link opened from another network shows no fingerprint and asks for the device's",
+      (await typed.count()) === 1 &&
+        (await phished.getByTestId("device-fingerprint").count()) === 0 &&
+        (await phished.getByRole("button", { name: "Connect", exact: true }).isDisabled()),
+    );
+    await typed.fill("0000-0000-0000-0000");
+    await phished.getByRole("button", { name: "Connect", exact: true }).click();
+    check(
+      "and a fingerprint that is not the device's connects nothing",
+      await until(
+        async () => (await phished.getByText(/not the fingerprint this device shows/).count()) >= 1,
+      ),
+    );
+    await phished.getByRole("button", { name: "Not mine", exact: true }).click();
     await page.goto(/OCADE: (\S+)/.exec(thief.out())[1], { waitUntil: "networkidle" });
     await page.getByRole("button", { name: "Not mine", exact: true }).click();
     check(
@@ -325,12 +352,20 @@ try {
       (await page.getByRole("textbox").count()) === 0 ||
         (await page.getByRole("dialog").getByRole("textbox").count()) === 0,
     );
-    await page.getByRole("button", { name: "Connect", exact: true }).click();
+    // Approved from the other network with the fingerprint the computer printed.
+    await phished.goto(approveUrl, { waitUntil: "networkidle" });
+    await phished
+      .getByRole("textbox", { name: "Fingerprint the device shows" })
+      .fill(printed ?? "");
+    await phished.getByRole("button", { name: "Connect", exact: true }).click();
     check(
-      "one click connects the computer",
+      "the fingerprint the computer shows, typed from another network, connects it",
       (await laptop.exit) === 0 && laptop.out().includes("Connected as Proof laptop"),
       laptop.out().slice(-200),
     );
+    await elsewhere.close();
+    // This tab still holds the request it was showing: the person comes back to JARVIS.
+    await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
     const reused = spawnSync(
       PYTHON,
       [

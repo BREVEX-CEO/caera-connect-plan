@@ -17,9 +17,11 @@ identity is ocade_identity; updates are ocade_update.
 from __future__ import annotations
 
 import argparse
+import hmac
 import json
 import os
 import platform
+import secrets
 import shutil
 import socket
 import sys
@@ -35,6 +37,9 @@ import ocade_update  # noqa: E402
 from ocade_identity import SOFTWARE_VERSION, Identity, UpdateRequired  # noqa: E402
 
 SINGLE_INSTANCE_PORT = 47831
+# "exit" plus a secret only this account can read: another account's process on
+# the same computer can reach the loopback port, never end this agent through it.
+_EXIT_WORD: bytes | None = None
 APP_NAME = "OCADE Device Agent"
 
 
@@ -44,10 +49,23 @@ def single_instance() -> socket.socket | None:
     try:
         guard.bind(("127.0.0.1", SINGLE_INSTANCE_PORT))
         guard.listen(1)
-        return guard
     except OSError:
         guard.close()
         return None
+    global _EXIT_WORD
+    token = secrets.token_hex(16)
+    path = ocade_device.HOME / "exit.token"
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as handle:
+            handle.write(token)
+        os.replace(tmp, path)
+        _EXIT_WORD = f"exit {token}".encode()
+    except OSError:
+        _EXIT_WORD = None  # unwritable: nothing can ask it to exit; ending the process still works
+    return guard
 
 
 def serve_exit(guard: socket.socket, on_exit) -> None:
@@ -61,7 +79,8 @@ def serve_exit(guard: socket.socket, on_exit) -> None:
             with conn:
                 conn.settimeout(2)
                 try:
-                    if conn.recv(16) == b"exit":
+                    asked = conn.recv(64)
+                    if _EXIT_WORD and hmac.compare_digest(asked, _EXIT_WORD):
                         conn.sendall(b"ok")
                         on_exit()
                 except OSError:
@@ -72,8 +91,9 @@ def serve_exit(guard: socket.socket, on_exit) -> None:
 def stop_running_agent(timeout_s: float = 8.0) -> bool:
     """Ask a running agent to stop, and wait until it has. True when none is left running."""
     try:
+        token = (ocade_device.HOME / "exit.token").read_text().strip()
         with socket.create_connection(("127.0.0.1", SINGLE_INSTANCE_PORT), timeout=2) as conn:
-            conn.sendall(b"exit")
+            conn.sendall(f"exit {token}".encode())
             conn.recv(8)
     except OSError:
         pass  # nothing is listening: no agent is running

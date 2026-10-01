@@ -434,3 +434,27 @@ class AccessibilityTest(unittest.TestCase):
             self.assertEqual(stale["status"], "stale")
         finally:
             pc.run({"action": "window", "title": "Calculator", "state": "close"}, confirmed=True)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows UI Automation")
+    def test_a_click_by_coordinates_meets_the_same_hard_rules(self):
+        import ocade_accessibility
+        import uiautomation as auto
+        form = subprocess.Popen(["powershell", "-NoProfile", "-Command", (
+            "Add-Type -AssemblyName System.Windows.Forms;"
+            "$f = New-Object Windows.Forms.Form; $f.Text = 'OCADE gate probe';"
+            "$p = New-Object Windows.Forms.Button; $p.Text = 'Pay now'; $p.Width = 200; $p.Height = 50;"
+            "$n = New-Object Windows.Forms.Button; $n.Text = 'Next page'; $n.Top = 70; $n.Width = 200; $n.Height = 50;"
+            "$f.Controls.Add($p); $f.Controls.Add($n); [Windows.Forms.Application]::Run($f)")],
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        try:
+            window = auto.WindowControl(Name="OCADE gate probe", searchDepth=1)
+            self.assertTrue(window.Exists(15, 0.3), "the probe window did not appear")
+
+            def centre(name):
+                box = window.ButtonControl(Name=name).BoundingRectangle
+                return (box.left + box.right) // 2, (box.top + box.bottom) // 2
+
+            self.assertEqual(ocade_accessibility.gate_at(*centre("Pay now"), False)["status"], "blocked")
+            self.assertIsNone(ocade_accessibility.gate_at(*centre("Next page"), False))
+        finally:
+            form.kill()

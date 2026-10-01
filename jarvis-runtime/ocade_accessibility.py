@@ -160,6 +160,40 @@ def _find(window, runtime_id: tuple):
     return None
 
 
+def gate_at(x: int | None, y: int | None, confirmed: bool) -> dict | None:
+    """
+    The same hard rules for a click or keystrokes by coordinates: choosing the
+    screen over a control must never be a way round them. What lies under the
+    point (or has the keyboard, when x is None) and the controls holding it are
+    read; a payment control is refused, a sensitive one asked about, a password
+    field handed to the person.
+    """
+    try:
+        auto = _uia()
+    except ImportError:  # ponytail: Windows UI Automation only; macOS AX when the agent ships there
+        return None
+    purchase, sensitive = _gates()
+    with auto.UIAutomationInitializerInThread():
+        control = auto.GetFocusedControl() if x is None else auto.ControlFromPoint(x, y)
+        if x is None:
+            return ({"status": "human_required",
+                     "summary": "A password is needed. Take over and type it yourself."}
+                    if control is not None and control.IsPassword else None)
+        # The control and the few holding it, up to the window or page itself (its title is not a button).
+        for _ in range(4):
+            if control is None or control.ControlTypeName in ("WindowControl", "PaneControl",
+                                                              "DocumentControl"):
+                break
+            name = (control.Name or "").strip()
+            if purchase.search(name):
+                return {"status": "blocked", "summary": "JARVIS never completes a purchase or payment"}
+            if sensitive.search(name) and not confirmed:
+                return {"status": "needs_confirmation",
+                        "summary": f"Confirm before JARVIS presses “{name[:60]}”"}
+            control = control.GetParentControl()
+    return None
+
+
 def act(action: dict, confirmed: bool) -> dict:
     auto = _uia()
     held = _State.held.get(str(action.get("observationId", "")))

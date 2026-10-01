@@ -11,7 +11,7 @@
  *
  * Usage: node scripts/e2e/push-journey.mjs [--base=…] [--supabase=…]
  */
-import { createDecipheriv, createECDH, hkdfSync } from "node:crypto";
+import { createDecipheriv, createECDH, createHash, hkdfSync } from "node:crypto";
 import { chromium } from "playwright-core";
 
 const arg = (name, fallback) => {
@@ -163,18 +163,23 @@ try {
 
   /* --- something happens on the account: OCADE is closed -------------------- */
   // Connecting a new computer is a security event: always delivered, never muted.
+  const deskKey = Buffer.from(`desk-${Date.now()}`).toString("base64url");
   const [pending] = await fetch(`${SUPABASE}/rest/v1/jarvis_devices`, {
     method: "POST",
     headers: { "content-type": "application/json", prefer: "return=representation" },
     body: JSON.stringify({
       name: "Desk PC",
       platform: "Windows",
-      public_key: Buffer.from(`desk-${Date.now()}`).toString("base64url"),
+      public_key: deskKey,
       user_id: null,
       enrollment_expires_at: new Date(Date.now() + 600_000).toISOString(),
     }),
   }).then((r) => r.json());
   await page.goto(`${BASE}/ocade-jarvis?connect=${pending.id}`, { waitUntil: "networkidle" });
+  // Recorded with no network of its own, so the person types the fingerprint it shows.
+  await page
+    .getByRole("textbox", { name: "Fingerprint the device shows" })
+    .fill(createHash("sha256").update(deskKey).digest("hex").slice(0, 16));
   await page.getByRole("button", { name: "Connect", exact: true }).click();
   check(
     "the account's security event is recorded",

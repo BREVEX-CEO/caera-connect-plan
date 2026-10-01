@@ -12,6 +12,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { requireSession } from "@/lib/security/session-middleware";
+import { HIGH_RISK, requireAssurance } from "@/lib/security/assurance-middleware";
 import { supabaseCommercialLedger } from "@/lib/commercial/supabase-ledger";
 import { resolveTierFor } from "@/lib/commercial/entitlement-resolver";
 import { ALLOWANCES, describeUsage } from "@/lib/commercial/usage-policy";
@@ -571,41 +572,74 @@ export const setJarvisPermission = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-/** What a person sees before approving a device: never its key, only its fingerprint. */
+/** A pending enrollment, and whether it asked from the network this request comes from. */
+async function pendingEnrollment(service: Awaited<ReturnType<typeof admin>>, id: string) {
+  const { data: row, error } = await service
+    .from("jarvis_devices")
+    .select("id, name, platform, kind, public_key, enrollment_source")
+    .eq("id", id)
+    .is("user_id", null)
+    .gt("enrollment_expires_at", new Date().toISOString())
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row?.public_key) return null;
+  const { enrollmentSource, fingerprint } = await import("./device.server");
+  const { getRequest } = await import("@tanstack/react-start/server");
+  return {
+    row,
+    fingerprint: await fingerprint(row.public_key),
+    sameNetwork: (await enrollmentSource(getRequest())) === row.enrollment_source,
+  };
+}
+
+/**
+ * What a person sees before approving a device: never its key. From the
+ * network the device asked from, its fingerprint to compare; from anywhere
+ * else nothing to copy, because the person must read it off the device itself.
+ */
 export const readJarvisEnrollment = createServerFn({ method: "GET" })
   .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data }) => {
-    const service = await admin();
-    const { data: row, error } = await service
-      .from("jarvis_devices")
-      .select("id, name, platform, kind, public_key, enrollment_expires_at")
-      .eq("id", data.id)
-      .is("user_id", null)
-      .gt("enrollment_expires_at", new Date().toISOString())
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!row?.public_key) return null;
-    const { fingerprint } = await import("./device.server");
+    const pending = await pendingEnrollment(await admin(), data.id);
+    if (!pending) return null;
     return {
-      id: row.id,
-      name: row.name,
-      platform: row.platform,
-      kind: row.kind as "agent" | "android",
-      fingerprint: await fingerprint(row.public_key),
+      id: pending.row.id,
+      name: pending.row.name,
+      platform: pending.row.platform,
+      kind: pending.row.kind as "agent" | "android",
+      fingerprint: pending.sameNetwork ? pending.fingerprint : null,
     };
   });
 
+const sameCode = (typed: string, fingerprint: string) =>
+  typed.replace(/[^0-9a-f]/gi, "").toUpperCase() === fingerprint.replace(/-/g, "");
+
 /**
- * The person's one click that makes a pending device theirs. The account is
+ * The person's confirmation that makes a pending device theirs. The account is
  * the caller's verified identity, never a parameter; a device already claimed
  * or expired cannot be claimed again.
+ *
+ * A LINK ALONE IS NOT ENOUGH. Anyone can enroll a computer of their own and
+ * send its approve link. So the proof is recent (a stolen, older session cannot
+ * attach a computer that outlives "sign out everywhere"), and a request from
+ * another network than the device's needs the fingerprint the device shows,
+ * typed by the person — a sender would have to talk them into typing it too.
  */
 export const approveJarvisDevice = createServerFn({ method: "POST" })
-  .middleware([requireSession])
-  .validator((i) => z.object({ id: uuid }).parse(i))
+  .middleware([requireAssurance(HIGH_RISK)])
+  .validator((i) => z.object({ id: uuid, code: z.string().max(40).optional() }).parse(i))
   .handler(async ({ data, context }) => {
     const service = await admin();
+    const pending = await pendingEnrollment(service, data.id);
+    if (!pending) return { ok: false as const, message: "That connection request has expired." };
+    if (!pending.sameNetwork && !sameCode(data.code ?? "", pending.fingerprint)) {
+      return {
+        ok: false as const,
+        message:
+          "That is not the fingerprint this device shows. Check it on the device and try again.",
+      };
+    }
     const { data: row, error } = await service
       .from("jarvis_devices")
       // Approved: where it asked from is no longer anybody's business.
@@ -629,13 +663,20 @@ export const approveJarvisDevice = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-/** Refuse a pending request that is not the person's. */
+/**
+ * Refuse a pending request that is not the person's. Deleted only from the
+ * network it asked from, so knowing a request's id is not a way to cancel
+ * somebody else's setup; elsewhere it is simply left to expire.
+ */
 export const declineJarvisDevice = createServerFn({ method: "POST" })
   .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data }) => {
     const service = await admin();
-    await service.from("jarvis_devices").delete().eq("id", data.id).is("user_id", null);
+    const pending = await pendingEnrollment(service, data.id);
+    if (pending?.sameNetwork) {
+      await service.from("jarvis_devices").delete().eq("id", data.id).is("user_id", null);
+    }
     return { ok: true as const };
   });
 

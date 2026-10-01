@@ -113,6 +113,22 @@ class AttachTest(unittest.TestCase):
         # Closing JARVIS's session never closes the person's browser.
         self.assertIsNone(self.browser.poll())
 
+    def test_a_tab_of_the_persons_that_jarvis_switches_to_keeps_the_network_boundary(self):
+        from actions.browser_control import _BrowserSession
+        from ocade_egress import Policy
+        found = ocade_existing_browser.find({"chrome": [self.profile]})
+        egress = type("Egress", (), {"policy": Policy()})()
+        session = _BrowserSession("chrome", mode="real", cdp_endpoint=found["endpoint"], egress=egress)
+        session.start()
+        url = f"http://127.0.0.1:{self.server.server_address[1]}/index.html"
+        # JARVIS's own tab, then the person's first tab: both refuse a private address.
+        for step in ({"action": "open", "url": url, "newTab": True},
+                     {"action": "switch_tab", "index": 0},
+                     {"action": "open", "url": url}):
+            out = session.run(session.act(step), timeout=60)
+        self.assertEqual(out["status"], "blocked", out)
+        session.close()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -122,7 +122,11 @@ class Browsers:
                     return {"status": "blocked", "summary": "Only a file inside the work folder can be attached"}
                 action["_file"] = str(target)
             else:
-                action["_folder"] = str(root / "Downloads")
+                folder = (root / "Downloads").resolve()
+                # A Downloads link planted in the work folder does not lead downloads out of it.
+                if folder != root and root not in folder.parents:
+                    return {"status": "blocked", "summary": "Downloads must stay inside the work folder"}
+                action["_folder"] = str(folder)
         if mode == "real":
             endpoint = self.endpoint()
             if not endpoint and not self.explicit:
@@ -381,6 +385,13 @@ class Agent:
             # OCADE hands out work only while nothing runs; one action at a time
             # owns this computer, and this loop keeps listening for STOP meanwhile.
             commands = [] if active else reply.get("commands", [])[:1]
+            # STOP or Pause pressed while this exchange was on its way: the work it
+            # handed out never starts; OCADE hears the STOP on the next exchange.
+            if commands and (self.stop_all.is_set() or self.pause_asked.is_set()):
+                results.append({"id": commands[0]["id"], "status": "failed",
+                                "summary": "Stopped before it started"})
+                self._keep_pending(results)
+                commands = []
             if commands and not self.stop.is_set():
                 active = self._start(commands[0])
             elif reply.get("continue") and not active and not self.stop.is_set():

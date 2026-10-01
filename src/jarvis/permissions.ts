@@ -172,8 +172,10 @@ export function needsConfirmation(
   switch (action.action) {
     case "open_app":
       return appDecision(rows, action.name, deviceId) !== true;
+    // An upload is a work-folder file leaving for a website: the page cannot be trusted to ask.
     case "file_delete":
     case "system":
+    case "upload":
       return true;
     case "window":
       // Closing a window can lose unsaved work.

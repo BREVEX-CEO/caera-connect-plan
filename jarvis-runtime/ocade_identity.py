@@ -224,8 +224,13 @@ class Identity:
 
     def rotate(self) -> bool:
         """Swap to a new key, signed by the current one. The old key stops working at once."""
-        fresh = new_key()
-        self._write_key(fresh, self.next_path)  # kept until OCADE's answer is known
+        # A rotation whose answer never arrived offers the SAME key again: OCADE may
+        # already hold it, and a new one would leave neither end with a key that works.
+        if self.next_path.exists():
+            fresh = serialization.load_pem_private_key(self.next_path.read_bytes(), None)
+        else:
+            fresh = new_key()
+            self._write_key(fresh, self.next_path)  # kept until OCADE's answer is known
         status, reply = self.post(PROTOCOL["paths"]["exchange"],
                                   {"results": [], "rotate": {"publicKey": public_text(fresh)}})
         if status == 200 and reply.get("rotated"):
