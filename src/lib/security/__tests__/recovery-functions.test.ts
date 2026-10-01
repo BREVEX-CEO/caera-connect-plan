@@ -21,7 +21,14 @@ vi.mock("@/lib/security/assurance-middleware", () => ({
   HIGH_RISK: {},
   requireAssurance: () => ({}),
 }));
-vi.mock("@/lib/security/session-middleware", () => ({ requireSession: {} }));
+const session = vi.hoisted(() => ({
+  standing: "factor_required" as "ok" | "factor_required" | "ended",
+}));
+vi.mock("@/lib/security/session-middleware", () => ({
+  requireSession: {},
+  SESSION_ENDED: "Unauthorized: Session ended",
+  sessionStanding: async () => session.standing,
+}));
 
 const sent: { title: string }[] = [];
 vi.mock("@/lib/notifications/send.server", () => ({
@@ -119,6 +126,18 @@ describe("using a code", () => {
     expect(factors).toEqual([]);
     expect(calls).toContain("ocade_revoke_other_account_sessions");
     expect(sent.at(-1)!.title).toMatch(/turned off with a recovery code/);
+  });
+
+  it("is refused to a session that was signed out, whatever code it brings", async () => {
+    const { issue, redeem } = await load();
+    const { codes } = await issue();
+    session.standing = "ended";
+    try {
+      await expect(redeem(codes[0]!)).rejects.toThrow(/Session ended/);
+      expect(calls).not.toContain("ocade_consume_mfa_recovery_code");
+    } finally {
+      session.standing = "factor_required";
+    }
   });
 
   it("does not spend one of five attempts on something that is not a code", async () => {

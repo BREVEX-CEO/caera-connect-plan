@@ -868,6 +868,89 @@ describe("attacked from a browser", () => {
  * production takes: operators exist as user_roles 'admin' rows when the
  * migration arrives, and a rollback must leave them operating.
  */
+describe("the address the console shows", () => {
+  it("is the sign-in address: an account cannot take somebody else's", async () => {
+    const posing = await twin.asTenant(
+      ADMIN,
+      `update public.profiles set email = 'owner@ocade.test' where id = '${ADMIN}'`,
+      fresh,
+    );
+    expect(posing.errorCode).toBe("42501");
+    await twin.execSuperuser(
+      `insert into public.profiles (id, email) values ('${CUSTOMER_B}', 'b@ocade.test')
+         on conflict (id) do nothing;
+       update auth.users set email = 'b-new@ocade.test' where id = '${CUSTOMER_B}'`,
+    );
+    expect(
+      await twin.asServiceRole(`select email from public.profiles where id = '${CUSTOMER_B}'`),
+    ).toEqual([{ email: "b-new@ocade.test" }]);
+    await twin.execSuperuser(
+      `update auth.users set email = 'b@ocade.test' where id = '${CUSTOMER_B}'`,
+    );
+  });
+});
+
+describe("staff act within their own reach", () => {
+  const act = (user: string, sql: string) => twin.asTenant(user, sql, fresh);
+  const why = "Checked who they are on a call";
+
+  it("a colleague's two-step and sessions are an owner's to change", async () => {
+    for (const sql of [
+      `select public.ocade_staff_reset_second_factor('${SUPPORT}', '${why}')`,
+      `select public.ocade_staff_end_customer_sessions('${SUPPORT}', '${why}')`,
+    ]) {
+      const refused = await act(ADMIN, sql);
+      expect(refused.errorCode, sql).toBe("42501");
+      expect(refused.error).toMatch(/changed by an owner/);
+    }
+    expect(
+      (await act(OWNER, `select public.ocade_staff_end_customer_sessions('${SUPPORT}', '${why}')`))
+        .error,
+    ).toBeUndefined();
+    // A customer is still the Admin's to help.
+    expect(
+      (
+        await act(
+          ADMIN,
+          `select public.ocade_staff_end_customer_sessions('${CUSTOMER_A}', '${why}')`,
+        )
+      ).error,
+    ).toBeUndefined();
+  });
+
+  it("nobody below an owner gives more than they hold", async () => {
+    await twin.execSuperuser(
+      `update public.ocade_staff set granted = '{staff.manage}' where user_id = '${ADMIN}'`,
+    );
+    const beyond = await act(
+      ADMIN,
+      `select public.ocade_staff_set_permissions('${SUPPORT}', '{cases.manage}', '{}', '${why}')`,
+    );
+    expect(beyond.error).toMatch(/hold yourself/);
+    expect(
+      (
+        await act(
+          ADMIN,
+          `select public.ocade_staff_set_permissions('${SUPPORT}', '{usage.read}', '{}', '${why}')`,
+        )
+      ).error,
+    ).toBeUndefined();
+    expect(
+      (await act(ADMIN, `select public.ocade_staff_grant('b@ocade.test', 'support', '${why}')`))
+        .error,
+    ).toBeUndefined();
+    // An owner's reach is everything.
+    expect(
+      (
+        await act(
+          OWNER,
+          `select public.ocade_staff_set_permissions('${SUPPORT}', '{cases.manage}', '{}', '${why}')`,
+        )
+      ).error,
+    ).toBeUndefined();
+  });
+});
+
 describe("rolled back and applied again", () => {
   const MIGRATION = "20260930093000_one_staff_authority";
   const apply = () => twin.runScript("supabase/migrations", `${MIGRATION}.sql`);

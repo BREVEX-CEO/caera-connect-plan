@@ -485,6 +485,15 @@ export const listCaseConversations = createServerFn({ method: "GET" })
         .order("updated_at", { ascending: false })
         .limit(50);
       if (error) throw new Error("Conversations could not be read.");
+      // Their titles are the customer's words too: the list is written down like a read.
+      const { error: auditError } = await supabaseAdmin.from("ocade_admin_actions").insert({
+        actor: context.userId,
+        target_user: kase.customer,
+        subject: data.caseId,
+        action: "case_read",
+        reason: "Listed the conversations under an open case.",
+      });
+      if (auditError) throw new Error("Conversations could not be read.");
       return (rows ?? []).map((row) => ({
         id: row.id,
         title: row.title,

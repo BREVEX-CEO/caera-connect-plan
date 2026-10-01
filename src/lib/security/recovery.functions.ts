@@ -19,7 +19,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { HIGH_RISK, requireAssurance } from "./assurance-middleware";
-import { requireSession } from "./session-middleware";
+import { requireSession, SESSION_ENDED, sessionStanding } from "./session-middleware";
 import {
   generateRecoveryCodes,
   hashRecoveryCode,
@@ -104,6 +104,12 @@ export const redeemRecoveryCode = createServerFn({ method: "POST" })
     return { code };
   })
   .handler(async ({ data, context }): Promise<RecoveryOutcome> => {
+    // Still never a session that was signed out: its token outlives it by up to an hour.
+    const standing = await sessionStanding(
+      context.supabase as unknown as Parameters<typeof sessionStanding>[0],
+      context.claims as Record<string, unknown>,
+    );
+    if (standing === "ended") throw new Error(SESSION_ENDED);
     const normalized = normalizeRecoveryCode(data.code);
     // Shape first, so a pasted email address does not cost one of five attempts.
     if (!looksLikeRecoveryCode(normalized)) {
