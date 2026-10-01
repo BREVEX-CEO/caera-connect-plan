@@ -84,7 +84,7 @@ class WorkspaceTest(unittest.TestCase):
         ocade_computer.RUN_TIMEOUT_S = 1
         try:
             started = time.monotonic()
-            out = self.pc.run({"action": "run", "command": command})
+            out = self.pc.run({"action": "run", "command": command}, confirmed=True)
         finally:
             ocade_computer.RUN_TIMEOUT_S = old
         self.assertEqual(out["status"], "failed")
@@ -222,6 +222,8 @@ class DirectCommandTest(unittest.TestCase):
         self.pc = Computer(str(self.root))
 
     def run_(self, command, **kw):
+        # The person confirmed it at OCADE, as every command here is.
+        kw.setdefault("confirmed", True)
         return self.pc.run({"action": "run", "command": command, **kw.pop("extra", {})}, **kw)
 
     def test_a_development_command_runs_there_and_reports_its_output(self):
@@ -249,9 +251,15 @@ class DirectCommandTest(unittest.TestCase):
             self.assertEqual(self.run_(command)["status"], "blocked", command)
         self.assertEqual(self.run_("python a.py", extra={"cwd": ".."})["status"], "blocked")
 
-    def test_other_programs_wait_for_the_person(self):
-        self.assertEqual(self.run_("notepad")["status"] if __import__("shutil").which("notepad")
-                         else "needs_confirmation", "needs_confirmation")
+    def test_every_command_waits_for_the_person_shown_whole(self):
+        # An interpreter runs whatever it is given: none runs unconfirmed here.
+        (self.root / "calc.py").write_text("print(42)\n")
+        for command in ("python calc.py", 'python -c "print(1)"', "git status"):
+            out = self.run_(command, confirmed=False)
+            self.assertEqual(out["status"], "needs_confirmation", command)
+            self.assertEqual(out["summary"], f"Running {command}")
+        # What can never run is refused before anyone is asked.
+        self.assertEqual(self.run_("python ../x.py", confirmed=False)["status"], "blocked")
         self.assertEqual(self.run_("no-such-program-ocade")["status"], "failed")
 
     def test_secrets_stay_out_of_the_command(self):
@@ -272,7 +280,8 @@ class DirectCommandTest(unittest.TestCase):
         timer = __import__("threading").Timer(2.0, cancel.set)
         timer.start()
         started = time.monotonic()
-        out = self.pc.run({"action": "run", "command": "python parent.py"}, cancel=cancel)
+        out = self.pc.run({"action": "run", "command": "python parent.py"}, cancel=cancel,
+                          confirmed=True)
         self.assertTrue(out.get("stopped"), out)
         self.assertLess(time.monotonic() - started, 10)
         pid = int((self.root / "child.pid").read_text())

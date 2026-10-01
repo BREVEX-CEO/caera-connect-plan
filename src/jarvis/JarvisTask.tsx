@@ -223,7 +223,7 @@ export function ConfirmBanner({
       aria-label="Confirm this step"
       className="rounded-xl border border-foreground/40 bg-background p-3"
     >
-      <p className="mb-2 text-sm">{summary}</p>
+      <p className="mb-2 text-sm [overflow-wrap:anywhere]">{summary}</p>
       <div className="flex gap-2">
         <button
           type="button"

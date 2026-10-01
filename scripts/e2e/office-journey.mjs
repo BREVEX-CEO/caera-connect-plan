@@ -390,15 +390,30 @@ print(json.dumps({"text": text}))
     const before = (await table("jarvis_activity", `user_id=eq.${USER}&select=id`)).length;
     await page.locator("#jarvis-composer").fill("code-check the invoice test fails, fix it");
     await page.getByRole("button", { name: "Send", exact: true }).click();
+    // Each new command is shown to the person once; a repeat in the same task is not asked.
+    const asked = [];
+    const ask = page.getByRole("alertdialog", { name: "Confirm this step" });
+    const finished = await until(async () => {
+      if ((await ask.count()) === 1) {
+        asked.push((await ask.locator("p").innerText()).trim());
+        await ask.getByRole("button", { name: "Confirm", exact: true }).click();
+        await until(async () => (await ask.count()) === 0, 10_000);
+      }
+      return (
+        (await task())?.status === "completed" &&
+        (await task())?.title === "Fix the failing invoice test"
+      );
+    }, 180_000);
     check(
       "JARVIS finishes the fix",
-      await until(
-        async () =>
-          (await task())?.status === "completed" &&
-          (await task())?.title === "Fix the failing invoice test",
-        180_000,
-      ),
+      finished,
       JSON.stringify(await task()).slice(0, 300) + deviceLog.slice(-300),
+    );
+    check(
+      "each new command was confirmed once, and the re-run of the tests was not asked again",
+      JSON.stringify(asked) ===
+        JSON.stringify(["Running python -m unittest -v", "Running git diff --stat"]),
+      JSON.stringify(asked),
     );
     const runs = (
       await table(

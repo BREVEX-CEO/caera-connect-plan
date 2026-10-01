@@ -499,11 +499,20 @@ except i.UpdateRequired:
     await say("computer-task write and check my notes");
     if (terminal) {
       const ask = page.getByRole("alertdialog", { name: "Confirm this step" });
-      const asked = await until(async () => (await ask.count()) === 1, 60_000);
-      check(
-        "publishing (git push) waits for the person",
-        asked && (await ask.innerText()).includes("Running git push origin main"),
-      );
+      const shown = (text) =>
+        until(
+          async () => (await ask.count()) === 1 && (await ask.innerText()).includes(text),
+          60_000,
+        );
+      const reading =
+        process.platform === "win32"
+          ? `Running python -c "print(open('notes.md').read())"`
+          : "Running cat notes.md";
+      const first = await shown(reading);
+      check("a command is shown whole and waits for the person", first);
+      if (first) await ask.getByRole("button", { name: "Confirm", exact: true }).click();
+      const asked = await shown("Running git push origin main");
+      check("publishing (git push) waits for the person", asked);
       if (asked) await ask.getByRole("button", { name: "Decline", exact: true }).click();
     } else {
       blocked("publishing (git push) waits for the person", "no confined terminal on this host");
@@ -672,11 +681,13 @@ except i.UpdateRequired:
     await page.waitForTimeout(1000);
 
     /* --- Remote PC from a phone-sized screen, and the global STOP JARVIS ------- */
+    const LONG_COMMAND =
+      process.platform === "win32" ? `python -c "import time; time.sleep(90)"` : "sleep 90";
     await script("remote-task", [
       { tool: "start_task", args: { title: "Long build", where: "computer", steps: ["Build"] } },
       // A long step, so STOP lands while the computer is working.
       ...(terminal
-        ? [{ tool: "computer", args: { action: "run", command: "sleep 90" } }]
+        ? [{ tool: "computer", args: { action: "run", command: LONG_COMMAND } }]
         : Array.from({ length: 12 }, () => ({
             tool: "browser",
             args: { action: "wait", seconds: 5 },
@@ -684,6 +695,12 @@ except i.UpdateRequired:
       { tool: "finish_task", args: { outcome: "completed", result: "Built." } },
     ]);
     await say("remote-task run the long build");
+    if (terminal) {
+      // Every command is the person's to confirm first.
+      const ask = page.getByRole("alertdialog", { name: "Confirm this step" });
+      await until(async () => (await ask.count()) === 1, 30_000);
+      await ask.getByRole("button", { name: "Confirm", exact: true }).click();
+    }
     await until(async () => (await page.getByText("Long build").count()) >= 1, 30_000);
     await page.setViewportSize({ width: 375, height: 800 });
     await page.getByRole("button", { name: "Open navigation", exact: true }).click();

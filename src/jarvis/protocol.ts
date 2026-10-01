@@ -303,7 +303,8 @@ const COMPUTER_ACTIONS = [
   z.object({ action: z.literal("file_delete"), path: workspacePath }),
   z.object({
     action: z.literal("run"),
-    command: z.string().min(1).max(2000),
+    // Short enough to be shown whole when the person confirms it (Activity holds 300).
+    command: z.string().trim().min(1).max(280),
     cwd: workspacePath.optional(),
   }),
   z.object({
@@ -506,7 +507,8 @@ export function describeAction(action: DeviceAction): string {
     case "file_rename":
       return `Renaming ${action.path.slice(0, 80)} to ${action.name.slice(0, 80)}`;
     case "run":
-      return `Running ${action.command.slice(0, 120)}`;
+      // Whole: this is what the person confirms.
+      return `Running ${action.command}`;
     case "system": {
       const words = {
         lock: "Locking",
@@ -657,7 +659,9 @@ export function jarvisTools(memory: boolean, schedule = true): NormalizedToolDef
             items: { type: "OBJECT" },
           },
           content: str("For file_write."),
-          command: str("For run: one command, run in the workspace."),
+          command: str(
+            "For run: one program and its arguments (no pipes or chains), at most 280 characters, run in the workspace. The person confirms each new command once per task.",
+          ),
           cwd: str("Optional folder inside the workspace, for run."),
           observationId: str(
             "The current screen observationId, for screen_click, screen_type, screen_keys and screen_scroll.",

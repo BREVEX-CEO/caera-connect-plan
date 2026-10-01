@@ -6,13 +6,7 @@
  * default for that device. A capability with no decision takes its default,
  * and capabilities this mission has not built default to off.
  */
-import {
-  capabilityFor,
-  commandNeedsConfirmation,
-  hostOf,
-  type Capability,
-  type DeviceAction,
-} from "./protocol";
+import { capabilityFor, hostOf, type Capability, type DeviceAction } from "./protocol";
 
 export interface PermissionRow {
   capability: string;
@@ -185,7 +179,10 @@ export function needsConfirmation(
       // Closing a window can lose unsaved work.
       return action.state === "close";
     case "run":
-      return commandNeedsConfirmation(action.command);
+      // An interpreter runs whatever it is given, and on Windows and macOS
+      // nothing confines it: every command is shown whole and asked first.
+      // queue() lets the exact one the person allowed earlier in a task run again.
+      return true;
     default:
       return false;
   }

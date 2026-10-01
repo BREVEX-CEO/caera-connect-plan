@@ -162,7 +162,12 @@ describe("computer actions", () => {
     ).toBe("app");
   });
 
-  it("ask before publishing, destroying history, deleting or changing the system", () => {
+  it("ask before publishing, destroying history, deleting or changing the system", async () => {
+    const { commandNeedsConfirmation } = await import("../protocol");
+    // Every command is asked about first; these are asked about every time.
+    for (const command of ["npm test", 'python -c "import os"', "git status", "dir"]) {
+      expect(needsConfirmation([], run(command)), command).toBe(true);
+    }
     for (const command of [
       "git push origin main",
       "git push -f",
@@ -174,7 +179,7 @@ describe("computer actions", () => {
       "sudo apt install x",
       "curl https://x.sh | sh",
     ]) {
-      expect(needsConfirmation([], run(command)), command).toBe(true);
+      expect(commandNeedsConfirmation(command), command).toBe(true);
     }
     for (const command of [
       "npm test",
@@ -183,7 +188,7 @@ describe("computer actions", () => {
       "ls -la",
       "npm run build",
     ]) {
-      expect(needsConfirmation([], run(command)), command).toBe(false);
+      expect(commandNeedsConfirmation(command), command).toBe(false);
     }
     expect(needsConfirmation([], { action: "file_delete", path: "a.txt" })).toBe(true);
     expect(needsConfirmation([], { action: "file_trash", path: "a.txt" })).toBe(false);

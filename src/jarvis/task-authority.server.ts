@@ -12,7 +12,12 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { describeAction, type DeviceAction, type TaskStatus } from "./protocol";
+import {
+  commandNeedsConfirmation,
+  describeAction,
+  type DeviceAction,
+  type TaskStatus,
+} from "./protocol";
 import { needsConfirmation, refuseAction, type PermissionRow } from "./permissions";
 import { TASK_COLUMNS, type JarvisTaskRow } from "./task-row";
 
@@ -26,6 +31,26 @@ export async function permissionsOf(db: Db, userId: string): Promise<PermissionR
     .limit(500);
   if (error) throw new Error(error.message);
   return data ?? [];
+}
+
+/** Did the person allow this exact command earlier in this task? */
+async function allowedEarlier(
+  service: Db,
+  userId: string,
+  taskId: string,
+  command: string,
+): Promise<boolean> {
+  const { data } = await service
+    .from("jarvis_activity")
+    .select("action")
+    .eq("user_id", userId)
+    .eq("task_id", taskId)
+    .eq("confirmed", true)
+    .limit(200);
+  return (data ?? []).some((row) => {
+    const action = row.action as { action?: string; command?: string } | null;
+    return action?.action === "run" && action.command === command;
+  });
 }
 
 export interface TaskChange {
@@ -183,9 +208,20 @@ export async function queueTaskAction(
     }
     data.action.name = exact;
   }
-  // Deletions, system changes, risky commands and apps set to Ask wait for the
+  // Deletions, system changes, commands and apps set to Ask wait for the
   // person before the device ever sees them.
-  const ask = needsConfirmation(rows, data.action, device.id);
+  let ask = needsConfirmation(rows, data.action, device.id);
+  /*
+   * The exact command the person allowed earlier in this task runs again
+   * without asking (a fix loop re-running its tests); one that publishes,
+   * installs or destroys asks every time.
+   */
+  const repeat =
+    ask &&
+    data.action.action === "run" &&
+    !commandNeedsConfirmation(data.action.command) &&
+    (await allowedEarlier(service, userId, task.id, data.action.command));
+  if (repeat) ask = false;
 
   const { data: row, error: insertError } = await service
     .from("jarvis_activity")
@@ -196,8 +232,8 @@ export async function queueTaskAction(
       summary: describeAction(data.action),
       action: data.action,
       status: ask ? "needs_confirmation" : "queued",
-      // Model-issued actions are never pre-confirmed.
-      confirmed: false,
+      // Model-issued actions are never pre-confirmed, but for that repeat.
+      confirmed: repeat,
     })
     .select("id")
     .single();

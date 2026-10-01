@@ -54,13 +54,6 @@ FRAME_WIDTH = 1280
 PASTE_OVER = 40  # longer text is pasted (and the clipboard restored) instead of typed key by key
 UNDO_DEPTH = 10  # donor core/undo.py: roughly "this conversation"
 
-# Programs a coding task runs in the workspace without asking (risky arguments
-# such as `git push` or `install` still wait for the person at OCADE).
-DEV_PROGRAMS = frozenset({
-    "git", "python", "python3", "py", "pip", "pip3", "pytest", "node", "npm", "npx", "pnpm",
-    "yarn", "bun", "deno", "tsc", "eslint", "prettier", "vitest", "jest", "ruff", "black",
-    "mypy", "dotnet", "cargo", "rustc", "go", "java", "javac", "mvn", "gradle", "make",
-    "cmake", "code"})
 # Anything a shell (or cmd.exe for .cmd/.bat programs) would interpret.
 SHELL_META = re.compile(r"[&|;<>^`$%!\r\n]")
 SECRET_ENV = re.compile(r"KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|COOKIE|SESSION|AUTH",
@@ -588,9 +581,6 @@ class Computer:
         program = shutil.which(argv[0])
         if program is None:
             return {"status": "failed", "summary": f"{Path(argv[0]).name[:60]} is not installed here"}
-        if Path(argv[0]).stem.lower() not in DEV_PROGRAMS and not confirmed:
-            return {"status": "needs_confirmation",
-                    "summary": f"Run {Path(argv[0]).name[:60]} on this computer?"}
         for arg in argv[1:]:
             if arg.startswith("-") and "=" not in arg:
                 continue
@@ -601,7 +591,11 @@ class Computer:
                 target = (folder / value).resolve()
                 if target != self.root and self.root not in target.parents:
                     raise ScopeError("That path is outside the workspace")
-        env = {k: v for k, v in os.environ.items() if not SECRET_ENV.search(k)}
+        # Nothing confines the program here, and any interpreter runs any code:
+        # the person sees the exact command first (OCADE asks before it is sent).
+        if not confirmed:
+            return {"status": "needs_confirmation", "summary": f"Running {command[:280]}"}
+        env ={k: v for k, v in os.environ.items() if not SECRET_ENV.search(k)}
         extra: dict = {"env": env}
         if SYSTEM == "Windows":
             extra["creationflags"] = (getattr(subprocess, "CREATE_NO_WINDOW", 0)

@@ -293,6 +293,41 @@ describe("carrying on", () => {
     expect(second.seen[0]!.join("\n")).toContain("Running commands is turned off for this device.");
   });
 
+  it("a command waits for the person, and only the exact one they allowed runs again", async () => {
+    await permit("terminal", true);
+    const t = await task();
+    const first = scripted(call("computer", { action: "run", command: 'python -c "print(1)"' }));
+    expect(await carryOn(admin(), me(), t, first)).toEqual({ state: "waiting" });
+    expect((await taskRow(t)).blocker).toBe(
+      'JARVIS needs you to confirm: Running python -c "print(1)"',
+    );
+    expect((await exchange(admin(), me(), { results: [] })).commands).toEqual([]);
+
+    // The person allowed `npm test` in this task earlier.
+    await sql(
+      `insert into public.jarvis_activity (user_id, task_id, device_id, summary, action, status, confirmed)
+       values ('${A}', '${t}', '${device}', 'Running npm test',
+               '{"action":"run","command":"npm test"}'::jsonb, 'done', true),
+              ('${A}', '${t}', '${device}', 'Running git push',
+               '{"action":"run","command":"git push"}'::jsonb, 'done', true)`,
+    );
+    await sql(
+      `update public.jarvis_tasks set status = 'running', blocker = null where id = '${t}'`,
+    );
+    const again = scripted(call("computer", { action: "run", command: "npm test" }));
+    expect(await carryOn(admin(), me(), t, again)).toEqual({ state: "queued" });
+    expect((await exchange(admin(), me(), { results: [] })).commands[0]?.action).toEqual({
+      action: "run",
+      command: "npm test",
+    });
+    // Publishing asks every time, however often it was allowed.
+    await sql(
+      `update public.jarvis_activity set status = 'done' where task_id = '${t}' and action is not null`,
+    );
+    const push = scripted(call("computer", { action: "run", command: "git push" }));
+    expect(await carryOn(admin(), me(), t, push)).toEqual({ state: "waiting" });
+  });
+
   it("an action that is not one of OCADE's is refused and recorded, never sent", async () => {
     const t = await task();
     const { model } = scripted(call("computer", { action: "format_disk", drive: "C" }));
