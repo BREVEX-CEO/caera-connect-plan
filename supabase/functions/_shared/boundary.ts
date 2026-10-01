@@ -174,6 +174,24 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
       }),
     });
   },
+  async releasePermit({ userId, permit }) {
+    // Only this boundary may give back a permit it claimed (20261001094000).
+    await fetch(`${SUPABASE_URL}/rest/v1/rpc/ocade_release_generation_permit`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        "Content-Type": "application/json",
+        ...(!SUPABASE_SERVICE_ROLE_KEY.startsWith("sb_secret_")
+          ? { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` }
+          : {}),
+      },
+      body: JSON.stringify({
+        p_user_id: userId,
+        p_idempotency_key: permit.idempotencyKey,
+        p_reason: "transport_ended_without_output",
+      }),
+    });
+  },
   callProvider({ model, body, signal, slot }) {
     return fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,

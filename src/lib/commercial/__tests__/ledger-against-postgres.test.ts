@@ -364,6 +364,41 @@ describe("the binding's own calls settle in the real ledger", () => {
     expect(session.reserved).toBe(0);
   });
 
+  it("will not give back a permit the boundary claimed, except for the boundary's no-output", async () => {
+    await reset();
+    const ledger = productionLedger();
+    const granted = await ledger.acquirePermit({
+      userId,
+      idempotencyKey: "claimed-1",
+      generationId: "generation-claimed-1",
+      surface: "chat",
+      tier: "pro",
+      sessionAllowance: ALLOWANCES.pro.session,
+      weekAllowance: ALLOWANCES.pro.week,
+      reserved: ONE_USE,
+    });
+    const [claim] = await twin.asServiceRole<{ claimed: boolean }>(
+      `select public.ocade_claim_generation_transport('${userId}', '${granted.permitId}',
+         'generation-claimed-1', 'claimed-1', 'chat') as claimed`,
+    );
+    expect(claim!.claimed).toBe(true);
+    // The browser's release while the boundary answers: refused, the hold stays.
+    for (const reason of ["cancelled_before_output", "failed"] as const) {
+      expect(await ledger.releasePermit({ userId, idempotencyKey: "claimed-1", reason })).toBe(
+        false,
+      );
+    }
+    const held = (await ledger.readCurrent(userId)).find((window) => window.kind === "session")!;
+    expect(held.reserved).toBe(ONE_USE);
+    // The boundary's own release when nothing reached the person.
+    const [given] = await twin.asServiceRole<{ released: boolean }>(
+      `select public.ocade_release_generation_permit('${userId}', 'claimed-1',
+         'transport_ended_without_output') as released`,
+    );
+    expect(given!.released).toBe(true);
+    expect((await ledger.readCurrent(userId)).find((w) => w.kind === "session")!.reserved).toBe(0);
+  });
+
   it("reports a conflicting reuse of one key rather than granting a second run", async () => {
     await reset();
     const ledger = productionLedger();

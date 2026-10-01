@@ -41,32 +41,6 @@ export interface PermitRefused {
 
 export type PermitResult = PermitGranted | PermitRefused;
 
-export async function assertActiveGenerationPermit(input: {
-  userId: string;
-  permitId: string;
-  generationId: string;
-  idempotencyKey: string;
-  surface: GenerationSurface;
-  source: "server" | "offline_lease";
-}): Promise<void> {
-  if (input.source !== "server") {
-    throw new Error("Offline permits cannot authorize a server-side intelligence transport.");
-  }
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: claimed, error } = await supabaseAdmin.rpc("ocade_claim_generation_transport", {
-    p_user_id: input.userId,
-    p_permit_id: input.permitId,
-    p_generation_id: input.generationId,
-    p_idempotency_key: input.idempotencyKey,
-    p_surface: input.surface,
-  });
-  if (error || claimed !== true) {
-    throw new Error(
-      "This generation permit is missing, expired, settled, already claimed, or belongs elsewhere.",
-    );
-  }
-}
-
 export const acquireGenerationPermit = createServerFn({ method: "POST" })
   .middleware([requireSession])
   .validator(

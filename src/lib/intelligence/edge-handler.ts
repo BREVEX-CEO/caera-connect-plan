@@ -142,6 +142,8 @@ export interface OnlineHandlerDependencies {
    * otherwise use OCADE for free.
    */
   finalizePermit?(input: { userId: string; permit: IntelligencePermit }): Promise<void>;
+  /** Give the permit back when the claimed transport ended without any output. */
+  releasePermit?(input: { userId: string; permit: IntelligencePermit }): Promise<void>;
 }
 
 function json(status: number, body: Record<string, unknown>, origin?: string): Response {
@@ -475,6 +477,7 @@ function normalizedProviderStream(
   cleanup: () => void,
   cancelProvider: (reason: unknown) => void,
   delivered: () => Promise<void> = async () => undefined,
+  undelivered: () => Promise<void> = async () => undefined,
 ): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -483,6 +486,19 @@ function normalizedProviderStream(
       const toolCalls: NormalizedToolCall[] = [];
       let usage: NormalizedUsage | undefined;
       const toolIndex = { value: 0 };
+      /*
+       * THE CLAIMED PERMIT IS SETTLED HERE, however the stream ends: charged
+       * once anything reached the person (a Stop or a dropped connection
+       * mid-answer included, as the browser's own settle does), released when
+       * nothing did. The browser can no longer release a permit once claimed.
+       */
+      let settled = false;
+      const settle = async () => {
+        if (settled) return;
+        settled = true;
+        const anything = answer.trim() !== "" || toolCalls.length > 0;
+        await (anything ? delivered() : undelivered()).catch(() => undefined);
+      };
       try {
         if (!provider.body) throw new Error("Provider returned no stream.");
         controller.enqueue(sse({ type: "status", backend: "online", state: "generating" }));
@@ -526,7 +542,7 @@ function normalizedProviderStream(
           );
         } else {
           // Charged by the server before the person is told it is complete.
-          await delivered().catch(() => undefined);
+          await settle();
           controller.enqueue(
             sse({
               type: "final",
@@ -556,6 +572,8 @@ function normalizedProviderStream(
           }),
         );
       } finally {
+        // First: a stream the person already left throws on enqueue and close.
+        await settle();
         cleanup();
         controller.close();
       }
@@ -821,6 +839,9 @@ async function runOnlineIntelligence(
         () =>
           deps.finalizePermit?.({ userId: identity.userId, permit: body.permit }) ??
           Promise.resolve(),
+        () =>
+          deps.releasePermit?.({ userId: identity.userId, permit: body.permit }) ??
+          Promise.resolve(),
       ),
       {
         status: 200,
@@ -839,7 +860,12 @@ async function runOnlineIntelligence(
     throw cause;
   } finally {
     // A successful response still has work in flight after this function
-    // returns. Its stream owns cleanup; early refusals clean up here.
-    if (!handedOff) cleanup();
+    // returns. Its stream owns cleanup and settling; early refusals do both here.
+    if (!handedOff) {
+      cleanup();
+      await deps
+        .releasePermit?.({ userId: identity.userId, permit: body.permit })
+        .catch(() => undefined);
+    }
   }
 }

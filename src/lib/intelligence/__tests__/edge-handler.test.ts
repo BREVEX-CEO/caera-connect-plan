@@ -726,6 +726,57 @@ describe("capacity failures that must not look like each other", () => {
     await response.text();
     expect(finalize).not.toHaveBeenCalled();
   });
+
+  it("gives back a claimed permit itself when nothing arrived, however it ended", async () => {
+    for (const callProvider of [
+      vi.fn(async () => provider([])),
+      vi.fn(async () => new Response(null, { status: 503 })),
+    ]) {
+      const finalize = vi.fn(async () => undefined);
+      const release = vi.fn(async () => undefined);
+      const response = await handleOnlineIntelligence(
+        request(),
+        dependencies({ callProvider, finalizePermit: finalize, releasePermit: release }),
+      );
+      await response.text();
+      expect(release).toHaveBeenCalledTimes(1);
+      expect(finalize).not.toHaveBeenCalled();
+    }
+  });
+
+  it("charges an answer stopped part-way: once words arrived it is not given back", async () => {
+    const leaving = new AbortController();
+    const finalize = vi.fn(async () => undefined);
+    const release = vi.fn(async () => undefined);
+    const words = `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: "Half an" }] } }] })}\n\n`;
+    const response = await handleOnlineIntelligence(
+      new Request(request(), { signal: leaving.signal }),
+      dependencies({
+        finalizePermit: finalize,
+        releasePermit: release,
+        callProvider: vi.fn(
+          async ({ signal }) =>
+            new Response(
+              new ReadableStream({
+                start(stream) {
+                  stream.enqueue(new TextEncoder().encode(words));
+                  signal.addEventListener("abort", () => stream.error(signal.reason));
+                },
+              }),
+            ),
+        ),
+      }),
+    );
+    const reader = response.body!.getReader();
+    let seen = "";
+    while (!seen.includes("Half an")) {
+      seen += new TextDecoder().decode((await reader.read()).value);
+    }
+    leaving.abort(new DOMException("gone", "AbortError"));
+    await reader.cancel().catch(() => undefined);
+    await vi.waitFor(() => expect(finalize).toHaveBeenCalledTimes(1));
+    expect(release).not.toHaveBeenCalled();
+  });
 });
 
 describe("the door for OCADE's own server", () => {

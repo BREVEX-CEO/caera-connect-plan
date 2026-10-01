@@ -19,7 +19,9 @@ function appCsp(): string {
       "https://static.cloudflareinsights.com/beacon.min.js " +
       "https://static.cloudflareinsights.com/beacon.min.js/",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https:",
+    // Nothing OCADE shows comes from another host; an image that could would
+    // carry whatever its address was made to say out of the page.
+    "img-src 'self' data: blob:",
     "font-src 'self' data:",
     /*
      * EVERY HTTPS HOST ON THE INTERNET WAS A PERMITTED DESTINATION.

