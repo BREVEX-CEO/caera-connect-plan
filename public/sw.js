@@ -23,7 +23,7 @@
  */
 
 const SHELL_CACHE_PREFIX = "ocade-shell-v";
-const VERSION = `${SHELL_CACHE_PREFIX}13`;
+const VERSION = `${SHELL_CACHE_PREFIX}14`;
 const OFFLINE_URL = "/offline.html";
 
 /*
@@ -276,12 +276,15 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
       .catch(async () => {
-        // Offline. Prefer this exact page if it was cached, then the generic
-        // offline shell. Never a different page's markup, which would show
-        // the user somewhere they are not.
-        const cached = await caches.match(request);
-        const appShell = await caches.match("/");
-        return cached ?? appShell ?? (await caches.match(OFFLINE_URL)) ?? Response.error();
+        /*
+         * Offline. This page as it was last seen (its query aside: a Chat
+         * link with ?c= is still Chat), else the offline page. Never another
+         * page's markup: Chat's document served for /auth showed Chat at the
+         * sign-in address and failed to hydrate (React #418), measured on
+         * WebKit when the network dropped mid-navigation.
+         */
+        const cached = await caches.match(request, { ignoreSearch: true });
+        return cached ?? (await caches.match(OFFLINE_URL)) ?? Response.error();
       });
     event.waitUntil(navigation.then(() => undefined));
     event.respondWith(navigation);

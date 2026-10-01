@@ -123,6 +123,7 @@ try {
 
   const phone = await browser.newContext({ viewport: { width: 375, height: 812 } });
   const small = await phone.newPage();
+  small.on("pageerror", (error) => consoleErrors.push(`phone: ${String(error)}`));
   await small.goto(`${BASE}/`, { waitUntil: "networkidle" });
   check(
     "the sidebar is a drawer on a phone",
@@ -162,6 +163,34 @@ try {
     assets.asset !== null && assets.kept,
     JSON.stringify(assets),
   );
+
+  /*
+   * OFFLINE, NO PAGE PRETENDS TO BE ANOTHER. A page never seen on this device
+   * gets the offline page; Chat, seen before, opens as Chat.
+   */
+  await small.waitForFunction(() => navigator.serviceWorker.controller !== null, null, {
+    timeout: 15_000,
+  });
+  await phone.setOffline(true);
+  await small.goto(`${BASE}/terms`).catch(() => {});
+  check(
+    "offline, a page never opened here shows the offline page, not Chat",
+    (await small.title()) === "OCADE Local Mode" &&
+      (await small.getByRole("link", { name: "Open OCADE Chat" }).getAttribute("href")) === "/",
+    await small.title(),
+  );
+  await small.goto(`${BASE}/?new=true`).catch(() => {});
+  check(
+    "and Chat, opened here before, still opens offline",
+    await small
+      .locator("#ocade-composer")
+      .waitFor({ timeout: 15_000 })
+      .then(
+        () => true,
+        () => false,
+      ),
+  );
+  await phone.setOffline(false);
 
   check("no uncaught page errors", consoleErrors.length === 0, consoleErrors.join("; "));
 } finally {
