@@ -164,7 +164,8 @@ describe("OCADE's clock", () => {
     expect((await row(off)).last_outcome).toBe("Background Mode is off on Desk.");
 
     await sql(
-      `update public.jarvis_devices set background_enabled = true, last_seen_at = now() - interval '10 minutes' where id = '${device}'`,
+      // Ten minutes before the clock this run uses, not the wall clock's.
+      `update public.jarvis_devices set background_enabled = true, last_seen_at = '${NOW.toISOString()}'::timestamptz - interval '10 minutes' where id = '${device}'`,
     );
     const away = await schedule("Two", { device });
     await runDueSchedules(admin(), NOW);
