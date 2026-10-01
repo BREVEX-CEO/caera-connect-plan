@@ -142,6 +142,10 @@ try {
           // Keep OCADE's own accessibility service running while Appium watches.
           "appium:disableSuppressAccessibilityService": true,
           "appium:newCommandTimeout": 600,
+          // A cold, software-rendered emulator (the tablet) takes longer than the default 30 s.
+          "appium:uiautomator2ServerLaunchTimeout": 180_000,
+          "appium:uiautomator2ServerInstallTimeout": 180_000,
+          "appium:adbExecTimeout": 120_000,
         },
       },
     }),
