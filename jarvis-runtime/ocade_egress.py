@@ -28,10 +28,18 @@ class Blocked(Exception):
     pass
 
 
+NAT64 = ipaddress.ip_network("64:ff9b::/96")
+
+
 def is_public(address: str) -> bool:
     ip = ipaddress.ip_address(address.split("%", 1)[0])
-    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
-        ip = ip.ipv4_mapped
+    if isinstance(ip, ipaddress.IPv6Address):
+        # An IPv4 address carried inside IPv6 is judged as the IPv4 address it reaches
+        # (mapped, or the NAT64 prefix a network translates for its own hosts).
+        if ip.ipv4_mapped:
+            ip = ip.ipv4_mapped
+        elif ip in NAT64:
+            ip = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
     return ip.is_global and not ip.is_multicast
 
 

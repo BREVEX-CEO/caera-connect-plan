@@ -42,6 +42,12 @@ def main() -> None:
     shutil.rmtree(out, ignore_errors=True)
     (out / "res" / "mipmap-xxxhdpi").mkdir(parents=True)
     shutil.copytree(HERE / "res", out / "res", dirs_exist_ok=True)
+    if args.release:
+        # A release build talks HTTPS only: the emulator's plain-HTTP exception is a test build's.
+        (out / "res" / "xml" / "network.xml").write_text(
+            '<?xml version="1.0" encoding="utf-8"?>\n<network-security-config>\n'
+            '    <base-config cleartextTrafficPermitted="false" />\n</network-security-config>\n',
+            encoding="utf-8")
     shutil.copy(ROOT / "public" / "icons" / "ocade-192.png", out / "res" / "mipmap-xxxhdpi" / "ic_launcher.png")
     # One protocol for every OCADE device: the server, the Device Agent and this app read the same file.
     (out / "assets").mkdir()

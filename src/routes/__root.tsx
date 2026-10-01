@@ -364,6 +364,8 @@ function BrowserBootstrap() {
             void import("@/lib/notifications/push-device")
               .then((module) => module.forgetPushOnThisBrowser())
               .catch(() => {});
+            // A question the bubble was handing over was the last account's to ask.
+            void import("@/jarvis/bubble-state").then((module) => module.takeHandOff());
           }
           if (event === "SIGNED_OUT") {
             /*

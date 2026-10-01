@@ -237,10 +237,13 @@ describe("private networks", () => {
       "172.20.0.1",
       "printer.local",
       "169.254.1.1",
+      "100.64.0.1",
+      "[::ffff:a00:1]",
+      "[64:ff9b::a00:1]",
     ]) {
-      expect(isPrivateHost(host)).toBe(true);
+      expect(isPrivateHost(host), host).toBe(true);
     }
-    for (const host of ["example.com", "172.32.0.1", "8.8.8.8"]) {
+    for (const host of ["example.com", "172.32.0.1", "8.8.8.8", "100.128.0.1"]) {
       expect(isPrivateHost(host)).toBe(false);
     }
   });
