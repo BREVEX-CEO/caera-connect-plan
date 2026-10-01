@@ -12,6 +12,14 @@ Granted staff sees Staff Console with only granted modules/actions.
 
 Frontend hiding is never authorization. Server-side role/permission checks and RLS are mandatory.
 
+### How the console origin works (implemented 2026-10-01)
+
+- `admin.ocade.in` (`admin.` in front of the site's host; `admin.localhost` locally) serves only `/admin`, `/auth/console`, `/auth/challenge`, server calls and static files. Every other path is sent to the same address on `ocade.in`; client-side navigation is held to the same rule. No customer screen (Chat, JARVIS, Library, the bubble, the service worker) runs there.
+- The way in is the account menu on `ocade.in` ("Owner Console"/"Staff Console" → `/admin`). The site asks the server for a one-time sign-in for the same account (`openConsole`); the console's server redeems it into a new session and records that session in `public.ocade_console_sessions` (`enterConsole`, refused anywhere but the console origin). The token travels in the URL fragment and is removed before anything else runs.
+- Staff authority belongs only to a recorded console session (`private.ocade_caller_in_console()`, asked by `private.ocade_staff_has`, `has_role('admin')` and the support-admin check; migration `20261001090000`). The site's session of a staff account is a customer session. The console session starts at `aal1`, so staff answer their second factor on the console itself, whatever the site session had proved; the Primary Owner may look without it during bootstrap and change nothing.
+- The console has no sign-in page of its own: without a session it sends the person to the site's sign-in; "Sign out of the console" ends only the console's session.
+- Release: the Worker route `admin.ocade.in` is a custom domain in `wrangler.json` (created by the deploy); the migration is applied with the release, because the release still live on production reads operator rows from a site session.
+
 ## Identity model
 
 The primary owner account is bootstrapped once to a stable server-side user identity after verification. Do not hardcode email authorization in React/client code.

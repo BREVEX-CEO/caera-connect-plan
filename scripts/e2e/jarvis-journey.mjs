@@ -179,6 +179,22 @@ try {
     );
   };
 
+  // A Shortcut's words wait in the box; a link never sends anything by itself.
+  const before = JSON.stringify(await boundary());
+  await page.goto(`${BASE}/ocade-jarvis?ask=${encodeURIComponent("Tidy my desktop")}`, {
+    waitUntil: "networkidle",
+  });
+  check(
+    "a Shortcut's request waits in the box and is not sent",
+    (await until(
+      async () => (await page.locator("#jarvis-composer").inputValue()) === "Tidy my desktop",
+    )) &&
+      !new URL(page.url()).searchParams.has("ask") &&
+      JSON.stringify(await boundary()) === before,
+    page.url(),
+  );
+  await page.locator("#jarvis-composer").fill("");
+
   await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
   const meter = page.getByText(/JARVIS uses left/);
   check(

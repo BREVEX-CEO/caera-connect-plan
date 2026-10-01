@@ -13,6 +13,7 @@
  *
  * Usage: node scripts/e2e/admin-journey.mjs [--base=…] [--supabase=…]
  */
+import { createHmac } from "node:crypto";
 import { chromium } from "playwright-core";
 
 const arg = (name, fallback) => {
@@ -22,6 +23,28 @@ const arg = (name, fallback) => {
 const BASE = arg("base", "http://127.0.0.1:8788");
 const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
 const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
+/*
+ * The site by NAME, because the console's origin is `admin.` in front of it and
+ * a bare IP has no subdomain. Both resolve to this machine in Chromium.
+ */
+const SITE = BASE.replace("127.0.0.1", "localhost");
+const CONSOLE = SITE.replace("://", "://admin.");
+
+function totp(secret, offset = 0) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = "";
+  for (const char of secret.replace(/\s/g, "").toUpperCase()) {
+    bits += alphabet.indexOf(char).toString(2).padStart(5, "0");
+  }
+  const key = Buffer.from(bits.match(/.{8}/g).map((byte) => parseInt(byte, 2)));
+  const message = Buffer.alloc(8);
+  message.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30_000) + offset));
+  const mac = createHmac("sha1", key).update(message).digest();
+  const at = mac[mac.length - 1] & 0xf;
+  return String((mac.readUInt32BE(at) & 0x7fffffff) % 1_000_000).padStart(6, "0");
+}
+const sessionIdOf = (token) =>
+  JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8")).session_id;
 
 let failures = 0;
 function check(name, ok, detail = "") {
@@ -87,7 +110,9 @@ const errors = [];
 async function open(session, viewport = { width: 1280, height: 800 }) {
   const context = await browser.newContext({ viewport });
   await context.addInitScript(
-    ([key, value]) => window.localStorage.setItem(key, value),
+    ([key, value]) => {
+      if (!window.location.hostname.startsWith("admin.")) window.localStorage.setItem(key, value);
+    },
     [storageKey, JSON.stringify(session)],
   );
   const page = await context.newPage();
@@ -106,9 +131,14 @@ const tabs = (page) => page.getByRole("navigation", { name: "Console" }).getByRo
 const tab = (page, name) =>
   page.getByRole("navigation", { name: "Console" }).getByRole("button", { name, exact: true });
 
+/** The site's /admin hands over to the console's own origin, which signs in by itself. */
 async function consoleOf(page, heading) {
-  await page.goto(`${BASE}/admin`, { waitUntil: "load" });
-  return seen(page.getByRole("heading", { name: heading, exact: true }), 20_000);
+  await page.goto(`${SITE}/admin`, { waitUntil: "load" });
+  await page.waitForURL((url) => url.origin === CONSOLE, { timeout: 20_000 }).catch(() => {});
+  return (
+    new URL(page.url()).origin === CONSOLE &&
+    (await seen(page.getByRole("heading", { name: heading, exact: true }), 20_000))
+  );
 }
 async function customerRow(page) {
   await page.getByPlaceholder("Search by email, name or account id").fill(`customer-${stamp}`);
@@ -121,7 +151,7 @@ async function customerRow(page) {
 try {
   /* --- a customer: no console, no trace of one ------------------------------ */
   const person = await open(customer);
-  await person.goto(`${BASE}/admin`, { waitUntil: "load" });
+  await person.goto(`${SITE}/admin`, { waitUntil: "load" });
   await person.waitForTimeout(2500);
   check(
     "a customer opening /admin is returned to Chat, told nothing",
@@ -158,6 +188,107 @@ try {
     (await seen(plain.getByText("The console opens once this session has answered"))) &&
       (await plain.getByRole("navigation", { name: "Console" }).count()) === 0 &&
       (await plain.getByPlaceholder("Search by email, name or account id").count()) === 0,
+  );
+
+  /* --- the console's own origin -------------------------------------------- */
+  await plain.goto(`${CONSOLE}/library`, { waitUntil: "load" });
+  check(
+    "a customer page asked of the console's origin opens on the site",
+    new URL(plain.url()).origin === SITE && new URL(plain.url()).pathname === "/library",
+    plain.url(),
+  );
+  await plain.goto(`${CONSOLE}/`, { waitUntil: "load" });
+  check(
+    "the console's origin opens at the console",
+    await until(async () => new URL(plain.url()).pathname === "/admin"),
+    plain.url(),
+  );
+  const refused = await fetch(`${CONSOLE}/auth/console`).then((r) => r.status);
+  check("its way in is a page of its own there", refused === 200, String(refused));
+
+  /* --- a second factor on the site does not open the console by itself ------ */
+  const totpEmail = `admin-${stamp}-totp@ocade.test`;
+  const bare = await signIn(totpEmail);
+  const factor = await asCustomer(bare, "/auth/v1/factors", {
+    method: "POST",
+    body: JSON.stringify({ factor_type: "totp", friendly_name: "Phone" }),
+  }).then((r) => r.json());
+  const confirmOn = async (session, offset) => {
+    const challenge = await asCustomer(session, `/auth/v1/factors/${factor.id}/challenge`, {
+      method: "POST",
+      body: "{}",
+    }).then((r) => r.json());
+    return asCustomer(session, `/auth/v1/factors/${factor.id}/verify`, {
+      method: "POST",
+      body: JSON.stringify({ challenge_id: challenge.id, code: totp(factor.totp.secret, offset) }),
+    }).then((r) => r.json());
+  };
+  const siteStrong = await confirmOn(bare, 0);
+  const handed = [];
+  const guarded = await open(siteStrong);
+  guarded.on("framenavigated", (frame) => {
+    const found = /\/auth\/console#t=([0-9a-f]+)/.exec(frame.url());
+    if (found && !handed.includes(found[1])) handed.push(found[1]);
+  });
+  await guarded.goto(`${SITE}/admin`, { waitUntil: "load" });
+  await guarded.waitForURL(/\/auth\/challenge/, { timeout: 20_000 }).catch(() => {});
+  check(
+    "the console's new session answers its own second factor, whatever the site's had",
+    new URL(guarded.url()).origin === CONSOLE &&
+      new URL(guarded.url()).pathname === "/auth/challenge",
+    guarded.url(),
+  );
+  await guarded
+    .getByLabel("Six-digit code from your authenticator app")
+    .fill(totp(factor.totp.secret, 1));
+  await guarded.getByRole("button", { name: /Confirm|Continue|Verify/ }).click();
+  await guarded
+    .waitForURL((url) => url.origin === CONSOLE && url.pathname === "/admin", {
+      timeout: 15_000,
+    })
+    .catch(() => {});
+  check("and with it the console opens", await seen(tab(guarded, "Customers")), guarded.url());
+  const consoleSession = await guarded.evaluate(
+    (key) => JSON.parse(window.localStorage.getItem(key) ?? "null"),
+    storageKey,
+  );
+  check(
+    "the console holds a session of its own, not the site's",
+    Boolean(consoleSession?.access_token) &&
+      sessionIdOf(consoleSession.access_token) !== sessionIdOf(siteStrong.access_token),
+  );
+  const fromSite = await asCustomer(siteStrong, "/rest/v1/rpc/ocade_staff_can", {
+    method: "POST",
+    body: JSON.stringify({ p_permission: "customers.read" }),
+  }).then((r) => r.json());
+  const fromConsole = await asCustomer(consoleSession, "/rest/v1/rpc/ocade_staff_can", {
+    method: "POST",
+    body: JSON.stringify({ p_permission: "customers.read" }),
+  }).then((r) => r.json());
+  check(
+    "the site's session, second factor and all, cannot operate; the console's can",
+    fromSite === false && fromConsole === true,
+    `${fromSite} ${fromConsole}`,
+  );
+  const replay = await open(siteStrong);
+  await replay.goto(`${CONSOLE}/auth/console#t=${handed[0] ?? "0".repeat(56)}`, {
+    waitUntil: "load",
+  });
+  check(
+    "the one-time way in does not work twice",
+    handed.length === 1 && (await seen(replay.getByText(/already been used or has expired/))),
+    `${handed.length}`,
+  );
+  await guarded.getByRole("button", { name: "Sign out of the console" }).click();
+  await guarded.waitForURL((url) => url.origin === SITE, { timeout: 15_000 }).catch(() => {});
+  await guarded.waitForTimeout(1500);
+  check(
+    "signing out of the console returns to the site, still signed in there",
+    new URL(guarded.url()).origin === SITE &&
+      (await seen(
+        guarded.getByRole("button", { name: new RegExp(totpEmail.replace(/[.+]/g, "\\$&")) }),
+      )),
+    guarded.url(),
   );
 
   /* --- an Admin with a second factor, on a phone-sized screen -------------- */
@@ -314,19 +445,32 @@ try {
   /* --- the Owner ------------------------------------------------------------ */
   const ownerEmail = `owner+mfa-${stamp}@ocade.test`;
   const owner = await open(await signIn(ownerEmail));
-  check("the owner gets the Owner Console", await consoleOf(owner, "Owner Console"));
+  await owner.goto(`${SITE}/`, { waitUntil: "load" });
+  await owner.getByRole("button", { name: new RegExp(ownerEmail.replace("+", "\\+")) }).click();
+  const menuEntry = owner.getByRole("menuitem", { name: "Owner Console" });
+  check("the owner's account menu offers the Owner Console", await seen(menuEntry));
+  await menuEntry.click();
+  await owner.waitForURL((url) => url.origin === CONSOLE, { timeout: 20_000 }).catch(() => {});
+  check(
+    "which opens on the console's own origin",
+    new URL(owner.url()).origin === CONSOLE &&
+      (await seen(owner.getByRole("heading", { name: "Owner Console", exact: true }), 20_000)),
+    owner.url(),
+  );
   await tab(owner, "Staff").waitFor({ timeout: 10_000 });
   check(
     "with every module",
     (await tabs(owner).allInnerTexts()).join(",") === "Customers,Cases,Staff,System,Audit",
     (await tabs(owner).allInnerTexts()).join(","),
   );
-  await owner.getByRole("button", { name: new RegExp(ownerEmail.replace("+", "\\+")) }).click();
   check(
-    "and the owner's account menu offers it",
-    await seen(owner.getByRole("menuitem", { name: "Owner Console" })),
+    "the console always says whose account it is",
+    await seen(owner.getByRole("banner").getByText(ownerEmail, { exact: true })),
   );
-  await owner.keyboard.press("Escape");
+  check(
+    "and no customer navigation on it",
+    (await owner.getByRole("link", { name: /^(Chat|Library|OCADE JARVIS)$/ }).count()) === 0,
+  );
 
   // Give access by email: an existing account, then somebody with no account.
   await tab(owner, "Staff").click();

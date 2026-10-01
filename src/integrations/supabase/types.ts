@@ -583,6 +583,24 @@ export type Database = {
         }
         Relationships: []
       }
+      ocade_console_sessions: {
+        Row: {
+          opened_at: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          opened_at?: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          opened_at?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_conversations: {
         Row: {
           archived: boolean

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 /*
@@ -111,6 +111,28 @@ function AuthPage() {
   const [error, setError] = useState<string | null>(inboundFriendly?.message ?? null);
   const [hint, setHint] = useState<string | null>(inboundFriendly?.hint ?? null);
   const [notice, setNotice] = useState<string | null>(search.message ?? null);
+
+  /*
+   * ALREADY SIGNED IN, ON A PAGE THE SERVER DREW. `beforeLoad` forwards a
+   * signed-in person on a navigation inside the app, but a page loaded fresh is
+   * rendered on the server — which has no session — and the browser does not
+   * run `beforeLoad` again when it takes over. So somebody who opened /auth
+   * with a session (a bookmark, or on the way back from the console) was shown
+   * the sign-in form, and signing in again made a second session.
+   */
+  useEffect(() => {
+    if (!configured) return;
+    let current = true;
+    void loadSupabaseClient()
+      .then((supabase) => supabase.auth.getSession())
+      .then(({ data }) => {
+        if (current && data.session) void navigate({ to: nextPath, replace: true });
+      })
+      .catch(() => {});
+    return () => {
+      current = false;
+    };
+  }, [configured, navigate, nextPath]);
 
   async function continueWithGoogle() {
     if (!availability.google) {

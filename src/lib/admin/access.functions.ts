@@ -162,7 +162,11 @@ export const listAccountAccess = createServerFn({ method: "GET" })
           p_permission: "staff.manage",
         });
         if (manages.data !== true) return { data: [], error: null };
-        return supabaseAdmin.from("ocade_staff").select("user_id, role").in("user_id", ids);
+        return supabaseAdmin
+          .from("ocade_staff")
+          .select("user_id, role")
+          .in("user_id", ids)
+          .limit(ids.length);
       })(),
       supabaseAdmin
         .from("ocade_entitlement_grants")

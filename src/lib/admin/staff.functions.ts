@@ -138,7 +138,7 @@ export const listStaff = createServerFn({ method: "GET" })
     if (staff.error || invites.error) throw new Error("Staff could not be read.");
     const ids = (staff.data ?? []).map((row) => row.user_id);
     const { data: profiles } = ids.length
-      ? await supabaseAdmin.from("profiles").select("id, email").in("id", ids)
+      ? await supabaseAdmin.from("profiles").select("id, email").in("id", ids).limit(ids.length)
       : { data: [] as { id: string; email: string | null }[] };
     const emailOf = new Map((profiles ?? []).map((row) => [row.id, row.email]));
     return {
@@ -450,7 +450,7 @@ export const listCases = createServerFn({ method: "GET" })
     if (error) throw new Error("Cases could not be read.");
     const ids = [...new Set((rows ?? []).map((row) => row.customer))];
     const { data: profiles } = ids.length
-      ? await supabaseAdmin.from("profiles").select("id, email").in("id", ids)
+      ? await supabaseAdmin.from("profiles").select("id, email").in("id", ids).limit(ids.length)
       : { data: [] as { id: string; email: string | null }[] };
     const emailOf = new Map((profiles ?? []).map((row) => [row.id, row.email]));
     return (rows ?? []).map((row) => ({
@@ -532,26 +532,35 @@ export const readSystemHealth = createServerFn({ method: "GET" })
       return n ?? 0;
     };
     const recently = new Date(Date.now() - 3 * 60_000).toISOString();
-    const head = { count: "exact" as const, head: true };
     const [devicesOnline, tasksRunning, tasksWaiting, pendingEnrollments, staff] =
       await Promise.all([
         count(
           supabaseAdmin
             .from("jarvis_devices")
-            .select("id", head)
+            .select("id", { count: "exact", head: true })
             .is("revoked_at", null)
             .not("user_id", "is", null)
             .gt("last_seen_at", recently),
         ),
-        count(supabaseAdmin.from("jarvis_tasks").select("id", head).eq("status", "running")),
         count(
           supabaseAdmin
             .from("jarvis_tasks")
-            .select("id", head)
+            .select("id", { count: "exact", head: true })
+            .eq("status", "running"),
+        ),
+        count(
+          supabaseAdmin
+            .from("jarvis_tasks")
+            .select("id", { count: "exact", head: true })
             .in("status", ["waiting", "taken_over"]),
         ),
-        count(supabaseAdmin.from("jarvis_devices").select("id", head).is("user_id", null)),
-        count(supabaseAdmin.from("ocade_staff").select("user_id", head)),
+        count(
+          supabaseAdmin
+            .from("jarvis_devices")
+            .select("id", { count: "exact", head: true })
+            .is("user_id", null),
+        ),
+        count(supabaseAdmin.from("ocade_staff").select("user_id", { count: "exact", head: true })),
       ]);
     return { devicesOnline, tasksRunning, tasksWaiting, pendingEnrollments, staff };
   });
@@ -582,7 +591,7 @@ export const listAudit = createServerFn({ method: "GET" })
       ),
     ];
     const { data: profiles } = ids.length
-      ? await supabaseAdmin.from("profiles").select("id, email").in("id", ids)
+      ? await supabaseAdmin.from("profiles").select("id, email").in("id", ids).limit(ids.length)
       : { data: [] as { id: string; email: string | null }[] };
     const name = (id: string | null) =>
       id ? ((profiles ?? []).find((row) => row.id === id)?.email ?? id) : null;

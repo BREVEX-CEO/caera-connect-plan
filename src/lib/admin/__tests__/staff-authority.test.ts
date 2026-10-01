@@ -349,6 +349,10 @@ describe("sessions", () => {
     const [mine] = await twin.asSuperuser<{ id: string }>(
       `insert into auth.sessions (user_id) values ('${OWNER}') returning id`,
     );
+    // Staff work from the console's own session (20261001090000).
+    await twin.execSuperuser(
+      `insert into public.ocade_console_sessions (session_id, user_id) values ('${mine!.id}', '${OWNER}')`,
+    );
     await twin.execSuperuser(
       `insert into auth.sessions (user_id) values ('${OWNER}'), ('${ADMIN}'), ('${SUPPORT}'),
          ('${CUSTOMER_A}')`,
@@ -372,6 +376,10 @@ describe("sessions", () => {
     );
     const [{ id: admins }] = await twin.asSuperuser<{ id: string }>(
       `insert into auth.sessions (user_id) values ('${ADMIN}') returning id`,
+    );
+    await twin.execSuperuser(
+      `insert into public.ocade_console_sessions (session_id, user_id)
+       values ('${owners}', '${OWNER}'), ('${admins}', '${ADMIN}')`,
     );
     const asAdmin = (sql: string) =>
       twin.asTenant<{ ok: boolean }>(ADMIN, sql, { aal: "aal2", sessionId: admins });

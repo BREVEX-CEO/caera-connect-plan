@@ -8,7 +8,8 @@
   "preview_urls": false,
   "routes": [
     { "pattern": "ocade.in/*", "zone_name": "ocade.in" },
-    { "pattern": "www.ocade.in/*", "zone_name": "ocade.in" }
+    { "pattern": "www.ocade.in/*", "zone_name": "ocade.in" },
+    { "pattern": "admin.ocade.in", "custom_domain": true }
   ],
   "r2_buckets": [
     {

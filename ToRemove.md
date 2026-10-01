@@ -83,7 +83,7 @@ One action broker must own validation/cancellation/dispatch. Keep specialized ex
 
 ## Legacy operator rows (remove after the new console is live on production)
 
-`public.user_roles` rows with `role = 'admin'` are inert after migration `20260930093000_one_staff_authority`: `has_role` and the support-admin check read `public.ocade_staff`. They are kept only because the release still on production opens its admin screen by reading that row. Once the Owner/Staff Console release is deployed to production, a follow-up migration deletes them (`DELETE FROM public.user_roles WHERE role = 'admin'`) and drops the `has_role` non-admin branch if nothing uses `moderator`/`user` roles by then.
+`public.user_roles` rows with `role = 'admin'` are inert after migration `20260930093000_one_staff_authority`: `has_role` and the support-admin check read `public.ocade_staff`. They are kept only because the release still on production opens its admin screen by reading that row. Migration `20261001090000_staff_authority_only_in_the_console` is applied in the same release window (it makes the old screen's site session a customer session). Once the Owner/Staff Console release is deployed to production, a follow-up migration deletes them (`DELETE FROM public.user_roles WHERE role = 'admin'`) and drops the `has_role` non-admin branch if nothing uses `moderator`/`user` roles by then.
 
 ## Cleanup proof sequence
 

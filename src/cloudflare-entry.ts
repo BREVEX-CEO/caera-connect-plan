@@ -4,6 +4,7 @@ import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import { useNitroApp as getNitroApp, useNitroHooks as getNitroHooks } from "nitro/app";
 
 import { canonicalOriginRedirect, withPublicSecurityHeaders } from "./lib/security/public-response";
+import { consoleHostRedirect } from "./lib/admin/console-host";
 
 async function runJarvisClock(): Promise<void> {
   try {
@@ -119,6 +120,9 @@ export default {
     // origin or plain HTTP, not even a static file with a cache header on it.
     const canonical = canonicalOriginRedirect(url, request.headers);
     if (canonical) return canonical;
+    // The console origin serves the console and nothing else.
+    const elsewhere = consoleHostRedirect(url, isPublicAssetURL);
+    if (elsewhere) return withPublicSecurityHeaders(elsewhere, url.pathname);
 
     if (env.ASSETS && isPublicAssetURL(url.pathname)) {
       const response = await env.ASSETS.fetch(request);

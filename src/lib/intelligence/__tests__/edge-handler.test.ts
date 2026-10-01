@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import {
   handleOnlineIntelligence,
   isServiceKey,
-  SERVICE_USER_HEADER,
   type OnlineHandlerDependencies,
 } from "../edge-handler";
+import { SERVICE_USER_HEADER } from "../contract";
 
 const ORIGIN = "https://ocade.example";
 

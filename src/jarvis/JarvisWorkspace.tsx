@@ -75,11 +75,14 @@ export function JarvisWorkspace({
   conversationId,
   connectId,
   startVoice = false,
+  ask,
 }: {
   conversationId: string | null;
   connectId: string | null;
   /** The person said "Hey OCADE" to their computer: voice starts at once. */
   startVoice?: boolean;
+  /** Words a Shortcut opened JARVIS with: they wait in the box for Send. */
+  ask?: string;
 }) {
   const { user, loading } = useSession();
   const signedIn = Boolean(user);
@@ -143,6 +146,18 @@ export function JarvisWorkspace({
     const typed = typedBeforeHydration("jarvis-composer");
     if (typed) setDraft((current) => current || typed);
   }, []);
+  // Taken once and dropped from the address, so a reload or Back does not type it again.
+  const asked = useRef(false);
+  useEffect(() => {
+    if (!ask?.trim() || asked.current) return;
+    asked.current = true;
+    setDraft((current) => current || ask.trim());
+    void navigate({
+      to: "/ocade-jarvis",
+      search: (previous) => ({ ...previous, ask: undefined }),
+      replace: true,
+    });
+  }, [ask, navigate]);
   const [running, setRunning] = useState(false);
   // Work was asked for but no computer could take it: a way forward, not just prose.
   const [noDevice, setNoDevice] = useState<string | null>(null);

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { AppShell } from "@/components/shell/AppShell";
@@ -13,6 +13,11 @@ import {
   SystemModule,
 } from "@/components/admin/ConsoleModules";
 import { requireStaff } from "@/lib/admin/route-gate";
+import { isConsoleHost, onSite } from "@/lib/admin/console-host";
+import { openConsole } from "@/lib/admin/console.functions";
+import { BrandMark } from "@/components/shell/BrandMark";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
+import { useSession } from "@/lib/session";
 import {
   grantAccountAccess,
   listAccountAccess,
@@ -66,6 +71,90 @@ const MODULES: { id: Module; name: string; needs: StaffPermission[] }[] = [
 const DEFAULT_DAYS = 30;
 
 function ConsolePage() {
+  // The site's /admin is only the way across; the console itself is on its own origin.
+  return isConsoleHost(window.location.hostname) ? <Console /> : <OpenConsole />;
+}
+
+/**
+ * ON THE SITE: ASK FOR THE WAY IN AND GO. `replace`, so Back from the console
+ * returns to where the person was rather than bouncing through here again.
+ */
+function OpenConsole() {
+  const [problem, setProblem] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let current = true;
+    openConsole()
+      .then(({ url }) => window.location.replace(url))
+      .catch((cause) => {
+        if (current) setProblem(messageOf(cause));
+      });
+    return () => {
+      current = false;
+    };
+  }, [attempt]);
+  return (
+    <AppShell>
+      <div className="mx-auto w-full max-w-4xl px-5 py-8" role={problem ? "alert" : "status"}>
+        {problem ? (
+          <>
+            <p className="text-sm text-foreground">{problem}</p>
+            <button
+              type="button"
+              onClick={() => {
+                setProblem(null);
+                setAttempt((n) => n + 1);
+              }}
+              className="mt-3 h-8 rounded-md border border-border px-3 text-sm text-foreground hover:bg-accent"
+            >
+              Try again
+            </button>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">Opening the console…</p>
+        )}
+      </div>
+    </AppShell>
+  );
+}
+
+/**
+ * ON THE CONSOLE'S ORIGIN, NO CUSTOMER SCREENS. Chat, JARVIS and the Library are
+ * the site's; the way back to them is a real navigation to the site, never a
+ * route rendered here.
+ */
+function ConsoleShell({ children }: { children: ReactNode }) {
+  const site = onSite(new URL("/", window.location.href)).toString();
+  // Whose console this is, always in view: a way in handed over by somebody
+  // else would otherwise put a person to work in another account unknowingly.
+  const { user } = useSession();
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="flex h-14 items-center justify-between gap-3 border-b border-border/60 px-5">
+        <a href={site} aria-label="OCADE" className="shrink-0 rounded-md">
+          <BrandMark showWordmark />
+        </a>
+        <span className="min-w-0 flex-1 truncate text-right text-sm text-muted-foreground">
+          {user?.email}
+        </span>
+        <button
+          type="button"
+          onClick={async () => {
+            const supabase = await loadSupabaseClient();
+            await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+            window.location.replace(site);
+          }}
+          className="h-8 rounded-md px-3 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          Sign out of the console
+        </button>
+      </header>
+      <main id="workspace">{children}</main>
+    </div>
+  );
+}
+
+function Console() {
   /*
    * Read again here, not only in the gate, and again whenever the tab is
    * looked at: access removed elsewhere leaves this screen at once instead of
@@ -81,12 +170,12 @@ function ConsolePage() {
 
   if (me.isSuccess && me.data === null) {
     // No longer staff: back to Chat, told nothing, exactly as a customer is.
-    window.location.replace("/");
+    window.location.replace(onSite(new URL("/", window.location.href)).toString());
     return null;
   }
   if (!me.data) {
     return (
-      <AppShell>
+      <ConsoleShell>
         <div className="mx-auto w-full max-w-4xl px-5 py-8">
           <Pending
             query={me}
@@ -94,7 +183,7 @@ function ConsolePage() {
             problem="The console could not open."
           />
         </div>
-      </AppShell>
+      </ConsoleShell>
     );
   }
   const staff = me.data;
@@ -104,7 +193,7 @@ function ConsolePage() {
   const blocked = !staff.secondFactor && staff.role !== "primary_owner";
 
   return (
-    <AppShell>
+    <ConsoleShell>
       <div className="mx-auto w-full max-w-4xl px-5 py-8">
         <h1 className="text-lg font-semibold tracking-tight text-foreground">
           {owner ? "Owner Console" : "Staff Console"}
@@ -143,7 +232,7 @@ function ConsolePage() {
           </>
         )}
       </div>
-    </AppShell>
+    </ConsoleShell>
   );
 }
 

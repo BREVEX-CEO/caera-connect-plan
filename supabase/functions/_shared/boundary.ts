@@ -1,9 +1,9 @@
 import { createClient } from "npm:@supabase/supabase-js@2.110.7";
 import {
   isServiceKey,
-  SERVICE_USER_HEADER,
   type OnlineHandlerDependencies,
 } from "../../../src/lib/intelligence/edge-handler.ts";
+import { SERVICE_USER_HEADER } from "../../../src/lib/intelligence/contract.ts";
 import {
   DEFAULT_ONLINE_MODEL,
   PROVIDER_KEY_ENVIRONMENT,

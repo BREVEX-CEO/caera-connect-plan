@@ -8,8 +8,7 @@
 import { CommercialGenerationGate } from "@/lib/commercial/generation-gate";
 import { resolveTierFor } from "@/lib/commercial/entitlement-resolver";
 import { supabaseCommercialLedger } from "@/lib/commercial/supabase-ledger";
-import type { NormalizedToolCall } from "@/lib/intelligence/contract";
-import { SERVICE_USER_HEADER } from "@/lib/intelligence/edge-handler";
+import { SERVICE_USER_HEADER, type NormalizedToolCall } from "@/lib/intelligence/contract";
 import { createOnlineIntelligenceTransport } from "@/lib/intelligence/online-client";
 import type { BackgroundDeps } from "./background.server";
 import { jarvisTools } from "./protocol";

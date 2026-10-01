@@ -22,7 +22,8 @@ function usePhoneWidth(): boolean {
   );
 }
 
-const HIDDEN_ON = /^\/(ocade-jarvis|auth|reset-password)/;
+// The console is not a customer screen, on either origin.
+const HIDDEN_ON = /^\/(ocade-jarvis|auth|reset-password|admin)/;
 
 export function JarvisBubble() {
   const { user } = useSession();

@@ -188,6 +188,19 @@ try {
   await page.waitForSelector('aside button[aria-haspopup="menu"]', { timeout: 15_000 });
   check("and the signed-in account is on screen", true);
 
+  // Opened fresh while signed in, the sign-in page forwards instead of asking again.
+  await page.goto(`${BASE}/auth?next=%2Flibrary`, { waitUntil: "load" });
+  check(
+    "a signed-in person who opens /auth is taken where they were going",
+    await page
+      .waitForURL((url) => url.pathname === "/library", { timeout: 10_000 })
+      .then(
+        () => true,
+        () => false,
+      ),
+    page.url(),
+  );
+
   check("no uncaught page errors", pageErrors.length === 0, pageErrors.join("; "));
 } finally {
   await browser.close();

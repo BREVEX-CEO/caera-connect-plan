@@ -54,6 +54,12 @@ const refreshes = new Map();
 const factors = new Map();
 /** challengeId -> { factorId, userId, expiresAt } */
 const challenges = new Map();
+/** accessToken -> session id (the JWT's `session_id`). */
+const tokenSession = new Map();
+/** Session ids the console's server recorded (public.ocade_console_sessions). */
+const consoleSessions = new Set();
+/** hashed_token -> { email, expiresAt }: one-time sign-ins from generateLink, used once. */
+const oneTimeSignIns = new Map();
 /** The assurance of the session making the current request. */
 let requestAal = "aal1";
 /** The token of the session making the current request (the one an emergency sign-out spares). */
@@ -119,7 +125,8 @@ const ROLE_BY_PREFIX = {
   readonly: "read_only",
 };
 const roleOf = (id) => staffRoles.get(id)?.role ?? null;
-const staffHas = (id, permission) => {
+/** What the role and overrides hold (ocade_my_staff's list). */
+const holds = (id, permission) => {
   const member = staffRoles.get(id);
   return (
     Boolean(member) &&
@@ -127,6 +134,10 @@ const staffHas = (id, permission) => {
     !member.denied.includes(permission)
   );
 };
+/** Is the current request's session one the console opened (migration 20261001090000)? */
+const inConsole = () => consoleSessions.has(tokenSession.get(requestToken));
+/** private.ocade_staff_has: held, and asked from the console's own session. */
+const staffHas = (id, permission) => holds(id, permission) && inConsole();
 const record = (actor, action, reason, target_user = null, subject = null) =>
   adminActions.push({
     id: randomUUID(),
@@ -231,6 +242,7 @@ function shapedJwt(
   email,
   aal = assuranceOf(email),
   provedAt = Math.floor(Date.now() / 1000),
+  sessionId = "session-current",
 ) {
   const encode = (value) =>
     Buffer.from(JSON.stringify(value))
@@ -255,14 +267,19 @@ function shapedJwt(
         : [{ method: "password", timestamp: provedAt }],
     // Real tokens carry this, and Advanced reads it to tell "this device" from
     // the others. Without it every session looks like somebody else's.
-    session_id: "session-current",
+    session_id: sessionId,
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + 3600,
   });
   return `${header}.${payload}.stub-signature-not-a-signature`;
 }
 
-function openSession(email, aal = assuranceOf(email), provedAt = Math.floor(Date.now() / 1000)) {
+function openSession(
+  email,
+  aal = assuranceOf(email),
+  provedAt = Math.floor(Date.now() / 1000),
+  sessionId = "session-current",
+) {
   const id = idForEmail(email);
   emails.set(id, email);
   const named = ROLE_BY_PREFIX[email.split(/[-+@]/)[0]];
@@ -283,11 +300,12 @@ function openSession(email, aal = assuranceOf(email), provedAt = Math.floor(Date
     invite.accepted_by = id;
     record(invite.invited_by, "staff_invite_accepted", "The invited address was verified.", id);
   }
-  const accessToken = shapedJwt(id, email, aal, provedAt);
+  const accessToken = shapedJwt(id, email, aal, provedAt, sessionId);
   sessions.set(accessToken, id);
   tokenAal.set(accessToken, aal);
+  tokenSession.set(accessToken, sessionId);
   const refreshToken = `stub-refresh-${randomUUID()}`;
-  refreshes.set(refreshToken, { userId: id, aal, provedAt });
+  refreshes.set(refreshToken, { userId: id, aal, provedAt, sessionId });
   return {
     access_token: accessToken,
     token_type: "bearer",
@@ -806,7 +824,8 @@ function handleRpc(name, args, userId) {
 
     case "has_role":
       return args._role === "admin"
-        ? ["primary_owner", "backup_owner", "admin"].includes(roleOf(args._user_id))
+        ? ["primary_owner", "backup_owner", "admin"].includes(roleOf(args._user_id)) &&
+            (userId === "anonymous" || inConsole())
         : rows(args._user_id, "user_roles").some((row) => row.role === args._role);
 
     case "ocade_staff_can":
@@ -821,7 +840,7 @@ function handleRpc(name, args, userId) {
       return [
         {
           role: member.role,
-          permissions: ALL_PERMISSIONS.filter((permission) => staffHas(userId, permission)),
+          permissions: ALL_PERMISSIONS.filter((permission) => holds(userId, permission)),
           second_factor: requestAal === "aal2",
         },
       ];
@@ -1443,7 +1462,10 @@ const server = createServer((request, response) => {
           return send(400, { error_code: "refresh_token_not_found", msg: "Invalid Refresh Token" });
         }
         refreshes.delete(parsed.refresh_token);
-        return send(200, openSession(emails.get(held.userId), held.aal, held.provedAt));
+        return send(
+          200,
+          openSession(emails.get(held.userId), held.aal, held.provedAt, held.sessionId),
+        );
       }
       // One password the stub refuses, so a wrong one can be proved refused.
       if (grant === "password" && parsed.password === "wrong-password") {
@@ -1492,6 +1514,23 @@ const server = createServer((request, response) => {
       });
     }
 
+    if (url.pathname === "/auth/v1/admin/generate_link" && request.method === "POST") {
+      if (sessions.has(requestToken)) return send(403, { message: "not the service role" });
+      const parsed = JSON.parse(body || "{}");
+      const email = String(parsed.email ?? "").toLowerCase();
+      const id = idForEmail(email);
+      const hashed = randomBytes(28).toString("hex");
+      oneTimeSignIns.set(hashed, { email, expiresAt: Date.now() + 3_600_000 });
+      return send(200, {
+        ...userRecord(id, email),
+        action_link: `${url.origin}/auth/v1/verify?token=${hashed}&type=magiclink`,
+        email_otp: "",
+        hashed_token: hashed,
+        verification_type: "magiclink",
+        redirect_to: "",
+      });
+    }
+
     if (url.pathname === "/auth/v1/user") {
       const userId = callerFrom(request, body);
       if (!userId) return send(401, { message: "no session" });
@@ -1529,6 +1568,18 @@ const server = createServer((request, response) => {
 
     if (url.pathname === "/auth/v1/verify") {
       const parsed = JSON.parse(body || "{}");
+      if (parsed.token_hash) {
+        // Once, and a NEW session: what the console redeems.
+        const held = oneTimeSignIns.get(String(parsed.token_hash));
+        oneTimeSignIns.delete(String(parsed.token_hash));
+        if (!held || held.expiresAt < Date.now()) {
+          return send(403, {
+            error_code: "otp_expired",
+            msg: "Email link is invalid or has expired",
+          });
+        }
+        return send(200, openSession(held.email, assuranceOf(held.email), undefined, randomUUID()));
+      }
       if (String(parsed.token) !== OTP_CODE) {
         return send(403, { error_code: "otp_invalid", msg: "Token is invalid" });
       }
@@ -1625,7 +1676,15 @@ const server = createServer((request, response) => {
         factor.lastStep = matched;
         factor.status = "verified";
         factor.updated_at = new Date().toISOString();
-        return send(200, openSession(emails.get(userId) ?? "proof@ocade.test", "aal2"));
+        return send(
+          200,
+          openSession(
+            emails.get(userId) ?? "proof@ocade.test",
+            "aal2",
+            Math.floor(Date.now() / 1000),
+            tokenSession.get(requestToken),
+          ),
+        );
       }
       return send(405, { msg: "method not allowed" });
     }
@@ -1692,6 +1751,24 @@ const server = createServer((request, response) => {
     /* --- tables ---------------------------------------------------------- */
 
     const table = /^\/rest\/v1\/([a-z0-9_]+)$/.exec(url.pathname);
+    if (table && table[1] === "ocade_console_sessions") {
+      if (sessions.has(requestToken)) {
+        return send(403, {
+          code: "42501",
+          message: "permission denied for table ocade_console_sessions",
+        });
+      }
+      if (request.method === "POST") {
+        const payload = JSON.parse(body || "{}");
+        const incoming = Array.isArray(payload) ? payload : [payload];
+        for (const row of incoming) consoleSessions.add(row.session_id);
+        return send(201, incoming);
+      }
+      return send(
+        200,
+        [...consoleSessions].map((session_id) => ({ session_id })),
+      );
+    }
     if (table && table[1].startsWith("jarvis_")) {
       /*
        * JARVIS TABLES ARE ONE SHARED STORE, FILTERED THE WAY RLS FILTERS.

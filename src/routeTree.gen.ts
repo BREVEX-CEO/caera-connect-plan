@@ -26,6 +26,7 @@ import { Route as AgentFileRouteImport } from './routes/agent.$file'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthChallengeRouteImport } from './routes/auth.challenge'
+import { Route as AuthConsoleRouteImport } from './routes/auth.console'
 import { Route as AuthVerifyRouteImport } from './routes/auth.verify'
 import { Route as ApiJarvisContinueRouteImport } from './routes/api/jarvis/continue'
 import { Route as ApiJarvisDeviceRouteImport } from './routes/api/jarvis/device'
@@ -116,6 +117,11 @@ const AuthChallengeRoute = AuthChallengeRouteImport.update({
   path: '/auth/challenge',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthConsoleRoute = AuthConsoleRouteImport.update({
+  id: '/auth/console',
+  path: '/auth/console',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthVerifyRoute = AuthVerifyRouteImport.update({
   id: '/auth/verify',
   path: '/auth/verify',
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/agent/$file': typeof AgentFileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/challenge': typeof AuthChallengeRoute
+  '/auth/console': typeof AuthConsoleRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/auth/': typeof AuthIndexRoute
   '/api/jarvis/continue': typeof ApiJarvisContinueRoute
@@ -181,6 +188,7 @@ export interface FileRoutesByTo {
   '/agent/$file': typeof AgentFileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/challenge': typeof AuthChallengeRoute
+  '/auth/console': typeof AuthConsoleRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/auth': typeof AuthIndexRoute
   '/api/jarvis/continue': typeof ApiJarvisContinueRoute
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/agent/$file': typeof AgentFileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/challenge': typeof AuthChallengeRoute
+  '/auth/console': typeof AuthConsoleRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/auth/': typeof AuthIndexRoute
   '/api/jarvis/continue': typeof ApiJarvisContinueRoute
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/agent/$file'
     | '/auth/callback'
     | '/auth/challenge'
+    | '/auth/console'
     | '/auth/verify'
     | '/auth/'
     | '/api/jarvis/continue'
@@ -254,6 +264,7 @@ export interface FileRouteTypes {
     | '/agent/$file'
     | '/auth/callback'
     | '/auth/challenge'
+    | '/auth/console'
     | '/auth/verify'
     | '/auth'
     | '/api/jarvis/continue'
@@ -278,6 +289,7 @@ export interface FileRouteTypes {
     | '/agent/$file'
     | '/auth/callback'
     | '/auth/challenge'
+    | '/auth/console'
     | '/auth/verify'
     | '/auth/'
     | '/api/jarvis/continue'
@@ -301,6 +313,7 @@ export interface RootRouteChildren {
   AgentFileRoute: typeof AgentFileRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthChallengeRoute: typeof AuthChallengeRoute
+  AuthConsoleRoute: typeof AuthConsoleRoute
   AuthVerifyRoute: typeof AuthVerifyRoute
   AuthIndexRoute: typeof AuthIndexRoute
   ApiJarvisContinueRoute: typeof ApiJarvisContinueRoute
@@ -430,6 +443,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthChallengeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/console': {
+      id: '/auth/console'
+      path: '/auth/console'
+      fullPath: '/auth/console'
+      preLoaderRoute: typeof AuthConsoleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/verify': {
       id: '/auth/verify'
       path: '/auth/verify'
@@ -496,6 +516,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgentFileRoute: AgentFileRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthChallengeRoute: AuthChallengeRoute,
+  AuthConsoleRoute: AuthConsoleRoute,
   AuthVerifyRoute: AuthVerifyRoute,
   AuthIndexRoute: AuthIndexRoute,
   ApiJarvisContinueRoute: ApiJarvisContinueRoute,

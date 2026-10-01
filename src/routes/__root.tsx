@@ -20,6 +20,7 @@ import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
 import { useInstallationBootstrap } from "@/lib/brain/use-installation";
 import { useSession } from "@/lib/session";
 import { needsFullNavigation } from "@/lib/security/isolation";
+import { isConsoleHost, isConsolePath, onSite } from "@/lib/admin/console-host";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   /*
@@ -42,6 +43,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
    */
   beforeLoad: ({ location }) => {
     if (typeof window === "undefined") return;
+    // The console's origin renders the console only; anything else is the site's, over there.
+    if (isConsoleHost(window.location.hostname) && !isConsolePath(location.pathname)) {
+      throw redirect({
+        href: onSite(new URL(location.href, window.location.href)).toString(),
+        reloadDocument: true,
+      });
+    }
     if (!needsFullNavigation(window.location.pathname, location.pathname)) return;
     throw redirect({ href: location.href, reloadDocument: true });
   },
@@ -59,6 +67,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // Matches --background in the default theme, so the browser chrome and
       // the app do not meet at a visible seam on mobile.
       { name: "theme-color", content: "#0a0a0a" },
+      // The name under the icon when added from any page, not that page's title.
+      { name: "apple-mobile-web-app-title", content: "OCADE" },
       { property: "og:title", content: "OCADE" },
       {
         property: "og:description",
@@ -300,6 +310,8 @@ function BrowserBootstrap() {
 
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    // The site's offline shell has no business controlling the console.
+    if (isConsoleHost(window.location.hostname)) return;
     const register = () => {
       navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
         /* A browser that refuses it still gets the whole product, online. */

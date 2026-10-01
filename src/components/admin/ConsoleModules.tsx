@@ -562,6 +562,7 @@ function CaseReader({
             <li key={row.id}>
               <button
                 type="button"
+                aria-pressed={conversation === row.id}
                 className={conversation === row.id ? `${button} bg-accent` : button}
                 onClick={() => setConversation(row.id)}
               >

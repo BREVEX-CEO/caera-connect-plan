@@ -2,6 +2,7 @@
   "name": "OCADE",
   "short_name": "OCADE",
   "description": "OCADE Chat and OCADE JARVIS.",
+  "id": "/ocade-jarvis",
   "start_url": "/ocade-jarvis",
   "scope": "/",
   "display": "standalone",

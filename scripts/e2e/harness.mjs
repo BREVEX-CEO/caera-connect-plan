@@ -26,6 +26,7 @@
  *   node scripts/e2e/harness.mjs --serve         # build, then keep it running
  */
 import { spawn, spawnSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright-core";
 
@@ -57,6 +58,7 @@ const ALL = [
   "bubble",
   "mfa",
   "carry-on",
+  "office",
 ];
 
 const requested = process.argv.slice(2).filter((value) => !value.startsWith("--"));
@@ -188,6 +190,19 @@ watched(
 );
 await waitForPort(`${SUPABASE_URL}/auth/v1/settings`, "the Supabase stub");
 
+/*
+ * THE PRODUCTION CONFIG WITHOUT ITS ROUTES. `wrangler dev` rewrites every
+ * request to the first route's host, so the Worker could not tell the site
+ * from the console's own origin (`admin.localhost`) — the one thing the console
+ * proof has to see. Beside the real config, so its relative paths still hold.
+ */
+const LOCAL_CONFIG = "wrangler.e2e.json";
+{
+  const production = JSON.parse(readFileSync("wrangler.json", "utf8"));
+  delete production.routes;
+  writeFileSync(LOCAL_CONFIG, JSON.stringify(production, null, 2));
+}
+
 console.log("=== served production build ===");
 const serve = () =>
   watched(
@@ -198,7 +213,7 @@ const serve = () =>
         path.join("node_modules", "wrangler", "bin", "wrangler.js"),
         "dev",
         "--config",
-        "wrangler.json",
+        LOCAL_CONFIG,
         ...STUB_VARS,
         "--ip",
         "127.0.0.1",

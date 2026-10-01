@@ -8,6 +8,7 @@ import type {
   NormalizedToolDefinition,
   NormalizedUsage,
 } from "./contract.ts";
+import { SERVICE_USER_HEADER } from "./contract.ts";
 import {
   DEFAULT_ONLINE_MODEL,
   isAllowedOnlineModel,
@@ -163,9 +164,6 @@ function cors(origin: string): Record<string, string> {
     "Access-Control-Max-Age": "600",
   };
 }
-
-/** Names the person a server-to-server request is for. Meaningless without `verifyService`. */
-export const SERVICE_USER_HEADER = "x-ocade-user";
 
 /** Whether `presented` is one of OCADE's own server keys, compared by digest in constant time. */
 export async function isServiceKey(

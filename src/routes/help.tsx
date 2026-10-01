@@ -229,8 +229,9 @@ const QUESTIONS: {
       <>
         <p>
           Yes, in the browser. Add OCADE to your home screen to open it like an app. From your phone
-          you can start, watch and stop work on a computer you connected, under Devices. A phone's
-          own apps are not controlled from the website.
+          you can start, watch and stop work on a computer you connected, under Devices. The website
+          does not control a phone's own apps; on Android, the OCADE app connects the phone to
+          JARVIS as a device of its own, with the bubble over other apps.
         </p>
         <p className="mt-2">
           On a phone, a small JARVIS bubble floats over OCADE's pages. Drag it to either edge, tap
@@ -238,8 +239,10 @@ const QUESTIONS: {
           apps. Hide it from the bubble; Settings › Appearance brings it back.
         </p>
         <p className="mt-2">
-          To open JARVIS from a shortcut, for example in the iPhone Shortcuts app, use the address
-          ocade.in/ocade-jarvis.
+          To open JARVIS from a shortcut, for example with Open URL in the iPhone Shortcuts app
+          (which Siri can run by its name), use ocade.in/ocade-jarvis. Add ?voice=1 to start
+          listening, or ?ask= followed by your words to have them ready in the box; JARVIS waits for
+          you to press Send.
         </p>
       </>
     ),

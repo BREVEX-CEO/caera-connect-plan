@@ -64,7 +64,7 @@ const ENTERED_ELSEWHERE = {
   "src/opfs.d.ts":
     "An ambient type declaration for the OPFS sync access handle the model store uses.",
   "src/lib/intelligence/edge-handler.ts":
-    "The Supabase Edge Function body. Deno runs it from `supabase/functions`; the browser never imports it.",
+    "The Supabase Edge Function body. Deno runs it from `supabase/functions`; the Worker and the browser never import it.",
   "src/lib/security/caller-scoped-functions.ts":
     "Shared by two security gates that read `SECURITY DEFINER` bodies. It exists in `src/lib` precisely so there is not a second copy.",
 };
