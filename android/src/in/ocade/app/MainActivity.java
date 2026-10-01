@@ -241,7 +241,7 @@ public final class MainActivity extends Activity {
             JSONObject task = AgentService.task;
             if (task != null) now += "\n" + task.optString("title");
         } else if (identity.waiting()) {
-            now = "Waiting to be connected: approve this phone in OCADE. It shows the fingerprint "
+            now = "Waiting to be connected: approve this phone in OCADE. Its fingerprint is "
                     + identity.fingerprint() + ".";
         } else {
             now = "Not connected";
@@ -268,7 +268,7 @@ public final class MainActivity extends Activity {
                 String name = Build.MANUFACTURER + " " + Build.MODEL;
                 String[] approve = identity.enroll(name.length() > 120 ? name.substring(0, 120) : name);
                 runOnUiThread(() -> {
-                    state.setText("Approve this phone in OCADE. It shows the fingerprint " + approve[1] + ".");
+                    state.setText("Approve this phone in OCADE. Its fingerprint is " + approve[1] + ".");
                     AgentService.start(this);
                     startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(approve[0])));
                     connect.setEnabled(true);

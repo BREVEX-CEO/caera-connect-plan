@@ -219,10 +219,17 @@ try {
   }
 
   /* --- connecting: the phone's own key, one approval in OCADE -------------- */
+  // Requests already waiting (an earlier run's) are not this phone's.
+  const earlier = new Set(
+    (await devices("user_id=is.null&kind=eq.android&select=id")).map((row) => row.id),
+  );
   await tap(ui("Connect this phone"));
   let phone = null;
   await until(async () => {
-    phone = (await devices("user_id=is.null&kind=eq.android&select=id,name,platform"))[0];
+    phone =
+      (await devices("user_id=is.null&kind=eq.android&select=id,name,platform")).find(
+        (row) => !earlier.has(row.id),
+      ) ?? null;
     return Boolean(phone);
   }, 30_000);
   check(
@@ -232,14 +239,30 @@ try {
   );
   // The approval page opened in the phone's browser; the person approves where they are signed in.
   await web.goto(`${BASE}/ocade-jarvis?connect=${phone.id}`, { waitUntil: "networkidle" });
-  const shown = await web.getByTestId("device-fingerprint").innerText();
   adb("shell", "am", "start", "-n", "in.ocade.app/.MainActivity");
-  const onPhone = await until(async () => (await source()).includes(shown), 20_000);
-  check("OCADE shows the same fingerprint the phone shows", onPhone, shown);
+  let printed = "";
+  await until(async () => {
+    printed = /fingerprint is ([0-9A-F]{4}(?:-[0-9A-F]{4}){3})/.exec(await source())?.[1] ?? "";
+    return Boolean(printed);
+  }, 20_000);
+  if ((await web.getByTestId("device-fingerprint").count()) === 1) {
+    // From the phone's own network: OCADE shows the fingerprint to compare.
+    const shown = await web.getByTestId("device-fingerprint").innerText();
+    check(
+      "OCADE shows the same fingerprint the phone shows",
+      shown === printed,
+      `${shown} / ${printed}`,
+    );
+  } else {
+    // From another network (the emulator's own): the person types what the phone shows.
+    await web.getByRole("textbox", { name: "Fingerprint the device shows" }).fill(printed);
+    check("from another network, OCADE asks for the fingerprint the phone shows", Boolean(printed));
+  }
   await web.getByRole("button", { name: "Connect", exact: true }).click();
   check(
-    "one click connects it, and the phone says so",
+    "and Connect connects it, and the phone says so",
     await until(async () => await exists('new UiSelector().textStartsWith("Connected")'), 30_000),
+    (await web.locator("body").innerText()).replace(/\s+/g, " ").slice(0, 300),
   );
 
   /* --- the floating bubble ------------------------------------------------- */

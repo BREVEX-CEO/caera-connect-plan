@@ -144,6 +144,11 @@ final class Control {
 
     private static JSONObject inspect(OcadeAccessibility a11y) throws Exception {
         AccessibilityNodeInfo root = a11y.getRootInActiveWindow();
+        // An app that was just opened has no window to read for a moment yet.
+        for (int waited = 0; root == null && waited < 3_000; waited += 250) {
+            Thread.sleep(250);
+            root = a11y.getRootInActiveWindow();
+        }
         if (root == null) return result("failed", "Nothing on screen can be read right now");
         refs.clear();
         uiObservation = "u" + (++seq);
@@ -279,8 +284,18 @@ final class Control {
             case "collapse":
                 ok = node.performAction(AccessibilityNodeInfo.ACTION_COLLAPSE);
                 break;
-            default: // invoke, toggle, select: the control's own click
-                ok = clickable(node).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            default: { // invoke, toggle, select: the control's own click
+                AccessibilityNodeInfo target = clickable(node);
+                ok = target.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                // Some lists take a click only as a touch: tap the middle of the same control.
+                android.graphics.Rect box = new android.graphics.Rect();
+                target.getBoundsInScreen(box);
+                if (!ok && !box.isEmpty()) {
+                    Path at = new Path();
+                    at.moveTo(box.exactCenterX(), box.exactCenterY());
+                    ok = gesture(a11y, at, 0, 60);
+                }
+            }
         }
         uiObservation = null; // anything read before this step is stale now
         return result(ok ? "done" : "failed", ok ? "Used the control" : "That control did not respond");
