@@ -394,3 +394,18 @@ Found on the way:
 Local evidence: PostgreSQL `console-sessions.test.ts` 7 (site session refused even at aal2, console session allowed, older policies follow, console needs its own factor, no browser can record a session, another account's console session is not yours, ending the session ends the record, rollback and reapply); `console-host.test.ts` 5; admin journey with the handoff, a real TOTP challenge on the console origin, the one-time way in refused a second time, customer paths sent to the site, sign-out; auth journey 21.
 
 Release steps (not before the code release): apply `20261001090000` right after the deploy (it makes the old live admin screen's site session a customer session); the deploy creates the `admin.ocade.in` custom domain. No Supabase redirect-URL change is needed: the handoff involves no redirect.
+
+### Apple-supported paths (Phase 45) — 2026-10-01
+
+Evidence is WebKit on Windows (Safari's engine) with iPhone and iPad profiles: compatibility, never physical Apple proof.
+
+Found and fixed:
+
+- Safari dropped a link's query on the first visit in a tab. The one-time isolation reload went to the path alone, and WebKit (no `credentialless` COEP) always takes that reload, so `/ocade-jarvis?connect=…` (approving a computer), `?c=` and `?ask=` arrived bare. It reloads the same address now; browsers journey check fails on WebKit desktop and iPhone without the fix.
+- Offline, the service worker answered an uncached page with Chat's document: `/auth` showed Chat and failed to hydrate (React #418), seen on WebKit when the network dropped mid-navigation. It serves the page as last seen, else the offline page; the offline page's link pointed at the removed `/ocade` and opens Chat now. Chat's offline check left an unhandled rejection when its own code was not on the device. Shell journey covers both.
+
+Added: Shortcuts/Siri path — `ocade.in/ocade-jarvis?voice=1` starts listening, `?ask=…` puts words in the box and never sends them (a link is not the person asking); Help says how. Home-screen name `OCADE` from any page; manifest `id`.
+
+Checked: public pages, sign-in by code, Chat, JARVIS and Help on WebKit iPhone and iPad — no console errors, no sideways scroll, 16px fields (no zoom on focus), manifest standalone, apple-touch-icon, service worker active; sign-in crossing into the isolated app works on WebKit. The Playwright iPad MCP loses its page when a click causes the cross-origin-isolation browsing-context switch (a tool limit: the same flow scripted with `noWaitAfter` passes on the same engine).
+
+BLOCKED (hardware/accounts): physical iPhone/iPad/Mac evidence; macOS Device Agent and menu-bar build (needs a Mac and an Apple Developer ID for signing and notarization); no paid remote Apple device was reserved. Not built: Web Push (a closed OCADE on a phone learns of a waiting task only when it is opened again).
