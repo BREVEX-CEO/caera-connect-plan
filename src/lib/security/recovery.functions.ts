@@ -54,7 +54,7 @@ export const readRecoveryCodes = createServerFn({ method: "GET" })
  * remove the factor.
  */
 export const issueRecoveryCodes = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([requireAssurance(HIGH_RISK, { firstSetup: true })])
   .handler(async ({ context }): Promise<{ codes: string[] }> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: factors, error: factorError } = await supabaseAdmin.auth.admin.mfa.listFactors({

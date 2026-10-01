@@ -106,7 +106,7 @@ The 2026-09-29 list (TOTP enrollment, removal during an action, fail-open execut
 
 1. Deploy the Edge Functions (`ocade-intelligence`, `ocade-intelligence-service`, verify_jwt off) — they settle claimed permits themselves.
 2. Deploy the Worker from the approved merge (creates `admin.ocade.in`; build with `VITE_WEB_PUSH_PUBLIC_KEY`, secret `WEB_PUSH_PRIVATE_KEY` from `~/.ocade-release/web-push.json`).
-3. Apply `20261001090000`, `20261001092000`, `20261001094000`, `20261001095100` in that order (`091000`, `093000`, `095000`, `096000`, `096100` are already applied).
+3. Apply `20261001090000`, `20261001092000`, `20261001094000`, `20261001095100` in that order (`091000`, `093000`, `095000`, `095200`, `096000`, `096100` are already applied).
 4. Remove the legacy `user_roles` admin row (ToRemove.md); sign the Device Agent and the Android release with the owner's keys.
 
 ## Testing posture

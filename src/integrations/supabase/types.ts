@@ -1758,6 +1758,7 @@ export type Database = {
         Args: { p_unverified_too?: boolean }
         Returns: boolean
       }
+      ocade_two_step_set_up_in_this_sign_in: { Args: never; Returns: boolean }
       ocade_finalize_generation_permit: {
         Args: {
           p_cost_hundredths: number

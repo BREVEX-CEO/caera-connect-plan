@@ -77,7 +77,15 @@ export async function readSessionAssurance(context: {
  * Used as `.middleware([requireAssurance({ level: "aal2" })])`, which reads at
  * the call site as the sentence it is.
  */
-export function requireAssurance(requires: AssuranceRequirement) {
+export function requireAssurance(
+  requires: AssuranceRequirement,
+  /**
+   * Also allow a session whose every factor is newer than it: two-step was set
+   * up in this very sign-in, so no older factor is being got round (the
+   * recovery codes made the moment two-step is turned on).
+   */
+  options: { firstSetup?: boolean } = {},
+) {
   return createMiddleware({ type: "function" })
     .middleware([requireSession])
     .server(async ({ next, context }) => {
@@ -98,18 +106,20 @@ export function requireAssurance(requires: AssuranceRequirement) {
        * (20261001095000), asked here for the actions only the server performs.
        * Every requirement carries recency (decideAssurance), so every one asks.
        */
-      const { data: newer, error } = await (
-        context as unknown as {
-          supabase: {
-            rpc: (fn: "ocade_factor_added_since_sign_in") => PromiseLike<{
-              data: unknown;
-              error: unknown;
-            }>;
-          };
-        }
-      ).supabase.rpc("ocade_factor_added_since_sign_in");
+      const { supabase } = context as unknown as {
+        supabase: {
+          rpc: (
+            fn: "ocade_factor_added_since_sign_in" | "ocade_two_step_set_up_in_this_sign_in",
+          ) => PromiseLike<{ data: unknown; error: unknown }>;
+        };
+      };
+      const { data: newer, error } = await supabase.rpc("ocade_factor_added_since_sign_in");
       if (error) throw new Error("OCADE could not check this session just now. Try again.");
-      if (newer === true) {
+      const firstSetup =
+        newer === true &&
+        options.firstSetup === true &&
+        (await supabase.rpc("ocade_two_step_set_up_in_this_sign_in")).data === true;
+      if (newer === true && !firstSetup) {
         throw new AssuranceRequiredError(
           "reauthentication_required",
           "You set up two-step verification after signing in here. Sign in again, then try this.",

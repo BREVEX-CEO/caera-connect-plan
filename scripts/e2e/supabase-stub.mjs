@@ -839,6 +839,13 @@ function handleRpc(name, args, userId) {
     case "ocade_factor_added_since_sign_in":
       return factorAddedSinceSignIn(args.p_unverified_too === true);
 
+    case "ocade_two_step_set_up_in_this_sign_in": {
+      // public.ocade_two_step_set_up_in_this_sign_in (20261001095200).
+      const began = sessionFacts.get(tokenSession.get(requestToken))?.createdAt ?? Infinity;
+      const verified = (factors.get(userId) ?? []).filter((f) => f.status === "verified");
+      return verified.length > 0 && verified.every((f) => Date.parse(f.created_at) > began);
+    }
+
     case "ocade_session_meets_second_factor": {
       // What PostgREST's pre-request check does: an enrolled account's
       // password-only session is refused before the call runs.

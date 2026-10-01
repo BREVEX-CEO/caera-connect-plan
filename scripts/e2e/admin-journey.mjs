@@ -116,7 +116,7 @@ async function open(session, viewport = { width: 1280, height: 800 }) {
     [storageKey, JSON.stringify(session)],
   );
   const page = await context.newPage();
-  page.on("pageerror", (error) => errors.push(String(error).slice(0, 160)));
+  page.on("pageerror", (error) => errors.push(`${page.url()} ${String(error).slice(0, 160)}`));
   return page;
 }
 const seen = (locator, timeout = 10_000) =>

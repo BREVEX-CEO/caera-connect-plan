@@ -192,6 +192,23 @@ describe("a factor added after signing in counts only after the next sign-in", (
     await twin.execSuperuser(
       `update auth.mfa_factors set status = 'verified' where id = '${factor}'`,
     );
+    const setUpHere = async () =>
+      (
+        await ask<{ here: boolean }>(
+          ADMIN,
+          `select public.ocade_two_step_set_up_in_this_sign_in() as here`,
+          "site",
+        )
+      ).rows[0]!.here;
+    // The account's only factor, set up in this sign-in: nothing older was got round.
+    expect(await setUpHere()).toBe(true);
+    const [{ id: older }] = await twin.asSuperuser<{ id: string }>(
+      `insert into auth.mfa_factors (user_id, status, created_at)
+       values ('${ADMIN}', 'verified', now() - interval '2 hours') returning id`,
+    );
+    // With a factor older than the sign-in, the newer one is somebody adding a second.
+    expect(await setUpHere()).toBe(false);
+    await twin.execSuperuser(`delete from auth.mfa_factors where id = '${older}'`);
     expect(await can(ADMIN, "customers.read", "console")).toBe(false);
     expect((await mutate("console")).errorCode).toBe("42501");
     // Every staff change and high-risk action asks this, from a definer like this one.
