@@ -34,9 +34,25 @@ def _gates():
     global _GATES
     if _GATES is None:
         import json
-        gates = json.loads((Path(__file__).resolve().parent / "ocade_protocol.json").read_text())["gates"]
-        _GATES = (re.compile(gates["purchase"], re.I), re.compile(gates["sensitive"], re.I))
+        protocol = json.loads((Path(__file__).resolve().parent / "ocade_protocol.json").read_text())
+        gates = protocol["gates"]
+        _GATES = (re.compile(gates["purchase"], re.I), re.compile(gates["sensitive"], re.I),
+                  frozenset(protocol["protectedApps"]))
     return _GATES
+
+
+PROTECTED = {"status": "blocked",
+             "summary": "JARVIS does not read or operate password managers, sign-in prompts or "
+                        "security settings. Take over for this part."}
+
+
+def _protected(control) -> bool:
+    """A password manager, a credential prompt or Windows Security owns this control."""
+    try:
+        import psutil
+        return psutil.Process(control.ProcessId).name().lower() in _gates()[2]
+    except Exception:  # gone, or not readable: judged by what else is known
+        return False
 
 
 class _State:
@@ -99,6 +115,8 @@ def inspect(title: str | None = None, find: str | None = None, cancel=None) -> d
         window = _window(title)
         if window is None:
             return {"status": "failed", "summary": "No such window is open"}
+        if _protected(window):
+            return PROTECTED
         _State.seq += 1
         obs_id = f"u{_State.seq}"
         refs, elements = {}, []
@@ -175,11 +193,13 @@ def gate_at(x: int | None, y: int | None, confirmed: bool, press: bool = False) 
         auto = _uia()
     except ImportError:  # ponytail: Windows UI Automation only; macOS AX when the agent ships there
         return None
-    purchase, sensitive = _gates()
+    purchase, sensitive, _ = _gates()
     with auto.UIAutomationInitializerInThread():
         # Whole pixels: a desktop point is a float, and UI Automation refused one, which
         # the caller read as "unreadable" and let every coordinate click through.
         control = auto.GetFocusedControl() if x is None else auto.ControlFromPoint(round(x), round(y))
+        if control is not None and _protected(control):
+            return PROTECTED
         if x is None and control is not None and control.IsPassword:
             return {"status": "human_required",
                     "summary": "A password is needed. Take over and type it yourself."}
@@ -216,7 +236,9 @@ def act(action: dict, confirmed: bool) -> dict:
                 or (control.Name or "").strip() != name:
             return {"status": "stale", "summary": "That control changed or is gone.",
                     "observation": inspect(window.Name if window else None).get("observation")}
-        purchase, sensitive = _gates()
+        purchase, sensitive, _ = _gates()
+        if _protected(control):
+            return PROTECTED
         if op in ("invoke", "toggle", "select") and purchase.search(name):
             return {"status": "blocked", "summary": "JARVIS never completes a purchase or payment"}
         if op in ("invoke", "toggle", "select") and sensitive.search(name) and not confirmed:

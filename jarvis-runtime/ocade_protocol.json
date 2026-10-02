@@ -66,5 +66,6 @@
       "clang": ["*"],
       "rustc": ["*"]
     }
-  }
+  },
+  "protectedApps": ["keepass.exe", "keepassxc.exe", "1password.exe", "bitwarden.exe", "lastpass.exe", "dashlane.exe", "keeper.exe", "keeperpasswordmanager.exe", "nordpass.exe", "roboform.exe", "enpass.exe", "proton pass.exe", "protonpass.exe", "authy desktop.exe", "credentialuibroker.exe", "consent.exe", "sechealthui.exe", "lockapp.exe", "logonui.exe"]
 }

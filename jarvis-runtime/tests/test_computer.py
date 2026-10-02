@@ -524,5 +524,13 @@ class AccessibilityTest(unittest.TestCase):
                           "toX": px * scale, "toY": py * scale,
                           "observationId": obs["observationId"]}, confirmed=True)
             self.assertEqual(out["status"], "blocked", out)
+            # A password manager or a sign-in prompt is never read or operated, however it is reached.
+            purchase, sensitive, _ = ocade_accessibility._gates()
+            with unittest.mock.patch.object(ocade_accessibility, "_GATES",
+                                            (purchase, sensitive, frozenset({"powershell.exe"}))):
+                self.assertEqual(ocade_accessibility.gate_at(*centre("Next page"), False)["status"], "blocked")
+                self.assertEqual(ocade_accessibility.gate_at(None, None, False)["status"], "blocked")
+                self.assertEqual(ocade_accessibility.inspect("OCADE gate probe")["status"], "blocked")
+            self.assertEqual(ocade_accessibility.inspect("OCADE gate probe")["status"], "done")
         finally:
             form.kill()
