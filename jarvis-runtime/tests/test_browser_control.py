@@ -24,6 +24,8 @@ PAGES = {
       <button id="del">Delete account</button>
       <button id="grow" onclick="this.textContent='Grown';">Grow</button>""",
     "next.html": "<title>Next</title><p>Arrived</p>",
+    "keys.html": "<title>Keys</title><button id='pay'>Pay now</button>"
+                 "<div id='rm' role='button' tabindex='0'>Delete account</div>",
     "captcha.html": "<title>Check</title><div class='g-recaptcha'></div><p>Verify you are human</p>",
     "otp.html": "<title>Code</title><input autocomplete='one-time-code'>",
 }
@@ -135,6 +137,16 @@ class BrowserControlTest(unittest.TestCase):
         self.s.run(self.s._page.focus(f'[data-ocade-ref="{pw}"]'))
         out = self.act({"action": "press", "key": "Enter"}, confirmed=True)
         self.assertEqual(out["status"], "blocked")
+
+    def test_enter_or_space_on_a_focused_control_meets_its_rules(self):
+        self.act({"action": "open", "url": f"{self.base}/keys.html"})
+        self.s.run(self.s._page.focus("#pay"))
+        for key in ("Enter", "Space"):
+            self.assertEqual(self.act({"action": "press", "key": key}, confirmed=True)["status"], "blocked")
+        self.s.run(self.s._page.focus("#rm"))
+        self.assertEqual(self.act({"action": "press", "key": "Space"})["status"], "needs_confirmation")
+        self.assertEqual(self.act({"action": "press", "key": "Space"}, confirmed=True)["status"], "done")
+        self.assertEqual(self.act({"action": "press", "key": "Tab"})["status"], "done")
 
     def test_sensitive_submission_needs_a_person(self):
         obs = self.home()

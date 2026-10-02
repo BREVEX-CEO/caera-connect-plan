@@ -463,6 +463,8 @@ _OCADE_GEOMETRY = _page_fn("()", "return window.__ocade.geometry();")
 _OCADE_IDENTITY = _page_fn("el", "return window.__ocade.identityOf(el);")
 _OCADE_FORM_SUBMIT = _page_fn("el", "return window.__ocade.submitOf(el);")
 _OCADE_FOCUSED_SUBMIT = _page_fn("()", "return window.__ocade.submitOf(document.activeElement);")
+_OCADE_FOCUSED = _page_fn("()", "const el = document.activeElement; "
+                          "return el ? window.__ocade.identityOf(el.closest('a,button,input,select,textarea,[role]') || el) : {name: ''};")
 _OCADE_AT_POINT = _page_fn("[x, y]", "return window.__ocade.atPoint(x, y);")
 
 _KEYS = {"Enter", "Tab", "Escape", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
@@ -1224,8 +1226,11 @@ class _BrowserSession:
             key = str(action.get("key", "Enter"))
             if key not in _KEYS:
                 return {"status": "blocked", "summary": "That key is not allowed"}
-            if key == "Enter":
-                gate = _gate("submit", await page.evaluate(_OCADE_FOCUSED_SUBMIT), confirmed)
+            # Enter and Space press whatever has the focus, and Enter submits its form.
+            if key in ("Enter", "Space"):
+                gate = _gate("click", await page.evaluate(_OCADE_FOCUSED), confirmed)
+                if key == "Enter":
+                    gate = gate or _gate("submit", await page.evaluate(_OCADE_FOCUSED_SUBMIT), confirmed)
                 if gate:
                     return gate
             await page.keyboard.press(key)

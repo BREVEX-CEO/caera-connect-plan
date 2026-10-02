@@ -78,10 +78,10 @@ def _value(control) -> str | None:
         return None
 
 
-def _walk(window):
-    """(control, depth) pairs, bounded."""
+def _walk(window, cancel=None):
+    """(control, depth) pairs, bounded, and ended by STOP."""
     stack, count = [(window, 0)], 0
-    while stack and count < MAX_NODES:
+    while stack and count < MAX_NODES and not (cancel and cancel.is_set()):
         control, depth = stack.pop()
         count += 1
         yield control, depth
@@ -93,7 +93,7 @@ def _walk(window):
             stack.extend((child, depth + 1) for child in reversed(children))
 
 
-def inspect(title: str | None = None, find: str | None = None) -> dict:
+def inspect(title: str | None = None, find: str | None = None, cancel=None) -> dict:
     auto = _uia()
     with auto.UIAutomationInitializerInThread():
         window = _window(title)
@@ -102,7 +102,7 @@ def inspect(title: str | None = None, find: str | None = None) -> dict:
         _State.seq += 1
         obs_id = f"u{_State.seq}"
         refs, elements = {}, []
-        for control, _depth in _walk(window):
+        for control, _depth in _walk(window, cancel):
             role = control.ControlTypeName.replace("Control", "")
             name = (control.Name or "").strip()
             if role not in ROLES_WORTH_LISTING or (not name and role not in ("Edit", "Document")):
@@ -124,6 +124,8 @@ def inspect(title: str | None = None, find: str | None = None) -> dict:
             if control.IsPassword:
                 item["password"] = True
             elements.append(item)
+        if cancel and cancel.is_set():
+            return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
         _State.held = {obs_id: {"window": tuple(window.GetRuntimeId()), "refs": refs}}
         if len(elements) > MAX_ELEMENTS:
             rank = {role: i for i, role in enumerate(PRIORITY)}
@@ -160,13 +162,14 @@ def _find(window, runtime_id: tuple):
     return None
 
 
-def gate_at(x: int | None, y: int | None, confirmed: bool) -> dict | None:
+def gate_at(x: int | None, y: int | None, confirmed: bool, press: bool = False) -> dict | None:
     """
     The same hard rules for a click or keystrokes by coordinates: choosing the
     screen over a control must never be a way round them. What lies under the
     point (or has the keyboard, when x is None) and the controls holding it are
     read; a payment control is refused, a sensitive one asked about, a password
-    field handed to the person.
+    field handed to the person. `press`: the keys include Enter or Space, which
+    press the focused control as surely as a click does.
     """
     try:
         auto = _uia()
@@ -174,11 +177,14 @@ def gate_at(x: int | None, y: int | None, confirmed: bool) -> dict | None:
         return None
     purchase, sensitive = _gates()
     with auto.UIAutomationInitializerInThread():
-        control = auto.GetFocusedControl() if x is None else auto.ControlFromPoint(x, y)
-        if x is None:
-            return ({"status": "human_required",
-                     "summary": "A password is needed. Take over and type it yourself."}
-                    if control is not None and control.IsPassword else None)
+        # Whole pixels: a desktop point is a float, and UI Automation refused one, which
+        # the caller read as "unreadable" and let every coordinate click through.
+        control = auto.GetFocusedControl() if x is None else auto.ControlFromPoint(round(x), round(y))
+        if x is None and control is not None and control.IsPassword:
+            return {"status": "human_required",
+                    "summary": "A password is needed. Take over and type it yourself."}
+        if x is None and not press:
+            return None
         # The control and the few holding it, up to the window or page itself (its title is not a button).
         for _ in range(4):
             if control is None or control.ControlTypeName in ("WindowControl", "PaneControl",

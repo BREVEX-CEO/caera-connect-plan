@@ -91,6 +91,43 @@ class WorkspaceTest(unittest.TestCase):
         self.assertLess(time.monotonic() - started, 10)
 
 
+    def test_stop_ends_long_file_work(self):
+        import threading
+        stop = threading.Event()
+        stop.set()
+        for i in range(30):
+            (self.root / "big" / f"d{i}").mkdir(parents=True)
+            (self.root / "big" / f"d{i}" / "f.txt").write_text("x")
+        found = self.pc.run({"action": "file_find", "path": ".", "name": "f"}, cancel=stop)
+        self.assertTrue(found.get("stopped"), found)
+        copied = self.pc.run({"action": "file_copy", "path": "big", "to": "big2"}, cancel=stop)
+        self.assertTrue(copied.get("stopped"), copied)
+        self.assertFalse((self.root / "big2").exists())
+
+    def test_stop_ends_the_wait_for_an_app_list(self):
+        import threading
+        stop = threading.Event()
+        threading.Timer(0.3, stop.set).start()
+        ocade_computer._APPS.update(at=float("-inf"), list=[])
+        with unittest.mock.patch.object(ocade_computer, "installed_apps",
+                                        side_effect=lambda: time.sleep(5) or []):
+            started = time.monotonic()
+            out = self.pc.run({"action": "open_app", "name": "Nothing"}, cancel=stop)
+        self.assertTrue(out.get("stopped"), out)
+        self.assertLess(time.monotonic() - started, 2)
+
+    def test_the_persons_input_pauses_what_takes_the_foreground(self):
+        self.pc.guard.start = lambda: True
+        self.pc.guard.user_input_at = time.monotonic()
+        for action in ({"action": "open_app", "name": "Nothing"},
+                       {"action": "window", "title": "Nothing"},
+                       {"action": "sheet_edit", "path": "a.xlsx", "ops": []},
+                       {"action": "doc_edit", "path": "a.docx", "ops": []}):
+            self.assertEqual(self.pc.run(action)["status"], "needs_confirmation", action)
+            self.pc.guard.user_input_at = time.monotonic()
+            self.assertNotEqual(self.pc.run(action, cowork=True)["status"], "needs_confirmation")
+            self.pc.guard.user_input_at = time.monotonic()
+
     def test_system_changes_wait_for_the_person(self):
         os.environ["OCADE_JARVIS_DRY_SYSTEM"] = "1"
         out = self.pc.run({"action": "system", "op": "restart"})
@@ -456,5 +493,27 @@ class AccessibilityTest(unittest.TestCase):
 
             self.assertEqual(ocade_accessibility.gate_at(*centre("Pay now"), False)["status"], "blocked")
             self.assertIsNone(ocade_accessibility.gate_at(*centre("Next page"), False))
+            # Enter or Space presses the focused control as surely as a click does.
+            window.SetActive()
+            window.ButtonControl(Name="Pay now").SetFocus()
+            self.assertEqual(ocade_accessibility.gate_at(None, None, False, press=True)["status"], "blocked")
+            self.assertIsNone(ocade_accessibility.gate_at(None, None, False))
+            pc = Computer(None)
+            look = lambda: pc.run({"action": "screen"})["observation"]["observationId"]  # noqa: E731
+            for keys in (["enter"], ["space"]):
+                out = pc.run({"action": "screen_keys", "keys": keys, "observationId": look()},
+                             confirmed=True)
+                self.assertEqual(out["status"], "blocked", out)
+            # A drag lets go on its drop point: dropping on a payment control is pressing it.
+            obs = pc.run({"action": "screen"})["observation"]
+            scale = obs["imageScale"]
+            (nx, ny), (px, py) = centre("Next page"), centre("Pay now")
+            click = pc.run({"action": "screen_click", "x": px * scale, "y": py * scale,
+                            "observationId": obs["observationId"]}, confirmed=True)
+            self.assertEqual(click["status"], "blocked", click)
+            out = pc.run({"action": "screen_drag", "x": nx * scale, "y": ny * scale,
+                          "toX": px * scale, "toY": py * scale,
+                          "observationId": obs["observationId"]}, confirmed=True)
+            self.assertEqual(out["status"], "blocked", out)
         finally:
             form.kill()

@@ -53,6 +53,8 @@ RUN_TIMEOUT_S = 300
 FRAME_WIDTH = 1280
 PASTE_OVER = 40  # longer text is pasted (and the clipboard restored) instead of typed key by key
 UNDO_DEPTH = 10  # donor core/undo.py: roughly "this conversation"
+APPS_FRESH_S = 600  # the app list open_app trusts before looking again
+_APPS: dict = {"at": float("-inf"), "list": []}
 
 # Anything a shell (or cmd.exe for .cmd/.bat programs) would interpret.
 SHELL_META = re.compile(r"[&|;<>^`$%!\r\n]")
@@ -224,12 +226,18 @@ class Computer:
         try:
             if kind == "apps":
                 apps = installed_apps()
+                _APPS.update(at=time.monotonic(), list=apps)
                 return {"status": "done", "summary": f"Found {len(apps)} apps",
                         "apps": [a["name"] for a in apps]}
+            # What takes the foreground or drives the person's Office waits for
+            # them, as screen input does, after mouse or keyboard use of their own.
+            if kind in ("open_app", "window", "sheet_edit", "doc_edit") and \
+                    (paused := self._paused(cowork, confirmed)):
+                return paused
             if kind == "open_app":
-                return self._open_app(str(action.get("name", "")), confirmed)
+                return self._open_app(str(action.get("name", "")), cancel)
             if kind.startswith("file_"):
-                return self._file(kind, action, confirmed)
+                return self._file(kind, action, confirmed, cancel)
             if kind in ("sheet_inspect", "sheet_edit"):
                 return self._sheet(kind, action, cancel)
             if kind == "doc_edit":
@@ -256,7 +264,7 @@ class Computer:
                 import ocade_accessibility
                 with self._lock:
                     if kind == "ui_inspect":
-                        return ocade_accessibility.inspect(action.get("title"), action.get("find"))
+                        return ocade_accessibility.inspect(action.get("title"), action.get("find"), cancel)
                     return ocade_accessibility.act(action, confirmed)
             if kind in ("window_list", "window"):
                 if self._gui() is None:
@@ -272,8 +280,20 @@ class Computer:
 
     # -- apps ----------------------------------------------------------------------
 
-    def _open_app(self, name: str, confirmed: bool) -> dict:
-        app = next((a for a in installed_apps() if a["name"].lower() == name.lower()), None)
+    def _open_app(self, name: str, cancel: threading.Event) -> dict:
+        # The recent list first; a full look (up to 30 s) only for an app installed since.
+        apps = _APPS["list"] if time.monotonic() - _APPS["at"] < APPS_FRESH_S else []
+        app = next((a for a in apps if a["name"].lower() == name.lower()), None)
+        if app is None:
+            box: dict = {}
+            looking = threading.Thread(target=lambda: box.update(apps=installed_apps()), daemon=True)
+            looking.start()
+            while looking.is_alive():
+                if cancel.is_set():
+                    return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+                looking.join(0.2)
+            _APPS.update(at=time.monotonic(), list=box.get("apps", []))
+            app = next((a for a in _APPS["list"] if a["name"].lower() == name.lower()), None)
         if app is None:
             return {"status": "failed", "summary": f"{name} is not installed on this computer"}
         _launch(app)
@@ -292,7 +312,7 @@ class Computer:
     def _holds(self, resolved: Path) -> bool:
         return resolved == self.root or self.root in resolved.parents
 
-    def _file(self, kind: str, action: dict, confirmed: bool) -> dict:
+    def _file(self, kind: str, action: dict, confirmed: bool, cancel: threading.Event) -> dict:
         path = self._inside(str(action.get("path", "")))
         rel = str(path.relative_to(self.root)) or "."
         if kind == "file_list":
@@ -344,7 +364,8 @@ class Computer:
                              "modified": time.strftime("%Y-%m-%d %H:%M", time.localtime(info.st_mtime)),
                              "extension": path.suffix or None}}
         if kind == "file_find":
-            return self._find(path, rel, str(action.get("name", "")), str(action.get("extension", "")))
+            return self._find(path, rel, str(action.get("name", "")), str(action.get("extension", "")),
+                              cancel)
         if kind == "file_extract":
             from ocade_documents import Unreadable, extract_text
             try:
@@ -356,7 +377,7 @@ class Computer:
         if path == self.root:
             raise ScopeError("The workspace itself cannot be removed")
         if kind in ("file_move", "file_copy", "file_rename"):
-            return self._relocate(kind, path, rel, action)
+            return self._relocate(kind, path, rel, action, cancel)
         if kind == "file_trash":
             from send2trash import send2trash
             send2trash(str(path))
@@ -410,12 +431,14 @@ class Computer:
         return {"status": "done", "summary": f"Updated {rel} in Word ({len(out['applied'])} changes)",
                 **{k: v for k, v in out.items() if k != "ok"}}
 
-    def _find(self, folder: Path, rel: str, name: str, extension: str) -> dict:
+    def _find(self, folder: Path, rel: str, name: str, extension: str, cancel: threading.Event) -> dict:
         """Donor find_files: name and/or extension, bounded, inside the workspace only."""
         if not folder.is_dir():
             return {"status": "failed", "summary": f"{rel} is not a folder"}
         found, folders = [], 0
         for item in folder.rglob("*"):
+            if cancel.is_set():
+                return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
             if item.is_dir():
                 folders += 1
                 if folders > 2000:
@@ -430,7 +453,7 @@ class Computer:
                 break
         return {"status": "done", "summary": f"Found {len(found)} file(s)", "entries": found}
 
-    def _relocate(self, kind: str, source: Path, rel: str, action: dict) -> dict:
+    def _relocate(self, kind: str, source: Path, rel: str, action: dict, cancel: threading.Event) -> dict:
         """Donor move/copy/rename: never over an existing file, both ends inside the workspace."""
         if not source.exists():
             return {"status": "failed", "summary": f"{rel} does not exist"}
@@ -454,8 +477,16 @@ class Computer:
             if source.is_dir():
                 # A link inside the folder that leads out of the workspace is left
                 # behind, never followed into a copy JARVIS could then read.
-                shutil.copytree(source, target, ignore=lambda folder, names: [
-                    n for n in names if not self._holds((Path(folder) / n).resolve())])
+                def leave_out(folder, names):
+                    if cancel.is_set():  # STOP ends the copy; what was copied goes to the Trash
+                        raise _Stopped()
+                    return [n for n in names if not self._holds((Path(folder) / n).resolve())]
+                try:
+                    shutil.copytree(source, target, ignore=leave_out)
+                except _Stopped:
+                    if target.exists():
+                        self._to_trash(target)
+                    return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
             else:
                 shutil.copy2(source, target)
             self._remember(f"copying {rel} to {to}", lambda: self._to_trash(target))
@@ -781,15 +812,25 @@ class Computer:
         return None
 
     @staticmethod
-    def _gate(x: int | None, y: int | None, confirmed: bool) -> dict | None:
+    def _gate(x: int | None, y: int | None, confirmed: bool, press: bool = False) -> dict | None:
         """The browser's and the app controls' hard rules, for coordinates too (Windows UI Automation)."""
         if SYSTEM != "Windows":
             return None  # ponytail: macOS AX lookup when the agent ships there
         try:
             import ocade_accessibility
-            return ocade_accessibility.gate_at(x, y, confirmed)
+            return ocade_accessibility.gate_at(x, y, confirmed, press)
         except Exception:  # unreadable (an elevated window, say): the click goes ahead as it would have
             return None
+
+    def _paused(self, cowork: bool, confirmed: bool) -> dict | None:
+        """The person's own input pauses JARVIS until they say Continue (their
+        confirmation of this step), unless they chose to work alongside it."""
+        self.guard.start()
+        if self.guard.user_input_at and not cowork and not confirmed:
+            return {"status": "needs_confirmation",
+                    "summary": "You used the mouse or keyboard, so JARVIS paused. Continue?"}
+        self.guard.user_input_at = 0.0
+        return None
 
     def _screen(self, kind: str, action: dict, confirmed: bool, cowork: bool,
                 cancel: threading.Event) -> dict:
@@ -798,13 +839,8 @@ class Computer:
             return {"status": "blocked", "summary": "This computer does not allow screen control"}
         if kind == "screen":
             return {"status": "done", "summary": "Looked at the screen", "observation": self.observe()}
-        self.guard.start()
-        # The person's own input pauses JARVIS until they say Continue (their
-        # confirmation of this step), unless they chose to work alongside it.
-        if self.guard.user_input_at and not cowork and not confirmed:
-            return {"status": "needs_confirmation",
-                    "summary": "You used the mouse or keyboard, so JARVIS paused. Continue?"}
-        self.guard.user_input_at = 0.0
+        if paused := self._paused(cowork, confirmed):
+            return paused
         # Every input lands on the screen it was planned against: a changed
         # window or size, or an old observation, gets a fresh look instead.
         why = self._stale(str(action.get("observationId", "")))
@@ -816,9 +852,9 @@ class Computer:
                 points.append(self._point(action.get("toX"), action.get("toY")))
             if None in points:
                 return {"status": "failed", "summary": "That point is outside the screen"}
-            gated = self._gate(points[0][0], points[0][1], confirmed)
-            if gated:
-                return gated
+            for point in points:  # a drag lets go on its drop point, which is a press there
+                if gated := self._gate(point[0], point[1], confirmed):
+                    return gated
             self.guard.ours()
             if kind == "screen_drag":
                 gui.moveTo(*points[0])
@@ -830,7 +866,8 @@ class Computer:
                 clicks = 2 if action.get("double") else 1
                 gui.click(*points[0], button=button, clicks=clicks, interval=0.08)
                 detail = f"{'Double-clicked' if clicks == 2 else 'Right-clicked' if button == 'right' else 'Clicked'} on the screen"
-        elif kind == "screen_type" and (gated := self._gate(None, None, confirmed)):
+        elif kind == "screen_type" and (gated := self._gate(None, None, confirmed,
+                                                             press="\n" in str(action.get("text", "")))):
             return gated
         elif kind == "screen_type" and len(str(action.get("text", ""))) > PASTE_OVER:
             # Long text goes in by paste (donor _smart_type), then the clipboard is put back.
@@ -853,6 +890,9 @@ class Computer:
             detail = "Typed"
         elif kind == "screen_keys":
             keys = [str(k) for k in action.get("keys", [])][:4]
+            if gated := self._gate(None, None, confirmed,
+                                   press=any(k.lower() in ("enter", "return", "space") for k in keys)):
+                return gated
             self.guard.ours()
             gui.hotkey(*keys) if len(keys) > 1 else gui.press(keys[0])
             detail = f"Pressed {'+'.join(keys)}"
@@ -868,6 +908,10 @@ class Computer:
 
 
 class ScopeError(Exception):
+    pass
+
+
+class _Stopped(Exception):
     pass
 
 
