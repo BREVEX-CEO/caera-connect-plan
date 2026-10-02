@@ -23,7 +23,7 @@ vi.mock("../offline-usage.functions", () => ({
   allocateOfflineUsage: mocks.allocate,
   reconcileOfflineUsage: mocks.reconcile,
 }));
-vi.mock("@/lib/time/trusted-clock", () => ({ readTrustedClockHighWater: () => 0 }));
+vi.mock("@/lib/time/trusted-clock", () => ({ settleTrustedClock: () => undefined }));
 vi.mock("../offline-lease", () => ({
   trustedOfflineTimeNow: () => ({
     now: Date.parse("2026-09-18T10:00:00Z"),

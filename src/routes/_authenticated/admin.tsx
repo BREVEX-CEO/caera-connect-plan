@@ -643,8 +643,9 @@ function AccountOperations({
       withProof(() =>
         deleteCustomerAccount({ data: { userId: row.id, email: typed, reason: why } }),
       ),
-    onSuccess: ({ reference }) => {
+    onSuccess: ({ reference, recorded }) => {
       toast.success(`The account is deleted. Reference ${reference}.`);
+      if (!recorded) toast.error(`The deletion's final record was not written. Note ${reference}.`);
       void queryClient.invalidateQueries({ queryKey: ["admin"] });
     },
     onError: (error) => toast.error(messageOf(error)),

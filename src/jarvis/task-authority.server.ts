@@ -28,9 +28,16 @@ export async function permissionsOf(db: Db, userId: string): Promise<PermissionR
   return data ?? [];
 }
 
-/** Browser work whose page content the model has read: a page may have written what follows. */
+/**
+ * What brings outside words into the task — web pages, documentation, documents, another
+ * app's screen — after which a script could be one those words asked for.
+ */
 const READS_THE_WEB = [
   "docs",
+  "file_extract",
+  "sheet_inspect",
+  "screen",
+  "ui_inspect",
   "observe",
   "look",
   "open",
@@ -43,15 +50,15 @@ const READS_THE_WEB = [
 ];
 
 async function taskReadTheWeb(service: Db, userId: string, taskId: string): Promise<boolean> {
-  const { data } = await service
+  const { data, error } = await service
     .from("jarvis_activity")
     .select("action")
     .eq("user_id", userId)
     .eq("task_id", taskId)
-    .limit(500);
-  return (data ?? []).some((row) =>
-    READS_THE_WEB.includes((row.action as { action?: string } | null)?.action ?? ""),
-  );
+    .in("action->>action", READS_THE_WEB)
+    .limit(1);
+  // Unreadable is treated as read: the person is asked rather than nobody.
+  return Boolean(error) || (data ?? []).length > 0;
 }
 
 /** Did the person allow this exact command earlier in this task? */
@@ -63,16 +70,46 @@ async function allowedEarlier(
 ): Promise<boolean> {
   const { data } = await service
     .from("jarvis_activity")
-    .select("action")
+    .select("action, created_at")
     .eq("user_id", userId)
     .eq("task_id", taskId)
     .eq("confirmed", true)
     .limit(200);
-  return (data ?? []).some((row) => {
-    const action = row.action as { action?: string; command?: string } | null;
-    return action?.action === "run" && action.command === command;
-  });
+  const allowed = (data ?? [])
+    .filter((row) => {
+      const action = row.action as { action?: string; command?: string } | null;
+      return action?.action === "run" && action.command === command;
+    })
+    .map((row) => (row as { created_at?: string }).created_at ?? "")
+    .sort()
+    .pop();
+  if (!allowed) return false;
+  // Anything written since (a script, a config, a document) could be what runs now.
+  const { data: since, error } = await service
+    .from("jarvis_activity")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("task_id", taskId)
+    .gt("created_at", allowed)
+    .in("action->>action", CHANGES_FILES)
+    .limit(1);
+  return !error && (since ?? []).length === 0;
 }
+
+/** Actions that change files in the work folder. */
+const CHANGES_FILES = [
+  "file_write",
+  "file_move",
+  "file_copy",
+  "file_rename",
+  "file_mkdir",
+  "file_trash",
+  "file_delete",
+  "file_import",
+  "sheet_edit",
+  "doc_edit",
+  "download",
+];
 
 export interface TaskChange {
   id: string;

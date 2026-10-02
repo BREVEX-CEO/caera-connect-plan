@@ -24,7 +24,8 @@ class RecipeTest(unittest.TestCase):
         self.assertEqual(ocade_discovery.save_recipe(good, "11.2.0")["status"], "done")
         for bad in ({"steps": ["click at (412, 300)"]}, {"steps": ["x=412 then y=300"]},
                     {"verify": "signed in as someone@example.com"}, {"route": "type the code 493021"},
-                    {"recovery": "use the API key from settings"}, {"route": r"open C:\Users\ann\secret.docx"}):
+                    {"recovery": "use the API key from settings"}, {"route": r"open C:\Users\ann\secret.docx"},
+                    {"route": r"open C:\Users\ann\report.docx"}, {"steps": ["open /home/ann/report.odt"]}):
             self.assertEqual(ocade_discovery.save_recipe({**good, **bad}, "11.2.0")["status"], "blocked", bad)
         self.assertEqual(ocade_discovery.save_recipe({"app": "Paint"}, None)["status"], "failed")
 
@@ -81,6 +82,16 @@ class FilesTest(unittest.TestCase):
         # Only a work-folder file goes out.
         self.assertEqual(self.pc.run({**out, "path": "../Documents/report.xlsx"}, confirmed=True)["status"],
                          "blocked")
+        startup = self.home / "AppData" / "Startup"
+        startup.mkdir(parents=True)
+        self.assertEqual(self.pc.run({**out, "to": str(startup), "name": "x.xlsx"}, confirmed=True)["status"],
+                         "blocked")
+        if sys.platform == "win32":
+            self.assertEqual(self.pc.run({**out, "to": os.environ["SYSTEMROOT"], "name": "x.xlsx"},
+                                         confirmed=True)["status"], "blocked")
+        for name in ("nul", "CON.txt", "a.txt:hidden"):
+            self.assertEqual(self.pc.run({"action": "file_import", "from": source, "to": name},
+                                         confirmed=True)["status"], "blocked", name)
         self.assertEqual(self.pc.run({"action": "undo"})["status"], "done")
         self.assertFalse((self.outside / "report - completed.xlsx").exists())
 

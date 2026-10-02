@@ -203,15 +203,11 @@ export function JarvisWorkspace({
     chosenTarget && jarvis?.devices.some((device) => device.id === chosenTarget)
       ? chosenTarget
       : null;
-  // The device this tab is on, as the OCADE app said when it opened it; kept for the tab.
+  // The phone this tab is on, as the OCADE app said when it opened it. A link carrying it
+  // opened on a computer is not the phone, so it is believed only on an Android phone.
   const [here, setHere] = useState<string | null>(null);
   useEffect(() => {
-    try {
-      if (from) window.sessionStorage.setItem("ocade:here-device", from);
-      setHere(from ?? window.sessionStorage.getItem("ocade:here-device"));
-    } catch {
-      setHere(from ?? null);
-    }
+    setHere(from && /Android/i.test(navigator.userAgent) ? from : null);
   }, [from]);
 
   // The conversation's open task: the one this tab is running, else the newest unfinished one.

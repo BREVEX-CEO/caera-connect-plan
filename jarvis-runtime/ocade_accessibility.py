@@ -46,13 +46,33 @@ PROTECTED = {"status": "blocked",
                         "security settings. Take over for this part."}
 
 
-def _protected(control) -> bool:
-    """A password manager, a credential prompt or Windows Security owns this control."""
+def _owner(control) -> str:
+    import psutil
     try:
-        import psutil
-        return psutil.Process(control.ProcessId).name().lower() in _gates()[2]
-    except Exception:  # gone, or not readable: judged by what else is known
-        return False
+        return psutil.Process(control.ProcessId).name().lower()
+    except Exception:  # gone, or not readable
+        return ""
+
+
+def _protected(control) -> bool:
+    """A password manager, a credential prompt or Windows Security owns this control, the window
+    holding it, or (for Store apps, whose frame belongs to ApplicationFrameHost) the app inside it."""
+    protected = _gates()[2]
+    try:
+        node = control
+        for _ in range(8):
+            if node is None:
+                break
+            owner = _owner(node)
+            if owner in protected:
+                return True
+            if owner == "applicationframehost.exe":
+                if any(_owner(child) in protected for child in node.GetChildren()):
+                    return True
+            node = node.GetParentControl()
+    except Exception:
+        pass
+    return False
 
 
 class _State:

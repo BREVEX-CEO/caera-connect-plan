@@ -445,6 +445,8 @@ const COMMANDS = contract.commands as {
   routine: Record<string, string[]>;
 };
 const RISKY_COMMAND = new RegExp(COMMANDS.risky, "i");
+// eslint-disable-next-line no-control-regex -- matching control characters is the point
+const CONTROL = new RegExp("[\u0000-\u001f\u007f]");
 
 function matchesForm(forms: string[] | undefined, args: string[]): boolean {
   return (forms ?? []).some((form) => {
@@ -466,11 +468,11 @@ export function commandClass(command: string): CommandClass {
       ? token.slice(1, -1)
       : token,
   );
-  const base = (tokens[0] ?? "")
-    .split(/[\\/]/)
-    .pop()!
-    .toLowerCase()
-    .replace(/\.(exe|cmd|bat)$/, "");
+  // Control characters split words differently on each side of the wire: never run unasked.
+  if (CONTROL.test(command)) return "ask";
+  // A program named by a path is whatever file is there, not the tool its name suggests.
+  if (/[\\/:]/.test(tokens[0] ?? "")) return "other";
+  const base = (tokens[0] ?? "").toLowerCase().replace(/\.(exe|cmd|bat|com)$/, "");
   const program = COMMANDS.aliases[base] ?? base;
   const args = tokens.slice(1);
   if (!program || COMMANDS.ask.includes(program) || RISKY_COMMAND.test(command)) return "ask";

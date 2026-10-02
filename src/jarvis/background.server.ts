@@ -367,6 +367,15 @@ export async function carryOn(
     }
     if (call.name === "docs") {
       // Read here and kept on the task, so the next step sees it and a script after it is asked.
+      const { count } = await admin
+        .from("jarvis_activity")
+        .select("id", { count: "exact", head: true })
+        .eq("task_id", task.id)
+        .in("action->>action", ["docs"]);
+      if ((count ?? 0) >= 20) {
+        await record({ action: "docs" }, "This task has read enough documentation already.");
+        return { state: "queued" };
+      }
       const { readPublicPage } = await import("./docs.server");
       const page = await readPublicPage(String(args.url ?? "").slice(0, 2000));
       await admin.from("jarvis_activity").insert({

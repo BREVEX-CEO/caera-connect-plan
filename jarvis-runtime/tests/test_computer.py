@@ -91,6 +91,19 @@ class WorkspaceTest(unittest.TestCase):
         self.assertLess(time.monotonic() - started, 10)
 
 
+    def test_a_repositorys_own_settings_and_hooks_are_never_written(self):
+        (self.root / ".git" / "hooks").mkdir(parents=True)
+        (self.root / ".git" / "config").write_text("[core]\n")
+        for action in ({"action": "file_write", "path": ".git/hooks/pre-commit", "content": "x"},
+                       {"action": "file_write", "path": "sub/../.git/config", "content": "x"},
+                       {"action": "file_mkdir", "path": ".GIT/hooks2"},
+                       {"action": "file_move", "path": "notes.md", "to": ".git/hooks/post-checkout"},
+                       {"action": "file_rename", "path": ".git/config", "name": "config.old"},
+                       {"action": "file_trash", "path": ".git/config"}):
+            self.assertEqual(self.pc.run(action)["status"], "blocked", action)
+        self.assertEqual((self.root / ".git" / "config").read_text(), "[core]\n")
+        self.assertEqual(self.pc.run({"action": "file_read", "path": ".git/config"})["status"], "done")
+
     def test_stop_ends_long_file_work(self):
         import threading
         stop = threading.Event()
@@ -299,6 +312,13 @@ class DirectCommandTest(unittest.TestCase):
         # What can never run is refused before anyone is asked.
         self.assertEqual(self.run_("python ../x.py", confirmed=False)["status"], "blocked")
         self.assertEqual(self.run_("no-such-program-ocade")["status"], "failed")
+
+    def test_a_program_found_in_the_work_folder_is_the_tasks_own_and_waits(self):
+        planted = self.root / "git.exe"
+        planted.write_bytes(b"MZ")
+        with unittest.mock.patch.object(ocade_computer.shutil, "which", return_value=str(planted)):
+            out = self.run_("git status", confirmed=False)
+        self.assertEqual(out["status"], "needs_confirmation", out)
 
     def test_secrets_stay_out_of_the_command(self):
         os.environ["OCADE_TEST_API_KEY"] = "sk-should-not-leak"

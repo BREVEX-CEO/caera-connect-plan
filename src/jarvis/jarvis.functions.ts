@@ -772,32 +772,46 @@ export const stopAllJarvis = createServerFn({ method: "POST" })
  */
 export const readJarvisDocs = createServerFn({ method: "POST" })
   .middleware([requireSession])
-  .validator((i) => z.object({ url: z.string().max(2000), taskId: uuid.optional() }).parse(i))
+  .validator((i) => z.object({ url: z.string().max(2000), taskId: uuid }).parse(i))
   .handler(async ({ data, context }) => {
+    // Only for the caller's own running task, with JARVIS on: never a free fetching service.
+    if (!isAllowed(await permissionsOf(context.supabase, context.userId), "master")) {
+      return { ok: false as const, message: "OCADE JARVIS is turned off." };
+    }
+    const service = await admin();
+    const { data: task } = await service
+      .from("jarvis_tasks")
+      .select("id")
+      .eq("id", data.taskId)
+      .eq("user_id", context.userId)
+      .eq("status", "running")
+      .maybeSingle();
+    if (!task) return { ok: false as const, message: "Documentation is read for a running task." };
+    const { count } = await service
+      .from("jarvis_activity")
+      .select("id", { count: "exact", head: true })
+      .eq("task_id", task.id)
+      .in("action->>action", ["docs"]);
+    if ((count ?? 0) >= DOCS_PER_TASK) {
+      return { ok: false as const, message: "This task has read enough documentation already." };
+    }
     const { readPublicPage } = await import("./docs.server");
     const page = await readPublicPage(data.url);
-    if (page.ok && data.taskId) {
-      const service = await admin();
-      const { data: task } = await service
-        .from("jarvis_tasks")
-        .select("id")
-        .eq("id", data.taskId)
-        .eq("user_id", context.userId)
-        .maybeSingle();
-      if (task) {
-        await service.from("jarvis_activity").insert({
-          user_id: context.userId,
-          task_id: task.id,
-          summary: `Read the documentation at ${page.host}`.slice(0, 300),
-          action: { action: "docs", url: page.url },
-          status: "done",
-          result: { status: "done", title: page.title },
-          completed_at: new Date().toISOString(),
-        });
-      }
-    }
+    // Recorded either way: what JARVIS does next may follow from a page it read.
+    await service.from("jarvis_activity").insert({
+      user_id: context.userId,
+      task_id: task.id,
+      summary: (page.ok ? `Read the documentation at ${page.host}` : page.message).slice(0, 300),
+      action: { action: "docs", url: data.url.slice(0, 2000) },
+      status: page.ok ? "done" : "failed",
+      result: page.ok ? { status: "done", title: page.title } : { status: "failed" },
+      completed_at: new Date().toISOString(),
+    });
     return page;
   });
+
+/** Documentation pages one task may read. */
+const DOCS_PER_TASK = 20;
 
 export const rememberJarvis = createServerFn({ method: "POST" })
   .middleware([requireSession])

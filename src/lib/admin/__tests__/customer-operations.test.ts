@@ -180,5 +180,7 @@ describe("an account's deletion begun by an owner", () => {
                 (select banned_until is not null from auth.users where id = '${CUSTOMER}') as banned`,
       ),
     ).toMatchObject({ sessions: 0, banned: true });
+    // Half erased is never handed back: restoring a deletion in progress is refused.
+    expect((await suspend(ADMIN, CUSTOMER, false)).errorCode).toBe("42501");
   });
 });

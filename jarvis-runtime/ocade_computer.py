@@ -55,6 +55,7 @@ PASTE_OVER = 40  # longer text is pasted (and the clipboard restored) instead of
 UNDO_DEPTH = 10  # donor core/undo.py: roughly "this conversation"
 APPS_FRESH_S = 600  # the app list open_app trusts before looking again
 IMPORT_LIMIT = 1 << 30  # a copy into the work folder
+RESERVED = re.compile(r"(?i)con|prn|aux|nul|com[0-9]|lpt[0-9]|conin\$|conout\$")
 _APPS: dict = {"at": float("-inf"), "list": []}
 
 # Anything a shell (or cmd.exe for .cmd/.bat programs) would interpret.
@@ -81,13 +82,19 @@ def _matches_form(forms: list[str] | None, args: list[str]) -> bool:
     return False
 
 
-def command_class(command: str) -> str:
-    """ask / inert / routine / other, by the rules OCADE decided by (ocade_protocol.json)."""
-    tokens = [t[1:-1] if len(t) > 1 and t[0] == t[-1] and t[0] in "\"'" else t
-              for t in re.findall(r"\"[^\"]*\"|'[^']*'|\S+", command)]
-    base = re.sub(r"\.(exe|cmd|bat)$", "", re.split(r"[\\/]", tokens[0])[-1].lower()) if tokens else ""
+def command_class(command: str, argv: list[str] | None = None) -> str:
+    """ask / inert / routine / other, by the rules OCADE decided by (ocade_protocol.json).
+    `argv`: the exact arguments the device will run, which then decide (not a re-reading)."""
+    tokens = argv if argv is not None else [
+        t[1:-1] if len(t) > 1 and t[0] == t[-1] and t[0] in "\"'" else t
+        for t in re.findall(r"\"[^\"]*\"|'[^']*'|\S+", command)]
+    if re.search(r"[\x00-\x1f\x7f]", command) or not tokens:
+        return "ask"
+    if re.search(r"[\\/:]", tokens[0]):
+        return "other"  # a program named by a path is whatever file is there, not the tool it is named after
+    base = re.sub(r"\.(exe|cmd|bat|com)$", "", tokens[0].lower())
     program, args = COMMANDS["aliases"].get(base, base), tokens[1:]
-    if not program or program in COMMANDS["ask"] or _RISKY.search(command):
+    if not program or program in COMMANDS["ask"] or _RISKY.search(" ".join(tokens)) or _RISKY.search(command):
         return "ask"
     if _matches_form(COMMANDS["inert"].get(program), args):
         return "inert"
@@ -379,13 +386,14 @@ class Computer:
                 return {"status": "failed", "summary": "That file does not exist"}
             if source.stat().st_size > IMPORT_LIMIT:
                 return {"status": "failed", "summary": "That file is too large to copy in (over 1 GB)"}
-            target = self._inside(str(action.get("to") or f"imports/{source.name}"))
+            target = self._inside(str(action.get("to") or f"imports/{source.name}"), change=True)
             if target.is_dir():
-                target = self._inside(str((target / source.name).relative_to(self.root)))
+                target = self._inside(str((target / source.name).relative_to(self.root)), change=True)
             stem, suffix, n = target.stem, target.suffix, 1
             while target.exists():
                 n += 1
-                target = self._inside(str((target.parent / f"{stem} ({n}){suffix}").relative_to(self.root)))
+                target = self._inside(str((target.parent / f"{stem} ({n}){suffix}").relative_to(self.root)),
+                                      change=True)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
             rel = str(target.relative_to(self.root))
@@ -399,6 +407,9 @@ class Computer:
             return {"status": "failed", "summary": "Only a file in the work folder can be saved out"}
         if not folder.is_dir():
             return {"status": "failed", "summary": "That folder does not exist"}
+        if _starts_things(folder):
+            return {"status": "blocked",
+                    "summary": "JARVIS does not save into a folder the computer runs things from"}
         if not name or re.search(r"[\\/:*?\"<>|]", name) or name in (".", ".."):
             return {"status": "failed", "summary": "That is not a usable name"}
         target = folder / name
@@ -417,19 +428,27 @@ class Computer:
 
     # -- files: always inside the workspace -----------------------------------------
 
-    def _inside(self, raw: str) -> Path:
+    def _inside(self, raw: str, change: bool = False) -> Path:
         if self.root is None:
             raise ScopeError("No workspace is selected on this computer")
         target = (self.root / raw).resolve()
         if not self._holds(target):
             raise ScopeError("That path is outside the workspace")
+        parts = target.relative_to(self.root).parts
+        # A repository's own settings and hooks are programs git runs: never written by a task.
+        if change and any(part.lower() == ".git" for part in parts):
+            raise ScopeError("JARVIS does not change a repository's own settings (.git)")
+        # Device names (NUL, CON, COM1…) and alternate data streams (name:stream) are not files.
+        if change and any(":" in part or RESERVED.fullmatch(part.split(".")[0]) for part in parts):
+            raise ScopeError("That is not a usable file name")
         return target
 
     def _holds(self, resolved: Path) -> bool:
         return resolved == self.root or self.root in resolved.parents
 
     def _file(self, kind: str, action: dict, confirmed: bool, cancel: threading.Event) -> dict:
-        path = self._inside(str(action.get("path", "")))
+        path = self._inside(str(action.get("path", "")),
+                            change=kind not in ("file_list", "file_read", "file_info", "file_find", "file_extract"))
         rel = str(path.relative_to(self.root)) or "."
         if kind == "file_list":
             if not path.is_dir():
@@ -449,7 +468,7 @@ class Computer:
             # An overwrite keeps what was there first (donor undo: act, and remember how to reverse it).
             kept = self._keep(path) if path.is_file() else None
             path.parent.mkdir(parents=True, exist_ok=True)
-            parent = self._inside(str(path.parent.relative_to(self.root)))
+            parent = self._inside(str(path.parent.relative_to(self.root)), change=True)
             # A fresh random name created exclusively (O_EXCL never follows an
             # existing entry), so nothing planted in the workspace can redirect it.
             fd, tmp = tempfile.mkstemp(dir=parent, prefix=".ocade-", suffix=".tmp")
@@ -507,7 +526,7 @@ class Computer:
 
     def _sheet(self, kind: str, action: dict, cancel: threading.Event) -> dict:
         import ocade_sheets
-        path = self._inside(str(action.get("path", "")))
+        path = self._inside(str(action.get("path", "")), change=kind == "sheet_edit")
         rel = str(path.relative_to(self.root))
         sheet = action.get("sheet")
         try:
@@ -530,7 +549,7 @@ class Computer:
 
     def _doc(self, action: dict, cancel: threading.Event) -> dict:
         import ocade_documents
-        path = self._inside(str(action.get("path", "")))
+        path = self._inside(str(action.get("path", "")), change=True)
         rel = str(path.relative_to(self.root))
         if not path.is_file():
             return {"status": "failed", "summary": f"{rel} does not exist"}
@@ -577,11 +596,11 @@ class Computer:
             new = str(action.get("name", ""))
             if not new or re.search(r"[\\/:*?\"<>|]", new) or new in (".", ".."):
                 return {"status": "failed", "summary": "That is not a usable name"}
-            target = self._inside(str((source.parent / new).relative_to(self.root)))
+            target = self._inside(str((source.parent / new).relative_to(self.root)), change=True)
         else:
-            target = self._inside(str(action.get("to", "")))
+            target = self._inside(str(action.get("to", "")), change=True)
             if target.is_dir():
-                target = self._inside(str((target / source.name).relative_to(self.root)))
+                target = self._inside(str((target / source.name).relative_to(self.root)), change=True)
         if target.exists():
             return {"status": "failed",
                     "summary": f"{target.relative_to(self.root)} already exists; nothing was overwritten"}
@@ -749,7 +768,8 @@ class Computer:
                     raise ScopeError("That path is outside the workspace")
         # Nothing confines the program here: only the task's own builds, tests,
         # scripts and git reads run unasked; the person sees anything else whole first.
-        if not confirmed and command_class(command) not in ("inert", "routine"):
+        written = self._holds(Path(program).resolve())  # e.g. a git.exe the task put there
+        if not confirmed and (written or command_class(command, argv) not in ("inert", "routine")):
             return {"status": "needs_confirmation", "summary": f"Running {command[:280]}"}
         env ={k: v for k, v in os.environ.items() if not SECRET_ENV.search(k)}
         extra: dict = {"env": env}
@@ -1025,6 +1045,17 @@ class Computer:
 
 class ScopeError(Exception):
     pass
+
+
+def _starts_things(folder: Path) -> bool:
+    """Startup folders, the system's own folders and installed programs: a file there can run itself."""
+    text = str(folder).lower().replace("/", "\\")
+    env = {k: os.environ.get(k, "").lower() for k in ("APPDATA", "PROGRAMDATA", "SYSTEMROOT", "PROGRAMFILES",
+                                                      "PROGRAMFILES(X86)", "PROGRAMW6432")}
+    roots = [env["SYSTEMROOT"], env["PROGRAMFILES"], env["PROGRAMFILES(X86)"], env["PROGRAMW6432"],
+             env["APPDATA"] + "\\microsoft\\windows\\start menu",
+             env["PROGRAMDATA"] + "\\microsoft\\windows\\start menu"]
+    return "\\startup" in text or any(r and (text == r or text.startswith(r + "\\")) for r in roots)
 
 
 class _Stopped(Exception):

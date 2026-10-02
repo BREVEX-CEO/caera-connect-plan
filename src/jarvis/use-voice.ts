@@ -40,7 +40,8 @@ type RecognitionConstructor = (new () => Recognition) & {
 };
 
 const ECHO_TAIL_MS = 600;
-const WAKE = /^\s*(hey|hi)[,\s]+o\s?cade\b[,.!\s]*/i;
+/** "OCADE" on its own or after "Hey", however the recogniser spells it ("O cade", "O'Kade"). */
+const WAKE = /^\s*(?:(?:hey|hi)[,\s]+)?o[\s'-]?[ck]ade\b[,.!\s]*/i;
 
 function recogniser(): RecognitionConstructor | null {
   if (typeof window === "undefined") return null;

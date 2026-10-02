@@ -200,6 +200,14 @@ describe("the wake phrase", () => {
     expect(heard("open the news", true)).toBeNull();
     expect(heard("Hey OCADE", true)).toBeNull();
   });
+
+  it("wakes for OCADE on its own too, and not for words that only sound close", () => {
+    expect(heard("OCADE, what's the weather", true)).toBe("what's the weather");
+    expect(heard("O'Kade open my mail", true)).toBe("open my mail");
+    for (const said of ["arcade games", "okay google", "a cascade of errors", "Ocado delivery"]) {
+      expect(heard(said, true), said).toBeNull();
+    }
+  });
   it("treats a bare Stop, Pause, Continue or Cancel as a control, never a message", () => {
     expect(voiceCommand("Stop.")).toBe("stop");
     expect(voiceCommand("pause")).toBe("pause");

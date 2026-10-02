@@ -126,7 +126,10 @@ BEGIN
   INSERT INTO public.ocade_commercial_usage (user_id, window_kind, window_start, used_hundredths)
   VALUES (p_user, v_kind, v_start, v_after)
   ON CONFLICT (user_id, window_kind, window_start)
-    DO UPDATE SET used_hundredths = EXCLUDED.used_hundredths, updated_at = now();
+    -- Relative to what is there at write time, so a use counted meanwhile is never overwritten.
+    DO UPDATE SET used_hundredths = GREATEST(0, public.ocade_commercial_usage.used_hundredths + p_delta_hundredths),
+                  updated_at = now()
+  RETURNING used_hundredths INTO v_after;
   INSERT INTO public.ocade_usage_adjustments
     (user_id, actor, surface, window_kind, window_start, delta_hundredths, used_before, used_after, reason)
   VALUES (p_user, auth.uid(), p_surface, p_window_kind, v_start, p_delta_hundredths, v_before, v_after, v_reason);
@@ -170,6 +173,10 @@ BEGIN
   PERFORM private.ocade_staff_may_act_on(p_user, 'suspend');
   IF p_suspend THEN
     PERFORM private.ocade_stop_account(p_user);
+  ELSIF EXISTS (SELECT 1 FROM public.ocade_admin_actions
+                 WHERE target_user = p_user AND action = 'account_deletion_started') THEN
+    -- Half erased is not an account to hand back: its deletion is finished instead.
+    RAISE EXCEPTION 'This account''s deletion was started. Finish deleting it.' USING ERRCODE = '42501';
   ELSE
     UPDATE auth.users SET banned_until = NULL WHERE id = p_user;
   END IF;

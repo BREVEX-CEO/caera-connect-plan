@@ -22,7 +22,7 @@ function publicUrl(raw: string): URL | null {
   } catch {
     return null;
   }
-  const host = url.hostname.toLowerCase();
+  const host = url.hostname.toLowerCase().replace(/\.$/, "");
   // An address instead of a name is refused outright: names are what documentation lives at.
   if (url.protocol !== "https:" || url.username || url.password) return null;
   if (/^[\d.]+$/.test(host) || host.includes(":") || !host.includes(".") || isPrivateHost(host))
@@ -48,7 +48,9 @@ const decode = (text: string) =>
       : (ENTITIES[name.toLowerCase()] ?? whole),
   );
 
-export function pageText(html: string): { title: string; text: string } {
+export function pageText(whole: string): { title: string; text: string } {
+  // Bounded before any expression runs over it: a page of unclosed tags cannot burn the CPU.
+  const html = whole.slice(0, 300_000);
   const title = decode(/<title[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1] ?? "").trim();
   const text = decode(
     html
@@ -75,7 +77,6 @@ export async function readPublicPage(
     try {
       response = await fetcher(url.toString(), {
         redirect: "manual",
-        credentials: "omit",
         headers: { accept: "text/html,text/plain,text/markdown;q=0.9,*/*;q=0.1" },
         signal: AbortSignal.timeout(10_000),
       });
@@ -94,13 +95,18 @@ export async function readPublicPage(
     const reader = response.body?.getReader();
     const chunks: Uint8Array[] = [];
     let size = 0;
-    while (reader && size < MAX_BYTES) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      size += value.byteLength;
+    try {
+      while (reader && size < MAX_BYTES) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        size += value.byteLength;
+      }
+    } catch {
+      return { ok: false, message: "That page stopped answering." };
+    } finally {
+      await reader?.cancel().catch(() => undefined);
     }
-    await reader?.cancel().catch(() => undefined);
     const bytes = new Uint8Array(size);
     chunks.reduce((at, chunk) => (bytes.set(chunk, at), at + chunk.byteLength), 0);
     const body = new TextDecoder().decode(bytes);

@@ -27,6 +27,8 @@ export function restOver(twin: DatabaseTwin) {
       let returning = false;
       let one: "single" | "maybe" | null = null;
       let counting = false;
+      // PostgREST's JSON path: `action->>action` is the text at key "action".
+      const col = (c: string) => c.replace(/->>(\w+)$/, "->>'$1'");
       const q = {
         select(cols = "*", options?: { head?: boolean }) {
           columns = cols;
@@ -48,13 +50,14 @@ export function restOver(twin: DatabaseTwin) {
           patch = p;
           return q;
         },
-        eq: (c: string, v: unknown) => (where.push(`${c} = ${lit(v)}`), q),
+        eq: (c: string, v: unknown) => (where.push(`${col(c)} = ${lit(v)}`), q),
         neq: (c: string, v: unknown) => (where.push(`${c} <> ${lit(v)}`), q),
+        gt: (c: string, v: unknown) => (where.push(`${col(c)} > ${lit(v)}`), q),
         lt: (c: string, v: unknown) => (where.push(`${c} < ${lit(v)}`), q),
         lte: (c: string, v: unknown) => (where.push(`${c} <= ${lit(v)}`), q),
         is: (c: string, v: unknown) => (where.push(`${c} is ${lit(v)}`), q),
         in: (c: string, vs: unknown[]) => (
-          where.push(vs.length ? `${c} in (${vs.map(lit).join(",")})` : "false"),
+          where.push(vs.length ? `${col(c)} in (${vs.map(lit).join(",")})` : "false"),
           q
         ),
         order: (c: string, o: { ascending: boolean }) => (

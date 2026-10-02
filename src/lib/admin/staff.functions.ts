@@ -75,6 +75,7 @@ function staffFailure(message: string): string {
     "Change usage by between one hundredth and a thousand uses.",
     "Remove their staff role before deleting the account.",
     "Type the account's email address exactly to delete it.",
+    "This account's deletion was started. Finish deleting it.",
   ];
   if (/Confirm (it is you|the code from your authenticator app)/i.test(message)) return message;
   return known.find((sentence) => message.includes(sentence)) ?? "That change was not applied.";
@@ -464,35 +465,35 @@ export const deleteCustomerAccount = createServerFn({ method: "POST" })
   .validator((input) =>
     z.object({ userId: uuid, email: z.string().trim().min(3).max(320), reason }).parse(input),
   )
-  .handler(async ({ data, context }): Promise<{ reference: string; pendingFiles: number }> => {
-    const { error } = await context.supabase.rpc("ocade_staff_begin_account_deletion", {
-      p_user: data.userId,
-      p_email: data.email,
-      p_reason: data.reason,
-    });
-    if (error) throw new Error(staffFailure(error.message));
-    const { eraseAccount } = await import("@/lib/account/erase.server");
-    const { pendingFiles } = await eraseAccount(data.userId).catch((cause: unknown) => {
-      throw new Error(
-        `The account is suspended, but ${cause instanceof Error ? cause.message : "its deletion stopped"}`,
-      );
-    });
-    const reference = `DEL-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin
-      .from("ocade_admin_actions")
-      .insert({
+  .handler(
+    async ({
+      data,
+      context,
+    }): Promise<{ reference: string; pendingFiles: number; recorded: boolean }> => {
+      // One reference on both records, so the start and the end of a deletion are found together.
+      const reference = `DEL-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+      const { error } = await context.supabase.rpc("ocade_staff_begin_account_deletion", {
+        p_user: data.userId,
+        p_email: data.email,
+        p_reason: `${data.reason.slice(0, 480)} (${reference})`,
+      });
+      if (error) throw new Error(staffFailure(error.message));
+      const { eraseAccount } = await import("@/lib/account/erase.server");
+      const { pendingFiles } = await eraseAccount(data.userId).catch((cause: unknown) => {
+        throw new Error(
+          `The account is suspended, but ${cause instanceof Error ? cause.message : "its deletion stopped"}`,
+        );
+      });
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { error: unrecorded } = await supabaseAdmin.from("ocade_admin_actions").insert({
         actor: context.userId,
         target_user: null,
         action: "account_deleted",
         reason: `Account deleted from the console, reference ${reference}`,
-      })
-      .then(
-        () => undefined,
-        () => undefined,
-      );
-    return { reference, pendingFiles };
-  });
+      });
+      return { reference, pendingFiles, recorded: !unrecorded };
+    },
+  );
 
 /* ---------------------------------------------------------------- cases -- */
 

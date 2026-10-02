@@ -24,9 +24,9 @@
     "sensitive": "\\b(submit|send|post|publish|tweet|reply|comment|delete|remove|transfer|sign|agree|accept|apply|file|confirm|save changes|change password|unsubscribe|book|reserve|register|donate)\\b"
   },
   "commands": {
-    "_": "How a run command is decided (src/jarvis/protocol.ts commandClass, ocade_computer.command_class). ask: confirmed every time. inert: never runs code a task wrote; runs unasked. routine: a task's own build, test or script; runs unasked unless the task has read a web page, then asked once. Anything else is asked once per exact command.",
+    "_": "How a run command is decided (src/jarvis/protocol.ts commandClass, ocade_computer.command_class; the device decides again from the exact arguments it runs). ask: confirmed every time. inert: only reads a repository and runs no code a task wrote; runs unasked. routine: the task's own build, test, script or repository change; runs unasked unless the task has read a web page, documentation, a document or another app's screen, then asked once. A program named by a path, and anything else, is asked once per exact command.",
     "ask": ["powershell", "pwsh", "cmd", "bash", "sh", "zsh", "wsl", "wscript", "cscript", "mshta", "rundll32", "regsvr32", "reg", "regedit", "sc", "netsh", "schtasks", "bcdedit", "diskpart", "takeown", "icacls", "cacls", "vssadmin", "wmic", "net", "msiexec", "winget", "choco", "scoop", "curl", "wget", "ssh", "scp", "sftp", "ftp", "nc", "ncat", "telnet", "certutil", "bitsadmin", "npx", "pip", "pip3", "sudo", "su", "doas", "runas", "shutdown", "format", "del", "erase", "rd", "rmdir", "taskkill", "setx", "attrib"],
-    "risky": "\\bgit\\s+push\\b|--force\\b|\\bpush\\s+-f\\b|\\bbranch\\s+-D\\b|\\breset\\s+--hard\\b|\\bclean\\s+-[a-z]*f|\\bcheckout\\s+(--|\\.)(\\s|$)|\\bstash\\s+(drop|clear)\\b|\\brm\\s+-[a-z]*r|\\bformat\\b|\\bdeploy\\b|\\bpublish\\b|\\b(install|uninstall)\\b|\\b(shutdown|reboot|halt|poweroff)\\b|\\bmkfs|\\bdd\\s+if=",
+    "risky": "\\bgit\\s+push\\b|--force\\b|\\bpush\\s+-f\\b|\\bbranch\\s+-D\\b|\\breset\\s+--hard\\b|\\bclean\\s+-[a-z]*f|\\bcheckout\\s+(--|\\.)(\\s|$)|\\bstash\\s+(drop|clear)\\b|\\brm\\s+-[a-z]*r|\\bformat\\b|\\bdeploy\\b|\\bpublish\\b|\\b(install|uninstall)\\b|\\b(shutdown|reboot|halt|poweroff)\\b|\\bmkfs|\\bdd\\s+if=|--(upload-pack|receive-pack|open-files-in-pager|ext-diff|exec)\\b|--config-env\\b",
     "aliases": {
       "python3": "python",
       "py": "python",
@@ -34,7 +34,7 @@
     },
     "scripts": [".py", ".js", ".mjs", ".cjs"],
     "inert": {
-      "git": ["status", "diff", "log", "show", "add", "commit", "branch", "switch", "checkout", "rev-parse", "ls-files", "blame", "grep", "init", "tag", "stash"]
+      "git": ["status", "diff", "log", "show", "rev-parse", "ls-files", "blame"]
     },
     "routine": {
       "python": ["<script>", "-m pytest", "-m unittest", "-m compileall", "-m py_compile", "-m doctest", "-m json.tool"],
@@ -64,7 +64,8 @@
       "gcc": ["*"],
       "g++": ["*"],
       "clang": ["*"],
-      "rustc": ["*"]
+      "rustc": ["*"],
+      "git": ["add", "commit", "branch", "switch", "checkout", "tag", "stash", "init"]
     }
   },
   "protectedApps": ["keepass.exe", "keepassxc.exe", "1password.exe", "bitwarden.exe", "lastpass.exe", "dashlane.exe", "keeper.exe", "keeperpasswordmanager.exe", "nordpass.exe", "roboform.exe", "enpass.exe", "proton pass.exe", "protonpass.exe", "authy desktop.exe", "credentialuibroker.exe", "consent.exe", "sechealthui.exe", "lockapp.exe", "logonui.exe"]

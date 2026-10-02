@@ -8,6 +8,7 @@ import {
 } from "./offline-counter";
 import { allocateOfflineUsage, reconcileOfflineUsage } from "./offline-usage.functions";
 import { trustedOfflineTimeNow } from "./offline-lease";
+import { settleTrustedClock } from "@/lib/time/trusted-clock";
 
 /** Ask for more only when less than this much of the held block is left. */
 const TOP_UP_BELOW_HUNDREDTHS = 100;
@@ -93,6 +94,8 @@ export async function syncOfflineAllowance(): Promise<void> {
       },
     });
     if (!allocation.ok) return;
+    // A clock set forward and back again left a mark ahead of the server: settled here.
+    settleTrustedClock(Date.parse(allocation.lease.payload.issuedAt));
 
     await installOfflineUsageLease({
       lease: allocation.lease,

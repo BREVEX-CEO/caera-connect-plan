@@ -177,6 +177,8 @@ def _package_program(aumid: str) -> str | None:
     """A Store app's program, from its package manifest."""
     import subprocess
     family = aumid.split("!")[0]
+    if not re.fullmatch(r"[\w.-]+_[a-z0-9]{13}", family):
+        return None  # only a package family name ever reaches PowerShell
     try:
         location = subprocess.run(
             ["powershell", "-NoProfile", "-NonInteractive", "-Command",
@@ -308,7 +310,8 @@ def locate(name: str, extension: str, cancel: threading.Event, limit: int = 50) 
 
 _SECRETISH = re.compile(
     r"\bpass(word|wd|phrase|code)\b|\btokens?\b|\bsecrets?\b|api[_ -]?key|\bcookies?\b|\botp\b|\bbearer\b|\b\d{6,}\b|[A-Za-z0-9+/=_-]{32,}|@[\w-]+\.\w"
-    r"|\(\s*\d{2,5}\s*,\s*\d{2,5}\s*\)|\b[xy]\s*[=:]\s*\d{2,5}\b|[A-Za-z]:\\Users\\", re.I)
+    r"|\(\s*\d{2,5}\s*,\s*\d{2,5}\s*\)|\b[xy]\s*[=:]\s*\d{2,5}\b|[A-Za-z]:[\\/]+Users[\\/]|/(Users|home)/",
+    re.I)
 
 
 def _major(version: str | None) -> str:
@@ -334,7 +337,8 @@ def save_recipe(recipe: dict, version: str | None) -> dict:
               "verify": str(recipe.get("verify", ""))[:200], "recovery": str(recipe.get("recovery", ""))[:200]}
     if not fields["app"] or not fields["route"]:
         return {"status": "failed", "summary": "A recipe needs the app and the route that worked"}
-    if _SECRETISH.search(json.dumps(fields)):
+    if any(_SECRETISH.search(value) for value in [*fields.values(), *fields["steps"]]
+           if isinstance(value, str)):
         return {"status": "blocked", "summary": "Recipes keep only how the app is driven: no coordinates, "
                                                 "personal paths, addresses, codes or secrets"}
     store = _store()
