@@ -1332,3 +1332,112 @@ For Phases 1–34, do not mindlessly rewrite already-working implementation. Ins
 Then continue Phases 35–49 without stopping for a handoff unless a genuine owner-only action, paid action, unavailable hardware/platform, or destructive approval blocks that specific evidence class. Continue all independent work.
 
 The final goal is a commercially credible OCADE JARVIS that talks naturally while working, controls real software through a safe donor-derived execution engine, verifies its results, survives failure/restart/update, keeps account/security boundaries strong, and exposes only evidence-backed capabilities.
+---
+
+# Owner authority addendum — 2026-10-02
+
+This addendum is a follow-up to the existing Phase 1–49 plan. It does not erase or rewrite completed phases, historical evidence, donor provenance, applied migrations, or earlier implementation history. Where this addendum conflicts with an older sentence in this file, this newer owner authority controls future implementation and verification.
+
+## Universal OCADE execution engine instead of per-application product code
+
+OCADE JARVIS must use one universal intelligence-driven execution architecture rather than growing a separate hard-coded controller for every software product. The permanent target is one OCADE task planner and one validated action broker connected to generic browser, computer, files, terminal, mobile, voice, background, and device capabilities. The Online intelligence authority may reason about an unfamiliar application's purpose, commands, menus, file formats, scripting facilities, accessibility controls, documentation, and likely workflows, but every important action must still be grounded in current observed state before execution.
+
+For an unfamiliar installed application, OCADE should first identify the application, version, process, active window, available accessibility/UI tree, supported file/project formats, registered URI or automation interfaces, and any discoverable official API, CLI, scripting, macro, COM, AppleScript, plugin, or documented automation surface. OCADE should use current official documentation when model knowledge may be stale. If an official automation route does not exist or is insufficient, OCADE should use OS accessibility/UI Automation, live screen understanding, screenshots/vision, and finally fresh PyAutoGUI coordinates. Coordinates must never be treated as durable app knowledge and must be refreshed after any layout, focus, scroll, window, display, DPI, navigation, popup, or content mutation.
+
+The intelligence layer may dynamically create small task-specific scripts, command sequences, macros, or temporary helpers when that is the strongest legitimate path for the user's requested task. These temporary task tools must still execute through the local OCADE authority, remain cancellable by STOP, stay within the current task/device/file scope, and be removed or retained only according to explicit lifecycle rules. New system-wide third-party installations, protected elevation, OS-owned permission dialogs, CAPTCHA, OTP, passkey, authenticator, or equivalent human-security boundaries must not be bypassed; OCADE may navigate to the boundary, wait for the user to complete it, detect completion, and immediately continue.
+
+OCADE should learn compact sanitized control recipes after successful work. A recipe may record application identity/version, the reliable control route, stable semantic controls, useful official automation entry points, validation steps, recovery strategy, and measured reliability. It must not store customer passwords, tokens, private file contents, raw screenshots, OTPs, cookies, or other secrets as generic reusable knowledge. When an application version or UI materially changes, stale recipe assumptions must be invalidated and rediscovered rather than blindly replayed.
+
+Specialized adapters may remain only when measured evidence proves that they materially improve reliability, safety, performance, preservation fidelity, or platform integration beyond the universal engine. A new application must not receive bespoke production code merely because JARVIS encountered it. The universal engine must be attempted first. Existing app-specific code that has become redundant must be replaced only after equivalent or better universal-control behavior is proven, then removed through the `ToRemove.md` proof sequence.
+
+The acceptance goal for universal control is that OCADE can encounter an unfamiliar installed application, understand the requested task through the Online intelligence authority plus current official documentation and live observation, select a legitimate execution method, complete the task, independently verify the actual result, recover from normal failures, and do so without requiring someone to first add production source code for that specific application.
+
+## Internal OCADE tool plane and browser control
+
+Customers must not be required to install Playwright MCP, Chrome DevTools MCP, Appium MCP, PyAutoGUI packages, or other developer tooling manually. Development MCPs remain test instruments. The shipped OCADE Device Agent and Android application must expose OCADE-owned internal typed capabilities that provide equivalent product functions through one secure action authority.
+
+The browser capability must support the user's existing authorized browser/profile where technically available, including Chrome, Edge, Brave, Firefox, and other installed/default browsers where practical. A user should complete any required browser/device authorization during setup rather than facing repeated prompts during ordinary work that they already asked JARVIS to perform. OCADE must never weaken or bypass a browser or operating-system security boundary to remove such prompts. If the platform requires a genuine human approval, OCADE may bring the user to the correct prompt once and continue automatically after approval.
+
+For browser work, OCADE should use the fastest reliable path in this order: structured browser/DOM/CDP or equivalent protocol, official browser or site automation interfaces, accessibility, vision, and fresh coordinates. Existing signed-in sessions should be reused without extracting cookies or saved passwords. If Chrome or the selected browser is closed, the Device Agent may open the normal browser/profile automatically for a user-requested browser task. The product must automatically reconnect after normal browser restart/update where supported.
+
+A simple informational request inside JARVIS must remain a conversation and return a normal answer without creating unnecessary device work. A request that asks JARVIS to act, edit, open, control, download, solve, save, send, or otherwise change real state must route into the execution system while remaining in the same conversation. The user may ask questions, ask for status, redirect the task, pause, resume, or stop while execution continues.
+
+## Clarification and target selection
+
+JARVIS must not ask unnecessary questions when context identifies one obvious target. If the user uploads one workbook and says “solve this”, OCADE should use that workbook. If the user says “open Chrome” from an Android phone and does not name another device, OCADE should default to the device the user is currently interacting from. If the user says “open Chrome on my PC”, the same conversation must route the action to the paired PC.
+
+When several plausible files, applications, devices, projects, windows, or destinations exist and choosing the wrong one would materially change the result or create risk, JARVIS should ask one concise clarification and show likely choices rather than asking a vague open question. When one target is overwhelmingly obvious, or when a wrong choice is harmless, easily reversible, and context strongly favors one option, JARVIS may proceed and state what it selected. Destructive, publishing, security, financial, permanent-deletion, or other irreversible boundaries retain explicit confirmation.
+
+For file work, OCADE should preserve the original by default when the user has not clearly asked for overwrite, save the completed copy with a clear name near the source where appropriate, and independently reopen or inspect the result when practical. This behavior applies to Excel, Word, PowerPoint, PDFs, code, media projects, design projects, engineering files, and other supported formats.
+
+## Local file and application discovery
+
+The Device Agent may discover installed applications automatically and maintain lightweight local capability metadata so JARVIS can choose the best app without requiring the user to configure every program manually. The same principle applies to accessible local drives, user folders, external drives, USB storage, and supported network locations. OCADE should maintain lightweight local metadata/indexing rather than continuously uploading or deeply reading every file. File contents should be read only when needed for an authorized task or other explicit product function.
+
+External drives should become discoverable when connected. Learned machine-specific application/file metadata should remain local/device-scoped by default. Generic non-private reliability knowledge may improve reusable OCADE strategies without uploading customers' private screenshots, documents, project contents, credentials, or local secrets.
+
+## Professional work quality
+
+OCADE must choose the strongest execution method for the actual task rather than imitating manual clicking for its own sake. For Excel and other Office tasks, it should inspect the workbook/document structure, choose formulas, tables, arrays, Power Query, direct file manipulation, scripting, application automation, or real UI interaction as appropriate, preserve unrelated content, save safely, and verify the final artifact. The same principle applies to coding, creative work, video editing, CAD, design, accounting, engineering, and other professional software.
+
+Direct project/file modification should be used when it is safer, faster, and semantically correct, but simple work should not become unnecessarily invasive. When an application's own scripting or automation API is the best path, JARVIS may use it and then verify the visible/final application state where practical. When no useful API or script exists, OCADE should use accessibility, vision, and computer-use fallbacks rather than declaring the application unsupported merely because there is no custom adapter.
+
+The product goal is expert-grade, validated work. OCADE must not promise that every result is inherently better than every human professional. It must instead use objective checks, application/file validation, output verification, and iterative correction to reach the strongest demonstrable result.
+
+## Wake word, voice, and always-available companion
+
+The final wake system must support both `OCADE` and `Hey OCADE`, with `OCADE` treated as the fast primary wake phrase while `Hey OCADE` remains fully supported. The production wake model must be CARCC/OCADE-controlled, bundled inside the signed Windows Device Agent and Android OCADE application, and must not require a separate customer model download after the product is installed. This newer rule supersedes older sentences in this plan that say the wake model downloads after Wake Mode is enabled.
+
+The large training corpus must never ship to customers. Hugging Face must not be used as a required source or runtime dependency for the OCADE wake model. Development may use directly licensed datasets, OCADE-generated synthetic speech, owner-approved recordings, or other legitimate direct non-Hugging-Face sources after provenance/license review. The finished bundled model should be small and optimized for extremely low idle CPU, RAM, network, storage, and battery use; literal zero resource use must not be claimed.
+
+Pre-wake audio must remain local. When Wake Mode is enabled, the lightweight companion may remain available in the background like a normal assistant service. On Windows the Device Agent/tray must remain available even when Chrome or `ocade.in` is closed, because wake, background work, reminders, reconnect, and Remote PC depend on it. When necessary, the companion may open OCADE JARVIS automatically. On Android, always-listening wake behavior may use the legitimate foreground-service/notification model required by Android; the user accepts a minimal truthful Wake Mode notification where the platform requires one.
+
+Any nearby person may trigger the wake phrase, while optional owner/speaker recognition may be added as an extra signal for sensitive operations. Speaker recognition must never replace account/device authorization, lock-screen security, recent authentication, or other security boundaries. When the device is locked, JARVIS may answer safe questions/status where the platform allows it but must not perform sensitive file/account/computer actions that require an unlocked session.
+
+During an active JARVIS conversation or task, the user should not need to repeat the wake phrase before every follow-up. Voice input and text output must remain usable when spoken responses are disabled. With spoken replies enabled, JARVIS should speak naturally while working, allow interruption, answer status questions from real task state, and continue or replan without losing already-completed safe work.
+
+## Android and cross-device execution
+
+Windows and Android should share the same planning/task authority, with platform-specific execution adapters rather than separate assistants. Android should use intents/native APIs where available, then Accessibility/UIAutomator-like structured control, UI hierarchy/accessibility, vision, and fresh taps/coordinates. Android must not require separate per-app controllers for every application.
+
+If a user on Android asks to open or use an Android app, OCADE should perform the work on the current Android device when the installed OCADE app has legitimate capability. If the requested work requires a paired PC or the user explicitly names the PC, JARVIS should keep the same conversation and transparently route execution to the paired PC. A user should be able to say from a phone, for example, “Open my PC and finish this Excel file,” and follow the same task until completion.
+
+Initial Android setup should guide the user through the legitimate permissions needed for enabled capabilities so later nuisance prompts are minimized. Android-owned security and permission screens must not be bypassed. Android final evidence uses the stable Pixel 6a Android 14/API 34 Google Play emulator as the primary emulator unless a newer owner decision changes it. A newer Android version may be used as supplementary compatibility evidence only after the stable baseline is green.
+
+iPhone/iPad support remains limited to Apple-supported behavior, PWA/Home Screen, Siri/Shortcuts/App Intents/share/notifications where applicable, and Remote PC. WebKit emulation is compatibility evidence only. Free legitimate remote Apple evidence may be used; any paid reservation remains skipped unless the owner separately approves it.
+
+## Owner Console expansion
+
+The Owner/Staff authority must continue to be server-enforced, audited, and stable-user-ID based. Normal `ocade.in` should expose an Owner Console or Staff Console entry only to legitimately authorized accounts. If keeping privileged operations on `admin.ocade.in` remains materially safer or simpler, retain that separation; if the privileged UI can be presented under normal `ocade.in` without weakening isolation, session authority, 2FA, audit, CSP/origin boundaries, or customer concealment, implementation may choose the smaller and safer architecture. Frontend visibility must never be the authorization boundary.
+
+The Owner customer-management surface should support searching verified OCADE accounts by approved identifiers such as email, name, or account ID and should show safe operational information including verified email, safe profile fields, plan/entitlement, usage state, account creation, devices, sessions, grants, support/security state, and JARVIS/device operational state where appropriate. It must never expose passwords, provider keys, OAuth tokens, raw cookies, MFA secrets, recovery secrets, or equivalent credentials.
+
+Depending on role/permission, the Owner Console should support legitimate plan/access grants and revocation, usage/credit adjustments through append-only authority, session revocation, device removal/revoke, account suspension/disable workflows, supported security recovery, audited account-deletion workflow, and audit history. Permanent account deletion must use a strong audited workflow that first terminates relevant sessions/devices and applies the product's retention/legal/data-deletion rules. The Primary Owner must have strong protection against accidental self-removal or demotion.
+
+Final role testing must include a real temporary entitlement/grant lifecycle and staff-access lifecycle on test accounts when safe: grant, verify the target account receives exactly the intended capability, revoke, and prove the privilege disappears immediately. Do not forge authorization or expose credentials for testing.
+
+## Final test architecture and release sequence
+
+Before merge, execute two deliberately separate assurance waves in addition to normal continuous testing.
+
+First, perform a full source-read audit of the active codebase and current authorities. Read for security defects, races, stale assumptions, duplicate authorities, incorrect lifecycle behavior, dead code, inconsistent policies, error handling, and capability gaps without relying only on existing tests. Reproduce and fix every valid finding, add regression coverage, then rerun the relevant regression suite.
+
+Second, after implementation reaches the final candidate, freeze application source changes temporarily and perform a testing-only evidence wave. During this wave, do not fix product source immediately when a failure is discovered. Finish the complete Windows, browser, Android, Owner/Staff, JARVIS, background, update, file, Office, voice, and security matrix first and record every failure. After the matrix is complete, enter one dedicated fix wave, repair every reproducible release-scope defect at the root cause, run exact regressions and the broader suite, then proceed to cleanup.
+
+The testing-only wave must include actual work, not ceremonial clicking. On Windows verify Device Agent download/install, tray lifecycle, Open OCADE, autostart, background survival, browser control, file discovery, app discovery, Excel, Word/PowerPoint/PDF where available, coding/repository work, multi-app workflows, STOP, Pause/Resume, Take Over, update/rollback, uninstall/reinstall, Remote PC, and software-problem diagnosis. Verify real file/process/application results independently rather than trusting JARVIS's own success message.
+
+For the universal app engine, select several installed applications at runtime, including at least one application that has no specialized OCADE adapter. Do not add app-specific source code merely to make the test pass. Include one case where an official scripting/API route is discovered and used, and one case where structured automation is insufficient and OCADE must use accessibility/vision/fresh-coordinate fallback. Record whether success came from intelligence/planning, documentation/API discovery, app discovery, accessibility, vision, coordinates, file manipulation, or another legitimate route.
+
+For final real-user browser validation, use a preview/staging deployment of the branch first so production/main remain untouched. Use the dedicated authorized Chrome testing profile with Playwright/CDP and Chrome DevTools diagnostics, plus Physical Computer Use for real native/tray interactions. Sign in through Google using the already authorized test account when available; password, OTP, passkey, CAPTCHA, authenticator, or equivalent protected authentication remains a human step. Test the entire reachable product with real tasks, including Owner/Staff surfaces and a temporary grant/revoke cycle on safe test accounts.
+
+For Android, run the full Appium pass first, release/reset controller ownership, then run the independent Mobile MCP pass on the emulator. Include Google sign-in, permission setup, bubble, notification/STOP, Chrome, Files, Settings, at least one additional installed app, basic and complex tasks, background/foreground, orientation, restart/recovery, and Remote PC.
+
+After the dedicated fix wave is green, run Caveman/Ponytail and `ToRemove.md` cleanup. Remove only proven dead/duplicate/obsolete active code and dependencies. Then run the complete acceptance matrix again on the cleaned tree. Follow with a second independent adversarial/attack pass and a final real-user browser/native pass.
+
+No merge to `main` is permitted merely because tests are green. The branch must remain unmerged until all executable Phase 1–49 requirements, this addendum, final source-read audit, frozen testing-only wave, fix wave, cleanup, final regression, adversarial pass, and final real-user pass are complete and the owner explicitly approves the merge.
+
+## Evidence and reporting required by this addendum
+
+The final report must identify the exact branch and SHA, all Phase 1–49 statuses, all addendum requirements, test totals, real-browser/MCP evidence, real Windows evidence, Android emulator/Appium/Mobile MCP evidence, Apple compatibility and blocked physical evidence, Supabase status, Cloudflare preview/production identity, GitHub status, billing-only GitHub Actions limitations separately from real code failures, known accepted limitations, all remaining manual owner-only actions, cleanup/debloat work, unresolved bugs if any, and a conservative commercial-readiness percentage.
+
+A final claim of readiness requires zero known reproducible Critical or Major release blockers and no unexplained required-evidence failure. It does not mean undiscovered bugs are mathematically impossible.

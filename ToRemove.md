@@ -107,3 +107,79 @@ Do not use cleanup as permission to weaken security, accessibility, UI quality o
 ## Master Phase 1–49 authority
 
 Implementation order, phase entry/exit gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting are governed by the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves current working behavior, repairs gaps proven by current evidence, and continues sequentially through Phase 49. This document supplies domain-specific requirements and does not replace a phase gate.
+---
+
+# Owner cleanup addendum — 2026-10-02
+
+This section adds new cleanup targets created by the universal-control architecture. It does not authorize immediate deletion. Every removal still requires the proof sequence above.
+
+## Per-application controller proliferation
+
+Search the active production runtime for application-specific controllers, aliases, branches, action types, scripts, duplicated selectors, duplicated permission logic, and UI code that exist only because a specific application was hard-coded instead of using the universal OCADE execution engine.
+
+Do not remove a specialized path merely because it is application-specific. First identify the exact capability it provides, reproduce the behavior, prove that the universal planner/action broker plus dynamic documentation/API discovery, accessibility, vision, direct file manipulation, scripting, or fresh-coordinate fallback can deliver equal or better behavior, and prove STOP, permission, scope, verification, and recovery. Only then remove the redundant application-specific path.
+
+Keep specialized adapters that still provide measurable reliability, fidelity, safety, performance, or platform integration that the universal engine cannot yet match. Route those adapters through the same canonical action broker rather than allowing them to become separate execution authorities.
+
+## Duplicate browser-control infrastructure
+
+Development MCP configuration is not product runtime architecture. Remove or avoid any active customer-facing requirement that asks customers to install or configure Playwright MCP, Chrome DevTools MCP, browser extensions, Appium MCP, or other developer tooling.
+
+Keep the product-owned Device Agent/browser executor and whatever signed bundled runtime components it legitimately requires. If old runtime code exists solely to expose developer-style remote-debugging setup to customers, retire it after the replacement product-owned browser-control path is proven across existing authenticated Chrome, normal browser launch, browser restart, multi-tab/window, upload/download, STOP/Take Over, accessibility/vision fallback, and security boundaries.
+
+Do not remove the MCP test configuration itself when it remains useful for development evidence. Test tooling and product runtime are separate concerns.
+
+## Wake-model download remnants
+
+The final wake model is bundled inside the signed OCADE Windows companion and Android application. After the bundled model path is proven, remove obsolete active runtime logic that downloads `Hey OCADE`, `Hey Jarvis`, openWakeWord model assets, or equivalent wake artifacts after customer installation.
+
+Preserve immutable donor wake files in `source-original/`. Preserve provenance/licensing/build evidence. Remove only active duplicate download/install/check paths that conflict with the bundled OCADE-owned wake manifest.
+
+The final active authority should use one model manifest/version/hash path for install, health, update, rollback, and wake startup. Do not retain a second donor installer that can claim readiness for a different phrase/model.
+
+## Redundant app knowledge and static maps
+
+Review giant application-name maps, per-app click coordinates, stale menu trees, copied documentation fragments, and one-off aliases. Keep compact safe aliases and capability metadata when they materially help discovery, but retire brittle static knowledge that duplicates what the universal app discovery/documentation/live-observation system can determine more reliably.
+
+Never preserve stored screen coordinates as reusable application knowledge. Coordinates belong to one fresh observation only.
+
+## Duplicate action and permission paths
+
+The universal tool plane must have one validated action broker. Remove per-app or per-feature paths that perform direct mouse/keyboard/browser/files/command execution without the canonical account, device, task, permission, confirmation, control lease, cancellation, STOP, idempotency, scope, and result-verification checks.
+
+If an older helper is still useful, adapt it behind the canonical broker rather than keeping an independent privileged entry point.
+
+## Redundant customer tool-selection UI
+
+Customers should not need to select MCPs, PyAutoGUI, Playwright, Appium, scripts, APIs, accessibility, vision, or other internal implementation methods. Remove UI that exposes implementation plumbing solely because earlier prototypes required manual tool choice, after proving the universal planner chooses the right method automatically and truthful capability/error states remain available.
+
+Do not remove user-facing controls that express real product policy, such as device selection, Wake Mode, STOP, Pause/Resume, task target, allowed capability, privacy setting, or high-impact confirmation.
+
+## Legacy “download wake model” and “browser developer setup” documentation
+
+Once the new bundled wake path and product-owned browser-control path are proven, update active product documentation that tells ordinary customers to separately download a wake model or configure developer remote debugging. Preserve historical audits and older implementation evidence; only active customer docs should be retired or superseded.
+
+## File indexing bloat
+
+Do not build or retain a system that continuously uploads, parses, embeds, or duplicates all customer files merely to make JARVIS aware of the machine. Prefer lightweight local metadata discovery and on-demand content reads for authorized tasks. If an experimental full-content indexing path exists without a proven product requirement, mark it for retirement after file discovery/search tasks are proven on the lighter authority.
+
+## Learned-recipe privacy cleanup
+
+Any learned app-control recipe store must contain only sanitized reusable operational knowledge. Remove or migrate recipe fields that retain raw private screenshots, customer file contents, cookies, tokens, credentials, OTPs, MFA secrets, or unnecessary personal data. Device-local machine metadata should remain scoped to the correct device/account authority.
+
+## Final cleanup timing
+
+Do not perform the cleanup in this addendum before the universal-control implementation and its frozen testing-only wave have completed. The required order is:
+
+1. prove universal control while old specialized paths still exist;
+2. run the frozen whole-product testing-only matrix without writing app-specific fixes during the evidence pass;
+3. repair all reproduced defects and rerun the matrix;
+4. identify redundant paths using this file and `/ponytail ultra`;
+5. remove only proven-obsolete production code/dependencies;
+6. rerun the complete acceptance matrix on the cleaned tree;
+7. run the second independent attack pass;
+8. run the final real-user pass;
+9. prepare the final release report;
+10. leave the branch unmerged until explicit owner approval.
+
+Cleanup must reduce code and attack surface without reducing the universal engine's ability to operate unfamiliar software, preserve user data, recover from failure, honor STOP, or verify real results.
