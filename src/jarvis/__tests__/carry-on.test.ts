@@ -293,7 +293,7 @@ describe("carrying on", () => {
     expect(second.seen[0]!.join("\n")).toContain("Running commands is turned off for this device.");
   });
 
-  it("a command waits for the person, and only the exact one they allowed runs again", async () => {
+  it("the task's own tests run at once; other commands wait, and only the exact one allowed runs again", async () => {
     await permit("terminal", true);
     const t = await task();
     const first = scripted(call("computer", { action: "run", command: 'python -c "print(1)"' }));
@@ -302,28 +302,44 @@ describe("carrying on", () => {
       'JARVIS needs you to confirm: Running python -c "print(1)"',
     );
     expect((await exchange(admin(), me(), { results: [] })).commands).toEqual([]);
+    await sql(
+      `update public.jarvis_tasks set status = 'running', blocker = null where id = '${t}'`,
+    );
 
-    // The person allowed `npm test` in this task earlier.
+    // A routine test run is not a question for the person (owner policy, 2026-10-02).
+    const tests = scripted(call("computer", { action: "run", command: "npm test" }));
+    expect(await carryOn(admin(), me(), t, tests)).toEqual({ state: "queued" });
+    expect((await exchange(admin(), me(), { results: [] })).commands[0]?.action).toEqual({
+      action: "run",
+      command: "npm test",
+    });
+    await sql(
+      `update public.jarvis_activity set status = 'done' where task_id = '${t}' and action is not null`,
+    );
+
+    // Once the task has read a web page, a script could be the page's: it is asked, once.
+    await sql(
+      `insert into public.jarvis_activity (user_id, task_id, device_id, summary, action, status)
+       values ('${A}', '${t}', '${device}', 'Reading the page', '{"action":"observe"}'::jsonb, 'done')`,
+    );
+    const script = scripted(call("computer", { action: "run", command: "python build.py" }));
+    expect(await carryOn(admin(), me(), t, script)).toEqual({ state: "waiting" });
     await sql(
       `insert into public.jarvis_activity (user_id, task_id, device_id, summary, action, status, confirmed)
-       values ('${A}', '${t}', '${device}', 'Running npm test',
-               '{"action":"run","command":"npm test"}'::jsonb, 'done', true),
+       values ('${A}', '${t}', '${device}', 'Running python build.py',
+               '{"action":"run","command":"python build.py"}'::jsonb, 'done', true),
               ('${A}', '${t}', '${device}', 'Running git push',
                '{"action":"run","command":"git push"}'::jsonb, 'done', true)`,
     );
     await sql(
       `update public.jarvis_tasks set status = 'running', blocker = null where id = '${t}'`,
     );
-    const again = scripted(call("computer", { action: "run", command: "npm test" }));
+    const again = scripted(call("computer", { action: "run", command: "python build.py" }));
     expect(await carryOn(admin(), me(), t, again)).toEqual({ state: "queued" });
-    expect((await exchange(admin(), me(), { results: [] })).commands[0]?.action).toEqual({
-      action: "run",
-      command: "npm test",
-    });
-    // Publishing asks every time, however often it was allowed.
     await sql(
       `update public.jarvis_activity set status = 'done' where task_id = '${t}' and action is not null`,
     );
+    // Publishing asks every time, however often it was allowed.
     const push = scripted(call("computer", { action: "run", command: "git push" }));
     expect(await carryOn(admin(), me(), t, push)).toEqual({ state: "waiting" });
   });

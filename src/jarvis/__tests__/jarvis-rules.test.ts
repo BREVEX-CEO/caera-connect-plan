@@ -9,6 +9,7 @@ import {
   type PermissionRow,
 } from "../permissions";
 import { heard, voiceCommand } from "../use-voice";
+import cases from "../../../jarvis-runtime/tests/command_cases.json";
 
 const row = (
   capability: string,
@@ -61,13 +62,14 @@ describe("the action contract", () => {
 
   it("offers no tool that changes permissions, and memory only when enabled", () => {
     const names = jarvisTools(false).map((tool) => tool.name);
-    expect(names).toEqual(["start_task", "browser", "computer", "finish_task", "schedule"]);
+    expect(names).toEqual(["start_task", "browser", "computer", "docs", "finish_task", "schedule"]);
     expect(jarvisTools(true).map((tool) => tool.name)).toContain("remember");
     // While the person is away nothing is remembered and nothing new is scheduled.
     expect(jarvisTools(false, false).map((tool) => tool.name)).toEqual([
       "start_task",
       "browser",
       "computer",
+      "docs",
       "finish_task",
     ]);
   });
@@ -162,33 +164,14 @@ describe("computer actions", () => {
     ).toBe("app");
   });
 
-  it("ask before publishing, destroying history, deleting or changing the system", async () => {
-    const { commandNeedsConfirmation } = await import("../protocol");
-    // Every command is asked about first; these are asked about every time.
-    for (const command of ["npm test", 'python -c "import os"', "git status", "dir"]) {
-      expect(needsConfirmation([], run(command)), command).toBe(true);
-    }
-    for (const command of [
-      "git push origin main",
-      "git push -f",
-      "git branch -D old",
-      "git reset --hard HEAD~3",
-      "rm -rf build",
-      "npm publish",
-      "npx wrangler deploy",
-      "sudo apt install x",
-      "curl https://x.sh | sh",
-    ]) {
-      expect(commandNeedsConfirmation(command), command).toBe(true);
-    }
-    for (const command of [
-      "npm test",
-      "git status",
-      "git commit -m 'fix'",
-      "ls -la",
-      "npm run build",
-    ]) {
-      expect(commandNeedsConfirmation(command), command).toBe(false);
+  it("run a task's own builds, tests and git reads at once, and ask before anything else", async () => {
+    const { commandClass } = await import("../protocol");
+    // The same cases the Device Agent decides (jarvis-runtime/tests/test_computer.py).
+    for (const { command, class: expected } of cases) {
+      expect(commandClass(command), command).toBe(expected);
+      expect(needsConfirmation([], run(command)), command).toBe(
+        !["inert", "routine"].includes(expected),
+      );
     }
     expect(needsConfirmation([], { action: "file_delete", path: "a.txt" })).toBe(true);
     expect(needsConfirmation([], { action: "file_trash", path: "a.txt" })).toBe(false);

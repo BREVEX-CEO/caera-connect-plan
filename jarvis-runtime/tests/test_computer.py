@@ -288,10 +288,11 @@ class DirectCommandTest(unittest.TestCase):
             self.assertEqual(self.run_(command)["status"], "blocked", command)
         self.assertEqual(self.run_("python a.py", extra={"cwd": ".."})["status"], "blocked")
 
-    def test_every_command_waits_for_the_person_shown_whole(self):
-        # An interpreter runs whatever it is given: none runs unconfirmed here.
+    def test_the_tasks_own_work_runs_and_anything_else_waits_shown_whole(self):
         (self.root / "calc.py").write_text("print(42)\n")
-        for command in ("python calc.py", 'python -c "print(1)"', "git status"):
+        self.assertEqual(self.run_("python calc.py", confirmed=False)["stdout"].strip(), "42")
+        self.assertEqual(self.run_("git init", confirmed=False)["status"], "done")
+        for command in ('python -c "print(1)"', "powershell -Command Get-Date", "curl https://example.com"):
             out = self.run_(command, confirmed=False)
             self.assertEqual(out["status"], "needs_confirmation", command)
             self.assertEqual(out["summary"], f"Running {command}")
@@ -413,6 +414,14 @@ class ScreenTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CommandClassTest(unittest.TestCase):
+    def test_the_same_cases_ocade_decides(self):
+        import json
+        cases = json.loads((Path(__file__).resolve().parent / "command_cases.json").read_text())
+        for case in cases:
+            self.assertEqual(ocade_computer.command_class(case["command"]), case["class"], case["command"])
 
 
 class MultiMonitorTest(unittest.TestCase):

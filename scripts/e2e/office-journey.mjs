@@ -390,7 +390,7 @@ print(json.dumps({"text": text}))
     const before = (await table("jarvis_activity", `user_id=eq.${USER}&select=id`)).length;
     await page.locator("#jarvis-composer").fill("code-check the invoice test fails, fix it");
     await page.getByRole("button", { name: "Send", exact: true }).click();
-    // Each new command is shown to the person once; a repeat in the same task is not asked.
+    // The task's own tests and git reads are not questions (owner policy, 2026-10-02).
     const asked = [];
     const ask = page.getByRole("alertdialog", { name: "Confirm this step" });
     const finished = await until(async () => {
@@ -410,9 +410,8 @@ print(json.dumps({"text": text}))
       JSON.stringify(await task()).slice(0, 300) + deviceLog.slice(-300),
     );
     check(
-      "each new command was confirmed once, and the re-run of the tests was not asked again",
-      JSON.stringify(asked) ===
-        JSON.stringify(["Running python -m unittest -v", "Running git diff --stat"]),
+      "the tests, the re-run and the git read ran without a question",
+      asked.length === 0,
       JSON.stringify(asked),
     );
     const runs = (

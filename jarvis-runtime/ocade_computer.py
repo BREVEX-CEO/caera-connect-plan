@@ -54,12 +54,46 @@ FRAME_WIDTH = 1280
 PASTE_OVER = 40  # longer text is pasted (and the clipboard restored) instead of typed key by key
 UNDO_DEPTH = 10  # donor core/undo.py: roughly "this conversation"
 APPS_FRESH_S = 600  # the app list open_app trusts before looking again
+IMPORT_LIMIT = 1 << 30  # a copy into the work folder
 _APPS: dict = {"at": float("-inf"), "list": []}
 
 # Anything a shell (or cmd.exe for .cmd/.bat programs) would interpret.
 SHELL_META = re.compile(r"[&|;<>^`$%!\r\n]")
 SECRET_ENV = re.compile(r"KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|COOKIE|SESSION|AUTH",
                         re.IGNORECASE)
+
+
+COMMANDS = json.loads((Path(__file__).resolve().parent / "ocade_protocol.json").read_text())["commands"]
+_RISKY = re.compile(COMMANDS["risky"], re.IGNORECASE)
+
+
+def _matches_form(forms: list[str] | None, args: list[str]) -> bool:
+    for form in forms or []:
+        if form == "*":
+            return True
+        if form == "<script>":
+            if args and not args[0].startswith("-") and args[0].lower().endswith(tuple(COMMANDS["scripts"])):
+                return True
+            continue
+        words = form.split(" ")
+        if len(args) >= len(words) and all(a.lower() == w for a, w in zip(args, words)):
+            return True
+    return False
+
+
+def command_class(command: str) -> str:
+    """ask / inert / routine / other, by the rules OCADE decided by (ocade_protocol.json)."""
+    tokens = [t[1:-1] if len(t) > 1 and t[0] == t[-1] and t[0] in "\"'" else t
+              for t in re.findall(r"\"[^\"]*\"|'[^']*'|\S+", command)]
+    base = re.sub(r"\.(exe|cmd|bat)$", "", re.split(r"[\\/]", tokens[0])[-1].lower()) if tokens else ""
+    program, args = COMMANDS["aliases"].get(base, base), tokens[1:]
+    if not program or program in COMMANDS["ask"] or _RISKY.search(command):
+        return "ask"
+    if _matches_form(COMMANDS["inert"].get(program), args):
+        return "inert"
+    if _matches_form(COMMANDS["routine"].get(program), args):
+        return "routine"
+    return "other"
 
 
 def _jpeg(image) -> str:
@@ -236,6 +270,8 @@ class Computer:
                 return paused
             if kind == "open_app":
                 return self._open_app(str(action.get("name", "")), cancel)
+            if kind in ("app_info", "recipe_save", "drives", "file_locate", "file_import", "file_export"):
+                return self._discover(kind, action, confirmed, cancel)
             if kind.startswith("file_"):
                 return self._file(kind, action, confirmed, cancel)
             if kind in ("sheet_inspect", "sheet_edit"):
@@ -280,8 +316,10 @@ class Computer:
 
     # -- apps ----------------------------------------------------------------------
 
-    def _open_app(self, name: str, cancel: threading.Event) -> dict:
-        # The recent list first; a full look (up to 30 s) only for an app installed since.
+    @staticmethod
+    def _app_named(name: str, cancel: threading.Event) -> dict | None:
+        """The recent list first; a full look (up to 30 s) only for an app installed since.
+        Raises _Stopped when STOP comes while looking."""
         apps = _APPS["list"] if time.monotonic() - _APPS["at"] < APPS_FRESH_S else []
         app = next((a for a in apps if a["name"].lower() == name.lower()), None)
         if app is None:
@@ -290,14 +328,92 @@ class Computer:
             looking.start()
             while looking.is_alive():
                 if cancel.is_set():
-                    return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+                    raise _Stopped()
                 looking.join(0.2)
             _APPS.update(at=time.monotonic(), list=box.get("apps", []))
             app = next((a for a in _APPS["list"] if a["name"].lower() == name.lower()), None)
+        return app
+
+    def _open_app(self, name: str, cancel: threading.Event) -> dict:
+        try:
+            app = self._app_named(name, cancel)
+        except _Stopped:
+            return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
         if app is None:
             return {"status": "failed", "summary": f"{name} is not installed on this computer"}
         _launch(app)
         return {"status": "done", "summary": f"Opened {app['name']}"}
+
+    # -- discovery: any app, the drives, files by name; copies in and out ------------
+
+    def _discover(self, kind: str, action: dict, confirmed: bool, cancel: threading.Event) -> dict:
+        import ocade_discovery
+        stopped = {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+        if kind in ("app_info", "recipe_save"):
+            name = str(action.get("name" if kind == "app_info" else "app", ""))
+            try:
+                app = self._app_named(name, cancel)
+            except _Stopped:
+                return stopped
+            if app is None:
+                return {"status": "failed", "summary": f"{name} is not installed on this computer"}
+            if kind == "recipe_save":
+                return ocade_discovery.save_recipe(action, ocade_discovery.version_of(app))
+            info = ocade_discovery.app_info(app, cancel)
+            return stopped if cancel.is_set() else {
+                "status": "done", "summary": f"Read how {app['name']} can be driven here", "app": info}
+        if kind == "drives":
+            return {"status": "done", "summary": "Listed the connected drives", "drives": ocade_discovery.drives()}
+        if kind == "file_locate":
+            found = ocade_discovery.locate(str(action.get("name", "")), str(action.get("extension", "")), cancel)
+            return stopped if cancel.is_set() else {
+                "status": "done", "summary": f"Found {len(found)} file(s) by name", "entries": found}
+        # Past the work folder, in or out: only what the person confirmed, never over a file.
+        if not confirmed:
+            return {"status": "needs_confirmation", "summary": "Confirm before JARVIS reaches past the work folder"}
+        if self.root is None:
+            raise ScopeError("No workspace is selected on this computer")
+        if kind == "file_import":
+            source = Path(str(action.get("from", ""))).resolve()
+            if not source.is_file():
+                return {"status": "failed", "summary": "That file does not exist"}
+            if source.stat().st_size > IMPORT_LIMIT:
+                return {"status": "failed", "summary": "That file is too large to copy in (over 1 GB)"}
+            target = self._inside(str(action.get("to") or f"imports/{source.name}"))
+            if target.is_dir():
+                target = self._inside(str((target / source.name).relative_to(self.root)))
+            stem, suffix, n = target.stem, target.suffix, 1
+            while target.exists():
+                n += 1
+                target = self._inside(str((target.parent / f"{stem} ({n}){suffix}").relative_to(self.root)))
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+            rel = str(target.relative_to(self.root))
+            self._remember(f"copying {source.name} in", lambda: self._to_trash(target))
+            return {"status": "done", "summary": f"Copied {source.name} into the work folder as {rel}",
+                    "path": rel}
+        source = self._inside(str(action.get("path", "")))
+        folder = Path(str(action.get("to", ""))).resolve()
+        name = str(action.get("name") or source.name)
+        if not source.is_file():
+            return {"status": "failed", "summary": "Only a file in the work folder can be saved out"}
+        if not folder.is_dir():
+            return {"status": "failed", "summary": "That folder does not exist"}
+        if not name or re.search(r"[\\/:*?\"<>|]", name) or name in (".", ".."):
+            return {"status": "failed", "summary": "That is not a usable name"}
+        target = folder / name
+        if target.exists():
+            return {"status": "failed", "summary": f"{name} already exists there; nothing was overwritten"}
+        shutil.copy2(source, target)
+        saved = (target.stat().st_mtime_ns, target.stat().st_size)
+
+        def take_back():  # outside the work folder: only the very copy JARVIS made, to the Trash
+            if not target.is_file() or (target.stat().st_mtime_ns, target.stat().st_size) != saved:
+                raise ScopeError("it changed since JARVIS saved it")
+            from send2trash import send2trash
+            send2trash(str(target))
+        self._remember(f"saving {name} out", take_back)
+        return {"status": "done", "summary": f"Saved {name} in {folder.name or folder}"}
 
     # -- files: always inside the workspace -----------------------------------------
 
@@ -631,9 +747,9 @@ class Computer:
                 target = (folder / value).resolve()
                 if target != self.root and self.root not in target.parents:
                     raise ScopeError("That path is outside the workspace")
-        # Nothing confines the program here, and any interpreter runs any code:
-        # the person sees the exact command first (OCADE asks before it is sent).
-        if not confirmed:
+        # Nothing confines the program here: only the task's own builds, tests,
+        # scripts and git reads run unasked; the person sees anything else whole first.
+        if not confirmed and command_class(command) not in ("inert", "routine"):
             return {"status": "needs_confirmation", "summary": f"Running {command[:280]}"}
         env ={k: v for k, v in os.environ.items() if not SECRET_ENV.search(k)}
         extra: dict = {"env": env}

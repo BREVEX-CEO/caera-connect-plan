@@ -12,6 +12,7 @@ import {
   decideJarvisAction,
   queueJarvisAction,
   readJarvisAction,
+  readJarvisDocs,
   readJarvisFrame,
   readJarvisTask,
   rememberJarvis,
@@ -101,6 +102,7 @@ export function liveDeps(conversationId: string): AgentDeps {
     decide: (data) => decideJarvisAction({ data }),
     frame: async (taskId) => (await readJarvisFrame({ data: { taskId } })).frame,
     remember: (content) => rememberJarvis({ data: { content } }),
+    readDocs: (data) => readJarvisDocs({ data }),
     schedule: (data) => scheduleJarvis({ data }),
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   };

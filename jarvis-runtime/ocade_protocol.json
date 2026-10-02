@@ -17,13 +17,54 @@
     "exchange": "/api/jarvis/device",
     "continue": "/api/jarvis/continue"
   },
-  "kinds": [
-    "agent",
-    "android"
-  ],
+  "kinds": ["agent", "android"],
   "rotateAfterDays": 30,
   "gates": {
     "purchase": "\\b(buy( it)? now|place (your |my )?order|complete (your |my )?(purchase|order|payment)|confirm (and |& )?pay|pay( now)?|submit (order|payment)|purchase|make payment)\\b",
     "sensitive": "\\b(submit|send|post|publish|tweet|reply|comment|delete|remove|transfer|sign|agree|accept|apply|file|confirm|save changes|change password|unsubscribe|book|reserve|register|donate)\\b"
+  },
+  "commands": {
+    "_": "How a run command is decided (src/jarvis/protocol.ts commandClass, ocade_computer.command_class). ask: confirmed every time. inert: never runs code a task wrote; runs unasked. routine: a task's own build, test or script; runs unasked unless the task has read a web page, then asked once. Anything else is asked once per exact command.",
+    "ask": ["powershell", "pwsh", "cmd", "bash", "sh", "zsh", "wsl", "wscript", "cscript", "mshta", "rundll32", "regsvr32", "reg", "regedit", "sc", "netsh", "schtasks", "bcdedit", "diskpart", "takeown", "icacls", "cacls", "vssadmin", "wmic", "net", "msiexec", "winget", "choco", "scoop", "curl", "wget", "ssh", "scp", "sftp", "ftp", "nc", "ncat", "telnet", "certutil", "bitsadmin", "npx", "pip", "pip3", "sudo", "su", "doas", "runas", "shutdown", "format", "del", "erase", "rd", "rmdir", "taskkill", "setx", "attrib"],
+    "risky": "\\bgit\\s+push\\b|--force\\b|\\bpush\\s+-f\\b|\\bbranch\\s+-D\\b|\\breset\\s+--hard\\b|\\bclean\\s+-[a-z]*f|\\bcheckout\\s+(--|\\.)(\\s|$)|\\bstash\\s+(drop|clear)\\b|\\brm\\s+-[a-z]*r|\\bformat\\b|\\bdeploy\\b|\\bpublish\\b|\\b(install|uninstall)\\b|\\b(shutdown|reboot|halt|poweroff)\\b|\\bmkfs|\\bdd\\s+if=",
+    "aliases": {
+      "python3": "python",
+      "py": "python",
+      "gradlew": "gradle"
+    },
+    "scripts": [".py", ".js", ".mjs", ".cjs"],
+    "inert": {
+      "git": ["status", "diff", "log", "show", "add", "commit", "branch", "switch", "checkout", "rev-parse", "ls-files", "blame", "grep", "init", "tag", "stash"]
+    },
+    "routine": {
+      "python": ["<script>", "-m pytest", "-m unittest", "-m compileall", "-m py_compile", "-m doctest", "-m json.tool"],
+      "node": ["<script>", "--test"],
+      "npm": ["test", "run", "run-script"],
+      "pnpm": ["test", "run"],
+      "yarn": ["test", "run"],
+      "pytest": ["*"],
+      "tsc": ["*"],
+      "eslint": ["*"],
+      "prettier": ["*"],
+      "ruff": ["*"],
+      "black": ["*"],
+      "mypy": ["*"],
+      "flake8": ["*"],
+      "pylint": ["*"],
+      "dotnet": ["build", "test", "run", "format"],
+      "cargo": ["build", "test", "check", "run", "fmt", "clippy"],
+      "go": ["build", "test", "vet", "run", "fmt"],
+      "mvn": ["test", "compile", "package", "verify"],
+      "gradle": ["test", "build", "assemble"],
+      "make": ["*"],
+      "cmake": ["*"],
+      "ctest": ["*"],
+      "javac": ["*"],
+      "java": ["-jar"],
+      "gcc": ["*"],
+      "g++": ["*"],
+      "clang": ["*"],
+      "rustc": ["*"]
+    }
   }
 }

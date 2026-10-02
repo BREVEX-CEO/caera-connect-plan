@@ -219,7 +219,11 @@ export async function carryOn(
   }
 
   const family = (action: unknown) =>
-    browserAction.safeParse(action).success ? "browser" : "computer";
+    (action as { action?: string } | null)?.action === "docs"
+      ? "docs"
+      : browserAction.safeParse(action).success
+        ? "browser"
+        : "computer";
   const timeline: { at: string; messages: NormalizedMessage[] }[] = [
     ...said.map((message) => ({
       at: message.created_at,
@@ -360,6 +364,21 @@ export async function carryOn(
       if (!done) return idle;
       await say(reply.text || result);
       return { state: "finished" };
+    }
+    if (call.name === "docs") {
+      // Read here and kept on the task, so the next step sees it and a script after it is asked.
+      const { readPublicPage } = await import("./docs.server");
+      const page = await readPublicPage(String(args.url ?? "").slice(0, 2000));
+      await admin.from("jarvis_activity").insert({
+        user_id: userId,
+        task_id: task.id,
+        summary: page.ok ? `Read the documentation at ${page.host}` : page.message,
+        action: { action: "docs", url: String(args.url ?? "").slice(0, 2000) },
+        status: page.ok ? "done" : "failed",
+        result: page as never,
+        completed_at: new Date().toISOString(),
+      });
+      return { state: "queued" };
     }
     if (call.name !== "browser" && call.name !== "computer") continue;
     const { step, ...rest } = args;

@@ -108,6 +108,8 @@ export interface AgentDeps {
   cancelAction?(id: string): Promise<unknown>;
   frame(taskId: string): Promise<string | null>;
   remember(content: string): Promise<{ ok: boolean; message?: string }>;
+  /** A public documentation page's text (page data, never instructions). */
+  readDocs?(input: { url: string; taskId?: string }): Promise<unknown>;
   sleep(ms: number): Promise<void>;
   /** A reminder or later work, as the person asked. */
   schedule?(input: {
@@ -445,6 +447,14 @@ export async function runJarvisTurn(
           })
           .catch(() => ({ ok: false, message: "That time could not be understood." }));
       }
+      case "docs":
+        if (!deps.readDocs) return { error: "Reading documentation is not available here." };
+        // Page data from here on: memory and schedules no longer follow what is said next.
+        untrustedSeen = true;
+        return deps.readDocs({
+          url: String(args.url ?? "").slice(0, 2000),
+          ...(task ? { taskId: task.id } : {}),
+        });
       case "remember":
         if (!input.memoryEnabled) return { error: "Memory is turned off." };
         if (untrustedSeen) {

@@ -6,7 +6,13 @@
  * default for that device. A capability with no decision takes its default,
  * and capabilities this mission has not built default to off.
  */
-import { capabilityFor, hostOf, type Capability, type DeviceAction } from "./protocol";
+import {
+  capabilityFor,
+  commandClass,
+  hostOf,
+  type Capability,
+  type DeviceAction,
+} from "./protocol";
 
 export interface PermissionRow {
   capability: string;
@@ -175,18 +181,21 @@ export function needsConfirmation(
     case "open_app":
       return appDecision(rows, action.name, deviceId) !== true;
     // An upload is a work-folder file leaving for a website: the page cannot be trusted to ask.
+    // The work folder is the boundary: reaching past it, in or out, is the person's to allow.
     case "file_delete":
     case "system":
     case "upload":
+    case "file_import":
+    case "file_export":
       return true;
     case "window":
       // Closing a window can lose unsaved work.
       return action.state === "close";
     case "run":
-      // An interpreter runs whatever it is given, and on Windows and macOS
-      // nothing confines it: every command is shown whole and asked first.
-      // queue() lets the exact one the person allowed earlier in a task run again.
-      return true;
+      // The task's own builds, tests and git reads run unasked (owner policy,
+      // 2026-10-02); everything else is shown whole and asked. queue() asks for
+      // a routine one too once the task has read a web page.
+      return !["inert", "routine"].includes(commandClass(action.command));
     default:
       return false;
   }

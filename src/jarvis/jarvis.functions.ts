@@ -758,6 +758,40 @@ export const stopAllJarvis = createServerFn({ method: "POST" })
     };
   });
 
+/**
+ * A public documentation page, read by OCADE's server for the person's JARVIS.
+ * Read inside a task, it is recorded on the task: what JARVIS does next may
+ * follow from a page, so a script after it is shown to the person first.
+ */
+export const readJarvisDocs = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ url: z.string().max(2000), taskId: uuid.optional() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { readPublicPage } = await import("./docs.server");
+    const page = await readPublicPage(data.url);
+    if (page.ok && data.taskId) {
+      const service = await admin();
+      const { data: task } = await service
+        .from("jarvis_tasks")
+        .select("id")
+        .eq("id", data.taskId)
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      if (task) {
+        await service.from("jarvis_activity").insert({
+          user_id: context.userId,
+          task_id: task.id,
+          summary: `Read the documentation at ${page.host}`.slice(0, 300),
+          action: { action: "docs", url: page.url },
+          status: "done",
+          result: { status: "done", title: page.title },
+          completed_at: new Date().toISOString(),
+        });
+      }
+    }
+    return page;
+  });
+
 export const rememberJarvis = createServerFn({ method: "POST" })
   .middleware([requireSession])
   .validator((i) => z.object({ content: z.string().trim().min(1).max(500) }).parse(i))

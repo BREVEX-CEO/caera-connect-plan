@@ -12,12 +12,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import {
-  commandNeedsConfirmation,
-  describeAction,
-  type DeviceAction,
-  type TaskStatus,
-} from "./protocol";
+import { commandClass, describeAction, type DeviceAction, type TaskStatus } from "./protocol";
 import { needsConfirmation, refuseAction, type PermissionRow } from "./permissions";
 import { TASK_COLUMNS, type JarvisTaskRow } from "./task-row";
 
@@ -31,6 +26,32 @@ export async function permissionsOf(db: Db, userId: string): Promise<PermissionR
     .limit(500);
   if (error) throw new Error(error.message);
   return data ?? [];
+}
+
+/** Browser work whose page content the model has read: a page may have written what follows. */
+const READS_THE_WEB = [
+  "docs",
+  "observe",
+  "look",
+  "open",
+  "new_tab",
+  "click",
+  "type",
+  "select",
+  "press",
+  "click_at",
+];
+
+async function taskReadTheWeb(service: Db, userId: string, taskId: string): Promise<boolean> {
+  const { data } = await service
+    .from("jarvis_activity")
+    .select("action")
+    .eq("user_id", userId)
+    .eq("task_id", taskId)
+    .limit(500);
+  return (data ?? []).some((row) =>
+    READS_THE_WEB.includes((row.action as { action?: string } | null)?.action ?? ""),
+  );
 }
 
 /** Did the person allow this exact command earlier in this task? */
@@ -211,6 +232,9 @@ export async function queueTaskAction(
   // Deletions, system changes, commands and apps set to Ask wait for the
   // person before the device ever sees them.
   let ask = needsConfirmation(rows, data.action, device.id);
+  const kind = data.action.action === "run" ? commandClass(data.action.command) : null;
+  // A script or build after the task read a web page could be the page's: asked once.
+  if (kind === "routine" && (await taskReadTheWeb(service, userId, task.id))) ask = true;
   /*
    * The exact command the person allowed earlier in this task runs again
    * without asking (a fix loop re-running its tests); one that publishes,
@@ -219,7 +243,7 @@ export async function queueTaskAction(
   const repeat =
     ask &&
     data.action.action === "run" &&
-    !commandNeedsConfirmation(data.action.command) &&
+    kind !== "ask" &&
     (await allowedEarlier(service, userId, task.id, data.action.command));
   if (repeat) ask = false;
 

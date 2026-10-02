@@ -96,16 +96,15 @@ const say = async (page, text) => {
   await page.locator("#jarvis-composer").fill(text);
   await page.getByRole("button", { name: "Send", exact: true }).click();
 };
-/** Every command is shown to the person first: they confirm it where they asked. */
-const confirm = async (page) => {
+/** The task's own script is not a question for the person (owner policy, 2026-10-02). */
+const runsUnasked = async (page) => {
   const ask = page.getByRole("alertdialog", { name: "Confirm this step" });
-  const asked = await until(
+  const started = await until(
     async () =>
-      (await ask.count()) === 1 && (await ask.innerText()).includes("Running python wait.py"),
+      (await table("jarvis_activity", `user_id=eq.${USER}&status=eq.claimed`)).length === 1,
     30_000,
   );
-  if (asked) await ask.getByRole("button", { name: "Confirm", exact: true }).click();
-  return asked;
+  return started && (await ask.count()) === 0;
 };
 const WAIT = `import time\ntime.sleep(7)\nopen("slept.txt", "a").write("x")\n`;
 
@@ -193,7 +192,7 @@ try {
     "the task starts in the open surface as always",
     await until(() => existsSync(path.join(workspace, "wait.py")), 30_000),
   );
-  check("the command waits for the person, shown whole", await confirm(desk.page));
+  check("the task's own script runs without a question", await runsUnasked(desk.page));
   // The slow step is running on the computer. The person closes OCADE now.
   await until(
     async () =>
@@ -292,7 +291,7 @@ try {
   ]);
   await phone.page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
   await say(phone.page, "needs-you clear the old files");
-  await confirm(phone.page);
+  await runsUnasked(phone.page);
   await until(
     async () =>
       (await table("jarvis_activity", `user_id=eq.${USER}&status=eq.claimed`)).length === 1,
@@ -343,8 +342,8 @@ try {
   ]);
   await again.page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
   await say(again.page, "stop-away run the long job");
-  // Confirmed once here; the computer runs the same command again by itself.
-  await confirm(again.page);
+  // Unasked here, and the computer runs it again by itself.
+  await runsUnasked(again.page);
   await until(
     async () =>
       (await table("jarvis_activity", `user_id=eq.${USER}&status=eq.claimed`)).length === 1,
