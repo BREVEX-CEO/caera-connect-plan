@@ -60,6 +60,8 @@ export function Bubble({ userId, placement }: { userId: string; placement: Place
   const [thinking, setThinking] = useState(false);
   const conversation = useRef<string | null>(null);
   const abort = useRef<AbortController | null>(null);
+  /** While JARVIS is temporarily unavailable, as the full page waits: no resend storm. */
+  const busyUntil = useRef(0);
 
   const state = useQuery({
     queryKey: ["jarvis", "bubble", userId],
@@ -225,6 +227,12 @@ export function Bubble({ userId, placement }: { userId: string; placement: Place
       return;
     }
     if (abort.current || spent) return;
+    if (Date.now() < busyUntil.current) {
+      toast.error("OCADE JARVIS is temporarily unavailable.", {
+        description: "Your message is kept. Try again in a moment.",
+      });
+      return;
+    }
     if (!jarvisOn) {
       toast.error("OCADE JARVIS is turned off.", { description: "Turn it on in JARVIS." });
       return;
@@ -307,6 +315,7 @@ export function Bubble({ userId, placement }: { userId: string; placement: Place
           content: "Stopped.",
         });
       } else if (error instanceof Unavailable || error instanceof ModelRefused) {
+        if (error instanceof Unavailable) busyUntil.current = Date.now() + 30_000;
         toast.error(error.message);
       } else {
         toast.error("JARVIS could not finish that. Try again.");

@@ -37,13 +37,12 @@ async function admin() {
   return (await import("@/integrations/supabase/client.server")).supabaseAdmin;
 }
 
-async function permissionsOf(db: SupabaseClient<Database>): Promise<PermissionRow[]> {
-  const { data, error } = await db
-    .from("jarvis_permissions")
-    .select("capability, allowed, device_id")
-    .limit(500);
-  if (error) throw new Error(error.message);
-  return data ?? [];
+/** The one read of a person's JARVIS permissions, scoped to them explicitly as well as by RLS. */
+async function permissionsOf(
+  db: SupabaseClient<Database>,
+  userId: string,
+): Promise<PermissionRow[]> {
+  return (await import("./task-authority.server")).permissionsOf(db, userId);
 }
 
 export interface JarvisState {
@@ -315,7 +314,7 @@ export const startJarvisTask = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }): Promise<StartTaskResult> => {
-    const rows = await permissionsOf(context.supabase);
+    const rows = await permissionsOf(context.supabase, context.userId);
     if (!isAllowed(rows, "master")) {
       return { ok: false, reason: "permission", message: "OCADE JARVIS is turned off." };
     }
@@ -763,7 +762,7 @@ export const rememberJarvis = createServerFn({ method: "POST" })
   .middleware([requireSession])
   .validator((i) => z.object({ content: z.string().trim().min(1).max(500) }).parse(i))
   .handler(async ({ data, context }) => {
-    if (!isAllowed(await permissionsOf(context.supabase), "memory")) {
+    if (!isAllowed(await permissionsOf(context.supabase, context.userId), "memory")) {
       return { ok: false as const, message: "JARVIS memory is turned off." };
     }
     const { error } = await context.supabase
