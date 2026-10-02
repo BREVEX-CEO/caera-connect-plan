@@ -258,7 +258,9 @@ public final class MainActivity extends Activity {
     }
 
     private void open(String path) {
-        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(identity.server() + path)));
+        String here = identity.deviceId() == null ? ""
+                : (path.contains("?") ? "&" : "?") + "from=" + identity.deviceId();
+        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(identity.server() + path + here)));
     }
 
     private void connectPhone() {

@@ -443,6 +443,35 @@ describe("which computer does the work", () => {
     expect(chooseTaskDevice([phone], [], "computer")).toMatchObject({ ok: true, device: phone });
   });
 
+  it("works where the person is, unless they name their computer", async () => {
+    const { chooseTaskDevice } = await import("../permissions");
+    const phone = { id: "Phone", name: "Pixel", kind: "android", capabilities: { apps: true } };
+    const desk = pc("Desk", { browser_isolated: true });
+    const fromPhone = { here: "Phone" };
+    // "Open Chrome" from the phone: the phone's Chrome.
+    expect(chooseTaskDevice([desk, phone], [], "computer", undefined, fromPhone)).toMatchObject({
+      ok: true,
+      device: phone,
+    });
+    // "…on my PC": the computer, from the same conversation.
+    expect(
+      chooseTaskDevice([desk, phone], [], "computer", undefined, { ...fromPhone, on: "computer" }),
+    ).toMatchObject({ ok: true, device: desk });
+    expect(
+      chooseTaskDevice([phone], [], "computer", undefined, { ...fromPhone, on: "computer" }),
+    ).toMatchObject({ ok: false, message: expect.stringContaining("computer is not online") });
+    // Web work needs a browser JARVIS drives: still the computer's.
+    expect(chooseTaskDevice([desk, phone], [], "browser", undefined, fromPhone)).toMatchObject({
+      ok: true,
+      device: desk,
+    });
+    // A phone that is not online, or not the person's, is no default.
+    expect(chooseTaskDevice([desk], [], "computer", undefined, fromPhone)).toMatchObject({
+      ok: true,
+      device: desk,
+    });
+  });
+
   it("asks when several computers could do it, and never guesses", async () => {
     const { chooseTaskDevice } = await import("../permissions");
     const two = [pc("Laptop", { browser_isolated: true }), pc("Desk", { browser_isolated: true })];

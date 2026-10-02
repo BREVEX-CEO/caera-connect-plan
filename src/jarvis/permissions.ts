@@ -219,10 +219,27 @@ export function chooseTaskDevice<T extends OnlineDevice>(
   rows: readonly PermissionRow[],
   where: "browser" | "computer",
   deviceId?: string,
+  context: { here?: string; on?: "here" | "computer" } = {},
 ): { ok: true; device: T; real: boolean } | { ok: false; message: string } {
   const offers = (d: T, capability: string) =>
     (d.capabilities as Record<string, boolean> | null)?.[capability] === true;
-  const chosen = deviceId ? online.filter((d) => d.id === deviceId) : online;
+  /*
+   * WHERE THE PERSON IS, UNLESS THEY NAMED A COMPUTER (owner addendum 2026-10-02).
+   * Asked from their phone in the OCADE app, "open Chrome" is the phone's Chrome;
+   * "on my PC" (or work only a computer can do) goes to the paired computer.
+   */
+  // A phone works on its apps and screen; a web task still needs a browser JARVIS drives.
+  const phone =
+    !deviceId && context.on !== "computer" && where === "computer"
+      ? online.find((d) => d.id === context.here && d.kind === "android")
+      : undefined;
+  if (phone) return { ok: true, device: phone, real: false };
+  const pool =
+    !deviceId && context.on === "computer" ? online.filter((d) => d.kind === "agent") : online;
+  if (pool.length === 0 && online.length > 0) {
+    return { ok: false, message: "Your computer is not online. Open OCADE on it, or turn it on." };
+  }
+  const chosen = deviceId ? pool.filter((d) => d.id === deviceId) : pool;
   if (deviceId && chosen.length === 0) {
     return {
       ok: false,

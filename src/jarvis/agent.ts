@@ -84,6 +84,8 @@ export interface AgentDeps {
     where: "browser" | "computer";
     title: string;
     plan: string[];
+    hereDeviceId?: string;
+    on?: "here" | "computer";
   }): Promise<StartTaskResult>;
   updateTask(input: {
     id: string;
@@ -147,6 +149,8 @@ export interface TurnInput {
   task: JarvisTaskRow | null;
   /** The computer the person chose for work (Remote PC), if any. */
   deviceId?: string | null;
+  /** The device the person is using (their phone, from the OCADE app), if known. */
+  hereDeviceId?: string | null;
   /** The person's own time zone and the time now, so "at 9 tomorrow" means their 9. */
   timeZone?: string;
   now?: Date;
@@ -369,6 +373,8 @@ export async function runJarvisTurn(
         const started = await deps.startTask({
           conversationId: input.conversationId,
           ...(input.deviceId ? { deviceId: input.deviceId } : {}),
+          ...(input.hereDeviceId ? { hereDeviceId: input.hereDeviceId } : {}),
+          ...(args.on === "computer" || args.on === "here" ? { on: args.on } : {}),
           controller,
           where: args.where === "computer" ? "computer" : "browser",
           title,

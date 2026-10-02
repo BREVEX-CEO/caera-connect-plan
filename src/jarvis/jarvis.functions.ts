@@ -308,6 +308,10 @@ export const startJarvisTask = createServerFn({ method: "POST" })
         where: z.enum(["browser", "computer"]).default("browser"),
         /** The computer the person chose (Remote PC); otherwise the only one online. */
         deviceId: uuid.optional(),
+        /** The device the person is using, when the OCADE app said so. */
+        hereDeviceId: uuid.optional(),
+        /** "computer" when the person named their PC or the work needs one. */
+        on: z.enum(["here", "computer"]).optional(),
         title: z.string().trim().min(1).max(200),
         plan: z.array(z.string().trim().min(1).max(200)).max(12),
       })
@@ -339,7 +343,10 @@ export const startJarvisTask = createServerFn({ method: "POST" })
     const online = (devices ?? []).filter(
       (d) => d.last_seen_at && now - Date.parse(d.last_seen_at) < ONLINE_MS,
     );
-    const choice = chooseTaskDevice(online, rows, data.where, data.deviceId);
+    const choice = chooseTaskDevice(online, rows, data.where, data.deviceId, {
+      here: data.hereDeviceId,
+      on: data.on,
+    });
     if (!choice.ok) return { ok: false, reason: "no_device", message: choice.message };
     const { device, real } = choice;
     if (await executionDisabled(service, device.kind)) {

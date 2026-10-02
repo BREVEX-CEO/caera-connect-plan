@@ -710,6 +710,9 @@ export function jarvisTools(memory: boolean, schedule = true): NormalizedToolDef
           title: str("A short title for the task."),
           where: str("browser for websites, computer for apps, files, code and the screen."),
           steps: { type: "ARRAY", items: { type: "STRING" }, description: "At most 8 steps." },
+          on: str(
+            'Leave out to work where the person is (their phone, when they ask from it). "computer" when they name their PC or the work needs a computer.',
+          ),
         },
         ["title", "where", "steps"],
       ),

@@ -80,7 +80,10 @@ public final class AgentService extends Service {
     }
 
     void openOcade(String path) {
-        Intent view = new Intent(Intent.ACTION_VIEW, Uri.parse(identity.server() + path))
+        // Tells the page which device the person is on, so "open Chrome" means this phone's.
+        String here = identity.deviceId() == null ? ""
+                : (path.contains("?") ? "&" : "?") + "from=" + identity.deviceId();
+        Intent view = new Intent(Intent.ACTION_VIEW, Uri.parse(identity.server() + path + here))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(view);
     }

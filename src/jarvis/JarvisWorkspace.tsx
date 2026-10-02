@@ -76,6 +76,7 @@ export function JarvisWorkspace({
   connectId,
   startVoice = false,
   ask,
+  from,
 }: {
   conversationId: string | null;
   connectId: string | null;
@@ -83,6 +84,8 @@ export function JarvisWorkspace({
   startVoice?: boolean;
   /** Words a Shortcut opened JARVIS with: they wait in the box for Send. */
   ask?: string;
+  /** The phone the OCADE app opened this page from: work runs there unless a PC is named. */
+  from?: string;
 }) {
   const { user, loading } = useSession();
   const signedIn = Boolean(user);
@@ -200,6 +203,16 @@ export function JarvisWorkspace({
     chosenTarget && jarvis?.devices.some((device) => device.id === chosenTarget)
       ? chosenTarget
       : null;
+  // The device this tab is on, as the OCADE app said when it opened it; kept for the tab.
+  const [here, setHere] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      if (from) window.sessionStorage.setItem("ocade:here-device", from);
+      setHere(from ?? window.sessionStorage.getItem("ocade:here-device"));
+    } catch {
+      setHere(from ?? null);
+    }
+  }, [from]);
 
   // The conversation's open task: the one this tab is running, else the newest unfinished one.
   const conversationTask =
@@ -408,6 +421,7 @@ export function JarvisWorkspace({
           memoryEnabled: isAllowed(permissions, "memory"),
           task,
           deviceId: target,
+          hereDeviceId: here,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
         {
