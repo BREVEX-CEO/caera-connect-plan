@@ -152,58 +152,19 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
       );
 
     /*
-     * DELETE THE PARENT AND LET THE CONSTRAINT DO THE REST.
-     *
-     * This used to read every conversation id and delete the children with
-     * `.in(ids)`. The read was unbounded — PostgREST silently returns the first
-     * thousand — and the delete put every id in the URL, which proxies refuse
-     * long before an account is unusual. `ocade_messages.conversation_id` is
-     * ON DELETE CASCADE, so removing the conversation removes its messages in
-     * one statement, with no list to truncate.
-     *
-     * A library row's own trigger tombstones its object, so the bytes in the
-     * private bucket are chased even though nothing here touches storage.
+     * DELETE THE PARENT AND LET THE CONSTRAINT DO THE REST — the one erasure an
+     * owner's deletion from the console uses too (`account/erase.server.ts`).
+     * A failure stops with the sign-in intact, and asking again is safe.
      */
-    /*
-     * EVERY STEP IS CHECKED. PostgREST reports a failure in `error` without
-     * throwing, so an unchecked step looked like success and the receipt said
-     * data was gone that was not. The identity is deleted only after every
-     * step succeeded; a failure stops here with the sign-in intact, and asking
-     * again is safe because each step is idempotent.
-     */
-    const steps = [
-      () => supabaseAdmin.from("ocade_conversations").delete().eq("user_id", userId),
-      () => supabaseAdmin.from("ocade_library_items").delete().eq("user_id", userId),
-      // Account-scoped records. Anything with an ON DELETE CASCADE to auth.users
-      // is removed by the identity deletion below; these are listed explicitly
-      // so the scrub does not depend on a constraint being present.
-      () => supabaseAdmin.from("user_settings").delete().eq("user_id", userId),
-      () => supabaseAdmin.from("user_private_records").delete().eq("user_id", userId),
-      () => supabaseAdmin.from("devices").delete().eq("user_id", userId),
-      () => supabaseAdmin.from("user_roles").delete().eq("user_id", userId),
-      () => supabaseAdmin.from("profiles").delete().eq("id", userId),
-    ];
-    for (const [index, step] of steps.entries()) {
-      const { error } = await step();
-      if (error) {
-        throw new Error(
-          `Account deletion stopped after ${index} of ${steps.length} steps. You are still signed in; try again to finish.`,
-        );
-      }
+    let pending: number;
+    try {
+      pending = (await (await import("@/lib/account/erase.server")).eraseAccount(userId))
+        .pendingFiles;
+    } catch (cause) {
+      throw new Error(
+        `${cause instanceof Error ? cause.message : "Account deletion stopped."} You are still signed in.`,
+      );
     }
-
-    // Library bytes: removed now where Storage allows, otherwise left as a
-    // durable tombstone that is retried, and said so on the receipt.
-    const { pending } = await (
-      await import("@/lib/library/tombstones.server")
-    )
-      .sweepTombstones(userId)
-      .catch(() => ({ pending: -1 }));
-
-    // The identity last. After this the session cannot be refreshed.
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
-    if (error)
-      throw new Error(`Account records were removed but sign-in deletion failed: ${error.message}`);
 
     const receipt: AccountDeletionReceipt = {
       reference: deletionReference(),

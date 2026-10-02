@@ -67,6 +67,14 @@ function staffFailure(message: string): string {
     "A case lasts between 1 and 72 hours.",
     "A case is about somebody else's account.",
     "This case is closed or has expired.",
+    "Nobody does this to their own account.",
+    "An owner's account is changed by the owner.",
+    "A member of staff is changed by an owner.",
+    "No such account.",
+    "Choose Chat or JARVIS, and this session or this week.",
+    "Change usage by between one hundredth and a thousand uses.",
+    "Remove their staff role before deleting the account.",
+    "Type the account's email address exactly to delete it.",
   ];
   if (/Confirm (it is you|the code from your authenticator app)/i.test(message)) return message;
   return known.find((sentence) => message.includes(sentence)) ?? "That change was not applied.";
@@ -257,9 +265,14 @@ export const endAllStaffSessions = createServerFn({ method: "POST" })
 /* ------------------------------------------------------------ customers -- */
 
 export interface CustomerDetail {
-  usage: { kind: string; used: number; resetsAt: string }[] | null;
+  usage: { surface: "chat" | "jarvis"; kind: string; used: number; resetsAt: string }[] | null;
   tasks: { title: string; status: string; updatedAt: string }[] | null;
-  security: { secondFactor: boolean; sessions: number; lastSignIn: string | null } | null;
+  security: {
+    secondFactor: boolean;
+    sessions: number;
+    lastSignIn: string | null;
+    suspended: boolean;
+  } | null;
 }
 
 /**
@@ -291,8 +304,9 @@ export const readCustomer = createServerFn({ method: "GET" })
           }),
         ),
       );
-      detail.usage = surfaces.flatMap(({ data: rows }) =>
+      detail.usage = surfaces.flatMap(({ data: rows }, at) =>
         (rows ?? []).map((row) => ({
+          surface: at === 0 ? ("chat" as const) : ("jarvis" as const),
           kind: row.window_kind,
           used: Number(row.used_hundredths) / 100,
           resetsAt: row.reset_at,
@@ -325,6 +339,7 @@ export const readCustomer = createServerFn({ method: "GET" })
         secondFactor: (factors?.factors ?? []).some((factor) => factor.status === "verified"),
         sessions: (sessions ?? []).length,
         lastSignIn: user?.user?.last_sign_in_at ?? null,
+        suspended: Date.parse(user?.user?.banned_until ?? "") > Date.now(),
       };
     }
     return detail;
@@ -385,6 +400,98 @@ export const resetCustomerSecondFactor = createServerFn({ method: "POST" })
       idempotencyKey: `second-factor-reset:${data.userId}:${new Date().toISOString().slice(0, 13)}`,
     }).catch(() => undefined);
     return { removed };
+  });
+
+/**
+ * Give a customer uses back (or charge them) in the window they are in now.
+ * The database authorises it, records it where nothing can change it, and audits it.
+ */
+export const adjustCustomerUsage = createServerFn({ method: "POST" })
+  .middleware([requireAssurance(HIGH_RISK)])
+  .validator((input) =>
+    z
+      .object({
+        userId: uuid,
+        surface: z.enum(["chat", "jarvis"]),
+        window: z.enum(["session", "week"]),
+        uses: z
+          .number()
+          .min(-1000)
+          .max(1000)
+          .refine((n) => n !== 0),
+        reason,
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ used: number }> => {
+    const { data: used, error } = await context.supabase.rpc("ocade_staff_adjust_usage", {
+      p_user: data.userId,
+      p_surface: data.surface,
+      p_window_kind: data.window,
+      p_delta_hundredths: Math.round(data.uses * 100),
+      p_reason: data.reason,
+    });
+    if (error) throw new Error(staffFailure(error.message));
+    return { used: Number(used ?? 0) / 100 };
+  });
+
+/**
+ * Suspend an account — it cannot sign in, every session ends, its computers and
+ * phones are disconnected and its open and scheduled JARVIS work stops — or
+ * restore it, after which it signs in and connects its devices again.
+ */
+export const suspendCustomer = createServerFn({ method: "POST" })
+  .middleware([requireAssurance(HIGH_RISK)])
+  .validator((input) => z.object({ userId: uuid, suspend: z.boolean(), reason }).parse(input))
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    const { error } = await context.supabase.rpc("ocade_staff_suspend_account", {
+      p_user: data.userId,
+      p_suspend: data.suspend,
+      p_reason: data.reason,
+    });
+    if (error) throw new Error(staffFailure(error.message));
+    return { ok: true };
+  });
+
+/**
+ * An owner deletes a customer's account: the database stops it first (as a
+ * suspension) and records why; then the same erasure the customer's own
+ * deletion uses removes its data and its sign-in. The record outlives it with
+ * no subject but the reference.
+ */
+export const deleteCustomerAccount = createServerFn({ method: "POST" })
+  .middleware([requireAssurance(HIGH_RISK)])
+  .validator((input) =>
+    z.object({ userId: uuid, email: z.string().trim().min(3).max(320), reason }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ reference: string; pendingFiles: number }> => {
+    const { error } = await context.supabase.rpc("ocade_staff_begin_account_deletion", {
+      p_user: data.userId,
+      p_email: data.email,
+      p_reason: data.reason,
+    });
+    if (error) throw new Error(staffFailure(error.message));
+    const { eraseAccount } = await import("@/lib/account/erase.server");
+    const { pendingFiles } = await eraseAccount(data.userId).catch((cause: unknown) => {
+      throw new Error(
+        `The account is suspended, but ${cause instanceof Error ? cause.message : "its deletion stopped"}`,
+      );
+    });
+    const reference = `DEL-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("ocade_admin_actions")
+      .insert({
+        actor: context.userId,
+        target_user: null,
+        action: "account_deleted",
+        reason: `Account deleted from the console, reference ${reference}`,
+      })
+      .then(
+        () => undefined,
+        () => undefined,
+      );
+    return { reference, pendingFiles };
   });
 
 /* ---------------------------------------------------------------- cases -- */

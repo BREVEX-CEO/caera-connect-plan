@@ -76,6 +76,7 @@ const post = (session, table, body) =>
   );
 
 const customerEmail = `customer-${stamp}@ocade.test`;
+const goneEmail = `gone-${stamp}@ocade.test`;
 const otherEmail = `other-${stamp}@ocade.test`;
 const hireEmail = `newhire-${stamp}@ocade.test`;
 const customer = await signIn(customerEmail);
@@ -606,6 +607,76 @@ try {
     (await seen(owner.getByText(/Case closed/))) && (await seen(cases.getByText("No open cases."))),
   );
 
+  // Give back usage, suspend and restore: on the record, and real at Supabase Auth.
+  await tab(owner, "Customers").click();
+  const accountRow = await customerRow(owner);
+  const operations = accountRow.getByPlaceholder(/^Reason for the record/);
+  const giveBack = accountRow.getByRole("button", { name: "Give back", exact: true });
+  check("giving back usage waits for a reason", await giveBack.isDisabled());
+  await operations.fill("Refund for the export outage");
+  await giveBack.click();
+  check("usage is given back", await seen(owner.getByText(/^Given back\./)));
+  const [desk] = await post(customer, "jarvis_devices", {
+    name: `Desk ${stamp}`,
+    platform: "Windows",
+  });
+  await operations.fill("Card fraud reported by the bank");
+  await accountRow.getByRole("button", { name: "Suspend the account" }).click();
+  check(
+    "the account is suspended",
+    (await seen(owner.getByText(/^Suspended\. They are signed out everywhere/))) &&
+      (await seen(accountRow.getByText("Suspended", { exact: true }))),
+  );
+  const bannedSignIn = await signIn(customerEmail);
+  const oldToken = await asCustomer(customer, "/rest/v1/rpc/ocade_staff_can", {
+    method: "POST",
+    body: JSON.stringify({ p_permission: "customers.read" }),
+  });
+  const devices = await fetch(
+    `${SUPABASE}/rest/v1/jarvis_devices?id=eq.${desk.id}&select=revoked_at`,
+  ).then((response) => response.json());
+  check(
+    "a suspended customer cannot sign in, their session is gone and their computer disconnected",
+    bannedSignIn.error_code === "user_banned" &&
+      oldToken.status === 401 &&
+      Boolean(devices[0]?.revoked_at),
+    `${JSON.stringify(bannedSignIn).slice(0, 80)} ${oldToken.status}`,
+  );
+  await operations.fill("The bank confirmed it was a mistake");
+  await accountRow.getByRole("button", { name: "Restore the account" }).click();
+  check("the account is restored", await seen(owner.getByText(/^Restored\./)));
+  check("and the customer signs in again", Boolean((await signIn(customerEmail)).access_token));
+
+  // An owner deletes an account: the address typed exactly, then gone with its data.
+  const gone = await signIn(goneEmail);
+  await post(gone, "ocade_conversations", {
+    user_id: gone.user.id,
+    title: `Leaving ${stamp}`,
+    updated_at: new Date().toISOString(),
+  });
+  await owner.getByPlaceholder("Search by email, name or account id").fill(`gone-${stamp}`);
+  const goneRow = owner.locator("li", { hasText: goneEmail });
+  await goneRow.getByRole("button", { name: "Open", exact: true }).click();
+  const deleteButton = goneRow.getByRole("button", { name: "Delete the account permanently" });
+  await goneRow.getByPlaceholder(/^Reason for the record/).fill("The customer asked us by email");
+  await goneRow
+    .getByLabel("Type the account's email address to delete it")
+    .fill("someone@else.test");
+  check("deleting waits for the account's own address", await deleteButton.isDisabled());
+  await goneRow.getByLabel("Type the account's email address to delete it").fill(goneEmail);
+  await deleteButton.click();
+  check(
+    "the account is deleted",
+    await seen(owner.getByText(/^The account is deleted\. Reference DEL-/)),
+  );
+  const again = await signIn(goneEmail);
+  const left = await (await asCustomer(again, "/rest/v1/ocade_conversations?select=id")).json();
+  check(
+    "signing in with that address again finds a new, empty account",
+    Array.isArray(left) && left.length === 0,
+    JSON.stringify(left).slice(0, 120),
+  );
+
   // Everything above is on the record.
   await tab(owner, "Audit").click();
   const audit = owner.getByRole("region", { name: "Audit record" });
@@ -622,6 +693,10 @@ try {
       "Opened a case",
       "Read a conversation under a case",
       "Closed a case",
+      "Gave back usage",
+      "Suspended an account",
+      "Restored an account",
+      "Began deleting an account",
       "Moved to another team today",
     ].every((line) => recorded.includes(line)),
     recorded.replace(/\s+/g, " ").slice(0, 400),

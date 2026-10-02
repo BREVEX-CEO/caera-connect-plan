@@ -69,7 +69,10 @@ export type StaffPermission =
   | "audit.read"
   | "staff.manage"
   | "cases.read"
-  | "cases.manage";
+  | "cases.manage"
+  | "usage.manage"
+  | "accounts.manage"
+  | "accounts.delete";
 
 /**
  * Refuse before reading anything unless the caller may use this permission now

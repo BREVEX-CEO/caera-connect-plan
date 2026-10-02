@@ -123,6 +123,8 @@ create table if not exists auth.users (
   encrypted_password text,
   email_confirmed_at timestamptz,
   last_sign_in_at timestamptz,
+  -- GoTrue refuses sign-in and refresh while this is in the future (an account ban).
+  banned_until timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

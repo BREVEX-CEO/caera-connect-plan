@@ -46,6 +46,8 @@ const tables = new Map();
 const sessions = new Map();
 /** userId -> email */
 const emails = new Map();
+/** Accounts Supabase Auth refuses to sign in or refresh (auth.users.banned_until in the future). */
+const banned = new Set();
 /** accessToken -> "aal1" | "aal2": what that session proved. */
 const tokenAal = new Map();
 /** refreshToken -> { userId, aal } */
@@ -107,13 +109,18 @@ const ALL_PERMISSIONS = [
   "staff.manage",
   "cases.read",
   "cases.manage",
+  "usage.manage",
+  "accounts.manage",
+  "accounts.delete",
 ];
 const ROLE_PERMISSIONS = {
   primary_owner: ALL_PERMISSIONS,
   backup_owner: ALL_PERMISSIONS,
-  admin: ALL_PERMISSIONS.filter((p) => p !== "staff.manage" && p !== "cases.manage"),
+  admin: ALL_PERMISSIONS.filter(
+    (p) => p !== "staff.manage" && p !== "cases.manage" && p !== "accounts.delete",
+  ),
   support: ["customers.read", "devices.read", "tasks.read", "cases.read"],
-  billing: ["customers.read", "usage.read", "grants.manage"],
+  billing: ["customers.read", "usage.read", "grants.manage", "usage.manage"],
   operations: ["devices.read", "devices.manage", "tasks.read", "health.read", "execution.manage"],
   read_only: [
     "customers.read",
@@ -1032,6 +1039,70 @@ function handleRpc(name, args, userId) {
       return ended;
     }
 
+    case "ocade_staff_adjust_usage":
+    case "ocade_staff_suspend_account":
+    case "ocade_staff_begin_account_deletion": {
+      const [permission, action] = {
+        ocade_staff_adjust_usage: ["usage.manage", "change a customer's usage"],
+        ocade_staff_suspend_account: ["accounts.manage", "suspend an account"],
+        ocade_staff_begin_account_deletion: ["accounts.delete", "delete an account"],
+      }[name];
+      const denied = requireStaff(permission, action);
+      if (denied) return denied;
+      if (short(args.p_reason)) return short(args.p_reason);
+      const target = args.p_user;
+      if (target === userId) return refuse("Nobody does this to their own account.");
+      if (["primary_owner", "backup_owner"].includes(roleOf(target))) {
+        return refuse("An owner's account is changed by the owner.");
+      }
+      if (roleOf(target) && !["primary_owner", "backup_owner"].includes(roleOf(userId))) {
+        return refuse("A member of staff is changed by an owner.");
+      }
+      if (!emails.has(target)) return refuse("No such account.", "P0002");
+      const reason = String(args.p_reason).trim();
+      const stop = () => {
+        banned.add(target);
+        endSessions(new Set([target]));
+        for (const device of jarvisTables.jarvis_devices ?? []) {
+          if (device.user_id === target && !device.revoked_at) {
+            Object.assign(device, { revoked_at: new Date(now).toISOString(), public_key: null });
+          }
+        }
+        for (const task of jarvisTables.jarvis_tasks ?? []) {
+          if (
+            task.user_id === target &&
+            ["running", "waiting", "taken_over"].includes(task.status)
+          ) {
+            Object.assign(task, { status: "stopped", blocker: "The account was suspended." });
+          }
+        }
+      };
+      if (name === "ocade_staff_adjust_usage") {
+        const kind = kindFor(args.p_surface, args.p_window_kind);
+        const startsAt = args.p_window_kind === "week" ? week.startsAt : session.startsAt;
+        addUsage(target, kind, startsAt, Number(args.p_delta_hundredths));
+        record(userId, "usage_adjusted", reason, target);
+        return usedIn(target, kind, startsAt);
+      }
+      if (name === "ocade_staff_suspend_account") {
+        if (args.p_suspend) stop();
+        else banned.delete(target);
+        record(userId, args.p_suspend ? "account_suspended" : "account_restored", reason, target);
+        return true;
+      }
+      if (roleOf(target)) return refuse("Remove their staff role before deleting the account.");
+      if (
+        String(args.p_email ?? "")
+          .trim()
+          .toLowerCase() !== emails.get(target).toLowerCase()
+      ) {
+        return refuse("Type the account's email address exactly to delete it.", "22023");
+      }
+      stop();
+      record(userId, "account_deletion_started", reason, target);
+      return true;
+    }
+
     case "ocade_staff_reset_second_factor": {
       const denied = requireStaff("sessions.manage", "turn off a customer's two-step verification");
       if (denied) return denied;
@@ -1604,6 +1675,14 @@ const server = createServer((request, response) => {
     if (url.pathname === "/auth/v1/token") {
       const parsed = JSON.parse(body || "{}");
       const grant = url.searchParams.get("grant_type");
+      const asking =
+        grant === "refresh_token"
+          ? refreshes.get(parsed.refresh_token)?.userId
+          : grant === "pkce"
+            ? idForEmail(pkceCodes.get(String(parsed.auth_code ?? ""))?.email ?? "")
+            : idForEmail(String(parsed.email ?? "proof@ocade.test"));
+      if (banned.has(asking))
+        return send(400, { error_code: "user_banned", msg: "User is banned" });
       if (grant === "pkce") {
         const held = pkceCodes.get(String(parsed.auth_code ?? ""));
         pkceCodes.delete(String(parsed.auth_code ?? ""));
@@ -1673,7 +1752,19 @@ const server = createServer((request, response) => {
       return send(200, {
         ...userRecord(id, emails.get(id) ?? ""),
         last_sign_in_at: emails.has(id) ? new Date().toISOString() : null,
+        banned_until: banned.has(id) ? "2126-01-01T00:00:00Z" : null,
       });
+    }
+    if (adminUser && !adminUser[2] && request.method === "DELETE") {
+      if (sessions.has(requestToken)) return send(403, { message: "not the service role" });
+      const id = adminUser[1];
+      // The identity, its sessions and everything that cascades from it.
+      for (const [token, owner] of [...sessions]) if (owner === id) sessions.delete(token);
+      for (const [token, held] of [...refreshes]) if (held.userId === id) refreshes.delete(token);
+      tables.delete(id);
+      emails.delete(id);
+      banned.delete(id);
+      return send(200, {});
     }
 
     if (url.pathname === "/auth/v1/admin/generate_link" && request.method === "POST") {

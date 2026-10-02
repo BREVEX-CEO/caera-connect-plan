@@ -1380,6 +1380,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ocade_usage_adjustments: {
+        Row: {
+          actor: string | null
+          created_at: string
+          delta_hundredths: number
+          id: string
+          reason: string
+          surface: string
+          used_after: number
+          used_before: number
+          user_id: string | null
+          window_kind: string
+          window_start: string
+        }
+        Insert: {
+          actor?: string | null
+          created_at?: string
+          delta_hundredths: number
+          id?: string
+          reason: string
+          surface: string
+          used_after: number
+          used_before: number
+          user_id?: string | null
+          window_kind: string
+          window_start: string
+        }
+        Update: {
+          actor?: string | null
+          created_at?: string
+          delta_hundredths?: number
+          id?: string
+          reason?: string
+          surface?: string
+          used_after?: number
+          used_before?: number
+          user_id?: string | null
+          window_kind?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1949,6 +1991,20 @@ export type Database = {
       }
       ocade_staff_can: { Args: { p_permission: string }; Returns: boolean }
       ocade_staff_end_all_sessions: { Args: { p_reason: string }; Returns: number }
+      ocade_staff_adjust_usage: {
+        Args: {
+          p_delta_hundredths: number
+          p_reason: string
+          p_surface: string
+          p_user: string
+          p_window_kind: string
+        }
+        Returns: number
+      }
+      ocade_staff_begin_account_deletion: {
+        Args: { p_email: string; p_reason: string; p_user: string }
+        Returns: boolean
+      }
       ocade_staff_end_customer_sessions: {
         Args: { p_reason: string; p_user: string }
         Returns: number
@@ -1968,6 +2024,10 @@ export type Database = {
       ocade_staff_revoke: { Args: { p_reason: string; p_user: string }; Returns: boolean }
       ocade_staff_set_permissions: {
         Args: { p_denied: string[]; p_granted: string[]; p_reason: string; p_user: string }
+        Returns: boolean
+      }
+      ocade_staff_suspend_account: {
+        Args: { p_reason: string; p_suspend: boolean; p_user: string }
         Returns: boolean
       }
       ocade_staff_transfer_ownership: {

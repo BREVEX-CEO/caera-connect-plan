@@ -93,6 +93,9 @@ const ALL_PERMISSIONS: { id: StaffPermission; name: string }[] = [
   { id: "staff.manage", name: "Manage staff" },
   { id: "cases.read", name: "Read conversations under a case" },
   { id: "cases.manage", name: "Open and close cases" },
+  { id: "usage.manage", name: "Give back usage" },
+  { id: "accounts.manage", name: "Suspend or restore accounts" },
+  { id: "accounts.delete", name: "Delete accounts" },
 ];
 
 const GRANTABLE_ROLES: StaffRole[] = [
@@ -779,6 +782,11 @@ const ACTION_NAMES: Record<string, string> = {
   case_open: "Opened a case",
   case_close: "Closed a case",
   case_read: "Read a conversation under a case",
+  usage_adjusted: "Gave back usage",
+  account_suspended: "Suspended an account",
+  account_restored: "Restored an account",
+  account_deletion_started: "Began deleting an account",
+  account_deleted: "Deleted an account",
 };
 
 export function AuditModule() {

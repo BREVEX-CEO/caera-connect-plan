@@ -28,6 +28,8 @@ import {
   type StaffPermission,
 } from "@/lib/admin/access.functions";
 import {
+  adjustCustomerUsage,
+  deleteCustomerAccount,
   endCustomerSessions,
   messageOf,
   openCase,
@@ -36,6 +38,7 @@ import {
   ready,
   resetCustomerSecondFactor,
   STAFF_ROLE_NAMES,
+  suspendCustomer,
   type MyStaff,
   type StaffRole,
 } from "@/lib/admin/staff.functions";
@@ -516,6 +519,14 @@ function CustomerDetail({
       {may("devices.read") ? (
         <AccountDevices userId={row.id} canRemove={may("devices.manage")} />
       ) : null}
+      {!row.isSelf && (may("usage.manage") || may("accounts.manage") || may("accounts.delete")) ? (
+        <AccountOperations
+          row={row}
+          may={may}
+          suspended={detail.data?.security?.suspended ?? null}
+          onChanged={() => void detail.refetch()}
+        />
+      ) : null}
       {!row.isSelf && (may("sessions.manage") || may("cases.manage")) ? (
         <div className="space-y-2 border-t border-border/50 pt-3">
           <Reason value={why} onChange={setWhy} label="Why" />
@@ -567,6 +578,171 @@ function CustomerDetail({
               </>
             ) : null}
           </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * GIVE BACK USAGE, SUSPEND OR RESTORE, DELETE. Each one is the database's to
+ * allow (permission, second factor, recent proof, a reason, never an owner and
+ * never oneself) and is kept on the record; the deletion also needs the
+ * account's own address typed.
+ */
+function AccountOperations({
+  row,
+  may,
+  suspended,
+  onChanged,
+}: {
+  row: AdminAccountRow;
+  may: (permission: StaffPermission) => boolean;
+  suspended: boolean | null;
+  onChanged: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const { withProof, dialog } = useConfirmIdentity();
+  const [why, setWhy] = useState("");
+  const [surface, setSurface] = useState<"chat" | "jarvis">("chat");
+  const [period, setPeriod] = useState<"session" | "week">("session");
+  const [uses, setUses] = useState("1");
+  const [typed, setTyped] = useState("");
+  const count = Number(uses);
+  const validUses = Number.isFinite(count) && count >= 0.01 && count <= 1000;
+  const giveBack = useMutation({
+    mutationFn: () =>
+      withProof(() =>
+        adjustCustomerUsage({
+          data: { userId: row.id, surface, window: period, uses: -count, reason: why },
+        }),
+      ),
+    onSuccess: ({ used }) => {
+      toast.success(`Given back. They have used ${used} in this ${period} now.`);
+      setWhy("");
+      onChanged();
+    },
+    onError: (error) => toast.error(messageOf(error)),
+  });
+  const suspend = useMutation({
+    mutationFn: (on: boolean) =>
+      withProof(() => suspendCustomer({ data: { userId: row.id, suspend: on, reason: why } })),
+    onSuccess: (_, on) => {
+      toast.success(
+        on
+          ? "Suspended. They are signed out everywhere and their devices are disconnected."
+          : "Restored. They can sign in again and connect their devices.",
+      );
+      setWhy("");
+      onChanged();
+    },
+    onError: (error) => toast.error(messageOf(error)),
+  });
+  const erase = useMutation({
+    mutationFn: () =>
+      withProof(() =>
+        deleteCustomerAccount({ data: { userId: row.id, email: typed, reason: why } }),
+      ),
+    onSuccess: ({ reference }) => {
+      toast.success(`The account is deleted. Reference ${reference}.`);
+      void queryClient.invalidateQueries({ queryKey: ["admin"] });
+    },
+    onError: (error) => toast.error(messageOf(error)),
+  });
+  const typedMatches =
+    Boolean(row.email) && typed.trim().toLowerCase() === row.email!.toLowerCase();
+
+  return (
+    <div className="space-y-2 border-t border-border/50 pt-3">
+      {dialog}
+      <Reason value={why} onChange={setWhy} label="Reason for the record" />
+      {may("usage.manage") ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-1 text-muted-foreground">
+            <span>Give back</span>
+            <input
+              type="number"
+              min={0.01}
+              max={1000}
+              step={1}
+              value={uses}
+              onChange={(event) => setUses(event.target.value)}
+              aria-label="Uses to give back"
+              className="h-7 w-16 rounded-md border border-border bg-transparent px-2 text-foreground outline-none focus-visible:border-ring"
+            />
+            <span>uses of</span>
+          </label>
+          <select
+            value={surface}
+            onChange={(event) => setSurface(event.target.value as "chat" | "jarvis")}
+            aria-label="Which allowance"
+            className="h-7 rounded-md border border-border bg-transparent px-1 text-foreground"
+          >
+            <option value="chat">Chat</option>
+            <option value="jarvis">JARVIS</option>
+          </select>
+          <select
+            value={period}
+            onChange={(event) => setPeriod(event.target.value as "session" | "week")}
+            aria-label="Which window"
+            className="h-7 rounded-md border border-border bg-transparent px-1 text-foreground"
+          >
+            <option value="session">this session</option>
+            <option value="week">this week</option>
+          </select>
+          <button
+            type="button"
+            disabled={!ready(why) || !validUses || giveBack.isPending}
+            onClick={() => giveBack.mutate()}
+            className="h-7 rounded-md border border-border px-2 text-foreground disabled:opacity-50"
+          >
+            {giveBack.isPending ? "Giving back…" : "Give back"}
+          </button>
+        </div>
+      ) : null}
+      {may("accounts.manage") ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {suspended !== true ? (
+            <button
+              type="button"
+              disabled={!ready(why) || suspend.isPending}
+              onClick={() => suspend.mutate(true)}
+              className="h-7 rounded-md border border-destructive/50 px-2 text-destructive disabled:opacity-50"
+            >
+              {suspend.isPending ? "Working…" : "Suspend the account"}
+            </button>
+          ) : null}
+          {suspended !== false ? (
+            <button
+              type="button"
+              disabled={!ready(why) || suspend.isPending}
+              onClick={() => suspend.mutate(false)}
+              className="h-7 rounded-md border border-border px-2 text-foreground disabled:opacity-50"
+            >
+              {suspend.isPending ? "Working…" : "Restore the account"}
+            </button>
+          ) : null}
+          {suspended ? <span className="text-destructive">Suspended</span> : null}
+        </div>
+      ) : null}
+      {may("accounts.delete") && row.email ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={typed}
+            onChange={(event) => setTyped(event.target.value)}
+            placeholder="Type their email to delete"
+            aria-label="Type the account's email address to delete it"
+            autoComplete="off"
+            className="h-7 w-64 max-w-full rounded-md border border-border bg-transparent px-2 text-foreground outline-none focus-visible:border-ring"
+          />
+          <button
+            type="button"
+            disabled={!ready(why) || !typedMatches || erase.isPending}
+            onClick={() => erase.mutate()}
+            className="h-7 rounded-md bg-destructive px-2 text-destructive-foreground disabled:opacity-50"
+          >
+            {erase.isPending ? "Deleting…" : "Delete the account permanently"}
+          </button>
         </div>
       ) : null}
     </div>
