@@ -10,6 +10,7 @@ release key (~/.ocade-release/), never in the repository.
 """
 import argparse
 import glob
+import json
 import os
 import shutil
 import subprocess
@@ -52,6 +53,11 @@ def main() -> None:
     # One protocol for every OCADE device: the server, the Device Agent and this app read the same file.
     (out / "assets").mkdir()
     shutil.copy(ROOT / "jarvis-runtime" / "ocade_protocol.json", out / "assets" / "ocade_protocol.json")
+    # OCADE's wake model and its manifest: the same files the Device Agent bundles.
+    (out / "assets" / "wake").mkdir()
+    manifest = json.loads((ROOT / "jarvis-runtime" / "wake" / "manifest.json").read_text(encoding="utf-8"))
+    for name in ("manifest.json", manifest["file"]):
+        shutil.copy(ROOT / "jarvis-runtime" / "wake" / name, out / "assets" / "wake" / name)
 
     run(TOOLS / f"aapt2{EXE}", "compile", "--dir", out / "res", "-o", out / "res.zip")
     link = [TOOLS / f"aapt2{EXE}", "link", "-I", PLATFORM, "--manifest", HERE / "AndroidManifest.xml",

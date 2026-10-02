@@ -290,6 +290,7 @@ class Presence:
         image = _tray_image()
         menu = pystray.Menu(
             pystray.MenuItem(lambda _: self.agent.status(), None, enabled=False),
+            pystray.MenuItem(lambda _: _wake_words(self.agent), None, enabled=False),
             pystray.MenuItem("Open OCADE JARVIS", lambda: self.open_ocade(), default=True),
             pystray.MenuItem("STOP JARVIS", lambda: self.stop_jarvis()),
             pystray.MenuItem("Pause JARVIS", lambda: self.agent.pause(),
@@ -428,6 +429,10 @@ def health_check() -> int:
             import pycaw.pycaw  # noqa: F401
             import uiautomation  # noqa: F401
         assert browser._OCADE_PAGE and browser._GATES
+        import ocade_wake
+        # Shipped with the build (a build without it is broken); a damaged copy on disk is
+        # reported by the tray and repaired, never a reason for the agent itself not to start.
+        assert (ocade_wake.bundled() / "manifest.json").is_file() and (ocade_wake.bundled() / "manifest.sig").is_file()
         actions = Path(ocade_sheets.__file__).resolve().parent / "actions"
         assert (actions / "ocade_excel.ps1").is_file() and (actions / "ocade_word.ps1").is_file()
         import pystray
@@ -519,12 +524,29 @@ def _watch_health_and_updates(agent: ocade_device.Agent, root: Path | None, serv
             print(f"Update skipped: {reported}", flush=True)
 
 
+WAKE = {"wake": "off"}  # what the tray says about "OCADE" / "Hey OCADE"
+
+
+def _wake_words(agent) -> str:
+    if WAKE["wake"] == "unavailable":
+        return f"Wake: {WAKE.get('why', 'not available')}"
+    if WAKE["wake"] == "ready" and agent.state.get("background"):
+        return "Listening for “OCADE”"
+    return "Wake: on with Background Mode"
+
+
 def _wake_while_background(agent: ocade_device.Agent, home: Path, server: str) -> None:
-    """'Hey OCADE' listens locally only while Background/Wake Mode is on."""
+    """"OCADE" / "Hey OCADE" listens locally only while Background/Wake Mode is on. The
+    bundled model is checked once (and again every ten minutes while it cannot run)."""
     import ocade_wake
     listening: threading.Event | None = None
+    checked, ready = -1e9, False
     while not agent.stop.wait(2):
-        wanted = bool(agent.state.get("background")) and ocade_wake.available(home)
+        if not ready and time.monotonic() - checked > 600:
+            checked = time.monotonic()
+            WAKE.update(ocade_wake.health())
+            ready = WAKE["wake"] == "ready"
+        wanted = bool(agent.state.get("background")) and ready
         if wanted and listening is None:
             listening = threading.Event()
             threading.Thread(target=ocade_wake.listen, args=(home, server, listening), daemon=True).start()

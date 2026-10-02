@@ -53,7 +53,7 @@ iPhone/iPad remain PWA/Home Screen first and use Apple-supported Shortcuts/Siri/
 
 ## Voice
 
-Hey OCADE is the preferred wake phrase where supported. Pre-wake detection is local. The small model is downloaded/verified once when enabled and retained.
+“OCADE” and “Hey OCADE” are the wake phrases where supported. Pre-wake detection is local. OCADE's own wake model for “OCADE” and “Hey OCADE” is bundled with the Device Agent and the Android app (owner direction 2026-10-02): no download after installation, one signed manifest for install, health, update and rollback, and pre-wake audio stays on the device.
 
 JARVIS is a partner during work: users can speak, ask status, redirect, pause, continue or stop.
 

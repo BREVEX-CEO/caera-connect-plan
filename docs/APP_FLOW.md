@@ -84,7 +84,7 @@ User may ask “what are you doing?” or redirect while task runs. JARVIS answe
 First enable:
 
 1. explain local wake;
-2. download/verify small Hey OCADE model;
+2. use the bundled, signed OCADE wake model (no download);
 3. store once;
 4. keep across updates/restarts;
 5. pre-wake audio remains local.

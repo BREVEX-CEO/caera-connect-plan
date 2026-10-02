@@ -33,6 +33,7 @@ public final class MainActivity extends Activity {
     private LinearLayout checklist;
     private Button connect;
     private Button disconnect;
+    private Button wake;
     /** The guided setup is walking through the permission screens. */
     private boolean guiding;
     /** The screen the walk-through last opened, so a decline is not asked again at once. */
@@ -92,6 +93,8 @@ public final class MainActivity extends Activity {
         connect = button("Connect this phone", v -> connectPhone());
         page.addView(connect);
         page.addView(button("Open OCADE JARVIS", v -> open("/ocade-jarvis")));
+        wake = button("", v -> toggleWake());
+        page.addView(wake);
         disconnect = button("Disconnect this phone", v -> disconnectPhone());
         page.addView(disconnect);
         setContentView(scroll);
@@ -101,6 +104,10 @@ public final class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         if (identity.connected() || identity.waiting()) AgentService.start(this);
+        // Wake Mode the person turned on comes back whenever OCADE is opened (after a restart too).
+        if (identity.prefs.getBoolean("wake", false) && microphoneAllowed() && WakeService.running == null) {
+            WakeService.start(this);
+        }
         // Back from an Android permission screen (its dialog, or a settings page): on to the next.
         if (guiding) advanceLater();
         main.post(tick);
@@ -138,6 +145,25 @@ public final class MainActivity extends Activity {
     private boolean notificationsAllowed() {
         return Build.VERSION.SDK_INT < 33
                 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private boolean microphoneAllowed() {
+        return checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /** Wake Mode on or off; the microphone is asked for by Android's own dialog, the first time. */
+    private void toggleWake() {
+        boolean on = identity.prefs.getBoolean("wake", false);
+        if (on) {
+            identity.prefs.edit().putBoolean("wake", false).apply();
+            stopService(new Intent(this, WakeService.class));
+        } else if (microphoneAllowed()) {
+            identity.prefs.edit().putBoolean("wake", true).apply();
+            WakeService.start(this);
+        } else {
+            requestPermissions(new String[] {Manifest.permission.RECORD_AUDIO}, 2);
+        }
+        render();
     }
 
     private boolean overlayAllowed() {
@@ -205,6 +231,11 @@ public final class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(request, permissions, results);
+        if (request == 2 && microphoneAllowed()) {
+            identity.prefs.edit().putBoolean("wake", true).apply();
+            WakeService.start(this);
+            render();
+        }
         if (guiding) advanceLater();
     }
 
@@ -231,6 +262,8 @@ public final class MainActivity extends Activity {
                 "For the floating OCADE bubble: task, STOP, Talk and Open JARVIS from any app."));
         checklist.addView(item(accessibilityAllowed(), "Accessibility: OCADE JARVIS",
                 "So JARVIS can read and use apps on this phone when you ask. Turn it on in Settings > Accessibility."));
+        checklist.addView(item(microphoneAllowed(), "Microphone (only for Wake Mode)",
+                "So OCADE can listen on this phone for “OCADE”. Nothing you say leaves the phone until you say it."));
         if (skipped) {
             checklist.addView(text("Some of this was left off. OCADE works without it, with less: "
                     + "press Set up again whenever you want to allow it.", 13, false));
@@ -247,6 +280,9 @@ public final class MainActivity extends Activity {
             now = "Not connected";
         }
         state.setText(now);
+        boolean wakeOn = identity.prefs.getBoolean("wake", false);
+        wake.setText(wakeOn ? "Turn off Wake Mode (" + WakeService.status + ")"
+                : "Turn on Wake Mode: say “OCADE”");
         connect.setVisibility(identity.connected() ? View.GONE : View.VISIBLE);
         disconnect.setVisibility(identity.connected() || identity.waiting() ? View.VISIBLE : View.GONE);
     }

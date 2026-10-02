@@ -25,16 +25,20 @@ a = Analysis(
     datas=[(str(root / "ocade_protocol.json"), "."),
            (str(root / "actions" / "ocade_page.js"), "actions"),
            (str(root / "actions" / "ocade_excel.ps1"), "actions"),
-           (str(root / "actions" / "ocade_word.ps1"), "actions"), *uia_bin],
+           (str(root / "actions" / "ocade_word.ps1"), "actions"),
+           # OCADE's wake model and its signed manifest: bundled, never downloaded.
+           *[(str(f), "wake") for f in (root / "wake").iterdir()
+             if f.name in ("manifest.json", "manifest.sig") or f.suffix == ".npz" and f.stem != "candidate"],
+           *uia_bin],
     hiddenimports=[
         "ocade_device", "ocade_identity", "ocade_computer", "ocade_update",
         "ocade_egress", "ocade_wake", "ocade_existing_browser", "ocade_documents", "ocade_sheets", "ocade_accessibility",
         "ocade_settings", "psutil", "pycaw", "pycaw.pycaw",
         "uiautomation", "comtypes", "actions.browser_control",
         "pystray", "pystray._win32", "pystray._darwin", "pystray._xorg",
-        "pynput.keyboard", "pynput.mouse",
+        "pynput.keyboard", "pynput.mouse", "numpy", "sounddevice",
     ],
-    excludes=["PyQt6", "fastapi", "uvicorn", "google", "tinytuya", "cv2", "numpy"],
+    excludes=["PyQt6", "fastapi", "uvicorn", "google", "tinytuya", "cv2", "torch"],
 )
 pyz = PYZ(a.pure)
 exe = EXE(

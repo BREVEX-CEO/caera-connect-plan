@@ -16,7 +16,7 @@ This file records current owner-approved decisions. Later explicit owner decisio
 10. macOS deep control requires a trusted Device Agent and real platform proof.
 11. JARVIS is Online-only. If Online intelligence is unavailable, lock JARVIS rather than using Chat Offline.
 12. JARVIS remains conversational while executing and supports live status questions/redirection.
-13. Hey OCADE wake detection is local before activation; model downloads/verifies once when enabled.
+13. Wake detection is local before activation. Superseded 2026-10-02: OCADE's own wake model for “OCADE” and “Hey OCADE” is bundled with the Device Agent and the Android app (owner direction 2026-10-02): no download after installation, one signed manifest for install, health, update and rollback, and pre-wake audio stays on the device.
 14. STOP locally cancels current owned work immediately.
 15. Device removal during active execution must cancel local work before identity is forgotten.
 16. Physical execution fails closed if server safety-control state cannot be read.

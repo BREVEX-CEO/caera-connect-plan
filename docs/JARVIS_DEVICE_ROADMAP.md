@@ -145,7 +145,7 @@ Remote publish/destructive Git actions follow stronger authorization.
 
 JARVIS converses during work.
 
-Hey OCADE is locally detected after the user enables it. Download/verify the model once and retain it.
+“OCADE” and “Hey OCADE” are detected locally after the user enables Wake Mode. OCADE's own wake model for “OCADE” and “Hey OCADE” is bundled with the Device Agent and the Android app (owner direction 2026-10-02): no download after installation, one signed manifest for install, health, update and rollback, and pre-wake audio stays on the device.
 
 User voice can ask status, pause, continue, stop or change direction while a task is active.
 

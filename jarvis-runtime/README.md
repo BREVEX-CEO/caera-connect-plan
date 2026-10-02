@@ -73,7 +73,7 @@ Avoid unnecessary visible terminal windows.
 
 JARVIS may converse while working.
 
-Hey OCADE uses a small local wake model downloaded/verified once when enabled. Pre-wake audio stays local.
+“OCADE” and “Hey OCADE” use OCADE's own small wake model, bundled in `wake/` with a manifest signed by the release key (`ocade_wake.verify`); nothing is downloaded after installation. It listens only in Background/Wake Mode, skips quiet audio, and pre-wake audio stays on this computer. Training (`scripts/wake/`) uses Windows' own voices on the build computer, never a model hub.
 
 ## Android/Apple
 
