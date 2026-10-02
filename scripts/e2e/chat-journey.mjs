@@ -85,11 +85,24 @@ try {
     (await page.locator('aside button[aria-haspopup="menu"]').count()) === 1,
   );
 
-  // Send, and watch the answer arrive.
+  // Send, and watch the answer arrive. Charging it is slow, as on a real network.
+  const slowSettlement = (ms) =>
+    fetch(`${SUPABASE}/__fixture/slow-settlement`, {
+      method: "POST",
+      body: JSON.stringify({ ms }),
+    });
+  await slowSettlement(3000);
   await page.fill("#ocade-composer", "What is OCADE?");
   await page.click('button[aria-label="Send"]');
   await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
   check("an answer streams into the transcript", true);
+  let mostCopies = 0;
+  for (let looked = 0; looked < 25; looked += 1) {
+    mostCopies = Math.max(mostCopies, await page.locator("text=stubbed OCADE answer").count());
+    await page.waitForTimeout(100);
+  }
+  check("the answer shows once while it is being charged", mostCopies === 1);
+  await slowSettlement(0);
   check(
     "the question is in the transcript too",
     (await page.locator("text=What is OCADE?").count()) >= 1,

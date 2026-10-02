@@ -1259,6 +1259,8 @@ function handleRpc(name, args, userId) {
 
 /** The scripted JARVIS steps set by `/__fixture/jarvis-script`, or null. */
 let jarvisScript = null;
+/** How long charging an answer takes, set by /__fixture/slow-settlement. */
+let settleDelayMs = 0;
 
 /** The next scripted step for this conversation, or null for an ordinary answer. */
 function jarvisStep(messages) {
@@ -1537,6 +1539,12 @@ const server = createServer((request, response) => {
       refusals.table = next.table ?? null;
       refusals.method = next.method ?? null;
       return send(200, { ok: true, refusing: refusals.table });
+    }
+
+    if (url.pathname === "/__fixture/slow-settlement") {
+      // POST {"ms":3000}: charging an answer takes as long as a slow network makes it.
+      settleDelayMs = Number(JSON.parse(body || "{}").ms) || 0;
+      return send(200, { ok: true, settleDelayMs });
     }
 
     if (url.pathname === "/__fixture/spend-allowance") {
@@ -1897,6 +1905,10 @@ const server = createServer((request, response) => {
       const userId = callerFrom(request, body);
       if (process.env.OCADE_STUB_TRACE) {
         process.stdout.write(`rpc ${rpc[1]} ${JSON.stringify(args)}\n`);
+      }
+      if (rpc[1] === "ocade_finalize_generation_permit" && settleDelayMs > 0) {
+        const charge = () => send(200, handleRpc(rpc[1], args, userId ?? "anonymous"));
+        return void setTimeout(charge, settleDelayMs);
       }
       const result = handleRpc(rpc[1], args, userId ?? "anonymous");
       if (result && typeof result === "object" && "__error" in result) {
