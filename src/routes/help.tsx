@@ -216,9 +216,10 @@ const QUESTIONS: {
     answer: (
       <p>
         Yes, with no add-on. On a computer with the OCADE Device Agent, turn on “Use my own browser”
-        for it under JARVIS › Devices, and allow remote debugging in Chrome when Chrome asks. JARVIS
-        then works with your own sign-ins, only in tabs it opens itself, and leaves your other tabs
-        alone. Without it, JARVIS uses a separate browser of its own on that computer.
+        for it under JARVIS › Devices. The first time, JARVIS opens your browser’s own permission
+        page: turn the permission on and choose Allow when your browser asks, then press Continue.
+        JARVIS then works with your own sign-ins, only in tabs it opens itself, and leaves your
+        other tabs alone. Without it, JARVIS uses a separate browser of its own on that computer.
       </p>
     ),
   },

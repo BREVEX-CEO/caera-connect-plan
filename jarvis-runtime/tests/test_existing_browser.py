@@ -23,6 +23,23 @@ def _port_file(folder: Path, port: int, path: str = "/devtools/browser/abc") -> 
     (folder / "DevToolsActivePort").write_text(f"{port}\n{path}")
 
 
+class PermissionPageTest(unittest.TestCase):
+    """No developer settings for the person: JARVIS opens the browser's own permission page once."""
+
+    def test_a_browser_that_does_not_allow_jarvis_is_handed_to_the_person_at_its_page(self):
+        import unittest.mock
+        import ocade_device
+        browsers = ocade_device.Browsers(headless=True, cdp=None)
+        with unittest.mock.patch.object(ocade_existing_browser, "find", return_value=None), \
+                unittest.mock.patch.object(ocade_existing_browser, "open_default", return_value=False), \
+                unittest.mock.patch.object(ocade_existing_browser, "open_setup", return_value="Chrome") as page:
+            out = browsers.run("real", {"action": "observe"}, False, [], threading.Event())
+        self.assertEqual(out["status"], "human_required")
+        self.assertIn("Chrome needs your permission once", out["summary"])
+        self.assertNotIn("chrome://", out["summary"])
+        page.assert_called_once()
+
+
 class DiscoveryTest(unittest.TestCase):
     def setUp(self):
         self.root = Path(tempfile.mkdtemp())

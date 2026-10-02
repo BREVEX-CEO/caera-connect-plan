@@ -137,10 +137,19 @@ class Browsers:
                     while not endpoint and time.monotonic() < deadline and not cancel.wait(0.5):
                         self._found = (-1e9, None)
                         endpoint = self.endpoint()
+            if not endpoint and not self.explicit:
+                import ocade_existing_browser
+                # The browser's own one-time permission, which only the person can give:
+                # open its page and hand over; Continue tries again once it is given.
+                shown = ocade_existing_browser.open_setup()
+                return {"status": "human_required",
+                        "summary": (f"{shown} needs your permission once for JARVIS to work in it. "
+                                    f"On the page {shown} just opened, turn on “Allow remote debugging "
+                                    f"for this browser instance”, choose Allow if {shown} asks, then "
+                                    "press Continue.") if shown else
+                        "Open your browser so JARVIS can work in it, then press Continue."}
             if not endpoint:
-                return {"status": "blocked",
-                        "summary": "Your browser is closed or does not allow JARVIS. Open it and "
-                                   "turn on remote debugging at chrome://inspect/#remote-debugging"}
+                return {"status": "blocked", "summary": "Your browser could not be reached. Open it and try again."}
             held = self.sessions.get("real")
             if held is not None and held.cdp_endpoint != endpoint:
                 # The browser restarted: the old connection is gone.

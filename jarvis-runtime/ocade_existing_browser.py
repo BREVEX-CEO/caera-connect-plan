@@ -85,6 +85,31 @@ def _running(image: str) -> bool:
     return image.lower() in out.lower()
 
 
+SETUP_PAGES = {"chrome": "chrome://inspect/#remote-debugging", "edge": "edge://inspect/#remote-debugging",
+               "brave": "brave://inspect/#remote-debugging"}
+
+
+def open_setup() -> str | None:
+    """Open the person's browser at its own page for letting JARVIS work in it; the browser's name."""
+    import subprocess
+    name = _default_first(list(EXECUTABLES))[0]
+    registry, _image, mac_app, _linux = EXECUTABLES[name]
+    try:
+        if SYSTEM == "Windows":
+            from actions.browser_control import _find_exe_windows
+            exe = _find_exe_windows(registry)
+            if not exe:
+                return None
+            subprocess.Popen([exe, SETUP_PAGES[name]], creationflags=getattr(subprocess, "DETACHED_PROCESS", 0))
+        elif SYSTEM == "Darwin":
+            subprocess.Popen(["open", "-a", mac_app, SETUP_PAGES[name]])
+        else:
+            return None
+    except OSError:
+        return None
+    return {"chrome": "Chrome", "edge": "Edge", "brave": "Brave"}[name]
+
+
 def open_default() -> bool:
     """Start the person's own browser, normal profile, when it is not running. True if started."""
     import shutil
