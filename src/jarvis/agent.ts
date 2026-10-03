@@ -387,7 +387,10 @@ export async function runJarvisTurn(
     stopIfAsked();
     untrustedSeen = true;
     if (!claimed) {
-      setTask(await deps.updateTask({ id: task.id, controller }));
+      // A task waiting for the person's answer got it: this message. Acting on it resumes it;
+      // left "waiting", its first step was refused and the turn ended "Stopped." (F27).
+      const resume = task.status === "waiting" ? { status: "running" as const, blocker: null } : {};
+      setTask(await deps.updateTask({ id: task.id, controller, ...resume }));
       claimed = true;
     }
     const queued = await deps.queue({ taskId: task.id, controller, action: parsed.data });

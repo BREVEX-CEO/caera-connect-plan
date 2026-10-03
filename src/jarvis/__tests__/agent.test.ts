@@ -98,6 +98,25 @@ function harness(
 }
 
 describe("a JARVIS turn", () => {
+  it("a reply to a task waiting for the person resumes it when JARVIS acts", async () => {
+    const h = harness([
+      { text: "", toolCalls: [call("computer", { action: "run", command: "python export.py" })] },
+      { text: "", toolCalls: [call("finish_task", { outcome: "completed", result: "Exported" })] },
+    ]);
+    const waiting = {
+      ...TASK,
+      status: "waiting" as const,
+      blocker: "JARVIS needs your answer to continue.",
+    };
+    const out = await runJarvisTurn({ ...h.input, task: waiting }, h.hooks, h.deps);
+    expect(h.deps.updateTask).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "t1", status: "running", blocker: null }),
+    );
+    expect(h.queued).toEqual([{ action: "run", command: "python export.py" }]);
+    expect(h.status()).toBe("completed");
+    expect(out.answer).toBeDefined();
+  });
+
   it("runs a tool call the model wrote as text, through the same checks, and never shows it", async () => {
     const h = harness([
       {
