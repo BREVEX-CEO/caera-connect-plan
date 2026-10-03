@@ -303,7 +303,13 @@ export interface TaskDevice {
 
 export type StartTaskResult =
   | { ok: true; task: JarvisTaskRow; device: TaskDevice }
-  | { ok: false; reason: "no_device" | "permission"; message: string };
+  | {
+      ok: false;
+      reason: "no_device" | "permission" | "busy";
+      message: string;
+      /** The person's own task the computer is busy with, so they can ask for it to stop. */
+      busy?: { id: string; title: string };
+    };
 
 export const startJarvisTask = createServerFn({ method: "POST" })
   .middleware([requireSession])
@@ -385,12 +391,25 @@ export const startJarvisTask = createServerFn({ method: "POST" })
       .select(TASK_COLUMNS)
       .single();
     if (insertError?.code === "23505") {
+      if (!insertError.message.includes("per_device")) {
+        return {
+          ok: false,
+          reason: "permission",
+          message: "A task is already running in this conversation.",
+        };
+      }
+      const { data: open } = await context.supabase
+        .from("jarvis_tasks")
+        .select("id, title")
+        .eq("device_id", device.id)
+        .in("status", ["running", "waiting", "taken_over"])
+        .limit(1)
+        .maybeSingle();
       return {
         ok: false,
-        reason: "permission",
-        message: insertError.message.includes("per_device")
-          ? "Your computer is already busy with another JARVIS task. Stop it or let it finish first."
-          : "A task is already running in this conversation.",
+        reason: "busy",
+        message: `${device.name} is busy with another JARVIS task${open ? ` (“${open.title}”)` : ""}. Stop it or let it finish first.`,
+        ...(open ? { busy: { id: open.id as string, title: open.title as string } } : {}),
       };
     }
     if (insertError) throw new Error(insertError.message);

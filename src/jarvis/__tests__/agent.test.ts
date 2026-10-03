@@ -97,6 +97,46 @@ function harness(
 }
 
 describe("a JARVIS turn", () => {
+  it("stops the task the computer is busy with only after start_task found it, then starts", async () => {
+    const h = harness([
+      { text: "", toolCalls: [call("stop_task", { because: "cancel it" })] },
+      {
+        text: "",
+        toolCalls: [call("start_task", { title: "Trim", where: "computer", steps: ["trim"] })],
+      },
+      { text: "", toolCalls: [call("stop_task", { because: "cancel the old one" })] },
+      { text: "", toolCalls: [call("stop_task", { because: "again" })] },
+      {
+        text: "",
+        toolCalls: [call("start_task", { title: "Trim", where: "computer", steps: ["trim"] })],
+      },
+      { text: "Working on it.", toolCalls: [] },
+    ]);
+    const started = h.deps.startTask as ReturnType<typeof vi.fn>;
+    started.mockImplementationOnce(async () => ({
+      ok: false as const,
+      reason: "busy" as const,
+      message: "DESK is busy with another JARVIS task (“Old edit”).",
+      busy: { id: "old", title: "Old edit" },
+    }));
+    await runJarvisTurn(h.input, h.hooks, h.deps);
+    const fed = h.seen
+      .at(-1)!
+      .map((m) => String(m.content))
+      .join(" ");
+    const at = (text: string, from = 0) => fed.indexOf(text, from);
+    // Nothing to stop before start_task found the computer busy; then that task, once.
+    const first = at("There is no other task to stop");
+    const found = at("Old edit", first);
+    const stopped = at("Stopped “Old edit”", found);
+    expect([first, found, stopped].every((i) => i >= 0)).toBe(true);
+    expect(at("There is no other task to stop", stopped)).toBeGreaterThan(stopped);
+    expect(h.deps.updateTask).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "old", status: "stopped" }),
+    );
+    expect(started).toHaveBeenCalledTimes(2);
+  });
+
   it("answers an ordinary question without starting a task", async () => {
     const h = harness([{ text: "Paris.", toolCalls: [] }]);
     const out = await runJarvisTurn(h.input, h.hooks, h.deps);

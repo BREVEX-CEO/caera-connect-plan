@@ -10,8 +10,9 @@
  * that failed or produced nothing is released. Chat's allowance is untouched.
  *
  * THE MODEL CANNOT GRANT ITSELF ANYTHING. Its tools are start_task, browser, computer,
- * finish_task and (when memory is on) remember. Confirmation and take-over are
- * decisions only the person's own clicks resolve.
+ * finish_task, stop_task (only the person's own task that start_task just found
+ * the computer busy with) and (when memory is on) remember. Confirmation and
+ * take-over are decisions only the person's own clicks resolve.
  */
 import type {
   NormalizedAttachment,
@@ -266,6 +267,8 @@ export async function runJarvisTurn(
   // This turn's planning loop. Only the loop named on the task may queue actions.
   const controller = crypto.randomUUID();
   let claimed = false;
+  /** The task start_task found the computer busy with, the only one stop_task may stop. */
+  let busy: { id: string; title: string } | null = null;
   let attachments: NormalizedAttachment[] = [];
   // Once page content has been read this turn, nothing may be written to memory.
   let untrustedSeen = false;
@@ -424,7 +427,16 @@ export async function runJarvisTurn(
         });
         if (!started.ok) {
           if (started.reason === "no_device") hooks.onNoDevice?.(started.message);
-          return { ok: false, message: started.message };
+          busy = started.busy ?? null;
+          return {
+            ok: false,
+            message: started.message,
+            ...(busy
+              ? {
+                  next: "Tell the person what it is busy with. Only if they asked to stop or replace it, call stop_task, then start_task again.",
+                }
+              : {}),
+          };
         }
         claimed = true;
         setTask(started.task);
@@ -446,6 +458,18 @@ export async function runJarvisTurn(
               ? "Task started. Begin with the most direct computer action."
               : "Task started. Begin with observe or open.",
         };
+      }
+      case "stop_task": {
+        // Only the task start_task just found in the way, never one the model names.
+        if (!busy) return { error: "There is no other task to stop. Call start_task first." };
+        const { id, title } = busy;
+        busy = null;
+        await deps.updateTask({
+          id,
+          status: "stopped",
+          blocker: "Stopped from another conversation.",
+        });
+        return { ok: true, message: `Stopped “${title}”.` };
       }
       case "browser":
       case "computer":

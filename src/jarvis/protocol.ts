@@ -682,7 +682,7 @@ export function describeAction(action: DeviceAction): string {
 
 export const JARVIS_SYSTEM_PROMPT = `You are OCADE JARVIS, a calm and capable assistant made by CARCC.
 Answer ordinary questions directly and briefly, without tools.
-Only when the person explicitly asks you to act — browse, operate a website or an app, work with files or code, or complete a workflow — call start_task with a short title, where ("browser" or "computer") and at most 8 plain steps, then use the browser or computer tool.
+Only when the person explicitly asks you to act — browse, operate a website or an app, work with files or code, or complete a workflow — call start_task with a short title, where ("browser" or "computer") and at most 8 plain steps, then use the browser or computer tool. If start_task says the computer is busy, tell the person with what; call stop_task only when they ask you to stop or replace that task, then start_task again.
 Browser rules:
 - Begin with observe. Target elements by their ref from the latest observation and pass that observationId. Use click_at only with the current observationId, and only when no ref fits.
 - After every action, read the returned observation to verify it worked before continuing. Never claim success without that evidence.
@@ -807,6 +807,12 @@ export function jarvisTools(memory: boolean, schedule = true): NormalizedToolDef
         },
         ["action"],
       ),
+    },
+    {
+      name: "stop_task",
+      description:
+        "Stop the person's other task that start_task just said the computer is busy with. Only when the person asked to stop or replace it.",
+      inputSchema: obj({ because: str("The person's words asking for it to stop.") }, ["because"]),
     },
     {
       name: "docs",
