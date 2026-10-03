@@ -19,7 +19,6 @@ import {
  */
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { mayUseCachedSession, cachedSessionIsCurrent } from "@/lib/auth/session-failure";
-import { isConsoleHost, onSite } from "@/lib/admin/console-host";
 
 /**
  * The gate every signed-in destination inherits.
@@ -76,17 +75,6 @@ export const Route = createFileRoute("/_authenticated")({
     }
 
     if (!user) {
-      /*
-       * The console has no sign-in of its own: the site is the way in, from its
-       * account menu. Without `next`, so a console signed out on purpose does
-       * not walk straight back in through the site's still-open session.
-       */
-      if (isConsoleHost(window.location.hostname)) {
-        throw redirect({
-          href: onSite(new URL("/auth", window.location.href)).toString(),
-          reloadDocument: true,
-        });
-      }
       throw redirect({
         to: "/auth",
         reloadDocument: true,

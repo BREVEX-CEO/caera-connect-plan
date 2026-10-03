@@ -2022,6 +2022,15 @@ export type Database = {
         Returns: boolean
       }
       ocade_staff_revoke: { Args: { p_reason: string; p_user: string }; Returns: boolean }
+      ocade_grant_unlimited: {
+        Args: { p_reason: string; p_until: string; p_user: string }
+        Returns: string
+      }
+      ocade_revoke_unlimited: { Args: { p_reason: string; p_user: string }; Returns: boolean }
+      ocade_account_unlimited: {
+        Args: { target_user: string }
+        Returns: { ends_at: string | null; why: string }[]
+      }
       ocade_staff_set_permissions: {
         Args: { p_denied: string[]; p_granted: string[]; p_reason: string; p_user: string }
         Returns: boolean
@@ -2031,7 +2040,7 @@ export type Database = {
         Returns: boolean
       }
       ocade_staff_transfer_ownership: {
-        Args: { p_reason: string; p_to: string }
+        Args: { p_reason: string; p_stay_owner?: boolean; p_to: string }
         Returns: boolean
       }
       ocade_staff_withdraw_invite: {

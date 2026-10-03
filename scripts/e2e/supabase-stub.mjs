@@ -62,8 +62,8 @@ const tokenSession = new Map();
 const sessionFacts = new Map();
 /** The browser making the current request, for a session it opens. */
 let requestAgent = "";
-/** Session ids the console's server recorded (public.ocade_console_sessions). */
-const consoleSessions = new Set();
+/** userId -> { endsAt, revoked } : public.ocade_unlimited_grants, the open one (20261003090000). */
+const unlimitedGrants = new Map();
 /** auth code -> { challenge, email }: a provider sign-in (PKCE) waiting to be exchanged once. */
 const pkceCodes = new Map();
 /** hashed_token -> { email, expiresAt }: one-time sign-ins from generateLink, used once. */
@@ -164,11 +164,18 @@ const factorAddedSinceSignIn = (unverifiedToo = false) => {
     (f) => (unverifiedToo || f.status === "verified") && Date.parse(f.created_at) > began,
   );
 };
-/** Is the current request's session one the console opened (20261001090000, 095100)? */
-const inConsole = () =>
-  consoleSessions.has(tokenSession.get(requestToken)) && !factorAddedSinceSignIn();
-/** private.ocade_staff_has: held, and asked from the console's own session. */
-const staffHas = (id, permission) => holds(id, permission) && inConsole();
+/** private.ocade_staff_has: held, on a session that added no factor since it began (20261003090000). */
+const staffHas = (id, permission) => holds(id, permission) && !factorAddedSinceSignIn();
+/** private.ocade_usage_unlimited: an owner, or an open grant that has not ended. */
+const unlimitedOf = (id) => {
+  const role = roleOf(id);
+  if (role === "primary_owner" || role === "backup_owner") return { why: "owner", ends_at: null };
+  const grant = unlimitedGrants.get(id);
+  if (grant && (!grant.endsAt || Date.parse(grant.endsAt) > Date.now())) {
+    return { why: "grant", ends_at: grant.endsAt };
+  }
+  return null;
+};
 const record = (actor, action, reason, target_user = null, subject = null) =>
   adminActions.push({
     id: randomUUID(),
@@ -509,8 +516,7 @@ function handleRpc(name, args, userId) {
       sessions.delete(token);
       tokenAal.delete(token);
       ended.add(id);
-      // Its console record and its browsers' notifications go with it (the foreign keys).
-      consoleSessions.delete(id);
+      // Its browsers' notifications go with it (the foreign key).
       for (const [endpoint, row] of pushSubscriptions) {
         if (row.session_id === id) pushSubscriptions.delete(endpoint);
       }
@@ -741,7 +747,12 @@ function handleRpc(name, args, userId) {
       const sessionLimit = args.p_session_limit_hundredths;
       const surface = args.p_surface;
       const used = usedIn(userId, kindFor(surface, "session"), session.startsAt);
-      if (sessionLimit !== null && sessionLimit !== undefined && used + reserved > sessionLimit) {
+      if (
+        sessionLimit !== null &&
+        sessionLimit !== undefined &&
+        used + reserved > sessionLimit &&
+        !unlimitedOf(userId)
+      ) {
         return [
           {
             permit_id: null,
@@ -926,7 +937,7 @@ function handleRpc(name, args, userId) {
     case "has_role":
       return args._role === "admin"
         ? ["primary_owner", "backup_owner", "admin"].includes(roleOf(args._user_id)) &&
-            (userId === "anonymous" || inConsole())
+            (userId === "anonymous" || !factorAddedSinceSignIn())
         : rows(args._user_id, "user_roles").some((row) => row.role === args._role);
 
     case "ocade_staff_can":
@@ -1060,13 +1071,55 @@ function handleRpc(name, args, userId) {
         return refuse("Only the Primary Owner hands over ownership.");
       }
       if (roleOf(args.p_to) !== "backup_owner") {
-        return refuse("Ownership goes to the Backup Owner. Name one first.", "22023");
+        return refuse("Ownership goes to an Owner. Make them an Owner first.", "22023");
       }
       if (short(args.p_reason)) return short(args.p_reason);
       staffRoles.get(userId).role = "backup_owner";
       Object.assign(staffRoles.get(args.p_to), { role: "primary_owner", denied: [] });
       record(userId, "owner_transfer", String(args.p_reason).trim(), args.p_to);
+      if (args.p_stay_owner === false) {
+        staffRoles.delete(userId);
+        record(userId, "staff_revoke", "Left the staff when handing over ownership.", userId);
+      }
       return true;
+    }
+
+    case "ocade_account_unlimited": {
+      const found = unlimitedOf(args.target_user);
+      return found ? [found] : [];
+    }
+
+    case "ocade_grant_unlimited":
+    case "ocade_revoke_unlimited": {
+      const denied = requireStaff("grants.manage", "change unlimited use");
+      if (denied) return denied;
+      const mine = roleOf(userId);
+      if (mine !== "primary_owner" && mine !== "backup_owner") {
+        return refuse("Only an owner changes unlimited use.");
+      }
+      if (short(args.p_reason)) return short(args.p_reason);
+      if (name === "ocade_revoke_unlimited") {
+        if (!unlimitedGrants.delete(args.p_user)) return false;
+        record(userId, "unlimited_revoked", String(args.p_reason).trim(), args.p_user);
+        return true;
+      }
+      if (args.p_user === userId) return refuse("Nobody grants themselves.");
+      if (["primary_owner", "backup_owner"].includes(roleOf(args.p_user))) {
+        return refuse("An owner already has unlimited use.", "22023");
+      }
+      if (!emails.has(args.p_user)) return refuse("No such account.", "P0002");
+      const until = args.p_until ? Date.parse(args.p_until) : null;
+      if (until !== null && (until < now + 5 * 60_000 || until > now + 3660 * 86_400_000)) {
+        return refuse(
+          "End it between five minutes and ten years from now, or not at all.",
+          "22023",
+        );
+      }
+      unlimitedGrants.set(args.p_user, {
+        endsAt: until === null ? null : new Date(until).toISOString(),
+      });
+      record(userId, "unlimited_granted", String(args.p_reason).trim(), args.p_user);
+      return randomUUID();
     }
 
     case "ocade_staff_end_all_sessions": {
@@ -1715,7 +1768,7 @@ const server = createServer((request, response) => {
        * any `redirect_to` hid that `?next=` on the callback sent people to the Site URL.
        */
       const asked = url.searchParams.get("redirect_to") ?? "";
-      const allowed = ["http://127.0.0.1:8788", "http://admin.localhost:8788"].flatMap((origin) => [
+      const allowed = ["http://127.0.0.1:8788"].flatMap((origin) => [
         `${origin}/auth/callback`,
         `${origin}/reset-password`,
       ]);
@@ -2098,24 +2151,6 @@ const server = createServer((request, response) => {
         for (const row of found) Object.assign(row, patch);
         return send(200, found);
       }
-    }
-    if (table && table[1] === "ocade_console_sessions") {
-      if (sessions.has(requestToken)) {
-        return send(403, {
-          code: "42501",
-          message: "permission denied for table ocade_console_sessions",
-        });
-      }
-      if (request.method === "POST") {
-        const payload = JSON.parse(body || "{}");
-        const incoming = Array.isArray(payload) ? payload : [payload];
-        for (const row of incoming) consoleSessions.add(row.session_id);
-        return send(201, incoming);
-      }
-      return send(
-        200,
-        [...consoleSessions].map((session_id) => ({ session_id })),
-      );
     }
     if (table && (table[1].startsWith("jarvis_") || table[1] === "ocade_entitlement_grants")) {
       /*

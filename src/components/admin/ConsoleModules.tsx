@@ -13,21 +13,25 @@ import {
   closeCase,
   endAllStaffSessions,
   grantStaff,
+  grantUnlimited,
   listAudit,
   listCaseConversations,
   listCases,
   listStaff,
   messageOf,
   readCaseConversation,
+  readCustomer,
   readSystemHealth,
   ready,
   revokeStaff,
+  revokeUnlimited,
   setStaffPermissions,
   STAFF_ROLE_NAMES,
   transferOwnership,
   withdrawStaffInvite,
   type MyStaff,
   type StaffMember,
+  type Unlimited,
   type StaffRole,
 } from "@/lib/admin/staff.functions";
 
@@ -298,15 +302,24 @@ function StaffRow({
     },
     onError: (error) => toast.error(messageOf(error)),
   });
+  const [stayOwner, setStayOwner] = useState(true);
+  const [sure, setSure] = useState(false);
   const handOver = useMutation({
     mutationFn: () =>
-      withProof(() => transferOwnership({ data: { userId: member.userId, reason: why } })),
+      withProof(() =>
+        transferOwnership({ data: { userId: member.userId, reason: why, stayOwner } }),
+      ),
     onSuccess: async () => {
-      toast.success("Ownership handed over. You are the Backup Owner now.");
-      window.location.reload();
+      toast.success(
+        stayOwner
+          ? "Ownership handed over. You are an Owner now."
+          : "Ownership handed over. You are no longer staff.",
+      );
+      window.location.assign(stayOwner ? "/admin" : "/");
     },
     onError: (error) => toast.error(messageOf(error)),
   });
+  const [usage, setUsage] = useState(false);
 
   // On = the role holds it or it was added, and it was not taken away.
   const on = (id: StaffPermission) =>
@@ -336,8 +349,16 @@ function StaffRow({
             {member.granted.length || member.denied.length ? " · with changes" : ""}
           </span>
         </span>
-        {touchable ? (
-          <span className="flex gap-2">
+        <span className="flex gap-2">
+          <button
+            type="button"
+            className={button}
+            aria-expanded={usage}
+            onClick={() => setUsage((value) => !value)}
+          >
+            Usage
+          </button>
+          {touchable ? (
             <button
               type="button"
               className={button}
@@ -346,9 +367,10 @@ function StaffRow({
             >
               Change
             </button>
-          </span>
-        ) : null}
+          ) : null}
+        </span>
       </div>
+      {usage ? <StaffUsage member={member} me={me} /> : null}
       {editing && touchable ? (
         <div className="mt-3 space-y-3 rounded-md border border-border p-3">
           <p className="text-[13px] text-muted-foreground">
@@ -400,20 +422,190 @@ function StaffRow({
             >
               {remove.isPending ? "Removing…" : "Remove access"}
             </button>
-            {me.role === "primary_owner" && member.role === "backup_owner" ? (
+          </div>
+          {me.role === "primary_owner" && member.role === "backup_owner" ? (
+            <fieldset className="space-y-2 border-t border-border/50 pt-3 text-[13px]">
+              <legend className="font-medium text-foreground">Make them the Primary Owner</legend>
+              <label className="flex items-center gap-2 text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={stayOwner}
+                  onChange={(event) => setStayOwner(event.target.checked)}
+                />
+                Stay an Owner myself afterwards
+              </label>
+              <label className="flex items-center gap-2 text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={sure}
+                  onChange={(event) => setSure(event.target.checked)}
+                />
+                I understand {member.email ?? "they"} will hold every owner power, and only they can
+                hand it back.
+              </label>
               <button
                 type="button"
-                className={button}
-                disabled={!ready(why) || handOver.isPending}
+                className={`${button} text-destructive`}
+                disabled={!ready(why) || !sure || handOver.isPending}
                 onClick={() => handOver.mutate()}
               >
                 {handOver.isPending ? "Handing over…" : "Hand ownership over"}
               </button>
-            ) : null}
-          </div>
+            </fieldset>
+          ) : null}
         </div>
       ) : null}
     </li>
+  );
+}
+
+/** What a member of staff used, and whether a window ever stops them: metadata only, never content. */
+function StaffUsage({ member, me }: { member: StaffMember; me: MyStaff }) {
+  const detail = useQuery({
+    queryKey: ["admin", "customer", member.userId],
+    queryFn: () => readCustomer({ data: { userId: member.userId } }),
+  });
+  if (!detail.data) {
+    return (
+      <div className="mt-2 text-[13px]">
+        <Pending query={detail} loading="Loading usage…" problem="Usage could not be read." />
+      </div>
+    );
+  }
+  const { usage, unlimited, lastUsed } = detail.data;
+  const owner = member.role === "primary_owner" || member.role === "backup_owner";
+  return (
+    <div className="mt-2 space-y-2 rounded-md border border-border p-3 text-[13px]">
+      <UsageSummary usage={usage} unlimited={unlimited} lastUsed={lastUsed} />
+      {!member.isSelf && !owner && (me.role === "primary_owner" || me.role === "backup_owner") ? (
+        <UnlimitedUse
+          userId={member.userId}
+          unlimited={unlimited}
+          onChanged={() => void detail.refetch()}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/** One account's usage, as the console shows it everywhere. */
+export function UsageSummary({
+  usage,
+  unlimited,
+  lastUsed,
+}: {
+  usage: { surface: "chat" | "jarvis"; kind: string; used: number }[] | null;
+  unlimited: Unlimited | null;
+  lastUsed: { chat: string | null; jarvis: string | null } | null;
+}) {
+  if (!usage) return null;
+  const when = (at: string | null) => (at ? new Date(at).toLocaleString() : "never");
+  const limits = unlimited
+    ? unlimited.why === "owner"
+      ? "Unlimited (owner)"
+      : unlimited.endsAt
+        ? `Unlimited until ${new Date(unlimited.endsAt).toLocaleString()}`
+        : "Unlimited until revoked"
+    : "Normal limits";
+  const used = usage.length
+    ? usage
+        .map((w) => `${w.surface === "chat" ? "Chat" : "JARVIS"} ${w.kind} ${w.used}`)
+        .join(" · ")
+    : "no use yet";
+  return (
+    <>
+      <p className="text-muted-foreground">
+        {limits} · {used}
+      </p>
+      {lastUsed ? (
+        <p className="text-muted-foreground">
+          Last Chat use {when(lastUsed.chat)} · last JARVIS step {when(lastUsed.jarvis)}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * UNLIMITED USE, GIVEN OR TAKEN BACK BY AN OWNER. Until a time or until revoked;
+ * the account's usage is still recorded either way, and the database refuses
+ * anybody but an owner, any owner for themselves, and any change without a
+ * recent code and a reason.
+ */
+export function UnlimitedUse({
+  userId,
+  unlimited,
+  onChanged,
+}: {
+  userId: string;
+  unlimited: Unlimited | null;
+  onChanged: () => void;
+}) {
+  const { withProof, dialog } = useConfirmIdentity();
+  const [why, setWhy] = useState("");
+  const [until, setUntil] = useState("");
+  const give = useMutation({
+    mutationFn: () =>
+      withProof(() =>
+        grantUnlimited({
+          data: { userId, until: until ? new Date(until).toISOString() : null, reason: why },
+        }),
+      ),
+    onSuccess: () => {
+      toast.success(
+        until ? "Unlimited use given until then." : "Unlimited use given until revoked.",
+      );
+      setWhy("");
+      onChanged();
+    },
+    onError: (error) => toast.error(messageOf(error)),
+  });
+  const end = useMutation({
+    mutationFn: () => withProof(() => revokeUnlimited({ data: { userId, reason: why } })),
+    onSuccess: ({ revoked }) => {
+      toast[revoked ? "success" : "error"](
+        revoked ? "Back to normal limits." : "There was no unlimited use to end.",
+      );
+      setWhy("");
+      onChanged();
+    },
+    onError: (error) => toast.error(messageOf(error)),
+  });
+  return (
+    <div className="space-y-2 border-t border-border/50 pt-2">
+      {dialog}
+      <Reason value={why} onChange={setWhy} label="Why unlimited use changes" />
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-1 text-muted-foreground">
+          <span>Until</span>
+          <input
+            type="datetime-local"
+            value={until}
+            onChange={(event) => setUntil(event.target.value)}
+            aria-label="Unlimited until (empty: until revoked)"
+            className="h-7 rounded-md border border-border bg-transparent px-2 text-foreground outline-none focus-visible:border-ring"
+          />
+        </label>
+        <button
+          type="button"
+          className={button}
+          disabled={!ready(why) || give.isPending}
+          onClick={() => give.mutate()}
+        >
+          {give.isPending ? "Giving…" : until ? "Give unlimited until then" : "Give unlimited use"}
+        </button>
+        {unlimited?.why === "grant" ? (
+          <button
+            type="button"
+            className={`${button} text-destructive`}
+            disabled={!ready(why) || end.isPending}
+            onClick={() => end.mutate()}
+          >
+            {end.isPending ? "Ending…" : "Back to normal limits"}
+          </button>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -787,6 +979,8 @@ const ACTION_NAMES: Record<string, string> = {
   account_restored: "Restored an account",
   account_deletion_started: "Began deleting an account",
   account_deleted: "Deleted an account",
+  unlimited_granted: "Gave unlimited use",
+  unlimited_revoked: "Ended unlimited use",
 };
 
 export function AuditModule() {

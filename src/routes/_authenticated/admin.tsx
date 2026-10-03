@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type ReactNode, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { AppShell } from "@/components/shell/AppShell";
@@ -11,12 +11,10 @@ import {
   Reason,
   StaffModule,
   SystemModule,
+  UnlimitedUse,
+  UsageSummary,
 } from "@/components/admin/ConsoleModules";
 import { requireStaff } from "@/lib/admin/route-gate";
-import { isConsoleHost, onSite } from "@/lib/admin/console-host";
-import { enterTheConsole } from "@/lib/admin/open-console";
-import { BrandMark } from "@/components/shell/BrandMark";
-import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { useSession } from "@/lib/session";
 import {
   grantAccountAccess,
@@ -44,13 +42,14 @@ import {
 } from "@/lib/admin/staff.functions";
 
 /**
- * THE OWNER CONSOLE AND THE STAFF CONSOLE: ONE ROUTE, SHOWN BY PERMISSION.
+ * THE OWNER CONSOLE AND THE STAFF CONSOLE: ONE ROUTE OF OCADE.IN, SHOWN BY PERMISSION.
  *
  * Who is staff, and what each may do, is `public.ocade_staff` in the database
- * (Primary Owner, Backup Owner, Admin, Support, Billing, Operations, Read-only,
- * with per-person changes). This page asks the database which modules to show;
- * every read and change it makes is checked there again. Customers are sent
- * back to Chat without a word, and nothing on their screens names this place.
+ * (Primary Owner, Owners, Admin, Support, Billing, Operations, Read-only, with
+ * per-person changes). This page asks the database which modules to show;
+ * every read and change it makes is checked there again (migration
+ * 20261003090000). Customers are sent back to Chat without a word, and nothing
+ * on their screens names this place.
  */
 export const Route = createFileRoute("/_authenticated/admin")({
   ssr: false,
@@ -73,109 +72,37 @@ const MODULES: { id: Module; name: string; needs: StaffPermission[] }[] = [
 
 const DEFAULT_DAYS = 30;
 
+/** How often an open console asks whether its access still stands. */
+const RECHECK_MS = 10_000;
+
 function ConsolePage() {
-  // The site's /admin is only the way across; the console itself is on its own origin.
-  return isConsoleHost(window.location.hostname) ? <Console /> : <OpenConsole />;
-}
-
-/**
- * ON THE SITE: THE WAY ACROSS, ON A PRESS. A way in is minted only when the
- * person asks for it here (or from the account menu), never because a link
- * opened this address.
- */
-function OpenConsole() {
-  const [problem, setProblem] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  return (
-    <AppShell>
-      <div className="mx-auto w-full max-w-4xl px-5 py-8">
-        <h1 className="text-lg font-semibold tracking-tight text-foreground">Console</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          The console opens on its own address and asks for your authenticator code there.
-        </p>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => {
-            setBusy(true);
-            setProblem(null);
-            void enterTheConsole().catch((cause: unknown) => {
-              setProblem(messageOf(cause));
-              setBusy(false);
-            });
-          }}
-          className="mt-4 h-9 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
-        >
-          {busy ? "Opening…" : "Open the console"}
-        </button>
-        {problem ? (
-          <p className="mt-3 text-sm text-foreground" role="alert">
-            {problem}
-          </p>
-        ) : null}
-      </div>
-    </AppShell>
-  );
-}
-
-/**
- * ON THE CONSOLE'S ORIGIN, NO CUSTOMER SCREENS. Chat, JARVIS and the Library are
- * the site's; the way back to them is a real navigation to the site, never a
- * route rendered here.
- */
-function ConsoleShell({ children }: { children: ReactNode }) {
-  const site = onSite(new URL("/", window.location.href)).toString();
-  // Whose console this is, always in view: a way in handed over by somebody
-  // else would otherwise put a person to work in another account unknowingly.
-  const { user } = useSession();
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="flex h-14 items-center justify-between gap-3 border-b border-border/60 px-5">
-        <a href={site} aria-label="OCADE" className="shrink-0 rounded-md">
-          <BrandMark showWordmark />
-        </a>
-        <span className="min-w-0 flex-1 truncate text-right text-sm text-muted-foreground">
-          {user?.email}
-        </span>
-        <button
-          type="button"
-          onClick={async () => {
-            const supabase = await loadSupabaseClient();
-            await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
-            window.location.replace(site);
-          }}
-          className="h-8 rounded-md px-3 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
-        >
-          Sign out of the console
-        </button>
-      </header>
-      <main id="workspace">{children}</main>
-    </div>
-  );
-}
-
-function Console() {
   /*
-   * Read again here, not only in the gate, and again whenever the tab is
-   * looked at: access removed elsewhere leaves this screen at once instead of
-   * sitting on a stale copy of what it used to be allowed.
+   * Read again here, not only in the gate, every few seconds and whenever the
+   * tab is looked at: access removed elsewhere leaves this screen within
+   * seconds instead of sitting on a stale copy of what it used to be allowed.
+   * The database refuses every privileged request the moment access goes; this
+   * only takes the screen away to match.
    */
+  const { user } = useSession();
   const me = useQuery({
-    queryKey: ["staff", "me", "console"],
+    // The sidebar's entry reads the same answer, so both change together.
+    queryKey: ["staff", "me", user?.id ?? ""],
     queryFn: () => readMyStaff(),
     refetchOnWindowFocus: true,
-    refetchInterval: 60_000,
+    refetchInterval: RECHECK_MS,
   });
   const [module, setModule] = useState<Module | null>(null);
-
-  if (me.isSuccess && me.data === null) {
+  const navigate = useNavigate();
+  const gone = me.isSuccess && me.data === null;
+  useEffect(() => {
     // No longer staff: back to Chat, told nothing, exactly as a customer is.
-    window.location.replace(onSite(new URL("/", window.location.href)).toString());
-    return null;
-  }
+    if (gone) void navigate({ to: "/", replace: true });
+  }, [gone, navigate]);
+
+  if (gone) return null;
   if (!me.data) {
     return (
-      <ConsoleShell>
+      <AppShell>
         <div className="mx-auto w-full max-w-4xl px-5 py-8">
           <Pending
             query={me}
@@ -183,17 +110,17 @@ function Console() {
             problem="The console could not open."
           />
         </div>
-      </ConsoleShell>
+      </AppShell>
     );
   }
   const staff = me.data;
   const owner = staff.role === "primary_owner" || staff.role === "backup_owner";
   const visible = MODULES.filter((m) => m.needs.some((p) => staff.permissions.includes(p)));
   const current = visible.find((m) => m.id === module) ?? visible[0];
-  const blocked = !staff.secondFactor && staff.role !== "primary_owner";
+  const blocked = staff.newFactor || (!staff.secondFactor && staff.role !== "primary_owner");
 
   return (
-    <ConsoleShell>
+    <AppShell>
       <div className="mx-auto w-full max-w-4xl px-5 py-8">
         <h1 className="text-lg font-semibold tracking-tight text-foreground">
           {owner ? "Owner Console" : "Staff Console"}
@@ -202,7 +129,17 @@ function Console() {
           {STAFF_ROLE_NAMES[staff.role]}. You see what your role allows; every change asks for a
           recent code and is written to the audit record.
         </p>
-        {staff.secondFactor ? null : <SecondFactorNotice blocking={blocked} />}
+        {staff.newFactor ? (
+          <p
+            className="mt-3 rounded-md border border-border/60 p-3 text-[13px] text-foreground"
+            role="status"
+          >
+            You set up two-step verification after signing in here. Sign out, sign in again, then
+            open the console.
+          </p>
+        ) : staff.secondFactor ? null : (
+          <SecondFactorNotice blocking={blocked} />
+        )}
         {blocked ? null : (
           <>
             <nav aria-label="Console" className="mt-5 flex flex-wrap gap-1.5">
@@ -232,7 +169,7 @@ function Console() {
           </>
         )}
       </div>
-    </ConsoleShell>
+    </AppShell>
   );
 }
 
@@ -484,13 +421,20 @@ function CustomerDetail({
                 : "never"}
             </p>
           ) : null}
-          {detail.data.usage ? (
-            <p className="text-muted-foreground">
-              Usage:{" "}
-              {detail.data.usage.length
-                ? detail.data.usage.map((w) => `${w.kind} ${w.used}`).join(" · ")
-                : "none yet"}
-            </p>
+          <UsageSummary
+            usage={detail.data.usage}
+            unlimited={detail.data.unlimited}
+            lastUsed={detail.data.lastUsed}
+          />
+          {detail.data.usage &&
+          !row.isSelf &&
+          (me.role === "primary_owner" || me.role === "backup_owner") &&
+          detail.data.unlimited?.why !== "owner" ? (
+            <UnlimitedUse
+              userId={row.id}
+              unlimited={detail.data.unlimited}
+              onChanged={() => void detail.refetch()}
+            />
           ) : null}
           {detail.data.tasks ? (
             detail.data.tasks.length ? (

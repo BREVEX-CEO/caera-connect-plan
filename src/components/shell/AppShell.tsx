@@ -161,6 +161,7 @@ function Sidebar({ className, children }: { className?: string; children?: React
             </Link>
           );
         })}
+        <ConsoleLink active={pathname.startsWith("/admin")} />
       </nav>
 
       <div className="ocade-scroll mt-4 min-h-0 flex-1 overflow-y-auto px-3">{children}</div>
@@ -168,6 +169,44 @@ function Sidebar({ className, children }: { className?: string; children?: React
       <UsageMeter />
       <AccountRow />
     </aside>
+  );
+}
+
+/**
+ * OWNER CONSOLE OR STAFF CONSOLE, BENEATH THE PRODUCT, ONLY FOR STAFF.
+ *
+ * The database says who is staff (`ocade_my_staff`, the caller's own row and
+ * nothing else); a customer's answer is null and nothing renders, not even a
+ * hint. Asked again when the tab is looked at, so a role given or taken away
+ * shows up without signing in again. This decides only what to show: every
+ * console read and change is authorised by the database itself.
+ */
+function ConsoleLink({ active }: { active: boolean }) {
+  const { user } = useSession();
+  const staff = useQuery({
+    queryKey: ["staff", "me", user?.id ?? ""],
+    queryFn: () => import("@/lib/admin/staff.functions").then((m) => m.readMyStaff()),
+    enabled: Boolean(user),
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
+    retry: false,
+  });
+  if (!staff.data) return null;
+  const owner = staff.data.role === "primary_owner" || staff.data.role === "backup_owner";
+  return (
+    <Link
+      to="/admin"
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "mb-0.5 flex h-10 items-center gap-3 rounded-lg px-2.5 text-[15px] transition-colors",
+        active
+          ? "bg-accent text-foreground"
+          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+      )}
+    >
+      <ShieldCheck className="h-[18px] w-[18px]" aria-hidden />
+      {owner ? "Owner Console" : "Staff Console"}
+    </Link>
   );
 }
 
@@ -185,6 +224,15 @@ function UsageMeter() {
   const { user, loading } = useSession();
   const usage = useCommercialUsage(Boolean(user) && !loading);
   const window = tightestWindow(usage.data);
+  if (usage.data?.unlimited) {
+    return (
+      <p className="shrink-0 px-4 pb-2 pt-1 text-[12px] leading-4 text-muted-foreground">
+        {usage.data.unlimited.endsAt
+          ? `Unlimited until ${new Date(usage.data.unlimited.endsAt).toLocaleDateString()}`
+          : "Unlimited use"}
+      </p>
+    );
+  }
   if (!window) return null;
 
   const spent = Math.min(100, Math.round((window.used / window.allowance) * 100));
@@ -220,15 +268,6 @@ function AccountRow() {
   const container = useRef<HTMLDivElement>(null);
   const settings = useSettingsPanel();
   const usage = useCommercialUsage(Boolean(user) && !loading);
-  // Asked only when the menu opens: a customer's pages make no extra call, and
-  // only staff ever see the entry.
-  const staff = useQuery({
-    queryKey: ["staff", "me", user?.id ?? ""],
-    queryFn: () => import("@/lib/admin/staff.functions").then((m) => m.readMyStaff()),
-    enabled: open && Boolean(user),
-    staleTime: 5 * 60_000,
-    retry: false,
-  });
 
   useEffect(() => {
     if (!open) return;
@@ -295,26 +334,6 @@ function AccountRow() {
             <Images className="h-4 w-4 text-muted-foreground" aria-hidden />
             Library
           </Link>
-          {staff.data ? (
-            <Link
-              to="/admin"
-              role="menuitem"
-              onClick={(event) => {
-                // One press opens the console; /admin is where a failure explains itself.
-                event.preventDefault();
-                setOpen(false);
-                void import("@/lib/admin/open-console")
-                  .then((module) => module.enterTheConsole())
-                  .catch(() => window.location.assign("/admin"));
-              }}
-              className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent"
-            >
-              <ShieldCheck className="h-4 w-4 text-muted-foreground" aria-hidden />
-              {staff.data.role === "primary_owner" || staff.data.role === "backup_owner"
-                ? "Owner Console"
-                : "Staff Console"}
-            </Link>
-          ) : null}
           {usage.data && usage.data.tier !== "max" ? (
             <Link
               to="/pricing"

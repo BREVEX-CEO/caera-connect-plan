@@ -8,7 +8,12 @@ import {
 } from "./generation-gate";
 import { supabaseCommercialLedger } from "./supabase-ledger";
 import { ALLOWANCES, describeUsage } from "./usage-policy";
-import { resolveTierFor, type ResolvedEntitlement } from "./entitlement-resolver";
+import {
+  resolveTierFor,
+  unlimitedFor,
+  type ResolvedEntitlement,
+  type Unlimited,
+} from "./entitlement-resolver";
 
 /**
  * One adapter per server instance. Permit identity, reservations and settlement
@@ -127,6 +132,8 @@ export const releaseGenerationPermit = createServerFn({ method: "POST" })
 
 export interface CommercialUsageView {
   tier: ResolvedEntitlement["tier"];
+  /** Never stopped by a window; then no window is shown, though every use is still recorded. */
+  unlimited: Unlimited | null;
 
   windows: {
     kind: "session" | "week";
@@ -151,7 +158,11 @@ export const readCommercialUsage = createServerFn({ method: "GET" })
   .middleware([requireSession])
   .handler(async ({ context }): Promise<CommercialUsageView> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const entitlement = await resolveTierFor(context.userId);
+    const [entitlement, unlimited] = await Promise.all([
+      resolveTierFor(context.userId),
+      unlimitedFor(context.userId),
+    ]);
+    if (unlimited) return { tier: entitlement.tier, unlimited, windows: [] };
     const now = Date.now();
     const ledger = supabaseCommercialLedger(supabaseAdmin);
     if (!ledger.readCurrent) throw new Error("The usage ledger has no server window authority.");
@@ -212,5 +223,5 @@ export const readCommercialUsage = createServerFn({ method: "GET" })
       }
     }
 
-    return { tier: entitlement.tier, windows };
+    return { tier: entitlement.tier, unlimited: null, windows };
   });

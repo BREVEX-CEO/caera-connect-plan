@@ -78,7 +78,7 @@ Roles required: Primary Owner, Backup Owner, Admin, Support, Billing, Developer/
 
 Normal customer sees no privileged UI.
 
-Canonical privileged surface: `admin.ocade.in` — built 2026-10-01: the site's account menu hands over a one-time sign-in; staff authority works only in that console session, which answers its own second factor (docs/OWNER_ADMIN_BACKEND.md).
+Privileged surface: the Owner/Staff Console inside `ocade.in` (`/admin`, sidebar entry for staff only) since 2026-10-03; `admin.ocade.in` retired before it ever went live. Staff authority rides the site session with its second factor, no in-session factor, recent proof for changes; owners unlimited; owner-granted unlimited use for others (docs/OWNER_ADMIN_BACKEND.md).
 
 ## Manual setup status
 
@@ -105,8 +105,8 @@ The 2026-09-29 list (TOTP enrollment, removal during an action, fail-open execut
 ## Release order (owner approval first; never before)
 
 1. Deploy the Edge Functions (`ocade-intelligence`, `ocade-intelligence-service`, verify_jwt off) — they settle claimed permits themselves.
-2. Deploy the Worker from the approved merge (creates `admin.ocade.in`; build with `VITE_WEB_PUSH_PUBLIC_KEY`, secret `WEB_PUSH_PRIVATE_KEY` from `~/.ocade-release/web-push.json`).
-3. Apply `20261001090000`, `20261001092000`, `20261001094000`, `20261001095100` in that order (`091000`, `093000`, `095000`, `095200`, `096000`, `096100` are already applied).
+2. Deploy the Worker from the approved merge (build with `VITE_WEB_PUSH_PUBLIC_KEY`, secret `WEB_PUSH_PRIVATE_KEY` from `~/.ocade-release/web-push.json`).
+3. Apply `20261001092000` and `20261001094000` (`091000`, `093000`, `095000`, `095200`, `096000`, `096100`, `20261002090000` and `20261003090000` are already applied). Never apply `20261001090000` or `20261001095100`: `20261003090000` superseded them (they would bind staff to the retired console origin and blind every owner).
 4. Remove the legacy `user_roles` admin row (ToRemove.md); sign the Device Agent and the Android release with the owner's keys.
 
 ## Testing posture

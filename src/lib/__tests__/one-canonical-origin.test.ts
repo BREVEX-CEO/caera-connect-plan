@@ -127,16 +127,6 @@ describe("the canonical origin", () => {
     const wrangler = JSON.parse(readFileSync("wrangler.json", "utf8")) as {
       routes: { pattern: string }[];
     };
-    expect(wrangler.routes.map((route) => route.pattern)).toEqual([
-      "ocade.in/*",
-      "www.ocade.in/*",
-      "admin.ocade.in",
-    ]);
-  });
-
-  it("sends the console origin's other paths to the site before anything is served", () => {
-    const routed = ENTRY.indexOf("consoleHostRedirect(url, isPublicAssetURL)");
-    expect(routed).toBeGreaterThan(ENTRY.indexOf("const canonical = canonicalOriginRedirect"));
-    expect(routed).toBeLessThan(ENTRY.indexOf("env.ASSETS.fetch"));
+    expect(wrangler.routes.map((route) => route.pattern)).toEqual(["ocade.in/*", "www.ocade.in/*"]);
   });
 });

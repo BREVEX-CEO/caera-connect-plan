@@ -1,5 +1,6 @@
 /**
- * The Owner Console and the Staff Console, proved in a real browser.
+ * The Owner Console and the Staff Console, proved in a real browser, inside
+ * ocade.in itself (owner authority 2026-10-03; admin.ocade.in is retired).
  *
  * A customer never reaches them and sees no trace of them. Staff see only the
  * modules their role holds, and nothing at all until this session answered its
@@ -23,12 +24,7 @@ const arg = (name, fallback) => {
 const BASE = arg("base", "http://127.0.0.1:8788");
 const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
 const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
-/*
- * The site by NAME, because the console's origin is `admin.` in front of it and
- * a bare IP has no subdomain. Both resolve to this machine in Chromium.
- */
-const SITE = BASE.replace("127.0.0.1", "localhost");
-const CONSOLE = SITE.replace("://", "://admin.");
+const SITE = BASE;
 
 function totp(secret, offset = 0) {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -43,8 +39,6 @@ function totp(secret, offset = 0) {
   const at = mac[mac.length - 1] & 0xf;
   return String((mac.readUInt32BE(at) & 0x7fffffff) % 1_000_000).padStart(6, "0");
 }
-const sessionIdOf = (token) =>
-  JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8")).session_id;
 
 let failures = 0;
 function check(name, ok, detail = "") {
@@ -110,12 +104,17 @@ const errors = [];
 
 async function open(session, viewport = { width: 1280, height: 800 }) {
   const context = await browser.newContext({ viewport });
-  await context.addInitScript(
-    ([key, value]) => {
-      if (!window.location.hostname.startsWith("admin.")) window.localStorage.setItem(key, value);
-    },
-    [storageKey, JSON.stringify(session)],
-  );
+  if (session) {
+    await context.addInitScript(
+      ([key, value]) => {
+        if (!window.sessionStorage.getItem("planted")) {
+          window.localStorage.setItem(key, value);
+          window.sessionStorage.setItem("planted", "1");
+        }
+      },
+      [storageKey, JSON.stringify(session)],
+    );
+  }
   const page = await context.newPage();
   page.on("pageerror", (error) => errors.push(`${page.url()} ${String(error).slice(0, 160)}`));
   return page;
@@ -132,16 +131,37 @@ const tabs = (page) => page.getByRole("navigation", { name: "Console" }).getByRo
 const tab = (page, name) =>
   page.getByRole("navigation", { name: "Console" }).getByRole("button", { name, exact: true });
 
-/** The site's /admin hands over to the console's own origin, which signs in by itself. */
+/** The console is a page of the site, reached from the sidebar like Chat, JARVIS and the Library. */
+const sidebarEntry = (page, name) =>
+  page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name, exact: true });
 async function consoleOf(page, heading) {
-  await page.goto(`${SITE}/admin`, { waitUntil: "load" });
-  await page.getByRole("button", { name: "Open the console" }).click();
-  await page.waitForURL((url) => url.origin === CONSOLE, { timeout: 20_000 }).catch(() => {});
+  await page.goto(`${SITE}/`, { waitUntil: "load" });
+  // On a phone the sidebar is a drawer behind the menu button.
+  const drawer = page.getByRole("button", { name: "Open navigation" });
+  if (await seen(drawer, 5_000)) await drawer.click();
+  const entry = sidebarEntry(page, heading).locator("visible=true");
+  if (!(await seen(entry, 15_000))) return false;
+  await entry.first().click();
   return (
-    new URL(page.url()).origin === CONSOLE &&
+    (await until(async () => new URL(page.url()).pathname === "/admin", 15_000)) &&
     (await seen(page.getByRole("heading", { name: heading, exact: true }), 20_000))
   );
 }
+/** The sidebar's own meter or "Unlimited use", as the person sees it. */
+const meter = async (page) => {
+  await page.goto(`${SITE}/`, { waitUntil: "load" });
+  await page.waitForTimeout(2500);
+  const unlimited = await page.getByText(/^Unlimited (use|until)/).count();
+  if (unlimited)
+    return (
+      await page
+        .getByText(/^Unlimited (use|until)/)
+        .first()
+        .innerText()
+    ).trim();
+  const left = page.getByText(/ of \d+ left · resets/);
+  return (await left.count()) ? (await left.first().innerText()).trim() : "";
+};
 async function customerRow(page) {
   await page.getByPlaceholder("Search by email, name or account id").fill(`customer-${stamp}`);
   const row = page.locator("li", { hasText: customerEmail });
@@ -160,13 +180,21 @@ try {
     new URL(person.url()).pathname === "/" &&
       (await person.getByRole("heading", { name: /Console/ }).count()) === 0,
   );
-  await person.getByRole("button", { name: new RegExp(customerEmail) }).click();
-  await person.getByRole("menuitem", { name: "Settings" }).waitFor();
   await person.waitForTimeout(1500);
   check(
-    "a customer's account menu names no console",
+    "a customer's navigation names no console",
+    (await person
+      .getByRole("navigation", { name: "Primary" })
+      .getByText(/Console/)
+      .count()) === 0 && (await person.getByText(/Owner Console|Staff Console/).count()) === 0,
+  );
+  await person.getByRole("button", { name: new RegExp(customerEmail) }).click();
+  await person.getByRole("menuitem", { name: "Settings" }).waitFor();
+  check(
+    "and neither does their account menu",
     (await person.getByRole("menuitem", { name: /Console/ }).count()) === 0,
   );
+  await person.keyboard.press("Escape");
   const direct = await asCustomer(customer, "/rest/v1/rpc/ocade_staff_grant", {
     method: "POST",
     body: JSON.stringify({
@@ -192,23 +220,7 @@ try {
       (await plain.getByPlaceholder("Search by email, name or account id").count()) === 0,
   );
 
-  /* --- the console's own origin -------------------------------------------- */
-  await plain.goto(`${CONSOLE}/library`, { waitUntil: "load" });
-  check(
-    "a customer page asked of the console's origin opens on the site",
-    new URL(plain.url()).origin === SITE && new URL(plain.url()).pathname === "/library",
-    plain.url(),
-  );
-  await plain.goto(`${CONSOLE}/`, { waitUntil: "load" });
-  check(
-    "the console's origin opens at the console",
-    await until(async () => new URL(plain.url()).pathname === "/admin"),
-    plain.url(),
-  );
-  const refused = await fetch(`${CONSOLE}/auth/console`).then((r) => r.status);
-  check("its way in is a page of its own there", refused === 200, String(refused));
-
-  /* --- a second factor on the site does not open the console by itself ------ */
+  /* --- two-step set up in this very sign-in -------------------------------- */
   const totpEmail = `admin-${stamp}-totp@ocade.test`;
   const bare = await signIn(totpEmail);
   const factor = await asCustomer(bare, "/auth/v1/factors", {
@@ -225,105 +237,58 @@ try {
       body: JSON.stringify({ challenge_id: challenge.id, code: totp(factor.totp.secret, offset) }),
     }).then((r) => r.json());
   };
-  // The session that set two-step up: its new factor is not trusted to open the console.
+  const staffCan = (session) =>
+    asCustomer(session, "/rest/v1/rpc/ocade_staff_can", {
+      method: "POST",
+      body: JSON.stringify({ p_permission: "customers.read" }),
+    }).then((r) => r.json());
+  // A stolen token could enroll its own authenticator; the session it was added in gets nothing.
   const settingUp = await confirmOn(bare, -1);
   const stale = await open(settingUp);
   await stale.goto(`${SITE}/admin`, { waitUntil: "load" });
-  await stale.getByRole("button", { name: "Open the console" }).click();
   check(
-    "the session two-step was set up in must sign in again before the console opens",
+    "the session two-step was set up in must sign in again before the console works",
     (await seen(stale.getByText(/set up two-step verification after signing in here/))) &&
-      new URL(stale.url()).origin === SITE,
+      (await stale.getByRole("navigation", { name: "Console" }).count()) === 0 &&
+      (await staffCan(settingUp)) === false,
     stale.url(),
   );
   await stale.context().close();
+  // Signed in again and the code answered: the site's own session is the staff session.
   const siteStrong = await confirmOn(await signIn(totpEmail), 0);
-  const handed = [];
+  check("a new sign-in with its code operates", (await staffCan(siteStrong)) === true);
   const guarded = await open(siteStrong);
-  guarded.on("framenavigated", (frame) => {
-    const found = /\/auth\/console#t=([0-9a-f]+)/.exec(frame.url());
-    if (found && !handed.includes(found[1])) handed.push(found[1]);
-  });
-  await guarded.goto(`${SITE}/admin`, { waitUntil: "load" });
-  await guarded.waitForTimeout(2000);
   check(
-    "opening /admin from a link mints nothing until the person presses",
-    handed.length === 0 && new URL(guarded.url()).origin === SITE,
+    "and its console opens on ocade.in itself, with no second hop or second code",
+    (await consoleOf(guarded, "Staff Console")) &&
+      (await seen(tab(guarded, "Customers"))) &&
+      new URL(guarded.url()).origin === new URL(SITE).origin,
     guarded.url(),
   );
-  await guarded.getByRole("button", { name: "Open the console" }).click();
-  await guarded.waitForURL(/\/auth\/challenge/, { timeout: 20_000 }).catch(() => {});
   check(
-    "the console's new session answers its own second factor, whatever the site's had",
-    new URL(guarded.url()).origin === CONSOLE &&
-      new URL(guarded.url()).pathname === "/auth/challenge",
-    guarded.url(),
+    "the console sits in the normal navigation, beneath Chat, JARVIS and the Library",
+    (await guarded.getByRole("navigation", { name: "Primary" }).getByRole("link").allInnerTexts())
+      .map((t) => t.trim())
+      .join(",")
+      .endsWith("Chat,OCADE JARVIS,Library,Staff Console"),
+    (
+      await guarded.getByRole("navigation", { name: "Primary" }).getByRole("link").allInnerTexts()
+    ).join(","),
   );
-  await guarded
-    .getByLabel("Six-digit code from your authenticator app")
-    .fill(totp(factor.totp.secret, 1));
-  await guarded.getByRole("button", { name: /Confirm|Continue|Verify/ }).click();
-  await guarded
-    .waitForURL((url) => url.origin === CONSOLE && url.pathname === "/admin", {
-      timeout: 15_000,
-    })
-    .catch(() => {});
-  check("and with it the console opens", await seen(tab(guarded, "Customers")), guarded.url());
-  const consoleSession = await guarded.evaluate(
-    (key) => JSON.parse(window.localStorage.getItem(key) ?? "null"),
-    storageKey,
-  );
-  check(
-    "the console holds a session of its own, not the site's",
-    Boolean(consoleSession?.access_token) &&
-      sessionIdOf(consoleSession.access_token) !== sessionIdOf(siteStrong.access_token),
-  );
-  const fromSite = await asCustomer(siteStrong, "/rest/v1/rpc/ocade_staff_can", {
-    method: "POST",
-    body: JSON.stringify({ p_permission: "customers.read" }),
-  }).then((r) => r.json());
-  const fromConsole = await asCustomer(consoleSession, "/rest/v1/rpc/ocade_staff_can", {
-    method: "POST",
-    body: JSON.stringify({ p_permission: "customers.read" }),
-  }).then((r) => r.json());
-  check(
-    "the site's session, second factor and all, cannot operate; the console's can",
-    fromSite === false && fromConsole === true,
-    `${fromSite} ${fromConsole}`,
-  );
-  const replay = await open(siteStrong);
-  await replay.goto(`${CONSOLE}/auth/console#t=${handed[0] ?? "0".repeat(56)}`, {
-    waitUntil: "load",
-  });
-  const plantedSite = await open(siteStrong);
-  await plantedSite.goto(
-    `${CONSOLE}/admin#access_token=${consoleSession.access_token}&refresh_token=${consoleSession.refresh_token}&expires_in=3600&token_type=bearer`,
+  // A session put in an address is never taken up (PKCE accepts only its own code).
+  const planted = await open(null);
+  await planted.goto(
+    `${SITE}/admin#access_token=${siteStrong.access_token}&refresh_token=${siteStrong.refresh_token}&expires_in=3600&token_type=bearer`,
     { waitUntil: "load" },
   );
-  await plantedSite.waitForTimeout(2500);
   check(
-    "a session put in the console's address is never taken up there",
-    // Taken up, it would have opened the console; refused, the console has no session and sends the person to the site.
-    new URL(plantedSite.url()).origin === SITE &&
-      (await plantedSite.getByRole("heading", { name: /Console/ }).count()) === 0,
-    plantedSite.url(),
+    "a session put in the address is never taken up",
+    (await until(async () => new URL(planted.url()).pathname.startsWith("/auth"), 15_000)) &&
+      (await planted.getByRole("heading", { name: /Console/ }).count()) === 0,
+    planted.url(),
   );
-  check(
-    "the one-time way in does not work twice",
-    handed.length === 1 && (await seen(replay.getByText(/already been used or has expired/))),
-    `${handed.length}`,
-  );
-  await guarded.getByRole("button", { name: "Sign out of the console" }).click();
-  await guarded.waitForURL((url) => url.origin === SITE, { timeout: 15_000 }).catch(() => {});
-  await guarded.waitForTimeout(1500);
-  check(
-    "signing out of the console returns to the site, still signed in there",
-    new URL(guarded.url()).origin === SITE &&
-      (await seen(
-        guarded.getByRole("button", { name: new RegExp(totpEmail.replace(/[.+]/g, "\\$&")) }),
-      )),
-    guarded.url(),
-  );
+  await planted.context().close();
+  await guarded.context().close();
 
   /* --- an Admin with a second factor, on a phone-sized screen -------------- */
   const strongSession = await signIn(`admin+mfa-${stamp}@ocade.test`);
@@ -343,7 +308,7 @@ try {
   check(
     "and the account's security, usage and tasks",
     (await seen(strongRow.getByText(/Two-step (on|off) · \d+ active session/))) &&
-      (await seen(strongRow.getByText(/^Usage:/))),
+      (await seen(strongRow.getByText(/^Normal limits · /))),
   );
   check(
     "an Admin cannot open a case (owners do)",
@@ -478,19 +443,9 @@ try {
 
   /* --- the Owner ------------------------------------------------------------ */
   const ownerEmail = `owner+mfa-${stamp}@ocade.test`;
-  const owner = await open(await signIn(ownerEmail));
-  await owner.goto(`${SITE}/`, { waitUntil: "load" });
-  await owner.getByRole("button", { name: new RegExp(ownerEmail.replace("+", "\\+")) }).click();
-  const menuEntry = owner.getByRole("menuitem", { name: "Owner Console" });
-  check("the owner's account menu offers the Owner Console", await seen(menuEntry));
-  await menuEntry.click();
-  await owner.waitForURL((url) => url.origin === CONSOLE, { timeout: 20_000 }).catch(() => {});
-  check(
-    "which opens on the console's own origin",
-    new URL(owner.url()).origin === CONSOLE &&
-      (await seen(owner.getByRole("heading", { name: "Owner Console", exact: true }), 20_000)),
-    owner.url(),
-  );
+  const ownerSession = await signIn(ownerEmail);
+  const owner = await open(ownerSession);
+  check("the owner's sidebar offers the Owner Console", await consoleOf(owner, "Owner Console"));
   await tab(owner, "Staff").waitFor({ timeout: 10_000 });
   check(
     "with every module",
@@ -499,11 +454,16 @@ try {
   );
   check(
     "the console always says whose account it is",
-    await seen(owner.getByRole("banner").getByText(ownerEmail, { exact: true })),
+    await seen(
+      owner.getByRole("button", { name: new RegExp(ownerEmail.replace(/[.+]/g, "\\$&")) }),
+    ),
   );
   check(
-    "and no customer navigation on it",
-    (await owner.getByRole("link", { name: /^(Chat|Library|OCADE JARVIS)$/ }).count()) === 0,
+    "and the owner keeps Chat, JARVIS and the Library beside it",
+    (await owner
+      .getByRole("navigation", { name: "Primary" })
+      .getByRole("link", { name: /^(Chat|Library|OCADE JARVIS)$/ })
+      .count()) === 3,
   );
 
   // Give access by email: an existing account, then somebody with no account.
@@ -553,15 +513,22 @@ try {
     (await seen(owner.getByText(/Access removed/))) &&
       (await until(async () => (await supportMember.count()) === 0)),
   );
-  await tab(support, "Customers").click();
-  // Its own re-check may already have sent it back to Chat; either way nothing is served.
+  const supportToken = await signIn(`support+mfa-${stamp}@ocade.test`);
   check(
-    "and the removed person's open console stops working at once",
+    "the removed person's authority is gone at the database on the very next request",
+    (await staffCan(supportToken)) === false,
+  );
+  // Nobody touches the open console: it notices and leaves by itself.
+  check(
+    "and their open console leaves by itself within seconds, back to Chat",
+    await until(async () => new URL(support.url()).pathname === "/", 30_000),
+    support.url(),
+  );
+  check(
+    "with its sidebar entry gone",
     await until(
-      async () =>
-        new URL(support.url()).pathname === "/" ||
-        (await support.getByText("Accounts could not be read.").count()) > 0,
-      30_000,
+      async () => (await support.getByText(/Owner Console|Staff Console/).count()) === 0,
+      15_000,
     ),
   );
   await support.reload({ waitUntil: "load" });
@@ -708,6 +675,156 @@ try {
     JSON.stringify(left).slice(0, 120),
   );
 
+  // The owner is never stopped by a window, and says so; usage is still recorded.
+  check(
+    "the owner's meter says unlimited",
+    (await meter(owner)) === "Unlimited use",
+    await meter(owner),
+  );
+  await owner.goto(`${SITE}/ocade-jarvis`, { waitUntil: "load" });
+  check("and so does JARVIS", await seen(owner.getByText("Unlimited JARVIS use"), 20_000));
+  const recorded0 = await asCustomer(ownerSession, "/rest/v1/rpc/ocade_staff_can", {
+    method: "POST",
+    body: JSON.stringify({ p_permission: "grants.manage" }),
+  }).then((r) => r.json());
+  check("an owner holds the grants permission", recorded0 === true);
+
+  // A member of staff: normal limits, then unlimited until revoked, then normal again.
+  const hirePage = hire;
+  const before = await meter(hirePage);
+  check("a member of staff starts on normal limits", / of 28 left/.test(before), before);
+  await consoleOf(owner, "Owner Console");
+  await tab(owner, "Staff").click();
+  const hireMember = owner
+    .getByRole("region", { name: "Staff", exact: true })
+    .locator("li", { hasText: hireEmail });
+  await hireMember.getByRole("button", { name: "Usage", exact: true }).click();
+  check(
+    "the owner sees their usage, limits included",
+    await seen(hireMember.getByText(/^Normal limits · /)),
+  );
+  check(
+    "and when they last used Chat and JARVIS",
+    await seen(hireMember.getByText(/^Last Chat use .* · last JARVIS step /)),
+  );
+  const giveUnlimited = hireMember.getByRole("button", { name: "Give unlimited use" });
+  check("giving unlimited use waits for a reason", await giveUnlimited.isDisabled());
+  await hireMember.getByPlaceholder(/^Why unlimited/).fill("Running the mobile test matrix today");
+  await giveUnlimited.click();
+  check(
+    "unlimited use is given until revoked",
+    (await seen(owner.getByText("Unlimited use given until revoked."))) &&
+      (await seen(hireMember.getByText(/^Unlimited until revoked · /))),
+  );
+  check(
+    "and is theirs at once",
+    (await meter(hirePage)) === "Unlimited use",
+    await meter(hirePage),
+  );
+  await hireMember.getByPlaceholder(/^Why unlimited/).fill("The mobile test matrix has finished");
+  await hireMember.getByRole("button", { name: "Back to normal limits" }).click();
+  check("taken back by the owner", await seen(owner.getByText("Back to normal limits.")));
+  check(
+    "and their normal limits return at once",
+    / of 28 left/.test(await meter(hirePage)),
+    await meter(hirePage),
+  );
+
+  // A customer test account: unlimited until a set time.
+  await tab(owner, "Customers").click();
+  const timedRow = await customerRow(owner);
+  const tomorrow = new Date(Date.now() + 26 * 3600_000);
+  const local = new Date(tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16);
+  await timedRow.getByLabel("Unlimited until (empty: until revoked)").fill(local);
+  await timedRow.getByPlaceholder(/^Why unlimited/).fill("Android test account for the matrix");
+  await timedRow.getByRole("button", { name: "Give unlimited until then" }).click();
+  check(
+    "a customer is given unlimited use until a set time",
+    (await seen(owner.getByText("Unlimited use given until then."))) &&
+      (await seen(timedRow.getByText(/^Unlimited until .* · /))),
+  );
+  const customerUsage = await asCustomer(customer, "/rest/v1/rpc/ocade_account_unlimited", {
+    method: "POST",
+    body: JSON.stringify({ target_user: customer.user.id }),
+  });
+  check(
+    "a browser cannot ask about unlimited use itself",
+    customerUsage.status >= 400,
+    String(customerUsage.status),
+  );
+  await timedRow.getByPlaceholder(/^Why unlimited/).fill("The Android matrix run has finished");
+  await timedRow.getByRole("button", { name: "Back to normal limits" }).click();
+  check("and back to normal limits", await seen(owner.getByText("Back to normal limits.")));
+  await timedRow.getByRole("button", { name: "Close", exact: true }).first().click();
+
+  // Ownership: a second Owner, the Primary Owner handed over and handed back.
+  const heirEmail = `heir+mfa-${stamp}@ocade.test`;
+  const heirSession = await signIn(heirEmail);
+  await tab(owner, "Staff").click();
+  await give.getByPlaceholder("name@example.com").fill(heirEmail);
+  await give.getByRole("combobox").selectOption("backup_owner");
+  await give.getByPlaceholder(/^Why/).fill("A second owner for the company");
+  await giveButton.click();
+  check("another Owner is named", await seen(owner.getByText(`${heirEmail} is now Owner.`)));
+  const heir = await open(heirSession);
+  check("who gets the Owner Console", await consoleOf(heir, "Owner Console"));
+  check("and unlimited use", (await meter(heir)) === "Unlimited use", await meter(heir));
+  const heirMember = owner
+    .getByRole("region", { name: "Staff", exact: true })
+    .locator("li", { hasText: heirEmail });
+  await heirMember.getByRole("button", { name: "Change" }).click();
+  const handOver = heirMember.getByRole("button", { name: "Hand ownership over" });
+  await heirMember.getByPlaceholder(/^Why/).fill("Planned hand-over to the new owner");
+  check("handing over waits for an explicit confirmation", await handOver.isDisabled());
+  await heirMember.getByText(/I understand/).click();
+  await handOver.click();
+  await until(
+    async () =>
+      (await owner.getByRole("heading", { name: "Owner Console", exact: true }).count()) > 0,
+    20_000,
+  );
+  await tab(owner, "Staff").click();
+  const ownerList = owner.getByRole("region", { name: "Staff", exact: true });
+  check(
+    "the new Primary Owner holds it and the former one stays an Owner",
+    (await seen(ownerList.locator("li", { hasText: heirEmail }).getByText("Primary Owner"))) &&
+      (await seen(ownerList.locator("li", { hasText: "(you)" }).getByText(/^Owner/))),
+  );
+  // Handed back by the new Primary Owner, who leaves the staff as they do.
+  await consoleOf(heir, "Owner Console");
+  await tab(heir, "Staff").click();
+  const back = heir
+    .getByRole("region", { name: "Staff", exact: true })
+    .locator("li", { hasText: ownerEmail });
+  await back.getByRole("button", { name: "Change" }).click();
+  await back.getByPlaceholder(/^Why/).fill("Handing it back and stepping down");
+  await back.getByText("Stay an Owner myself afterwards").click();
+  await back.getByText(/I understand/).click();
+  await back.getByRole("button", { name: "Hand ownership over" }).click();
+  check(
+    "handed back, the one who leaves the staff is back in Chat with no console",
+    (await until(async () => new URL(heir.url()).pathname === "/", 20_000)) &&
+      (await until(
+        async () => (await heir.getByText(/Owner Console|Staff Console/).count()) === 0,
+        20_000,
+      )),
+    heir.url(),
+  );
+  await owner.reload({ waitUntil: "load" });
+  await tab(owner, "Staff").click();
+  const primaries = () =>
+    owner
+      .getByRole("region", { name: "Staff", exact: true })
+      .getByText("Primary Owner", { exact: true })
+      .count();
+  check(
+    "and there is always exactly one Primary Owner",
+    await until(async () => (await primaries()) === 1, 15_000),
+    String(await primaries()),
+  );
+
   // Everything above is on the record.
   await tab(owner, "Audit").click();
   const audit = owner.getByRole("region", { name: "Audit record" });
@@ -728,6 +845,9 @@ try {
       "Suspended an account",
       "Restored an account",
       "Began deleting an account",
+      "Gave unlimited use",
+      "Ended unlimited use",
+      "Handed ownership over",
       "Moved to another team today",
     ].every((line) => recorded.includes(line)),
     recorded.replace(/\s+/g, " ").slice(0, 400),

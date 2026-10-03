@@ -25,6 +25,25 @@ export async function resolveTierFor(userId: string): Promise<ResolvedEntitlemen
   return { tier: "free", anchoredAt, source: "free_default" };
 }
 
+/** Never stopped by a usage window: an owner, or an owner's grant. Usage is still recorded. */
+export interface Unlimited {
+  why: "owner" | "grant";
+  /** Null: until revoked (always, for an owner). */
+  endsAt: string | null;
+}
+
+/** Whether an account is unlimited right now, as the database decides it (20261003090000). */
+export async function unlimitedFor(userId: string): Promise<Unlimited | null> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin.rpc("ocade_account_unlimited", {
+    target_user: userId,
+  });
+  // Display only: the allowance itself is enforced in the database either way.
+  if (error) return null;
+  const row = data?.[0];
+  return row ? { why: row.why as Unlimited["why"], endsAt: row.ends_at } : null;
+}
+
 async function accountAnchorFor(userId: string): Promise<number> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin

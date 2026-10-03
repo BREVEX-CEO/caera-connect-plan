@@ -13,13 +13,16 @@ import { z } from "zod";
 import { requireSession } from "@/lib/security/session-middleware";
 import { HIGH_RISK, requireAssurance } from "@/lib/security/assurance-middleware";
 import { assertStaff, type StaffPermission } from "./access.functions";
+import { unlimitedFor, type Unlimited } from "@/lib/commercial/entitlement-resolver";
+
+export type { Unlimited };
 
 export type StaffRole =
   "primary_owner" | "backup_owner" | "admin" | "support" | "billing" | "operations" | "read_only";
 
 export const STAFF_ROLE_NAMES: Record<StaffRole, string> = {
   primary_owner: "Primary Owner",
-  backup_owner: "Backup Owner",
+  backup_owner: "Owner",
   admin: "Admin",
   support: "Support",
   billing: "Billing",
@@ -41,6 +44,8 @@ export interface MyStaff {
   permissions: StaffPermission[];
   /** False until this session answered its second factor; staff reads need it. */
   secondFactor: boolean;
+  /** A factor was added during this session: staff authority waits for the next sign-in. */
+  newFactor: boolean;
 }
 
 const reason = z.string().trim().min(10).max(500);
@@ -60,7 +65,11 @@ function staffFailure(message: string): string {
     "The Primary Owner is removed only by handing ownership over.",
     "Only the Primary Owner removes the Backup Owner.",
     "Only the Primary Owner hands over ownership.",
-    "Ownership goes to the Backup Owner. Name one first.",
+    "Ownership goes to an Owner. Make them an Owner first.",
+    "Only an owner changes unlimited use.",
+    "Nobody grants themselves.",
+    "An owner already has unlimited use.",
+    "End it between five minutes and ten years from now, or not at all.",
     "An owner's sessions are ended by the owner.",
     "An owner's two-step verification is changed by the owner.",
     "Nobody turns off their own two-step verification this way.",
@@ -78,7 +87,9 @@ function staffFailure(message: string): string {
     "This account's deletion was started. Finish deleting it.",
   ];
   if (/Confirm (it is you|the code from your authenticator app)/i.test(message)) return message;
-  return known.find((sentence) => message.includes(sentence)) ?? "That change was not applied.";
+  const sentence = known.find((known) => message.includes(known)) ?? "That change was not applied.";
+  // The database still says "Backup Owner"; the product calls every other owner an Owner.
+  return sentence.replace(/(a|the) Backup Owner/, "another Owner");
 }
 
 /** Who the caller is to OCADE's operations, or null for everybody else. */
@@ -89,10 +100,15 @@ export const readMyStaff = createServerFn({ method: "GET" })
     if (error) throw new Error("OCADE could not check this account just now.");
     const row = data?.[0];
     if (!row) return null;
+    const { data: newFactor, error: factorError } = await context.supabase.rpc(
+      "ocade_factor_added_since_sign_in",
+    );
+    if (factorError) throw new Error("OCADE could not check this account just now.");
     return {
       role: row.role as StaffRole,
       permissions: row.permissions as StaffPermission[],
       secondFactor: row.second_factor,
+      newFactor: newFactor === true,
     };
   });
 
@@ -241,14 +257,46 @@ export const withdrawStaffInvite = createServerFn({ method: "POST" })
 
 export const transferOwnership = createServerFn({ method: "POST" })
   .middleware([requireAssurance(HIGH_RISK)])
-  .validator((input) => z.object({ userId: uuid, reason }).parse(input))
+  .validator((input) => z.object({ userId: uuid, reason, stayOwner: z.boolean() }).parse(input))
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
     const { error } = await context.supabase.rpc("ocade_staff_transfer_ownership", {
       p_to: data.userId,
       p_reason: data.reason,
+      p_stay_owner: data.stayOwner,
     });
     if (error) throw new Error(staffFailure(error.message));
     return { ok: true };
+  });
+
+/* -------------------------------------------------------- unlimited use -- */
+
+/** An owner gives an account unlimited use until a time, or until revoked. */
+export const grantUnlimited = createServerFn({ method: "POST" })
+  .middleware([requireAssurance(HIGH_RISK)])
+  .validator((input) =>
+    z.object({ userId: uuid, until: z.string().datetime().nullable(), reason }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    const { error } = await context.supabase.rpc("ocade_grant_unlimited", {
+      p_user: data.userId,
+      p_until: data.until as string,
+      p_reason: data.reason,
+    });
+    if (error) throw new Error(staffFailure(error.message));
+    return { ok: true };
+  });
+
+/** Back to the account's normal limits, at once. */
+export const revokeUnlimited = createServerFn({ method: "POST" })
+  .middleware([requireAssurance(HIGH_RISK)])
+  .validator((input) => z.object({ userId: uuid, reason }).parse(input))
+  .handler(async ({ data, context }): Promise<{ revoked: boolean }> => {
+    const { data: revoked, error } = await context.supabase.rpc("ocade_revoke_unlimited", {
+      p_user: data.userId,
+      p_reason: data.reason,
+    });
+    if (error) throw new Error(staffFailure(error.message));
+    return { revoked: revoked === true };
   });
 
 /** Emergency: every staff session everywhere ends, except this one. */
@@ -267,6 +315,9 @@ export const endAllStaffSessions = createServerFn({ method: "POST" })
 
 export interface CustomerDetail {
   usage: { surface: "chat" | "jarvis"; kind: string; used: number; resetsAt: string }[] | null;
+  /** With usage: never stopped by a window (an owner, or an owner's grant), and the last use of each. */
+  unlimited: Unlimited | null;
+  lastUsed: { chat: string | null; jarvis: string | null } | null;
   tasks: { title: string; status: string; updatedAt: string }[] | null;
   security: {
     secondFactor: boolean;
@@ -294,7 +345,13 @@ export const readCustomer = createServerFn({ method: "GET" })
       may("security.read"),
     ]);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const detail: CustomerDetail = { usage: null, tasks: null, security: null };
+    const detail: CustomerDetail = {
+      usage: null,
+      unlimited: null,
+      lastUsed: null,
+      tasks: null,
+      security: null,
+    };
     if (usage) {
       // The same reader the customer's own usage screen uses, for both surfaces.
       const surfaces = await Promise.all(
@@ -313,6 +370,22 @@ export const readCustomer = createServerFn({ method: "GET" })
           resetsAt: row.reset_at,
         })),
       );
+      const last = (surface: "chat" | "jarvis") =>
+        supabaseAdmin
+          .from("ocade_generation_permits")
+          .select("issued_at")
+          .eq("user_id", data.userId)
+          .eq("surface", surface)
+          .order("issued_at", { ascending: false })
+          .limit(1)
+          .then(({ data: rows }) => rows?.[0]?.issued_at ?? null);
+      const [unlimited, chat, jarvis] = await Promise.all([
+        unlimitedFor(data.userId),
+        last("chat"),
+        last("jarvis"),
+      ]);
+      detail.unlimited = unlimited;
+      detail.lastUsed = { chat, jarvis };
     }
     if (tasks) {
       // Titles and states only: what JARVIS was asked, never what it saw.

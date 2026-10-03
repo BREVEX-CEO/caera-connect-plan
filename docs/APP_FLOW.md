@@ -110,8 +110,8 @@ First enable:
 ## Owner Console
 
 1. Primary Owner signs into normal OCADE.
-2. Account menu shows Owner Console.
-3. Secure SSO opens `admin.ocade.in`.
+2. The sidebar shows Owner Console beneath Chat, OCADE JARVIS and Library (staff see Staff Console; customers see nothing).
+3. It opens `/admin` inside `ocade.in` (the separate `admin.ocade.in` origin was retired on 2026-10-03).
 4. During 2FA bootstrap, view access may work while sensitive mutations remain locked.
 5. After strong auth, Owner manages permitted operations.
 

@@ -14,7 +14,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { requireSession } from "@/lib/security/session-middleware";
 import { HIGH_RISK, requireAssurance } from "@/lib/security/assurance-middleware";
 import { supabaseCommercialLedger } from "@/lib/commercial/supabase-ledger";
-import { resolveTierFor } from "@/lib/commercial/entitlement-resolver";
+import { resolveTierFor, unlimitedFor } from "@/lib/commercial/entitlement-resolver";
 import { ALLOWANCES, describeUsage } from "@/lib/commercial/usage-policy";
 import {
   CAPABILITIES,
@@ -96,6 +96,8 @@ export interface JarvisState {
     apps: { name: string; rule: "always" | "ask" | "never" }[];
   }[];
   usage: { remaining: number; allowance: number; resetsInMs: number | null } | null;
+  /** Never stopped by a window (then `usage` is null); every step is still recorded. */
+  unlimited: boolean;
 }
 
 export const readJarvisState = createServerFn({ method: "GET" })
@@ -190,7 +192,10 @@ export const readJarvisState = createServerFn({ method: "GET" })
           .map((name) => ({ name, rule: rule(appDecision(permissionRows, name, device.id)) })),
       }));
 
-    const entitlement = await resolveTierFor(context.userId);
+    const [entitlement, unlimited] = await Promise.all([
+      resolveTierFor(context.userId),
+      unlimitedFor(context.userId),
+    ]);
     const ledger = supabaseCommercialLedger(service);
     const windows = ledger.readCurrent ? await ledger.readCurrent(context.userId, "jarvis") : [];
     const allowance = ALLOWANCES[entitlement.tier];
@@ -246,14 +251,17 @@ export const readJarvisState = createServerFn({ method: "GET" })
       activity: (activity.data ?? []).map(({ action: _action, ...rest }) => rest),
       sites: [...sites].sort().slice(0, 100),
       apps,
+      unlimited: Boolean(unlimited),
       // Before the first use no window has started: the whole allowance is left.
-      usage: shown[0]
-        ? {
-            remaining: shown[0].remaining,
-            allowance: shown[0].allowance,
-            resetsInMs: shown[0].resetsInMs,
-          }
-        : { remaining: allowance.session, allowance: allowance.session, resetsInMs: null },
+      usage: unlimited
+        ? null
+        : shown[0]
+          ? {
+              remaining: shown[0].remaining,
+              allowance: shown[0].allowance,
+              resetsInMs: shown[0].resetsInMs,
+            }
+          : { remaining: allowance.session, allowance: allowance.session, resetsInMs: null },
     };
   });
 

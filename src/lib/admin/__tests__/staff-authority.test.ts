@@ -336,7 +336,7 @@ describe("removing access", () => {
         `select public.ocade_staff_transfer_ownership('${user}', 'Stepping back from operations')`,
         fresh,
       );
-    expect((await to(ADMIN)).error).toMatch(/Backup Owner/);
+    expect((await to(ADMIN)).error).toMatch(/Make them an Owner first/);
     expect((await to(BACKUP)).error).toBeUndefined();
     expect(await staff(BACKUP)).toBe("primary_owner");
     expect(await staff(OWNER)).toBe("backup_owner");
@@ -348,10 +348,6 @@ describe("sessions", () => {
     await twin.execSuperuser(`delete from auth.sessions`);
     const [mine] = await twin.asSuperuser<{ id: string }>(
       `insert into auth.sessions (user_id) values ('${OWNER}') returning id`,
-    );
-    // Staff work from the console's own session (20261001090000).
-    await twin.execSuperuser(
-      `insert into public.ocade_console_sessions (session_id, user_id) values ('${mine!.id}', '${OWNER}')`,
     );
     await twin.execSuperuser(
       `insert into auth.sessions (user_id) values ('${OWNER}'), ('${ADMIN}'), ('${SUPPORT}'),
@@ -376,10 +372,6 @@ describe("sessions", () => {
     );
     const [{ id: admins }] = await twin.asSuperuser<{ id: string }>(
       `insert into auth.sessions (user_id) values ('${ADMIN}') returning id`,
-    );
-    await twin.execSuperuser(
-      `insert into public.ocade_console_sessions (session_id, user_id)
-       values ('${owners}', '${OWNER}'), ('${admins}', '${ADMIN}')`,
     );
     const asAdmin = (sql: string) =>
       twin.asTenant<{ ok: boolean }>(ADMIN, sql, { aal: "aal2", sessionId: admins });

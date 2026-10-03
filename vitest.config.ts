@@ -52,7 +52,7 @@ const DATABASE_BACKED = [
   "src/lib/admin/__tests__/admin-device-removal.test.ts",
   "src/lib/security/__tests__/second-factor-enforced.test.ts",
   "src/lib/admin/__tests__/staff-authority.test.ts",
-  "src/lib/admin/__tests__/console-sessions.test.ts",
+  "src/lib/admin/__tests__/owner-staff-on-site.test.ts",
   "src/lib/admin/__tests__/customer-operations.test.ts",
   "src/lib/notifications/__tests__/push-subscriptions.test.ts",
 ];

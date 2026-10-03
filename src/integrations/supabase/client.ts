@@ -11,7 +11,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 import { missingSupabaseConfigurationMessage } from "./configuration-message";
-import { isConsoleHost } from "@/lib/admin/console-host";
 import {
   getSupabaseBrowserConfiguration,
   resolveSupabaseBrowserConfiguration,
@@ -91,12 +90,6 @@ function createSupabaseClient() {
        * address are refused.
        */
       flowType: "pkce",
-      /*
-       * The console takes its session from its own server (auth.console.tsx),
-       * never from an address: a planted session there is the one thing the
-       * console's separate origin exists to prevent.
-       */
-      detectSessionInUrl: typeof window === "undefined" || !isConsoleHost(window.location.hostname),
     },
   });
 }

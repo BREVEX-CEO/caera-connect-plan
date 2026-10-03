@@ -59,7 +59,7 @@ JARVIS is a partner during work: users can speak, ask status, redirect, pause, c
 
 ## Company operations
 
-`admin.ocade.in` is the preferred operations surface.
+The Owner/Staff Console inside `ocade.in` is the operations surface (owner authority 2026-10-03; `admin.ocade.in` retired).
 
 Primary Owner, Backup Owner, Admin, Support, Billing, Developer/Operations and Read-only are distinct roles with server-side enforcement and granular permission overrides.
 

@@ -908,6 +908,8 @@ export function JarvisWorkspace({
                 {usage.resetsInMs === null ? "" : ` · resets ${describeReset(usage.resetsInMs)}`}
               </span>
             </p>
+          ) : jarvis?.unlimited ? (
+            <p className="text-xs text-muted-foreground">Unlimited JARVIS use</p>
           ) : null}
           <button
             type="button"

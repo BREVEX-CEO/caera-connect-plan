@@ -222,9 +222,9 @@ await waitForPort(`${SUPABASE_URL}/auth/v1/settings`, "the Supabase stub");
 
 /*
  * THE PRODUCTION CONFIG WITHOUT ITS ROUTES. `wrangler dev` rewrites every
- * request to the first route's host, so the Worker could not tell the site
- * from the console's own origin (`admin.localhost`) — the one thing the console
- * proof has to see. Beside the real config, so its relative paths still hold.
+ * request to the first route's host, so the local proof would be answered as
+ * if it were ocade.in itself. Beside the real config, so its relative paths
+ * still hold.
  */
 const LOCAL_CONFIG = "wrangler.e2e.json";
 {

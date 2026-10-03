@@ -134,7 +134,7 @@ Explicit Remove/Clear Data deletes local storage according to product/platform r
 
 ## Owner/staff architecture
 
-Privileged UI is separate at `admin.ocade.in`, but auth uses OCADE identity.
+Privileged UI is the Owner/Staff Console inside `ocade.in` (`/admin`, shown only to staff); `admin.ocade.in` was retired on 2026-10-03.
 
 Authorization is server/RLS enforced.
 
