@@ -1441,3 +1441,202 @@ No merge to `main` is permitted merely because tests are green. The branch must 
 The final report must identify the exact branch and SHA, all Phase 1–49 statuses, all addendum requirements, test totals, real-browser/MCP evidence, real Windows evidence, Android emulator/Appium/Mobile MCP evidence, Apple compatibility and blocked physical evidence, Supabase status, Cloudflare preview/production identity, GitHub status, billing-only GitHub Actions limitations separately from real code failures, known accepted limitations, all remaining manual owner-only actions, cleanup/debloat work, unresolved bugs if any, and a conservative commercial-readiness percentage.
 
 A final claim of readiness requires zero known reproducible Critical or Major release blockers and no unexplained required-evidence failure. It does not mean undiscovered bugs are mathematically impossible.
+
+---
+
+# Owner authority extension — 2026-10-03 — Phases 50–56
+
+This extension converts the previously approved post-Phase-49 addenda into explicit numbered phases and adds the newest Owner/Staff/usage/control requirements. It is append-only authority. It does not rewrite or erase Phases 1–49, prior evidence, immutable donor history, applied migrations, or the 2026-10-02 addendum. Where an older sentence conflicts with this newer authority, this section controls future implementation and verification.
+
+## Phase 50 — Universal Gemini/OCADE intelligence-driven software control
+
+### Purpose
+Finish the universal execution architecture so Gemini/OCADE intelligence understands real tasks and unfamiliar software while the local OCADE broker remains the validated execution authority.
+
+### Build / repair
+- Do not grow separate hard-coded controllers for every application.
+- For every task, inspect the real current app/browser/device/file state, application identity/version, process/window, accessibility structure, relevant project/file structure, available official automation surfaces, and current UI.
+- Let Gemini/OCADE choose the strongest legitimate route: official API/CLI/script/macro/COM/automation or direct file/project manipulation first; structured browser/app accessibility next; local vision next; fresh PyAutoGUI/computer-use coordinates last.
+- Use current official documentation when model knowledge may be stale or insufficient.
+- Keep the Device Agent/action broker responsible for account/device/task ownership, scope, permissions, STOP, cancellation, confirmation, idempotency, execution, verification, and recovery. Raw model output must never bypass it.
+- Do not add app-specific production code merely because an unfamiliar app appears in testing. Keep a specialized adapter only when measured evidence proves a meaningful reliability, safety, fidelity, performance, or platform advantage.
+- Learn only sanitized reusable recipes; never store passwords, tokens, OTPs, cookies, raw private screenshots, or private file contents as generic knowledge.
+- Preserve already proven functionality while retiring redundant app-specific paths only after universal equivalence is proven.
+
+### Required proof
+- At least one unfamiliar installed application selected at runtime with no new app-specific production code added for that test.
+- At least one dynamically discovered official API/script/automation route.
+- At least one accessibility/vision/fresh-coordinate fallback case.
+- At least one simple task and one complex multi-step task.
+- Independent verification of the real result after JARVIS reports success.
+- STOP, recovery, stale UI, app restart, rerouting, and user takeover tests.
+
+### Exit
+Universal control is complete only when OCADE can understand and operate unfamiliar software through Gemini/OCADE intelligence plus generic execution capabilities without requiring prior per-app coding.
+
+---
+
+## Phase 51 — Wake, browser, background companion and device-runtime hardening
+
+### Purpose
+Turn the previously approved wake/browser/device addendum into a commercial runtime phase.
+
+### Build / repair
+- Bundle the signed OCADE wake model inside the Windows Device Agent and Android app; no separate customer wake-model download after install.
+- Support both `OCADE` and `Hey OCADE`.
+- Keep pre-wake audio local and resource use very low.
+- Keep the Windows tray/Device Agent available when Chrome or `ocade.in` is closed where wake/background/Remote PC requires it.
+- Keep Android Wake Mode truthful through Android's required foreground-service/notification model.
+- Prefer the user's existing authorized browser/profile and product-owned browser control; development MCPs remain testing tools only.
+- Maintain one action authority across browser, computer, files, terminal, apps, mobile, voice, tasks, background work, and devices.
+- Continue fixing runtime/resource/reconnect/update/rollback/tray/bubble regressions until current evidence is green.
+
+### Required proof
+Real Windows and Android wake/runtime evidence, existing-browser control, restart/reconnect, update/rollback, STOP, background behavior, and low-resource measurements.
+
+### Exit
+Wake, browser, background, tray/bubble and device runtime behave as one reliable OCADE product.
+
+---
+
+## Phase 52 — High-speed Android/mobile control and Remote PC completion
+
+### Purpose
+Finish mobile execution so Android control and Remote PC are fast, reliable, account-correct, and share the same intelligence/task authority as Windows.
+
+### Build / repair
+- Use one Gemini/OCADE planning authority for PC and Android; only the executor changes by platform.
+- Android hierarchy remains intents/native APIs -> Accessibility/UI hierarchy -> vision -> fresh taps/coordinates.
+- Do not create per-app Android production controllers merely to make test applications pass.
+- Test simple and complex Android tasks, Chrome, Files, Settings, bubble, notifications, Wake Mode, background/foreground, orientation, keyboard, app switching, STOP, restart/recovery, uninstall/reinstall, and Remote PC.
+- Reduce unnecessary latency, duplicate observations, repeated setup, excessive screenshots, and redundant network round trips without weakening correctness/security.
+- Run Appium first, release/reset controller ownership, then run Mobile MCP independently.
+- If a non-owner test account reaches its legitimate usage limit during testing, use the normal audited Owner usage-reset or temporary/permanent unlimited entitlement flow rather than bypassing enforcement.
+- The Primary Owner defined in Phase 53 is permanently unlimited while internal usage/cost telemetry still records.
+
+### Required proof
+Full Appium and independent Mobile MCP passes, Remote PC routing, simple and complex task success, STOP/recovery, account isolation, and responsive behavior.
+
+### Exit
+Mobile control is commercially usable, fast, recoverable, and uses the same universal execution architecture as PC control.
+
+---
+
+## Phase 53 — Integrated Owner and Staff Consoles on normal ocade.in
+
+### Purpose
+Remove the separate `admin.ocade.in` product surface and make privileged console visibility a role-driven part of normal `ocade.in` without weakening backend authorization.
+
+### Permanent owner identity
+- The initial Primary Owner account is the verified OCADE account for `carecadane28@gmail.com`.
+- Bootstrap may locate that verified account by email once, but persistent authorization must resolve/store its stable user UUID/role server-side. Frontend email comparison must never be the authorization boundary.
+- The Primary Owner has full product access and permanently unlimited Chat/JARVIS usage while internal usage/cost telemetry continues to record.
+- Normal customers see no Owner/Staff Console wording, route hint, disabled menu item, or privileged data.
+
+### Owner Console behavior
+- When the Primary Owner signs into normal `ocade.in`, an `Owner Console` navigation entry appears in the normal authenticated product navigation beneath normal product entries such as Chat, JARVIS and Library.
+- The Owner Console is served inside the normal `ocade.in` application.
+- Retire the active `admin.ocade.in` console/product route only after the integrated replacement has equivalent-or-stronger server-side authorization, recent-auth/2FA, audit, session/CSP isolation, and full regression evidence.
+- Sensitive Owner actions require recent 2FA/re-authentication; ordinary viewing does not require repeated nuisance challenges.
+- Owner capabilities include safe customer lookup, plans/entitlements, usage reset/adjustment, permanent or time-bounded unlimited access, sessions, devices, staff/roles/permissions, security/support actions, audited deletion flows, global JARVIS controls, system state, and audit history.
+- Owner can track staff usage using safe metadata including usage count, time, JARVIS/Chat type, device, plan, last activity, and task-level operational activity where appropriate, but private message contents are not broadly exposed by default.
+- Never expose passwords, OAuth tokens, cookies, provider keys, MFA secrets, recovery secrets, or equivalent credentials.
+
+### Staff Console behavior
+- When a verified account has an active staff role, a `Staff Console` entry appears automatically in normal `ocade.in` beneath normal product navigation.
+- Staff permissions are granular and selected by the Owner per staff member.
+- Staff accounts remain on their normal usage limits by default.
+- Owner may grant a staff account unlimited usage until manually revoked, unlimited usage until a specified date/time, or return the account to normal limits.
+- All grants/revokes are server-side, audited, stable-user-ID based, and reflected immediately.
+- If staff role is revoked while Staff Console is open, privileged backend access is revoked immediately, active privileged requests fail closed, the console disappears/redirects automatically, and refresh/relogin must not restore it.
+- A revoked former staff account behaves like an ordinary customer unless another active role/entitlement applies.
+
+### Required proof
+- Primary Owner signs into normal `ocade.in` and sees Owner Console.
+- Normal customer signs in and sees no privileged surface.
+- Staff grant -> Staff Console appears -> granular allowed actions work -> disallowed actions fail server-side.
+- Staff revoke while console is open -> backend authority disappears immediately -> UI removes/redirects -> refresh/relogin remains revoked.
+- Staff normal usage -> temporary unlimited grant -> verify -> timed/permanent behavior -> revoke -> normal limit returns.
+- Owner unlimited usage remains unlimited while telemetry records.
+- Retired `admin.ocade.in` cannot bypass the integrated authority.
+
+### Exit
+Owner and Staff operations are securely integrated into normal `ocade.in` and role/usage changes are immediate, audited, and server-enforced.
+
+---
+
+## Phase 54 — Ownership transfer, additional owners, entitlements and usage authority
+
+### Purpose
+Make ownership and privileged-role lifecycle safe, transferable, auditable, and recoverable.
+
+### Build / repair
+- Primary Owner may grant an additional Owner role to another verified OCADE account or transfer Primary Owner status to another verified account.
+- Ownership grant/transfer requires recent 2FA/re-authentication, explicit high-impact confirmation, target-account verification, audit, and transaction-safe role changes.
+- Never allow a transfer to leave the system with no valid Owner.
+- Protect the current Primary Owner from accidental self-demotion or self-deletion through ordinary controls.
+- A deliberate transfer may change which account is Primary Owner. The former Primary Owner may remain an Owner or be reduced only according to the explicit transfer choice and safeguards.
+- Owner-role revocation/transfer/permission change must invalidate privileged sessions/claims immediately where required and force authorization re-evaluation.
+- Maintain granular per-staff permissions and audited Owner grants.
+- Owner usage remains unlimited by default. Staff/customer limits remain enforced unless an Owner grants a supported temporary/permanent entitlement.
+- Owner may reset legitimate testing usage or grant temporary unlimited usage to test accounts/mobile test accounts when needed for the product test matrix; use the normal entitlement authority and audit trail, never a hidden bypass.
+- Usage, entitlement, and primary -> secondary -> tertiary Online intelligence capacity/key-rotation behavior remain server-side, hidden from customers, correctly accounted, and tested for recovery/failure without exposing provider identities or keys.
+
+### Required proof
+Additional Owner grant, Primary Owner transfer, last-owner protection, staff granular permission grant/revoke, usage reset, timed unlimited, permanent unlimited, expiry/revoke, session invalidation, and audit evidence.
+
+### Exit
+Ownership, staff authority, and usage entitlements operate safely without frontend privilege shortcuts or orphaned administrative control.
+
+---
+
+## Phase 55 — Full real-task control, whole-site verification, debloat and second-pass testing
+
+### Purpose
+Finish the updated product by proving real work, fixing every reproducible defect, removing redundant hard-coded systems, and proving the cleaned tree again.
+
+### Build / repair
+- Continue from the current working tree/failure ledger; do not restart or re-code already proven completed work.
+- Test PC control heavily with Gemini/OCADE intelligence across Chrome, files, Office, coding, unfamiliar Windows software, multi-app workflows, creative/professional software, STOP, Take Over, restart/recovery, and Remote PC.
+- Include simple and complex tasks. Include DaVinci Resolve or another installed serious video editor when available: discover the strongest legitimate route, perform a real edit/export, and independently verify the output.
+- Do not add app-specific production code to make frozen test applications pass.
+- Test Android/mobile control deeply and efficiently as defined in Phase 52.
+- Sweep the whole site in real Chrome and responsive/mobile contexts. Exercise every relevant page, route, button, menu, form, Devices surface, Owner Console, Staff Console, JARVIS panel, loading/disabled/error/retry state, account switch, permission revoke, session expiry, and security boundary.
+- The Devices button/panel, routing, connection, reconnect, revoke, status, stale-device behavior, and related controls must be fully functional and tested.
+- Fix every reproducible release-scope defect at root cause and add/update regression coverage.
+- Once universal-control equivalence is proven, use Caveman/Ponytail and `ToRemove.md` to remove redundant hard-coded app controllers, duplicate browser/control systems, stale privileged routes, dead code, obsolete wake-download logic, unused build outputs, and unnecessary dependencies.
+- Preserve immutable donor/imports, applied migrations, audit evidence, rollback/recovery logic, and specialized paths still proven necessary.
+- Rerun the complete affected matrix after cleanup.
+- Do not stop after a partial pass because one external evidence class is blocked; continue every independent executable test/fix.
+
+### Required proof
+Real simple/complex PC tasks, unfamiliar-app proof, Chrome, Excel, coding, professional/creative task, whole-site button/route sweep, Devices flows, Owner/Staff lifecycle, Android Appium/Mobile MCP, regression suite, performance, security/adversarial, cleanup diff, and cleaned-tree retest.
+
+### Exit
+No known reproducible Critical/Major release blocker remains, no unexplained required-evidence failure remains in executable scope, universal control is proven without test-specific app coding, and the cleaned tree passes the required matrices.
+
+---
+
+## Phase 56 — Final commercial-release proof and explicit main-merge gate
+
+### Purpose
+Provide the final post-49/post-addendum release proof after every newer requirement is implemented and tested.
+
+### Required final sequence
+1. Confirm all executable requirements from Phases 1–56 and all owner addenda are complete or explicitly BLOCKED only by genuine external owner/hardware/legal/signing dependencies.
+2. Run the final source-read audit and resolve every valid release-scope finding.
+3. Run the final testing-only real-task matrix on the candidate without adding app-specific code to rescue test applications.
+4. Fix every reproducible defect at root cause and rerun exact + broad regressions.
+5. Run Caveman/Ponytail and `ToRemove.md` final cleanup only on proven redundant code.
+6. Rerun the complete cleaned-tree matrix.
+7. Run a second independent adversarial/security pass.
+8. Run the final real-user Windows/browser/Android/Owner/Staff/whole-site pass against preview/staging.
+9. Verify exact source, preview/deploy, Supabase migration/function, Device Agent, Android runtime, protocol, wake-model, and immutable-donor identities.
+10. Produce the final commercial-release report with exact branch/SHA, Phase 1–56 status, test totals, real-task evidence, remaining blockers, security state, cleanup performed, deployment identities, and evidence-based readiness percentage.
+11. Do not merge to `main` even if all tests are green. Stop at the merge gate and wait for explicit Owner approval.
+
+### Reporting rule
+Every meaningful update in Phases 50–56 must stay concise and show current phase/workstream, phases complete out of 56, commercial-readiness percentage, percentage remaining, current blockers, and exact next step. Percentages must be evidence-based.
+
+### Exit
+Phase 56 ends only when the release candidate is fully evidenced and waiting solely for the Owner's explicit approval to merge to `main`.

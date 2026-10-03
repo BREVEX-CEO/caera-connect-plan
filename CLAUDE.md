@@ -309,3 +309,44 @@ After the test-only matrix is complete, fix every reproducible release-scope def
 Use a preview/staging deployment for the branch before touching production. For the final real-user browser pass use the dedicated authorized Chrome profile, Playwright/CDP, Chrome DevTools, and Physical Computer Use. Protected Google authentication steps remain human-only. Test real customer work, not just clicks.
 
 Nothing in this section authorizes merging to `main`. Even when green, stop with the final commercial-release report and wait for explicit owner merge approval.
+
+---
+
+# Owner follow-up instructions — 2026-10-03 — Phases 50–56
+
+This is newer append-only authority. Continue from the current working tree; do not restart proven work. `PLAN.md` now continues beyond Phase 49 through Phase 56. Where older instructions stop at Phase 49 or preserve `admin.ocade.in`, follow the newer Phase 50–56 authority.
+
+## Mission continuation
+Continue every remaining executable item through Phase 56 without stopping for routine engineering questions. Preserve completed/proven work, fix current findings at root cause, test, debloat only after replacement proof, then retest. Do not merge to `main` until the Owner explicitly approves after Phase 56.
+
+## Universal control
+Prioritize Gemini/OCADE intelligence-driven PC and mobile control. Do not add hard-coded per-app production code merely to make a test app pass. The intelligence layer inspects the live app/browser/device/file state and chooses the strongest legitimate route; the local OCADE broker executes, validates, stops, verifies, and recovers.
+
+Test both simple and complex real tasks across Chrome, files, Excel/Office, coding, unfamiliar Windows applications, multi-app workflows, professional/creative software including DaVinci Resolve when available, Android, and Remote PC. Verify the real output independently.
+
+## Integrated Owner/Staff Console
+The initial Primary Owner is the verified account `carecadane28@gmail.com`, resolved to a stable server-side user UUID/Owner role. Do not authorize privileged frontend behavior through an email comparison after bootstrap.
+
+Retire active `admin.ocade.in` after the integrated replacement is proven. In normal `ocade.in`:
+- Primary Owner sees `Owner Console` in authenticated navigation;
+- a granted staff account sees `Staff Console` in authenticated navigation;
+- ordinary customers see no privileged entry or hint.
+
+Staff permissions are granular per staff member. Staff uses normal account limits unless the Owner grants timed or permanent unlimited usage. Revocation must remove backend authority immediately and remove/redirect the Staff Console without waiting for a new login. Primary Owner has permanently unlimited Chat/JARVIS usage while internal usage/cost telemetry continues.
+
+Owner may grant another Owner role or transfer Primary Owner status to another verified account using recent 2FA/re-auth, explicit confirmation, audit, stable UUID authority, and last-owner protection. Protect against accidental Primary Owner self-demotion/deletion.
+
+Use normal audited entitlement controls to reset test-account usage or grant temporary/permanent unlimited usage when mobile/PC testing would otherwise be blocked by legitimate limits. Never bypass usage enforcement secretly.
+
+## Whole-product testing
+Continue the current test/fix ledger rather than restarting old phases. Test the entire reachable site and every relevant route/button/menu/form/state, especially Devices, Owner Console, Staff Console, JARVIS, auth, usage/entitlements, sessions, devices, role changes, and mobile/desktop responsive behavior.
+
+The Devices surface must work completely: navigation, loading, current/stale states, enrollment, connect, reconnect, revoke, error/retry, account isolation, and immediate authority changes.
+
+Run Appium then independent Mobile MCP for Android. Use Playwright/CDP, Chrome DevTools, Physical Computer Use, filesystem/output verification, Supabase, Cloudflare and GitHub where appropriate. Keep one active controller per surface.
+
+After universal-control proof, run Caveman/Ponytail and `ToRemove.md` cleanup to remove proven redundant hard-coded app paths, duplicate control authorities, stale `admin.ocade.in` code, dead routes, obsolete wake-download logic, dead code and unnecessary dependencies. Preserve anything still required for reliability/security/rollback and preserve immutable donor/history/migrations.
+
+Then rerun the full cleaned-tree matrix, second adversarial/security pass, final real-user pass, and final commercial report. Show short progress updates with current phase, phases complete out of 56, readiness %, % remaining, blockers, and next step. Never inflate the percentage.
+
+Nothing authorizes a merge to `main` before explicit Owner approval.
