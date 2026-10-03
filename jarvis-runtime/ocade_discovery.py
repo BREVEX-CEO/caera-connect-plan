@@ -148,12 +148,31 @@ def _surfaces(program_dir: Path, program: str = "") -> list[str]:
         for folder, dirs, _files in os.walk(place):
             depth = len(Path(folder).relative_to(place).parts)
             for name in dirs:
-                if SURFACE_WORDS.search(name) and (not shared or (stem and stem in name.lower())):
+                # The name filter is for the shared program folder only: the vendor's own data
+                # folder is the product's (Resolve's SDK lives there; its program folder has many helpers).
+                if SURFACE_WORDS.search(name) and (not (shared and place == program_dir)
+                                                   or (stem and stem in name.lower())):
                     out.append(str(Path(folder, name)))
             dirs[:] = [] if depth >= 2 else [d for d in dirs if not SURFACE_WORDS.search(d)]
             if len(out) >= 10:
                 return out
     return out
+
+
+def _readme(folder: str) -> dict:
+    """The start of an SDK folder's own READMEs (and where each is): how to connect, read where
+    JARVIS cannot browse (the folder is outside the work folder). Without them, Resolve was driven
+    by hand, step by step, instead of through its scripting API."""
+    found = sorted(Path(folder).glob("README*")) + sorted(Path(folder).glob("*/README*"))
+    found.sort(key=lambda p: not re.search(r"script|api|automat", p.parent.name, re.I))  # stable
+    readmes = []
+    for n, child in enumerate(found[:3]):
+        try:  # the most likely one in full enough to reach its connection example
+            text = child.read_text(encoding="utf-8", errors="replace")[:6000 if n == 0 else 1500]
+            readmes.append({"file": str(child), "start": text})
+        except OSError:
+            continue
+    return {"readmes": readmes} if readmes else {}
 
 
 def _names(folder: str) -> list[str]:
@@ -240,7 +259,7 @@ def app_info(app: dict, cancel: threading.Event | None = None) -> dict:
             info["automation"] = _com_servers(name)
         if not (cancel and cancel.is_set()):
             info["opens"], info["links"] = _opens(name)
-        info["scripting"] = [{"folder": folder, "contains": _names(folder)}
+        info["scripting"] = [{"folder": folder, "contains": _names(folder), **_readme(folder)}
                              for folder in _surfaces(Path(exe).parent, exe)]
     info["recipes"], stale = recipes_for(app["name"], info.get("version"))
     if stale:

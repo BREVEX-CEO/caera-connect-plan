@@ -133,6 +133,25 @@ class SurfacesTest(unittest.TestCase):
         (own / "plugins").mkdir()
         self.assertEqual([Path(f).name for f in ocade_discovery._surfaces(own, str(own / "app.exe"))], ["plugins"])
 
+    def test_the_vendor_sdk_folder_and_its_readme_are_found_for_a_busy_program_folder(self):
+        # Resolve: many helper programs beside Resolve.exe, its scripting SDK under ProgramData.
+        base = Path(tempfile.mkdtemp())
+        program = base / "pf" / "Vendor" / "Editor"
+        program.mkdir(parents=True)
+        for i in range(12):
+            (program / f"helper{i}.exe").write_bytes(b"")
+        sdk = base / "pd" / "Vendor" / "Editor" / "Support" / "Developer"
+        (sdk / "Codec").mkdir(parents=True)
+        (sdk / "Codec" / "README.txt").write_text("codec plugins")
+        (sdk / "Scripting").mkdir()
+        (sdk / "Scripting" / "README.txt").write_text("import EditorScript; app = EditorScript.scriptapp()")
+        with unittest.mock.patch.dict(os.environ, {"ProgramFiles": str(base / "pf"), "ProgramData": str(base / "pd"),
+                                                   "ProgramFiles(x86)": "", "APPDATA": "", "LOCALAPPDATA": ""}):
+            found = ocade_discovery._surfaces(program, str(program / "Editor.exe"))
+        self.assertIn(str(sdk), found)
+        readmes = ocade_discovery._readme(str(sdk))["readmes"]
+        self.assertIn("scriptapp", readmes[0]["start"])
+
     def test_the_launched_app_of_a_package_not_the_first(self):
         package = Path(tempfile.mkdtemp())
         (package / "AppxManifest.xml").write_text(
