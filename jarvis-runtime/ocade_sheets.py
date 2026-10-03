@@ -127,6 +127,34 @@ def features(path: Path) -> dict:
             "lossy": any(LOSSY_PARTS.search(n) for n in names)}
 
 
+_REF = re.compile(r"(?<![A-Za-z_!'.$\d])\$?([A-Z]{1,3})\$?(\d{1,7})(?::\$?([A-Z]{1,3})\$?(\d{1,7}))?(?![\w(!])")
+_ERRORS = {"#DIV/0!", "#REF!", "#NAME?", "#VALUE!", "#N/A", "#NUM!", "#NULL!", "#SPILL!", "#CALC!"}
+
+
+def problems(read: dict) -> list[str]:
+    """Cells in a read-back that a person would notice at once: a formula that includes its own
+    cell (Excel shows 0 and a circular-reference warning) or an error value."""
+    from openpyxl.utils.cell import column_index_from_string, coordinate_from_string, get_column_letter
+    found = []
+    for address, got in read.items():
+        letters, top = coordinate_from_string(address.split(":")[0].replace("$", ""))
+        left = column_index_from_string(letters)
+        for r, line in enumerate(got.get("formulas") or []):
+            for c, text in enumerate(line):
+                col, row = left + c, top + r
+                for a, b, x, y in _REF.findall(str(text)) if str(text).startswith("=") else []:
+                    c1, r1 = column_index_from_string(a), int(b)
+                    c2, r2 = (column_index_from_string(x), int(y)) if x else (c1, r1)
+                    if min(c1, c2) <= col <= max(c1, c2) and min(r1, r2) <= row <= max(r1, r2):
+                        found.append(f"{get_column_letter(col)}{row} refers to itself ({text})")
+                        break
+        for r, line in enumerate(got.get("text") or []):
+            for c, text in enumerate(line):
+                if str(text).strip() in _ERRORS:
+                    found.append(f"{get_column_letter(left + c)}{top + r} shows {str(text).strip()}")
+    return found[:10]
+
+
 def inspect(path: Path, sheet: str | None = None) -> dict:
     """Structure first: sheets, sizes, tables, names, and the top-left of one sheet with its formulas."""
     from openpyxl import load_workbook

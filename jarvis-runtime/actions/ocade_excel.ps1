@@ -53,12 +53,19 @@ try {
     if ($candidate.FullName -ieq $full) { $book = $candidate }
   }
   if ($null -eq $book) {
+    # Excel holds one workbook per file name: another "report.xlsx" already open there means
+    # ours opens in an Excel of its own (before, Open returned nothing and the job failed).
+    $leaf = [IO.Path]::GetFileName($full)
+    foreach ($candidate in $excel.Workbooks) {
+      if ($candidate.Name -ieq $leaf) { $excel = New-Object -ComObject Excel.Application; $created = $true; $excel.Visible = $true; $alerts = $excel.DisplayAlerts; $excel.DisplayAlerts = $false; break }
+    }
     # A workbook JARVIS opens never runs its macros (3 = force disable), whatever it is named.
     $security = $excel.AutomationSecurity
     $excel.AutomationSecurity = 3
     try { $book = $excel.Workbooks.Open($full); $opened = $true }
     finally { $excel.AutomationSecurity = $security }
   }
+  if ($null -eq $book) { throw "Excel could not open the workbook" }
   if ($book.ReadOnly) { throw "The workbook is open read-only somewhere else" }
   if ($job.sheet) { $sheet = $book.Worksheets.Item([string]$job.sheet) }
   elseif ($opened) { $sheet = $book.Worksheets.Item(1) }

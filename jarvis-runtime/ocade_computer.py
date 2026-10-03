@@ -232,6 +232,7 @@ class Computer:
         self._observation: dict | None = None
         self._lock = threading.Lock()  # one controller of mouse and keyboard at a time
         self._undo: list[tuple[str, object]] = []  # (what was done, how to reverse it), newest last
+        self._made: set[Path] = set()  # files JARVIS itself created or copied: free to edit
         # Linux: a real filesystem boundary. Elsewhere: one direct program in the workspace.
         self.sandbox = "bubblewrap" if SYSTEM == "Linux" and shutil.which("bwrap") else (
             None if SYSTEM == "Linux" else "workspace")
@@ -396,6 +397,7 @@ class Computer:
                                       change=True)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
+            self._made.add(target)
             rel = str(target.relative_to(self.root))
             self._remember(f"copying {source.name} in", lambda: self._to_trash(target))
             return {"status": "done", "summary": f"Copied {source.name} into the work folder as {rel}",
@@ -467,6 +469,8 @@ class Computer:
         if kind == "file_write":
             # An overwrite keeps what was there first (donor undo: act, and remember how to reverse it).
             kept = self._keep(path) if path.is_file() else None
+            if kept is None:
+                self._made.add(path)
             path.parent.mkdir(parents=True, exist_ok=True)
             parent = self._inside(str(path.parent.relative_to(self.root)), change=True)
             # A fresh random name created exclusively (O_EXCL never follows an
@@ -529,11 +533,14 @@ class Computer:
         path = self._inside(str(action.get("path", "")), change=kind == "sheet_edit")
         rel = str(path.relative_to(self.root))
         sheet = action.get("sheet")
+        if kind == "sheet_edit" and (refused := self._original(path, rel, action)):
+            return refused
         try:
             if kind == "sheet_inspect":
                 return {"status": "done", "summary": f"Inspected {rel}",
                         "workbook": ocade_sheets.inspect(path, sheet)}
-            out = ocade_sheets.edit(path, sheet, list(action.get("ops") or []), self._undo_dir(), cancel)
+            out = ocade_sheets.edit(path, sheet, list(action.get("ops") or []), self._undo_dir(), cancel,
+                                   close=bool(action.get("_close")))
         except ocade_sheets.SheetError as e:
             return {"status": "failed", "summary": str(e)}
         except KeyError:
@@ -543,9 +550,23 @@ class Computer:
                     "summary": f"The workbook was not changed: {str(out.get('error', ''))[:200]}"}
         kept = self._undo_dir() / str(out["backup"])
         self._remember(f"updating {rel}", lambda: self._put_back(kept, path))
+        # What a person would see at once: a formula that counts itself, or an error value.
+        found = ocade_sheets.problems(out.get("read") or {})
+        check = f". Check: {'; '.join(found[:3])}" if found else ""
         return {"status": "done", "summary": f"Updated {rel} ({len(out['applied'])} changes, "
-                                             f"{'in Excel' if out['engine'] == 'excel' else 'in the file'})",
+                                             f"{'in Excel' if out['engine'] == 'excel' else 'in the file'}){check}",
+                **({"problems": found} if found else {}),
                 **{k: v for k, v in out.items() if k != "ok"}}
+
+    def _original(self, path: Path, rel: str, action: dict) -> dict | None:
+        """A file the person had is kept as it was unless they asked to change it: the work goes
+        into a copy. (Asked to keep the original, JARVIS edited it and then copied it.)"""
+        if not path.is_file() or path in self._made or action.get("overwrite") is True:
+            return None
+        return {"status": "failed",
+                "summary": f"{rel} is the person's original. Copy it first (file_copy to a new name such as "
+                           f"\"{path.stem} - completed{path.suffix}\") and change the copy; set overwrite "
+                           f"only when the person asked to change this file itself."}
 
     def _doc(self, action: dict, cancel: threading.Event) -> dict:
         import ocade_documents
@@ -553,6 +574,8 @@ class Computer:
         rel = str(path.relative_to(self.root))
         if not path.is_file():
             return {"status": "failed", "summary": f"{rel} does not exist"}
+        if refused := self._original(path, rel, action):
+            return refused
         try:
             out = ocade_documents.edit_word(path, list(action.get("ops") or []), self._undo_dir(), cancel,
                                             close=bool(action.get("_close")))
@@ -624,6 +647,7 @@ class Computer:
                     return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
             else:
                 shutil.copy2(source, target)
+                self._made.add(target)
             self._remember(f"copying {rel} to {to}", lambda: self._to_trash(target))
             return {"status": "done", "summary": f"Copied {rel} to {to}"}
         shutil.move(str(source), str(target))

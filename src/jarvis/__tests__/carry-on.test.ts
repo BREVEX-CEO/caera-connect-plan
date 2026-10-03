@@ -349,9 +349,20 @@ describe("carrying on", () => {
     const { model } = scripted(call("computer", { action: "format_disk", drive: "C" }));
     expect(await carryOn(admin(), me(), t, { model })).toEqual({ state: "queued" });
     expect((await actionsOf(t)).map((a) => [a.status, a.summary])).toEqual([
-      ["failed", "That computer action is not valid."],
+      ["failed", expect.stringMatching(/^That computer action is not valid \(action: /)],
     ]);
     expect((await exchange(admin(), me(), { results: [] })).commands).toEqual([]);
+  });
+
+  it("after three failed steps in a row it waits for the person instead of spending more uses", async () => {
+    const t = await task();
+    const bad = () => scripted(call("computer", { action: "format_disk", drive: "C" }));
+    for (let i = 0; i < 3; i += 1) {
+      expect(await carryOn(admin(), me(), t, bad())).toEqual({ state: "queued" });
+    }
+    const unused = scripted(); // any model call now throws
+    expect(await carryOn(admin(), me(), t, unused)).toEqual({ state: "waiting" });
+    expect(unused.seen).toHaveLength(0);
   });
 
   it("a human check hands the task to the person and is not asked about twice", async () => {

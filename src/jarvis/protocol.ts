@@ -316,6 +316,8 @@ const COMPUTER_ACTIONS = [
     action: z.literal("doc_edit"),
     path: workspacePath,
     ops: z.array(docOp).min(1).max(50),
+    // Only when the person asked to change this file itself; otherwise the work goes into a copy.
+    overwrite: z.boolean().optional(),
   }),
   z.object({
     action: z.literal("sheet_inspect"),
@@ -327,6 +329,7 @@ const COMPUTER_ACTIONS = [
     path: workspacePath,
     sheet: sheetName.optional(),
     ops: z.array(sheetOp).min(1).max(50),
+    overwrite: z.boolean().optional(),
   }),
   z.object({ action: z.literal("file_copy"), path: workspacePath, to: workspacePath }),
   z.object({
@@ -364,6 +367,15 @@ export const deviceAction = z.discriminatedUnion("action", [
 ]);
 export type DeviceAction = z.infer<typeof deviceAction>;
 export const browserAction = z.discriminatedUnion("action", [...BROWSER_ACTIONS]);
+/** Why an action failed validation, short enough to hand back to the model so it can fix it. */
+export function invalidReason(error: z.ZodError): string {
+  return error.issues
+    .slice(0, 4)
+    .map((issue) => `${issue.path.join(".") || "action"}: ${issue.message}`)
+    .join("; ")
+    .slice(0, 400);
+}
+
 export const computerAction = z.discriminatedUnion("action", [...COMPUTER_ACTIONS]);
 
 /** The permission each action needs on its device. */
@@ -682,7 +694,8 @@ Browser rules:
 Choosing what to work on: when one file, app or device obviously fits, proceed and say which you chose. Ask one short question, listing the likely choices, only when several remain and a wrong choice would change the result or cause harm.
 Computer rules:
 - Any app, known or not: before driving an app you have not used in this task, call app_info. It gives the program, its version, its registered automation (COM ProgIDs), the file types and links it opens, scripting or SDK folders, and recipes that worked on this computer before. Pick the strongest route: the app's official automation, scripting or command line (a short script written to the work folder and started with run), then direct work on its files, then ui_inspect and ui_act, then the screen with fresh coordinates. When what you remember about an app may be out of date, read its official documentation with docs. Check the real result afterwards. When the work succeeded, save a recipe with recipe_save: the route, the steps and how you checked, never coordinates, personal data or secrets; an olderRecipes count means the app changed, so discover again.
-- Files outside the work folder: find them with file_locate (names only), then file_import makes a copy in the work folder; the original is never touched. Unless the person asked to overwrite, save the finished work as a new copy (for example "Report - completed.xlsx") and place it next to the original with file_export. Reopen or read back the result before saying it is done. drives lists connected drives, external ones included.
+- Files outside the work folder: find them with file_locate (names only), then file_import makes a copy in the work folder; the original is never touched. Unless the person asked to overwrite, save the finished work as a new copy (for example "Report - completed.xlsx") and place it next to the original with file_export. Reopen or read back the result before saying it is done.
+- A workbook or document the person already has is their original: file_copy it to a new name first (for example "Sales - completed.xlsx") and edit the copy. Set overwrite: true on sheet_edit or doc_edit only when the person asked to change that file itself. A result line "Check: ..." names cells that refer to themselves or show an error: fix them before finishing. drives lists connected drives, external ones included.
 - Prefer the most direct way: open_app, file actions and run inside the workspace before anything visual. Before opening an app, call window_list and switch to its open window with window (state focus) if there is one. For an app's own buttons, fields and menus use ui_inspect then ui_act with the ref and observationId it returned. Use screen, then screen_click with the current screen observationId, only when nothing more direct works, and look again after the screen changes.
 - Spreadsheets: call sheet_inspect first to learn the sheets, headers, existing formulas and formats. Then one sheet_edit with formulas and fills (a relative formula filled down a range), lookups, totals and formatting, never values you calculated yourself and typed in. Check the read-back values it returns before saying it is done.
 - Word documents: read them with file_extract, then one doc_edit with the changes; check the read-back text before saying it is done.

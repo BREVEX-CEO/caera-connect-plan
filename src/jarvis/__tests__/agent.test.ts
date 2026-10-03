@@ -267,7 +267,30 @@ describe("a JARVIS turn", () => {
     expect(h.deps.queue).not.toHaveBeenCalled();
     const fed = h.seen[3]!.map((m) => m.content).join("\n");
     expect(fed).toContain("Only the person can change permissions");
-    expect(fed).toContain("That browser action is not valid");
+    // And why, so a retry can be right: blind retries were each a billed use.
+    expect(fed).toMatch(/That browser action is not valid \(.+\)/);
+  });
+
+  it("stops and asks after three calls in a row that are invalid or refused", async () => {
+    // Seen on the preview: 15 billed steps passed with nothing done.
+    const bad = { text: "", toolCalls: [call("computer", { action: "format_disk", drive: "C" })] };
+    const h = harness([
+      { text: "", toolCalls: [call("start_task", { title: "x", steps: [] })] },
+      bad,
+      bad,
+      bad,
+      bad,
+      { text: "never reached", toolCalls: [] },
+    ]);
+    const out = await runJarvisTurn(h.input, h.hooks, h.deps);
+    expect(h.seen).toHaveLength(4);
+    expect(out.task?.status).toBe("waiting");
+    expect(h.deps.updateTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "waiting",
+        blocker: expect.stringMatching(/could not find an allowed way/),
+      }),
+    );
   });
 
   it("never writes page content into memory", async () => {

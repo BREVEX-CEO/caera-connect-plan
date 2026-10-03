@@ -26,10 +26,23 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { NormalizedAttachment, NormalizedMessage } from "@/lib/intelligence/contract";
-import { compact, HUMAN_BOUNDARIES, memoryMessage, systemPrompt, type ModelStep } from "./agent";
+import {
+  compact,
+  HUMAN_BOUNDARIES,
+  MAX_FAILED_CALLS,
+  memoryMessage,
+  systemPrompt,
+  type ModelStep,
+} from "./agent";
 import { executionDisabled, ORPHAN_MS } from "./device.server";
 import { isAllowed } from "./permissions";
-import { browserAction, computerAction, describeAction, type TaskStatus } from "./protocol";
+import {
+  browserAction,
+  computerAction,
+  describeAction,
+  invalidReason,
+  type TaskStatus,
+} from "./protocol";
 import { changeTask, permissionsOf, queueTaskAction } from "./task-authority.server";
 import { TASK_COLUMNS, type JarvisTaskRow } from "./task-row";
 
@@ -189,6 +202,16 @@ export async function carryOn(
       result: "Stopped after too many steps without finishing.",
     });
     return done ? { state: "finished" } : idle;
+  }
+
+  // Steps that keep failing only spend the person's uses while nobody is watching.
+  const recent = actions.slice(-MAX_FAILED_CALLS);
+  if (recent.length === MAX_FAILED_CALLS && recent.every((row) => row.status === "failed")) {
+    const kept = await change({
+      status: "waiting",
+      blocker: "JARVIS could not find an allowed way to do the next step. Say how to continue.",
+    });
+    return kept ? { state: "waiting" } : idle;
   }
 
   const last = actions.at(-1);
@@ -395,7 +418,7 @@ export async function carryOn(
     if (!parsed.success) {
       await record(
         { action: String(rest.action ?? "").slice(0, 40) },
-        `That ${call.name} action is not valid.`,
+        `That ${call.name} action is not valid (${invalidReason(parsed.error)}).`,
       );
       return { state: "queued" };
     }

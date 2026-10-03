@@ -145,7 +145,7 @@ class RealWordTest(unittest.TestCase):
         _minimal_docx(root / "report.docx", ["Quarterly report DRAFT", "Revenue grew in every region.",
                                              "Contact: TBD"])
         pc = Computer(str(root))
-        out = pc.run({"action": "doc_edit", "path": "report.docx", "_close": True, "ops": [
+        out = pc.run({"action": "doc_edit", "path": "report.docx", "_close": True, "overwrite": True, "ops": [
             {"op": "replace", "find": "DRAFT", "with": "Q3 2026"},
             {"op": "replace", "find": "TBD", "with": "finance@example.com"},
             {"op": "style", "find": "Quarterly report", "style": "Title"},

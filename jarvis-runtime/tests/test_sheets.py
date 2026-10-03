@@ -120,6 +120,39 @@ class FileEngineTest(unittest.TestCase):
 
 
 @unittest.skipUnless(ocade_sheets.excel_available(), "needs Microsoft Excel (Windows)")
+class OriginalsAndChecksTest(unittest.TestCase):
+    """Found on the preview: asked to keep the original, JARVIS edited it and then copied it, and
+    its totals row summed itself (C6 = SUM(B6:E6)) while the read-back said only "0"."""
+
+    def test_the_original_is_kept_and_the_copy_is_edited(self):
+        root = Path(tempfile.mkdtemp())
+        workbook(root / "sales.xlsx")
+        before = (root / "sales.xlsx").read_bytes()
+        pc = Computer(str(root))
+        edit = {"action": "sheet_edit", "path": "sales.xlsx", "sheet": "Orders", "_close": True,
+                "ops": [{"op": "set", "cell": "G1", "value": "Checked"}]}
+        refused = pc.run(edit)
+        self.assertEqual(refused["status"], "failed")
+        self.assertIn("sales - completed.xlsx", refused["summary"])
+        self.assertEqual((root / "sales.xlsx").read_bytes(), before)
+        self.assertEqual(pc.run({"action": "file_copy", "path": "sales.xlsx", "to": "sales - completed.xlsx"})
+                         ["status"], "done")
+        self.assertEqual(pc.run({**edit, "path": "sales - completed.xlsx"})["status"], "done")
+        self.assertEqual((root / "sales.xlsx").read_bytes(), before)
+        # Asked to change the file itself, the person's word is enough.
+        self.assertEqual(pc.run({**edit, "overwrite": True})["status"], "done")
+
+    def test_a_formula_that_counts_itself_is_pointed_out(self):
+        root = Path(tempfile.mkdtemp())
+        workbook(root / "sales.xlsx")
+        pc = Computer(str(root))
+        out = pc.run({"action": "sheet_edit", "path": "sales.xlsx", "sheet": "Orders", "overwrite": True, "_close": True,
+                      "ops": [{"op": "fill", "range": "C9:D9", "formula": "=SUM(B9:D9)"}]})
+        self.assertEqual(out["status"], "done", out)
+        self.assertIn("C9 refers to itself", out["summary"])
+        self.assertEqual(len(out["problems"]), 2)
+
+
 class RealExcelTest(unittest.TestCase):
     """The acceptance task in the person's real Excel: visible, calculated, saved, reopened, verified."""
 
