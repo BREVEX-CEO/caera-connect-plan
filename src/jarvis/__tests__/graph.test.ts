@@ -8,10 +8,12 @@ const empty: JarvisState = {
   devices: [],
   permissions: [],
   memories: [],
+  schedules: [],
   activity: [],
   sites: [],
   apps: [],
   usage: null,
+  unlimited: false,
 };
 
 const at = "2026-09-20T10:00:00.000Z";

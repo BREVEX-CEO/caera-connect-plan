@@ -43,6 +43,7 @@ Primary/secondary/tertiary server capacity is internal implementation detail.
 One action broker owns execution validation and cancellation.
 
 Input:
+
 - account;
 - conversation/task;
 - target device;
@@ -54,6 +55,7 @@ Input:
 - idempotency.
 
 Output:
+
 - verified command/refusal;
 - customer-safe activity;
 - result verification;
@@ -64,6 +66,7 @@ Output:
 No OCADE customer browser add-on is required.
 
 For existing-browser work:
+
 - attach to existing browser when securely possible through CDP/DevTools/Playwright;
 - use semantic accessibility;
 - OS UI Automation;
@@ -79,6 +82,7 @@ Never extract browser password/cookie stores.
 Windows/macOS Device Agent is a small trusted local runtime.
 
 Windows:
+
 - one tray;
 - dormant autostart;
 - app discovery;
@@ -108,6 +112,7 @@ Real Apple evidence is separate from WebKit compatibility.
 Supabase remains durable identity/data authority.
 
 Keep one canonical authority for:
+
 - conversations/messages;
 - JARVIS tasks/activity;
 - device identity;
@@ -129,7 +134,7 @@ Explicit Remove/Clear Data deletes local storage according to product/platform r
 
 ## Owner/staff architecture
 
-Privileged UI is separate at `admin.ocade.in`, but auth uses OCADE identity.
+Privileged UI is the Owner/Staff Console inside `ocade.in` (`/admin`, shown only to staff); `admin.ocade.in` was retired on 2026-10-03.
 
 Authorization is server/RLS enforced.
 
@@ -158,7 +163,6 @@ Raw screenshots are transient by default.
 Main/source/deployed identities must agree before final release claim.
 
 GitHub Actions is optional, not required evidence.
-
 
 ## Master Phase 1–49 authority
 

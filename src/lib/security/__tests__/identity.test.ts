@@ -170,6 +170,16 @@ describe("what the person is told when it fails", () => {
     );
   });
 
+  it("says the connection failed, in the same words in every browser", () => {
+    for (const message of [
+      "Failed to fetch",
+      "NetworkError when attempting to fetch resource.",
+      "Load failed",
+    ]) {
+      expect(describeIdentityError({ message })).toMatch(/could not reach its sign-in service/);
+    }
+  });
+
   it("passes an unrecognised message through rather than inventing one", () => {
     expect(describeIdentityError({ message: "something new" })).toBe("something new");
   });

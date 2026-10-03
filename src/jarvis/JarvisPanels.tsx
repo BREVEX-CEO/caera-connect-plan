@@ -5,6 +5,8 @@ import { Trash2, X } from "lucide-react";
 import { deleteConversation } from "@/lib/ocade.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { readAgentRelease } from "@/lib/agent/release.functions";
+import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { FINISHED, hostOf, type Capability, TASK_STATUS } from "./protocol";
 import { isAllowed } from "./permissions";
 import type { GraphNode } from "./graph";
@@ -13,6 +15,7 @@ import {
   declineJarvisDevice,
   forgetJarvis,
   readJarvisEnrollment,
+  removeJarvisSchedule,
   revokeJarvisDevice,
   setJarvisBackground,
   setJarvisPermission,
@@ -166,6 +169,7 @@ function SectionBody({
 }) {
   const [opened, setOpened] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [appFilter, setAppFilter] = useState("");
 
   if (section === "conversations") {
     // Tasks live in their conversations: each row names its latest task and
@@ -240,8 +244,54 @@ function SectionBody({
   }
 
   if (section === "activity") {
+    const REPEATS: Record<string, string> = {
+      none: "once",
+      daily: "every day",
+      weekdays: "every weekday",
+      weekly: "every week",
+    };
     return (
       <>
+        {state.schedules.length ? (
+          <section aria-label="Scheduled" className="mb-3">
+            <h3 className="mb-1 text-xs font-medium text-muted-foreground">Scheduled</h3>
+            <ul className="flex flex-col gap-1">
+              {state.schedules.map((s) => (
+                <li key={s.id} className="flex items-start gap-2 border-b border-border/40 py-1">
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words">{s.what}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {s.device_id
+                        ? `On ${state.devices.find((d) => d.id === s.device_id)?.name ?? "a computer"}`
+                        : "Reminder"}
+                      {` · ${when(s.next_at)} · ${REPEATS[s.repeat] ?? s.repeat}`}
+                    </p>
+                    {s.last_outcome &&
+                    s.last_outcome !== "Started" &&
+                    s.last_outcome !== "Reminded" ? (
+                      <p className="text-xs text-muted-foreground">Last time: {s.last_outcome}</p>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${s.what}`}
+                    disabled={removing === s.id}
+                    onClick={() => {
+                      setRemoving(s.id);
+                      void removeJarvisSchedule({ data: { id: s.id } })
+                        .then(onChanged)
+                        .catch(() => toast.error("That could not be removed. Try again."))
+                        .finally(() => setRemoving(null));
+                    }}
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
         <p className="mb-2 text-xs text-muted-foreground">
           Detailed activity is kept for 90 days. Task results stay.
         </p>
@@ -319,44 +369,56 @@ function SectionBody({
         </p>
         {state.apps.every((group) => group.apps.length === 0) ? (
           <p className="text-muted-foreground">No computer has reported its apps yet.</p>
-        ) : null}
+        ) : (
+          // A computer reports every app it has (190 here): find one by name.
+          <input
+            type="search"
+            value={appFilter}
+            onChange={(event) => setAppFilter(event.target.value)}
+            aria-label="Find an app"
+            placeholder="Find an app"
+            className="mb-2 h-8 w-full rounded-md border border-border/60 bg-background px-2 text-sm outline-none focus-visible:border-ring"
+          />
+        )}
         {state.apps
           .filter((group) => group.apps.length > 0)
           .map((group) => (
             <section key={group.deviceId} aria-label={group.deviceName} className="mb-3">
               <p className="mb-1 text-xs font-medium text-muted-foreground">{group.deviceName}</p>
               <ul className="flex flex-col gap-1">
-                {group.apps.map((app) => {
-                  const id = `app-${group.deviceId}-${app.name}`;
-                  return (
-                    <li key={app.name} className="flex items-center gap-2">
-                      <label htmlFor={id} className="min-w-0 flex-1 truncate">
-                        {app.name}
-                      </label>
-                      <select
-                        id={id}
-                        value={app.rule}
-                        onChange={(event) =>
-                          void decide(
-                            `app:${app.name.toLowerCase()}`,
-                            event.target.value === "always"
-                              ? true
-                              : event.target.value === "never"
-                                ? false
-                                : null,
-                            group.deviceId,
-                            onChanged,
-                          )
-                        }
-                        className="rounded-md border border-border/60 bg-background px-1 py-0.5 text-xs"
-                      >
-                        <option value="always">Always</option>
-                        <option value="ask">Ask</option>
-                        <option value="never">Never</option>
-                      </select>
-                    </li>
-                  );
-                })}
+                {group.apps
+                  .filter((app) => app.name.toLowerCase().includes(appFilter.trim().toLowerCase()))
+                  .map((app) => {
+                    const id = `app-${group.deviceId}-${app.name}`;
+                    return (
+                      <li key={app.name} className="flex items-center gap-2">
+                        <label htmlFor={id} className="min-w-0 flex-1 truncate">
+                          {app.name}
+                        </label>
+                        <select
+                          id={id}
+                          value={app.rule}
+                          onChange={(event) =>
+                            void decide(
+                              `app:${app.name.toLowerCase()}`,
+                              event.target.value === "always"
+                                ? true
+                                : event.target.value === "never"
+                                  ? false
+                                  : null,
+                              group.deviceId,
+                              onChanged,
+                            )
+                          }
+                          className="rounded-md border border-border/60 bg-background px-1 py-0.5 text-xs"
+                        >
+                          <option value="always">Always</option>
+                          <option value="ask">Ask</option>
+                          <option value="never">Never</option>
+                        </select>
+                      </li>
+                    );
+                  })}
               </ul>
             </section>
           ))}
@@ -366,7 +428,7 @@ function SectionBody({
 
   // Devices
   const devices = state.devices.filter((d) => !d.revoked_at && d.last_seen_at);
-  const agentCount = devices.filter((d) => d.kind === "agent").length;
+  const agentCount = devices.length;
   const openTasks = state.tasks.filter((t) => !FINISHED.includes(t.status) && t.device_id);
   return (
     <>
@@ -439,12 +501,17 @@ function SectionBody({
               {d.status === "needs_permission"
                 ? "Turn on what JARVIS may do below"
                 : d.status === "offline"
-                  ? "Open the OCADE Device Agent on it"
+                  ? d.kind === "android"
+                    ? "Open OCADE on the phone"
+                    : "Open the OCADE Device Agent on it"
                   : "Can work now"}
               {d.platform ? ` · ${d.platform}` : ""}
-              {d.kind === "extension" ? " · Browser extension" : ""}
+              {/* Two computers with one name (a reinstall) are told apart by when each was last here. */}
+              {d.status === "offline" && d.last_seen_at
+                ? ` · last seen ${new Date(d.last_seen_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`
+                : ""}
             </p>
-            {d.kind === "agent" && agentCount > 1 ? (
+            {agentCount > 1 ? (
               <label className="mt-2 flex items-center gap-2 text-xs">
                 <input
                   type="radio"
@@ -452,43 +519,64 @@ function SectionBody({
                   checked={target === d.id}
                   onChange={() => onTarget(d.id)}
                 />
-                New tasks run on this computer
+                New tasks run on this {d.kind === "android" ? "phone" : "computer"}
               </label>
             ) : null}
-            <Toggle
-              label="Browser control"
-              checked={isAllowed(state.permissions, "browser", d.id)}
-              onChange={(allowed) => void decide("browser", allowed, d.id, onChanged)}
-            />
-            <Toggle
-              label="Use my own browser"
-              hint={d.capabilities.browser_real ? undefined : "Not authorized on this device"}
-              disabled={!d.capabilities.browser_real}
-              checked={isAllowed(state.permissions, "browser_real", d.id)}
-              onChange={(allowed) => void decide("browser_real", allowed, d.id, onChanged)}
-            />
-            {d.kind === "agent"
-              ? COMPUTER_TOGGLES.map(([capability, label, hint]) => (
-                  <Toggle
-                    key={capability}
-                    label={label}
-                    hint={d.capabilities[capability] ? hint : "Not available on this computer"}
-                    disabled={!d.capabilities[capability]}
-                    checked={isAllowed(state.permissions, capability, d.id)}
-                    onChange={(allowed) => void decide(capability, allowed, d.id, onChanged)}
-                  />
-                ))
-              : null}
+            {d.kind === "android" ? null : (
+              <>
+                <Toggle
+                  label="Browser control"
+                  checked={isAllowed(state.permissions, "browser", d.id)}
+                  onChange={(allowed) => void decide("browser", allowed, d.id, onChanged)}
+                />
+                <Toggle
+                  label="Use my own browser"
+                  hint={d.capabilities.browser_real ? undefined : "Not authorized on this device"}
+                  disabled={!d.capabilities.browser_real}
+                  checked={isAllowed(state.permissions, "browser_real", d.id)}
+                  onChange={(allowed) => void decide("browser_real", allowed, d.id, onChanged)}
+                />
+              </>
+            )}
+            {COMPUTER_TOGGLES.map(([capability, label, hint]) => (
+              <Toggle
+                key={capability}
+                label={label}
+                hint={
+                  d.capabilities[capability]
+                    ? hint
+                    : d.kind === "android"
+                      ? "Not available on this phone"
+                      : "Not available on this computer"
+                }
+                disabled={!d.capabilities[capability]}
+                checked={isAllowed(state.permissions, capability, d.id)}
+                onChange={(allowed) => void decide(capability, allowed, d.id, onChanged)}
+              />
+            ))}
             {d.kind === "agent" ? (
               <Toggle
                 label="Background Mode"
-                hint="This computer stays ready after you close OCADE here, so you can continue or stop its task from another device."
+                hint="This computer keeps working on its task after you close OCADE here. You can watch or stop it from any device, and anything that needs you waits for you."
                 checked={d.background_enabled}
                 onChange={(enabled) =>
                   void setJarvisBackground({ data: { id: d.id, enabled } })
                     .then(onChanged)
                     .catch(() => toast.error("That could not be saved."))
                 }
+              />
+            ) : null}
+            {d.kind === "agent" ? (
+              <Toggle
+                label="Scheduled work"
+                hint={
+                  d.background_enabled
+                    ? "JARVIS may start work you scheduled, on its own, at the time you chose. Anything that needs you still waits for you."
+                    : "Needs Background Mode on this computer."
+                }
+                disabled={!d.background_enabled}
+                checked={d.background_enabled && isAllowed(state.permissions, "autonomous", d.id)}
+                onChange={(allowed) => void decide("autonomous", allowed, d.id, onChanged)}
               />
             ) : null}
             {d.kind === "agent" ? (
@@ -547,8 +635,57 @@ function SectionBody({
           with one click — no codes or passwords. Each computer gets its own key, and you can remove
           it at any time.
         </p>
-        <p className="mt-1">The signed installer for Windows and macOS is not published yet.</p>
+        <AgentDownload />
       </div>
+    </>
+  );
+}
+
+/**
+ * The installer, offered only when one is really published. Nothing here links
+ * to a file that is not there, and an installer Windows cannot yet name the
+ * publisher of is said to be one.
+ */
+function AgentDownload() {
+  const release = useQuery({
+    queryKey: ["agent", "release"],
+    queryFn: () => readAgentRelease(),
+    staleTime: 10 * 60_000,
+  });
+  if (release.isPending) return <p className="mt-1">Checking for the installer…</p>;
+  if (release.isError) {
+    return (
+      <p className="mt-1">
+        OCADE could not check for the installer.{" "}
+        <button
+          type="button"
+          onClick={() => void release.refetch()}
+          className="text-foreground underline underline-offset-2"
+        >
+          Try again
+        </button>
+      </p>
+    );
+  }
+  if (!release.data?.windows) {
+    return <p className="mt-1">The installer for Windows and macOS is not published yet.</p>;
+  }
+  return (
+    <>
+      <a
+        href={release.data.windows}
+        download
+        className="mt-2 inline-flex h-8 items-center rounded-md bg-foreground px-3 text-xs font-medium text-background"
+      >
+        Get the Device Agent for Windows
+      </a>
+      <p className="mt-1">
+        Version {release.data.version}. It starts with Windows and keeps itself up to date.
+        {release.data.publisherVerified
+          ? ""
+          : " Windows may say the publisher is not verified yet; choose More info, then Run anyway."}{" "}
+        The macOS installer is not published yet.
+      </p>
     </>
   );
 }
@@ -557,7 +694,11 @@ function SectionBody({
 const COMPUTER_TOGGLES: [Capability, string, string][] = [
   ["apps", "Open apps", "Only apps this computer found; Allowed Apps decides which."],
   ["files", "Files in the workspace", "Only inside the folder chosen on the computer."],
-  ["terminal", "Run commands in the workspace", "Publishing, deleting or installing asks first."],
+  [
+    "terminal",
+    "Run commands in the work folder",
+    "Commands run with your access to that folder. Publishing, deleting or installing asks first.",
+  ],
   ["screen", "See the screen", "Used when nothing more direct works."],
   ["computer_control", "Mouse and keyboard", "Your own input pauses JARVIS until you continue."],
 ];
@@ -773,9 +914,27 @@ export function ConnectDevice({
     queryFn: () => readJarvisEnrollment({ data: { id } }),
   });
   const [busy, setBusy] = useState(false);
+  const [code, setCode] = useState("");
+  const { withProof, dialog } = useConfirmIdentity();
   const row = request.data;
+  const device = row?.kind === "android" ? "phone" : "computer";
+  const connect = () => {
+    setBusy(true);
+    void withProof(() => approveJarvisDevice({ data: { id, ...(code ? { code } : {}) } }))
+      .then((out) => {
+        if (out.ok) return onDone(true);
+        toast.error(out.message);
+        // It may have expired while the code was being typed: show that, not a dead Connect.
+        void request.refetch();
+      })
+      .catch((cause: unknown) =>
+        toast.error(cause instanceof Error ? cause.message : "The device could not be connected."),
+      )
+      .finally(() => setBusy(false));
+  };
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
+      {dialog}
       <section
         role="dialog"
         aria-modal="true"
@@ -787,6 +946,10 @@ export function ConnectDevice({
         ) : !row ? (
           <>
             <p>This connection request has expired or was already used.</p>
+            <p className="mt-2 text-muted-foreground">
+              Ask again from the device: on a computer, the OCADE icon near the clock, then Connect
+              this computer; on a phone, the OCADE app, then Connect this phone.
+            </p>
             <button
               type="button"
               onClick={() => onDone(false)}
@@ -797,36 +960,42 @@ export function ConnectDevice({
           </>
         ) : (
           <>
-            <h2 className="text-base font-medium">
-              Connect {row.kind === "extension" ? "this browser" : `“${row.name}”`}?
-            </h2>
+            <h2 className="text-base font-medium">Connect “{row.name}”?</h2>
             <p className="mt-2 text-muted-foreground">
               {row.platform ? `${row.platform} · ` : ""}
               It will run JARVIS tasks you start, within the permissions you set. Only connect a{" "}
-              {row.kind === "extension" ? "browser" : "computer"} you are setting up now.
+              {device} you are setting up now.
             </p>
-            <p className="mt-2">
-              Check that it shows{" "}
-              <span className="font-mono" data-testid="device-fingerprint">
-                {row.fingerprint}
-              </span>
-              .
-            </p>
+            {row.fingerprint ? (
+              <p className="mt-2">
+                Check that it shows{" "}
+                <span className="font-mono" data-testid="device-fingerprint">
+                  {row.fingerprint}
+                </span>
+                .
+              </p>
+            ) : (
+              <label className="mt-2 block">
+                <span>
+                  This request came from another network. Type the fingerprint your {device} shows.
+                  If somebody sent you this link or a code, choose Not mine.
+                </span>
+                <input
+                  value={code}
+                  onChange={(event) => setCode(event.target.value.slice(0, 40))}
+                  aria-label="Fingerprint the device shows"
+                  placeholder="0000-0000-0000-0000"
+                  autoComplete="off"
+                  className="mt-2 h-9 w-full rounded-md border border-border bg-transparent px-2 font-mono uppercase text-foreground outline-none focus-visible:border-ring"
+                />
+              </label>
+            )}
             <div className="mt-4 flex gap-2">
               <button
                 type="button"
-                disabled={busy}
-                onClick={() => {
-                  setBusy(true);
-                  void approveJarvisDevice({ data: { id } })
-                    .then((out) => {
-                      if (!out.ok) toast.error(out.message);
-                      onDone(out.ok);
-                    })
-                    .catch(() => toast.error("The device could not be connected."))
-                    .finally(() => setBusy(false));
-                }}
-                className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground"
+                disabled={busy || (!row.fingerprint && code.replace(/[^0-9a-f]/gi, "").length < 16)}
+                onClick={connect}
+                className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground disabled:opacity-60"
               >
                 Connect
               </button>

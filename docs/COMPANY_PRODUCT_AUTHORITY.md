@@ -11,6 +11,7 @@ OCADE is a global AI operating product, not only a chatbot. Its core experiences
 JARVIS is the primary execution differentiator.
 
 It must:
+
 - converse naturally;
 - answer ordinary questions without manufacturing a task;
 - perform explicit work through secure tasks;
@@ -52,13 +53,13 @@ iPhone/iPad remain PWA/Home Screen first and use Apple-supported Shortcuts/Siri/
 
 ## Voice
 
-Hey OCADE is the preferred wake phrase where supported. Pre-wake detection is local. The small model is downloaded/verified once when enabled and retained.
+“OCADE” and “Hey OCADE” are the wake phrases where supported. Pre-wake detection is local. OCADE's own wake model for “OCADE” and “Hey OCADE” is bundled with the Device Agent and the Android app (owner direction 2026-10-02): no download after installation, one signed manifest for install, health, update and rollback, and pre-wake audio stays on the device.
 
 JARVIS is a partner during work: users can speak, ask status, redirect, pause, continue or stop.
 
 ## Company operations
 
-`admin.ocade.in` is the preferred operations surface.
+The Owner/Staff Console inside `ocade.in` is the operations surface (owner authority 2026-10-03; `admin.ocade.in` retired).
 
 Primary Owner, Backup Owner, Admin, Support, Billing, Developer/Operations and Read-only are distinct roles with server-side enforcement and granular permission overrides.
 
@@ -69,6 +70,7 @@ Privileged mutations use strong auth, reasoned audit and immediate revocation se
 ## Deferred business integrations
 
 Current coding mission does not wait on:
+
 - Sentry project creation;
 - payment-provider integration;
 - paid leaked-password protection setting;
@@ -79,6 +81,7 @@ These must be reported honestly as deferred/non-blocking rather than silently tr
 ## Product quality
 
 Commercial readiness is measured by:
+
 - real task success;
 - security;
 - account isolation;
@@ -93,7 +96,6 @@ Commercial readiness is measured by:
 Each implementation phase reports an evidence-based commercial-launch readiness percentage.
 
 Never use unsupported absolute claims such as “zero bugs” or “unhackable”.
-
 
 ## Master execution roadmap
 

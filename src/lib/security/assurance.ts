@@ -43,6 +43,9 @@ export type AssuranceLevel = "aal1" | "aal2";
  */
 export const RECENT_PROOF_MS = 10 * 60 * 1000;
 
+/** What every high-risk action demands: the second factor where there is one, and a recent proof. */
+export const HIGH_RISK_REQUIREMENT: AssuranceRequirement = { level: "aal2" };
+
 /**
  * What an action demands.
  *

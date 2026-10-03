@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DatabaseTwin } from "../../../scripts/db-twin.mts";
-import { exchange } from "../device.server";
+import { enrollmentRoom, exchange, MAX_PENDING_PER_SOURCE } from "../device.server";
+import { lit, restOver } from "./rest-adapter";
 
 /**
  * The device exchange against real PostgreSQL with the real migrations
@@ -12,87 +13,7 @@ const A = "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaaaaaa";
 let device: string;
 let conversation: string;
 
-const lit = (v: unknown): string =>
-  v === null
-    ? "null"
-    : typeof v === "number" || typeof v === "boolean"
-      ? String(v)
-      : typeof v === "object"
-        ? `'${JSON.stringify(v).replace(/'/g, "''")}'::jsonb`
-        : `'${String(v).replace(/'/g, "''")}'`;
-
-function rest() {
-  return {
-    from(table: string) {
-      const where: string[] = [];
-      let verb: "select" | "update" | "delete" | "insert" = "select";
-      let columns = "*";
-      let patch: Record<string, unknown> = {};
-      let tail = "";
-      let returning = false;
-      let one: "single" | "maybe" | null = null;
-      const q = {
-        select(cols = "*") {
-          columns = cols;
-          returning = verb !== "select";
-          return q;
-        },
-        update(p: Record<string, unknown>) {
-          verb = "update";
-          patch = p;
-          return q;
-        },
-        delete() {
-          verb = "delete";
-          return q;
-        },
-        insert(p: Record<string, unknown>) {
-          verb = "insert";
-          patch = p;
-          return q;
-        },
-        eq: (c: string, v: unknown) => (where.push(`${c} = ${lit(v)}`), q),
-        neq: (c: string, v: unknown) => (where.push(`${c} <> ${lit(v)}`), q),
-        lt: (c: string, v: unknown) => (where.push(`${c} < ${lit(v)}`), q),
-        is: (c: string, v: unknown) => (where.push(`${c} is ${lit(v)}`), q),
-        in: (c: string, vs: unknown[]) => (
-          where.push(vs.length ? `${c} in (${vs.map(lit).join(",")})` : "false"),
-          q
-        ),
-        order: (c: string, o: { ascending: boolean }) => (
-          (tail += ` order by ${c} ${o.ascending ? "asc" : "desc"}`),
-          q
-        ),
-        limit: (n: number) => ((tail += ` limit ${n}`), q),
-        maybeSingle: () => ((one = "maybe"), q),
-        single: () => ((one = "single"), q),
-        then(resolve: (r: unknown) => void, reject: (e: unknown) => void) {
-          const w = where.length ? ` where ${where.join(" and ")}` : "";
-          const t = `public.${table}`;
-          const sql =
-            verb === "select"
-              ? `select ${columns} from ${t}${w}${tail}`
-              : verb === "update"
-                ? `update ${t} set ${Object.entries(patch)
-                    .map(([k, v]) => `${k} = ${lit(v)}`)
-                    .join(", ")}${w}${returning ? ` returning ${columns}` : ""}`
-                : verb === "delete"
-                  ? `delete from ${t}${w}`
-                  : `insert into ${t} (${Object.keys(patch).join(",")}) values (${Object.values(
-                      patch,
-                    )
-                      .map(lit)
-                      .join(",")}) returning ${columns}`;
-          twin.asServiceRole(sql).then(
-            (rows) => resolve({ data: one ? (rows[0] ?? null) : rows, error: null }),
-            (error) => (one ? reject(error) : resolve({ data: null, error })),
-          );
-        },
-      };
-      return q;
-    },
-  };
-}
+const rest = () => restOver(twin);
 
 const run = (input: Parameters<typeof exchange>[2]) =>
   exchange(rest() as never, { id: device, userId: A }, input);
@@ -211,6 +132,22 @@ describe("dispatch", () => {
   });
 });
 
+describe("results", () => {
+  it("records an action that went stale as not done, keeping the device's own word", async () => {
+    // Seen in Activity: a refused stale click read "done".
+    const t = await task();
+    await permit("files", true);
+    const id = await queue(t, { action: "file_list", path: "." });
+    await run({ results: [] });
+    await run({
+      results: [{ id, status: "stale", summary: "That screen observation is too old." }],
+    });
+    const row = await status(id);
+    expect(row.status).toBe("failed");
+    expect((row.result as { status: string }).status).toBe("stale");
+  });
+});
+
 describe("STOP", () => {
   it("cancels the running action and never counts its late result as done", async () => {
     const t = await task();
@@ -251,6 +188,93 @@ describe("STOP", () => {
     expect(reply.cancel).toEqual([running]);
     expect((await status(running)).status).toBe("cancelled");
     expect((await status(waiting)).status).toBe("cancelled");
+  });
+});
+
+describe("Pause and Resume from the computer's tray", () => {
+  const taskStatus = async (id: string) =>
+    (
+      await twin.asServiceRole<{ status: string; blocker: string | null }>(
+        `select status, blocker from public.jarvis_tasks where id = '${id}'`,
+      )
+    )[0]!;
+
+  it("pause hands the task to the person and cancels the step in progress", async () => {
+    const t = await task();
+    await permit("files", true);
+    const running = await queue(t, { action: "file_list", path: "." });
+    await run({ results: [] });
+    const reply = await run({ results: [], running: [running], pause: true });
+    expect(await taskStatus(t)).toEqual({
+      status: "taken_over",
+      blocker: "Paused on the computer.",
+    });
+    expect(reply.cancel).toEqual([running]);
+    expect(reply.task?.status).toBe("taken_over");
+  });
+
+  it("resume gives it back, and never revives a task that ended", async () => {
+    const t = await task();
+    await run({ results: [], pause: true });
+    await run({ results: [], resume: true });
+    expect(await taskStatus(t)).toEqual({ status: "running", blocker: null });
+    await twin.asServiceRole(`update public.jarvis_tasks set status = 'stopped' where id = '${t}'`);
+    await run({ results: [], resume: true });
+    expect((await taskStatus(t)).status).toBe("stopped");
+  });
+});
+
+describe("a task nobody drives any more", () => {
+  const taskRow = async (id: string) =>
+    (
+      await twin.asServiceRole<{ status: string; blocker: string | null }>(
+        `select status, blocker from public.jarvis_tasks where id = '${id}'`,
+      )
+    )[0]!;
+  const age = (id: string, minutes: number) =>
+    twin.execSuperuser(
+      `alter table public.jarvis_tasks disable trigger user;
+       update public.jarvis_tasks set updated_at = now() - interval '${minutes} minutes' where id = '${id}';
+       alter table public.jarvis_tasks enable trigger user;`,
+    );
+
+  it("waits at its checkpoint when its planning loop has gone quiet", async () => {
+    const t = await task();
+    await age(t, 5);
+    const reply = await run({ results: [] });
+    const row = await taskRow(t);
+    expect(row.status).toBe("waiting");
+    expect(row.blocker).toMatch(/Resume to continue/);
+    expect(reply.task?.status).toBe("waiting");
+  });
+
+  it("keeps running while work is queued, running or awaiting the person", async () => {
+    await permit("files", true);
+    const t = await task();
+    await queue(t, { action: "file_list", path: "." });
+    await age(t, 5);
+    await run({ results: [], running: [] });
+    expect((await taskRow(t)).status).toBe("running");
+  });
+
+  it("withdraws a confirmation nobody is left to answer", async () => {
+    await permit("files", true);
+    const t = await task();
+    const asked = await queue(t, { action: "file_delete", path: "old.txt" });
+    await twin.asServiceRole(
+      `update public.jarvis_activity set status = 'needs_confirmation' where id = '${asked}'`,
+    );
+    await age(t, 5);
+    await run({ results: [] });
+    expect((await taskRow(t)).status).toBe("waiting");
+    expect((await status(asked)).status).toBe("cancelled");
+  });
+
+  it("leaves a recently touched task alone", async () => {
+    const t = await task();
+    await age(t, 1);
+    await run({ results: [] });
+    expect((await taskRow(t)).status).toBe("running");
   });
 });
 
@@ -301,5 +325,28 @@ describe("results (JARVIS-027)", () => {
       { id, outcome: "accepted" },
       { id: unknown, outcome: "unknown" },
     ]);
+  });
+});
+
+describe("enrollment is public, so one source cannot fill it", () => {
+  it("refuses one more pending enrollment from a full source while others still get in", async () => {
+    const [crowded, other] = ["a".repeat(64), "b".repeat(64)];
+    for (let i = 0; i < MAX_PENDING_PER_SOURCE; i += 1) {
+      await twin.asServiceRole(
+        `insert into public.jarvis_devices (name, public_key, enrollment_expires_at, enrollment_source)
+         values ('Pending', '${"p".repeat(90)}${i}', now() + interval '10 minutes', '${crowded}')`,
+      );
+    }
+    try {
+      expect(await enrollmentRoom(rest() as never, crowded)).toBe(false);
+      expect(await enrollmentRoom(rest() as never, other)).toBe(true);
+    } finally {
+      await twin.asServiceRole(`delete from public.jarvis_devices where user_id is null`);
+    }
+  });
+
+  it("keeps the source private to the server", async () => {
+    const read = await twin.asTenant(A, `select enrollment_source from public.jarvis_devices`);
+    expect(read).toMatchObject({ errorCode: "42501" });
   });
 });

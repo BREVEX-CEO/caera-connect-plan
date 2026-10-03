@@ -80,6 +80,16 @@ function createSupabaseClient() {
        */
       persistSession: true,
       autoRefreshToken: true,
+      /*
+       * A SESSION ARRIVES ONLY BY A FLOW THIS BROWSER STARTED. The default
+       * (implicit) flow accepted tokens from any address's fragment, so a link
+       * like ocade.in/#access_token=… signed the visitor into whatever account
+       * the link's author chose, and their next chats went there. With PKCE,
+       * Google's answer is a one-time code that only the browser holding the
+       * matching secret can exchange (auth.callback.tsx), and tokens in an
+       * address are refused.
+       */
+      flowType: "pkce",
     },
   });
 }

@@ -1,7 +1,7 @@
 /**
  * The device side of JARVIS: enrollment, signed requests and the action exchange.
  *
- * ONE KEY PER DEVICE. A Device Agent or the browser extension makes its own
+ * ONE KEY PER DEVICE. A Device Agent or the OCADE app on a phone makes its own
  * P-256 key pair and enrolls only the public key; every request is signed over
  * the protocol version, method, path, device, a strictly increasing timestamp
  * and the body's hash (see `jarvis-runtime/ocade_protocol.json`, the one
@@ -31,8 +31,8 @@ export const PROTOCOL = contract;
  */
 let pausedCache: { at: number; paused: Set<string> } | null = null;
 /**
- * `kind` narrows to one device family: the Device Agent (`agent`) or the
- * browser extension (`extension`) can be paused on their own, and pausing all
+ * `kind` narrows to one device family: the Device Agent (`agent`) and the
+ * OCADE app on phones (`android`) can be paused on their own, and pausing all
  * device work pauses both.
  */
 export async function executionDisabled(admin: Admin, kind?: string): Promise<boolean> {
@@ -43,10 +43,16 @@ export async function executionDisabled(admin: Admin, kind?: string): Promise<bo
       .from("ocade_service_controls")
       .select("key, paused")
       .limit(10);
-    // Unreadable is not "paused": the Worker variable remains the fallback.
+    if (error || !data) {
+      // FAIL CLOSED: a stop nobody can read must still stop physical work.
+      // Not cached, so the next exchange reads again and work resumes as soon
+      // as the controls are readable.
+      pausedCache = null;
+      return true;
+    }
     pausedCache = {
       at: Date.now(),
-      paused: new Set(error ? [] : (data ?? []).filter((row) => row.paused).map((row) => row.key)),
+      paused: new Set(data.filter((row) => row.paused).map((row) => row.key)),
     };
   }
   return (
@@ -55,14 +61,91 @@ export async function executionDisabled(admin: Admin, kind?: string): Promise<bo
   );
 }
 const ENROLLMENT_MS = 10 * 60_000;
+
+/** A running task whose planning loop has not written for this long has no driver. */
+export const ORPHAN_MS = 3 * 60_000;
+const ORPHANED_BLOCKER =
+  "Paused because JARVIS was closed. Resume to continue from where it stopped.";
+
+/**
+ * TRUTH ABOUT TASKS NOBODY DRIVES. The planning loop runs in an open OCADE
+ * surface and touches its task every minute. When that surface closes, the
+ * task would read "Working" for ever; instead it waits at its checkpoint, and
+ * any surface resumes it. A task with work queued, running or awaiting the
+ * person's confirmation is never paused here.
+ */
+export async function pauseOrphanedTasks(
+  admin: Admin,
+  scope: { deviceId: string } | { userId: string },
+): Promise<number> {
+  const cutoff = new Date(Date.now() - ORPHAN_MS).toISOString();
+  let stale = admin
+    .from("jarvis_tasks")
+    .select("id")
+    .eq("status", "running")
+    .lt("updated_at", cutoff)
+    .limit(10);
+  stale =
+    "deviceId" in scope ? stale.eq("device_id", scope.deviceId) : stale.eq("user_id", scope.userId);
+  const { data: tasks } = await stale;
+  let paused = 0;
+  for (const task of tasks ?? []) {
+    const { data: busy, error } = await admin
+      .from("jarvis_activity")
+      .select("id")
+      .eq("task_id", task.id)
+      .in("status", ["queued", "claimed"])
+      .limit(1);
+    if (error || busy?.length) continue; // the device is working on it, or we cannot tell
+    const { data: done } = await admin
+      .from("jarvis_tasks")
+      .update({ status: "waiting", blocker: ORPHANED_BLOCKER })
+      .eq("id", task.id)
+      .eq("status", "running")
+      .lt("updated_at", cutoff)
+      .select("id");
+    if (done?.length) {
+      // A confirmation nobody is left to answer is withdrawn; Resume asks again.
+      await admin
+        .from("jarvis_activity")
+        .update({ status: "cancelled", completed_at: new Date().toISOString() })
+        .eq("task_id", task.id)
+        .eq("status", "needs_confirmation");
+      paused += 1;
+    }
+  }
+  return paused;
+}
 /**
  * Enrollment is public (a device has no account yet), so waiting requests are
  * capped: each expires in ten minutes, and past this many at once new ones
  * are asked to try again rather than filling the table.
  */
-export const MAX_PENDING_ENROLLMENTS = 200;
+const MAX_PENDING_ENROLLMENTS = 5000;
+/**
+ * And per source: one address may hold only a few at once. The total alone
+ * was 200, which one script generating key pairs could fill, stopping every
+ * new computer everywhere from connecting.
+ */
+export const MAX_PENDING_PER_SOURCE = 5;
 
-export async function sha256Hex(value: string | Uint8Array<ArrayBuffer>): Promise<string> {
+/** Who is asking, as a hash: an IPv6 client is its /64, which one host controls whole. */
+export async function enrollmentSource(request: Request): Promise<string> {
+  const ip = request.headers.get("cf-connecting-ip")?.trim() || "unknown";
+  // ponytail: "::"-compressed addresses group slightly differently; still one bucket per network.
+  return sha256Hex(ip.includes(":") ? ip.split(":").slice(0, 4).join(":") : ip);
+}
+
+/** Room for one more pending enrollment, from this source and in total. Unreadable is no room. */
+export async function enrollmentRoom(admin: Admin, source: string): Promise<boolean> {
+  const pending = () =>
+    admin.from("jarvis_devices").select("id", { count: "exact", head: true }).is("user_id", null);
+  const [all, mine] = await Promise.all([pending(), pending().eq("enrollment_source", source)]);
+  if (all.error || mine.error) return false;
+  return (all.count ?? 0) < MAX_PENDING_ENROLLMENTS && (mine.count ?? 0) < MAX_PENDING_PER_SOURCE;
+}
+
+async function sha256Hex(value: string | Uint8Array<ArrayBuffer>): Promise<string> {
   const bytes = typeof value === "string" ? new TextEncoder().encode(value) : value;
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -135,7 +218,8 @@ export async function readSigned(request: Request): Promise<SignedRequest> {
     !Number.isSafeInteger(timestamp) ||
     Math.abs(Date.now() - timestamp) > PROTOCOL.signing.skewSeconds * 1000
   ) {
-    return { ok: false, status: 401, error: "clock_skew" };
+    // 409, not 401: a wrong clock is fixable and must never read as "removed".
+    return { ok: false, status: 409, error: "clock_skew" };
   }
   const body = await request.text();
   if (body.length > 600_000) return { ok: false, status: 413, error: "too_large" };
@@ -172,11 +256,11 @@ export async function verifySignature(
   );
 }
 
-export const enrollInput = z.object({
+const enrollInput = z.object({
   publicKey: publicKeyText,
   name: z.string().trim().min(1).max(120),
   platform: z.string().trim().max(60).optional(),
-  kind: z.enum(["agent", "extension"]),
+  kind: z.enum(["agent", "android"]),
   softwareVersion: z.string().trim().max(40).optional(),
 });
 
@@ -206,11 +290,8 @@ export async function enroll(
     .delete()
     .is("user_id", null)
     .lt("enrollment_expires_at", new Date().toISOString());
-  const { count } = await admin
-    .from("jarvis_devices")
-    .select("id", { count: "exact", head: true })
-    .is("user_id", null);
-  if ((count ?? 0) >= MAX_PENDING_ENROLLMENTS) {
+  const source = await enrollmentSource(request);
+  if (!(await enrollmentRoom(admin, source))) {
     return { status: 429, body: { error: "busy" } };
   }
   const { data, error } = await admin
@@ -223,6 +304,7 @@ export async function enroll(
       protocol_version: signed.protocol,
       public_key: parsed.publicKey,
       enrollment_expires_at: new Date(Date.now() + ENROLLMENT_MS).toISOString(),
+      enrollment_source: source,
       last_request_ms: signed.timestamp,
     })
     .select("id")
@@ -276,7 +358,7 @@ export async function authenticate(admin: Admin, request: Request): Promise<Devi
     .lt("last_request_ms", signed.timestamp)
     .select("id")
     .maybeSingle();
-  if (!advanced) return { ok: false, status: 401, error: "replayed" };
+  if (!advanced) return { ok: false, status: 409, error: "replayed" };
   if (!device.user_id) {
     return Date.parse(device.enrollment_expires_at ?? "") > Date.now()
       ? { ok: false, status: 202, error: "awaiting_approval" }
@@ -295,11 +377,7 @@ export async function authenticate(admin: Admin, request: Request): Promise<Devi
  * Replace this device's key, signed by the key being replaced. The device
  * rotates on its own schedule; the person never sees it.
  */
-export async function rotateKey(
-  admin: Admin,
-  deviceId: string,
-  publicKey: string,
-): Promise<boolean> {
+async function rotateKey(admin: Admin, deviceId: string, publicKey: string): Promise<boolean> {
   if (!publicKeyText.safeParse(publicKey).success || !(await importKey(publicKey))) return false;
   const { data, error } = await admin
     .from("jarvis_devices")
@@ -356,15 +434,19 @@ export const exchangeInput = z.object({
   apps: z.array(z.string().max(80)).max(300).optional(),
   /** The action the device is executing now; the reply says whether to cancel it. */
   running: z.array(z.string().uuid()).max(1).optional(),
-  /** STOP JARVIS from the computer's own tray or mini-control. */
+  /** STOP JARVIS from the computer's own tray. */
   stop: z.boolean().optional(),
+  /** Pause from the tray: the person takes control of this computer's task. */
+  pause: z.boolean().optional(),
+  /** Resume from the tray: the task continues from a fresh observation. */
+  resume: z.boolean().optional(),
   /** The device disconnects itself (Disconnect, or uninstall): its key stops working. */
   forget: z.boolean().optional(),
   rotate: z.object({ publicKey: publicKeyText }).optional(),
 });
 
 /** Matches how long the planning loop waits for one action. */
-export const ACTION_TTL_MS = 120_000;
+const ACTION_TTL_MS = 120_000;
 
 export interface DeviceCommand {
   id: string;
@@ -387,17 +469,24 @@ export async function exchange(
   deviceId: string;
   busy: boolean;
   background: boolean;
-  /** The open task, for the tray and mini-control: title and progress only. */
+  /** The open task, for the tray: title, progress and status only. */
   task: { title: string; step: number; steps: number; status: string } | null;
   commands: DeviceCommand[];
   /** Running actions the device must cancel now (STOP, Take Over, task ended). */
   cancel: string[];
   /** What happened to each reported result: kept, or why not. */
   acks?: { id: string; outcome: "accepted" | "stopped" | "unknown" }[];
+  /** Background Mode: the running task this computer should ask OCADE to continue now. */
+  continue?: string;
   rotated?: boolean;
 }> {
   if (input.forget) {
     const at = new Date().toISOString();
+    await admin
+      .from("jarvis_activity")
+      .update({ status: "cancelled", completed_at: at })
+      .eq("device_id", device.id)
+      .in("status", ["queued", "needs_confirmation", "claimed"]);
     await admin
       .from("jarvis_tasks")
       .update({ status: "stopped", blocker: "The device was disconnected." })
@@ -421,17 +510,40 @@ export async function exchange(
     // The global Stop: every unfinished task on this device ends, and nothing
     // queued, waiting or running for it continues.
     const at = new Date().toISOString();
+    const stopped = await Promise.all([
+      admin
+        .from("jarvis_tasks")
+        .update({ status: "stopped", blocker: "Stopped from the computer." })
+        .eq("device_id", device.id)
+        .in("status", ["running", "waiting", "taken_over"]),
+      admin
+        .from("jarvis_activity")
+        .update({ status: "cancelled", completed_at: at })
+        .eq("device_id", device.id)
+        .in("status", ["queued", "needs_confirmation", "claimed"]),
+    ]);
+    // Unsaved, the computer must not believe its STOP arrived: it keeps asking.
+    const failed = stopped.find((write) => write.error);
+    if (failed?.error) throw new Error(failed.error.message);
+  }
+  if (input.pause && !input.stop) {
     await admin
       .from("jarvis_tasks")
-      .update({ status: "stopped", blocker: "Stopped from the computer." })
+      .update({ status: "taken_over", blocker: "Paused on the computer." })
       .eq("device_id", device.id)
-      .in("status", ["running", "waiting", "taken_over"]);
+      .in("status", ["running", "waiting"]);
+  } else if (input.resume && !input.stop) {
     await admin
-      .from("jarvis_activity")
-      .update({ status: "cancelled", completed_at: at })
+      .from("jarvis_tasks")
+      .update({ status: "running", blocker: null })
       .eq("device_id", device.id)
-      .in("status", ["queued", "needs_confirmation", "claimed"]);
+      .eq("status", "taken_over");
   }
+  // A task nobody drives waits at its checkpoint, unless this computer may
+  // carry on with it (Background Mode): then it is told to ask for the next step.
+  const { taskToCarryOn } = await import("./background.server");
+  const carry = await taskToCarryOn(admin, device);
+  if (!carry) await pauseOrphanedTasks(admin, { deviceId: device.id });
   const [{ data: open }, { data: self }] = await Promise.all([
     admin
       .from("jarvis_tasks")
@@ -477,8 +589,9 @@ export async function exchange(
     : undefined;
 
   for (const result of input.results) {
-    // A person decides a confirmation; the result says one is needed.
-    const status = result.status === "stale" ? "done" : result.status;
+    // A person decides a confirmation; the result says one is needed. A stale action did not
+    // happen (the screen changed first): recorded as not done, never as "done".
+    const status = result.status === "stale" ? "failed" : result.status;
     const outcome = JSON.stringify({
       status: result.status,
       changed: result.changed ?? [],
@@ -581,10 +694,16 @@ export async function exchange(
     .eq("status", "queued")
     .order("created_at", { ascending: true })
     .limit(1);
-  if (!queued?.length) return { ...envelope, commands: [], cancel, rotated };
+  if (!queued?.length) {
+    return { ...envelope, commands: [], cancel, rotated, ...(carry ? { continue: carry } : {}) };
+  }
   const row = queued[0];
 
-  const [{ data: task }, { data: rows }, { data: deviceRow }] = await Promise.all([
+  const [
+    { data: task, error: taskError },
+    { data: rows, error: rowsError },
+    { data: deviceRow, error: deviceError },
+  ] = await Promise.all([
     admin
       .from("jarvis_tasks")
       .select("id, browser_mode")
@@ -604,8 +723,12 @@ export async function exchange(
       .is("revoked_at", null)
       .maybeSingle(),
   ]);
-  if (!task) return { ...envelope, commands: [], cancel, rotated };
-  const permissions = rows ?? [];
+  // Nothing leaves for the device unless its task, the person's permissions and
+  // the device itself were all read: an unreadable permission is not a default.
+  if (!task || taskError || rowsError || deviceError || !rows) {
+    return { ...envelope, commands: [], cancel, rotated };
+  }
+  const permissions = rows;
   const action = row.action as DeviceAction;
   const mode = task.browser_mode as "isolated" | "real";
   // Permission is checked again when the action leaves for the device, not

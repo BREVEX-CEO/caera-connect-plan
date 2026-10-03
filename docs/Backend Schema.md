@@ -13,6 +13,7 @@ Chat and JARVIS remain logically separate.
 JARVIS conversations use a clear canonical discriminator so ordinary Chat queries cannot accidentally mix JARVIS state.
 
 JARVIS tasks require durable:
+
 - owner account;
 - conversation;
 - task/request identity;
@@ -38,6 +39,7 @@ Each device has unique revocable cryptographic identity.
 Persist only safe verification material server-side.
 
 Support:
+
 - credential rotation;
 - revocation;
 - device kind/platform;
@@ -51,6 +53,7 @@ Never use account passwords as device credentials.
 ## Action broker state
 
 Persist minimum state required for:
+
 - dispatch-time revalidation;
 - idempotent claim;
 - retry authority;
@@ -73,6 +76,7 @@ Use forward migrations to retire obsolete browser-bridge control/device state af
 ## Owner/Staff roles
 
 The role model must support:
+
 - primary_owner;
 - backup_owner;
 - admin;
@@ -92,6 +96,7 @@ Store staff invite/status, role assignment, permission override, 2FA/assurance-r
 ## Audit
 
 Privileged mutations append records including relevant:
+
 - actor;
 - role;
 - target;
@@ -108,6 +113,7 @@ History is append-only.
 Customer conversations remain private.
 
 Temporary support access requires a scoped case/grant with:
+
 - named staff identity;
 - target account/conversation;
 - reason;
@@ -133,6 +139,7 @@ Persist only structured result/evidence with documented purpose.
 ## Offline Chat model metadata
 
 The browser/local model authority must persist:
+
 - release identity;
 - completed byte/range state;
 - integrity metadata;
@@ -153,7 +160,6 @@ Prompt/page/tool content cannot alter authorization.
 One-time auth secrets remain ephemeral.
 
 No provider keys, raw payment secrets, CVV/CVC or plaintext passwords/MFA secrets in customer/admin tables.
-
 
 ## Master Phase 1–49 authority
 

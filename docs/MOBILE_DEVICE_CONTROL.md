@@ -38,6 +38,7 @@ Installation begins from `ocade.in` and should feel like one OCADE product.
 Customer wording is “Install OCADE”; avoid unnecessary implementation jargon. Where Android requires native components for overlay/accessibility/background capability, use them legitimately and let Android show its required system prompts.
 
 The floating bubble:
+
 - may appear over other apps when granted;
 - snaps/restores safely;
 - expands to chat, voice, task/progress, STOP and Open full JARVIS;
@@ -76,6 +77,7 @@ WebKit compatibility is required but is not physical proof.
 Hey OCADE is supported where the platform permits local wake detection.
 
 On Windows/macOS/Android where supported:
+
 - user enables wake once;
 - OCADE downloads/verifies the small local model once;
 - pre-wake audio stays local;
@@ -102,7 +104,6 @@ Windows/macOS:
 real OS/device evidence required for native claims.
 
 Never convert emulation into real-device evidence.
-
 
 ## Master Phase 1–49 authority
 

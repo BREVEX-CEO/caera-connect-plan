@@ -24,11 +24,22 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 
 PROTOCOL = json.loads((Path(__file__).resolve().parent / "ocade_protocol.json").read_text())
-SOFTWARE_VERSION = "0.2.0"
+SOFTWARE_VERSION = "0.3.0"
 
 
 class UpdateRequired(Exception):
     """OCADE no longer speaks this agent's protocol version."""
+
+
+class ClockSkew(urllib.error.URLError):
+    """OCADE refused this computer's timestamp: its clock is wrong. Nothing is forgotten."""
+
+    def __init__(self):
+        super().__init__("clock_skew")
+
+
+# Only these mean OCADE no longer knows this device; anything else is retried.
+REMOVED = ("device_not_enrolled", "enrollment_expired")
 
 
 class NotEnrolled(Exception):
@@ -125,7 +136,7 @@ class Identity:
         return self._last_ms
 
     def post(self, path: str, body: dict, key: ec.EllipticCurvePrivateKey | None = None,
-             device: str | None = None) -> tuple[int, dict]:
+             device: str | None = None, timeout: float = 40) -> tuple[int, dict]:
         raw = json.dumps(body).encode()
         key = key or self.key
         device = device or self.meta.get("deviceId") or "-"
@@ -140,7 +151,7 @@ class Identity:
                      h["timestamp"]: str(stamp),
                      h["signature"]: sign(key, canonical("POST", path, device, stamp, raw))})
         try:
-            with urllib.request.urlopen(request, timeout=40) as response:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
                 return response.status, json.loads(response.read().decode() or "{}")
         except urllib.error.HTTPError as e:
             try:
@@ -172,7 +183,7 @@ class Identity:
         deadline = time.time() + timeout_s
         while time.time() < deadline:
             try:
-                status, _ = self.post(PROTOCOL["paths"]["exchange"], {"results": []})
+                status, reply = self.post(PROTOCOL["paths"]["exchange"], {"results": []})
             except (urllib.error.URLError, TimeoutError, ConnectionError, OSError):
                 time.sleep(poll_s)  # a network blip while the person approves is not a refusal
                 continue
@@ -180,9 +191,9 @@ class Identity:
                 self.meta["approved"] = True
                 self._save()
                 return True
-            if status != 202:
+            if status in (401, 410) and reply.get("error") in (*REMOVED, "signature_invalid"):
                 return False
-            time.sleep(poll_s)
+            time.sleep(poll_s)  # 202 (still waiting), a wrong clock or a server hiccup: keep waiting
         return False
 
     def exchange(self, body: dict) -> dict:
@@ -198,8 +209,10 @@ class Identity:
             self.meta["rotatedAt"] = int(time.time())
             self._save()
             status, reply = self.post(PROTOCOL["paths"]["exchange"], body)
-        if status in (401, 403, 410):
-            raise NotEnrolled(reply.get("error", "device_not_enrolled"))
+        if reply.get("error") in REMOVED:
+            raise NotEnrolled(reply["error"])
+        if reply.get("error") == "clock_skew":
+            raise ClockSkew()
         if status != 200:
             raise urllib.error.URLError(f"exchange failed with {status}")
         if int(reply.get("protocol") or 0) > PROTOCOL["version"]:
@@ -211,8 +224,13 @@ class Identity:
 
     def rotate(self) -> bool:
         """Swap to a new key, signed by the current one. The old key stops working at once."""
-        fresh = new_key()
-        self._write_key(fresh, self.next_path)  # kept until OCADE's answer is known
+        # A rotation whose answer never arrived offers the SAME key again: OCADE may
+        # already hold it, and a new one would leave neither end with a key that works.
+        if self.next_path.exists():
+            fresh = serialization.load_pem_private_key(self.next_path.read_bytes(), None)
+        else:
+            fresh = new_key()
+            self._write_key(fresh, self.next_path)  # kept until OCADE's answer is known
         status, reply = self.post(PROTOCOL["paths"]["exchange"],
                                   {"results": [], "rotate": {"publicKey": public_text(fresh)}})
         if status == 200 and reply.get("rotated"):

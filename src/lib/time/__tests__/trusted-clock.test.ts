@@ -102,3 +102,22 @@ describe("durations as a person reads them", () => {
     expect(formatRemaining(-5_000)).toBe("0:00 left");
   });
 });
+
+describe("a clock set forward and back", () => {
+  it("is settled by the server's own time, so honest readings work again", async () => {
+    const { observeNow, readTrustedClockHighWater, settleTrustedClock } =
+      await import("../trusted-clock");
+    const kept = new Map<string, string>();
+    const store = {
+      getItem: (key: string) => kept.get(key) ?? null,
+      setItem: (key: string, value: string) => void kept.set(key, value),
+    };
+    const server = Date.parse("2026-10-02T10:00:00Z");
+    observeNow(server + 30 * 86_400_000, store); // the clock was a month ahead once
+    settleTrustedClock(server, store);
+    expect(readTrustedClockHighWater(store)).toBe(server);
+    observeNow(server + 1000, store);
+    settleTrustedClock(server, store); // a mark only seconds ahead is honest, and stays
+    expect(readTrustedClockHighWater(store)).toBe(server + 1000);
+  });
+});

@@ -18,6 +18,7 @@ Copy/adapt useful donor logic into active runtime and preserve donor snapshot un
 Target approximately 98% donor capability/logic reuse where safe.
 
 Do not carry forward:
+
 - old donor GUI;
 - donor provider-key entry/config;
 - donor generic customer plugin product;
@@ -83,6 +84,7 @@ Undo supported where reliable.
 ## Office/document requirements
 
 Excel:
+
 - structural workbook inspection;
 - formulas/ranges/tables;
 - smart fill/structured operations;
@@ -104,7 +106,7 @@ Risky remote/destructive Git operations require stronger authorization.
 
 Voice works during execution.
 
-Wake model downloaded/verified once when enabled; pre-wake audio local.
+Wake model bundled with the Device Agent and Android app, verified against its signed manifest (no download after installation); pre-wake audio local.
 
 ## Android
 
@@ -152,7 +154,6 @@ Every phase requires local + applicable MCP/real evidence.
 Use existing Chrome/CDP + DevTools, browser compatibility matrix, Physical Computer Use, Appium, Mobile MCP, Filesystem, Supabase, Cloudflare and GitHub as appropriate.
 
 Report commercial-launch readiness percentage after each phase.
-
 
 ## Master Phase 1–49 authority
 

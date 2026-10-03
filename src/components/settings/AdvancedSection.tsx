@@ -4,6 +4,7 @@ import {
   revokeAccountSession,
   revokeOtherAccountSessions,
 } from "@/lib/security/sessions.functions";
+import { needsFreshProof, useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { Action, Pending, Row, describeWhen } from "./rows";
 
 /**
@@ -32,13 +33,21 @@ export function AdvancedSection() {
   });
 
   const refresh = () => client.invalidateQueries({ queryKey: ["security", "sessions"] });
+  const { withProof, dialog } = useConfirmIdentity();
+  // A refusal for an old proof comes back as an answer; turn it into the question.
+  const proved = <T extends { ok: boolean; reason?: string }>(run: () => Promise<T>) =>
+    withProof(async () => {
+      const outcome = await run();
+      if (!outcome.ok && needsFreshProof(outcome.reason)) throw new Error(outcome.reason);
+      return outcome;
+    });
 
   const revokeOne = useMutation({
-    mutationFn: (id: string) => revokeAccountSession({ data: { sessionId: id } }),
+    mutationFn: (id: string) => proved(() => revokeAccountSession({ data: { sessionId: id } })),
     onSuccess: () => void refresh(),
   });
   const revokeRest = useMutation({
-    mutationFn: () => revokeOtherAccountSessions(),
+    mutationFn: () => proved(() => revokeOtherAccountSessions()),
     onSuccess: () => void refresh(),
   });
 
@@ -48,6 +57,7 @@ export function AdvancedSection() {
 
   return (
     <div>
+      {dialog}
       <Row
         label="Where you are signed in"
         description={

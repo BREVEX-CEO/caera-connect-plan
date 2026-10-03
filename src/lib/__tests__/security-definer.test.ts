@@ -70,7 +70,7 @@ beforeAll(async () => {
     insert into auth.users (id, email) values
       ('${ALICE}', 'alice@definer.test'), ('${BOB}', 'bob@definer.test')
     on conflict (id) do nothing;
-    insert into public.user_roles (user_id, role) values ('${BOB}', 'admin')
+    insert into public.ocade_staff (user_id, role) values ('${BOB}', 'admin')
     on conflict do nothing;
   `);
 }, 240_000);
@@ -184,6 +184,8 @@ describe("has_role, which every policy depends on", () => {
     const bob = await twin.asTenant<{ r: boolean }>(
       BOB,
       `select public.has_role('${BOB}'::uuid, 'admin'::public.app_role) as r`,
+      // An Admin is an operator only once this session answered its second factor.
+      { aal: "aal2" },
     );
     expect(bob.error).toBeUndefined();
     expect(bob.rows[0]?.r).toBe(true);

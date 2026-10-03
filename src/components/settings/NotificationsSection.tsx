@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { useSession } from "@/lib/session";
 import { NOTIFICATION_CATEGORIES, isMutable } from "@/lib/notifications/categories";
-import { availableChannels, deploymentChannelConfiguration } from "@/lib/notifications/channels";
+import { deploymentChannelConfiguration, resolveChannels } from "@/lib/notifications/channels";
+import {
+  pushDeviceState,
+  turnPushOff,
+  turnPushOn,
+  type PushDeviceState,
+} from "@/lib/notifications/push-device";
 import { defaultPreferences, type NotificationPreferences } from "@/lib/notifications/preferences";
 import {
   loadNotificationPreferences,
@@ -32,8 +38,15 @@ export function NotificationsSection() {
   const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences());
   const [source, setSource] = useState<"account" | "defaults">("defaults");
   const [saved, setSaved] = useState<string | null>(null);
-  const channels = availableChannels(deploymentChannelConfiguration());
+  const allChannels = resolveChannels(deploymentChannelConfiguration());
+  const channels = allChannels.filter((channel) => channel.available);
   const [recent, setRecent] = useState<NotificationRecord[]>([]);
+  const [device, setDevice] = useState<PushDeviceState | null>(null);
+  const [deviceBusy, setDeviceBusy] = useState(false);
+  const [deviceProblem, setDeviceProblem] = useState<string | null>(null);
+  useEffect(() => {
+    void pushDeviceState().then(setDevice, () => setDevice("unsupported"));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -140,10 +153,43 @@ export function NotificationsSection() {
         </Row>
       ))}
 
-      {channels.some((channel) => !channel.available) ? (
+      {device && device !== "unsupported" ? (
+        <Row
+          label="On this device"
+          description={
+            deviceProblem ??
+            (device === "needs_home_screen"
+              ? "On iPhone and iPad, Apple shows a website's notifications only when it is opened from the Home Screen."
+              : device === "denied"
+                ? "This browser was told not to show OCADE's notifications. Allow them in the browser's site settings, then come back."
+                : device === "on"
+                  ? "This browser shows the kinds that are on, even when OCADE is closed."
+                  : "Show the kinds that are on here, even when OCADE is closed.")
+          }
+        >
+          {device === "on" || device === "off" ? (
+            <Toggle
+              checked={device === "on"}
+              disabled={deviceBusy}
+              label="Notifications on this device"
+              onChange={(next) => {
+                setDeviceBusy(true);
+                setDeviceProblem(null);
+                void (next ? turnPushOn() : turnPushOff())
+                  .then(setDevice, (cause: unknown) =>
+                    setDeviceProblem(cause instanceof Error ? cause.message : String(cause)),
+                  )
+                  .finally(() => setDeviceBusy(false));
+              }}
+            />
+          ) : null}
+        </Row>
+      ) : null}
+
+      {allChannels.some((channel) => !channel.available) ? (
         <Row
           label="Where they can reach you"
-          description={channels
+          description={allChannels
             .filter((channel) => !channel.available)
             .map((channel) => channel.unavailableReason)
             .join(" ")}

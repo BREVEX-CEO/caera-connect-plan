@@ -1,6 +1,6 @@
 /** Authenticated usage operations. Account identity comes only from verified Supabase claims. */
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSession } from "@/lib/security/session-middleware";
 import {
   CommercialGenerationGate,
   GENERATION_SURFACES,
@@ -8,7 +8,12 @@ import {
 } from "./generation-gate";
 import { supabaseCommercialLedger } from "./supabase-ledger";
 import { ALLOWANCES, describeUsage } from "./usage-policy";
-import { resolveTierFor, type ResolvedEntitlement } from "./entitlement-resolver";
+import {
+  resolveTierFor,
+  unlimitedFor,
+  type ResolvedEntitlement,
+  type Unlimited,
+} from "./entitlement-resolver";
 
 /**
  * One adapter per server instance. Permit identity, reservations and settlement
@@ -41,34 +46,8 @@ export interface PermitRefused {
 
 export type PermitResult = PermitGranted | PermitRefused;
 
-export async function assertActiveGenerationPermit(input: {
-  userId: string;
-  permitId: string;
-  generationId: string;
-  idempotencyKey: string;
-  surface: GenerationSurface;
-  source: "server" | "offline_lease";
-}): Promise<void> {
-  if (input.source !== "server") {
-    throw new Error("Offline permits cannot authorize a server-side intelligence transport.");
-  }
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: claimed, error } = await supabaseAdmin.rpc("ocade_claim_generation_transport", {
-    p_user_id: input.userId,
-    p_permit_id: input.permitId,
-    p_generation_id: input.generationId,
-    p_idempotency_key: input.idempotencyKey,
-    p_surface: input.surface,
-  });
-  if (error || claimed !== true) {
-    throw new Error(
-      "This generation permit is missing, expired, settled, already claimed, or belongs elsewhere.",
-    );
-  }
-}
-
 export const acquireGenerationPermit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator(
     (data: { idempotencyKey: string; generationId?: string; surface?: GenerationSurface }) => {
       const key = data?.idempotencyKey?.trim();
@@ -117,7 +96,7 @@ export const acquireGenerationPermit = createServerFn({ method: "POST" })
   });
 
 export const finalizeGenerationPermit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((data: { idempotencyKey: string }) => {
     const key = data?.idempotencyKey?.trim();
     if (!key) throw new Error("A request key is required.");
@@ -134,7 +113,7 @@ export const finalizeGenerationPermit = createServerFn({ method: "POST" })
   });
 
 export const releaseGenerationPermit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((data: { idempotencyKey: string; reason?: string }) => {
     const key = data?.idempotencyKey?.trim();
     if (!key) throw new Error("A request key is required.");
@@ -153,6 +132,8 @@ export const releaseGenerationPermit = createServerFn({ method: "POST" })
 
 export interface CommercialUsageView {
   tier: ResolvedEntitlement["tier"];
+  /** Never stopped by a window; then no window is shown, though every use is still recorded. */
+  unlimited: Unlimited | null;
 
   windows: {
     kind: "session" | "week";
@@ -174,10 +155,14 @@ export interface CommercialUsageView {
  * READ-ONLY, and the numbers are the ones the person is shown: "18 of 28 left".
  */
 export const readCommercialUsage = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .handler(async ({ context }): Promise<CommercialUsageView> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const entitlement = await resolveTierFor(context.userId);
+    const [entitlement, unlimited] = await Promise.all([
+      resolveTierFor(context.userId),
+      unlimitedFor(context.userId),
+    ]);
+    if (unlimited) return { tier: entitlement.tier, unlimited, windows: [] };
     const now = Date.now();
     const ledger = supabaseCommercialLedger(supabaseAdmin);
     if (!ledger.readCurrent) throw new Error("The usage ledger has no server window authority.");
@@ -238,5 +223,5 @@ export const readCommercialUsage = createServerFn({ method: "GET" })
       }
     }
 
-    return { tier: entitlement.tier, windows };
+    return { tier: entitlement.tier, unlimited: null, windows };
   });

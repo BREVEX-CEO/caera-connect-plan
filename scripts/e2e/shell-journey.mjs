@@ -17,7 +17,7 @@ import { chromium } from "playwright-core";
 
 const baseArgument = process.argv.find((argument) => argument.startsWith("--base="));
 const BASE = baseArgument ? baseArgument.slice("--base=".length) : "http://127.0.0.1:8788";
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 
 const results = [];
 let failures = 0;
@@ -123,6 +123,7 @@ try {
 
   const phone = await browser.newContext({ viewport: { width: 375, height: 812 } });
   const small = await phone.newPage();
+  small.on("pageerror", (error) => consoleErrors.push(`phone: ${String(error)}`));
   await small.goto(`${BASE}/`, { waitUntil: "networkidle" });
   check(
     "the sidebar is a drawer on a phone",
@@ -137,6 +138,63 @@ try {
     "the page does not scroll sideways on a phone",
     await small.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
   );
+
+  /*
+   * THE ENGINE SURVIVES A DEPLOY. A runtime-fetched asset (the offline engine's
+   * `.wasm` above all) must land in the cache a new worker version keeps, not
+   * in the versioned shell cache its activation deletes.
+   */
+  const assets = await small.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+    const asset = [...performance.getEntriesByType("resource")]
+      .map((entry) => new URL(entry.name).pathname)
+      .find((path) => path.startsWith("/assets/") && path.endsWith(".js"));
+    if (!asset) return { asset: null, kept: false };
+    // Once more through the now-controlling worker, which is what keeps it. Under load the
+    // worker can be active a moment before it controls this page: a fetch then bypasses it.
+    for (let i = 0; i < 50 && !navigator.serviceWorker.controller; i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    await fetch(asset);
+    const cache = await caches.open("ocade-assets");
+    for (let i = 0; i < 50 && !(await cache.match(asset)); i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return { asset, kept: Boolean(await cache.match(asset)) };
+  });
+  check(
+    "a runtime asset is kept where a new app version will not delete it",
+    assets.asset !== null && assets.kept,
+    JSON.stringify(assets),
+  );
+
+  /*
+   * OFFLINE, NO PAGE PRETENDS TO BE ANOTHER. A page never seen on this device
+   * gets the offline page; Chat, seen before, opens as Chat.
+   */
+  await small.waitForFunction(() => navigator.serviceWorker.controller !== null, null, {
+    timeout: 15_000,
+  });
+  await phone.setOffline(true);
+  await small.goto(`${BASE}/terms`).catch(() => {});
+  check(
+    "offline, a page never opened here shows the offline page, not Chat",
+    (await small.title()) === "OCADE Local Mode" &&
+      (await small.getByRole("link", { name: "Open OCADE Chat" }).getAttribute("href")) === "/",
+    await small.title(),
+  );
+  await small.goto(`${BASE}/?new=true`).catch(() => {});
+  check(
+    "and Chat, opened here before, still opens offline",
+    await small
+      .locator("#ocade-composer")
+      .waitFor({ timeout: 15_000 })
+      .then(
+        () => true,
+        () => false,
+      ),
+  );
+  await phone.setOffline(false);
 
   check("no uncaught page errors", consoleErrors.length === 0, consoleErrors.join("; "));
 } finally {

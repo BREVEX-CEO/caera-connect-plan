@@ -26,7 +26,7 @@ const arg = (name, fallback) => {
 
 const BASE = arg("base", "http://127.0.0.1:8788");
 const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 
 const CATEGORY_NAMES = [
   "Account",
@@ -165,10 +165,22 @@ try {
 
   /* --- Advanced ------------------------------------------------------------ */
 
+  // The same account signed in somewhere else, so there is another session to end.
+  await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: EMAIL, password: "proof" }),
+  });
   await page.getByRole("button", { name: "Privacy & Security", exact: true }).click();
   // The list is a server read; waiting for the heading only proves the section
   // mounted, not that the sessions arrived.
+  // "this device" is also in the section's own words, so wait for what only the
+  // loaded list brings: the control for the OTHER sessions.
   await page.waitForSelector("text=this device", { timeout: 15_000 });
+  await page
+    .getByRole("button", { name: "Sign out everywhere else" })
+    .waitFor({ timeout: 15_000 })
+    .catch(() => undefined);
   const advanced = await dialog.innerText();
   check("Advanced shows where the account is signed in", /this device/i.test(advanced));
   check(

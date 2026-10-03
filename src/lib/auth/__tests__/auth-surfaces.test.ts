@@ -90,7 +90,9 @@ describe("the ways in", () => {
 
   it("verify exactly six digits", () => {
     expect(VERIFY).toContain("\\d{6}");
-    expect(VERIFY).toContain("maxLength={6}");
+    // Digits kept, six at most, and no maxLength: a pasted "123 456" must keep all six.
+    expect(VERIFY).toContain('replace(/\\D/g, "").slice(0, 6)');
+    expect(VERIFY).not.toContain("maxLength={6}");
   });
 });
 

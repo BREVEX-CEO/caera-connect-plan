@@ -5,6 +5,7 @@
 Help should contain longer setup/security explanations so normal product surfaces remain concise.
 
 Cover:
+
 - Chat and JARVIS difference;
 - JARVIS Online-only behavior;
 - Device Agent/tray;
@@ -71,7 +72,6 @@ Critical incidents remain auditable.
 ## Deferred tooling
 
 Sentry project creation and paid leaked-password protection are currently deferred/non-blocking. Do not fake their availability.
-
 
 ## Master Phase 1–49 authority
 

@@ -1,0 +1,12 @@
+<!--
+  Supabase Auth > Emails > Templates > "Magic link or OTP" (used for sign-in by email code and for
+  "Confirm it's you"). Subject: Your OCADE code
+  The project's email code lasts 3600 seconds (Auth > Sign In / Providers > Email OTP expiration).
+-->
+<h2>Your OCADE code</h2>
+<p>Enter this code in OCADE to sign in or to confirm it's you:</p>
+<p style="font-size: 28px; letter-spacing: 4px; font-weight: 600">{{ .Token }}</p>
+<p>
+  It works once and expires in one hour. This code is for your OCADE account only: never share it.
+</p>
+<p>If you didn't ask for it, you can ignore this email. Your account stays as it is.</p>

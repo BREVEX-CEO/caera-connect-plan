@@ -9,6 +9,7 @@ import sys
 import tempfile
 import time
 import unittest
+import unittest.mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -59,38 +60,337 @@ class WorkspaceTest(unittest.TestCase):
         if self.pc.sandbox is None:
             self.assertEqual(self.pc.run({"action": "run", "command": "echo x"})["status"], "blocked")
             return
+        if self.pc.sandbox == "workspace":
+            self.skipTest("direct runner: see DirectCommandTest")
         out = self.pc.run({"action": "run", "command": "pwd && echo built > out.txt"})
         self.assertEqual(out["status"], "done", out)
         self.assertEqual(out["stdout"].strip().splitlines()[0], str(self.root))
         self.assertEqual((self.root / "out.txt").read_text().strip(), "built")
-        if self.pc.sandbox == "bubblewrap":
-            probe = Path(__file__).resolve().parent / "escaped-probe.txt"
-            escape = self.pc.run({"action": "run", "command": f"echo x > {probe}"})
-            self.assertEqual(escape["status"], "failed")
-            self.assertFalse(probe.exists())
-            self.pc.run({"action": "run", "command": f"echo x > {self.home}/escaped.txt"})
-            self.assertFalse(Path(self.home, "escaped.txt").exists())
+        probe = Path(__file__).resolve().parent / "escaped-probe.txt"
+        escape = self.pc.run({"action": "run", "command": f"echo x > {probe}"})
+        self.assertEqual(escape["status"], "failed")
+        self.assertFalse(probe.exists())
+        self.pc.run({"action": "run", "command": f"echo x > {self.home}/escaped.txt"})
+        self.assertFalse(Path(self.home, "escaped.txt").exists())
         self.assertEqual(self.pc.run({"action": "run", "command": "exit 3"})["exitCode"], 3)
         self.assertEqual(self.pc.run({"action": "run", "command": "ls", "cwd": ".."})["status"], "blocked")
 
     def test_a_runaway_command_is_stopped(self):
         if self.pc.sandbox is None:
-            self.skipTest("no confined terminal on this computer")
+            self.skipTest("no terminal on this computer")
+        (self.root / "forever.py").write_text("import time\nwhile True:\n    time.sleep(1)\n")
+        command = "sleep 30" if self.pc.sandbox == "bubblewrap" else "python forever.py"
         old = ocade_computer.RUN_TIMEOUT_S
         ocade_computer.RUN_TIMEOUT_S = 1
         try:
             started = time.monotonic()
-            out = self.pc.run({"action": "run", "command": "sleep 30"})
+            out = self.pc.run({"action": "run", "command": command}, confirmed=True)
         finally:
             ocade_computer.RUN_TIMEOUT_S = old
         self.assertEqual(out["status"], "failed")
         self.assertLess(time.monotonic() - started, 10)
+
+
+    def test_a_repositorys_own_settings_and_hooks_are_never_written(self):
+        (self.root / ".git" / "hooks").mkdir(parents=True)
+        (self.root / ".git" / "config").write_text("[core]\n")
+        for action in ({"action": "file_write", "path": ".git/hooks/pre-commit", "content": "x"},
+                       {"action": "file_write", "path": "sub/../.git/config", "content": "x"},
+                       {"action": "file_mkdir", "path": ".GIT/hooks2"},
+                       {"action": "file_move", "path": "notes.md", "to": ".git/hooks/post-checkout"},
+                       {"action": "file_rename", "path": ".git/config", "name": "config.old"},
+                       {"action": "file_trash", "path": ".git/config"}):
+            self.assertEqual(self.pc.run(action)["status"], "blocked", action)
+        self.assertEqual((self.root / ".git" / "config").read_text(), "[core]\n")
+        self.assertEqual(self.pc.run({"action": "file_read", "path": ".git/config"})["status"], "done")
+
+    def test_stop_ends_long_file_work(self):
+        import threading
+        stop = threading.Event()
+        stop.set()
+        for i in range(30):
+            (self.root / "big" / f"d{i}").mkdir(parents=True)
+            (self.root / "big" / f"d{i}" / "f.txt").write_text("x")
+        found = self.pc.run({"action": "file_find", "path": ".", "name": "f"}, cancel=stop)
+        self.assertTrue(found.get("stopped"), found)
+        copied = self.pc.run({"action": "file_copy", "path": "big", "to": "big2"}, cancel=stop)
+        self.assertTrue(copied.get("stopped"), copied)
+        self.assertFalse((self.root / "big2").exists())
+
+    def test_stop_ends_the_wait_for_an_app_list(self):
+        import threading
+        stop = threading.Event()
+        threading.Timer(0.3, stop.set).start()
+        ocade_computer._APPS.update(at=float("-inf"), list=[])
+        with unittest.mock.patch.object(ocade_computer, "installed_apps",
+                                        side_effect=lambda: time.sleep(5) or []):
+            started = time.monotonic()
+            out = self.pc.run({"action": "open_app", "name": "Nothing"}, cancel=stop)
+        self.assertTrue(out.get("stopped"), out)
+        self.assertLess(time.monotonic() - started, 2)
+
+    def test_the_persons_input_pauses_what_takes_the_foreground(self):
+        self.pc.guard.start = lambda: True
+        self.pc.guard.user_input_at = time.monotonic()
+        for action in ({"action": "open_app", "name": "Nothing"},
+                       {"action": "window", "title": "Nothing"},
+                       {"action": "sheet_edit", "path": "a.xlsx", "ops": []},
+                       {"action": "doc_edit", "path": "a.docx", "ops": []}):
+            self.assertEqual(self.pc.run(action)["status"], "needs_confirmation", action)
+            self.pc.guard.user_input_at = time.monotonic()
+            self.assertNotEqual(self.pc.run(action, cowork=True)["status"], "needs_confirmation")
+            self.pc.guard.user_input_at = time.monotonic()
 
     def test_system_changes_wait_for_the_person(self):
         os.environ["OCADE_JARVIS_DRY_SYSTEM"] = "1"
         out = self.pc.run({"action": "system", "op": "restart"})
         self.assertEqual(out["status"], "needs_confirmation")
         self.assertIn("Would run", self.pc.run({"action": "system", "op": "restart"}, confirmed=True)["summary"])
+
+
+class UndoTest(unittest.TestCase):
+    """Donor undo: act at once, remember how to reverse it, newest first."""
+
+    def setUp(self):
+        self.home = tempfile.mkdtemp()
+        os.environ["OCADE_JARVIS_HOME"] = str(Path(self.home, "agent"))
+        self.root = Path(self.home, "project")
+        self.root.mkdir()
+        (self.root / "notes.md").write_text("first")
+        self.pc = Computer(str(self.root))
+
+    def do(self, **action):
+        out = self.pc.run(action)
+        self.assertEqual(out["status"], "done", out)
+        return out
+
+    def test_every_file_change_is_reversed_newest_first(self):
+        self.do(action="file_write", path="notes.md", content="second")  # an overwrite
+        self.do(action="file_write", path="new.txt", content="x")        # a new file
+        self.do(action="file_mkdir", path="drafts")
+        self.do(action="file_move", path="notes.md", to="drafts")
+        self.do(action="file_rename", path="drafts/notes.md", name="plan.md")
+        self.do(action="file_copy", path="drafts/plan.md", to="copy.md")
+        self.assertEqual(sorted(p.name for p in self.root.iterdir()), ["copy.md", "drafts", "new.txt"])
+
+        self.assertIn("copying", self.do(action="undo")["summary"])
+        self.assertFalse((self.root / "copy.md").exists())
+        self.do(action="undo")  # the rename
+        self.assertTrue((self.root / "drafts/notes.md").is_file())
+        self.do(action="undo")  # the move
+        self.assertEqual((self.root / "notes.md").read_text(), "second")
+        self.do(action="undo")  # the folder
+        self.assertFalse((self.root / "drafts").exists())
+        self.do(action="undo")  # the new file
+        self.assertFalse((self.root / "new.txt").exists())
+        self.assertEqual(self.do(action="undo")["remaining"], 0)  # the overwrite
+        self.assertEqual((self.root / "notes.md").read_text(), "first")
+        out = self.pc.run({"action": "undo"})
+        self.assertEqual(out["status"], "failed")
+        self.assertIn("nothing to undo", out["summary"])
+
+    def test_an_undo_never_overwrites_what_appeared_since(self):
+        self.do(action="file_move", path="notes.md", to="moved.md")
+        (self.root / "notes.md").write_text("the person wrote this meanwhile")
+        out = self.pc.run({"action": "undo"})
+        self.assertEqual(out["status"], "failed")
+        self.assertIn("nothing was overwritten", out["summary"])
+        self.assertEqual((self.root / "notes.md").read_text(), "the person wrote this meanwhile")
+        self.assertEqual((self.root / "moved.md").read_text(), "first")
+        # Taken off the list: it is not tried again against files that moved on.
+        self.assertIn("nothing to undo", self.pc.run({"action": "undo"})["summary"])
+
+        self.do(action="file_mkdir", path="kept")
+        (self.root / "kept/theirs.txt").write_text("x")
+        self.assertIn("things in it", self.pc.run({"action": "undo"})["summary"])
+        self.assertTrue((self.root / "kept/theirs.txt").is_file())
+
+    def test_only_the_recent_past_is_kept(self):
+        for n in range(ocade_computer.UNDO_DEPTH + 3):
+            self.do(action="file_mkdir", path=f"d{n}")
+        for _ in range(ocade_computer.UNDO_DEPTH):
+            self.do(action="undo")
+        self.assertEqual(self.pc.run({"action": "undo"})["status"], "failed")
+        self.assertEqual(sorted(p.name for p in self.root.iterdir() if p.is_dir()), ["d0", "d1", "d2"])
+
+
+class SettingsTest(unittest.TestCase):
+    """Donor computer_settings and system_monitor, through the system's own interfaces."""
+
+    def test_status_reports_this_computer(self):
+        out = Computer(None).run({"action": "system_status"})
+        self.assertEqual(out["status"], "done", out)
+        facts = out["system"]
+        self.assertTrue(0 <= facts["memoryPercent"] <= 100 and facts["memoryTotalGb"] > 0)
+        self.assertTrue(0 <= facts["diskPercent"] <= 100 and facts["processes"] > 1)
+
+    def test_a_setting_is_checked_before_and_after_and_wrong_values_change_nothing(self):
+        import ocade_settings
+        state = {"volume": 40, "mute": False}
+        with unittest.mock.patch.dict(ocade_settings._READ, {k: (lambda k=k: state[k]) for k in state}), \
+                unittest.mock.patch.dict(ocade_settings._SET,
+                                         {k: (lambda v, k=k: state.__setitem__(k, v)) for k in state}):
+            pc = Computer(None)
+            self.assertEqual(pc.run({"action": "setting", "name": "volume"})["value"], 40)
+            out = pc.run({"action": "setting", "name": "volume", "level": 15})
+            self.assertEqual((out["status"], out["before"], out["value"]), ("done", 40, 15))
+            self.assertEqual(pc.run({"action": "setting", "name": "mute", "on": True})["value"], True)
+            for wrong in ({"name": "volume", "on": True}, {"name": "mute", "level": 50},
+                          {"name": "wifi", "on": False}, {"name": "volume", "level": "loud"}):
+                self.assertEqual(pc.run({"action": "setting", **wrong})["status"], "failed", wrong)
+            self.assertEqual(state, {"volume": 15, "mute": True})
+            # A system that ignores the change is reported, not assumed.
+            with unittest.mock.patch.dict(ocade_settings._SET, {"volume": lambda v: None}):
+                out = pc.run({"action": "setting", "name": "volume", "level": 90})
+            self.assertEqual(out["status"], "failed")
+            self.assertIn("did not change", out["summary"])
+
+    @unittest.skipUnless(sys.platform == "win32", "the real Windows audio endpoint")
+    def test_the_real_volume_changes_and_is_put_back(self):
+        pc = Computer(None)
+        before = pc.run({"action": "setting", "name": "volume"})
+        if before["status"] != "done":
+            self.skipTest("no audio device on this computer")
+        try:
+            target = 30 if before["value"] != 30 else 35
+            out = pc.run({"action": "setting", "name": "volume", "level": target})
+            self.assertEqual((out["status"], out["value"], out["before"]), ("done", target, before["value"]), out)
+        finally:
+            back = pc.run({"action": "setting", "name": "volume", "level": before["value"]})
+        self.assertEqual(back["value"], before["value"])
+
+
+@unittest.skipUnless(Computer(tempfile.mkdtemp()).sandbox == "workspace",
+                     "the direct runner is the Windows/macOS path")
+class DirectCommandTest(unittest.TestCase):
+    """Windows/macOS: one program, no shell, inside the workspace, killed as a tree on STOP."""
+
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
+        self.root = self.home / "project"
+        self.root.mkdir()
+        self.pc = Computer(str(self.root))
+
+    def run_(self, command, **kw):
+        # The person confirmed it at OCADE, as every command here is.
+        kw.setdefault("confirmed", True)
+        return self.pc.run({"action": "run", "command": command, **kw.pop("extra", {})}, **kw)
+
+    def test_a_development_command_runs_there_and_reports_its_output(self):
+        (self.root / "calc.py").write_text("import os\nprint(21 * 2)\nprint(os.getcwd())\n")
+        out = self.run_("python calc.py")
+        self.assertEqual(out["status"], "done", out)
+        lines = out["stdout"].split()
+        self.assertEqual(lines[0], "42")
+        self.assertEqual(Path(lines[1]).resolve(), self.root.resolve())
+        self.assertEqual(out["isolation"], "workspace")
+        (self.root / "fail.py").write_text("raise SystemExit(3)\n")
+        self.assertEqual(self.run_("python fail.py")["exitCode"], 3)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows program paths")
+    def test_an_unquoted_program_path_with_spaces_is_one_program(self):
+        # Found with DaVinci Resolve: "C:\Program Files\...\Resolve.exe -nogui" read as "C:\Program".
+        tools = self.home / "My Tools"
+        tools.mkdir()
+        (tools / "tool.exe").write_bytes(b"MZ")
+        ask = self.run_(f"{tools / 'tool.exe'} -nogui", confirmed=False)
+        self.assertEqual(ask["status"], "needs_confirmation", ask)
+        self.assertIn("tool.exe -nogui", ask["summary"])
+        missing = self.run_(f"{self.home / 'No Such' / 'x.exe'} -nogui", confirmed=False)
+        self.assertEqual(missing["status"], "failed", missing)
+        self.assertIn("was not found", missing["summary"])
+
+    @unittest.skipUnless(sys.platform == "win32", "a real screen")
+    def test_a_screen_look_names_the_frame_clicks_are_given_in(self):
+        obs = self.pc.run({"action": "screen"})["observation"]
+        self.assertNotIn("screen", obs)
+        self.assertLessEqual(obs["image"]["w"], 1280)
+        outside = self.pc.run({"action": "screen_click", "x": obs["image"]["w"] + 5, "y": 5,
+                               "observationId": obs["observationId"]}, confirmed=True)
+        self.assertEqual(outside["status"], "failed", outside)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows property system")
+    def test_file_info_gives_a_media_files_own_length(self):
+        # Found with DaVinci Resolve: a 12-second export was reported cut to 5; nothing could say.
+        import wave
+        with wave.open(str(self.root / "tone.wav"), "wb") as out:
+            out.setnchannels(1)
+            out.setsampwidth(2)
+            out.setframerate(8000)
+            out.writeframes(b"\x00\x00" * 12000)  # 1.5 seconds
+        info = self.pc.run({"action": "file_info", "path": "tone.wav"})["info"]
+        self.assertAlmostEqual(info["properties"]["seconds"], 1.5, places=1)
+        self.assertEqual(info["properties"]["audioChannels"], 1)
+        (self.root / "notes.txt").write_text("plain")
+        self.assertNotIn("properties", self.pc.run({"action": "file_info", "path": "notes.txt"})["info"])
+
+    def test_git_works_in_the_workspace(self):
+        self.assertEqual(self.run_("git init")["status"], "done")
+        status = self.run_("git status --short")
+        self.assertEqual(status["status"], "done", status)
+
+    def test_no_shell_no_escape(self):
+        for command in ("python a.py && del x", "git log | more", "python a.py > ../out.txt",
+                        "echo %USERPROFILE%", "python a.py; calc"):
+            self.assertEqual(self.run_(command)["status"], "blocked", command)
+        for command in ("python ../outside.py", f"python {self.home / 'outside.py'}",
+                        "git -C .. status", "python sub/../../x.py"):
+            self.assertEqual(self.run_(command)["status"], "blocked", command)
+        self.assertEqual(self.run_("python a.py", extra={"cwd": ".."})["status"], "blocked")
+
+    def test_the_tasks_own_work_runs_and_anything_else_waits_shown_whole(self):
+        (self.root / "calc.py").write_text("print(42)\n")
+        self.assertEqual(self.run_("python calc.py", confirmed=False)["stdout"].strip(), "42")
+        self.assertEqual(self.run_("git init", confirmed=False)["status"], "done")
+        for command in ('python -c "print(1)"', "powershell -Command Get-Date", "curl https://example.com"):
+            out = self.run_(command, confirmed=False)
+            self.assertEqual(out["status"], "needs_confirmation", command)
+            self.assertEqual(out["summary"], f"Running {command}")
+        # What can never run is refused before anyone is asked.
+        self.assertEqual(self.run_("python ../x.py", confirmed=False)["status"], "blocked")
+        self.assertEqual(self.run_("no-such-program-ocade")["status"], "failed")
+
+    def test_a_program_found_in_the_work_folder_is_the_tasks_own_and_waits(self):
+        planted = self.root / "git.exe"
+        planted.write_bytes(b"MZ")
+        with unittest.mock.patch.object(ocade_computer.shutil, "which", return_value=str(planted)):
+            out = self.run_("git status", confirmed=False)
+        self.assertEqual(out["status"], "needs_confirmation", out)
+
+    def test_secrets_stay_out_of_the_command(self):
+        os.environ["OCADE_TEST_API_KEY"] = "sk-should-not-leak"
+        try:
+            (self.root / "env.py").write_text("import os\nprint(os.environ.get('OCADE_TEST_API_KEY'))\n")
+            self.assertEqual(self.run_("python env.py")["stdout"].strip(), "None")
+        finally:
+            os.environ.pop("OCADE_TEST_API_KEY")
+
+    def test_stop_kills_the_whole_tree(self):
+        (self.root / "parent.py").write_text(
+            "import subprocess, sys, time\n"
+            "child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
+            "open('child.pid', 'w').write(str(child.pid))\n"
+            "time.sleep(60)\n")
+        cancel = __import__("threading").Event()
+        timer = __import__("threading").Timer(2.0, cancel.set)
+        timer.start()
+        started = time.monotonic()
+        out = self.pc.run({"action": "run", "command": "python parent.py"}, cancel=cancel,
+                          confirmed=True)
+        self.assertTrue(out.get("stopped"), out)
+        self.assertLess(time.monotonic() - started, 10)
+        pid = int((self.root / "child.pid").read_text())
+        time.sleep(0.5)
+        if sys.platform == "win32":
+            alive = str(pid) in subprocess.run(["tasklist", "/FI", f"PID eq {pid}"],
+                                               capture_output=True, text=True).stdout
+        else:
+            try:
+                os.kill(pid, 0)
+                alive = True
+            except OSError:
+                alive = False
+        self.assertFalse(alive, "the command's child kept running after STOP")
 
 
 class AppsTest(unittest.TestCase):
@@ -121,7 +421,20 @@ class AppsTest(unittest.TestCase):
         self.assertEqual(pc.run({"action": "open_app", "name": "Hidden"})["status"], "failed")
 
 
-@unittest.skipUnless(os.environ.get("DISPLAY"), "needs a display (run under xvfb-run)")
+def _other_hand(x: int, y: int) -> None:
+    """Mouse movement JARVIS did not make: the person's own hand."""
+    if sys.platform.startswith("linux"):
+        subprocess.run(["xdotool", "mousemove", str(x), str(y)], check=True)
+    else:
+        # SendInput, like a real mouse: SetCursorPos (pyautogui.moveTo) fires no input hook.
+        from pynput.mouse import Controller
+        mouse = Controller()
+        px, py = mouse.position
+        mouse.move(x - px, y - py)
+
+
+@unittest.skipUnless(os.environ.get("DISPLAY") or sys.platform in ("win32", "darwin"),
+                     "needs a display (run under xvfb-run)")
 class ScreenTest(unittest.TestCase):
     def setUp(self):
         self.pc = Computer(None)
@@ -143,18 +456,138 @@ class ScreenTest(unittest.TestCase):
         obs = self.pc.run({"action": "screen"})["observation"]["observationId"]
         self.pc.run({"action": "screen_click", "x": 3, "y": 3, "observationId": obs})  # starts the guard
         time.sleep(0.6)
-        subprocess.run(["xdotool", "mousemove", "200", "200"], check=True)  # someone else's hand
+        _other_hand(200, 200)
         time.sleep(0.5)
-        paused = self.pc.run({"action": "screen_keys", "keys": ["shift"]})
+        look = lambda: self.pc.run({"action": "screen"})["observation"]["observationId"]  # noqa: E731
+        keys = {"action": "screen_keys", "keys": ["shift"]}
+        paused = self.pc.run({**keys, "observationId": look()})
         self.assertEqual(paused["status"], "needs_confirmation")
-        self.assertEqual(self.pc.run({"action": "screen_keys", "keys": ["shift"]},
-                                     confirmed=True)["status"], "done")
+        self.assertEqual(self.pc.run({**keys, "observationId": look()}, confirmed=True)["status"], "done")
         time.sleep(0.6)
-        subprocess.run(["xdotool", "mousemove", "100", "100"], check=True)
+        _other_hand(100, 100)
         time.sleep(0.5)
-        self.assertEqual(self.pc.run({"action": "screen_keys", "keys": ["shift"]},
-                                     cowork=True)["status"], "done")
+        self.assertEqual(self.pc.run({**keys, "observationId": look()}, cowork=True)["status"], "done")
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CommandClassTest(unittest.TestCase):
+    def test_the_same_cases_ocade_decides(self):
+        import json
+        cases = json.loads((Path(__file__).resolve().parent / "command_cases.json").read_text())
+        for case in cases:
+            self.assertEqual(ocade_computer.command_class(case["command"]), case["class"], case["command"])
+
+
+class MultiMonitorTest(unittest.TestCase):
+    """A point in the observed image maps onto the whole desktop, whatever monitor it is on."""
+
+    def test_points_map_through_scale_and_origin(self):
+        pc = Computer(None)
+        pc._observation = {"id": "s1", "scale": 2.0, "at": time.monotonic(),
+                           "geometry": {"x": -1920, "y": 0, "w": 3840, "h": 1080, "monitors": 2,
+                                        "window": "x"}}
+        self.assertEqual(pc._point(100, 50), (-1920 + 200, 100))    # on the left monitor
+        self.assertEqual(pc._point(1500, 10), (-1920 + 3000, 20))   # on the primary
+        self.assertIsNone(pc._point(1920, 10))                      # past the right edge
+        self.assertIsNone(pc._point(-1, 10))
+        self.assertIsNone(pc._point("x", 10))
+
+
+@unittest.skipUnless(sys.platform == "win32", "Windows window management")
+class WindowTest(unittest.TestCase):
+    def test_lists_windows_and_refuses_unknown_or_unconfirmed_close(self):
+        pc = Computer(None)
+        listed = pc.run({"action": "window_list"})
+        self.assertEqual(listed["status"], "done")
+        self.assertTrue(listed["windows"])
+        self.assertEqual(pc.run({"action": "window", "title": "no-such-window-ocade"})["status"], "failed")
+        front = next(w["title"] for w in listed["windows"] if w["front"])
+        self.assertEqual(pc.run({"action": "window", "title": front, "state": "close"})["status"],
+                         "needs_confirmation")
+
+
+@unittest.skipUnless(sys.platform == "win32" and Computer(None).capabilities()["accessibility"],
+                     "Windows UI Automation")
+class AccessibilityTest(unittest.TestCase):
+    """A native app driven by its controls, not by pixels: Windows Calculator."""
+
+    def test_calculator_by_its_buttons(self):
+        pc = Computer(None)
+        pc.run({"action": "open_app", "name": "Calculator"})
+        for _ in range(20):
+            seen = pc.run({"action": "ui_inspect", "title": "Calculator"})
+            if seen["status"] == "done" and any(e["name"] == "Seven" for e in seen["observation"]["elements"]):
+                break
+            time.sleep(0.5)
+        obs = seen["observation"]
+        try:
+            for name in ("Clear", "Seven", "Multiply by", "Six", "Equals"):
+                ref = next(e["ref"] for e in obs["elements"] if e["name"] == name)
+                out = pc.run({"action": "ui_act", "ref": ref, "observationId": obs["observationId"],
+                              "op": "invoke"})
+                self.assertEqual(out["status"], "done", out)
+                obs = out["observation"]
+            self.assertIn("Display is 42", [e["name"] for e in obs["elements"]])
+            found = pc.run({"action": "ui_inspect", "title": "Calculator", "find": "Seven"})
+            self.assertEqual([e["name"] for e in found["observation"]["elements"]], ["Seven"])
+            stale = pc.run({"action": "ui_act", "ref": "a1", "observationId": "u0", "op": "invoke"})
+            self.assertEqual(stale["status"], "stale")
+        finally:
+            pc.run({"action": "window", "title": "Calculator", "state": "close"}, confirmed=True)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows UI Automation")
+    def test_a_click_by_coordinates_meets_the_same_hard_rules(self):
+        import ocade_accessibility
+        import uiautomation as auto
+        form = subprocess.Popen(["powershell", "-NoProfile", "-Command", (
+            "Add-Type -AssemblyName System.Windows.Forms;"
+            "$f = New-Object Windows.Forms.Form; $f.Text = 'OCADE gate probe';"
+            "$p = New-Object Windows.Forms.Button; $p.Text = 'Pay now'; $p.Width = 200; $p.Height = 50;"
+            "$n = New-Object Windows.Forms.Button; $n.Text = 'Next page'; $n.Top = 70; $n.Width = 200; $n.Height = 50;"
+            "$f.Controls.Add($p); $f.Controls.Add($n); [Windows.Forms.Application]::Run($f)")],
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        try:
+            window = auto.WindowControl(Name="OCADE gate probe", searchDepth=1)
+            self.assertTrue(window.Exists(15, 0.3), "the probe window did not appear")
+
+            def centre(name):
+                box = window.ButtonControl(Name=name).BoundingRectangle
+                return (box.left + box.right) // 2, (box.top + box.bottom) // 2
+
+            self.assertEqual(ocade_accessibility.gate_at(*centre("Pay now"), False)["status"], "blocked")
+            self.assertIsNone(ocade_accessibility.gate_at(*centre("Next page"), False))
+            # Enter or Space presses the focused control as surely as a click does.
+            window.SetActive()
+            window.ButtonControl(Name="Pay now").SetFocus()
+            self.assertEqual(ocade_accessibility.gate_at(None, None, False, press=True)["status"], "blocked")
+            self.assertIsNone(ocade_accessibility.gate_at(None, None, False))
+            pc = Computer(None)
+            look = lambda: pc.run({"action": "screen"})["observation"]["observationId"]  # noqa: E731
+            for keys in (["enter"], ["space"]):
+                out = pc.run({"action": "screen_keys", "keys": keys, "observationId": look()},
+                             confirmed=True)
+                self.assertEqual(out["status"], "blocked", out)
+            # A drag lets go on its drop point: dropping on a payment control is pressing it.
+            obs = pc.run({"action": "screen"})["observation"]
+            scale = obs["imageScale"]
+            (nx, ny), (px, py) = centre("Next page"), centre("Pay now")
+            click = pc.run({"action": "screen_click", "x": px * scale, "y": py * scale,
+                            "observationId": obs["observationId"]}, confirmed=True)
+            self.assertEqual(click["status"], "blocked", click)
+            out = pc.run({"action": "screen_drag", "x": nx * scale, "y": ny * scale,
+                          "toX": px * scale, "toY": py * scale,
+                          "observationId": obs["observationId"]}, confirmed=True)
+            self.assertEqual(out["status"], "blocked", out)
+            # A password manager or a sign-in prompt is never read or operated, however it is reached.
+            purchase, sensitive, _ = ocade_accessibility._gates()
+            with unittest.mock.patch.object(ocade_accessibility, "_GATES",
+                                            (purchase, sensitive, frozenset({"powershell.exe"}))):
+                self.assertEqual(ocade_accessibility.gate_at(*centre("Next page"), False)["status"], "blocked")
+                self.assertEqual(ocade_accessibility.gate_at(None, None, False)["status"], "blocked")
+                self.assertEqual(ocade_accessibility.inspect("OCADE gate probe")["status"], "blocked")
+            self.assertEqual(ocade_accessibility.inspect("OCADE gate probe")["status"], "done")
+        finally:
+            form.kill()

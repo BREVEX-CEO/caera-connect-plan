@@ -20,6 +20,7 @@ import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
 import { useInstallationBootstrap } from "@/lib/brain/use-installation";
 import { useSession } from "@/lib/session";
 import { needsFullNavigation } from "@/lib/security/isolation";
+import { markHydrated } from "@/lib/after-hydration";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   /*
@@ -59,6 +60,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // Matches --background in the default theme, so the browser chrome and
       // the app do not meet at a visible seam on mobile.
       { name: "theme-color", content: "#0a0a0a" },
+      // The name under the icon when added from any page, not that page's title.
+      { name: "apple-mobile-web-app-title", content: "OCADE" },
       { property: "og:title", content: "OCADE" },
       {
         property: "og:description",
@@ -158,6 +161,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(markHydrated, []);
 
   /**
    * Async failures never reach a React boundary — an unhandled rejection in a
@@ -348,6 +352,12 @@ function BrowserBootstrap() {
           // render, even for a frame. Public data simply loads again.
           if (previous && previous !== nowSignedIn) {
             router.options.context.queryClient.removeQueries();
+            // This browser stops receiving the last account's notifications.
+            void import("@/lib/notifications/push-device")
+              .then((module) => module.forgetPushOnThisBrowser())
+              .catch(() => {});
+            // A question the bubble was handing over was the last account's to ask.
+            void import("@/jarvis/bubble-state").then((module) => module.takeHandOff());
           }
           if (event === "SIGNED_OUT") {
             /*

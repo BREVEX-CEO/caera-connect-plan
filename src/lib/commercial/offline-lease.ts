@@ -1,4 +1,5 @@
 import type { GenerationSurface } from "./generation-gate";
+import { observeNow } from "@/lib/time/trusted-clock";
 import type { PlanTier } from "@/lib/payments/pricing";
 
 const OFFLINE_LEASE_VERSION = 1 as const;
@@ -98,11 +99,14 @@ export function resolveTrustedOfflineTime(input: TrustedOfflineTimeInput): Trust
  * water mark. Two copies of this is two devices' worth of disagreement about
  * whether a lease has expired, so there is one.
  */
-export function trustedOfflineTimeNow(
-  issuedAt: string,
-  durableHighWater: number,
-): TrustedOfflineTime {
+export function trustedOfflineTimeNow(issuedAt: string): TrustedOfflineTime {
   const wallNow = Date.now();
+  /*
+   * READ AND RECORDED IN ONE STEP. Only the mark was read here, and nothing
+   * wrote it, so it was always 0: a clock set back inside an expired lease's
+   * window brought the lease back.
+   */
+  const durableHighWater = observeNow(wallNow);
   const monotonicNow =
     typeof performance === "undefined" ? wallNow : performance.timeOrigin + performance.now();
   return resolveTrustedOfflineTime({

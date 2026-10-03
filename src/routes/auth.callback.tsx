@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { AuthShell } from "@/components/shell/AuthShell";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
-import { DEFAULT_NEXT, safeNext } from "@/lib/auth/safe-next";
+import { DEFAULT_NEXT, rememberedNext, safeNext } from "@/lib/auth/safe-next";
 
 const searchSchema = z.object({
   next: z.string().optional(),
@@ -41,7 +41,7 @@ function CallbackPage() {
 
   useEffect(() => {
     if (error) return;
-    const target = safeNext(next) ?? DEFAULT_NEXT;
+    const target = safeNext(next ?? rememberedNext()) ?? DEFAULT_NEXT;
 
     let cancelled = false;
     let done = false;

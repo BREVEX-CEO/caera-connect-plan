@@ -11,26 +11,23 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSession } from "@/lib/security/session-middleware";
+import { HIGH_RISK, requireAssurance } from "@/lib/security/assurance-middleware";
 import { supabaseCommercialLedger } from "@/lib/commercial/supabase-ledger";
-import { resolveTierFor } from "@/lib/commercial/entitlement-resolver";
+import { resolveTierFor, unlimitedFor } from "@/lib/commercial/entitlement-resolver";
 import { ALLOWANCES, describeUsage } from "@/lib/commercial/usage-policy";
 import {
   CAPABILITIES,
   deviceAction,
-  describeAction,
   FINISHED,
   hostOf,
   TASK_STATUSES,
   type TaskStatus,
 } from "./protocol";
-import {
-  appDecision,
-  isAllowed,
-  needsConfirmation,
-  refuseAction,
-  type PermissionRow,
-} from "./permissions";
+import { appDecision, chooseTaskDevice, isAllowed, type PermissionRow } from "./permissions";
+import { TASK_COLUMNS, type JarvisTaskRow } from "./task-row";
+
+export type { JarvisTaskRow };
 
 const uuid = z.string().uuid();
 /** A device counts as online when it asked for work this recently. */
@@ -40,34 +37,12 @@ async function admin() {
   return (await import("@/integrations/supabase/client.server")).supabaseAdmin;
 }
 
-async function permissionsOf(db: SupabaseClient<Database>): Promise<PermissionRow[]> {
-  const { data, error } = await db
-    .from("jarvis_permissions")
-    .select("capability, allowed, device_id")
-    .limit(500);
-  if (error) throw new Error(error.message);
-  return data ?? [];
-}
-
-export interface JarvisTaskRow {
-  id: string;
-  conversation_id: string;
-  device_id: string | null;
-  title: string;
-  plan: string[];
-  current_step: number;
-  status: TaskStatus;
-  blocker: string | null;
-  result: string | null;
-  browser_mode: "isolated" | "real";
-  checkpoint: {
-    step: number;
-    lastAction: string;
-    lastUrl: string | null;
-    at: string;
-  } | null;
-  created_at: string;
-  updated_at: string;
+/** The one read of a person's JARVIS permissions, scoped to them explicitly as well as by RLS. */
+async function permissionsOf(
+  db: SupabaseClient<Database>,
+  userId: string,
+): Promise<PermissionRow[]> {
+  return (await import("./task-authority.server")).permissionsOf(db, userId);
 }
 
 export interface JarvisState {
@@ -96,6 +71,16 @@ export interface JarvisState {
   }[];
   permissions: PermissionRow[];
   memories: { id: string; content: string; created_at: string }[];
+  /** Reminders and scheduled work still to come. */
+  schedules: {
+    id: string;
+    conversation_id: string;
+    device_id: string | null;
+    what: string;
+    next_at: string;
+    repeat: string;
+    last_outcome: string | null;
+  }[];
   activity: {
     id: string;
     task_id: string;
@@ -111,13 +96,12 @@ export interface JarvisState {
     apps: { name: string; rule: "always" | "ask" | "never" }[];
   }[];
   usage: { remaining: number; allowance: number; resetsInMs: number | null } | null;
+  /** Never stopped by a window (then `usage` is null); every step is still recorded. */
+  unlimited: boolean;
 }
 
-const TASK_COLUMNS =
-  "id, conversation_id, device_id, title, plan, current_step, status, blocker, result, browser_mode, checkpoint, created_at, updated_at";
-
 export const readJarvisState = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ maintain: z.boolean().default(false) }).parse(i ?? {}))
   .handler(async ({ data: input, context }): Promise<JarvisState> => {
     const db = context.supabase;
@@ -125,39 +109,56 @@ export const readJarvisState = createServerFn({ method: "GET" })
     // Retention housekeeping runs when JARVIS opens, not on every live refresh.
     if (input.maintain) {
       await service.rpc("jarvis_purge_expired_activity", { p_user_id: context.userId });
+      const { pauseOrphanedTasks } = await import("./device.server");
+      await pauseOrphanedTasks(service, { userId: context.userId });
     }
-    const [conversations, tasks, devices, permissions, memories, activity] = await Promise.all([
-      db
-        .from("ocade_conversations")
-        .select("id, title, archived, updated_at, created_at")
-        .eq("surface", "jarvis")
-        .order("updated_at", { ascending: false })
-        .limit(200),
-      db
-        .from("jarvis_tasks")
-        .select(TASK_COLUMNS)
-        .order("updated_at", { ascending: false })
-        .limit(100),
-      db
-        .from("jarvis_devices")
-        .select(
-          "id, name, platform, capabilities, last_seen_at, revoked_at, created_at, kind, software_version, background_enabled, installed_apps",
-        )
-        .order("created_at", { ascending: false })
-        .limit(50),
-      db.from("jarvis_permissions").select("capability, allowed, device_id").limit(500),
-      db
-        .from("jarvis_memories")
-        .select("id, content, created_at")
-        .order("created_at", { ascending: false })
-        .limit(200),
-      db
-        .from("jarvis_activity")
-        .select("id, task_id, summary, status, created_at, action")
-        .order("created_at", { ascending: false })
-        .limit(200),
-    ]);
-    for (const result of [conversations, tasks, devices, permissions, memories, activity]) {
+    const [conversations, tasks, devices, permissions, memories, activity, schedules] =
+      await Promise.all([
+        db
+          .from("ocade_conversations")
+          .select("id, title, archived, updated_at, created_at")
+          .eq("surface", "jarvis")
+          .order("updated_at", { ascending: false })
+          .limit(200),
+        db
+          .from("jarvis_tasks")
+          .select(TASK_COLUMNS)
+          .order("updated_at", { ascending: false })
+          .limit(100),
+        db
+          .from("jarvis_devices")
+          .select(
+            "id, name, platform, capabilities, last_seen_at, revoked_at, created_at, kind, software_version, background_enabled, installed_apps",
+          )
+          .order("created_at", { ascending: false })
+          .limit(50),
+        db.from("jarvis_permissions").select("capability, allowed, device_id").limit(500),
+        db
+          .from("jarvis_memories")
+          .select("id, content, created_at")
+          .order("created_at", { ascending: false })
+          .limit(200),
+        db
+          .from("jarvis_activity")
+          .select("id, task_id, summary, status, created_at, action")
+          .order("created_at", { ascending: false })
+          .limit(200),
+        db
+          .from("jarvis_schedules")
+          .select("id, conversation_id, device_id, what, next_at, repeat, last_outcome")
+          .eq("active", true)
+          .order("next_at", { ascending: true })
+          .limit(100),
+      ]);
+    for (const result of [
+      conversations,
+      tasks,
+      devices,
+      permissions,
+      memories,
+      activity,
+      schedules,
+    ]) {
       if (result.error) throw new Error(result.error.message);
     }
 
@@ -181,7 +182,7 @@ export const readJarvisState = createServerFn({ method: "GET" })
           ? ("never" as const)
           : ("ask" as const);
     const apps = (devices.data ?? [])
-      .filter((device) => !device.revoked_at && device.kind === "agent")
+      .filter((device) => !device.revoked_at)
       .map((device) => ({
         deviceId: device.id,
         deviceName: device.name,
@@ -191,7 +192,10 @@ export const readJarvisState = createServerFn({ method: "GET" })
           .map((name) => ({ name, rule: rule(appDecision(permissionRows, name, device.id)) })),
       }));
 
-    const entitlement = await resolveTierFor(context.userId);
+    const [entitlement, unlimited] = await Promise.all([
+      resolveTierFor(context.userId),
+      unlimitedFor(context.userId),
+    ]);
     const ledger = supabaseCommercialLedger(service);
     const windows = ledger.readCurrent ? await ledger.readCurrent(context.userId, "jarvis") : [];
     const allowance = ALLOWANCES[entitlement.tier];
@@ -243,22 +247,26 @@ export const readJarvisState = createServerFn({ method: "GET" })
       }),
       permissions: permissionRows,
       memories: memories.data ?? [],
+      schedules: schedules.data ?? [],
       activity: (activity.data ?? []).map(({ action: _action, ...rest }) => rest),
       sites: [...sites].sort().slice(0, 100),
       apps,
+      unlimited: Boolean(unlimited),
       // Before the first use no window has started: the whole allowance is left.
-      usage: shown[0]
-        ? {
-            remaining: shown[0].remaining,
-            allowance: shown[0].allowance,
-            resetsInMs: shown[0].resetsInMs,
-          }
-        : { remaining: allowance.session, allowance: allowance.session, resetsInMs: null },
+      usage: unlimited
+        ? null
+        : shown[0]
+          ? {
+              remaining: shown[0].remaining,
+              allowance: shown[0].allowance,
+              resetsInMs: shown[0].resetsInMs,
+            }
+          : { remaining: allowance.session, allowance: allowance.session, resetsInMs: null },
     };
   });
 
 export const createJarvisConversation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
@@ -272,7 +280,7 @@ export const createJarvisConversation = createServerFn({ method: "POST" })
 
 /** Whether this account owns a JARVIS conversation with this id (not just "no messages"). */
 export const jarvisConversationExists = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
@@ -295,10 +303,16 @@ export interface TaskDevice {
 
 export type StartTaskResult =
   | { ok: true; task: JarvisTaskRow; device: TaskDevice }
-  | { ok: false; reason: "no_device" | "permission"; message: string };
+  | {
+      ok: false;
+      reason: "no_device" | "permission" | "busy";
+      message: string;
+      /** The person's own task the computer is busy with, so they can ask for it to stop. */
+      busy?: { id: string; title: string };
+    };
 
 export const startJarvisTask = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) =>
     z
       .object({
@@ -308,13 +322,17 @@ export const startJarvisTask = createServerFn({ method: "POST" })
         where: z.enum(["browser", "computer"]).default("browser"),
         /** The computer the person chose (Remote PC); otherwise the only one online. */
         deviceId: uuid.optional(),
+        /** The device the person is using, when the OCADE app said so. */
+        hereDeviceId: uuid.optional(),
+        /** "computer" when the person named their PC or the work needs one. */
+        on: z.enum(["here", "computer"]).optional(),
         title: z.string().trim().min(1).max(200),
         plan: z.array(z.string().trim().min(1).max(200)).max(12),
       })
       .parse(i),
   )
   .handler(async ({ data, context }): Promise<StartTaskResult> => {
-    const rows = await permissionsOf(context.supabase);
+    const rows = await permissionsOf(context.supabase, context.userId);
     if (!isAllowed(rows, "master")) {
       return { ok: false, reason: "permission", message: "OCADE JARVIS is turned off." };
     }
@@ -339,47 +357,12 @@ export const startJarvisTask = createServerFn({ method: "POST" })
     const online = (devices ?? []).filter(
       (d) => d.last_seen_at && now - Date.parse(d.last_seen_at) < ONLINE_MS,
     );
-    const offers = (d: (typeof online)[number], capability: string) =>
-      (d.capabilities as Record<string, boolean> | null)?.[capability] === true;
-    // The computer's own work needs its Device Agent. Browser work prefers the
-    // person's own browser only where they allowed it, else the isolated one.
-    const chosen = data.deviceId ? online.filter((d) => d.id === data.deviceId) : online;
-    if (data.deviceId && chosen.length === 0) {
-      return {
-        ok: false,
-        reason: "no_device",
-        message: "That computer is not online. Open OCADE on it or choose another in Devices.",
-      };
-    }
-    const agents = chosen.filter((d) => d.kind === "agent");
-    const ownBrowser = chosen.find(
-      (d) => offers(d, "browser_real") && isAllowed(rows, "browser_real", d.id),
-    );
-    // Work never goes to a computer the person did not mean: with several
-    // online and none chosen, they choose.
-    if (!data.deviceId && data.where === "computer" && agents.length > 1) {
-      return {
-        ok: false,
-        reason: "no_device",
-        message: `More than one computer is online (${agents
-          .map((d) => d.name)
-          .join(", ")}). Choose one in Devices, then ask again.`,
-      };
-    }
-    const device =
-      data.where === "computer"
-        ? agents[0]
-        : (ownBrowser ?? agents.find((d) => offers(d, "browser_isolated")) ?? agents[0]);
-    if (!device) {
-      return {
-        ok: false,
-        reason: "no_device",
-        message:
-          data.where === "computer"
-            ? "No computer with the OCADE Device Agent is online. Connect one in Devices."
-            : "No JARVIS device is online. Connect one in Devices to run browser tasks.",
-      };
-    }
+    const choice = chooseTaskDevice(online, rows, data.where, data.deviceId, {
+      here: data.hereDeviceId,
+      on: data.on,
+    });
+    if (!choice.ok) return { ok: false, reason: "no_device", message: choice.message };
+    const { device, real } = choice;
     if (await executionDisabled(service, device.kind)) {
       return {
         ok: false,
@@ -394,7 +377,6 @@ export const startJarvisTask = createServerFn({ method: "POST" })
         message: "Browser control is turned off for this device.",
       };
     }
-    const real = device === ownBrowser;
     const { data: task, error: insertError } = await context.supabase
       .from("jarvis_tasks")
       .insert({
@@ -409,12 +391,25 @@ export const startJarvisTask = createServerFn({ method: "POST" })
       .select(TASK_COLUMNS)
       .single();
     if (insertError?.code === "23505") {
+      if (!insertError.message.includes("per_device")) {
+        return {
+          ok: false,
+          reason: "permission",
+          message: "A task is already running in this conversation.",
+        };
+      }
+      const { data: open } = await context.supabase
+        .from("jarvis_tasks")
+        .select("id, title")
+        .eq("device_id", device.id)
+        .in("status", ["running", "waiting", "taken_over"])
+        .limit(1)
+        .maybeSingle();
       return {
         ok: false,
-        reason: "permission",
-        message: insertError.message.includes("per_device")
-          ? "Your computer is already busy with another JARVIS task. Stop it or let it finish first."
-          : "A task is already running in this conversation.",
+        reason: "busy",
+        message: `${device.name} is busy with another JARVIS task${open ? ` (“${open.title}”)` : ""}. Stop it or let it finish first.`,
+        ...(open ? { busy: { id: open.id as string, title: open.title as string } } : {}),
       };
     }
     if (insertError) throw new Error(insertError.message);
@@ -437,7 +432,7 @@ export const startJarvisTask = createServerFn({ method: "POST" })
   });
 
 export const updateJarvisTask = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) =>
     z
       .object({
@@ -448,6 +443,12 @@ export const updateJarvisTask = createServerFn({ method: "POST" })
         blocker: z.string().max(300).nullable().optional(),
         /** Claim the task for this planning loop; any other loop stops queueing. */
         controller: uuid.optional(),
+        /**
+         * Write only while this loop still owns the task. A loop that lost it
+         * (another tab or device took over) changes nothing and is told so (null).
+         * Alone, it is the loop's heartbeat.
+         */
+        owner: uuid.optional(),
         checkpoint: z
           .object({
             step: z.number().int().min(0).max(12),
@@ -459,144 +460,21 @@ export const updateJarvisTask = createServerFn({ method: "POST" })
       })
       .parse(i),
   )
-  .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = {};
-    if (data.controller !== undefined) patch.controller = data.controller;
-    if (data.checkpoint !== undefined) patch.checkpoint = data.checkpoint;
-    if (data.status !== undefined) patch.status = data.status;
-    if (data.currentStep !== undefined) patch.current_step = data.currentStep;
-    if (data.result !== undefined) patch.result = data.result;
-    if (data.blocker !== undefined) patch.blocker = data.blocker;
-    const { data: task, error } = await context.supabase
-      .from("jarvis_tasks")
-      .update(patch as never)
-      .eq("id", data.id)
-      .select(TASK_COLUMNS)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!task) throw new Error("That task no longer exists.");
-    if (data.status) {
-      const service = await admin();
-      // Anything not yet run for a task that is no longer running never runs.
-      if (data.status !== "running") {
-        await service
-          .from("jarvis_activity")
-          .update({ status: "cancelled", completed_at: new Date().toISOString() })
-          .eq("task_id", data.id)
-          .eq("user_id", context.userId)
-          .in("status", ["queued", "needs_confirmation", "claimed"]);
-      }
-      const words: Record<TaskStatus, string> = {
-        running: "Resumed",
-        waiting: "Waiting for you",
-        taken_over: "You took over",
-        stopped: "Stopped",
-        blocked: "Stopped: cannot safely continue",
-        failed: "Failed",
-        completed: "Completed",
-      };
-      await service.from("jarvis_activity").insert({
-        user_id: context.userId,
-        task_id: data.id,
-        summary: words[data.status],
-      });
-      // A finished task is worth telling the person about wherever they are:
-      // OCADE's own notification history, never the task's private result.
-      if (data.status === "completed" || data.status === "failed" || data.status === "blocked") {
-        const { sendNotification } = await import("@/lib/notifications/send.server");
-        await sendNotification({
-          userId: context.userId,
-          category: "task_outcomes",
-          title: `JARVIS ${data.status === "completed" ? "finished" : "stopped"}: ${task.title.slice(0, 120)}`,
-          deepLink: `/ocade-jarvis?c=${task.conversation_id}`,
-          idempotencyKey: `jarvis-task-${data.status}:${task.id}`,
-        });
-      }
-    }
-    return task as JarvisTaskRow;
+  .handler(async ({ data, context }): Promise<JarvisTaskRow | null> => {
+    const { changeTask } = await import("./task-authority.server");
+    return changeTask(context.supabase, await admin(), context.userId, data);
   });
 
 export const queueJarvisAction = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ taskId: uuid, controller: uuid, action: deviceAction }).parse(i))
   .handler(async ({ data, context }) => {
-    const { data: task, error } = await context.supabase
-      .from("jarvis_tasks")
-      .select("id, status, device_id, browser_mode, controller")
-      .eq("id", data.taskId)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!task) throw new Error("That task no longer exists.");
-    // One planning loop drives a task. Another tab or device that took it over
-    // owns it now, and this loop stops rather than racing it.
-    if (task.controller !== data.controller) {
-      return {
-        ok: false as const,
-        lost: true,
-        message: "Another device took control of this task.",
-      };
-    }
-    if (task.status !== "running")
-      return { ok: false as const, message: "The task is not running." };
-    if (!task.device_id) return { ok: false as const, message: "The task has no device." };
-
-    const service = await admin();
-    const { data: device } = await service
-      .from("jarvis_devices")
-      .select("id, capabilities, installed_apps")
-      .eq("id", task.device_id)
-      .eq("user_id", context.userId)
-      .is("revoked_at", null)
-      .maybeSingle();
-    if (!device) return { ok: false as const, message: "The task's device was removed." };
-
-    const rows = await permissionsOf(context.supabase);
-    const refusal = refuseAction(rows, {
-      deviceId: device.id,
-      mode: task.browser_mode as "isolated" | "real",
-      action: data.action,
-      offered: (device.capabilities ?? {}) as Record<string, boolean>,
-    });
-    if (refusal) return { ok: false as const, message: refusal.message };
-    if (data.action.action === "open_app") {
-      const installed = (device.installed_apps ?? []) as string[];
-      const wanted = data.action.name.toLowerCase();
-      const exact = installed.find((name) => name.toLowerCase() === wanted);
-      if (!exact) {
-        const near = installed.filter((name) => name.toLowerCase().includes(wanted)).slice(0, 5);
-        return {
-          ok: false as const,
-          message: near.length
-            ? `No app is named "${data.action.name}" on this computer. Did you mean: ${near.join(", ")}?`
-            : `No app named "${data.action.name}" is installed on this computer. Use the apps action to list them.`,
-        };
-      }
-      data.action.name = exact;
-    }
-    // Deletions, system changes, risky commands and apps set to Ask wait for the
-    // person before the device ever sees them.
-    const ask = needsConfirmation(rows, data.action, device.id);
-
-    const { data: row, error: insertError } = await service
-      .from("jarvis_activity")
-      .insert({
-        user_id: context.userId,
-        task_id: task.id,
-        device_id: device.id,
-        summary: describeAction(data.action),
-        action: data.action,
-        status: ask ? "needs_confirmation" : "queued",
-        // Model-issued actions are never pre-confirmed.
-        confirmed: false,
-      })
-      .select("id")
-      .single();
-    if (insertError) throw new Error(insertError.message);
-    return { ok: true as const, id: row.id as string };
+    const { queueTaskAction } = await import("./task-authority.server");
+    return queueTaskAction(context.supabase, await admin(), context.userId, data);
   });
 
 export const readJarvisTask = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
@@ -609,7 +487,7 @@ export const readJarvisTask = createServerFn({ method: "GET" })
   });
 
 export const readJarvisAction = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
@@ -627,9 +505,27 @@ export const readJarvisAction = createServerFn({ method: "GET" })
     return { ...row, taskStatus: (task?.status ?? "stopped") as TaskStatus };
   });
 
+/** A step the planner stopped waiting for: it never runs, and a late result never counts. */
+export const cancelJarvisAction = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ id: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const service = await admin();
+    const { data: row, error } = await service
+      .from("jarvis_activity")
+      .update({ status: "cancelled", completed_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .eq("user_id", context.userId)
+      .in("status", ["queued", "claimed", "needs_confirmation"])
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { cancelled: Boolean(row) };
+  });
+
 /** Only a person's click reaches this. The planning loop never calls it. */
 export const decideJarvisAction = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid, accept: z.boolean() }).parse(i))
   .handler(async ({ data, context }) => {
     const service = await admin();
@@ -663,7 +559,7 @@ const capability = z.union([
 ]);
 
 export const setJarvisPermission = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) =>
     z
       .object({
@@ -709,44 +605,78 @@ export const setJarvisPermission = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-/** What a person sees before approving a device: never its key, only its fingerprint. */
+/** A pending enrollment, and whether it asked from the network this request comes from. */
+async function pendingEnrollment(service: Awaited<ReturnType<typeof admin>>, id: string) {
+  const { data: row, error } = await service
+    .from("jarvis_devices")
+    .select("id, name, platform, kind, public_key, enrollment_source")
+    .eq("id", id)
+    .is("user_id", null)
+    .gt("enrollment_expires_at", new Date().toISOString())
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row?.public_key) return null;
+  const { enrollmentSource, fingerprint } = await import("./device.server");
+  const { getRequest } = await import("@tanstack/react-start/server");
+  return {
+    row,
+    fingerprint: await fingerprint(row.public_key),
+    sameNetwork: (await enrollmentSource(getRequest())) === row.enrollment_source,
+  };
+}
+
+/**
+ * What a person sees before approving a device: never its key. From the
+ * network the device asked from, its fingerprint to compare; from anywhere
+ * else nothing to copy, because the person must read it off the device itself.
+ */
 export const readJarvisEnrollment = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data }) => {
-    const service = await admin();
-    const { data: row, error } = await service
-      .from("jarvis_devices")
-      .select("id, name, platform, kind, public_key, enrollment_expires_at")
-      .eq("id", data.id)
-      .is("user_id", null)
-      .gt("enrollment_expires_at", new Date().toISOString())
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!row?.public_key) return null;
-    const { fingerprint } = await import("./device.server");
+    const pending = await pendingEnrollment(await admin(), data.id);
+    if (!pending) return null;
     return {
-      id: row.id,
-      name: row.name,
-      platform: row.platform,
-      kind: row.kind as "agent" | "extension",
-      fingerprint: await fingerprint(row.public_key),
+      id: pending.row.id,
+      name: pending.row.name,
+      platform: pending.row.platform,
+      kind: pending.row.kind as "agent" | "android",
+      fingerprint: pending.sameNetwork ? pending.fingerprint : null,
     };
   });
 
+const sameCode = (typed: string, fingerprint: string) =>
+  typed.replace(/[^0-9a-f]/gi, "").toUpperCase() === fingerprint.replace(/-/g, "");
+
 /**
- * The person's one click that makes a pending device theirs. The account is
+ * The person's confirmation that makes a pending device theirs. The account is
  * the caller's verified identity, never a parameter; a device already claimed
  * or expired cannot be claimed again.
+ *
+ * A LINK ALONE IS NOT ENOUGH. Anyone can enroll a computer of their own and
+ * send its approve link. So the proof is recent (a stolen, older session cannot
+ * attach a computer that outlives "sign out everywhere"), and a request from
+ * another network than the device's needs the fingerprint the device shows,
+ * typed by the person — a sender would have to talk them into typing it too.
  */
 export const approveJarvisDevice = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((i) => z.object({ id: uuid }).parse(i))
+  .middleware([requireAssurance(HIGH_RISK)])
+  .validator((i) => z.object({ id: uuid, code: z.string().max(40).optional() }).parse(i))
   .handler(async ({ data, context }) => {
     const service = await admin();
+    const pending = await pendingEnrollment(service, data.id);
+    if (!pending) return { ok: false as const, message: "That connection request has expired." };
+    if (!pending.sameNetwork && !sameCode(data.code ?? "", pending.fingerprint)) {
+      return {
+        ok: false as const,
+        message:
+          "That is not the fingerprint this device shows. Check it on the device and try again.",
+      };
+    }
     const { data: row, error } = await service
       .from("jarvis_devices")
-      .update({ user_id: context.userId, enrollment_expires_at: null })
+      // Approved: where it asked from is no longer anybody's business.
+      .update({ user_id: context.userId, enrollment_expires_at: null, enrollment_source: null })
       .eq("id", data.id)
       .is("user_id", null)
       .gt("enrollment_expires_at", new Date().toISOString())
@@ -766,18 +696,25 @@ export const approveJarvisDevice = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-/** Refuse a pending request that is not the person's. */
+/**
+ * Refuse a pending request that is not the person's. Deleted only from the
+ * network it asked from, so knowing a request's id is not a way to cancel
+ * somebody else's setup; elsewhere it is simply left to expire.
+ */
 export const declineJarvisDevice = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data }) => {
     const service = await admin();
-    await service.from("jarvis_devices").delete().eq("id", data.id).is("user_id", null);
+    const pending = await pendingEnrollment(service, data.id);
+    if (pending?.sameNetwork) {
+      await service.from("jarvis_devices").delete().eq("id", data.id).is("user_id", null);
+    }
     return { ok: true as const };
   });
 
 export const revokeJarvisDevice = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const service = await admin();
@@ -809,7 +746,7 @@ export const revokeJarvisDevice = createServerFn({ method: "POST" })
  * OCADE is closed. Device records are not browser-writable, so this is the door.
  */
 export const setJarvisBackground = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid, enabled: z.boolean() }).parse(i))
   .handler(async ({ data, context }) => {
     const service = await admin();
@@ -825,7 +762,7 @@ export const setJarvisBackground = createServerFn({ method: "POST" })
 
 /** STOP JARVIS: every unfinished task of this account, on every device, ends now. */
 export const stopAllJarvis = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .handler(async ({ context }) => {
     const at = new Date().toISOString();
     const { data: stopped, error } = await context.supabase
@@ -855,11 +792,59 @@ export const stopAllJarvis = createServerFn({ method: "POST" })
     };
   });
 
+/**
+ * A public documentation page, read by OCADE's server for the person's JARVIS.
+ * Read inside a task, it is recorded on the task: what JARVIS does next may
+ * follow from a page, so a script after it is shown to the person first.
+ */
+export const readJarvisDocs = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ url: z.string().max(2000), taskId: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    // Only for the caller's own running task, with JARVIS on: never a free fetching service.
+    if (!isAllowed(await permissionsOf(context.supabase, context.userId), "master")) {
+      return { ok: false as const, message: "OCADE JARVIS is turned off." };
+    }
+    const service = await admin();
+    const { data: task } = await service
+      .from("jarvis_tasks")
+      .select("id")
+      .eq("id", data.taskId)
+      .eq("user_id", context.userId)
+      .eq("status", "running")
+      .maybeSingle();
+    if (!task) return { ok: false as const, message: "Documentation is read for a running task." };
+    const { count } = await service
+      .from("jarvis_activity")
+      .select("id", { count: "exact", head: true })
+      .eq("task_id", task.id)
+      .in("action->>action", ["docs"]);
+    if ((count ?? 0) >= DOCS_PER_TASK) {
+      return { ok: false as const, message: "This task has read enough documentation already." };
+    }
+    const { readPublicPage } = await import("./docs.server");
+    const page = await readPublicPage(data.url);
+    // Recorded either way: what JARVIS does next may follow from a page it read.
+    await service.from("jarvis_activity").insert({
+      user_id: context.userId,
+      task_id: task.id,
+      summary: (page.ok ? `Read the documentation at ${page.host}` : page.message).slice(0, 300),
+      action: { action: "docs", url: data.url.slice(0, 2000) },
+      status: page.ok ? "done" : "failed",
+      result: page.ok ? { status: "done", title: page.title } : { status: "failed" },
+      completed_at: new Date().toISOString(),
+    });
+    return page;
+  });
+
+/** Documentation pages one task may read. */
+const DOCS_PER_TASK = 20;
+
 export const rememberJarvis = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ content: z.string().trim().min(1).max(500) }).parse(i))
   .handler(async ({ data, context }) => {
-    if (!isAllowed(await permissionsOf(context.supabase), "memory")) {
+    if (!isAllowed(await permissionsOf(context.supabase, context.userId), "memory")) {
       return { ok: false as const, message: "JARVIS memory is turned off." };
     }
     const { error } = await context.supabase
@@ -869,8 +854,112 @@ export const rememberJarvis = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/** A person can have this many reminders and scheduled tasks waiting at once. */
+const MAX_SCHEDULES = 50;
+
+/**
+ * A reminder, or work JARVIS starts later on a computer, as the person asked.
+ * Only from the person's own turn: the planning loop refuses it once a page's
+ * content has been read, so nothing a page says can set up future work.
+ */
+export const scheduleJarvis = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) =>
+    z
+      .object({
+        conversationId: uuid,
+        what: z.string().trim().min(1).max(500),
+        when: z.string().datetime({ offset: true }),
+        repeat: z.enum(["none", "daily", "weekdays", "weekly"]).default("none"),
+        timeZone: z.string().max(64).default("UTC"),
+        onComputer: z.boolean().default(false),
+        deviceId: uuid.optional(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }): Promise<{ ok: boolean; message: string }> => {
+    const at = Date.parse(data.when);
+    if (at < Date.now() - 60_000) return { ok: false, message: "That time has already passed." };
+    if (at > Date.now() + 366 * 86_400_000) {
+      return { ok: false, message: "Schedules can be at most a year ahead." };
+    }
+    const { data: conversation } = await context.supabase
+      .from("ocade_conversations")
+      .select("id")
+      .eq("id", data.conversationId)
+      .eq("surface", "jarvis")
+      .maybeSingle();
+    if (!conversation) return { ok: false, message: "That conversation does not exist." };
+    const service = await admin();
+    const { count } = await service
+      .from("jarvis_schedules")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", context.userId)
+      .eq("active", true);
+    if ((count ?? 0) >= MAX_SCHEDULES) {
+      return {
+        ok: false,
+        message: `You already have ${MAX_SCHEDULES} reminders and scheduled tasks. Remove one first.`,
+      };
+    }
+    let deviceId: string | null = null;
+    let computer = "";
+    if (data.onComputer) {
+      const { data: agents } = await service
+        .from("jarvis_devices")
+        .select("id, name")
+        .eq("user_id", context.userId)
+        .eq("kind", "agent")
+        .is("revoked_at", null)
+        .limit(20);
+      const chosen = data.deviceId
+        ? (agents ?? []).filter((d) => d.id === data.deviceId)
+        : (agents ?? []);
+      if (chosen.length !== 1) {
+        return {
+          ok: false,
+          message: chosen.length
+            ? "More than one computer could do it. Choose one in Devices, then ask again."
+            : "No computer with the OCADE Device Agent is connected. Connect one in Devices.",
+        };
+      }
+      deviceId = chosen[0]!.id;
+      computer = chosen[0]!.name;
+    }
+    const { safeZone } = await import("./schedule-time");
+    const { error } = await service.from("jarvis_schedules").insert({
+      user_id: context.userId,
+      conversation_id: data.conversationId,
+      device_id: deviceId,
+      what: data.what,
+      next_at: new Date(at).toISOString(),
+      repeat: data.repeat,
+      time_zone: safeZone(data.timeZone),
+    });
+    if (error) throw new Error(error.message);
+    return {
+      ok: true,
+      message: deviceId
+        ? `Scheduled on ${computer}. It starts only while Background Mode and Scheduled work are on for that computer.`
+        : "Reminder set.",
+    };
+  });
+
+export const removeJarvisSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ id: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("jarvis_schedules")
+      .delete()
+      .eq("id", data.id)
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { removed: true };
+  });
+
 export const forgetJarvis = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("jarvis_memories").delete().eq("id", data.id);
@@ -879,7 +968,7 @@ export const forgetJarvis = createServerFn({ method: "POST" })
   });
 
 export const readJarvisFrame = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ taskId: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase

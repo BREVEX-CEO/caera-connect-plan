@@ -138,6 +138,8 @@ export type IntelligenceRefusalCode =
   | "local_unavailable"
   | "provider_rate_limited"
   | "provider_failed"
+  /** The request itself was refused by the model's content rules: never retried. */
+  | "content_blocked"
   | "empty_response";
 
 export type IntelligenceEvent =
@@ -227,3 +229,6 @@ export function assertIntelligencePermit(request: IntelligenceRequest): void {
     throw new Error("An offline usage allocation cannot authorize online intelligence.");
   }
 }
+
+/** Names the person a server-to-server request is for. Meaningless without the boundary's server-key check. */
+export const SERVICE_USER_HEADER = "x-ocade-user";

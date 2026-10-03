@@ -8,7 +8,7 @@ import {
 } from "./offline-counter";
 import { allocateOfflineUsage, reconcileOfflineUsage } from "./offline-usage.functions";
 import { trustedOfflineTimeNow } from "./offline-lease";
-import { readTrustedClockHighWater } from "@/lib/time/trusted-clock";
+import { settleTrustedClock } from "@/lib/time/trusted-clock";
 
 /** Ask for more only when less than this much of the held block is left. */
 const TOP_UP_BELOW_HUNDREDTHS = 100;
@@ -55,7 +55,7 @@ export async function syncOfflineAllowance(): Promise<void> {
           () => true,
           () => false,
         ));
-      const time = trustedOfflineTimeNow(lease.issuedAt, readTrustedClockHighWater());
+      const time = trustedOfflineTimeNow(lease.issuedAt);
       if (settled && time.now >= Date.parse(lease.expiresAt)) {
         await forgetOfflineUsageLease(identity.accountId, identity.deviceId, lease.leaseId);
       }
@@ -64,7 +64,7 @@ export async function syncOfflineAllowance(): Promise<void> {
     /* --- hold a block only while one is actually needed -------------------- */
 
     const remaining = installed.reduce((total, entry) => {
-      const time = trustedOfflineTimeNow(entry.lease.payload.issuedAt, readTrustedClockHighWater());
+      const time = trustedOfflineTimeNow(entry.lease.payload.issuedAt);
       if (
         time.rollbackDetected ||
         time.now >= Date.parse(entry.lease.payload.expiresAt) ||
@@ -94,13 +94,15 @@ export async function syncOfflineAllowance(): Promise<void> {
       },
     });
     if (!allocation.ok) return;
+    // A clock set forward and back again left a mark ahead of the server: settled here.
+    settleTrustedClock(Date.parse(allocation.lease.payload.issuedAt));
 
     await installOfflineUsageLease({
       lease: allocation.lease,
       keys: allocation.verificationKeys,
       accountId: identity.accountId,
       deviceId: identity.deviceId,
-      time: trustedOfflineTimeNow(allocation.lease.payload.issuedAt, readTrustedClockHighWater()),
+      time: trustedOfflineTimeNow(allocation.lease.payload.issuedAt),
       // A block for the next window is stored but cannot be spent until it
       // begins. Verified now, usable later.
       allowFuture: true,

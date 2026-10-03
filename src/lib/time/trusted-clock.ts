@@ -69,6 +69,23 @@ export function observeNow(now: number, storage?: ReadWriteStore): number {
 }
 
 /**
+ * The server's time, from an answer it signed. A mark more than ten minutes ahead of
+ * it was left by a clock that had been set forward; kept, it would refuse every honest
+ * reading until real time caught up, so it is brought back to the server's time.
+ */
+export function settleTrustedClock(serverNow: number, storage?: ReadWriteStore): void {
+  const store = storage ?? safeLocalStorage();
+  if (!store || !Number.isFinite(serverNow)) return;
+  if (readTrustedClockHighWater(store) > serverNow + 600_000) {
+    try {
+      store.setItem(HIGH_WATER_KEY, String(serverNow));
+    } catch {
+      /* Nothing to settle with. */
+    }
+  }
+}
+
+/**
  * Whether a monotonic bound can be enforced on this device at all.
  *
  * Anything that must not be replayable — an offline allowance lease above all

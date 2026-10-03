@@ -208,7 +208,6 @@ function VerifyPage() {
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
           className="h-12 rounded-md border border-border bg-transparent text-center font-mono text-xl tracking-[0.4em] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring"
           placeholder="000000"
-          maxLength={6}
         />
         <button
           type="submit"

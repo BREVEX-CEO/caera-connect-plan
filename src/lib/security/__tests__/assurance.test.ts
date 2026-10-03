@@ -216,3 +216,67 @@ describe("reading the facts out of a token", () => {
     }
   });
 });
+
+describe("every signed-in server function asks the database about the second factor", () => {
+  const client = (answer: { data: unknown; error: unknown }) => {
+    const calls: string[] = [];
+    return {
+      calls,
+      rpc: async (fn: string) => {
+        calls.push(fn);
+        return answer as { data: unknown; error: null };
+      },
+    };
+  };
+
+  it("asks the database even for an answered (aal2) session, because it may have been ended", async () => {
+    const { sessionStanding } = await import("../session-middleware");
+    const live = client({ data: true, error: null });
+    expect(await sessionStanding(live, { aal: "aal2", sub: "u1", session_id: "s1" })).toBe("ok");
+    expect(live.calls).toHaveLength(1);
+    const ended = client({ data: null, error: { code: "PT401", hint: "session_ended" } });
+    expect(await sessionStanding(ended, { aal: "aal2", sub: "u5", session_id: "s5" })).toBe(
+      "ended",
+    );
+  });
+
+  it("refuses an enrolled account's password-only session, as the database says", async () => {
+    const { sessionStanding } = await import("../session-middleware");
+    const refused = client({ data: null, error: { code: "42501", hint: "factor_required" } });
+    expect(await sessionStanding(refused, { aal: "aal1", sub: "u2", session_id: "s2" })).toBe(
+      "factor_required",
+    );
+    const plain = client({ data: true, error: null });
+    expect(await sessionStanding(plain, { aal: "aal1", sub: "u3", session_id: "s3" })).toBe("ok");
+  });
+
+  it("fails closed when the database cannot answer", async () => {
+    const { sessionStanding } = await import("../session-middleware");
+    const down = client({ data: null, error: { code: "08006", message: "connection failure" } });
+    await expect(
+      sessionStanding(down, { aal: "aal1", sub: "u4", session_id: "s4" }),
+    ).rejects.toThrow(/could not check/);
+  });
+
+  it("does not carry an aal1 answer over to the same session's aal2 token", async () => {
+    const { sessionStanding } = await import("../session-middleware");
+    // Issued in the same second, so only the assurance tells them apart.
+    const before = { aal: "aal1", sub: "u7", session_id: "s7", exp: 9 };
+    const after = { ...before, aal: "aal2" };
+    const refused = client({ data: null, error: { code: "42501", hint: "factor_required" } });
+    expect(await sessionStanding(refused, before, 1_000)).toBe("factor_required");
+    const answered = client({ data: true, error: null });
+    expect(await sessionStanding(answered, after, 1_500)).toBe("ok");
+  });
+
+  it("remembers an answer for seconds, not minutes: signed out means signed out", async () => {
+    const { sessionStanding } = await import("../session-middleware");
+    const claims = { aal: "aal2", sub: "u6", session_id: "s6", exp: 1 };
+    const live = client({ data: true, error: null });
+    expect(await sessionStanding(live, claims, 1_000)).toBe("ok");
+    expect(await sessionStanding(live, claims, 4_000)).toBe("ok");
+    expect(live.calls).toHaveLength(1);
+    const ended = client({ data: null, error: { code: "PT401", hint: "session_ended" } });
+    expect(await sessionStanding(ended, claims, 7_000)).toBe("ended");
+  });
+});

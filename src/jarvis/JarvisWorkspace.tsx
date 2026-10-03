@@ -32,17 +32,17 @@ import { cn, typedBeforeHydration } from "@/lib/utils";
 import { Orb } from "./Orb";
 import { buildGraph, type GraphNode } from "./graph";
 import { runJarvisTurn, Stopped } from "./agent";
+import { LiveControl, statusReply, workIntent } from "./live-control";
 import { liveDeps, ModelRefused, Unavailable } from "./live-deps";
 import { isAllowed } from "./permissions";
 import { FINISHED } from "./protocol";
 import { readPreferences, writePreferences, type JarvisPreferences } from "./preferences";
+import { stopEverywhere } from "./stop-everywhere";
 import { useJarvisVoice, voiceCommand } from "./use-voice";
 import {
   createJarvisConversation,
   jarvisConversationExists,
-  readJarvisAction,
   readJarvisState,
-  stopAllJarvis,
   updateJarvisTask,
   type JarvisTaskRow,
 } from "./jarvis.functions";
@@ -75,11 +75,17 @@ export function JarvisWorkspace({
   conversationId,
   connectId,
   startVoice = false,
+  ask,
+  from,
 }: {
   conversationId: string | null;
   connectId: string | null;
   /** The person said "Hey OCADE" to their computer: voice starts at once. */
   startVoice?: boolean;
+  /** Words a Shortcut opened JARVIS with: they wait in the box for Send. */
+  ask?: string;
+  /** The phone the OCADE app opened this page from: work runs there unless a PC is named. */
+  from?: string;
 }) {
   const { user, loading } = useSession();
   const signedIn = Boolean(user);
@@ -114,10 +120,12 @@ export function JarvisWorkspace({
         opened.current = true;
       }),
     enabled: signedIn,
-    // Quick while a task runs or a computer that just connected has not yet
-    // said what it can do; otherwise a quiet refresh.
+    // Quick while any task is unfinished (not only one this tab runs: a phone
+    // watching Remote PC work sees its steps as they happen) or a computer that
+    // just connected has not yet said what it can do; otherwise a quiet refresh.
     refetchInterval: (query) =>
       taskLive ||
+      (query.state.data?.tasks ?? []).some((task) => !FINISHED.includes(task.status)) ||
       (query.state.data?.devices ?? []).some(
         (d) => d.online && Object.keys(d.capabilities).length === 0,
       )
@@ -141,6 +149,19 @@ export function JarvisWorkspace({
     const typed = typedBeforeHydration("jarvis-composer");
     if (typed) setDraft((current) => current || typed);
   }, []);
+  // Taken once and dropped from the address, so a reload or Back does not type it again.
+  const asked = useRef(false);
+  useEffect(() => {
+    if (!ask?.trim() || asked.current) return;
+    asked.current = true;
+    // One line, as a person would read it in the box: nothing hidden below the fold.
+    setDraft((current) => current || ask.replace(/\s+/g, " ").trim().slice(0, 1000));
+    void navigate({
+      to: "/ocade-jarvis",
+      search: (previous) => ({ ...previous, ask: undefined }),
+      replace: true,
+    });
+  }, [ask, navigate]);
   const [running, setRunning] = useState(false);
   // Work was asked for but no computer could take it: a way forward, not just prose.
   const [noDevice, setNoDevice] = useState<string | null>(null);
@@ -156,6 +177,9 @@ export function JarvisWorkspace({
   const busyStrikes = useRef(0);
   const resumeAfterBusy = useRef<string | null>(null);
   const abort = useRef<AbortController | null>(null);
+  // The running turn's mailbox and pause switch: the person talks while JARVIS works.
+  const live = useRef<LiveControl | null>(null);
+  const [paused, setPaused] = useState(false);
   const [confirmAsk, setConfirmAsk] = useState<{
     summary: string;
     resolve: (ok: boolean) => void;
@@ -172,7 +196,19 @@ export function JarvisWorkspace({
   const [controlsHidden, setControlsHidden] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   // The computer the person chose for new tasks (Remote PC), when several are online.
-  const [target, setTarget] = useState<string | null>(null);
+  const [chosenTarget, setTarget] = useState<string | null>(null);
+  // A chosen computer that was removed, or belongs to the account signed in
+  // before, is no choice at all: every task would start against it and fail.
+  const target =
+    chosenTarget && jarvis?.devices.some((device) => device.id === chosenTarget)
+      ? chosenTarget
+      : null;
+  // The phone this tab is on, as the OCADE app said when it opened it. A link carrying it
+  // opened on a computer is not the phone, so it is believed only on an Android phone.
+  const [here, setHere] = useState<string | null>(null);
+  useEffect(() => {
+    setHere(from && /Android/i.test(navigator.userAgent) ? from : null);
+  }, [from]);
 
   // The conversation's open task: the one this tab is running, else the newest unfinished one.
   const conversationTask =
@@ -285,7 +321,39 @@ export function JarvisWorkspace({
     task: JarvisTaskRow | null = conversationTask,
   ) => {
     const text = raw.trim();
-    if (!text || running || busyRef.current || transcript !== "ready" || spent) return;
+    if (!text) return;
+    if (running && live.current && !retryOf) {
+      setDraft("");
+      void interject(text, fromVoice);
+      return;
+    }
+    // The open task is being driven somewhere else (the computer itself with
+    // Background Mode, or another tab). A question about it is answered from its
+    // real state, Stop stops it and Wait hands it to the person: asking never
+    // takes the work over. Anything else is a new instruction, and does.
+    // (`task === conversationTask`: not when the caller just resumed it here.)
+    if (!running && !retryOf && conversationId && task === conversationTask) {
+      const elsewhere = task?.status === "running" ? task : null;
+      const intent = elsewhere ? workIntent(text) : "tell";
+      if (elsewhere && intent !== "tell") {
+        setDraft("");
+        if (intent === "stop") return void stop();
+        if (intent === "pause") void takeOverNow();
+        return void record(
+          conversationId,
+          text,
+          intent === "pause"
+            ? `Pausing “${elsewhere.title}”: only the step in progress finishes. Resume when you're ready.`
+            : statusReply(elsewhere, false, lastActivityOf(elsewhere)),
+          fromVoice,
+        );
+      }
+    }
+    if (running || busyRef.current || transcript !== "ready" || spent) {
+      // Said while JARVIS cannot answer yet: kept in the composer, never lost.
+      if (fromVoice && !running) setDraft(text);
+      return;
+    }
     if (!signedIn) {
       void navigate({ to: "/auth", search: { next: "/ocade-jarvis" } });
       return;
@@ -332,6 +400,9 @@ export function JarvisWorkspace({
 
     const controller = new AbortController();
     abort.current = controller;
+    const liveControl = new LiveControl();
+    live.current = liveControl;
+    setPaused(false);
     setNoDevice(null);
     setRunning(true);
     setLiveAnswer(null);
@@ -346,6 +417,9 @@ export function JarvisWorkspace({
           memoryEnabled: isAllowed(permissions, "memory"),
           task,
           deviceId: target,
+          hereDeviceId: here,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          devices: jarvis?.devices,
         },
         {
           signal: controller.signal,
@@ -353,6 +427,7 @@ export function JarvisWorkspace({
           onTask: (task) => mine() && setActiveTask(task),
           onActivity: refresh,
           onNoDevice: (message) => mine() && setNoDevice(message),
+          live: liveControl,
           // A question from a conversation no longer on screen is declined.
           confirm: (summary) =>
             mine()
@@ -422,9 +497,82 @@ export function JarvisWorkspace({
         setTakeover(null);
       }
       if (abort.current === controller) abort.current = null;
+      // Said in the last moment of the turn: answered as the next turn, not lost.
+      const unheard = liveControl.drain();
+      if (live.current === liveControl) {
+        live.current = null;
+        setPaused(false);
+      }
       refresh();
+      if (unheard.length && mine() && !controller.signal.aborted) {
+        window.setTimeout(() => void sendRef.current(unheard.join("\n"), fromVoice), 0);
+      }
     }
   };
+
+  /** Something said while JARVIS works: answered now, acted on at the next safe point. */
+  const interject = async (text: string, fromVoice: boolean) => {
+    const control = live.current;
+    const id = conversationId;
+    if (!control || !id) return;
+    const intent = workIntent(text);
+    if (intent === "stop") {
+      void stop();
+      return;
+    }
+    const task = activeTaskRef.current;
+    let reply: string;
+    if (intent === "pause") {
+      control.pause();
+      setPaused(true);
+      reply =
+        "Paused. I'll finish only the step in progress and wait. Say continue when you're ready.";
+    } else if (intent === "continue") {
+      if (control.paused) {
+        control.resume();
+        setPaused(false);
+        reply = "Continuing.";
+      } else if (takeover) {
+        void resume();
+        reply = "Taking it back from here.";
+      } else {
+        reply = statusReply(task, false, lastActivityOf(task));
+      }
+    } else if (intent === "status") {
+      reply = statusReply(task, control.paused, lastActivityOf(task));
+    } else {
+      control.tell(text);
+      reply = control.paused
+        ? "Noted. I'll use that when you say continue."
+        : "Got it. I'll adjust at the next step.";
+    }
+    await record(id, text, reply, fromVoice);
+  };
+
+  /** What the person said and OCADE's own answer to it (no model): shown, kept and spoken. */
+  const record = async (id: string, text: string, reply: string, fromVoice: boolean) => {
+    const owner = ownerRef.current;
+    const add = (role: Turn["role"], content: string, saved: string) =>
+      ownerRef.current === owner && setTurns((list) => [...list, { id: saved, role, content }]);
+    try {
+      const asked = await persistChatMessage({ conversationId: id, role: "user", content: text });
+      add("user", text, asked.record.id);
+      const answered = await persistChatMessage({
+        conversationId: id,
+        role: "assistant",
+        content: reply,
+      });
+      add("assistant", reply, answered.record.id);
+    } catch {
+      // The reply still reaches the person; only the record failed.
+      add("user", text, crypto.randomUUID());
+      add("assistant", reply, crypto.randomUUID());
+    }
+    if (prefs.speak && (fromVoice || voice.state !== "off")) voice.speak(reply);
+  };
+
+  const lastActivityOf = (task: JarvisTaskRow | null) =>
+    task ? (jarvis?.activity.find((a) => a.task_id === task.id)?.summary ?? null) : null;
   sendRef.current = send;
   const activeTaskRef = useRef<JarvisTaskRow | null>(null);
   activeTaskRef.current = activeTask;
@@ -438,7 +586,9 @@ export function JarvisWorkspace({
         setBusyUntil(null);
         const id = resumeAfterBusy.current;
         resumeAfterBusy.current = null;
-        if (id && conversationTask?.id === id && conversationTask.status === "waiting") {
+        // Not if it is already being driven (another tab, the computer) or is done.
+        const status = conversationTask?.status;
+        if (id && conversationTask?.id === id && status !== "running" && status !== "completed") {
           void resume();
         }
       },
@@ -449,16 +599,41 @@ export function JarvisWorkspace({
 
   const stop = async () => {
     abort.current?.abort();
+    live.current?.resume();
+    setPaused(false);
     confirmAsk?.resolve(false);
     takeover?.resolve("stop");
     setConfirmAsk(null);
     setTakeover(null);
     const task = conversationTask;
     if (task && !FINISHED.includes(task.status)) {
-      setActiveTask(await updateJarvisTask({ data: { id: task.id, status: "stopped" } }));
+      try {
+        setActiveTask(await updateJarvisTask({ data: { id: task.id, status: "stopped" } }));
+      } catch {
+        // Never "Stopped." while the computer may still be working: say so, keep STOP in reach.
+        toast.error("JARVIS could not stop that task on your computer.", {
+          description: "Check your connection and press STOP again.",
+        });
+      }
     }
     refresh();
   };
+
+  // Resumed somewhere else (the computer's tray, another tab): the waiting turn continues.
+  const sawTakenOver = useRef(false);
+  useEffect(() => {
+    if (!takeover) {
+      sawTakenOver.current = false;
+      return;
+    }
+    const status = conversationTask?.status;
+    if (status === "taken_over") sawTakenOver.current = true;
+    else if (status === "running" && sawTakenOver.current) {
+      sawTakenOver.current = false;
+      takeover.resolve("resume");
+      setTakeover(null);
+    }
+  }, [takeover, conversationTask?.status]);
 
   const takeOverNow = async () => {
     const task = conversationTask;
@@ -478,6 +653,12 @@ export function JarvisWorkspace({
     }
     const task = conversationTask;
     if (!task) return;
+    if (busyRef.current) {
+      // Marked Working now, nobody would drive it: it continues by itself when the wait ends.
+      resumeAfterBusy.current = task.id;
+      toast("JARVIS will continue this task as soon as it is available again.");
+      return;
+    }
     const resumed = await updateJarvisTask({
       data: { id: task.id, status: "running", blocker: null },
     });
@@ -489,10 +670,14 @@ export function JarvisWorkspace({
   commandRef.current = (text) => {
     const command = voiceCommand(text);
     if (command === "stop") void stop();
-    else if (command === "pause") voice.pause();
-    else if (command === "end") voice.end();
+    else if (command === "pause") {
+      // While JARVIS works, "pause" pauses the work; otherwise it pauses listening.
+      if (live.current) void interject(text, true);
+      else voice.pause();
+    } else if (command === "end") voice.end();
     else if (command === "continue") {
-      if (takeover || conversationTask?.status === "taken_over") void resume();
+      if (live.current?.paused) void interject(text, true);
+      else if (takeover || conversationTask?.status === "taken_over") void resume();
       else return false;
     }
     return command !== null;
@@ -723,6 +908,8 @@ export function JarvisWorkspace({
                 {usage.resetsInMs === null ? "" : ` · resets ${describeReset(usage.resetsInMs)}`}
               </span>
             </p>
+          ) : jarvis?.unlimited ? (
+            <p className="text-xs text-muted-foreground">Unlimited JARVIS use</p>
           ) : null}
           <button
             type="button"
@@ -807,9 +994,20 @@ export function JarvisWorkspace({
                   {liveAnswer}
                 </p>
               ) : null}
-              {running ? (
+              {running && paused ? (
+                <div role="status" className="flex items-center gap-2 self-start text-xs">
+                  <span className="text-muted-foreground">Paused</span>
+                  <button
+                    type="button"
+                    onClick={() => void interject("continue", false)}
+                    className="rounded-full bg-foreground px-3 py-1 text-background"
+                  >
+                    Continue
+                  </button>
+                </div>
+              ) : running ? (
                 <p role="status" className="self-start text-xs text-muted-foreground">
-                  JARVIS is working
+                  JARVIS is working. You can keep talking.
                 </p>
               ) : retryTurn ? (
                 <button
@@ -953,11 +1151,13 @@ export function JarvisWorkspace({
                       ? jarvis?.usage?.resetsInMs
                         ? `JARVIS uses reset ${describeReset(jarvis.usage.resetsInMs)}`
                         : "No JARVIS uses left right now"
-                      : busyUntil
-                        ? "OCADE JARVIS is busy. It will be back shortly."
-                        : jarvisOn
-                          ? "Ask or tell JARVIS anything"
-                          : "JARVIS is turned off in Permissions"
+                      : running
+                        ? "Talk to JARVIS while it works"
+                        : busyUntil
+                          ? "OCADE JARVIS is busy. It will be back shortly."
+                          : jarvisOn
+                            ? "Ask or tell JARVIS anything"
+                            : "JARVIS is turned off in Permissions"
                 }
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
@@ -989,7 +1189,7 @@ export function JarvisWorkspace({
                   <Mic className="h-4 w-4" aria-hidden />
                 </button>
               ) : null}
-              {running ? (
+              {running && !draft.trim() ? (
                 <button
                   type="button"
                   aria-label="Stop"
@@ -997,6 +1197,14 @@ export function JarvisWorkspace({
                   className="grid h-10 w-10 place-items-center rounded-full bg-foreground text-background"
                 >
                   <Square className="h-4 w-4" aria-hidden />
+                </button>
+              ) : running ? (
+                <button
+                  type="submit"
+                  aria-label="Send to JARVIS while it works"
+                  className="grid h-10 w-10 place-items-center rounded-full bg-foreground text-background"
+                >
+                  <ArrowUp className="h-4 w-4" aria-hidden />
                 </button>
               ) : (
                 <button
@@ -1029,38 +1237,10 @@ export function JarvisWorkspace({
           type="button"
           onClick={() => {
             abort.current?.abort();
-            void stopAllJarvis()
-              .then(async ({ stopped, running }) => {
-                setActiveTask(null);
-                refresh();
-                if (!running.length) {
-                  toast.success(stopped ? "JARVIS stopped." : "Nothing was running.");
-                  return;
-                }
-                // A step already running on a computer ends there; say so only
-                // once that computer confirms it.
-                const id = toast.loading("Stopping…");
-                const deadline = Date.now() + 8000;
-                while (Date.now() < deadline) {
-                  await new Promise((r) => setTimeout(r, 1000));
-                  const acks = await Promise.all(
-                    running.map((a) => readJarvisAction({ data: { id: a } }).catch(() => null)),
-                  );
-                  if (
-                    acks.every(
-                      (a) => (a?.result as { status?: string } | null)?.status === "stopped",
-                    )
-                  ) {
-                    toast.success("JARVIS stopped.", { id });
-                    return;
-                  }
-                }
-                toast.warning(
-                  "Your computer has not confirmed the stop yet. Check that it is online.",
-                  { id },
-                );
-              })
-              .catch(() => toast.error("JARVIS could not be stopped. Try again."));
+            void stopEverywhere(() => {
+              setActiveTask(null);
+              refresh();
+            });
           }}
           className="fixed bottom-24 left-1/2 z-40 grid h-14 w-14 -translate-x-1/2 place-items-center rounded-full bg-foreground text-[10px] font-semibold tracking-wide text-background shadow-lg ring-4 ring-foreground/20 md:bottom-6 md:left-auto md:right-16 md:translate-x-0"
         >

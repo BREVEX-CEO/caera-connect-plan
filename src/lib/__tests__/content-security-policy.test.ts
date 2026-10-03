@@ -95,6 +95,10 @@ describe("the rest of the policy still holds", () => {
     expect(directive(name)).toBe(`${name} ${value}`);
   });
 
+  it("loads no image from another host, so an answer's image cannot carry data out", () => {
+    expect(directive("img-src")).toBe("img-src 'self' data: blob:");
+  });
+
   it("never allows arbitrary remote script", () => {
     const script = directive("script-src");
     expect(script).not.toMatch(/(^|\s)https:(\s|$)/);

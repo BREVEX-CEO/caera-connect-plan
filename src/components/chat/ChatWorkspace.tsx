@@ -203,6 +203,8 @@ export function ChatWorkspace() {
     let live = true;
     void import("@/lib/commercial/offline-allowance")
       .then(({ canAnswerWithoutNetwork }) => canAnswerWithoutNetwork())
+      // The check's own code never reached this device: it cannot answer offline.
+      .catch(() => false)
       .then((capable) => live && setOfflineCapable(capable));
     return () => {
       live = false;

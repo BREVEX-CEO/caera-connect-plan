@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSession } from "@/lib/security/session-middleware";
 import { imageMediaType, isMediaType } from "@/lib/media-type";
 
 /**
@@ -55,7 +55,7 @@ const MAX_BASE64_LENGTH = Math.ceil(LIBRARY_MAX_BYTES / 3) * 4 + 4;
 
 /** The whole library for this account, newest first. */
 export const listLibraryItems = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .handler(async ({ context }): Promise<LibraryItemRow[]> => {
     const { data, error } = await context.supabase
       .from("ocade_library_items")
@@ -80,7 +80,7 @@ export const listLibraryItems = createServerFn({ method: "GET" })
  * bucket does.
  */
 export const addLibraryItem = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator(
     z.object({
       name: z.string().trim().min(1).max(300),
@@ -175,7 +175,7 @@ export const addLibraryItem = createServerFn({ method: "POST" })
  * a public file with an unguessable name.
  */
 export const signLibraryItem = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator(z.object({ id: uuid }).parse)
   .handler(async ({ data, context }): Promise<{ url: string }> => {
     const { data: row, error } = await context.supabase
@@ -202,7 +202,7 @@ export const signLibraryItem = createServerFn({ method: "POST" })
  * removal stays pending and is retried by the owner's next deletion.
  */
 export const deleteLibraryItem = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator(z.object({ id: uuid }).parse)
   .handler(async ({ data, context }) => {
     const { error, count } = await context.supabase
@@ -217,7 +217,7 @@ export const deleteLibraryItem = createServerFn({ method: "POST" })
 
 /** Everything, which is what Data Controls offers. */
 export const deleteAllLibraryItems = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .handler(async ({ context }): Promise<{ removed: number }> => {
     const { data: removed, error } = await context.supabase.rpc("ocade_delete_all_library_items");
     if (error) throw new Error(`Your library could not be emptied: ${error.message}`);

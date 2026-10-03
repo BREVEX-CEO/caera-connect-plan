@@ -88,23 +88,32 @@ describe("the working runtime", () => {
     expect(names).toContain("ocade_device.py");
   });
 
-  it("still preserves the original capability modules", () => {
+  /*
+   * The donor's capabilities live on where the agent runs them
+   * (docs/DONOR_CAPABILITY_LEDGER.md); the originals stay in the snapshot above.
+   */
+  it("carries the adapted capabilities in the modules the agent runs", () => {
     for (const kept of [
       "actions/browser_control.py",
+      "ocade_computer.py",
+      "ocade_settings.py",
+      "ocade_documents.py",
+      "ocade_sheets.py",
+      "ocade_accessibility.py",
+      "ocade_existing_browser.py",
+      "ocade_wake.py",
+    ]) {
+      expect(statSync(join("jarvis-runtime", kept)).isFile()).toBe(true);
+    }
+    for (const original of [
       "actions/computer_control.py",
       "actions/file_controller.py",
       "actions/screen_processor.py",
       "actions/dev_agent.py",
-      "core/confirm.py",
       "core/undo.py",
-      "core/stt.py",
-      "core/tts.py",
       "core/wake_word.py",
-      "core/plugin_loader.py",
-      "dashboard/server.py",
-      "memory/memory_manager.py",
     ]) {
-      expect(statSync(join("jarvis-runtime", kept)).isFile()).toBe(true);
+      expect(statSync(join(SNAPSHOT, "ocade jarvis 25-09", original)).isFile()).toBe(true);
     }
   });
 });

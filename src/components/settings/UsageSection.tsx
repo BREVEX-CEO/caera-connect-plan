@@ -51,6 +51,16 @@ export function UsageSection() {
             : `${usage.data.tier === "pro" ? "Pro" : "Max"}. Requests are shared across every device you sign in on.`
         }
       ></Row>
+      {usage.data.unlimited ? (
+        <Row
+          label="Unlimited"
+          description={
+            usage.data.unlimited.endsAt
+              ? `No limit until ${new Date(usage.data.unlimited.endsAt).toLocaleString()}. Your use is still counted.`
+              : "No limit on Chat or JARVIS. Your use is still counted."
+          }
+        />
+      ) : null}
       {session ? <WindowRow label="This session" window={session} /> : null}
       {week ? <WindowRow label="This week" window={week} /> : null}
       <OfflineRow held={session?.offlineAllocated ?? 0} />

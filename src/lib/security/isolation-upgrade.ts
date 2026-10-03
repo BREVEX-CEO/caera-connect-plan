@@ -96,6 +96,13 @@ function upgradeIsolation(deps: UpgradeDeps): IsolationOutcome {
 /** The browser wiring. Never throws; a refusal simply means single-threaded. */
 export function upgradeIsolationInBrowser(): IsolationOutcome {
   if (typeof window === "undefined" || typeof document === "undefined") return "no_document";
+  /*
+   * A BROWSER THAT CANNOT BE ISOLATED THIS WAY IS NOT RELOADED TO FIND OUT.
+   * Isolation here rests on COEP `credentialless`, which ships with the
+   * credentialless iframe; Safari has neither, so its one reload per tab bought
+   * nothing and cut short whatever the page was already fetching.
+   */
+  if (!("credentialless" in HTMLIFrameElement.prototype)) return "unavailable";
 
   return upgradeIsolation({
     pathname: window.location.pathname,
@@ -127,9 +134,15 @@ export function upgradeIsolationInBrowser(): IsolationOutcome {
         /* Nothing to clear. */
       }
     },
-    // `replace`, not `assign`: the un-isolated version of this same URL should
-    // not sit in history, where Back would return the user to a page that
-    // immediately tries to leave again.
-    navigate: (to) => window.location.replace(to),
+    /*
+     * THE SAME ADDRESS, RELOADED — not the path alone. Navigating to the path
+     * dropped the query and the fragment: on a browser that cannot isolate
+     * (Safari: no `credentialless`) the first visit in a tab to
+     * /ocade-jarvis?connect=… or ?c=… or ?ask=… came back as bare
+     * /ocade-jarvis, so approving a computer from its link did nothing there.
+     * A reload adds no history entry, so Back never returns to a page that
+     * immediately tries to leave again.
+     */
+    navigate: () => window.location.reload(),
   });
 }

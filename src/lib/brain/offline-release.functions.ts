@@ -11,7 +11,7 @@
  * is a link generator for anybody who finds it.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSession } from "@/lib/security/session-middleware";
 import { mintDeliveryPath } from "./delivery-signature";
 import { offlineRelease, type OfflineRelease } from "./offline-release";
 
@@ -19,7 +19,7 @@ export type OfflineReleaseView =
   { available: false } | (OfflineRelease & { available: true; url: string });
 
 export const readOfflineRelease = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .handler(async (): Promise<OfflineReleaseView> => {
     const release = offlineRelease();
     // No release published, or no server secret to sign with: either way this

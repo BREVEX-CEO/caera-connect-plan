@@ -33,7 +33,6 @@
 import { toast } from "sonner";
 import { deviceRegistrationProblem, getOfflineCurrentDeviceIdentity } from "./device-identity";
 import { buildHealthRecord } from "@/lib/telemetry/operation-health";
-import { readTrustedClockHighWater } from "@/lib/time/trusted-clock";
 import {
   acquireGenerationPermit,
   finalizeGenerationPermit,
@@ -253,7 +252,7 @@ async function beginOfflineBilledRequest(input: {
           idempotencyKey: input.idempotencyKey,
           surface: input.surface,
           keys: entry.verificationKeys,
-          time: trustedOfflineTimeNow(entry.lease.payload.issuedAt, readTrustedClockHighWater()),
+          time: trustedOfflineTimeNow(entry.lease.payload.issuedAt),
         });
         selected = { reservation, entry };
         break;
@@ -278,7 +277,7 @@ async function beginOfflineBilledRequest(input: {
           accountId: identity.accountId,
           deviceId: identity.deviceId,
           keys: entry.verificationKeys,
-          time: trustedOfflineTimeNow(entry.lease.payload.issuedAt, readTrustedClockHighWater()),
+          time: trustedOfflineTimeNow(entry.lease.payload.issuedAt),
           costHundredths: ONE_USE * 100,
         });
       },
@@ -288,7 +287,7 @@ async function beginOfflineBilledRequest(input: {
           accountId: identity.accountId,
           deviceId: identity.deviceId,
           keys: entry.verificationKeys,
-          time: trustedOfflineTimeNow(entry.lease.payload.issuedAt, readTrustedClockHighWater()),
+          time: trustedOfflineTimeNow(entry.lease.payload.issuedAt),
         });
       },
     });

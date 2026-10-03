@@ -707,7 +707,10 @@ export function useChat(): ChatState & ChatActions {
               content: answer,
             });
         if (!mine()) return true;
+        // In the same render as the saved reply: the streamed copy stayed on
+        // screen beside it until usage had settled, so the answer showed twice.
         setMessages((current) => [...current, reply.record]);
+        setStreaming("");
         if (reply.stored === "unsynced") {
           setProblem(
             "This answer is kept on this device because your account could not be reached. It is saved when the connection returns.",

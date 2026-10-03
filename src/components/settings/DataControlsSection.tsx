@@ -4,6 +4,7 @@ import { useInstallation } from "@/lib/brain/use-installation";
 import { deleteAllLibraryItems, listLibraryItems } from "@/lib/library/library.functions";
 import { deleteAllConversations, listConversations } from "@/lib/ocade.functions";
 import { exportMyAccountData } from "@/lib/account-data.functions";
+import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { saveFile } from "@/lib/utils";
 import {
   deviceRegistrationProblem,
@@ -99,9 +100,11 @@ function ConversationsSection() {
  */
 function ExportSection() {
   const [problem, setProblem] = useState<string | null>(null);
+  const { withProof, dialog } = useConfirmIdentity();
   const download = useMutation({
     mutationFn: async () => {
-      const data = await exportMyAccountData();
+      setProblem(null);
+      const data = await withProof(() => exportMyAccountData());
       saveFile(
         `ocade-account-export-${new Date().toISOString().slice(0, 10)}.json`,
         new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }),
@@ -118,6 +121,7 @@ function ExportSection() {
         "A file containing everything on this account. It may ask you to confirm who you are first."
       }
     >
+      {dialog}
       <Action
         label={download.isPending ? "Preparing…" : "Export"}
         busy={download.isPending}

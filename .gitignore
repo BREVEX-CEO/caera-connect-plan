@@ -31,3 +31,7 @@ supabase/.temp/
 
 # MCP browser snapshots
 .playwright-mcp/
+
+# Android build output (python android/build.py)
+android/build/
+wrangler.e2e.json

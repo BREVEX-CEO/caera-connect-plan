@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 /*
@@ -21,7 +21,7 @@ import {
   saveThrottle,
   secondsUntilAllowed,
 } from "@/lib/auth/throttle";
-import { DEFAULT_NEXT, safeNext } from "@/lib/auth/safe-next";
+import { DEFAULT_NEXT, rememberNext, safeNext } from "@/lib/auth/safe-next";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
 import {
   fetchAuthProviderAvailability,
@@ -112,6 +112,28 @@ function AuthPage() {
   const [hint, setHint] = useState<string | null>(inboundFriendly?.hint ?? null);
   const [notice, setNotice] = useState<string | null>(search.message ?? null);
 
+  /*
+   * ALREADY SIGNED IN, ON A PAGE THE SERVER DREW. `beforeLoad` forwards a
+   * signed-in person on a navigation inside the app, but a page loaded fresh is
+   * rendered on the server — which has no session — and the browser does not
+   * run `beforeLoad` again when it takes over. So somebody who opened /auth
+   * with a session (a bookmark, or on the way back from the console) was shown
+   * the sign-in form, and signing in again made a second session.
+   */
+  useEffect(() => {
+    if (!configured) return;
+    let current = true;
+    void loadSupabaseClient()
+      .then((supabase) => supabase.auth.getSession())
+      .then(({ data }) => {
+        if (current && data.session) void navigate({ to: nextPath, replace: true });
+      })
+      .catch(() => {});
+    return () => {
+      current = false;
+    };
+  }, [configured, navigate, nextPath]);
+
   async function continueWithGoogle() {
     if (!availability.google) {
       setError("Google sign-in is not available yet.");
@@ -128,13 +150,15 @@ function AuthPage() {
        * meant a second thing in the product that knew how to create a session.
        */
       const supabase = await loadSupabaseClient();
+      /*
+       * THE DESTINATION RIDES IN THE TAB, NOT IN THE URL. Supabase returns only to a
+       * callback on its allow list, matched exactly; `?next=` made it no match, so the
+       * person was sent to the Site URL with an unused code and was not signed in.
+       */
+      rememberNext(nextPath);
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback${
-            nextPath !== DEFAULT_NEXT ? `?next=${encodeURIComponent(nextPath)}` : ""
-          }`,
-        },
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
       if (oauthError) {
         const friendly = describeOAuthError("google", oauthError.message);
@@ -223,7 +247,7 @@ function AuthPage() {
         saveThrottle("password_signin", address, recordFailure(state, Date.now()));
         // One sentence whether the account exists or not.
         setError("That email and password did not match.");
-        setHint("Forgot it? Sign in with a code, then set a new password under Account.");
+        setHint("Forgot it? Choose “Use an email code instead” below, or reset your password.");
         setBusy(false);
         return;
       }

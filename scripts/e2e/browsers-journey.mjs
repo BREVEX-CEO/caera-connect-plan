@@ -14,7 +14,7 @@ const arg = (name, fallback) => {
 };
 const BASE = arg("base", "http://127.0.0.1:8788");
 const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
-const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 
 let failures = 0;
 function check(name, ok, detail = "") {
@@ -67,14 +67,32 @@ for (const run of RUNS) {
     );
     const page = await context.newPage();
     const errors = [];
-    page.on("pageerror", (error) => errors.push(String(error).slice(0, 160)));
+    // Where and when: a WebKit fetch cut off by navigation reads as an access-control error.
+    let navigating = false;
+    page.on("framenavigated", () => (navigating = false));
+    page.on("pageerror", (error) =>
+      errors.push(
+        `${navigating ? "[during navigation] " : ""}${page.url()} ${String(error).slice(0, 160)}`,
+      ),
+    );
+    const leave = (go) => ((navigating = true), go());
     const label = (what) => `${run.name}: ${what}`;
     const overflow = () =>
       page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 
-    await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "load" });
+    // The tab's first visit, through a link that carries its words: an engine
+    // that cannot isolate reloads once, and the link's query must survive it.
+    await page.goto(`${BASE}/ocade-jarvis?ask=${encodeURIComponent("Plan my week")}`, {
+      waitUntil: "load",
+    });
     await page.locator("#jarvis-composer").waitFor();
     await page.waitForTimeout(1500);
+    check(
+      label("a link's words reach the box on the first visit"),
+      (await page.locator("#jarvis-composer").inputValue()) === "Plan my week",
+      page.url(),
+    );
+    await page.locator("#jarvis-composer").fill("");
     check(
       label("JARVIS opens signed in"),
       /JARVIS uses left|left/.test(await page.locator("header").innerText()),
@@ -111,7 +129,7 @@ for (const run of RUNS) {
     await page.keyboard.press("Escape");
 
     const conversation = page.url();
-    await page.goto(`${BASE}/help`, { waitUntil: "load" });
+    await leave(() => page.goto(`${BASE}/help`, { waitUntil: "load" }));
     const bubble = page.getByRole("button", { name: /^JARVIS, / });
     if (narrow) {
       await bubble.waitFor({ timeout: 15_000 }).catch(() => {});
@@ -130,7 +148,7 @@ for (const run of RUNS) {
       label("Help search finds the answer"),
       (await page.getByRole("button", { name: /Stop and Take Over/ }).count()) === 1,
     );
-    await page.goBack({ waitUntil: "load" });
+    await leave(() => page.goBack({ waitUntil: "load" }));
     await page.waitForTimeout(1500);
     check(label("Back returns to the same conversation"), page.url() === conversation);
     check(

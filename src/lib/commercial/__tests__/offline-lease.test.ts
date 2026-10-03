@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   offlineEventSigningBytes,
   resolveTrustedOfflineTime,
+  trustedOfflineTimeNow,
   sha256Base64,
   verifyOfflineUsageLease,
   type OfflineUsageEventPayload,
@@ -271,5 +272,31 @@ describe("device event chain", () => {
         previousHash: "",
       }),
     ).rejects.toThrow(/not continuous/);
+  });
+});
+
+describe("the trusted offline clock", () => {
+  it("remembers how far it has seen, so a clock set back inside a lease is caught", () => {
+    const kept = new Map<string, string>();
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (key: string) => kept.get(key) ?? null,
+        setItem: (key: string, value: string) => void kept.set(key, value),
+      },
+    });
+    vi.useFakeTimers();
+    try {
+      const issued = "2026-10-01T00:00:00.000Z";
+      const later = Date.parse("2026-10-01T05:00:00.000Z");
+      vi.setSystemTime(later);
+      expect(trustedOfflineTimeNow(issued).rollbackDetected).toBe(false);
+      vi.setSystemTime(Date.parse("2026-10-01T01:00:00.000Z"));
+      const back = trustedOfflineTimeNow(issued);
+      expect(back.rollbackDetected).toBe(true);
+      expect(back.now).toBe(later);
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
   });
 });

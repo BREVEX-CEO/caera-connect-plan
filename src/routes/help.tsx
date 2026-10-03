@@ -211,13 +211,15 @@ const QUESTIONS: {
   },
   {
     category: "Devices",
-    question: "How does the browser extension work?",
-    words: "chrome extension own browser tabs",
+    question: "Can JARVIS work in my own browser?",
+    words: "chrome own browser tabs sign-ins extension add-on",
     answer: (
       <p>
-        The OCADE JARVIS extension lets JARVIS work in your own Chrome, with your own sign-ins, but
-        only in tabs it opens itself. It shows what it collects before you connect it, and
-        Disconnect in the extension removes it from OCADE as well.
+        Yes, with no add-on. On a computer with the OCADE Device Agent, turn on “Use my own browser”
+        for it under JARVIS › Devices. The first time, JARVIS opens your browser’s own permission
+        page: turn the permission on and choose Allow when your browser asks, then press Continue.
+        JARVIS then works with your own sign-ins, only in tabs it opens itself, and leaves your
+        other tabs alone. Without it, JARVIS uses a separate browser of its own on that computer.
       </p>
     ),
   },
@@ -229,8 +231,9 @@ const QUESTIONS: {
       <>
         <p>
           Yes, in the browser. Add OCADE to your home screen to open it like an app. From your phone
-          you can start, watch and stop work on a computer you connected, under Devices. A phone's
-          own apps are not controlled from the website.
+          you can start, watch and stop work on a computer you connected, under Devices. The website
+          does not control a phone's own apps; on Android, the OCADE app connects the phone to
+          JARVIS as a device of its own, with the bubble over other apps.
         </p>
         <p className="mt-2">
           On a phone, a small JARVIS bubble floats over OCADE's pages. Drag it to either edge, tap
@@ -238,10 +241,25 @@ const QUESTIONS: {
           apps. Hide it from the bubble; Settings › Appearance brings it back.
         </p>
         <p className="mt-2">
-          To open JARVIS from a shortcut, for example in the iPhone Shortcuts app, use the address
-          ocade.in/ocade-jarvis.
+          To open JARVIS from a shortcut, for example with Open URL in the iPhone Shortcuts app
+          (which Siri can run by its name), use ocade.in/ocade-jarvis. Add ?voice=1 to start
+          listening, or ?ask= followed by your words to have them ready in the box; JARVIS waits for
+          you to press Send.
         </p>
       </>
+    ),
+  },
+  {
+    category: "Mobile",
+    question: "Can OCADE notify me when it is closed?",
+    words: "notification push alert reminder phone closed browser",
+    answer: (
+      <p>
+        Yes. Open Settings › Notifications and turn on “On this device” in each browser you want
+        alerts in; your browser asks once. Security alerts always arrive; JARVIS results and
+        reminders arrive when that kind is on. On iPhone and iPad, Apple shows them only for OCADE
+        opened from the Home Screen. Signing out stops them in that browser.
+      </p>
     ),
   },
   {
@@ -264,6 +282,21 @@ const QUESTIONS: {
       <p>
         Plans and prices are on the <Link to="/pricing">Pricing</Link> page. Paid checkout is not
         open yet, and nothing is ever charged without it.
+      </p>
+    ),
+  },
+  {
+    category: "Privacy & security",
+    question: "What is two-step verification, and what if I lose my phone?",
+    words: "two step 2fa authenticator code recovery codes lost phone locked out",
+    answer: (
+      <p>
+        Turn it on in Settings, under Account: signing in then also asks for a code from your
+        authenticator app, so a stolen password alone cannot reach your account. When you turn it
+        on, OCADE shows ten recovery codes once. Save them somewhere other than your phone. If you
+        lose the phone, choose “I lost my authenticator” on the code screen and enter one: it turns
+        two-step verification off and signs you out everywhere, then you sign in and set it up
+        again. Each code works once, and you can make a new set in Settings at any time.
       </p>
     ),
   },

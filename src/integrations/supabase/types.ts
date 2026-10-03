@@ -263,6 +263,7 @@ export type Database = {
           capabilities: Json
           created_at: string
           enrollment_expires_at: string | null
+          enrollment_source: string | null
           id: string
           installed_apps: Json
           key_rotated_at: string | null
@@ -282,6 +283,7 @@ export type Database = {
           capabilities?: Json
           created_at?: string
           enrollment_expires_at?: string | null
+          enrollment_source?: string | null
           id?: string
           installed_apps?: Json
           key_rotated_at?: string | null
@@ -301,6 +303,7 @@ export type Database = {
           capabilities?: Json
           created_at?: string
           enrollment_expires_at?: string | null
+          enrollment_source?: string | null
           id?: string
           installed_apps?: Json
           key_rotated_at?: string | null
@@ -372,6 +375,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      jarvis_schedules: {
+        Row: {
+          active: boolean
+          conversation_id: string
+          created_at: string
+          device_id: string | null
+          id: string
+          last_outcome: string | null
+          last_run_at: string | null
+          next_at: string
+          repeat: string
+          time_zone: string
+          user_id: string
+          what: string
+        }
+        Insert: {
+          active?: boolean
+          conversation_id: string
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          last_outcome?: string | null
+          last_run_at?: string | null
+          next_at: string
+          repeat?: string
+          time_zone?: string
+          user_id: string
+          what: string
+        }
+        Update: {
+          active?: boolean
+          conversation_id?: string
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          last_outcome?: string | null
+          last_run_at?: string | null
+          next_at?: string
+          repeat?: string
+          time_zone?: string
+          user_id?: string
+          what?: string
+        }
+        Relationships: []
       }
       jarvis_tasks: {
         Row: {
@@ -532,6 +580,24 @@ export type Database = {
           user_id?: string
           window_kind?: string
           window_start?: string
+        }
+        Relationships: []
+      }
+      ocade_console_sessions: {
+        Row: {
+          opened_at: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          opened_at?: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          opened_at?: string
+          session_id?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1134,6 +1200,39 @@ export type Database = {
           },
         ]
       }
+      ocade_push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          failures: number
+          last_sent_at: string | null
+          p256dh: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          failures?: number
+          last_sent_at?: string | null
+          p256dh: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          failures?: number
+          last_sent_at?: string | null
+          p256dh?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_service_control_events: {
         Row: {
           changed_at: string
@@ -1182,6 +1281,144 @@ export type Database = {
           key?: string
           paused?: boolean
           reason?: string | null
+        }
+        Relationships: []
+      }
+      ocade_staff: {
+        Row: {
+          created_at: string
+          denied: string[]
+          granted: string[]
+          granted_by: string | null
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          denied?: string[]
+          granted?: string[]
+          granted_by?: string | null
+          role: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          denied?: string[]
+          granted?: string[]
+          granted_by?: string | null
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ocade_staff_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          role: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          invited_by?: string | null
+          role: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: []
+      }
+      ocade_support_cases: {
+        Row: {
+          closed_at: string | null
+          customer: string
+          expires_at: string
+          id: string
+          opened_at: string
+          opened_by: string | null
+          reason: string
+        }
+        Insert: {
+          closed_at?: string | null
+          customer: string
+          expires_at: string
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          reason: string
+        }
+        Update: {
+          closed_at?: string | null
+          customer?: string
+          expires_at?: string
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          reason?: string
+        }
+        Relationships: []
+      }
+      ocade_usage_adjustments: {
+        Row: {
+          actor: string | null
+          created_at: string
+          delta_hundredths: number
+          id: string
+          reason: string
+          surface: string
+          used_after: number
+          used_before: number
+          user_id: string | null
+          window_kind: string
+          window_start: string
+        }
+        Insert: {
+          actor?: string | null
+          created_at?: string
+          delta_hundredths: number
+          id?: string
+          reason: string
+          surface: string
+          used_after: number
+          used_before: number
+          user_id?: string | null
+          window_kind: string
+          window_start: string
+        }
+        Update: {
+          actor?: string | null
+          created_at?: string
+          delta_hundredths?: number
+          id?: string
+          reason?: string
+          surface?: string
+          used_after?: number
+          used_before?: number
+          user_id?: string | null
+          window_kind?: string
+          window_start?: string
         }
         Relationships: []
       }
@@ -1425,6 +1662,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      ocade_enforce_second_factor: { Args: never; Returns: undefined }
+      ocade_session_meets_second_factor: { Args: never; Returns: boolean }
       jarvis_purge_expired_activity: {
         Args: { p_user_id: string }
         Returns: number
@@ -1557,6 +1796,11 @@ export type Database = {
         Args: { p_now?: string; p_user_id: string }
         Returns: number
       }
+      ocade_factor_added_since_sign_in: {
+        Args: { p_unverified_too?: boolean }
+        Returns: boolean
+      }
+      ocade_two_step_set_up_in_this_sign_in: { Args: never; Returns: boolean }
       ocade_finalize_generation_permit: {
         Args: {
           p_cost_hundredths: number
@@ -1686,6 +1930,11 @@ export type Database = {
         }
         Returns: number
       }
+      ocade_push_subscribe: {
+        Args: { p_auth: string; p_endpoint: string; p_p256dh: string }
+        Returns: undefined
+      }
+      ocade_push_unsubscribe: { Args: { p_endpoint: string }; Returns: undefined }
       ocade_record_notification: {
         Args: {
           p_body: string
@@ -1727,6 +1976,77 @@ export type Database = {
         Args: { p_session_id: string; p_user_id: string }
         Returns: number
       }
+      ocade_case_close: { Args: { p_case: string; p_reason: string }; Returns: boolean }
+      ocade_case_messages: {
+        Args: { p_case: string; p_conversation: string }
+        Returns: { content: string; created_at: string; role: string }[]
+      }
+      ocade_case_open: {
+        Args: { p_customer: string; p_hours: number; p_reason: string }
+        Returns: string
+      }
+      ocade_my_staff: {
+        Args: never
+        Returns: { permissions: string[]; role: string; second_factor: boolean }[]
+      }
+      ocade_staff_can: { Args: { p_permission: string }; Returns: boolean }
+      ocade_staff_end_all_sessions: { Args: { p_reason: string }; Returns: number }
+      ocade_staff_adjust_usage: {
+        Args: {
+          p_delta_hundredths: number
+          p_reason: string
+          p_surface: string
+          p_user: string
+          p_window_kind: string
+        }
+        Returns: number
+      }
+      ocade_staff_begin_account_deletion: {
+        Args: { p_email: string; p_reason: string; p_user: string }
+        Returns: boolean
+      }
+      ocade_staff_end_customer_sessions: {
+        Args: { p_reason: string; p_user: string }
+        Returns: number
+      }
+      ocade_staff_grant: {
+        Args: { p_email: string; p_reason: string; p_role: string }
+        Returns: Json
+      }
+      ocade_staff_role_defaults: {
+        Args: never
+        Returns: { permissions: string[]; role: string }[]
+      }
+      ocade_staff_reset_second_factor: {
+        Args: { p_reason: string; p_user: string }
+        Returns: boolean
+      }
+      ocade_staff_revoke: { Args: { p_reason: string; p_user: string }; Returns: boolean }
+      ocade_grant_unlimited: {
+        Args: { p_reason: string; p_until: string; p_user: string }
+        Returns: string
+      }
+      ocade_revoke_unlimited: { Args: { p_reason: string; p_user: string }; Returns: boolean }
+      ocade_account_unlimited: {
+        Args: { target_user: string }
+        Returns: { ends_at: string | null; why: string }[]
+      }
+      ocade_staff_set_permissions: {
+        Args: { p_denied: string[]; p_granted: string[]; p_reason: string; p_user: string }
+        Returns: boolean
+      }
+      ocade_staff_suspend_account: {
+        Args: { p_reason: string; p_suspend: boolean; p_user: string }
+        Returns: boolean
+      }
+      ocade_staff_transfer_ownership: {
+        Args: { p_reason: string; p_stay_owner?: boolean; p_to: string }
+        Returns: boolean
+      }
+      ocade_staff_withdraw_invite: {
+        Args: { p_invite: string; p_reason: string }
+        Returns: boolean
+      }
       ocade_revoke_entitlement: {
         Args: { grant_id: string; revoke_reason: string }
         Returns: boolean
@@ -1749,6 +2069,10 @@ export type Database = {
         Returns: boolean
       }
       ocade_session_last_proof_at: { Args: never; Returns: string }
+      ocade_set_notification_delivery: {
+        Args: { p_channel: string; p_id: string; p_state: string }
+        Returns: undefined
+      }
       ocade_set_service_control: {
         Args: { change_reason: string; control_key: string; pause: boolean }
         Returns: {

@@ -27,6 +27,7 @@ Diagnostic/observer authority for existing Chrome:
 `cmd /c npx -y chrome-devtools-mcp@latest --autoConnect`
 
 Inspect:
+
 - console;
 - network;
 - cookies/storage;
@@ -65,6 +66,7 @@ May be used to list legitimate remote physical iOS devices. Do not start billed 
 ### Physical Computer Use
 
 Real Windows/native UI authority:
+
 - Device Agent install/uninstall;
 - tray;
 - Settings;
@@ -98,6 +100,7 @@ Sentry is currently deferred/non-blocking until a real project exists.
 ## Per-function fix loop
 
 For each meaningful capability/button/function:
+
 1. implement or repair;
 2. targeted local test;
 3. integration test;
@@ -114,6 +117,7 @@ Do not call a feature complete because the MCP server started.
 ## Real browser matrix
 
 Test at minimum:
+
 - signed out;
 - signed in;
 - fresh user;
@@ -139,6 +143,7 @@ Test at minimum:
 ## Real Windows matrix
 
 Required real tasks:
+
 1. existing-profile browser task;
 2. Excel workbook task with formulas, fill/format, save/reopen verification;
 3. files/File Explorer task;
@@ -191,12 +196,14 @@ If real hardware/cloud environment is unavailable, record REAL APPLE BLOCKED and
 ## Owner/Admin/Staff matrix
 
 Use at least:
+
 - Primary Owner;
 - Staff;
 - Customer A;
 - Customer B.
 
 Test:
+
 - customer sees no privileged UI/data;
 - Owner Console visibility;
 - Staff Console permission filtering;
@@ -213,6 +220,7 @@ Test:
 ## Security/adversarial matrix
 
 Deliberately test:
+
 - prompt injection;
 - stale observation;
 - stale auth;
@@ -235,6 +243,7 @@ Deliberately test:
 ## Performance matrix
 
 Measure relevant:
+
 - web bundle/startup;
 - Device Agent startup;
 - idle CPU/RAM/network;
@@ -250,6 +259,7 @@ Measure relevant:
 Visual defects are bugs.
 
 Check:
+
 - dark/light;
 - 360/375 phone;
 - tablet;
@@ -272,6 +282,7 @@ SOURCE, LOCAL TEST, MCP BROWSER, REAL BROWSER, REAL WINDOWS, REAL ANDROID, WEBKI
 ## Phase report
 
 After every phase report:
+
 - status;
 - tasks;
 - bugs found/fixed;
@@ -282,7 +293,6 @@ After every phase report:
 - source/deploy identity.
 
 No known Critical/Major blocker may remain for a shipped capability before release.
-
 
 ## Master Phase 1–49 authority
 

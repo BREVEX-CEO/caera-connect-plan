@@ -20,7 +20,7 @@ const arg = (name, fallback) => {
 };
 const BASE = arg("base", "http://127.0.0.1:8788");
 const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 
 let failures = 0;
 function check(name, ok, detail = "") {
@@ -79,6 +79,14 @@ const visible = (locator, timeout = 20_000) =>
     () => true,
     () => false,
   );
+
+async function until(probe, timeout = 10_000) {
+  for (const end = Date.now() + timeout; Date.now() < end;) {
+    if (await probe().catch(() => false)) return true;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  return false;
+}
 
 try {
   /* --- signed out: no bubble ---------------------------------------------- */
@@ -147,8 +155,40 @@ try {
     await visible(other.getByRole("button", { name: "JARVIS, Ready" })),
   );
 
-  /* --- Stop, from the bubble ------------------------------------------------ */
+  /* --- talking to it while it works: status, wait, continue ---------------- */
+  const statusOf = async () =>
+    (
+      await fetch(`${SUPABASE}/rest/v1/jarvis_tasks?id=eq.${task.id}&select=status`).then((r) =>
+        r.json(),
+      )
+    )[0]?.status;
   await bubble.click();
+  const ask = async (text) => {
+    await panel.getByPlaceholder("Ask JARVIS…").fill(text);
+    await panel.getByRole("button", { name: "Send", exact: true }).click();
+  };
+  await ask("what are you doing?");
+  check(
+    "asked what it is doing, it answers from the task's real state",
+    await until(
+      async () =>
+        /working on .Tidy my downloads folder.*step 2 of 3/i.test(await panel.innerText()),
+      5000,
+    ),
+    (await panel.innerText()).slice(-300),
+  );
+  await ask("wait");
+  check(
+    "told to wait, the task pauses for real",
+    await until(async () => (await statusOf()) === "taken_over", 8000),
+  );
+  await ask("continue");
+  check(
+    "told to continue, it carries on",
+    await until(async () => (await statusOf()) === "running", 8000),
+  );
+
+  /* --- Stop, from the bubble ------------------------------------------------ */
   await panel.getByRole("button", { name: "Stop", exact: true }).click();
   check(
     "Stop in the bubble stops the task",

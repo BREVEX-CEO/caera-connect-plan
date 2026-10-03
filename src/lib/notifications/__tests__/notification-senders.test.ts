@@ -94,6 +94,35 @@ describe("every notification the product sends", () => {
     expect(wrong, "these deep links would be refused by the link constraint").toEqual([]);
   });
 
+  it("opens a page that exists", () => {
+    /*
+     * The constraint accepts any path; a person pressing the notification needs
+     * a real one. Two security alerts pointed at /settings/security, which has
+     * never been a page (settings is a panel, opened with ?settings=).
+     */
+    const pages = new Set(
+      globSync("src/routes/**/*.tsx").map((file) =>
+        (
+          "/" +
+          file
+            .replaceAll("\\", "/")
+            .replace(/^src\/routes\//, "")
+            .replace(/\.tsx$/, "")
+        )
+          .replace(/\/_authenticated/, "")
+          .replace(/\/index$/, "/")
+          .replace(/\./g, "/"),
+      ),
+    );
+    pages.add("/");
+    const missing = sites
+      .filter((site) => site.deepLink !== null)
+      .map((site) => ({ site, path: site.deepLink!.split(/[?#]/)[0]! }))
+      .filter(({ path }) => !pages.has(path))
+      .map(({ site, path }) => `${site.file}: ${path}`);
+    expect(missing, "these notifications open a page that does not exist").toEqual([]);
+  });
+
   it("says something in its title, within the length the column allows", () => {
     /*
      * A computed title cannot be length-checked from source, and pretending

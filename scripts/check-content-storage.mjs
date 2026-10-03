@@ -77,6 +77,10 @@ const ALLOWED = new Map([
   ],
   ["src/lib/auth/throttle.ts", "Sign-in attempt throttling, which must survive a reload."],
   [
+    "src/lib/auth/safe-next.ts",
+    "Where to land after Google sign-in: a path in this tab only, never content.",
+  ],
+  [
     "src/lib/commercial/offline-allowance.ts",
     "Reads this device's signed allowance blocks, which are device-bound by design.",
   ],

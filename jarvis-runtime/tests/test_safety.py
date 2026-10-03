@@ -75,7 +75,7 @@ class StopTest(unittest.TestCase):
         runner = self._run(agent, 0)
         time.sleep(2.5)
         stopped_at = time.monotonic()
-        agent.stop_everything()  # tray / mini-control STOP JARVIS
+        agent.stop_everything()  # the tray's STOP JARVIS
         time.sleep(1.5)
         agent.stop.set()
         runner.join(10)
@@ -107,6 +107,27 @@ class StopTest(unittest.TestCase):
         runner.join(10)
         self.assertEqual(len(self.ended), 1)
         self.assertLess(self.ended[0] - started, 2.5)  # cancelled on the next check, not after 30 s
+
+    def test_stop_during_an_exchange_never_starts_what_it_returns(self):
+        started = []
+        agent = None
+
+        def reply(body):
+            if len(identity.bodies) == 1:
+                agent.stop_everything()  # pressed while this exchange was on its way
+                return {"commands": [self.command], "busy": True}
+            return {"commands": [], "busy": False}
+
+        agent, identity = _agent(self.home, reply)
+        agent.computer.run = lambda *a: started.append(1) or {"status": "done", "summary": "x"}
+        runner = self._run(agent, 0)
+        time.sleep(1.5)
+        agent.stop.set()
+        runner.join(10)
+        self.assertEqual(started, [])
+        self.assertTrue(identity.bodies[1].get("stop"))
+        self.assertEqual(identity.bodies[1]["results"],
+                         [{"id": "a1", "status": "failed", "summary": "Stopped before it started"}])
 
     def test_only_one_action_runs_at_a_time(self):
         second = {**self.command, "id": "a2"}
@@ -144,7 +165,7 @@ class JournalTest(unittest.TestCase):
 
 
 class TerminalTest(unittest.TestCase):
-    """JARVIS-037/055: commands run only inside a real OS boundary, otherwise not at all."""
+    """JARVIS-037/055: Linux confines commands in bubblewrap; Windows/macOS run one program directly."""
 
     def setUp(self):
         self.root = Path(tempfile.mkdtemp(), "workspace")
@@ -158,10 +179,14 @@ class TerminalTest(unittest.TestCase):
         self.assertEqual(out["status"], "blocked")
         self.assertFalse((self.root.parent / "outside.txt").exists())
 
-    def test_windows_and_macos_never_offer_the_terminal(self):
-        if ocade_computer.SYSTEM != "Linux":
-            self.assertIsNone(self.pc.sandbox)
-            self.assertFalse(self.pc.capabilities()["terminal"])
+    def test_windows_and_macos_run_one_program_without_a_shell(self):
+        if ocade_computer.SYSTEM == "Linux":
+            self.skipTest("Linux uses bubblewrap")
+        self.assertEqual(self.pc.sandbox, "workspace")
+        self.assertTrue(self.pc.capabilities()["terminal"])
+        out = self.pc.run({"action": "run", "command": "echo escaped>..\outside.txt"})
+        self.assertEqual(out["status"], "blocked")
+        self.assertFalse((self.root.parent / "outside.txt").exists())
 
     def test_unconfirmed_commands_have_no_network(self):
         argv, _ = self.pc._sandboxed("true", self.root, network=False)
@@ -171,7 +196,7 @@ class TerminalTest(unittest.TestCase):
         self.assertNotIn("--unshare-net", argv)
 
     def test_stop_kills_a_running_command(self):
-        self.pc.sandbox = "test"
+        self.pc.sandbox = "bubblewrap"
         self.pc._sandboxed = lambda command, folder, network: (
             [sys.executable, "-c", "import time; time.sleep(30)"], {})
         cancel = threading.Event()
@@ -203,6 +228,38 @@ class WorkspaceWriteTest(unittest.TestCase):
         self.assertEqual((root / "victim.txt").read_text(), "ESCAPED")
         self.assertFalse((root / "victim.txt").is_symlink())
         self.assertEqual([p.name for p in root.iterdir() if p.name.startswith(".ocade-")], [])
+
+    @staticmethod
+    def _link_folder(link: Path, to: Path) -> bool:
+        try:  # a junction on Windows needs no privilege; a symlink elsewhere
+            if sys.platform == "win32":
+                import subprocess
+                return subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(to)],
+                                      capture_output=True).returncode == 0
+            link.symlink_to(to, target_is_directory=True)
+            return True
+        except OSError:
+            return False
+
+    def test_a_folder_link_out_of_the_workspace_is_not_copied_or_downloaded_into(self):
+        base = Path(tempfile.mkdtemp())
+        root, outside = base / "workspace", base / "private"
+        (root / "src").mkdir(parents=True)
+        outside.mkdir()
+        (outside / "secret.txt").write_text("PRIVATE")
+        (root / "src" / "main.py").write_text("print(1)")
+        if not self._link_folder(root / "src" / "private", outside):
+            self.skipTest("this account cannot create folder links")
+        pc = Computer(str(root))
+        self.assertEqual(pc.run({"action": "file_copy", "path": "src", "to": "copy"})["status"], "done")
+        self.assertTrue((root / "copy" / "main.py").is_file())
+        self.assertFalse((root / "copy" / "private").exists())
+        # A Downloads folder that is really a link elsewhere takes no download.
+        self.assertTrue(self._link_folder(root / "Downloads", outside))
+        out = ocade_device.Browsers(True, None).run(
+            "isolated", {"action": "download", "url": "https://example.com/a.pdf"}, False, [],
+            threading.Event(), root.resolve())
+        self.assertEqual(out["status"], "blocked")
 
     def test_symlinked_destination_is_refused(self):
         base = Path(tempfile.mkdtemp())
@@ -274,6 +331,9 @@ class ScreenInputTest(unittest.TestCase):
         self.assertEqual(self.gui.typed, [])
 
     def test_typing_stops_when_the_window_changes_midway(self):
+        import ocade_computer
+        self.addCleanup(setattr, ocade_computer, "PASTE_OVER", ocade_computer.PASTE_OVER)
+        ocade_computer.PASTE_OVER = 10_000  # key-by-key typing, checked every chunk
         obs = self._observe()["observationId"]
         original = self.gui.write
 
@@ -284,6 +344,21 @@ class ScreenInputTest(unittest.TestCase):
         out = self.pc.run({"action": "screen_type", "text": "x" * 200, "observationId": obs})
         self.assertEqual(out["status"], "needs_confirmation")
         self.assertEqual(len(self.gui.typed), 1)
+
+    def test_long_text_is_pasted_only_into_the_planned_window_and_the_clipboard_comes_back(self):
+        import pyperclip
+        pyperclip.copy("mine")
+        obs = self._observe()["observationId"]
+        out = self.pc.run({"action": "screen_type", "text": "y" * 200, "observationId": obs})
+        self.assertEqual(out["status"], "done", out)
+        self.assertEqual(self.gui.typed, ["ctrl+v"])
+        self.assertEqual(pyperclip.paste(), "mine")
+        obs = self._observe()["observationId"]
+        self.gui.window = "Chat"
+        out = self.pc.run({"action": "screen_type", "text": "z" * 200, "observationId": obs})
+        self.assertEqual(out["status"], "stale")
+        self.assertEqual(self.gui.typed, ["ctrl+v"])
+        self.assertEqual(pyperclip.paste(), "mine")
 
     def test_stop_ends_typing(self):
         obs = self._observe()["observationId"]
@@ -301,9 +376,9 @@ class EgressTest(unittest.TestCase):
     def test_address_classes(self):
         for address in ("127.0.0.1", "10.1.2.3", "172.16.0.1", "192.168.1.1", "169.254.169.254",
                         "100.64.0.1", "0.0.0.0", "224.0.0.1", "::1", "fe80::1", "fc00::1",
-                        "::ffff:127.0.0.1", "::ffff:10.0.0.1"):
+                        "::ffff:127.0.0.1", "::ffff:10.0.0.1", "64:ff9b::a00:1", "64:ff9b::7f00:1"):
             self.assertFalse(is_public(address), address)
-        for address in ("8.8.8.8", "1.1.1.1", "2606:4700:4700::1111"):
+        for address in ("8.8.8.8", "1.1.1.1", "2606:4700:4700::1111", "64:ff9b::808:808"):
             self.assertTrue(is_public(address), address)
 
     def test_names_resolving_to_private_addresses_are_refused(self):
@@ -394,4 +469,46 @@ class UninstallTest(unittest.TestCase):
         with mock.patch.object(ocade_agent, "remove_autostart", lambda: None):
             ocade_agent.uninstall(home)
         self.assertEqual(order, ["stopped"])
+        self.assertFalse(home.exists())
+
+    def test_another_process_without_the_secret_cannot_end_the_agent(self):
+        import socket
+        import ocade_agent
+        guard = ocade_agent.single_instance()
+        if guard is None:
+            self.skipTest("an OCADE agent is running on this computer")
+        ended: list[str] = []
+        ocade_agent.serve_exit(guard, lambda: ended.append("ended"))
+        try:
+            for word in (b"exit", b"exit 0000"):
+                with socket.create_connection(("127.0.0.1", ocade_agent.SINGLE_INSTANCE_PORT), 2) as conn:
+                    conn.sendall(word)
+                    conn.settimeout(3)
+                    self.assertEqual(conn.recv(8), b"")
+            self.assertEqual(ended, [])
+        finally:
+            guard.close()
+
+    def test_an_agent_that_does_not_answer_is_ended_and_nothing_starts_at_login(self):
+        """
+        Found on a real install: an agent still waiting to be connected did not
+        answer "exit", so uninstalling left it running and starting at every login.
+        """
+        import ocade_agent
+        guard = ocade_agent.single_instance()  # held, and nobody answers
+        if guard is None:
+            self.skipTest("an OCADE agent is running on this computer")
+        order: list[str] = []
+
+        def end() -> bool:
+            order.append("ended")
+            guard.close()
+            return True
+        home = Path(tempfile.mkdtemp())
+        (home / "device.key").write_text("k")
+        from unittest import mock
+        with mock.patch.object(ocade_agent, "remove_autostart", lambda: order.append("no login entry")), \
+                mock.patch.object(ocade_agent, "end_other_agents", end):
+            ocade_agent.uninstall(home)
+        self.assertEqual(order, ["no login entry", "ended"])
         self.assertFalse(home.exists())

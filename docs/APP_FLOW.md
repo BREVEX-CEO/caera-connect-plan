@@ -3,6 +3,7 @@
 ## Customer navigation
 
 Keep the normal product small:
+
 - Chat;
 - JARVIS;
 - Library;
@@ -81,8 +82,9 @@ User may ask “what are you doing?” or redirect while task runs. JARVIS answe
 ## Wake
 
 First enable:
+
 1. explain local wake;
-2. download/verify small Hey OCADE model;
+2. use the bundled, signed OCADE wake model (no download);
 3. store once;
 4. keep across updates/restarts;
 5. pre-wake audio remains local.
@@ -108,8 +110,8 @@ First enable:
 ## Owner Console
 
 1. Primary Owner signs into normal OCADE.
-2. Account menu shows Owner Console.
-3. Secure SSO opens `admin.ocade.in`.
+2. The sidebar shows Owner Console beneath Chat, OCADE JARVIS and Library (staff see Staff Console; customers see nothing).
+3. It opens `/admin` inside `ocade.in` (the separate `admin.ocade.in` origin was retired on 2026-10-03).
 4. During 2FA bootstrap, view access may work while sensitive mutations remain locked.
 5. After strong auth, Owner manages permitted operations.
 
@@ -130,6 +132,7 @@ Return to normal customer product without exposing privileged internals.
 ## Device removal
 
 If device is active:
+
 1. local cancellation;
 2. active task-owned input/process stops;
 3. task/activity cancelled;
@@ -143,7 +146,6 @@ Long tasks checkpoint. Crash/reboot/network recovery reconciles completed steps 
 ## Remove/uninstall
 
 Explicit removal stops runtime authority, removes local credentials/cache according to product setting, disconnects the device and leaves cloud conversations unless separately deleted.
-
 
 ## Master Phase 1–49 authority
 

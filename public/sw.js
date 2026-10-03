@@ -23,8 +23,31 @@
  */
 
 const SHELL_CACHE_PREFIX = "ocade-shell-v";
-const VERSION = `${SHELL_CACHE_PREFIX}13`;
+const VERSION = `${SHELL_CACHE_PREFIX}16`;
 const OFFLINE_URL = "/offline.html";
+
+/*
+ * RUNTIME ASSETS OUTLIVE A DEPLOY. The versioned cache above is deleted on
+ * every activation, and it used to hold everything fetched at runtime too —
+ * the lazily loaded chunks and `wllama.wasm`, the engine that runs the
+ * installed model. So the first visit after a deploy (the one that installs
+ * this worker) quietly threw them away, and the next time the person was
+ * offline the app opened without its engine. Content-hashed assets never change
+ * under one URL, so they are safe to keep across versions; the oldest are
+ * pruned by count so old builds cannot pile up.
+ */
+const ASSET_CACHE = "ocade-assets";
+const ASSET_CACHE_LIMIT = 200;
+
+async function keepAsset(request, response) {
+  const cache = await caches.open(ASSET_CACHE);
+  // put() re-appends an existing URL, so the list stays oldest-first.
+  await cache.put(request, response);
+  const keys = await cache.keys();
+  await Promise.all(
+    keys.slice(0, Math.max(0, keys.length - ASSET_CACHE_LIMIT)).map((key) => cache.delete(key)),
+  );
+}
 
 /**
  * The smallest set that makes the app open offline.
@@ -248,17 +271,29 @@ self.addEventListener("fetch", (event) => {
           !/\b(?:private|no-store)\b/i.test(cacheControl)
         ) {
           const copy = response.clone();
-          await caches.open(VERSION).then((cache) => cache.put(request, copy));
+          /*
+           * Under the page's PATH, not its full address. The fallback below
+           * ignores the query anyway, and keeping one copy per address kept
+           * one per conversation (?c=) and per Shortcut (?ask=…, the words in
+           * it) for as long as the cache lived.
+           */
+          const page = new URL(request.url);
+          await caches
+            .open(VERSION)
+            .then((cache) => cache.put(new Request(page.origin + page.pathname), copy));
         }
         return response;
       })
       .catch(async () => {
-        // Offline. Prefer this exact page if it was cached, then the generic
-        // offline shell. Never a different page's markup, which would show
-        // the user somewhere they are not.
-        const cached = await caches.match(request);
-        const appShell = await caches.match("/");
-        return cached ?? appShell ?? (await caches.match(OFFLINE_URL)) ?? Response.error();
+        /*
+         * Offline. This page as it was last seen (its query aside: a Chat
+         * link with ?c= is still Chat), else the offline page. Never another
+         * page's markup: Chat's document served for /auth showed Chat at the
+         * sign-in address and failed to hydrate (React error 418), measured on
+         * WebKit when the network dropped mid-navigation.
+         */
+        const cached = await caches.match(request, { ignoreSearch: true });
+        return cached ?? (await caches.match(OFFLINE_URL)) ?? Response.error();
       });
     event.waitUntil(navigation.then(() => undefined));
     event.respondWith(navigation);
@@ -274,8 +309,7 @@ self.addEventListener("fetch", (event) => {
         // Only successful, same-origin, basic responses are worth storing.
         // An opaque or error response cached here would be served forever.
         if (response.ok && response.type === "basic") {
-          const copy = response.clone();
-          await caches.open(VERSION).then((cache) => cache.put(request, copy));
+          await keepAsset(request, response.clone());
         }
         return response;
       })
@@ -287,4 +321,60 @@ self.addEventListener("fetch", (event) => {
   // Content-hashed assets never change under one URL, so the cached copy is
   // served immediately while the registered network refresh runs behind it.
   event.respondWith(cachedResponse.then((cached) => cached ?? network));
+});
+
+/* ---------------------------------------------------- browser notifications -- */
+
+/*
+ * A push from OCADE: show it, always (a push that shows nothing is refused by
+ * browsers, and would be a secret one). The message is what the server wrote:
+ * a title, a line, a same-origin path, and a tag so a resend replaces rather
+ * than stacks.
+ */
+self.addEventListener("push", (event) => {
+  let message = {};
+  try {
+    message = event.data ? event.data.json() : {};
+  } catch {
+    message = {};
+  }
+  const title = typeof message.title === "string" && message.title ? message.title : "OCADE";
+  // Only an OCADE page, decided by the URL parser (so `/\evil` is not one).
+  let path = "/";
+  try {
+    const target = new URL(
+      typeof message.url === "string" ? message.url : "/",
+      self.location.origin,
+    );
+    if (target.origin === self.location.origin)
+      path = target.pathname + target.search + target.hash;
+  } catch {
+    path = "/";
+  }
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: typeof message.body === "string" ? message.body : "",
+      tag: typeof message.tag === "string" ? message.tag : undefined,
+      icon: "/icons/ocade-192.png",
+      badge: "/icons/ocade-192.png",
+      data: { url: path },
+    }),
+  );
+});
+
+/* Pressed: the open OCADE window goes there, or a new one opens. Same origin only. */
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url ?? "/", self.location.origin);
+  if (target.origin !== self.location.origin) return;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (windows) => {
+      const open = windows.find((client) => new URL(client.url).origin === target.origin);
+      if (open) {
+        await open.focus();
+        return open.navigate(target.href).catch(() => self.clients.openWindow(target.href));
+      }
+      return self.clients.openWindow(target.href);
+    }),
+  );
 });

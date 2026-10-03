@@ -8,7 +8,7 @@ import { DEFAULT_ONLINE_MODEL, ONLINE_MODEL_CATALOG, isAllowedOnlineModel } from
  * pin is asserted here rather than against a document.
  */
 
-const EDGE_FUNCTION = readFileSync("supabase/functions/ocade-intelligence/index.ts", "utf8");
+const EDGE_FUNCTION = readFileSync("supabase/functions/_shared/boundary.ts", "utf8");
 
 describe("the pinned online model", () => {
   it("is one exact identifier", () => {

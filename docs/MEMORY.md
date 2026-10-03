@@ -25,6 +25,7 @@ Immutable source lives under `imports/ocade-jarvis/source-original/`.
 Active runtime lives under `jarvis-runtime/`.
 
 Owner wants approximately 98% donor capability/logic reuse where safe:
+
 - copy/adapt donor implementation into active runtime;
 - rename/wire cleanly;
 - do not cut/move/modify donor;
@@ -71,17 +72,18 @@ Seek legitimate real Apple environment. Paid allocation requires owner approval.
 
 Primary Owner account exists and can sign in.
 
-Current OCADE 2FA/TOTP enrollment has repeatedly rejected fresh authenticator codes and is tracked as a bug for Claude to reproduce/fix.
+The 2FA/TOTP enrollment defect (fresh codes rejected) was fixed on 2026-09-29: QR code, grouped key, no truncation of pasted codes (mfa journey).
 
 Roles required: Primary Owner, Backup Owner, Admin, Support, Billing, Developer/Operations, Read-only + granular overrides.
 
 Normal customer sees no privileged UI.
 
-Canonical privileged surface: `admin.ocade.in`.
+Privileged surface: the Owner/Staff Console inside `ocade.in` (`/admin`, sidebar entry for staff only) since 2026-10-03; `admin.ocade.in` retired before it ever went live. Staff authority rides the site session with its second factor, no in-session factor, recent proof for changes; owners unlimited; owner-granted unlimited use for others (docs/OWNER_ADMIN_BACKEND.md).
 
 ## Manual setup status
 
 Done:
+
 - Inno Setup installed.
 - Android Studio/Pixel emulator/ADB installed.
 - Appium package + UiAutomator2 driver installed.
@@ -89,6 +91,7 @@ Done:
 - Chrome remote debugging enabled.
 
 Deferred/skipped:
+
 - Sentry project/DSN.
 - payment provider/tax/legal provider decisions.
 - paid Supabase leaked-password protection.
@@ -97,16 +100,21 @@ Deferred/skipped:
 
 ## Current known risks to reproduce
 
-1. TOTP enrollment failure.
-2. Device removal during active action may not synchronously cancel/join the local action before returning NotEnrolled.
-3. Device execution safety-control database read currently risks fail-open semantics unless repaired.
-4. Moderate development-only undici/Wrangler issue remains an upstream/local-tooling concern from prior report; re-check current dependency state rather than assuming historical status.
+The 2026-09-29 list (TOTP enrollment, removal during an action, fail-open execution control) is fixed and covered (mfa journey, `test_safety`, `jarvis-execution-control.test.ts`). The second attack audit (2026-10-01, `docs/IMPLEMENTATION_LEDGER.md`) is fixed; what it accepted is listed there.
+
+## Release order (owner approval first; never before)
+
+1. Deploy the Edge Functions (`ocade-intelligence`, `ocade-intelligence-service`, verify_jwt off) — they settle claimed permits themselves.
+2. Deploy the Worker from the approved merge (build with `VITE_WEB_PUSH_PUBLIC_KEY`, secret `WEB_PUSH_PRIVATE_KEY` from `~/.ocade-release/web-push.json`).
+3. Apply `20261001092000` and `20261001094000` (`091000`, `093000`, `095000`, `095200`, `096000`, `096100`, `20261002090000` and `20261003090000` are already applied). Never apply `20261001090000` or `20261001095100`: `20261003090000` superseded them (they would bind staff to the retired console origin and blind every owner).
+4. Remove the legacy `user_roles` admin row (ToRemove.md); sign the Device Agent and the Android release with the owner's keys.
 
 ## Testing posture
 
 Use MCPs during coding, not only at the end.
 
 Real evidence:
+
 - existing Chrome/CDP + DevTools;
 - browser compatibility matrix;
 - Physical Computer Use;
@@ -119,7 +127,6 @@ Real evidence:
 After each phase report commercial-launch readiness percentage.
 
 Historical audits and ledger entries remain evidence; newer owner authority wins on current direction.
-
 
 ## Master-plan reset — 2026-09-29
 

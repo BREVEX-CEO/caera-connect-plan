@@ -2,15 +2,27 @@
 
 ## Canonical surface
 
-Use `admin.ocade.in` as the privileged operations surface with secure OCADE SSO.
+The Owner Console and the Staff Console are pages of normal `ocade.in` (`/admin`), owner authority 2026-10-03 (PLAN.md Phases 53–54). `admin.ocade.in` is retired: it never went live, its route, code and session table are gone.
 
 Normal customers must not see Owner/Admin/Staff wording, links, route hints or privileged data.
 
-Primary Owner sees Owner Console.
-Backup Owner sees Owner Console with the primary-owner protection described below.
-Granted staff sees Staff Console with only granted modules/actions.
+Primary Owner and every other Owner see "Owner Console"; granted staff see "Staff Console", with only the modules their permissions hold. The entry sits in the sidebar beneath Chat, OCADE JARVIS and Library, shown only when `ocade_my_staff()` (the caller's own row, from the database) answers.
 
 Frontend hiding is never authorization. Server-side role/permission checks and RLS are mandatory.
+
+### How the integrated console holds authority (implemented 2026-10-03, migration `20261003090000`)
+
+- Staff authority rides the account's own site session. Every request asks the database: role and permission in `public.ocade_staff`, a session that has not been ended, the second factor answered in this session (all staff but a Primary Owner still setting it up, who may look and never change), and no factor added during this session (a stolen token cannot enroll its own authenticator and answer it). Changes also need a recent proof (`private.ocade_staff_require`) and a reason, and are audited.
+- Removing a role takes effect at the database on the next request. An open console re-reads its access every 10 seconds and on focus; when it is gone the page returns to Chat and the sidebar entry disappears, with no explanation. Refresh or a new sign-in does not bring it back.
+- Sessions arriving in an address are never taken up (PKCE). Chat answers render without raw HTML; the CSP forbids framing and limits connections to the configured backends.
+- Trade-off, recorded: the retired separate origin also kept a token lifted from the chat page from reading staff data. The owner chose one origin; what replaces that protection is the second factor bound to the session, the in-session-factor refusal, recent proof for every change, the 10-second revoke, and the emergency staff sign-out.
+
+### Unlimited use and ownership (2026-10-03)
+
+- Owners (Primary and other Owners) are never stopped by a usage window; usage and cost telemetry are still recorded. The decision is made in `public.ocade_consume_commercial_work`, the one place every allowance (Chat, JARVIS, offline leases) is enforced.
+- An owner gives any other account unlimited use until a date or until revoked (`ocade_grant_unlimited`), or returns it to normal limits (`ocade_revoke_unlimited`): owner-only, never oneself, recent code, reason, audit (`unlimited_granted`, `unlimited_revoked`). Use it for test accounts that would otherwise hit a legitimate limit; never a hidden bypass.
+- The Primary Owner names other Owners (`backup_owner` in the database, "Owner" on screen) and hands Primary Owner over only to an existing Owner, with a recent code, a reason and an explicit confirmation; the former Primary Owner stays an Owner or leaves the staff, as chosen. There is always exactly one Primary Owner; the Primary Owner cannot be removed or demoted by an ordinary control.
+- The initial Primary Owner is the verified account `caeracadane28@gmail.com`, bootstrapped once and held by its user id (`a7d48c60-…`). (The owner's 2026-10-03 note spelled it `carecadane28`; no such account exists.)
 
 ## Identity model
 
@@ -48,6 +60,7 @@ Never display passwords, MFA secrets, raw tokens, provider secrets or full payme
 ## Staff grant workflow
 
 Owner Console:
+
 1. enter existing user's email;
 2. server resolves verified account to stable UUID;
 3. choose role;
@@ -68,6 +81,7 @@ Provide emergency “Revoke all staff privileged sessions”.
 ## Dashboard modules
 
 Build real modules only:
+
 - Overview;
 - Customers;
 - Staff;
@@ -86,6 +100,7 @@ No fake/demo operational metrics. If data has no real authority, hide it or show
 ## Button/function completeness rule
 
 Every visible actionable control must have:
+
 - real backend authority;
 - role/permission check;
 - loading state;
@@ -105,6 +120,7 @@ A rendered button with no proven backend/result path is incomplete.
 Based on permission, Owner/Admin/Support can search by approved identifiers and view safe operational state.
 
 Supported actions include:
+
 - plan/entitlement view/change where currently supported;
 - usage adjustment;
 - supported reset-window action;
@@ -143,6 +159,7 @@ If execution-control state cannot be read, physical execution fails closed.
 ## Audit
 
 Every privileged mutation should record, where relevant:
+
 - actor;
 - role;
 - target;
@@ -160,6 +177,7 @@ Audit is append-only and not a substitute for authorization.
 Use Primary Owner + Staff + Customer A + Customer B.
 
 Test:
+
 - hidden privileged surface for customers;
 - direct URL attempts;
 - privilege escalation;
@@ -174,7 +192,6 @@ Test:
 - emergency controls.
 
 Every phase reports commercial-launch readiness percentage.
-
 
 ## Master Phase 1–49 authority
 

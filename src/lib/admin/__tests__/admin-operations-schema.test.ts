@@ -43,7 +43,7 @@ beforeAll(async () => {
   }
 
   await twin.execSuperuser(
-    `insert into public.user_roles (user_id, role) values ('${OPERATOR}', 'admin')
+    `insert into public.ocade_staff (user_id, role) values ('${OPERATOR}', 'admin')
      on conflict do nothing`,
   );
 
@@ -72,9 +72,19 @@ describe("commercial usage windows", () => {
     const rows = await twin.asTenant<{ user_id: string }>(
       OPERATOR,
       `select user_id from public.ocade_commercial_usage order by user_id`,
+      { aal: "aal2" },
     );
     expect(rows.error).toBeUndefined();
     expect(rows.rows.map((row) => row.user_id)).toEqual([PERSON, STRANGER]);
+  });
+
+  it("shows that operator nobody else's until the session answered its second factor", async () => {
+    const rows = await twin.asTenant<{ user_id: string }>(
+      OPERATOR,
+      `select user_id from public.ocade_commercial_usage`,
+      { aal: "aal1" },
+    );
+    expect(rows.rows).toEqual([]);
   });
 
   it("still shows an ordinary account only its own", async () => {

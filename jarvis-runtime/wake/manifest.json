@@ -1,0 +1,97 @@
+{
+ "name": "OCADE wake",
+ "version": "1.0.0",
+ "phrases": [
+  "OCADE",
+  "Hey OCADE"
+ ],
+ "file": "ocade_wake_v1.npz",
+ "sha256": "ea062a9ec688b2bea49750eb4ecca2f9eaadd371f08e8c82e49b00a288c17584",
+ "bytes": 208736,
+ "runtime": {
+  "engine": "ocade_wake numpy",
+  "sampleRate": 16000,
+  "frame": 400,
+  "hop": 160,
+  "fft": 512,
+  "mels": 40,
+  "melRange": [
+   60.0,
+   7600.0
+  ],
+  "windowSamples": 25600,
+  "stepSamples": 1600,
+  "threshold": 0.6,
+  "consecutive": 2,
+  "refractorySeconds": 2.0,
+  "quietRms": 0.004
+ },
+ "provenance": {
+  "madeBy": "OCADE (scripts/wake/make_data.py and train.py), on the owner's computer",
+  "speech": "Windows speech voices on this computer (OneCore and desktop SAPI); no download",
+  "voices": {
+   "Microsoft Ravi": {
+    "language": "en-IN",
+    "gender": "male",
+    "accent": "Indian English"
+   },
+   "Microsoft Heera": {
+    "language": "en-IN",
+    "gender": "female",
+    "accent": "Indian English"
+   },
+   "Microsoft George": {
+    "language": "en-GB",
+    "gender": "male",
+    "accent": "British English"
+   },
+   "Microsoft Hazel": {
+    "language": "en-GB",
+    "gender": "female",
+    "accent": "British English"
+   },
+   "Microsoft Susan": {
+    "language": "en-GB",
+    "gender": "female",
+    "accent": "British English"
+   },
+   "Microsoft Zira Desktop": {
+    "language": "en-US",
+    "gender": "female",
+    "accent": "American English"
+   },
+   "Microsoft Hazel Desktop": {
+    "language": "en-GB",
+    "gender": "female",
+    "accent": "British English"
+   }
+  },
+  "clips": {
+   "positive": 663,
+   "heldOut": 0,
+   "hardNegative": 315,
+   "speech": 548,
+   "media": 80
+  },
+  "backgrounds": "Windows Media sounds on the computer; generated noise and tones",
+  "notUsed": "Hugging Face or any model or dataset hub"
+ },
+ "measured": {
+  "falsePerHour": 0.0,
+  "heardInStream": "98/117",
+  "streamMinutes": 30,
+  "voices": "the training voices (optimistic)",
+  "unseenVoices": {
+   "heldOut": [
+    "Microsoft Ravi (en-IN, male)",
+    "Microsoft Susan (en-GB, female)"
+   ],
+   "stream": "30 minutes of a room: speech, TV-like tones, noise and silence; the phrase said in a gap, 112 times",
+   "atThreshold": 0.6,
+   "heard": "90/112",
+   "falsePerHour": 2.0,
+   "note": "Synthetic voices only. Real speakers and real rooms are not yet measured."
+  }
+ },
+ "created": "2026-10-03"
+}

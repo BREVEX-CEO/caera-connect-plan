@@ -4,7 +4,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSession } from "@/lib/security/session-middleware";
 import { LIST_CAP, readAllPages } from "@/lib/supabase/read-all";
 import type { Json } from "@/integrations/supabase/types";
 
@@ -36,7 +36,7 @@ export interface OcadeConversationRow {
 const CONVERSATION_COLUMNS = "id, title, pinned, archived, model_id, updated_at, created_at";
 
 export const listConversations = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("ocade_conversations")
@@ -56,7 +56,7 @@ export const listConversations = createServerFn({ method: "GET" })
  * Library files it produced stay in Library, which owns them.
  */
 export const deleteConversation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { error, count } = await context.supabase
@@ -69,7 +69,7 @@ export const deleteConversation = createServerFn({ method: "POST" })
   });
 
 export const createConversation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) =>
     z
       .object({
@@ -106,7 +106,7 @@ const updateInput = z.object({
 });
 
 export const updateConversation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => updateInput.parse(i))
   .handler(async ({ data, context }) => {
     const patch: Record<string, unknown> = {};
@@ -138,7 +138,7 @@ export const updateConversation = createServerFn({ method: "POST" })
  * CASCADE, so there is no second pass that could half-succeed.
  */
 export const deleteAllConversations = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .handler(async ({ context }) => {
     const { error, count } = await context.supabase
       .from("ocade_conversations")
@@ -151,7 +151,7 @@ export const deleteAllConversations = createServerFn({ method: "POST" })
 /* -------------------- Messages -------------------- */
 
 export const listMessages = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ conversationId: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     /*
@@ -182,7 +182,7 @@ export const listMessages = createServerFn({ method: "GET" })
   });
 
 export const deleteMessage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("ocade_messages").delete().eq("id", data.id);
@@ -207,7 +207,7 @@ export const deleteMessage = createServerFn({ method: "POST" })
  * stored.
  */
 export const deleteMessagesFrom = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) =>
     z.object({ conversationId: uuid, from: z.string().datetime({ offset: true }) }).parse(i),
   )
@@ -229,7 +229,7 @@ export const deleteMessagesFrom = createServerFn({ method: "POST" })
  * private sync is enabled.
  */
 export const appendOcadeMessage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((i) =>
     z
       .object({

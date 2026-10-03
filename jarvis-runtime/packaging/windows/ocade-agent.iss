@@ -37,6 +37,9 @@ SignedUninstaller=yes
 Source: "{#Source}\*"; DestDir: "{app}\versions\{#Version}"; Flags: recursesubdirs ignoreversion
 
 [Run]
+; A running agent (an older build) is asked to exit first: started beside it, the new build
+; found it running and left, and that counted as a failed start of the new build.
+Filename: "{app}\versions\{#Version}\ocade-agent.exe"; Parameters: "--stop"; Flags: runhidden
 ; Start with Windows (one dormant supervisor, one tray icon), then start now.
 Filename: "{app}\versions\{#Version}\ocade-agent.exe"; Parameters: "--install-autostart"; Flags: runhidden
 Filename: "{app}\versions\{#Version}\ocade-agent.exe"; Description: "Start OCADE Device Agent"; Flags: nowait postinstall

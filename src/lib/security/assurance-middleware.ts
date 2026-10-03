@@ -23,10 +23,11 @@
  * of it be checked without a server.
  */
 import { createMiddleware } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSession } from "@/lib/security/session-middleware";
 import {
   assuranceFromClaims,
   decideAssurance,
+  HIGH_RISK_REQUIREMENT,
   type AssuranceRequirement,
   type SessionAssurance,
 } from "./assurance";
@@ -49,7 +50,7 @@ class AssuranceRequiredError extends Error {
 }
 
 /** Facts about the caller's session, gathered from sources it does not control. */
-export async function readSessionAssurance(context: {
+async function readSessionAssurance(context: {
   supabase: { auth: { mfa: { listFactors: () => Promise<{ data: unknown; error: unknown }> } } };
   claims: Record<string, unknown> | null | undefined;
 }): Promise<SessionAssurance> {
@@ -76,9 +77,17 @@ export async function readSessionAssurance(context: {
  * Used as `.middleware([requireAssurance({ level: "aal2" })])`, which reads at
  * the call site as the sentence it is.
  */
-export function requireAssurance(requires: AssuranceRequirement) {
+export function requireAssurance(
+  requires: AssuranceRequirement,
+  /**
+   * Also allow a session whose every factor is newer than it: two-step was set
+   * up in this very sign-in, so no older factor is being got round (the
+   * recovery codes made the moment two-step is turned on).
+   */
+  options: { firstSetup?: boolean } = {},
+) {
   return createMiddleware({ type: "function" })
-    .middleware([requireSupabaseAuth])
+    .middleware([requireSession])
     .server(async ({ next, context }) => {
       const session = await readSessionAssurance(
         context as unknown as Parameters<typeof readSessionAssurance>[0],
@@ -89,6 +98,32 @@ export function requireAssurance(requires: AssuranceRequirement) {
           decision.reason,
           decision.message,
           decision.enrollmentWouldHelp,
+        );
+      }
+      /*
+       * A factor added after this session signed in proves nothing yet: a
+       * stolen token could enroll its own and answer it. The database rule
+       * (20261001095000), asked here for the actions only the server performs.
+       * Every requirement carries recency (decideAssurance), so every one asks.
+       */
+      const { supabase } = context as unknown as {
+        supabase: {
+          rpc: (
+            fn: "ocade_factor_added_since_sign_in" | "ocade_two_step_set_up_in_this_sign_in",
+          ) => PromiseLike<{ data: unknown; error: unknown }>;
+        };
+      };
+      const { data: newer, error } = await supabase.rpc("ocade_factor_added_since_sign_in");
+      if (error) throw new Error("OCADE could not check this session just now. Try again.");
+      const firstSetup =
+        newer === true &&
+        options.firstSetup === true &&
+        (await supabase.rpc("ocade_two_step_set_up_in_this_sign_in")).data === true;
+      if (newer === true && !firstSetup) {
+        throw new AssuranceRequiredError(
+          "reauthentication_required",
+          "You set up two-step verification after signing in here. Sign in again, then try this.",
+          false,
         );
       }
       return next({ context: { assurance: session } });
@@ -104,4 +139,4 @@ export function requireAssurance(requires: AssuranceRequirement) {
  * `{ level: "aal2" }` somewhere else is how one of them quietly ends up with a
  * different rule.
  */
-export const HIGH_RISK: AssuranceRequirement = { level: "aal2" };
+export const HIGH_RISK: AssuranceRequirement = HIGH_RISK_REQUIREMENT;

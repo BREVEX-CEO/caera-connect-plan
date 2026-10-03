@@ -31,7 +31,7 @@ const arg = (name, fallback) => {
 
 const BASE = arg("base", "http://127.0.0.1:8788");
 const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 
 /** Set what the project reports at `/auth/v1/settings`. */
 async function reportProviders(external) {
@@ -187,6 +187,61 @@ try {
   check("the right code signs in and lands where the person was going", true, page.url());
   await page.waitForSelector('aside button[aria-haspopup="menu"]', { timeout: 15_000 });
   check("and the signed-in account is on screen", true);
+
+  // Opened fresh while signed in, the sign-in page forwards instead of asking again.
+  await page.goto(`${BASE}/auth?next=%2Flibrary`, { waitUntil: "load" });
+  check(
+    "a signed-in person who opens /auth is taken where they were going",
+    await page
+      .waitForURL((url) => url.pathname === "/library", { timeout: 10_000 })
+      .then(
+        () => true,
+        () => false,
+      ),
+    page.url(),
+  );
+
+  /*
+   * GOOGLE, AND ONLY THE FLOW THIS BROWSER STARTED. Google answers with a
+   * one-time code that this browser alone can exchange (PKCE); tokens planted
+   * in an address sign nobody in.
+   */
+  const google = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+  const viaGoogle = await google.newPage();
+  viaGoogle.on("pageerror", (error) => pageErrors.push(String(error)));
+  await viaGoogle.goto(`${BASE}/auth?next=%2Flibrary`, { waitUntil: "networkidle" });
+  await viaGoogle.getByRole("button", { name: "Continue with Google" }).click();
+  check(
+    "Continue with Google signs in and lands where the person was going",
+    await viaGoogle
+      .waitForURL((url) => url.pathname === "/library", { timeout: 20_000 })
+      .then(() =>
+        viaGoogle.waitForSelector('aside button[aria-haspopup="menu"]', { timeout: 15_000 }),
+      )
+      .then(
+        () => true,
+        () => false,
+      ),
+    viaGoogle.url(),
+  );
+  const planted = await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: `planted-${Date.now()}@ocade.test`, password: "proof" }),
+  }).then((r) => r.json());
+  const victim = await (await browser.newContext()).newPage();
+  await victim.goto(
+    `${BASE}/#access_token=${planted.access_token}&refresh_token=${planted.refresh_token}&expires_in=3600&token_type=bearer`,
+    { waitUntil: "networkidle" },
+  );
+  await victim.waitForTimeout(2000);
+  check(
+    "a link carrying somebody else's tokens signs nobody in",
+    (await victim.getByText(planted.user.email).count()) === 0 &&
+      (await victim.evaluate(() =>
+        Object.keys(localStorage).every((key) => !/auth-token$/.test(key)),
+      )),
+  );
 
   check("no uncaught page errors", pageErrors.length === 0, pageErrors.join("; "));
 } finally {

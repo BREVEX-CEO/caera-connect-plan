@@ -1,7 +1,6 @@
 # The OCADE Device Agent: exactly what ocade_agent.py and the modules it runs
-# import, pinned so every build is the same build. The broader requirements.txt
-# serves the preserved donor modules (plugins, dashboard, media tools) and is
-# not part of the Device Agent.
+# import, pinned so every build is the same build. (The donor's own broad list
+# stays with the donor, under imports/ocade-jarvis/source-original/.)
 #
 #   python -m pip install -r requirements-agent.txt
 #   python -m playwright install chromium
@@ -11,9 +10,24 @@ pillow==12.3.0
 mss==10.1.0
 pyautogui==0.9.54
 pynput==1.8.2
+# Windows to switch to instead of reopening, and paste-then-restore for long text.
+pygetwindow==0.0.9
+# Native app controls through Windows UI Automation (Windows only).
+uiautomation==2.0.29; sys_platform == "win32"
+comtypes==1.4.16; sys_platform == "win32"
+# Volume through the audio endpoint (Windows), and the system snapshot.
+pycaw==20251023; sys_platform == "win32"
+psutil==7.1.0
+pyperclip==1.11.0
 pystray==0.19.5
 send2trash==1.8.3
-# Local "Hey OCADE" listening in Background/Wake Mode only.
+# Documents and spreadsheets read and edited directly (no Office library, no model).
+openpyxl==3.1.5
+et_xmlfile==2.0.0
+pypdf==6.19.0
+# Local "OCADE" / "Hey OCADE" listening in Background/Wake Mode only: OCADE's own
+# bundled model (wake/), its features and network run in numpy.
 sounddevice==0.5.2
+numpy==2.2.6
 # Build only.
 pyinstaller==6.16.0

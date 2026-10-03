@@ -338,10 +338,8 @@ export function TermsContent() {
 
       <PublicSection title="25. Support, privacy, legal, security and investor enquiries">
         <p>
-          OCADE uses a ticket-based support system rather than publishing unverified email
-          addresses. Signed-in requests can be stored in the OCADE support queue and reviewed in the
-          administrative support workspace. Supported categories include Account, Billing,
-          Technical, Privacy, Security, Feedback, Legal, Investor and Partnership.
+          OCADE does not publish unverified email addresses. Support, privacy, legal, security and
+          investor enquiries are accepted only through channels OCADE has activated and verified.
         </p>
         <p>
           Visit the{" "}
@@ -382,7 +380,6 @@ export function PrivacyContent() {
           <li>Account identifiers and authentication events when you sign in.</li>
           <li>Basic profile, settings and device registrations.</li>
           <li>Conversations, messages and files under the storage mode you choose.</li>
-          <li>Support tickets, support messages and information you choose to include in them.</li>
           <li>
             Security, abuse-prevention and failure records designed to minimize raw user content.
           </li>
@@ -476,32 +473,32 @@ export function PrivacyContent() {
 
       <PublicSection
         id="jarvis"
-        title="9. OCADE JARVIS, the Device Agent and the browser extension"
+        title="9. OCADE JARVIS, the Device Agent and the OCADE app on phones"
       >
         <p>
-          When you ask OCADE JARVIS to do something on a computer or in a browser you connected, the
-          OCADE Device Agent or the OCADE JARVIS browser extension sends your OCADE account what it
-          needs for that task: the text and structure of the page or window it is working in, its
-          address and title, screenshots for the live view, and the result of each step. It does
-          this only while a task you started is running, only in the tabs and the workspace folder
-          JARVIS was given, and only to OCADE.
+          When you ask OCADE JARVIS to do something on a computer or phone you connected, the OCADE
+          Device Agent or the OCADE app sends your OCADE account what it needs for that task: the
+          text and structure of the page, window or screen it is working in, its address and title,
+          screenshots for the live view, and the result of each step. It does this only while a task
+          you started is running, only in the tabs, apps and workspace folder JARVIS was given, and
+          only to OCADE.
         </p>
         <p>
-          The extension never reads other tabs, saved passwords or payment details, and hands
-          CAPTCHA, one-time codes and passkeys to you. Page content is used to carry out your task,
-          is not sold, is not used for advertising and is not used to train models. Detailed task
-          activity is kept for 90 days; screenshots are kept only while a task runs. Disconnect the
-          extension or remove the computer in JARVIS Devices at any time; its key stops working at
-          once, and you can delete JARVIS conversations and activity from your account.
+          In your own browser, JARVIS works only in tabs it opened; it never reads other tabs, saved
+          passwords or payment details, and hands CAPTCHA, one-time codes and passkeys to you. Page
+          content is used to carry out your task, is not sold, is not used for advertising and is
+          not used to train models. Detailed task activity is kept for 90 days; screenshots are kept
+          only while a task runs. Remove a computer or phone in JARVIS Devices at any time; its key
+          stops working at once, and you can delete JARVIS conversations and activity from your
+          account.
         </p>
       </PublicSection>
 
-      <PublicSection title="10. Support tickets and sensitive secrets">
+      <PublicSection title="10. Support requests and sensitive secrets">
         <p>
-          Support tickets may contain the information you choose to provide and may be reviewed in
-          the administrative support workspace. Do not place passwords, one-time codes, PINs,
-          recovery codes, private keys, full card numbers, CVVs or other authentication or payment
-          secrets in a ticket.
+          A support request may contain the information you choose to provide. Never include
+          passwords, one-time codes, PINs, recovery codes, private keys, full card numbers, CVVs or
+          other authentication or payment secrets.
         </p>
       </PublicSection>
 
@@ -518,7 +515,8 @@ export function PrivacyContent() {
         <p>
           Depending on applicable law, you may have rights to access, correct or erase personal
           information, withdraw consent, object to certain processing or raise a grievance. Use the
-          data-rights route where available or create a Privacy ticket through OCADE Support.
+          data-rights controls in Settings (export and deletion), or a verified privacy channel
+          listed on the Help page.
         </p>
       </PublicSection>
 

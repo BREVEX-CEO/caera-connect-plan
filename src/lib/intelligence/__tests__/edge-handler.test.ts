@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { handleOnlineIntelligence, type OnlineHandlerDependencies } from "../edge-handler";
+import {
+  handleOnlineIntelligence,
+  isServiceKey,
+  type OnlineHandlerDependencies,
+} from "../edge-handler";
+import { SERVICE_USER_HEADER } from "../contract";
 
 const ORIGIN = "https://ocade.example";
 
@@ -390,6 +395,20 @@ describe("the health record this function leaves behind", () => {
     });
   });
 
+  it("leaves no record for a browser's preflight, which is not a generation", async () => {
+    // Seen in production: preflights logged as succeeded generations served by no slot.
+    const seen = observed();
+    const response = await handleOnlineIntelligence(
+      new Request("https://project.supabase.co/functions/v1/ocade-intelligence", {
+        method: "OPTIONS",
+        headers: { Origin: ORIGIN },
+      }),
+      dependencies({ observe: seen.observe }),
+    );
+    expect(response.status).toBeLessThan(300);
+    expect(seen.records).toHaveLength(0);
+  });
+
   it("carries no prompt, key, token, user id or permit", async () => {
     const seen = observed();
     await handleOnlineIntelligence(
@@ -585,5 +604,276 @@ describe("the health record this function leaves behind", () => {
       }),
     );
     expect(await response.text()).toContain('"type":"refusal"');
+  });
+});
+
+describe("capacity failures that must not look like each other", () => {
+  function events(stream: string) {
+    return stream
+      .split("\n\n")
+      .filter((frame) => frame.startsWith("data: "))
+      .map((frame) => JSON.parse(frame.slice(6)) as Record<string, unknown>);
+  }
+
+  it("refuses a blocked prompt once, not retryable, with no 'empty answer' after it", async () => {
+    for (const chunk of [
+      { promptFeedback: { blockReason: "SAFETY" } },
+      { candidates: [{ content: { parts: [] }, finishReason: "PROHIBITED_CONTENT" }] },
+    ]) {
+      const finalize = vi.fn(async () => undefined);
+      const response = await handleOnlineIntelligence(
+        request(),
+        dependencies({
+          callProvider: vi.fn(async () => provider([chunk])),
+          finalizePermit: finalize,
+        }),
+      );
+      const refusals = events(await response.text()).filter((event) => event.type === "refusal");
+      expect(refusals).toEqual([
+        expect.objectContaining({ code: "content_blocked", retryable: false }),
+      ]);
+      expect(finalize).not.toHaveBeenCalled();
+    }
+  });
+
+  it("moves to the next key when Google calls THIS key invalid with a 400", async () => {
+    const call = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            error: { status: "INVALID_ARGUMENT", details: [{ reason: "API_KEY_INVALID" }] },
+          }),
+          { status: 400 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        provider([{ candidates: [{ content: { parts: [{ text: "ok" }] } }] }]),
+      );
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ callProvider: call }),
+    );
+    expect(response.status).toBe(200);
+    await response.text();
+    expect(call.mock.calls.map(([input]) => input.slot)).toEqual(["primary", "secondary"]);
+  });
+
+  it("does not spend other keys on a 400 about the request itself", async () => {
+    const call = vi.fn(
+      async () => new Response('{"error":{"message":"bad schema"}}', { status: 400 }),
+    );
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ callProvider: call }),
+    );
+    expect(response.status).toBe(503);
+    expect(call).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives a key that never starts answering its own deadline, then uses the next key", async () => {
+    vi.useFakeTimers();
+    try {
+      const call = vi
+        .fn<OnlineHandlerDependencies["callProvider"]>()
+        .mockImplementationOnce(
+          ({ signal }) =>
+            new Promise((_, reject) =>
+              signal.addEventListener("abort", () => reject(signal.reason)),
+            ),
+        )
+        .mockResolvedValueOnce(
+          provider([{ candidates: [{ content: { parts: [{ text: "ok" }] } }] }]),
+        );
+      const pending = handleOnlineIntelligence(request(), dependencies({ callProvider: call }));
+      await vi.advanceTimersByTimeAsync(25_000);
+      const response = await pending;
+      expect(response.status).toBe(200);
+      expect(await response.text()).toContain('"text":"ok"');
+      expect(call.mock.calls.map(([input]) => input.slot)).toEqual(["primary", "secondary"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("answers a readable 503, not an unhandled throw, when the person leaves during a retry wait", async () => {
+    const leaving = new AbortController();
+    const response = await handleOnlineIntelligence(
+      new Request(request(), { signal: leaving.signal }),
+      dependencies({
+        callProvider: vi.fn(async () => new Response(null, { status: 503 })),
+        sleep: vi.fn(
+          (_ms: number, signal: AbortSignal) =>
+            new Promise<void>((_, reject) => {
+              signal.addEventListener("abort", () => reject(signal.reason));
+              leaving.abort(new DOMException("gone", "AbortError"));
+            }),
+        ),
+      }),
+    );
+    expect(response.status).toBe(503);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(ORIGIN);
+  });
+
+  it("charges the permit on the server before telling the person the answer is complete", async () => {
+    const order: string[] = [];
+    const finalize = vi.fn(
+      async (input: { userId: string; permit: { idempotencyKey: string } }) => {
+        order.push(`charged ${input.userId} ${input.permit.idempotencyKey}`);
+      },
+    );
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ finalizePermit: finalize }),
+    );
+    for (const event of events(await response.text())) order.push(String(event.type));
+    expect(finalize).toHaveBeenCalledTimes(1);
+    expect(order.indexOf("charged user-1 idempotency-1")).toBeLessThan(order.indexOf("final"));
+  });
+
+  it("never charges for an answer that did not arrive", async () => {
+    const finalize = vi.fn(async () => undefined);
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ callProvider: vi.fn(async () => provider([])), finalizePermit: finalize }),
+    );
+    await response.text();
+    expect(finalize).not.toHaveBeenCalled();
+  });
+
+  it("gives back a claimed permit itself when nothing arrived, however it ended", async () => {
+    for (const callProvider of [
+      vi.fn(async () => provider([])),
+      vi.fn(async () => new Response(null, { status: 503 })),
+    ]) {
+      const finalize = vi.fn(async () => undefined);
+      const release = vi.fn(async () => undefined);
+      const response = await handleOnlineIntelligence(
+        request(),
+        dependencies({ callProvider, finalizePermit: finalize, releasePermit: release }),
+      );
+      await response.text();
+      expect(release).toHaveBeenCalledTimes(1);
+      expect(finalize).not.toHaveBeenCalled();
+    }
+  });
+
+  it("charges an answer stopped part-way: once words arrived it is not given back", async () => {
+    const leaving = new AbortController();
+    const finalize = vi.fn(async () => undefined);
+    const release = vi.fn(async () => undefined);
+    const words = `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: "Half an" }] } }] })}\n\n`;
+    const response = await handleOnlineIntelligence(
+      new Request(request(), { signal: leaving.signal }),
+      dependencies({
+        finalizePermit: finalize,
+        releasePermit: release,
+        callProvider: vi.fn(
+          async ({ signal }) =>
+            new Response(
+              new ReadableStream({
+                start(stream) {
+                  stream.enqueue(new TextEncoder().encode(words));
+                  signal.addEventListener("abort", () => stream.error(signal.reason));
+                },
+              }),
+            ),
+        ),
+      }),
+    );
+    const reader = response.body!.getReader();
+    let seen = "";
+    while (!seen.includes("Half an")) {
+      seen += new TextDecoder().decode((await reader.read()).value);
+    }
+    leaving.abort(new DOMException("gone", "AbortError"));
+    await reader.cancel().catch(() => undefined);
+    await vi.waitFor(() => expect(finalize).toHaveBeenCalledTimes(1));
+    expect(release).not.toHaveBeenCalled();
+  });
+});
+
+describe("the door for OCADE's own server", () => {
+  const USER = "22222222-2222-4222-8222-222222222222";
+  const jarvis = () => {
+    const value = body();
+    return { ...value, surface: "jarvis", permit: { ...value.permit, surface: "jarvis" } };
+  };
+  const serverRequest = (value: unknown, headers: Record<string, string>) =>
+    new Request("https://project.supabase.co/functions/v1/ocade-intelligence-service", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify(value),
+    });
+  const door = (patch: Partial<OnlineHandlerDependencies> = {}) =>
+    dependencies({
+      allowedOrigins: new Set(),
+      verifyJwt: vi.fn(async () => null),
+      verifyService: async (request) =>
+        (await isServiceKey(request.headers.get("apikey"), ["server-key", "older-server-key"]))
+          ? { userId: request.headers.get(SERVICE_USER_HEADER)! }
+          : null,
+      ...patch,
+    });
+
+  it("serves a holder of a server key, for the person it names and that person's permit", async () => {
+    const deps = door();
+    const response = await handleOnlineIntelligence(
+      serverRequest(jarvis(), { apikey: "older-server-key", [SERVICE_USER_HEADER]: USER }),
+      deps,
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    expect(await response.text()).toContain('"type":"final"');
+    expect(deps.claimPermit).toHaveBeenCalledWith(expect.objectContaining({ userId: USER }));
+    expect(deps.verifyJwt).not.toHaveBeenCalled();
+  });
+
+  it("refuses a wrong key, a missing key, a session token, and anything but JARVIS work", async () => {
+    const attempts: Record<string, string>[] = [
+      { apikey: "guess", [SERVICE_USER_HEADER]: USER },
+      { [SERVICE_USER_HEADER]: USER },
+      { Authorization: "Bearer user-token", [SERVICE_USER_HEADER]: USER },
+    ];
+    for (const headers of attempts) {
+      const deps = door();
+      const response = await handleOnlineIntelligence(serverRequest(jarvis(), headers), deps);
+      expect(response.status).toBe(401);
+      expect(deps.claimPermit).not.toHaveBeenCalled();
+      expect(deps.callProvider).not.toHaveBeenCalled();
+    }
+    const chat = await handleOnlineIntelligence(
+      serverRequest(body(), { apikey: "server-key", [SERVICE_USER_HEADER]: USER }),
+      door(),
+    );
+    expect(chat.status).toBe(400);
+    // Without naming a person it is an ordinary request, and this function allows no origin.
+    const anonymous = await handleOnlineIntelligence(
+      serverRequest(jarvis(), { apikey: "server-key", Origin: ORIGIN }),
+      door(),
+    );
+    expect(anonymous.status).toBe(403);
+  });
+
+  it("does not exist on the function browsers use, whatever header is sent", async () => {
+    const deps = dependencies({ verifyJwt: vi.fn(async () => null) });
+    const response = await handleOnlineIntelligence(
+      request(jarvis(), { apikey: "server-key", [SERVICE_USER_HEADER]: USER }),
+      deps,
+    );
+    expect(response.status).toBe(401);
+    expect(deps.callProvider).not.toHaveBeenCalled();
+  });
+
+  it("a refused permit stops it before any provider call", async () => {
+    const deps = door({
+      claimPermit: vi.fn(async () => ({ ok: false as const, reason: "no such permit" })),
+    });
+    const response = await handleOnlineIntelligence(
+      serverRequest(jarvis(), { apikey: "server-key", [SERVICE_USER_HEADER]: USER }),
+      deps,
+    );
+    expect(response.status).toBe(409);
+    expect(deps.callProvider).not.toHaveBeenCalled();
   });
 });

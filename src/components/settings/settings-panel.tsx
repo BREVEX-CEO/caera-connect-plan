@@ -27,6 +27,7 @@ import { useSession } from "@/lib/session";
 import { AdvancedSection } from "./AdvancedSection";
 import { SignInMethods } from "./SignInMethods";
 import { TwoStep } from "./TwoStep";
+import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { DataControlsSection } from "./DataControlsSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { UsageSection } from "./UsageSection";
@@ -34,7 +35,14 @@ import { BillingSection } from "./BillingSection";
 import { Action, Row, Toggle } from "./rows";
 import { DELETE_CONFIRMATION, deleteMyAccount } from "@/lib/account.functions";
 
-export type SettingsCategory = "account" | "appearance" | "notifications" | "privacy" | "billing";
+const SETTINGS_CATEGORIES = [
+  "account",
+  "appearance",
+  "notifications",
+  "privacy",
+  "billing",
+] as const;
+export type SettingsCategory = (typeof SETTINGS_CATEGORIES)[number];
 
 interface SettingsPanelValue {
   open: (category?: SettingsCategory) => void;
@@ -56,6 +64,22 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
   const open = useCallback((next: SettingsCategory = "account") => setCategory(next), []);
   const close = useCallback(() => setCategory(null), []);
   const value = useMemo<SettingsPanelValue>(() => ({ open, close }), [open, close]);
+
+  /*
+   * A LINK CAN OPEN SETTINGS: `?settings=privacy` on any page. Settings is a
+   * panel, not a page, so a notification about sessions or two-step has no
+   * address of its own to point at; this is that address. Taken once and
+   * dropped from the bar, so a reload or Back does not open it again.
+   */
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const asked = url.searchParams.get("settings");
+    if (!asked) return;
+    if (SETTINGS_CATEGORIES.includes(asked as SettingsCategory))
+      setCategory(asked as SettingsCategory);
+    url.searchParams.delete("settings");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, []);
 
   useEffect(() => {
     if (!category) return;
@@ -200,20 +224,26 @@ function AccountSettings() {
   const [problem, setProblem] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const { withProof, dialog } = useConfirmIdentity();
 
   return (
     <div>
+      {dialog}
       {/* Google and email OTP are the only identities; phone sign-in is removed. */}
       <Row label="Signed in as" description={user?.email ?? "Not signed in"} />
       {/* Keyed by the account: another account never sees the last one's methods. */}
-      {user ? <SignInMethods key={user.id} /> : null}
-      {user ? <TwoStep key={user.id} /> : null}
+      {/* Keyed by account so another account starts fresh, and by section so the
+          two never share a key: siblings with one key were duplicated by React on
+          every account update (an email change showed three copies of this form). */}
+      {user ? <SignInMethods key={`sign-in-${user.id}`} /> : null}
+      {user ? <TwoStep key={`two-step-${user.id}`} /> : null}
       <Row label="Sign out" description="Ends this session on this device only.">
         <button
           type="button"
           onClick={() =>
             void import("@/integrations/supabase/on-demand").then(({ loadSupabaseClient }) =>
-              loadSupabaseClient().then((supabase) => supabase.auth.signOut()),
+              // This device only: signing out here must not end the person's other devices.
+              loadSupabaseClient().then((supabase) => supabase.auth.signOut({ scope: "local" })),
             )
           }
           className="h-8 rounded-md border border-border px-3 text-sm text-foreground transition-colors hover:bg-accent"
@@ -253,7 +283,9 @@ function AccountSettings() {
                 setDeleting(true);
                 setProblem(null);
                 try {
-                  const result = await deleteMyAccount({ data: { confirmation: phrase } });
+                  const result = await withProof(() =>
+                    deleteMyAccount({ data: { confirmation: phrase } }),
+                  );
                   setReceipt(`Deleted. Your reference is ${result.receipt.reference}.`);
                 } catch (error) {
                   setProblem(error instanceof Error ? error.message : "That could not be done.");

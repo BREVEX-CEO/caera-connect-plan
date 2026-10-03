@@ -352,6 +352,12 @@ describe("usage", () => {
 
 describe("the rollback", () => {
   it("runs cleanly and leaves Chat intact", async () => {
+    // Newest first, the way a real rollback runs: schedules depend on devices.
+    const schedules = await twin.runScript(
+      "supabase/rollback",
+      "20260930095000_jarvis_schedules_rollback.sql",
+    );
+    expect(schedules.error).toBeUndefined();
     const identity = await twin.runScript(
       "supabase/rollback",
       "20260927090000_jarvis_device_identity_rollback.sql",

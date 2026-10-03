@@ -8,7 +8,7 @@
  */
 import {
   capabilityFor,
-  commandNeedsConfirmation,
+  commandClass,
   hostOf,
   type Capability,
   type DeviceAction,
@@ -55,7 +55,9 @@ export function isPrivateHost(host: string): boolean {
     /(^|\.)(localhost|local|internal|lan|home)$/.test(host) ||
     /^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    /^\[(::1?|f[cd]|fe[89ab])/i.test(host)
+    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
+    // IPv4 carried in IPv6 (mapped, or NAT64) is judged by the device's own resolver too.
+    /^\[(::1?|f[cd]|fe[89ab]|::ffff:|64:ff9b::)/i.test(host)
   );
 }
 
@@ -133,6 +135,12 @@ export function refuseAction(
   const label = LABELS[needed] ?? "That";
   if (!isAllowed(rows, needed, input.deviceId))
     return { capability: needed, message: `${label} is turned off for this device.` };
+  // Moving a file through a page needs the browser as well as the work folder.
+  if (
+    (input.action.action === "upload" || input.action.action === "download") &&
+    !isAllowed(rows, "browser", input.deviceId)
+  )
+    return { capability: "browser", message: "Browser control is turned off for this device." };
   if (needed !== "browser" && input.offered && input.offered[needed] !== true)
     return { capability: needed, message: `${label} is not available on this device.` };
   if (
@@ -172,12 +180,100 @@ export function needsConfirmation(
   switch (action.action) {
     case "open_app":
       return appDecision(rows, action.name, deviceId) !== true;
+    // An upload is a work-folder file leaving for a website: the page cannot be trusted to ask.
+    // The work folder is the boundary: reaching past it, in or out, is the person's to allow.
     case "file_delete":
     case "system":
+    case "upload":
+    case "file_import":
+    case "file_export":
       return true;
+    case "window":
+      // Closing a window can lose unsaved work.
+      return action.state === "close";
     case "run":
-      return commandNeedsConfirmation(action.command);
+      // The task's own builds, tests and git reads run unasked (owner policy,
+      // 2026-10-02); everything else is shown whole and asked. queue() asks for
+      // a routine one too once the task has read a web page.
+      return !["inert", "routine"].includes(commandClass(action.command));
     default:
       return false;
   }
+}
+
+export interface OnlineDevice {
+  id: string;
+  name: string;
+  kind: string;
+  capabilities: unknown;
+}
+
+/**
+ * WHICH COMPUTER DOES THE WORK. The computer's own work needs its Device
+ * Agent. Browser work goes to the one computer allowed to use the person's own
+ * browser, else one with the isolated browser. With several possible and none
+ * chosen, the person chooses: work never goes to a computer they did not mean.
+ */
+export function chooseTaskDevice<T extends OnlineDevice>(
+  online: readonly T[],
+  rows: readonly PermissionRow[],
+  where: "browser" | "computer",
+  deviceId?: string,
+  context: { here?: string; on?: "here" | "computer" } = {},
+): { ok: true; device: T; real: boolean } | { ok: false; message: string } {
+  const offers = (d: T, capability: string) =>
+    (d.capabilities as Record<string, boolean> | null)?.[capability] === true;
+  /*
+   * WHERE THE PERSON IS, UNLESS THEY NAMED A COMPUTER (owner addendum 2026-10-02).
+   * Asked from their phone in the OCADE app, "open Chrome" is the phone's Chrome;
+   * "on my PC" (or work only a computer can do) goes to the paired computer.
+   */
+  // A phone works on its apps and screen; a web task still needs a browser JARVIS drives.
+  const phone =
+    !deviceId && context.on !== "computer" && where === "computer"
+      ? online.find((d) => d.id === context.here && d.kind === "android")
+      : undefined;
+  if (phone) return { ok: true, device: phone, real: false };
+  const pool =
+    !deviceId && context.on === "computer" ? online.filter((d) => d.kind === "agent") : online;
+  if (pool.length === 0 && online.length > 0) {
+    return { ok: false, message: "Your computer is not online. Open OCADE on it, or turn it on." };
+  }
+  const chosen = deviceId ? pool.filter((d) => d.id === deviceId) : pool;
+  if (deviceId && chosen.length === 0) {
+    return {
+      ok: false,
+      message: "That computer is not online. Open OCADE on it or choose another in Devices.",
+    };
+  }
+  // Computers first: a phone works on a task only when the person chose it.
+  const workers = chosen.filter((d) => d.kind === "agent" || d.kind === "android");
+  const computers = workers.filter((d) => d.kind === "agent");
+  const agents = deviceId || computers.length === 0 ? workers : computers;
+  const ownBrowsers = chosen.filter(
+    (d) => offers(d, "browser_real") && isAllowed(rows, "browser_real", d.id),
+  );
+  if (!deviceId && agents.length > 1 && (where === "computer" || ownBrowsers.length !== 1)) {
+    return {
+      ok: false,
+      message: `More than one computer is online (${agents
+        .map((d) => d.name)
+        .join(", ")}). Choose one in Devices, then ask again.`,
+    };
+  }
+  const own = ownBrowsers[0];
+  const device =
+    where === "computer"
+      ? agents[0]
+      : (own ?? agents.find((d) => offers(d, "browser_isolated")) ?? agents[0]);
+  if (!device) {
+    return {
+      ok: false,
+      message:
+        where === "computer"
+          ? "No computer with the OCADE Device Agent is online. Connect one in Devices."
+          : "No JARVIS device is online. Connect one in Devices to run browser tasks.",
+    };
+  }
+  return { ok: true, device, real: device === own };
 }

@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSession } from "@/lib/security/session-middleware";
 import type { Json } from "@/integrations/supabase/types";
 import { sqlNullable } from "@/lib/supabase/rpc-null";
 import { ALLOWANCES } from "./usage-policy";
@@ -62,7 +62,7 @@ function leasePayload(
 }
 
 export const allocateOfflineUsage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator(
     (data: {
       deviceId: string;
@@ -174,7 +174,7 @@ export const allocateOfflineUsage = createServerFn({ method: "POST" })
   });
 
 export const reconcileOfflineUsage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((data: { deviceId: string; leaseId: string; events: SignedOfflineUsageEvent[] }) => {
     if (
       !data?.deviceId ||
@@ -254,7 +254,7 @@ export const reconcileOfflineUsage = createServerFn({ method: "POST" })
  * so a retry after a lost response cannot double-credit either.
  */
 export const closeOfflineUsageForRevokedDevice = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .validator((data: { deviceId: string }) => {
     if (!data?.deviceId) throw new Error("That device is not valid.");
     return data;

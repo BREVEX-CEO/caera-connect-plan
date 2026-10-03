@@ -116,7 +116,29 @@ describe("turns written while the database was unreachable", () => {
 });
 
 describe("after the browser restarts", () => {
-  const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
+  /*
+   * Until the encrypted write has reached the journal, not for a fixed 20 ms: under load
+   * (a busy machine, the whole suite at once) the write took longer and the "restart"
+   * read an empty journal.
+   */
+  const stored = () =>
+    new Promise<number>((resolve) => {
+      const open = indexedDB.open("ocade-offline-journal");
+      open.onsuccess = () => {
+        const names = open.result.objectStoreNames;
+        if (!names.contains("turns")) return resolve(0);
+        const count = open.result.transaction("turns").objectStore("turns").count();
+        count.onsuccess = () => resolve(count.result);
+      };
+      open.onerror = () => resolve(0);
+    });
+  const settle = async (want: "some" | "none" = "some") => {
+    const done = async () => (await stored()) > 0 === (want === "some");
+    for (let waited = 0; waited < 3000 && !(await done()); waited += 20) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  };
 
   it("are still there, encrypted, and upload exactly once", async () => {
     waiting("r1", "2026-01-01T00:00:00.000Z");
@@ -135,7 +157,7 @@ describe("after the browser restarts", () => {
     app = await boot("account-a");
     expect(unsyncedTurns().map((turn) => turn.clientKey)).toEqual(["r1"]);
     expect(await flushUnsyncedTurns()).toEqual({ uploaded: 1, waiting: 0 });
-    await settle();
+    await settle("none");
 
     app = await boot("account-a");
     expect(unsyncedTurns()).toEqual([]);

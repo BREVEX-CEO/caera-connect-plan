@@ -72,7 +72,8 @@ export type AccountDataClassId =
   | "settings"
   | "profile"
   | "billing"
-  | "legal";
+  | "legal"
+  | "jarvis";
 
 export interface AccountDataClass {
   id: AccountDataClassId;
@@ -117,12 +118,34 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
     retention: null,
   },
   {
+    /*
+     * Everything JARVIS keeps apart from its conversations (those are in
+     * Conversations). Clearing it disconnects the computers too: their keys
+     * stop working, and each asks to be connected again.
+     */
+    id: "jarvis",
+    label: "JARVIS",
+    description:
+      "JARVIS tasks and their activity, what it remembers about you, your reminders and scheduled work, its permissions and the computers you connected.",
+    tables: [
+      { table: "jarvis_tasks", owner: "user_id" },
+      { table: "jarvis_activity", owner: "user_id" },
+      { table: "jarvis_memories", owner: "user_id" },
+      { table: "jarvis_schedules", owner: "user_id" },
+      { table: "jarvis_permissions", owner: "user_id" },
+      { table: "jarvis_devices", owner: "user_id" },
+    ],
+    retention: null,
+  },
+  {
     id: "devices",
     label: "Devices and grants",
-    description: "Browsers and devices registered to this account, and what each may do.",
+    description:
+      "Browsers and devices registered to this account, what each may do, and which browsers show its notifications.",
     tables: [
       { table: "devices", owner: "user_id" },
       { table: "browser_grants", owner: "user_id" },
+      { table: "ocade_push_subscriptions", owner: "user_id" },
     ],
     retention: null,
   },

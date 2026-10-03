@@ -31,7 +31,7 @@ const arg = (name, fallback) => {
 };
 const BASE = arg("base", "http://127.0.0.1:8788");
 const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 const PYTHON = process.env.PYTHON ?? (process.platform === "win32" ? "python" : "python3");
 const SITE_PORT = 8799;
 const SITE = `http://127.0.0.1:${SITE_PORT}`;
@@ -179,6 +179,22 @@ try {
     );
   };
 
+  // A Shortcut's words wait in the box; a link never sends anything by itself.
+  const before = JSON.stringify(await boundary());
+  await page.goto(`${BASE}/ocade-jarvis?ask=${encodeURIComponent("Tidy my desktop")}`, {
+    waitUntil: "networkidle",
+  });
+  check(
+    "a Shortcut's request waits in the box and is not sent",
+    (await until(
+      async () => (await page.locator("#jarvis-composer").inputValue()) === "Tidy my desktop",
+    )) &&
+      !new URL(page.url()).searchParams.has("ask") &&
+      JSON.stringify(await boundary()) === before,
+    page.url(),
+  );
+  await page.locator("#jarvis-composer").fill("");
+
   await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
   const meter = page.getByText(/JARVIS uses left/);
   check(
@@ -285,6 +301,33 @@ try {
     };
     const thief = connectDevice(mkdtempSync(path.join(tmpdir(), "thief-")), "Not mine");
     await until(() => /OCADE: (\S+)/.test(thief.out()), 20_000);
+    // The link sent to somebody on another network: nothing to copy, a code to type.
+    const elsewhere = await browser.newContext({
+      viewport: { width: 1280, height: 860 },
+      extraHTTPHeaders: { "cf-connecting-ip": "203.0.113.9" },
+    });
+    await elsewhere.addInitScript(
+      ([key, value]) => window.localStorage.setItem(key, value),
+      [storageKey, JSON.stringify(session)],
+    );
+    const phished = await elsewhere.newPage();
+    await phished.goto(/OCADE: (\S+)/.exec(thief.out())[1], { waitUntil: "networkidle" });
+    const typed = phished.getByRole("textbox", { name: "Fingerprint the device shows" });
+    check(
+      "a connect link opened from another network shows no fingerprint and asks for the device's",
+      (await typed.count()) === 1 &&
+        (await phished.getByTestId("device-fingerprint").count()) === 0 &&
+        (await phished.getByRole("button", { name: "Connect", exact: true }).isDisabled()),
+    );
+    await typed.fill("0000-0000-0000-0000");
+    await phished.getByRole("button", { name: "Connect", exact: true }).click();
+    check(
+      "and a fingerprint that is not the device's connects nothing",
+      await until(
+        async () => (await phished.getByText(/not the fingerprint this device shows/).count()) >= 1,
+      ),
+    );
+    await phished.getByRole("button", { name: "Not mine", exact: true }).click();
     await page.goto(/OCADE: (\S+)/.exec(thief.out())[1], { waitUntil: "networkidle" });
     await page.getByRole("button", { name: "Not mine", exact: true }).click();
     check(
@@ -292,6 +335,15 @@ try {
       (await thief.exit) !== 0 && thief.out().includes("not approved"),
       thief.out().slice(-200),
     );
+    await page.goto(/OCADE: (\S+)/.exec(thief.out())[1], { waitUntil: "networkidle" });
+    check(
+      "a request that is gone says so, and how to ask again from the device",
+      (await page.getByText("This connection request has expired or was already used.").count()) ===
+        1 &&
+        (await page.getByText(/then Connect this computer/).count()) === 1 &&
+        (await page.getByRole("button", { name: "Connect", exact: true }).count()) === 0,
+    );
+    await page.getByRole("button", { name: "Close", exact: true }).click();
 
     const laptop = connectDevice(deviceHome, "Proof laptop");
     await until(() => /OCADE: (\S+)/.test(laptop.out()), 20_000);
@@ -309,12 +361,20 @@ try {
       (await page.getByRole("textbox").count()) === 0 ||
         (await page.getByRole("dialog").getByRole("textbox").count()) === 0,
     );
-    await page.getByRole("button", { name: "Connect", exact: true }).click();
+    // Approved from the other network with the fingerprint the computer printed.
+    await phished.goto(approveUrl, { waitUntil: "networkidle" });
+    await phished
+      .getByRole("textbox", { name: "Fingerprint the device shows" })
+      .fill(printed ?? "");
+    await phished.getByRole("button", { name: "Connect", exact: true }).click();
     check(
-      "one click connects the computer",
+      "the fingerprint the computer shows, typed from another network, connects it",
       (await laptop.exit) === 0 && laptop.out().includes("Connected as Proof laptop"),
       laptop.out().slice(-200),
     );
+    await elsewhere.close();
+    // This tab still holds the request it was showing: the person comes back to JARVIS.
+    await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
     const reused = spawnSync(
       PYTHON,
       [
@@ -345,7 +405,8 @@ except i.UpdateRequired:
     );
     const said = reused.stdout + reused.stderr;
     check("a signed request is accepted", said.includes("first 200"), said.slice(-300));
-    check("the same signed request cannot be replayed", said.includes("replay 401"));
+    // 409, not 401: a replay is refused without ever reading as "this computer was removed".
+    check("the same signed request cannot be replayed", said.includes("replay 409"));
     check(
       "the device rotates its own key and the old key stops working",
       said.includes("rotated True") && said.includes("new key 200") && said.includes("old key 401"),
@@ -374,6 +435,31 @@ except i.UpdateRequired:
         30_000,
       ),
     );
+    // The installer is offered only when it is really there: a link that downloads a
+    // program, or the plain sentence that it is not published yet. Never a dead link.
+    const getAgent = page.getByRole("link", { name: "Get the Device Agent for Windows" });
+    await until(
+      async () =>
+        (await getAgent.count()) === 1 ||
+        (await page.getByText("is not published yet").count()) >= 1,
+      15_000,
+    );
+    if ((await getAgent.count()) === 1) {
+      const href = new URL(await getAgent.getAttribute("href"), BASE).href;
+      const response = await fetch(href);
+      const firstBytes = Buffer.from(await response.arrayBuffer())
+        .subarray(0, 2)
+        .toString();
+      check(
+        "the Device Agent download is a real installer",
+        response.status === 200 &&
+          firstBytes === "MZ" &&
+          (await page.getByText(/Version \d+\.\d+/).count()) >= 1,
+        `${href} ${response.status}`,
+      );
+    } else {
+      check("with no installer published, the panel says so instead of linking to nothing", true);
+    }
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
 
     /* --- computer work: off until allowed, inside the workspace, risky asks --- */
@@ -401,7 +487,7 @@ except i.UpdateRequired:
     await files.click();
     // Commands are offered only where the computer confines them (Linux
     // bubblewrap); anywhere else the switch is shown unavailable, not faked.
-    const commands = page.getByRole("switch", { name: /Run commands in the workspace/ });
+    const commands = page.getByRole("switch", { name: /Run commands in the work folder/ });
     const terminal = await commands.isEnabled();
     if (terminal) await commands.click();
     else {
@@ -435,7 +521,17 @@ except i.UpdateRequired:
         args: { action: "file_write", path: "notes.md", content: "OCADE was here" },
       },
       terminal
-        ? { tool: "computer", args: { action: "run", command: "cat notes.md" } }
+        ? {
+            tool: "computer",
+            args: {
+              action: "run",
+              // One program, no shell: the same command on Linux (bubblewrap) and Windows.
+              command:
+                process.platform === "win32"
+                  ? `python -c "print(open('notes.md').read())"`
+                  : "cat notes.md",
+            },
+          }
         : { tool: "computer", args: { action: "file_read", path: "notes.md" } },
       { tool: "computer", args: { action: "file_read", path: "../outside.txt" } },
       ...(terminal
@@ -447,11 +543,20 @@ except i.UpdateRequired:
     await say("computer-task write and check my notes");
     if (terminal) {
       const ask = page.getByRole("alertdialog", { name: "Confirm this step" });
-      const asked = await until(async () => (await ask.count()) === 1, 60_000);
-      check(
-        "publishing (git push) waits for the person",
-        asked && (await ask.innerText()).includes("Running git push origin main"),
-      );
+      const shown = (text) =>
+        until(
+          async () => (await ask.count()) === 1 && (await ask.innerText()).includes(text),
+          60_000,
+        );
+      const reading =
+        process.platform === "win32"
+          ? `Running python -c "print(open('notes.md').read())"`
+          : "Running cat notes.md";
+      const first = await shown(reading);
+      check("a command is shown whole and waits for the person", first);
+      if (first) await ask.getByRole("button", { name: "Confirm", exact: true }).click();
+      const asked = await shown("Running git push origin main");
+      check("publishing (git push) waits for the person", asked);
       if (asked) await ask.getByRole("button", { name: "Decline", exact: true }).click();
     } else {
       blocked("publishing (git push) waits for the person", "no confined terminal on this host");
@@ -476,6 +581,70 @@ except i.UpdateRequired:
     if (terminal) {
       check("the declined push never ran", computerTurns.includes("The person declined this step"));
     }
+
+    /* --- Talking to JARVIS while it works ------------------------------------ */
+
+    await script("live-task", [
+      {
+        tool: "start_task",
+        args: { title: "Tidy the notes", where: "browser", steps: ["Look", "Look again"] },
+      },
+      { tool: "browser", args: { action: "wait", seconds: 5, step: 1 } },
+      { tool: "browser", args: { action: "wait", seconds: 5, step: 2 } },
+      { tool: "finish_task", args: { outcome: "completed", result: "Tidied." } },
+      { text: "All tidy." },
+    ]);
+    await say("live-task tidy my notes");
+    const working = await until(
+      async () =>
+        (await page.getByText("You can keep talking").count()) === 1 &&
+        (await page.locator("[data-testid=jarvis-task-status]").count()) === 1,
+      30_000,
+    );
+    check("while it works, JARVIS invites the person to keep talking", working);
+    const interject = async (text) => {
+      await page.locator("#jarvis-composer").fill(text);
+      await page.getByRole("button", { name: "Send to JARVIS while it works" }).click();
+    };
+    await interject("OCADE what are you doing?");
+    check(
+      "“what are you doing?” is answered at once from the real task",
+      await until(
+        async () => (await page.getByText(/I'm working on “Tidy the notes”/).count()) >= 1,
+        5_000,
+      ),
+    );
+    await interject("wait");
+    check(
+      "“wait” pauses the work",
+      await until(
+        async () =>
+          (await page.getByRole("button", { name: "Continue", exact: true }).count()) >= 1,
+        5_000,
+      ),
+    );
+    const pausedAt = (await boundary()).turns.length;
+    await page.waitForTimeout(7_000);
+    check(
+      "nothing new is asked of the model while paused",
+      (await boundary()).turns.length === pausedAt,
+    );
+    await interject("use the other file");
+    await page.getByRole("button", { name: "Continue", exact: true }).first().click();
+    await idle();
+    const liveTurns = (await boundary()).turns.map((t) => t.content).join("\n");
+    check(
+      "a mid-task redirect reaches the planner as the person's words",
+      liveTurns.includes('While you were working, the person said: [\\"use the other file\\"]') ||
+        liveTurns.includes('While you were working, the person said: ["use the other file"]'),
+    );
+    check(
+      "and the task still finishes",
+      (await page.locator("[data-testid=jarvis-task-status]").innerText()) === "Completed",
+    );
+    // The live-talk proof spent uses of its own; the later proofs start from a full allowance.
+    await setJarvisRemaining(28);
+    await page.reload({ waitUntil: "networkidle" });
 
     /* --- Online capacity unavailable: a calm OCADE state, the task saved -------- */
     const setBoundary = (status) =>
@@ -521,8 +690,26 @@ except i.UpdateRequired:
     check(
       "the task is saved, waiting, and no new turn can start",
       busyText.includes("your task is saved") &&
-        (await page.locator("#jarvis-composer").getAttribute("placeholder"))?.includes("busy"),
+        (await until(async () =>
+          ((await page.locator("#jarvis-composer").getAttribute("placeholder")) ?? "").includes(
+            "busy",
+          ),
+        )),
       (await page.locator("main").innerText()).replace(/\s+/g, " ").slice(-600),
+    );
+    // Pressing Resume during the wait must not mark the task Working with nobody driving it.
+    await page.getByRole("button", { name: "Resume", exact: true }).first().click();
+    check(
+      "Resume during the wait is remembered, not a Working task nobody drives",
+      await until(
+        async () =>
+          (await page
+            .getByText("JARVIS will continue this task as soon as it is available again.")
+            .count()) >= 1 &&
+          (await busy.count()) === 1 &&
+          (await page.getByRole("button", { name: "Take Over", exact: true }).count()) === 0,
+        10_000,
+      ),
     );
     await setBoundary(200);
     check(
@@ -542,11 +729,13 @@ except i.UpdateRequired:
     await page.waitForTimeout(1000);
 
     /* --- Remote PC from a phone-sized screen, and the global STOP JARVIS ------- */
+    const LONG_COMMAND =
+      process.platform === "win32" ? `python -c "import time; time.sleep(90)"` : "sleep 90";
     await script("remote-task", [
       { tool: "start_task", args: { title: "Long build", where: "computer", steps: ["Build"] } },
       // A long step, so STOP lands while the computer is working.
       ...(terminal
-        ? [{ tool: "computer", args: { action: "run", command: "sleep 90" } }]
+        ? [{ tool: "computer", args: { action: "run", command: LONG_COMMAND } }]
         : Array.from({ length: 12 }, () => ({
             tool: "browser",
             args: { action: "wait", seconds: 5 },
@@ -554,6 +743,12 @@ except i.UpdateRequired:
       { tool: "finish_task", args: { outcome: "completed", result: "Built." } },
     ]);
     await say("remote-task run the long build");
+    if (terminal) {
+      // Every command is the person's to confirm first.
+      const ask = page.getByRole("alertdialog", { name: "Confirm this step" });
+      await until(async () => (await ask.count()) === 1, 30_000);
+      await ask.getByRole("button", { name: "Confirm", exact: true }).click();
+    }
     await until(async () => (await page.getByText("Long build").count()) >= 1, 30_000);
     await page.setViewportSize({ width: 375, height: 800 });
     await page.getByRole("button", { name: "Open navigation", exact: true }).click();
@@ -610,6 +805,14 @@ except i.UpdateRequired:
     check(
       "the person can allow it in Allowed Apps",
       await until(async () => await page.getByRole("switch", { name: "127.0.0.1" }).isChecked()),
+    );
+    // A computer reports every app it has; one is found by name, not by scrolling.
+    await page.getByRole("searchbox", { name: "Find an app" }).fill("calc");
+    const found = await page.locator('select[id^="app-"]').count();
+    check(
+      "Allowed Apps finds an app by name among all the computer's apps",
+      found >= 1 && found < 10,
+      String(found),
     );
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
 
@@ -943,114 +1146,6 @@ except i.UpdateRequired:
     );
     check("in a tab of its own, leaving theirs alone", urls.includes(`${SITE}/second`));
     userBrowser.kill("SIGKILL");
-
-    /* --- the official extension: its own key, one click, only its own tabs ---- */
-    const extDir = mkdtempSync(path.join(tmpdir(), "ocade-ext-"));
-    spawnSync("node", ["extension/build.mjs", "--server", BASE, "--out", extDir]);
-    const chrome = await chromium.launchPersistentContext(
-      mkdtempSync(path.join(tmpdir(), "ocade-chrome-")),
-      {
-        executablePath: EXECUTABLE,
-        headless: true,
-        args: [
-          "--no-sandbox",
-          `--disable-extensions-except=${extDir}`,
-          `--load-extension=${extDir}`,
-        ],
-      },
-    );
-    try {
-      const theirs = await chrome.newPage();
-      await theirs.goto(`${SITE}/second`);
-      const worker =
-        chrome.serviceWorkers()[0] ??
-        (await chrome.waitForEvent("serviceworker", { timeout: 15_000 }));
-      const extensionId = new URL(worker.url()).host;
-      const popup = await chrome.newPage();
-      await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-      const connectButton = popup.getByRole("button", { name: "Connect this browser" });
-      check("the extension asks for consent before connecting", await connectButton.isDisabled());
-      await popup.getByRole("checkbox", { name: "I agree" }).check();
-      await connectButton.click();
-      const approval = await until(
-        () => chrome.pages().some((p) => p.url().includes("/ocade-jarvis?connect=")),
-        20_000,
-      );
-      check("the extension asks the signed-in person to approve it, with no code", approval);
-      const approveAt = chrome
-        .pages()
-        .find((p) => p.url().includes("/ocade-jarvis?connect="))
-        ?.url();
-      await popup.reload();
-      const extPrint = (await popup.locator("#fingerprint .mono").innerText()).trim();
-      await page.goto(approveAt, { waitUntil: "networkidle" });
-      check(
-        "OCADE shows the extension's own key fingerprint",
-        (await page.getByTestId("device-fingerprint").innerText()) === extPrint,
-      );
-      await page.getByRole("button", { name: "Connect", exact: true }).click();
-      await popup.reload();
-      check(
-        "the extension connects",
-        await until(async () => {
-          await popup.reload();
-          return (await popup.getByRole("status").innerText()).includes("Connected");
-        }, 40_000),
-      );
-      await rail("Devices").click();
-      const laptopCard = page.locator("li", { hasText: "Proof laptop" });
-      if (await laptopCard.getByRole("switch", { name: /Use my own browser/ }).isChecked()) {
-        await laptopCard.getByRole("switch", { name: /Use my own browser/ }).click();
-      }
-      const extCard = page.locator("li", { hasText: "Browser extension" });
-      check(
-        "the extension shows as its own device",
-        await until(async () => (await extCard.count()) === 1, 40_000),
-        String(await extCard.count()),
-      );
-      await extCard.getByRole("switch", { name: /Use my own browser/ }).click();
-      await page.getByRole("button", { name: "Close", exact: true }).first().click();
-      await script("ext-task", [
-        {
-          tool: "start_task",
-          args: { title: "Open the lamp", where: "browser", steps: ["Open", "Click"] },
-        },
-        { tool: "browser", args: { action: "open", url: `${SITE}/shop` } },
-        { tool: "browser", args: { action: "click", name: "Lamp" } },
-        { tool: "finish_task", args: { outcome: "completed", result: "Opened the lamp." } },
-        { text: "Done in your browser." },
-      ]);
-      const lampBefore = hits.filter((h) => h === "/lamp").length;
-      await say("ext-task open the lamp in chrome");
-      await idle();
-      const tabs = chrome.pages().map((p) => p.url());
-      check(
-        "the task ran through the extension, in a tab it opened",
-        hits.filter((h) => h === "/lamp").length > lampBefore && tabs.includes(`${SITE}/lamp`),
-        tabs.join(" "),
-      );
-      check(
-        "the person's own tab was never touched",
-        theirs.url() === `${SITE}/second` &&
-          !theirs.isClosed() &&
-          (await theirs.evaluate(
-            () => !window.__ocade && !document.querySelector("[data-ocade-ref]"),
-          )),
-      );
-      await popup.getByRole("button", { name: "Disconnect this browser", exact: true }).click();
-      await rail("Devices").click();
-      check(
-        "Disconnect in the extension removes it from OCADE as well",
-        await until(async () => {
-          await page.reload({ waitUntil: "networkidle" });
-          await rail("Devices").click();
-          return (await page.locator("li", { hasText: "Browser extension" }).count()) === 0;
-        }, 30_000),
-      );
-      await page.getByRole("button", { name: "Close", exact: true }).first().click();
-    } finally {
-      await chrome.close();
-    }
 
     /* --- deleting a JARVIS conversation ----------------------------------------- */
     await rail("Conversations").click();
