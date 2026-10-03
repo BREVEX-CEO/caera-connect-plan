@@ -127,8 +127,20 @@ export async function getOfflineCurrentDeviceIdentity(): Promise<CurrentDeviceId
   }
 }
 
-/** Register a fresh installation, or revalidate its existing grant before caching it. */
-export async function ensureCurrentDeviceIdentity(): Promise<CurrentDeviceIdentity | null> {
+let registering: Promise<CurrentDeviceIdentity | null> | null = null;
+
+/**
+ * Register a fresh installation, or revalidate its existing grant before caching it. Callers
+ * at the same moment (Offline preparation and the allowance) share one request.
+ */
+export function ensureCurrentDeviceIdentity(): Promise<CurrentDeviceIdentity | null> {
+  registering ??= registerOnce().finally(() => {
+    registering = null;
+  });
+  return registering;
+}
+
+async function registerOnce(): Promise<CurrentDeviceIdentity | null> {
   /*
    * NO WEB LOCKS REQUIREMENT ANY MORE.
    *

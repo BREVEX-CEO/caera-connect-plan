@@ -59,6 +59,15 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
+it("asks once when two parts of the page ask at the same moment", async () => {
+  // Offline preparation and the allowance both asked; a refused browser logged two 400s.
+  const [a, b] = await Promise.all([ensureCurrentDeviceIdentity(), ensureCurrentDeviceIdentity()]);
+  expect(a).toEqual(b);
+  expect(calls).toHaveLength(1);
+  await ensureCurrentDeviceIdentity(); // a later visit asks again
+  expect(calls).toHaveLength(2);
+});
+
 it("registers through the one transactional function, in a browser with no Web Locks", async () => {
   const identity = await ensureCurrentDeviceIdentity();
   expect(identity).toEqual({
