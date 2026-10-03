@@ -183,3 +183,10 @@ Do not perform the cleanup in this addendum before the universal-control impleme
 10. leave the branch unmerged until explicit owner approval.
 
 Cleanup must reduce code and attack surface without reducing the universal engine's ability to operate unfamiliar software, preserve user data, recover from failure, honor STOP, or verify real results.
+
+## Cleanup record — 2026-10-03
+
+- **Donor browser controller (`jarvis-runtime/actions/browser_control.py`, 1556 → 605 lines): removed.** OCADE drives browsers only through `_BrowserSession` in the "isolated" and "real" modes (start, act, observe, frame, close). Removed after checking no product code or test reaches them: the donor entry point and session registry, the "native" launch mode (real-profile launch with `--disable-blink-features=AutomationControlled`, Firefox/Safari/Opera profile finders, browser maps), 17 unused action methods and the donor tool schema. Kept: the default-browser and executable lookups the existing-browser path uses. Proof: runtime suite 155 passed; jarvis, carry-on, bubble and controls journeys passed; installed agent 0.3.7 built and healthy.
+- **Stale tracked build output** `jarvis-runtime/packaging/windows/Output/OCADE-Device-Agent-0.2.0-Setup.exe` (51.7 MB): untracked and the folder ignored.
+- **Unused exports** (knip): seven file-local constants and helpers no longer exported. Knip found no unused dependency.
+- Kept on purpose: Excel/Word adapters (measured fidelity: Excel's own calculation, number formats and conditional formatting, Word styles; the universal engine routes through them via `sheet_edit`/`doc_edit`), the Linux confinement branch (about 30 lines, security), manual live-proof scripts (`scripts/e2e/live-usage-journey.mjs`).
