@@ -449,6 +449,10 @@ def health_check() -> int:
         # Shipped with the build (a build without it is broken); a damaged copy on disk is
         # reported by the tray and repaired, never a reason for the agent itself not to start.
         assert (ocade_wake.bundled() / "manifest.json").is_file() and (ocade_wake.bundled() / "manifest.sig").is_file()
+        if ocade_wake.health()["wake"] == "ready":  # the model really runs in this build, not only its files
+            import numpy as np
+            model = ocade_wake.Model(ocade_wake.bundled() / ocade_wake.verify()["file"])
+            assert 0.0 <= model.score(ocade_wake.log_mel(np.zeros(ocade_wake.WINDOW_SAMPLES, np.float32))) <= 1.0
         actions = Path(ocade_sheets.__file__).resolve().parent / "actions"
         assert (actions / "ocade_excel.ps1").is_file() and (actions / "ocade_word.ps1").is_file()
         import pystray
