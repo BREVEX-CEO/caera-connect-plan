@@ -335,6 +335,15 @@ try {
       (await thief.exit) !== 0 && thief.out().includes("not approved"),
       thief.out().slice(-200),
     );
+    await page.goto(/OCADE: (\S+)/.exec(thief.out())[1], { waitUntil: "networkidle" });
+    check(
+      "a request that is gone says so, and how to ask again from the device",
+      (await page.getByText("This connection request has expired or was already used.").count()) ===
+        1 &&
+        (await page.getByText(/then Connect this computer/).count()) === 1 &&
+        (await page.getByRole("button", { name: "Connect", exact: true }).count()) === 0,
+    );
+    await page.getByRole("button", { name: "Close", exact: true }).click();
 
     const laptop = connectDevice(deviceHome, "Proof laptop");
     await until(() => /OCADE: (\S+)/.test(laptop.out()), 20_000);

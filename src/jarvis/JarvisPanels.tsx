@@ -905,8 +905,10 @@ export function ConnectDevice({
     setBusy(true);
     void withProof(() => approveJarvisDevice({ data: { id, ...(code ? { code } : {}) } }))
       .then((out) => {
-        if (!out.ok) toast.error(out.message);
-        else onDone(true);
+        if (out.ok) return onDone(true);
+        toast.error(out.message);
+        // It may have expired while the code was being typed: show that, not a dead Connect.
+        void request.refetch();
       })
       .catch((cause: unknown) =>
         toast.error(cause instanceof Error ? cause.message : "The device could not be connected."),
@@ -927,6 +929,10 @@ export function ConnectDevice({
         ) : !row ? (
           <>
             <p>This connection request has expired or was already used.</p>
+            <p className="mt-2 text-muted-foreground">
+              Ask again from the device: on a computer, the OCADE icon near the clock, then Connect
+              this computer; on a phone, the OCADE app, then Connect this phone.
+            </p>
             <button
               type="button"
               onClick={() => onDone(false)}
