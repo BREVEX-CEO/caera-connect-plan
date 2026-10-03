@@ -50,3 +50,4 @@ downloads/
 screenshots/
 # A wake model being measured, before export
 wake/candidate.npz
+packaging/windows/Output/
