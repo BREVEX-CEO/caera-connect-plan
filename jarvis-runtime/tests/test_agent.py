@@ -50,6 +50,19 @@ class LifecycleTest(unittest.TestCase):
         self.assertIsNotNone(again)
         again.close()
 
+    def test_a_second_start_while_one_runs_is_not_a_failed_start(self):
+        # Counted as a failed start of the running build, three of these rolled a good build back.
+        import unittest.mock
+        running = ocade_agent.single_instance()
+        counted = []
+        try:
+            with unittest.mock.patch.object(ocade_agent, "install_root", lambda: self.home),                     unittest.mock.patch.object(ocade_agent.ocade_update, "launch_target",
+                                               lambda root: counted.append(root)),                     unittest.mock.patch.object(sys, "argv", ["ocade-agent"]):
+                ocade_agent.main()
+        finally:
+            running.close()
+        self.assertEqual(counted, [])
+
     def test_autostart_and_uninstall_leave_nothing_behind(self):
         ocade_agent.install_autostart()
         try:

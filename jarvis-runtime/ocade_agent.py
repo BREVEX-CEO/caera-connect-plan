@@ -107,6 +107,17 @@ def stop_running_agent(timeout_s: float = 8.0) -> bool:
     return False
 
 
+def already_running() -> bool:
+    """True when an agent holds the single-instance port. Asked before a start is counted: a
+    second start (the login entry, the Start menu, an installer) was counted as a failed start
+    of the running build, and three of them rolled a good build back."""
+    try:
+        with socket.create_connection(("127.0.0.1", SINGLE_INSTANCE_PORT), timeout=1):
+            return True
+    except OSError:
+        return False
+
+
 def end_other_agents() -> bool:
     """End every other process of this installed program. True when some were ended."""
     root = install_root()
@@ -566,6 +577,7 @@ def main() -> None:
     parser.add_argument("--workspace", default=None)
     parser.add_argument("--uninstall", action="store_true")
     parser.add_argument("--install-autostart", action="store_true")
+    parser.add_argument("--stop", action="store_true", help="end the running agent (the installer, before an upgrade)")
     parser.add_argument("--health", action="store_true", help="exit 0 if this build can start (updater check)")
     args = parser.parse_args()
     home = ocade_device.HOME
@@ -576,6 +588,11 @@ def main() -> None:
         return
     if args.install_autostart:
         install_autostart()
+        return
+    if args.stop:
+        sys.exit(0 if stop_running_agent(20) or (end_other_agents() and stop_running_agent(3)) else 1)
+    if already_running():
+        print("OCADE Device Agent is already running.")
         return
     root = install_root()
     _run_current_build(root)
