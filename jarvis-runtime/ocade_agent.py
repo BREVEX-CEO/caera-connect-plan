@@ -323,12 +323,14 @@ class Presence:
         return None
 
     def _follow_status(self) -> None:
-        """Windows builds the tray menu once; rebuild it whenever the status changes."""
+        """Windows builds the tray menu once; rebuild it whenever the status or the wake line
+        changes (it said "Wake: on with Background Mode" while it was already listening)."""
         shown = None
         while not self.agent.stop.wait(1):
             status = self.agent.status()
-            if status != shown and self.icon is not None:
-                shown = status
+            now = (status, _wake_words(self.agent))
+            if now != shown and self.icon is not None:
+                shown = now
                 self.icon.title = f"OCADE JARVIS · {status}"
                 self.icon.update_menu()
 
@@ -546,7 +548,7 @@ def _wake_words(agent) -> str:
         return f"Wake: {WAKE.get('why', 'not available')}"
     if WAKE["wake"] == "ready" and agent.state.get("background"):
         return "Listening for “OCADE”"
-    return "Wake: on with Background Mode"
+    return "Wake: starts with Background Mode"
 
 
 def _wake_while_background(agent: ocade_device.Agent, home: Path, server: str) -> None:

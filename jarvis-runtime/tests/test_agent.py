@@ -50,6 +50,34 @@ class LifecycleTest(unittest.TestCase):
         self.assertIsNotNone(again)
         again.close()
 
+    def test_the_tray_says_when_it_starts_listening(self):
+        # It said "Wake: ... with Background Mode" while Windows showed the microphone in use.
+        class Agent:
+            stop = threading.Event()
+            state = {"background": False}
+
+            def status(self):
+                return "Ready"
+
+        class Icon:
+            title, rebuilt = "", 0
+
+            def update_menu(self):
+                Icon.rebuilt += 1
+
+        presence = ocade_agent.Presence.__new__(ocade_agent.Presence)
+        presence.agent, presence.icon = Agent(), Icon()
+        ocade_agent.WAKE.update({"wake": "ready"})
+        threading.Thread(target=presence._follow_status, daemon=True).start()
+        time.sleep(1.5)
+        Agent.state["background"] = True
+        time.sleep(1.5)
+        Agent.stop.set()
+        self.assertEqual(Icon.rebuilt, 2)
+        self.assertEqual(ocade_agent._wake_words(Agent()), "Listening for “OCADE”")
+        ocade_agent.WAKE.clear()
+        ocade_agent.WAKE.update({"wake": "off"})
+
     def test_a_second_start_while_one_runs_is_not_a_failed_start(self):
         # Counted as a failed start of the running build, three of these rolled a good build back.
         import unittest.mock
