@@ -828,7 +828,7 @@ export const rememberJarvis = createServerFn({ method: "POST" })
   });
 
 /** A person can have this many reminders and scheduled tasks waiting at once. */
-export const MAX_SCHEDULES = 50;
+const MAX_SCHEDULES = 50;
 
 /**
  * A reminder, or work JARVIS starts later on a computer, as the person asked.

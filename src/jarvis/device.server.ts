@@ -64,7 +64,7 @@ const ENROLLMENT_MS = 10 * 60_000;
 
 /** A running task whose planning loop has not written for this long has no driver. */
 export const ORPHAN_MS = 3 * 60_000;
-export const ORPHANED_BLOCKER =
+const ORPHANED_BLOCKER =
   "Paused because JARVIS was closed. Resume to continue from where it stopped.";
 
 /**
@@ -121,7 +121,7 @@ export async function pauseOrphanedTasks(
  * capped: each expires in ten minutes, and past this many at once new ones
  * are asked to try again rather than filling the table.
  */
-export const MAX_PENDING_ENROLLMENTS = 5000;
+const MAX_PENDING_ENROLLMENTS = 5000;
 /**
  * And per source: one address may hold only a few at once. The total alone
  * was 200, which one script generating key pairs could fill, stopping every
@@ -145,7 +145,7 @@ export async function enrollmentRoom(admin: Admin, source: string): Promise<bool
   return (all.count ?? 0) < MAX_PENDING_ENROLLMENTS && (mine.count ?? 0) < MAX_PENDING_PER_SOURCE;
 }
 
-export async function sha256Hex(value: string | Uint8Array<ArrayBuffer>): Promise<string> {
+async function sha256Hex(value: string | Uint8Array<ArrayBuffer>): Promise<string> {
   const bytes = typeof value === "string" ? new TextEncoder().encode(value) : value;
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -377,11 +377,7 @@ export async function authenticate(admin: Admin, request: Request): Promise<Devi
  * Replace this device's key, signed by the key being replaced. The device
  * rotates on its own schedule; the person never sees it.
  */
-export async function rotateKey(
-  admin: Admin,
-  deviceId: string,
-  publicKey: string,
-): Promise<boolean> {
+async function rotateKey(admin: Admin, deviceId: string, publicKey: string): Promise<boolean> {
   if (!publicKeyText.safeParse(publicKey).success || !(await importKey(publicKey))) return false;
   const { data, error } = await admin
     .from("jarvis_devices")
@@ -450,7 +446,7 @@ export const exchangeInput = z.object({
 });
 
 /** Matches how long the planning loop waits for one action. */
-export const ACTION_TTL_MS = 120_000;
+const ACTION_TTL_MS = 120_000;
 
 export interface DeviceCommand {
   id: string;
