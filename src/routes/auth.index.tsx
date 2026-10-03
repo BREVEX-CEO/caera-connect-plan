@@ -21,7 +21,7 @@ import {
   saveThrottle,
   secondsUntilAllowed,
 } from "@/lib/auth/throttle";
-import { DEFAULT_NEXT, safeNext } from "@/lib/auth/safe-next";
+import { DEFAULT_NEXT, rememberNext, safeNext } from "@/lib/auth/safe-next";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
 import {
   fetchAuthProviderAvailability,
@@ -150,13 +150,15 @@ function AuthPage() {
        * meant a second thing in the product that knew how to create a session.
        */
       const supabase = await loadSupabaseClient();
+      /*
+       * THE DESTINATION RIDES IN THE TAB, NOT IN THE URL. Supabase returns only to a
+       * callback on its allow list, matched exactly; `?next=` made it no match, so the
+       * person was sent to the Site URL with an unused code and was not signed in.
+       */
+      rememberNext(nextPath);
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback${
-            nextPath !== DEFAULT_NEXT ? `?next=${encodeURIComponent(nextPath)}` : ""
-          }`,
-        },
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
       if (oauthError) {
         const friendly = describeOAuthError("google", oauthError.message);

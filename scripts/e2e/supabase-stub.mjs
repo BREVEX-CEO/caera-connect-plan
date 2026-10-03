@@ -1658,9 +1658,17 @@ const server = createServer((request, response) => {
      * challenge the browser sent, exactly as the real exchange requires.
      */
     if (url.pathname === "/auth/v1/authorize") {
-      const back = new URL(
-        url.searchParams.get("redirect_to") ?? "http://127.0.0.1:8788/auth/callback",
-      );
+      /*
+       * Like Supabase: back only to a URL on the allow list, matched exactly (the
+       * project lists bare callbacks, no wildcards), otherwise to the Site URL. Taking
+       * any `redirect_to` hid that `?next=` on the callback sent people to the Site URL.
+       */
+      const asked = url.searchParams.get("redirect_to") ?? "";
+      const allowed = ["http://127.0.0.1:8788", "http://admin.localhost:8788"].flatMap((origin) => [
+        `${origin}/auth/callback`,
+        `${origin}/reset-password`,
+      ]);
+      const back = new URL(allowed.includes(asked) ? asked : "http://127.0.0.1:8788/");
       const code = randomUUID();
       pkceCodes.set(code, {
         challenge: url.searchParams.get("code_challenge") ?? "",

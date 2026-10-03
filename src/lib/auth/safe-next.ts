@@ -83,3 +83,27 @@ export function safeNext(value: string | undefined | null, origin?: string): str
   const path = `${resolved.pathname}${resolved.search}${resolved.hash}`;
   return path.startsWith("//") ? null : path;
 }
+
+const NEXT_KEY = "ocade:auth:next";
+
+/** Where to go after the provider sends the person back; kept in this tab only. */
+export function rememberNext(path: string): void {
+  try {
+    if (path === DEFAULT_NEXT) window.sessionStorage.removeItem(NEXT_KEY);
+    else window.sessionStorage.setItem(NEXT_KEY, path);
+  } catch {
+    /* No storage: the person lands on Chat, still signed in. */
+  }
+}
+
+/**
+ * The remembered destination, still checked by `safeNext` like any other. Read, not taken:
+ * an effect may run twice, and every Google sign-in writes (or clears) it afresh.
+ */
+export function rememberedNext(): string | null {
+  try {
+    return window.sessionStorage.getItem(NEXT_KEY);
+  } catch {
+    return null;
+  }
+}
