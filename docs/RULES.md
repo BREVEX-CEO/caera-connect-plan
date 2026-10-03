@@ -59,7 +59,7 @@ Use formulas and structured operations intelligently; do not manually repeat wor
 
 ## Voice
 
-Hey OCADE pre-wake processing is local. Download/verify the wake model once when enabled.
+“OCADE” and “Hey OCADE” pre-wake processing is local. The wake model is bundled with the Device Agent and the Android app and verified against its signed manifest; nothing is downloaded after installation (owner direction 2026-10-02).
 
 User can talk while JARVIS works.
 

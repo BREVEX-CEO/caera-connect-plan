@@ -138,5 +138,14 @@ class PhoneParityTest(unittest.TestCase):
         shutil.rmtree(work, ignore_errors=True)
 
 
+class IdleCostTest(unittest.TestCase):
+    def test_asking_whether_wake_can_run_loads_no_math_library(self):
+        # Asked at every start: importing numpy committed about 200 MB in an idle agent.
+        import subprocess
+        code = "import sys, ocade_wake; ocade_wake.health(); sys.exit('numpy' in sys.modules)"
+        done = subprocess.run([sys.executable, "-c", code], cwd=str(Path(__file__).resolve().parents[1]))
+        self.assertEqual(done.returncode, 0)
+
+
 if __name__ == "__main__":
     unittest.main()

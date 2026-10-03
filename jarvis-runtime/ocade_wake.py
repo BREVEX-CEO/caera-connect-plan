@@ -20,11 +20,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sys
 import threading
 import time
 import webbrowser
 from pathlib import Path
+
+# The model is tiny: one math thread is enough, and each extra one commits its own buffers.
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 
 SAMPLE_RATE = 16000
 FRAME, HOP, NFFT, MELS = 400, 160, 512, 40       # 25 ms frames every 10 ms, 40 mel bands
@@ -150,10 +154,10 @@ def verify(folder: Path | None = None, public_key: str | None = None) -> dict:
 
 def health(folder: Path | None = None) -> dict:
     """What the tray and OCADE show: ready with its version, or why not."""
-    try:
-        import numpy  # noqa: F401
-        import sounddevice  # noqa: F401
-    except Exception:
+    # Found, not imported: numpy's math library commits about 200 MB for its threads, and the
+    # agent asks this at every start whether or not Wake Mode is on.
+    import importlib.util
+    if not (importlib.util.find_spec("numpy") and importlib.util.find_spec("sounddevice")):
         return {"wake": "unavailable", "why": "This computer cannot listen for the wake phrase"}
     try:
         manifest = verify(folder)

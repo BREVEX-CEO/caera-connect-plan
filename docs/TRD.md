@@ -106,7 +106,7 @@ Risky remote/destructive Git operations require stronger authorization.
 
 Voice works during execution.
 
-Wake model downloaded/verified once when enabled; pre-wake audio local.
+Wake model bundled with the Device Agent and Android app, verified against its signed manifest (no download after installation); pre-wake audio local.
 
 ## Android
 

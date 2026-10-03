@@ -493,6 +493,10 @@ function SectionBody({
                     : "Open the OCADE Device Agent on it"
                   : "Can work now"}
               {d.platform ? ` · ${d.platform}` : ""}
+              {/* Two computers with one name (a reinstall) are told apart by when each was last here. */}
+              {d.status === "offline" && d.last_seen_at
+                ? ` · last seen ${new Date(d.last_seen_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`
+                : ""}
             </p>
             {agentCount > 1 ? (
               <label className="mt-2 flex items-center gap-2 text-xs">
