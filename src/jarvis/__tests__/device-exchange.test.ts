@@ -132,6 +132,22 @@ describe("dispatch", () => {
   });
 });
 
+describe("results", () => {
+  it("records an action that went stale as not done, keeping the device's own word", async () => {
+    // Seen in Activity: a refused stale click read "done".
+    const t = await task();
+    await permit("files", true);
+    const id = await queue(t, { action: "file_list", path: "." });
+    await run({ results: [] });
+    await run({
+      results: [{ id, status: "stale", summary: "That screen observation is too old." }],
+    });
+    const row = await status(id);
+    expect(row.status).toBe("failed");
+    expect((row.result as { status: string }).status).toBe("stale");
+  });
+});
+
 describe("STOP", () => {
   it("cancels the running action and never counts its late result as done", async () => {
     const t = await task();

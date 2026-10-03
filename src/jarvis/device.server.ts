@@ -593,8 +593,9 @@ export async function exchange(
     : undefined;
 
   for (const result of input.results) {
-    // A person decides a confirmation; the result says one is needed.
-    const status = result.status === "stale" ? "done" : result.status;
+    // A person decides a confirmation; the result says one is needed. A stale action did not
+    // happen (the screen changed first): recorded as not done, never as "done".
+    const status = result.status === "stale" ? "failed" : result.status;
     const outcome = JSON.stringify({
       status: result.status,
       changed: result.changed ?? [],
