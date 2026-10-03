@@ -802,6 +802,14 @@ except i.UpdateRequired:
       "the person can allow it in Allowed Apps",
       await until(async () => await page.getByRole("switch", { name: "127.0.0.1" }).isChecked()),
     );
+    // A computer reports every app it has; one is found by name, not by scrolling.
+    await page.getByRole("searchbox", { name: "Find an app" }).fill("calc");
+    const found = await page.locator('select[id^="app-"]').count();
+    check(
+      "Allowed Apps finds an app by name among all the computer's apps",
+      found >= 1 && found < 10,
+      String(found),
+    );
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
 
     /* --- a real browser task across two tabs -------------------------------- */
