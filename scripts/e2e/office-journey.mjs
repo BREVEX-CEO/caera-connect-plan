@@ -21,7 +21,7 @@
  * Usage: node scripts/e2e/office-journey.mjs [--base=…] [--supabase=…]
  */
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { chromium } from "playwright-core";
@@ -112,6 +112,8 @@ print(json.dumps({"orders": ORDERS, "rates": RATES}))
 const FINISH_ORDERS = python(
   "import json; from test_sheets import FINISH_ORDERS; print(json.dumps(FINISH_ORDERS))",
 );
+const originalBook = readFileSync(path.join(workspace, "sales.xlsx"));
+const originalReport = readFileSync(path.join(workspace, "report.docx"));
 
 const browser = await chromium.launch({ executablePath: EXECUTABLE, args: ["--no-sandbox"] });
 let device = null;
@@ -184,11 +186,20 @@ try {
       },
     },
     { tool: "computer", args: { action: "sheet_inspect", path: "sales.xlsx", step: 0 } },
+    // Straight at the person's own file first: refused, the original is theirs.
+    {
+      tool: "computer",
+      args: { action: "sheet_edit", path: "sales.xlsx", sheet: "Orders", ops: FINISH_ORDERS },
+    },
+    {
+      tool: "computer",
+      args: { action: "file_copy", path: "sales.xlsx", to: "sales - completed.xlsx" },
+    },
     {
       tool: "computer",
       args: {
         action: "sheet_edit",
-        path: "sales.xlsx",
+        path: "sales - completed.xlsx",
         sheet: "Orders",
         ops: FINISH_ORDERS,
         step: 1,
@@ -196,9 +207,13 @@ try {
     },
     {
       tool: "computer",
+      args: { action: "file_copy", path: "report.docx", to: "report - completed.docx" },
+    },
+    {
+      tool: "computer",
       args: {
         action: "doc_edit",
-        path: "report.docx",
+        path: "report - completed.docx",
         step: 2,
         ops: [
           { op: "replace", find: "DRAFT", with: "Q3 2026" },
@@ -238,12 +253,19 @@ try {
     summaries.join(" | ").slice(0, 400),
   );
   check(
-    "the workbook was changed in the person's Excel, not by rewriting the file",
-    summaries.some((s) => /Updated sales\.xlsx \(\d+ changes, in Excel\)/.test(s)),
+    "the person's own workbook was not changed: the work went into a completed copy",
+    summaries.some((s) => s.startsWith("sales.xlsx is the person's original")) &&
+      readFileSync(path.join(workspace, "sales.xlsx")).equals(originalBook) &&
+      readFileSync(path.join(workspace, "report.docx")).equals(originalReport),
+    summaries.join(" | ").slice(0, 400),
   );
   check(
-    "the report was changed in Word",
-    summaries.some((s) => /Updated report\.docx in Word/.test(s)),
+    "the copy was changed in the person's Excel, not by rewriting the file",
+    summaries.some((s) => /Updated sales - completed\.xlsx \(\d+ changes, in Excel\)/.test(s)),
+  );
+  check(
+    "the report copy was changed in Word",
+    summaries.some((s) => /Updated report - completed\.docx in Word/.test(s)),
   );
   check(
     "the person sees it done in the conversation",
@@ -254,7 +276,7 @@ try {
   const book = python(`
 import json
 from openpyxl import load_workbook
-p = ${JSON.stringify(path.join(workspace, "sales.xlsx"))}
+p = ${JSON.stringify(path.join(workspace, "sales - completed.xlsx"))}
 v = load_workbook(p, data_only=True)["Orders"]
 f = load_workbook(p)
 o = f["Orders"]
@@ -305,7 +327,7 @@ print(json.dumps({
   const report = python(`
 import json, ocade_documents
 from pathlib import Path
-text, _ = ocade_documents.extract_text(Path(${JSON.stringify(path.join(workspace, "report.docx"))}), 30_000)
+text, _ = ocade_documents.extract_text(Path(${JSON.stringify(path.join(workspace, "report - completed.docx"))}), 30_000)
 print(json.dumps({"text": text}))
 `).text;
   check(
