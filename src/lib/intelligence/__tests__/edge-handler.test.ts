@@ -395,6 +395,20 @@ describe("the health record this function leaves behind", () => {
     });
   });
 
+  it("leaves no record for a browser's preflight, which is not a generation", async () => {
+    // Seen in production: preflights logged as succeeded generations served by no slot.
+    const seen = observed();
+    const response = await handleOnlineIntelligence(
+      new Request("https://project.supabase.co/functions/v1/ocade-intelligence", {
+        method: "OPTIONS",
+        headers: { Origin: ORIGIN },
+      }),
+      dependencies({ observe: seen.observe }),
+    );
+    expect(response.status).toBeLessThan(300);
+    expect(seen.records).toHaveLength(0);
+  });
+
   it("carries no prompt, key, token, user id or permit", async () => {
     const seen = observed();
     await handleOnlineIntelligence(

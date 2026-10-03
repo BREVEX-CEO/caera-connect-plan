@@ -623,6 +623,8 @@ export async function handleOnlineIntelligence(
   // would put phantom provider load in the numbers.
   const attempted: ProviderAttempt = { slot: "none", attempts: 0 };
   const response = await runOnlineIntelligence(request, deps, attempted);
+  // A browser's CORS preflight is not a generation: counted, it read as a success served by no slot.
+  if (request.method === "OPTIONS") return response;
   deps.observe?.(
     buildHealthRecord({
       component: "edge_function",
