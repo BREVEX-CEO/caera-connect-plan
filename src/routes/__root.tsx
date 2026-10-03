@@ -21,6 +21,7 @@ import { useInstallationBootstrap } from "@/lib/brain/use-installation";
 import { useSession } from "@/lib/session";
 import { needsFullNavigation } from "@/lib/security/isolation";
 import { isConsoleHost, isConsolePath, onSite } from "@/lib/admin/console-host";
+import { markHydrated } from "@/lib/after-hydration";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   /*
@@ -168,6 +169,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(markHydrated, []);
 
   /**
    * Async failures never reach a React boundary — an unhandled rejection in a

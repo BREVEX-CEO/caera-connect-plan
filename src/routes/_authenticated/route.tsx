@@ -1,3 +1,4 @@
+import { whenHydrated } from "@/lib/after-hydration";
 import {
   createFileRoute,
   isRedirect,
@@ -44,6 +45,7 @@ export const Route = createFileRoute("/_authenticated")({
   head: () => ({ meta: [{ name: "robots", content: "noindex" }] }),
   beforeLoad: async ({ location }) => {
     if (typeof window === "undefined") return { user: null };
+    await whenHydrated();
 
     /*
      * OFFLINE MUST NOT MEAN SIGNED OUT.
