@@ -607,6 +607,37 @@ try {
     (await seen(owner.getByText(/Case closed/))) && (await seen(cases.getByText("No open cases."))),
   );
 
+  // A temporary plan: given with a reason, the customer's at once, and taken back at once.
+  await tab(owner, "Customers").click();
+  const planRow = await customerRow(owner);
+  await planRow.getByRole("button", { name: "Give access", exact: true }).click();
+  await owner.getByLabel("Tier").selectOption("pro");
+  await owner.getByLabel("Days").fill("1");
+  await owner
+    .getByPlaceholder("Why this account is being given access")
+    .fill("Temporary Pro for the release test");
+  await owner.locator("form").getByRole("button", { name: "Give access", exact: true }).click();
+  const planOf = async () =>
+    JSON.stringify(
+      await asCustomer(customer, "/rest/v1/rpc/ocade_my_entitlement_grant", {
+        method: "POST",
+        body: "{}",
+      }).then((r) => r.json()),
+    );
+  check(
+    "a temporary plan is given with a reason and is the customer's at once",
+    await until(async () => (await planOf()).includes('"tier":"pro"')),
+    await planOf(),
+  );
+  owner.once("dialog", (dialog) => void dialog.accept("Release test finished"));
+  await planRow.getByRole("button", { name: "Revoke", exact: true }).click();
+  check(
+    "taken back, the customer is on their own plan again at once",
+    await until(async () => !(await planOf()).includes('"tier":"pro"')),
+    await planOf(),
+  );
+  await planRow.getByRole("button", { name: "Close", exact: true }).first().click();
+
   // Give back usage, suspend and restore: on the record, and real at Supabase Auth.
   await tab(owner, "Customers").click();
   const accountRow = await customerRow(owner);

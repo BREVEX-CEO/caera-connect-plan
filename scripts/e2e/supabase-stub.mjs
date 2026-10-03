@@ -629,9 +629,60 @@ function handleRpc(name, args, userId) {
     }
 
     case "ocade_active_entitlement_grant":
-    case "ocade_my_entitlement_grant":
-      // No grant: the account is on Free, which is what the allowance tests want.
-      return null;
+    case "ocade_my_entitlement_grant": {
+      // Without a grant the account is on Free, which is what the allowance tests want.
+      const who = name === "ocade_my_entitlement_grant" ? userId : args.p_user;
+      const live = (jarvisTables.ocade_entitlement_grants ?? []).find(
+        (g) => g.user_id === who && !g.revoked_at && Date.parse(g.ends_at) > Date.now(),
+      );
+      return live
+        ? [
+            {
+              tier: live.tier,
+              starts_at: live.starts_at,
+              ends_at: live.ends_at,
+              reason: live.reason,
+            },
+          ]
+        : null;
+    }
+
+    // The same refusals as the SQL (proven against PostgreSQL in staff-authority.test.ts).
+    case "ocade_grant_entitlement": {
+      if (!staffHas(userId, "grants.manage")) {
+        return {
+          __error: { code: "42501", message: "Only support admins may grant an entitlement." },
+        };
+      }
+      if (args.target_user === userId || !(args.days >= 1 && args.days <= 366)) {
+        return { __error: { code: "42501", message: "That entitlement cannot be granted." } };
+      }
+      const row = {
+        id: randomUUID(),
+        user_id: args.target_user,
+        granted_by: userId,
+        tier: args.grant_tier,
+        reason: args.grant_reason,
+        starts_at: new Date().toISOString(),
+        ends_at: new Date(Date.now() + args.days * 86_400_000).toISOString(),
+        revoked_at: null,
+      };
+      (jarvisTables.ocade_entitlement_grants ??= []).push(row);
+      return row;
+    }
+    case "ocade_revoke_entitlement": {
+      if (!staffHas(userId, "grants.manage")) {
+        return {
+          __error: { code: "42501", message: "Only support admins may revoke an entitlement." },
+        };
+      }
+      const grant = (jarvisTables.ocade_entitlement_grants ?? []).find(
+        (g) => g.id === args.grant_id,
+      );
+      if (!grant || grant.revoked_at) return false;
+      grant.revoked_at = new Date().toISOString();
+      return true;
+    }
 
     case "ocade_read_commercial_usage":
       return [
@@ -2066,7 +2117,7 @@ const server = createServer((request, response) => {
         [...consoleSessions].map((session_id) => ({ session_id })),
       );
     }
-    if (table && table[1].startsWith("jarvis_")) {
+    if (table && (table[1].startsWith("jarvis_") || table[1] === "ocade_entitlement_grants")) {
       /*
        * JARVIS TABLES ARE ONE SHARED STORE, FILTERED THE WAY RLS FILTERS.
        *
