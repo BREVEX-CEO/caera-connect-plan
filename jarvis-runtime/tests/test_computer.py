@@ -309,6 +309,21 @@ class DirectCommandTest(unittest.TestCase):
                                "observationId": obs["observationId"]}, confirmed=True)
         self.assertEqual(outside["status"], "failed", outside)
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows property system")
+    def test_file_info_gives_a_media_files_own_length(self):
+        # Found with DaVinci Resolve: a 12-second export was reported cut to 5; nothing could say.
+        import wave
+        with wave.open(str(self.root / "tone.wav"), "wb") as out:
+            out.setnchannels(1)
+            out.setsampwidth(2)
+            out.setframerate(8000)
+            out.writeframes(b"\x00\x00" * 12000)  # 1.5 seconds
+        info = self.pc.run({"action": "file_info", "path": "tone.wav"})["info"]
+        self.assertAlmostEqual(info["properties"]["seconds"], 1.5, places=1)
+        self.assertEqual(info["properties"]["audioChannels"], 1)
+        (self.root / "notes.txt").write_text("plain")
+        self.assertNotIn("properties", self.pc.run({"action": "file_info", "path": "notes.txt"})["info"])
+
     def test_git_works_in_the_workspace(self):
         self.assertEqual(self.run_("git init")["status"], "done")
         status = self.run_("git status --short")

@@ -111,6 +111,45 @@ def _jpeg(image) -> str:
     return base64.b64encode(out.getvalue()).decode()
 
 
+# What Windows itself knows about a file (its property system: any format with a
+# handler, video, audio, images and documents alike), for checking a result.
+_PROPERTIES = (
+    ("System.Media.Duration", "seconds", lambda v: round(int(v) / 1e7, 2)),
+    ("System.Video.FrameWidth", "width", int),
+    ("System.Video.FrameHeight", "height", int),
+    ("System.Video.FrameRate", "fps", lambda v: round(int(v) / 1000, 3)),
+    ("System.Image.HorizontalSize", "width", int),
+    ("System.Image.VerticalSize", "height", int),
+    ("System.Audio.ChannelCount", "audioChannels", int),
+    ("System.Document.PageCount", "pages", int),
+)
+
+
+def file_properties(path: Path) -> dict:
+    if SYSTEM != "Windows" or not path.is_file():
+        return {}
+    try:
+        import comtypes
+        import comtypes.client
+    except ImportError:
+        return {}
+    comtypes.CoInitialize()
+    try:
+        shell = comtypes.client.CreateObject("Shell.Application", dynamic=True)
+        folder = shell.Namespace(str(path.resolve().parent))
+        item = folder.ParseName(path.name) if folder else None
+        found: dict = {}
+        for key, name, read in _PROPERTIES if item else ():
+            value = item.ExtendedProperty(key)
+            if value not in (None, "") and name not in found:
+                found[name] = read(value)
+        return found
+    except Exception:  # an unreadable property is no property, never a failed look
+        return {}
+    finally:
+        comtypes.CoUninitialize()
+
+
 def installed_apps() -> list[dict]:
     """Useful apps found locally: name plus how to launch them. Nothing leaves the device but names."""
     found: dict[str, dict] = {}
@@ -501,7 +540,8 @@ class Computer:
             return {"status": "done", "summary": f"Details of {rel}",
                     "info": {"name": path.name, "folder": path.is_dir(), "size": info.st_size,
                              "modified": time.strftime("%Y-%m-%d %H:%M", time.localtime(info.st_mtime)),
-                             "extension": path.suffix or None}}
+                             "extension": path.suffix or None,
+                             **({"properties": found} if (found := file_properties(path)) else {})}}
         if kind == "file_find":
             return self._find(path, rel, str(action.get("name", "")), str(action.get("extension", "")),
                               cancel)
