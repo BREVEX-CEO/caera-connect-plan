@@ -150,10 +150,14 @@ try {
       .map((entry) => new URL(entry.name).pathname)
       .find((path) => path.startsWith("/assets/") && path.endsWith(".js"));
     if (!asset) return { asset: null, kept: false };
-    // Once more through the now-controlling worker, which is what keeps it.
+    // Once more through the now-controlling worker, which is what keeps it. Under load the
+    // worker can be active a moment before it controls this page: a fetch then bypasses it.
+    for (let i = 0; i < 50 && !navigator.serviceWorker.controller; i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
     await fetch(asset);
     const cache = await caches.open("ocade-assets");
-    for (let i = 0; i < 20 && !(await cache.match(asset)); i += 1) {
+    for (let i = 0; i < 50 && !(await cache.match(asset)); i += 1) {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
     return { asset, kept: Boolean(await cache.match(asset)) };

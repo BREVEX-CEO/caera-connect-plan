@@ -780,17 +780,20 @@ try {
   check("handing over waits for an explicit confirmation", await handOver.isDisabled());
   await heirMember.getByText(/I understand/).click();
   await handOver.click();
-  await until(
-    async () =>
-      (await owner.getByRole("heading", { name: "Owner Console", exact: true }).count()) > 0,
-    20_000,
-  );
+  // The page reloads itself after the hand-over: wait for the console that reload opens.
+  await owner.waitForURL((url) => url.pathname === "/admin", { timeout: 20_000 }).catch(() => {});
+  await owner.waitForLoadState("load");
+  await tab(owner, "Staff").waitFor({ timeout: 20_000 });
   await tab(owner, "Staff").click();
   const ownerList = owner.getByRole("region", { name: "Staff", exact: true });
+  const settled = async () => {
+    const text = (await ownerList.innerText().catch(() => "")).replace(/\s+/g, " ");
+    return text.includes(`${heirEmail} Primary Owner`) && /\(you\) Owner/.test(text);
+  };
   check(
     "the new Primary Owner holds it and the former one stays an Owner",
-    (await seen(ownerList.locator("li", { hasText: heirEmail }).getByText("Primary Owner"))) &&
-      (await seen(ownerList.locator("li", { hasText: "(you)" }).getByText(/^Owner/))),
+    await until(settled, 20_000),
+    (await ownerList.innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 300),
   );
   // Handed back by the new Primary Owner, who leaves the staff as they do.
   await consoleOf(heir, "Owner Console");
