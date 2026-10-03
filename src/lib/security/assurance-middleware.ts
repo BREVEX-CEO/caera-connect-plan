@@ -50,7 +50,7 @@ class AssuranceRequiredError extends Error {
 }
 
 /** Facts about the caller's session, gathered from sources it does not control. */
-export async function readSessionAssurance(context: {
+async function readSessionAssurance(context: {
   supabase: { auth: { mfa: { listFactors: () => Promise<{ data: unknown; error: unknown }> } } };
   claims: Record<string, unknown> | null | undefined;
 }): Promise<SessionAssurance> {

@@ -256,7 +256,7 @@ export async function verifySignature(
   );
 }
 
-export const enrollInput = z.object({
+const enrollInput = z.object({
   publicKey: publicKeyText,
   name: z.string().trim().min(1).max(120),
   platform: z.string().trim().max(60).optional(),

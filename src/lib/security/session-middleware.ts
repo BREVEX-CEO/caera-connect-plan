@@ -17,7 +17,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const SESSION_ENDED = "Unauthorized: Session ended";
 
 /** A session whose account has a second factor it has not answered yet. */
-export class SecondFactorRequired extends Error {
+class SecondFactorRequired extends Error {
   readonly reason = "factor_required";
   constructor() {
     super("Confirm the code from your authenticator app to continue.");
