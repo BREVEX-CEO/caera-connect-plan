@@ -151,17 +151,24 @@ public final class MainActivity extends Activity {
         return checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
     }
 
-    /** Wake Mode on or off; the microphone is asked for by Android's own dialog, the first time. */
+    /**
+     * Wake Mode on or off. The microphone, and notifications if they are off, are asked for
+     * together by Android's own dialog: without notifications the "listening" notice and its
+     * Turn off are hidden, and only Android's microphone dot would say OCADE is listening.
+     */
     private void toggleWake() {
         boolean on = identity.prefs.getBoolean("wake", false);
+        java.util.List<String> ask = new java.util.ArrayList<>();
+        if (!microphoneAllowed()) ask.add(Manifest.permission.RECORD_AUDIO);
+        if (!notificationsAllowed()) ask.add(Manifest.permission.POST_NOTIFICATIONS);
         if (on) {
             identity.prefs.edit().putBoolean("wake", false).apply();
             stopService(new Intent(this, WakeService.class));
-        } else if (microphoneAllowed()) {
+        } else if (ask.isEmpty()) {
             identity.prefs.edit().putBoolean("wake", true).apply();
             WakeService.start(this);
         } else {
-            requestPermissions(new String[] {Manifest.permission.RECORD_AUDIO}, 2);
+            requestPermissions(ask.toArray(new String[0]), 2);  // a "no" to notifications still listens
         }
         render();
     }

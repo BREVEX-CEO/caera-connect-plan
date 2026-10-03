@@ -108,6 +108,18 @@ export function useInstallation(): InstallationControls {
 }
 
 /**
+ * A browser OCADE refused an offline allowance (the account's device limit) can never
+ * answer offline, so preparing the engine there only spends a download and the
+ * processor. A transient failure or no network is not a refusal: preparation goes on.
+ */
+export async function offlineAllowedHere(): Promise<boolean> {
+  const { ensureCurrentDeviceIdentity, deviceRegistrationProblem } =
+    await import("@/lib/commercial/device-identity");
+  await ensureCurrentDeviceIdentity().catch(() => null);
+  return deviceRegistrationProblem() !== "device_limit";
+}
+
+/**
  * Start preparing as early as it is technically safe to.
  *
  * MOUNTED ONCE, IN THE ROOT. Not in the demo, not in Chat, not behind a
@@ -139,8 +151,11 @@ export function useInstallationBootstrap(options?: { enabled?: boolean }): void 
       if (cancelled) return;
       // Fire and forget. A failed install is a state on the authority, never a
       // rejected promise nobody is holding.
-      void authority().then((a) => {
-        if (!cancelled) void a.install({ reason: "app_bootstrap" });
+      void offlineAllowedHere().then((allowed) => {
+        if (!allowed || cancelled) return;
+        void authority().then((a) => {
+          if (!cancelled) void a.install({ reason: "app_bootstrap" });
+        });
       });
     };
 
@@ -182,8 +197,11 @@ export function useInstallationBootstrap(options?: { enabled?: boolean }): void 
     const resume = () => {
       if (installState().stage === "ready") return;
       if (typeof navigator !== "undefined" && navigator.onLine === false) return;
-      void authority().then((a) => {
-        if (!a.isReady()) void a.install({ reason: "resumed" });
+      void offlineAllowedHere().then((allowed) => {
+        if (!allowed) return;
+        void authority().then((a) => {
+          if (!a.isReady()) void a.install({ reason: "resumed" });
+        });
       });
     };
 

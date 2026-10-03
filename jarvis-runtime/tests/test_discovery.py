@@ -112,5 +112,45 @@ class AppInfoTest(unittest.TestCase):
         self.assertEqual(pc.run({"action": "app_info", "name": "No Such App"})["status"], "failed")
 
 
+class SurfacesTest(unittest.TestCase):
+    """Found on this computer: Magnify (System32) was offered printer scripts and driver
+    folders, Skype for Business (Office16) Excel's Python folder, and "Files" from a
+    three-app Store package was described as People."""
+
+    def test_only_folders_that_belong_to_the_program(self):
+        windows = Path(os.environ.get("SystemRoot", r"C:\Windows"))
+        self.assertEqual(ocade_discovery._surfaces(windows / "System32", "magnify.exe"), [])
+        shared = Path(tempfile.mkdtemp())
+        for i in range(12):
+            (shared / f"tool{i}.exe").write_bytes(b"")
+        (shared / "plugins").mkdir()
+        (shared / "excel_python_scripts").mkdir()
+        self.assertEqual([Path(f).name for f in ocade_discovery._surfaces(shared, str(shared / "EXCEL.EXE"))],
+                         ["excel_python_scripts"])
+        self.assertEqual(ocade_discovery._surfaces(shared, str(shared / "lync.exe")), [])
+        own = Path(tempfile.mkdtemp())
+        (own / "app.exe").write_bytes(b"")
+        (own / "plugins").mkdir()
+        self.assertEqual([Path(f).name for f in ocade_discovery._surfaces(own, str(own / "app.exe"))], ["plugins"])
+
+    def test_the_launched_app_of_a_package_not_the_first(self):
+        package = Path(tempfile.mkdtemp())
+        (package / "AppxManifest.xml").write_text(
+            '<Package><Applications>'
+            '<Application Id="People" Executable="People\\PeopleLauncher.exe" EntryPoint="x"/>'
+            '<Application EntryPoint="y" Executable="Files\\FilesLauncher.exe" Id="Files"/>'
+            '<Application Id="Web" StartPage="https://example.com"/>'
+            '</Applications></Package>', encoding="utf-8")
+        done = unittest.mock.Mock(stdout=str(package))
+        with unittest.mock.patch("subprocess.run", return_value=done):
+            program = ocade_discovery._package_program
+            self.assertEqual(program("Microsoft.M365Companions_8wekyb3d8bbwe!Files"),
+                             str(package / "Files" / "FilesLauncher.exe"))
+            self.assertEqual(program("Microsoft.M365Companions_8wekyb3d8bbwe!People"),
+                             str(package / "People" / "PeopleLauncher.exe"))
+            self.assertIsNone(program("Microsoft.M365Companions_8wekyb3d8bbwe!Web"))
+            self.assertIsNone(program("Microsoft.M365Companions_8wekyb3d8bbwe!Nope"))
+
+
 if __name__ == "__main__":
     unittest.main()

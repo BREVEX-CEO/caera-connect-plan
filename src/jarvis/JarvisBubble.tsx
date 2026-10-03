@@ -269,6 +269,8 @@ export function Bubble({ userId, placement }: { userId: string; placement: Place
           memories: (state.data?.memories ?? []).map((memory) => memory.content),
           memoryEnabled: isAllowed(permissions, "memory"),
           task: null,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          devices: state.data?.devices,
         },
         {
           signal: controller.signal,

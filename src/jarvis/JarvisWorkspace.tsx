@@ -419,6 +419,7 @@ export function JarvisWorkspace({
           deviceId: target,
           hereDeviceId: here,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          devices: jarvis?.devices,
         },
         {
           signal: controller.signal,

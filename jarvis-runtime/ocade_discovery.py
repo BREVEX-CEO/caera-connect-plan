@@ -121,9 +121,17 @@ def _opens(exe_name: str) -> tuple[list[str], list[str]]:
     return types, schemes
 
 
-def _surfaces(program_dir: Path) -> list[str]:
+def _surfaces(program_dir: Path, program: str = "") -> list[str]:
     """Folders whose names say scripting, SDK, API or plugins: beside the program, and where
-    the same vendor keeps shared data (ProgramData, AppData) under the same relative path."""
+    the same vendor keeps shared data (ProgramData, AppData) under the same relative path.
+    Windows' own folders hold nothing of a program's, and a folder many programs share (Office's)
+    counts only folders that name this one: otherwise Magnify was "scriptable" through printer
+    scripts and Skype for Business through Excel's Python folder."""
+    windows = Path(os.environ.get("SystemRoot", r"C:\Windows"))
+    if program_dir == windows or windows in program_dir.parents:
+        return []
+    shared = len(list(program_dir.glob("*.exe"))) > 10
+    stem = Path(program).stem.lower()
     places = [program_dir]
     for installed in (os.environ.get("ProgramFiles"), os.environ.get("ProgramFiles(x86)")):
         try:
@@ -140,7 +148,7 @@ def _surfaces(program_dir: Path) -> list[str]:
         for folder, dirs, _files in os.walk(place):
             depth = len(Path(folder).relative_to(place).parts)
             for name in dirs:
-                if SURFACE_WORDS.search(name):
+                if SURFACE_WORDS.search(name) and (not shared or (stem and stem in name.lower())):
                     out.append(str(Path(folder, name)))
             dirs[:] = [] if depth >= 2 else [d for d in dirs if not SURFACE_WORDS.search(d)]
             if len(out) >= 10:
@@ -188,8 +196,14 @@ def _package_program(aumid: str) -> str | None:
         manifest = (Path(location) / "AppxManifest.xml").read_text(encoding="utf-8", errors="replace")
     except (OSError, subprocess.SubprocessError):
         return None
-    found = re.search(r'Executable="([^"]+\.exe)"', manifest, re.I)
-    return str(Path(location, found.group(1))) if found else None
+    # A package can hold several apps (People, Files, Calendar): the one launched is the
+    # Application whose Id follows the "!", never simply the first program listed.
+    app_id = aumid.split("!", 1)[1] if "!" in aumid else ""
+    for tag in re.findall(r"<Application\b[^>]*>", manifest, re.I):
+        if re.search(rf'\bId="{re.escape(app_id)}"', tag):
+            found = re.search(r'\bExecutable="([^"]+\.exe)"', tag, re.I)
+            return str(Path(location, found.group(1))) if found else None
+    return None
 
 
 def _program(app: dict) -> str | None:
@@ -227,7 +241,7 @@ def app_info(app: dict, cancel: threading.Event | None = None) -> dict:
         if not (cancel and cancel.is_set()):
             info["opens"], info["links"] = _opens(name)
         info["scripting"] = [{"folder": folder, "contains": _names(folder)}
-                             for folder in _surfaces(Path(exe).parent)]
+                             for folder in _surfaces(Path(exe).parent, exe)]
     info["recipes"], stale = recipes_for(app["name"], info.get("version"))
     if stale:
         info["olderRecipes"] = stale  # written for another major version: rediscover, never replay

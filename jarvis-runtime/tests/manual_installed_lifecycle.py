@@ -105,6 +105,7 @@ def main() -> int:
     setup = Path(sys.argv[1]).resolve()
     home = Path(tempfile.mkdtemp(prefix="ocade-lifecycle-home-"))
     env = {**os.environ, "OCADE_SERVER": SERVER, "OCADE_JARVIS_HOME": str(home)}
+    ocade_agent.ocade_device.HOME = home  # "exit" carries the token the installed agent wrote there
     real_home = Path.home() / ".ocade_jarvis"
     had_real_home = real_home.exists()
     kept = Path(tempfile.mkdtemp(prefix="ocade-real-home-")) / "copy"
