@@ -133,6 +133,9 @@ def _launch_command() -> list[str]:
     return [sys.executable, str(Path(__file__).resolve())]
 
 
+AUTOSTART_NAME = "OCADE"  # the login entry (Windows: the HKCU Run value)
+
+
 def autostart_path() -> Path:
     system = platform.system()
     if system == "Darwin":
@@ -150,7 +153,7 @@ def install_autostart() -> None:
         import winreg
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
                             r"Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_SET_VALUE) as key:
-            winreg.SetValueEx(key, "OCADE", 0, winreg.REG_SZ, " ".join(f'"{c}"' for c in command))
+            winreg.SetValueEx(key, AUTOSTART_NAME, 0, winreg.REG_SZ, " ".join(f'"{c}"' for c in command))
         return
     path = autostart_path()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -176,7 +179,7 @@ def remove_autostart() -> None:
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
                                 r"Software\Microsoft\Windows\CurrentVersion\Run", 0,
                                 winreg.KEY_SET_VALUE) as key:
-                winreg.DeleteValue(key, "OCADE")
+                winreg.DeleteValue(key, AUTOSTART_NAME)
         except FileNotFoundError:
             pass
         return

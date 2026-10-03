@@ -108,7 +108,7 @@ class LifecycleTest(unittest.TestCase):
             try:
                 with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
                                     r"Software\Microsoft\Windows\CurrentVersion\Run") as key:
-                    return winreg.QueryValueEx(key, "OCADE")[0]
+                    return winreg.QueryValueEx(key, ocade_agent.AUTOSTART_NAME)[0]
             except FileNotFoundError:
                 return None
         entry = ocade_agent.autostart_path()
