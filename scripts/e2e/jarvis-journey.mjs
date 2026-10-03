@@ -690,7 +690,11 @@ except i.UpdateRequired:
     check(
       "the task is saved, waiting, and no new turn can start",
       busyText.includes("your task is saved") &&
-        (await page.locator("#jarvis-composer").getAttribute("placeholder"))?.includes("busy"),
+        (await until(async () =>
+          ((await page.locator("#jarvis-composer").getAttribute("placeholder")) ?? "").includes(
+            "busy",
+          ),
+        )),
       (await page.locator("main").innerText()).replace(/\s+/g, " ").slice(-600),
     );
     // Pressing Resume during the wait must not mark the task Working with nobody driving it.
