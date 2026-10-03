@@ -433,7 +433,7 @@ export async function runJarvisTurn(
             message: started.message,
             ...(busy
               ? {
-                  next: "Tell the person what it is busy with. Only if they asked to stop or replace it, call stop_task, then start_task again.",
+                  next: "If the person already asked, in this message or before it, to stop, cancel or replace what the computer is doing, call stop_task now, then start_task again. Otherwise tell them what it is busy with and ask.",
                 }
               : {}),
           };
