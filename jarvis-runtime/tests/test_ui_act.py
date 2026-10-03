@@ -1,0 +1,68 @@
+"""ui_act asks controls for patterns by id. Found with DaVinci Resolve: its page switches are check
+boxes, and uiautomation's CheckBoxControl has no GetInvokePattern or GetSelectionItemPattern at
+all, so "invoke" and "select" failed with AttributeError instead of pressing or explaining."""
+import re
+import sys
+import unittest
+import unittest.mock
+from pathlib import Path
+from types import SimpleNamespace
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import ocade_accessibility as a11y  # noqa: E402
+
+IDS = SimpleNamespace(InvokePattern=1, TogglePattern=2, SelectionItemPattern=3,
+                      ExpandCollapsePattern=4, ValuePattern=5)
+
+
+class CheckBox:
+    """Only what a uiautomation CheckBoxControl has: GetPattern, no other typed getters."""
+    ControlTypeName = "CheckBoxControl"
+    Name = "Edit"
+    IsPassword = False
+    IsEnabled = True
+
+    def __init__(self):
+        self.toggle = unittest.mock.Mock()
+        self.Click = unittest.mock.Mock()
+
+    def GetPattern(self, pattern_id):
+        return self.toggle if pattern_id == IDS.TogglePattern else None
+
+
+class ActTest(unittest.TestCase):
+    def act(self, control, op):
+        a11y._State.held["u9"] = {"window": (1,), "refs": {"a1": ((2,), "CheckBox", "Edit")}}
+        auto = SimpleNamespace(PatternId=IDS, UIAutomationInitializerInThread=unittest.mock.MagicMock)
+        never = re.compile(r"(?!)")
+        with unittest.mock.patch.object(a11y, "_uia", return_value=auto), \
+                unittest.mock.patch.object(a11y, "_by_runtime_id", return_value=SimpleNamespace(Name="App")), \
+                unittest.mock.patch.object(a11y, "_find", return_value=control), \
+                unittest.mock.patch.object(a11y, "_gates", return_value=(never, never, never)), \
+                unittest.mock.patch.object(a11y, "_protected", return_value=False), \
+                unittest.mock.patch.object(a11y, "inspect", return_value={"observation": {}}), \
+                unittest.mock.patch.object(a11y.time, "sleep"):
+            return a11y.act({"observationId": "u9", "ref": "a1", "op": op}, confirmed=False)
+
+    def test_invoke_on_a_check_box_presses_it(self):
+        box = CheckBox()
+        out = self.act(box, "invoke")
+        self.assertEqual(out["status"], "done", out)
+        box.toggle.Toggle.assert_called_once()
+        box.Click.assert_not_called()
+
+    def test_an_op_the_control_lacks_is_explained_not_a_crash(self):
+        for op in ("select", "expand", "collapse"):
+            out = self.act(CheckBox(), op)
+            self.assertEqual(out["status"], "failed", op)
+            self.assertIn("use invoke", out["summary"])
+
+    def test_without_any_pattern_invoke_clicks(self):
+        box = CheckBox()
+        box.GetPattern = lambda pattern_id: None
+        self.assertEqual(self.act(box, "invoke")["status"], "done")
+        box.Click.assert_called_once()
+
+
+if __name__ == "__main__":
+    unittest.main()

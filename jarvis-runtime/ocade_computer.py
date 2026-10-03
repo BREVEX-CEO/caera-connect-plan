@@ -779,7 +779,16 @@ class Computer:
             return {"status": "failed", "summary": "No command was given"}
         program = shutil.which(argv[0])
         if program is None:
-            return {"status": "failed", "summary": f"{Path(argv[0]).name[:60]} is not installed here"}
+            # An unquoted program path with spaces ("C:\Program Files\App\app.exe -x"):
+            # the longest leading run of words that names a real program is the program.
+            for end in range(len(argv), 1, -1):
+                joined = " ".join(argv[:end])
+                if Path(joined).is_file() and shutil.which(joined):
+                    argv, program = [joined, *argv[end:]], shutil.which(joined)
+                    break
+        if program is None:
+            return {"status": "failed",
+                    "summary": f"{argv[0][:80]} was not found; give a program on the PATH or its full path in quotes"}
         for arg in argv[1:]:
             if arg.startswith("-") and "=" not in arg:
                 continue
@@ -869,7 +878,11 @@ class Computer:
         scale = image.width / FRAME_WIDTH if image.width > FRAME_WIDTH else 1.0
         self._observation = {"id": f"s{self._obs_seq}", "geometry": geometry, "scale": scale,
                              "at": time.monotonic()}
-        return {"observationId": f"s{self._obs_seq}", "screen": {"w": geometry["w"], "h": geometry["h"]},
+        # The frame clicks are given in is the image the model sees, never the desktop's own size:
+        # a model told "1920x1080" beside a 1280-wide image clicks off the bottom of it.
+        return {"observationId": f"s{self._obs_seq}",
+                "image": {"w": round(image.width / scale), "h": round(image.height / scale),
+                          "points": "x and y are pixels of this image"},
                 "monitors": geometry["monitors"], "activeWindow": geometry["window"],
                 "windows": _windows()[:30],
                 "imageScale": round(1 / scale, 4), "frame": _jpeg(image)}

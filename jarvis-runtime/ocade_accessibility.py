@@ -268,26 +268,36 @@ def act(action: dict, confirmed: bool) -> dict:
         if not control.IsEnabled:
             return {"status": "failed", "summary": f"“{name[:60]}” is disabled"}
         text = str(action.get("value", ""))[:20_000]
+        # Asked by pattern id, not the typed getters: a CheckBoxControl has no
+        # GetInvokePattern at all, though the app may still support it (a page
+        # switch in a video editor is a check box). Unsupported is None.
+        def pattern(kind: str):
+            return control.GetPattern(getattr(auto.PatternId, kind))
+
         if op == "invoke":
-            pattern = control.GetInvokePattern()
-            if pattern:
-                pattern.Invoke()
+            invoke = pattern("InvokePattern")
+            toggle = None if invoke else pattern("TogglePattern")
+            if invoke:
+                invoke.Invoke()
+            elif toggle:
+                toggle.Toggle()
             else:
                 control.Click(simulateMove=False)
         elif op == "set_value":
-            pattern = control.GetValuePattern()
-            if not pattern or pattern.IsReadOnly:
+            value = pattern("ValuePattern")
+            if not value or value.IsReadOnly:
                 return {"status": "failed", "summary": f"“{name[:60]}” does not take text; type into it instead"}
-            pattern.SetValue(text)
+            value.SetValue(text)
             if (_value(control) or "") != text:
                 return {"status": "failed", "summary": "The field did not take the text"}
-        elif op == "toggle":
-            control.GetTogglePattern().Toggle()
-        elif op == "select":
-            control.GetSelectionItemPattern().Select()
-        elif op in ("expand", "collapse"):
-            pattern = control.GetExpandCollapsePattern()
-            pattern.Expand() if op == "expand" else pattern.Collapse()
+        elif op in ("toggle", "select", "expand", "collapse"):
+            found = pattern({"toggle": "TogglePattern", "select": "SelectionItemPattern"}
+                            .get(op, "ExpandCollapsePattern"))
+            if not found:
+                return {"status": "failed",
+                        "summary": f"“{name[:60] or role}” cannot {op}; use invoke to press it"}
+            {"toggle": lambda: found.Toggle(), "select": lambda: found.Select(),
+             "expand": lambda: found.Expand(), "collapse": lambda: found.Collapse()}[op]()
         elif op == "focus":
             control.SetFocus()
         else:

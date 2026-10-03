@@ -787,8 +787,12 @@ export function jarvisTools(memory: boolean, schedule = true): NormalizedToolDef
           observationId: str(
             "The current screen observationId, for screen_click, screen_type, screen_keys and screen_scroll.",
           ),
-          x: num("For screen_click and screen_drag."),
-          y: num("For screen_click and screen_drag."),
+          x: num(
+            "For screen_click and screen_drag: pixels of the latest screen image (its image size).",
+          ),
+          y: num(
+            "For screen_click and screen_drag: pixels of the latest screen image (its image size).",
+          ),
           toX: num("For screen_drag: where to drop."),
           toY: num("For screen_drag: where to drop."),
           button: str("left or right, for screen_click."),

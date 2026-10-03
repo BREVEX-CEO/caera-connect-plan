@@ -287,6 +287,28 @@ class DirectCommandTest(unittest.TestCase):
         (self.root / "fail.py").write_text("raise SystemExit(3)\n")
         self.assertEqual(self.run_("python fail.py")["exitCode"], 3)
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows program paths")
+    def test_an_unquoted_program_path_with_spaces_is_one_program(self):
+        # Found with DaVinci Resolve: "C:\Program Files\...\Resolve.exe -nogui" read as "C:\Program".
+        tools = self.home / "My Tools"
+        tools.mkdir()
+        (tools / "tool.exe").write_bytes(b"MZ")
+        ask = self.run_(f"{tools / 'tool.exe'} -nogui", confirmed=False)
+        self.assertEqual(ask["status"], "needs_confirmation", ask)
+        self.assertIn("tool.exe -nogui", ask["summary"])
+        missing = self.run_(f"{self.home / 'No Such' / 'x.exe'} -nogui", confirmed=False)
+        self.assertEqual(missing["status"], "failed", missing)
+        self.assertIn("was not found", missing["summary"])
+
+    @unittest.skipUnless(sys.platform == "win32", "a real screen")
+    def test_a_screen_look_names_the_frame_clicks_are_given_in(self):
+        obs = self.pc.run({"action": "screen"})["observation"]
+        self.assertNotIn("screen", obs)
+        self.assertLessEqual(obs["image"]["w"], 1280)
+        outside = self.pc.run({"action": "screen_click", "x": obs["image"]["w"] + 5, "y": 5,
+                               "observationId": obs["observationId"]}, confirmed=True)
+        self.assertEqual(outside["status"], "failed", outside)
+
     def test_git_works_in_the_workspace(self):
         self.assertEqual(self.run_("git init")["status"], "done")
         status = self.run_("git status --short")
