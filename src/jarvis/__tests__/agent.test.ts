@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   MAX_MODEL_STEPS,
+  pseudoCall,
   runJarvisTurn,
   Stopped,
   type AgentDeps,
@@ -97,6 +98,25 @@ function harness(
 }
 
 describe("a JARVIS turn", () => {
+  it("runs a tool call the model wrote as text, through the same checks, and never shows it", async () => {
+    const h = harness([
+      {
+        text: "",
+        toolCalls: [call("start_task", { title: "Trim", where: "computer", steps: ["trim"] })],
+      },
+      { text: 'Called computer {"action":"run","command":"python export.py"}', toolCalls: [] },
+      { text: "Called computer {not json}", toolCalls: [] },
+      { text: "Called nothing_real {}", toolCalls: [] },
+    ]);
+    const out = await runJarvisTurn(h.input, h.hooks, h.deps);
+    expect(h.queued).toEqual([{ action: "run", command: "python export.py" }]);
+    // Anything else in that shape is ordinary text, never a call.
+    expect(h.queued).toHaveLength(1);
+    expect(out.answer).toBe("Called nothing_real {}");
+    expect(pseudoCall('Called finish_task {"outcome":"completed"} trailing')).toBeNull();
+    expect(pseudoCall('Called finish_task ["x"]')).toBeNull();
+  });
+
   it("stops the task the computer is busy with only after start_task found it, then starts", async () => {
     const h = harness([
       { text: "", toolCalls: [call("stop_task", { because: "cancel it" })] },

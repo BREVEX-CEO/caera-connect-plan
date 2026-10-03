@@ -232,6 +232,36 @@ export function memoryMessage(input: {
 }
 
 /** The observation a model needs, and nothing that could bloat the next request. */
+const TOOL_NAMES = new Set([
+  "start_task",
+  "browser",
+  "computer",
+  "stop_task",
+  "docs",
+  "finish_task",
+  "schedule",
+  "remember",
+]);
+
+/**
+ * A tool call the model wrote as text. Earlier calls are echoed back to it as
+ * "Called computer {...}", and late in a long task it sometimes answers in
+ * that same form instead of calling: the task then stalled with the call shown
+ * to the person as an answer. Only the exact form, a known tool and a JSON
+ * object; it then runs through the same validation as any other call.
+ */
+export function pseudoCall(text: string): NormalizedToolCall | null {
+  const found = /^\s*Called ([a-z_]+) (\{[\s\S]*\})\s*$/.exec(text);
+  if (!found || !TOOL_NAMES.has(found[1]!)) return null;
+  try {
+    const args: unknown = JSON.parse(found[2]!);
+    if (!args || typeof args !== "object" || Array.isArray(args)) return null;
+    return { id: `text-${found[1]}`, name: found[1]!, arguments: args as Record<string, unknown> };
+  } catch {
+    return null;
+  }
+}
+
 export function compact(result: unknown): unknown {
   if (!result || typeof result !== "object") return result;
   const value = result as { observation?: { elements?: unknown[]; text?: string } };
@@ -570,6 +600,11 @@ export async function runJarvisTurn(
       }
       stopIfAsked();
       attachments = [];
+      const written = reply && reply.toolCalls.length === 0 ? pseudoCall(reply.text) : null;
+      if (reply && written) {
+        reply = { ...reply, text: "", toolCalls: [written] };
+        hooks.onText(answer); // the streamed call text is not an answer
+      }
       if (!reply) {
         // No use was available (the allowance ran out, or the gate refused): an
         // open task waits to be resumed rather than staying "running" unattended.
