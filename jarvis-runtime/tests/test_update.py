@@ -172,6 +172,22 @@ class UpdateTest(unittest.TestCase):
             up, "_get", lambda address, timeout: files[address.rsplit("/", 1)[1]]))
         return stack
 
+    def test_a_check_between_the_manifest_and_its_signature_looks_again(self):
+        """F-157: publication puts the manifest, then its signature; a check between sees a mismatch."""
+        self.placed_by_installer("1.0.0")
+        archive = build(True)
+        with self.served("2.0.0", archive):
+            fresh = up._get
+            stale = [b"c3RhbGU="]  # the previous release's signature, seen once
+
+            def get(address, timeout):
+                if address.endswith(".sig") and stale:
+                    return stale.pop()
+                return fresh(address, timeout)
+
+            with mock.patch.object(up, "_get", get), mock.patch.object(up.time, "sleep", lambda s: None):
+                self.assertEqual(up.check("https://ocade.test", self.root, "1.0.0"), "2.0.0")
+
     def test_an_older_or_equal_signed_release_is_never_installed(self):
         """A genuine old manifest replayed is a downgrade to a build with known flaws."""
         self.placed_by_installer("1.10.0")

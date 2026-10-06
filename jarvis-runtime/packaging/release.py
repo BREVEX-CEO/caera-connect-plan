@@ -137,6 +137,17 @@ def main() -> None:
         "installers": {ocade_update.platform_key(): setup.name} if setup else {},
         "publisherVerified": bool(args.sign and setup),
     }
+    # One feed serves every platform: a release built on this computer keeps the
+    # other platforms already published for the same version (F-156).
+    try:
+        published = ocade_update._get(f"{args.base.rstrip('/')}/agent/manifest.json", 30)
+        signed = ocade_update._get(f"{args.base.rstrip('/')}/agent/manifest.json.sig", 30)
+        earlier = ocade_update.verify_manifest(published, signed.decode().strip(), public)
+        if earlier.get("version") == args.version:
+            manifest["platforms"] = {**earlier.get("platforms", {}), **manifest["platforms"]}
+            manifest["installers"] = {**earlier.get("installers", {}), **manifest["installers"]}
+    except Exception as error:  # nothing published yet, or not by this key: this platform alone
+        print("no earlier manifest for this version merged:", type(error).__name__)
     raw = json.dumps(manifest, indent=2).encode()
     signature = base64.b64encode(key.sign(raw)).decode()
     (OUT / "manifest.json").write_bytes(raw)

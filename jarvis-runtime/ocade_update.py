@@ -219,9 +219,18 @@ def _get(url: str, timeout: int) -> bytes:
 def check(server: str, root: Path, current_version: str) -> str | None:
     """Fetch, verify and install a newer release. Returns the new version, or None."""
     base = server.rstrip("/") + "/agent"
-    manifest = _get(f"{base}/manifest.json", 30)
-    signature = _get(f"{base}/manifest.json.sig", 30).decode().strip()
-    parsed = verify_manifest(manifest, signature, UPDATE_PUBLIC_KEY)
+    # The manifest and its signature are two objects published one after the other; a
+    # check that lands between them sees a mismatched pair, so it looks once more (F-157).
+    for attempt in (1, 2):
+        manifest = _get(f"{base}/manifest.json", 30)
+        signature = _get(f"{base}/manifest.json.sig", 30).decode().strip()
+        try:
+            parsed = verify_manifest(manifest, signature, UPDATE_PUBLIC_KEY)
+            break
+        except UpdateRefused:
+            if attempt == 2:
+                raise
+            time.sleep(5)
     # Never backwards and never sideways: an older signed manifest replayed by
     # whoever controls the network is a downgrade to a build with known flaws.
     if _version(parsed.get("version", "")) <= _version(current_version):
