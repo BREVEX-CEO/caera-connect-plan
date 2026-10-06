@@ -36,15 +36,18 @@ export function browserLabel(): string {
   if (typeof navigator === "undefined") return "This browser";
   const ua = navigator.userAgent || "";
   let browser = "Browser";
-  if (/Edg\//.test(ua)) browser = "Edge";
-  else if (/Chrome\//.test(ua)) browser = "Chrome";
-  else if (/Firefox\//.test(ua)) browser = "Firefox";
+  if (/Edg(?:iOS|A)?\//.test(ua)) browser = "Edge";
+  else if (/(?:Chrome|CriOS)\//.test(ua)) browser = "Chrome";
+  else if (/(?:Firefox|FxiOS)\//.test(ua)) browser = "Firefox";
   else if (/Safari\//.test(ua)) browser = "Safari";
   let os = "";
-  if (/Windows/.test(ua)) os = "Windows";
+  // iOS first: every iPhone says "like Mac OS X", and an iPad asking for the
+  // desktop site says Macintosh but has a touch screen (F-046).
+  if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1))
+    os = "iOS";
+  else if (/Windows/.test(ua)) os = "Windows";
   else if (/Mac OS X/.test(ua)) os = "macOS";
   else if (/Android/.test(ua)) os = "Android";
-  else if (/iPhone|iPad|iPod/.test(ua)) os = "iOS";
   else if (/Linux/.test(ua)) os = "Linux";
   return os ? `${browser} on ${os}` : browser;
 }

@@ -16,11 +16,13 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { Bell, CreditCard, Monitor, Moon, ShieldCheck, User, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useModalFocus } from "@/lib/use-modal-focus";
 import { useAppearance } from "@/lib/appearance";
 import { useBubblePlacement, writePlacement } from "@/jarvis/bubble-state";
 import { useSession } from "@/lib/session";
@@ -124,9 +126,12 @@ function SettingsDialog({
   onClose: () => void;
 }) {
   const groups = [...new Set(CATEGORIES.map((entry) => entry.group))];
+  const self = useRef<HTMLDivElement>(null);
+  useModalFocus(self, true);
 
   return (
     <div
+      ref={self}
       role="dialog"
       aria-modal="true"
       aria-label="Settings"

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import Markdown from "react-markdown";
 import { Check, Copy, Paperclip, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import type { ChatMessageRecord } from "@/lib/ocade-chat-store";
 import { cn } from "@/lib/utils";
 
@@ -280,8 +281,16 @@ function Action({
   );
 }
 
-function copy(text: string): void {
-  void navigator.clipboard?.writeText(text);
+/** Copy, and say so only when the browser actually took it (F-058). */
+async function copy(text: string): Promise<boolean> {
+  try {
+    if (!navigator.clipboard) throw new Error("no clipboard");
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    toast.error("This browser did not allow copying. Select the text and copy it instead.");
+    return false;
+  }
 }
 
 /**
@@ -331,9 +340,11 @@ function CodeBlock({ children, ...rest }: React.ComponentProps<"pre">) {
         aria-label="Copy code"
         title="Copy code"
         onClick={() => {
-          copy(block.current?.innerText ?? "");
-          setCopied(true);
-          window.setTimeout(() => setCopied(false), 1500);
+          void copy(block.current?.innerText ?? "").then((ok) => {
+            if (!ok) return;
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1500);
+          });
         }}
         className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-md bg-background/70 text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover/code:opacity-100"
       >

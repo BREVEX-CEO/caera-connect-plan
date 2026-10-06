@@ -266,9 +266,8 @@ export function ChatWorkspace() {
          * their question about a file OCADE has already read.
          */
         try {
-          const { addLibraryItem, LIBRARY_MAX_BYTES } = await import(
-            "@/lib/library/library.functions"
-          );
+          const { addLibraryItem, LIBRARY_MAX_BYTES } =
+            await import("@/lib/library/library.functions");
           // The Library keeps the file itself, byte for byte — never the excerpt the model read.
           if (file.size > LIBRARY_MAX_BYTES) return;
           await addLibraryItem({

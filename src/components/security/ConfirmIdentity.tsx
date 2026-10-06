@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { answerChallenge, listVerifiedFactors } from "@/lib/security/mfa";
+import { useModalFocus } from "@/lib/use-modal-focus";
 
 /**
  * "CONFIRM IT'S YOU", THE ONE WAY.
@@ -36,6 +37,8 @@ export function useConfirmIdentity(): {
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const settle = useRef<((proved: boolean) => void) | null>(null);
+  const form = useRef<HTMLFormElement>(null);
+  useModalFocus(form, step.kind !== "idle");
 
   const finish = (proved: boolean) => {
     settle.current?.(proved);
@@ -47,11 +50,16 @@ export function useConfirmIdentity(): {
 
   const ask = useCallback(async (): Promise<boolean> => {
     setStep({ kind: "loading" });
+    let resolver: ((proved: boolean) => void) | null = null;
     const proved = new Promise<boolean>((resolve) => {
+      resolver = resolve;
       settle.current = resolve;
     });
+    // Cancelled while setup was in flight: late results must not reopen it (F-122).
+    const cancelled = () => settle.current !== resolver;
     try {
       const factor = (await listVerifiedFactors())[0];
+      if (cancelled()) return proved;
       if (factor) {
         setStep({ kind: "totp", factorId: factor.id });
       } else {
@@ -59,14 +67,17 @@ export function useConfirmIdentity(): {
         const { data } = await supabase.auth.getUser();
         const email = data.user?.email;
         if (!email) throw new Error("This account has no email address to send a code to.");
+        if (cancelled()) return proved;
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: { shouldCreateUser: false },
         });
+        if (cancelled()) return proved;
         if (error) throw error;
         setStep({ kind: "email", email });
       }
     } catch (error) {
+      if (cancelled()) return proved;
       setProblem(
         error instanceof Error ? error.message : "OCADE could not ask for a code just now.",
       );
@@ -117,6 +128,7 @@ export function useConfirmIdentity(): {
     step.kind === "idle" ? null : (
       <div className="fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4">
         <form
+          ref={form}
           role="dialog"
           aria-modal="true"
           aria-label="Confirm it's you"

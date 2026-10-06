@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { BrandMark } from "./BrandMark";
 import { cn } from "@/lib/utils";
+import { useModalFocus } from "@/lib/use-modal-focus";
 import { useSession } from "@/lib/session";
 import { useSettingsPanel } from "@/components/settings/settings-panel";
 import {
@@ -62,6 +63,8 @@ export function AppShell({
   // A navigation always closes the drawer; leaving it open over the new screen
   // is the classic way a mobile drawer becomes a trap.
   useEffect(() => setDrawerOpen(false), [pathname]);
+  const drawer = useRef<HTMLDivElement>(null);
+  useModalFocus(drawer, drawerOpen);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -85,7 +88,16 @@ export function AppShell({
 
       {/* Mobile drawer. */}
       {drawerOpen ? (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div
+          ref={drawer}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation"
+          className="fixed inset-0 z-50 md:hidden"
+          onClickCapture={(event) => {
+            if ((event.target as HTMLElement).closest("[data-closes-drawer]")) setDrawerOpen(false);
+          }}
+        >
           <button
             type="button"
             aria-label="Close navigation"

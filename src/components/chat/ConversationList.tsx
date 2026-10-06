@@ -162,6 +162,8 @@ export function ConversationList({
                   <button
                     type="button"
                     onClick={() => onOpen(row.id)}
+                    // Opening a chat is a navigation even when the path stays "/" (F-123).
+                    data-closes-drawer
                     aria-current={activeId === row.id ? "true" : undefined}
                     className={cn(
                       "flex h-9 w-full items-center rounded-lg pl-2.5 pr-8 text-left text-[14px] transition-colors",
@@ -183,6 +185,12 @@ export function ConversationList({
                   onPointerDown={(event) => {
                     event.preventDefault();
                     setMenuFor((current) => (current === row.id ? null : row.id));
+                  }}
+                  // Enter and Space produce a click with no pointer (detail 0) (F-057).
+                  onClick={(event) => {
+                    if (event.detail === 0) {
+                      setMenuFor((current) => (current === row.id ? null : row.id));
+                    }
                   }}
                   className="absolute right-1 top-1.5 grid h-6 w-6 place-items-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100"
                 >
@@ -264,11 +272,16 @@ const SEARCHABLE_FROM = 8;
 function groupConversations(
   rows: OcadeConversationRow[],
 ): { label: string; rows: OcadeConversationRow[] }[] {
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const today = startOfToday.getTime();
-  const yesterday = today - 86_400_000;
-  const week = today - 7 * 86_400_000;
+  // Calendar days, not 24-hour spans: a daylight-saving day is 23 or 25 hours (F-120).
+  const midnight = (daysAgo: number) => {
+    const day = new Date();
+    day.setHours(0, 0, 0, 0);
+    day.setDate(day.getDate() - daysAgo);
+    return day.getTime();
+  };
+  const today = midnight(0);
+  const yesterday = midnight(1);
+  const week = midnight(7);
 
   const groups: { label: string; rows: OcadeConversationRow[] }[] = [
     { label: "Today", rows: [] },

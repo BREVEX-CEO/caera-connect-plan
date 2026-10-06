@@ -62,7 +62,8 @@ function stated(
 ): string {
   if (read.isPending) return "Checking…";
   if (read.isError) return "This could not be read just now. Close Settings and open it again.";
-  if (remove.isError) return `${loaded} Deleting did not work: ${remove.error?.message ?? "try again"}.`;
+  if (remove.isError)
+    return `${loaded} Deleting did not work: ${remove.error?.message ?? "try again"}.`;
   return loaded;
 }
 
