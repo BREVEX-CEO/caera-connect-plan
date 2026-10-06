@@ -23,6 +23,16 @@ JARVIS must never silently fall back to Chat Offline Intelligence. If all approv
 
 New owner-approved authority supersedes older conflicting direction. Never silently revive an older requirement.
 
+## Mandatory ledger-first preflight
+
+Before implementation, read `FULL_ERROR_AUDIT_LEDGER.md`, `PONYTAIL_DEBLOAT_LEDGER.md`, and `ELITE_PRODUCT_STRATEGY.md` completely, then complete the reconciliation gate at the top of `PLAN.md`.
+
+The order of work is mandatory:
+
+`reconcile current evidence -> reproduce/fix valid errors -> complete the owning phase -> prove behavior -> Ponytail/ToRemove debloat -> re-run the full affected evidence -> proceed`.
+
+Do not jump directly to cleanup because a ledger labels code redundant. Do not jump directly to a later phase while a current release-scope error owned by an earlier/current phase remains reproducible. Do not preserve an old phase's PASS label when current evidence disproves it.
+
 ## Mandatory donor rule
 
 The immutable JARVIS source under `imports/ocade-jarvis/source-original/` and the preserved ZIP remain untouched forever.
