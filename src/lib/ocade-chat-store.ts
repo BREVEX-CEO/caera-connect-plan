@@ -68,6 +68,8 @@ export type PersistTarget = "cloud" | "unsynced";
 export interface PersistResult {
   stored: PersistTarget;
   record: ChatMessageRecord;
+  /** For `unsynced`: false when only this tab holds it (the device journal refused it). */
+  durable?: boolean;
 }
 
 /**
@@ -132,7 +134,7 @@ export async function persistChatMessage(input: {
       record: { ...record, ...(row ?? {}), conversation_id: input.conversationId },
     };
   } catch {
-    rememberUnsyncedTurn({
+    const durable = await rememberUnsyncedTurn({
       clientKey,
       conversationId: input.conversationId,
       title: input.title,
@@ -143,7 +145,7 @@ export async function persistChatMessage(input: {
       attachments: input.attachments ?? [],
       createdAt,
     });
-    return { stored: "unsynced", record: { ...record, unsynced: true } };
+    return { stored: "unsynced", durable, record: { ...record, unsynced: true } };
   }
 }
 
@@ -160,10 +162,18 @@ export async function loadChatMessages(input: {
   const remote =
     ((await listMessages({
       data: { conversationId: input.conversationId },
-    })) as unknown as ChatMessageRecord[]) ?? [];
+    })) as unknown as (ChatMessageRecord & { client_key?: string | null })[]) ?? [];
 
+  // A waiting turn the account already holds (its answer was lost on the way back) is shown
+  // once, as saved, and leaves the journal.
+  const saved = new Set(remote.map((row) => row.client_key).filter(Boolean));
   const waiting = unsyncedTurns()
     .filter((turn) => turn.conversationId === input.conversationId)
+    .filter((turn) => {
+      if (!saved.has(turn.clientKey)) return true;
+      forgetUnsyncedTurn(turn.clientKey);
+      return false;
+    })
     .map((turn): ChatMessageRecord => ({
       id: turn.clientKey,
       conversation_id: turn.conversationId,

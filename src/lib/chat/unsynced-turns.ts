@@ -64,9 +64,12 @@ function run<T>(
   if (!opened) return Promise.resolve(undefined);
   return opened.then((database) =>
     new Promise<T>((resolve, reject) => {
-      const request = act(database.transaction(store, mode).objectStore(store));
-      request.onsuccess = () => resolve(request.result);
+      // Durable means committed: a request can succeed and its transaction still abort.
+      const transaction = database.transaction(store, mode);
+      const request = act(transaction.objectStore(store));
       request.onerror = () => reject(request.error);
+      transaction.oncomplete = () => resolve(request.result);
+      transaction.onabort = () => reject(transaction.error ?? request.error);
     }).finally(() => database.close()),
   );
 }
@@ -94,11 +97,14 @@ function keyFor(accountId: string): Promise<CryptoKey> {
   return key;
 }
 
-/** Every journal change runs in order, so a delete never lands before its write. */
+/**
+ * Every journal change runs in order, so a delete never lands before its write. A failed change
+ * rejects its own caller but never blocks the ones queued after it.
+ */
 let queue: Promise<unknown> = Promise.resolve();
-function inOrder<T>(op: () => Promise<T>): Promise<T | undefined> {
-  const next = queue.then(op).catch(() => undefined);
-  queue = next;
+function inOrder<T>(op: () => Promise<T>): Promise<T> {
+  const next = queue.then(op);
+  queue = next.catch(() => undefined);
   return next;
 }
 
@@ -136,15 +142,27 @@ export function openJournal(accountId: string | null): Promise<void> {
   if (accountId === account) return ready;
   account = accountId;
   buffer.clear();
-  ready = accountId ? inOrder(() => load(accountId)).then(() => undefined) : Promise.resolve();
+  ready = accountId
+    ? inOrder(() => load(accountId)).then(
+        () => undefined,
+        () => undefined, // an unreadable journal is an empty one for this tab
+      )
+    : Promise.resolve();
   return ready;
 }
 
-/** Hold a turn the database could not be told about yet. */
-export function rememberUnsyncedTurn(turn: UnsyncedTurn): void {
+/**
+ * Hold a turn the database could not be told about yet. Resolves true once it is committed to
+ * this browser's journal (it survives closing the tab), false when it is held in this tab only.
+ */
+export function rememberUnsyncedTurn(turn: UnsyncedTurn): Promise<boolean> {
   buffer.set(turn.clientKey, turn);
   const owner = account;
-  if (owner) void inOrder(() => write(owner, turn));
+  if (!owner) return Promise.resolve(false);
+  return inOrder(() => write(owner, turn)).then(
+    () => true,
+    () => false,
+  );
 }
 
 /** Every waiting turn, oldest first, so a flush replays them in order. */
@@ -155,7 +173,7 @@ export function unsyncedTurns(): UnsyncedTurn[] {
 /** Retire one turn, because the database now holds it. */
 export function forgetUnsyncedTurn(clientKey: string): void {
   buffer.delete(clientKey);
-  void inOrder(() => run(TURNS, "readwrite", (s) => s.delete(clientKey)));
+  void inOrder(() => run(TURNS, "readwrite", (s) => s.delete(clientKey))).catch(() => undefined);
 }
 
 /** Claim a turn for uploading, or refuse because another drain has it. */
@@ -172,6 +190,7 @@ export function releaseUnsyncedTurn(clientKey: string): void {
 /** Discard an account's waiting turns and its journal key. Sign-out, after a warning. */
 export async function forgetAllUnsyncedTurns(owner: string): Promise<void> {
   if (owner === account) buffer.clear();
+  // Best effort: sign-out goes on either way, and a journal it could not open holds nothing.
   await inOrder(async () => {
     const rows = (await run<JournalRow[]>(TURNS, "readonly", (s) => s.getAll())) ?? [];
     for (const row of rows.filter((r) => r.accountId === owner)) {
@@ -179,5 +198,5 @@ export async function forgetAllUnsyncedTurns(owner: string): Promise<void> {
     }
     await run(KEYS, "readwrite", (s) => s.delete(owner));
     keys.delete(owner);
-  });
+  }).catch(() => undefined);
 }

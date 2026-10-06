@@ -168,12 +168,16 @@ export const listMessages = createServerFn({ method: "GET" })
       model_id: string | null;
       provider_id: string | null;
       created_at: string;
+      client_key: string | null;
     }>((from, to) =>
       context.supabase
         .from("ocade_messages")
-        .select("id, role, content, attachments, model_id, provider_id, created_at")
+        // client_key: a turn saved while its answer was lost is matched to the copy still
+        // waiting on the device, so it is shown once.
+        .select("id, role, content, attachments, model_id, provider_id, created_at, client_key")
         .eq("conversation_id", data.conversationId)
         .order("created_at", { ascending: true })
+        .order("id")
         .range(from, to),
     ).catch((cause: Error) => {
       throw new Error(cause.message);

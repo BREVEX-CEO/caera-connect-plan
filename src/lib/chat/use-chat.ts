@@ -44,6 +44,7 @@ import {
 } from "@/lib/ocade-chat-store";
 import { beginBilledRequest } from "@/lib/commercial/use-generation-permit";
 import { citationInstruction } from "@/lib/chat/attachments";
+import { forgetUnsyncedTurn } from "@/lib/chat/unsynced-turns";
 import type { NormalizedAttachment, NormalizedMessage } from "@/lib/intelligence/contract";
 import { USAGE_QUERY_KEY } from "@/lib/commercial/use-commercial-usage";
 import { ocadeIntelligence } from "@/lib/intelligence/ocade-intelligence";
@@ -547,6 +548,12 @@ export function useChat(): ChatState & ChatActions {
               };
             },
           )) as unknown as OcadeConversationRow;
+          // Opened another chat while this one was being created: the later choice keeps the
+          // screen. The new conversation exists and shows up in the list; nothing is put in it.
+          if (!mine()) {
+            void refreshConversations();
+            return true;
+          }
           id = row.id;
           setConversationId(id);
           setConversations((current) => [row, ...current]);
@@ -698,14 +705,22 @@ export function useChat(): ChatState & ChatActions {
           return true;
         }
 
+        /*
+         * WORDS THEN A FAILURE ARE AN UNFINISHED ANSWER, said on screen and in the saved copy,
+         * so neither today nor later does it pass for a complete one. Stop is the person's
+         * own choice and needs no such note.
+         */
+        const cut = refusal !== null && !controller.signal.aborted;
+        const kept = cut ? `${answer}\n\n_[This answer stopped before it finished.]_` : answer;
         const reply = temporary
-          ? { record: temporaryRecord("assistant", answer, []), stored: "memory" as const }
+          ? { record: temporaryRecord("assistant", kept, []), stored: "memory" as const }
           : await persistChatMessage({
               conversationId: id!,
               title: offlineTitle,
               role: "assistant",
-              content: answer,
+              content: kept,
             });
+        if (cut && mine()) setProblem(`The answer stopped early: ${refusal} Retry to ask again.`);
         if (!mine()) return true;
         // In the same render as the saved reply: the streamed copy stayed on
         // screen beside it until usage had settled, so the answer showed twice.
@@ -713,7 +728,9 @@ export function useChat(): ChatState & ChatActions {
         setStreaming("");
         if (reply.stored === "unsynced") {
           setProblem(
-            "This answer is kept on this device because your account could not be reached. It is saved when the connection returns.",
+            "durable" in reply && reply.durable === false
+              ? "Your account could not be reached and this browser could not keep the answer either: it is saved only if this tab stays open until the connection returns."
+              : "This answer is kept on this device because your account could not be reached. It is saved when the connection returns.",
           );
         }
 
@@ -812,6 +829,11 @@ export function useChat(): ChatState & ChatActions {
           // Runs once the allowance has said yes. Deleting before that point cost
           // somebody their question whenever the answer was going to be refused.
           setMessages(before.slice(0, index));
+          // Replaced turns still waiting on this device leave its journal too, so a reconnect
+          // can never upload the words the person just replaced.
+          for (const record of before.slice(index)) {
+            if (record.unsynced) forgetUnsyncedTurn(record.id);
+          }
           /*
            * ONE STATEMENT, NOT ONE PER TURN.
            *
@@ -854,6 +876,11 @@ export function useChat(): ChatState & ChatActions {
       const before = transcript.current;
       setMessages((current) => current.filter((record) => record.id !== id));
       if (temporary) return; // Nothing was written, so nothing is deleted.
+      // Not in the account yet: it is deleted where it waits, on this device.
+      if (before.find((record) => record.id === id)?.unsynced) {
+        forgetUnsyncedTurn(id);
+        return;
+      }
       try {
         await deleteMessage({ data: { id } });
       } catch (cause) {

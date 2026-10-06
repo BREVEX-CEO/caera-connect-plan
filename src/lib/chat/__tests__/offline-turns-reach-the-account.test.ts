@@ -198,3 +198,40 @@ describe("after the browser restarts", () => {
     expect(appended).toEqual(["t1"]);
   });
 });
+
+describe("a turn the account saved while its answer was lost", () => {
+  it("is shown once, as saved, and leaves the journal", async () => {
+    waiting("k1", "2026-01-01T00:00:00.000Z");
+    const functions = await import("@/lib/ocade.functions");
+    vi.mocked(functions.listMessages).mockResolvedValueOnce([
+      {
+        id: "row-1",
+        role: "user",
+        content: "held k1",
+        attachments: [],
+        model_id: null,
+        provider_id: null,
+        created_at: "2026-01-01T00:00:00.100Z",
+        client_key: "k1",
+      },
+    ] as never);
+    const shown = await app.loadChatMessages({ conversationId: "c1" });
+    expect(shown.map((row) => row.id)).toEqual(["row-1"]);
+    expect(unsyncedTurns()).toEqual([]);
+  });
+
+  it("says whether a waiting turn is kept by this browser or only by this tab", async () => {
+    await expect(
+      app.rememberUnsyncedTurn({
+        clientKey: "k9",
+        conversationId: "c1",
+        role: "user",
+        content: "x",
+        modelId: null,
+        providerId: null,
+        attachments: [],
+        createdAt: "2026-01-01T00:00:00.000Z",
+      }),
+    ).resolves.toBe(true);
+  });
+});

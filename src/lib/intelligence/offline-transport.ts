@@ -85,6 +85,20 @@ export function createOfflineIntelligenceTransport(
 
     async *stream(request: IntelligenceRequest): AsyncIterable<IntelligenceEvent> {
       yield { type: "status", backend: "on_device", state: "starting" };
+      /*
+       * A QUESTION ABOUT A PICTURE IS REFUSED, NOT ANSWERED BLIND. The local engine cannot see,
+       * and dropping the image here (on its own, or when Automatic falls back to this device)
+       * would let it answer as though it had looked.
+       */
+      if (request.attachments.some((attachment) => attachment.image)) {
+        yield {
+          type: "refusal",
+          code: "local_unavailable",
+          reason: "OCADE cannot look at images on this device. Ask again when you are online.",
+          retryable: false,
+        };
+        return;
+      }
 
       /*
        * The adapter streams through a callback and this contract yields. The
