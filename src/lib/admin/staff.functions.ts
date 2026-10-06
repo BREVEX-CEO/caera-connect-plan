@@ -576,18 +576,31 @@ export interface SupportCase {
   customerEmail: string | null;
   reason: string;
   expiresAt: string;
+  /** The one conversation the case covers, and whether the caller is the one who reads it. */
+  conversation: { id: string; title: string } | null;
+  mine: boolean;
 }
 
 export const openCase = createServerFn({ method: "POST" })
   .middleware([requireAssurance(HIGH_RISK)])
   .validator((input) =>
-    z.object({ userId: uuid, reason, hours: z.number().int().min(1).max(72) }).parse(input),
+    z
+      .object({
+        userId: uuid,
+        reason,
+        hours: z.number().int().min(1).max(72),
+        conversationId: uuid,
+        assigneeId: uuid.optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }): Promise<{ id: string }> => {
     const { data: id, error } = await context.supabase.rpc("ocade_case_open", {
       p_customer: data.userId,
       p_reason: data.reason,
       p_hours: data.hours,
+      p_conversation: data.conversationId,
+      ...(data.assigneeId ? { p_assignee: data.assigneeId } : {}),
     });
     if (error || !id) throw new Error(staffFailure(error?.message ?? ""));
     // The customer is told, in their own notifications, that OCADE opened
@@ -596,11 +609,38 @@ export const openCase = createServerFn({ method: "POST" })
     await sendNotification({
       userId: data.userId,
       category: "security",
-      title: "OCADE support can read your conversations for a while",
+      title: "OCADE support can read one of your conversations for a while",
       body: `Reason: ${data.reason}. Access ends within ${data.hours} hours.`,
       idempotencyKey: `case-open:${id}`,
     }).catch(() => undefined);
     return { id: id as string };
+  });
+
+/**
+ * A customer's conversation titles, for choosing the one a case will cover. Only for whoever
+ * opens cases, and written down like a read: titles are the customer's words too.
+ */
+export const listCustomerConversations = createServerFn({ method: "GET" })
+  .middleware([requireSession])
+  .validator((input) => z.object({ userId: uuid }).parse(input))
+  .handler(async ({ data, context }): Promise<{ id: string; title: string }[]> => {
+    await assertStaff(context.supabase, "cases.manage");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("ocade_conversations")
+      .select("id, title")
+      .eq("user_id", data.userId)
+      .order("updated_at", { ascending: false })
+      .limit(50);
+    if (error) throw new Error("Conversations could not be read.");
+    const { error: auditError } = await supabaseAdmin.from("ocade_admin_actions").insert({
+      actor: context.userId,
+      target_user: data.userId,
+      action: "case_read",
+      reason: "Listed conversation titles to open a case.",
+    });
+    if (auditError) throw new Error("Conversations could not be read.");
+    return (rows ?? []).map((row) => ({ id: row.id, title: row.title }));
   });
 
 export const closeCase = createServerFn({ method: "POST" })
@@ -615,73 +655,57 @@ export const closeCase = createServerFn({ method: "POST" })
     return { closed: closed === true };
   });
 
-/** Open, unexpired cases. */
+/**
+ * Open, unexpired cases: the ones the caller reads, and (for whoever opens and closes cases)
+ * every open one, without their content. A case shows the one conversation it covers.
+ */
 export const listCases = createServerFn({ method: "GET" })
   .middleware([requireSession])
   .handler(async ({ context }): Promise<SupportCase[]> => {
     await assertStaff(context.supabase, "cases.read");
+    const manages = await context.supabase.rpc("ocade_staff_can", { p_permission: "cases.manage" });
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("ocade_support_cases")
-      .select("id, customer, reason, expires_at")
+      .select("id, customer, reason, expires_at, assignee, conversation")
       .is("closed_at", null)
       .gt("expires_at", new Date().toISOString())
       .order("expires_at")
       .limit(100);
+    if (manages.data !== true) query = query.eq("assignee", context.userId);
+    const { data: rows, error } = await query;
     if (error) throw new Error("Cases could not be read.");
     const ids = [...new Set((rows ?? []).map((row) => row.customer))];
-    const { data: profiles } = ids.length
-      ? await supabaseAdmin.from("profiles").select("id, email").in("id", ids).limit(ids.length)
-      : { data: [] as { id: string; email: string | null }[] };
+    const conversations = (rows ?? []).map((row) => row.conversation).filter(Boolean) as string[];
+    const [{ data: profiles, error: profileError }, { data: titles, error: titleError }] =
+      await Promise.all([
+        ids.length
+          ? supabaseAdmin.from("profiles").select("id, email").in("id", ids).limit(ids.length)
+          : Promise.resolve({ data: [] as { id: string; email: string | null }[], error: null }),
+        conversations.length
+          ? supabaseAdmin
+              .from("ocade_conversations")
+              .select("id, title")
+              .in("id", conversations)
+              .limit(conversations.length)
+          : Promise.resolve({ data: [] as { id: string; title: string }[], error: null }),
+      ]);
+    // A failed companion read is not an unknown customer or an untitled conversation.
+    if (profileError || titleError) throw new Error("Cases could not be read.");
     const emailOf = new Map((profiles ?? []).map((row) => [row.id, row.email]));
+    const titleOf = new Map((titles ?? []).map((row) => [row.id, row.title]));
     return (rows ?? []).map((row) => ({
       id: row.id,
       customer: row.customer,
       customerEmail: emailOf.get(row.customer) ?? null,
       reason: row.reason,
       expiresAt: row.expires_at,
+      conversation: row.conversation
+        ? { id: row.conversation, title: titleOf.get(row.conversation) ?? "Untitled" }
+        : null,
+      mine: row.assignee === context.userId,
     }));
   });
-
-/** The customer's conversation titles, while the case is open. */
-export const listCaseConversations = createServerFn({ method: "GET" })
-  .middleware([requireSession])
-  .validator((input) => z.object({ caseId: uuid }).parse(input))
-  .handler(
-    async ({ data, context }): Promise<{ id: string; title: string; updatedAt: string }[]> => {
-      await assertStaff(context.supabase, "cases.read");
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: kase } = await supabaseAdmin
-        .from("ocade_support_cases")
-        .select("customer")
-        .eq("id", data.caseId)
-        .is("closed_at", null)
-        .gt("expires_at", new Date().toISOString())
-        .maybeSingle();
-      if (!kase) throw new Error("This case is closed or has expired.");
-      const { data: rows, error } = await supabaseAdmin
-        .from("ocade_conversations")
-        .select("id, title, updated_at")
-        .eq("user_id", kase.customer)
-        .order("updated_at", { ascending: false })
-        .limit(50);
-      if (error) throw new Error("Conversations could not be read.");
-      // Their titles are the customer's words too: the list is written down like a read.
-      const { error: auditError } = await supabaseAdmin.from("ocade_admin_actions").insert({
-        actor: context.userId,
-        target_user: kase.customer,
-        subject: data.caseId,
-        action: "case_read",
-        reason: "Listed the conversations under an open case.",
-      });
-      if (auditError) throw new Error("Conversations could not be read.");
-      return (rows ?? []).map((row) => ({
-        id: row.id,
-        title: row.title,
-        updatedAt: row.updated_at,
-      }));
-    },
-  );
 
 /** One conversation, read under the case, and written down by the database. */
 export const readCaseConversation = createServerFn({ method: "GET" })

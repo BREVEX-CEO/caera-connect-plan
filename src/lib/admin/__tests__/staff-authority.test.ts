@@ -477,10 +477,10 @@ describe("conversation access through a case", () => {
     );
   });
 
-  const open = (actor: string, hours = 24) =>
+  const open = (actor: string, hours = 24, reader = SUPPORT, conv = conversation) =>
     twin.asTenant<{ id: string }>(
       actor,
-      `select public.ocade_case_open('${CUSTOMER_A}', 'Customer reported export failure', ${hours}) as id`,
+      `select public.ocade_case_open('${CUSTOMER_A}', 'Customer reported export failure', ${hours}, '${conv}', '${reader}') as id`,
       fresh,
     );
   const read = (actor: string, kase: string, conv: string) =>
@@ -502,7 +502,7 @@ describe("conversation access through a case", () => {
     expect((await read(SUPPORT, kase, conversation)).rows).toEqual([
       { content: "my export fails" },
     ]);
-    expect((await read(SUPPORT, kase, other)).error).toBe("Not found");
+    expect((await read(SUPPORT, kase, other)).error).toMatch(/not yours to read/);
     expect((await read(CUSTOMER_B, kase, conversation)).error).toBe("Not found");
     const reads = await twin.asServiceRole(
       `select 1 from public.ocade_admin_actions where action = 'case_read' and subject = '${kase}'`,
@@ -524,7 +524,28 @@ describe("conversation access through a case", () => {
       fresh,
     );
     expect(closed.error).toBeUndefined();
-    expect((await read(SUPPORT, kase, conversation)).error).toMatch(/closed or has expired/);
+    expect((await read(SUPPORT, kase, conversation)).error).toMatch(/closed, has expired/);
+  });
+
+  it("names one reader and one conversation (F-014)", async () => {
+    const [{ id: second }] = await twin.asServiceRole<{ id: string }>(
+      `insert into public.ocade_conversations (user_id, title) values ('${CUSTOMER_A}', 'Also private') returning id`,
+    );
+    await twin.execSuperuser(
+      `insert into public.ocade_staff (user_id, role) values ('${CUSTOMER_B}', 'support')`,
+    );
+    const kase = (await open(OWNER)).rows[0]!.id;
+    // Another member of staff with cases.read reads nothing under it.
+    expect((await read(CUSTOMER_B, kase, conversation)).error).toMatch(/not yours to read/);
+    // The reader reads only the named conversation, even of the same customer.
+    expect((await read(SUPPORT, kase, second)).error).toMatch(/not yours to read/);
+    // A conversation of somebody else, a reader without cases.read, or the customer: refused.
+    expect((await open(OWNER, 24, SUPPORT, other)).error).toMatch(/this customer's conversations/);
+    expect((await open(OWNER, 24, CUSTOMER_A)).error).toMatch(/may read cases/);
+    await twin.execSuperuser(
+      `update public.ocade_staff set denied = '{cases.read}' where user_id = '${CUSTOMER_B}'`,
+    );
+    expect((await open(OWNER, 24, CUSTOMER_B)).error).toMatch(/may read cases/);
   });
 });
 
@@ -570,7 +591,7 @@ describe("attacked from a browser", () => {
     endAll: `select public.ocade_staff_end_all_sessions('Suspected staff credential leak')`,
     endCustomer: `select public.ocade_staff_end_customer_sessions('${CUSTOMER_A}', 'Account reported as taken over')`,
     resetFactor: `select public.ocade_staff_reset_second_factor('${CUSTOMER_A}', 'Lost phone and recovery codes')`,
-    caseOpen: `select public.ocade_case_open('${CUSTOMER_A}', 'Customer reported export failure', 24)`,
+    caseOpen: `select public.ocade_case_open('${CUSTOMER_A}', 'Customer reported export failure', 24, '00000000-0000-4000-8000-000000000000', '${SUPPORT}')`,
     caseClose: `select public.ocade_case_close('00000000-0000-4000-8000-000000000000', 'Resolved: export works again')`,
   };
 
@@ -806,7 +827,7 @@ describe("attacked from a browser", () => {
     );
     const opened = await twin.asTenant<{ id: string }>(
       OWNER,
-      `select public.ocade_case_open('${CUSTOMER_A}', 'Customer reported export failure', 1) as id`,
+      `select public.ocade_case_open('${CUSTOMER_A}', 'Customer reported export failure', 1, '${conversation}', '${SUPPORT}') as id`,
       fresh,
     );
     const kase = opened.rows[0]!.id;
@@ -827,7 +848,7 @@ describe("attacked from a browser", () => {
         where id = '${kase}';
        alter table public.ocade_support_cases enable trigger all;`,
     );
-    expect((await read("aal2")).error).toMatch(/closed or has expired/);
+    expect((await read("aal2")).error).toMatch(/closed, has expired/);
   });
 
   it("removing a staff account removes its access with it", async () => {
@@ -940,6 +961,39 @@ describe("staff act within their own reach", () => {
         )
       ).error,
     ).toBeUndefined();
+  });
+
+  it("clearing a denial cannot hand back what the editor lacks (F-019)", async () => {
+    await twin.execSuperuser(
+      `update public.ocade_staff set granted = '{staff.manage}', denied = '{cases.read}' where user_id = '${ADMIN}';
+       update public.ocade_staff set denied = '{cases.read}' where user_id = '${SUPPORT}';`,
+    );
+    const cleared = await act(
+      ADMIN,
+      `select public.ocade_staff_set_permissions('${SUPPORT}', '{}', '{}', '${why}')`,
+    );
+    expect(cleared.error).toMatch(/hold yourself/);
+    expect(
+      await twin.asServiceRole(
+        `select 1 from public.ocade_staff where user_id = '${SUPPORT}' and denied = '{cases.read}'`,
+      ),
+    ).toHaveLength(1);
+  });
+});
+
+// Runs before the older staff migration is rolled back below, which restores its own definitions.
+describe("cases name their reader and conversation, rolled back and applied again", () => {
+  const MIGRATION = "20261006090000_cases_name_their_reader_and_conversation";
+
+  it("verifies, rolls back and verifies again", async () => {
+    const verify = () => twin.runScript("supabase/verification", `${MIGRATION}_verify.sql`);
+    expect((await verify()).error).toBeUndefined();
+    expect(
+      (await twin.runScript("supabase/rollback", `${MIGRATION}_rollback.sql`)).error,
+    ).toBeUndefined();
+    expect((await verify()).error).toBeDefined();
+    expect((await twin.runScript("supabase/migrations", `${MIGRATION}.sql`)).error).toBeUndefined();
+    expect((await verify()).error).toBeUndefined();
   });
 });
 

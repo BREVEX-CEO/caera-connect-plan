@@ -15,7 +15,6 @@ import {
   grantStaff,
   grantUnlimited,
   listAudit,
-  listCaseConversations,
   listCases,
   listStaff,
   messageOf,
@@ -684,7 +683,9 @@ export function CasesModule({ me }: { me: MyStaff }) {
                       {kase.customerEmail ?? kase.customer}
                     </span>
                     <span className="block text-[13px] text-muted-foreground">
-                      {kase.reason} · until {new Date(kase.expiresAt).toLocaleString()}
+                      {kase.reason} · {kase.conversation?.title ?? "no conversation"} · until{" "}
+                      {new Date(kase.expiresAt).toLocaleString()}
+                      {kase.mine ? "" : " · read by another member of staff"}
                     </span>
                   </span>
                   <button
@@ -693,12 +694,13 @@ export function CasesModule({ me }: { me: MyStaff }) {
                     aria-expanded={openId === kase.id}
                     onClick={() => setOpenId(openId === kase.id ? null : kase.id)}
                   >
-                    {openId === kase.id ? "Hide" : "Read"}
+                    {openId === kase.id ? "Hide" : kase.mine ? "Read" : "Manage"}
                   </button>
                 </div>
                 {openId === kase.id ? (
                   <CaseReader
                     caseId={kase.id}
+                    conversationId={kase.mine ? (kase.conversation?.id ?? null) : null}
                     canClose={me.permissions.includes("cases.manage")}
                     onClosed={() => {
                       setOpenId(null);
@@ -719,22 +721,20 @@ export function CasesModule({ me }: { me: MyStaff }) {
   );
 }
 
+/** The case's one conversation, for its named reader; closing, for whoever manages cases. */
 function CaseReader({
   caseId,
+  conversationId: conversation,
   canClose,
   onClosed,
 }: {
   caseId: string;
+  conversationId: string | null;
   canClose: boolean;
   onClosed: () => void;
 }) {
-  const [conversation, setConversation] = useState<string | null>(null);
   const [why, setWhy] = useState("");
   const { withProof, dialog } = useConfirmIdentity();
-  const conversations = useQuery({
-    queryKey: ["admin", "case", caseId],
-    queryFn: () => listCaseConversations({ data: { caseId } }),
-  });
   const messages = useQuery({
     queryKey: ["admin", "case", caseId, conversation],
     queryFn: () => readCaseConversation({ data: { caseId, conversationId: conversation! } }),
@@ -751,31 +751,6 @@ function CaseReader({
   return (
     <div className="mt-3 rounded-md border border-border p-3">
       {dialog}
-      {conversations.data ? (
-        <ul className="flex flex-wrap gap-1.5">
-          {conversations.data.map((row) => (
-            <li key={row.id}>
-              <button
-                type="button"
-                aria-pressed={conversation === row.id}
-                className={conversation === row.id ? `${button} bg-accent` : button}
-                onClick={() => setConversation(row.id)}
-              >
-                {row.title || "Untitled"}
-              </button>
-            </li>
-          ))}
-          {conversations.data.length === 0 ? (
-            <li className="text-[13px] text-muted-foreground">No conversations.</li>
-          ) : null}
-        </ul>
-      ) : (
-        <Pending
-          query={conversations}
-          loading="Loading conversations…"
-          problem="Conversations could not be read."
-        />
-      )}
       {conversation ? (
         messages.data ? (
           <ol className="mt-3 max-h-80 space-y-2 overflow-y-auto">

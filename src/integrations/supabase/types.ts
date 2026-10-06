@@ -583,24 +583,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ocade_console_sessions: {
-        Row: {
-          opened_at: string
-          session_id: string
-          user_id: string
-        }
-        Insert: {
-          opened_at?: string
-          session_id: string
-          user_id: string
-        }
-        Update: {
-          opened_at?: string
-          session_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       ocade_conversations: {
         Row: {
           archived: boolean
@@ -1352,7 +1334,9 @@ export type Database = {
       }
       ocade_support_cases: {
         Row: {
+          assignee: string | null
           closed_at: string | null
+          conversation: string | null
           customer: string
           expires_at: string
           id: string
@@ -1361,7 +1345,9 @@ export type Database = {
           reason: string
         }
         Insert: {
+          assignee?: string | null
           closed_at?: string | null
+          conversation?: string | null
           customer: string
           expires_at: string
           id?: string
@@ -1370,13 +1356,59 @@ export type Database = {
           reason: string
         }
         Update: {
+          assignee?: string | null
           closed_at?: string | null
+          conversation?: string | null
           customer?: string
           expires_at?: string
           id?: string
           opened_at?: string
           opened_by?: string | null
           reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_support_cases_conversation_fkey"
+            columns: ["conversation"]
+            isOneToOne: false
+            referencedRelation: "ocade_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_unlimited_grants: {
+        Row: {
+          created_at: string
+          ends_at: string | null
+          granted_by: string | null
+          id: string
+          reason: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at?: string | null
+          granted_by?: string | null
+          id?: string
+          reason: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string | null
+          granted_by?: string | null
+          id?: string
+          reason?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -1982,7 +2014,13 @@ export type Database = {
         Returns: { content: string; created_at: string; role: string }[]
       }
       ocade_case_open: {
-        Args: { p_customer: string; p_hours: number; p_reason: string }
+        Args: {
+          p_assignee?: string
+          p_conversation: string
+          p_customer: string
+          p_hours: number
+          p_reason: string
+        }
         Returns: string
       }
       ocade_my_staff: {

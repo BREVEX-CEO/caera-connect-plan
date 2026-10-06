@@ -46,8 +46,18 @@ function report(file, offset, message) {
   problems.push(`${file}:${line} ${message}`);
 }
 
+/**
+ * Comments are prose, not colour: "React #418" in a comment is an error number. Each comment is
+ * blanked character for character, so offsets (and the line numbers reported) stay exact.
+ * A `//` after `:` (a URL) is not a comment.
+ */
+const withoutComments = (source) =>
+  source.replace(/\/\*[\s\S]*?\*\/|(^|[\s;{}(),])\/\/[^\n]*/g, (comment) =>
+    comment.replace(/[^\n]/g, " "),
+  );
+
 for (const file of auditFiles) {
-  const source = readFileSync(file, "utf8");
+  const source = withoutComments(readFileSync(file, "utf8"));
 
   for (const match of source.matchAll(/#([\da-fA-F]{3,8})\b/g)) {
     const raw = match[1];

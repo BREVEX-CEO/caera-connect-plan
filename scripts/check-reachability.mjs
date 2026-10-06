@@ -58,8 +58,6 @@ const AWAITING_MOUNT = {};
 const ENTERED_ELSEWHERE = {
   "src/cloudflare-entry.ts":
     "The Cloudflare Worker entry. The platform calls it; no page imports it.",
-  "src/ffprobe-static.d.ts":
-    "An ambient type declaration. TypeScript reads it; nothing imports it.",
   "src/nitro-virtual.d.ts": "An ambient type declaration for Nitro's virtual modules.",
   "src/opfs.d.ts":
     "An ambient type declaration for the OPFS sync access handle the model store uses.",

@@ -182,6 +182,19 @@ describe("what a library row may hold", () => {
     expect(attempt, "a library row accepted a kind nothing can render").not.toBeNull();
   });
 
+  it("refuses a row naming another account's folder (F-044)", async () => {
+    const attempt = await twin
+      .asSuperuser(
+        `insert into public.ocade_library_items (user_id, kind, source, name, mime, size_bytes, storage_path)
+         values ('${OWNER}', 'file', 'upload', 'theirs.txt', 'text/plain', 1, '${STRANGER}/theirs')`,
+      )
+      .then(
+        () => null,
+        (error: unknown) => error,
+      );
+    expect(attempt, "a row pointed at another account's object").not.toBeNull();
+  });
+
   it("refuses two rows pointing at one object", async () => {
     await twin.execSuperuser(
       `insert into public.ocade_library_items (user_id, kind, source, name, mime, size_bytes, storage_path)

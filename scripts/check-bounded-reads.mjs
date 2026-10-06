@@ -58,7 +58,9 @@ for (const file of SOURCES) {
     const chain = source
       .slice(index, index + CHAIN_WINDOW)
       .replace(/\/\/[^\n]*/g, "")
-      .replace(/\/\*[\s\S]*?\*\//g, "");
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      // The next query is somebody else's: its cap does not bound this read.
+      .split(".from(")[0];
     const end = chain.indexOf(";");
     /*
      * A CHAIN CAN BE BUILT IN PIECES. Several reads assign the query to a
@@ -66,12 +68,18 @@ for (const file of SOURCES) {
      * awaits it — `let q = supabase.from(…).select(…); … await
      * q.order(…).limit(100)`. Stopping at the first `;` calls that unbounded,
      * so when the select is assigned to a name the whole window is searched
-     * instead.
+     * instead — but only the statements that use that name. Taking every
+     * statement let an unrelated later query's .limit(1) bound this one.
      */
-    const assignedToVariable = /(?:const|let)\s+\w+\s*=[^;]*$/.test(
+    const assigned = /(?:const|let)\s+(\w+)\s*=[^;]*$/.exec(
       source.slice(Math.max(0, index - 300), index),
     );
-    const query = assignedToVariable || end === -1 ? chain : chain.slice(0, end);
+    const statements = chain.split(";");
+    const query = assigned
+      ? statements.filter((s, i) => i === 0 || new RegExp(`\\b${assigned[1]}\\b`).test(s)).join(";")
+      : end === -1
+        ? chain
+        : chain.slice(0, end);
     const lineNumber = source.slice(0, index).split("\n").length;
     const line = lines[lineNumber - 1] ?? "";
     const nearby = lines.slice(Math.max(0, lineNumber - 6), lineNumber).join("\n");

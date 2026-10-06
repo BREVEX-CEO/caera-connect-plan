@@ -295,18 +295,20 @@ for (const file of files) {
 
   // --- icon-only controls with no accessible name ------------------------
   // Matches a control whose entire body is a single self-closing component
-  // marked aria-hidden — the classic icon button.
-  const ICON_ONLY =
-    /<(button|Button)\b([^>]*)>\s*<[A-Z][A-Za-z0-9]*\b[^>]*aria-hidden[^>]*\/>\s*<\/(?:button|Button)>/g;
-  for (const m of src.matchAll(ICON_ONLY)) {
-    const attrs = m[2] ?? "";
+  // marked aria-hidden — the classic icon button. The control's own tag is read
+  // with attributesOf: a `[^>]*` capture stopped at the `>` of an inline arrow
+  // handler and skipped the control entirely.
+  const ICON_BODY = /^>\s*<[A-Z][A-Za-z0-9]*\b[^>]*aria-hidden[^>]*\/>\s*<\/(?:button|Button)>/;
+  for (const m of src.matchAll(/<(?:button|Button)\b/g)) {
+    const attrs = attributesOf(src, m.index);
+    if (!ICON_BODY.test(src.slice(m.index + attrs.length))) continue;
     const named = /aria-label=|aria-labelledby=|title=/.test(attrs);
     if (!named) {
       findings.push({
         file: reportFile,
         line: lineAt(src, m.index),
         kind: "icon-only-no-name",
-        detail: m[0].replace(/\s+/g, " ").slice(0, 80),
+        detail: attrs.replace(/\s+/g, " ").slice(0, 80),
       });
     }
   }

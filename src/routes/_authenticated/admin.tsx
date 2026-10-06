@@ -29,6 +29,8 @@ import {
   adjustCustomerUsage,
   deleteCustomerAccount,
   endCustomerSessions,
+  listCustomerConversations,
+  listStaff,
   messageOf,
   openCase,
   readCustomer,
@@ -370,6 +372,10 @@ function CustomerDetail({
   const { withProof, dialog } = useConfirmIdentity();
   const [why, setWhy] = useState("");
   const [hours, setHours] = useState("24");
+  // A case covers one conversation and names who reads it (the opener unless chosen).
+  const [caseOpen, setCaseOpen] = useState(false);
+  const [caseConversation, setCaseConversation] = useState<string | null>(null);
+  const [caseReader, setCaseReader] = useState<string | null>(null);
   const end = useMutation({
     mutationFn: () =>
       withProof(() => endCustomerSessions({ data: { userId: row.id, reason: why } })),
@@ -382,10 +388,23 @@ function CustomerDetail({
   });
   const kase = useMutation({
     mutationFn: () =>
-      withProof(() => openCase({ data: { userId: row.id, reason: why, hours: Number(hours) } })),
+      withProof(() =>
+        openCase({
+          data: {
+            userId: row.id,
+            reason: why,
+            hours: Number(hours),
+            conversationId: caseConversation!,
+            ...(caseReader ? { assigneeId: caseReader } : {}),
+          },
+        }),
+      ),
     onSuccess: () => {
       toast.success("Case opened. The customer has been told.");
       setWhy("");
+      setCaseOpen(false);
+      setCaseConversation(null);
+      setCaseReader(null);
       onOpenCases();
     },
     onError: (error) => toast.error(messageOf(error)),
@@ -496,35 +515,126 @@ function CustomerDetail({
                 {reset.isPending ? "Turning off…" : "Turn off their two-step"}
               </button>
             ) : null}
-            {may("cases.manage") ? (
-              <>
-                <label className="flex items-center gap-1 text-muted-foreground">
-                  <span>Case for</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={72}
-                    value={hours}
-                    onChange={(event) => setHours(event.target.value)}
-                    aria-label="Case length in hours"
-                    className="h-7 w-16 rounded-md border border-border bg-transparent px-2 text-foreground outline-none focus-visible:border-ring"
-                  />
-                  <span>hours</span>
-                </label>
-                <button
-                  type="button"
-                  disabled={!ready(why) || !validHours || kase.isPending}
-                  onClick={() => kase.mutate()}
-                  className="h-7 rounded-md border border-border px-2 text-foreground disabled:opacity-50"
-                >
-                  {kase.isPending ? "Opening…" : "Open a case"}
-                </button>
-              </>
+            {may("cases.manage") && !caseOpen ? (
+              <button
+                type="button"
+                onClick={() => setCaseOpen(true)}
+                className="h-7 rounded-md border border-border px-2 text-foreground"
+              >
+                Open a case…
+              </button>
             ) : null}
           </div>
+          {may("cases.manage") && caseOpen ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <CaseChoices
+                userId={row.id}
+                conversation={caseConversation}
+                onConversation={setCaseConversation}
+                reader={caseReader}
+                onReader={setCaseReader}
+              />
+              <label className="flex items-center gap-1 text-muted-foreground">
+                <span>Case for</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={72}
+                  value={hours}
+                  onChange={(event) => setHours(event.target.value)}
+                  aria-label="Case length in hours"
+                  className="h-7 w-16 rounded-md border border-border bg-transparent px-2 text-foreground outline-none focus-visible:border-ring"
+                />
+                <span>hours</span>
+              </label>
+              <button
+                type="button"
+                disabled={!ready(why) || !validHours || !caseConversation || kase.isPending}
+                onClick={() => kase.mutate()}
+                className="h-7 rounded-md border border-border px-2 text-foreground disabled:opacity-50"
+              >
+                {kase.isPending ? "Opening…" : "Open the case"}
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * What a case covers and who reads it: one of the customer's conversations (its titles are
+ * listed only now, and that listing is written down) and a member of staff who may read cases.
+ */
+function CaseChoices({
+  userId,
+  conversation,
+  onConversation,
+  reader,
+  onReader,
+}: {
+  userId: string;
+  conversation: string | null;
+  onConversation: (id: string | null) => void;
+  reader: string | null;
+  onReader: (id: string | null) => void;
+}) {
+  const conversations = useQuery({
+    queryKey: ["admin", "case-conversations", userId],
+    queryFn: () => listCustomerConversations({ data: { userId } }),
+  });
+  const staff = useQuery({ queryKey: ["admin", "staff"], queryFn: () => listStaff() });
+  const readers = (staff.data?.staff ?? []).filter((member) => {
+    const held = new Set([...(staff.data?.defaults[member.role] ?? []), ...member.granted]);
+    return held.has("cases.read") && !member.denied.includes("cases.read");
+  });
+  if (!conversations.data || !staff.data) {
+    return (
+      <Pending
+        query={conversations.isError ? conversations : staff}
+        loading="Loading conversations and staff…"
+        problem="What a case can cover could not be read."
+      />
+    );
+  }
+  const field =
+    "h-7 max-w-[16rem] rounded-md border border-border bg-transparent px-2 text-foreground outline-none focus-visible:border-ring";
+  return (
+    <>
+      <label className="flex items-center gap-1 text-muted-foreground">
+        <span>Conversation</span>
+        <select
+          value={conversation ?? ""}
+          onChange={(event) => onConversation(event.target.value || null)}
+          className={field}
+        >
+          <option value="">Choose one</option>
+          {conversations.data.map((row) => (
+            <option key={row.id} value={row.id}>
+              {row.title || "Untitled"}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex items-center gap-1 text-muted-foreground">
+        <span>Read by</span>
+        <select
+          value={reader ?? ""}
+          onChange={(event) => onReader(event.target.value || null)}
+          className={field}
+        >
+          <option value="">Me</option>
+          {readers
+            .filter((member) => !member.isSelf)
+            .map((member) => (
+              <option key={member.userId} value={member.userId}>
+                {member.email ?? member.userId}
+              </option>
+            ))}
+        </select>
+      </label>
+    </>
   );
 }
 

@@ -46,6 +46,23 @@ function stripNoise(source) {
     .replace(/`(?:[^`\\]|\\.)*`/g, keepLines);
 }
 
+/**
+ * The exact opening tag at `start`. Braces are counted so a `>` inside a JSX
+ * expression (`x > 2`, an arrow) does not end the tag early, and nothing past
+ * the tag is read: a fixed-width window once let a sibling's onClick mask an
+ * inert button beside it.
+ */
+function openingTag(source, start) {
+  let depth = 0;
+  for (let i = start; i < source.length; i += 1) {
+    const c = source[i];
+    if (c === "{") depth += 1;
+    else if (c === "}") depth -= 1;
+    else if (c === ">" && depth === 0) return source.slice(start, i + 1);
+  }
+  return null;
+}
+
 const findings = [];
 const files = ROOTS.flatMap((root) => walk(root));
 
@@ -69,16 +86,8 @@ for (const file of files) {
   }
 
   // 3. <Button> elements with nothing that could make them act.
-  //
-  // `[^>]*` alone is not enough: a JSX expression attribute can itself contain
-  // a ">" (a comparison, an arrow), which truncates the captured attribute list
-  // early. src/components/ui/calendar.tsx was reported as handler-less because
-  // its `{...props}` sits after such an attribute. Scan a window past the match
-  // as well, so a spread or handler further down the tag is still seen.
-  for (const m of source.matchAll(/<Button\b([^>]*)>/g)) {
-    // 2500 chars: shadcn's calendar day button carries a long run of data-*
-    // attributes before its `{...props}`, and a short window missed it.
-    const attrs = m[1] + source.slice(m.index, m.index + 2500);
+  for (const m of source.matchAll(/<Button\b/g)) {
+    const attrs = openingTag(source, m.index) ?? "";
     const inert =
       !/\bonClick\b/.test(attrs) &&
       !/\basChild\b/.test(attrs) &&
@@ -109,7 +118,7 @@ for (const file of files) {
           file,
           line: lineAt(m.index),
           kind: "no-handler",
-          detail: `<Button${attrs.slice(0, 50)}>`,
+          detail: attrs.slice(0, 57),
         });
       }
     }
@@ -183,8 +192,8 @@ for (const file of files) {
    * `onFocus` fallback does not save it either. Most people meet a landing page
    * on a phone, so "works with a mouse" is the smaller half of the audience.
    */
-  for (const m of source.matchAll(/<button\b([^>]*)>/g)) {
-    const attrs = m[1] + source.slice(m.index, m.index + 2500);
+  for (const m of source.matchAll(/<button\b/g)) {
+    const attrs = openingTag(source, m.index) ?? "";
     const acts =
       /\bonClick\b/.test(attrs) ||
       /\bonSubmit\b/.test(attrs) ||
@@ -208,7 +217,7 @@ for (const file of files) {
       file,
       line: lineAt(m.index),
       kind: hoverOnly ? "hover-only" : "no-handler",
-      detail: `<button${(m[1] || "").slice(0, 50)}>`,
+      detail: attrs.slice(0, 57),
     });
   }
 
@@ -263,23 +272,8 @@ for (const file of files) {
    * explicit tab/radio/option role all answer it; any one is enough.
    */
   for (const m of source.matchAll(/<button\b/g)) {
-    // Walk to the end of the opening tag, counting braces so that a `>` inside
-    // a JSX expression (`x > 2`, an arrow) does not end the tag early.
-    let i = m.index;
-    let depth = 0;
-    let end = -1;
-    while (i < source.length) {
-      const c = source[i];
-      if (c === "{") depth += 1;
-      else if (c === "}") depth -= 1;
-      else if (c === ">" && depth === 0) {
-        end = i;
-        break;
-      }
-      i += 1;
-    }
-    if (end === -1) continue;
-    const tag = source.slice(m.index, end + 1);
+    const tag = openingTag(source, m.index);
+    if (tag === null) continue;
 
     const isSelection =
       /className=\{[^]*?(===|!==|\bisActive\b|\bisSelected\b|\bselected\b|\bactive\b)/.test(tag);
