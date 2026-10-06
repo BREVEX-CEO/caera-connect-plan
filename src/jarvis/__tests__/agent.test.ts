@@ -632,7 +632,10 @@ describe("a sequence: several known actions, one model step", () => {
     };
     const h = harness(
       [
-        { text: "", toolCalls: [call("start_task", { title: "Web", where: "browser", steps: ["s"] })] },
+        {
+          text: "",
+          toolCalls: [call("start_task", { title: "Web", where: "browser", steps: ["s"] })],
+        },
         { text: "", toolCalls: [call("browser", { action: "observe" })] },
         {
           text: "",
@@ -666,10 +669,16 @@ describe("a sequence: several known actions, one model step", () => {
 
   it("refuses a later step when its element changed since the model saw it", async () => {
     const before = { observationId: "o1", elements: [{ ref: "e1", role: "button", name: "Save" }] };
-    const after = { observationId: "o2", elements: [{ ref: "e1", role: "button", name: "Delete" }] };
+    const after = {
+      observationId: "o2",
+      elements: [{ ref: "e1", role: "button", name: "Delete" }],
+    };
     const h = harness(
       [
-        { text: "", toolCalls: [call("start_task", { title: "Web", where: "browser", steps: ["s"] })] },
+        {
+          text: "",
+          toolCalls: [call("start_task", { title: "Web", where: "browser", steps: ["s"] })],
+        },
         { text: "", toolCalls: [call("browser", { action: "observe" })] },
         {
           text: "",
@@ -683,7 +692,12 @@ describe("a sequence: several known actions, one model step", () => {
           ],
         },
       ],
-      { a: [{ status: "done", result: { observation: before } }, { status: "done", result: { observation: after } }] },
+      {
+        a: [
+          { status: "done", result: { observation: before } },
+          { status: "done", result: { observation: after } },
+        ],
+      },
     );
     await runJarvisTurn(h.input, h.hooks, h.deps);
     expect(h.queued).toEqual([{ action: "observe" }, { action: "scroll", direction: "down" }]);
@@ -694,7 +708,10 @@ describe("a sequence: several known actions, one model step", () => {
 describe("STOP between the calls of one reply", () => {
   it("runs no later call and writes nothing after STOP", async () => {
     const h = harness([
-      { text: "", toolCalls: [call("remember", { fact: "one" }), call("remember", { fact: "two" })] },
+      {
+        text: "",
+        toolCalls: [call("remember", { fact: "one" }), call("remember", { fact: "two" })],
+      },
     ]);
     h.deps.remember = vi.fn(async () => {
       h.controller.abort();

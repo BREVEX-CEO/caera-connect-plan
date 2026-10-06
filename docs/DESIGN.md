@@ -92,7 +92,6 @@ Do not expose internal terms such as provider names, CDP, Playwright, PyAutoGUI,
 
 Customer errors explain what happened and what the user can do next.
 
-
 ## Current visual direction — 2026-10-06
 
 The interface should be materially simpler than the current control surface. The dominant visual language is calm, premium and conversational, using a small consistent set of soft rounded rectangles, pill or semi-circular compact controls, rounded composers, rounded task cards, rounded mobile sheets and restrained borders or shadows. Do not reproduce another product's exact trade dress; use the same principles of low cognitive load, strong hierarchy and comfortable geometry.

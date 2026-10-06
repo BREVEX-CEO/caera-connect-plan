@@ -73,7 +73,6 @@ Critical incidents remain auditable.
 
 Sentry project creation and paid leaked-password protection are currently deferred/non-blocking. Do not fake their availability.
 
-
 ## Current commercial trust rule — 2026-10-06
 
 Simplification must reduce attack surface as well as visual clutter. Remove unused privileged routes, duplicate security decisions, stale configuration and unsupported claims as far as safely possible, while retaining auditable authorization, confirmation, recovery and incident controls.

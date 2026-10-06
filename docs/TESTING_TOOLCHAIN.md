@@ -294,7 +294,6 @@ After every phase report:
 
 No known Critical/Major blocker may remain for a shipped capability before release.
 
-
 ## Current toolchain purpose — 2026-10-06
 
 Development tools exist to prove the product; they are not customer runtime requirements. Browser, mobile, computer-use and platform automation tools should be selected automatically by the engineering workflow according to the surface under test.

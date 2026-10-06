@@ -147,7 +147,6 @@ Long tasks checkpoint. Crash/reboot/network recovery reconciles completed steps 
 
 Explicit removal stops runtime authority, removes local credentials/cache according to product setting, disconnects the device and leaves cloud conversations unless separately deleted.
 
-
 ## Current simplified product flow — 2026-10-06
 
 The customer should express the desired outcome rather than choose an execution technology. OCADE resolves the account, target device and task context, selects the fastest legitimate machine-native or semantic route, executes deterministic work locally, verifies the real result, and returns to Online intelligence only when recovery or a genuine decision is required.

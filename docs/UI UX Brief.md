@@ -77,7 +77,6 @@ Visible focus.
 Touch-friendly.
 Stable mobile keyboard/composer behavior.
 
-
 ## Current UX direction — 2026-10-06
 
 The product should expose fewer decisions and make the next useful action obvious. The main JARVIS view should prioritize conversation, the real-data Orb, current task state and STOP/Take Over rather than permanent tool or permission dashboards.

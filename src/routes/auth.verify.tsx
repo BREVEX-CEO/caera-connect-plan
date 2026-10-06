@@ -130,7 +130,11 @@ function VerifyPage() {
     }
     let checked: Awaited<ReturnType<typeof supabase.auth.verifyOtp>>;
     try {
-      checked = await supabase.auth.verifyOtp({ email: identifier, token: parsed.data, type: "email" });
+      checked = await supabase.auth.verifyOtp({
+        email: identifier,
+        token: parsed.data,
+        type: "email",
+      });
     } catch {
       setError(UNREACHABLE); // nothing was checked, so no wrong guess is counted
       setBusy(false);

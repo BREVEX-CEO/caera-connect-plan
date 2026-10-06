@@ -545,7 +545,11 @@ export async function runJarvisTurn(
       });
       if (outcome.error || outcome.status !== "done") break;
     }
-    return { sequence: ran, ...(ran.length < steps.length ? { stoppedAfter: ran.length } : {}), last };
+    return {
+      sequence: ran,
+      ...(ran.length < steps.length ? { stoppedAfter: ran.length } : {}),
+      last,
+    };
   }
 
   async function runTool(call: NormalizedToolCall): Promise<unknown> {

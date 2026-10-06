@@ -193,7 +193,6 @@ Test:
 
 Every phase reports commercial-launch readiness percentage.
 
-
 ## Current simplification rule — 2026-10-06
 
 Owner and Staff controls remain privileged operational surfaces rather than a second product. Keep only actions that are necessary for account, entitlement, security, device, support, audit and service operations. Hide modules the current role cannot use and remove duplicate status calculations or alternative authority paths once the canonical backend source is proven.

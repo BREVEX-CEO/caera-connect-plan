@@ -368,10 +368,9 @@ const QUESTIONS: {
     answer: (
       <p>
         Dedicated support, privacy, security and grievance email addresses are not published yet:
-        OCADE publishes an address only once it is activated and verified, and this answer will
-        name it then. Until then, what you can do for your own account is in Settings: download a
-        copy of your data, delete conversations, files or the whole account, and sign out every
-        session.
+        OCADE publishes an address only once it is activated and verified, and this answer will name
+        it then. Until then, what you can do for your own account is in Settings: download a copy of
+        your data, delete conversations, files or the whole account, and sign out every session.
       </p>
     ),
   },
@@ -457,8 +456,8 @@ function HelpPage() {
 
       <p className="mt-8 text-sm text-muted-foreground">
         Still stuck? &ldquo;How do I contact OCADE?&rdquo; above says what is available today. The{" "}
-        <Link to="/terms">Terms &amp; Conditions</Link> and <Link to="/privacy">Privacy Policy</Link>{" "}
-        carry the formal answers.
+        <Link to="/terms">Terms &amp; Conditions</Link> and{" "}
+        <Link to="/privacy">Privacy Policy</Link> carry the formal answers.
       </p>
     </PublicPage>
   );

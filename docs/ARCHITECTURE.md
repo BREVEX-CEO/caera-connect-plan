@@ -164,7 +164,6 @@ Main/source/deployed identities must agree before final release claim.
 
 GitHub Actions is optional, not required evidence.
 
-
 ## Simplified target architecture — 2026-10-06
 
 The commercial architecture converges on three visible runtime surfaces: the OCADE website/PWA, the existing authenticated server control plane, and one small trusted local broker on each supported device that requires native control. Do not create a second desktop product, separate app-specific agents or parallel task authorities.

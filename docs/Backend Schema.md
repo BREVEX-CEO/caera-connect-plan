@@ -161,7 +161,6 @@ One-time auth secrets remain ephemeral.
 
 No provider keys, raw payment secrets, CVV/CVC or plaintext passwords/MFA secrets in customer/admin tables.
 
-
 ## Current schema simplification rule — 2026-10-06
 
 The database should preserve one durable authority for each account, task, permission, entitlement, device, artifact and audit concern. Do not create parallel tables or shadow state merely to support a new UI or executor when an existing authority can represent the same fact safely.

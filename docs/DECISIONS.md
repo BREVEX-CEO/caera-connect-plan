@@ -58,7 +58,6 @@ This file records current owner-approved decisions. Later explicit owner decisio
 - The old browser-extension phase is replaced by existing-browser autonomous control with no OCADE customer add-on dependency.
 - Claude starts at Phase 1 on a fresh clone, preserves correct implementation, repairs gaps, and continues through Phase 49.
 
-
 ---
 
 ## Owner decisions — 2026-10-06

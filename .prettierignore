@@ -20,5 +20,7 @@ jarvis-runtime/
 
 # Audit evidence, preserved verbatim.
 docs/audits/
+FULL_ERROR_AUDIT_LEDGER.md
+PONYTAIL_DEBLOAT_LEDGER.md
 
 .playwright-mcp/

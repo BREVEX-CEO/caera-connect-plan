@@ -79,7 +79,6 @@ Use this checklist for material UI work.
 
 For each changed screen capture real screenshots, inspect spacing/clipping/overflow/focus/loading/error and rerun after cleanup.
 
-
 ## Current visual acceptance checklist — 2026-10-06
 
 Every changed screen should prove the simplified design rather than merely matching an old screenshot. Verify that the primary action is obvious, secondary controls are not competing for attention, rounded geometry is consistent, loading does not jump the layout, errors are distinguishable from empty states, and touch/keyboard/reduced-motion behavior remains complete.

@@ -155,7 +155,6 @@ Use existing Chrome/CDP + DevTools, browser compatibility matrix, Physical Compu
 
 Report commercial-launch readiness percentage after each phase.
 
-
 ## Current technical direction — 2026-10-06
 
 The implementation should converge on one authenticated task lifecycle, one validated action broker, one selected-device local executor and one independent verification contract. Do not add new parallel runtimes or app-specific control authorities when the existing universal path can be extended.

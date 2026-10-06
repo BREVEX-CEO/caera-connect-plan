@@ -100,7 +100,6 @@ Production SHA matches final source.
 
 Report commercial-launch readiness percentage after every phase.
 
-
 ## Current acceptance doctrine — 2026-10-06
 
 Testing must prove both correctness and simplification. After every major cleanup wave, rerun the same real workflows used before cleanup so deleted code cannot silently reduce capability.

@@ -213,8 +213,6 @@ Use WebKit, responsive/mobile browser matrices, source/API compatibility checks,
 
 Before claiming physical iPhone/iPad/macOS behavior commercially, obtain legitimate physical/remote-device evidence when budget permits. Never call Windows WebKit a physical Apple pass.
 
-
-
 ## Final device-control direction — 2026-10-06
 
 Every platform should share one task, permission, cancellation, execution and verification contract. The website/PWA is the visible product, while supported devices expose only the smallest local capability needed to perform real work.

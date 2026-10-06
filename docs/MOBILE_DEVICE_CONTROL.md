@@ -105,7 +105,6 @@ real OS/device evidence required for native claims.
 
 Never convert emulation into real-device evidence.
 
-
 ## Final mobile customer experience — 2026-10-06
 
 The mobile product should expose the minimum number of setup concepts possible. Android begins with one **Set up OCADE** action. OCADE verifies compatibility, pairs the account/device, completes every configuration step it is legitimately allowed to perform, opens only the Android-owned permission screen that requires direct user action, verifies the result, and returns to the setup flow until the device is Ready.

@@ -97,7 +97,6 @@ Each implementation phase reports an evidence-based commercial-launch readiness 
 
 Never use unsupported absolute claims such as “zero bugs” or “unhackable”.
 
-
 ## Current product direction — 2026-10-06
 
 OCADE should win by completing useful work with less friction, fewer model round trips, lower control latency, stronger verification and simpler customer setup rather than by exposing more tools or adding more code. The customer-facing promise is that the person states the outcome, OCADE chooses the fastest legitimate route, performs the work, verifies the real result and stays out of the way.

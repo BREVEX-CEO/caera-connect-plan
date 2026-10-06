@@ -124,7 +124,6 @@ Material UI changes require screenshot/real visual verification across:
 
 Visual bugs fail the phase.
 
-
 ## Final JARVIS simplification — 2026-10-06
 
 The primary JARVIS composition is conversation, the real-data Orb and relationship threads, a concise current-task/status layer and persistent STOP/Take Over. The interface must not become a control dashboard for internal execution technologies.

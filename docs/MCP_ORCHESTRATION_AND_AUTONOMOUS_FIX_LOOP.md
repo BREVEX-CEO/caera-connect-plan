@@ -150,7 +150,6 @@ The number may decrease if new blockers are found. It is a release-health estima
 
 100% requires all executable release gates green and only explicitly accepted external/deferred dependencies remaining.
 
-
 ## Current autonomous engineering loop — 2026-10-06
 
 The coding agent should first understand the existing authority and reproduce the problem, then make the smallest root-cause change, test it, deliberately attempt to break it and simplify the resulting code. It should never respond to complexity by adding another permanent controller, another polling loop or another compatibility layer without proving that the existing authority cannot be corrected.

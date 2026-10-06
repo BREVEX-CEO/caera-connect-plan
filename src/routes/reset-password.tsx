@@ -160,7 +160,9 @@ function ResetPasswordPage() {
     // A rejected request (not only a returned error) ends the wait too: the button comes back.
     const { error: err } = await supabase.auth
       .updateUser({ password })
-      .catch((cause: unknown) => ({ error: cause instanceof Error ? cause : new Error(String(cause)) }))
+      .catch((cause: unknown) => ({
+        error: cause instanceof Error ? cause : new Error(String(cause)),
+      }))
       .finally(() => setBusy(false));
     if (err) {
       /*

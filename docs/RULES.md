@@ -102,7 +102,6 @@ Run Caveman/Ponytail after proof. Consult ToRemove.md. Preserve donor/audits/app
 
 Every phase includes commercial-launch readiness percentage and exact evidence.
 
-
 ## Current engineering rules — 2026-10-06
 
 Prefer the smallest proven solution. Remove as much duplicate code, obsolete branching, hard-coded application knowledge, redundant polling, duplicated UI and unused dependency surface as safely possible. There is no numeric code-reduction quota and no reward for deleting useful capability.

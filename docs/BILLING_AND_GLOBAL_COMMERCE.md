@@ -52,7 +52,6 @@ When payment work resumes, add provider sandbox/webhook/refund/dunning/dispute t
 
 Commercial-launch readiness reporting must state payment scope truthfully rather than pretending deferred work is complete.
 
-
 ## Current commerce simplification rule — 2026-10-06
 
 Commerce work should remain intentionally small until a real paid path is authorized and tested. Do not add speculative checkout providers, pricing abstractions, billing dashboards or entitlement layers before the current product requires them.

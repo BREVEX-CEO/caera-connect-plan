@@ -96,7 +96,6 @@ Visual polish, accessibility, performance, recovery and account isolation are pr
 
 Each phase reports commercial-launch readiness percentage.
 
-
 ## Current product requirements — 2026-10-06
 
 OCADE is a web-first conversational work system whose defining behavior is verified completion rather than screen clicking. The user states the outcome. OCADE decides whether the request is informational or executable, identifies the correct device and work context, chooses the fastest legitimate control route, performs deterministic work locally where possible, verifies the actual result and reports truthfully.
