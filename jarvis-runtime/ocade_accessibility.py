@@ -50,7 +50,7 @@ def _owner(control) -> str:
     import psutil
     try:
         return psutil.Process(control.ProcessId).name().lower()
-    except Exception:  # gone, or not readable
+    except psutil.NoSuchProcess:  # gone; an unreadable owner is raised, never taken as harmless
         return ""
 
 
@@ -58,20 +58,17 @@ def _protected(control) -> bool:
     """A password manager, a credential prompt or Windows Security owns this control, the window
     holding it, or (for Store apps, whose frame belongs to ApplicationFrameHost) the app inside it."""
     protected = _gates()[2]
-    try:
-        node = control
-        for _ in range(8):
-            if node is None:
-                break
-            owner = _owner(node)
-            if owner in protected:
+    node = control
+    for _ in range(8):  # an unreadable step raises: the caller refuses rather than guesses
+        if node is None:
+            break
+        owner = _owner(node)
+        if owner in protected:
+            return True
+        if owner == "applicationframehost.exe":
+            if any(_owner(child) in protected for child in node.GetChildren()):
                 return True
-            if owner == "applicationframehost.exe":
-                if any(_owner(child) in protected for child in node.GetChildren()):
-                    return True
-            node = node.GetParentControl()
-    except Exception:
-        pass
+        node = node.GetParentControl()
     return False
 
 
@@ -209,10 +206,7 @@ def gate_at(x: int | None, y: int | None, confirmed: bool, press: bool = False) 
     field handed to the person. `press`: the keys include Enter or Space, which
     press the focused control as surely as a click does.
     """
-    try:
-        auto = _uia()
-    except ImportError:  # ponytail: Windows UI Automation only; macOS AX when the agent ships there
-        return None
+    auto = _uia()  # missing or failing, the caller asks the person instead of clicking blind
     purchase, sensitive, _ = _gates()
     with auto.UIAutomationInitializerInThread():
         # Whole pixels: a desktop point is a float, and UI Automation refused one, which

@@ -24,12 +24,15 @@ import subprocess
 import tempfile
 import threading
 import time
+import uuid
 import zipfile
 from pathlib import Path
 
 SYSTEM = platform.system()
 PREVIEW_ROWS, PREVIEW_COLS = 40, 15
 UNDO_KEEP = 20
+MAX_COLS, MAX_ROWS = 16_384, 1_048_576  # Excel's grid
+FILE_CELLS = 200_000  # cells one operation may touch without Excel (each is a Python object)
 
 CELL = r"\$?[A-Z]{1,3}\$?[0-9]{1,7}"
 RANGE = re.compile(rf"^{CELL}(:{CELL})?$|^\$?[A-Z]{{1,3}}:\$?[A-Z]{{1,3}}$")
@@ -43,6 +46,20 @@ LOSSY_PARTS = re.compile(r"xl/(charts|drawings|media|pivotTables|pivotCache|slic
 
 class SheetError(Exception):
     pass
+
+
+def _bounds(address: str) -> tuple[int, int]:
+    """(columns, rows) an address covers, inside Excel's own grid (XFD1048576) or refused."""
+    from openpyxl.utils import column_index_from_string
+    cols, rows = [], []
+    for part in address.replace("$", "").split(":"):
+        letters, digits = re.fullmatch(r"([A-Z]+)(\d*)", part).groups()
+        cols.append(column_index_from_string(letters))
+        rows.append(int(digits) if digits else None)
+        if cols[-1] > MAX_COLS or (digits and not 1 <= rows[-1] <= MAX_ROWS):
+            raise SheetError(f"{address:.40} is outside the sheet")
+    height = MAX_ROWS if None in rows else max(rows) - min(rows) + 1  # "A:C" is whole columns
+    return max(cols) - min(cols) + 1, height
 
 
 def _formula_ok(text: str) -> None:
@@ -60,6 +77,8 @@ def validate(ops: list[dict]) -> list[dict]:
         for key in ("cell", "range", "anchor", "source", "by"):
             if key in op and not RANGE.match(str(op[key])):
                 raise SheetError(f"{op[key]!s:.40} is not a cell or range")
+            if key in op:
+                _bounds(str(op[key]))
         if kind == "set":
             if "cell" not in op:
                 raise SheetError("set needs a cell")
@@ -142,7 +161,9 @@ def problems(read: dict) -> list[str]:
         for r, line in enumerate(got.get("formulas") or []):
             for c, text in enumerate(line):
                 col, row = left + c, top + r
-                for a, b, x, y in _REF.findall(str(text)) if str(text).startswith("=") else []:
+                # Text in quotes ("B1") is words, not a reference to the cell.
+                formula = re.sub(r'"[^"]*"', '""', str(text)) if str(text).startswith("=") else ""
+                for a, b, x, y in _REF.findall(formula):
                     c1, r1 = column_index_from_string(a), int(b)
                     c2, r2 = (column_index_from_string(x), int(y)) if x else (c1, r1)
                     if min(c1, c2) <= col <= max(c1, c2) and min(r1, r2) <= row <= max(r1, r2):
@@ -206,12 +227,47 @@ def excel_available() -> bool:
 
 
 def backup(path: Path, undo_dir: Path) -> Path:
+    """One kept copy per change, never shared: two edits in the same second, or two files with the
+    same name in different folders, each keep their own original. Files, Word and Excel all use it."""
     undo_dir.mkdir(parents=True, exist_ok=True)
-    copy = undo_dir / f"{time.strftime('%Y%m%d-%H%M%S')}-{path.name}"
-    shutil.copy2(path, copy)
+    copy = undo_dir / f"{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:12]}-{path.name}"
+    with path.open("rb") as source, copy.open("xb") as kept:  # "x": never over another copy
+        shutil.copyfileobj(source, kept)
+    shutil.copystat(path, copy)
     for old in sorted(undo_dir.iterdir())[:-UNDO_KEEP]:
         old.unlink(missing_ok=True)
     return copy
+
+
+def office_job(script: str, job: dict, cancel: threading.Event, app: str) -> dict:
+    """Run one Excel or Word job script and read its one-line JSON answer. Its output is read
+    while it runs, so a large answer cannot leave both sides waiting on a full pipe."""
+    fd, path = tempfile.mkstemp(suffix=".json")
+    with os.fdopen(fd, "w", encoding="utf-8") as out:
+        json.dump(job, out)
+    try:
+        process = subprocess.Popen(
+            ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+             "-File", str(Path(__file__).resolve().parent / "actions" / script), "-JobFile", path],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        deadline = time.monotonic() + 180
+        while True:
+            try:
+                stdout, _ = process.communicate(timeout=0.1)
+                break
+            except subprocess.TimeoutExpired:
+                if cancel.is_set() or time.monotonic() > deadline:
+                    process.kill()
+                    process.communicate()
+                    # Office may have saved part of it already: say so, never "unchanged".
+                    return {"ok": False, "stopped": cancel.is_set(), "maybeChanged": True,
+                            "error": "Stopped before it finished" if cancel.is_set()
+                            else f"{app} did not answer in time"}
+        lines = stdout.decode("utf-8", errors="replace").strip().splitlines()
+        return json.loads(lines[-1]) if lines else {"ok": False, "error": f"{app} gave no answer"}
+    finally:
+        os.unlink(path)
 
 
 def _read_ranges(ops: list[dict]) -> list[str]:
@@ -225,35 +281,18 @@ def _read_ranges(ops: list[dict]) -> list[str]:
 
 def edit_with_excel(path: Path, sheet: str | None, ops: list[dict], cancel: threading.Event,
                     close: bool = False) -> dict:
-    script = Path(__file__).resolve().parent / "actions" / "ocade_excel.ps1"
-    fd, job = tempfile.mkstemp(suffix=".json")
-    with os.fdopen(fd, "w", encoding="utf-8") as out:
-        json.dump({"path": str(path), "sheet": sheet, "ops": ops, "read": _read_ranges(ops),
-                   "close": close}, out)
-    try:
-        process = subprocess.Popen(
-            ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-             "-File", str(script), "-JobFile", job],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        deadline = time.monotonic() + 180
-        while process.poll() is None:
-            if cancel.wait(0.2) or time.monotonic() > deadline:
-                process.kill()
-                return {"ok": False, "stopped": cancel.is_set(),
-                        "error": "Stopped before it finished" if cancel.is_set() else "Excel did not answer in time"}
-        lines = process.stdout.read().decode("utf-8", errors="replace").strip().splitlines()
-        return json.loads(lines[-1]) if lines else {"ok": False, "error": "Excel gave no answer"}
-    finally:
-        os.unlink(job)
+    return office_job("ocade_excel.ps1", {"path": str(path), "sheet": sheet, "ops": ops,
+                                          "read": _read_ranges(ops), "close": close}, cancel, "Excel")
 
 
-def edit_file(path: Path, sheet: str | None, ops: list[dict]) -> dict:
+def edit_file(path: Path, sheet: str | None, ops: list[dict], cancel: threading.Event) -> dict:
+    from copy import copy
+
     from openpyxl import load_workbook
     from openpyxl.chart import BarChart, LineChart, PieChart, Reference
     from openpyxl.formatting.rule import CellIsRule, FormulaRule
     from openpyxl.formula.translate import Translator
-    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    from openpyxl.styles import Border, Font, PatternFill, Side
     from openpyxl.utils import get_column_letter, range_boundaries
     from openpyxl.workbook.defined_name import DefinedName
     from openpyxl.worksheet.table import Table, TableStyleInfo
@@ -267,8 +306,16 @@ def edit_file(path: Path, sheet: str | None, ops: list[dict]) -> dict:
     hexcolor = lambda value: str(value).lstrip("#").upper()  # noqa: E731
     applied = []
     for op in ops:
+        if cancel.is_set():  # nothing is saved: the file stays as it was
+            return {"ok": False, "stopped": True, "error": "Stopped before it finished"}
         kind = op["op"]
         address = op.get("range") or op.get("cell")
+        if address:
+            width, height = _bounds(address)
+            if not re.search(r"\d", address):  # whole columns: openpyxl walks only the used rows
+                height = max(ws.max_row, 1)
+            if width * height > FILE_CELLS:
+                raise SheetError("That range is too large to change without Excel")
         cells = [c for row in ws[address] for c in (row if isinstance(row, tuple) else (row,))] \
             if address and ":" in address else ([ws[address]] if address else [])
         if kind == "set":
@@ -281,16 +328,22 @@ def edit_file(path: Path, sheet: str | None, ops: list[dict]) -> dict:
             for cell in cells:
                 if op.get("numberFormat"):
                     cell.number_format = op["numberFormat"]
+                # A copy of what is there with only the asked-for parts changed: underline,
+                # rotation, indent and the rest stay exactly as they were.
                 if any(k in op for k in ("bold", "italic", "fontColor")):
-                    f = cell.font
-                    cell.font = Font(name=f.name, size=f.size, bold=op.get("bold", f.bold),
-                                     italic=op.get("italic", f.italic),
-                                     color=hexcolor(op["fontColor"]) if op.get("fontColor") else f.color)
+                    font = copy(cell.font)
+                    font.bold = op.get("bold", font.bold)
+                    font.italic = op.get("italic", font.italic)
+                    if op.get("fontColor"):
+                        font.color = hexcolor(op["fontColor"])
+                    cell.font = font
                 if op.get("fillColor"):
                     cell.fill = PatternFill("solid", fgColor=hexcolor(op["fillColor"]))
                 if op.get("align") or "wrap" in op:
-                    cell.alignment = Alignment(horizontal=op.get("align", cell.alignment.horizontal),
-                                               wrap_text=op.get("wrap", cell.alignment.wrap_text))
+                    alignment = copy(cell.alignment)
+                    alignment.horizontal = op.get("align", alignment.horizontal)
+                    alignment.wrap_text = op.get("wrap", alignment.wrap_text)
+                    cell.alignment = alignment
                 if op.get("border"):
                     side = Side(style=None if op["border"] == "none" else op["border"])
                     cell.border = Border(left=side, right=side, top=side, bottom=side)
@@ -351,6 +404,8 @@ def edit_file(path: Path, sheet: str | None, ops: list[dict]) -> dict:
         elif kind == "sort":
             raise SheetError("Sorting needs Excel")
         applied.append(kind)
+    if cancel.is_set():
+        return {"ok": False, "stopped": True, "error": "Stopped before it finished"}
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".ocade-", suffix=path.suffix)
     os.close(fd)
     try:
@@ -376,9 +431,11 @@ def edit(path: Path, sheet: str | None, ops: list[dict], undo_dir: Path,
         raise SheetError("That is not a usable sheet name")
     if path.suffix.lower() not in (".xlsx", ".xlsm"):
         raise SheetError("JARVIS edits .xlsx and .xlsm workbooks")
+    if cancel.is_set():
+        return {"ok": False, "stopped": True, "error": "Stopped before it finished"}
     kept = backup(path, undo_dir)
     chosen = engine or ("excel" if excel_available() else "file")
     out = (edit_with_excel(path, sheet, ops, cancel, close) if chosen == "excel"
-           else edit_file(path, sheet, ops))
+           else edit_file(path, sheet, ops, cancel))
     out["backup"] = kept.name
     return out

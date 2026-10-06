@@ -30,14 +30,24 @@ def _xml_text(xml: str, paragraph: str) -> str:
     return html.unescape(re.sub(r"<[^>]+>", "", xml))
 
 
-def _zip_parts(path: Path, pattern: str) -> list[str]:
+def _zip_parts(path: Path, pattern: str, budget: int) -> tuple[list[str], int]:
+    """(the matching parts in order, how many match), decompressed only up to `budget` bytes in
+    all: a large or hostile archive costs no more than the preview it can fill."""
+    parts, names = [], []
     try:
         with zipfile.ZipFile(path) as archive:
             names = sorted((n for n in archive.namelist() if re.fullmatch(pattern, n)),
                            key=lambda n: [int(x) if x.isdigit() else x for x in re.split(r"(\d+)", n)])
-            return [archive.read(n).decode("utf-8", errors="replace") for n in names]
+            for name in names:
+                if budget <= 0:
+                    break
+                with archive.open(name) as part:
+                    data = part.read(budget)
+                budget -= len(data)
+                parts.append(data.decode("utf-8", errors="replace"))
     except zipfile.BadZipFile as e:
         raise Unreadable("That file is damaged or not what its name says") from e
+    return parts, len(names)
 
 
 def extract_text(path: Path, limit: int) -> tuple[str, int | None]:
@@ -57,13 +67,15 @@ def extract_text(path: Path, limit: int) -> tuple[str, int | None]:
         if not text:
             raise Unreadable("That PDF has no text layer (it may be scanned); look at it on screen instead")
         return text[:limit], len(reader.pages)
+    # XML markup runs several times the text it carries: that many bytes fill a preview.
+    budget = max(limit * 20, 1 << 20)
     if suffix in (".docx", ".docm", ".dotx"):
-        parts = _zip_parts(path, r"word/(document|header\d*|footer\d*)\.xml")
+        parts, _ = _zip_parts(path, r"word/(document|header\d*|footer\d*)\.xml", budget)
         return "\n".join(_xml_text(p, "w:p") for p in parts).strip()[:limit], None
     if suffix in (".pptx", ".pptm"):
-        slides = _zip_parts(path, r"ppt/slides/slide\d+\.xml")
+        slides, count = _zip_parts(path, r"ppt/slides/slide\d+\.xml", budget)
         text = "\n\n".join(f"Slide {i}:\n{_xml_text(x, 'a:p').strip()}" for i, x in enumerate(slides, 1))
-        return text[:limit], len(slides)
+        return text[:limit], count
     if suffix in (".xlsx", ".xlsm"):
         from openpyxl import load_workbook
         book = load_workbook(str(path), read_only=True, data_only=True)
@@ -78,7 +90,8 @@ def extract_text(path: Path, limit: int) -> tuple[str, int | None]:
         book.close()
         return "\n".join(lines)[:limit], None
     if suffix in TEXT_SUFFIXES or not suffix:
-        data = path.read_bytes()[: limit * 4]
+        with path.open("rb") as source:
+            data = source.read(limit * 4)
         if b"\0" in data[:4096]:
             raise Unreadable("That is not a text file")
         return data.decode("utf-8", errors="replace")[:limit], None
@@ -147,38 +160,16 @@ def word_available() -> bool:
 
 def edit_word(path: Path, ops: list[dict], undo_dir: Path, cancel, close: bool = False) -> dict:
     """Edit a Word document in the person's Word, after keeping a copy in the undo folder."""
-    import json
-    import os
-    import shutil
-    import subprocess
-    import tempfile
-    import time
+    import ocade_sheets
     ops = validate_word(ops)
     if path.suffix.lower() not in (".docx", ".docm", ".doc", ".rtf"):
         raise DocumentError("JARVIS edits Word documents (.docx, .doc, .rtf)")
     if not word_available():
         raise DocumentError("Editing a document needs Microsoft Word on this computer")
-    undo_dir.mkdir(parents=True, exist_ok=True)
-    kept = undo_dir / f"{time.strftime('%Y%m%d-%H%M%S')}-{path.name}"
-    shutil.copy2(path, kept)
-    fd, job = tempfile.mkstemp(suffix=".json")
-    with os.fdopen(fd, "w", encoding="utf-8") as out:
-        json.dump({"path": str(path), "ops": ops, "close": close}, out)
-    try:
-        script = Path(__file__).resolve().parent / "actions" / "ocade_word.ps1"
-        process = subprocess.Popen(
-            ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
-             str(script), "-JobFile", job], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        deadline = time.monotonic() + 180
-        while process.poll() is None:
-            if cancel.wait(0.2) or time.monotonic() > deadline:
-                process.kill()
-                return {"ok": False, "stopped": cancel.is_set(),
-                        "error": "Stopped before it finished" if cancel.is_set() else "Word did not answer in time"}
-        lines = process.stdout.read().decode("utf-8", errors="replace").strip().splitlines()
-        result = json.loads(lines[-1]) if lines else {"ok": False, "error": "Word gave no answer"}
-    finally:
-        os.unlink(job)
+    if cancel.is_set():
+        return {"ok": False, "stopped": True, "error": "Stopped before it finished"}
+    kept = ocade_sheets.backup(path, undo_dir)
+    result = ocade_sheets.office_job("ocade_word.ps1", {"path": str(path), "ops": ops, "close": close},
+                                     cancel, "Word")
     result["backup"] = kept.name
     return result

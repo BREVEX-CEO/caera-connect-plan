@@ -500,7 +500,8 @@ def main() -> None:
                          "unseenVoices": json.loads(Path(args.unseen).read_text()) if args.unseen else None},
             "created": time.strftime("%Y-%m-%d"),
         }
-        (out / "manifest.json").write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")
+        (out / "manifest.json").write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8",
+                                           newline="\n")
         print("exported", model_file, manifest["sha256"])
 
 

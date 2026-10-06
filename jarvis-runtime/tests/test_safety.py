@@ -129,6 +129,46 @@ class StopTest(unittest.TestCase):
         self.assertEqual(identity.bodies[1]["results"],
                          [{"id": "a1", "status": "failed", "summary": "Stopped before it started"}])
 
+    def test_a_stop_just_before_an_action_starts_reaches_that_action(self):
+        agent, _ = _agent(self.home, lambda body: {"commands": []})
+        self._slow_action(agent)
+        agent.stop_everything()  # between the loop's admission check and the action's start
+        active = agent._start(self.command)
+        active["thread"].join(5)
+        self.assertFalse(active["thread"].is_alive())
+        self.assertEqual(active["outcome"][0]["status"], "failed")
+
+    def test_losing_ocade_cancels_the_action_even_while_the_exchange_hangs(self):
+        self.addCleanup(setattr, ocade_device, "CONTROL_LOSS_S", ocade_device.CONTROL_LOSS_S)
+        ocade_device.CONTROL_LOSS_S = 0.5
+        calls = {"n": 0}
+
+        def reply(body):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return {"commands": [self.command], "busy": True}
+            time.sleep(4)  # OCADE out of reach, the request not yet timed out
+            return {"commands": [], "busy": False}
+
+        agent, _ = _agent(self.home, reply)
+        self._slow_action(agent)
+        started = time.monotonic()
+        runner = self._run(agent, 0)
+        time.sleep(3)
+        agent.stop.set()
+        runner.join(15)
+        self.assertEqual(len(self.ended), 1)
+        self.assertLess(self.ended[0] - started, 2.5)  # cancelled at the bound, not after the 4 s hang
+
+    def test_the_agent_lets_go_of_what_it_owns_when_it_ends(self):
+        agent, _ = _agent(self.home, lambda body: {"commands": []})
+        proxy = agent.browsers.egress
+        agent.stop.set()
+        agent.run()
+        self.assertFalse(proxy._thread.is_alive())
+        with self.assertRaises(OSError):
+            socket.create_connection(("127.0.0.1", proxy.server_address[1]), timeout=1)
+
     def test_only_one_action_runs_at_a_time(self):
         second = {**self.command, "id": "a2"}
 
@@ -184,7 +224,7 @@ class TerminalTest(unittest.TestCase):
             self.skipTest("Linux uses bubblewrap")
         self.assertEqual(self.pc.sandbox, "workspace")
         self.assertTrue(self.pc.capabilities()["terminal"])
-        out = self.pc.run({"action": "run", "command": "echo escaped>..\outside.txt"})
+        out = self.pc.run({"action": "run", "command": r"echo escaped>..\outside.txt"})
         self.assertEqual(out["status"], "blocked")
         self.assertFalse((self.root.parent / "outside.txt").exists())
 
@@ -347,7 +387,10 @@ class ScreenInputTest(unittest.TestCase):
 
     def test_long_text_is_pasted_only_into_the_planned_window_and_the_clipboard_comes_back(self):
         import pyperclip
-        pyperclip.copy("mine")
+        board = ["mine"]  # a stand-in clipboard: the test never touches the person's real one
+        self.addCleanup(setattr, pyperclip, "copy", pyperclip.copy)
+        self.addCleanup(setattr, pyperclip, "paste", pyperclip.paste)
+        pyperclip.copy, pyperclip.paste = (lambda text: board.__setitem__(0, text)), (lambda: board[0])
         obs = self._observe()["observationId"]
         out = self.pc.run({"action": "screen_type", "text": "y" * 200, "observationId": obs})
         self.assertEqual(out["status"], "done", out)
@@ -369,6 +412,93 @@ class ScreenInputTest(unittest.TestCase):
         self.assertTrue(out.get("stopped"))
         self.assertEqual(self.gui.typed, [])
 
+    def test_a_stopped_click_keys_or_scroll_never_happens(self):
+        self.gui.click = lambda *a, **k: self.gui.typed.append("click")
+        cancel = threading.Event()
+        cancel.set()
+        for action in ({"action": "screen_click", "x": 10, "y": 10},
+                       {"action": "screen_keys", "keys": ["enter"]},
+                       {"action": "screen_scroll", "direction": "down"}):
+            obs = self._observe()["observationId"]
+            out = self.pc.run({**action, "observationId": obs}, cancel=cancel)
+            self.assertTrue(out.get("stopped"), action)
+        self.assertEqual(self.gui.typed, [])
+
+    def test_stop_while_the_target_is_checked_stops_the_click(self):
+        self.gui.click = lambda *a, **k: self.gui.typed.append("click")
+        cancel = threading.Event()
+        self.addCleanup(setattr, Computer, "_gate", Computer.__dict__["_gate"])  # the staticmethod itself
+        Computer._gate = staticmethod(lambda *a, **k: cancel.set())  # STOP lands mid-check
+        obs = self._observe()["observationId"]
+        out = self.pc.run({"action": "screen_click", "x": 10, "y": 10, "observationId": obs}, cancel=cancel)
+        self.assertTrue(out.get("stopped"))
+        self.assertEqual(self.gui.typed, [])
+
+    def test_an_unreadable_target_is_asked_about_not_clicked(self):
+        import ocade_accessibility
+        import ocade_computer
+        self.gui.click = lambda *a, **k: self.gui.typed.append("click")
+        self.addCleanup(setattr, ocade_computer, "SYSTEM", ocade_computer.SYSTEM)
+        self.addCleanup(setattr, ocade_accessibility, "gate_at", ocade_accessibility.gate_at)
+        ocade_computer.SYSTEM = "Windows"
+
+        def unreadable(*_a, **_k):
+            raise RuntimeError("UI Automation could not read that window")
+        ocade_accessibility.gate_at = unreadable
+        obs = self._observe()["observationId"]
+        out = self.pc.run({"action": "screen_click", "x": 10, "y": 10, "observationId": obs})
+        self.assertEqual(out["status"], "needs_confirmation")
+        self.assertEqual(self.gui.typed, [])
+        obs = self._observe()["observationId"]
+        out = self.pc.run({"action": "screen_click", "x": 10, "y": 10, "observationId": obs}, confirmed=True)
+        self.assertEqual(out["status"], "done")  # the person said Continue: their decision
+        self.assertEqual(self.gui.typed, ["click"])
+
+    def test_the_same_window_moved_or_changed_under_the_point_is_stale(self):
+        from PIL import Image
+        self.gui.click = lambda *a, **k: self.gui.typed.append("click")
+        window = type("W", (), {"title": "Editor", "left": 0, "top": 0, "width": 800, "height": 600})()
+        self.gui.getActiveWindow = lambda: window
+        obs = self._observe()["observationId"]
+        window.left = 40  # same title, moved
+        self.assertEqual(self.pc.run({"action": "screen_click", "x": 10, "y": 10,
+                                      "observationId": obs})["status"], "stale")
+        window.left = 0
+        obs = self._observe()["observationId"]
+        self.pc._observation["grey"] = Image.new("L", (1920, 1080), 255)  # what was seen: white
+        self.addCleanup(setattr, Computer, "_changed_at", Computer._changed_at)
+        seen = []
+        Computer._changed_at = lambda pc, point, half=24: seen.append(point) or True  # now: different
+        self.assertEqual(self.pc.run({"action": "screen_click", "x": 10, "y": 10,
+                                      "observationId": obs})["status"], "stale")
+        self.assertTrue(seen)
+        self.assertEqual(self.gui.typed, [])
+
+    def test_the_pixels_under_a_point_decide_whether_it_changed(self):
+        from PIL import Image
+        import mss
+        self._observe()
+        held = self.pc._observation
+        held["geometry"].update(x=0, y=0)
+        now = {"img": Image.new("RGB", (48, 48), (255, 255, 255))}
+
+        class Grab:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def grab(self, box):
+                image = now["img"]
+                return type("Raw", (), {"size": image.size, "rgb": image.tobytes()})()
+        self.addCleanup(setattr, mss, "MSS", getattr(mss, "MSS", None))
+        mss.MSS = Grab
+        held["grey"] = Image.new("L", (1920, 1080), 255)
+        self.assertFalse(self.pc._changed_at((100, 100)))
+        now["img"] = Image.new("RGB", (48, 48), (0, 0, 0))  # a popup appeared there
+        self.assertTrue(self.pc._changed_at((100, 100)))
+
 
 class EgressTest(unittest.TestCase):
     """JARVIS-053: the browser cannot be steered into the device's own network."""
@@ -380,6 +510,11 @@ class EgressTest(unittest.TestCase):
             self.assertFalse(is_public(address), address)
         for address in ("8.8.8.8", "1.1.1.1", "2606:4700:4700::1111", "64:ff9b::808:808"):
             self.assertTrue(is_public(address), address)
+
+    def test_the_refusal_is_a_complete_http_answer(self):
+        from ocade_egress import BLOCKED_PAGE
+        head, _, body = BLOCKED_PAGE.partition(b"\r\n\r\n")
+        self.assertIn(f"Content-Length: {len(body)}".encode(), head)
 
     def test_names_resolving_to_private_addresses_are_refused(self):
         policy = Policy()

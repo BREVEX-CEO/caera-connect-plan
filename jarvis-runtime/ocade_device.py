@@ -209,6 +209,7 @@ class Agent:
         # The cancellation token of the action running now; every STOP sets it
         # synchronously, before any network round trip.
         self.cancel = threading.Event()
+        self._admit = threading.Lock()
         self.state = {"busy": False, "background": False, "connected": True, "update": False,
                       "task": None, "offline": False}
         self.pending_path = identity.home / "pending.json"
@@ -258,14 +259,16 @@ class Agent:
 
     def stop_everything(self) -> None:
         """STOP JARVIS on this computer: the running action now, the rest at OCADE."""
-        self.cancel.set()
-        self.stop_all.set()
+        with self._admit:  # never between an action's admission and its token: see _start
+            self.cancel.set()
+            self.stop_all.set()
 
     def pause(self) -> None:
         """The person takes control: the step in progress ends, and nothing new runs until Resume."""
-        self.cancel.set()
-        self.resume_asked.clear()
-        self.pause_asked.set()
+        with self._admit:
+            self.cancel.set()
+            self.resume_asked.clear()
+            self.pause_asked.set()
 
     def resume(self) -> None:
         self.pause_asked.clear()
@@ -314,6 +317,13 @@ class Agent:
         self.browsers.close()
 
     def run(self) -> int:
+        try:
+            return self._exchange_loop()
+        finally:  # what this agent owns ends with it: the network boundary and the input hooks
+            self.browsers.egress.close()
+            self.computer.guard.stop()
+
+    def _exchange_loop(self) -> int:
         results = self._load_pending()
         reached = time.monotonic()
         frame: dict | None = None
@@ -347,6 +357,13 @@ class Agent:
                     target=lambda: found.update(apps=[a["name"] for a in installed_apps()]),
                     daemon=True, name="ocade-apps")
                 finder.start()
+            # The control-loss bound holds while the exchange itself is blocked, not only after it
+            # fails: past it, the running action is cancelled whatever the network is doing.
+            watch = threading.Timer(max(0.0, CONTROL_LOSS_S - (time.monotonic() - reached)),
+                                    lambda: self.cancel.set()) if active else None
+            if watch:
+                watch.daemon = True
+                watch.start()
             try:
                 reply = self.identity.exchange(body)
             except NotEnrolled:
@@ -373,6 +390,9 @@ class Agent:
                 self._keep_pending(results)
                 self.stop.wait(3 if not active else POLL_IDLE_SECONDS)
                 continue
+            finally:
+                if watch:
+                    watch.cancel()
             self.state["reached"] = True
             self.state["offline"] = False
             self.state["clock"] = False
@@ -413,8 +433,12 @@ class Agent:
         return 0
 
     def _start(self, command: dict) -> dict:
-        self.cancel = threading.Event()
-        cancel = self.cancel
+        # The new token is published and checked against STOP/Pause in one step: a STOP pressed
+        # just before cannot be lost on the old token while this action starts on a fresh one.
+        with self._admit:
+            cancel = self.cancel = threading.Event()
+            if self.stop_all.is_set() or self.pause_asked.is_set():
+                cancel.set()
         active = {"id": command["id"], "taskId": command["taskId"],
                   "outcome": ({"id": command["id"], "status": "failed", "summary": "The action failed"}, None)}
 

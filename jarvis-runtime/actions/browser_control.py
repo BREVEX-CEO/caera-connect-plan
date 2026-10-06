@@ -200,11 +200,17 @@ class _BrowserSession:
         self._ready.wait(timeout=20)
 
     def _run_loop(self):
-        self._loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self._loop)
-        self._loop.run_until_complete(self._async_init())
+        loop = self._loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(self._async_init())
         self._ready.set()
-        self._loop.run_forever()
+        loop.run_forever()
+        # Stopped by close(): what is still pending ends here, then the loop and its thread go.
+        pending = asyncio.all_tasks(loop)
+        for task in pending:
+            task.cancel()
+        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+        loop.close()
 
     async def _async_init(self):
         self._pw = await async_playwright().start()
@@ -226,8 +232,15 @@ class _BrowserSession:
         return future.result()
 
     def close(self):
-        if self._loop:
-            asyncio.run_coroutine_threadsafe(self._async_close(), self._loop).result(10)
+        loop, self._loop = self._loop, None
+        if not loop or loop.is_closed():
+            return
+        try:
+            asyncio.run_coroutine_threadsafe(self._async_close(), loop).result(10)
+        finally:
+            loop.call_soon_threadsafe(loop.stop)
+            if self._thread:
+                self._thread.join(10)
 
     async def _async_close(self):
         if self._context and self.mode == "real":

@@ -23,8 +23,12 @@ args = parser.parse_args()
 key = release_key(args.key, create=False)
 if public_of(key) != ocade_update.UPDATE_PUBLIC_KEY:
     sys.exit("That key is not the one the Device Agent trusts.")
-manifest = (RUNTIME / "wake" / "manifest.json").read_bytes()
+# Git stores the manifest with LF line ends (.gitattributes), so those are the bytes every
+# checkout, package and APK carries: sign exactly them.
+path = RUNTIME / "wake" / "manifest.json"
+manifest = path.read_bytes().replace(b"\r\n", b"\n")
+path.write_bytes(manifest)
 signature = base64.b64encode(key.sign(manifest)).decode()
-(RUNTIME / "wake" / "manifest.sig").write_text(signature + "\n")
+(RUNTIME / "wake" / "manifest.sig").write_text(signature + "\n", newline="\n")
 ocade_update.verify_manifest(manifest, signature, ocade_update.UPDATE_PUBLIC_KEY)
 print("signed and verified")

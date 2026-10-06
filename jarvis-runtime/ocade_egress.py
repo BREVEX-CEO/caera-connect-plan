@@ -20,8 +20,9 @@ import socketserver
 import threading
 from urllib.parse import urlsplit
 
+_REFUSAL = b"OCADE JARVIS does not open private network addresses.\n"
 BLOCKED_PAGE = (b"HTTP/1.1 403 Forbidden\r\nContent-Type: text/plain\r\nConnection: close\r\n"
-                b"Content-Length: 55\r\n\r\nOCADE JARVIS does not open private network addresses.\n")
+                b"Content-Length: %d\r\n\r\n%s" % (len(_REFUSAL), _REFUSAL))
 
 
 class Blocked(Exception):
@@ -137,7 +138,14 @@ class EgressProxy(socketserver.ThreadingTCPServer):
     def __init__(self) -> None:
         super().__init__(("127.0.0.1", 0), _Handler)
         self.policy = Policy()
-        threading.Thread(target=self.serve_forever, daemon=True, name="ocade-egress").start()
+        self._thread = threading.Thread(target=self.serve_forever, daemon=True, name="ocade-egress")
+        self._thread.start()
+
+    def close(self) -> None:
+        """The listener and its thread end with the agent that owns them."""
+        self.shutdown()
+        self.server_close()
+        self._thread.join(5)
 
     @property
     def url(self) -> str:

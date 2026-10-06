@@ -57,7 +57,11 @@ try {
     # ours opens in an Excel of its own (before, Open returned nothing and the job failed).
     $leaf = [IO.Path]::GetFileName($full)
     foreach ($candidate in $excel.Workbooks) {
-      if ($candidate.Name -ieq $leaf) { $excel = New-Object -ComObject Excel.Application; $created = $true; $excel.Visible = $true; $alerts = $excel.DisplayAlerts; $excel.DisplayAlerts = $false; break }
+      if ($candidate.Name -ieq $leaf) {
+        $excel.DisplayAlerts = $alerts  # the person's Excel gets its own setting back before we leave it
+        $excel = New-Object -ComObject Excel.Application; $created = $true; $excel.Visible = $true
+        $alerts = $excel.DisplayAlerts; $excel.DisplayAlerts = $false; break
+      }
     }
     # A workbook JARVIS opens never runs its macros (3 = force disable), whatever it is named.
     $security = $excel.AutomationSecurity
@@ -165,7 +169,10 @@ try {
     # Proof that it was saved: close it, open the saved file again, read it again.
     $name = $sheet.Name
     $book.Close($false)
-    $book = $excel.Workbooks.Open($full)
+    $security = $excel.AutomationSecurity
+    $excel.AutomationSecurity = 3  # reading it back is an open too: its macros never run
+    try { $book = $excel.Workbooks.Open($full) }
+    finally { $excel.AutomationSecurity = $security }
     $sheet = $book.Worksheets.Item($name)
     $again = @{}
     foreach ($address in $job.read) { $again[[string]$address] = Read-Range $sheet ([string]$address) }
@@ -182,6 +189,6 @@ try {
 catch {
   # A job that failed part-way is not saved; a workbook OCADE opened closes unchanged.
   if ($opened -and $book) { try { $book.Close($false) } catch {} }
-  if ($excel) { try { $excel.DisplayAlerts = $true } catch {} }
+  if ($excel) { try { $excel.DisplayAlerts = if ($null -ne $alerts) { $alerts } else { $true } } catch {} }
   Out-Result @{ ok = $false; engine = "excel"; applied = $applied; error = $_.Exception.Message }
 }

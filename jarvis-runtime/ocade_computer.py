@@ -57,6 +57,8 @@ APPS_FRESH_S = 600  # the app list open_app trusts before looking again
 IMPORT_LIMIT = 1 << 30  # a copy into the work folder
 RESERVED = re.compile(r"(?i)con|prn|aux|nul|com[0-9]|lpt[0-9]|conin\$|conout\$")
 _APPS: dict = {"at": float("-inf"), "list": []}
+STOPPED = {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+MOVED = 12  # mean grey-level change around a point that makes its observation stale
 
 # Anything a shell (or cmd.exe for .cmd/.bat programs) would interpret.
 SHELL_META = re.compile(r"[&|;<>^`$%!\r\n]")
@@ -239,20 +241,26 @@ class InputGuard:
     def __init__(self):
         self._ours_until = 0.0
         self.user_input_at = 0.0
-        self._started = False
+        self._listeners: list = []
 
     def start(self) -> bool:
-        if self._started:
+        if self._listeners:
             return True
         try:
             from pynput import keyboard, mouse
         except Exception:  # no input hooks here (headless, or not permitted)
             return False
         seen = lambda *_: self.note()  # noqa: E731
-        mouse.Listener(on_move=seen, on_click=seen, on_scroll=seen, daemon=True).start()
-        keyboard.Listener(on_press=seen, daemon=True).start()
-        self._started = True
+        self._listeners = [mouse.Listener(on_move=seen, on_click=seen, on_scroll=seen, daemon=True),
+                           keyboard.Listener(on_press=seen, daemon=True)]
+        for listener in self._listeners:
+            listener.start()
         return True
+
+    def stop(self) -> None:
+        for listener in self._listeners:
+            listener.stop()
+        self._listeners = []
 
     def note(self) -> None:
         if time.monotonic() > self._ours_until:
@@ -304,6 +312,8 @@ class Computer:
             cancel: threading.Event | None = None) -> dict:
         kind = str(action.get("action", ""))
         cancel = cancel or threading.Event()
+        if cancel.is_set():  # stopped before it began: nothing at all happens
+            return dict(STOPPED)
         try:
             if kind == "apps":
                 apps = installed_apps()
@@ -499,7 +509,8 @@ class Computer:
                     "entries": [{"name": p.name, "folder": p.is_dir(),
                                  "size": p.stat().st_size if p.is_file() else None} for p in items]}
         if kind == "file_read":
-            data = path.read_bytes()[:MAX_READ]
+            with path.open("rb") as source:  # only what one result carries, however big the file
+                data = source.read(MAX_READ)
             if b"\0" in data[:4096]:
                 return {"status": "failed", "summary": f"{rel} is not a text file"}
             return {"status": "done", "summary": f"Read {rel}",
@@ -586,8 +597,7 @@ class Computer:
         except KeyError:
             return {"status": "failed", "summary": "That sheet does not exist in the workbook"}
         if not out.get("ok"):
-            return {"status": "failed", "stopped": bool(out.get("stopped")),
-                    "summary": f"The workbook was not changed: {str(out.get('error', ''))[:200]}"}
+            return self._unfinished(out, rel, path, "workbook")
         kept = self._undo_dir() / str(out["backup"])
         self._remember(f"updating {rel}", lambda: self._put_back(kept, path))
         # What a person would see at once: a formula that counts itself, or an error value.
@@ -622,12 +632,23 @@ class Computer:
         except ocade_documents.DocumentError as e:
             return {"status": "failed", "summary": str(e)}
         if not out.get("ok"):
-            return {"status": "failed", "stopped": bool(out.get("stopped")),
-                    "summary": f"The document was not changed: {str(out.get('error', ''))[:200]}"}
+            return self._unfinished(out, rel, path, "document")
         kept = self._undo_dir() / str(out["backup"])
         self._remember(f"updating {rel}", lambda: self._put_back(kept, path))
         return {"status": "done", "summary": f"Updated {rel} in Word ({len(out['applied'])} changes)",
                 **{k: v for k, v in out.items() if k != "ok"}}
+
+    def _unfinished(self, out: dict, rel: str, path: Path, what: str) -> dict:
+        """An Office job that did not finish: Office may have saved part of it, so the kept
+        original stays one undo away instead of claiming nothing changed."""
+        why = str(out.get("error", ""))[:200]
+        if out.get("maybeChanged") and out.get("backup"):
+            kept = self._undo_dir() / str(out["backup"])
+            self._remember(f"updating {rel}", lambda: self._put_back(kept, path))
+            summary = f"The {what} may be partly changed ({why}); undo puts the original back"
+        else:
+            summary = f"The {what} was not changed: {why}"
+        return {"status": "failed", "stopped": bool(out.get("stopped")), "summary": summary}
 
     def _find(self, folder: Path, rel: str, name: str, extension: str, cancel: threading.Event) -> dict:
         """Donor find_files: name and/or extension, bounded, inside the workspace only."""
@@ -768,27 +789,24 @@ class Computer:
                 return direct
             argv, extra = direct
         started = time.monotonic()
-        process = subprocess.Popen(argv, cwd=folder, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                   stdin=subprocess.DEVNULL, **extra)
-        while True:
-            try:
-                out, err = process.communicate(timeout=0.2)  # a retry after timeout loses no output
-                break
-            except subprocess.TimeoutExpired:
+        # Output goes to files, not memory: a chatty build cannot grow the agent, and only its tail returns.
+        with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+            process = subprocess.Popen(argv, cwd=folder, stdout=out, stderr=err,
+                                       stdin=subprocess.DEVNULL, **extra)
+            summary = None
+            while process.poll() is None:
                 over = time.monotonic() - started > RUN_TIMEOUT_S
-                if cancel.is_set() or over:
+                if cancel.wait(0.1) or over:
                     self._kill(process)
-                    out, err = process.communicate()
-                    return {"status": "failed", "stopped": True,
-                            "summary": f"The command ran over {RUN_TIMEOUT_S} seconds and was stopped"
-                            if over else "Stopped before it finished",
-                            "stdout": out.decode(errors="replace")[-MAX_OUTPUT:],
-                            "stderr": err.decode(errors="replace")[-MAX_OUTPUT:]}
+                    process.wait()
+                    summary = (f"The command ran over {RUN_TIMEOUT_S} seconds and was stopped"
+                               if over else "Stopped before it finished")
+            tails = {name: _tail(f) for name, f in (("stdout", out), ("stderr", err))}
+        if summary:
+            return {"status": "failed", "stopped": True, "summary": summary, **tails}
         return {"status": "done" if process.returncode == 0 else "failed",
                 "summary": f"Exited with {process.returncode} after {time.monotonic() - started:.1f}s",
-                "exitCode": process.returncode, "isolation": self.sandbox,
-                "stdout": out.decode(errors="replace")[-MAX_OUTPUT:],
-                "stderr": err.decode(errors="replace")[-MAX_OUTPUT:]}
+                "exitCode": process.returncode, "isolation": self.sandbox, **tails}
 
     def _sandboxed(self, command: str, folder: Path, network: bool) -> tuple[list[str], dict]:
         # The system read-only, the workspace and a private /tmp writable, the
@@ -870,8 +888,8 @@ class Computer:
     SYSTEM_COMMANDS = {
         "Windows": {"lock": ["rundll32.exe", "user32.dll,LockWorkStation"], "log_out": ["shutdown", "/l"],
                     "restart": ["shutdown", "/r", "/t", "0"], "shut_down": ["shutdown", "/s", "/t", "0"]},
-        "Darwin": {"lock": ["pmset", "displaysleepnow"],
-                   "log_out": ["osascript", "-e", 'tell application "System Events" to log out'],
+        # No macOS "lock": pmset only sleeps the display, which is not a verified lock.
+        "Darwin": {"log_out":["osascript", "-e", 'tell application "System Events" to log out'],
                    "restart": ["osascript", "-e", 'tell application "System Events" to restart'],
                    "shut_down": ["osascript", "-e", 'tell application "System Events" to shut down']},
         "Linux": {"lock": ["loginctl", "lock-session"], "log_out": ["loginctl", "terminate-user", os.environ.get("USER", "")],
@@ -901,10 +919,12 @@ class Computer:
         try:  # the same GUI that types reports the window it would type into
             front = gui.getActiveWindow() if gui is not None else None
             window = front.title if front else None
+            # Where it is too: a window moved or resized under the same title moves its controls.
+            box = tuple(getattr(front, k, None) for k in ("left", "top", "width", "height")) if front else None
         except Exception:
-            window = None
+            window, box = None, None
         return {"x": desk["left"], "y": desk["top"], "w": desk["width"], "h": desk["height"],
-                "monitors": monitors, "window": window}
+                "monitors": monitors, "window": window, "box": box}
 
     def observe(self) -> dict:
         import mss
@@ -917,7 +937,7 @@ class Computer:
         geometry = self._geometry()
         scale = image.width / FRAME_WIDTH if image.width > FRAME_WIDTH else 1.0
         self._observation = {"id": f"s{self._obs_seq}", "geometry": geometry, "scale": scale,
-                             "at": time.monotonic()}
+                             "at": time.monotonic(), "grey": image.convert("L")}
         # The frame clicks are given in is the image the model sees, never the desktop's own size:
         # a model told "1920x1080" beside a 1280-wide image clicks off the bottom of it.
         return {"observationId": f"s{self._obs_seq}",
@@ -1009,7 +1029,7 @@ class Computer:
         return {"status": "done", "summary": f"{state.capitalize()} “{title[:80]}”",
                 "observation": self.observe()}
 
-    def _stale(self, observation_id: str) -> str | None:
+    def _stale(self, observation_id: str, points: tuple = ()) -> str | None:
         held = self._observation
         if not held or held["id"] != observation_id:
             return "That screen observation is no longer current."
@@ -1019,10 +1039,32 @@ class Computer:
         for key, label in (("w", "the screen size changed"), ("h", "the screen size changed"),
                            ("x", "a monitor changed"), ("y", "a monitor changed"),
                            ("monitors", "a monitor was added or removed"),
-                           ("window", "a different window is in front")):
+                           ("window", "a different window is in front"),
+                           ("box", "the window in front moved or changed size")):
             if now.get(key) != held["geometry"].get(key):
                 return f"The screen changed: {label}."
+        if any(self._changed_at(point) for point in points):
+            return "The screen changed where JARVIS would act."
         return None
+
+    def _changed_at(self, point: tuple[float, float], half: int = 24) -> bool:
+        """The pixels around a desktop point, now against the observation: a popup, a scroll or
+        content that moved under the same window makes the planned point mean something else."""
+        held = self._observation
+        grey = held.get("grey") if held else None
+        if grey is None:
+            return False
+        geo = held["geometry"]
+        left = max(0, min(grey.width - 2 * half, round(point[0] - geo["x"]) - half))
+        top = max(0, min(grey.height - 2 * half, round(point[1] - geo["y"]) - half))
+        import mss
+        from PIL import Image, ImageChops, ImageStat
+        with (getattr(mss, "MSS", None) or mss.mss)() as grab:
+            raw = grab.grab({"left": geo["x"] + left, "top": geo["y"] + top,
+                             "width": 2 * half, "height": 2 * half})
+        now = Image.frombytes("RGB", raw.size, raw.rgb).convert("L")
+        before = grey.crop((left, top, left + 2 * half, top + 2 * half))
+        return ImageStat.Stat(ImageChops.difference(now, before)).mean[0] > MOVED
 
     @staticmethod
     def _gate(x: int | None, y: int | None, confirmed: bool, press: bool = False) -> dict | None:
@@ -1032,8 +1074,12 @@ class Computer:
         try:
             import ocade_accessibility
             return ocade_accessibility.gate_at(x, y, confirmed, press)
-        except Exception:  # unreadable (an elevated window, say): the click goes ahead as it would have
-            return None
+        except Exception:
+            # Unreadable (an elevated window, say): what is there cannot be checked, so the person
+            # decides. A confirmed step is theirs; everything else waits.
+            return None if confirmed else {
+                "status": "needs_confirmation",
+                "summary": "JARVIS could not check what is at that spot on the screen. Continue?"}
 
     def _paused(self, cowork: bool, confirmed: bool) -> dict | None:
         """The person's own input pauses JARVIS until they say Continue (their
@@ -1065,9 +1111,14 @@ class Computer:
                 points.append(self._point(action.get("toX"), action.get("toY")))
             if None in points:
                 return {"status": "failed", "summary": "That point is outside the screen"}
+            if any(self._changed_at(point) for point in points):
+                return {"status": "stale", "summary": "The screen changed where JARVIS would act.",
+                        "observation": self.observe()}
             for point in points:  # a drag lets go on its drop point, which is a press there
                 if gated := self._gate(point[0], point[1], confirmed):
                     return gated
+            if cancel.is_set():  # STOP while the target was being checked: no input
+                return dict(STOPPED)
             self.guard.ours()
             if kind == "screen_drag":
                 gui.moveTo(*points[0])
@@ -1084,6 +1135,8 @@ class Computer:
             return gated
         elif kind == "screen_type" and len(str(action.get("text", ""))) > PASTE_OVER:
             # Long text goes in by paste (donor _smart_type), then the clipboard is put back.
+            if cancel.is_set():
+                return dict(STOPPED)
             outcome = self._paste(gui, str(action.get("text", ""))[:20_000], cowork)
             if outcome:
                 return outcome
@@ -1092,7 +1145,7 @@ class Computer:
             text = str(action.get("text", ""))[:2000]
             for at in range(0, len(text), 40):
                 if cancel.is_set():
-                    return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+                    return dict(STOPPED)
                 if at and (self._stale(self._observation["id"]) or
                            (self.guard.user_input_at and not cowork)):
                     return {"status": "needs_confirmation",
@@ -1106,10 +1159,14 @@ class Computer:
             if gated := self._gate(None, None, confirmed,
                                    press=any(k.lower() in ("enter", "return", "space") for k in keys)):
                 return gated
+            if cancel.is_set():
+                return dict(STOPPED)
             self.guard.ours()
             gui.hotkey(*keys) if len(keys) > 1 else gui.press(keys[0])
             detail = f"Pressed {'+'.join(keys)}"
         elif kind == "screen_scroll":
+            if cancel.is_set():
+                return dict(STOPPED)
             self.guard.ours()
             gui.scroll(-5 if action.get("direction") == "down" else 5)
             detail = f"Scrolled {action.get('direction', 'down')}"
@@ -1193,6 +1250,12 @@ def _plain(error: Exception) -> str:
         if isinstance(error, kind):
             return words
     return f"That did not work ({type(error).__name__})"
+
+
+def _tail(file) -> str:
+    file.seek(0, os.SEEK_END)
+    file.seek(max(0, file.tell() - MAX_OUTPUT * 4))
+    return file.read().decode(errors="replace")[-MAX_OUTPUT:]
 
 
 def _limits() -> None:  # runs in the child, before the command

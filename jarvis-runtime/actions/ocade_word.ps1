@@ -102,7 +102,10 @@ try {
   $reopened = $false
   if ($opened) {
     $doc.Close(0)
-    $doc = $word.Documents.Open($full)
+    $security = $word.AutomationSecurity
+    $word.AutomationSecurity = 3  # reading it back is an open too: its macros never run
+    try { $doc = $word.Documents.Open($full) }
+    finally { $word.AutomationSecurity = $security }
     $again = Read-Doc $doc
     $reopened = ($again.text -eq $read.text) -and ($again.tables -eq $read.tables)
     if ($job.close) {
@@ -115,6 +118,6 @@ try {
 }
 catch {
   if ($opened -and $doc) { try { $doc.Close(0) } catch {} }
-  if ($word) { try { $word.DisplayAlerts = -1 } catch {} }
+  if ($word) { try { $word.DisplayAlerts = if ($null -ne $alerts) { $alerts } else { -1 } } catch {} }
   Out-Result @{ ok = $false; engine = "word"; applied = $applied; error = $_.Exception.Message }
 }

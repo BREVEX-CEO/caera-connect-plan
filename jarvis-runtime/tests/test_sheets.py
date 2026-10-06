@@ -1,4 +1,5 @@
 """Spreadsheets: structure first, formulas not typing, preservation, and real Excel where it exists."""
+import shutil
 import sys
 import tempfile
 import threading
@@ -66,12 +67,75 @@ class ValidationTest(unittest.TestCase):
                 ocade_sheets.validate(ops)
         ocade_sheets.validate([{"op": "set", "cell": "A1", "value": '="WEBSERVICE( is just text"'}])
 
+    def test_addresses_stay_inside_excels_grid(self):
+        for address in ("A0", "XFE1", "A1048577", "ZZZ9999999"):
+            with self.assertRaises(ocade_sheets.SheetError, msg=address):
+                ocade_sheets.validate([{"op": "format", "range": address, "bold": True}])
+        ocade_sheets.validate([{"op": "format", "range": "A:C", "bold": True},
+                               {"op": "set", "cell": "XFD1048576", "value": 1}])
+
+    def test_a_quoted_cell_name_is_words_not_a_reference(self):
+        read = {"B1": {"formulas": [['=IF(A1="B1",1,0)']]}}
+        self.assertEqual(ocade_sheets.problems(read), [])
+        self.assertEqual(len(ocade_sheets.problems({"B1": {"formulas": [["=B1+1"]]}})), 1)
+
 
 class FileEngineTest(unittest.TestCase):
     def setUp(self):
         self.root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.root, True)
         self.book = self.root / "sales.xlsx"
         workbook(self.book)
+
+    def test_two_quick_edits_keep_two_originals(self):
+        undo = self.root / "undo"
+        first = ocade_sheets.backup(self.book, undo)
+        original = self.book.read_bytes()
+        self.book.write_bytes(original + b"changed")
+        second = ocade_sheets.backup(self.book, undo)  # the same second, the same name
+        other = self.root / "elsewhere"
+        other.mkdir()
+        (other / "sales.xlsx").write_bytes(b"another folder's file")
+        third = ocade_sheets.backup(other / "sales.xlsx", undo)
+        self.assertEqual(len({first, second, third}), 3)
+        self.assertEqual(first.read_bytes(), original)
+        self.assertEqual(second.read_bytes(), original + b"changed")
+
+    def test_formatting_changes_only_what_was_asked(self):
+        from openpyxl import load_workbook
+        from openpyxl.styles import Alignment, Font
+        book = load_workbook(self.book)
+        book["Orders"]["A1"].font = Font(underline="single", strike=True, vertAlign="superscript")
+        book["Orders"]["A1"].alignment = Alignment(vertical="top", textRotation=30, indent=2, shrink_to_fit=True)
+        book.save(self.book)
+        out = ocade_sheets.edit(self.book, "Orders", [{"op": "format", "range": "A1", "bold": True,
+                                                       "align": "center"}],
+                                self.root / "undo", threading.Event(), engine="file")
+        self.assertTrue(out["ok"], out)
+        cell = load_workbook(self.book)["Orders"]["A1"]
+        self.assertTrue(cell.font.bold)
+        self.assertEqual(cell.alignment.horizontal, "center")
+        self.assertEqual((cell.font.underline, cell.font.strike, cell.font.vertAlign),
+                         ("single", True, "superscript"))
+        self.assertEqual((cell.alignment.vertical, cell.alignment.textRotation, cell.alignment.indent,
+                          cell.alignment.shrink_to_fit), ("top", 30, 2, True))
+
+    def test_stop_before_saving_leaves_the_workbook_as_it_was(self):
+        before = self.book.read_bytes()
+        cancel = threading.Event()
+        cancel.set()
+        out = ocade_sheets.edit(self.book, "Orders", FINISH_ORDERS, self.root / "undo", cancel, engine="file")
+        self.assertTrue(out["stopped"])
+        self.assertEqual(self.book.read_bytes(), before)
+        out = Computer(str(self.root)).run({"action": "sheet_edit", "path": "sales.xlsx", "overwrite": True,
+                                            "ops": FINISH_ORDERS[:1]}, cancel=cancel)
+        self.assertTrue(out["stopped"])
+        self.assertEqual(self.book.read_bytes(), before)
+
+    def test_a_range_too_large_for_the_file_engine_is_refused(self):
+        with self.assertRaisesRegex(ocade_sheets.SheetError, "too large"):
+            ocade_sheets.edit(self.book, "Orders", [{"op": "format", "range": "A1:Z100000", "bold": True}],
+                              self.root / "undo", threading.Event(), engine="file")
 
     def test_inspect_shows_structure_and_formulas(self):
         seen = ocade_sheets.inspect(self.book)

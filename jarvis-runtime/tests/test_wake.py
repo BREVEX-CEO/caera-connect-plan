@@ -42,6 +42,7 @@ class ManifestTest(unittest.TestCase):
         from cryptography.hazmat.primitives import serialization
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
         self.folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder, True)
         random_model(self.folder / "model.npz")
         self.key = Ed25519PrivateKey.generate()
         self.public = base64.b64encode(self.key.public_key().public_bytes(
@@ -73,6 +74,8 @@ class ManifestTest(unittest.TestCase):
     def test_the_bundled_model_is_ocades(self):
         if not (W.bundled() / "manifest.sig").exists():
             self.skipTest("no wake model exported yet")
+        # Git keeps the manifest with LF line ends, so those are the bytes the signature must cover.
+        self.assertNotIn(b"\r", (W.bundled() / "manifest.json").read_bytes())
         manifest = W.verify()
         self.assertEqual(manifest["phrases"], ["OCADE", "Hey OCADE"])
         self.assertIn("Hugging Face", manifest["provenance"]["notUsed"])
