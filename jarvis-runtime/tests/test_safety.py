@@ -16,6 +16,7 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import conftest  # noqa: E402,F401  test isolation for unittest runs too, not only pytest
 import ocade_computer  # noqa: E402
 import ocade_device  # noqa: E402
 from ocade_computer import Computer  # noqa: E402

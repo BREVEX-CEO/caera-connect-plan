@@ -34,8 +34,6 @@ export interface NotificationChannel {
 export interface ChannelConfiguration {
   /** A VAPID public key, for browser push. */
   webPushPublicKey?: string;
-  /** A configured transactional email sender. */
-  emailSender?: string;
 }
 
 /**
@@ -57,13 +55,10 @@ export function resolveChannels(configuration: ChannelConfiguration): Notificati
       id: "email",
       title: "Email",
       description: "To the address on your account.",
-      available: present(configuration.emailSender),
-      ...(present(configuration.emailSender)
-        ? {}
-        : {
-            unavailableReason:
-              "This deployment has no verified email sender, so OCADE cannot promise an email will arrive.",
-          }),
+      // No email transport exists yet, so email is never offered: a sender
+      // address alone once made it selectable and recorded as sent (F-079).
+      available: false,
+      unavailableReason: "OCADE does not send notification emails yet, so it cannot promise one.",
     },
     {
       id: "web_push",
@@ -92,7 +87,6 @@ export function deploymentChannelConfiguration(): ChannelConfiguration {
   const env = import.meta.env as Record<string, string | undefined>;
   return {
     webPushPublicKey: env.VITE_WEB_PUSH_PUBLIC_KEY,
-    emailSender: env.VITE_TRANSACTIONAL_EMAIL_SENDER,
   };
 }
 

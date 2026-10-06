@@ -27,7 +27,6 @@ import {
  */
 
 const EVERY_CHANNEL: NotificationChannel[] = resolveChannels({
-  emailSender: "notifications@example.test",
   webPushPublicKey: "public-key",
 });
 
@@ -96,11 +95,13 @@ describe("channels are derived from the deployment, never assumed", () => {
   });
 
   it("opens a channel by itself once the deployment is configured", () => {
-    expect(availableChannels({ emailSender: "a@b.test" }).map((c) => c.id)).toEqual([
+    expect(availableChannels({ webPushPublicKey: "k" }).map((c) => c.id)).toEqual([
       "in_app",
+      "web_push",
+    ]);
+    expect(EVERY_CHANNEL.filter((channel) => !channel.available).map((c) => c.id)).toEqual([
       "email",
     ]);
-    expect(EVERY_CHANNEL.every((channel) => channel.available)).toBe(true);
   });
 });
 
@@ -136,7 +137,7 @@ describe("a protected category is delivered whatever the settings say", () => {
      */
     const normalised = normalisePreferences(
       { categories: { security: { channels: [], frequency: "immediate" } } },
-      ["in_app", "email"],
+      ["in_app", "web_push"],
     );
     expect(normalised.categories.security.channels).toContain("in_app");
   });
@@ -189,7 +190,7 @@ describe("an optional category obeys the person", () => {
   it("never sends on a channel the deployment does not have", () => {
     const preferences = defaultPreferences();
     preferences.categories.product_updates = {
-      channels: ["in_app", "email"],
+      channels: ["in_app", "web_push"],
       frequency: "grouped",
     };
     const decision = decideDelivery({
@@ -238,7 +239,9 @@ describe("stored preferences are validated, not trusted", () => {
 
   it("drops a channel this deployment does not have", () => {
     const normalised = normalisePreferences(
-      { categories: { product_updates: { channels: ["in_app", "email"], frequency: "grouped" } } },
+      {
+        categories: { product_updates: { channels: ["in_app", "web_push"], frequency: "grouped" } },
+      },
       ["in_app"],
     );
     expect(normalised.categories.product_updates.channels).toEqual(["in_app"]);

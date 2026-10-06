@@ -297,11 +297,15 @@ export class ModelStore {
             createSyncAccessHandle: () => Promise<FileSystemSyncAccessHandle>;
           }
         ).createSyncAccessHandle();
-        sync.truncate(0);
-        sync.write(bytes as unknown as BufferSource, { at: 0 });
-        sync.flush();
-        sync.close();
-        return true;
+        try {
+          sync.truncate(0);
+          sync.write(bytes as unknown as BufferSource, { at: 0 });
+          sync.flush();
+          return true;
+        } finally {
+          // A handle left open locks the file against every later write (F-186).
+          sync.close();
+        }
       } catch {
         return false;
       }

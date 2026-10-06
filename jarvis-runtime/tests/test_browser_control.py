@@ -12,6 +12,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import conftest  # noqa: E402,F401  test isolation for unittest runs too, not only pytest
 from actions.browser_control import _BrowserSession  # noqa: E402
 
 PAGES = {

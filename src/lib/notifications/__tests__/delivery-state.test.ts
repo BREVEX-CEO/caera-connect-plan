@@ -22,7 +22,7 @@ import type { DeliveryDecision } from "../preferences";
  * the wrong thing and sends somebody looking for a fault that is not there.
  */
 
-const CONFIGURED = resolveChannels({ emailSender: "notifications@example.test" });
+const CONFIGURED = resolveChannels({ webPushPublicKey: "public-key" });
 const BARE = resolveChannels({});
 
 function decision(overrides: Partial<DeliveryDecision> = {}): DeliveryDecision {
@@ -46,7 +46,9 @@ describe("the delivery report", () => {
 
   it("calls a configured channel that was not chosen held", () => {
     const report = deliveryReport(decision({ channels: ["in_app"] }), CONFIGURED);
-    expect(report.email).toBe("held");
+    expect(report.web_push).toBe("held");
+    // Email has no transport, so it is never offered, chosen or recorded as sent.
+    expect(report.email).toBe("unavailable");
   });
 
   it("holds everything when the decision held everything, and still records", () => {
@@ -55,7 +57,7 @@ describe("the delivery report", () => {
       CONFIGURED,
     );
     expect(report.in_app).toBe("held");
-    expect(report.email).toBe("held");
+    expect(report.web_push).toBe("held");
     // `recorded` is always true — §D requires the record to survive any
     // preference, and the report never says otherwise.
     expect(Object.values(report)).not.toContain("dead_letter");
@@ -103,7 +105,7 @@ describe("reading a stored report back", () => {
 });
 
 describe("what a person is told", () => {
-  const email = CONFIGURED.find((channel) => channel.id === "email")!;
+  const email = CONFIGURED.find((channel) => channel.id === "web_push")!;
 
   it("distinguishes never-promised from promised-and-failed", () => {
     expect(describeDelivery(email, "unavailable")).toMatch(/not configured/i);
