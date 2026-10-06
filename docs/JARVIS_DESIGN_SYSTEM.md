@@ -127,3 +127,38 @@ Visual bugs fail the phase.
 ## Master Phase 1–49 authority
 
 Implementation order, phase entry/exit gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting are governed by the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves current working behavior, repairs gaps proven by current evidence, and continues sequentially through Phase 49. This document supplies domain-specific requirements and does not replace a phase gate.
+
+---
+
+# Owner visual simplification authority — 2026-10-06
+
+The final UI should feel calm, premium, compact and effortless rather than dashboard-heavy.
+
+- Primary JARVIS surface: conversation + real-data Orb/threads + task status + STOP/Take Over.
+- Keep Conversations and Devices as useful navigation.
+- Merge Activity into task/history when doing so removes duplicated surfaces.
+- Remove/hide Allowed Apps as a major navigation surface after contextual permission/discovery replacement is proven.
+- Put rare controls under Advanced.
+- Never ask customers to choose internal control technologies.
+- Use one-button mobile setup.
+- Android bubble expanded state: mini chat + voice + task status + STOP + Open OCADE.
+- Adapt the donor's strongest orb/string/thread motion into the current real-data renderer; never revive donor desktop GUI architecture.
+
+## Geometry
+
+Use a consistent small set of soft radii:
+- rounded conversation/task/settings cards;
+- pill/semi-circular compact controls where appropriate;
+- rounded composer and primary actions;
+- rounded bottom sheets/drawers on mobile;
+- soft dialog/modal corners;
+- restrained borders and shadows.
+
+Do not copy another product's exact trade dress. The goal is the simplicity and comfort of modern conversational software.
+
+## Motion and loading
+
+Use skeleton/progressive states where they prevent layout jumps. Motion must be restrained, meaningful and disable/reduce cleanly. The orb/threads may provide identity, but task completion, permissions and errors must remain legible without animation.
+
+Every async state must distinguish loading, empty, error, blocked and ready. Failed data must never silently render as empty.
+
