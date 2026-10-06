@@ -147,10 +147,6 @@ class AttachTest(unittest.TestCase):
         session.close()
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 @unittest.skipUnless(_chromium(), "needs Playwright Chromium")
 class RestartTest(unittest.TestCase):
     """The person's browser restarts mid-task: the old connection is dropped and the next step reconnects."""
@@ -189,3 +185,7 @@ class RestartTest(unittest.TestCase):
         finally:
             ocade_existing_browser.find = original
             browsers.close()
+
+
+if __name__ == "__main__":
+    unittest.main()

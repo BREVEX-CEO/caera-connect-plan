@@ -160,3 +160,26 @@ describe("browser roles cannot write authority", () => {
     ).toBe(0);
   });
 });
+
+describe("tables with row-level security and no policy (F-101)", () => {
+  it("are discovered from the schema, and none is granted to a customer role", async () => {
+    const open = await twin.asSuperuser<{ table: string; grantee: string }>(
+      `select c.relname as table, g.grantee
+         from pg_class c
+         join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+         join information_schema.role_table_grants g
+           on g.table_schema = 'public' and g.table_name = c.relname
+        where c.relkind = 'r' and c.relrowsecurity
+          and not exists (select 1 from pg_policy p where p.polrelid = c.oid)
+          and g.grantee in ('anon', 'authenticated')`,
+    );
+    const policyFree = await twin.asSuperuser<{ table: string }>(
+      `select c.relname as table from pg_class c
+         join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+        where c.relkind = 'r' and c.relrowsecurity
+          and not exists (select 1 from pg_policy p where p.polrelid = c.oid)`,
+    );
+    expect(policyFree.length).toBeGreaterThan(0);
+    expect(open).toEqual([]);
+  });
+});

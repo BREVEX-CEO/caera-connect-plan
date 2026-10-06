@@ -132,7 +132,12 @@ describe("bounds, so one use cannot carry unlimited cost", () => {
     expect(forRequest([huge, after])).toMatchObject({ ok: false, reason: /too large/ });
     // Weighed as bytes: four 5 MiB photos are exactly the budget and all four go.
     const photo = (id: string) =>
-      ready({ id, name: `${id}.png`, text: undefined, image: "A".repeat((5 * 1024 * 1024 * 4) / 3) });
+      ready({
+        id,
+        name: `${id}.png`,
+        text: undefined,
+        image: "A".repeat((5 * 1024 * 1024 * 4) / 3),
+      });
     expect(sent(["a", "b", "c", "d"].map(photo)).map((a) => a.name)).toHaveLength(4);
     // UTF-8 bytes, not characters: multi-byte text is not under-counted.
     expect(forRequest([ready({ text: "é".repeat(MAX_TOTAL_BYTES / 2 + 1) })]).ok).toBe(false);
@@ -151,7 +156,10 @@ describe("bounds, so one use cannot carry unlimited cost", () => {
   });
 
   it("keeps the order the composer shows, because order reaches the model", () => {
-    const order = sent([ready({ id: "1", name: "first.txt" }), ready({ id: "2", name: "second.txt" })]);
+    const order = sent([
+      ready({ id: "1", name: "first.txt" }),
+      ready({ id: "2", name: "second.txt" }),
+    ]);
     expect(order.map((a) => a.name)).toEqual(["first.txt", "second.txt"]);
   });
 });

@@ -7,6 +7,7 @@ import functools
 import http.server
 import sys
 import tempfile
+import shutil
 import threading
 from pathlib import Path
 
@@ -24,17 +25,20 @@ threading.Thread(target=server.serve_forever, daemon=True).start()
 url = f"http://127.0.0.1:{server.server_address[1]}/index.html"
 
 browsers = ocade_device.Browsers(headless=False, cdp=None)
-print("capabilities:", browsers.capabilities())
-print("endpoint found:", bool(browsers.endpoint()))
-cancel = threading.Event()
-opened = browsers.run("real", {"action": "open", "url": url}, False, ["127.0.0.1"], cancel)
-print("open:", opened["status"], opened.get("summary"))
-obs = opened.get("observation") or {}
-print("tabs in the person's browser:", len(obs.get("tabs", [])))
-button = next(e for e in obs["elements"] if e["name"] == "Press me")
-clicked = browsers.run("real", {"action": "click", "ref": button["ref"],
-                                "observationId": obs["observationId"]}, False, ["127.0.0.1"], cancel)
-print("click:", clicked["status"], "title now:", clicked["observation"]["title"])
-browsers.close()
-print("closed JARVIS's tab only")
-server.shutdown()
+try:
+    print("capabilities:", browsers.capabilities())
+    print("endpoint found:", bool(browsers.endpoint()))
+    cancel = threading.Event()
+    opened = browsers.run("real", {"action": "open", "url": url}, False, ["127.0.0.1"], cancel)
+    print("open:", opened["status"], opened.get("summary"))
+    obs = opened.get("observation") or {}
+    print("tabs in the person's browser:", len(obs.get("tabs", [])))
+    button = next(e for e in obs["elements"] if e["name"] == "Press me")
+    clicked = browsers.run("real", {"action": "click", "ref": button["ref"],
+                                    "observationId": obs["observationId"]}, False, ["127.0.0.1"], cancel)
+    print("click:", clicked["status"], "title now:", clicked["observation"]["title"])
+finally:  # F-179: the server and its folder go even when a step fails
+    browsers.close()
+    print("closed JARVIS's tab only")
+    server.shutdown()
+    shutil.rmtree(site, ignore_errors=True)

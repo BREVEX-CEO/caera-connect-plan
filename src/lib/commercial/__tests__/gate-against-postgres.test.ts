@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { DatabaseTwin } from "../../../../scripts/db-twin.mts";
 import { CommercialGenerationGate, type CommercialUsageLedger } from "../generation-gate";
 import { AllowanceExhausted } from "../generation-gate";
@@ -114,6 +114,10 @@ beforeAll(async () => {
   );
   userId = rows[0]!.id;
 }, 120_000);
+
+afterAll(async () => {
+  await twin?.close();
+});
 
 describe("the gate settles against the real ledger", () => {
   it("writes the one use, in hundredths, to both windows", async () => {

@@ -282,7 +282,8 @@ try {
   const exhausted = await page.getByText(EXACT_COUNT).innerText();
   check(
     "and the composer warns before the allowance is gone rather than after",
-    (await page.locator("text=/request.? left · resets|used this session's allowance/").count()) >=
+    // At least one: ">= 0" could never fail (F-027).
+    (await page.locator("text=/request.? left · resets|used this session's allowance/").count()) >
       0,
   );
   check(

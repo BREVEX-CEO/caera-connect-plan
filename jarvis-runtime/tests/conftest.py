@@ -9,7 +9,12 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["OCADE_JARVIS_HOME"] = tempfile.mkdtemp(prefix="ocade-test-home-")
+import atexit
+import shutil
+
+_home = tempfile.mkdtemp(prefix="ocade-test-home-")
+os.environ["OCADE_JARVIS_HOME"] = _home
+atexit.register(shutil.rmtree, _home, ignore_errors=True)  # F-179: no home left behind
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import ocade_agent  # noqa: E402

@@ -183,9 +183,10 @@ describe("using a code", () => {
   it("does not say every session was signed out when that failed", async () => {
     const { issue, redeem } = await load();
     const { codes } = await issue();
-    const { supabaseAdmin } = (await import("@/integrations/supabase/client.server")) as unknown as {
-      supabaseAdmin: { rpc: (name: string, args: Record<string, unknown>) => Promise<unknown> };
-    };
+    const { supabaseAdmin } =
+      (await import("@/integrations/supabase/client.server")) as unknown as {
+        supabaseAdmin: { rpc: (name: string, args: Record<string, unknown>) => Promise<unknown> };
+      };
     const rpc = supabaseAdmin.rpc;
     supabaseAdmin.rpc = (name, args) =>
       name === "ocade_revoke_other_account_sessions"

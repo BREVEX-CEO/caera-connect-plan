@@ -352,6 +352,7 @@ try {
 
   /* --- the metadata a link preview needs ---------------------------------- */
 
+  const languages = [];
   for (const path of ["/", "/pricing", "/about", "/help", "/terms", "/privacy"]) {
     await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded" });
     const meta = await page.evaluate(() => ({
@@ -365,9 +366,15 @@ try {
       Boolean(meta.title && meta.description && meta.ogTitle),
       JSON.stringify(meta),
     );
+    languages.push(meta.lang);
   }
 
-  check("the document declares its language", true);
+  // Measured on every page above, not asserted (F-126).
+  check(
+    "the document declares its language",
+    languages.every((lang) => /^[a-z]{2}(-[A-Z]{2})?$/.test(lang ?? "")),
+    languages.join(","),
+  );
   check("no uncaught page errors", pageErrors.length === 0, pageErrors.join("; "));
 
   /* --- words typed while a slow phone is still loading are kept ------------ */

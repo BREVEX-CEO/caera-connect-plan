@@ -332,7 +332,7 @@ try {
   });
   const beforeManualOffline = await fetch(`${SUPABASE}/__fixture/online-boundary`)
     .then((response) => response.json())
-    .then((state) => JSON.stringify(state.lastRequest ?? null));
+    .then((state) => JSON.stringify(state)); // the GET returns the record itself (F-030)
 
   await page.goto(`${BASE}/?new=true`, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Offline", exact: true }).click();
@@ -342,7 +342,7 @@ try {
 
   const afterManualOffline = await fetch(`${SUPABASE}/__fixture/online-boundary`)
     .then((response) => response.json())
-    .then((state) => JSON.stringify(state.lastRequest ?? null));
+    .then((state) => JSON.stringify(state)); // the GET returns the record itself (F-030)
   check(
     "manual Offline sends zero provider traffic",
     afterManualOffline === beforeManualOffline,

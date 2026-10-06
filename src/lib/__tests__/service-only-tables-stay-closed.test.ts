@@ -60,10 +60,4 @@ describe("the tables only the server may touch", () => {
       [],
     );
   });
-
-  it("covers every table the live advisor reports as policy-free", () => {
-    // If a new service-only table appears, it belongs in the list above rather
-    // than being quietly exempt from the rule.
-    expect(SERVICE_ONLY).toHaveLength(7);
-  });
 });
