@@ -312,7 +312,7 @@ try {
   );
   check(
     "an Admin cannot open a case (owners do)",
-    (await strongRow.getByRole("button", { name: "Open a case" }).count()) === 0 &&
+    (await strongRow.getByRole("button", { name: /Open a case/ }).count()) === 0 &&
       (await strongRow.getByRole("button", { name: "End all their sessions" }).count()) === 1,
   );
   const remove = strongRow.getByRole("button", { name: "Remove", exact: true });
@@ -542,9 +542,14 @@ try {
   // A case: reason, hours, the customer is told, the conversation is read, the case closes.
   await tab(owner, "Customers").click();
   const ownerRow = await customerRow(owner);
-  const openCase = ownerRow.getByRole("button", { name: "Open a case" });
-  check("opening a case waits for a reason", await openCase.isDisabled());
+  // A case names one conversation and one reader (F-014): here the owner reads it.
+  await ownerRow.getByRole("button", { name: "Open a case…" }).click();
+  const openCase = ownerRow.getByRole("button", { name: "Open the case" });
   await ownerRow.getByPlaceholder(/^Why \(/).fill("Customer reported export failure");
+  check("opening a case waits for a conversation", await openCase.isDisabled());
+  await ownerRow
+    .getByRole("combobox", { name: "Conversation" })
+    .selectOption({ label: `Export trouble ${stamp}` });
   await openCase.click();
   const cases = owner.getByRole("region", { name: "Open cases" });
   check(
@@ -560,7 +565,6 @@ try {
     ),
   );
   await cases.getByRole("button", { name: "Read", exact: true }).click();
-  await cases.getByRole("button", { name: `Export trouble ${stamp}` }).click();
   check(
     "the conversation is readable under the case",
     await seen(cases.getByText(`my export fails ${stamp}`)),

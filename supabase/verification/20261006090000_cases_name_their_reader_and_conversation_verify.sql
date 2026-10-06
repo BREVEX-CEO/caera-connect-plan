@@ -2,6 +2,10 @@
 -- permission; recovery sheets are replaced one at a time; Library paths stay in their folder.
 DO $$
 BEGIN
+  IF to_regprocedure('public.ocade_case_conversations(uuid)') IS NULL
+     OR has_function_privilege('anon', 'public.ocade_case_conversations(uuid)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'case conversation titles are not listed through their audited function';
+  END IF;
   IF to_regprocedure('public.ocade_case_open(uuid,text,integer)') IS NOT NULL THEN
     RAISE EXCEPTION 'a case can still be opened without naming its conversation';
   END IF;

@@ -633,22 +633,11 @@ export const listCustomerConversations = createServerFn({ method: "GET" })
   .middleware([requireSession])
   .validator((input) => z.object({ userId: uuid }).parse(input))
   .handler(async ({ data, context }): Promise<{ id: string; title: string }[]> => {
-    await assertStaff(context.supabase, "cases.manage");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin
-      .from("ocade_conversations")
-      .select("id, title")
-      .eq("user_id", data.userId)
-      .order("updated_at", { ascending: false })
-      .limit(50);
-    if (error) throw new Error("Conversations could not be read.");
-    const { error: auditError } = await supabaseAdmin.from("ocade_admin_actions").insert({
-      actor: context.userId,
-      target_user: data.userId,
-      action: "case_read",
-      reason: "Listed conversation titles to open a case.",
+    // The database checks the permission and writes the listing down, in one step.
+    const { data: rows, error } = await context.supabase.rpc("ocade_case_conversations", {
+      p_customer: data.userId,
     });
-    if (auditError) throw new Error("Conversations could not be read.");
+    if (error) throw new Error(staffFailure(error.message));
     return (rows ?? []).map((row) => ({ id: row.id, title: row.title }));
   });
 

@@ -1245,11 +1245,23 @@ function handleRpc(name, args, userId) {
       if (args.p_customer === userId) {
         return refuse("A case is about somebody else's account.", "22023");
       }
+      // As the migration (F-014): one of this customer's conversations, read by one named reader.
+      if (
+        !rows(args.p_customer, "ocade_conversations").some((row) => row.id === args.p_conversation)
+      ) {
+        return refuse("Choose one of this customer's conversations.", "22023");
+      }
+      const reader = args.p_assignee ?? userId;
+      if (reader === args.p_customer || !holds(reader, "cases.read")) {
+        return refuse("The person reading must be staff who may read cases.", "22023");
+      }
       const id = randomUUID();
       supportCases.push({
         id,
         customer: args.p_customer,
         opened_by: userId,
+        assignee: reader,
+        conversation: args.p_conversation,
         reason: String(args.p_reason).trim(),
         opened_at: new Date(now).toISOString(),
         expires_at: new Date(now + hours * 3_600_000).toISOString(),
@@ -1257,6 +1269,15 @@ function handleRpc(name, args, userId) {
       });
       record(userId, "case_open", String(args.p_reason).trim(), args.p_customer, id);
       return id;
+    }
+
+    case "ocade_case_conversations": {
+      const denied = requireStaff("cases.manage", "open a support case");
+      if (denied) return denied;
+      record(userId, "case_read", "Listed conversation titles to open a case.", args.p_customer);
+      return rows(args.p_customer, "ocade_conversations")
+        .slice(0, 50)
+        .map(({ id, title }) => ({ id, title }));
     }
 
     case "ocade_case_close": {
@@ -1280,11 +1301,9 @@ function handleRpc(name, args, userId) {
       const open = supportCases.find(
         (row) => row.id === args.p_case && !row.closed_at && Date.parse(row.expires_at) > now,
       );
-      if (!open) return refuse("This case is closed or has expired.");
-      const owns = rows(open.customer, "ocade_conversations").some(
-        (row) => row.id === args.p_conversation,
-      );
-      if (!owns) return refuse("Not found");
+      if (!open || open.assignee !== userId || open.conversation !== args.p_conversation) {
+        return refuse("This case is closed, has expired or is not yours to read.");
+      }
       record(
         userId,
         "case_read",

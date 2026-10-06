@@ -527,6 +527,22 @@ describe("conversation access through a case", () => {
     expect((await read(SUPPORT, kase, conversation)).error).toMatch(/closed, has expired/);
   });
 
+  it("lists a customer's conversation titles only for someone opening a case, and writes it down", async () => {
+    const list = (actor: string) =>
+      twin.asTenant<{ id: string; title: string }>(
+        actor,
+        `select id, title from public.ocade_case_conversations('${CUSTOMER_A}')`,
+        fresh,
+      );
+    expect((await list(SUPPORT)).error).toBe("Not found");
+    expect((await list(OWNER)).rows).toEqual([{ id: conversation, title: "Help" }]);
+    expect(
+      await twin.asServiceRole(
+        `select 1 from public.ocade_admin_actions where action = 'case_read' and target_user = '${CUSTOMER_A}'`,
+      ),
+    ).toHaveLength(1);
+  });
+
   it("names one reader and one conversation (F-014)", async () => {
     const [{ id: second }] = await twin.asServiceRole<{ id: string }>(
       `insert into public.ocade_conversations (user_id, title) values ('${CUSTOMER_A}', 'Also private') returning id`,

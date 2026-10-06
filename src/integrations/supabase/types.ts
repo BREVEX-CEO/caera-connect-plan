@@ -2009,6 +2009,10 @@ export type Database = {
         Returns: number
       }
       ocade_case_close: { Args: { p_case: string; p_reason: string }; Returns: boolean }
+      ocade_case_conversations: {
+        Args: { p_customer: string }
+        Returns: { id: string; title: string }[]
+      }
       ocade_case_messages: {
         Args: { p_case: string; p_conversation: string }
         Returns: { content: string; created_at: string; role: string }[]

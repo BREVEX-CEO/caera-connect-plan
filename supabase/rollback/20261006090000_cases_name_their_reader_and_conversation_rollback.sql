@@ -4,6 +4,7 @@ BEGIN;
 ALTER TABLE public.ocade_library_items DROP CONSTRAINT IF EXISTS ocade_library_items_own_folder;
 
 DROP FUNCTION IF EXISTS public.ocade_case_open(uuid, text, integer, uuid, uuid);
+DROP FUNCTION IF EXISTS public.ocade_case_conversations(uuid);
 CREATE FUNCTION public.ocade_case_open(p_customer uuid, p_reason text, p_hours integer)
 RETURNS uuid
 LANGUAGE plpgsql

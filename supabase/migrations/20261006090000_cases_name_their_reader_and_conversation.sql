@@ -86,6 +86,27 @@ $$;
 REVOKE ALL ON FUNCTION public.ocade_case_open(uuid, text, integer, uuid, uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.ocade_case_open(uuid, text, integer, uuid, uuid) TO authenticated;
 
+-- The titles a case can cover, listed only for someone opening a case, and written down.
+CREATE FUNCTION public.ocade_case_conversations(p_customer uuid)
+RETURNS TABLE (id uuid, title text)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $$
+BEGIN
+  PERFORM private.ocade_staff_require('cases.manage', 'open a support case');
+  INSERT INTO public.ocade_admin_actions (actor, target_user, action, reason)
+  VALUES (auth.uid(), p_customer, 'case_read', 'Listed conversation titles to open a case.');
+  RETURN QUERY
+    SELECT v.id, v.title FROM public.ocade_conversations AS v
+     WHERE v.user_id = p_customer
+     ORDER BY v.updated_at DESC
+     LIMIT 50;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.ocade_case_conversations(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.ocade_case_conversations(uuid) TO authenticated;
+
 CREATE OR REPLACE FUNCTION public.ocade_case_messages(p_case uuid, p_conversation uuid)
 RETURNS TABLE (role text, content text, created_at timestamptz)
 LANGUAGE plpgsql
