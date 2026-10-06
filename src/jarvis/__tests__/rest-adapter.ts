@@ -92,7 +92,13 @@ export function restOver(twin: DatabaseTwin) {
             return;
           }
           twin.asServiceRole(sql).then(
-            (rows) => resolve({ data: one ? (rows[0] ?? null) : rows, error: null }),
+            (rows) =>
+              // As PostgREST: more than one row is an error for either, none only for single (F-142).
+              resolve(
+                one && (rows.length > 1 || (one === "single" && rows.length === 0))
+                  ? { data: null, error: { code: "PGRST116", message: `${rows.length} rows` } }
+                  : { data: one ? (rows[0] ?? null) : rows, error: null },
+              ),
             // As supabase-js: a failed statement resolves with its error, it never throws.
             (error) => resolve({ data: null, error }),
           );

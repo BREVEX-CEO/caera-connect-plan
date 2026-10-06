@@ -3,7 +3,11 @@ import { DatabaseTwin } from "../../../../scripts/db-twin.mts";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { supabaseCommercialLedger, toHundredths } from "../supabase-ledger";
-import type { CommercialUsageLedger, GenerationSurface } from "../generation-gate";
+import {
+  GENERATION_SURFACES,
+  type CommercialUsageLedger,
+  type GenerationSurface,
+} from "../generation-gate";
 import type { PlanTier } from "@/lib/payments/pricing";
 import { ALLOWANCES, ONE_USE, windowFor } from "../usage-policy";
 
@@ -201,7 +205,8 @@ describe("every surface and tier the types allow is one the database accepts", (
    * send. Listing them here means adding a surface to one side without the
    * other fails in this file rather than in production.
    */
-  const surfaces: GenerationSurface[] = ["chat"];
+  // The canonical list itself, so a new surface cannot be left out here (F-102).
+  const surfaces: readonly GenerationSurface[] = GENERATION_SURFACES;
   const tiers: PlanTier[] = ["free", "pro", "max"];
 
   it.each(surfaces)("accepts the %s surface", async (surface) => {
