@@ -81,8 +81,15 @@ export async function turnPushOff(): Promise<PushDeviceState> {
   const subscription = await (await registration())?.pushManager.getSubscription();
   if (!subscription) return "off";
   const supabase = await loadSupabaseClient();
-  await supabase.rpc("ocade_push_unsubscribe", { p_endpoint: subscription.endpoint });
-  await subscription.unsubscribe().catch(() => false);
+  const { error } = await supabase.rpc("ocade_push_unsubscribe", {
+    p_endpoint: subscription.endpoint,
+  });
+  const unsubscribed = await subscription.unsubscribe().catch(() => false);
+  // Off when either side let go: no server record means nothing is sent, and a
+  // dropped browser subscription means nothing can arrive (F-215).
+  if (error && !unsubscribed) {
+    throw new Error("OCADE could not turn notifications off here just now. Try again.");
+  }
   return "off";
 }
 

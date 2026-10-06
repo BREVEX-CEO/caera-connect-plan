@@ -86,7 +86,7 @@ export function NotificationsSection() {
       outcome.state === "saved"
         ? "Saved to your account."
         : outcome.state === "session_only"
-          ? "Applied here for now — your account could not be reached."
+          ? `Not saved: ${outcome.reason}`
           : `Not saved: ${outcome.reason}`,
     );
   }
@@ -210,8 +210,10 @@ export function NotificationsSection() {
           <button
             type="button"
             onClick={() =>
-              void markAllNotificationsRead().then(() =>
-                setRecent((current) => current.map((entry) => ({ ...entry, readAt: "now" }))),
+              void markAllNotificationsRead().then((outcome) =>
+                outcome.ok
+                  ? setRecent((current) => current.map((entry) => ({ ...entry, readAt: "now" })))
+                  : setSaved(`Not marked read: ${outcome.message}`),
               )
             }
             className="h-8 rounded-md border border-border px-3 text-sm text-foreground transition-colors hover:bg-accent"

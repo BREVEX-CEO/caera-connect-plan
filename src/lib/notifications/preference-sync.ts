@@ -97,11 +97,9 @@ export async function loadNotificationPreferences(input: {
 /**
  * Save a preference to the account.
  *
- * THE CHOICE STILL APPLIES WHEN THE SAVE DOES NOT. The caller holds what the
- * person just chose and keeps acting on it, and this says plainly how far it
- * got. Refusing to honour a change because a request failed would be the
- * product arguing with somebody about what they just did; claiming it was saved
- * would be worse.
+ * Says plainly how far the save got. Delivery reads only the account's saved
+ * choices, so a choice that did not save changes nothing that is sent, and the
+ * outcome says so rather than claiming it applies here.
  */
 export async function saveNotificationPreferences(input: {
   preferences: NotificationPreferences;
@@ -110,7 +108,7 @@ export async function saveNotificationPreferences(input: {
   if (!input.backend) {
     return {
       state: "session_only",
-      reason: "You are not signed in, so this applies until you close this tab.",
+      reason: "You are not signed in, so there is no account to save this to.",
     };
   }
 
@@ -124,8 +122,10 @@ export async function saveNotificationPreferences(input: {
   if (revision === null) {
     return {
       state: "session_only",
+      // Delivery reads only the account's saved choices, so an unsaved one
+      // changes nothing that is sent (F-218).
       reason:
-        "OCADE could not reach your account. This applies until you close this tab, and your other devices have not been told.",
+        "OCADE could not reach your account, so notifications still follow your saved choices on every device, this one included. Try again.",
     };
   }
   return { state: "saved", revision };

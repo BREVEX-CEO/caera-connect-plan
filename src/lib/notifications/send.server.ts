@@ -84,6 +84,8 @@ export async function sendNotification(input: NotificationToSend): Promise<SendO
       channels,
     });
     const delivery = deliveryReport(decision, channels);
+    // Not "sent" until the push service accepts it (F-214).
+    if (delivery.web_push === "sent") delivery.web_push = "failed";
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin.rpc("ocade_record_notification", {
@@ -99,11 +101,14 @@ export async function sendNotification(input: NotificationToSend): Promise<SendO
     const id = (data as string | null) ?? null;
     if (id && decision.channels.includes("web_push")) {
       delivery.web_push = await pushToBrowsers(input, id);
-      await supabaseAdmin.rpc("ocade_set_notification_delivery", {
+      const { error: recordError } = await supabaseAdmin.rpc("ocade_set_notification_delivery", {
         p_id: id,
         p_channel: "web_push",
         p_state: delivery.web_push,
       });
+      if (recordError) {
+        return { id, delivery, heldReason: "The browser delivery could not be recorded." };
+      }
     }
     return { id, delivery, heldReason: decision.held ? decision.reason : "" };
   } catch (cause) {
@@ -157,11 +162,13 @@ async function pushToBrowsers(input: NotificationToSend, id: string): Promise<De
   const privateKey = process.env.WEB_PUSH_PRIVATE_KEY;
   if (!publicKey || !privateKey) return "dead_letter";
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: browsers } = await supabaseAdmin
+  const { data: browsers, error } = await supabaseAdmin
     .from("ocade_push_subscriptions")
     .select("endpoint, p256dh, auth, failures")
     .eq("user_id", input.userId)
     .limit(20);
+  // A read that failed is not "no browsers": nothing was tried (F-214).
+  if (error) return "failed";
   if (!browsers?.length) return "held";
   // One encrypted record holds about 4 KB: a title and a line, never more.
   const message = {

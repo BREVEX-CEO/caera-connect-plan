@@ -175,8 +175,8 @@ describe("saving", () => {
     expect(outcome.state).toBe("session_only");
     // It has to say BOTH things: that this tab honours the choice, and that the
     // person's other devices have not been told.
-    expect(outcome.state === "session_only" && outcome.reason).toMatch(/close this tab/i);
-    expect(outcome.state === "session_only" && outcome.reason).toMatch(/other devices/i);
+    expect(outcome.state === "session_only" && outcome.reason).toMatch(/saved choices/i);
+    expect(outcome.state === "session_only" && outcome.reason).toMatch(/every device/i);
   });
 
   it("reports a refusal as a failure, with what the account said", async () => {
