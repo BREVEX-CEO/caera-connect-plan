@@ -102,6 +102,19 @@ Run Caveman/Ponytail after proof. Consult ToRemove.md. Preserve donor/audits/app
 
 Every phase includes commercial-launch readiness percentage and exact evidence.
 
-## Master Phase 1–49 authority
 
-Implementation order, phase gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting follow the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves working behavior, repairs evidence-backed gaps, and continues through Phase 49.
+## Current engineering rules — 2026-10-06
+
+Prefer the smallest proven solution. Remove as much duplicate code, obsolete branching, hard-coded application knowledge, redundant polling, duplicated UI and unused dependency surface as safely possible. There is no numeric code-reduction quota and no reward for deleting useful capability.
+
+New application support must flow through the universal execution engine. Do not introduce permanent app-name branches, stored coordinates or separate privileged controllers unless measured evidence proves that a specialized adapter is necessary for reliability, fidelity, safety, performance or platform integration.
+
+Keep deterministic work local once a bounded plan is issued. Use events or callbacks instead of periodic polling when a trustworthy owner can signal completion. Keep model calls for reasoning, unfamiliar-software planning and recovery rather than ordinary deterministic sub-actions.
+
+Every success claim requires an observable postcondition. Every STOP claim distinguishes requested cancellation from confirmed quiescence. Every permission, scope and platform-security boundary remains enforced even when doing so adds latency.
+
+Customer interfaces should expose outcomes and policy choices, not internal execution mechanisms. Setup should be collapsed to the smallest truthful flow the platform permits.
+
+## Current execution authority — 2026-10-06
+
+This document governs engineering behavior and implementation constraints, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail.

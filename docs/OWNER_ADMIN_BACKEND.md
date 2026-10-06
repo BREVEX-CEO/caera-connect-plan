@@ -193,6 +193,15 @@ Test:
 
 Every phase reports commercial-launch readiness percentage.
 
-## Master Phase 1–49 authority
 
-Implementation order, phase gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting follow the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves working behavior, repairs evidence-backed gaps, and continues through Phase 49.
+## Current simplification rule — 2026-10-06
+
+Owner and Staff controls remain privileged operational surfaces rather than a second product. Keep only actions that are necessary for account, entitlement, security, device, support, audit and service operations. Hide modules the current role cannot use and remove duplicate status calculations or alternative authority paths once the canonical backend source is proven.
+
+Privileged UI simplification must never move authorization into the browser. Server-side role, RLS, recent authentication, audit, revocation and last-owner protection remain mandatory even when the interface becomes smaller.
+
+Customer-facing navigation must remain free of privileged hints. The normal product should not become more complex in order to expose administrative internals.
+
+## Current execution authority — 2026-10-06
+
+This document governs Owner and Staff backend authority and privileged UI, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail.

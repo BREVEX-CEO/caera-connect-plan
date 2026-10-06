@@ -150,6 +150,17 @@ The number may decrease if new blockers are found. It is a release-health estima
 
 100% requires all executable release gates green and only explicitly accepted external/deferred dependencies remaining.
 
-## Master Phase 1–49 authority
 
-Implementation order, phase gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting follow the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves working behavior, repairs evidence-backed gaps, and continues through Phase 49.
+## Current autonomous engineering loop — 2026-10-06
+
+The coding agent should first understand the existing authority and reproduce the problem, then make the smallest root-cause change, test it, deliberately attempt to break it and simplify the resulting code. It should never respond to complexity by adding another permanent controller, another polling loop or another compatibility layer without proving that the existing authority cannot be corrected.
+
+Ponytail-style cleanup is continuous after functionality is proven. The agent should remove as much obsolete or duplicate active implementation as safely possible, including redundant adapters, stale aliases, dead configuration, duplicated state machines, customer-facing tool-selection plumbing and unnecessary UI. There is no percentage target; the goal is the smallest proven system.
+
+The autonomous loop should prefer event-driven completion, direct machine-native work, dynamic capability discovery and local verification. It should treat screenshot-and-click control as a fallback path, not as the normal architecture.
+
+No automated cleanup is complete until the same real workflow, STOP behavior, failure path, security boundary and relevant platform matrix pass on the smaller tree.
+
+## Current execution authority — 2026-10-06
+
+This document governs autonomous implementation, diagnosis and cleanup, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail.

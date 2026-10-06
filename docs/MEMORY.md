@@ -131,3 +131,22 @@ Historical audits and ledger entries remain evidence; newer owner authority wins
 ## Master-plan reset — 2026-09-29
 
 The older Phase 1–34 roadmap has been restored into the active master plan and reconciled with the newer Phase 35–49 owner direction. The obsolete customer browser-add-on phase was rewritten as existing-browser autonomous control. The plan now intentionally covers the entire build, repair, hardening, admin, Android, Apple, real-PC, conversational JARVIS, cleanup and commercial-release sequence in one numbered Phase 1–49 mission.
+
+
+---
+
+## Current mission memory — 2026-10-06
+
+The current master mission is defined by the latest `PLAN.md`, including its post-Phase-49 owner addenda. Older summaries that describe Phase 1–49 as the entire mission are stale navigation text and must not override the current plan.
+
+The preferred product architecture is one universal execution engine, not one hard-coded controller per application. Online intelligence performs deep reasoning for unfamiliar or complex work, while deterministic operations execute locally through the strongest available machine-native or semantic interface and are independently verified.
+
+The customer-facing product remains the OCADE website/PWA. Deep PC control uses one lightweight local broker, while Android uses one guided **Set up OCADE** flow and a minimal floating bubble with mini chat, voice, task status, STOP and Open OCADE. Customers do not select internal automation technologies.
+
+The current simplification rule has no numeric reduction target. Active code, dependencies, UI, polling and duplicate authorities should be reduced as far as safely possible while preserving verified capability, safety, fidelity, recovery, accessibility and commercial reliability.
+
+The latest audit and strategy remain evidence, not proof that every historical finding is still present. Reproduce current failures before fixing them, and never convert blocked or untested evidence into a pass.
+
+## Current execution authority — 2026-10-06
+
+This document governs current project memory and navigation, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail.

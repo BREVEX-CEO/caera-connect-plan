@@ -57,3 +57,22 @@ This file records current owner-approved decisions. Later explicit owner decisio
 - Older Phase 1–34 scopes are retained but reconciled to current owner decisions; they are current validation/repair gates, not blindly trusted historical completion.
 - The old browser-extension phase is replaced by existing-browser autonomous control with no OCADE customer add-on dependency.
 - Claude starts at Phase 1 on a fresh clone, preserves correct implementation, repairs gaps, and continues through Phase 49.
+
+
+---
+
+## Owner decisions — 2026-10-06
+
+The active roadmap is no longer described by a fixed Phase 1–49 boundary. `PLAN.md` is the complete current execution authority, including every newer owner addendum, and domain documents must reference the plan rather than repeat a phase range.
+
+The final control direction is one universal engine. Familiar applications use validated cached capability knowledge when safe. Unfamiliar applications are discovered dynamically from the installed version, available APIs or scripting, structured interfaces and current documentation. Permanent app-specific controllers are removed when universal parity is proven and retained only when measured evidence shows a real advantage.
+
+Fast control means machine-native local execution after a detailed bounded plan. Online intelligence does not sit between every deterministic sub-action. Event-driven completion is preferred to recurring polling, while vision and fresh coordinates remain emergency fallback rather than the normal route.
+
+The customer experience is intentionally simplified. OCADE remains website/PWA first, PC control uses a small background broker, Android setup is one guided action, the Android bubble remains mini chat/voice/task/STOP/Open OCADE, and ordinary users never select internal control technologies.
+
+There is no numeric active-code reduction target. The engineering requirement is to remove as much obsolete, duplicate, hard-coded, redundant and unused implementation as safely possible, while preserving every verified capability and boundary that still matters.
+
+## Current execution authority — 2026-10-06
+
+This document governs recorded owner decisions, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail.

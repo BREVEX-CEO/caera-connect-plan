@@ -213,3 +213,20 @@ Use WebKit, responsive/mobile browser matrices, source/API compatibility checks,
 
 Before claiming physical iPhone/iPad/macOS behavior commercially, obtain legitimate physical/remote-device evidence when budget permits. Never call Windows WebKit a physical Apple pass.
 
+
+
+## Final device-control direction — 2026-10-06
+
+Every platform should share one task, permission, cancellation, execution and verification contract. The website/PWA is the visible product, while supported devices expose only the smallest local capability needed to perform real work.
+
+Windows should use one lightweight tray broker that remains dormant when idle and executes validated local segments without repeated model calls. macOS follows the same conceptual contract only after real hardware, TCC, signing, notarization, update and STOP behavior are proven. Android should expose one guided **Set up OCADE** action and one minimal floating bubble. iPhone and iPad remain PWA/Home Screen plus supported integrations and Remote PC, with no claim of unrestricted cross-app control.
+
+Fast execution means local machine-native work. Familiar tasks should use validated cached capability knowledge, while unfamiliar tasks should discover the installed application/version, available APIs or scripting, structured interfaces and verification route before asking Online intelligence for a detailed bounded plan. The plan then executes locally until verification fails or a genuine decision boundary appears.
+
+Use authenticated events or callbacks for action completion and device state whenever there is a reliable owner. Polling remains only a bounded reconnect or recovery path. Local STOP must not depend on waiting for the next network poll.
+
+Apple testing without owned hardware should maximize WebKit, responsive, PWA, safe-area, orientation, touch, focus, text zoom, reduced-motion, deep-link/share/Shortcut contract and Remote-PC workflow evidence. That evidence remains compatibility evidence, not a physical-device pass, until a legitimate physical or remote Apple device is tested.
+
+## Current execution authority — 2026-10-06
+
+This document governs cross-device JARVIS execution, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail, and implementation must keep only the strongest proven path rather than preserving obsolete alternatives for compatibility.

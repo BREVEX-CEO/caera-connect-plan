@@ -147,6 +147,17 @@ Long tasks checkpoint. Crash/reboot/network recovery reconciles completed steps 
 
 Explicit removal stops runtime authority, removes local credentials/cache according to product setting, disconnects the device and leaves cloud conversations unless separately deleted.
 
-## Master Phase 1–49 authority
 
-Implementation order, phase entry/exit gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting are governed by the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves current working behavior, repairs gaps proven by current evidence, and continues sequentially through Phase 49. This document supplies domain-specific requirements and does not replace a phase gate.
+## Current simplified product flow — 2026-10-06
+
+The customer should express the desired outcome rather than choose an execution technology. OCADE resolves the account, target device and task context, selects the fastest legitimate machine-native or semantic route, executes deterministic work locally, verifies the real result, and returns to Online intelligence only when recovery or a genuine decision is required.
+
+Routine Android setup begins with one **Set up OCADE** action. OCADE performs every step it can automatically and opens only the Android-owned permission screen that genuinely requires the person. After setup the ordinary customer should see readiness, Wake, STOP, Remove device and the floating bubble rather than a collection of technical setup switches.
+
+For familiar applications, cached sanitized capability knowledge can route work immediately. For unfamiliar applications, OCADE discovers the installed application and version, inspects available APIs, scripting, structured interfaces and semantic controls, consults current official documentation when necessary, creates one bounded detailed plan, executes the deterministic segment locally and verifies the requested outcome.
+
+No normal flow should require the customer to choose API, scripting, browser automation, accessibility, vision or mouse control. Vision and fresh coordinates remain an emergency fallback only when a faster trustworthy semantic route does not exist.
+
+## Current execution authority — 2026-10-06
+
+This document remains the domain authority for customer and task flow, while `PLAN.md` is the single current execution roadmap. Older phase-range wording in this file is historical context only and must not be used to limit or restart the current mission. Newer Owner decisions in `PLAN.md` supersede older conflicting implementation detail. Implementation must preserve proven behavior, fix reproduced defects, simplify aggressively, and remove as much obsolete or duplicate active code as safely possible without weakening security, permissions, STOP, recovery, accessibility, fidelity, verification, or real platform support.

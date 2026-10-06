@@ -37,16 +37,17 @@ Prefer compact capability data/configuration to giant conditionals, app-name map
 
 ## 3. Active code reduction
 
-Treat code size as an engineering constraint.
+Treat code size, dependency count, branching, duplicated state and maintenance surface as engineering costs rather than goals in themselves.
 
-- Target approximately 50% reduction in active product/control/UI implementation where proof shows equivalent or better behavior with less code.
-- Continue below that size when safe; do not stop because a percentage was reached.
-- Do not count immutable donor snapshots, historical audits, applied migrations, required generated artifacts, legal/provenance records or still-useful tests as disposable line-count bloat.
-- Never delete correctness, security, account isolation, permissions, accessibility, cancellation, recovery, update safety, fidelity, verification or evidence merely to hit a metric.
-- Every deletion requires: caller trace -> replacement authority -> targeted proof -> removal -> targeted regression -> nearby integration -> adversarial check -> broader regression.
-- Use Ponytail Ultra or equivalent proof-based cleanup after behavior works, and again at final cleanup.
-- Use Caveman-style review to challenge unnecessary architecture and reduce moving parts.
-- Do not leave commented-out implementations, dead compatibility branches or duplicate fallback systems after replacement is proven.
+- Reduce active implementation as much as safely possible, with no numeric percentage quota and no artificial minimum line count.
+- Continue simplifying until each remaining module, branch, dependency and authority has a current product reason or a measured reliability, fidelity, safety, performance or platform-integration advantage.
+- Do not count immutable donor snapshots, historical audits, applied migrations, required generated artifacts, legal/provenance records or still-useful tests as disposable implementation bloat.
+- Never delete correctness, security, account isolation, permissions, accessibility, cancellation, recovery, update safety, fidelity, verification or evidence merely to make the tree smaller.
+- Every deletion must follow caller trace, replacement authority, targeted proof, removal, targeted regression, nearby integration verification, adversarial check and broader regression.
+- Use Ponytail Ultra or equivalent proof-based cleanup after behavior works and again at the final cleanup gate.
+- Use Caveman-style review to challenge unnecessary architecture, wrappers, compatibility layers, speculative abstractions and repeated state machines.
+- Prefer deletion of a redundant path over adding another router, adapter or compatibility shim in front of it.
+- Do not leave commented-out implementations, unreachable compatibility branches, obsolete aliases, dead setup flows or duplicate fallback systems after the replacement is proven.
 
 ## 4. No app-specific proliferation
 

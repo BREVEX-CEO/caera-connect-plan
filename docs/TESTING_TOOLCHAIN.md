@@ -294,6 +294,19 @@ After every phase report:
 
 No known Critical/Major blocker may remain for a shipped capability before release.
 
-## Master Phase 1–49 authority
 
-Implementation order, phase gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting follow the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves working behavior, repairs evidence-backed gaps, and continues through Phase 49.
+## Current toolchain purpose — 2026-10-06
+
+Development tools exist to prove the product; they are not customer runtime requirements. Browser, mobile, computer-use and platform automation tools should be selected automatically by the engineering workflow according to the surface under test.
+
+For universal control, use the strongest available evidence path for the platform and task. Verify machine-native API/script paths independently from semantic UI paths, and exercise live vision/input only when structured control is deliberately insufficient. Do not add product code merely to satisfy a testing tool.
+
+For Apple without owned hardware, use WebKit and browser/device-compatibility tooling to maximize non-physical evidence while keeping the evidence label explicit. Real Apple claims remain blocked until legitimate hardware or a real-device service is used.
+
+For performance, collect timestamps at planning, dispatch, executor start, executor completion, verification and user-visible settlement so avoidable orchestration delay is distinguishable from actual application work. Use the same evidence to verify that event-driven replacement really improves recurring polling paths.
+
+After a debloat wave, rerun the targeted tools and the broader real-work matrix. A reduction in files, dependencies or lines is accepted only when the evidence remains equal or stronger.
+
+## Current execution authority — 2026-10-06
+
+This document governs development and testing instrumentation, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail.

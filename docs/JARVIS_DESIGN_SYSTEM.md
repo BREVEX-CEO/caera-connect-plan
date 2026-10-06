@@ -124,41 +124,19 @@ Material UI changes require screenshot/real visual verification across:
 
 Visual bugs fail the phase.
 
-## Master Phase 1–49 authority
 
-Implementation order, phase entry/exit gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting are governed by the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves current working behavior, repairs gaps proven by current evidence, and continues sequentially through Phase 49. This document supplies domain-specific requirements and does not replace a phase gate.
+## Final JARVIS simplification — 2026-10-06
 
----
+The primary JARVIS composition is conversation, the real-data Orb and relationship threads, a concise current-task/status layer and persistent STOP/Take Over. The interface must not become a control dashboard for internal execution technologies.
 
-# Owner visual simplification authority — 2026-10-06
+Use a compact radius system instead of per-component shapes. Conversation surfaces, settings groups, task cards, dialogs and drawers should use soft rounded corners, while small actions may use pill or semi-circular geometry where it improves touchability and visual grouping. Rounded geometry must remain consistent across desktop and mobile rather than becoming decorative noise.
 
-The final UI should feel calm, premium, compact and effortless rather than dashboard-heavy.
+The Android bubble remains a distinct mobile affordance. In collapsed form it should be small and unobtrusive. In expanded form it should provide mini chat, voice, concise task progress, STOP and Open OCADE, with no technical setup controls or duplicate settings dashboard.
 
-- Primary JARVIS surface: conversation + real-data Orb/threads + task status + STOP/Take Over.
-- Keep Conversations and Devices as useful navigation.
-- Merge Activity into task/history when doing so removes duplicated surfaces.
-- Remove/hide Allowed Apps as a major navigation surface after contextual permission/discovery replacement is proven.
-- Put rare controls under Advanced.
-- Never ask customers to choose internal control technologies.
-- Use one-button mobile setup.
-- Android bubble expanded state: mini chat + voice + task status + STOP + Open OCADE.
-- Adapt the donor's strongest orb/string/thread motion into the current real-data renderer; never revive donor desktop GUI architecture.
+The Orb and donor-inspired strings/threads should be recreated only inside the current web renderer and only from genuine OCADE state. Keep the distinctive visual identity, but reject fake graph nodes, unbounded per-frame work, separate donor GUI architecture, duplicated theme systems and animation that obscures usability.
 
-## Geometry
+Rare controls belong under Advanced. Normal users should not see or choose APIs, scripts, browser-control engines, accessibility backends, vision methods, device transport or other implementation plumbing.
 
-Use a consistent small set of soft radii:
-- rounded conversation/task/settings cards;
-- pill/semi-circular compact controls where appropriate;
-- rounded composer and primary actions;
-- rounded bottom sheets/drawers on mobile;
-- soft dialog/modal corners;
-- restrained borders and shadows.
+## Current execution authority — 2026-10-06
 
-Do not copy another product's exact trade dress. The goal is the simplicity and comfort of modern conversational software.
-
-## Motion and loading
-
-Use skeleton/progressive states where they prevent layout jumps. Motion must be restrained, meaningful and disable/reduce cleanly. The orb/threads may provide identity, but task completion, permissions and errors must remain legible without animation.
-
-Every async state must distinguish loading, empty, error, blocked and ready. Failed data must never silently render as empty.
-
+This document governs the JARVIS visual and interaction system, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail, and implementation must keep only the strongest proven path rather than preserving obsolete alternatives for compatibility.

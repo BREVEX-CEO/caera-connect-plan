@@ -92,6 +92,17 @@ Do not expose internal terms such as provider names, CDP, Playwright, PyAutoGUI,
 
 Customer errors explain what happened and what the user can do next.
 
-## Master Phase 1–49 authority
 
-Implementation order, phase entry/exit gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting are governed by the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves current working behavior, repairs gaps proven by current evidence, and continues sequentially through Phase 49. This document supplies domain-specific requirements and does not replace a phase gate.
+## Current visual direction — 2026-10-06
+
+The interface should be materially simpler than the current control surface. The dominant visual language is calm, premium and conversational, using a small consistent set of soft rounded rectangles, pill or semi-circular compact controls, rounded composers, rounded task cards, rounded mobile sheets and restrained borders or shadows. Do not reproduce another product's exact trade dress; use the same principles of low cognitive load, strong hierarchy and comfortable geometry.
+
+The JARVIS screen should emphasize conversation, the real-data Orb and threads, the current task state and persistent STOP/Take Over. Secondary data should appear progressively rather than occupying permanent panels. Conversations and Devices remain useful destinations, while Activity should fold into task/history where practical and Allowed Apps should disappear as a major navigation concept after contextual permission and automatic discovery safely replace it.
+
+Every asynchronous surface must distinguish loading, ready, empty, error and blocked states. Use skeleton or progressive rendering only when it prevents layout movement or communicates useful progress. Failed server reads must never masquerade as empty data, and animation must never be required to understand task state, permissions or errors.
+
+Mobile design is the reference for simplicity rather than a reduced desktop copy. Touch targets, bottom sheets, keyboard avoidance, safe-area handling, text zoom, reduced motion and no hidden hover-only actions are release requirements.
+
+## Current execution authority — 2026-10-06
+
+This document governs the visual system and responsive product behavior, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail, and implementation must keep only the strongest proven path rather than preserving obsolete alternatives for compatibility.

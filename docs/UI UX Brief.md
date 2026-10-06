@@ -77,6 +77,17 @@ Visible focus.
 Touch-friendly.
 Stable mobile keyboard/composer behavior.
 
-## Master Phase 1–49 authority
 
-Implementation order, phase gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting follow the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves working behavior, repairs evidence-backed gaps, and continues through Phase 49.
+## Current UX direction — 2026-10-06
+
+The product should expose fewer decisions and make the next useful action obvious. The main JARVIS view should prioritize conversation, the real-data Orb, current task state and STOP/Take Over rather than permanent tool or permission dashboards.
+
+Use soft rounded surfaces consistently, including the composer, task cards, dialogs, mobile sheets and compact pill-style actions where appropriate. Keep spacing generous enough for touch without wasting screen area. Secondary controls should appear progressively or under Advanced rather than compete with the main task.
+
+Android setup is one **Set up OCADE** action. The setup flow automatically performs everything OCADE is allowed to perform and asks the person only when Android itself requires a permission or security decision. After setup, normal mobile control remains status, Wake, STOP, Remove device and the clean floating bubble.
+
+Every error should state what happened, whether work stopped or is still pending, and the one useful next action. Do not expose provider names, internal control engines, infrastructure names or technical permission plumbing to ordinary customers.
+
+## Current execution authority — 2026-10-06
+
+This document governs user experience, information hierarchy and setup simplicity, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail.

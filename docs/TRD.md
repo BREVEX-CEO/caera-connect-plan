@@ -155,6 +155,19 @@ Use existing Chrome/CDP + DevTools, browser compatibility matrix, Physical Compu
 
 Report commercial-launch readiness percentage after each phase.
 
-## Master Phase 1–49 authority
 
-Implementation order, phase gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting follow the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves working behavior, repairs evidence-backed gaps, and continues through Phase 49.
+## Current technical direction — 2026-10-06
+
+The implementation should converge on one authenticated task lifecycle, one validated action broker, one selected-device local executor and one independent verification contract. Do not add new parallel runtimes or app-specific control authorities when the existing universal path can be extended.
+
+Deterministic execution should remain local after a bounded plan is issued. Online intelligence may perform deep planning, unfamiliar-software interpretation and recovery, but it should not sit between every deterministic sub-action. Where a reliable completion signal exists, use an authenticated event, callback or subscription instead of repeated polling; retain bounded polling only for reconnect and recovery.
+
+Capability discovery should be version-aware and sanitized. Cache only stable operational knowledge such as supported interfaces, semantic identifiers, permissions, verification strategy and recovery behavior. Never cache secrets, private customer contents, reusable coordinates or raw authentication material.
+
+Performance work must measure end-to-end verified completion. Track p50, p95 and p99 for routing, dispatch, semantic reads, device acknowledgement, task completion and STOP behavior separately from intrinsic application work such as rendering, export, compilation or network transfer.
+
+The smallest proven implementation is preferred. Remove duplicate state machines, adapters, dependencies, UI branches and retry layers as far as safely possible while retaining security, fidelity, cancellation, recovery, accessibility and verification.
+
+## Current execution authority — 2026-10-06
+
+This document governs technical architecture and runtime implementation, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail, and implementation must keep only the strongest proven path rather than preserving obsolete alternatives for compatibility.

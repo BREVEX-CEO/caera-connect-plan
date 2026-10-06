@@ -164,6 +164,17 @@ Main/source/deployed identities must agree before final release claim.
 
 GitHub Actions is optional, not required evidence.
 
-## Master Phase 1–49 authority
 
-Implementation order, phase entry/exit gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting are governed by the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves current working behavior, repairs gaps proven by current evidence, and continues sequentially through Phase 49. This document supplies domain-specific requirements and does not replace a phase gate.
+## Simplified target architecture — 2026-10-06
+
+The commercial architecture converges on three visible runtime surfaces: the OCADE website/PWA, the existing authenticated server control plane, and one small trusted local broker on each supported device that requires native control. Do not create a second desktop product, separate app-specific agents or parallel task authorities.
+
+Online intelligence owns high-level reasoning and recovery, while deterministic inner-loop execution stays local. The canonical route is native/application API first, then local scripting or CLI/object model, then verified direct project/file transformation, then browser DOM/CDP or equivalent structured control, then OS accessibility/semantic control, and finally live vision with fresh coordinates only when the faster routes cannot represent the task.
+
+The architecture should be event-driven wherever an authoritative completion or state-change event exists. Durable server state remains the recovery truth, while recurring polling is retained only as a bounded reconnect or failure fallback. Cached capability metadata must be sanitized, version-scoped and invalidated when its assumptions change.
+
+One task lifecycle, one validated action broker, one selected-device executor and one verification contract should own execution. Specialized adapters may remain only when measured evidence proves a material advantage, and even then they must sit behind the same broker instead of becoming a second execution system.
+
+## Current execution authority — 2026-10-06
+
+This document remains the domain authority for system architecture, while `PLAN.md` is the single current execution roadmap. Older phase-range wording in this file is historical context only and must not be used to limit or restart the current mission. Newer Owner decisions in `PLAN.md` supersede older conflicting implementation detail. Implementation must preserve proven behavior, fix reproduced defects, simplify aggressively, and remove as much obsolete or duplicate active code as safely possible without weakening security, permissions, STOP, recovery, accessibility, fidelity, verification, or real platform support.

@@ -199,7 +199,7 @@ Cleanup must reduce code and attack surface without reducing the universal engin
 
 This is newer Owner authority.
 
-The active product/control/UI implementation should be reduced as aggressively as correctness permits, targeting approximately 50% fewer active implementation lines overall and going further when equivalent behavior remains proven.
+The active product, control and UI implementation should be reduced as aggressively as correctness permits. There is no percentage target. Continue removing proven-obsolete code and duplication until no further meaningful reduction is safe, useful or compatible with verified product behavior.
 
 Priority retirement classes:
 
@@ -225,4 +225,3 @@ Do not remove live vision/input entirely: it remains the last-resort universal f
 Do not remove specialized adapters that still prove a material fidelity/safety/performance/platform advantage. First route them behind the common broker; delete only when a universal replacement proves parity.
 
 For every cleanup wave, publish before/after active line counts, file/module counts, dependency counts, bundle/package size, p50/p95 relevant latency, tests, real workflow evidence and defects found. A smaller tree that breaks capability is a failed cleanup.
-

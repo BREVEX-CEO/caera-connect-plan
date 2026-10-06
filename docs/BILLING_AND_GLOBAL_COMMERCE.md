@@ -52,6 +52,15 @@ When payment work resumes, add provider sandbox/webhook/refund/dunning/dispute t
 
 Commercial-launch readiness reporting must state payment scope truthfully rather than pretending deferred work is complete.
 
-## Master Phase 1–49 authority
 
-Implementation order, phase entry/exit gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting are governed by the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves current working behavior, repairs gaps proven by current evidence, and continues sequentially through Phase 49. This document supplies domain-specific requirements and does not replace a phase gate.
+## Current commerce simplification rule — 2026-10-06
+
+Commerce work should remain intentionally small until a real paid path is authorized and tested. Do not add speculative checkout providers, pricing abstractions, billing dashboards or entitlement layers before the current product requires them.
+
+Usage and billing should ultimately map to understandable customer value rather than individual deterministic local clicks. Internal telemetry should measure model cost, execution cost, failure cost and verified completed work so pricing decisions are based on unit economics rather than arbitrary action counts.
+
+JARVIS remains prohibited from final purchase/payment completion unless a newer explicit Owner policy changes that boundary.
+
+## Current execution authority — 2026-10-06
+
+This document governs billing, pricing and commerce boundaries, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail.

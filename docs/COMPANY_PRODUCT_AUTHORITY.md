@@ -97,6 +97,15 @@ Each implementation phase reports an evidence-based commercial-launch readiness 
 
 Never use unsupported absolute claims such as “zero bugs” or “unhackable”.
 
-## Master execution roadmap
 
-The canonical implementation roadmap is `PLAN.md` Phase 1–49. On a fresh clone start at Phase 1, prove current behavior, repair gaps, and continue sequentially. Product claims must follow the evidence accumulated by those phase gates.
+## Current product direction — 2026-10-06
+
+OCADE should win by completing useful work with less friction, fewer model round trips, lower control latency, stronger verification and simpler customer setup rather than by exposing more tools or adding more code. The customer-facing promise is that the person states the outcome, OCADE chooses the fastest legitimate route, performs the work, verifies the real result and stays out of the way.
+
+The product remains website/PWA first. Deep PC control uses a small trusted background broker rather than a duplicate desktop application. Android remains mobile-first with one guided setup action and a minimal floating bubble for mini chat, voice, task state, STOP and opening full OCADE. Apple support remains honest about platform limits and must never present WebKit compatibility as physical-device proof.
+
+Commercial quality is measured by verified task completion, latency, preservation of user work, security, recovery, cross-device continuity, accessibility, setup simplicity, resource use, unit cost and repeat customer value. Unsupported hype, fake completion, fake millisecond claims and decorative complexity are product defects rather than marketing advantages.
+
+## Current execution authority — 2026-10-06
+
+This document remains the domain authority for company and product direction, while `PLAN.md` is the single current execution roadmap. Older phase-range wording in this file is historical context only and must not be used to limit or restart the current mission. Newer Owner decisions in `PLAN.md` supersede older conflicting implementation detail. Implementation must preserve proven behavior, fix reproduced defects, simplify aggressively, and remove as much obsolete or duplicate active code as safely possible without weakening security, permissions, STOP, recovery, accessibility, fidelity, verification, or real platform support.

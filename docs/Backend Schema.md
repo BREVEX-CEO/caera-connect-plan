@@ -161,6 +161,15 @@ One-time auth secrets remain ephemeral.
 
 No provider keys, raw payment secrets, CVV/CVC or plaintext passwords/MFA secrets in customer/admin tables.
 
-## Master Phase 1–49 authority
 
-Implementation order, phase entry/exit gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting are governed by the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves current working behavior, repairs gaps proven by current evidence, and continues sequentially through Phase 49. This document supplies domain-specific requirements and does not replace a phase gate.
+## Current schema simplification rule — 2026-10-06
+
+The database should preserve one durable authority for each account, task, permission, entitlement, device, artifact and audit concern. Do not create parallel tables or shadow state merely to support a new UI or executor when an existing authority can represent the same fact safely.
+
+Applied migrations remain immutable history. Future schema work should be forward-only, minimal and justified by a current product requirement. Duplicate runtime projections should be removed only after callers are migrated and RLS, isolation, rollback and production compatibility are proven.
+
+Event-driven task/device updates may project live state to clients, but durable server records remain the recovery truth. A realtime signal is never the sole evidence that an action completed.
+
+## Current execution authority — 2026-10-06
+
+This document governs database schema and durable state ownership, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail.

@@ -96,6 +96,17 @@ Visual polish, accessibility, performance, recovery and account isolation are pr
 
 Each phase reports commercial-launch readiness percentage.
 
-## Master Phase 1–49 authority
 
-Implementation order, phase gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting follow the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves working behavior, repairs evidence-backed gaps, and continues through Phase 49.
+## Current product requirements — 2026-10-06
+
+OCADE is a web-first conversational work system whose defining behavior is verified completion rather than screen clicking. The user states the outcome. OCADE decides whether the request is informational or executable, identifies the correct device and work context, chooses the fastest legitimate control route, performs deterministic work locally where possible, verifies the actual result and reports truthfully.
+
+Universal application support must come from dynamic capability discovery rather than hard-coded support lists. The required route order is documented/native API, local scripting or CLI/object model, verified direct file/project operation, browser structured control, operating-system semantic/accessibility control and finally live vision with fresh coordinates when no stronger route exists.
+
+The product must minimize setup and visible options. Customers do not choose control engines. Android setup is one guided action. Deep PC control uses a small trusted local broker while the website remains the primary product. The product must stay conversational while work is running and always preserve visible STOP/Take Over.
+
+Commercial readiness requires reproducible real workflows, independent postcondition verification, preserved user work, clear failure states, measured latency and resource use, account isolation, secure updates, accessibility and honest platform boundaries.
+
+## Current execution authority — 2026-10-06
+
+This document governs product requirements, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail, and implementation must keep only the strongest proven path rather than preserving obsolete alternatives for compatibility.

@@ -100,6 +100,19 @@ Production SHA matches final source.
 
 Report commercial-launch readiness percentage after every phase.
 
-## Master Phase 1–49 authority
 
-Implementation order, phase gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting follow the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves working behavior, repairs evidence-backed gaps, and continues through Phase 49.
+## Current acceptance doctrine — 2026-10-06
+
+Testing must prove both correctness and simplification. After every major cleanup wave, rerun the same real workflows used before cleanup so deleted code cannot silently reduce capability.
+
+Universal-control testing must include a familiar application, an unfamiliar installed application with no new app-specific source added during the test, a dynamically discovered API or scripting route, and a structured-control-insufficient case that requires the last-resort live fallback. Professional workflows should verify the actual project or output semantics rather than merely checking that a file exists.
+
+Performance evidence must separate routing latency, local dispatch latency, device acknowledgement, model planning, application execution and verification. Record p50, p95 and p99 where meaningful. Do not claim millisecond completion for intrinsic work such as rendering, export, compilation, model inference or network transfer.
+
+Android testing must cover one-button setup, permission return paths, bubble mini chat/voice/task state/STOP, signed update behavior, compatible-device messaging and recovery from missing permissions. Apple testing without physical hardware may use WebKit, PWA, responsive, safe-area, orientation, focus, text zoom, reduced-motion, deep-link/share/Shortcut and Remote-PC contract evidence, but must remain labeled compatibility evidence until a legitimate Apple device is tested.
+
+UI testing must verify the simplified navigation, rounded responsive surfaces, loading/error/blocked/empty distinctions, keyboard/focus behavior, touch targets, reduced motion and the absence of customer-facing implementation-tool selection.
+
+## Current execution authority — 2026-10-06
+
+This document governs product verification and release acceptance, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail.

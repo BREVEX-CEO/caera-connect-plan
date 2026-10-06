@@ -73,6 +73,15 @@ Critical incidents remain auditable.
 
 Sentry project creation and paid leaked-password protection are currently deferred/non-blocking. Do not fake their availability.
 
-## Master Phase 1–49 authority
 
-Implementation order, phase gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting follow the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves working behavior, repairs evidence-backed gaps, and continues through Phase 49.
+## Current commercial trust rule — 2026-10-06
+
+Simplification must reduce attack surface as well as visual clutter. Remove unused privileged routes, duplicate security decisions, stale configuration and unsupported claims as far as safely possible, while retaining auditable authorization, confirmation, recovery and incident controls.
+
+Public wording must describe the actual supported website, device broker, Android companion, screenshots or semantic observations, permissions and support access truthfully. Do not claim unrestricted Apple control, guaranteed millisecond task completion, zero bugs or physical-device proof from emulation.
+
+Android distribution guidance must never instruct customers to disable Play Protect or other platform protections. Apple compatibility evidence without real hardware must remain clearly labeled as compatibility evidence.
+
+## Current execution authority — 2026-10-06
+
+This document governs support, legal accuracy and security claims, while `PLAN.md` is the single current execution roadmap. Older phase-range wording is historical context only. Newer Owner decisions in `PLAN.md` supersede older conflicting detail.
