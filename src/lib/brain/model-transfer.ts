@@ -312,9 +312,15 @@ export async function transferModel(
   // The hasher's own byte count is the truth about how far verification got.
   const resumedFromBytes = nextToHash > 0 ? hasher.length : 0;
 
+  /*
+   * The memory ceiling belongs to the chunks actually in use. A resumed
+   * transfer keeps its checkpoint's chunk size, which can be larger than the
+   * fresh plan's, and budgeting against the plan let buffers grow past it (F-188).
+   */
+  const ceiling = concurrencyCeiling(chunkBytes);
   const state = {
     received: resumedFromBytes,
-    concurrency: Math.max(1, request.plan.concurrency),
+    concurrency: Math.max(1, Math.min(request.plan.concurrency, ceiling)),
   };
   metrics.finalConcurrency = state.concurrency;
 
@@ -393,7 +399,7 @@ export async function transferModel(
        * is what a device actually pays.
        */
       state.concurrency = adaptConcurrency(state.concurrency, previousSample, latest, {
-        max: concurrencyCeiling(request.plan.chunkBytes),
+        max: ceiling,
       });
       metrics.finalConcurrency = state.concurrency;
       previousSample = latest;
@@ -431,16 +437,15 @@ export async function transferModel(
   /**
    * Hash, write and release everything that is now contiguous.
    *
-   * The order is deliberate: HASH FIRST, then write, then checkpoint. A
-   * checkpoint claims "these bytes are on disk and the digest covers exactly
-   * them", and the only way that stays true across a crash is to do the work
-   * in the order the claim describes.
+   * The order is deliberate: WRITE, then hash, then checkpoint. A checkpoint
+   * claims "these bytes are on disk and the digest covers exactly them". A
+   * chunk is hashed only once it is on disk, so a refused write leaves the
+   * digest at the durable frontier rather than one chunk past it (F-072).
    */
   const drainOnce = async (): Promise<boolean> => {
     while (landed.has(nextToHash)) {
       const bytes = landed.get(nextToHash)!;
       landed.delete(nextToHash);
-      hasher.update(bytes);
       const chunk = chunks[nextToHash];
       if (!(await deps.writer.write(bytes, chunk.start))) {
         failure = {
@@ -450,6 +455,7 @@ export async function transferModel(
         };
         return false;
       }
+      hasher.update(bytes);
       nextToHash += 1;
     }
     return true;
@@ -600,7 +606,8 @@ export async function transferModel(
   };
 
   /** How many chunks may be outstanding or waiting to be hashed. */
-  const dispatchWindow = () => Math.max(2, state.concurrency * 2);
+  // Held chunks are the memory cost, so the window never exceeds the ceiling.
+  const dispatchWindow = () => Math.max(2, Math.min(state.concurrency * 2, ceiling));
 
   /**
    * One worker: take the next chunk, fetch it, park it, drain what it unblocked.

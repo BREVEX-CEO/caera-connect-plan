@@ -166,7 +166,7 @@ export function authorityBackedAdapter(): BrainAdapter {
 }
 
 /** Tear the running engine down. Used by uninstall and by tests. */
-async function disposeRuntime(): Promise<void> {
+export async function disposeRuntime(): Promise<void> {
   const current = live;
   live = null;
   try {

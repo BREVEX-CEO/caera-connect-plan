@@ -251,6 +251,7 @@ export function installationAuthority(): ModelInstallationAuthority {
     probeCapabilities: probeBrowserCapabilities,
     resolveTarget: resolveInstallTarget,
     activateRuntime: (path, version, report) => activateBrowserRuntime(path, version, report),
+    disposeRuntime: async () => (await import("./runtime-activation")).disposeRuntime(),
     storageHeadroom: async () => {
       const nav = globalThis.navigator as Navigator | undefined;
       if (!nav?.storage?.estimate) return null;

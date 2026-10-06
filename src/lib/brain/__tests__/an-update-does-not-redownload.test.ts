@@ -72,3 +72,30 @@ describe("an ordinary update on a device that already installed it", () => {
     expect(activated).not.toHaveBeenCalled();
   });
 });
+
+describe("removal while the engine is loading (F-069)", () => {
+  it("never announces ready and unloads what finished loading", async () => {
+    let finish!: () => void;
+    const disposed = vi.fn(async () => {});
+    const { authority } = authorityOver({ verified: true }, BYTES);
+    const deps = (authority as unknown as { deps: AuthorityDeps }).deps;
+    deps.activateRuntime = () =>
+      new Promise((resolve) => {
+        finish = () => resolve({ ok: true });
+      });
+    deps.disposeRuntime = disposed;
+    (deps.vault as unknown as { removeEverything: unknown }).removeEverything = async () => ({
+      versionsRemoved: 1,
+      legacyRemoved: 0,
+      remainingFiles: 0,
+    });
+    const installing = authority.install({ reason: "reinstall" });
+    await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
+    await authority.uninstall();
+    finish();
+    const state = await installing;
+    expect(state.stage).not.toBe("ready");
+    expect(authority.snapshot().stage).not.toBe("ready");
+    expect(disposed).toHaveBeenCalledTimes(2);
+  });
+});

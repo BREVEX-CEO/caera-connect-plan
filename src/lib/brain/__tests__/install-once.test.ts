@@ -206,6 +206,42 @@ describe("an interruption", () => {
     expect(second.ranges.every((range) => range.start >= done * PLAN.chunkBytes)).toBe(true);
   });
 
+  it("resumes and verifies after storage refused a write (F-072)", async () => {
+    const bytes = artifact(SIZE);
+    const writer = arrayWriter(SIZE);
+    const refusing = {
+      ...writer,
+      write: async (chunk: Uint8Array, at: number) =>
+        at >= 2 * PLAN.chunkBytes ? false : writer.write(chunk, at),
+    };
+    const refused = await transferModel(
+      {
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
+        totalBytes: SIZE,
+        sha256: await digestOf(bytes),
+        plan: { ...PLAN, concurrency: 1 },
+      },
+      { fetchImpl: rangedServer(bytes).fetch, writer: refusing, sleep: async () => {} },
+    );
+    expect(refused.ok).toBe(false);
+    if (refused.ok) return;
+    expect(refused.failure).toBe("insufficient_storage");
+    const checkpoint = refused.checkpoint!;
+    expect(checkpoint.contiguousChunks).toBe(2);
+
+    const resumed = await transferModel(
+      {
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
+        totalBytes: SIZE,
+        sha256: await digestOf(bytes),
+        plan: { ...PLAN, concurrency: 1 },
+        resume: checkpoint,
+      },
+      { fetchImpl: rangedServer(bytes).fetch, writer, sleep: async () => {} },
+    );
+    expect(resumed.ok && resumed.verified).toBe(true);
+  });
+
   it("starts over rather than trusting a checkpoint taken against another size", async () => {
     const bytes = artifact(SIZE);
     const server = rangedServer(bytes);

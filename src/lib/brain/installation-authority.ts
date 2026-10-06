@@ -202,6 +202,8 @@ export interface AuthorityDeps {
     version: string,
     report: (progress: { stage: "downloading" | "loading"; fraction: number | null }) => void,
   ) => Promise<{ ok: true } | { ok: false; reason: string }>;
+  /** Unload the running engine, if any. Removal and a superseded activation use it. */
+  disposeRuntime?: () => Promise<void>;
   /** Remaining quota in bytes, or null when the browser will not say. */
   storageHeadroom: () => Promise<number | null>;
   /** Ask the browser not to evict the weights. */
@@ -892,6 +894,11 @@ export class ModelInstallationAuthority {
         etaSeconds: null,
       });
     });
+    // Removed or paused while loading: an engine nobody wants is unloaded, not announced (F-069).
+    if (signal.aborted) {
+      if (loaded.ok) await this.deps.disposeRuntime?.();
+      return { ok: false, reason: "Paused.", stop: true, remedies: [] };
+    }
     if (!loaded.ok) {
       /*
        * THE BYTES ARE FINE; THIS RUNG IS NOT.
@@ -940,6 +947,7 @@ export class ModelInstallationAuthority {
   async uninstall(): Promise<{ ok: boolean; removed: number }> {
     this.controller?.abort();
     this.running = null;
+    await this.deps.disposeRuntime?.();
     const result = await this.deps.vault.removeEverything();
     this.ladder = [];
     this.highestFraction = 0;

@@ -252,7 +252,9 @@ export class BrowserWasmAdapter implements BrainAdapter {
     } catch {
       quotaBytes = null;
     }
-    if (quotaBytes !== null && quotaBytes < model.totalBytes) {
+    // Weights already on this device need no room for another copy (F-077).
+    const present = quotaBytes !== null && (await this.weightsProvider?.().catch(() => null));
+    if (quotaBytes !== null && !present && quotaBytes < model.totalBytes) {
       return unavailable(
         "insufficient_storage",
         `Offline Intelligence needs about ${formatSize(
