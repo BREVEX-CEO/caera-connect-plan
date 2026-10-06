@@ -503,6 +503,7 @@ export async function transferModel(
 
   const fetchChunk = async (chunk: ChunkRange): Promise<Uint8Array | null> => {
     const attempts = request.maxAttemptsPerChunk ?? DEFAULT_ATTEMPTS;
+    let lastStatus: number | null = null;
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
       if (request.signal?.aborted) return null;
       try {
@@ -580,11 +581,13 @@ export async function transferModel(
          * immediately — retrying a 404 at the same URL is a slower way to
          * arrive at the same answer.
          */
+        lastStatus = response.status;
         if (response.status >= 400 && response.status < 500) rotateSource();
         else if (attempt >= 2) rotateSource();
         await sleep(retryDelayMs(attempt, random));
       } catch (error) {
         if (request.signal?.aborted) return null;
+        lastStatus = null;
         metrics.retries += 1;
         /*
          * A NETWORK ERROR IS THE NORMAL CASE, NOT THE EXCEPTIONAL ONE.
@@ -597,9 +600,17 @@ export async function transferModel(
         await sleep(retryDelayMs(attempt, random));
       }
     }
+    // The source refusing is not the connection dropping, and says so (F-104).
     failure = {
       failure: "network",
-      reason: "The connection kept dropping while OCADE was preparing this device.",
+      reason:
+        lastStatus === null
+          ? "The connection kept dropping while OCADE was preparing this device."
+          : lastStatus === 401 || lastStatus === 403 || lastStatus === 410
+            ? "The download link expired and a new one could not be made. Try again."
+            : lastStatus >= 500
+              ? "OCADE's download service is unavailable right now. Try again shortly."
+              : "OCADE's download service does not have this version right now.",
       retriable: true,
     };
     return null;

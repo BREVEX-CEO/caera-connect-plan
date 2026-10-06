@@ -506,9 +506,13 @@ try {
     `graphics: requested=${d.gpuRequested ?? 0} adapter=${Boolean(d.gpuAdapter)}` +
       `${d.gpuAdapterError ? ` error=${JSON.stringify(d.gpuAdapterError)}` : ""}\n`,
   );
+  // The runtime reports what was requested, not how many layers really ran on the
+  // card, so the line says exactly that, and only after a correct answer (F-131).
   if (d.gpuAdapter && (d.gpuRequested ?? 0) > 0) {
     process.stdout.write(
-      "PASS  the artifact answered with layers offloaded to the graphics card\n",
+      isCorrectArithmeticAnswer(text)
+        ? `NOTE  answered correctly with ${d.gpuRequested} layers requested on the graphics card; the offloaded count is not observable here\n`
+        : "FAIL  graphics layers were requested and the answer was not correct\n",
     );
   } else {
     process.stdout.write(

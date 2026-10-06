@@ -267,6 +267,25 @@ describe("an interruption", () => {
     expect(asked.at(-1)).toBe("https://example.test/b");
   });
 
+  it("says the service is unavailable, not that the connection dropped (F-104)", async () => {
+    const result = await transferModel(
+      {
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
+        totalBytes: SIZE,
+        plan: { ...PLAN, concurrency: 1 },
+        maxAttemptsPerChunk: 2,
+      },
+      {
+        fetchImpl: (async () => new Response(null, { status: 503 })) as unknown as typeof fetch,
+        writer: arrayWriter(SIZE),
+        sleep: async () => {},
+      },
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toMatch(/unavailable/);
+  });
+
   it("starts over rather than trusting a checkpoint taken against another size", async () => {
     const bytes = artifact(SIZE);
     const server = rangedServer(bytes);

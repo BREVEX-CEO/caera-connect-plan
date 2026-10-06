@@ -132,6 +132,8 @@ export async function canAnswerWithoutNetwork(): Promise<boolean> {
     const now = Date.now();
     return leases.some(
       (entry) =>
+        // A block for a later window cannot be spent yet, as the reservation itself refuses (F-204).
+        Date.parse(entry.lease.payload.notBefore) <= now &&
         Date.parse(entry.lease.payload.expiresAt) > now &&
         entry.lease.payload.allocatedHundredths -
           entry.consumedHundredths -

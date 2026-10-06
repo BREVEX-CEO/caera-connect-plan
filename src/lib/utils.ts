@@ -17,8 +17,12 @@ export function saveFile(name: string, blob: Blob): void {
   const link = document.createElement("a");
   link.href = url;
   link.download = name;
+  // In the document while it is clicked, and the URL kept until the browser has
+  // read it: revoking at once can cancel the download in some browsers (F-113).
+  document.body.append(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 /**
