@@ -92,7 +92,10 @@ def jobs(out: Path, seed: int) -> list[dict]:
                  for _ in range(500)] + EXTRA * 4
     for index, text in enumerate(sentences):
         voice, rate, pitch = rng.choice(list(VOICES)), rng.choice(RATES), rng.choice(PITCHES)
-        made.append({"file": str(out / "negative" / f"speech_{index}.wav"), "voice": voice, "label": 0,
+        # The voice is in the name, as for every other clip, so a held-out speaker's
+        # ordinary speech stays out of training (F-017).
+        tag = f"{voice.split()[1].lower()}{'d' if 'Desktop' in voice else ''}"
+        made.append({"file": str(out / "negative" / f"speech_{index}_{tag}.wav"), "voice": voice, "label": 0,
                      "kind": "speech", "text": text, "rate": rate, "pitch": pitch,
                      "ssml": ssml(voice, text, rate, pitch)})
     return made

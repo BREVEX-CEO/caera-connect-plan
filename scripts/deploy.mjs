@@ -205,6 +205,8 @@ export function createDeploymentPlan({
     expectedHealthVersion:
       mode === "rollback" ? (env.OCADE_ROLLBACK_EXPECTED_VERSION ?? null) : version,
     assetProbePath: null,
+    // The checkout being deployed; the live bundle must report this same commit (F-118).
+    expectedCommit: mode === "deploy" ? (env.OCADE_EXPECTED_COMMIT ?? null) : null,
   };
 }
 
@@ -365,6 +367,7 @@ async function probeHealthOnce(plan, fetcher, expectedDeploymentId, useVersionOv
       body?.service !== "ocade-web" ||
       body?.version !== plan.expectedHealthVersion ||
       body?.deploymentId !== expectedDeploymentId ||
+      (plan.expectedCommit && body?.commit !== plan.expectedCommit) ||
       (plan.mode === "deploy" && missingConfiguration(body?.configuration).length > 0)
     ) {
       const missing = missingConfiguration(body?.configuration);
@@ -425,7 +428,14 @@ export async function runDeployment({
   fetcher = fetch,
   waiter,
 } = {}) {
-  const plan = createDeploymentPlan({ cwd, env, mode, versionId });
+  const head = runner("git", ["rev-parse", "HEAD"], { cwd });
+  const commit = head?.stdout?.toString().trim();
+  const plan = createDeploymentPlan({
+    cwd,
+    env: commit ? { ...env, OCADE_EXPECTED_COMMIT: commit } : env,
+    mode,
+    versionId,
+  });
   if (!plan.ready) return { status: "blocked", plan, reason: plan.blockers.join("; ") };
 
   const nodeCommand = process.execPath;

@@ -27,7 +27,15 @@
  *   OCADE_OFFLINE_SOURCE_URL=… OCADE_MODELS_BUCKET=… node scripts/build-offline-artifact.mjs
  */
 import { createHash } from "node:crypto";
-import { createReadStream, createWriteStream, existsSync, mkdirSync, statSync } from "node:fs";
+import {
+  createReadStream,
+  createWriteStream,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { Readable } from "node:stream";
@@ -56,11 +64,31 @@ function fail(message) {
 
 mkdirSync(WORK, { recursive: true });
 
-if (!existsSync(BYTES)) {
+/*
+ * CACHED BYTES ARE REUSED ONLY WHEN THEY ARE KNOWN COMPLETE, FROM THIS SOURCE.
+ * A record beside them names the source and the length it delivered; a file
+ * left by another source or a cut-off transfer is fetched again (F-013).
+ */
+const RECORD = `${BYTES}.source.json`;
+const cached = (() => {
+  try {
+    const record = JSON.parse(readFileSync(RECORD, "utf8"));
+    return record.url === sourceUrl && statSync(BYTES).size === record.bytes;
+  } catch {
+    return false;
+  }
+})();
+if (!cached) {
   process.stdout.write("Reading the configured source…\n");
   const response = await fetch(sourceUrl, { redirect: "follow" });
   if (!response.ok || !response.body) fail(`The source answered ${response.status}.`);
-  await pipeline(Readable.fromWeb(response.body), createWriteStream(BYTES));
+  const promised = Number(response.headers.get("content-length") ?? NaN);
+  const partial = `${BYTES}.partial`;
+  await pipeline(Readable.fromWeb(response.body), createWriteStream(partial));
+  const got = statSync(partial).size;
+  if (Number.isFinite(promised) && got !== promised) fail("The source transfer was cut short.");
+  renameSync(partial, BYTES);
+  writeFileSync(RECORD, JSON.stringify({ url: sourceUrl, bytes: got }));
 }
 
 const totalBytes = statSync(BYTES).size;

@@ -15,14 +15,16 @@ import { defineConfig, type UserConfig } from "vite";
  * most plugin time belong to a redundant resolver. Keeping the small plugin
  * composition here makes its order explicit and removes that obsolete peer.
  */
-/** The commit being built: CI's own variable first, then the local checkout. */
+/**
+ * The commit being built: the checkout itself first, because that is what is
+ * compiled. CI's variable names the event, which can differ from the ref the
+ * workflow checked out (F-118); it is only a fallback where there is no .git.
+ */
 function buildCommit(): string {
-  const fromCi = process.env.WORKERS_CI_COMMIT_SHA ?? process.env.GITHUB_SHA;
-  if (fromCi) return fromCi;
   try {
     return execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
   } catch {
-    return "unknown";
+    return process.env.WORKERS_CI_COMMIT_SHA ?? process.env.GITHUB_SHA ?? "unknown";
   }
 }
 
