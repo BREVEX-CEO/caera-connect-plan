@@ -781,7 +781,9 @@ export const readSystemHealth = createServerFn({ method: "GET" })
           supabaseAdmin
             .from("jarvis_devices")
             .select("id", { count: "exact", head: true })
-            .is("user_id", null),
+            .is("user_id", null)
+            // An expired request is not waiting for anything (F-171).
+            .gt("enrollment_expires_at", new Date().toISOString()),
         ),
         count(supabaseAdmin.from("ocade_staff").select("user_id", { count: "exact", head: true })),
       ]);

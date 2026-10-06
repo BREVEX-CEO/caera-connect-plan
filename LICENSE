@@ -61,9 +61,8 @@ Those materials remain governed by their respective licences and terms.
 Nothing in this proprietary licence removes, narrows, or overrides rights
 granted under an applicable open-source or third-party licence.
 
-Available third-party notices are recorded in
-release/THIRD_PARTY_NOTICES.md where applicable and should be regenerated and
-reviewed before each public or commercial distribution.
+Third-party notices must be generated and reviewed before each public or
+commercial distribution; this repository does not yet contain them.
 
 4. CONTRIBUTIONS AND OWNERSHIP CHAIN
 

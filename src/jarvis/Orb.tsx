@@ -397,6 +397,18 @@ export function Orb({
           }
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
+        // A cancelled or lost pointer ends its gesture like a release, minus the tap (F-133).
+        onPointerCancel={(event) => {
+          pinch.current.delete(event.pointerId);
+          if (pinch.current.size < 2) pinchStart.current = null;
+          drag.current = null;
+        }}
+        onLostPointerCapture={(event) => {
+          if (!pinch.current.has(event.pointerId)) return;
+          pinch.current.delete(event.pointerId);
+          if (pinch.current.size < 2) pinchStart.current = null;
+          drag.current = null;
+        }}
         onPointerUp={(event) => {
           pinch.current.delete(event.pointerId);
           if (pinch.current.size < 2) pinchStart.current = null;

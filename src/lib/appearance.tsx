@@ -142,7 +142,8 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       if (cancelled || error || !data || touchedRef.current) return;
       setPrefs((current) => {
         const next: AppearancePrefs = {
-          theme: data.theme === "light" ? "light" : current.theme,
+          // Either saved mode is honoured; anything else keeps this browser's (F-173).
+          theme: data.theme === "light" || data.theme === "dark" ? data.theme : current.theme,
           reducedMotion:
             typeof data.reduced_motion === "boolean" ? data.reduced_motion : current.reducedMotion,
           highContrast:
@@ -162,7 +163,11 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
         const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
           if (cancelled) return;
           if (session) void load(session.user.id);
-          else loadedFor = null;
+          else {
+            // A new session starts from its own account, not the last one's edits.
+            loadedFor = null;
+            touchedRef.current = false;
+          }
         });
         unsubscribe = () => sub.subscription.unsubscribe();
       },

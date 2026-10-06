@@ -1,6 +1,6 @@
 # Deferred Gemini / universal-control issues
 
-Owner direction 2026-10-03: the Gemini/OCADE universal-control implementation stays exactly as it is for this release; its open problems are recorded here and not re-coded now. Everything else in the release was finished and tested separately (`docs/FINAL_REPORT.md`).
+Owner direction 2026-10-03: the Gemini/OCADE universal-control implementation stays exactly as it is for this release; its open problems are recorded here and not re-coded now. Everything else in the release was finished and tested separately (`docs/FINAL_MATRIX.md`).
 
 "Gemini" here means the hidden Online intelligence that plans JARVIS work; customers never see the provider. The Device Agent (broker, validation, STOP, scope, confirmations) is not deferred: its defects found in these runs were fixed (F22–F28 in `docs/FINAL_MATRIX.md`).
 

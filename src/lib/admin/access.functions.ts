@@ -176,6 +176,7 @@ export const listAccountAccess = createServerFn({ method: "GET" })
         .select("id, user_id, tier, reason, ends_at")
         .in("user_id", ids)
         .is("revoked_at", null)
+        .lte("starts_at", new Date().toISOString())
         .gt("ends_at", new Date().toISOString())
         // Live grants only, and the strongest wins below — so this is generous
         // enough that truncation cannot change which one an operator is shown.
@@ -191,10 +192,16 @@ export const listAccountAccess = createServerFn({ method: "GET" })
     }
     const grantByUser = new Map<string, AdminAccountRow["grant"]>();
     for (const row of grants.data ?? []) {
-      // The strongest live grant wins, which is the same rule
-      // `ocade_active_entitlement_grant` applies when it decides a tier.
+      // The strongest live grant wins, then the longest, which is the rule
+      // `ocade_active_entitlement_grant` applies when it decides a tier (F-168).
       const existing = grantByUser.get(row.user_id);
-      if (existing && existing.tier === "max") continue;
+      const rank = (tier: string) => (tier === "max" ? 2 : 1);
+      if (
+        existing &&
+        (rank(existing.tier) > rank(row.tier) ||
+          (rank(existing.tier) === rank(row.tier) && existing.endsAt >= row.ends_at))
+      )
+        continue;
       grantByUser.set(row.user_id, {
         id: row.id,
         tier: row.tier as PlanTier,
