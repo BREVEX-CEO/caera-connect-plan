@@ -26,8 +26,23 @@ export async function sweepTombstones(ownerId: string): Promise<{ pending: numbe
     if (!owed?.length) return { pending: 0 };
 
     let settled = 0;
-    for (const bucket of new Set(owed.map((row) => row.bucket))) {
-      const rows = owed.filter((row) => row.bucket === bucket);
+    // Only this owner's own folder is ever removed with the service role. A path that names
+    // somebody else's object (a forged index row) is closed without touching it.
+    const foreign = owed.filter((row) => !row.storage_path.startsWith(`${ownerId}/`));
+    if (foreign.length) {
+      const closed = await supabaseAdmin
+        .from("storage_tombstones")
+        .update({ purged_at: new Date().toISOString(), last_error: "Not this account's object" })
+        .in(
+          "id",
+          foreign.map((row) => row.id),
+        );
+      if (closed.error) throw new Error(closed.error.message);
+      settled += foreign.length;
+    }
+    const own = owed.filter((row) => row.storage_path.startsWith(`${ownerId}/`));
+    for (const bucket of new Set(own.map((row) => row.bucket))) {
+      const rows = own.filter((row) => row.bucket === bucket);
       // Removing an object that is already gone is not an error, so a retry
       // acknowledges it instead of failing forever.
       const removed = await supabaseAdmin.storage

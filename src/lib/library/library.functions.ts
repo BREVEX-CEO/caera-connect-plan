@@ -53,22 +53,33 @@ export const LIBRARY_MAX_BYTES = 100 * 1024 * 1024;
 /** What `LIBRARY_MAX_BYTES` costs as base64, with room for the padding. */
 const MAX_BASE64_LENGTH = Math.ceil(LIBRARY_MAX_BYTES / 3) * 4 + 4;
 
-/** The whole library for this account, newest first. */
+/**
+ * The whole library for this account, newest first: every item, in pages, so an older file
+ * is still found and opened (PostgREST's own ceiling would truncate silently). The id breaks
+ * ties so the pages neither repeat nor skip an item.
+ */
 export const listLibraryItems = createServerFn({ method: "GET" })
   .middleware([requireSession])
   .handler(async ({ context }): Promise<LibraryItemRow[]> => {
-    const { data, error } = await context.supabase
-      .from("ocade_library_items")
-      .select(COLUMNS)
-      .order("created_at", { ascending: false })
-      /*
-       * Bounded, because PostgREST's own ceiling truncates at a thousand and
-       * tells nobody. A library past this is a paging problem to solve when
-       * somebody has one, not a silent lie now.
-       */
-      .limit(500);
-    if (error) throw new Error(`Your library could not be read: ${error.message}`);
-    return (data ?? []) as LibraryItemRow[];
+    const { readAllPages } = await import("@/lib/supabase/read-all");
+    try {
+      return await readAllPages<LibraryItemRow>(
+        (from, to) =>
+          context.supabase
+            .from("ocade_library_items")
+            .select(COLUMNS)
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(from, to) as unknown as PromiseLike<{
+            data: LibraryItemRow[] | null;
+            error: { message: string } | null;
+          }>,
+      );
+    } catch (error) {
+      throw new Error(
+        `Your library could not be read: ${error instanceof Error ? error.message : "unknown"}`,
+      );
+    }
   });
 
 /**
@@ -159,9 +170,13 @@ export const addLibraryItem = createServerFn({ method: "POST" })
       .from("library")
       .upload(storagePath, bytes, { contentType: storedType, upsert: false });
     if (upload.error) {
-      // Neither, rather than a row pointing at nothing.
-      await context.supabase.from("ocade_library_items").delete().eq("id", id);
-      throw new Error(`That could not be saved: ${upload.error.message}`);
+      // Neither, rather than a row pointing at nothing — and said plainly when that undo fails.
+      const undone = await context.supabase.from("ocade_library_items").delete().eq("id", id);
+      throw new Error(
+        undone.error
+          ? `That could not be saved, and its empty entry “${data.name}” is still listed in your Library: delete it there.`
+          : `That could not be saved: ${upload.error.message}`,
+      );
     }
 
     return row as LibraryItemRow;
@@ -176,18 +191,19 @@ export const addLibraryItem = createServerFn({ method: "POST" })
  */
 export const signLibraryItem = createServerFn({ method: "POST" })
   .middleware([requireSession])
-  .validator(z.object({ id: uuid }).parse)
+  .validator(z.object({ id: uuid, download: z.boolean().optional() }).parse)
   .handler(async ({ data, context }): Promise<{ url: string }> => {
     const { data: row, error } = await context.supabase
       .from("ocade_library_items")
-      .select("storage_path")
+      .select("storage_path, name")
       .eq("id", data.id)
       .single();
     if (error || !row) throw new Error("That item is not in your library.");
 
+    // A download link is served as an attachment with the item's own name.
     const signed = await context.supabase.storage
       .from("library")
-      .createSignedUrl(row.storage_path, 60);
+      .createSignedUrl(row.storage_path, 60, data.download ? { download: row.name } : undefined);
     if (signed.error || !signed.data) {
       throw new Error(`That link could not be created: ${signed.error?.message ?? "no url"}`);
     }
@@ -211,16 +227,17 @@ export const deleteLibraryItem = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw new Error(`That could not be deleted: ${error.message}`);
     if (!count) throw new Error("That item is not in your library.");
-    await (await import("./tombstones.server")).sweepTombstones(context.userId);
-    return { ok: true as const };
+    const { pending } = await (await import("./tombstones.server")).sweepTombstones(context.userId);
+    /** Bytes not yet erased: the item is gone from the list, its file is still being removed. */
+    return { ok: true as const, pending };
   });
 
 /** Everything, which is what Data Controls offers. */
 export const deleteAllLibraryItems = createServerFn({ method: "POST" })
   .middleware([requireSession])
-  .handler(async ({ context }): Promise<{ removed: number }> => {
+  .handler(async ({ context }): Promise<{ removed: number; pending: number }> => {
     const { data: removed, error } = await context.supabase.rpc("ocade_delete_all_library_items");
     if (error) throw new Error(`Your library could not be emptied: ${error.message}`);
-    await (await import("./tombstones.server")).sweepTombstones(context.userId);
-    return { removed: Number(removed ?? 0) };
+    const { pending } = await (await import("./tombstones.server")).sweepTombstones(context.userId);
+    return { removed: Number(removed ?? 0), pending };
   });

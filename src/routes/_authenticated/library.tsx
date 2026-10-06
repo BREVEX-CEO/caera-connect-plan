@@ -47,6 +47,7 @@ function LibraryPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [problem, setProblem] = useState<string | null>(null);
+  const [fallback, setFallback] = useState<{ name: string; url: string } | null>(null);
   const picker = useRef<HTMLInputElement>(null);
   const client = useQueryClient();
 
@@ -88,15 +89,40 @@ function LibraryPage() {
 
   const remove = useMutation({
     mutationFn: (id: string) => deleteLibraryItem({ data: { id } }),
-    onSuccess: () => void refresh(),
+    onSuccess: ({ pending }) => {
+      // Gone from the list is not the same as erased: say which, never just "done".
+      setProblem(
+        pending
+          ? "Removed from your library. Its file is still being erased and will be retried."
+          : null,
+      );
+      void refresh();
+    },
     onError: (error: Error) => setProblem(error.message),
   });
 
-  async function open(item: LibraryItemRow) {
+  /**
+   * The tab opens in the click itself (a browser lets only a click open one) and is pointed at
+   * the signed link once it exists; a download is a link the browser saves where it is. Either
+   * way a link that could not open is offered to press instead of nothing happening.
+   */
+  async function open(item: LibraryItemRow, download = false) {
+    const tab = download ? null : window.open("", "_blank");
+    if (tab) tab.opener = null;
     try {
-      const { url } = await signLibraryItem({ data: { id: item.id } });
-      window.open(url, "_blank", "noopener,noreferrer");
+      const { url } = await signLibraryItem({ data: { id: item.id, download } });
+      if (download) {
+        const link = document.createElement("a");
+        link.href = url;
+        link.rel = "noopener noreferrer";
+        link.click();
+      } else if (tab) {
+        tab.location.href = url;
+      } else {
+        setFallback({ name: item.name, url });
+      }
     } catch (error) {
+      tab?.close();
       setProblem(error instanceof Error ? error.message : "That could not be opened.");
     }
   }
@@ -174,6 +200,21 @@ function LibraryPage() {
             {problem}
           </p>
         ) : null}
+        {fallback ? (
+          <p className="mt-4 text-[13px] text-foreground" role="status">
+            Your browser kept a new tab from opening.{" "}
+            <a
+              href={fallback.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setFallback(null)}
+              className="underline underline-offset-2"
+            >
+              Open {fallback.name}
+            </a>{" "}
+            (this link works for a minute).
+          </p>
+        ) : null}
 
         {/*
           A FAILED READ IS NOT AN EMPTY LIBRARY. "Nothing here yet" was shown
@@ -216,8 +257,8 @@ function LibraryPage() {
                 <button
                   type="button"
                   aria-label={`Download ${item.name}`}
-                  onClick={() => void open(item)}
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                  onClick={() => void open(item, true)}
+                  className={ROW_ACTION}
                 >
                   <Download className="h-4 w-4" aria-hidden />
                 </button>
@@ -225,7 +266,7 @@ function LibraryPage() {
                   type="button"
                   aria-label={`Delete ${item.name}`}
                   onClick={() => remove.mutate(item.id)}
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                  className={ROW_ACTION}
                 >
                   <Trash2 className="h-4 w-4" aria-hidden />
                 </button>
@@ -237,6 +278,10 @@ function LibraryPage() {
     </AppShell>
   );
 }
+
+/** Always visible on touch screens (there is no hover there); revealed on hover or focus elsewhere. */
+const ROW_ACTION =
+  "grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-7 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100";
 
 /** "2.4 MB" — a size somebody can judge, not a byte count. */
 function describeSize(bytes: number): string {

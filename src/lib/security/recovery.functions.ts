@@ -120,6 +120,18 @@ export const redeemRecoveryCode = createServerFn({ method: "POST" })
       };
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // The factors are read before the code is spent: a read that fails costs nothing, and an
+    // unread list is never taken for "nothing to remove".
+    const { data: factors, error: listError } = await supabaseAdmin.auth.admin.mfa.listFactors({
+      userId: context.userId,
+    });
+    if (listError || !factors) {
+      return {
+        ok: false,
+        reason: "unavailable",
+        message: "OCADE could not check that code just now. Nothing was used up.",
+      };
+    }
     const { data: status, error } = await supabaseAdmin.rpc("ocade_consume_mfa_recovery_code", {
       p_user_id: context.userId,
       p_code_hash: await hashRecoveryCode(context.userId, normalized),
@@ -147,11 +159,8 @@ export const redeemRecoveryCode = createServerFn({ method: "POST" })
     }
 
     // The code is spent from here on, whatever follows.
-    const { data: factors } = await supabaseAdmin.auth.admin.mfa.listFactors({
-      userId: context.userId,
-    });
     let failed = false;
-    for (const factor of factors?.factors ?? []) {
+    for (const factor of factors.factors ?? []) {
       const { error: removeError } = await supabaseAdmin.auth.admin.mfa.deleteFactor({
         id: factor.id,
         userId: context.userId,
@@ -179,7 +188,10 @@ export const redeemRecoveryCode = createServerFn({ method: "POST" })
       userId: context.userId,
       category: "security",
       title: "Two-step verification was turned off with a recovery code",
-      body: "Every session was signed out. If this was not you, change your password and turn two-step verification on again now.",
+      // Only what happened: a sign-out that failed is not reported as done.
+      body: revokeError
+        ? "Other sessions could not all be signed out. If this was not you, change your password, sign out everywhere and turn two-step verification on again now."
+        : "Every session was signed out. If this was not you, change your password and turn two-step verification on again now.",
       idempotencyKey: `recovery-used:${await hashRecoveryCode(context.userId, normalized)}`,
     }).catch(() => undefined);
     if (revokeError) {

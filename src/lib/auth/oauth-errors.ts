@@ -62,7 +62,7 @@ export function describeOAuthError(
   if (has("unsupported provider", "provider is not enabled", "not enabled", "validation_failed")) {
     return {
       message: `${name} sign-in isn't available right now.`,
-      hint: "Please sign in with your email address for now. Our team has been notified.",
+      hint: "Please sign in with your email address for now.",
       retryable: false,
       cancelled: false,
     };

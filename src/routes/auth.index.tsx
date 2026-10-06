@@ -79,9 +79,9 @@ export const Route = createFileRoute("/auth/")({
  * authenticate is worse than one that is absent, because it is the one somebody
  * picks when the others give them trouble.
  *
- * A PASSWORD IS THE THIRD WAY, ONE PRESS AWAY. It is optional and set under
- * Account, so it sits behind "Use a password instead" rather than competing
- * with the code, which needs nothing remembered.
+ * A PASSWORD IS THE THIRD WAY, ONE PRESS AWAY. It is optional and set from a
+ * reset link (/reset-password), so it sits behind "Use a password instead"
+ * rather than competing with the code, which needs nothing remembered.
  *
  * WHAT A FAILURE IS ALLOWED TO SAY. Never the provider's own text, which names
  * the provider and is written for whoever operates it. Never whether an account

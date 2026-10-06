@@ -88,14 +88,3 @@ export function readRecoveryEvidence(href: string): RecoveryEvidence {
 
   return { kind: "none" };
 }
-
-/**
- * True only for evidence that may open the new-password form.
- *
- * `recovery_code` is deliberately NOT included: a code is a claim until the
- * exchange succeeds, and treating the claim as the proof is how the original
- * defect worked.
- */
-export function opensResetForm(evidence: RecoveryEvidence): boolean {
-  return evidence.kind === "recovery_token";
-}

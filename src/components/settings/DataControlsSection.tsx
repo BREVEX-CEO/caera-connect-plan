@@ -51,6 +51,21 @@ export function DataControlsSection() {
   );
 }
 
+/**
+ * What a row says about account data: still reading, could not be read, the refusal of a delete,
+ * or the count. A failed read is never "you have none".
+ */
+function stated(
+  read: { isPending: boolean; isError: boolean },
+  remove: { isError: boolean; error: Error | null },
+  loaded: string,
+): string {
+  if (read.isPending) return "Checking…";
+  if (read.isError) return "This could not be read just now. Close Settings and open it again.";
+  if (remove.isError) return `${loaded} Deleting did not work: ${remove.error?.message ?? "try again"}.`;
+  return loaded;
+}
+
 /** Every conversation, gone for good. */
 function ConversationsSection() {
   const client = useQueryClient();
@@ -71,11 +86,13 @@ function ConversationsSection() {
   return (
     <Row
       label="Conversations"
-      description={
+      description={stated(
+        conversations,
+        empty,
         count === 0
           ? "You have no conversations."
-          : `${count} conversation${count === 1 ? "" : "s"}, with their messages. Deleting them cannot be undone.`
-      }
+          : `${count} conversation${count === 1 ? "" : "s"}, with their messages. Deleting them cannot be undone.`,
+      )}
     >
       {count === 0 ? null : confirming ? (
         <Confirm
@@ -149,14 +166,21 @@ function LibrarySection() {
     },
   });
   const count = items.data?.length ?? 0;
+  const erasing = empty.data?.pending
+    ? " Some files are still being erased and will be retried."
+    : "";
 
   return (
     <Row
       label="Library"
       description={
-        count === 0
-          ? "Nothing is in your Library."
-          : `${count} item${count === 1 ? "" : "s"}. Deleting them cannot be undone, on any device.`
+        stated(
+          items,
+          empty,
+          count === 0
+            ? "Nothing is in your Library."
+            : `${count} item${count === 1 ? "" : "s"}. Deleting them cannot be undone, on any device.`,
+        ) + erasing
       }
     >
       {count === 0 ? null : confirming ? (

@@ -165,24 +165,39 @@ export async function readAttachment(file: File, id: string): Promise<PendingAtt
   }
 }
 
-/** What the boundary is sent: ready attachments only, within the total budget. */
-export function forRequest(pending: PendingAttachment[]): NormalizedAttachment[] {
-  const out: NormalizedAttachment[] = [];
-  let budget = MAX_TOTAL_BYTES;
+/** What one attachment weighs against the budget: decoded image bytes, UTF-8 text bytes. */
+function weight(attachment: PendingAttachment): number {
+  if (attachment.image) return Math.floor((attachment.image.length * 3) / 4);
+  return new TextEncoder().encode(attachment.text ?? "").length;
+}
 
-  for (const attachment of pending) {
-    if (attachment.state !== "ready") continue;
-    const cost = attachment.image ? attachment.image.length : (attachment.text?.length ?? 0);
-    if (cost > budget) break;
-    budget -= cost;
-    out.push({
+/**
+ * What the boundary is sent: every ready attachment, or a reason nothing is sent. A file the
+ * person chose is never dropped quietly — still reading, or over the budget, the question waits.
+ */
+export function forRequest(
+  pending: PendingAttachment[],
+): { ok: true; attachments: NormalizedAttachment[] } | { ok: false; reason: string } {
+  if (pending.some((attachment) => attachment.state === "reading")) {
+    return { ok: false, reason: "Wait a moment: an attachment is still being read." };
+  }
+  const ready = pending.filter((attachment) => attachment.state === "ready");
+  const total = ready.reduce((sum, attachment) => sum + weight(attachment), 0);
+  if (total > MAX_TOTAL_BYTES) {
+    return {
+      ok: false,
+      reason: "These attachments are too large to send together. Remove one and send again.",
+    };
+  }
+  return {
+    ok: true,
+    attachments: ready.map((attachment) => ({
       name: attachment.name,
       mime: attachment.mime,
       sizeBytes: attachment.sizeBytes,
       ...(attachment.image ? { image: attachment.image } : { text: attachment.text }),
-    });
-  }
-  return out;
+    })),
+  };
 }
 
 /**
@@ -211,7 +226,7 @@ export function citationInstruction(attachments: NormalizedAttachment[]): string
   );
 }
 
-async function toBase64(file: File): Promise<string> {
+export async function toBase64(file: Blob): Promise<string> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   let binary = "";
   // Chunked: spreading a multi-megabyte array into `fromCharCode` at once

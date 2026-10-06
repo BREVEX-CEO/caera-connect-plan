@@ -20,6 +20,8 @@ import {
   secondsUntilAllowed,
 } from "@/lib/auth/throttle";
 
+const UNREACHABLE = "OCADE could not be reached just now. Check your connection and try again.";
+
 const searchSchema = z.object({
   identifier: z.string().email(),
   next: z.string().optional(),
@@ -104,7 +106,11 @@ function VerifyPage() {
      * with no `<Outlet/>`, so `/auth/verify` rendered the sign-in form.
      */
     e.preventDefault();
-    const supabase = await loadSupabaseClient();
+    const supabase = await loadSupabaseClient().catch(() => null);
+    if (!supabase) {
+      setError(UNREACHABLE);
+      return;
+    }
     const remaining = secondsUntilAllowed(throttle, Date.now());
     if (remaining > 0) {
       setError(describeWait(remaining));
@@ -122,11 +128,15 @@ function VerifyPage() {
       setBusy(false);
       return;
     }
-    const { error: err } = await supabase.auth.verifyOtp({
-      email: identifier,
-      token: parsed.data,
-      type: "email",
-    });
+    let checked: Awaited<ReturnType<typeof supabase.auth.verifyOtp>>;
+    try {
+      checked = await supabase.auth.verifyOtp({ email: identifier, token: parsed.data, type: "email" });
+    } catch {
+      setError(UNREACHABLE); // nothing was checked, so no wrong guess is counted
+      setBusy(false);
+      return;
+    }
+    const { error: err } = checked;
     if (err) {
       const next = recordFailure(throttle, Date.now());
       setThrottle(next);
@@ -156,6 +166,17 @@ function VerifyPage() {
     // two fast clicks both passed the cooldown check and sent two codes.
     if (cooldown > 0 || resending) return;
     setResending(true);
+    try {
+      await sendAgain();
+    } catch {
+      // A failed load or send releases the button and says so, rather than staying busy.
+      setError(UNREACHABLE);
+    } finally {
+      setResending(false);
+    }
+  }
+
+  async function sendAgain() {
     const supabase = await loadSupabaseClient();
     setError(null);
     setResent(false);
@@ -177,7 +198,6 @@ function VerifyPage() {
      * intent to carry and no way for the two calls to disagree.
      */
     const { error: err } = await supabase.auth.signInWithOtp({ email: identifier });
-    setResending(false);
     if (err) setError(friendlyOtpError(err.message));
     else setResent(true);
   }

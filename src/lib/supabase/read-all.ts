@@ -50,11 +50,13 @@ export async function readAllPages<T>(
   build: (from: number, to: number) => PromiseLike<PageResult<T>>,
 ): Promise<T[]> {
   const out: T[] = [];
-  for (let page = 0; page < MAX_PAGES; page += 1) {
+  // One page past the cap only to prove the end: exactly MAX_PAGES full pages is complete.
+  for (let page = 0; page <= MAX_PAGES; page += 1) {
     const from = page * PAGE_ROWS;
     const { data, error } = await build(from, from + PAGE_ROWS - 1);
     if (error) throw new Error(error.message);
     const rows = data ?? [];
+    if (page === MAX_PAGES && rows.length > 0) break;
     out.push(...rows);
     // Short page means the end. A full page might also be the end, and the
     // next request is what settles that rather than an assumption.

@@ -126,34 +126,46 @@ describe("bounds, so one use cannot carry unlimited cost", () => {
     expect(read.text).toMatch(/first part of it/);
   });
 
-  it("stops filling the request once the total budget is spent", () => {
+  it("refuses the whole send over budget instead of dropping a chosen file", () => {
     const huge = ready({ id: "1", text: "x".repeat(MAX_TOTAL_BYTES) });
     const after = ready({ id: "2", name: "second.txt" });
-    expect(forRequest([huge, after]).map((a) => a.name)).toEqual(["notes.txt"]);
+    expect(forRequest([huge, after])).toMatchObject({ ok: false, reason: /too large/ });
+    // Weighed as bytes: four 5 MiB photos are exactly the budget and all four go.
+    const photo = (id: string) =>
+      ready({ id, name: `${id}.png`, text: undefined, image: "A".repeat((5 * 1024 * 1024 * 4) / 3) });
+    expect(sent(["a", "b", "c", "d"].map(photo)).map((a) => a.name)).toHaveLength(4);
+    // UTF-8 bytes, not characters: multi-byte text is not under-counted.
+    expect(forRequest([ready({ text: "é".repeat(MAX_TOTAL_BYTES / 2 + 1) })]).ok).toBe(false);
   });
 
-  it("sends only what was read, never a rejection or a file still reading", () => {
-    const sent = forRequest([
-      ready({ id: "1" }),
-      ready({ id: "2", state: "rejected", name: "report.pdf" }),
-      ready({ id: "3", state: "reading", name: "slow.txt" }),
-    ]);
-    expect(sent.map((a) => a.name)).toEqual(["notes.txt"]);
+  it("sends what was read, skips a rejection, and waits for a file still reading", () => {
+    expect(
+      sent([ready({ id: "1" }), ready({ id: "2", state: "rejected", name: "report.pdf" })]).map(
+        (a) => a.name,
+      ),
+    ).toEqual(["notes.txt"]);
+    expect(forRequest([ready({ id: "1" }), ready({ id: "3", state: "reading" })])).toMatchObject({
+      ok: false,
+      reason: /still being read/,
+    });
   });
 
   it("keeps the order the composer shows, because order reaches the model", () => {
-    const sent = forRequest([
-      ready({ id: "1", name: "first.txt" }),
-      ready({ id: "2", name: "second.txt" }),
-    ]);
-    expect(sent.map((a) => a.name)).toEqual(["first.txt", "second.txt"]);
+    const order = sent([ready({ id: "1", name: "first.txt" }), ready({ id: "2", name: "second.txt" })]);
+    expect(order.map((a) => a.name)).toEqual(["first.txt", "second.txt"]);
   });
 });
+
+function sent(pending: Parameters<typeof forRequest>[0]) {
+  const out = forRequest(pending);
+  if (!out.ok) throw new Error(out.reason);
+  return out.attachments;
+}
 
 describe("making an answer checkable", () => {
   it("asks for a source only when there is one", () => {
     expect(citationInstruction([])).toBeNull();
-    const instruction = citationInstruction(forRequest([ready()]));
+    const instruction = citationInstruction(sent([ready()]));
     expect(instruction).toMatch(/which file/i);
     expect(instruction).toMatch(/row|column|line|heading/i);
   });

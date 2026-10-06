@@ -548,9 +548,10 @@ export function PrivacyContent() {
           it.
         </p>
         <p>
-          Privacy, security and grievance requests use the OCADE ticket system while dedicated
-          domain email channels are being established. Dedicated email addresses will be published
-          only after they are activated and verified. Visit the{" "}
+          Until dedicated privacy, security and grievance channels are activated, the requests you
+          can make yourself — a copy of your data, deletion of your data or account, and signing
+          out every session — are in Settings. Dedicated email addresses will be published only
+          after they are activated and verified. Visit the{" "}
           <Link to="/help" className="text-foreground underline">
             Help page
           </Link>{" "}

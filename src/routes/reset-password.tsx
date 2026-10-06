@@ -4,7 +4,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { friendlyOtpError } from "@/lib/auth/otp";
 import { AuthShell } from "@/components/shell/AuthShell";
-import { opensResetForm, readRecoveryEvidence } from "@/lib/auth/recovery-link";
+import { readRecoveryEvidence } from "@/lib/auth/recovery-link";
 
 export const Route = createFileRoute("/reset-password")({
   ssr: false,
@@ -52,8 +52,8 @@ function ResetPasswordPage() {
      * only for a session established from a recovery token. Everything else
      * has to arrive in the URL and survive `readRecoveryEvidence`.
      *
-     * Somebody who is signed in and wants a new password is not stuck — they
-     * change it in Settings, where the current password is required first.
+     * Somebody who is signed in and wants a new password asks for a reset link
+     * from the sign-in page, which goes to the account's own email.
      */
     /*
      * The listener attaches once the client arrives. Loaded on demand rather
@@ -119,7 +119,15 @@ function ResetPasswordPage() {
       }
 
       if (cancelled) return;
-      setLinkValid(opensResetForm(evidence));
+      /*
+       * A fragment saying "recovery" is words in a URL anyone can type. The form opens only on
+       * the provider's own PASSWORD_RECOVERY event (listened for above), which it emits after it
+       * has verified the token; without one shortly, the link is not a working reset link.
+       */
+      if (evidence.kind === "recovery_token") {
+        window.setTimeout(() => !cancelled && setReady(true), 8000);
+        return;
+      }
       setReady(true);
     }
 
@@ -134,7 +142,11 @@ function ResetPasswordPage() {
     // and the browser submits the form itself — see the note in
     // `auth.verify.tsx`, where the same ordering destroyed the screen.
     e.preventDefault();
-    const supabase = await loadSupabaseClient();
+    const supabase = await loadSupabaseClient().catch(() => null);
+    if (!supabase) {
+      setError("This page could not reach OCADE just now. Check your connection and try again.");
+      return;
+    }
     setError(null);
     if (password.length < 8) {
       setError("Your new password needs at least 8 characters.");
@@ -145,8 +157,11 @@ function ResetPasswordPage() {
       return;
     }
     setBusy(true);
-    const { error: err } = await supabase.auth.updateUser({ password });
-    setBusy(false);
+    // A rejected request (not only a returned error) ends the wait too: the button comes back.
+    const { error: err } = await supabase.auth
+      .updateUser({ password })
+      .catch((cause: unknown) => ({ error: cause instanceof Error ? cause : new Error(String(cause)) }))
+      .finally(() => setBusy(false));
     if (err) {
       /*
        * The provider's own words used to land here verbatim, naming the
@@ -199,8 +214,8 @@ function ResetPasswordPage() {
               "Open this page from the link in your reset email. Reset links expire quickly and can only be used once."}
           </p>
           <p className="text-[13px] leading-5 text-muted-foreground">
-            Already signed in and just want a new password? Change it in Settings, where OCADE asks
-            for your current one first.
+            Want a new password? Ask for a reset link from the sign-in page: it goes to your
+            account&apos;s email, and opening it here lets you choose the new one.
           </p>
           <Link
             to="/auth"

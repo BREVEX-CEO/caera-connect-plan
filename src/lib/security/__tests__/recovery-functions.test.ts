@@ -36,6 +36,7 @@ vi.mock("@/lib/notifications/send.server", () => ({
 }));
 
 let factors: { id: string; status: string }[] = [];
+let listing: "ok" | "down" = "ok";
 let stored: string[] = [];
 let consume: "consumed" | "rejected" | "locked" | "error" = "consumed";
 const calls: string[] = [];
@@ -66,7 +67,13 @@ vi.mock("@/integrations/supabase/client.server", () => ({
     },
     auth: {
       admin: {
-        mfa: { listFactors: async () => ({ data: { factors }, error: null }), deleteFactor },
+        mfa: {
+          listFactors: async () =>
+            listing === "down"
+              ? { data: null, error: { message: "service unavailable" } }
+              : { data: { factors }, error: null },
+          deleteFactor,
+        },
       },
     },
   },
@@ -89,6 +96,7 @@ const load = async () => {
 
 beforeEach(() => {
   factors = [{ id: "f1", status: "verified" }];
+  listing = "ok";
   stored = [];
   consume = "consumed";
   calls.length = 0;
@@ -159,6 +167,36 @@ describe("using a code", () => {
     expect(await redeem(codes[0]!)).toMatchObject({ ok: false, reason: "locked" });
     expect(deleteFactor).not.toHaveBeenCalled();
     expect(factors).toHaveLength(1);
+  });
+
+  it("spends no code and claims nothing removed when the factors cannot be read", async () => {
+    const { issue, redeem } = await load();
+    const { codes } = await issue();
+    listing = "down";
+    sent.length = 0;
+    expect(await redeem(codes[0]!)).toMatchObject({ ok: false, reason: "unavailable" });
+    expect(calls).not.toContain("ocade_consume_mfa_recovery_code");
+    expect(calls).not.toContain("ocade_revoke_other_account_sessions");
+    expect(sent).toEqual([]);
+  });
+
+  it("does not say every session was signed out when that failed", async () => {
+    const { issue, redeem } = await load();
+    const { codes } = await issue();
+    const { supabaseAdmin } = (await import("@/integrations/supabase/client.server")) as unknown as {
+      supabaseAdmin: { rpc: (name: string, args: Record<string, unknown>) => Promise<unknown> };
+    };
+    const rpc = supabaseAdmin.rpc;
+    supabaseAdmin.rpc = (name, args) =>
+      name === "ocade_revoke_other_account_sessions"
+        ? Promise.resolve({ data: null, error: { message: "down" } })
+        : rpc(name, args);
+    try {
+      expect(await redeem(codes[0]!)).toMatchObject({ ok: false, reason: "unavailable" });
+      expect((sent.at(-1) as { body?: string }).body).toMatch(/could not all be signed out/);
+    } finally {
+      supabaseAdmin.rpc = rpc;
+    }
   });
 
   it("uses nothing up when the database cannot be asked", async () => {

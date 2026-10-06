@@ -83,10 +83,10 @@ function CallbackPage() {
         // No session yet: complete the PKCE exchange ourselves when the
         // provider returned an authorisation code and the client's automatic
         // detection did not consume it (for example after a full page reload).
-        const url = typeof window !== "undefined" ? window.location.href : "";
         const authCode = code ?? new URLSearchParams(window.location.search).get("code");
         if (authCode) {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(url);
+          // The SDK sends what it is given as the auth code itself: the code, never the whole URL.
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(authCode);
           if (cancelled) return;
           if (exchangeError && !/code verifier|already/i.test(exchangeError.message)) {
             fail(exchangeError.message);

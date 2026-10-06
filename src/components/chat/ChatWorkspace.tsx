@@ -22,10 +22,12 @@ import { offlineRelease } from "@/lib/brain/offline-release";
 import { useChat, type IntelligenceChoice } from "@/lib/chat/use-chat";
 import { useChatShortcuts } from "@/lib/chat/use-shortcuts";
 import { useDictation } from "@/lib/chat/use-dictation";
+import { toast } from "sonner";
 import {
   MAX_ATTACHMENTS,
   forRequest,
   readAttachment,
+  toBase64,
   type PendingAttachment,
 } from "@/lib/chat/attachments";
 import {
@@ -264,7 +266,11 @@ export function ChatWorkspace() {
          * their question about a file OCADE has already read.
          */
         try {
-          const { addLibraryItem } = await import("@/lib/library/library.functions");
+          const { addLibraryItem, LIBRARY_MAX_BYTES } = await import(
+            "@/lib/library/library.functions"
+          );
+          // The Library keeps the file itself, byte for byte — never the excerpt the model read.
+          if (file.size > LIBRARY_MAX_BYTES) return;
           await addLibraryItem({
             data: {
               name: file.name,
@@ -272,7 +278,7 @@ export function ChatWorkspace() {
               kind: read.image ? "image" : "file",
               source: "upload",
               conversationId: chat.conversationId,
-              contentBase64: read.image ?? btoa(unescape(encodeURIComponent(read.text ?? ""))),
+              contentBase64: read.image ?? (await toBase64(file)),
             },
           });
           void queryClient.invalidateQueries({ queryKey: ["library", "items"] });
@@ -304,6 +310,12 @@ export function ChatWorkspace() {
       return;
     }
 
+    const carrying = forRequest(pending);
+    if (!carrying.ok) {
+      toast.error(carrying.reason); // the question and every file stay as they are
+      return;
+    }
+    const carried = carrying.attachments;
     setDraft("");
     if (textarea.current) textarea.current.style.height = "auto";
     try {
@@ -311,7 +323,6 @@ export function ChatWorkspace() {
     } catch {
       /* Nothing to recover: the message is on its way. */
     }
-    const carried = forRequest(pending);
     const held = pending;
     setPending([]);
     /*

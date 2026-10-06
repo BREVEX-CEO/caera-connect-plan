@@ -82,12 +82,12 @@ const QUESTIONS: {
   },
   {
     category: "Chat",
-    question: "What does Auto, OCADE and Offline mean?",
+    question: "What do Auto, Online and Offline mean?",
     words: "mode online offline auto",
     answer: (
       <p>
         <strong className="text-foreground">Auto</strong> picks for you.{" "}
-        <strong className="text-foreground">OCADE</strong> answers over the network.{" "}
+        <strong className="text-foreground">Online</strong> answers over the network.{" "}
         <strong className="text-foreground">Offline</strong> works out the answer on your own
         device: your question is not sent to any AI provider. The chat itself is still saved to your
         account like any other, unless you turn on a temporary chat.
@@ -362,6 +362,20 @@ const QUESTIONS: {
     ),
   },
   {
+    category: "Privacy & security",
+    question: "How do I contact OCADE?",
+    words: "contact support email grievance privacy request ticket",
+    answer: (
+      <p>
+        Dedicated support, privacy, security and grievance email addresses are not published yet:
+        OCADE publishes an address only once it is activated and verified, and this answer will
+        name it then. Until then, what you can do for your own account is in Settings: download a
+        copy of your data, delete conversations, files or the whole account, and sign out every
+        session.
+      </p>
+    ),
+  },
+  {
     category: "Troubleshooting",
     question: "Voice does not start",
     words: "voice microphone permission speech",
@@ -375,15 +389,26 @@ const QUESTIONS: {
   },
 ];
 
+/** The words an answer shows, so search finds guidance by what it actually says. */
+function textOf(node: React.ReactNode): string {
+  if (node === null || node === undefined || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textOf).join(" ");
+  const props = (node as { props?: { children?: React.ReactNode } }).props;
+  return props ? textOf(props.children) : "";
+}
+
+const SEARCHED = QUESTIONS.map((entry) =>
+  `${entry.question} ${entry.words} ${entry.category} ${textOf(entry.answer)}`.toLowerCase(),
+);
+
 function HelpPage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<Category | null>(null);
   const words = query.trim().toLowerCase();
   const shown = QUESTIONS.filter(
-    (entry) =>
-      (!category || entry.category === category) &&
-      (!words ||
-        `${entry.question} ${entry.words} ${entry.category}`.toLowerCase().includes(words)),
+    (entry, at) =>
+      (!category || entry.category === category) && (!words || SEARCHED[at]!.includes(words)),
   );
   return (
     <PublicPage title="Help" intro="Short answers, in plain words." backToTop>
@@ -431,8 +456,9 @@ function HelpPage() {
       </div>
 
       <p className="mt-8 text-sm text-muted-foreground">
-        Still stuck? The <Link to="/terms">Terms &amp; Conditions</Link> and{" "}
-        <Link to="/privacy">Privacy Policy</Link> carry the formal answers.
+        Still stuck? &ldquo;How do I contact OCADE?&rdquo; above says what is available today. The{" "}
+        <Link to="/terms">Terms &amp; Conditions</Link> and <Link to="/privacy">Privacy Policy</Link>{" "}
+        carry the formal answers.
       </p>
     </PublicPage>
   );
