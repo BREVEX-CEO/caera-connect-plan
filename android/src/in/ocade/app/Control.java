@@ -237,6 +237,27 @@ final class Control {
         return null;
     }
 
+    private static final Pattern CARD =
+            Pattern.compile("card.?number|credit.?card|cvv|cvc|security.?code|expir", Pattern.CASE_INSENSITIVE);
+    private static final Pattern HUMAN = Pattern.compile(
+            "one.?time|\\botp\\b|2fa|mfa|verification.?code|passcode|captcha|not a robot", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * A field only the person fills, however it is reached (a control, typing, Enter): a card
+     * number is refused, a one-time code or human check is handed over, as in the browser.
+     */
+    private static JSONObject boundary(AccessibilityNodeInfo field) throws Exception {
+        if (field.isPassword()) return result("human_required", "A password is needed. Take over and type it yourself.");
+        CharSequence hint = field.getHintText();
+        String about = label(field) + " " + (hint == null ? "" : hint) + " "
+                + (field.getViewIdResourceName() == null ? "" : field.getViewIdResourceName());
+        if (CARD.matcher(about).find()) return result("blocked", "JARVIS never enters payment card details");
+        if (HUMAN.matcher(about).find()) {
+            return result("human_required", "This needs a code or check only you can give. Take over to continue.");
+        }
+        return null;
+    }
+
     /** The deepest control under a point on the screen, if Android shows one there. */
     private static AccessibilityNodeInfo under(AccessibilityNodeInfo node, int x, int y) {
         if (node == null) return null;
@@ -261,7 +282,8 @@ final class Control {
             return result("stale", "That control is no longer on screen");
         }
         String op = action.optString("op");
-        if (node.isPassword()) return result("human_required", "A password is needed. Take over and type it yourself.");
+        JSONObject only = node.isEditable() || node.isPassword() ? boundary(node) : null;
+        if (only != null) return only;
         if (!op.equals("set_value") && !op.equals("focus") && !op.equals("expand") && !op.equals("collapse")) {
             JSONObject gated = gate(node, confirmed);
             if (gated != null) return gated;
@@ -389,9 +411,8 @@ final class Control {
                 if (focused == null || !focused.isEditable()) {
                     return result("failed", "No text box is selected: tap one first");
                 }
-                if (focused.isPassword()) {
-                    return result("human_required", "A password is needed. Take over and type it yourself.");
-                }
+                JSONObject only = boundary(focused);
+                if (only != null) return only;
                 CharSequence before = focused.getText();
                 Bundle text = new Bundle();
                 text.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
@@ -409,7 +430,12 @@ final class Control {
                     case "recents": global = AccessibilityService.GLOBAL_ACTION_RECENTS; break;
                     case "notifications": global = AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS; break;
                     case "enter": {
+                        // Enter submits what the field belongs to: the same rules as pressing it.
                         AccessibilityNodeInfo focused = a11y.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+                        JSONObject held = focused == null ? null : boundary(focused);
+                        if (held == null && focused != null) held = gate(focused, confirmed);
+                        if (held != null) return held;
+                        if (cancel.get()) return result("failed", "Stopped before it reached the screen");
                         boolean ok = focused != null && focused.performAction(
                                 AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.getId());
                         return result(ok ? "done" : "failed", ok ? "Pressed Enter" : "Nothing took Enter");

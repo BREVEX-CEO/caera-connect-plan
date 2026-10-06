@@ -34,6 +34,9 @@ public final class WakeService extends Service {
     static volatile String status = "Off";
 
     private volatile boolean stopping;
+    /** Why Wake Mode cannot run, kept through the service's own ending. */
+    private volatile boolean failed;
+    private volatile AudioRecord recorder;
     private Thread loop;
 
     static void start(Context context) {
@@ -65,8 +68,24 @@ public final class WakeService extends Service {
     public void onDestroy() {
         stopping = true;
         running = null;
-        status = "Off";
-        if (loop != null) loop.interrupt();
+        if (!failed) status = "Off";
+        // The microphone is let go of now: its blocking read ends, and the worker is waited for.
+        AudioRecord held = recorder;
+        if (held != null) {
+            try {
+                held.stop();
+            } catch (IllegalStateException ignored) {
+                // not recording
+            }
+        }
+        if (loop != null) {
+            loop.interrupt();
+            try {
+                loop.join(1_000);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+        }
         super.onDestroy();
     }
 
@@ -102,6 +121,7 @@ public final class WakeService extends Service {
         try {
             model = load();
         } catch (Exception e) {
+            failed = true;
             status = "Wake Mode is not available in this version of OCADE";
             stopSelf();
             return;
@@ -117,6 +137,8 @@ public final class WakeService extends Service {
                         AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT), block.length * 4);
                 recorder = new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, WakeModel.SAMPLE_RATE,
                         AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, size);
+                this.recorder = recorder;
+                if (stopping) break; // ended while the microphone was being opened
                 recorder.startRecording();
                 status = "Listening for “OCADE”";
                 while (!stopping) {
@@ -143,10 +165,16 @@ public final class WakeService extends Service {
                     }
                 }
             } catch (Exception e) {
+                if (stopping) break;
                 // The microphone is busy (a call), was taken away, or Android paused it: try again shortly.
                 status = "Waiting for the microphone";
-                SystemClock.sleep(2_000);
+                try {
+                    Thread.sleep(2_000); // interruptible: turning Wake Mode off does not wait it out
+                } catch (InterruptedException stopped) {
+                    break;
+                }
             } finally {
+                this.recorder = null;
                 if (recorder != null) recorder.release();
             }
         }

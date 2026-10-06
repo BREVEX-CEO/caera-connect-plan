@@ -149,13 +149,15 @@ export function BrowserPanel({
   onTakeOver: () => void;
   onResume: () => void;
 }) {
-  const [frame, setFrame] = useState<string | null>(null);
+  // Held with the task it shows: another task's picture is never shown under this one.
+  const [shown, setShown] = useState<{ taskId: string; frame: string | null } | null>(null);
+  const frame = shown?.taskId === task.id ? shown.frame : null;
   useEffect(() => {
     if (!open) return;
     let live = true;
     const pull = () =>
       readJarvisFrame({ data: { taskId: task.id } })
-        .then((value) => live && setFrame(value.frame))
+        .then((value) => live && setShown({ taskId: task.id, frame: value.frame }))
         .catch(() => undefined);
     void pull();
     const timer = window.setInterval(pull, 1500);

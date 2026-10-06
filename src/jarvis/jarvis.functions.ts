@@ -774,13 +774,13 @@ export const stopAllJarvis = createServerFn({ method: "POST" })
     const service = await admin();
     // Running actions too: the device learns it on its next check (about a
     // second) and kills them; a late result is never counted as done.
-    const { data: running } = await service
+    const { data: running, error: runningError } = await service
       .from("jarvis_activity")
       .update({ status: "cancelled", completed_at: at })
       .eq("user_id", context.userId)
       .eq("status", "claimed")
       .select("id");
-    await service
+    const { error: queuedError } = await service
       .from("jarvis_activity")
       .update({ status: "cancelled", completed_at: at })
       .eq("user_id", context.userId)
@@ -789,6 +789,8 @@ export const stopAllJarvis = createServerFn({ method: "POST" })
       stopped: stopped?.length ?? 0,
       /** Actions a device was running: the UI waits for each device to confirm. */
       running: (running ?? []).map((row) => row.id as string),
+      /** A step's cancellation was not recorded: never reported as "stopped". */
+      unconfirmed: Boolean(runningError || queuedError),
     };
   });
 

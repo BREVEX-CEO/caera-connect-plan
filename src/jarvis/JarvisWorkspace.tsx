@@ -177,6 +177,7 @@ export function JarvisWorkspace({
   const busyStrikes = useRef(0);
   const resumeAfterBusy = useRef<string | null>(null);
   const abort = useRef<AbortController | null>(null);
+  const admitting = useRef(false);
   // The running turn's mailbox and pause switch: the person talks while JARVIS works.
   const live = useRef<LiveControl | null>(null);
   const [paused, setPaused] = useState(false);
@@ -303,6 +304,9 @@ export function JarvisWorkspace({
     });
   }, [startVoice, signedIn, voice, conversationId, navigate]);
 
+  // Leaving JARVIS lets go of the turn: nothing keeps driving or waiting on a decision unseen.
+  useEffect(() => () => abort.current?.abort(), []);
+
   // Signing out ends voice and anything running.
   const endVoice = voice.end;
   useEffect(() => {
@@ -362,6 +366,13 @@ export function JarvisWorkspace({
       toast.error("OCADE JARVIS is turned off.", { description: "Turn it on in Permissions." });
       return;
     }
+    // One turn at a time, decided before the first await: a second Send or Enter while the
+    // first message is still being saved waits in the composer instead of starting a second loop.
+    if (admitting.current) {
+      if (fromVoice) setDraft(text);
+      return;
+    }
+    admitting.current = true;
     // This run belongs to the owner on screen now; every later screen update
     // checks it still does.
     let runOwner = ownerRef.current;
@@ -392,11 +403,15 @@ export function JarvisWorkspace({
         setTurns((list) => list.slice(0, list.findIndex((t) => t.id === retryOf) + 1));
       }
     } catch {
+      admitting.current = false;
       toast.error("JARVIS could not save your message.", { description: "Nothing was sent." });
       if (mine() && !retryOf) setDraft(text);
       return;
     }
-    if (!mine()) return;
+    if (!mine()) {
+      admitting.current = false;
+      return;
+    }
 
     const controller = new AbortController();
     abort.current = controller;
@@ -490,6 +505,7 @@ export function JarvisWorkspace({
         toast.error("JARVIS could not finish that. Try again.");
       }
     } finally {
+      admitting.current = false;
       if (mine()) {
         setLiveAnswer(null);
         setRunning(false);
@@ -586,9 +602,9 @@ export function JarvisWorkspace({
         setBusyUntil(null);
         const id = resumeAfterBusy.current;
         resumeAfterBusy.current = null;
-        // Not if it is already being driven (another tab, the computer) or is done.
-        const status = conversationTask?.status;
-        if (id && conversationTask?.id === id && status !== "running" && status !== "completed") {
+        // Only the task this wait put on hold, still waiting for it: not one the person
+        // stopped meanwhile, one driven elsewhere, or one that ended.
+        if (id && conversationTask?.id === id && conversationTask.status === "waiting") {
           void resume();
         }
       },
@@ -599,6 +615,7 @@ export function JarvisWorkspace({
 
   const stop = async () => {
     abort.current?.abort();
+    resumeAfterBusy.current = null; // a stopped task is never picked up again by the wait timer
     live.current?.resume();
     setPaused(false);
     confirmAsk?.resolve(false);
@@ -1237,6 +1254,7 @@ export function JarvisWorkspace({
           type="button"
           onClick={() => {
             abort.current?.abort();
+            resumeAfterBusy.current = null;
             void stopEverywhere(() => {
               setActiveTask(null);
               refresh();

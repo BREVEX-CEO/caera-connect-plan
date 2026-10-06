@@ -341,9 +341,10 @@ export async function carryOn(
     return kept ? { state: "waiting" } : idle;
   }
 
-  const say = async (content: string) => {
-    if (!content.trim()) return;
-    await admin.from("ocade_messages").insert({
+  /** Saved (or already saved for this step): true. A refused write is not a said line. */
+  const say = async (content: string): Promise<boolean> => {
+    if (!content.trim()) return true;
+    const { error } = await admin.from("ocade_messages").insert({
       conversation_id: task.conversation_id,
       user_id: userId,
       role: "assistant",
@@ -351,6 +352,7 @@ export async function carryOn(
       // One line per step of this task, however often the step is asked for.
       client_key: `jarvis-step-${task.id}-${actions.length}`,
     });
+    return !error || error.code === "23505";
   };
   /** What the model asked for could not run: recorded, so the next step sees why. */
   const record = (action: unknown, summary: string) =>
@@ -366,7 +368,11 @@ export async function carryOn(
     });
 
   for (const call of reply.toolCalls) {
-    const args = (call.arguments ?? {}) as Record<string, unknown>;
+    const given = (call.arguments ?? {}) as Record<string, unknown>;
+    // One step at a time here: of a sequence only its first action is queued, and the next
+    // request plans from that action's real result.
+    const first = Array.isArray(given.sequence) ? given.sequence[0] : null;
+    const args = (first && typeof first === "object" ? first : given) as Record<string, unknown>;
     if (call.name === "finish_task") {
       const outcome = String(args.outcome);
       const status: TaskStatus =
@@ -446,7 +452,8 @@ export async function carryOn(
     return { state: "queued" };
   }
 
-  // Words and no step: a question for the person, kept in the conversation.
-  await say(reply.text);
+  // Words and no step: a question for the person, kept in the conversation. A question that
+  // could not be saved is asked again by the next request, never waited on unseen.
+  if (!(await say(reply.text))) return idle;
   return needsPerson("waiting", "JARVIS needs your answer to continue.", `say-${actions.length}`);
 }

@@ -70,9 +70,21 @@ export async function runDueSchedules(admin: Admin, now = new Date()): Promise<n
       .select("id")
       .maybeSingle();
     if (!claimed) continue; // another tick ran it
-    const outcome = schedule.device_id
-      ? await startScheduledWork(admin, schedule, now)
-      : await remind(admin, schedule);
+    let outcome: string;
+    try {
+      outcome = schedule.device_id
+        ? await startScheduledWork(admin, schedule, now)
+        : await remind(admin, schedule);
+    } catch {
+      // Nothing durable came of this run (the instruction could not be saved): it goes back
+      // to the next tick rather than being used up. Its message and notification are keyed.
+      await admin
+        .from("jarvis_schedules")
+        .update({ next_at: schedule.next_at, active: true })
+        .eq("id", schedule.id)
+        .eq("last_run_at", now.toISOString());
+      continue;
+    }
     await admin
       .from("jarvis_schedules")
       .update({ last_outcome: outcome.slice(0, 300) })
@@ -96,13 +108,15 @@ async function notify(schedule: Schedule, refused: boolean) {
 }
 
 async function say(admin: Admin, schedule: Schedule, role: "user" | "assistant", content: string) {
-  await admin.from("ocade_messages").insert({
+  const { error } = await admin.from("ocade_messages").insert({
     conversation_id: schedule.conversation_id,
     user_id: schedule.user_id,
     role,
     content,
     client_key: `jarvis-schedule-${schedule.id}-${schedule.next_at}-${role}`,
   });
+  // Already there from a retried tick is said; anything else is not.
+  if (error && error.code !== "23505") throw new Error(error.message);
 }
 
 async function remind(admin: Admin, schedule: Schedule): Promise<string> {
@@ -155,8 +169,10 @@ async function startScheduledWork(admin: Admin, schedule: Schedule, now: Date): 
     })
     .select("id")
     .single();
-  // One open task per computer and per conversation.
-  if (error || !task) return refuse(`${device.name} was busy with another task.`);
+  // One open task per computer and per conversation (a unique index says so); any other
+  // refusal is a failed write, retried by the next tick rather than reported as busy.
+  if (error?.code === "23505") return refuse(`${device.name} was busy with another task.`);
+  if (error || !task) throw new Error(error?.message ?? "The task was not saved");
   await admin.from("jarvis_activity").insert({
     user_id: schedule.user_id,
     task_id: task.id,

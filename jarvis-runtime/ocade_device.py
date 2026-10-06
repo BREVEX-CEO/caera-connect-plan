@@ -407,7 +407,9 @@ class Agent:
                 self.resume_asked.clear()
             self.state.update(busy=bool(reply.get("busy")), background=bool(reply.get("background")),
                               task=reply.get("task"))
-            results, frame = [], None
+            # Only what OCADE kept leaves the journal: a result it could not save goes again.
+            again = {a.get("id") for a in reply.get("acks") or [] if a.get("outcome") == "retry"}
+            results, frame = [r for r in results if r.get("id") in again], None
             self._keep_pending(results)
             if active and active["id"] in reply.get("cancel", []):
                 self.cancel.set()  # stopped in OCADE (web STOP, Take Over, task ended)

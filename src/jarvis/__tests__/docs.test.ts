@@ -37,6 +37,8 @@ describe("documentation pages read for JARVIS", () => {
         "<ul><li>One</li><li>Two</li></ul></body></html>",
     );
     expect(title).toBe("Excel & VBA");
+    // A reference that names no character is a replacement character, never a crash.
+    expect(pageText("<p>&#65;&#1114112;&#xD800;&#x41;</p>").text).toBe("A��A");
     expect(text).not.toContain("steal");
     expect(text).toContain("Use Range.Value to set.");
     expect(text).toContain("- One");

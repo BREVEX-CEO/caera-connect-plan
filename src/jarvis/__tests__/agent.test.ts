@@ -569,3 +569,160 @@ describe("no JARVIS use available mid-task", () => {
     expect(h.status()).toBe("waiting");
   });
 });
+
+describe("a sequence: several known actions, one model step", () => {
+  const start = call("start_task", { title: "Files", where: "computer", steps: ["work"] });
+
+  it("runs every action in order without asking the model between them", async () => {
+    const h = harness([
+      { text: "", toolCalls: [start] },
+      {
+        text: "",
+        toolCalls: [
+          call("computer", {
+            sequence: [
+              { action: "file_mkdir", path: "out" },
+              { action: "file_copy", path: "a.txt", to: "out/a.txt" },
+              { action: "file_read", path: "out/a.txt" },
+            ],
+          }),
+        ],
+      },
+      { text: "", toolCalls: [call("finish_task", { outcome: "completed", result: "ok" })] },
+    ]);
+    await runJarvisTurn(h.input, h.hooks, h.deps);
+    expect(h.queued.map((a) => (a as { action: string }).action)).toEqual([
+      "file_mkdir",
+      "file_copy",
+      "file_read",
+    ]);
+    expect(h.deps.model).toHaveBeenCalledTimes(4); // start, the sequence, finish, the answer: not 6
+    const told = h.seen[2]!.at(-1)!.content;
+    expect(told).toContain('"sequence"');
+  });
+
+  it("stops at the first action that does not succeed and runs nothing after it", async () => {
+    const h = harness(
+      [
+        { text: "", toolCalls: [start] },
+        {
+          text: "",
+          toolCalls: [
+            call("computer", {
+              sequence: [
+                { action: "file_read", path: "a.txt" },
+                { action: "file_read", path: "missing.txt" },
+                { action: "file_trash", path: "a.txt" },
+              ],
+            }),
+          ],
+        },
+      ],
+      { a: [{ status: "done" }, { status: "failed", summary: "That file does not exist" }] },
+    );
+    await runJarvisTurn(h.input, h.hooks, h.deps);
+    expect(h.queued).toHaveLength(2);
+    expect(h.seen[2]!.at(-1)!.content).toContain('"stoppedAfter":2');
+  });
+
+  it("acts on what the previous step left only for the same element, never on coordinates", async () => {
+    const seenPage = {
+      observationId: "o1",
+      elements: [{ ref: "e3", role: "textbox", name: "Search" }],
+    };
+    const h = harness(
+      [
+        { text: "", toolCalls: [call("start_task", { title: "Web", where: "browser", steps: ["s"] })] },
+        { text: "", toolCalls: [call("browser", { action: "observe" })] },
+        {
+          text: "",
+          toolCalls: [
+            call("browser", {
+              sequence: [
+                { action: "type", ref: "e3", observationId: "o1", text: "ocade" },
+                { action: "press", key: "Enter" },
+                { action: "click", ref: "e3", observationId: "latest" },
+                { action: "click_at", x: 5, y: 5, observationId: "latest" },
+              ],
+            }),
+          ],
+        },
+      ],
+      {
+        a: [
+          { status: "done", result: { observation: seenPage } },
+          { status: "done", result: { observation: { ...seenPage, observationId: "o2" } } },
+          { status: "done", result: { observation: { ...seenPage, observationId: "o3" } } },
+          { status: "done", result: { observation: { ...seenPage, observationId: "o4" } } },
+        ],
+      },
+    );
+    await runJarvisTurn(h.input, h.hooks, h.deps);
+    // The click used the observation the press returned; the coordinate step never ran.
+    expect(h.queued.at(-1)).toEqual({ action: "click", ref: "e3", observationId: "o3" });
+    expect(h.queued).toHaveLength(4);
+    expect(JSON.stringify(h.seen[3])).toContain("Coordinates need the observation");
+  });
+
+  it("refuses a later step when its element changed since the model saw it", async () => {
+    const before = { observationId: "o1", elements: [{ ref: "e1", role: "button", name: "Save" }] };
+    const after = { observationId: "o2", elements: [{ ref: "e1", role: "button", name: "Delete" }] };
+    const h = harness(
+      [
+        { text: "", toolCalls: [call("start_task", { title: "Web", where: "browser", steps: ["s"] })] },
+        { text: "", toolCalls: [call("browser", { action: "observe" })] },
+        {
+          text: "",
+          toolCalls: [
+            call("browser", {
+              sequence: [
+                { action: "scroll", direction: "down" },
+                { action: "click", ref: "e1", observationId: "latest" },
+              ],
+            }),
+          ],
+        },
+      ],
+      { a: [{ status: "done", result: { observation: before } }, { status: "done", result: { observation: after } }] },
+    );
+    await runJarvisTurn(h.input, h.hooks, h.deps);
+    expect(h.queued).toEqual([{ action: "observe" }, { action: "scroll", direction: "down" }]);
+    expect(JSON.stringify(h.seen[3])).toContain("changed or is gone");
+  });
+});
+
+describe("STOP between the calls of one reply", () => {
+  it("runs no later call and writes nothing after STOP", async () => {
+    const h = harness([
+      { text: "", toolCalls: [call("remember", { fact: "one" }), call("remember", { fact: "two" })] },
+    ]);
+    h.deps.remember = vi.fn(async () => {
+      h.controller.abort();
+      return { ok: true };
+    });
+    await expect(
+      runJarvisTurn({ ...h.input, memoryEnabled: true }, h.hooks, h.deps),
+    ).rejects.toBeInstanceOf(Stopped);
+    expect(h.deps.remember).toHaveBeenCalledTimes(1);
+  });
+
+  it("a decision nobody will make ends with the turn when it is stopped or left", async () => {
+    const h = harness(
+      [
+        { text: "", toolCalls: [start()] },
+        { text: "", toolCalls: [call("computer", { action: "file_delete", path: "a.txt" })] },
+      ],
+      { a: [{ status: "needs_confirmation", summary: "Permanently delete a.txt?" }] },
+    );
+    h.hooks.confirm = vi.fn(() => {
+      setTimeout(() => h.controller.abort(), 0);
+      return new Promise<boolean>(() => undefined); // the banner is gone with the page
+    });
+    await expect(runJarvisTurn(h.input, h.hooks, h.deps)).rejects.toBeInstanceOf(Stopped);
+    expect(h.deps.decide).not.toHaveBeenCalled();
+  });
+
+  function start() {
+    return call("start_task", { title: "Files", where: "computer", steps: ["work"] });
+  }
+});

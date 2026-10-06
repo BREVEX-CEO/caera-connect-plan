@@ -39,13 +39,17 @@ const ENTITIES: Record<string, string> = {
   nbsp: " ",
 };
 
+/** A character reference as its character; one that names no Unicode character is U+FFFD. */
+function codePoint(name: string): string {
+  const hex = name[1] === "x" || name[1] === "X";
+  const value = Number.parseInt(name.slice(hex ? 2 : 1), hex ? 16 : 10);
+  const valid = value > 0 && value <= 0x10ffff && !(value >= 0xd800 && value <= 0xdfff);
+  return valid ? String.fromCodePoint(value) : "�";
+}
+
 const decode = (text: string) =>
   text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (whole, name: string) =>
-    name.startsWith("#")
-      ? String.fromCodePoint(
-          Number.parseInt(name.slice(name[1] === "x" ? 2 : 1), name[1] === "x" ? 16 : 10) || 32,
-        )
-      : (ENTITIES[name.toLowerCase()] ?? whole),
+    name.startsWith("#") ? codePoint(name) : (ENTITIES[name.toLowerCase()] ?? whole),
   );
 
 export function pageText(whole: string): { title: string; text: string } {

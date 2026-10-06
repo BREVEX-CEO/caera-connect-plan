@@ -943,6 +943,26 @@ export function ConnectDevice({
       >
         {request.isLoading ? (
           <p className="text-muted-foreground">Checking the request…</p>
+        ) : request.isError ? (
+          <>
+            <p>OCADE could not check this connection request just now.</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => void request.refetch()}
+                className="rounded-md border border-border px-3 py-1.5"
+              >
+                Try again
+              </button>
+              <button
+                type="button"
+                onClick={() => onDone(false)}
+                className="rounded-md border border-border px-3 py-1.5"
+              >
+                Close
+              </button>
+            </div>
+          </>
         ) : !row ? (
           <>
             <p>This connection request has expired or was already used.</p>

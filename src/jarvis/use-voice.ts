@@ -133,7 +133,9 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
 
   const listen = useCallback((): boolean => {
     const Recogniser = recogniser();
-    if (!Recogniser) return false;
+    // Every way into listening (a restart after silence, the end of speech, Continue) checks
+    // here: after End, Pause or leaving, a late timer cannot open the microphone again.
+    if (!Recogniser || stateRef.current !== "listening") return false;
     if (recognition.current) return true;
     const r = new Recogniser();
     // Waiting for the wake phrase happens on the device, or not at all.
@@ -280,7 +282,8 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
 
   const resume = useCallback(() => {
     if (stateRef.current !== "paused") return;
-    if (window.speechSynthesis.paused) {
+    // Hearing works without speaking: a browser with no speech output just listens again.
+    if ("speechSynthesis" in window && window.speechSynthesis.paused) {
       set("speaking");
       window.speechSynthesis.resume();
     } else {

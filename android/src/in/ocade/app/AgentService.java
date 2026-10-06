@@ -43,6 +43,7 @@ public final class AgentService extends Service {
     private final AtomicBoolean stopping = new AtomicBoolean(false);
     private final AtomicBoolean stopAll = new AtomicBoolean(false);
     private volatile AtomicBoolean cancel = new AtomicBoolean(false);
+    private final Object admit = new Object();
     private Bubble bubble;
     private final Handler main = new Handler(Looper.getMainLooper());
 
@@ -73,9 +74,11 @@ public final class AgentService extends Service {
 
     /** STOP JARVIS on this phone: the running step now, everything else at OCADE. */
     void stopEverything() {
-        cancel.set(true);
+        synchronized (admit) { // never between a step's admission and its token (see work)
+            cancel.set(true);
+            stopAll.set(true);
+        }
         Control.cancelGestures();
-        stopAll.set(true);
         setStatus("Stopping");
     }
 
@@ -152,7 +155,18 @@ public final class AgentService extends Service {
                 if (System.currentTimeMillis() - appsSent > 3_600_000) {
                     body.put("apps", new JSONArray(Control.apps(this)));
                 }
-                Identity.Reply reply = identity.exchange(body);
+                // The control-loss bound holds while the exchange itself blocks, not only after it fails.
+                final AtomicBoolean held = cancel;
+                Runnable lost = () -> held.set(true);
+                if (step != null) {
+                    main.postDelayed(lost, Math.max(0, CONTROL_LOSS_MS - (System.currentTimeMillis() - reached)));
+                }
+                Identity.Reply reply;
+                try {
+                    reply = identity.exchange(body);
+                } finally {
+                    main.removeCallbacks(lost);
+                }
                 String error = reply.body.optString("error");
                 if ((reply.status == 401 || reply.status == 410)
                         && ("device_not_enrolled".equals(error) || "enrollment_expired".equals(error))) {
@@ -174,7 +188,19 @@ public final class AgentService extends Service {
                 reached = System.currentTimeMillis();
                 if (body.has("apps")) appsSent = reached;
                 if (body.has("stop")) stopAll.set(false);
-                results = new JSONArray();
+                // Only what OCADE kept leaves: a result it could not save is sent again.
+                JSONArray acks = reply.body.optJSONArray("acks");
+                JSONArray again = new JSONArray();
+                for (int i = 0; acks != null && i < acks.length(); i++) {
+                    JSONObject ack = acks.getJSONObject(i);
+                    if (!"retry".equals(ack.optString("outcome"))) continue;
+                    for (int j = 0; j < results.length(); j++) {
+                        if (ack.optString("id").equals(results.getJSONObject(j).optString("id"))) {
+                            again.put(results.getJSONObject(j));
+                        }
+                    }
+                }
+                results = again;
                 frame = null;
                 task = reply.body.optJSONObject("task");
                 boolean busy = reply.body.optBoolean("busy");
@@ -191,8 +217,10 @@ public final class AgentService extends Service {
                     JSONObject command = commands.getJSONObject(0);
                     stepId = command.getString("id");
                     stepTask = command.optString("taskId");
-                    cancel = new AtomicBoolean(false);
-                    AtomicBoolean mine = cancel;
+                    AtomicBoolean mine;
+                    synchronized (admit) { // a STOP just before cannot be lost on the old token
+                        mine = cancel = new AtomicBoolean(stopAll.get());
+                    }
                     JSONObject action = command.getJSONObject("action");
                     boolean confirmed = command.optBoolean("confirmed");
                     outcome[0] = Control.result("failed", "The step failed");

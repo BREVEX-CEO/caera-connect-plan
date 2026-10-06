@@ -474,8 +474,8 @@ export async function exchange(
   commands: DeviceCommand[];
   /** Running actions the device must cancel now (STOP, Take Over, task ended). */
   cancel: string[];
-  /** What happened to each reported result: kept, or why not. */
-  acks?: { id: string; outcome: "accepted" | "stopped" | "unknown" }[];
+  /** What happened to each reported result: kept, or why not; "retry": send it again. */
+  acks?: { id: string; outcome: "accepted" | "stopped" | "unknown" | "retry" }[];
   /** Background Mode: the running task this computer should ask OCADE to continue now. */
   continue?: string;
   rotated?: boolean;
@@ -556,7 +556,7 @@ export async function exchange(
   // Every reply names the protocol and the device it is for, so a device can
   // refuse work that was not addressed to it; `busy` and `background` decide
   // whether it stays active or goes dormant.
-  const acks: { id: string; outcome: "accepted" | "stopped" | "unknown" }[] = [];
+  const acks: { id: string; outcome: "accepted" | "stopped" | "unknown" | "retry" }[] = [];
   const envelope = {
     acks,
     protocol: PROTOCOL.version,
@@ -598,7 +598,7 @@ export async function exchange(
       observation: result.observation ?? null,
       ...(result.detail === undefined ? {} : { detail: result.detail }),
     });
-    const { data: settled } = await admin
+    const { data: settled, error: settleError } = await admin
       .from("jarvis_activity")
       .update({
         status,
@@ -617,9 +617,14 @@ export async function exchange(
       acks.push({ id: result.id, outcome: "accepted" });
       continue;
     }
+    // Not saved: the device keeps this result and sends it again, never drops the only copy.
+    if (settleError) {
+      acks.push({ id: result.id, outcome: "retry" });
+      continue;
+    }
     // A result for an action that was stopped meanwhile never counts as done;
     // it is kept only as the device's acknowledgement of the Stop.
-    const { data: stopped } = await admin
+    const { data: stopped, error: stopError } = await admin
       .from("jarvis_activity")
       .update({ result: { status: "stopped", late: result.status } })
       .eq("id", result.id)
@@ -627,7 +632,10 @@ export async function exchange(
       .eq("status", "cancelled")
       .is("result", null)
       .select("id");
-    acks.push({ id: result.id, outcome: stopped?.length ? "stopped" : "unknown" });
+    acks.push({
+      id: result.id,
+      outcome: stopError ? "retry" : stopped?.length ? "stopped" : "unknown",
+    });
   }
 
   if (input.frame) {

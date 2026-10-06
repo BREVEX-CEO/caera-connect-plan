@@ -94,8 +94,12 @@ final class Identity {
         }
         String server = server();
         boolean asked = prefs.getBoolean("askedNotifications", false);
-        // What belongs to the connection goes; what Android was already asked stays true.
-        prefs.edit().clear().putString("server", server).putBoolean("askedNotifications", asked).apply();
+        boolean wake = prefs.getBoolean("wake", false);
+        // What belongs to the connection goes. What Android was already asked stays, and so does
+        // Wake Mode: it is this phone's own listener (it opens OCADE), so the screen keeps
+        // showing the truth about a microphone that is still on.
+        prefs.edit().clear().putString("server", server).putBoolean("askedNotifications", asked)
+                .putBoolean("wake", wake).apply();
     }
 
     private PrivateKey key() {
@@ -195,14 +199,19 @@ final class Identity {
         connection.setRequestProperty(headers.getString("protocol"), String.valueOf(protocol.getInt("version")));
         connection.setRequestProperty(headers.getString("timestamp"), String.valueOf(lastStamp));
         connection.setRequestProperty(headers.getString("signature"), b64url(rawSignature(signer.sign())));
-        try (OutputStream out = connection.getOutputStream()) {
-            out.write(raw);
+        try { // released on every path, a failed write or read included
+            try (OutputStream out = connection.getOutputStream()) {
+                out.write(raw);
+            }
+            int status = connection.getResponseCode();
+            String text = "";
+            try (InputStream in = status >= 400 ? connection.getErrorStream() : connection.getInputStream()) {
+                if (in != null) text = new String(readAll(in), StandardCharsets.UTF_8);
+            }
+            return new Reply(status, text.isEmpty() ? new JSONObject() : new JSONObject(text));
+        } finally {
+            connection.disconnect();
         }
-        int status = connection.getResponseCode();
-        InputStream in = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
-        String text = in == null ? "" : new String(readAll(in), StandardCharsets.UTF_8);
-        connection.disconnect();
-        return new Reply(status, text.isEmpty() ? new JSONObject() : new JSONObject(text));
     }
 
     /** DER (what Java makes) to the raw r||s WebCrypto verifies. */

@@ -16,6 +16,12 @@ export async function stopEverywhere(recorded: () => void = () => undefined): Pr
     return;
   }
   recorded();
+  if (result.unconfirmed) {
+    toast.warning(
+      "Your tasks were stopped, but OCADE could not confirm every step on your devices ended. Press STOP again.",
+    );
+    return;
+  }
   if (!result.running.length) {
     toast.success(result.stopped ? "JARVIS stopped." : "Nothing was running.");
     return;

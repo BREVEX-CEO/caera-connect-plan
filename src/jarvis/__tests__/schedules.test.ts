@@ -118,6 +118,25 @@ describe("OCADE's clock", () => {
     expect(await row(id)).toMatchObject({ active: false, last_outcome: "Reminded" });
   });
 
+  it("a run whose words could not be saved goes back to the next tick instead of being used up", async () => {
+    const id = await schedule("Call the bank");
+    const real = admin() as { from(table: string): unknown };
+    const down = new Proxy(real, {
+      get: (target, key) =>
+        key === "from"
+          ? (table: string) =>
+              table === "ocade_messages"
+                ? { insert: async () => ({ error: { message: "unavailable", code: "57P01" } }) }
+                : target.from(table)
+          : Reflect.get(target, key),
+    });
+    await runDueSchedules(down as never, NOW);
+    expect(await row(id)).toMatchObject({ active: true });
+    expect((await row(id)).next_at.toISOString()).toBe("2026-10-01T09:00:00.000Z");
+    expect(await runDueSchedules(admin(), NOW)).toBe(1);
+    expect(await said()).toEqual(["assistant: Reminder: Call the bank"]);
+  });
+
   it("a repeating one moves to its next time and is not run again early", async () => {
     const id = await schedule("Stretch", { repeat: "daily" });
     await runDueSchedules(admin(), NOW);
