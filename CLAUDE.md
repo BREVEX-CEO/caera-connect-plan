@@ -5,12 +5,14 @@ This file contains execution rules only. Product requirements, architecture, fea
 ## 1. Authority and startup
 
 1. Read the Owner's latest instruction first.
-2. Read `PLAN.md` completely before implementation.
-3. Read `AGENTS.md`, `ToRemove.md`, the current error/debloat/strategy ledgers, and the domain authority for the area being changed.
-4. Re-check current `main`, working-tree state and deployment/test baseline before making claims.
-5. Newer explicit Owner authority wins over older conflicting text.
-6. Historical audits are evidence, not automatic current truth. Reproduce before fixing.
-7. Never modify immutable donor/source-original archives or rewrite applied migration history.
+2. Re-check current `main`, working-tree state and deployment/test baseline.
+3. Read `FULL_ERROR_AUDIT_LEDGER.md`, `PONYTAIL_DEBLOAT_LEDGER.md`, and `ELITE_PRODUCT_STRATEGY.md` completely before implementation.
+4. Read `PLAN.md` completely and use its mandatory ledger-to-phase reconciliation gate before starting or resuming any phase.
+5. Read `AGENTS.md`, `ToRemove.md`, and the domain authority/canonical documents for the area being changed.
+6. Reproduce relevant ledger findings on current code. Historical findings are evidence, not automatic current truth.
+7. Fix valid current release-scope errors first, then complete the owning phase, then run proof-based Ponytail/ToRemove cleanup, then re-run the full affected evidence.
+8. Newer explicit Owner authority wins over older conflicting text.
+9. Never modify immutable donor/source-original archives or rewrite applied migration history.
 
 ## 2. Simplicity rules
 
