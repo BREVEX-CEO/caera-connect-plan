@@ -131,10 +131,10 @@ self.addEventListener("install", (event) => {
         await cache.addAll(REQUIRED_PRECACHE);
         // Read the shell only after it is in the cache — that is where the
         // asset URLs come from.
-        const firstPaint = await firstPaintAssets(cache);
-        await Promise.allSettled(
-          [...OPTIONAL_PRECACHE, ...firstPaint].map((url) => cache.addAll([url])),
-        );
+        // The first-paint JavaScript is required: a cached shell without it
+        // cannot hydrate, so its failure keeps the previous worker instead.
+        await cache.addAll(await firstPaintAssets(cache));
+        await Promise.allSettled(OPTIONAL_PRECACHE.map((url) => cache.addAll([url])));
         await self.skipWaiting();
       })
       .catch(async (error) => {
@@ -278,9 +278,11 @@ self.addEventListener("fetch", (event) => {
            * it) for as long as the cache lived.
            */
           const page = new URL(request.url);
+          // A refused cache write costs the offline copy, never this response.
           await caches
             .open(VERSION)
-            .then((cache) => cache.put(new Request(page.origin + page.pathname), copy));
+            .then((cache) => cache.put(new Request(page.origin + page.pathname), copy))
+            .catch(() => undefined);
         }
         return response;
       })
@@ -309,7 +311,7 @@ self.addEventListener("fetch", (event) => {
         // Only successful, same-origin, basic responses are worth storing.
         // An opaque or error response cached here would be served forever.
         if (response.ok && response.type === "basic") {
-          await keepAsset(request, response.clone());
+          await keepAsset(request, response.clone()).catch(() => undefined);
         }
         return response;
       })

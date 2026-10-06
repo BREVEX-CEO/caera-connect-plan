@@ -239,6 +239,7 @@ export async function buildAccountExport(
       "This file contains the data OCADE holds for this account in its own database.",
       "Anything OCADE never received is not in here — a draft you never sent, or a file you never uploaded.",
       "Offline Intelligence is a model on your device, not account data, and is unaffected by an export or a deletion.",
+      "Not included: security credentials (recovery-code hashes, device keys, short-lived permits) and OCADE's own operator records.",
       partial
         ? "At least one table could not be read; every table that failed says so in its own entry."
         : "Every table was read in full.",

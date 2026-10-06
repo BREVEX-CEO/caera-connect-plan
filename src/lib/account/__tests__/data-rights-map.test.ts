@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { DatabaseTwin } from "../../../../scripts/db-twin.mts";
 import {
@@ -5,6 +6,7 @@ import {
   deletableAccountDataClasses,
   exportedTablesFor,
   findAccountDataClass,
+  NOT_EXPORTED,
 } from "../data-classes";
 
 /**
@@ -172,6 +174,7 @@ describe("what may and may not be erased", () => {
       "jarvis",
       "devices",
       "settings",
+      "notifications",
     ]);
   });
 
@@ -190,19 +193,31 @@ describe("what may and may not be erased", () => {
      * table the export silently omits — somebody downloads their data, deletes
      * their account, and finds afterwards that a class was never in the file.
      */
-    const deletionPath = ["ocade_conversations", "user_settings", "devices", "profiles"];
+    const deletionPath = [
+      ...readFileSync("src/lib/account/erase.server.ts", "utf8").matchAll(/from\("(\w+)"\)/g),
+    ]
+      .map((m) => m[1]!)
+      .filter((table) => !(table in NOT_EXPORTED));
+    expect(deletionPath).toContain("user_private_records");
     const covered = new Set(ACCOUNT_DATA_CLASSES.flatMap((entry) => exportedTablesFor(entry)));
     for (const table of deletionPath) expect([...covered], table).toContain(table);
   });
 
-  it("exports every JARVIS table an account owns", () => {
-    // JARVIS kept tasks, activity, memories, schedules, permissions and computers
-    // outside the export entirely until this check existed.
-    const covered = new Set(ACCOUNT_DATA_CLASSES.flatMap((entry) => exportedTablesFor(entry)));
-    const owned = [...ownerColumns]
-      .map((column) => column.split(".")[0]!)
-      .filter((table) => table.startsWith("jarvis_"));
-    expect(owned.length).toBeGreaterThan(4);
-    for (const table of owned) expect([...covered], table).toContain(table);
+  it("exports every account-linked table, or says why not (F-026)", () => {
+    // JARVIS tables, private records and usage were all once missing while the
+    // export said every table was read in full.
+    const covered = new Set<string>(
+      ACCOUNT_DATA_CLASSES.flatMap((entry) => exportedTablesFor(entry)),
+    );
+    const owned = new Set(
+      [...ownerColumns].map((column) => column.split(".")[0]!).filter((t) => tables.has(t)),
+    );
+    expect(owned.size).toBeGreaterThan(20);
+    for (const table of owned) {
+      expect(covered.has(table) || table in NOT_EXPORTED, table).toBe(true);
+    }
+    for (const table of Object.keys(NOT_EXPORTED)) {
+      expect(owned.has(table) && !covered.has(table), table).toBe(true);
+    }
   });
 });

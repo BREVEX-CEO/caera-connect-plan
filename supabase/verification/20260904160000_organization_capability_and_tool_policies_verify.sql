@@ -53,9 +53,12 @@ BEGIN
     RAISE EXCEPTION 'nothing checks which tool areas may be withheld';
   END IF;
 
-  -- A fixed slug, removed at the end of this block. The column is capped at
-  -- forty characters, so a uuid suffix does not fit.
-  DELETE FROM public.ocade_organizations WHERE slug = 'policy-verification';
+  -- A fixed slug, removed by id at the end of this block. The column is capped
+  -- at forty characters, so a uuid suffix does not fit. A real organization
+  -- holding it is never touched: verification stops instead.
+  IF EXISTS (SELECT 1 FROM public.ocade_organizations WHERE slug = 'policy-verification') THEN
+    RAISE EXCEPTION 'an organization already uses the slug policy-verification; verify on a disposable database';
+  END IF;
   INSERT INTO public.ocade_organizations (name, slug)
   VALUES ('Policy verification', 'policy-verification')
   RETURNING id INTO organization;

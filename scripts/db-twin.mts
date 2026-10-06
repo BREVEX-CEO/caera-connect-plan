@@ -395,31 +395,24 @@ export class DatabaseTwin {
     sql: string,
     session: TenantSession = {},
   ): Promise<{ rows: T[]; error?: string; errorCode?: string; errorDetail?: string }> {
+    /*
+     * One transaction per request, as PostgREST does: role and claims are
+     * transaction-local, so concurrent calls on PGlite's single connection
+     * cannot interleave identities and nothing outlives the request.
+     */
     try {
-      await this.db.exec(`set role authenticated;`);
-      await this.db.query(`select set_config('request.jwt.claim.sub', $1, false)`, [userId]);
-      await this.db.query(`select set_config('request.jwt.claim.role', 'authenticated', false)`);
-      await this.db.query(`select set_config('request.jwt.claims', $1, false)`, [
-        JSON.stringify(claimsFor(userId, session)),
-      ]);
-      const res = await this.db.query<T>(sql);
+      const res = await this.db.transaction(async (tx) => {
+        await tx.exec("set local role authenticated");
+        await tx.query(`select set_config('request.jwt.claim.sub', $1, true)`, [userId]);
+        await tx.query(`select set_config('request.jwt.claim.role', 'authenticated', true)`);
+        await tx.query(`select set_config('request.jwt.claims', $1, true)`, [
+          JSON.stringify(claimsFor(userId, session)),
+        ]);
+        return tx.query<T>(sql);
+      });
       return { rows: res.rows };
     } catch (e) {
       return refusal(e);
-    } finally {
-      /*
-       * CLEAR THE CLAIM, NOT JUST THE ROLE.
-       *
-       * `set_config(..., false)` is session-scoped, so the JWT claim outlived
-       * `reset role` and the NEXT superuser query still saw the last tenant's
-       * `auth.uid()`. PostgREST sets these per transaction; leaving one behind
-       * makes a superuser probe quietly answer as whoever ran last, which is
-       * the opposite of what a superuser probe is for.
-       */
-      await this.db.exec(`reset role;`);
-      await this.db.query(`select set_config('request.jwt.claim.sub', '', false)`);
-      await this.db.query(`select set_config('request.jwt.claim.role', '', false)`);
-      await this.db.query(`select set_config('request.jwt.claims', '', false)`);
     }
   }
 
@@ -441,20 +434,17 @@ export class DatabaseTwin {
     sql: string,
   ): Promise<{ rows: T[]; error?: string; errorCode?: string; errorDetail?: string }> {
     try {
-      await this.db.exec(`set role anon;`);
-      await this.db.query(`select set_config('request.jwt.claim.sub', '', false)`);
-      await this.db.query(`select set_config('request.jwt.claim.role', 'anon', false)`);
-      await this.db.query(`select set_config('request.jwt.claims', $1, false)`, [
-        JSON.stringify({ role: "anon" }),
-      ]);
-      const res = await this.db.query<T>(sql);
+      const res = await this.db.transaction(async (tx) => {
+        await tx.exec("set local role anon");
+        await tx.query(`select set_config('request.jwt.claim.role', 'anon', true)`);
+        await tx.query(`select set_config('request.jwt.claims', $1, true)`, [
+          JSON.stringify({ role: "anon" }),
+        ]);
+        return tx.query<T>(sql);
+      });
       return { rows: res.rows };
     } catch (e) {
       return refusal(e);
-    } finally {
-      await this.db.exec(`reset role;`);
-      await this.db.query(`select set_config('request.jwt.claim.role', '', false)`);
-      await this.db.query(`select set_config('request.jwt.claims', '', false)`);
     }
   }
 

@@ -169,3 +169,41 @@ describe("what an account may read about itself", () => {
     expect(forged.error, "an account granted itself a paid tier").toBeDefined();
   });
 });
+
+describe("the twin itself", () => {
+  it("keeps each concurrent request's identity (F-023)", async () => {
+    const uid = (who: string) =>
+      twin.asTenant<{ uid: string | null }>(who, `select auth.uid()::text as uid`);
+    const [a, b, anon] = await Promise.all([
+      uid(A),
+      uid(B),
+      twin.asAnon<{ uid: string | null }>(`select auth.uid()::text as uid`),
+    ]);
+    expect([a.rows[0]!.uid, b.rows[0]!.uid, anon.rows[0]!.uid]).toEqual([A, B, null]);
+    // Nothing outlives the request: the next superuser probe is nobody.
+    expect(
+      (await twin.asSuperuser<{ uid: string | null }>(`select auth.uid()::text as uid`))[0]!.uid,
+    ).toBeNull();
+  });
+
+  it("verification leaves existing customers' records alone (F-034, F-047)", async () => {
+    await twin.execSuperuser(
+      `insert into public.ocade_messages (conversation_id, user_id, role, content, client_key)
+         values ('${conversation}', '${A}', 'user', 'kept', 'verify-client-key-probe');
+       insert into public.legal_consent_receipts (user_id, terms_version, privacy_version, source)
+         values ('${A}', 'v1', 'v1', 'gate');`,
+    );
+    for (const file of [
+      "20260909120000_ocade_message_client_key_verify.sql",
+      "20260823140000_legal_consent_receipts_verify.sql",
+    ]) {
+      expect((await twin.runScript("supabase/verification", file)).error, file).toBeUndefined();
+    }
+    const kept = await twin.asSuperuser(
+      `select 1 from public.ocade_messages where client_key = 'verify-client-key-probe'
+       union all
+       select 1 from public.legal_consent_receipts where user_id = '${A}' and terms_version = 'v1'`,
+    );
+    expect(kept).toHaveLength(2);
+  });
+});

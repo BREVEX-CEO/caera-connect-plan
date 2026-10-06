@@ -362,7 +362,14 @@ function StaffRow({
               type="button"
               className={button}
               aria-expanded={editing}
-              onClick={() => setEditing((value) => !value)}
+              onClick={() => {
+                // Every edit starts from the record as it is now, not as it was first loaded.
+                if (!editing) {
+                  setGranted(member.granted);
+                  setDenied(member.denied);
+                }
+                setEditing(!editing);
+              }}
             >
               Change
             </button>

@@ -103,6 +103,17 @@ describe("activation is a pointer, not a move", () => {
     expect(vault.activeVersion()).toBe("v1");
   });
 
+  it("reports a pointer it could not save as not activated, and keeps the old one (F-192)", async () => {
+    await put("v1", 100);
+    await put("v2", 100);
+    expect(await vault.activate("v1")).toBe(true);
+    backing.store.writeFile = async () => false;
+    expect(await vault.activate("v2")).toBe(false);
+    expect(vault.activeVersion()).toBe("v1");
+    expect(await vault.rollback()).toBeNull();
+    expect(vault.activeVersion()).toBe("v1");
+  });
+
   it("REFUSES to activate an unverified version, however complete it looks", async () => {
     await put("v1", 100, false);
     expect(await vault.activate("v1")).toBe(false);

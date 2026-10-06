@@ -17,7 +17,7 @@ import { ModelInstallationAuthority, type AuthorityDeps } from "../installation-
 const VERSION = "ocr-2dc0ee44eb397906";
 const BYTES = 484_220_160;
 
-function authorityOver(meta: { verified: boolean } | null, onDisk: number) {
+function authorityOver(meta: { verified: boolean } | null, onDisk: number, durable = true) {
   const network = vi.fn(() => {
     throw new Error("the network was reached");
   });
@@ -26,11 +26,11 @@ function authorityOver(meta: { verified: boolean } | null, onDisk: number) {
     load: async () => {},
     readMeta: () => meta,
     bytesOf: async () => onDisk,
-    activate: async () => {},
+    activate: async () => durable,
     cleanupAfterActivation: async () => [],
     removeVersion: async () => {},
     readArtifact: async () => null,
-    writeMeta: () => {},
+    writeMeta: async () => durable,
     openWriter: async () => ({ write: async () => {}, close: async () => {} }),
   };
   const authority = new ModelInstallationAuthority({
@@ -63,5 +63,12 @@ describe("an ordinary update on a device that already installed it", () => {
     // Not vacuous: it did not skip the network by doing nothing at all. The
     // runtime was activated, on the same version, from bytes already on disk.
     expect(activated).toHaveBeenCalledWith("wasm_threaded", VERSION, expect.any(Function));
+  });
+
+  it("is not ready when the active pointer could not be saved (F-192)", async () => {
+    const { authority, activated } = authorityOver({ verified: true }, BYTES, false);
+    const state = await authority.install({ reason: "app_bootstrap" });
+    expect(state.problem).toMatch(/could not save/);
+    expect(activated).not.toHaveBeenCalled();
   });
 });

@@ -73,7 +73,8 @@ export type AccountDataClassId =
   | "profile"
   | "billing"
   | "legal"
-  | "jarvis";
+  | "jarvis"
+  | "notifications";
 
 export interface AccountDataClass {
   id: AccountDataClassId;
@@ -156,6 +157,7 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
     tables: [
       { table: "user_settings", owner: "user_id" },
       { table: "data_class_privacy", owner: "user_id" },
+      { table: "user_private_records", owner: "user_id" },
     ],
     retention: null,
   },
@@ -170,10 +172,28 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
   {
     id: "billing",
     label: "Plan access",
-    description: "Pro or Max access given to this account, by whom, why and for how long.",
-    tables: [{ table: "ocade_entitlement_grants", owner: "user_id" }],
+    description:
+      "Pro or Max access given to this account, by whom, why and for how long, and the usage counted against it.",
+    tables: [
+      { table: "ocade_entitlement_grants", owner: "user_id" },
+      { table: "ocade_unlimited_grants", owner: "user_id" },
+      { table: "ocade_commercial_usage", owner: "user_id" },
+      { table: "ocade_usage_adjustments", owner: "user_id" },
+      { table: "ocade_offline_usage_allocations", owner: "user_id" },
+      { table: "ocade_offline_usage_events", owner: "user_id" },
+    ],
     retention:
       "Plan access records are the audit trail of who gave access and why. They are kept while the account exists and are included in your export.",
+  },
+  {
+    id: "notifications",
+    label: "Notifications",
+    description: "Notifications OCADE sent you and how you asked to receive them.",
+    tables: [
+      { table: "ocade_notifications", owner: "user_id" },
+      { table: "ocade_notification_preferences", owner: "user_id" },
+    ],
+    retention: null,
   },
   {
     id: "legal",
@@ -184,6 +204,27 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
       "A consent receipt is the evidence that you were asked and answered. It is kept for as long as the record is required, and is included in your export.",
   },
 ];
+
+/**
+ * Account-linked tables the export deliberately leaves out, each with the reason.
+ * The data-rights map test fails on any account-linked table that is in neither
+ * list, so a new table cannot be silently missing from somebody's export.
+ */
+export const NOT_EXPORTED: Readonly<Partial<Record<AccountTable, string>>> = {
+  ocade_mfa_recovery_codes: "Security credential (one-way hashes); useless outside OCADE.",
+  ocade_mfa_recovery_attempts: "Short-lived rate limiting for recovery codes.",
+  ocade_device_usage_keys: "A device's signing key for offline usage; a credential.",
+  ocade_device_usage_leases: "Short-lived signed offline allowance; a credential.",
+  ocade_generation_permits: "Short-lived permit for one answer in progress.",
+  user_roles: "Legacy authorization flag; decides nothing about the account's data.",
+  ocade_staff: "Operator record, present only for OCADE staff.",
+  ocade_staff_invites: "Operator record, present only for OCADE staff.",
+  ocade_admin_actions: "Operator audit trail, kept for OCADE's own accountability.",
+  ocade_support_cases: "Operator audit trail of support access.",
+  ocade_service_controls: "Service-wide switch, not account data.",
+  ocade_service_control_events: "Operator audit trail of service-wide switches.",
+  compliance_audit_log: "Operator compliance record.",
+};
 
 export function findAccountDataClass(id: string): AccountDataClass | null {
   return ACCOUNT_DATA_CLASSES.find((entry) => entry.id === id) ?? null;

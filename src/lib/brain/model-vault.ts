@@ -322,10 +322,13 @@ export class ModelVault {
     if (current === version) return true;
     // The outgoing version is remembered BEFORE the pointer moves, so a
     // rollback target exists even if this process stops immediately after.
+    const before = { active: this.state.active, previous: this.state.previous };
     if (current) this.state.previous = current;
     this.state.active = version;
-    await this.save();
-    return true;
+    // Not durable is not active: the next start would read the old pointer.
+    if (await this.save()) return true;
+    Object.assign(this.state, before);
+    return false;
   }
 
   /**
@@ -346,8 +349,10 @@ export class ModelVault {
     const current = this.state.active;
     this.state.active = previous;
     this.state.previous = current;
-    await this.save();
-    return previous;
+    if (await this.save()) return previous;
+    this.state.active = current;
+    this.state.previous = previous;
+    return null;
   }
 
   /* ------------------------------------------------------------ metadata -- */

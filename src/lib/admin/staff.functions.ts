@@ -345,6 +345,11 @@ export const readCustomer = createServerFn({ method: "GET" })
       may("security.read"),
     ]);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // A failed read is not an empty history: the whole detail fails and says so.
+    const must = <R extends { data: unknown; error: unknown }>(result: R, what: string) => {
+      if (result.error) throw new Error(`This customer's ${what} could not be read. Try again.`);
+      return result.data as R["data"];
+    };
     const detail: CustomerDetail = {
       usage: null,
       unlimited: null,
@@ -362,8 +367,8 @@ export const readCustomer = createServerFn({ method: "GET" })
           }),
         ),
       );
-      detail.usage = surfaces.flatMap(({ data: rows }, at) =>
-        (rows ?? []).map((row) => ({
+      detail.usage = surfaces.flatMap((result, at) =>
+        (must(result, "usage") ?? []).map((row) => ({
           surface: at === 0 ? ("chat" as const) : ("jarvis" as const),
           kind: row.window_kind,
           used: Number(row.used_hundredths) / 100,
@@ -378,7 +383,7 @@ export const readCustomer = createServerFn({ method: "GET" })
           .eq("surface", surface)
           .order("issued_at", { ascending: false })
           .limit(1)
-          .then(({ data: rows }) => rows?.[0]?.issued_at ?? null);
+          .then((result) => must(result, "last use")?.[0]?.issued_at ?? null);
       const [unlimited, chat, jarvis] = await Promise.all([
         unlimitedFor(data.userId),
         last("chat"),
@@ -389,12 +394,15 @@ export const readCustomer = createServerFn({ method: "GET" })
     }
     if (tasks) {
       // Titles and states only: what JARVIS was asked, never what it saw.
-      const { data: rows } = await supabaseAdmin
-        .from("jarvis_tasks")
-        .select("title, status, updated_at")
-        .eq("user_id", data.userId)
-        .order("updated_at", { ascending: false })
-        .limit(20);
+      const rows = must(
+        await supabaseAdmin
+          .from("jarvis_tasks")
+          .select("title, status, updated_at")
+          .eq("user_id", data.userId)
+          .order("updated_at", { ascending: false })
+          .limit(20),
+        "tasks",
+      );
       detail.tasks = (rows ?? []).map((row) => ({
         title: row.title,
         status: row.status,
@@ -402,13 +410,14 @@ export const readCustomer = createServerFn({ method: "GET" })
       }));
     }
     if (security) {
-      const [{ data: user }, { data: factors }] = await Promise.all([
+      const [userRead, factorRead, sessionRead] = await Promise.all([
         supabaseAdmin.auth.admin.getUserById(data.userId),
         supabaseAdmin.auth.admin.mfa.listFactors({ userId: data.userId }),
+        supabaseAdmin.rpc("ocade_list_account_sessions", { p_user_id: data.userId }),
       ]);
-      const { data: sessions } = await supabaseAdmin.rpc("ocade_list_account_sessions", {
-        p_user_id: data.userId,
-      });
+      const user = must(userRead, "sign-in record");
+      const factors = must(factorRead, "second factor");
+      const sessions = must(sessionRead, "sessions");
       detail.security = {
         secondFactor: (factors?.factors ?? []).some((factor) => factor.status === "verified"),
         sessions: (sessions ?? []).length,

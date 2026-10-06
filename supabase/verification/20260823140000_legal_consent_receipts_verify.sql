@@ -74,7 +74,8 @@ BEGIN
     _rejected := true;
   END;
 
-  DELETE FROM public.legal_consent_receipts WHERE terms_version = 'v1' AND privacy_version = 'v1';
+  -- Nothing to clean up: the inner block rolled back its own inserts, and an
+  -- accepted probe raises below, which rolls the whole check back.
 
   IF NOT _rejected THEN
     RAISE EXCEPTION 'legal_consent_receipts.source accepted a value outside its check constraint';

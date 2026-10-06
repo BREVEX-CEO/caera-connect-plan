@@ -31,8 +31,7 @@ BEGIN
     account, 'sub_verify_upgrade', 'ctm_verify', 'pro_product', 'pri_pro_monthly',
     'active', now() - INTERVAL '1 day', now() + INTERVAL '29 days', false,
     'sandbox', now() - INTERVAL '1 day', 'subscription'
-  )
-  ON CONFLICT (paddle_subscription_id) DO NOTHING;
+  );  -- no ON CONFLICT: an existing row with this id is never edited or deleted here
 
   -- An upgrade: the event names a different plan.
   PERFORM public.apply_payment_webhook_event(

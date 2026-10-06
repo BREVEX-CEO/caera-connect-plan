@@ -103,7 +103,8 @@ BEGIN
     _rejected := true;
   END;
 
-  DELETE FROM public.subscriptions WHERE paddle_subscription_id = 'verify_sub_1';
+  -- Nothing to clean up: a rejected insert left nothing, and an accepted one
+  -- raises below, which rolls the whole check back.
 
   IF NOT _rejected THEN
     RAISE EXCEPTION 'subscriptions.kind accepted a value outside its check constraint';

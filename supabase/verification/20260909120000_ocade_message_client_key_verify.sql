@@ -43,7 +43,8 @@ BEGIN
     duplicate_refused := true;
   END;
 
-  DELETE FROM public.ocade_messages WHERE client_key = 'verify-client-key-probe';
+  -- Nothing to clean up: the inner block rolled back its own inserts, and an
+  -- accepted probe raises below, which rolls the whole check back.
 
   IF NOT duplicate_refused AND EXISTS (SELECT 1 FROM public.ocade_conversations) THEN
     RAISE EXCEPTION 'a replayed client_key was accepted twice';

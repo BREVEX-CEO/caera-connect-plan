@@ -271,6 +271,16 @@ const AUTOMATIC_REASONS = new Set<InstallReason>(["app_bootstrap", "warm", "resu
 
 const UNINSTALL_INTENT_KEY = "ocade.model.uninstalled.at.v1";
 
+/** The record that makes a version active could not be written: not ready, and saying why. */
+const NOT_SAVED = {
+  ok: false as const,
+  reason:
+    "OCADE could not save its record of this device's intelligence. Free some storage and try again.",
+  stop: true,
+  stage: "recoverable_error" as InstallStage,
+  remedies: ["retry"] as InstallRemedy[],
+};
+
 export class ModelInstallationAuthority {
   private state: InstallState = INITIAL;
   private readonly listeners = new Set<(state: InstallState) => void>();
@@ -573,7 +583,7 @@ export class ModelInstallationAuthority {
     const existing = this.deps.vault.readMeta(target.version);
     const onDisk = await this.deps.vault.bytesOf(target.version);
     if (existing?.verified && onDisk > 0) {
-      await this.deps.vault.activate(target.version);
+      if (!(await this.deps.vault.activate(target.version))) return NOT_SAVED;
       await this.deps.vault.cleanupAfterActivation(target.version);
       return this.activate(path, target.version, signal);
     }
@@ -601,12 +611,12 @@ export class ModelInstallationAuthority {
       const blob = await this.deps.vault.readArtifact(target.version);
       const digest = blob ? await this.deps.hashBlob(blob, signal) : null;
       if (digest !== null && digest.toLowerCase() === target.sha256.toLowerCase()) {
-        this.deps.vault.writeMeta(target.version, {
+        const recorded = await this.deps.vault.writeMeta(target.version, {
           verified: true,
           expectedBytes: onDisk,
           sha256: target.sha256,
         });
-        await this.deps.vault.activate(target.version);
+        if (!recorded || !(await this.deps.vault.activate(target.version))) return NOT_SAVED;
         await this.deps.vault.cleanupAfterActivation(target.version);
         this.emit({ kind: "adopted_existing", version: target.version });
         return this.activate(path, target.version, signal);
@@ -828,12 +838,12 @@ export class ModelInstallationAuthority {
       };
     }
 
-    this.deps.vault.writeMeta(target.version, {
+    const recorded = await this.deps.vault.writeMeta(target.version, {
       verified: true,
       expectedBytes: result.bytes,
       sha256: target.sha256,
     });
-    await this.deps.vault.activate(target.version);
+    if (!recorded || !(await this.deps.vault.activate(target.version))) return NOT_SAVED;
     void persistence;
 
     this.emit({
