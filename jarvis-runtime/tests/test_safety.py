@@ -620,7 +620,10 @@ class UninstallTest(unittest.TestCase):
                 with socket.create_connection(("127.0.0.1", ocade_agent.SINGLE_INSTANCE_PORT), 2) as conn:
                     conn.sendall(word)
                     conn.settimeout(3)
-                    self.assertEqual(conn.recv(8), b"")
+                    said = b""
+                    while chunk := conn.recv(64):
+                        said += chunk
+                    self.assertEqual(said, ocade_agent.GREETING)  # a greeting, never "ok"
             self.assertEqual(ended, [])
         finally:
             guard.close()

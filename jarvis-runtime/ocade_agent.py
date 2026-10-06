@@ -97,7 +97,10 @@ def stop_running_agent(timeout_s: float = 8.0) -> bool:
         token = (ocade_device.HOME / "exit.token").read_text().strip()
         with socket.create_connection(("127.0.0.1", SINGLE_INSTANCE_PORT), timeout=2) as conn:
             conn.sendall(f"exit {token}".encode())
-            conn.recv(8)
+            # Read to the end: closing with the greeting unread resets the connection
+            # before the agent has read the exit word.
+            while conn.recv(64):
+                pass
     except OSError:
         pass  # nothing is listening: no agent is running
     deadline = time.monotonic() + timeout_s
