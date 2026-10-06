@@ -192,3 +192,37 @@ Cleanup must reduce code and attack surface without reducing the universal engin
 - Kept on purpose: Excel/Word adapters (measured fidelity: Excel's own calculation, number formats and conditional formatting, Word styles; the universal engine routes through them via `sheet_edit`/`doc_edit`), the Linux confinement branch (about 30 lines, security), manual live-proof scripts (`scripts/e2e/live-usage-journey.mjs`).
 - **`admin.ocade.in` (retired 2026-10-03, after the integrated console passed the admin journey and the PostgreSQL suites):** `src/lib/admin/console-host.ts`, `console.functions.ts`, `open-console.ts`, `src/routes/auth.console.tsx`, the Worker's console-origin redirect, the `admin.ocade.in` custom-domain route, `console-host.test.ts`, `console-sessions.test.ts`, the stub's console sessions, and the account-menu entry. Kept: migrations `20261001090000`/`095100` (history; superseded by `20261003090000`, applied with it at release).
 - **Final cleanup wave (2026-10-03, after the integrated console and the real-task fixes):** `DatabaseTwin`'s row-planting family (`plantRow`, the catalogue readers and `filler`; 457 lines, no caller since the isolation sweep moved to explicit fixtures), `src/ffprobe-static.d.ts` (types for a package OCADE no longer depends on), and three exports used only inside their own files (`enrollInput`, the assurance middleware's `readSessionAssurance`, `SecondFactorRequired`). Checked with knip in normal and production mode; kept on purpose: test-only exports that unit tests import, the per-class account-data deletion module (a data-rights capability, not dead duplication), the Excel/Word adapters, the stub's SQL mirror and the journeys' repeated helpers (test tooling, not product), and the legacy `user_roles` admin row until the console release is live in production.
+
+---
+
+# Owner cleanup authority — 2026-10-06 — Maximum proof-based debloat
+
+This is newer Owner authority.
+
+The active product/control/UI implementation should be reduced as aggressively as correctness permits, targeting approximately 50% fewer active implementation lines overall and going further when equivalent behavior remains proven.
+
+Priority retirement classes:
+
+1. redundant app-specific controllers/aliases/menu maps/selectors after universal parity;
+2. independent privileged execution paths outside the canonical broker;
+3. screenshot/click loops used where API/script/semantic execution exists;
+4. stored/reusable coordinates;
+5. routine polling replaced by authenticated events with bounded fallback polling;
+6. duplicate task/cancellation/retry/settlement lifecycles;
+7. duplicate browser authorities;
+8. duplicate file/document backup/recovery mechanics;
+9. duplicate permission/state/entitlement display logic;
+10. customer-facing internal-tool selection;
+11. redundant Android setup screens/toggles once one-button guided setup owns the flow;
+12. stale wake-download/browser-developer-setup paths;
+13. obsolete prototype/donor GUI adaptations in active code;
+14. unused dependencies/config flags/type shims/build aliases;
+15. historical-current documentation duplication in active guidance;
+16. expensive always-mounted UI/graph work that can be lazy/bounded.
+
+Do not remove live vision/input entirely: it remains the last-resort universal fallback for genuinely non-semantic/custom surfaces. Remove it from the normal fast path, not from emergency capability, unless equivalent universal coverage is proven without it.
+
+Do not remove specialized adapters that still prove a material fidelity/safety/performance/platform advantage. First route them behind the common broker; delete only when a universal replacement proves parity.
+
+For every cleanup wave, publish before/after active line counts, file/module counts, dependency counts, bundle/package size, p50/p95 relevant latency, tests, real workflow evidence and defects found. A smaller tree that breaks capability is a failed cleanup.
+
