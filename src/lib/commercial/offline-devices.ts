@@ -92,14 +92,16 @@ export async function revokeOfflineDevice(deviceId: string): Promise<void> {
    * outcome that existed before this and is never worse than it.
    */
   try {
-    const { forgetOfflineUsageLease, readInstalledOfflineLeases } =
+    const { forgetOfflineUsageLease, readInstalledOfflineLeases, signOfflineClosure } =
       await import("./offline-counter");
     const held = await readInstalledOfflineLeases(identity!.accountId, deviceId);
     for (const entry of held) {
       await forgetOfflineUsageLease(identity!.accountId, deviceId, entry.lease.payload.leaseId);
     }
+    const closure = await signOfflineClosure(identity!.accountId, deviceId);
+    if (!closure) return;
     const { closeOfflineUsageForRevokedDevice } = await import("./offline-usage.functions");
-    await closeOfflineUsageForRevokedDevice({ data: { deviceId } });
+    await closeOfflineUsageForRevokedDevice({ data: { deviceId, closure } });
   } catch {
     /* The device is removed either way, which is what was asked for. */
   }

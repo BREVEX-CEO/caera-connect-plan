@@ -242,8 +242,9 @@ export const reconcileOfflineUsage = createServerFn({ method: "POST" })
  *
  *   - the device must be REVOKED, so it can never be issued another block;
  *   - the browser calls this for ITS OWN device, immediately after reporting
- *     everything it spent and deleting its local copy of the lease, so there is
- *     no signed block left anywhere that could still be spent.
+ *     everything it spent and deleting its local copy of the lease, and PROVES
+ *     it by signing the closure with that device's own key. The server checks
+ *     the signature, so this is enforced rather than assumed (F-067).
  *
  * A device removed from a DIFFERENT browser is not returned here: that browser
  * may hold a signed block, offline, that it has not reported yet, and giving
@@ -255,8 +256,8 @@ export const reconcileOfflineUsage = createServerFn({ method: "POST" })
  */
 export const closeOfflineUsageForRevokedDevice = createServerFn({ method: "POST" })
   .middleware([requireSession])
-  .validator((data: { deviceId: string }) => {
-    if (!data?.deviceId) throw new Error("That device is not valid.");
+  .validator((data: { deviceId: string; closure: string }) => {
+    if (!data?.deviceId || !data.closure) throw new Error("That device is not valid.");
     return data;
   })
   .handler(async ({ data, context }) => {
@@ -277,9 +278,20 @@ export const closeOfflineUsageForRevokedDevice = createServerFn({ method: "POST"
     });
     if (error) throw new Error("That device's offline allowance could not be read.");
 
+    const held = (rows ?? []).filter((row) => row.device_id === data.deviceId);
+    if (held.length === 0) return { returnedHundredths: 0 };
+    const { verifyOfflineClosure } = await import("./offline-lease.server");
+    const proven = await verifyOfflineClosure({
+      publicKeyBase64: held[0]!.device_public_key,
+      accountId: context.userId,
+      deviceId: data.deviceId,
+      signature: data.closure,
+    });
+    // Another browser cannot know this device spent nothing more: its block expires instead.
+    if (!proven) return { returnedHundredths: 0 };
+
     let returnedHundredths = 0;
-    for (const row of rows ?? []) {
-      if (row.device_id !== data.deviceId) continue;
+    for (const row of held) {
       const { data: returned } = await supabaseAdmin.rpc("ocade_return_offline_usage", {
         p_user_id: context.userId,
         p_device_id: data.deviceId,

@@ -1,6 +1,7 @@
 import type { GenerationSurface } from "./generation-gate";
 import {
   OFFLINE_LEASE_ALGORITHM,
+  offlineClosureSigningBytes,
   offlineEventSigningBytes,
   ownedArrayBuffer,
   sha256Base64,
@@ -483,6 +484,26 @@ export function releaseOfflineGeneration(input: {
  * is verified from its first sequence, so a device that keeps half of one can
  * never report the rest.
  */
+/** Sign this device's closure with its own key; null when this browser holds no key for it. */
+export async function signOfflineClosure(
+  accountId: string,
+  deviceId: string,
+): Promise<string | null> {
+  const db = await openDb();
+  try {
+    const key = await readDeviceKey(db, accountId, deviceId);
+    if (!key) return null;
+    const signature = await crypto.subtle.sign(
+      { name: OFFLINE_LEASE_ALGORITHM },
+      key.privateKey,
+      ownedArrayBuffer(offlineClosureSigningBytes(accountId, deviceId)),
+    );
+    return encodeBase64(new Uint8Array(signature));
+  } finally {
+    db.close();
+  }
+}
+
 export async function forgetOfflineUsageLease(
   accountId: string,
   deviceId: string,

@@ -1,6 +1,7 @@
 import {
   OFFLINE_LEASE_ALGORITHM,
   offlineEventSigningBytes,
+  offlineClosureSigningBytes,
   offlineLeaseSigningBytes,
   ownedArrayBuffer,
   sha256Base64,
@@ -144,6 +145,25 @@ export async function importDeviceEventPublicKey(rawBase64: string): Promise<Cry
     false,
     ["verify"],
   );
+}
+
+/** Did the device holding this public key sign its own closure? */
+export async function verifyOfflineClosure(input: {
+  publicKeyBase64: string;
+  accountId: string;
+  deviceId: string;
+  signature: string;
+}): Promise<boolean> {
+  try {
+    return await crypto.subtle.verify(
+      { name: OFFLINE_LEASE_ALGORITHM },
+      await importDeviceEventPublicKey(input.publicKeyBase64),
+      ownedArrayBuffer(decodeBase64(input.signature)),
+      ownedArrayBuffer(offlineClosureSigningBytes(input.accountId, input.deviceId)),
+    );
+  } catch {
+    return false;
+  }
 }
 
 export async function verifyOfflineEventChain(input: {

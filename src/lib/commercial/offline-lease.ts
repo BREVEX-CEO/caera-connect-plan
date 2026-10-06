@@ -286,6 +286,17 @@ export function offlineEventSigningBytes(payload: OfflineUsageEventPayload): Uin
   );
 }
 
+/**
+ * What a removed device signs to give its unspent capacity back. Only the browser
+ * holding the device's private key can produce it, so another browser cannot
+ * refund a block that device may still spend offline (F-067).
+ */
+export function offlineClosureSigningBytes(accountId: string, deviceId: string): Uint8Array {
+  return new TextEncoder().encode(
+    JSON.stringify({ purpose: "ocade-offline-closure", version: 1, accountId, deviceId }),
+  );
+}
+
 export async function sha256Base64(bytes: Uint8Array): Promise<string> {
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", ownedArrayBuffer(bytes)));
   let binary = "";
