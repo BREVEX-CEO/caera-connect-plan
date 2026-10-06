@@ -4,6 +4,7 @@ import {
   type OnlineHandlerDependencies,
 } from "../../../src/lib/intelligence/edge-handler.ts";
 import { SERVICE_USER_HEADER } from "../../../src/lib/intelligence/contract.ts";
+import { buildHealthRecord } from "../../../src/lib/telemetry/operation-health.ts";
 import {
   DEFAULT_ONLINE_MODEL,
   PROVIDER_KEY_ENVIRONMENT,
@@ -82,6 +83,60 @@ const SERVICE_KEYS = [
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
 ].filter(Boolean);
 
+/**
+ * Settle a claimed permit and know that it was settled: the database must answer, a transport
+ * failure or 5xx is retried twice, and a settlement that still did not land is recorded as a
+ * failed `usage_settlement` for the operator instead of passing as done.
+ */
+async function settle(rpc: string, body: Record<string, unknown>): Promise<void> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${rpc}`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          "Content-Type": "application/json",
+          ...(!SUPABASE_SERVICE_ROLE_KEY.startsWith("sb_secret_")
+            ? { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` }
+            : {}),
+        },
+        body: JSON.stringify(body),
+      });
+      const answer = await response.json().catch(() => undefined);
+      if (response.ok && answer !== undefined) return;
+      if (response.status < 500) break; // refused for a reason a retry does not change
+    } catch {
+      // transport: tried again below
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt));
+  }
+  observe(
+    buildHealthRecord({
+      component: "edge_function",
+      operation: "usage_settlement",
+      outcome: "failed",
+      errorClass: "upstream",
+      durationMs: 0,
+      providerSlot: "none",
+      attempts: 3,
+    }),
+  );
+}
+
+/*
+ * One structured health line per event -- PLAN.md Phase 16.
+ *
+ * `console.log` is the Edge Function's log, which is where an operator
+ * already looks and which Supabase already retains; adding a logging
+ * service here would be a second place to leak from for no extra answer.
+ * The record is built by `operation-health.ts` and carries enumerated
+ * values only: no prompt, no key, no user id, no message. `ocade.health`
+ * is the prefix to query on.
+ */
+function observe(record: ReturnType<typeof buildHealthRecord>): void {
+  console.log("ocade.health", JSON.stringify(record));
+}
+
 /** A signed-in person's session, asked of Supabase Auth itself. */
 export async function verifyUserJwt(token: string): Promise<{ userId: string } | null> {
   const auth = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -109,17 +164,7 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
     CONFIGURED_SLOTS.length > 0,
   ),
   providerSlots: CONFIGURED_SLOTS,
-  /*
-   * One structured health line per request -- PLAN.md Phase 16.
-   *
-   * `console.log` is the Edge Function's log, which is where an operator
-   * already looks and which Supabase already retains; adding a logging
-   * service here would be a second place to leak from for no extra answer.
-   * The record is built by `operation-health.ts` and carries enumerated
-   * values only: no prompt, no key, no user id, no message. `ocade.health`
-   * is the prefix to query on.
-   */
-  observe: (record) => console.log("ocade.health", JSON.stringify(record)),
+  observe,
   model: GEMINI_MODEL,
   async claimPermit({ userId, permit }) {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/ocade_claim_generation_transport`, {
@@ -155,41 +200,21 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
           reason: "The generation permit is invalid or was already used.",
         };
   },
-  async finalizePermit({ userId, permit }) {
+  finalizePermit({ userId, permit }) {
     // One use, charged here the moment the answer is complete. The browser's
     // own finalize then finds it settled; its "release" can no longer refund it.
-    await fetch(`${SUPABASE_URL}/rest/v1/rpc/ocade_finalize_generation_permit`, {
-      method: "POST",
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        "Content-Type": "application/json",
-        ...(!SUPABASE_SERVICE_ROLE_KEY.startsWith("sb_secret_")
-          ? { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` }
-          : {}),
-      },
-      body: JSON.stringify({
-        p_user_id: userId,
-        p_idempotency_key: permit.idempotencyKey,
-        p_cost_hundredths: 100,
-      }),
+    return settle("ocade_finalize_generation_permit", {
+      p_user_id: userId,
+      p_idempotency_key: permit.idempotencyKey,
+      p_cost_hundredths: 100,
     });
   },
-  async releasePermit({ userId, permit }) {
+  releasePermit({ userId, permit }) {
     // Only this boundary may give back a permit it claimed (20261001094000).
-    await fetch(`${SUPABASE_URL}/rest/v1/rpc/ocade_release_generation_permit`, {
-      method: "POST",
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        "Content-Type": "application/json",
-        ...(!SUPABASE_SERVICE_ROLE_KEY.startsWith("sb_secret_")
-          ? { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` }
-          : {}),
-      },
-      body: JSON.stringify({
-        p_user_id: userId,
-        p_idempotency_key: permit.idempotencyKey,
-        p_reason: "transport_ended_without_output",
-      }),
+    return settle("ocade_release_generation_permit", {
+      p_user_id: userId,
+      p_idempotency_key: permit.idempotencyKey,
+      p_reason: "transport_ended_without_output",
     });
   },
   callProvider({ model, body, signal, slot }) {

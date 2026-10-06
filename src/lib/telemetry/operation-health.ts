@@ -36,7 +36,10 @@ export type HealthComponent = (typeof HEALTH_COMPONENTS)[number];
  * be.
  */
 const HEALTH_OPERATIONS = [
+  /** A generation's terminal outcome: an answer delivered, or a failure/refusal/stop. */
   "generation",
+  /** The provider began answering (the stream was handed off): not yet an answer. */
+  "generation_start",
   "offline_allowance",
   /** Finalising or releasing a reservation after a generation ended. */
   "usage_settlement",

@@ -338,22 +338,24 @@ function providerBody(body: OnlineRequestBody): Record<string, unknown> {
 }
 
 function retryAfter(response: Response, attempt: number): number {
-  const seconds = Number(response.headers.get("retry-after"));
+  // An absent or empty header is no instruction (Number(null) is 0): the default backoff applies.
+  const header = response.headers.get("retry-after")?.trim();
+  const seconds = header ? Number(header) : Number.NaN;
   if (Number.isFinite(seconds) && seconds >= 0) return Math.min(seconds * 1_000, 2_000);
   return Math.min(250 * 2 ** attempt, 2_000);
 }
 
 async function defaultSleep(ms: number, signal: AbortSignal): Promise<void> {
   await new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(resolve, ms);
-    signal.addEventListener(
-      "abort",
-      () => {
-        clearTimeout(timer);
-        reject(signal.reason);
-      },
-      { once: true },
-    );
+    const stop = () => {
+      clearTimeout(timer);
+      reject(signal.reason);
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", stop); // a finished wait leaves no listener behind
+      resolve();
+    }, ms);
+    signal.addEventListener("abort", stop, { once: true });
   });
 }
 
@@ -625,10 +627,12 @@ export async function handleOnlineIntelligence(
   const response = await runOnlineIntelligence(request, deps, attempted);
   // A browser's CORS preflight is not a generation: counted, it read as a success served by no slot.
   if (request.method === "OPTIONS") return response;
+  // A handed-off stream is only the start of an answer: its own end records how it finished.
+  const streaming = (response.headers.get("content-type") ?? "").startsWith("text/event-stream");
   deps.observe?.(
     buildHealthRecord({
       component: "edge_function",
-      operation: "generation",
+      operation: streaming ? "generation_start" : "generation",
       outcome:
         response.status < 400
           ? "succeeded"
@@ -703,6 +707,22 @@ async function runOnlineIntelligence(
   const controller = new AbortController();
   const abort = () => controller.abort(request.signal.reason);
   request.signal.addEventListener("abort", abort, { once: true });
+  // Stopped while the allowance was being claimed: no provider is called, the claim is released.
+  if (request.signal.aborted) abort();
+  const begun = (deps.now ?? (() => Date.now()))();
+  const ended = (outcome: "succeeded" | "failed") =>
+    deps.observe?.(
+      buildHealthRecord({
+        component: "edge_function",
+        operation: "generation",
+        outcome,
+        errorClass:
+          outcome === "succeeded" ? "none" : controller.signal.aborted ? "cancelled" : "upstream",
+        durationMs: (deps.now ?? (() => Date.now()))() - begun,
+        providerSlot: attempted.slot,
+        attempts: attempted.attempts,
+      }),
+    );
   const timeout = setTimeout(
     () => controller.abort(new DOMException("Provider timeout", "TimeoutError")),
     PROVIDER_TIMEOUT_MS,
@@ -747,6 +767,7 @@ async function runOnlineIntelligence(
         : [PROVIDER_KEY_SLOTS[0]];
     let provider: Response | null = null;
     let quotaExhausted = false;
+    controller.signal.throwIfAborted(); // stopped during the claim: no provider is called
 
     outer: for (const slot of slots) {
       for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS; attempt += 1) {
@@ -838,12 +859,20 @@ async function runOnlineIntelligence(
         (reason) => {
           if (!controller.signal.aborted) controller.abort(reason);
         },
-        () =>
-          deps.finalizePermit?.({ userId: identity.userId, permit: body.permit }) ??
-          Promise.resolve(),
-        () =>
-          deps.releasePermit?.({ userId: identity.userId, permit: body.permit }) ??
-          Promise.resolve(),
+        () => {
+          ended("succeeded");
+          return (
+            deps.finalizePermit?.({ userId: identity.userId, permit: body.permit }) ??
+            Promise.resolve()
+          );
+        },
+        () => {
+          ended("failed");
+          return (
+            deps.releasePermit?.({ userId: identity.userId, permit: body.permit }) ??
+            Promise.resolve()
+          );
+        },
       ),
       {
         status: 200,

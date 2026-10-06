@@ -77,6 +77,47 @@ function dependencies(patch: Partial<OnlineHandlerDependencies> = {}): OnlineHan
   };
 }
 
+describe("STOP and retries around the provider call", () => {
+  it("never calls the provider for a request stopped while its allowance was claimed", async () => {
+    const leaving = new AbortController();
+    const releasePermit = vi.fn(async () => undefined);
+    const callProvider = vi.fn(async () => provider([]));
+    const stopped = new Request(request(), { signal: leaving.signal });
+    const response = await handleOnlineIntelligence(
+      stopped,
+      dependencies({
+        claimPermit: vi.fn(async () => {
+          leaving.abort(); // STOP pressed during the claim
+          return { ok: true as const };
+        }),
+        callProvider,
+        releasePermit,
+      }),
+    );
+    expect(response.status).toBe(503);
+    expect(callProvider).not.toHaveBeenCalled();
+    expect(releasePermit).toHaveBeenCalledTimes(1);
+  });
+
+  it("waits the default backoff when a refusal carries no Retry-After", async () => {
+    const sleep = vi.fn(async () => undefined);
+    let calls = 0;
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({
+        sleep,
+        callProvider: vi.fn(async () =>
+          ++calls === 1
+            ? new Response("busy", { status: 503 })
+            : provider([{ candidates: [{ content: { parts: [{ text: "ok" }] } }] }]),
+        ),
+      }),
+    );
+    await response.text();
+    expect(sleep).toHaveBeenCalledWith(250, expect.anything());
+  });
+});
+
 describe("authenticated Online Intelligence Edge handler", () => {
   it("validates identity and atomically claims the existing permit before provider I/O", async () => {
     const order: string[] = [];
@@ -377,21 +418,29 @@ describe("the health record this function leaves behind", () => {
     return { records, observe: (record: unknown) => records.push(record) };
   }
 
-  it("emits exactly one record for a successful request, naming the slot that served", async () => {
+  it("records the start at hand-off and the outcome when the answer ends, naming the slot", async () => {
     const seen = observed();
     const response = await handleOnlineIntelligence(
       request(),
       dependencies({ observe: seen.observe }),
     );
     expect(response.status).toBe(200);
+    // Only the start is known when the stream is handed off: not yet an answer.
     expect(seen.records).toHaveLength(1);
     expect(seen.records[0]).toMatchObject({
       component: "edge_function",
+      operation: "generation_start",
+      outcome: "succeeded",
+      providerSlot: "primary",
+      attempts: 1,
+    });
+    await response.text();
+    expect(seen.records).toHaveLength(2);
+    expect(seen.records[1]).toMatchObject({
       operation: "generation",
       outcome: "succeeded",
       errorClass: "none",
       providerSlot: "primary",
-      attempts: 1,
     });
   });
 

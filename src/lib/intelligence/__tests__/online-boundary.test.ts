@@ -91,7 +91,7 @@ describe("where a key may appear", () => {
   it("never reaches a log line, because the record carries no key at all", () => {
     // The health record is built from enumerated values; the entry point logs
     // that record and nothing else.
-    const logged = [...EDGE_ENTRY.matchAll(/console\.log\(([^;]*?)\),?\n/g)].map((match) =>
+    const logged = [...EDGE_ENTRY.matchAll(/console\.log\(([^;]*?)\)[,;]?\n/g)].map((match) =>
       match[1].trim(),
     );
     expect(logged).toEqual(['"ocade.health", JSON.stringify(record)']);
