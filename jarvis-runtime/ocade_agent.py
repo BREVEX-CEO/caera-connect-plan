@@ -41,6 +41,8 @@ SINGLE_INSTANCE_PORT = 47831
 # the same computer can reach the loopback port, never end this agent through it.
 _EXIT_WORD: bytes | None = None
 APP_NAME = "OCADE Device Agent"
+# Said first on every connection, so a stranger on the port is not taken for the agent (F-111).
+GREETING = b"OCADE-agent\n"
 
 
 def single_instance() -> socket.socket | None:
@@ -79,6 +81,7 @@ def serve_exit(guard: socket.socket, on_exit) -> None:
             with conn:
                 conn.settimeout(2)
                 try:
+                    conn.sendall(GREETING)
                     asked = conn.recv(64)
                     if _EXIT_WORD and hmac.compare_digest(asked, _EXIT_WORD):
                         conn.sendall(b"ok")
@@ -112,8 +115,14 @@ def already_running() -> bool:
     second start (the login entry, the Start menu, an installer) was counted as a failed start
     of the running build, and three of them rolled a good build back."""
     try:
-        with socket.create_connection(("127.0.0.1", SINGLE_INSTANCE_PORT), timeout=1):
-            return True
+        with socket.create_connection(("127.0.0.1", SINGLE_INSTANCE_PORT), timeout=1) as conn:
+            conn.settimeout(1)
+            try:
+                said = conn.recv(len(GREETING))
+            except socket.timeout:
+                # An agent from before the greeting says nothing; it left this account's token.
+                return (ocade_device.HOME / "exit.token").exists()
+            return said == GREETING
     except OSError:
         return False
 
@@ -551,7 +560,8 @@ def _wake_words(agent) -> str:
     if WAKE["wake"] == "unavailable":
         return f"Wake: {WAKE.get('why', 'not available')}"
     if WAKE["wake"] == "ready" and agent.state.get("background"):
-        return "Listening for “OCADE”"
+        # Listening only while audio is really arriving, not because it could (F-160).
+        return "Listening for “OCADE”" if WAKE.get("live") else "Wake: waiting for a microphone"
     return "Wake: starts with Background Mode"
 
 
@@ -569,10 +579,13 @@ def _wake_while_background(agent: ocade_device.Agent, home: Path, server: str) -
         wanted = bool(agent.state.get("background")) and ready
         if wanted and listening is None:
             listening = threading.Event()
-            threading.Thread(target=ocade_wake.listen, args=(home, server, listening), daemon=True).start()
+            threading.Thread(target=ocade_wake.listen, args=(home, server, listening),
+                             kwargs={"on_live": lambda on: WAKE.__setitem__("live", on)},
+                             daemon=True).start()
         elif not wanted and listening is not None:
             listening.set()
             listening = None
+            WAKE["live"] = False
     if listening is not None:
         listening.set()
 
@@ -604,8 +617,11 @@ def main() -> None:
     _run_current_build(root)
     guard = single_instance()
     if guard is None:
-        print("OCADE Device Agent is already running.")
-        return
+        if already_running():
+            print("OCADE Device Agent is already running.")
+            return
+        print(f"Another program is using port {SINGLE_INSTANCE_PORT}, so OCADE Device Agent cannot start.")
+        sys.exit(1)
     identity = Identity(home)
     if identity.damaged:
         Presence._notify(Identity.DAMAGED)

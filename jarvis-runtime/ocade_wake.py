@@ -215,9 +215,11 @@ def open_voice(server: str) -> None:
     webbrowser.open(f"{server.rstrip('/')}/ocade-jarvis?voice=1")
 
 
-def listen(home: Path, server: str, stop: threading.Event, on_detect=None) -> bool:
+def listen(home: Path, server: str, stop: threading.Event, on_detect=None, on_live=None) -> bool:
     """Listen until `stop` is set; survives a microphone unplugged, changed or asleep.
-    False when wake cannot run on this computer."""
+    False when wake cannot run on this computer. `on_live(bool)` reports whether audio is
+    actually arriving, so nothing claims Listening from availability alone (F-160)."""
+    live = on_live or (lambda _on: None)
     if not available(home):
         return False
     import queue
@@ -249,9 +251,10 @@ def listen(home: Path, server: str, stop: threading.Event, on_detect=None) -> bo
                                          blocksize=STEP_SAMPLES, callback=take):
                 # No audio for 3 s: the microphone went away, changed, or the computer slept.
                 while not stop.wait(1.0) and time.monotonic() - heard[0] < 3.0:
-                    pass
+                    live(True)
         except Exception:
             pass
+        live(False)
         if stop.wait(2.0):  # look for a microphone again shortly
             break
         sounddevice._terminate()

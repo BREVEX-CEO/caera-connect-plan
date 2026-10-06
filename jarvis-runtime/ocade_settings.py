@@ -31,7 +31,18 @@ LABELS = {"volume": "Volume", "mute": "Mute", "brightness": "Brightness", "dark_
 
 
 def _out(command: list[str], timeout: int = 8) -> str:
-    return subprocess.run(command, capture_output=True, text=True, timeout=timeout, **_HIDDEN).stdout.strip()
+    """The command's output; a command that failed raises, so it never reads as "off" (F-163)."""
+    return subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=True,
+                          **_HIDDEN).stdout.strip()
+
+
+def _flag(text: str, yes: str, no: str) -> bool:
+    """A yes/no answer, or an error for anything else: unparseable is unknown, not off."""
+    if yes in text:
+        return True
+    if no in text:
+        return False
+    raise ValueError(f"unexpected answer: {text[:40]!r}")
 
 
 def _endpoint():
@@ -59,8 +70,8 @@ def _read_mute() -> bool | None:
     if SYSTEM == "Windows":
         return bool(_endpoint().GetMute())
     if SYSTEM == "Darwin":
-        return _out(["osascript", "-e", "output muted of (get volume settings)"]) == "true"
-    return "yes" in _out(["pactl", "get-sink-mute", "@DEFAULT_SINK@"])
+        return _flag(_out(["osascript", "-e", "output muted of (get volume settings)"]), "true", "false")
+    return _flag(_out(["pactl", "get-sink-mute", "@DEFAULT_SINK@"]), "yes", "no")
 
 
 def _read_brightness() -> int | None:
@@ -83,9 +94,9 @@ def _read_dark() -> bool | None:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, _THEME) as key:
             return winreg.QueryValueEx(key, "AppsUseLightTheme")[0] == 0
     if SYSTEM == "Darwin":
-        return _out(["osascript", "-e", 'tell app "System Events" to tell appearance preferences '
-                                        "to get dark mode"]) == "true"
-    return "dark" in _out(["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"])
+        return _flag(_out(["osascript", "-e", 'tell app "System Events" to tell appearance preferences '
+                                               "to get dark mode"]), "true", "false")
+    return _flag(_out(["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"]), "dark", "'")
 
 
 # -- changing -------------------------------------------------------------------

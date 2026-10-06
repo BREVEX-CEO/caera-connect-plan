@@ -75,6 +75,9 @@ class LifecycleTest(unittest.TestCase):
         time.sleep(1.5)
         Agent.stop.set()
         self.assertEqual(Icon.rebuilt, 2)
+        # Available and wanted is not listening: only live audio says so (F-160).
+        self.assertEqual(ocade_agent._wake_words(Agent()), "Wake: waiting for a microphone")
+        ocade_agent.WAKE["live"] = True
         self.assertEqual(ocade_agent._wake_words(Agent()), "Listening for “OCADE”")
         ocade_agent.WAKE.clear()
         ocade_agent.WAKE.update({"wake": "off"})
@@ -83,6 +86,7 @@ class LifecycleTest(unittest.TestCase):
         # Counted as a failed start of the running build, three of these rolled a good build back.
         import unittest.mock
         running = ocade_agent.single_instance()
+        ocade_agent.serve_exit(running, lambda: None)  # a real agent answers on its port
         counted = []
         try:
             with unittest.mock.patch.object(ocade_agent, "install_root", lambda: self.home),                     unittest.mock.patch.object(ocade_agent.ocade_update, "launch_target",
@@ -91,6 +95,29 @@ class LifecycleTest(unittest.TestCase):
         finally:
             running.close()
         self.assertEqual(counted, [])
+
+    def test_a_stranger_on_the_port_is_not_the_agent(self):
+        """F-111: only an agent that greets as one counts as running."""
+        import socket
+        stranger = socket.socket()
+        stranger.bind(("127.0.0.1", ocade_agent.SINGLE_INSTANCE_PORT))
+        stranger.listen(5)
+        token = ocade_agent.ocade_device.HOME / "exit.token"
+        try:
+            token.unlink(missing_ok=True)
+            self.assertFalse(ocade_agent.already_running())
+            # An agent from before the greeting is silent but left this account's token.
+            token.parent.mkdir(parents=True, exist_ok=True)
+            token.write_text("t")
+            self.assertTrue(ocade_agent.already_running())
+        finally:
+            stranger.close()
+        agent = ocade_agent.single_instance()
+        ocade_agent.serve_exit(agent, lambda: None)
+        try:
+            self.assertTrue(ocade_agent.already_running())
+        finally:
+            agent.close()
 
     def test_autostart_and_uninstall_leave_nothing_behind(self):
         ocade_agent.install_autostart()

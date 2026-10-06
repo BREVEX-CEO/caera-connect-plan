@@ -246,6 +246,19 @@ class SettingsTest(unittest.TestCase):
             self.assertEqual(out["status"], "failed")
             self.assertIn("did not change", out["summary"])
 
+    def test_a_failed_or_unreadable_answer_is_unknown_not_off(self):
+        """F-163: a command that failed, or said something else, is not a verified "off"."""
+        import ocade_settings
+        self.assertIs(ocade_settings._flag("Mute: yes", "yes", "no"), True)
+        self.assertIs(ocade_settings._flag("Mute: no", "yes", "no"), False)
+        with self.assertRaises(ValueError):
+            ocade_settings._flag("", "true", "false")
+        with self.assertRaises(Exception):
+            ocade_settings._out([sys.executable, "-c", "import sys; sys.exit(3)"])
+        with unittest.mock.patch.dict(ocade_settings._READ, {"mute": lambda: ocade_settings._flag("", "yes", "no")}):
+            self.assertIsNone(ocade_settings.read("mute"))
+            self.assertEqual(ocade_settings.setting("mute")["status"], "failed")
+
     @unittest.skipUnless(sys.platform == "win32", "the real Windows audio endpoint")
     def test_the_real_volume_changes_and_is_put_back(self):
         pc = Computer(None)
