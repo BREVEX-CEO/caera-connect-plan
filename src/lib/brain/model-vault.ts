@@ -34,7 +34,7 @@
  * otherwise.
  */
 
-import { ModelStore, modelStore } from "./model-store";
+import { ModelStore, modelStore, type ModelFileWriter } from "./model-store";
 import type { DigestCheckpoint } from "./streaming-digest";
 
 /** Root directory inside OPFS. Sibling of the legacy flat layout. */
@@ -99,28 +99,8 @@ export interface InstallationView {
   stored: boolean;
 }
 
-/**
- * A file being written continuously, with durability at chosen moments.
- *
- * WHY THIS INTERFACE EXISTS AT ALL. The previous storage path opened a
- * writable, wrote one buffer, and closed it — for every four-megabyte flush.
- * On OPFS `createWritable()` opens a swap file and `close()` commits it, so
- * that pattern paid a full open/commit cycle hundreds of times across one
- * install, and did it on the main thread.
- *
- * A writer is opened ONCE and closed once. `flush()` is the durability
- * checkpoint, called when the caller has something worth being able to resume
- * from, which is a decision the caller is in a position to make and the store
- * is not.
- */
-export interface ModelFileWriter {
-  /** Write bytes at an absolute offset. */
-  write(chunk: Uint8Array, at: number): Promise<boolean>;
-  /** Make everything written so far durable. */
-  flush(): Promise<boolean>;
-  /** Flush and release the handle. */
-  close(): Promise<void>;
-}
+/** One owner for the writer contract: the store that implements it (D-025). */
+export type { ModelFileWriter } from "./model-store";
 
 type LegacyStorage = Pick<Storage, "getItem" | "removeItem" | "key" | "length">;
 
