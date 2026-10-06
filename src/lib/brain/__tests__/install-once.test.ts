@@ -242,6 +242,31 @@ describe("an interruption", () => {
     expect(resumed.ok && resumed.verified).toBe(true);
   });
 
+  it("falls back to whole-file reading from the source that answered, not the one that failed (F-190)", async () => {
+    const bytes = artifact(SIZE);
+    const asked: string[] = [];
+    const fetchImpl = (async (url: string) => {
+      asked.push(url);
+      return url.endsWith("/a")
+        ? new Response(null, { status: 416 })
+        : new Response(bytes as BufferSource, { status: 200 });
+    }) as unknown as typeof fetch;
+    const result = await transferModel(
+      {
+        sources: [
+          { url: "https://example.test/a", kind: "ocade" },
+          { url: "https://example.test/b", kind: "ocade" },
+        ],
+        totalBytes: SIZE,
+        sha256: await digestOf(bytes),
+        plan: { ...PLAN, concurrency: 1 },
+      },
+      { fetchImpl, writer: arrayWriter(SIZE), sleep: async () => {} },
+    );
+    expect(result.ok && result.verified).toBe(true);
+    expect(asked.at(-1)).toBe("https://example.test/b");
+  });
+
   it("starts over rather than trusting a checkpoint taken against another size", async () => {
     const bytes = artifact(SIZE);
     const server = rangedServer(bytes);

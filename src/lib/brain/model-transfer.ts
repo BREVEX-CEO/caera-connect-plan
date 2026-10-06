@@ -696,8 +696,10 @@ export async function transferModel(
     nextToHash = 0;
     hasher = new StreamingSha256();
     state.received = 0;
+    // The source that just answered (rotated to, or freshly minted), not the
+    // request's first one, which may be the source that already failed (F-190).
     const sequential = await transferSequentially({
-      request,
+      request: { ...request, sources: [source()] },
       deps,
       chunks,
       totalBytes,

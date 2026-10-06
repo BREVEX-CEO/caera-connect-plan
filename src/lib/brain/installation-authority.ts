@@ -378,6 +378,18 @@ export class ModelInstallationAuthority {
     // follower's `observing: true` snapshot race the owner's final `ready`
     // snapshot after a navigation and could leave every remaining tab waiting
     // on work that had already finished.
+    // Another tab's engine is not this tab's: "ready" here means this tab
+    // activated its own runtime. A queued install is about to load it; without
+    // one, nothing is running here (F-184).
+    if (state.stage === "ready") {
+      this.publish(
+        this.running
+          ? { ...state, stage: "loading", observing: true, remedies: [] }
+          : { ...INITIAL, detail: "Offline Intelligence is ready in another OCADE tab." },
+        false,
+      );
+      return;
+    }
     this.publish({ ...state, observing: true, remedies: [] }, false);
   }
 

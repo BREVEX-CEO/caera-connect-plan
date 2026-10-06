@@ -99,3 +99,15 @@ describe("removal while the engine is loading (F-069)", () => {
     expect(disposed).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("another tab's ready (F-184)", () => {
+  it("is not this tab's ready", async () => {
+    const { authority, activated } = authorityOver({ verified: true }, BYTES);
+    authority.observe({ ...authority.snapshot(), stage: "ready", fraction: 1 });
+    expect(authority.isReady()).toBe(false);
+    // And this tab's own install still activates its own runtime.
+    await authority.install({ reason: "app_bootstrap" });
+    expect(activated).toHaveBeenCalled();
+    expect(authority.isReady()).toBe(true);
+  });
+});
