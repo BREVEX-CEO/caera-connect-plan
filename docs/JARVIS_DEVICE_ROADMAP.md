@@ -186,3 +186,30 @@ Each phase reports commercial-launch readiness percentage and exact evidence.
 ## Relationship to the master plan
 
 This device roadmap is implemented through the unified `PLAN.md` Phase 1–49 sequence. Earlier device foundations are revalidated in the earlier phases; commercial hardening and final evidence occur in the later phases. If this document conflicts with a newer explicit Phase 1–49 requirement, `PLAN.md` wins.
+
+---
+
+# Owner device roadmap authority — 2026-10-06
+
+## Universal speed
+
+All supported device-control implementations converge on one plan/execution/verification contract. The normal route is machine-native or semantic; vision/input is last resort. Familiar tasks use sanitized cached capabilities. Unfamiliar tasks dynamically discover the installed environment and use Online intelligence for a bounded plan instead of adding permanent app-specific code.
+
+Replace avoidable polling with authenticated events/callbacks/subscriptions. Keep polling only as bounded reconnect/recovery fallback.
+
+## Windows
+
+Website/PWA stays the product. The local agent is a minimal tray broker and executor. Keep deterministic action loops local and model-free once a bounded plan is issued.
+
+## Android
+
+The customer sees one **Set up OCADE** action. OCADE drives the setup sequence and Android owns unavoidable permission/security prompts. Keep the floating bubble with mini chat, voice, current task, STOP and Open OCADE.
+
+The PWA updates with normal web deployments. The optional Android companion updates only through signed release artifacts/manifests; merge-to-main is not an app release.
+
+## Apple evidence without owned hardware
+
+Use WebKit, responsive/mobile browser matrices, source/API compatibility checks, PWA/deep-link/share/Shortcut contract tests, accessibility, orientation/safe-area/zoom/reduced-motion and Remote-PC workflow tests now. These are compatibility evidence only.
+
+Before claiming physical iPhone/iPad/macOS behavior commercially, obtain legitimate physical/remote-device evidence when budget permits. Never call Windows WebKit a physical Apple pass.
+
