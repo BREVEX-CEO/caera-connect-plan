@@ -108,3 +108,48 @@ Never convert emulation into real-device evidence.
 ## Master Phase 1–49 authority
 
 Implementation order, phase entry/exit gates, donor reuse, per-function completeness, MCP evidence and commercial-launch readiness reporting are governed by the unified `PLAN.md` Phase 1–49 roadmap. On a fresh clone Claude begins at Phase 1, preserves current working behavior, repairs gaps proven by current evidence, and continues sequentially through Phase 49. This document supplies domain-specific requirements and does not replace a phase gate.
+
+---
+
+# Owner mobile UX authority — 2026-10-06
+
+This section supersedes older customer-facing setup complexity.
+
+## One-button setup
+
+The primary Android setup action is **Set up OCADE**.
+
+One tap starts a guided state machine that:
+
+1. verifies compatible Android/web/account state;
+2. pairs the device when needed;
+3. requests only capabilities required by the supported feature set;
+4. opens Android-owned settings/prompts one at a time only where Android requires direct user action;
+5. returns automatically to OCADE after each step when the platform permits;
+6. verifies the permission/result rather than assuming success;
+7. ends at **Ready** or names the single unresolved permission/action.
+
+Do not show separate technical setup buttons for pairing, service, accessibility backend, overlay backend, wake backend or internal transport.
+
+Normal post-setup controls: status, Wake, STOP, Remove device and the floating bubble.
+
+## Floating bubble
+
+Collapsed: small clean OCADE control.
+
+Expanded: mini chat, voice, concise current task/progress, STOP and Open OCADE. Keep it fast and uncluttered; no settings dashboard inside the bubble.
+
+## Distribution and updates
+
+The PWA remains the zero-install baseline. Deep Android control may use the official OCADE-signed APK distributed from the official site.
+
+Native updates require the same app identity/signing authority and increasing version code. Use a signed OCADE release manifest and verify hash/signature before handing an update to Android. Preserve pairing/settings across compatible updates. A Git merge alone is not an app update.
+
+Never bypass Android install/update/security confirmation. Do not tell customers to disable Play Protect.
+
+Do not show a generic OCADE "unsupported" message when the device is actually compatible. Detect the precise missing permission/version/capability and give one clear action.
+
+Platform-owned "unsafe/unverified/restricted setting" warnings cannot be suppressed by OCADE. Reduce legitimate friction through developer verification/registration as required, stable release signing, official HTTPS distribution, transparent permission purpose, no downloaded executable code, minimal permissions and visible user control. Re-check current Android distribution rules before each commercial release.
+
+When a device security mode blocks outside-store installation or accessibility control, keep the PWA/Remote-PC route usable and explain the limitation truthfully.
+
