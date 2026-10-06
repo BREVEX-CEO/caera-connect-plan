@@ -1,5 +1,55 @@
 # OCADE JARVIS Master Commercial-Readiness Plan — Phases 1–49
 
+## Mandatory first action — reconcile the current ledgers before any phase
+
+This is the first execution gate on every fresh session and after any material audit/strategy update. **Do not begin Phase 1 or any later phase before completing this gate.**
+
+1. Re-check the exact current `main` SHA, working tree, deployed source identity where available, database migration state, device/runtime versions, and current test baseline.
+2. Read these three current repository authorities **completely, first**:
+   - `FULL_ERROR_AUDIT_LEDGER.md`
+   - `PONYTAIL_DEBLOAT_LEDGER.md`
+   - `ELITE_PRODUCT_STRATEGY.md`
+3. Then read `ToRemove.md`, `CLAUDE.md`, `AGENTS.md`, the current Owner instruction, and every domain authority/canonical document relevant to the affected work.
+4. Treat the ledgers as evidence to reconcile against the current source, not as permission to blindly patch historical findings. Reproduce each relevant error/debloat claim on current `main`, mark it CURRENT / FIXED / STALE / BLOCKED / UNTESTED, and preserve the original evidence.
+5. Build a live **ledger-to-phase reconciliation map** before implementation. Every current Major/Critical release-scope error, valid debloat item, and applicable elite-strategy recommendation must be assigned to the existing phase/wave that owns it. If no phase owns it, add the smallest new phase/gate instead of leaving the requirement orphaned.
+6. Update phase acceptance criteria where the current ledgers prove that an older phase is incomplete, unsafe, duplicated, too slow, misleading, or commercially weak. Never mark a phase complete merely because an older report once did.
+7. Fix current reproducible release-scope errors **before** polishing or speculative expansion. Root-cause repair takes priority over feature count.
+8. After the blocking/current errors for a phase are fixed and verified, continue through the phase implementation in order, preserving already-correct work.
+9. After functional parity and real evidence are green, run Ponytail/ToRemove debloat for that completed area: delete/reroute dead, duplicate, obsolete, hard-coded, slow, or unnecessary paths only after the replacement authority is proven.
+10. Re-run targeted tests, real workflow verification, adversarial checks, broader regression, security checks, and performance measurements **after cleanup**. Cleanup is not complete until the smaller tree proves the same or better behavior.
+11. Only then proceed to the next phase. Final commercial release requires the whole product to pass the same sequence: **ledger reconciliation -> error repair -> phase completion -> debloat -> full revalidation -> release evidence**.
+
+### Required reconciliation output before coding
+
+Keep this short but explicit in the working notes/status:
+
+- current `main` SHA;
+- current ledger finding counts/statuses;
+- current debloat opportunity count/statuses;
+- applicable elite-strategy recommendations;
+- which existing phase owns each current blocker;
+- what must be fixed before that phase can pass;
+- what cleanup is deferred until after behavior is proven;
+- what is BLOCKED/UNTESTED because real evidence is unavailable.
+
+Do not rewrite the whole plan every session. Update this plan only when the ledgers expose a real authority/phase gap or the Owner changes direction.
+
+### Mandatory work order
+
+**A. Reconcile evidence.** Read and cross-check the error ledger, debloat ledger, elite strategy, current authorities, donor evidence, source and deployed/runtime state.
+
+**B. Repair trust and correctness.** Reproduce and fix valid current errors first, especially security, STOP/cancellation, ownership, preservation, false-success, update, background, permission, device-control and result-verification failures.
+
+**C. Execute the product phases.** Continue the existing phases using the reconciled acceptance criteria. Preserve working implementations; extend or repair them instead of rebuilding for phase-number purity.
+
+**D. Optimize the universal fast path.** Prefer native/API/script/object-model/direct-file/DOM/CDP/semantic control, event-driven completion, local deterministic execution and bounded verification. Keep vision/input as a last-resort fallback, not the normal architecture. Do not proliferate hard-coded per-app controllers.
+
+**E. Debloat only after proof.** Apply `PONYTAIL_DEBLOAT_LEDGER.md`, `ToRemove.md`, KISS/YAGNI/DRY/WET and delete-before-adding rules. Remove as much active code, branching, duplicated state, stale setup and dead UI as safely possible without reducing capability or evidence.
+
+**F. Revalidate the smaller product.** Repeat unit/integration/browser/device/security/performance/accessibility/update/recovery/real-task evidence on the cleaned implementation. A smaller tree with weaker behavior is a failed cleanup.
+
+**G. Commercial gate.** Ship only the scope with zero known reproducible Critical/Major blockers, truthful supported-platform evidence, verified outputs, safe STOP/recovery, stable updates, acceptable latency/cost and clear remaining BLOCKED/UNTESTED items.
+
 ## Owner authority — 2026-09-29
 
 This is the single active execution plan for OCADE JARVIS. It deliberately restores the useful older phases and integrates the newer donor-first/device/admin/commercial-readiness phases into one continuous roadmap from Phase 1 through Phase 49.
@@ -81,7 +131,7 @@ Do not claim mathematical zero bugs. The target is zero known/reproducible Criti
 Start from a clean factual baseline and preserve every useful donor capability before any migration decision.
 
 ### Build / repair
-- Read `AGENTS.md`, `CLAUDE.md`, this plan, `ToRemove.md`, `docs/MEMORY.md`, all canonical docs required for the current work, and relevant historical audits.
+- Complete the mandatory ledger-first gate at the top of this plan. Read `FULL_ERROR_AUDIT_LEDGER.md`, `PONYTAIL_DEBLOAT_LEDGER.md`, and `ELITE_PRODUCT_STRATEGY.md` completely before Phase 1 work, then read `AGENTS.md`, `CLAUDE.md`, `ToRemove.md`, `docs/MEMORY.md`, all canonical docs required for the current work, and relevant historical audits.
 - Run `/caveman ultra` and `/ponytail ultra` before implementation and again after proven cleanup.
 - Record exact main SHA, working tree, deployed Cloudflare source identity, Supabase migration head, current Device Agent/protocol version and current test totals.
 - Preserve the uploaded ZIP byte-for-byte and preserve `imports/ocade-jarvis/source-original/` unchanged.
