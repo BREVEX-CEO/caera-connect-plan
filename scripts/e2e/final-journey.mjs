@@ -140,6 +140,8 @@ async function sweep(page, routes, label) {
       thrown.length === 0,
       thrown.join("; "),
     );
+    // A sweep that pressed nothing proved nothing (F-125).
+    check(`${label}: ${route} — the sweep actually pressed controls`, pressed > 0, `${pressed}`);
     errors.length = 0;
   }
 

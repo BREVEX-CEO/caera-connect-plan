@@ -112,7 +112,14 @@ try {
         const label = `${screen.name} · ${size.name} · ${theme}`;
         try {
           await page.goto(`${BASE}${screen.path}`, { waitUntil: "networkidle" });
-          if (screen.act) await screen.act(page, size).catch(() => undefined);
+          // A screen that never reached its state is a failure, not a picture of something else (F-020).
+          if (screen.act) {
+            const reached = await screen.act(page, size).then(
+              () => "",
+              (error) => String(error).slice(0, 160),
+            );
+            check(`${label}: reached the screen to check`, reached === "", reached);
+          }
           await page.waitForTimeout(600);
           const layout = await page.evaluate(() => {
             const root = document.scrollingElement ?? document.documentElement;

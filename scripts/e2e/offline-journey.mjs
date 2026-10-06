@@ -249,24 +249,30 @@ try {
   await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
   await page.waitForTimeout(600);
 
-  await page.evaluate(async (key) => {
+  // Each deletion's real outcome: a blocked or failed one is not storage loss (F-141).
+  const deletions = await page.evaluate(async (key) => {
     const session = window.localStorage.getItem(key);
     window.localStorage.clear();
     window.sessionStorage.clear();
     if (session) window.localStorage.setItem(key, session);
     const databases = (await indexedDB.databases?.()) ?? [];
-    await Promise.all(
+    return Promise.all(
       databases.map(
         (database) =>
           new Promise((resolve) => {
             const request = indexedDB.deleteDatabase(database.name);
-            request.onsuccess = resolve;
-            request.onerror = resolve;
-            request.onblocked = resolve;
+            request.onsuccess = () => resolve("deleted");
+            request.onerror = () => resolve("failed");
+            request.onblocked = () => resolve("blocked");
           }),
       ),
     );
   }, storageKey(SUPABASE));
+  check(
+    "local storage really was lost before recovery is judged",
+    deletions.every((outcome) => outcome === "deleted"),
+    deletions.join(","),
+  );
 
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(2500);

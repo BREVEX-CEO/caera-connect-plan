@@ -268,6 +268,7 @@ Serving ${BASE} against the stub at ${SUPABASE_URL}. Ctrl+C to stop.`);
 }
 
 let failed = 0;
+let blocked = 0;
 for (const journey of journeys) {
   console.log(`\n=== ${journey} ===`);
   // A server that EXITED during the last journey is started again, loudly, so
@@ -320,13 +321,16 @@ for (const journey of journeys) {
     await waitForPort(BASE, "the served build");
     result = run();
   }
-  if (result.status !== 0) failed += 1;
+  if (result.status === 3) blocked += 1;
+  else if (result.status !== 0) failed += 1;
 }
 
 stopEverything();
+// A blocked journey is reported as blocked, never folded into "passed" (F-132).
+const blockedNote = blocked ? `, ${blocked} BLOCKED` : "";
 console.log(
   failed === 0
-    ? `\nAll ${journeys.length} browser journeys passed.`
-    : `\n${failed} of ${journeys.length} browser journeys failed.`,
+    ? `\n${journeys.length - blocked} of ${journeys.length} browser journeys passed${blockedNote}.`
+    : `\n${failed} of ${journeys.length} browser journeys failed${blockedNote}.`,
 );
 process.exit(failed === 0 ? 0 : 1);

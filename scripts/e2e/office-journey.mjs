@@ -74,10 +74,11 @@ if (!office.excel || !office.word) {
   process.stdout.write(
     "BLOCKED  office journey — Microsoft Excel and Word are not both installed\n",
   );
-  process.exit(0);
+  process.exit(3);
 }
 
 const EMAIL = `office-${Date.now()}@ocade.test`;
+let partlyBlocked = false;
 const storageKey = `sb-${new URL(SUPABASE).hostname.split(".")[0]}-auth-token`;
 const session = await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, {
   method: "POST",
@@ -344,6 +345,7 @@ print(json.dumps({"text": text}))
   /* --- a real bug in a real repository: test, read, fix, test again ------------ */
   if (!terminal) {
     process.stdout.write("BLOCKED  code fix — this computer offers no confined commands\n");
+    partlyBlocked = true;
   } else {
     const repo = path.join(workspace, "invoice");
     mkdirSync(repo);
@@ -497,4 +499,4 @@ print(json.dumps({"text": text}))
 process.stdout.write(
   failures === 0 ? "\nOffice journey passed.\n" : `\n${failures} office checks failed.\n`,
 );
-process.exit(failures === 0 ? 0 : 1);
+process.exit(failures === 0 ? (partlyBlocked ? 3 : 0) : 1);

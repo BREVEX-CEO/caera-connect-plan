@@ -48,7 +48,7 @@ async function until(condition, timeoutMs = 30_000) {
 
 if (spawnSync(PYTHON, ["-c", "import playwright"], { stdio: "ignore" }).status !== 0) {
   process.stdout.write("BLOCKED  carry-on journey — python with playwright is not available\n");
-  process.exit(0);
+  process.exit(3); // 3 = blocked: the harness counts it, never as a pass (F-132)
 }
 
 const EMAIL = `carry-${Date.now()}@ocade.test`;
@@ -108,6 +108,8 @@ const runsUnasked = async (page) => {
 };
 const WAIT = `import time\ntime.sleep(7)\nopen("slept.txt", "a").write("x")\n`;
 
+class Blocked extends Error {}
+let blocked = false;
 try {
   /* --- a computer of the person's own, with Background Mode ----------------- */
   const desk = await open({ width: 1440, height: 900 });
@@ -164,7 +166,8 @@ try {
   await desk.page.getByRole("button", { name: "Close", exact: true }).first().click();
   if (!terminal) {
     process.stdout.write("BLOCKED  carry-on journey — this computer offers no confined commands\n");
-    process.exit(0);
+    // Thrown, not exited, so the runtime and browser below are still cleaned up (F-134).
+    throw new Blocked();
   }
   const DEVICE = (await table("jarvis_devices", `user_id=eq.${USER}&select=id`))[0].id;
 
@@ -564,10 +567,15 @@ try {
     ),
   );
   await lister.context.close();
+} catch (error) {
+  if (!(error instanceof Blocked)) throw error;
+  blocked = true;
 } finally {
   device?.kill();
   await browser.close();
 }
+
+if (blocked) process.exit(failures === 0 ? 3 : 1);
 
 process.stdout.write(failures === 0 ? "\nCarry-on journey passed.\n" : `\n${failures} failed.\n`);
 process.exit(failures === 0 ? 0 : 1);

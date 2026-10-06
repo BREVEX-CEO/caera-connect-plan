@@ -41,7 +41,11 @@ function check(name, ok, detail = "") {
   if (!ok) failures += 1;
   process.stdout.write(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}\n`);
 }
-const blocked = (name, why) => process.stdout.write(`BLOCKED  ${name} — ${why}\n`);
+let partlyBlocked = false;
+const blocked = (name, why) => {
+  partlyBlocked = true;
+  process.stdout.write(`BLOCKED  ${name} — ${why}\n`);
+};
 
 async function until(condition, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs;
@@ -105,6 +109,14 @@ const setJarvisRemaining = (remainingUses) =>
     body: JSON.stringify({ email: EMAIL, remainingUses, allowanceUses: 28, surface: "jarvis" }),
   });
 const boundary = () => fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) => r.json());
+/** The task as the database holds it: the outcome, not what the screen shows. */
+const taskStatus = (title) =>
+  fetch(
+    `${SUPABASE}/rest/v1/jarvis_tasks?title=eq.${encodeURIComponent(title)}&select=status&order=created_at.desc&limit=1`,
+    { headers: { authorization: `Bearer ${session.access_token}` } },
+  )
+    .then((r) => r.json())
+    .then((rows) => rows[0]?.status ?? null);
 
 const browser = await chromium.launch({
   executablePath: EXECUTABLE,
@@ -725,7 +737,8 @@ except i.UpdateRequired:
 
     // The resumed task is still open; one computer runs one task at a time.
     await page.getByRole("button", { name: "Stop", exact: true }).first().click();
-    await until(async () => (await page.getByText("Tidy the notes").count()) >= 0);
+    // Stopped in the database, not merely gone from view (F-138).
+    await until(async () => (await taskStatus("Tidy the notes")) === "stopped", 15_000);
     await page.waitForTimeout(1000);
 
     /* --- Remote PC from a phone-sized screen, and the global STOP JARVIS ------- */
@@ -774,7 +787,11 @@ except i.UpdateRequired:
       "STOP JARVIS stops the computer's task",
       await until(async () => {
         const state = await page.evaluate(() => document.body.innerText);
-        return state.includes("Long build") && (await stopAll.count()) === 0;
+        return (
+          state.includes("Long build") &&
+          (await stopAll.count()) === 0 &&
+          (await taskStatus("Long build")) === "stopped"
+        );
       }, 30_000),
     );
     await page.setViewportSize({ width: 1280, height: 800 });
@@ -1225,6 +1242,16 @@ except i.UpdateRequired:
         abort() {}
       }
       window.SpeechRecognition = Recogniser;
+      // What was handed to speech, so "spoken" is measured, not inferred (F-139).
+      window.__spoken = [];
+      const synth = window.speechSynthesis;
+      if (synth) {
+        const speak = synth.speak.bind(synth);
+        synth.speak = (utterance) => {
+          window.__spoken.push(utterance.text);
+          return speak(utterance);
+        };
+      }
       window.__say = (text) =>
         window.__recogniser.onresult({
           resultIndex: 0,
@@ -1294,9 +1321,7 @@ except i.UpdateRequired:
   );
   check(
     "the answer is spoken",
-    await until(async () =>
-      /Speaking|Listening/.test(await talker.getByRole("status").last().innerText()),
-    ),
+    await until(async () => (await talker.evaluate(() => window.__spoken.length)) > 0),
   );
   await talker.getByRole("button", { name: "Interrupt", exact: true }).click();
   await talker.evaluate(() => window.__fail("network"));
@@ -1396,4 +1421,4 @@ except i.UpdateRequired:
 process.stdout.write(
   failures === 0 ? "\nJARVIS journey passed.\n" : `\n${failures} JARVIS checks failed.\n`,
 );
-process.exit(failures === 0 ? 0 : 1);
+process.exit(failures === 0 ? (partlyBlocked ? 3 : 0) : 1);

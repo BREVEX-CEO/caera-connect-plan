@@ -773,6 +773,9 @@ function handleRpc(name, args, userId) {
         tier: args.p_tier,
         surface,
         settled: false,
+        // The windows it reserved in, so settling after a rollover charges those (F-140).
+        sessionStart: session.startsAt,
+        weekStart: week.startsAt,
       };
       permits.push(permit);
       addUsage(userId, kindFor(surface, "session"), session.startsAt, reserved);
@@ -796,6 +799,10 @@ function handleRpc(name, args, userId) {
         (entry) => entry.idempotencyKey === args.p_idempotency_key,
       );
       if (!permit) return [{ outcome: "missing", charged_hundredths: 0 }];
+      // A retried settlement answers what was charged, and charges nothing more (F-140).
+      if (permit.charged !== undefined)
+        return [{ outcome: "succeeded", charged_hundredths: permit.charged }];
+      if (permit.settled) return [{ outcome: "released", charged_hundredths: 0 }];
       /*
        * FREE IS EXACTLY ONE USE, CLAMPED HERE AS THE MIGRATION CLAMPS IT.
        *
@@ -805,11 +812,14 @@ function handleRpc(name, args, userId) {
        * the stub charged the weighted measurement, 0.25 of a use, and the
        * allowance appeared to go down by a quarter per request.
        */
-      const charged = permit.tier === "free" ? 100 : Number(args.p_cost_hundredths) || 0;
+      // As the migration: Free is one use, anything else at least a quarter of one.
+      const charged =
+        permit.tier === "free" ? 100 : Math.max(25, Number(args.p_cost_hundredths) || 0);
       const difference = charged - permit.reserved;
-      addUsage(userId, kindFor(permit.surface, "session"), session.startsAt, difference);
-      addUsage(userId, kindFor(permit.surface, "week"), week.startsAt, difference);
+      addUsage(userId, kindFor(permit.surface, "session"), permit.sessionStart, difference);
+      addUsage(userId, kindFor(permit.surface, "week"), permit.weekStart, difference);
       permit.settled = true;
+      permit.charged = charged;
       return [{ outcome: "succeeded", charged_hundredths: charged }];
     }
 
@@ -818,8 +828,8 @@ function handleRpc(name, args, userId) {
         (entry) => entry.idempotencyKey === args.p_idempotency_key,
       );
       if (!permit || permit.settled) return false;
-      addUsage(userId, kindFor(permit.surface, "session"), session.startsAt, -permit.reserved);
-      addUsage(userId, kindFor(permit.surface, "week"), week.startsAt, -permit.reserved);
+      addUsage(userId, kindFor(permit.surface, "session"), permit.sessionStart, -permit.reserved);
+      addUsage(userId, kindFor(permit.surface, "week"), permit.weekStart, -permit.reserved);
       permit.settled = true;
       return true;
     }
@@ -2276,6 +2286,11 @@ const server = createServer((request, response) => {
         return send(200, projected, { "content-range": `0-${projected.length}/${found.length}` });
       }
 
+      // Before any write, so a refused POST or PATCH really writes nothing (F-033).
+      if (refusals.table === name && (!refusals.method || refusals.method === request.method)) {
+        return send(500, { message: `the stub was told to refuse ${request.method} on ${name}` });
+      }
+
       if (request.method === "POST") {
         const payload = JSON.parse(body || "{}");
         const incoming = Array.isArray(payload) ? payload : [payload];
@@ -2332,10 +2347,6 @@ const server = createServer((request, response) => {
           Object.assign(row, patch, { updated_at: new Date().toISOString() });
         const projected = changed.map((row) => project(row, select));
         return send(200, single ? (projected[0] ?? null) : projected);
-      }
-
-      if (refusals.table === name && (!refusals.method || refusals.method === request.method)) {
-        return send(500, { message: `the stub was told to refuse ${request.method} on ${name}` });
       }
 
       if (request.method === "DELETE") {

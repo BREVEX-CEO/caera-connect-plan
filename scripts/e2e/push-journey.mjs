@@ -23,6 +23,7 @@ const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
 const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 
 let failures = 0;
+let partlyBlocked = false;
 function check(name, ok, detail = "") {
   if (!ok) failures += 1;
   process.stdout.write(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}\n`);
@@ -122,6 +123,7 @@ try {
     process.stdout.write(
       "BLOCKED  a real push service — this browser build has none; the refusal was said plainly\n",
     );
+    partlyBlocked = true;
   } else {
     check("turned on: the browser subscribed with its push service", subscribed, problem);
   }
@@ -308,4 +310,4 @@ try {
 process.stdout.write(
   failures === 0 ? "\nPush journey passed.\n" : `\n${failures} push checks failed.\n`,
 );
-process.exit(failures === 0 ? 0 : 1);
+process.exit(failures === 0 ? (partlyBlocked ? 3 : 0) : 1);
