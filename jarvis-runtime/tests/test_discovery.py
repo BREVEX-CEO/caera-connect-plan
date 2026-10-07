@@ -38,6 +38,35 @@ class RecipeTest(unittest.TestCase):
         self.assertEqual((len(same), older), (0, 1))
 
 
+class CapabilityCacheTest(unittest.TestCase):
+    """PLAN.md section F: an app's surfaces are found once per program build."""
+
+    def setUp(self):
+        ocade_discovery.HOME = Path(tempfile.mkdtemp())
+
+    @unittest.skipUnless(sys.platform == "win32", "program discovery reads Windows executables")
+    def test_found_once_per_build_and_again_when_the_program_changes(self):
+        program = Path(tempfile.mkdtemp()) / "tool.exe"
+        program.write_bytes(Path(sys.executable).read_bytes())
+        looked = []
+        with unittest.mock.patch.object(ocade_discovery, "_com_servers",
+                                        lambda name: looked.append(name) or ["Tool.Application"]):
+            app = {"name": "Tool", "launch": str(program)}
+            first = ocade_discovery.app_info(app)
+            again = ocade_discovery.app_info(app)
+            self.assertEqual(len(looked), 1)
+            self.assertEqual(again["automation"], first["automation"])
+            os.utime(program, (1_000_000, 1_000_000))  # updated or reinstalled
+            ocade_discovery.app_info(app)
+            self.assertEqual(len(looked), 2)
+        # A look cut short by STOP is never kept.
+        cancel = threading.Event()
+        cancel.set()
+        ocade_discovery.HOME = Path(tempfile.mkdtemp())
+        ocade_discovery.app_info(app, cancel)
+        self.assertFalse((ocade_discovery.HOME / "capabilities.json").exists())
+
+
 class FilesTest(unittest.TestCase):
     def setUp(self):
         self.home = Path(tempfile.mkdtemp())

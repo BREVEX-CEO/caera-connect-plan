@@ -248,19 +248,48 @@ def glob_escape(name: str) -> str:
     return re.sub(r"([*?\[])", r"[\1]", name)
 
 
+def _cached_capabilities() -> dict:
+    try:
+        return json.loads((HOME / "capabilities.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
 def app_info(app: dict, cancel: threading.Event | None = None) -> dict:
-    """`app` is one entry of ocade_computer.installed_apps()."""
+    """`app` is one entry of ocade_computer.installed_apps().
+
+    What an app offers is found once per program build and kept on this computer
+    (PLAN.md section F): the registry and folder scans take one to two seconds,
+    and they change only when the program does. Keyed by program, version and
+    file time, so an update or reinstall is rediscovered rather than replayed."""
     exe = _program(app) if SYSTEM == "Windows" else None
     info: dict = {"name": app["name"], "storeApp": "!" in str(app.get("launch", ""))}
     if exe and Path(exe).is_file():
         name = Path(exe).name
-        info.update(program=exe, version=_version(exe))
-        if not (cancel and cancel.is_set()):
-            info["automation"] = _com_servers(name)
-        if not (cancel and cancel.is_set()):
-            info["opens"], info["links"] = _opens(name)
-        info["scripting"] = [{"folder": folder, "contains": _names(folder), **_readme(folder)}
-                             for folder in _surfaces(Path(exe).parent, exe)]
+        version = _version(exe)
+        info.update(program=exe, version=version)
+        key = f"{exe.lower()}|{version}|{int(Path(exe).stat().st_mtime)}"
+        cache = _cached_capabilities()
+        if key in cache:
+            info.update(cache[key])
+        else:
+            found: dict = {}
+            if not (cancel and cancel.is_set()):
+                found["automation"] = _com_servers(name)
+            if not (cancel and cancel.is_set()):
+                found["opens"], found["links"] = _opens(name)
+            found["scripting"] = [{"folder": folder, "contains": _names(folder), **_readme(folder)}
+                                  for folder in _surfaces(Path(exe).parent, exe)]
+            info.update(found)
+            if not (cancel and cancel.is_set()):  # only a complete look is kept
+                cache[key] = found
+                try:
+                    HOME.mkdir(parents=True, exist_ok=True)
+                    tmp = HOME / "capabilities.json.tmp"
+                    tmp.write_text(json.dumps(dict(list(cache.items())[-200:])), encoding="utf-8")
+                    os.replace(tmp, HOME / "capabilities.json")
+                except OSError:
+                    pass  # a cache that cannot be written is only slower next time
     info["recipes"], stale = recipes_for(app["name"], info.get("version"))
     if stale:
         info["olderRecipes"] = stale  # written for another major version: rediscover, never replay
