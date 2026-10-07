@@ -164,7 +164,7 @@ describe("computer actions", () => {
     ).toBeNull();
   });
 
-  it("use Allowed Apps as Always, Ask or Never", () => {
+  it("use the app rules (Devices, Apps and websites) as Always, Ask or Never", () => {
     const rows = [row("apps", true), row("app:notepad", true), row("app:terminal", false)];
     expect(needsConfirmation(rows, open("Notepad"))).toBe(false);
     expect(needsConfirmation(rows, open("Calculator"))).toBe(true);

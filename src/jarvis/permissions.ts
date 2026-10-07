@@ -159,15 +159,18 @@ export function refuseAction(
       capability: "site",
       message:
         siteDecision(rows, host) === null && isPrivateHost(host)
-          ? `${host} is on a private network. Allow it in Allowed Apps first.`
-          : "That site is turned off in Allowed Apps.",
+          ? `${host} is on a private network. Allow it in Devices, under Apps and websites, first.`
+          : "That site is turned off in Devices, under Apps and websites.",
     };
   }
   if (
     input.action.action === "open_app" &&
     appDecision(rows, input.action.name, input.deviceId) === false
   )
-    return { capability: "app", message: `${input.action.name} is set to Never in Allowed Apps.` };
+    return {
+      capability: "app",
+      message: `${input.action.name} is set to Never in Devices, under Apps and websites.`,
+    };
   return null;
 }
 

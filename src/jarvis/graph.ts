@@ -41,7 +41,7 @@ const HUBS: Record<Category, { label: string; direction: [number, number, number
   task: { label: "Tasks", direction: [-0.8, 0.45, 0.35] },
   memory: { label: "Memory", direction: [0.1, -0.85, 0.5] },
   device: { label: "Devices", direction: [-0.45, -0.55, -0.7] },
-  app: { label: "Allowed Apps", direction: [0.55, 0.15, -0.8] },
+  app: { label: "Apps", direction: [0.55, 0.15, -0.8] },
 };
 
 /** A stable number in [0, 1) from a string. */

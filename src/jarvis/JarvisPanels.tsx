@@ -23,12 +23,11 @@ import {
   type JarvisState,
 } from "./jarvis.functions";
 
-export type Section = "conversations" | "activity" | "apps" | "devices";
+export type Section = "conversations" | "activity" | "devices";
 
 const TITLES: Record<Section, string> = {
   conversations: "Conversations",
   activity: "Activity",
-  apps: "Allowed Apps",
   devices: "Devices",
 };
 
@@ -313,118 +312,116 @@ function SectionBody({
     );
   }
 
-  if (section === "apps") {
-    return (
-      <>
-        <p className="mb-2 text-xs text-muted-foreground">
-          Websites JARVIS has used or you have set. Turning one off stops JARVIS from opening it.
-        </p>
-        {state.sites.length === 0 ? (
-          <p className="text-muted-foreground">No websites yet.</p>
-        ) : null}
-        {state.sites.map((site) => (
-          <Toggle
-            key={site}
-            label={site}
-            checked={
-              state.permissions.find((p) => p.capability === `site:${site}` && p.device_id === null)
-                ?.allowed !== false
-            }
-            onChange={(allowed) => void decide(`site:${site}`, allowed, null, onChanged)}
-          />
+  // Apps and websites live under Devices (PLAN.md section M): rarely changed, so
+  // not a rail entry of their own. The same rules, the same controls.
+  const appsAndSites = (
+    <>
+      <p className="mb-2 text-xs text-muted-foreground">
+        Websites JARVIS has used or you have set. Turning one off stops JARVIS from opening it.
+      </p>
+      {state.sites.length === 0 ? <p className="text-muted-foreground">No websites yet.</p> : null}
+      {state.sites.map((site) => (
+        <Toggle
+          key={site}
+          label={site}
+          checked={
+            state.permissions.find((p) => p.capability === `site:${site}` && p.device_id === null)
+              ?.allowed !== false
+          }
+          onChange={(allowed) => void decide(`site:${site}`, allowed, null, onChanged)}
+        />
+      ))}
+      <form
+        className="mt-3 flex gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const input = event.currentTarget.elements.namedItem("site") as HTMLInputElement;
+          const host = hostOf(input.value);
+          if (!host || !/^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/.test(host)) {
+            toast.error("Enter a website address, such as example.com.");
+            return;
+          }
+          void decide(`site:${host}`, true, null, onChanged);
+          input.value = "";
+        }}
+      >
+        <label htmlFor="jarvis-allow-site" className="sr-only">
+          Website to allow
+        </label>
+        <input
+          id="jarvis-allow-site"
+          name="site"
+          placeholder="example.com"
+          className="min-w-0 flex-1 rounded-md border border-border/60 bg-transparent px-2 py-1"
+        />
+        <button type="submit" className="rounded-md border border-border px-2 py-1 text-xs">
+          Allow site
+        </button>
+      </form>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Addresses on your own network need your permission first.
+      </p>
+      <h3 className="mt-4 text-sm font-medium">Apps on your computers</h3>
+      <p className="mb-2 text-xs text-muted-foreground">
+        Always opens without asking. Ask waits for you. Never is refused.
+      </p>
+      {state.apps.every((group) => group.apps.length === 0) ? (
+        <p className="text-muted-foreground">No computer has reported its apps yet.</p>
+      ) : (
+        // A computer reports every app it has (190 here): find one by name.
+        <input
+          type="search"
+          value={appFilter}
+          onChange={(event) => setAppFilter(event.target.value)}
+          aria-label="Find an app"
+          placeholder="Find an app"
+          className="mb-2 h-8 w-full rounded-md border border-border/60 bg-background px-2 text-sm outline-none focus-visible:border-ring"
+        />
+      )}
+      {state.apps
+        .filter((group) => group.apps.length > 0)
+        .map((group) => (
+          <section key={group.deviceId} aria-label={group.deviceName} className="mb-3">
+            <p className="mb-1 text-xs font-medium text-muted-foreground">{group.deviceName}</p>
+            <ul className="flex flex-col gap-1">
+              {group.apps
+                .filter((app) => app.name.toLowerCase().includes(appFilter.trim().toLowerCase()))
+                .map((app) => {
+                  const id = `app-${group.deviceId}-${app.name}`;
+                  return (
+                    <li key={app.name} className="flex items-center gap-2">
+                      <label htmlFor={id} className="min-w-0 flex-1 truncate">
+                        {app.name}
+                      </label>
+                      <select
+                        id={id}
+                        value={app.rule}
+                        onChange={(event) =>
+                          void decide(
+                            `app:${app.name.toLowerCase()}`,
+                            event.target.value === "always"
+                              ? true
+                              : event.target.value === "never"
+                                ? false
+                                : null,
+                            group.deviceId,
+                            onChanged,
+                          )
+                        }
+                        className="rounded-md border border-border/60 bg-background px-1 py-0.5 text-xs"
+                      >
+                        <option value="always">Always</option>
+                        <option value="ask">Ask</option>
+                        <option value="never">Never</option>
+                      </select>
+                    </li>
+                  );
+                })}
+            </ul>
+          </section>
         ))}
-        <form
-          className="mt-3 flex gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const input = event.currentTarget.elements.namedItem("site") as HTMLInputElement;
-            const host = hostOf(input.value);
-            if (!host || !/^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/.test(host)) {
-              toast.error("Enter a website address, such as example.com.");
-              return;
-            }
-            void decide(`site:${host}`, true, null, onChanged);
-            input.value = "";
-          }}
-        >
-          <label htmlFor="jarvis-allow-site" className="sr-only">
-            Website to allow
-          </label>
-          <input
-            id="jarvis-allow-site"
-            name="site"
-            placeholder="example.com"
-            className="min-w-0 flex-1 rounded-md border border-border/60 bg-transparent px-2 py-1"
-          />
-          <button type="submit" className="rounded-md border border-border px-2 py-1 text-xs">
-            Allow site
-          </button>
-        </form>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Addresses on your own network need your permission first.
-        </p>
-        <h3 className="mt-4 text-sm font-medium">Apps on your computers</h3>
-        <p className="mb-2 text-xs text-muted-foreground">
-          Always opens without asking. Ask waits for you. Never is refused.
-        </p>
-        {state.apps.every((group) => group.apps.length === 0) ? (
-          <p className="text-muted-foreground">No computer has reported its apps yet.</p>
-        ) : (
-          // A computer reports every app it has (190 here): find one by name.
-          <input
-            type="search"
-            value={appFilter}
-            onChange={(event) => setAppFilter(event.target.value)}
-            aria-label="Find an app"
-            placeholder="Find an app"
-            className="mb-2 h-8 w-full rounded-md border border-border/60 bg-background px-2 text-sm outline-none focus-visible:border-ring"
-          />
-        )}
-        {state.apps
-          .filter((group) => group.apps.length > 0)
-          .map((group) => (
-            <section key={group.deviceId} aria-label={group.deviceName} className="mb-3">
-              <p className="mb-1 text-xs font-medium text-muted-foreground">{group.deviceName}</p>
-              <ul className="flex flex-col gap-1">
-                {group.apps
-                  .filter((app) => app.name.toLowerCase().includes(appFilter.trim().toLowerCase()))
-                  .map((app) => {
-                    const id = `app-${group.deviceId}-${app.name}`;
-                    return (
-                      <li key={app.name} className="flex items-center gap-2">
-                        <label htmlFor={id} className="min-w-0 flex-1 truncate">
-                          {app.name}
-                        </label>
-                        <select
-                          id={id}
-                          value={app.rule}
-                          onChange={(event) =>
-                            void decide(
-                              `app:${app.name.toLowerCase()}`,
-                              event.target.value === "always"
-                                ? true
-                                : event.target.value === "never"
-                                  ? false
-                                  : null,
-                              group.deviceId,
-                              onChanged,
-                            )
-                          }
-                          className="rounded-md border border-border/60 bg-background px-1 py-0.5 text-xs"
-                        >
-                          <option value="always">Always</option>
-                          <option value="ask">Ask</option>
-                          <option value="never">Never</option>
-                        </select>
-                      </li>
-                    );
-                  })}
-              </ul>
-            </section>
-          ))}
-      </>
-    );
-  }
+    </>
+  );
 
   // Devices
   const devices = state.devices.filter((d) => !d.revoked_at && d.last_seen_at);
@@ -637,6 +634,8 @@ function SectionBody({
         </p>
         <AgentDownload />
       </div>
+      <h3 className="mb-1 mt-4 text-sm font-medium">Apps and websites</h3>
+      {appsAndSites}
     </>
   );
 }
@@ -692,7 +691,7 @@ function AgentDownload() {
 
 /** Per-computer capabilities, each off until the person turns it on for that computer. */
 const COMPUTER_TOGGLES: [Capability, string, string][] = [
-  ["apps", "Open apps", "Only apps this computer found; Allowed Apps decides which."],
+  ["apps", "Open apps", "Only apps this computer found; Apps and websites decides which."],
   ["files", "Files in the workspace", "Only inside the folder chosen on the computer."],
   [
     "terminal",

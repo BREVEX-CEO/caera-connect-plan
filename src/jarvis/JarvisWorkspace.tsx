@@ -7,7 +7,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
-  AppWindow,
   ArrowUp,
   Menu,
   MessageSquare,
@@ -68,7 +67,6 @@ interface Turn {
 const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: "conversations", label: "Conversations", icon: MessagesSquare },
   { id: "activity", label: "Activity", icon: Activity },
-  { id: "apps", label: "Allowed Apps", icon: AppWindow },
   { id: "devices", label: "Devices", icon: MonitorSmartphone },
 ];
 
@@ -719,7 +717,7 @@ export function JarvisWorkspace({
         task: "conversations",
         memory: null,
         device: "devices",
-        app: "apps",
+        app: "devices",
       } as const;
       const target = map[node.category];
       if (target) setSection(target);

@@ -816,18 +816,18 @@ except i.UpdateRequired:
       "and the refusal says how to allow it",
       (await boundary()).turns.some((t) => t.content.includes("is on a private network")),
     );
-    await rail("Allowed Apps").click();
+    await rail("Devices").click();
     await page.locator("#jarvis-allow-site").fill("127.0.0.1");
     await page.getByRole("button", { name: "Allow site", exact: true }).click();
     check(
-      "the person can allow it in Allowed Apps",
+      "the person can allow it in Devices, under Apps and websites",
       await until(async () => await page.getByRole("switch", { name: "127.0.0.1" }).isChecked()),
     );
     // A computer reports every app it has; one is found by name, not by scrolling.
     await page.getByRole("searchbox", { name: "Find an app" }).fill("calc");
     const found = await page.locator('select[id^="app-"]').count();
     check(
-      "Allowed Apps finds an app by name among all the computer's apps",
+      "Apps and websites finds an app by name among all the computer's apps",
       found >= 1 && found < 10,
       String(found),
     );
@@ -1021,10 +1021,10 @@ except i.UpdateRequired:
       .getByRole("button", { name: "Close permissions", exact: true })
       .click({ position: { x: 5, y: 5 } });
 
-    await rail("Allowed Apps").click();
+    await rail("Devices").click();
     const siteSwitch = page.getByRole("switch", { name: "127.0.0.1" });
     check(
-      "Allowed Apps lists the site JARVIS used",
+      "Apps and websites lists the site JARVIS used",
       await until(async () => (await siteSwitch.count()) === 1, 15_000),
     );
     await siteSwitch.click();
@@ -1045,7 +1045,7 @@ except i.UpdateRequired:
     );
     check(
       "the refusal is explained",
-      (await boundary()).turns.some((t) => t.content.includes("turned off in Allowed Apps")),
+      (await boundary()).turns.some((t) => t.content.includes("turned off in Devices")),
     );
     await siteSwitch.click();
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
@@ -1355,8 +1355,10 @@ except i.UpdateRequired:
 
   /* --- navigation, Settings, Orb Focus and layouts ------------------------------ */
   check(
-    "the rail has exactly Conversations, Tasks, Activity, Allowed Apps and Devices",
-    (await page.getByRole("button", { name: "History", exact: true }).count()) === 0 &&
+    "the rail has exactly Conversations, Activity and Devices: Apps and websites live under Devices",
+    (await rail("Allowed Apps").count()) === 0 &&
+      (await rail("Devices").count()) === 1 &&
+      (await page.getByRole("button", { name: "History", exact: true }).count()) === 0 &&
       (await page.getByRole("button", { name: "Plugins", exact: true }).count()) === 0 &&
       (await page.getByRole("button", { name: /theme/i }).count()) === 0,
   );
