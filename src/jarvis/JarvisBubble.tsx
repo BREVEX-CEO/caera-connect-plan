@@ -14,12 +14,13 @@
  */
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUp, ChevronDown, Maximize2, Mic, Square } from "lucide-react";
 import { toast } from "sonner";
 import { persistChatMessage } from "@/lib/ocade-chat-store";
 import { cn } from "@/lib/utils";
 import { runJarvisTurn, Stopped } from "./agent";
+import { useActionChanges } from "./changes";
 import { handOff, writePlacement, type Placement } from "./bubble-state";
 import { createJarvisConversation, readJarvisState, updateJarvisTask } from "./jarvis.functions";
 import { liveDeps, ModelRefused, Unavailable } from "./live-deps";
@@ -63,11 +64,21 @@ export function Bubble({ userId, placement }: { userId: string; placement: Place
   /** While JARVIS is temporarily unavailable, as the full page waits: no resend storm. */
   const busyUntil = useRef(0);
 
+  const refreshBubble = useCallback(
+    () => void queryClient.invalidateQueries({ queryKey: ["jarvis", "bubble", userId] }),
+    [queryClient, userId],
+  );
+  // Changes arrive as events; the interval is only the fail-safe (PLAN.md section E).
+  const evented = useActionChanges(refreshBubble, Boolean(userId));
   const state = useQuery({
     queryKey: ["jarvis", "bubble", userId],
     queryFn: () => readJarvisState({ data: { maintain: false } }),
     refetchInterval: (query) =>
-      query.state.data?.tasks.some((task) => !FINISHED.includes(task.status)) ? 4000 : 30_000,
+      query.state.data?.tasks.some((task) => !FINISHED.includes(task.status))
+        ? evented
+          ? 15_000
+          : 4000
+        : 30_000,
   });
   const task = state.data?.tasks.find((t) => !FINISHED.includes(t.status)) ?? null;
   const working = task?.status === "running";

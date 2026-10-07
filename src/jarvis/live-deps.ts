@@ -7,6 +7,7 @@ import { beginBilledRequest } from "@/lib/commercial/use-generation-permit";
 import type { NormalizedToolCall } from "@/lib/intelligence/contract";
 import { Stopped, type AgentDeps } from "./agent";
 import { jarvisTools } from "./protocol";
+import { actionChanged } from "./changes";
 import {
   cancelJarvisAction,
   decideJarvisAction,
@@ -105,5 +106,6 @@ export function liveDeps(conversationId: string): AgentDeps {
     readDocs: (data) => readJarvisDocs({ data }),
     schedule: (data) => scheduleJarvis({ data }),
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    changed: actionChanged,
   };
 }

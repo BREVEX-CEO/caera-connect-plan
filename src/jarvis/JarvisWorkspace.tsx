@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/session";
+import { useActionChanges } from "./changes";
 import { useAppearance } from "@/lib/appearance";
 import { useSettingsPanel } from "@/components/settings/settings-panel";
 import { loadChatMessages, persistChatMessage } from "@/lib/ocade-chat-store";
@@ -110,6 +111,12 @@ export function JarvisWorkspace({
   const [activeTask, setActiveTask] = useState<JarvisTaskRow | null>(null);
   const taskLive = Boolean(activeTask && !FINISHED.includes(activeTask.status));
   const opened = useRef(false);
+  const refresh = useCallback(
+    () => void queryClient.invalidateQueries({ queryKey: JARVIS_STATE_KEY }),
+    [queryClient],
+  );
+  // A step's change refreshes at once; the interval below is the fail-safe (PLAN.md section E).
+  const evented = useActionChanges(refresh, signedIn);
   // Account-owned: keyed by the account, and never read once signed out.
   const state = useQuery({
     queryKey: [...JARVIS_STATE_KEY, user?.id ?? ""],
@@ -129,14 +136,12 @@ export function JarvisWorkspace({
       (query.state.data?.devices ?? []).some(
         (d) => d.online && Object.keys(d.capabilities).length === 0,
       )
-        ? 4000
+        ? evented
+          ? 15_000
+          : 4000
         : 30_000,
   });
   const jarvis = signedIn ? state.data : undefined;
-  const refresh = useCallback(
-    () => void queryClient.invalidateQueries({ queryKey: JARVIS_STATE_KEY }),
-    [queryClient],
-  );
   const permissions = jarvis?.permissions ?? [];
   const jarvisOn = isAllowed(permissions, "master");
   const graph = useMemo(() => buildGraph(jarvis), [jarvis]);

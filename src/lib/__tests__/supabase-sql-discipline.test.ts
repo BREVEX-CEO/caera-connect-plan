@@ -85,7 +85,9 @@ describe("rollbacks are safe to run", () => {
     for (const name of rollbacks) {
       const sql = code(read(ROLLBACK, name));
       for (const match of sql.matchAll(
-        /\bdrop\s+(table|index|function|policy|trigger|type|view|sequence)\s+([\s\S]{0,20})/g,
+        // Not `alter publication … drop table`: that removes membership, not the table,
+        // has no IF EXISTS form, and is guarded by a membership check instead.
+        /(?<!publication\s+\w+\s+)\bdrop\s+(table|index|function|policy|trigger|type|view|sequence)\s+([\s\S]{0,20})/g,
       )) {
         if (!match[2].includes("if exists")) unguarded.push(`${name}: drop ${match[1]}`);
       }

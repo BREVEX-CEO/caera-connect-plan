@@ -41,6 +41,8 @@ export const MAX_FAILED_CALLS = 3;
 /** The loop touches its task this often, so a closed surface is told apart from a slow step. */
 export const HEARTBEAT_MS = 60_000;
 const POLL_MS = 400;
+/** With change events, the fail-safe read happens this often instead. */
+const EVENT_FALLBACK_MS = 2_000;
 const ACTION_TIMEOUT_MS = 120_000;
 
 export class Stopped extends Error {
@@ -119,6 +121,12 @@ export interface AgentDeps {
   /** A public documentation page's text (page data, never instructions). */
   readDocs?(input: { url: string; taskId: string }): Promise<unknown>;
   sleep(ms: number): Promise<void>;
+  /**
+   * Resolves when this action's row changes, or after `ms` at the latest. An
+   * event, not a poll (PLAN.md section E); the timer is only the fail-safe for a
+   * lost subscription. Absent, the loop sleeps POLL_MS between reads.
+   */
+  changed?(id: string, ms: number): Promise<void>;
   /** A reminder or later work, as the person asked. */
   schedule?(input: {
     conversationId: string;
@@ -402,7 +410,7 @@ export async function runJarvisTurn(
       if (state.status === "needs_confirmation") return state;
       if (!["queued", "claimed"].includes(state.status)) return state;
       if (state.taskStatus !== "running") return state;
-      await deps.sleep(POLL_MS);
+      await (deps.changed ? deps.changed(id, EVENT_FALLBACK_MS) : deps.sleep(POLL_MS));
     }
     // Given up on: cancelled, so it cannot still run or report "done" after the planner moved on.
     await deps.cancelAction?.(id);
