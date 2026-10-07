@@ -24,13 +24,20 @@ function open(): void {
         "postgres_changes",
         { event: "*", schema: "public", table: "jarvis_activity" },
         (change) => {
+          // Live means events really arrive: a joined socket on a database whose
+          // publication lacks the table would otherwise slow every wait down.
+          if (!subscribed) {
+            subscribed = true;
+            for (const tell of status) tell(true);
+          }
           const id = ((change.new ?? change.old) as { id?: string }).id ?? "";
           for (const listener of [...listeners]) listener(id);
         },
       )
       .subscribe((state) => {
-        subscribed = state === "SUBSCRIBED";
-        for (const tell of status) tell(subscribed);
+        if (state === "SUBSCRIBED") return; // proven by the first event, not by joining
+        subscribed = false;
+        for (const tell of status) tell(false);
       }),
   );
 }
