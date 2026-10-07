@@ -157,10 +157,9 @@ try {
   await wd("POST", "/appium/settings", { settings: { enableMultiWindows: true } });
 
   check(
-    "the first screen says what OCADE is for, and that the phone is not connected",
+    "the first screen says what OCADE needs, with one button to set it up",
     await until(
-      async () =>
-        (await exists(ui("Not connected"))) && (await exists(ui("Set up everything OCADE needs"))),
+      async () => (await exists(ui("Needs your permission"))) && (await exists(ui("Set up OCADE"))),
     ),
   );
   check(
@@ -172,8 +171,12 @@ try {
       )),
   );
 
-  /* --- one walk through Android's own permission screens ------------------- */
-  await tap(ui("Set up everything OCADE needs"));
+  /* --- one button: Android's own permission screens, then connecting -------- */
+  // Requests already waiting (an earlier run's) are not this phone's.
+  const earlier = new Set(
+    (await devices("user_id=is.null&kind=eq.android&select=id")).map((row) => row.id),
+  );
+  await tap(ui("Set up OCADE"));
   await find(ui(DECLINE ? "Don’t allow" : "Allow"), 20_000);
   check("Android itself asks about notifications", true);
   await tap(ui(DECLINE ? "Don’t allow" : "Allow"));
@@ -198,32 +201,8 @@ try {
   await until(async () => await exists(ui("Use OCADE JARVIS")), 5_000);
   await back();
   await back();
-  const done = await until(
-    async () =>
-      await exists('new UiSelector().description("Accessibility: OCADE JARVIS: allowed")'),
-    20_000,
-  );
-  check("back in OCADE, everything allowed is ticked", done);
-  if (DECLINE) {
-    check(
-      "the one left off is said plainly, and was asked about only once",
-      (await exists('new UiSelector().description("Notifications: not allowed yet")')) &&
-        (await exists('new UiSelector().textContains("Some of this was left off")')),
-    );
-  } else {
-    check(
-      "nothing is left off",
-      (await exists('new UiSelector().description("Notifications: allowed")')) &&
-        (await exists('new UiSelector().description("Display over other apps: allowed")')),
-    );
-  }
 
-  /* --- connecting: the phone's own key, one approval in OCADE -------------- */
-  // Requests already waiting (an earlier run's) are not this phone's.
-  const earlier = new Set(
-    (await devices("user_id=is.null&kind=eq.android&select=id")).map((row) => row.id),
-  );
-  await tap(ui("Connect this phone"));
+  /* --- the same button then connects: the phone's own key, one approval ---- */
   let phone = null;
   await until(async () => {
     phone =
@@ -233,13 +212,32 @@ try {
     return Boolean(phone);
   }, 30_000);
   check(
-    "the phone asks OCADE to connect it, as an Android device",
+    "with the permissions done, the same Set up asks OCADE to connect it, as an Android device",
     Boolean(phone),
     JSON.stringify(phone),
   );
   // The approval page opened in the phone's browser; the person approves where they are signed in.
   await web.goto(`${BASE}/ocade-jarvis?connect=${phone.id}`, { waitUntil: "networkidle" });
   adb("shell", "am", "start", "-n", "in.ocade.app/.MainActivity");
+  if (DECLINE) {
+    check(
+      "the one left off is said plainly, and was asked about only once",
+      await until(
+        async () =>
+          (await exists('new UiSelector().description("Notifications: not allowed yet")')) &&
+          (await exists('new UiSelector().textContains("Some of this was left off")')),
+        10_000,
+      ),
+    );
+  } else {
+    check(
+      "nothing is left off: no permission is still listed",
+      (await until(
+        async () => !(await exists('new UiSelector().textContains("not allowed")')),
+        10_000,
+      )) && !(await exists('new UiSelector().descriptionContains("not allowed yet")')),
+    );
+  }
   let printed = "";
   await until(async () => {
     printed = /fingerprint is ([0-9A-F]{4}(?:-[0-9A-F]{4}){3})/.exec(await source())?.[1] ?? "";
@@ -255,13 +253,19 @@ try {
     );
   } else {
     // From another network (the emulator's own): the person types what the phone shows.
-    await web.getByRole("textbox", { name: "Fingerprint the device shows" }).fill(printed);
+    const typed = web.getByRole("textbox", { name: "Fingerprint the device shows" });
+    if (!(await typed.isVisible({ timeout: 10_000 }).catch(() => false))) {
+      throw new Error(
+        `no approval form: ${(await web.locator("body").innerText()).replace(/\s+/g, " ").slice(0, 400)}`,
+      );
+    }
+    await typed.fill(printed);
     check("from another network, OCADE asks for the fingerprint the phone shows", Boolean(printed));
   }
   await web.getByRole("button", { name: "Connect", exact: true }).click();
   check(
-    "and Connect connects it, and the phone says so",
-    await until(async () => await exists('new UiSelector().textStartsWith("Connected")'), 30_000),
+    "and Connect connects it, and the phone says Ready",
+    await until(async () => await exists('new UiSelector().textStartsWith("Ready")'), 30_000),
     (await web.locator("body").innerText()).replace(/\s+/g, " ").slice(0, 300),
   );
 
@@ -376,7 +380,12 @@ try {
   await wd("POST", "/orientation", { orientation: "LANDSCAPE" });
   check(
     "turned sideways, OCADE still shows its state and controls",
-    await until(async () => await exists('new UiSelector().textStartsWith("Connected")'), 10_000),
+    await until(
+      async () =>
+        (await exists('new UiSelector().textStartsWith("Ready")')) &&
+        (await exists(ui("STOP JARVIS"))),
+      10_000,
+    ),
   );
   await wd("POST", "/orientation", { orientation: "PORTRAIT" });
 
@@ -389,8 +398,8 @@ try {
   await web.getByRole("button", { name: "Remove device" }).first().click();
   await web.getByRole("button", { name: "Remove", exact: true }).click();
   check(
-    "removed in OCADE, the phone forgets its key and says so",
-    await until(async () => await exists(ui("Not connected")), 30_000),
+    "removed in OCADE, the phone forgets its key and offers Set up again",
+    await until(async () => await exists(ui("Set up OCADE")), 30_000),
   );
   const revoked = (await devices(`id=eq.${phone.id}&select=revoked_at`))[0];
   check("and its key no longer works in OCADE", Boolean(revoked?.revoked_at));

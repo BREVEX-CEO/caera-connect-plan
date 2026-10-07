@@ -968,7 +968,7 @@ export function ConnectDevice({
             <p>This connection request has expired or was already used.</p>
             <p className="mt-2 text-muted-foreground">
               Ask again from the device: on a computer, the OCADE icon near the clock, then Connect
-              this computer; on a phone, the OCADE app, then Connect this phone.
+              this computer; on a phone, the OCADE app, then Set up OCADE.
             </p>
             <button
               type="button"
