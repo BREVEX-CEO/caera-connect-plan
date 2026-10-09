@@ -1,3 +1,5 @@
+> Historical evidence only: this document describes its original snapshot and is not current implementation authority. Read [PLAN](../../../PLAN.md) for current work. Old PASS labels, phase instructions and platform claims require current reproduction; original content is retained below.
+
 # OCADE JARVIS Current Main — Master Bug & Issue Ledger
 
 **Audit scope:** OCADE JARVIS only  

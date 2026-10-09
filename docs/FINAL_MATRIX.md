@@ -1,3 +1,5 @@
+> Historical evidence only: this document describes its original snapshot and is not current implementation authority. Read [PLAN](../PLAN.md) for current work. Old PASS labels, phase instructions and platform claims require current reproduction; original content is retained below.
+
 # Final testing-only matrix (owner addendum 2026-10-02)
 
 Product source is frozen while this matrix runs. Every failure is recorded here first; fixes happen

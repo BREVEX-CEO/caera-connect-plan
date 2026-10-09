@@ -1,3 +1,5 @@
+> Historical evidence only: this document describes its original snapshot and is not current implementation authority. Read [PLAN](../PLAN.md) for current work. Old PASS labels, phase instructions and platform claims require current reproduction; original content is retained below.
+
 # OCADE Implementation Ledger
 
 The durable checkpoint for the current implementation mission. Every session reads this after `AGENTS.md`, `PLAN.md` and `docs/MEMORY.md`, continues from **Next step**, and updates it before any handoff, compaction or stop.

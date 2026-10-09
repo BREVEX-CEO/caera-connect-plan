@@ -1,3 +1,5 @@
+> Historical evidence only: this document describes its original snapshot and is not current implementation authority. Read [PLAN](../PLAN.md) for current work. Old PASS labels, phase instructions and platform claims require current reproduction; original content is retained below.
+
 # JARVIS Donor Capability Ledger
 
 Source: `imports/ocade-jarvis/source-original/ocade jarvis 25-09/` (58 files, SHA-256 manifest `source-original.sha256`, verified unchanged 2026-09-29).

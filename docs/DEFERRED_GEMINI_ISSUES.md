@@ -1,3 +1,5 @@
+> Historical evidence only: this document describes its original snapshot and is not current implementation authority. Read [PLAN](../PLAN.md) for current work. Old PASS labels, phase instructions and platform claims require current reproduction; original content is retained below.
+
 # Deferred Gemini / universal-control issues
 
 Owner direction 2026-10-03: the Gemini/OCADE universal-control implementation stays exactly as it is for this release; its open problems are recorded here and not re-coded now. Everything else in the release was finished and tested separately (`docs/FINAL_MATRIX.md`).

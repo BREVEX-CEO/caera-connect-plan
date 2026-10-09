@@ -1,3 +1,5 @@
+> Historical evidence only: this document describes its original snapshot and is not current implementation authority. Read [PLAN](PLAN.md) for current work. Old PASS labels, phase instructions and platform claims require current reproduction; original content is retained below.
+
 # OCADE / OCADE JARVIS — Final Audit Ledger
 
 Date: 2026-10-03. Branch `jarvis/master-phases`, head `9f648a1e` before this ledger (95 commits ahead of `main` = `5d72f73d`, which is what production runs). Written on owner instruction to stop all product work: this is a read-only audit of the tree and of the evidence already collected. No test was run and nothing was fixed while writing it.

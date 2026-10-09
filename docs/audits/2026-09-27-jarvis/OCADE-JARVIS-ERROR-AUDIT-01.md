@@ -1,3 +1,5 @@
+> Historical evidence only: this document describes its original snapshot and is not current implementation authority. Read [PLAN](../../../PLAN.md) for current work. Old PASS labels, phase instructions and platform claims require current reproduction; original content is retained below.
+
 # OCADE JARVIS canonical audit ledger — current `main`
 
 **Audit authority:** This is the canonical, consolidated ledger for the completed 64-section OCADE JARVIS audit and the subsequent independent source-only review.

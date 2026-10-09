@@ -1,3 +1,5 @@
+> Historical evidence only: this document describes its original snapshot and is not current implementation authority. Read [PLAN](../PLAN.md) for current work. Old PASS labels, phase instructions and platform claims require current reproduction; original content is retained below.
+
 # OCADE route and control inventory (Phase 47)
 
 Every page a person can reach, its meaningful controls, and the proof that presses each one like a person would. Journeys live in `scripts/e2e/` and run together with `node scripts/e2e/harness.mjs` (production build, loopback Supabase stand-in, real Device Agent runtime where named). Database rules behind each control are proven separately against PostgreSQL (`*.test.ts` under `src/**/__tests__` using `scripts/db-twin.mts`).
