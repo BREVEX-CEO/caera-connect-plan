@@ -1,6 +1,6 @@
 # OCADE global AI competition and master redesign
 
-Research and documentation review: **8–9 October 2026**. Source baseline: `f521e23529542d709a9627181341b0e904a8b0c3`, BREVEX-CEO/caera-connect-plan. This is dated analysis and evidence, not a competing implementation authority. [PLAN](PLAN.md) is the sole work queue. Application source, migrations, dependencies, infrastructure and deployed applications were not changed by this mission.
+Research baseline: **8–9 October 2026**, with dated 10 October deltas below. Final PR #74 documentation consistency review: **10 October 2026**. Source baseline: `f521e23529542d709a9627181341b0e904a8b0c3`, BREVEX-CEO/caera-connect-plan. This is dated analysis and evidence, not a competing implementation authority. [PLAN](PLAN.md) is the sole work queue. Application source, migrations, dependencies, infrastructure and deployed applications were not changed by this mission.
 
 ## Executive verdict
 
@@ -203,16 +203,15 @@ Free users should obtain useful Chat/offline value and one bounded JARVIS demons
 
 Proposed gross-margin floor is70% after variable inference/audio/hosting/payment/support/refund costs. At₹999, that allows roughly₹300 variable cost before fixed costs/tax treatment; atUS$19, roughlyUS$5.70. These are arithmetic budgets, not actual margins. Measure p95 expensive tasks, not just average cheap ones. If support or cloud cost exceeds the allowance, constrain scope, improve local execution or change price; do not promise unlimited work.
 
-| Ambition                              | Illustrative arithmetic, not forecast                                                                        |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| US$1B annual revenue atUS$20/month    | About4.17million continuously paying customers, before churn/discounts                                       |
-| US$1B atUS$100/month business revenue | About833,333 equivalent paying accounts                                                                      |
-| US$10B atUS$100/month                 | About8.33million equivalent accounts                                                                         |
-| US$100B valuation                     | At10×annual revenue requiresUS$10B; at20×requiresUS$5B. Multiples are scenarios, not a valuation entitlement |
+| Ambition                              | Illustrative arithmetic, not forecast                                  |
+| ------------------------------------- | ---------------------------------------------------------------------- |
+| US$1B annual revenue atUS$20/month    | About4.17million continuously paying customers, before churn/discounts |
+| US$1B atUS$100/month business revenue | About833,333 equivalent paying accounts                                |
+| US$10B atUS$100/month                 | About8.33million equivalent accounts                                   |
 
-A credible ladder is5paid repeat users→50retained users→repeatable acquisition/support→positive unit economics→larger paid cohorts→teams/API only when requested. Global labour/software markets are large, but accessible market is initially the count of reachable professionals with supported tasks and willingness to pay. Do not convert a trillion-dollar broad market into an OCADE revenue forecast. Current research does not establish product-market fit.
+A credible ladder is5paid repeat users→50retained users→repeatable acquisition/support→positive unit economics→larger paid cohorts→teams/API only when requested. Global labour/software markets are large, but the reachable early market depends on supported tasks, trust, distribution and demonstrated willingness to pay. Do not convert broad-market potential into an OCADE revenue forecast. Current research does not establish product-market fit.
 
-Positioning: **“Work done. Results checked.”** Supporting line: **“Your apps. Your files. OCADE gets it done.”** Until execution evidence exists, landing copy must say what is currently supported rather than imply universal success. Short consented demos should show the original request, native editable output, elapsed time and checks/exceptions. YouTube's niche-community research supports testing focused creator/professional channels, not a guaranteed viral formula. [YouTube research,10September2026](https://blog.youtube/culture-and-trends/youtube-culture-trends-modern-mainstream-research/). Deloitte's India survey is directional, not population-wide willingness-to-pay evidence. [India survey](https://www.deloitte.com/in/en/about/press-room/from-learning-to-application-ai-confidence-builds-across-indias-workforce.html).
+Selected positioning: **“Control your computer naturally with AI.”** Supporting line: **“Your programs do the work on your PC. OCADE helps plan, run and check the result.”** Earlier positioning candidates are superseded. Until execution evidence exists, landing copy must say what is currently supported rather than imply universal success. Short consented demos should show the original request, native editable output, elapsed time and checks/exceptions. YouTube's niche-community research supports testing focused creator/professional channels, not a guaranteed viral formula. [YouTube research,10September2026](https://blog.youtube/culture-and-trends/youtube-culture-trends-modern-mainstream-research/). Deloitte's India survey is directional, not population-wide willingness-to-pay evidence. [India survey](https://www.deloitte.com/in/en/about/press-room/from-learning-to-application-ai-confidence-builds-across-indias-workforce.html).
 
 Privacy/legal requirements must be reviewed against the actual launch market and phased law dates; this report does not certify compliance. India's published data-protection rules and EU transparency obligations inform consent, retention, deletion, provider disclosure and AI interaction labelling. [MeitY rules](https://www.meity.gov.in/static/uploads/2025/11/53450e6e5dc0bfa85ebd78686cadad39.pdf), [EU Article50 guidance](https://digital-strategy.ec.europa.eu/en/faqs/transparency-obligations-under-article-50-ai-act). Honest required licence notices cannot be suppressed merely to hide provider names in ordinary UI.
 
@@ -1313,3 +1312,150 @@ Validated on 9 October 2026 before publication:
 - No application tests, product fixes, dependency installations, builds, migrations, paid provider calls, deployments or infrastructure changes were performed. The separate public health read is liveness only.
 
 The authorised publication is a documentation-only fast-forward of main after a fresh remote check. The enclosing Git commit supplies the immutable publication SHA; the delivered report copy and final response record the independently verified remote SHA after push. Documentation completion does not close OPEN implementation packages or the incomplete full-code/hardware audit.
+
+## PR #74 recovered audit provenance — 10 October 2026
+
+The older per-path inspection table above is a **historical 9 October snapshot**, not the latest pending-file list. The [recovered checkpoint](docs/audit-checkpoints/20261010/coverage.json) is the current source-coverage continuation record: 989 baseline paths, 957 complete text reads, six empty/generated classifications and 26 structural/binary inspections, zero pending baseline paths. Recovery reused 435 saved +262 carried +292 new records, checked the preserved original hashes/ranges and current unchanged bytes (with recorded newline-only equivalence), and reviewed the 10 changed PR documents. The original dirty checkpoint remains intact. This publication adds one documentation-only checkpoint to the original 10-Markdown PR so its audit-evidence merge gate is reviewable; product-tree bytes remain unchanged. Binary/source coverage is not licence clearance, installed-app proof or a competitor result. No research or source audit was restarted.
+
+## 10 October 2026 supplemental world-research findings — source-verified, not measured OCADE outcomes
+
+The earlier extensive worldwide catalogue remains the research authority. These extra implementation checks answer specific unresolved decisions without pretending every company or repository has been audited or that OCADE is already faster:
+
+| Source / scope                                                                                                                                                                       | Engineering fact from published documentation                                                                                          | OCADE KEEP / ADD / REJECT decision and test                                                                                                                                            |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Google Chrome 136 remote debugging](https://developer.chrome.com/blog/remote-debugging-port)                                                                                        | Remote-debugging switches no longer work against the standard default Chrome data directory.                                           | **REJECT** silent default-profile CDP attachment; **KEEP** intended existing-profile native/accessibility control, **ADD** explicit managed profile if necessary; test chosen account. |
+| [Microsoft UI Automation](https://learn.microsoft.com/en-us/windows/win32/winauto/entry-uiauto-win32)                                                                                | UIA enables programmatic semantic UI element access but depends on providers and actual app exposure.                                  | **KEEP** UIA/native before screenshot mouse; **TEST** custom controls, final target freshness and concurrent GUI ownership.                                                            |
+| [Adobe Photoshop UXP scripts](https://developer.adobe.com/photoshop/uxp/scripting/)                                                                                                  | Installed script API supports documented one-off and repeatable operations and has version/runtime boundaries.                         | **ADD** optional scoped app-family capability detection; **REJECT** general-purpose always-on Photoshop agent; reopen native project.                                                  |
+| [Gemini Live API session lifecycle](https://ai.google.dev/gemini-api/docs/live-api/session-management)                                                                               | Streaming voice session reconnection and resumption are distinct from persistent external work state.                                  | **KEEP** existing task database/journal as truth; **TEST** voice reconnect, account switch, late audio and explicit STOP.                                                              |
+| [adewaskar/jarvis README](https://github.com/adewaskar/jarvis/blob/main/README.md)                                                                                                   | Developer prototype uses a local bridge and effectful-tool gating and warns its media/audio rights need separate clearance.            | **ADOPT** useful small voice/render lifecycle concepts behind OCADE owners; **REJECT** donor framework/customer Claude subscription login and wholesale demo assets.                   |
+| [Browser Use repository](https://github.com/browser-use/browser-use), [Stagehand docs](https://docs.stagehand.dev/v3), [Skyvern architecture](https://github.com/Skyvern-AI/skyvern) | Different browser agents mix per-step models and structured supported browser operations; hosted browsers can require cloud execution. | **KEEP** local PC browser authority and deterministic DOM first; compare documented behaviour with real equal-state fixtures, not marketing screenshots.                               |
+
+**Research gaps not closed by prose:** vendor internal implementation of closed-source competitors, exact current licences of each transitive asset/model, installed Windows/Android/macOS/iOS hardware paths, provider/STT data retention and comparable real-world speed/quality remain RESEARCHED or UNAVAILABLE until tested. At implementation time, benchmark ChatGPT Work, Claude, Gemini, Manus, Grok Bot, Muse, Hermes, OpenClaw, PhoneHarness, Microsoft UFO, Cua, UI-TARS, Stagehand, Browser Use and other relevant discovered products against the _same independently verified customer job_ where access/permission permits. Do not add another framework just because its repository is popular; pick one best technique per task interface and prove accuracy, cost and user value. Unique features without actual demand are postponed instead of permanently omitted or prematurely built.
+
+## Post-publication October 10 technical research addendum — on-device Windows agents
+
+- **WindowsWorld**, [ACL publication](https://aclanthology.org/2026.findings-acl.750/) and [research repository](https://github.com/HITsz-TMG/WindowsWorld), adds a process-centric assessment of 181 tasks across 17 applications; reported roughly 78% multi-app and low results among evaluated agents. **OCADE decision:** adopt comparable intermediate outcome checkpoints and real Windows fixture design; do not reuse a simulated percentage as an OCADE win.
+- **Microsoft UFO2**, [Microsoft Research](https://www.microsoft.com/en-us/research/publication/ufo2-the-desktop-agentos/), describes app-native APIs combined with UIA/vision and multi-action planning. **OCADE decision:** reuse ideas within the _single_ existing native broker; measure amortised dispatch, shared GUI input safety and app version compatibility; do not fork another agent engine.
+- **Microsoft Execution Containers (MXC)**, [official developer release](https://blogs.windows.com/windowsdeveloper/2026/10/07/microsoft-execution-containers-policy-driven-containment-for-ai-agents/) dated 7 October 2026, describes process and Windows 11 session-level local isolation; [public early SDK repo](https://github.com/microsoft/mxc) warns some generated profiles are overly permissive and unsuitable as guaranteed security boundaries. **OCADE decision:** conditional local feasibility/security experiment for scripted workloads, not mandatory installation, supported-device claim or cloud fallback. Keep rigorous OS/edition/policy deny tests; do not confuse the public SDK's warnings with the general availability claims of the platform component.
+
+## 2026-10-10 competitor technical deltas, licences and 38 capability winners
+
+This dated research is a source-backed comparison, not an executed head-to-head win. Explicit UNKNOWN/UNTESTED findings are preserved.
+
+### 2.1 Corrections to earlier positioning
+
+**Local execution is already competitive.** ChatGPT Work documents connected local computer access and separate local/cloud policy boundaries. OCADE must not claim that phone-to-PC work or local execution is unique. [OpenAI Work administration](https://learn.chatgpt.com/docs/enterprise/chatgpt-work-overview#enable-and-govern-local-computer-access-with-work-cloud).
+
+Manus My Computer documents local terminal execution, local folder authorisation, command approvals and remote delegation to an awake PC. Local execution still consumes cloud orchestration credits. [Manus My Computer](https://manus.im/blog/manus-my-computer-desktop), [desktop credit accounting](https://help.manus.im/en/articles/14134826-understanding-credit-consumption-in-the-manus-desktop-app).
+
+Claude’s connected desktop and cloud surfaces must be profiled separately. Its current Dispatch documentation says it is unavailable to new users; existing access requires the desktop application, computer and internet connection to remain available. [Claude Dispatch](https://support.claude.com/en/articles/13947068-assign-tasks-from-anywhere-in-claude-cowork).
+
+Meta’s September announcement documents Muse computer use for Mac and conversational voice with background tasks. “Any app” is a vendor coverage claim, not reproduced application fidelity. [Meta Connect announcement](https://about.fb.com/de/news/2026/09/meta-connect-2026/).
+
+### 2.2 Highest-threat comparison
+
+`D` means documented by the vendor; `U` means unresolved in inspected evidence. All comparable performance and reliability results remain **UNTESTED**.
+
+| Dimension         | ChatGPT Work/Codex               | Claude                             | Manus                         | Hermes                              | Muse                             |
+| ----------------- | -------------------------------- | ---------------------------------- | ----------------------------- | ----------------------------------- | -------------------------------- |
+| Customer job      | Connected work/code              | Documents, development, delegation | Local/cloud task work         | Configurable personal agent         | Personal productivity            |
+| Platforms         | Local/cloud configurations       | Desktop/web/mobile                 | Windows/Mac/mobile delegation | CLI/gateway backends                | Web/mobile/Mac                   |
+| Observation       | Executor-dependent               | Connectors/browser/screens         | Files/terminal; GUI details U | Configured tools                    | Browser; Mac details U           |
+| Actions           | Executor-dependent               | Connector/browser/GUI              | CLI/local tools               | Registered tools                    | Connectors/permitted Mac control |
+| Planner/executor  | Separate orchestration/execution | Cloud/local surfaces               | Cloud brain/local compute     | Agent loop/tool registry            | Agent/Sentinel boundary          |
+| Independent proof | U workflow-specific              | U durable predicates               | U durable receipts            | U outcome contract                  | U outcome receipts               |
+| STOP              | Policy-dependent; quiescence U   | Stop available; quiescence U       | Comprehensive quiescence U    | Interrupt/kill tools                | Takeover; global STOP U          |
+| Permissions       | Managed policy hierarchy         | App approvals/policies             | Allow Once/Always Allow       | Configurable approvals              | Allow/deny/ask mediation         |
+| Persistence       | Surface-dependent                | Cloud sessions/persistent thread   | Projects/scheduled tasks      | SQLite sessions                     | Cloud files/memory               |
+| Uncertain replay  | U external-effect contract       | U                                  | U                             | U                                   | U                                |
+| Memory            | Surface-specific details U       | Shared/remembered context          | Detailed mechanism U          | Bounded memory/skills               | Inspect/edit/forget              |
+| Voice             | Task-specific contract U         | Unified task voice                 | Phone voice delegation        | Supported voice channels            | Realtime conversation            |
+| Integrations      | Managed tools/hooks              | Connectors/MCP/plugins             | Local/cloud integrations      | MCP/gateways                        | Partner connectors               |
+| Administration    | Enterprise controls              | Organization/group policies        | Fleet detail U                | Operator configuration              | Enterprise detail U              |
+| Offline           | Executor-specific                | Intelligence needs internet        | Planner remains cloud         | Local-model support                 | Offline U                        |
+| Workflow latency  | Unmeasured                       | Unmeasured                         | Unmeasured                    | Unmeasured                          | Unmeasured                       |
+| Comparable cost   | Unmeasured                       | Unmeasured                         | Credit-metered; unmeasured    | Provider/hardware-dependent         | Unmeasured                       |
+| Installation      | Connected executor               | Desktop for local resources        | Desktop and folder consent    | Runtime/tool configuration          | App/Mac permission               |
+| Copying rights    | No grant established             | No grant established               | No grant established          | MIT upstream; dependencies separate | No grant established             |
+| Reproduction here | Not executed                     | Not executed                       | Not executed                  | Not executed                        | Not executed                     |
+
+The additional distinctions come from [Claude computer use](https://support.claude.com/en/articles/14128542-let-claude-use-your-computer-in-cowork), [Claude organization controls](https://support.claude.com/en/articles/13455879-use-claude-cowork-on-team-and-enterprise-plans), [Hermes architecture](https://hermes-agent.nousresearch.com/docs/developer-guide/architecture/), [Hermes security](https://hermes-agent.nousresearch.com/docs/user-guide/security/) and [Muse security architecture](https://research.meta.ai/blog/security-and-safety-for-ai-agents-our-approach-with-muse).
+
+Unknown properties must not become negative competitor claims. Test them when legitimate access is available.
+
+### 2.3 Donor dispositions
+
+| Reference                            | Evidence identity                                                   | OCADE disposition                                                                                                                                                           |
+| ------------------------------------ | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `adewaskar/jarvis`                   | `1c4016afdf86f7043efc6882ceffef84ad0d8783`; MIT code                | Independently adapt beneficial voice/rendering mechanisms inside existing owners. Reject wholesale bridge, private Chrome coupling, SDK/task authority and cinematic assets |
+| `PhoneHarness/PhoneHarness`          | `1cdc0d963641d517f5deb687adb37332cf844e70`; licence not established | Architectural research only; no copying                                                                                                                                     |
+| `ShawnPana/phone-harness`            | `88b3642ac4733c47daf12e0f2837bc789eda63c6`; MIT                     | Consider narrow typed-operation ideas after component review                                                                                                                |
+| `ZachDreamZ/universal-phone-harness` | `bb1bfc9fad37bcc32ef650de830d402300255317`; MIT                     | Adapt freshness/budget principles; reject optional verification as success and uncertain-write automatic retry                                                              |
+| `FatihMakes/Mark-LV`                 | `c3e795af71bff38bb406c62a2e7a63869cdc8eb2`; CC BY-NC                | Preserve immutable provenance; commercial copying blocked without permission                                                                                                |
+
+Code licences do not automatically clear music, voices, models, fonts, artwork, services or third-party dependencies.
+
+### 2.4 Capability winners: one coherent pattern per concern
+
+“Winner” below means the selected engineering approach, not a measured victory over its inspiration.
+
+|   # | Capability       | Selected OCADE approach                              | Package |
+| --: | ---------------- | ---------------------------------------------------- | ------- |
+|   1 | Conversation     | Existing account-owned Chat lifecycle                | P05     |
+|   2 | Planning         | Bounded existing online planner                      | P16     |
+|   3 | Research         | Source-linked, dated, scoped retrieval               | P16     |
+|   4 | Long tasks       | One durable task with milestones                     | P01/P03 |
+|   5 | Persistence      | Server state plus local intent/result journal        | P03     |
+|   6 | Memory           | Scoped facts with provenance and deletion            | P10/P16 |
+|   7 | Recipes          | Typed, verified, version-aware repeats               | P10     |
+|   8 | Browser          | Supported semantic control with identity checks      | P11     |
+|   9 | Desktop          | Native APIs first; fresh GUI fallback                | P02/P17 |
+|  10 | Mobile           | Android permissions; honest Apple limits             | P13/P14 |
+|  11 | Files            | Resource identity, copies and readback               | P04     |
+|  12 | Excel            | Native fidelity plus independent recomputation       | P04/P17 |
+|  13 | Word/PDF         | Native structure and rendered-layout examination     | P17     |
+|  14 | PowerPoint       | Native objects and export/layout checks              | P17     |
+|  15 | CAD              | Installed SDK and geometry/unit checks               | P17     |
+|  16 | Blender          | Version-matched API and reopened scene checks        | P17     |
+|  17 | Creative editing | Native layers/profiles/source preservation           | P17     |
+|  18 | Video/audio      | Native timeline and independent render inspection    | P17     |
+|  19 | Coding           | Local scoped repository, tests and publication gate  | P17     |
+|  20 | Voice            | One generation-owned duplex lifecycle                | P12     |
+|  21 | Multimodal       | Exact consented inputs; minimal retention            | P16     |
+|  22 | Connectors       | Account-bound capabilities behind existing broker    | P17     |
+|  23 | Schedules        | Durable occurrence IDs and current authority         | P09     |
+|  24 | Background work  | Independent resources; no competing GUI input        | P08/P09 |
+|  25 | Remote devices   | Explicit paired PC and durable delivery              | P03/P11 |
+|  26 | Takeover         | Immediate withdrawal of GUI ownership                | P02     |
+|  27 | Authentication   | Four separate identities and human secrets           | P05/P11 |
+|  28 | Permissions      | Server grants plus final local admission             | P02/P05 |
+|  29 | Recovery         | Reconciliation before uncertain retry                | P03/P04 |
+|  30 | Verification     | Approved predicates; model cannot certify itself     | P01     |
+|  31 | Efficiency       | Local segments and cached capability descriptions    | P08/P16 |
+|  32 | Performance      | Separate measured timing/resource budgets            | P08/P19 |
+|  33 | Collaboration    | Explicit recipe/output grants without private inputs | P22     |
+|  34 | Administration   | Integrated, server-authorised console                | P05     |
+|  35 | Subscription     | Predictable monthly offer and durable settlement     | P20     |
+|  36 | Onboarding       | Useful Chat, then native pairing when needed         | P11/P15 |
+|  37 | Offline          | Existing signed wllama/OPFS owner                    | P07     |
+|  38 | Distribution     | Signed install/update/repair/uninstall               | P11/P21 |
+
+Retain the wider researched families—Google, xAI, OpenClaw, Microsoft UFO/Copilot Studio, Cua, Agent S, UI-TARS, browser-use, Stagehand, Skyvern, OpenAdapt, Cyberdesk, n8n, Activepieces, Zapier, Make, coding agents, mobile frameworks and voice providers—in the existing research record. Update only material missing facts, changed licences or findings that change these decisions.
+
+### 2.5 Claims OCADE must earn
+
+The intended advantage is:
+
+> **Complete useful work in installed applications, preserve editable originals, check the result, and recover honestly with little human effort.**
+
+For each named competitor and workflow, compare:
+
+- Independently verified success and file fidelity.
+- Total elapsed time and p95 where sample size supports it.
+- Model calls, tokens and actual task cost.
+- Human approvals, corrections and installation effort.
+- CPU, RAM, network and private data transmitted.
+- STOP, crash, sleep and uncertain-write recovery.
+- Native-source editability and collateral changes.
+
+Competitor access unavailable means **UNAVAILABLE**, not an OCADE victory.

@@ -6,7 +6,7 @@ This is the product authority: customers, boundaries, journeys, pages and option
 
 CARCC is the company; OCADE is the product. OCADE is a website-first assistant that performs useful work on a customer's authorised computer and checks the result. Keep Chat and JARVIS separate, sharing account, Library, settings and visual language. Do not add separate Code, Projects, marketplace or automation-dashboard products for the initial release.
 
-Start with small agencies and professional operations teams using Windows, Office and browser business tools. Perfect three repeatable workflows:
+The initial activation audience is **Indian students and individual professionals** (latest binding owner decision). A small Windows/Office professional-operations cohort is a **prospective paid pilot**, not the only market. First-value proof is one naturally phrased request crossing multiple _installed_ local PC applications, beginning with Excel → editable Word/PDF. Preserve three earlier validated-workflow hypotheses and evaluate paid repetition empirically. Perfect three repeatable workflows:
 
 1. **Weekly spreadsheet reconciliation and report:** inspect the supplied workbook, reconcile agreed fields, preserve formulas/formatting and originals, save an editable copy, reopen it in installed Excel where applicable, verify totals and explain discrepancies.
 2. **Client document and PDF pack:** assemble approved templates with supplied facts, preserve editable documents, generate PDFs, verify required sections/page rendering and deliver a named output folder. Sending to a client is a separate authorised action.
@@ -118,3 +118,56 @@ Trust comes from scope, controllability, preserved work and checked results. Pro
 Extend existing E2E journeys in `scripts/e2e/` for Chat, JARVIS, settings, library, auth/MFA, voice, console and polish; locate exact filenames before editing, never create a parallel harness to match a shorthand name. Add narrow regression tests in the responsible existing module. Exercise signed-out, empty, populated, pending, denied, disconnected, failed and uncertain states across both themes, keyboard, zoom and phone keyboard/safe area; [TESTING](TESTING.md) owns commands/evidence.
 
 Before removing any option/path, prove necessary functionality remains reachable, authorised, cancellable, recoverable and verified. Preserve deep links or provide a safe destination. A click, mocked response, visual disappearance or model claim is not task success. Product claims stay within available platform/workflow evidence.
+
+## Owner-approved first-value and growth specification — 10 October 2026
+
+**Positioning hypothesis:** “Control your computer naturally with AI.” Present a concise claim, one visually verified two-application example, “Try Chat” and optional “Connect PC” only when a native task requires it. No mandatory app install before first Chat, separate Code/Projects/dashboard product, obligatory extension or cloud desktop. Progress shows actual selected computer, authorisation, task milestones and checked outputs—not fake percentages.
+
+**First PC task journey:** Sign in if needed → try conversation → request native task → show device/installed-app scope → download verified signed minimal Agent → pair account/device identity once → request precisely required OS permission → accept provided fixture or choose a scoped personal input → plan bounded outcome → run locally through native API/background routes where possible → independently reopen/check actual Excel/Word/PDF output → show editable files, integrity/preservation receipt, optional safe Repeat and truthful usage. Denial/revocation leaves user-owned files intact and returns a specific recovery action.
+
+**PC selection:** automatically choose best _installed_ app based on task and user preferences, explain it succinctly; ask one question where selecting a different file, computer, browser profile or Google account may affect the wrong target. If app is missing, offer an existing local alternative or official installation with explicit owner consent. A person actively using input retains keyboard/mouse; task-owned COM/CLI work may run in the background; global UI control pauses for Take Over. Stop always remains visible.
+
+**Commercial loop:** free allowance sufficient for one useful genuine result, transparent predictable monthly subscription hypothesis, no active checkout claim while provider/merchant/legal requirements are unmet. Propose upgrading only _after_ independently verified useful work, never forced during an unresolved task. Source-to-output history shows actual completed/partial outcomes and real measured time saved, and supports consented version-aware one-click repeat. Optional professional/team workflow sharing must separately authorise recipe metadata, file contents, accounts and output publication. Private outputs are not automatically shared. Do not use fake urgency, streak pressure or hidden recurring charges.
+
+**High-value task support:** Native installed Office, browsers, IDE/compiler/Git, Blender/Fusion/creative/video, files, Android authorised actions, supported Mac and phone→paired-PC. Work with a new unfamiliar program by semantic discovery and safe fallback rather than per-app clone. Label unsupported OS/edition/action truthfully. Chat stays conversational and JARVIS online-only; microphone/barge-in controls distinguish conversation interruption from cancelling a task.
+
+**Measure product-market fit:** first successful verified multi-app task, seconds-to-first-value, user takeover count, week-1 voluntary repeated tasks, paid conversion only after value, fully loaded cost per verified success, referrals from permissioned outputs and trust/support complaints. Segment India students versus professionals and prospective global markets separately; avoid unsubstantiated priced-market size claims.
+
+## Customer first-value, conversion and professional launch requirements — final 1A/2A/3A
+
+The initial audience is **Indian students and independent professionals**. The first demonstration must complete one independently checked task using the customer's installed **Excel → Word/PDF** environment, with 2+ substantive local application steps, preserved editable originals, a truthful result receipt, meaningful speed/cost measurements and a safe reusable workflow. PowerPoint, IDE/Git, CAD, Blender and media remain scheduled, not removed.
+
+**UI:** 64 px desktop / 48 px phone ambient Orb with graph only on request; small conversation-first task card, explicit STOP/Take Over and accessible state truth. Billing/upsell only after a genuinely useful verified result, and only after legally and technically approved checkout. Do not promise immediate revenue, success or universal application coverage.
+
+### Evidence-based acquisition and subscription discovery
+
+1. Recruit consented Indian student and individual-professional cohorts; validate agency/team demand separately.
+2. Measure their existing completion/correction time.
+3. Run the checked multi-app demonstration.
+4. Test voluntary reuse and willingness to pay.
+5. Measure 7/30-day retention, verified success, support burden, refunds and contribution.
+6. Validate agencies/teams separately.
+7. Expand only when repeated customer value and sustainable economics are demonstrated.
+
+Selected positioning:
+
+> **Control your computer naturally with AI.**
+> Your programs do the work on your PC. OCADE helps plan, run and check the result.
+
+Use real demonstrations and truthful limitations. Do not publish universal superiority or guaranteed-revenue copy.
+
+**Exit gates:** free trial usable without PC install for normal Chat; official Device Agent only when local work needed; verified flagship result before optional monthly upgrade invitation; customer data sharing by explicit scope; 7/30-day retention, customer-reported friction, task verification accuracy and marginal task cost measured. Revenue remains a business hypothesis, not a guaranteed technical outcome.
+
+## First-launch evidence, conversion and capital-efficient growth execution
+
+The owner's commercial ambition is a **scale target, not a credible launch-time revenue promise**. Build a scalable, valuable product rather than adding cost or deceptive conversion gimmicks to chase a projection. The first-stage constraints are India-first students and individual professionals, almost no launch capital, user's own Windows PC, free first-use Chat and a paid subscription proposition _only after verified value_.
+
+1. **Research with real customers:** recruit small consented cohorts covering students writing reports/assignments, freelancers producing client files, coding professionals, and separate agencies. Record installed Office/browser/IDE availability, hardware, weekly jobs, existing work duration, sensitivity, requested outputs and willingness to pay before selecting broad launch pricing.
+2. **One repeatable flagship:** verify that one natural language request actually modifies local Excel, produces editable Word and checked PDF when requested, preserves originals and produces an understandable proof card. Record the software edition, outcome examiners, real wait/approval/correction time and customer-reported trust.
+3. **Simple upgrade:** useful free allowance plus one predictable monthly proposal with visible limits, support cost and genuine paid benefits. Don't launch live checkout until merchant, tax, refund/legal and exactly-once-successful-output settlement gates pass. The current retired checkout is not evidence that payments work.
+4. **Organic distribution:** privacy-safe, user-opted professional outputs, team sharing, a demonstrable repeat-workflow improvement and consented multi-app product demonstrations. Never expose raw private inputs, force sharing, create spam referrals or claim artificial results.
+5. **Retention:** one-click _repetition after fresh permission/resource checks_, editable native files, verified history and actual measured time saved. Diagnose abandonment by setup step, application coverage, false-success incidents and unclear pricing rather than using streak manipulation.
+6. **Unit economics:** account-wide concurrency and abuse safeguards, cost per independently verified completion (including internal retries, model spend, support, hosting, transfer, refunds and native installation/update), plan contribution margin, gross margin and retention cohorts. Never count failed/empty outputs as paid usage.
+7. **Release experiment gates:** publish sample size and uncertainty for first-task verified success, conversion after proven value, repeat 7/30-day work use, refunds, support load and p95 completion time. Scale acquisition only after satisfactory trust, retention and sustainable variable margins; a larger subscriber base does not compensate for negative per-customer economics.
+
+**Do not ship unverified promises:** 'billions at launch', 'every app works', 'zero bugs', 'fastest in the world' or 'beats every competitor' are not acceptance criteria. Pursue an exceptional product through actual completed local tasks, fair benchmarks, user willingness to pay and a sustainable paid service.
