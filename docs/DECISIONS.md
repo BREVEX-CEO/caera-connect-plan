@@ -41,3 +41,86 @@ Every old integer1–56 occurs once above. October2 universal-control/internal-t
 ## Documentation consolidation
 
 The dated [research report](../OCADE_GLOBAL_AI_COMPETITION_AND_MASTER_REDESIGN.md) contains all baseline Markdown dispositions and exact inspection limitations. Small legacy pointer files preserve references embedded in source comments and immutable migrations without retaining competing requirements. DONOR_CAPABILITY_LEDGER remains because a source-preservation test consumes its path. Imports and original donor readmes are unchanged. No source comments or applied migrations were edited to make documentation cleanup appear complete.
+
+## Complete 60-decision owner register — 10 October 2026
+
+These requirements were explicitly selected by the owner; they are **target requirements, not claims of implemented/shipped code**. Older phases and chat prompts are reference/provenance, not duplicate authorities. Record for every item the exact accepted test and final source SHA before closing its PLAN package. The choices below reflect the latest explicit owner decisions including single-choice and multi-choice selections.
+
+### Original 28 binding decisions
+
+| Decision | Binding engineering/product meaning | Package |
+|---|---|---|
+| O01 | All genuinely useful legally reusable compatible features eligible; no arbitrary reuse percentage | P00/P17 |
+| O02 | One best implementation rather than duplicate frameworks | P08/P22 |
+| O03 | Clear component and media licences or independent rewrite | P00 |
+| O04 | PLAN substantive detail without artificial line cap | P00–P22 |
+| O05 | One master plan plus minimum specialist documents | P00 |
+| O06 | Exact source-level Claude implementation instructions | P00–P22 |
+| O07 | Safely remove redundant Markdown without lost requirements | P22 |
+| O08 | Preserve historic phases, findings and immutable donor sources | P00/P22 |
+| O09 | Codex documents first, Claude implements later | P00 |
+| O10 | Validate, commit, merge permitted documentation-only work | P00/P19 |
+| O11 | Intended Google/external account identity must be established | P05/P11 |
+| O12 | Human handles passwords OTP passkeys CAPTCHA and consent | P05/P11 |
+| O13 | One focused question for risky app/account/file/device ambiguity | P02/P11 |
+| O14 | Remember narrow safe grants, check revocation | P02/P05 |
+| O15 | Supported extension-free browser access; managed fallback | P11 |
+| O16 | Reobserve after UI/popups/navigation changes | P02/P11 |
+| O17 | Dynamic unfamiliar application discovery and verified results | P10 |
+| O18 | Deep native Office CAD Fusion Blender media IDE coverage | P04/P17 |
+| O19 | Subtle cursor-reactive real-data Orb and graph | P15 |
+| O20 | Premium graphite/white/blue dark/light accessible system | P15 |
+| O21 | Essential task progress, conversation, STOP; progressive advanced detail | P15 |
+| O22 | Natural low-latency voice, wake, interruption and redirection | P12 |
+| O23 | Verified reusable recipes without credentials/raw private material | P10 |
+| O24 | Isolated fixtures before real Windows/browser tests | P19 |
+| O25 | Real installed Office Chrome VSCode Git testing when authorised | P19 |
+| O26 | Android emulator plus actual physical evidence separation | P13/P19 |
+| O27 | Maintain long vision but launch few meaningful checked workflows | P18 |
+| O28 | Independent real output, attack, negative, restart and speed proof | P19 |
+
+### Additional 30 owner MCQ answers (original selected letters)
+
+| Decision | Answer | Specific binding behaviour | Package |
+|---|---|---|---|
+| N01 | **D** | Deep support across Office, programming, CAD, creative software, prioritise flagship launch | P17 |
+| N02 | **A** | Choose best installed app and explain; clarify only if target risk | P10 |
+| N03 | **A** | Native background execution without hijacking user's input | P02/P08 |
+| N04 | **A** | One long-running task with milestones/checkpoints | P03 |
+| N05 | **A** | Discover supported interfaces of unfamiliar software | P10 |
+| N06 | **A** | Suggest installed alternative or official install with approval | P11 |
+| N07 | **A** | Prefer background APIs/script automation to GUI | P08 |
+| N08 | **A** | Require explicit approval for elevation/system security prompts | P05 |
+| N09 | **A** | Default recoverable working copy; explicit in-place edit only when safe | P04 |
+| N10 | **A** | Reconcile uncertain save/write before any retry | P01/P03 |
+| N11 | **A** | Safe queue and supported authorised wake on sleeping PC | P03/P09 |
+| N12 | **A** | Parallel independent work, single GUI controller | P02/P08 |
+| N13 | **A** | Scoped coding edits, adversarial tests and separate publish permission | P17 |
+| N14 | **A** | Version-aware verified reusable workflows | P10 |
+| N15 | **A** | On outage finish only safe previously admitted local steps | P03/P16 |
+| N16 | **A** | Only independently checked requested outcomes count completed | P01 |
+| N17 | **A** | JARVIS = conversation, compact task card, STOP | P15 |
+| N18 | **A** | Orb small by default; graph only on request | P15 |
+| N19 | **A** | Natural-language UI; hide advanced controls | P15 |
+| N20 | **A** | Calm spacious premium graphite, white and blue | P15 |
+| N21 | **A** | Show meaningful checkpoints and proof, not decorative percentages | P15 |
+| N22 | **A** | Natural uninterrupted dialogue and voice during work | P12 |
+| N23 | **A** | Try Chat immediately, guided optional PC setup | P11/P15 |
+| N24 | **A** | Initial audience India students and individual professionals | P18/P20 |
+| N25 | **B** | First demo controls multiple installed programs in one request | P17/P18 |
+| N26 | **A** | Free allowance plus predictable monthly subscriptions | P20 |
+| N27 | **A** | Only invite upgrade after actual successful demonstrated value | P20 |
+| N28 | **AC** | One-click repeat + checked outcome/history/time saved (not streaks) | P10/P18 |
+| N29 | **DA** | Permissioned team workflows + user-controlled shareable outputs | P05/P20 |
+| N30 | **B** | Positioning: Control your computer naturally with AI | P18/P20 |
+
+### Two final local-first scope decisions
+
+| Decision | Answer | Authority boundary | Package |
+|---|---|---|---|
+| L01 | **1A** | Online AI plans; all actual installed-PC project actions, coding, CAD, files and media processing run on the customer's selected local PC. | P08/P17 |
+| L02 | **2A** | Prohibit default cloud desktops, hosted project execution workspaces and silent cloud-compute fallback; allow explicitly requested websites, email, research, GitHub and account coordination. | P05/P11/P17 |
+
+### Closure evidence and contradiction procedure
+
+For **every O/N/L decision** record `owner-choice → active authority → inspected current source path/symbol → exact implementation interface → negative/adversarial test → independently observed user output → candidate SHA → PASS/FAIL/BLOCKED`. The latest owner choice supersedes incompatible earlier target-market or UI wording, but never bypasses OS restrictions/security. If current source contradicts a requested capability, leave the target OPEN with a precise limitation and feasible replacement; do not invent a 10/10 score. Commercial decisions require actual payment/legal approvals before implementation. Historical old-phase mapping above remains intact.
