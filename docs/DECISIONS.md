@@ -124,3 +124,17 @@ These requirements were explicitly selected by the owner; they are **target requ
 ### Closure evidence and contradiction procedure
 
 For **every O/N/L decision** record `owner-choice → active authority → inspected current source path/symbol → exact implementation interface → negative/adversarial test → independently observed user output → candidate SHA → PASS/FAIL/BLOCKED`. The latest owner choice supersedes incompatible earlier target-market or UI wording, but never bypasses OS restrictions/security. If current source contradicts a requested capability, leave the target OPEN with a precise limitation and feasible replacement; do not invent a 10/10 score. Commercial decisions require actual payment/legal approvals before implementation. Historical old-phase mapping above remains intact.
+
+
+## Final supplemental 1A / 2A / 3A execution-priority decisions — 10 October 2026
+
+The prior 28+30+2=60 decisions remain unchanged. The owner's three *additional* implementation-priority selections refine those decisions rather than replacing them:
+
+| Final choice | Binding scope | Authority | Proof gate |
+|---|---|---|---|
+| **1A** | Ambient Orb **64 px desktop, 48 px mobile**; expanded real-data graph requested on demand, accessible list alternative, minimal idle cost | [Design](JARVIS_DESIGN_SYSTEM.md), [PLAN](../PLAN.md) P15 | Responsive screenshot/keyboard/reduced-motion/idle-CPU checks on real routes |
+| **2A** | Deliver verified native **Excel, Word, PowerPoint and browser** workflows first; then build IDE/Git, CAD/Fusion, Blender, media and arbitrary-app support through same deterministic broker | [PLAN](../PLAN.md) P08/P10/P17/P18 | Installed application identity/edition check, repeatable native fixture, independently reopened/editable output and no duplicate runtime |
+| **3A** | Flagship launch workflow is substantive **Excel → Word/PDF** work across installed programs with real checks, copies, timing and honest human-intervention count | [PRD](PRD.md), [Testing](TESTING.md), [PLAN](../PLAN.md) P18 | One original user request → local application steps → verified Excel calculations + native editable document + checked PDF if requested |
+
+No choice authorises a cloud desktop, unrestricted credentials, unsafe elevation or fabricated competitive/revenue metrics. These three are not a reason to restart the 60-decision audit.
+
