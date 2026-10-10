@@ -122,3 +122,158 @@ Validate first-task completion, finding Stop, understanding scope/result certain
 **All routes and controls:** specify actual event handler, owner, keyboard focus, disabled/denied/pending/retry behaviours for Chat, JARVIS Conversations/Activity/Devices, Library, all five Settings groups (Account, Appearance, Notifications, Privacy & Security, Billing & Usage), integrated Owner/Staff consoles, sign-in/MFA/password/reset, signed install, Android bubble and phone remote tasks, notifications, billing, first visit and 404. Test true loading vs empty vs error; source-bound success vs click acknowledgement; skeleton matching content geometry; overlays and focus return; dark/light; accessibility and native file/data privacy.
 
 **Visual test matrix:** record actual screenshot diffs for widths 320/360/390/480/768/1024/1280/1440/1920px, both themes, dark/light system preference, 200–400% zoom, screen-reader and keyboard-only navigation, touch, IME/landscape, focus ring, modal Escape/return, long source filenames, loading, empty, permission-denied, error, unknown effect, successful verified output. Motion defaults 120/180/240ms and stops when reduced-motion, background tab or graph hidden. Show elapsed time only from actual checkpoints, no fictional progress percentage. A plan and palette alone do not count as implementation or pixel-perfect proof.
+
+
+## 11. Final pixel-level UI, full control ownership and Orb contract — binding 1A
+
+This section refines existing design/architecture guidance with the latest source-specific details. Where provisional dimensions conflict, latest user decisions **1A / 2A / 3A** and the requirements below control; existing shipped behaviour remains evidence to recheck, not an implementation claim.
+
+
+### 5.1 Selected visual system
+
+Use these exact semantic tokens:
+
+| Token | Dark | Light |
+|---|---|---|
+| Background | `#090B0F` | `#F6F8FC` |
+| Surface | `#11151C` | `#FFFFFF` |
+| Raised | `#1A202B` | `#EDF2F8` |
+| Primary text | `#F5F7FA` | `#0F172A` |
+| Secondary text | `#B2BDCC` | `#475569` |
+| Accent text | `#60A5FA` | `#1D4ED8` |
+| Primary button | `#2563EB` | `#1D4ED8` |
+| Button hover | `#1D4ED8` | `#1E40AF` |
+| Button pressed | `#1E40AF` | `#1E3A8A` |
+| Identifying control border | `#64748B` | `#64748B` |
+| Focus | `#93C5FD` | `#1D4ED8` |
+| Success text | `#86EFAC` | `#166534` |
+| Warning text | `#FCD34D` | `#92400E` |
+| Danger text | `#FCA5A5` | `#B91C1C` |
+
+The old subtle borders `#2C3544` and `#CBD5E1` may remain decorative separators. They must not be the sole identifying boundary for a control.
+
+Calculated examples:
+
+- White on `#2563EB`: 5.17:1.
+- White on `#1D4ED8`: 6.70:1.
+- `#64748B` against dark raised surface: 3.43:1.
+- `#64748B` against white: 4.76:1.
+- Selected success/warning/danger text pairs exceed 4.5:1.
+
+These calculations do not replace checking rendered controls, overlays and forced-colour modes.
+
+Use system fonts, body 16/24 px, secondary 14/20, auxiliary 12/16, headings 20/28, 28/36 and 36/44. Use a four-pixel spacing grid, control radius 10 px, card radius 16 px and sheet radius 20 px. Use existing Lucide icons with consistent stroke and accessible labels.
+
+Targets are at least 44×44 px. Focus uses a two-pixel ring and two-pixel offset. Motion uses 120/180/240 ms only for meaningful transitions.
+
+Default theme follows the system; both themes are fully supported.
+
+### 5.2 Layout specification
+
+| Width | Required arrangement |
+|---|---|
+| 320 | 56 px header; 12 px content gutters; wrapped toolbar; no page-level horizontal overflow |
+| 360/390 | Same structure; safe-area-aware composer and full usable STOP target |
+| 480 | Single primary column; previews may widen inside their own surface |
+| 768 | 64 px rail; sheets for navigation/context; 20 px content gutters |
+| 1024 | 248 px sidebar; primary content fills remaining space |
+| 1280 | Sidebar plus maximum 760 px conversation column; context opens as a sheet |
+| 1440 | Optional 320 px context panel, only when requested |
+| 1920 | Same reading width; extra space does not stretch prose or enlarge the Orb |
+
+Collapsed desktop navigation is 64 px. Do not show multiple competing primary navigation systems.
+
+Settings is at most 920 px wide and 720 px high, constrained by viewport margins. On phones it occupies the available visual viewport, with a 56 px header, labelled category strip and scrollable body.
+
+The composer:
+
+- Minimum height 48 px.
+- Desktop maximum text area 240 px.
+- Phone maximum is the smaller of 136 px and 30% of the visual viewport.
+- Lives in the flex layout above the visual keyboard.
+- Respects dynamic viewport height, safe areas and `visualViewport` changes.
+- Never covers the last message, validation error or STOP.
+- Keeps options/attachments independently wrappable.
+- Preserves scroll anchor unless the reader is within 80 px of the bottom.
+
+Enter submits only outside IME composition; Shift+Enter adds a newline. Mobile Enter defaults to newline, with explicit Send. Apply composition safeguards to Chat, JARVIS, rename and relevant confirmation fields.
+
+### 5.3 Global control contract
+
+Every reachable control receives:
+
+`source owner → existing callback → proposed behaviour → permission → pending/error/unknown states → focus → keyboard/touch → responsive variant → independent acceptance test`.
+
+All mutations capture request ID, account generation, resource ID and expected version before the first await. Disable conflicting operations on the same resource; keep STOP and safe navigation available.
+
+Loading, error, empty and ready are distinct. Failed refreshes retain prior data labelled stale. Destructive dialogs initially focus Cancel and remain open after failure.
+
+Use native semantics and proper modal focus management. Only the topmost dialog handles Escape. Hidden controls must be inert or removed, not merely transparent.
+
+Implement WCAG 2.2 AA checks, including reflow, keyboard access, accessible authentication, status messages and unobscured focus. The 44 px product target is deliberate; it must not be misrepresented as the AA minimum. [W3C quick reference](https://www.w3.org/WAI/WCAG22/quickref/).
+
+### 5.4 Route and control instructions
+
+| Surface | Existing owner/callback | Required implementation |
+|---|---|---|
+| Shell | `AppShell` | Chat/JARVIS/Library primary navigation; Help/Settings utilities; server-authorised console entry; close mobile drawer after navigation and focus page heading |
+| Account menu | Existing Settings/sign-out/Upgrade callbacks | Upgrade only after verified useful value and operational billing; sign-out immediately invalidates local account generation |
+| Chat composer | `ChatWorkspace.send`, `useChat.stop` | Acquire operation ownership before allowance await; preserve draft on failure; STOP remains available throughout admission/stream/settlement |
+| Chat options | Existing mode/research/thinking/temporary controls | Clear incompatible options on mode change; show actual engine used; temporary attachments/transcript must not leak into account storage |
+| Attachments | Existing `attach` and tray | Per-file reading/ready/error states; bind asynchronous reads to original account/conversation; separate attachment success from Library-save failure |
+| History | Existing open/rename/archive/export/delete callbacks | Row-scoped pending/error; IME-safe rename; deletion reconciles uncertainty instead of restoring a stale whole list |
+| Turn actions | `MessageList.Turn` callbacks | Clipboard failure recovery; scoped edit/resend/delete; retain correct attachment association and operation identity |
+| JARVIS composer | `JarvisWorkspace.send`, `interject` | Online-only; retain 8,000-character limit; working-task messages are interjections, not a second controller |
+| Task controls | `stop`, `takeOverNow`, `resume`, confirmation callbacks | Show Stopping until quiescence evidence; fresh observation on Continue; confirmation binds exact device/resource/digest |
+| Panels | `JarvisPanels` | Conversations/Activity/Devices remain secondary; preserve selection/scroll; permissions reachable without extra primary navigation |
+| Live view | `BrowserPanel` | Stop frame reads when hidden/collapsed; timestamp frames; retain stale frame with clear stale label; provide textual equivalent |
+| Devices | Existing target, permission, background and revoke callbacks | Never silently retarget; serialize switch saves; retain target/confirmation until removal acknowledged |
+| Pairing | `ConnectDevice.connect` and decline handler | Exact device/fingerprint/expiry; approval idempotent by enrolment; decline failure keeps dialog open; closing does not mean approval |
+| Settings | `settings-panel` | Exactly Account, Appearance, Notifications, Privacy & Security, Billing & Usage; nested proof owns focus/Escape |
+| Notifications | `NotificationsSection.apply` | Serialize preference writes; separate account preference, OS permission and device push subscription; row creation does not prove delivery |
+| Data controls | Existing export/delete/offline controls | Explicit class/cutoff/manifest; partial export truthful; logical removal separate from eventual physical erasure |
+| Auth | Existing Google/email/password callbacks | Respect selected identity; safe return path; preserved draft; never auto-submit a held task after authentication |
+| OTP/MFA | Existing verify/challenge/recovery callbacks | Length matches provider configuration; paste/autocomplete support; no code logging; stale proof cannot resume another action |
+| Two-step setup | `TwoStep.begin/finish/turnOff/makeCodes` | Real QR/manual key; verify before Enabled; partial enrolment/code issuance handled separately; codes revealed once |
+| Billing | `BillingSection`, usage owner | Reconcile legacy tiers first; Free plus one clear monthly launch offer is a design default, not an owner-selected price; unavailable checkout remains explicitly unavailable |
+| Owner/Staff | `ConsolePage`, existing mutation owners | Exact rights/customer/reason; fresh bound proof; immediate revocation; no separate admin origin; audit references for mutations |
+| Help/legal/errors | Existing routes | Retain working Help search, finite callback/outage recovery, valid links and understandable empty/error states |
+| Tray/Android bubble | Existing local authorities | Local STOP remains available offline; folder changes do not retarget active tasks; permission/readiness/update states remain distinct |
+
+Specific source repairs include:
+
+- JARVIS Enter handler needs composition protection.
+- Pairing decline currently closes through `finally`, including failure.
+- Device removal clears confirmation/target before acknowledgement.
+- Notification preference writes need sequencing.
+- Existing Upgrade placement precedes the required verified-value gate.
+- Faded Orb controls can remain focusable.
+- UI “stopped” must distinguish recorded cancellation from device quiescence.
+
+### 5.5 Orb and graph
+
+Keep `Orb.tsx` and `graph.ts` as owners.
+
+Selected ambient sizes are **64 px desktop and 48 px phone**, replacing the historical larger provisional sizes. Use a static SVG idle illustration, subtle pointer response when active and no idle render loop.
+
+Graph expansion is explicit. Show at most **60 nodes total**, not 60 per category. Provide count, lazy loading, grouping, pan/zoom/pinch, keyboard controls and a semantic list.
+
+Use only authorised real conversations, tasks, devices, allowed apps/sites and appropriate memories. Filter before returning data and before rendering it.
+
+| State | Presentation |
+|---|---|
+| Idle | Static Orb; no implied active microphone |
+| Listening | Visible microphone state and “Listening” |
+| Thinking | Restrained transition and actual phase label |
+| Executing | Task phase/checkpoint, no fake percentage |
+| Permission wait | “Waiting for your approval”; exact action |
+| Paused/takeover | “You have control”; input authority withdrawn |
+| Verifying | “Checking the result” |
+| Verified | “Completed and checked” |
+| Partial | Completed and missing outcomes listed |
+| Unknown | “Checking what happened”; resource fenced |
+| Failed | Specific failure and safe next action |
+| Offline | Separate planner/device connectivity explanation |
+| Stopped | Known applied effects and remaining uncertainty |
+
+STOP and active confirmation never fade. Pause rendering when hidden, backgrounded, reduced-motion or low-power conditions require it.
