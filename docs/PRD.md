@@ -133,3 +133,28 @@ Before removing any option/path, prove necessary functionality remains reachable
 **High-value task support:** Native installed Office, browsers, IDE/compiler/Git, Blender/Fusion/creative/video, files, Android authorised actions, supported Mac and phone→paired-PC. Work with a new unfamiliar program by semantic discovery and safe fallback rather than per-app clone. Label unsupported OS/edition/action truthfully. Chat stays conversational and JARVIS online-only; microphone/barge-in controls distinguish conversation interruption from cancelling a task.
 
 **Measure product-market fit:** first successful verified multi-app task, seconds-to-first-value, user takeover count, week-1 voluntary repeated tasks, paid conversion only after value, fully loaded cost per verified success, referrals from permissioned outputs and trust/support complaints. Segment India students versus professionals and prospective global markets separately; avoid unsubstantiated priced-market size claims.
+
+
+## Customer first-value, conversion and professional launch requirements — final 1A/2A/3A
+
+The initial audience is **Indian students and independent professionals**. The first demonstration must complete one independently checked task using the customer's installed **Excel → Word/PDF** environment, with 2+ substantive local application steps, preserved editable originals, a truthful result receipt, meaningful speed/cost measurements and a safe reusable workflow. PowerPoint, IDE/Git, CAD, Blender and media remain scheduled, not removed.
+
+**UI:** 64 px desktop / 48 px phone ambient Orb with graph only on request; small conversation-first task card, explicit STOP/Take Over and accessible state truth. Billing/upsell only after a genuinely useful verified result, and only after legally and technically approved checkout. Do not promise immediate revenue, success or universal application coverage.
+
+### Evidence-based acquisition and subscription discovery
+
+2. Measure their existing completion/correction time.
+3. Run the checked multi-app demonstration.
+4. Test voluntary reuse and willingness to pay.
+5. Measure 7/30-day retention, verified success, support burden, refunds and contribution.
+6. Validate agencies/teams separately.
+7. Expand only when repeated customer value and sustainable economics are demonstrated.
+
+Selected positioning:
+
+> **Control your computer naturally with AI.**  
+> Your programs do the work on your PC. OCADE helps plan, run and check the result.
+
+Use real demonstrations and truthful limitations. Do not publish universal superiority or guaranteed-revenue copy.
+
+**Exit gates:** free trial usable without PC install for normal Chat; official Device Agent only when local work needed; verified flagship result before optional monthly upgrade invitation; customer data sharing by explicit scope; 7/30-day retention, customer-reported friction, task verification accuracy and marginal task cost measured. Revenue remains a business hypothesis, not a guaranteed technical outcome.
