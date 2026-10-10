@@ -152,7 +152,7 @@ The initial audience is **Indian students and independent professionals**. The f
 
 Selected positioning:
 
-> **Control your computer naturally with AI.**  
+> **Control your computer naturally with AI.**
 > Your programs do the work on your PC. OCADE helps plan, run and check the result.
 
 Use real demonstrations and truthful limitations. Do not publish universal superiority or guaranteed-revenue copy.
