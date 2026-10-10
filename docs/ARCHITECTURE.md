@@ -351,3 +351,87 @@ Sources used for technical feasibility: [Chrome 136 remote debugging limits](htt
 Microsoft's [Execution Containers announcement](https://blogs.windows.com/windowsdeveloper/2026/10/07/microsoft-execution-containers-policy-driven-containment-for-ai-agents/) describes a Windows 11 session container with a separate desktop, account, clipboard and input boundary, plus process containment on supported Windows/macOS/Linux. This is a potentially valuable **local execution option** for high-risk scripts and non-interfering UI work. It is not a replacement for the existing signed OCADE Device Agent, task journal, server authority or permissions. The public [microsoft/mxc source](https://github.com/microsoft/mxc) currently warns that its preview SDK policies can be overly permissive and should not yet be treated as security boundaries. Consequently P08/P11 may only PROBE installed support and build isolated test fixtures; any actual security isolation claim requires pinned SDK/backend/release, policy-denial integration tests, file/network/clipboard/desktop leakage attacks, crash recovery and native app session compatibility. No automatic privileged migration, paid hardware requirement or default cloud desktop. Keep the existing native/UIA first route on unsupported OS versions; explicitly report non-isolated prepared-script limits.
 
 [UFO2 engineering research](https://www.microsoft.com/en-us/research/publication/ufo2-the-desktop-agentos/) supports testing native UIA+vision grounding and multi-action execution, but OCADE maintains one planner and broker, not a copied multiagent engine.
+
+
+## 17. Exact execution-protocol, result semantics and STOP migration — final detailed blueprint
+
+This section refines existing design/architecture guidance with the latest source-specific details. Where provisional dimensions conflict, latest user decisions **1A / 2A / 3A** and the requirements below control; existing shipped behaviour remains evidence to recheck, not an implementation claim.
+
+
+### 3.1 Preserve the actual v1 contract
+
+The inspected shared protocol is version **1**, minimum **1**, using P-256/SHA-256 and prefix `OCADE-DEVICE-1`.
+
+The current `DeviceCommand` contains:
+
+`id`, `taskId`, `action`, `confirmed`, `mode`, `cowork`, `sites`.
+
+It does **not** contain existing `controllerEpoch` or `permissionRevision` fields. Earlier documentation examples must not be described as implemented wire types.
+
+Preserve v1 canonical request bytes: prefix, protocol, uppercase method, path, device ID, timestamp and body digest, joined in the existing order. Preserve the exact cross-language signature representation.
+
+### 3.2 Proposed v2 types
+
+Use `protocol` as the wire version field. Epoch/revision fields are **canonical unsigned 64-bit decimal strings**, with no leading zeros except `"0"`, no negatives, no wrapping and maximum `18446744073709551615`.
+
+The new admitted segment must bind:
+
+- Account, task, selected device and enrolled key epoch.
+- Controller epoch, cancellation epoch and permission revision.
+- Batch/step IDs, request nonce and request digest.
+- Approved outcome digest.
+- Exact app, browser profile, external account and file/resource references.
+- Issued/expiry times and local admission lease.
+- Typed steps, trusted preconditions, expected effects and verifier references.
+- Resource locks and observation generations.
+- Step, duration, output and mutation budgets.
+- Replay classification: read-only, idempotent or reconcile-before-retry.
+
+Do not accept executable predicates, arbitrary helper code or model-authored permission claims.
+
+Use authenticated capability negotiation. An old client cannot receive a task whose safety semantics it cannot enforce. Reject duplicate JSON keys, malformed counters, unknown critical fields, conflicting payload reuse, altered digests and downgrade attempts.
+
+New authenticated admission fields must be covered by the v2 signing/verification contract. Keep release-key, device-key and admission-key responsibilities distinct; do not silently reuse a signing key for another authority.
+
+### 3.3 Orthogonal result semantics
+
+Each step records independently:
+
+| Dimension | Values |
+|---|---|
+| Effect | `not_started`, `unchanged`, `applied`, `partial`, `unknown` |
+| Execution | `done`, `failed`, `cancelled`, `needs_person` |
+| Verification | `pending`, `passed`, `failed`, `unverifiable` |
+
+Evidence includes resource identity, capture time, examiner identity/version, relevant digest or structured result, and retention class.
+
+A signature authenticates the reporting device. It does not establish that a compromised computer reported truthfully.
+
+“Completed and checked” requires all mandatory outcome predicates to pass. A model `finish_task`, success toast, HTTP 200 or file existence cannot substitute.
+
+### 3.4 State migration
+
+Add the richer task states without reinterpreting historical rows:
+
+`received → validated → admitted → executing → verifying → verified`
+
+Alternatives:
+
+`waiting_for_person`, `paused`, `cancelling`, `cancelled`, `failed`, `partial`, `unknown`.
+
+Keep explicit compatibility mapping for legacy `running`, `waiting`, `taken_over`, `stopped`, `blocked`, `failed`, `completed`. Legacy `completed` does not retrospectively prove verification.
+
+### 3.5 STOP, takeover and reconciliation
+
+1. Local STOP synchronously invalidates mutation admission.
+2. Cancel queued work and request cancellation of task-owned processes.
+3. Release held input where the OS allows it.
+4. Preserve effects already applied.
+5. Mark uninterruptible or uncertain effects accurately.
+6. Fence affected resources until readback resolves them.
+7. Take Over withdraws shared GUI ownership before acknowledging human control.
+8. Resume requires fresh identity, permissions, observation and leases.
+9. Redirect drains/reconciles the old scope before admitting the replacement.
+10. Physical takeover wins immediately, including when legacy `cowork` is true.
+
+A five-second admission lease is a bound on new admission, not a promise that every running save or render stops within five seconds. Restart, suspend and clock uncertainty invalidate admission.
