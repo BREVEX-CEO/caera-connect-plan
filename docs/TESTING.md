@@ -201,3 +201,87 @@ At interruption/reset, record exact checkpoint, files, next unfinished item and 
 [WindowsWorld, ACL Findings 2026](https://aclanthology.org/2026.findings-acl.750/) evaluates 181 desktop workflow tasks, averaging five subgoals across 17 desktop apps; about 78% are multi-app. Its reported sub-21% multi-app agent success rates are paper results on its controlled benchmark, not OCADE measurements. Add a reproducible process-aware test set with intermediate checkpoints, ≥2/≥3 installed apps, correct target identities and verified final native artefacts. Record exact Windows fixture, benchmark task selection, permission setup, vendor/model/broker versions, trial seeds, allowed initial state, human takeover and actual success rather than model narrative.
 
 If P08 elects to prototype [Microsoft Execution Containers](https://blogs.windows.com/windowsdeveloper/2026/10/07/microsoft-execution-containers-policy-driven-containment-for-ai-agents/), run explicit prohibited-file/network, inter-session input/clipboard, target app discovery, performance overhead, child process escape and journal/restart proof against the **pinned installed MXC implementation**. Do not claim containment from the [current preview repository SDK](https://github.com/microsoft/mxc), which warns its policy profiles may be permissive. Unsupported Windows/enterprise policy must retain secure limited local routes or show a clear capability refusal. No local sandbox test is a blanket proof of safety against all OS-level adversaries.
+
+
+## 16. Source-specific end-to-end workflow matrix, 60-decision mapping and evidence grades
+
+Scores describe desired qualification gates, not executed product tests or a claim of 10/10 readiness.
+
+
+### 9.1 Required workflow matrix
+
+Retain the 42 historical benchmark families and make each fixture executable. At minimum:
+
+- Excel totals/schema drift/macros/partial save.
+- Word/PDF structure and pagination.
+- PowerPoint media/layout/editability.
+- Explicit and ambiguous Google identity.
+- Human OTP/CAPTCHA boundary.
+- Lost browser submission ACK.
+- Unknown app discovery and stale observation.
+- File conflict/disk full.
+- STOP between resolution and Invoke.
+- Physical takeover.
+- Rotation/crash/restart.
+- Sleeping remote PC.
+- Cold offline start/corrupt bytes/accounting reconnect.
+- Chat admission cancellation/account switch/destructive uncertainty.
+- Voice barge-in/redirect.
+- Android lifecycle/state verification.
+- Supported Apple hardware operation.
+- Local coding/test/diff.
+- CAD/Blender/media fidelity.
+- Schedule/DST/duplicate occurrence.
+- Staff transfer/revoke and partial recovery.
+- Complete export/erasure.
+- Accessibility/route sweep.
+- Prompt injection.
+- Signed install/update/uninstall.
+
+Each run records SHA, fixture hashes, platform/app versions, allowed effects, independent examiner, result class, cost, timing, interventions and redacted evidence.
+
+Require zero observed forbidden effects or false-success events in qualification. Report sample size and uncertainty; zero observed failures is not a universal zero-bug guarantee.
+
+### 9.2 All 60 owner decisions
+
+The preservation matrix must contain one row per decision with exact clause, destination and acceptance gate.
+
+| Register | Destination mapping |
+|---|---|
+| Original 01–03 | P00/P10/P17/P22: useful compatible capabilities, single owners and legal reuse |
+| Original 04–10 | PLAN/documentation gates: substantive packages, minimal authorities, preservation, staged implementation and verified merge |
+| Original 11–16 | P05/P11: identities, human secrets, ambiguity, scoped remembered permission, extension-free browser and popup recovery |
+| Original 17–18 | P10/P17: unknown-app discovery and deep professional families |
+| Original 19–21 | P15: Orb, selected design and compact task/STOP UI |
+| Original 22–23 | P12/P10: natural voice and private verified recipes |
+| Original 24–26 | P19/P13: isolated real-app fixtures, Windows/browser/coding and honest mobile evidence |
+| Original 27–28 | P18/P21/P19: staged vision and independent adversarial proof |
+| Local-first 1A/2A | Architecture/P08/P11/P17: online planning, customer-device execution, no hidden cloud workspace |
+| Later 01–05 | P17/P10/P08/P03: all families, app selection, background control, durable tasks, discovery |
+| Later 06–10 | P11/P02/P04/P03: installation/elevation approval, copies and uncertain-write readback |
+| Later 11–16 | P09/P08/P17/P10/P03/P01: unavailable PCs, concurrency, coding, recipes, outage and checked completion |
+| Later 17–23 | P15/P12/P11: compact UI, requested graph, disclosure, palette, truthful progress, voice and optional pairing |
+| Later 24–30 | PRD/P18/P20/P22: India audience, multi-app demonstration, monthly/free offer, value-first upgrade, repeats/history, sharing and positioning |
+
+Do not use these grouped rows as a substitute for the final 60-row clause register.
+
+Keep both the requested historical 49-phase provenance and the existing 1–56/addenda mapping. They are separate historical indexes, not numbers to silently replace.
+
+### 9.3 Quality rubric
+
+| Domain | Current proof | Target gate |
+|---|---|---|
+| Source coverage | SOURCE: 989 accounted; checkpoint reconciliation pending | Persist exact manifest without inflated text/licence claims |
+| Research | RESEARCHED; named deltas resolved | Source-linked profiles and fair unavailable labels |
+| Architecture/PC control | SOURCE design; runtime UNTESTED | Protocol, final admission and native output proof |
+| Multi-app | Planned; UNTESTED | Reopened artifacts and cross-app predicates |
+| UI/Orb/accessibility | Source findings and calculated tokens | Full route/state screenshots, keyboard/touch and idle measurement |
+| Security/data | Source risks; hosted proof incomplete | Direct RLS/RPC, concurrency, revoke, erasure and injection tests |
+| Voice | SOURCE lifecycle risks | No stale audio/capture; measured interruption |
+| Offline | SOURCE implementation; cold proof required | Fresh-process offline and accounting reconciliation |
+| Pricing | Hypothesis; checkout retired | Approved transactions, repeat value and contribution |
+| Debloat | Exact source inventory | Replacement/caller/parity/rollback evidence |
+| Claude implementability | Detailed contract | Every package has all 15 fields and no competing authority |
+| Release | Not cleared | Exact candidate hosted/physical/licence/release gates |
+
+Historical numerical assessments must remain labelled historical/source judgements. Do not manufacture new “SUPER STRONG” scores from document length.
