@@ -158,3 +158,18 @@ Selected positioning:
 Use real demonstrations and truthful limitations. Do not publish universal superiority or guaranteed-revenue copy.
 
 **Exit gates:** free trial usable without PC install for normal Chat; official Device Agent only when local work needed; verified flagship result before optional monthly upgrade invitation; customer data sharing by explicit scope; 7/30-day retention, customer-reported friction, task verification accuracy and marginal task cost measured. Revenue remains a business hypothesis, not a guaranteed technical outcome.
+
+
+## First-launch evidence, conversion and capital-efficient growth execution
+
+The owner's commercial ambition is a **scale target, not a credible launch-time revenue promise**. Build a scalable, valuable product rather than adding cost or deceptive conversion gimmicks to chase a projection. The first-stage constraints are India-first students and individual professionals, almost no launch capital, user's own Windows PC, free first-use Chat and a paid subscription proposition *only after verified value*.
+
+1. **Research with real customers:** recruit small consented cohorts covering students writing reports/assignments, freelancers producing client files, coding professionals, and separate agencies. Record installed Office/browser/IDE availability, hardware, weekly jobs, existing work duration, sensitivity, requested outputs and willingness to pay before selecting broad launch pricing.
+2. **One repeatable flagship:** verify that one natural language request actually modifies local Excel, produces editable Word and checked PDF when requested, preserves originals and produces an understandable proof card. Record the software edition, outcome examiners, real wait/approval/correction time and customer-reported trust.
+3. **Simple upgrade:** useful free allowance plus one predictable monthly proposal with visible limits, support cost and genuine paid benefits. Don't launch live checkout until merchant, tax, refund/legal and exactly-once-successful-output settlement gates pass. The current retired checkout is not evidence that payments work.
+4. **Organic distribution:** privacy-safe, user-opted professional outputs, team sharing, a demonstrable repeat-workflow improvement and consented multi-app product demonstrations. Never expose raw private inputs, force sharing, create spam referrals or claim artificial results.
+5. **Retention:** one-click *repetition after fresh permission/resource checks*, editable native files, verified history and actual measured time saved. Diagnose abandonment by setup step, application coverage, false-success incidents and unclear pricing rather than using streak manipulation.
+6. **Unit economics:** account-wide concurrency and abuse safeguards, cost per independently verified completion (including internal retries, model spend, support, hosting, transfer, refunds and native installation/update), plan contribution margin, gross margin and retention cohorts. Never count failed/empty outputs as paid usage.
+7. **Release experiment gates:** publish sample size and uncertainty for first-task verified success, conversion after proven value, repeat 7/30-day work use, refunds, support load and p95 completion time. Scale acquisition only after satisfactory trust, retention and sustainable variable margins; a larger subscriber base does not compensate for negative per-customer economics.
+
+**Do not ship unverified promises:** 'billions at launch', 'every app works', 'zero bugs', 'fastest in the world' or 'beats every competitor' are not acceptance criteria. Pursue an exceptional product through actual completed local tasks, fair benchmarks, user willingness to pay and a sustainable paid service.
