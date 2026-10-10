@@ -28,7 +28,10 @@ const newSession = async (user: string) =>
   )[0]!.id;
 
 const ask = <T>(user: string, sql: string, aal: "aal1" | "aal2" = "aal2") =>
-  twin.asTenant<T>(user, sql, { aal, sessionId: session[user] });
+  // Make the simulated authentication proof unambiguously recent while leaving
+  // a small clock-skew margin between the JS runner and the PostgreSQL twin.
+  // The database still enforces MFA and rejects missing/stale assurance.
+  twin.asTenant<T>(user, sql, { aal, sessionId: session[user], provedSecondsAgo: 30 });
 
 const can = async (user: string, permission: string, aal: "aal1" | "aal2" = "aal2") =>
   (await ask<{ ok: boolean }>(user, `select public.ocade_staff_can('${permission}') as ok`, aal))
