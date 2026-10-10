@@ -50,34 +50,34 @@ These requirements were explicitly selected by the owner; they are **target requ
 
 | Decision | Binding engineering/product meaning | Package |
 |---|---|---|
-| O01 | All genuinely useful legally reusable compatible features eligible; no arbitrary reuse percentage | P00/P17 |
-| O02 | One best implementation rather than duplicate frameworks | P08/P22 |
-| O03 | Clear component and media licences or independent rewrite | P00 |
-| O04 | PLAN substantive detail without artificial line cap | P00–P22 |
-| O05 | One master plan plus minimum specialist documents | P00 |
-| O06 | Exact source-level Claude implementation instructions | P00–P22 |
-| O07 | Safely remove redundant Markdown without lost requirements | P22 |
-| O08 | Preserve historic phases, findings and immutable donor sources | P00/P22 |
-| O09 | Codex documents first, Claude implements later | P00 |
-| O10 | Validate, commit, merge permitted documentation-only work | P00/P19 |
-| O11 | Intended Google/external account identity must be established | P05/P11 |
-| O12 | Human handles passwords OTP passkeys CAPTCHA and consent | P05/P11 |
-| O13 | One focused question for risky app/account/file/device ambiguity | P02/P11 |
-| O14 | Remember narrow safe grants, check revocation | P02/P05 |
-| O15 | Supported extension-free browser access; managed fallback | P11 |
-| O16 | Reobserve after UI/popups/navigation changes | P02/P11 |
-| O17 | Dynamic unfamiliar application discovery and verified results | P10 |
-| O18 | Deep native Office CAD Fusion Blender media IDE coverage | P04/P17 |
-| O19 | Subtle cursor-reactive real-data Orb and graph | P15 |
-| O20 | Premium graphite/white/blue dark/light accessible system | P15 |
-| O21 | Essential task progress, conversation, STOP; progressive advanced detail | P15 |
-| O22 | Natural low-latency voice, wake, interruption and redirection | P12 |
-| O23 | Verified reusable recipes without credentials/raw private material | P10 |
-| O24 | Isolated fixtures before real Windows/browser tests | P19 |
-| O25 | Real installed Office Chrome VSCode Git testing when authorised | P19 |
-| O26 | Android emulator plus actual physical evidence separation | P13/P19 |
-| O27 | Maintain long vision but launch few meaningful checked workflows | P18 |
-| O28 | Independent real output, attack, negative, restart and speed proof | P19 |
+| O01 | OCADE must ultimately incorporate every genuinely useful, legally reusable and technically compatible capability discovered across major AI products, not arbitrarily limit reuse to 10% or 25%. | P00/P17 |
+| O02 | When competitors implement the same capability, compare them and choose or engineer the strongest reliable solution. Do not keep several redundant engines. | P08/P22 |
+| O03 | Reuse permissibly licensed software when integration is advantageous. Otherwise independently implement the required functionality without copying proprietary or restricted code. | P00 |
+| O04 | PLAN.md must be as long as necessary, potentially thousands of substantive lines, not artificially condensed into a 300-line summary. | P00–P22 |
+| O05 | Retain one extremely detailed implementation plan plus a small number of authoritative specialist documents where separating concerns materially prevents confusion. | P00 |
+| O06 | Spoon-feed Claude: exact existing files, functions, operations, contracts, integration points, user interactions, error handling, tests and completion evidence. | P00–P22 |
+| O07 | Remove the maximum number of genuinely unnecessary or duplicate active Markdown documents without losing unique requirements, source references or historical evidence. | P22 |
+| O08 | Preserve and reconcile previous phases, decisions, donor provenance, findings and audit history. | P00/P22 |
+| O09 | Codex completes the research and documentation redesign first. Claude performs product-code implementation in the next stage. | P00 |
+| O10 | Documentation changes must be checked, committed and cleanly merged into main. | P00/P19 |
+| O11 | Authentication must respect the user's selected identity and avoid guessing between Google accounts. | P05/P11 |
+| O12 | Passwords, OTPs, passkeys, CAPTCHA and sensitive consent require legitimate human interaction where appropriate. | P05/P11 |
+| O13 | Ambiguous target accounts, applications, computers or documents require one focused clarification. | P02/P11 |
+| O14 | Remember appropriately scoped safe permissions without repeatedly interrupting users. | P02/P05 |
+| O15 | Prefer authorised native browser/accessibility control and a managed browser when appropriate; never require an extension. | P11 |
+| O16 | Unexpected pages, popups or changed targets require fresh observation and safe recovery. | P02/P11 |
+| O17 | Unfamiliar software must be discovered dynamically, controlled through the best supported interface and verified independently. | P10 |
+| O18 | Give deep coverage to Office, CAD/Fusion/Blender, video/design applications, IDEs and professional software. | P04/P17 |
+| O19 | Create a restrained, cursor-reactive premium Orb that expands into a meaningful interactive graph. | P15 |
+| O20 | Use a professional black, graphite, white and blue design system with refined geometry, subtle glass, excellent dark/light themes and accessibility. | P15 |
+| O21 | During execution, display essential conversation, task progress and STOP; reveal advanced information progressively. | P15 |
+| O22 | Support natural voice conversation, interruption, wake word where supported, follow-up instructions and safe task redirection. | P12 |
+| O23 | Safely remember reusable workflows, not private credentials, irrelevant files or raw screenshots by default. | P10 |
+| O24 | Test using isolated fixtures before authorised work with actual Windows applications and the user's existing browser. | P19 |
+| O25 | Test real Office/Chrome and VS Code/Git when available, plus other installed applications within the user's approved scope. | P19 |
+| O26 | Use realistic Android emulation and independent verification; distinguish simulated from real hardware results. | P13/P19 |
+| O27 | Preserve the complete long-term product vision but launch first with a small number of demonstrably valuable workflows. | P18 |
+| O28 | Claude must prove results through actual testing, independent verification, negative tests, failure recovery and measured performance. | P19 |
 
 ### Additional 30 owner MCQ answers (original selected letters)
 
