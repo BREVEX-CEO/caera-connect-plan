@@ -296,3 +296,51 @@ Immutable donor sources/ZIPs stay immutable and outside production imports. Pres
 Before copying/adapting donor or competitor code, record the exact revision and licence for those bytes. Public visibility/attribution is not commercial permission. Current `FatihMakes/Mark-LV` declares CC BY-NC4.0; do not assume paid OCADE reuse is authorised. Audit the preserved donor's own licence independently and resolve permission before affected distribution. Conceptual techniques can be implemented independently without importing competing runtimes.
 
 Retire active code only after caller/packaging/capability inventory and permission/STOP/recovery/platform replacement proof. Keep distinct browser security/session modes, Office fidelity adapters, journals, update rollback, authentication, accessible fallback and useful adversarial tests. No percentage deletion target or framework rewrite is an acceptance criterion.
+
+
+## 15. Canonical negotiated protocol v2 and local execution authority — target contract (10 October 2026)
+
+This is a **proposed** change, not a claim of current source implementation. `jarvis-runtime/ocade_protocol.json` is the existing shared signing/version owner, `src/jarvis/protocol.ts` the typed action owner, `task-authority.server.ts` admission, `device.server.ts` signed exchange, Python/Android local dispatch. Continue using established v1 signing bytes for legacy. Authenticate negotiation of `protocol:2` and bind account/device/task, batch and step, approved outcome digest, exact permissions, resource ownership and lease into newly canonical v2 signed bytes. Old v1 client must never receive steps whose required safety semantics it cannot understand. Reject duplicate JSON keys and unknown critical features before canonicalisation. Avoid copying untrusted model identity fields into signed context.
+
+### Exact types and decoding limits
+
+```ts
+// PROPOSED v2. All generation/revision fields are unsigned 64-bit canonical decimal strings.
+type CanonicalU64 = string;
+type DeviceExecutionEnvelopeV2 = {
+  protocol: 2;
+  accountId: string;
+  taskId: string;
+  deviceId: string;
+  controllerEpoch: CanonicalU64;
+  permissionRevision: CanonicalU64;
+  keyEpoch: CanonicalU64;
+  batchId: string;
+  nonce: string;
+  requestDigest: string;
+  approvedOutcomeDigest: string;
+  lease: { id: string; issuedAt: string; expiresAt: string };
+  steps: Array<{
+    id: string;
+    action: DeviceAction;
+    scopeRef: string;
+    confirmationRef?: string;
+    preconditions: TypedPrecondition[];
+    verificationRefs: string[];
+    replay: 'read_only' | 'idempotent' | 'reconcile_before_retry';
+  }>;
+  budget: { maxSteps: number; maxDurationMs: number; maxPayloadBytes: number; maxOutputBytes: number };
+};
+```
+
+Do not treat this sketch as a replacement for current schema without full source tracing. Enforce decimal regex `^(0|[1-9][0-9]*)$`, range 0…2^64−1, no leading zeros/plus/minus/exponent/whitespace, comparison via BigInt in TS without JSON numeric serialisation. A zero or wraparound epoch that violates current monotonic server policy is invalid. Local intent journal is durably flushed before a potentially irreversible effect; same batch/id with conflicting digest fails. Preserve effect, execution and verification as three orthogonal statuses. After loss of acknowledgement, independently read target state before attempting retry. A signed device receipt is authenticated reporting, not independent truth against an OS-level compromised executor.
+
+Admission/STOP/Take Over/resource-lock transfer must share the local final-mutation serialisation point. One controller owns global pointer/keyboard/focus per GUI session, including across multiple windows; API/build/render jobs may overlap only with demonstrably disjoint resources and cancellation support. A five-second lease measured from issuance and two-second renewal are initial targets, not remote instantaneous revocation promises. Local STOP closes admission immediately; noncancellable native effects may finish and remain UNKNOWN until reconciliation. Prepared scripts must bind actual bytes, interpreter/version and enforceable filesystem/process/network capabilities; **a matching digest does not sandbox an unrestricted child process**.
+
+**Compatibility proof:** cross-language TS/Python/Java golden canonical bytes, 0/max/overflow/leading-zero numeric cases, duplicate keys, unknown-critical options, signature replay/downgrade/key rotation, clock skew/suspend, revoked grant, same-id/different-digest, 12/13-step boundary, payload/output budget, full Windows/Android installed-device exchange and a failure-injected lost-ack write. No v2 release while any mandatory safety semantic is missing on a shipped old client.
+
+### Local-first external boundaries
+
+Online models and OCADE's server-side account coordination are allowed; the selected customer's local computer executes actual professional project mutations and renders, including IDE, native Office, CAD, video and GUI. No default cloud desktops, remote coding sandboxes or silent hosted backup executor. External customer-chosen GitHub/Drive/email/web accounts require separately established intended external identity and permissions. A phone dispatches to an enrolled PC. JARVIS never silently falls back to Chat's Offline Intelligence.
+
+Sources used for technical feasibility: [Chrome 136 remote debugging limits](https://developer.chrome.com/blog/remote-debugging-port); [Windows UI Automation](https://learn.microsoft.com/en-us/windows/win32/winauto/entry-uiauto-win32); [Photoshop UXP scripting](https://developer.adobe.com/photoshop/uxp/scripting/); [Gemini Live session reconnect](https://ai.google.dev/gemini-api/docs/live-api/session-management). These are external **research**, not test results on the current OCADE product.
