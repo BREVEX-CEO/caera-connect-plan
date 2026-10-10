@@ -39,3 +39,31 @@ Previous completed cleanup records (browser donor reduction, stale installer art
 ## October 10 documentation disposition and cleanup gate
 
 **KEEP** established minimum active authorities: PLAN, AGENTS, CLAUDE loader, PRD, Architecture, Design System, Security, Testing, Decisions, dated research, ToRemove and source audit checkpoints. They have different responsibilities and documented existing references; do not delete a file merely to reduce Markdown count or falsify cleanup statistics. **DELETE or merge later only with individually verified reference map, unique-clause relocation, caller/consumer parity, backup in Git and changed-file regression.** Preserve donor ZIP/source-original, existing signed manifests, applied migrations, critical recovery journals and audit evidence. Product code cleanup, Ponytail Ultra or dependency retirement remain future independently tested P22 implementation; documentation-only stage cannot perform them. No additional Markdown deletion is proven safe from the current uploaded handoff alone.
+
+
+## Proof-gated source-specific retirement inventory — 10 October detailed plan
+
+No code deletion is authorised by this documentation update. Every candidate requires preserved caller/integration parity, a verified replacement, actual performance evidence and reversible cleanup.
+
+
+No product removal is authorised in this documentation stage.
+
+| Source and mechanism | Disposition | Required parity/removal gate |
+|---|---|---|
+| `scripts/wake/__pycache__/make_data.cpython-312.pyc` — 11,020-byte generated cache | Remove after provenance/package check | Source training entrypoint and shipped model unchanged; restore exact Git blob if necessary |
+| `JarvisBubble` and `JarvisWorkspace` query cadence/options | Merge options into existing account-owned state authority | Preserve workspace housekeeping and bubble `maintain:false`; measure navigation request counts |
+| Bubble `ask` and workspace `send` duplicated turn lifecycle | Merge lifecycle through existing run owner | Account switch/late-finally/admission/settlement/handoff tests; retain different presentations |
+| `useJarvisVoice` state-only async callbacks | Replace with generation-owned lifecycle | Late microphone/recogniser/TTS completion cannot revive old work |
+| Voice analyser `sample` continuous/unowned RAF | Replace with one cancellable meter | No frames after End/hidden state; no extra capture |
+| `stopEverywhere` fixed one-second ACK sleep loop | Merge waits with existing `actionChanged` | Lost events, pre-registration completion, offline device and missing ACK stay truthful |
+| `Orb.tick` idle auto-rotation/RAF | Remove idle loop; retain requested graph | Zero hidden/idle frames; keyboard/list/zoom/pan/account parity |
+| `graph.ts` 60-per-category display cap | Replace with 60-total visible cap | No semantic record deletion; complete list remains reachable |
+| `DeviceCommand.cowork` GUI takeover exemption | Remove exemption; retain wire decoding | Physical input wins during paste/typing/API handoff; safe independent work still works |
+| `BrowserPanel` frame polling | Keep until equivalent frame-change transport exists | It serves viewing, not planner observation; hidden panel makes no requests |
+| Planner ownership heartbeat | Keep legacy purpose until lease migration passes | It is not presentation polling; never confuse 60 seconds with v2 admission lease |
+| Public function validators plus shared task authority | Keep | They are validation/auth boundaries and delegated enforcement, not redundant engines |
+| v1 protocol/signature bytes | Keep compatibility | Retire only after authenticated migration/support cutoff and cross-language proof |
+| Immutable donor ZIP/snapshot | Keep provenance; exclude unsafe donor stack from shipping | Original hashes and built-package/SBOM checks |
+| `clsx`, `tailwind-merge`, `lightningcss`, `nitro`, PGlite, fake-indexeddb, playwright-core | Keep established callers | No unused dependency is established by the targeted trace |
+
+Do not claim savings until measuring request count, timers/listeners, retained objects, idle CPU and packaged bytes before/after.
