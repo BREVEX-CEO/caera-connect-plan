@@ -174,16 +174,15 @@ Future billing acceptance requires provider sandbox tests for authenticated chec
 
 ## 13. Documentation-only gate and handoff
 
-For this mission, verify only authorised Markdown changes: current authority hierarchy, requirement preservation, source paths, local links/anchors, document disposition, no competing work queues, model-identity guard compatibility and formatting. Check the final diff includes no source/config/schema/dependency/generated-output changes. Commit/push authorisation is provided by the current owner request; it does not authorise production deployment. Recheck remote main after publishing.
+For this mission, verify only authorised Markdown and documentation-only audit-checkpoint changes: current authority hierarchy, requirement preservation, source paths, local links/anchors, document disposition, no competing work queues, model-identity guard compatibility and formatting. Check the final diff includes no source/config/schema/dependency/generated-output changes. Commit/push authorisation is provided by the current owner request; it does not authorise production deployment. Recheck remote main after publishing.
 
 Preserve historical evidence through its retained history/archive and map superseded requirements into the canonical documents. Do not delete legal/licence, immutable donor, recovery or unique test evidence as cosmetic cleanup.
 
 At interruption/reset, record exact checkpoint, files, next unfinished item and blockers in the authorised evidence location. Resume from that checkpoint rather than restarting completed work. The final handoff gives current source/deployment identities, exact PASS/FAIL/BLOCKED/UNTESTED evidence, unresolved defects, recovery instructions and the next PLAN package.
 
-
 ## 14. October 10 local-first readiness and evidence integrity gate
 
-**Full source audit reconciliation:** Uploaded handoff reports 989/989 classified baseline paths (435 saved +262 carried +292 new; 957 full-text, six empty/generated, 26 structural/binary). Published remote audit branch at `deee395fbf5ed709f18354164ccf5f3788f418c6` reports only 382/989 and is **not** enough to verify the later local coverage. In the original Codex checkout recover exact hash-matched read-range inventory, reviewer identity and unique classifications before marking source audit complete; preserve dirty coverage file bytes and historical status. Read only changed/new/uncovered blobs since the frozen SHA; semantic full-read and mere structural-classification are different evidence. Do not turn unread local evidence into PASS.
+**Full source audit reconciliation:** The recovered [coverage checkpoint](audit-checkpoints/20261010/coverage.json) records 989/989 historical baseline paths (435 saved +262 carried +292 new; 957 full-text, six empty/generated, 26 structural/binary), zero pending baseline paths and hash/range/reviewer provenance. Original local dirty checkpoint bytes and SHA-256 remain preserved; old remote audit commit `deee395fbf5ed709f18354164ccf5f3788f418c6` retains its historical 382/989 observation. PR #74 review checked original hashes, unchanged current contents including explicitly recorded newline-only equivalence, and the 10 changed documents. The added checkpoint is not counted as an extra audited baseline source. Read only changed/new/uncovered content at the next SHA; structural classifications and source reading do not prove installed behaviour or licence clearance.
 
 **Test validity corrections:** Inspect and reproduce current tests that (a) fixed account `INSERT...ON CONFLICT DO NOTHING` then unconditional destructive `DELETE`; (b) accidentally catch an unexpected success; (c) accept SQL NULL as correct assertion; (d) confuse foreign key with CHECK enforcement; (e) report policy/index existence rather than effective account grants; (f) use migration-stage assertions for the current schema; (g) interpret authorised emergency STOP as failed health; (h) inject test notifications into a supposedly independent Web Push deliverability proof; (i) mislabel mock installed browser/native/Android/offline evidence; (j) print recovery codes, bearer token fragments or signed URLs. Reproduce in isolated fixtures, preserve original useful tests and only replace broken assertions with behaviorally falsifiable ones. A source read is not a reproduced failure.
 
@@ -195,18 +194,15 @@ At interruption/reset, record exact checkpoint, files, next unfinished item and 
 
 **Doc-only PR validation:** only `PLAN.md`, existing specialist Markdown, approved dated audit artifacts and individually justified redundant Markdown may change. Validate all cross-links, 60 decision mappings, syntax/anchors, no unlabelled v2 field conflicts, exact-source references, unchanged product files/lockfiles/config/migrations and no secrets/customer content. Run pinned Prettier only on targeted Markdown and `git diff --check`; review required GitHub CI `verify:full` and dependency audit. If required checks fail beyond documentation scope, leave PR open and report blocker. Do not run a manually approved production deployment, waive a security gate or merge without required checks. Verify remote main SHA and product-tree parity only after a real merge.
 
-
 ## 15. Cross-application benchmark and conditional on-device isolation acceptance
 
 [WindowsWorld, ACL Findings 2026](https://aclanthology.org/2026.findings-acl.750/) evaluates 181 desktop workflow tasks, averaging five subgoals across 17 desktop apps; about 78% are multi-app. Its reported sub-21% multi-app agent success rates are paper results on its controlled benchmark, not OCADE measurements. Add a reproducible process-aware test set with intermediate checkpoints, ≥2/≥3 installed apps, correct target identities and verified final native artefacts. Record exact Windows fixture, benchmark task selection, permission setup, vendor/model/broker versions, trial seeds, allowed initial state, human takeover and actual success rather than model narrative.
 
 If P08 elects to prototype [Microsoft Execution Containers](https://blogs.windows.com/windowsdeveloper/2026/10/07/microsoft-execution-containers-policy-driven-containment-for-ai-agents/), run explicit prohibited-file/network, inter-session input/clipboard, target app discovery, performance overhead, child process escape and journal/restart proof against the **pinned installed MXC implementation**. Do not claim containment from the [current preview repository SDK](https://github.com/microsoft/mxc), which warns its policy profiles may be permissive. Unsupported Windows/enterprise policy must retain secure limited local routes or show a clear capability refusal. No local sandbox test is a blanket proof of safety against all OS-level adversaries.
 
-
 ## 16. Source-specific end-to-end workflow matrix, 60-decision mapping and evidence grades
 
 Scores describe desired qualification gates, not executed product tests or a claim of 10/10 readiness.
-
 
 ### 9.1 Required workflow matrix
 
@@ -246,22 +242,22 @@ Require zero observed forbidden effects or false-success events in qualification
 
 The preservation matrix must contain one row per decision with exact clause, destination and acceptance gate.
 
-| Register | Destination mapping |
-|---|---|
-| Original 01–03 | P00/P10/P17/P22: useful compatible capabilities, single owners and legal reuse |
-| Original 04–10 | PLAN/documentation gates: substantive packages, minimal authorities, preservation, staged implementation and verified merge |
-| Original 11–16 | P05/P11: identities, human secrets, ambiguity, scoped remembered permission, extension-free browser and popup recovery |
-| Original 17–18 | P10/P17: unknown-app discovery and deep professional families |
-| Original 19–21 | P15: Orb, selected design and compact task/STOP UI |
-| Original 22–23 | P12/P10: natural voice and private verified recipes |
-| Original 24–26 | P19/P13: isolated real-app fixtures, Windows/browser/coding and honest mobile evidence |
-| Original 27–28 | P18/P21/P19: staged vision and independent adversarial proof |
-| Local-first 1A/2A | Architecture/P08/P11/P17: online planning, customer-device execution, no hidden cloud workspace |
-| Later 01–05 | P17/P10/P08/P03: all families, app selection, background control, durable tasks, discovery |
-| Later 06–10 | P11/P02/P04/P03: installation/elevation approval, copies and uncertain-write readback |
-| Later 11–16 | P09/P08/P17/P10/P03/P01: unavailable PCs, concurrency, coding, recipes, outage and checked completion |
-| Later 17–23 | P15/P12/P11: compact UI, requested graph, disclosure, palette, truthful progress, voice and optional pairing |
-| Later 24–30 | PRD/P18/P20/P22: India audience, multi-app demonstration, monthly/free offer, value-first upgrade, repeats/history, sharing and positioning |
+| Register          | Destination mapping                                                                                                                         |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Original 01–03    | P00/P10/P17/P22: useful compatible capabilities, single owners and legal reuse                                                              |
+| Original 04–10    | PLAN/documentation gates: substantive packages, minimal authorities, preservation, staged implementation and verified merge                 |
+| Original 11–16    | P05/P11: identities, human secrets, ambiguity, scoped remembered permission, extension-free browser and popup recovery                      |
+| Original 17–18    | P10/P17: unknown-app discovery and deep professional families                                                                               |
+| Original 19–21    | P15: Orb, selected design and compact task/STOP UI                                                                                          |
+| Original 22–23    | P12/P10: natural voice and private verified recipes                                                                                         |
+| Original 24–26    | P19/P13: isolated real-app fixtures, Windows/browser/coding and honest mobile evidence                                                      |
+| Original 27–28    | P18/P21/P19: staged vision and independent adversarial proof                                                                                |
+| Local-first 1A/2A | Architecture/P08/P11/P17: online planning, customer-device execution, no hidden cloud workspace                                             |
+| Later 01–05       | P17/P10/P08/P03: all families, app selection, background control, durable tasks, discovery                                                  |
+| Later 06–10       | P11/P02/P04/P03: installation/elevation approval, copies and uncertain-write readback                                                       |
+| Later 11–16       | P09/P08/P17/P10/P03/P01: unavailable PCs, concurrency, coding, recipes, outage and checked completion                                       |
+| Later 17–23       | P15/P12/P11: compact UI, requested graph, disclosure, palette, truthful progress, voice and optional pairing                                |
+| Later 24–30       | PRD/P18/P20/P22: India audience, multi-app demonstration, monthly/free offer, value-first upgrade, repeats/history, sharing and positioning |
 
 Do not use these grouped rows as a substitute for the final 60-row clause register.
 
@@ -269,19 +265,31 @@ Keep both the requested historical 49-phase provenance and the existing 1–56/a
 
 ### 9.3 Quality rubric
 
-| Domain | Current proof | Target gate |
-|---|---|---|
-| Source coverage | SOURCE: 989 accounted; checkpoint reconciliation pending | Persist exact manifest without inflated text/licence claims |
-| Research | RESEARCHED; named deltas resolved | Source-linked profiles and fair unavailable labels |
-| Architecture/PC control | SOURCE design; runtime UNTESTED | Protocol, final admission and native output proof |
-| Multi-app | Planned; UNTESTED | Reopened artifacts and cross-app predicates |
-| UI/Orb/accessibility | Source findings and calculated tokens | Full route/state screenshots, keyboard/touch and idle measurement |
-| Security/data | Source risks; hosted proof incomplete | Direct RLS/RPC, concurrency, revoke, erasure and injection tests |
-| Voice | SOURCE lifecycle risks | No stale audio/capture; measured interruption |
-| Offline | SOURCE implementation; cold proof required | Fresh-process offline and accounting reconciliation |
-| Pricing | Hypothesis; checkout retired | Approved transactions, repeat value and contribution |
-| Debloat | Exact source inventory | Replacement/caller/parity/rollback evidence |
-| Claude implementability | Detailed contract | Every package has all 15 fields and no competing authority |
-| Release | Not cleared | Exact candidate hosted/physical/licence/release gates |
+| Domain                  | Current proof                                                 | Target gate                                                                                     |
+| ----------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Source coverage         | SOURCE: 989 baseline paths reconciled; runtime proof separate | Carry hash-equal reads forward; inspect changed/new content; preserve structural/licence limits |
+| Research                | RESEARCHED; named deltas resolved                             | Source-linked profiles and fair unavailable labels                                              |
+| Architecture/PC control | SOURCE design; runtime UNTESTED                               | Protocol, final admission and native output proof                                               |
+| Multi-app               | Planned; UNTESTED                                             | Reopened artifacts and cross-app predicates                                                     |
+| UI/Orb/accessibility    | Source findings and calculated tokens                         | Full route/state screenshots, keyboard/touch and idle measurement                               |
+| Security/data           | Source risks; hosted proof incomplete                         | Direct RLS/RPC, concurrency, revoke, erasure and injection tests                                |
+| Voice                   | SOURCE lifecycle risks                                        | No stale audio/capture; measured interruption                                                   |
+| Offline                 | SOURCE implementation; cold proof required                    | Fresh-process offline and accounting reconciliation                                             |
+| Pricing                 | Hypothesis; checkout retired                                  | Approved transactions, repeat value and contribution                                            |
+| Debloat                 | Exact source inventory                                        | Replacement/caller/parity/rollback evidence                                                     |
+| Claude implementability | Detailed contract                                             | Every package has all 15 fields and no competing authority                                      |
+| Release                 | Not cleared                                                   | Exact candidate hosted/physical/licence/release gates                                           |
 
 Historical numerical assessments must remain labelled historical/source judgements. Do not manufacture new “SUPER STRONG” scores from document length.
+
+## PR #74 final documentation review evidence — 10 October 2026
+
+Review began at `700d9c94bc482b6d66c4c4bae56e241e22cad914`, against main `9b2fe3e40fd915dcf32316e5daa20ed7295f8ffb`. Reviewed the original 10-Markdown diff and corrected only documentation: formatter issues, conflicting Orb/graph/layout/palette targets, duplicate v2 envelope sketches, incomplete signed receipt context, physical-takeover exemption, divergent performance limits, launch order and P22 dependency cycle. Preserved all 60 owner decisions and final 1A/2A/3A refinements; each decision now has its own falsifiable acceptance gate, still UNTESTED as implementation proof.
+
+- **LOCAL PASS:** 60 unique decision IDs/selected answers; 23 package IDs and ordered supplements; one v2 envelope/receipt definition; 65 relative links and anchors before this evidence addition; selected text/control/button contrast calculations; no secret-pattern matches; `git diff --check`; lock-pinned Prettier 3.9.5 on changed Markdown and checkpoint JSON. PLAN is intentionally excluded by the existing `.prettierignore`, so its formatter invocation is not claimed as a parsed formatting check. Syntax, links and whitespace were checked separately.
+- **SOURCE PASS:** recovered 989-path coverage checkpoint; preserved original dirty bytes/hash; 979 unchanged baseline contents (965 exact working-copy hashes and 14 explicitly recorded newline-only equivalents); 10 current document diff reviews. Binary/generated evidence is not semantic text or licence clearance. This required one added documentation-only checkpoint beyond the original 10 Markdown files; no product/config/test/migration/dependency/infrastructure diff.
+- **CI at original head:** [manual CI run 38070193981](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/38070193981) passed route stability, typecheck and lint, then failed formatting on nine documents. Those document errors were corrected. Run the unchanged CI workflow at the corrected PR head to establish current portable results; docs-only path filters ordinarily skip it.
+- **LOCAL FAIL / merge BLOCKED:** production lockfile audit returned exit 1, one critical (`seroval@1.5.6`) and one high (`source-map-js@1.2.1`) vulnerable package. Exact advisory IDs and next action are in PLAN P00. Lockfile SHA-256: `b6f90fc8079999d8bfbf4ec82cbb980e70ba4b29f68cd447066eb77f541acbfe`. Do not waive the audit or change dependencies in this documentation stage.
+- **UNTESTED/BLOCKED implementation proof:** native application outcomes, physical Android/Apple, hosted RLS/security/provider/payment, runtime performance, licence clearance and matched competitor runs remain their existing package gates. This review did not start implementation or manually invoke production deployment.
+
+Merge only if current required checks pass. Guard the exact head SHA, fetch remote main independently after an actual merge and prove product-tree parity. A mergeable flag or successful Workers build alone cannot override the dependency-security gate.

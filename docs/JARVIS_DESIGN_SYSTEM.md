@@ -6,57 +6,27 @@ One visual authority for Chat, JARVIS, Library, settings, public pages and conso
 
 Deep neutral dark surfaces, clean light surfaces, readable neutral type, restrained blue active state, green verified success and red destructive/error state. No neon, fake terminal decoration, decorative metrics, rainbow graphs, metallic textures or permanent animated backgrounds.
 
-Reuse `src/styles.css`, `src/shared/ui/tokens/monochrome.css`, `src/lib/appearance.tsx` and existing shell/row/dialog components. Do not add another theme package. Current primitive comments describe a monochrome invariant; `scripts/check-monochrome.mjs` already permits hue only through `--state-info`, `--state-success` and `--destructive`. Future implementation must reconcile the old comment with this semantic palette, retain those narrow exceptions and avoid scattered colour literals. Warnings use neutral text plus an icon/label. User document imagery is content, not product chrome.
+Reuse `src/styles.css`, `src/shared/ui/tokens/monochrome.css`, `src/lib/appearance.tsx` and existing shell/row/dialog components. Do not add another theme package. Current primitive comments describe a monochrome invariant; `scripts/check-monochrome.mjs` already permits hue only through `--state-info`, `--state-success` and `--destructive`. Future implementation must reconcile the old comment with this semantic palette, retain those narrow exceptions and avoid scattered colour literals. Warnings use the selected semantic warning text plus an icon/label, subject to P15 allowlist migration. User document imagery is content, not product chrome.
 
 ## Exact palette
 
-Hex sRGB values are normative. Define them once through the existing CSS variables; components consume semantic tokens. Do not introduce an alias containing an unapproved raw hue.
+The sole selected palette and its calculated examples are in [Selected visual system](#51-selected-visual-system). Earlier monochrome draft values are superseded. Map background/surface/raised/text/secondary/border/button values to the existing `--background`, `--card`, `--popover`, `--foreground`, `--muted-foreground`, `--input`, `--primary` and `--primary-foreground` owners. Keep `--border` decorative. Map focus/link/success/danger to the existing semantic state owners; P15 must extend the existing semantic allowlist deliberately for warning/action states and retest `check-monochrome.mjs`, rather than scatter raw hues or add a theme authority.
 
-| Role / variable                      | Dark      | Light     | Use                                                 |
-| ------------------------------------ | --------- | --------- | --------------------------------------------------- |
-| Page `--background`                  | `#0B0B0B` | `#FAFAFA` | Canvas                                              |
-| Surface `--card`                     | `#151515` | `#FFFFFF` | Composer/cards                                      |
-| Raised `--popover`                   | `#1E1E1E` | `#F2F2F2` | Menus/dialogs                                       |
-| Text `--foreground`                  | `#F5F5F5` | `#171717` | Body/headings                                       |
-| Secondary `--muted-foreground`       | `#A3A3A3` | `#595959` | Labels/help/time                                    |
-| Control outline `--input`            | `#6B6B6B` | `#737373` | Boundary when needed to identify a control          |
-| Separator `--border`                 | `#2E2E2E` | `#D6D6D6` | Decorative divider, never sole interactive boundary |
-| Active/focus/link `--state-info`     | `#76A9FF` | `#245DC1` | Text/icon/underline accompany colour                |
-| Verified `--state-success`           | `#70CFA0` | `#176B44` | Independently checked outcome                       |
-| Error/destructive `--destructive`    | `#FF8F8F` | `#B42318` | Error label/icon/action                             |
-| Primary `--primary`                  | `#F5F5F5` | `#171717` | Neutral dominant action                             |
-| Primary label `--primary-foreground` | `#0B0B0B` | `#FFFFFF` | Text on primary fill                                |
-
-Semantic coloured text/icons sit on opaque neutral backgrounds. Do not put white text on dark-theme pale blue/red/green. A filled destructive control uses dark `#0B0B0B` text on dark-theme red, white text on light-theme red. Focus ring references `--state-info` with a neutral offset. Pending/warning are neutral and explicitly labelled. Keep Dark/Light, High contrast and Reduce motion; do not expose an unimplemented System preference.
-
-### Calculated contrast
-
-Calculated on 2026-10-09 using sRGB linearisation and `L = 0.2126R + 0.7152G + 0.0722B`; ratio `(Llighter + 0.05)/(Ldarker + 0.05)`. Each value is the minimum across Page/Surface/Raised above, with opaque backgrounds:
-
-| Foreground      | Dark minimum | Light minimum | Required use                      |
-| --------------- | ------------ | ------------- | --------------------------------- |
-| Body            | 15.29:1      | 16.01:1       | At least 4.5:1 normal text        |
-| Secondary       | 6.61:1       | 6.26:1        | At least 4.5:1 normal text        |
-| Blue            | 7.06:1       | 5.50:1        | At least 4.5:1 text               |
-| Green           | 8.83:1       | 5.82:1        | At least 4.5:1 text               |
-| Red             | 7.60:1       | 5.87:1        | At least 4.5:1 text               |
-| Control outline | 3.13:1       | 4.24:1        | At least 3:1 identifying boundary |
-
-Decorative separators deliberately do not qualify as identifying boundaries. Opacity, glass, selected/hover states and user-content backgrounds require final-composite measurement. These token calculations are not rendered WCAG certification. High contrast removes transparency and strengthens focus/boundaries. Verify actual components with keyboard, zoom and assistive technology.
+Use opaque on-surface text. White is the primary button label in both themes. Status colour always has a label or icon. High contrast removes transparency and strengthens focus/boundaries. System is the selected default theme target; explicitly mark it unavailable until implemented. Contrast calculations describe tokens, not rendered accessibility certification; measure final composites, opacity, hover, glass and forced colours in actual components.
 
 ## Type, spacing, shape and depth
 
-- Keep self-hosted Inter with system fallback, no third-party font requests. JetBrains Mono is for actual code/preformatted content only. Add no display font. Check non-Latin system fallback for clipping.
-- Type/line-height: metadata 12/18px; compact labels 14/20; body/inputs 16/24; section 20/28; page 28/36; signed-out introduction at most 36/44. Weights 400 body, 500 labels, 600 headings. Phone inputs at least 16px; reading column at most 760px, legal 720px; no justified text.
-- Spacing: 4, 8, 12, 16, 24, 32, 48px. Phone gutters 16px, desktop 24px; 8px within controls, 16px related rows, 24–32px sections. Compact operator tables may use 12px padding with reachable actions.
-- Radius: compact controls 10px, groups/cards 16px, dialogs/sheets 20px, composer 24px. Pills for compact chips/status only. Migrate existing radius variables deliberately; no arbitrary per-component shapes or card around every sentence.
+- Use system fonts by default and a system monospace stack for actual code. Existing self-hosted font assets remain preserved pending the ToRemove parity/licence gate; no new font download or third-party request. Check non-Latin fallback for clipping.
+- Type/line-height: metadata 12/16px; compact labels 14/20; body/inputs 16/24; section 20/28; page 28/36; signed-out introduction at most 36/44. Weights 400 body, 500 labels, 600 headings. Phone inputs at least 16px; reading column at most 760px, legal 720px; no justified text.
+- Spacing: 4, 8, 12, 16, 24, 32, 48px. Phone gutters 12px at 320–480px, 20px at 768px, desktop 24px; 8px within controls, 16px related rows, 24–32px sections. Compact operator tables may use 12px padding with reachable actions.
+- Radius: compact controls 10px, groups/cards 16px, dialogs/sheets 20px, composer 16px. Pills for compact chips/status only. Migrate existing radius variables deliberately; no arbitrary per-component shapes or card around every sentence.
 - Controls: 44px normal height, 48px Stop/Take Over; 18–20px icon inside at least 44px hit area. Dense desktop table controls may be 32px with spacing/keyboard access; phone retains 44px product target. This is a usability choice, not a claim every smaller control violates a standard.
 - Shadows: light panel `0 12px 32px rgba(0,0,0,0.12)`, light dialog `0 24px 64px rgba(0,0,0,0.18)`; dark panel `0 12px 32px rgba(0,0,0,0.32)`, dark dialog `0 24px 64px rgba(0,0,0,0.48)`. Ordinary content uses borders, not permanent elevation.
 - Glass only for floating bubble, compact voice surface and optional dialog chrome: 92% neutral surface, maximum 12px blur, opaque content. Use opaque fallback for high contrast/reduced transparency/unsupported effects/low-performance devices. No large blurred transcript or scrolling pane.
 
 ## Responsive composition
 
-Reuse existing breakpoints: below 768px navigation sheet; 768–1199px compact/collapsible shell; at least 1200px a 256px expanded sidebar. Support 320 CSS px and 200% text zoom without two-dimensional page scrolling. Label local overflow regions for code/tables. Respect visual viewport and `env(safe-area-inset-*)`; mobile keyboard must not cover composer or Stop.
+Use the selected breakpoint table in section 5.2: below 768px a navigation sheet, 768px a 64px rail, 1024px a 248px sidebar, 1280px context as a sheet and at least 1440px an optional 320px context panel. Support 320 CSS px and 200% text zoom without two-dimensional page scrolling. Label local overflow regions for code/tables. Respect visual viewport and `env(safe-area-inset-*)`; mobile keyboard must not cover composer or Stop.
 
 | Surface             | Layout                                                                                 | Primary action / secondary disclosure               |
 | ------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------- |
@@ -94,7 +64,7 @@ A navigation sheet closes on successful selection including same-route conversat
 
 Keep `src/jarvis/Orb.tsx` as the single renderer, no donor GUI/second graph library. Real conversations/memory/tasks/devices/relationships supply graph data; decoration cannot imply stored knowledge. Preserve semantic list/detail, selection, pan/zoom and keyboard alternative. During reading/work reduce emphasis without hiding task state.
 
-Suspend frame scheduling when hidden/backgrounded/reduced-motion/not usefully visible; use static or low-frequency idle. Cache layout/style on resize/theme changes instead of every frame. Bound graph nodes/edges and expensive sorts, using representative largest fixtures before changing limits. Invisible expanded/focus transitions must not leave controls keyboard-focusable.
+Suspend frame scheduling when hidden/backgrounded/reduced-motion/not usefully visible; use static idle with zero idle animation frames. Cache layout/style on resize/theme changes instead of every frame. Bound graph nodes/edges and expensive sorts, using representative largest fixtures before changing limits. Invisible expanded/focus transitions must not leave controls keyboard-focusable.
 
 Measure before/after on the same device/build/viewport/graph: idle CPU, frame timing, heap trend, layout work and interaction latency. Keep existing release performance budgets; no claimed savings without measurements. Lazy features must not load unrelated admin/graph/offline work into first-use Chat.
 
@@ -106,49 +76,46 @@ Use existing accessibility/monochrome checkers and E2E settings/JARVIS/voice/pol
 
 Validate first-task completion, finding Stop, understanding scope/result certainty, setup abandonment and repeated workflow use. Calm hierarchy and progressive disclosure are testable usability hypotheses, not investor/conversion guarantees. Change the narrow existing owners, prove parity and then retire duplicate styling.
 
-
 ## Final interaction contract and visual QA — 10 October 2026
 
 **Locked visual direction:** quiet professional black/graphite/white/blue and equal-quality accessible light mode. Background dark `#090B0F`, surface `#11151C`, raised `#1A202B`, dark text `#F5F7FA`; light background `#F6F8FC`, white surface, light text `#0F172A`; primary blue dark `#2563EB`, light `#1D4ED8`. Decorative borders `#2C3544`/`#CBD5E1` must not be the sole boundary of interactive controls; test interactive `#64748B` and focused dark `#93C5FD` / light `#1D4ED8` for contrast against real adjacent surfaces. Prefer system typeface, 16px body/14px metadata/12px minimum auxiliary, a 4px spacing grid, 10/16/20px control/card/sheet radii, 44×44px minimum touch targets. No copied branding, gamer HUD, excessive neon/glass/blur or continuous decorative WebGL.
 
-**Desktop:** 248px sidebar (64px collapsed), up to 760px readable transcript, optional contextual detail panel at ≥1200px. Between 768–1199px use an accessible drawer; ≤767px use one navigation sheet and a composer above the on-screen keyboard/safe areas; 320px viewport must not clip or require horizontal scroll. At 200%/400% browser zoom reflow rather than truncating task/STOP. No redundant bottom navigation on mobile.
+**Desktop:** 248px sidebar (64px collapsed), up to 760px readable transcript, optional contextual detail panel at ≥1440px. At 768px use a 64px rail; from 1024px use the sidebar and context sheets below 1440px; ≤767px use one navigation sheet and a composer above the on-screen keyboard/safe areas; 320px viewport must not clip or require horizontal scroll. At 200%/400% browser zoom reflow rather than truncating task/STOP. No redundant bottom navigation on mobile.
 
 **Chat:** one history/transcript and composer with message input, attachment, dictation, Send/Stop, mode selector and More; no competing second chat engine. Enter respects IME composition; Shift+Enter newline; only auto-follow streaming when reader within ~80px of bottom; otherwise show Jump to latest. Preserve draft and files after permission/retry failure; avoid exposing prior-account callbacks or hidden attachments.
 
 **JARVIS:** natural chat is primary. Small task card displays intended checked outcome, selected PC and external account, waiting/active/verification state, current checkpoint, Stop, Take Over, Pause/Resume where meaningful, optional Result/Recovery. Stop state is “Stopping” until device acknowledgement/quiescence is actually verified; an irreversible in-flight effect shows unknown status. Advanced execution traces/permissions/details are opt-in. A task may answer a progress question while working without losing its journal.
 
-**Orb/graph:** 96px small identity, ~176px expanded, graph 240–480px on demand with real user-owned conversations/tasks/devices/memories/approved relationships. Initial 60 visible nodes/category, disclosure of omitted nodes and accessible semantic list, keyboard selection, pointer pan/zoom and touch pinch, subtle cursor reaction and reduced-motion state. Deactivate hidden rendering, idle animation and offscreen graph updates. No invented nodes or theatrical boot countdown.
+**Orb/graph:** 64px desktop / 48px phone ambient identity, graph 240–480px on demand with real user-owned conversations/tasks/devices/memories/approved relationships. Initial 60 visible nodes total, disclosure of omitted nodes and accessible semantic list, keyboard selection, pointer pan/zoom and touch pinch, subtle cursor reaction and reduced-motion state. Deactivate hidden rendering, idle animation and offscreen graph updates. No invented nodes or theatrical boot countdown.
 
 **All routes and controls:** specify actual event handler, owner, keyboard focus, disabled/denied/pending/retry behaviours for Chat, JARVIS Conversations/Activity/Devices, Library, all five Settings groups (Account, Appearance, Notifications, Privacy & Security, Billing & Usage), integrated Owner/Staff consoles, sign-in/MFA/password/reset, signed install, Android bubble and phone remote tasks, notifications, billing, first visit and 404. Test true loading vs empty vs error; source-bound success vs click acknowledgement; skeleton matching content geometry; overlays and focus return; dark/light; accessibility and native file/data privacy.
 
 **Visual test matrix:** record actual screenshot diffs for widths 320/360/390/480/768/1024/1280/1440/1920px, both themes, dark/light system preference, 200–400% zoom, screen-reader and keyboard-only navigation, touch, IME/landscape, focus ring, modal Escape/return, long source filenames, loading, empty, permission-denied, error, unknown effect, successful verified output. Motion defaults 120/180/240ms and stops when reduced-motion, background tab or graph hidden. Show elapsed time only from actual checkpoints, no fictional progress percentage. A plan and palette alone do not count as implementation or pixel-perfect proof.
 
-
 ## 11. Final pixel-level UI, full control ownership and Orb contract — binding 1A
 
 This section refines existing design/architecture guidance with the latest source-specific details. Where provisional dimensions conflict, latest user decisions **1A / 2A / 3A** and the requirements below control; existing shipped behaviour remains evidence to recheck, not an implementation claim.
-
 
 ### 5.1 Selected visual system
 
 Use these exact semantic tokens:
 
-| Token | Dark | Light |
-|---|---|---|
-| Background | `#090B0F` | `#F6F8FC` |
-| Surface | `#11151C` | `#FFFFFF` |
-| Raised | `#1A202B` | `#EDF2F8` |
-| Primary text | `#F5F7FA` | `#0F172A` |
-| Secondary text | `#B2BDCC` | `#475569` |
-| Accent text | `#60A5FA` | `#1D4ED8` |
-| Primary button | `#2563EB` | `#1D4ED8` |
-| Button hover | `#1D4ED8` | `#1E40AF` |
-| Button pressed | `#1E40AF` | `#1E3A8A` |
+| Token                      | Dark      | Light     |
+| -------------------------- | --------- | --------- |
+| Background                 | `#090B0F` | `#F6F8FC` |
+| Surface                    | `#11151C` | `#FFFFFF` |
+| Raised                     | `#1A202B` | `#EDF2F8` |
+| Primary text               | `#F5F7FA` | `#0F172A` |
+| Secondary text             | `#B2BDCC` | `#475569` |
+| Accent text                | `#60A5FA` | `#1D4ED8` |
+| Primary button             | `#2563EB` | `#1D4ED8` |
+| Button hover               | `#1D4ED8` | `#1E40AF` |
+| Button pressed             | `#1E40AF` | `#1E3A8A` |
 | Identifying control border | `#64748B` | `#64748B` |
-| Focus | `#93C5FD` | `#1D4ED8` |
-| Success text | `#86EFAC` | `#166534` |
-| Warning text | `#FCD34D` | `#92400E` |
-| Danger text | `#FCA5A5` | `#B91C1C` |
+| Focus                      | `#93C5FD` | `#1D4ED8` |
+| Success text               | `#86EFAC` | `#166534` |
+| Warning text               | `#FCD34D` | `#92400E` |
+| Danger text                | `#FCA5A5` | `#B91C1C` |
 
 The old subtle borders `#2C3544` and `#CBD5E1` may remain decorative separators. They must not be the sole identifying boundary for a control.
 
@@ -170,16 +137,16 @@ Default theme follows the system; both themes are fully supported.
 
 ### 5.2 Layout specification
 
-| Width | Required arrangement |
-|---|---|
-| 320 | 56 px header; 12 px content gutters; wrapped toolbar; no page-level horizontal overflow |
-| 360/390 | Same structure; safe-area-aware composer and full usable STOP target |
-| 480 | Single primary column; previews may widen inside their own surface |
-| 768 | 64 px rail; sheets for navigation/context; 20 px content gutters |
-| 1024 | 248 px sidebar; primary content fills remaining space |
-| 1280 | Sidebar plus maximum 760 px conversation column; context opens as a sheet |
-| 1440 | Optional 320 px context panel, only when requested |
-| 1920 | Same reading width; extra space does not stretch prose or enlarge the Orb |
+| Width   | Required arrangement                                                                    |
+| ------- | --------------------------------------------------------------------------------------- |
+| 320     | 56 px header; 12 px content gutters; wrapped toolbar; no page-level horizontal overflow |
+| 360/390 | Same structure; safe-area-aware composer and full usable STOP target                    |
+| 480     | Single primary column; previews may widen inside their own surface                      |
+| 768     | 64 px rail; sheets for navigation/context; 20 px content gutters                        |
+| 1024    | 248 px sidebar; primary content fills remaining space                                   |
+| 1280    | Sidebar plus maximum 760 px conversation column; context opens as a sheet               |
+| 1440    | Optional 320 px context panel, only when requested                                      |
+| 1920    | Same reading width; extra space does not stretch prose or enlarge the Orb               |
 
 Collapsed desktop navigation is 64 px. Do not show multiple competing primary navigation systems.
 
@@ -214,31 +181,31 @@ Implement WCAG 2.2 AA checks, including reflow, keyboard access, accessible auth
 
 ### 5.4 Route and control instructions
 
-| Surface | Existing owner/callback | Required implementation |
-|---|---|---|
-| Shell | `AppShell` | Chat/JARVIS/Library primary navigation; Help/Settings utilities; server-authorised console entry; close mobile drawer after navigation and focus page heading |
-| Account menu | Existing Settings/sign-out/Upgrade callbacks | Upgrade only after verified useful value and operational billing; sign-out immediately invalidates local account generation |
-| Chat composer | `ChatWorkspace.send`, `useChat.stop` | Acquire operation ownership before allowance await; preserve draft on failure; STOP remains available throughout admission/stream/settlement |
-| Chat options | Existing mode/research/thinking/temporary controls | Clear incompatible options on mode change; show actual engine used; temporary attachments/transcript must not leak into account storage |
-| Attachments | Existing `attach` and tray | Per-file reading/ready/error states; bind asynchronous reads to original account/conversation; separate attachment success from Library-save failure |
-| History | Existing open/rename/archive/export/delete callbacks | Row-scoped pending/error; IME-safe rename; deletion reconciles uncertainty instead of restoring a stale whole list |
-| Turn actions | `MessageList.Turn` callbacks | Clipboard failure recovery; scoped edit/resend/delete; retain correct attachment association and operation identity |
-| JARVIS composer | `JarvisWorkspace.send`, `interject` | Online-only; retain 8,000-character limit; working-task messages are interjections, not a second controller |
-| Task controls | `stop`, `takeOverNow`, `resume`, confirmation callbacks | Show Stopping until quiescence evidence; fresh observation on Continue; confirmation binds exact device/resource/digest |
-| Panels | `JarvisPanels` | Conversations/Activity/Devices remain secondary; preserve selection/scroll; permissions reachable without extra primary navigation |
-| Live view | `BrowserPanel` | Stop frame reads when hidden/collapsed; timestamp frames; retain stale frame with clear stale label; provide textual equivalent |
-| Devices | Existing target, permission, background and revoke callbacks | Never silently retarget; serialize switch saves; retain target/confirmation until removal acknowledged |
-| Pairing | `ConnectDevice.connect` and decline handler | Exact device/fingerprint/expiry; approval idempotent by enrolment; decline failure keeps dialog open; closing does not mean approval |
-| Settings | `settings-panel` | Exactly Account, Appearance, Notifications, Privacy & Security, Billing & Usage; nested proof owns focus/Escape |
-| Notifications | `NotificationsSection.apply` | Serialize preference writes; separate account preference, OS permission and device push subscription; row creation does not prove delivery |
-| Data controls | Existing export/delete/offline controls | Explicit class/cutoff/manifest; partial export truthful; logical removal separate from eventual physical erasure |
-| Auth | Existing Google/email/password callbacks | Respect selected identity; safe return path; preserved draft; never auto-submit a held task after authentication |
-| OTP/MFA | Existing verify/challenge/recovery callbacks | Length matches provider configuration; paste/autocomplete support; no code logging; stale proof cannot resume another action |
-| Two-step setup | `TwoStep.begin/finish/turnOff/makeCodes` | Real QR/manual key; verify before Enabled; partial enrolment/code issuance handled separately; codes revealed once |
-| Billing | `BillingSection`, usage owner | Reconcile legacy tiers first; Free plus one clear monthly launch offer is a design default, not an owner-selected price; unavailable checkout remains explicitly unavailable |
-| Owner/Staff | `ConsolePage`, existing mutation owners | Exact rights/customer/reason; fresh bound proof; immediate revocation; no separate admin origin; audit references for mutations |
-| Help/legal/errors | Existing routes | Retain working Help search, finite callback/outage recovery, valid links and understandable empty/error states |
-| Tray/Android bubble | Existing local authorities | Local STOP remains available offline; folder changes do not retarget active tasks; permission/readiness/update states remain distinct |
+| Surface             | Existing owner/callback                                      | Required implementation                                                                                                                                                                |
+| ------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shell               | `AppShell`                                                   | Chat/JARVIS/Library primary navigation; Help/Settings utilities; server-authorised console entry; close mobile drawer after navigation and focus page heading                          |
+| Account menu        | Existing Settings/sign-out/Upgrade callbacks                 | Upgrade only after verified useful value and operational billing; sign-out immediately invalidates local account generation                                                            |
+| Chat composer       | `ChatWorkspace.send`, `useChat.stop`                         | Acquire operation ownership before allowance await; preserve draft on failure; STOP remains available throughout admission/stream/settlement                                           |
+| Chat options        | Existing mode/research/thinking/temporary controls           | Clear incompatible options on mode change; show the actual Online/Offline mode without provider/model identifiers; temporary attachments/transcript must not leak into account storage |
+| Attachments         | Existing `attach` and tray                                   | Per-file reading/ready/error states; bind asynchronous reads to original account/conversation; separate attachment success from Library-save failure                                   |
+| History             | Existing open/rename/archive/export/delete callbacks         | Row-scoped pending/error; IME-safe rename; deletion reconciles uncertainty instead of restoring a stale whole list                                                                     |
+| Turn actions        | `MessageList.Turn` callbacks                                 | Clipboard failure recovery; scoped edit/resend/delete; retain correct attachment association and operation identity                                                                    |
+| JARVIS composer     | `JarvisWorkspace.send`, `interject`                          | Online-only; retain 8,000-character limit; working-task messages are interjections, not a second controller                                                                            |
+| Task controls       | `stop`, `takeOverNow`, `resume`, confirmation callbacks      | Show Stopping until quiescence evidence; fresh observation on Continue; confirmation binds exact device/resource/digest                                                                |
+| Panels              | `JarvisPanels`                                               | Conversations/Activity/Devices remain secondary; preserve selection/scroll; permissions reachable without extra primary navigation                                                     |
+| Live view           | `BrowserPanel`                                               | Stop frame reads when hidden/collapsed; timestamp frames; retain stale frame with clear stale label; provide textual equivalent                                                        |
+| Devices             | Existing target, permission, background and revoke callbacks | Never silently retarget; serialize switch saves; retain target/confirmation until removal acknowledged                                                                                 |
+| Pairing             | `ConnectDevice.connect` and decline handler                  | Exact device/fingerprint/expiry; approval idempotent by enrolment; decline failure keeps dialog open; closing does not mean approval                                                   |
+| Settings            | `settings-panel`                                             | Exactly Account, Appearance, Notifications, Privacy & Security, Billing & Usage; nested proof owns focus/Escape                                                                        |
+| Notifications       | `NotificationsSection.apply`                                 | Serialize preference writes; separate account preference, OS permission and device push subscription; row creation does not prove delivery                                             |
+| Data controls       | Existing export/delete/offline controls                      | Explicit class/cutoff/manifest; partial export truthful; logical removal separate from eventual physical erasure                                                                       |
+| Auth                | Existing Google/email/password callbacks                     | Respect selected identity; safe return path; preserved draft; never auto-submit a held task after authentication                                                                       |
+| OTP/MFA             | Existing verify/challenge/recovery callbacks                 | Length matches provider configuration; paste/autocomplete support; no code logging; stale proof cannot resume another action                                                           |
+| Two-step setup      | `TwoStep.begin/finish/turnOff/makeCodes`                     | Real QR/manual key; verify before Enabled; partial enrolment/code issuance handled separately; codes revealed once                                                                     |
+| Billing             | `BillingSection`, usage owner                                | Reconcile legacy tiers first; Free plus one clear monthly launch offer is a design default, not an owner-selected price; unavailable checkout remains explicitly unavailable           |
+| Owner/Staff         | `ConsolePage`, existing mutation owners                      | Exact rights/customer/reason; fresh bound proof; immediate revocation; no separate admin origin; audit references for mutations                                                        |
+| Help/legal/errors   | Existing routes                                              | Retain working Help search, finite callback/outage recovery, valid links and understandable empty/error states                                                                         |
+| Tray/Android bubble | Existing local authorities                                   | Local STOP remains available offline; folder changes do not retarget active tasks; permission/readiness/update states remain distinct                                                  |
 
 Specific source repairs include:
 
@@ -260,20 +227,20 @@ Graph expansion is explicit. Show at most **60 nodes total**, not 60 per categor
 
 Use only authorised real conversations, tasks, devices, allowed apps/sites and appropriate memories. Filter before returning data and before rendering it.
 
-| State | Presentation |
-|---|---|
-| Idle | Static Orb; no implied active microphone |
-| Listening | Visible microphone state and “Listening” |
-| Thinking | Restrained transition and actual phase label |
-| Executing | Task phase/checkpoint, no fake percentage |
-| Permission wait | “Waiting for your approval”; exact action |
-| Paused/takeover | “You have control”; input authority withdrawn |
-| Verifying | “Checking the result” |
-| Verified | “Completed and checked” |
-| Partial | Completed and missing outcomes listed |
-| Unknown | “Checking what happened”; resource fenced |
-| Failed | Specific failure and safe next action |
-| Offline | Separate planner/device connectivity explanation |
-| Stopped | Known applied effects and remaining uncertainty |
+| State           | Presentation                                     |
+| --------------- | ------------------------------------------------ |
+| Idle            | Static Orb; no implied active microphone         |
+| Listening       | Visible microphone state and “Listening”         |
+| Thinking        | Restrained transition and actual phase label     |
+| Executing       | Task phase/checkpoint, no fake percentage        |
+| Permission wait | “Waiting for your approval”; exact action        |
+| Paused/takeover | “You have control”; input authority withdrawn    |
+| Verifying       | “Checking the result”                            |
+| Verified        | “Completed and checked”                          |
+| Partial         | Completed and missing outcomes listed            |
+| Unknown         | “Checking what happened”; resource fenced        |
+| Failed          | Specific failure and safe next action            |
+| Offline         | Separate planner/device connectivity explanation |
+| Stopped         | Known applied effects and remaining uncertainty  |
 
 STOP and active confirmation never fade. Pause rendering when hidden, backgrounded, reduced-motion or low-power conditions require it.

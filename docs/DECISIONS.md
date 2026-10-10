@@ -48,93 +48,91 @@ These requirements were explicitly selected by the owner; they are **target requ
 
 ### Original 28 binding decisions
 
-| Decision | Binding engineering/product meaning | Package |
-|---|---|---|
-| O01 | OCADE must ultimately incorporate every genuinely useful, legally reusable and technically compatible capability discovered across major AI products, not arbitrarily limit reuse to 10% or 25%. | P00/P17 |
-| O02 | When competitors implement the same capability, compare them and choose or engineer the strongest reliable solution. Do not keep several redundant engines. | P08/P22 |
-| O03 | Reuse permissibly licensed software when integration is advantageous. Otherwise independently implement the required functionality without copying proprietary or restricted code. | P00 |
-| O04 | PLAN.md must be as long as necessary, potentially thousands of substantive lines, not artificially condensed into a 300-line summary. | P00–P22 |
-| O05 | Retain one extremely detailed implementation plan plus a small number of authoritative specialist documents where separating concerns materially prevents confusion. | P00 |
-| O06 | Spoon-feed Claude: exact existing files, functions, operations, contracts, integration points, user interactions, error handling, tests and completion evidence. | P00–P22 |
-| O07 | Remove the maximum number of genuinely unnecessary or duplicate active Markdown documents without losing unique requirements, source references or historical evidence. | P22 |
-| O08 | Preserve and reconcile previous phases, decisions, donor provenance, findings and audit history. | P00/P22 |
-| O09 | Codex completes the research and documentation redesign first. Claude performs product-code implementation in the next stage. | P00 |
-| O10 | Documentation changes must be checked, committed and cleanly merged into main. | P00/P19 |
-| O11 | Authentication must respect the user's selected identity and avoid guessing between Google accounts. | P05/P11 |
-| O12 | Passwords, OTPs, passkeys, CAPTCHA and sensitive consent require legitimate human interaction where appropriate. | P05/P11 |
-| O13 | Ambiguous target accounts, applications, computers or documents require one focused clarification. | P02/P11 |
-| O14 | Remember appropriately scoped safe permissions without repeatedly interrupting users. | P02/P05 |
-| O15 | Prefer authorised native browser/accessibility control and a managed browser when appropriate; never require an extension. | P11 |
-| O16 | Unexpected pages, popups or changed targets require fresh observation and safe recovery. | P02/P11 |
-| O17 | Unfamiliar software must be discovered dynamically, controlled through the best supported interface and verified independently. | P10 |
-| O18 | Give deep coverage to Office, CAD/Fusion/Blender, video/design applications, IDEs and professional software. | P04/P17 |
-| O19 | Create a restrained, cursor-reactive premium Orb that expands into a meaningful interactive graph. | P15 |
-| O20 | Use a professional black, graphite, white and blue design system with refined geometry, subtle glass, excellent dark/light themes and accessibility. | P15 |
-| O21 | During execution, display essential conversation, task progress and STOP; reveal advanced information progressively. | P15 |
-| O22 | Support natural voice conversation, interruption, wake word where supported, follow-up instructions and safe task redirection. | P12 |
-| O23 | Safely remember reusable workflows, not private credentials, irrelevant files or raw screenshots by default. | P10 |
-| O24 | Test using isolated fixtures before authorised work with actual Windows applications and the user's existing browser. | P19 |
-| O25 | Test real Office/Chrome and VS Code/Git when available, plus other installed applications within the user's approved scope. | P19 |
-| O26 | Use realistic Android emulation and independent verification; distinguish simulated from real hardware results. | P13/P19 |
-| O27 | Preserve the complete long-term product vision but launch first with a small number of demonstrably valuable workflows. | P18 |
-| O28 | Claude must prove results through actual testing, independent verification, negative tests, failure recovery and measured performance. | P19 |
+| Decision | Binding engineering/product meaning                                                                                                                                                              | Package | Acceptance gate (implementation proof pending)                                                                         |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------- |
+| O01      | OCADE must ultimately incorporate every genuinely useful, legally reusable and technically compatible capability discovered across major AI products, not arbitrarily limit reuse to 10% or 25%. | P00/P17 | Capability/rights inventory retains every useful compatible requirement; unresolved rights block copying. **UNTESTED** |
+| O02      | When competitors implement the same capability, compare them and choose or engineer the strongest reliable solution. Do not keep several redundant engines.                                      | P08/P22 | Caller/package inventory proves one owner per concern; competing engines are absent. **UNTESTED**                      |
+| O03      | Reuse permissibly licensed software when integration is advantageous. Otherwise independently implement the required functionality without copying proprietary or restricted code.               | P00     | Component licence/notices/asset register passes before any shipped reuse. **UNTESTED**                                 |
+| O04      | PLAN.md must be as long as necessary, potentially thousands of substantive lines, not artificially condensed into a 300-line summary.                                                            | P00–P22 | Every P00–P22 package has source-specific ordered actions and independently observable DONE. **UNTESTED**              |
+| O05      | Retain one extremely detailed implementation plan plus a small number of authoritative specialist documents where separating concerns materially prevents confusion.                             | P00     | Authority/link check finds one queue and one document per concern. **UNTESTED**                                        |
+| O06      | Spoon-feed Claude: exact existing files, functions, operations, contracts, integration points, user interactions, error handling, tests and completion evidence.                                 | P00–P22 | Named path/symbol/caller and failing/negative/real-output fixtures resolve for each package. **UNTESTED**              |
+| O07      | Remove the maximum number of genuinely unnecessary or duplicate active Markdown documents without losing unique requirements, source references or historical evidence.                          | P22     | Unique-clause and reference parity passes before each Markdown removal. **UNTESTED**                                   |
+| O08      | Preserve and reconcile previous phases, decisions, donor provenance, findings and audit history.                                                                                                 | P00/P22 | Historical index, donor hashes and requirement destinations remain recoverable. **UNTESTED**                           |
+| O09      | Codex completes the research and documentation redesign first. Claude performs product-code implementation in the next stage.                                                                    | P00     | Documentation diff contains no product edits; implementation is a separate authorised stage. **UNTESTED**              |
+| O10      | Documentation changes must be checked, committed and cleanly merged into main.                                                                                                                   | P00/P19 | Formatter, diff scope, links, decisions, CI and dependency audit pass; remote main is verified. **UNTESTED**           |
+| O11      | Authentication must respect the user's selected identity and avoid guessing between Google accounts.                                                                                             | P05/P11 | Two Google accounts: exact requested account selected; ambiguity never chooses first. **UNTESTED**                     |
+| O12      | Passwords, OTPs, passkeys, CAPTCHA and sensitive consent require legitimate human interaction where appropriate.                                                                                 | P05/P11 | Password/OTP/passkey/CAPTCHA handoff sends no secret to planner or logs. **UNTESTED**                                  |
+| O13      | Ambiguous target accounts, applications, computers or documents require one focused clarification.                                                                                               | P02/P11 | Ambiguous important target pauses and asks one focused question before effects. **UNTESTED**                           |
+| O14      | Remember appropriately scoped safe permissions without repeatedly interrupting users.                                                                                                            | P02/P05 | Remembered grant stays resource/action/duration-bound; revoke blocks next admission. **UNTESTED**                      |
+| O15      | Prefer authorised native browser/accessibility control and a managed browser when appropriate; never require an extension.                                                                       | P11     | Supported browser and explicit managed fallback work without a mandatory extension. **UNTESTED**                       |
+| O16      | Unexpected pages, popups or changed targets require fresh observation and safe recovery.                                                                                                         | P02/P11 | Popup/navigation/focus drift invalidates old targets and safely observes afresh. **UNTESTED**                          |
+| O17      | Unfamiliar software must be discovered dynamically, controlled through the best supported interface and verified independently.                                                                  | P10     | Unseen app/version discovers supported interface and independently checks outcome or refuses. **UNTESTED**             |
+| O18      | Give deep coverage to Office, CAD/Fusion/Blender, video/design applications, IDEs and professional software.                                                                                     | P04/P17 | Each professional app family has an installed-version fixture, fidelity examiner and unsupported scope. **UNTESTED**   |
+| O19      | Create a restrained, cursor-reactive premium Orb that expands into a meaningful interactive graph.                                                                                               | P15     | Orb uses authorised real metadata; keyboard/list/pan/zoom and cursor/reduced-motion tests pass. **UNTESTED**           |
+| O20      | Use a professional black, graphite, white and blue design system with refined geometry, subtle glass, excellent dark/light themes and accessibility.                                             | P15     | Selected dark/light tokens pass rendered contrast/reflow/keyboard/touch checks. **UNTESTED**                           |
+| O21      | During execution, display essential conversation, task progress and STOP; reveal advanced information progressively.                                                                             | P15     | Working UI keeps conversation, compact task card and STOP accessible; details stay optional. **UNTESTED**              |
+| O22      | Support natural voice conversation, interruption, wake word where supported, follow-up instructions and safe task redirection.                                                                   | P12     | Duplex/barge-in/wake/redirection fixtures preserve task truth and cancel old audio. **UNTESTED**                       |
+| O23      | Safely remember reusable workflows, not private credentials, irrelevant files or raw screenshots by default.                                                                                     | P10     | Recipe secret/private-capture scan, version drift, scope and deletion fixtures pass. **UNTESTED**                      |
+| O24      | Test using isolated fixtures before authorised work with actual Windows applications and the user's existing browser.                                                                            | P19     | Fixture-owned files/accounts/profile isolate native tests from personal resources. **UNTESTED**                        |
+| O25      | Test real Office/Chrome and VS Code/Git when available, plus other installed applications within the user's approved scope.                                                                      | P19     | Installed Office/Chrome/VS Code/Git outputs are checked; unavailable apps remain BLOCKED. **UNTESTED**                 |
+| O26      | Use realistic Android emulation and independent verification; distinguish simulated from real hardware results.                                                                                  | P13/P19 | Emulator state verification and separate physical Android proof have distinct records. **UNTESTED**                    |
+| O27      | Preserve the complete long-term product vision but launch first with a small number of demonstrably valuable workflows.                                                                          | P18     | Launch workflow gates pass without removing later professional/platform requirements. **UNTESTED**                     |
+| O28      | Claude must prove results through actual testing, independent verification, negative tests, failure recovery and measured performance.                                                           | P19     | Independent output, negative/race/recovery and performance proof closes each package. **UNTESTED**                     |
 
 ### Additional 30 owner MCQ answers (original selected letters)
 
-| Decision | Answer | Specific binding behaviour | Package |
-|---|---|---|---|
-| N01 | **D** | Deep support across Office, programming, CAD, creative software, prioritise flagship launch | P17 |
-| N02 | **A** | Choose best installed app and explain; clarify only if target risk | P10 |
-| N03 | **A** | Native background execution without hijacking user's input | P02/P08 |
-| N04 | **A** | One long-running task with milestones/checkpoints | P03 |
-| N05 | **A** | Discover supported interfaces of unfamiliar software | P10 |
-| N06 | **A** | Suggest installed alternative or official install with approval | P11 |
-| N07 | **A** | Prefer background APIs/script automation to GUI | P08 |
-| N08 | **A** | Require explicit approval for elevation/system security prompts | P05 |
-| N09 | **A** | Default recoverable working copy; explicit in-place edit only when safe | P04 |
-| N10 | **A** | Reconcile uncertain save/write before any retry | P01/P03 |
-| N11 | **A** | Safe queue and supported authorised wake on sleeping PC | P03/P09 |
-| N12 | **A** | Parallel independent work, single GUI controller | P02/P08 |
-| N13 | **A** | Scoped coding edits, adversarial tests and separate publish permission | P17 |
-| N14 | **A** | Version-aware verified reusable workflows | P10 |
-| N15 | **A** | On outage finish only safe previously admitted local steps | P03/P16 |
-| N16 | **A** | Only independently checked requested outcomes count completed | P01 |
-| N17 | **A** | JARVIS = conversation, compact task card, STOP | P15 |
-| N18 | **A** | Orb small by default; graph only on request | P15 |
-| N19 | **A** | Natural-language UI; hide advanced controls | P15 |
-| N20 | **A** | Calm spacious premium graphite, white and blue | P15 |
-| N21 | **A** | Show meaningful checkpoints and proof, not decorative percentages | P15 |
-| N22 | **A** | Natural uninterrupted dialogue and voice during work | P12 |
-| N23 | **A** | Try Chat immediately, guided optional PC setup | P11/P15 |
-| N24 | **A** | Initial audience India students and individual professionals | P18/P20 |
-| N25 | **B** | First demo controls multiple installed programs in one request | P17/P18 |
-| N26 | **A** | Free allowance plus predictable monthly subscriptions | P20 |
-| N27 | **A** | Only invite upgrade after actual successful demonstrated value | P20 |
-| N28 | **AC** | One-click repeat + checked outcome/history/time saved (not streaks) | P10/P18 |
-| N29 | **DA** | Permissioned team workflows + user-controlled shareable outputs | P05/P20 |
-| N30 | **B** | Positioning: Control your computer naturally with AI | P18/P20 |
+| Decision | Answer  | Specific binding behaviour                                                                  | Package | Acceptance gate (implementation proof pending)                                                                    |
+| -------- | ------- | ------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
+| N01      | **D**   | Deep support across Office, programming, CAD, creative software, prioritise flagship launch | P17     | Office, coding and creative family contracts retain depth; each advertised version has proof. **UNTESTED**        |
+| N02      | **A**   | Choose best installed app and explain; clarify only if target risk                          | P10     | Unambiguous app auto-selects; wrong file/device/profile/account risk asks one question. **UNTESTED**              |
+| N03      | **A**   | Native background execution without hijacking user's input                                  | P02/P08 | Background API job lets the person type; physical takeover blocks competing GUI input. **UNTESTED**               |
+| N04      | **A**   | One long-running task with milestones/checkpoints                                           | P03     | Multi-app crash/restart resumes one journal with verified milestones and outputs. **UNTESTED**                    |
+| N05      | **A**   | Discover supported interfaces of unfamiliar software                                        | P10     | Unknown app selects native/semantic routes before fresh vision and verifies results. **UNTESTED**                 |
+| N06      | **A**   | Suggest installed alternative or official install with approval                             | P11     | Missing app offers installed alternative; official installation never runs without approval. **UNTESTED**         |
+| N07      | **A**   | Prefer background APIs/script automation to GUI                                             | P08     | Equivalent native/background route wins only with fidelity, safety and measured timing parity. **UNTESTED**       |
+| N08      | **A**   | Require explicit approval for elevation/system security prompts                             | P05     | Elevation/OS security prompt stays human-owned; denied consent causes no privileged effect. **UNTESTED**          |
+| N09      | **A**   | Default recoverable working copy; explicit in-place edit only when safe                     | P04     | Original hash survives default copies; explicit in-place recovery preserves later user edits. **UNTESTED**        |
+| N10      | **A**   | Reconcile uncertain save/write before any retry                                             | P01/P03 | Save/submission ACK-loss readback resolves effect before any non-idempotent retry. **UNTESTED**                   |
+| N11      | **A**   | Safe queue and supported authorised wake on sleeping PC                                     | P03/P09 | Asleep/locked/offline PC stays visibly waiting; authorised wake does not fabricate completion. **UNTESTED**       |
+| N12      | **A**   | Parallel independent work, single GUI controller                                            | P02/P08 | Independent jobs overlap; same file/session or pointer/keyboard has one owner. **UNTESTED**                       |
+| N13      | **A**   | Scoped coding edits, adversarial tests and separate publish permission                      | P17     | Exact local repo/branch, scoped diff and adversarial tests pass; publication is separately approved. **UNTESTED** |
+| N14      | **A**   | Version-aware verified reusable workflows                                                   | P10     | Version-scoped recipe has verifiers and no secrets, reusable coordinates or private raw capture. **UNTESTED**     |
+| N15      | **A**   | On outage finish only safe previously admitted local steps                                  | P03/P16 | Planner outage finishes only still-admitted safe steps, journals results and pauses new planning. **UNTESTED**    |
+| N16      | **A**   | Only independently checked requested outcomes count completed                               | P01     | Lying finish/missing predicate tests cannot reach Completed or successful-output settlement. **UNTESTED**         |
+| N17      | **A**   | JARVIS = conversation, compact task card, STOP                                              | P15     | Conversation/task card/STOP are usable at every required viewport and state. **UNTESTED**                         |
+| N18      | **A**   | Orb small by default; graph only on request                                                 | P15     | 64px desktop/48px phone Orb is ambient; expanded real graph is requested and idle frames are zero. **UNTESTED**   |
+| N19      | **A**   | Natural-language UI; hide advanced controls                                                 | P15     | First task is language-first; device/permission/diagnostic detail is obvious but optional. **UNTESTED**           |
+| N20      | **A**   | Calm spacious premium graphite, white and blue                                              | P15     | Selected premium tokens/geometry pass both-theme rendered and accessibility fixtures. **UNTESTED**                |
+| N21      | **A**   | Show meaningful checkpoints and proof, not decorative percentages                           | P15     | Actual milestones/previews show verified/partial/unknown; unknown totals never use fake percentages. **UNTESTED** |
+| N22      | **A**   | Natural two-way dialogue with barge-in while durable tasks remain coherent                  | P12     | Barge-in stops playback without losing task; explicit spoken STOP follows local safety path. **UNTESTED**         |
+| N23      | **A**   | Try Chat immediately, guided optional PC setup                                              | P11/P15 | First Chat works without install; pairing appears only for first meaningful native task. **UNTESTED**             |
+| N24      | **A**   | Initial audience India students and individual professionals                                | P18/P20 | India student/individual cohorts have measured activation/payment interest; teams tested separately. **UNTESTED** |
+| N25      | **B**   | First demo controls multiple installed programs in one request                              | P17/P18 | One request performs substantive work in at least two installed apps with independent outputs. **UNTESTED**       |
+| N26      | **A**   | Free allowance plus predictable monthly subscriptions                                       | P20     | Approved billing has clear free/monthly terms, visible limits and no surprise per-action charge. **UNTESTED**     |
+| N27      | **A**   | Only invite upgrade after actual successful demonstrated value                              | P20     | Upgrade appears after a genuinely useful checked result; outage/limit copy remains truthful. **UNTESTED**         |
+| N28      | **A+C** | One-click repeat + checked outcome/history/time saved (not streaks)                         | P10/P18 | Repeat revalidates scopes/resources; checked history reports only measured baseline time saved. **UNTESTED**      |
+| N29      | **D+A** | Permissioned team workflows + user-controlled shareable outputs                             | P05/P20 | Opt-in team/output share grants reveal no underlying private input or credentials. **UNTESTED**                   |
+| N30      | **B**   | Positioning: Control your computer naturally with AI                                        | P18/P20 | Selected positioning comprehension/conversion is measured; comparative claims require matched proof. **UNTESTED** |
 
 ### Two final local-first scope decisions
 
-| Decision | Answer | Authority boundary | Package |
-|---|---|---|---|
-| L01 | **1A** | Online AI plans; all actual installed-PC project actions, coding, CAD, files and media processing run on the customer's selected local PC. | P08/P17 |
-| L02 | **2A** | Prohibit default cloud desktops, hosted project execution workspaces and silent cloud-compute fallback; allow explicitly requested websites, email, research, GitHub and account coordination. | P05/P11/P17 |
+| Decision | Answer | Authority boundary                                                                                                                                                                             | Package     | Acceptance gate (implementation proof pending)                                                                             |
+| -------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------- |
+| L01      | **1A** | Online AI plans; all actual installed-PC project actions, coding, CAD, files and media processing run on the customer's selected local PC.                                                     | P08/P17     | Artifact/process trace proves project edits/builds/renders/native verification ran on selected customer PC. **UNTESTED**   |
+| L02      | **2A** | Prohibit default cloud desktops, hosted project execution workspaces and silent cloud-compute fallback; allow explicitly requested websites, email, research, GitHub and account coordination. | P05/P11/P17 | Unavailable PC queues visibly; no cloud-worker fallback; requested SaaS and scoped online AI remain explicit. **UNTESTED** |
 
 ### Closure evidence and contradiction procedure
 
 For **every O/N/L decision** record `owner-choice → active authority → inspected current source path/symbol → exact implementation interface → negative/adversarial test → independently observed user output → candidate SHA → PASS/FAIL/BLOCKED`. The latest owner choice supersedes incompatible earlier target-market or UI wording, but never bypasses OS restrictions/security. If current source contradicts a requested capability, leave the target OPEN with a precise limitation and feasible replacement; do not invent a 10/10 score. Commercial decisions require actual payment/legal approvals before implementation. Historical old-phase mapping above remains intact.
 
-
 ## Final supplemental 1A / 2A / 3A execution-priority decisions — 10 October 2026
 
-The prior 28+30+2=60 decisions remain unchanged. The owner's three *additional* implementation-priority selections refine those decisions rather than replacing them:
+The prior 28+30+2=60 decisions remain unchanged. The owner's three _additional_ implementation-priority selections refine those decisions rather than replacing them:
 
-| Final choice | Binding scope | Authority | Proof gate |
-|---|---|---|---|
-| **1A** | Ambient Orb **64 px desktop, 48 px mobile**; expanded real-data graph requested on demand, accessible list alternative, minimal idle cost | [Design](JARVIS_DESIGN_SYSTEM.md), [PLAN](../PLAN.md) P15 | Responsive screenshot/keyboard/reduced-motion/idle-CPU checks on real routes |
-| **2A** | Deliver verified native **Excel, Word, PowerPoint and browser** workflows first; then build IDE/Git, CAD/Fusion, Blender, media and arbitrary-app support through same deterministic broker | [PLAN](../PLAN.md) P08/P10/P17/P18 | Installed application identity/edition check, repeatable native fixture, independently reopened/editable output and no duplicate runtime |
-| **3A** | Flagship launch workflow is substantive **Excel → Word/PDF** work across installed programs with real checks, copies, timing and honest human-intervention count | [PRD](PRD.md), [Testing](TESTING.md), [PLAN](../PLAN.md) P18 | One original user request → local application steps → verified Excel calculations + native editable document + checked PDF if requested |
+| Final choice | Binding scope                                                                                                                                                                               | Authority                                                    | Proof gate                                                                                                                               |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **1A**       | Ambient Orb **64 px desktop, 48 px mobile**; expanded real-data graph requested on demand, accessible list alternative, minimal idle cost                                                   | [Design](JARVIS_DESIGN_SYSTEM.md), [PLAN](../PLAN.md) P15    | Responsive screenshot/keyboard/reduced-motion/idle-CPU checks on real routes                                                             |
+| **2A**       | Deliver verified native **Excel, Word, PowerPoint and browser** workflows first; then build IDE/Git, CAD/Fusion, Blender, media and arbitrary-app support through same deterministic broker | [PLAN](../PLAN.md) P08/P10/P17/P18                           | Installed application identity/edition check, repeatable native fixture, independently reopened/editable output and no duplicate runtime |
+| **3A**       | Flagship launch workflow is substantive **Excel → Word/PDF** work across installed programs with real checks, copies, timing and honest human-intervention count                            | [PRD](PRD.md), [Testing](TESTING.md), [PLAN](../PLAN.md) P18 | One original user request → local application steps → verified Excel calculations + native editable document + checked PDF if requested  |
 
 No choice authorises a cloud desktop, unrestricted credentials, unsafe elevation or fabricated competitive/revenue metrics. These three are not a reason to restart the 60-decision audit.
-

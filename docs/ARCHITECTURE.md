@@ -82,30 +82,9 @@ Keep `jarvis-runtime/ocade_protocol.json` as shared version/signing authority an
 
 The following are proposed contracts, not current fields or permission to migrate during documentation work:
 
-```ts
-type ExecutionEnvelope = {
-  protocol: number;
-  taskId: string;
-  deviceId: string;
-  controllerEpoch: string;
-  batchId: string;
-  requestDigest: string;
-  permissionRevision: string;
-  lease: { id: string; expiresAt: string };
-  steps: Array<{
-    id: string;
-    action: DeviceAction;
-    scopeRef: string;
-    confirmationRef?: string;
-    preconditions: Precondition[];
-    verificationRefs: string[];
-    replay: "read_only" | "idempotent" | "reconcile_before_retry";
-  }>;
-  budget: { maxSteps: number; maxDurationMs: number };
-};
-```
+The sole proposed envelope definition is `ExecutionEnvelope` in [section 15](#15-canonical-negotiated-protocol-v2-and-local-execution-authority--target-contract-10-october-2026). Its authenticated fields and limits replace the older sketch here; v1 remains unchanged.
 
-`Precondition` is a small discriminated union: capability available, expected file identity, expected app/window, observation generation and resource ownership. It is not arbitrary evaluator code. Verification references resolve to authority-approved specifications; the model cannot replace them with always-true checks. Hash canonical serialised bytes. Confirmations bind exact action digest, scope, task, device, expiry and authority revision. No long-lived credentials enter the envelope.
+`TypedPrecondition` is a proposed small discriminated union: capability available, expected file identity, expected app/window, observation generation and resource ownership. It is not arbitrary evaluator code. Verification references resolve to authority-approved specifications; the model cannot replace them with always-true checks. Hash canonical serialised bytes. Confirmations bind exact action digest, scope, task, device, expiry and authority revision. No long-lived credentials enter the envelope.
 
 ### Admission and execution
 
@@ -113,7 +92,7 @@ type ExecutionEnvelope = {
 2. `device.server.ts` atomically claims one batch for the selected device. Duplicate identities resolve to existing state. An authenticated event signals available work; the signed exchange remains authoritative.
 3. `ocade_device.py` or `AgentService.java` durably records the admitted identity. Same ID/different digest is refused. Completed IDs return receipts without executing again.
 4. Immediately before every step check cancellation, monotonic local lease deadline, permission validity, resource ownership and relevant preconditions. A partition cannot extend the lease. Invalidate execution leases on process restart or detected suspend/resume; reacquire authority and observations. Convert expiry conservatively to a monotonic deadline, reject clock uncertainty, and require a fresh online authorisation immediately before high-impact external writes. A device cannot learn unseen remote revocation instantaneously. Stop new work if authority cannot be refreshed within its valid lifetime.
-5. Initially retain 12 steps maximum and one mutating operation at a time per device. Start with a maximum 5-second native mutation lease, renew by 2 seconds while connected, with a monotonic local deadline derived conservatively at signed admission. No renewal during partition extends it. Renewal must read current durable permission/revocation authority, not repeatedly mint a lease from a stale cached grant; server freshness belongs in the expiry-bound proof. Measure expiry/clock-jump/network-delay boundaries and require release proof of refusal by the deadline. This bounds new mutation admission, not the duration of an already-issued uninterruptible app operation. Offline Chat entitlement leases are separate and do not grant native control. Long renders/builds become explicitly owned jobs with continuing lease/cancel checks, not uninterruptible batches with stale permission snapshots.
+5. Initially retain 12 steps maximum, one shared GUI controller and at most two proven-independent background jobs, with one mutation owner per conflicting resource. Start with a maximum 5-second native mutation lease, renew every 2 seconds while connected, never exceeding 5 seconds from a fresh durable authority check, with a monotonic local deadline derived conservatively at signed admission. No renewal during partition extends it. Renewal must read current durable permission/revocation authority, not repeatedly mint a lease from a stale cached grant; server freshness belongs in the expiry-bound proof. Measure expiry/clock-jump/network-delay boundaries and require release proof of refusal by the deadline. This bounds new mutation admission, not the duration of an already-issued uninterruptible app operation. Offline Chat entitlement leases are separate and do not grant native control. Long renders/builds become explicitly owned jobs with continuing lease/cancel checks, not uninterruptible batches with stale permission snapshots.
 6. End at the first failure, stale state, uncertain effect, confirmation or human-authentication boundary. Persist completed steps; replan from observed state without replaying the batch.
 
 Known routine sub-actions use existing task/device grants. Unknown later sensitive actions cannot be pre-confirmed. Human consent and OS-owned prompts suspend/end a batch; do not add a dialog for every harmless cell operation.
@@ -124,10 +103,18 @@ Use additive, RLS-reviewed migrations during implementation. Reuse task/activity
 
 ```ts
 type StepReceipt = {
+  protocol: 2;
+  accountId: string;
+  taskId: string;
+  deviceId: string;
+  approvedOutcomeDigest: string;
+  permissionRevision: CanonicalU64;
+  keyEpoch: CanonicalU64;
+  cancellationEpoch: CanonicalU64;
   batchId: string;
   stepId: string;
   requestDigest: string;
-  controllerEpoch: string;
+  controllerEpoch: CanonicalU64;
   effect: "not_started" | "unchanged" | "applied" | "partial" | "unknown";
   execution: "done" | "failed" | "cancelled" | "needs_person";
   verification: "pending" | "passed" | "failed" | "unverifiable";
@@ -148,7 +135,7 @@ Exactly-once physical effects are not universally achievable. A crash after save
 
 Keep the shared Realtime subscription and authoritative reads in `changes.ts`; its first-real-event liveness check and fallback are intentional. Add an authenticated device notification channel only after measuring cost and compatibility with existing hosting. It is an optimisation, not another state authority. Reconnect reconciles claimed steps, pending receipts, permission revision and controller epoch before new mutations.
 
-Initially retain one mutating lane per device. Read-only metadata work may overlap only if it cannot change focus/state. Co-work never means simultaneous competing mouse control. Parallel render/build jobs require owned processes/output identities and measured contention tests before widening concurrency.
+Retain one mutating lane per conflicting resource and one controller per shared GUI session. At most two independently owned background jobs may overlap after contention, permission and cancellation proof. Read-only metadata work may overlap only if it cannot change focus/state. Co-work never means simultaneous competing mouse control. Parallel render/build jobs require owned processes/output identities and measured contention tests before widening concurrency.
 
 Server task ownership and local app/file ownership agree. Take Over changes epoch and cancels prior work. Continue obtains a new lease and observation. Old planners cannot enqueue, renew or settle the new owner's task. Locks require expiry/reconciliation, not indefinite orphaning or automatic abandonment when a browser disconnects.
 
@@ -172,7 +159,7 @@ Distinguish STOP requested, device acknowledged and execution quiescent. The web
 
 Carry cancellation through semantic lookup, clipboard, Office, file copy, terminal and gesture paths. Recheck before mutation and between bounded chunks. Cancelling a wait is not cancelling its operation. Track and terminate only task-owned processes, never arbitrary user apps. Already-issued uninterruptible RPCs require preventing subsequent effects and reconciling the final state; they cannot be promised undone.
 
-Physical input pauses ordinary UI automation unless explicit Co-work is active. Semantic operations that click/focus participate. Continue re-observes and never validates old refs by itself.
+Physical input immediately pauses competing GUI automation, including when legacy `cowork` is true. Semantic operations that click/focus participate. Continue re-observes and never validates old refs by itself.
 
 Coordinate validity includes monotonic age, app/window identity, geometry, target evidence and relevant generation. Navigation, scroll, popup/content mutation, focus/window movement, resize, monitor/DPI and orientation invalidate affected observations. Define tested target-region validity to avoid needless invalidation from unrelated animation; when validity is uncertain, fail stale. Equal observation IDs alone are not proof of equal screen state.
 
@@ -297,7 +284,6 @@ Before copying/adapting donor or competitor code, record the exact revision and 
 
 Retire active code only after caller/packaging/capability inventory and permission/STOP/recovery/platform replacement proof. Keep distinct browser security/session modes, Office fidelity adapters, journals, update rollback, authentication, accessible fallback and useful adversarial tests. No percentage deletion target or framework rewrite is an acceptance criterion.
 
-
 ## 15. Canonical negotiated protocol v2 and local execution authority — target contract (10 October 2026)
 
 This is a **proposed** change, not a claim of current source implementation. `jarvis-runtime/ocade_protocol.json` is the existing shared signing/version owner, `src/jarvis/protocol.ts` the typed action owner, `task-authority.server.ts` admission, `device.server.ts` signed exchange, Python/Android local dispatch. Continue using established v1 signing bytes for legacy. Authenticate negotiation of `protocol:2` and bind account/device/task, batch and step, approved outcome digest, exact permissions, resource ownership and lease into newly canonical v2 signed bytes. Old v1 client must never receive steps whose required safety semantics it cannot understand. Reject duplicate JSON keys and unknown critical features before canonicalisation. Avoid copying untrusted model identity fields into signed context.
@@ -307,12 +293,13 @@ This is a **proposed** change, not a claim of current source implementation. `ja
 ```ts
 // PROPOSED v2. All generation/revision fields are unsigned 64-bit canonical decimal strings.
 type CanonicalU64 = string;
-type DeviceExecutionEnvelopeV2 = {
+type ExecutionEnvelope = {
   protocol: 2;
   accountId: string;
   taskId: string;
   deviceId: string;
   controllerEpoch: CanonicalU64;
+  cancellationEpoch: CanonicalU64;
   permissionRevision: CanonicalU64;
   keyEpoch: CanonicalU64;
   batchId: string;
@@ -327,15 +314,20 @@ type DeviceExecutionEnvelopeV2 = {
     confirmationRef?: string;
     preconditions: TypedPrecondition[];
     verificationRefs: string[];
-    replay: 'read_only' | 'idempotent' | 'reconcile_before_retry';
+    replay: "read_only" | "idempotent" | "reconcile_before_retry";
   }>;
-  budget: { maxSteps: number; maxDurationMs: number; maxPayloadBytes: number; maxOutputBytes: number };
+  budget: {
+    maxSteps: number;
+    maxDurationMs: number;
+    maxPayloadBytes: number;
+    maxOutputBytes: number;
+  };
 };
 ```
 
 Do not treat this sketch as a replacement for current schema without full source tracing. Enforce decimal regex `^(0|[1-9][0-9]*)$`, range 0…2^64−1, no leading zeros/plus/minus/exponent/whitespace, comparison via BigInt in TS without JSON numeric serialisation. A zero or wraparound epoch that violates current monotonic server policy is invalid. Local intent journal is durably flushed before a potentially irreversible effect; same batch/id with conflicting digest fails. Preserve effect, execution and verification as three orthogonal statuses. After loss of acknowledgement, independently read target state before attempting retry. A signed device receipt is authenticated reporting, not independent truth against an OS-level compromised executor.
 
-Admission/STOP/Take Over/resource-lock transfer must share the local final-mutation serialisation point. One controller owns global pointer/keyboard/focus per GUI session, including across multiple windows; API/build/render jobs may overlap only with demonstrably disjoint resources and cancellation support. A five-second lease measured from issuance and two-second renewal are initial targets, not remote instantaneous revocation promises. Local STOP closes admission immediately; noncancellable native effects may finish and remain UNKNOWN until reconciliation. Prepared scripts must bind actual bytes, interpreter/version and enforceable filesystem/process/network capabilities; **a matching digest does not sandbox an unrestricted child process**.
+Admission/STOP/Take Over/resource-lock transfer must share the local final-mutation serialisation point. One controller owns global pointer/keyboard/focus per GUI session, including across multiple windows; API/build/render jobs may overlap only with demonstrably disjoint resources and cancellation support. A five-second maximum admission lease measured from fresh issuance and a two-second renewal interval are initial targets, not remote instantaneous revocation promises. Local STOP closes admission immediately; noncancellable native effects may finish and remain UNKNOWN until reconciliation. Prepared scripts must bind actual bytes, interpreter/version and enforceable filesystem/process/network capabilities; **a matching digest does not sandbox an unrestricted child process**.
 
 **Compatibility proof:** cross-language TS/Python/Java golden canonical bytes, 0/max/overflow/leading-zero numeric cases, duplicate keys, unknown-critical options, signature replay/downgrade/key rotation, clock skew/suspend, revoked grant, same-id/different-digest, 12/13-step boundary, payload/output budget, full Windows/Android installed-device exchange and a failure-injected lost-ack write. No v2 release while any mandatory safety semantic is missing on a shipped old client.
 
@@ -345,18 +337,15 @@ Online models and OCADE's server-side account coordination are allowed; the sele
 
 Sources used for technical feasibility: [Chrome 136 remote debugging limits](https://developer.chrome.com/blog/remote-debugging-port); [Windows UI Automation](https://learn.microsoft.com/en-us/windows/win32/winauto/entry-uiauto-win32); [Photoshop UXP scripting](https://developer.adobe.com/photoshop/uxp/scripting/); [Gemini Live session reconnect](https://ai.google.dev/gemini-api/docs/live-api/session-management). These are external **research**, not test results on the current OCADE product.
 
-
 ## 16. Conditional local agent isolation — new 7 October 2026 Windows capabilities
 
 Microsoft's [Execution Containers announcement](https://blogs.windows.com/windowsdeveloper/2026/10/07/microsoft-execution-containers-policy-driven-containment-for-ai-agents/) describes a Windows 11 session container with a separate desktop, account, clipboard and input boundary, plus process containment on supported Windows/macOS/Linux. This is a potentially valuable **local execution option** for high-risk scripts and non-interfering UI work. It is not a replacement for the existing signed OCADE Device Agent, task journal, server authority or permissions. The public [microsoft/mxc source](https://github.com/microsoft/mxc) currently warns that its preview SDK policies can be overly permissive and should not yet be treated as security boundaries. Consequently P08/P11 may only PROBE installed support and build isolated test fixtures; any actual security isolation claim requires pinned SDK/backend/release, policy-denial integration tests, file/network/clipboard/desktop leakage attacks, crash recovery and native app session compatibility. No automatic privileged migration, paid hardware requirement or default cloud desktop. Keep the existing native/UIA first route on unsupported OS versions; explicitly report non-isolated prepared-script limits.
 
 [UFO2 engineering research](https://www.microsoft.com/en-us/research/publication/ufo2-the-desktop-agentos/) supports testing native UIA+vision grounding and multi-action execution, but OCADE maintains one planner and broker, not a copied multiagent engine.
 
-
 ## 17. Exact execution-protocol, result semantics and STOP migration — final detailed blueprint
 
 This section refines existing design/architecture guidance with the latest source-specific details. Where provisional dimensions conflict, latest user decisions **1A / 2A / 3A** and the requirements below control; existing shipped behaviour remains evidence to recheck, not an implementation claim.
-
 
 ### 3.1 Preserve the actual v1 contract
 
@@ -397,11 +386,11 @@ New authenticated admission fields must be covered by the v2 signing/verificatio
 
 Each step records independently:
 
-| Dimension | Values |
-|---|---|
-| Effect | `not_started`, `unchanged`, `applied`, `partial`, `unknown` |
-| Execution | `done`, `failed`, `cancelled`, `needs_person` |
-| Verification | `pending`, `passed`, `failed`, `unverifiable` |
+| Dimension    | Values                                                      |
+| ------------ | ----------------------------------------------------------- |
+| Effect       | `not_started`, `unchanged`, `applied`, `partial`, `unknown` |
+| Execution    | `done`, `failed`, `cancelled`, `needs_person`               |
+| Verification | `pending`, `passed`, `failed`, `unverifiable`               |
 
 Evidence includes resource identity, capture time, examiner identity/version, relevant digest or structured result, and retention class.
 

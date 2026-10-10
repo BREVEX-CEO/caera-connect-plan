@@ -147,10 +147,9 @@ Terms/Privacy match shipped observations/uploads, retention, support access, per
 
 Sentry creation and paid leaked-password protection remain deferred. Existing logs/audit still need incident detection and an owner. Review public/legal text when behaviour changes; these are engineering contracts, not jurisdiction-specific legal advice.
 
-
 ## 13. Local customer-PC execution, scripts and ethical billing — 10 October 2026
 
-**Execution location:** OCADE's online AI, account identity, minimal task coordination and verified authorised external websites/email/GitHub may use network/cloud services; native document edits, code builds, CAD, media rendering, local GUI operations and file processing remain on the *selected authenticated customer PC*. Do not silently upload projects to hosted workspaces or replace an offline PC with default cloud execution. A remote smartphone selects an enrolled PC and sees actual waiting/offline status. JARVIS still requires online AI for new decisions and cannot silently use the Chat local model as a fallback.
+**Execution location:** OCADE's online AI, account identity, minimal task coordination and verified authorised external websites/email/GitHub may use network/cloud services; native document edits, code builds, CAD, media rendering, local GUI operations and file processing remain on the _selected authenticated customer PC_. Do not silently upload projects to hosted workspaces or replace an offline PC with default cloud execution. A remote smartphone selects an enrolled PC and sees actual waiting/offline status. JARVIS still requires online AI for new decisions and cannot silently use the Chat local model as a fallback.
 
 **Script/code containment:** bind the actual bytes executed, interpreter/application version, argument schema, approved input/output roots and enforced network/process capabilities. A content hash proves which file is run, not isolation from the rest of the OS. No arbitrary model-supplied shell, network, filesystem traversal or privilege escalation; fail closed when sandbox rights cannot be enforced rather than claim unavailable confinement. User-approved scopes and credentials remain separate from project/document content and web instructions. No copying Chrome cookies into a managed browser.
 
