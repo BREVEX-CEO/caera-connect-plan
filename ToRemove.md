@@ -34,3 +34,8 @@ Keep immutable imports/source-original/ZIP, applied migrations, licences/notices
 ## Historical cleanup
 
 Previous completed cleanup records (browser donor reduction, stale installer artefact, integrated owner console and test-helper retirement) remain in the [baseline version](https://github.com/BREVEX-CEO/caera-connect-plan/blob/f521e23529542d709a9627181341b0e904a8b0c3/ToRemove.md). Those records are dated claims, not fresh verification. In particular, old console migrations are immutable history and must be replayed in chronological order on a fresh database, never applied after the later consolidated authority out of order. Current release operations belong only to Testing.
+
+
+## October 10 documentation disposition and cleanup gate
+
+**KEEP** established minimum active authorities: PLAN, AGENTS, CLAUDE loader, PRD, Architecture, Design System, Security, Testing, Decisions, dated research, ToRemove and source audit checkpoints. They have different responsibilities and documented existing references; do not delete a file merely to reduce Markdown count or falsify cleanup statistics. **DELETE or merge later only with individually verified reference map, unique-clause relocation, caller/consumer parity, backup in Git and changed-file regression.** Preserve donor ZIP/source-original, existing signed manifests, applied migrations, critical recovery journals and audit evidence. Product code cleanup, Ponytail Ultra or dependency retirement remain future independently tested P22 implementation; documentation-only stage cannot perform them. No additional Markdown deletion is proven safe from the current uploaded handoff alone.
