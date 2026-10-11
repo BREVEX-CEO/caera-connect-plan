@@ -79,7 +79,7 @@ describe("the orb graph", () => {
   });
 
   it("draws at most 60 nodes in all and says how many more are in the lists (C26)", () => {
-    const many = (n: number, make: (i: number) => object) =>
+    const many = <T>(n: number, make: (i: number) => T) =>
       Array.from({ length: n }, (_, i) => make(i));
     const graph = buildGraph({
       ...empty,
