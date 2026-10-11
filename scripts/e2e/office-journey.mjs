@@ -436,7 +436,9 @@ print(json.dumps({"text": text}))
     const before = (await table("jarvis_activity", `user_id=eq.${USER}&select=id`)).length;
     await page.locator("#jarvis-composer").fill("code-check the invoice test fails, fix it");
     await page.getByRole("button", { name: "Send", exact: true }).click();
-    // The task's own tests and git reads are not questions (owner policy, 2026-10-02).
+    // The task's own tests and git reads are not questions (owner policy, 2026-10-02), until
+    // the task changed code: on a computer where nothing confines a command, re-running code
+    // JARVIS wrote is shown to the person first (audit C19).
     const asked = [];
     const ask = page.getByRole("alertdialog", { name: "Confirm this step" });
     const finished = await until(async () => {
@@ -456,8 +458,8 @@ print(json.dumps({"text": text}))
       JSON.stringify(await task()).slice(0, 300) + deviceLog.slice(-300),
     );
     check(
-      "the tests, the re-run and the git read ran without a question",
-      asked.length === 0,
+      "the first run and the git read ran without a question; the re-run of changed code was asked once",
+      asked.length === 1 && asked[0].includes("python -m unittest"),
       JSON.stringify(asked),
     );
     const runs = (

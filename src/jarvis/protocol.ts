@@ -598,8 +598,6 @@ export const CAPABILITIES = [
   "devices",
   "computer_control",
   "terminal",
-  /** Physical input does not pause JARVIS: the person works alongside it. */
-  "cowork",
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 

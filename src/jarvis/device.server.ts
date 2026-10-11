@@ -15,7 +15,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import contract from "../../jarvis-runtime/ocade_protocol.json";
-import { isAllowed, needsConfirmation, refuseAction } from "./permissions";
+import { needsConfirmation, refuseAction } from "./permissions";
 import type { DeviceAction } from "./protocol";
 
 type Admin = SupabaseClient<Database>;
@@ -465,8 +465,6 @@ export interface DeviceCommand {
   action: Record<string, unknown>;
   confirmed: boolean;
   mode: "isolated" | "real";
-  /** The person chose to work alongside JARVIS: their input does not pause it. */
-  cowork: boolean;
   /** Sites the person allowed; only these may resolve to a private network address. */
   sites: string[];
 }
@@ -703,16 +701,48 @@ export async function exchange(
     return { ...envelope, commands: [], cancel: input.running ?? [], rotated };
   }
   const cancel: string[] = [];
+  const [{ data: rows, error: rowsError }, { data: deviceRow, error: deviceError }] =
+    await Promise.all([
+      admin
+        .from("jarvis_permissions")
+        .select("capability, allowed, device_id")
+        .eq("user_id", device.userId)
+        .limit(500),
+      admin
+        .from("jarvis_devices")
+        .select("capabilities")
+        .eq("id", device.id)
+        .is("revoked_at", null)
+        .maybeSingle(),
+    ]);
+  const offered = (deviceRow?.capabilities ?? {}) as Record<string, boolean>;
+  // Permission is checked again when an action leaves for the device and before each
+  // step of a running segment, not only when it was queued: a switch turned off meanwhile
+  // stops what has not run yet. An unreadable permission is not a default.
+  const refused = (
+    step: { action: unknown; confirmed: boolean },
+    mode: "isolated" | "real",
+  ): string | null => {
+    if (!rows || rowsError || deviceError) return "Permissions could not be read.";
+    const action = step.action as DeviceAction;
+    if (!deviceRow) return "This device was removed.";
+    const refusal = refuseAction(rows, { deviceId: device.id, mode, action, offered });
+    if (refusal) return refusal.message;
+    if (needsConfirmation(rows, action, device.id) && !step.confirmed) {
+      return "Needs confirmation again.";
+    }
+    return null;
+  };
   if (input.running?.length) {
     const { data: live } = await admin
       .from("jarvis_activity")
-      .select("id, status, task_id")
+      .select("id, status, task_id, action, confirmed")
       .eq("device_id", device.id)
       .in("id", input.running)
       .limit(MAX_SEGMENT);
     const { data: liveTasks } = await admin
       .from("jarvis_tasks")
-      .select("id")
+      .select("id, browser_mode")
       .eq("device_id", device.id)
       .eq("status", "running")
       .in(
@@ -720,10 +750,15 @@ export async function exchange(
         (live ?? []).map((row) => row.task_id),
       )
       .limit(1);
-    const runningTasks = new Set((liveTasks ?? []).map((task) => task.id));
+    const runningTasks = new Map((liveTasks ?? []).map((task) => [task.id, task.browser_mode]));
     for (const id of input.running) {
       const row = live?.find((r) => r.id === id);
-      if (!row || row.status !== "claimed" || !runningTasks.has(row.task_id)) cancel.push(id);
+      const mode = row && (runningTasks.get(row.task_id) as "isolated" | "real" | undefined);
+      // A permission read that failed this once leaves the step to the next exchange.
+      const readable = rows && !rowsError && !deviceError;
+      if (!row || row.status !== "claimed" || !mode || (readable && refused(row, mode))) {
+        cancel.push(id);
+      }
     }
     // One action at a time owns the device: nothing new while one runs.
     return { ...envelope, commands: [], cancel, rotated };
@@ -741,51 +776,21 @@ export async function exchange(
   }
   const row = head[0];
 
-  const [
-    { data: task, error: taskError },
-    { data: rows, error: rowsError },
-    { data: deviceRow, error: deviceError },
-  ] = await Promise.all([
-    admin
-      .from("jarvis_tasks")
-      .select("id, browser_mode")
-      .eq("id", row.task_id)
-      .eq("device_id", device.id)
-      .eq("status", "running")
-      .maybeSingle(),
-    admin
-      .from("jarvis_permissions")
-      .select("capability, allowed, device_id")
-      .eq("user_id", device.userId)
-      .limit(500),
-    admin
-      .from("jarvis_devices")
-      .select("capabilities")
-      .eq("id", device.id)
-      .is("revoked_at", null)
-      .maybeSingle(),
-  ]);
+  const { data: task, error: taskError } = await admin
+    .from("jarvis_tasks")
+    .select("id, browser_mode")
+    .eq("id", row.task_id)
+    .eq("device_id", device.id)
+    .eq("status", "running")
+    .maybeSingle();
   // Nothing leaves for the device unless its task, the person's permissions and
-  // the device itself were all read: an unreadable permission is not a default.
+  // the device itself were all read.
   if (!task || taskError || rowsError || deviceError || !rows) {
     return { ...envelope, commands: [], cancel, rotated };
   }
   const permissions = rows;
   const mode = task.browser_mode as "isolated" | "real";
-  const offered = (deviceRow?.capabilities ?? {}) as Record<string, boolean>;
-  // Permission is checked again when the action leaves for the device, not
-  // only when it was queued: a switch turned off meanwhile stops it here.
-  const refused = (step: typeof row): string | null => {
-    const action = step.action as DeviceAction;
-    if (!deviceRow) return "This device was removed.";
-    const refusal = refuseAction(permissions, { deviceId: device.id, mode, action, offered });
-    if (refusal) return refusal.message;
-    if (needsConfirmation(permissions, action, device.id) && !step.confirmed) {
-      return "Needs confirmation again.";
-    }
-    return null;
-  };
-  const headRefusal = refused(row);
+  const headRefusal = refused(row, mode);
   if (headRefusal) {
     await admin
       .from("jarvis_activity")
@@ -813,7 +818,7 @@ export async function exchange(
       .limit(MAX_SEGMENT);
     segment = [];
     for (const step of next ?? []) {
-      if (step.id !== row.id && refused(step)) break;
+      if (step.id !== row.id && refused(step, mode)) break;
       segment.push(step);
     }
     if (segment[0]?.id !== row.id) segment = [row];
@@ -840,7 +845,6 @@ export async function exchange(
     await admin.from("jarvis_activity").update({ status: "queued" }).in("id", strays);
   }
   if (!run.length) return { ...envelope, commands: [], cancel, rotated };
-  const cowork = isAllowed(permissions, "cowork", device.id);
   const sites = permissions
     .filter((p) => p.allowed && p.device_id === null && p.capability.startsWith("site:"))
     .map((p) => p.capability.slice(5));
@@ -852,7 +856,6 @@ export async function exchange(
       action: step.action as Record<string, unknown>,
       confirmed: step.confirmed,
       mode,
-      cowork,
       sites,
     })),
     cancel,

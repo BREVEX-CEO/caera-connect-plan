@@ -272,7 +272,7 @@ class LifecycleTest(unittest.TestCase):
         """A computer action that keeps working until its cancellation token is set."""
         seen = {"started": threading.Event(), "stopped_at": None}
 
-        def run(action, confirmed, cowork, cancel):
+        def run(action, confirmed, cancel):
             seen["started"].set()
             while not cancel.wait(0.05):
                 pass

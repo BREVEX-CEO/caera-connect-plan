@@ -294,6 +294,8 @@ final class Control {
             JSONObject gated = gate(node, confirmed);
             if (gated != null) return gated;
         }
+        // The control a press lands on is found first; STOP is checked right before acting.
+        AccessibilityNodeInfo target = clickable(node);
         // STOP that arrived while the control was found and checked: nothing is pressed.
         if (cancel.get()) return result("failed", "Stopped before it reached the screen");
         boolean ok;
@@ -315,7 +317,6 @@ final class Control {
                 ok = node.performAction(AccessibilityNodeInfo.ACTION_COLLAPSE);
                 break;
             default: { // invoke, toggle, select: the control's own click
-                AccessibilityNodeInfo target = clickable(node);
                 ok = target.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 // Some lists take a click only as a touch: tap the middle of the same control.
                 android.graphics.Rect box = new android.graphics.Rect();
@@ -401,7 +402,9 @@ final class Control {
                 Path at = new Path();
                 at.moveTo(x, y);
                 boolean twice = action.optBoolean("double");
-                boolean ok = gesture(a11y, at, 0, 60) && (!twice || gesture(a11y, at, 0, 60));
+                // STOP while what lies under the point was read and checked: no tap.
+                if (cancel.get()) return result("failed", "Stopped before it reached the screen");
+                boolean ok = gesture(a11y, at, 0, 60) && (!twice || (!cancel.get() && gesture(a11y, at, 0, 60)));
                 return result(ok ? "done" : "failed", ok ? (twice ? "Double-tapped" : "Tapped") + " on the screen" : "The tap did not reach the screen");
             }
             case "screen_scroll": {
@@ -425,6 +428,7 @@ final class Control {
                 Bundle text = new Bundle();
                 text.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
                         (before == null ? "" : before.toString()) + action.optString("text"));
+                if (cancel.get()) return result("failed", "Stopped before it reached the screen");
                 boolean ok = focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, text);
                 return result(ok ? "done" : "failed", ok ? "Typed" : "That text box did not accept the text");
             }

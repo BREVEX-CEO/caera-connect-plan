@@ -353,7 +353,7 @@ The inspected shared protocol is version **1**, minimum **1**, using P-256/SHA-2
 
 The current `DeviceCommand` contains:
 
-`id`, `taskId`, `action`, `confirmed`, `mode`, `cowork`, `sites`.
+`id`, `taskId`, `action`, `confirmed`, `mode`, `sites` (an old agent still accepts a `cowork` field and ignores it).
 
 It does **not** contain existing `controllerEpoch` or `permissionRevision` fields. Earlier documentation examples must not be described as implemented wire types.
 

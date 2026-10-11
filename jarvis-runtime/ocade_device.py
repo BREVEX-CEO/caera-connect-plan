@@ -514,7 +514,7 @@ class Agent:
             outcome = (self.browsers.run(mode, action, confirmed, command.get("sites", []), cancel,
                                          self.computer.root)
                        if browser else
-                       self.computer.run(action, confirmed, bool(command.get("cowork")), cancel))
+                       self.computer.run(action, confirmed, cancel=cancel))
         except Exception as e:  # a crashed action is reported, never retried blindly
             outcome = {"status": "failed", "summary": f"The action failed ({type(e).__name__})"}
         live = (outcome.get("observation") or {}).pop("frame", None) or (

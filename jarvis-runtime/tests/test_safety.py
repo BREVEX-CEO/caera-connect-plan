@@ -53,7 +53,7 @@ class StopTest(unittest.TestCase):
         self.ended: list[float] = []
 
     def _slow_action(self, agent):
-        def slow(action, confirmed, cowork, cancel):
+        def slow(action, confirmed, cancel):
             cancel.wait(30)  # a 30-second action unless cancelled
             self.ended.append(time.monotonic())
             return {"status": "failed" if cancel.is_set() else "done", "summary": "slow"}
@@ -220,7 +220,7 @@ class StopTest(unittest.TestCase):
         gate = threading.Event()
         ran = []
 
-        def run(action, confirmed, cowork, cancel):
+        def run(action, confirmed, cancel):
             ran.append(action["path"])
             if action["path"] == "1":
                 gate.wait(5)
@@ -274,7 +274,7 @@ class StopTest(unittest.TestCase):
         agent, identity = _agent(self.home, reply)
         started = []
 
-        def run(action, confirmed, cowork, cancel):
+        def run(action, confirmed, cancel):
             started.append(1)
             cancel.wait(5)
             return {"status": "done", "summary": "x"}

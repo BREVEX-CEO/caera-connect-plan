@@ -41,6 +41,7 @@ export async function permissionsOf(db: Db, userId: string): Promise<PermissionR
  */
 const READS_THE_WEB = [
   "docs",
+  "app_info", // an app's README and documentation found on the computer
   "file_extract",
   "sheet_inspect",
   "screen",
@@ -65,6 +66,18 @@ async function taskReadTheWeb(service: Db, userId: string, taskId: string): Prom
     .in("action->>action", READS_THE_WEB)
     .limit(1);
   // Unreadable is treated as read: the person is asked rather than nobody.
+  return Boolean(error) || (data ?? []).length > 0;
+}
+
+/** Has this task changed any file in the work folder? Unreadable counts as changed. */
+async function taskChangedFiles(service: Db, userId: string, taskId: string): Promise<boolean> {
+  const { data, error } = await service
+    .from("jarvis_activity")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("task_id", taskId)
+    .in("action->>action", CHANGES_FILES)
+    .limit(1);
   return Boolean(error) || (data ?? []).length > 0;
 }
 
@@ -382,6 +395,12 @@ export async function queueTaskAction(
   const kind = data.action.action === "run" ? commandClass(data.action.command) : null;
   // A script or build after the task read a web page could be the page's: asked once.
   if (kind === "routine" && (await taskReadTheWeb(service, userId, task.id))) ask = true;
+  // Where nothing confines a command, code the task itself changed runs only once the person
+  // has seen it: nothing else keeps that code inside the work folder.
+  const confined = (device.capabilities as Record<string, boolean> | null)?.terminal_sandbox;
+  if (kind === "routine" && !confined && (await taskChangedFiles(service, userId, task.id))) {
+    ask = true;
+  }
   /*
    * The exact command the person allowed earlier in this task runs again
    * without asking (a fix loop re-running its tests); one that publishes,

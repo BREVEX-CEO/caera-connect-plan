@@ -594,14 +594,6 @@ function SectionBody({
                 onChange={(allowed) => void decide("autonomous", allowed, d.id, onChanged)}
               />
             ) : null}
-            {d.kind === "agent" ? (
-              <Toggle
-                label="Co-work"
-                hint="Your own mouse and keyboard do not pause JARVIS on this computer."
-                checked={isAllowed(state.permissions, "cowork", d.id)}
-                onChange={(allowed) => void decide("cowork", allowed, d.id, onChanged)}
-              />
-            ) : null}
             {removing === d.id ? (
               <div role="alertdialog" aria-label={`Remove ${d.name}`} className="mt-2 text-xs">
                 <p>

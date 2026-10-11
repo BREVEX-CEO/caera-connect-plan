@@ -105,6 +105,66 @@ describe("dispatch", () => {
     expect(row.result?.status).toBe("refused");
   });
 
+  it("cancels the running steps a withdrawn permission no longer covers (C04)", async () => {
+    const t = await task();
+    await permit("files", true);
+    await twin.asServiceRole(
+      `update public.jarvis_devices set capabilities = '{"files": true, "segment_v1": true}' where id = '${device}'`,
+    );
+    try {
+      const first = await queue(t, { action: "file_list", path: "." });
+      const second = await queue(t, { action: "file_write", path: "a.txt", content: "x" });
+      const out = await run({ results: [] });
+      expect(out.commands.map((c) => c.id)).toEqual([first, second]);
+      // Still allowed: both keep running.
+      expect((await run({ results: [], running: [first, second] })).cancel).toEqual([]);
+      await twin.asServiceRole(
+        `update public.jarvis_permissions set allowed = false where capability = 'files'`,
+      );
+      expect((await run({ results: [], running: [first, second] })).cancel).toEqual([
+        first,
+        second,
+      ]);
+    } finally {
+      await twin.asServiceRole(
+        `update public.jarvis_devices set capabilities = '{"files": true, "apps": true}' where id = '${device}'`,
+      );
+    }
+  });
+
+  it("asks before running code the task changed where nothing confines a command (C19)", async () => {
+    const t = await task();
+    await permit("files", true);
+    await permit("terminal", true);
+    await twin.asServiceRole(
+      `update public.jarvis_tasks set controller = '${A}' where id = '${t}'`,
+    );
+    const tests = () =>
+      queueTaskAction(rest() as never, rest() as never, A, {
+        taskId: t,
+        controller: A,
+        action: { action: "run", command: "python -m unittest" } as never,
+      });
+    const offer = (sandbox: boolean) =>
+      twin.asServiceRole(
+        `update public.jarvis_devices set capabilities = '{"files": true, "terminal": true, "terminal_sandbox": ${sandbox}}' where id = '${device}'`,
+      );
+    try {
+      await offer(false);
+      // The person's own tests, before the task changed anything: run unasked.
+      expect(await tests()).toMatchObject({ ok: true, needsConfirmation: false });
+      await queue(t, { action: "file_write", path: "invoice.py", content: "x" });
+      expect(await tests()).toMatchObject({ ok: true, needsConfirmation: true });
+      // Where a real sandbox confines it, the same re-run is not a question.
+      await offer(true);
+      expect(await tests()).toMatchObject({ ok: true, needsConfirmation: false });
+    } finally {
+      await twin.asServiceRole(
+        `update public.jarvis_devices set capabilities = '{"files": true, "apps": true}' where id = '${device}'`,
+      );
+    }
+  });
+
   it("refuses when the master switch was turned off", async () => {
     const t = await task();
     await permit("files", true);

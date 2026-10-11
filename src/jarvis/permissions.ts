@@ -35,7 +35,6 @@ const DEFAULTS: Record<Capability, boolean> = {
   devices: true,
   computer_control: false,
   terminal: false,
-  cowork: false,
 };
 
 export function isAllowed(

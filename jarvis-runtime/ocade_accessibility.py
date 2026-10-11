@@ -284,37 +284,35 @@ def act(action: dict, confirmed: bool, cancel=None) -> dict:
         def pattern(kind: str):
             return control.GetPattern(getattr(auto.PatternId, kind))
 
-        # STOP that arrived while the control was found and checked: nothing is pressed.
-        if cancel and cancel.is_set():
-            return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+        # The control's pattern is resolved first; the STOP check sits right before the effect.
         if op == "invoke":
             invoke = pattern("InvokePattern")
             toggle = None if invoke else pattern("TogglePattern")
-            if invoke:
-                invoke.Invoke()
-            elif toggle:
-                toggle.Toggle()
-            else:
-                control.Click(simulateMove=False)
+            effect = (invoke.Invoke if invoke else toggle.Toggle if toggle
+                      else lambda: control.Click(simulateMove=False))
         elif op == "set_value":
             value = pattern("ValuePattern")
             if not value or value.IsReadOnly:
                 return {"status": "failed", "summary": f"“{name[:60]}” does not take text; type into it instead"}
-            value.SetValue(text)
-            if (_value(control) or "") != text:
-                return {"status": "failed", "summary": "The field did not take the text"}
+            effect = lambda: value.SetValue(text)  # noqa: E731
         elif op in ("toggle", "select", "expand", "collapse"):
             found = pattern({"toggle": "TogglePattern", "select": "SelectionItemPattern"}
                             .get(op, "ExpandCollapsePattern"))
             if not found:
                 return {"status": "failed",
                         "summary": f"“{name[:60] or role}” cannot {op}; use invoke to press it"}
-            {"toggle": lambda: found.Toggle(), "select": lambda: found.Select(),
-             "expand": lambda: found.Expand(), "collapse": lambda: found.Collapse()}[op]()
+            effect = {"toggle": found.Toggle, "select": found.Select,
+                      "expand": found.Expand, "collapse": found.Collapse}[op]
         elif op == "focus":
-            control.SetFocus()
+            effect = control.SetFocus
         else:
             return {"status": "failed", "summary": "Unknown control operation"}
+        # STOP that arrived while the control was found, checked and resolved: nothing is pressed.
+        if cancel and cancel.is_set():
+            return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+        effect()
+        if op == "set_value" and (_value(control) or "") != text:
+            return {"status": "failed", "summary": "The field did not take the text"}
         time.sleep(0.4)
         title = window.Name
     after = inspect(title)

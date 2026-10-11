@@ -305,11 +305,13 @@ class Computer:
         return {"screen": screen, "computer_control": control, "apps": True,
                 "accessibility": SYSTEM == "Windows",
                 "files": self.root is not None,
-                "terminal": self.root is not None and self.sandbox is not None}
+                "terminal": self.root is not None and self.sandbox is not None,
+                # Only a real filesystem boundary confines what a script inside a command does.
+                "terminal_sandbox": self.sandbox == "bubblewrap"}
 
     # -- one action ----------------------------------------------------------------
 
-    def run(self, action: dict, confirmed: bool = False, cowork: bool = False,
+    def run(self, action: dict, confirmed: bool = False,
             cancel: threading.Event | None = None) -> dict:
         kind = str(action.get("action", ""))
         cancel = cancel or threading.Event()
@@ -324,7 +326,7 @@ class Computer:
             # What takes the foreground or drives the person's Office waits for
             # them, as screen input does, after mouse or keyboard use of their own.
             if kind in ("open_app", "window", "sheet_edit", "doc_edit") and \
-                    (paused := self._paused(cowork, confirmed)):
+                    (paused := self._paused(confirmed)):
                 return paused
             if kind == "open_app":
                 return self._open_app(str(action.get("name", "")), cancel)
@@ -537,6 +539,8 @@ class Computer:
                     os.fsync(out.fileno())
                 if Path(tmp).resolve().parent != parent or self._inside(rel) != path:
                     raise ScopeError("The workspace changed while writing")
+                if cancel.is_set():  # STOP while the backup and new content were prepared
+                    return dict(STOPPED)
                 os.replace(tmp, path)
             finally:
                 if os.path.lexists(tmp):
@@ -544,6 +548,8 @@ class Computer:
             self._remember(f"writing {rel}", (lambda: self._put_back(kept, path)) if kept
                            else (lambda: self._to_trash(path)))
             return {"status": "done", "summary": f"Wrote {rel}"}
+        if cancel.is_set():  # the last moment before any other change: STOP means none
+            return dict(STOPPED)
         if kind == "file_mkdir":
             existed = path.is_dir()
             path.mkdir(parents=True, exist_ok=True)
@@ -709,6 +715,8 @@ class Computer:
                     "summary": f"{target.relative_to(self.root)} already exists; nothing was overwritten"}
         if source in target.parents:
             return {"status": "failed", "summary": "A folder cannot go inside itself"}
+        if cancel.is_set():  # STOP while both ends were being checked: nothing moves
+            return dict(STOPPED)
         target.parent.mkdir(parents=True, exist_ok=True)
         to = str(target.relative_to(self.root))
         if kind == "file_copy":
@@ -1105,11 +1113,11 @@ class Computer:
                 "status": "needs_confirmation",
                 "summary": "JARVIS could not check what is at that spot on the screen. Continue?"}
 
-    def _paused(self, cowork: bool, confirmed: bool) -> dict | None:
+    def _paused(self, confirmed: bool) -> dict | None:
         """The person's own input pauses JARVIS until they say Continue (their
-        confirmation of this step), unless they chose to work alongside it."""
+        confirmation of this step): two hands on one computer act in the wrong place."""
         self.guard.start()
-        if self.guard.user_input_at and not cowork and not confirmed:
+        if self.guard.user_input_at and not confirmed:
             return {"status": "needs_confirmation",
                     "summary": "You used the mouse or keyboard, so JARVIS paused. Continue?"}
         self.guard.user_input_at = 0.0
@@ -1121,9 +1129,8 @@ class Computer:
             return {"status": "blocked", "summary": "This computer does not allow screen control"}
         if kind == "screen":
             return {"status": "done", "summary": "Looked at the screen", "observation": self.observe()}
-        # The person's own mouse or keyboard always wins over JARVIS's input, co-work or not:
-        # two hands on one keyboard type into the wrong place.
-        if paused := self._paused(False, confirmed):
+        # The person's own mouse or keyboard always wins over JARVIS's input.
+        if paused := self._paused(confirmed):
             return paused
         # Every input lands on the screen it was planned against: a changed
         # window or size, or an old observation, gets a fresh look instead.

@@ -52,6 +52,33 @@ class WorkspaceTest(unittest.TestCase):
             self.assertTrue(any(Path(self.home, ".local/share/Trash/files").iterdir()))
         self.assertEqual(self.pc.run({"action": "file_trash", "path": "."})["status"], "blocked")
 
+    def test_stop_while_a_change_is_prepared_changes_nothing(self):
+        """C05: STOP arriving after the checks and the backup still lands before the effect."""
+        stop = threading.Event()
+        keep = self.pc._keep
+
+        def slow_keep(path):  # the backup of a big file is where a STOP can arrive
+            kept = keep(path)
+            stop.set()
+            return kept
+        self.pc._keep = slow_keep
+        out = self.pc.run({"action": "file_write", "path": "notes.md", "content": "new"}, cancel=stop)
+        self.assertTrue(out.get("stopped"), out)
+        self.assertEqual((self.root / "notes.md").read_text(), "hello")
+        self.assertEqual([p.name for p in self.root.iterdir() if p.name.startswith(".ocade-")], [])
+        stop.clear()
+        real_inside = self.pc._inside
+
+        def stop_on_target(raw, change=False):  # STOP while the move's two ends are checked
+            if raw == "moved.md":
+                stop.set()
+            return real_inside(raw, change)
+        self.pc._inside = stop_on_target
+        out = self.pc.run({"action": "file_move", "path": "notes.md", "to": "moved.md"}, cancel=stop)
+        self.assertTrue(out.get("stopped"), out)
+        self.assertTrue((self.root / "notes.md").exists())
+        self.assertFalse((self.root / "moved.md").exists())
+
     def test_permanent_deletion_needs_the_person(self):
         out = self.pc.run({"action": "file_delete", "path": "src"})
         self.assertEqual(out["status"], "needs_confirmation")
@@ -140,8 +167,8 @@ class WorkspaceTest(unittest.TestCase):
                        {"action": "sheet_edit", "path": "a.xlsx", "ops": []},
                        {"action": "doc_edit", "path": "a.docx", "ops": []}):
             self.assertEqual(self.pc.run(action)["status"], "needs_confirmation", action)
-            self.pc.guard.user_input_at = time.monotonic()
-            self.assertNotEqual(self.pc.run(action, cowork=True)["status"], "needs_confirmation")
+            # Continue (the person's confirmation of this step) lets it through, once.
+            self.assertNotEqual(self.pc.run(action, confirmed=True)["status"], "needs_confirmation")
             self.pc.guard.user_input_at = time.monotonic()
 
     def test_system_changes_wait_for_the_person(self):
@@ -484,8 +511,8 @@ class ScreenTest(unittest.TestCase):
         time.sleep(0.6)
         _other_hand(100, 100)
         time.sleep(0.5)
-        # Co-work does not let JARVIS type over the person's own input (ToRemove: cowork exemption).
-        self.assertEqual(self.pc.run({**keys, "observationId": look()}, cowork=True)["status"],
+        # The person's own input always pauses JARVIS's again.
+        self.assertEqual(self.pc.run({**keys, "observationId": look()})["status"],
                          "needs_confirmation")
 
 
