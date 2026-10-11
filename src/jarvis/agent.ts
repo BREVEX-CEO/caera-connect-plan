@@ -107,6 +107,8 @@ export interface AgentDeps {
     /** Write only while this loop owns the task; a loop that lost it gets Stopped(true). */
     owner?: string;
     checkpoint?: Checkpoint;
+    /** For completed: what the model quotes from the device's last reads. */
+    evidence?: string[];
   }): Promise<JarvisTaskRow>;
   readTaskStatus(id: string): Promise<TaskStatus>;
   queue(input: {

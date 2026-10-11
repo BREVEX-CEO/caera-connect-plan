@@ -160,7 +160,7 @@ describe("tasks", () => {
   it("drops the temporary frame when the task stops and keeps the result", async () => {
     await twin.asTenant(
       A,
-      `update public.jarvis_tasks set status = 'completed', result = 'Done: 3 results'
+      `update public.jarvis_tasks set status = 'stopped', result = 'Done: 3 results'
         where id = '${task}'`,
     );
     const [row] = await twin.asSuperuser<{

@@ -60,6 +60,19 @@ export function restOver(twin: DatabaseTwin) {
           where.push(vs.length ? `${col(c)} in (${vs.map(lit).join(",")})` : "false"),
           q
         ),
+        // PostgREST's `or`: comma-separated `column.is.null` / `column.eq.value` terms.
+        or: (terms: string) => (
+          where.push(
+            `(${terms
+              .split(",")
+              .map((term) => {
+                const [, c, op, v] = term.match(/^(.+?)\.(is|eq)\.(.*)$/)!;
+                return op === "is" ? `${col(c!)} is null` : `${col(c!)} = ${lit(v)}`;
+              })
+              .join(" or ")})`,
+          ),
+          q
+        ),
         order: (c: string, o: { ascending: boolean }) => (
           (tail += ` order by ${c} ${o.ascending ? "asc" : "desc"}`),
           q

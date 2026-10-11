@@ -166,7 +166,28 @@ describe("STOP", () => {
     await run({ results: [{ id, status: "done", summary: "finished anyway" }] });
     const row = await status(id);
     expect(row.status).toBe("cancelled");
-    expect(row.result).toEqual({ status: "stopped", late: "done" });
+    expect(row.result).toMatchObject({ status: "stopped", late: "done", changed: [] });
+  });
+
+  it("keeps a stopped step that had reached the computer as unknown, and its late effect in full", async () => {
+    const t = await task();
+    await permit("files", true);
+    const id = await queue(t, { action: "file_write", path: "a.txt", content: "x" });
+    await run({ results: [] });
+    await twin.asServiceRole(
+      `update public.jarvis_activity set status = 'cancelled' where id = '${id}'`,
+    );
+    expect((await status(id)).result).toEqual({ status: "unknown" });
+    expect(await completionGap(rest() as never, A, t)).toMatch(/read the result back/);
+    const reply = await run({
+      results: [{ id, status: "done", summary: "Wrote a.txt", changed: ["a.txt"] }],
+    });
+    expect(reply.acks).toEqual([{ id, outcome: "stopped" }]);
+    expect((await status(id)).result).toMatchObject({
+      status: "stopped",
+      late: "done",
+      changed: ["a.txt"],
+    });
   });
 
   it("cancels the running action when the task is taken over", async () => {
@@ -536,21 +557,87 @@ describe("completion needs evidence from the device (P01)", () => {
     const refused = await save();
     expect(refused).toMatchObject({ ok: false });
     expect((refused as { message: string }).message).toMatch(/only after the result is checked/);
-    await settle(await queue(t, { action: "file_info", path: "a.txt" }), "done");
+    await settle(await queue(t, { action: "file_read", path: "a.txt" }), "done");
     expect(await save()).toMatchObject({ ok: true });
   });
 
   it("refuses when a different file was read than the one changed", async () => {
     const t = await task();
     await settle(await queue(t, { action: "file_write", path: "a.txt", content: "x" }), "done");
-    await settle(await queue(t, { action: "file_info", path: "b.txt" }), "done");
-    expect(await gap(t)).toMatch(/a\.txt was changed but never read back/);
+    await settle(await queue(t, { action: "file_read", path: "b.txt" }), "done");
+    expect(await gap(t)).toMatch(/a\.txt was changed but its content was never read back/);
+  });
+
+  it("refuses a content change checked only by the file's size and date", async () => {
+    const t = await task();
+    await settle(await queue(t, { action: "file_write", path: "a.txt", content: "x" }), "done");
+    await settle(await queue(t, { action: "file_info", path: "a.txt" }), "done");
+    expect(await gap(t)).toMatch(/content was never read back/);
+  });
+
+  it("checks quoted evidence against what the device read after the last change", async () => {
+    const t = await task();
+    await settle(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }), "done");
+    const old = await queue(t, { action: "sheet_inspect", path: "old.xlsx" });
+    await settle(old, "done", { status: "done", detail: { cells: { B9: 3100 } } });
+    await settle(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }), "done");
+    await settle(await queue(t, { action: "sheet_inspect", path: "r.xlsx" }), "done", {
+      status: "done",
+      summary: "Sheet1: 10 rows",
+      detail: { cells: { B10: 4520, A10: "Grand  Total" } },
+    });
+    const check = (evidence: string[]) => completionGap(rest() as never, A, t, evidence);
+    expect(await check(["4520", "grand total"])).toBeNull();
+    expect(await check([])).toMatch(/give as evidence/);
+    // Seen before the last change is not evidence of the result.
+    expect(await check(["3100"])).toMatch(/"3100" is not in anything the device read back/);
+    expect(await check(["9999"])).toMatch(/is not in anything/);
+    await expect(
+      changeTask(rest() as never, rest() as never, A, {
+        id: t,
+        status: "completed",
+        evidence: ["9999"],
+      }),
+    ).rejects.toThrow(NOT_VERIFIED);
+    await changeTask(rest() as never, rest() as never, A, {
+      id: t,
+      status: "completed",
+      evidence: ["4520"],
+    });
+    const [row] = await twin.asServiceRole<{ status: string }>(
+      `select status from public.jarvis_tasks where id = '${t}'`,
+    );
+    expect(row!.status).toBe("completed");
+  });
+
+  it("is enforced by the database: the person's own client cannot set completed", async () => {
+    const t = await task();
+    const direct = await twin.asTenant(
+      A,
+      `update public.jarvis_tasks set status = 'completed' where id = '${t}'`,
+    );
+    expect(direct.errorCode).toBe("42501");
+    const stop = await twin.asTenant(
+      A,
+      `update public.jarvis_tasks set status = 'stopped' where id = '${t}'`,
+    );
+    expect(stop.error).toBeUndefined();
+  });
+
+  it("never judges a task from the first thousand of its actions", async () => {
+    const t = await task();
+    await twin.asServiceRole(
+      `insert into public.jarvis_activity (user_id, task_id, device_id, summary, action, status)
+       select '${A}', '${t}', '${device}', 's', '{"action": "file_list", "path": "."}', 'done'
+         from generate_series(1, 1001)`,
+    );
+    expect(await gap(t)).toMatch(/more than 1000 actions/);
   });
 
   it("accepts a change read back successfully, ignoring refused steps that never ran", async () => {
     const t = await task();
     await settle(await queue(t, { action: "file_write", path: "a.txt", content: "x" }), "done");
-    await settle(await queue(t, { action: "file_info", path: "a.txt" }), "done");
+    await settle(await queue(t, { action: "file_read", path: "a.txt" }), "done");
     await settle(await queue(t, { action: "run", command: "rm -rf /" }), "failed", {
       status: "refused",
     });
@@ -560,7 +647,7 @@ describe("completion needs evidence from the device (P01)", () => {
   it("ignores a step the person declined, but not one the device stopped part-way", async () => {
     const t = await task();
     await settle(await queue(t, { action: "file_write", path: "a.txt", content: "x" }), "done");
-    await settle(await queue(t, { action: "file_info", path: "a.txt" }), "done");
+    await settle(await queue(t, { action: "file_read", path: "a.txt" }), "done");
     const push = await queue(t, { action: "run", command: "git push origin main" });
     await settle(push, "cancelled");
     expect(await gap(t)).toBeNull();

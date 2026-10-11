@@ -219,7 +219,11 @@ describe("carrying on", () => {
     // Now the loop is this computer's: it is asked again although the task was just touched.
     expect((await exchange(admin(), me(), { results: [] })).continue).toBe(t);
     const second = scripted(
-      call("finish_task", { outcome: "completed", result: "The reports are tidy." }),
+      call("finish_task", {
+        outcome: "completed",
+        result: "The reports are tidy.",
+        evidence: ["q3.xlsx"],
+      }),
     );
     expect(await carryOn(admin(), me(), t, second)).toEqual({ state: "finished" });
     const shown = second.seen[0]!.join("\n");

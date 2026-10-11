@@ -190,7 +190,10 @@ try {
       args: { action: "file_write", path: "report.txt", content: "done away", step: 3 },
     },
     { tool: "computer", args: { action: "file_read", path: "report.txt", step: 3 } },
-    { tool: "finish_task", args: { outcome: "completed", result: "The report is written." } },
+    {
+      tool: "finish_task",
+      args: { outcome: "completed", result: "The report is written.", evidence: ["done away"] },
+    },
   ]);
   await say(desk.page, "carry-check write the report");
   check(
@@ -523,7 +526,10 @@ try {
     { text: "(the task was started by OCADE's clock)" },
     { tool: "computer", args: { action: "file_write", path: "later.txt", content: "on time" } },
     { tool: "computer", args: { action: "file_read", path: "later.txt" } },
-    { tool: "finish_task", args: { outcome: "completed", result: "The later file is written." } },
+    {
+      tool: "finish_task",
+      args: { outcome: "completed", result: "The later file is written.", evidence: ["on time"] },
+    },
   ]);
   await plan.context().close();
   await clockTick();

@@ -344,7 +344,14 @@ try {
         { tool: "computer", args: { action: "ui_act", op: "invoke", name: "Network & internet" } },
         // Completed needs a read-back after the last change (P01).
         { tool: "computer", args: { action: "ui_inspect" } },
-        { tool: "finish_task", args: { outcome: "completed", result: "Settings is open." } },
+        {
+          tool: "finish_task",
+          args: {
+            outcome: "completed",
+            result: "Settings is open.",
+            evidence: ["Network & internet"],
+          },
+        },
       ],
     }),
   });

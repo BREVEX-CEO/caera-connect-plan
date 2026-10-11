@@ -121,13 +121,15 @@ const CHANGES_FILES = [
 /**
  * Why this task cannot be recorded completed yet, or null when it can.
  *
- * The model's word is not evidence. Completed needs every action settled and
- * a successful read of the device after its last change, on the same task.
+ * The model's word is not evidence. Completed needs every action settled, a
+ * successful read of the device after its last change, on the same task, and —
+ * when `evidence` is given — each quoted value found in those reads.
  */
 export async function completionGap(
   service: Db,
   userId: string,
   taskId: string,
+  evidence?: string[],
 ): Promise<string | null> {
   const { data, error } = await service
     .from("jarvis_activity")
@@ -136,8 +138,12 @@ export async function completionGap(
     .eq("task_id", taskId)
     .neq("status", "note")
     .order("created_at", { ascending: true })
-    .limit(1000);
+    .limit(MOST_CHECKED + 1);
   if (error) return "the task's actions could not be read back.";
+  // A later action past the window could be unfinished or unchecked: never judged from a prefix.
+  if ((data ?? []).length > MOST_CHECKED) {
+    return `this task has more than ${MOST_CHECKED} actions, more than OCADE checks at once. Finish it as failed and start the rest as a new task.`;
+  }
   // A refused or skipped action never ran on the device, nor did one cancelled before
   // the device reported anything (a step the person declined): none changed anything.
   const rows = (
@@ -157,8 +163,8 @@ export async function completionGap(
   const reads = (row: (typeof rows)[number]) => READS_BACK.has(row.action?.action ?? "");
   let since = rows.length;
   while (since > 0 && reads(rows[since - 1]!)) since -= 1;
-  const checked = rows.slice(since).some((row) => row.status === "done");
-  if (!checked) {
+  const finalReads = rows.slice(since).filter((row) => row.status === "done");
+  if (!finalReads.length) {
     return "nothing has read the result back since the last change. Check it with a fresh read (file_info, sheet_inspect, observe or ui_inspect), then finish.";
   }
   // Each file whose content changed is itself read back after its last change, not another one.
@@ -170,15 +176,36 @@ export async function completionGap(
     if (
       !later.some((next) => READS_FILE.has(next.action?.action ?? "") && next.status === "done")
     ) {
-      return `${path} was changed but never read back. Read it (file_info, file_read, file_extract or sheet_inspect), then finish.`;
+      return `${path} was changed but its content was never read back. Read it (file_read, file_extract or sheet_inspect), then finish.`;
     }
   }
-  return null;
+  if (evidence === undefined) return null;
+  // What the model says it saw must be in what the device read after the last change.
+  if (!evidence.length) {
+    return "give as evidence the exact values or words your last reads show that prove the request is met.";
+  }
+  const seen = normal(finalReads.map((row) => textOf(row.result)).join(" "));
+  const missing = evidence.find((item) => !seen.includes(normal(item)));
+  return missing === undefined
+    ? null
+    : `"${missing.slice(0, 80)}" is not in anything the device read back after the last change. Read the result again and quote what it shows, or finish as failed.`;
 }
+
+const MOST_CHECKED = 1000;
 
 /** Actions that change a file's content in place, and the reads that check that content. */
 const EDITS_CONTENT = new Set(["file_write", "sheet_edit", "doc_edit"]);
-const READS_FILE = new Set(["file_info", "file_read", "file_extract", "sheet_inspect"]);
+const READS_FILE = new Set(["file_read", "file_extract", "file_compare", "sheet_inspect"]);
+
+const normal = (text: string) => text.toLowerCase().replace(/\s+/g, " ").trim();
+
+/** Every string and number a result holds, for matching quoted evidence. */
+function textOf(value: unknown): string {
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  if (Array.isArray(value)) return value.map(textOf).join(" ");
+  if (value && typeof value === "object") return Object.values(value).map(textOf).join(" ");
+  return "";
+}
 
 export interface TaskChange {
   id: string;
@@ -195,6 +222,8 @@ export interface TaskChange {
    */
   owner?: string;
   checkpoint?: { step: number; lastAction: string; lastUrl: string | null; at: string };
+  /** For completed: what the model quotes from the device's last reads. */
+  evidence?: string[];
 }
 
 export async function changeTask(
@@ -204,7 +233,7 @@ export async function changeTask(
   data: TaskChange,
 ): Promise<JarvisTaskRow | null> {
   if (data.status === "completed") {
-    const gap = await completionGap(service, userId, data.id);
+    const gap = await completionGap(service, userId, data.id, data.evidence ?? []);
     if (gap) throw new Error(NOT_VERIFIED + gap);
   }
   const patch: Record<string, unknown> = {};
@@ -215,7 +244,9 @@ export async function changeTask(
   if (data.currentStep !== undefined) patch.current_step = data.currentStep;
   if (data.result !== undefined) patch.result = data.result;
   if (data.blocker !== undefined) patch.blocker = data.blocker;
-  let write = db
+  // Only the server records completed, after the check above: the database refuses it from
+  // the person's own client, which could otherwise mark its task done with nothing checked.
+  let write = (data.status === "completed" ? service : db)
     .from("jarvis_tasks")
     .update(patch as never)
     .eq("id", data.id)

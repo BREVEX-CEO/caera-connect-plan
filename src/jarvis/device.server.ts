@@ -651,15 +651,20 @@ export async function exchange(
       acks.push({ id: result.id, outcome: "retry" });
       continue;
     }
-    // A result for an action that was stopped meanwhile never counts as done;
-    // it is kept only as the device's acknowledgement of the Stop.
+    // A result for an action that was stopped meanwhile never counts as done, but what
+    // it did is kept in full: a stopped step may already have changed something.
     const { data: stopped, error: stopError } = await admin
       .from("jarvis_activity")
-      .update({ result: { status: "stopped", late: result.status } })
+      .update({
+        result:
+          outcome.length <= 40_000
+            ? { ...JSON.parse(outcome), status: "stopped", late: result.status }
+            : { status: "stopped", late: result.status, truncated: true },
+      })
       .eq("id", result.id)
       .eq("device_id", device.id)
-      .eq("status", "cancelled")
-      .is("result", null)
+      .in("status", ["cancelled", "failed"])
+      .or("result.is.null,result->>status.eq.unknown")
       .select("id");
     acks.push({
       id: result.id,

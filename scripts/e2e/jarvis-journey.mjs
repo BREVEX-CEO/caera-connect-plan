@@ -531,7 +531,10 @@ except i.UpdateRequired:
       { tool: "computer", args: { action: "file_write", path: "retried.md", content: "retried" } },
       // Completed needs the changed file read back on the device (P01).
       { tool: "computer", args: { action: "file_read", path: "retried.md" } },
-      { tool: "finish_task", args: { outcome: "completed", result: "Written." } },
+      {
+        tool: "finish_task",
+        args: { outcome: "completed", result: "Written.", evidence: ["retried"] },
+      },
       { text: "Written this time." },
     ]);
     await page.getByRole("button", { name: "Try again", exact: true }).click();
@@ -571,7 +574,14 @@ except i.UpdateRequired:
       ...(terminal
         ? [{ tool: "computer", args: { action: "run", command: "git push origin main" } }]
         : []),
-      { tool: "finish_task", args: { outcome: "completed", result: "Notes written and checked." } },
+      {
+        tool: "finish_task",
+        args: {
+          outcome: "completed",
+          result: "Notes written and checked.",
+          evidence: ["OCADE was here"],
+        },
+      },
       { text: "Your notes are written." },
     ]);
     await say("computer-task write and check my notes");
@@ -872,7 +882,14 @@ except i.UpdateRequired:
       { tool: "browser", args: { action: "click", name: "Lamp", step: 3 } },
       { tool: "browser", args: { action: "click_at", x: 5, y: 5, observationId: "o1" } },
       { tool: "browser", args: { action: "observe" } },
-      { tool: "finish_task", args: { outcome: "completed", result: "The lamp page is open." } },
+      {
+        tool: "finish_task",
+        args: {
+          outcome: "completed",
+          result: "The lamp page is open.",
+          evidence: ["Desk lamp"],
+        },
+      },
       { text: "Done: the lamp page is open." },
     ]);
     await say("shop-task find me a lamp");

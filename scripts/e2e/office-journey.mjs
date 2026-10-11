@@ -229,9 +229,16 @@ try {
         ],
       },
     },
+    // Completed needs each changed file read back, and evidence from those reads (P01).
+    { tool: "computer", args: { action: "sheet_inspect", path: "sales - completed.xlsx" } },
+    { tool: "computer", args: { action: "file_extract", path: "report - completed.docx" } },
     {
       tool: "finish_task",
-      args: { outcome: "completed", result: "Workbook and report finished." },
+      args: {
+        outcome: "completed",
+        result: "Workbook and report finished.",
+        evidence: ["Q3 2026", "finance@example.com", "Regional results"],
+      },
     },
   ]);
   await page.locator("#jarvis-composer").fill("office-check finish my sales workbook and report");
@@ -416,7 +423,15 @@ print(json.dumps({"text": text}))
         tool: "computer",
         args: { action: "run", command: "git diff --stat", cwd: "invoice", step: 3 },
       },
-      { tool: "finish_task", args: { outcome: "completed", result: "The discount bug is fixed." } },
+      { tool: "computer", args: { action: "file_read", path: "invoice/invoice.py", step: 3 } },
+      {
+        tool: "finish_task",
+        args: {
+          outcome: "completed",
+          result: "The discount bug is fixed.",
+          evidence: ["subtotal * (1 - discount)"],
+        },
+      },
     ]);
     const before = (await table("jarvis_activity", `user_id=eq.${USER}&select=id`)).length;
     await page.locator("#jarvis-composer").fill("code-check the invoice test fails, fix it");

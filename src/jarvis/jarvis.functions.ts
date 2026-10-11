@@ -449,6 +449,7 @@ export const updateJarvisTask = createServerFn({ method: "POST" })
         currentStep: z.number().int().min(0).max(12).optional(),
         result: z.string().max(8000).nullable().optional(),
         blocker: z.string().max(300).nullable().optional(),
+        evidence: z.array(z.string().max(200)).max(10).optional(),
         /** Claim the task for this planning loop; any other loop stops queueing. */
         controller: uuid.optional(),
         /**
