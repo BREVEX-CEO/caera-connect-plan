@@ -502,7 +502,8 @@ class Computer:
 
     def _file(self, kind: str, action: dict, confirmed: bool, cancel: threading.Event) -> dict:
         path = self._inside(str(action.get("path", "")),
-                            change=kind not in ("file_list", "file_read", "file_info", "file_find", "file_extract"))
+                            change=kind not in ("file_list", "file_read", "file_info", "file_find", "file_extract",
+                                                "file_compare"))
         rel = str(path.relative_to(self.root)) or "."
         if kind == "file_list":
             if not path.is_dir():
@@ -559,6 +560,13 @@ class Computer:
         if kind == "file_find":
             return self._find(path, rel, str(action.get("name", "")), str(action.get("extension", "")),
                               cancel)
+        if kind == "file_compare":
+            import ocade_documents
+            other = self._inside(str(action.get("to", "")), change=False)
+            if not path.is_file() or not other.is_file():
+                return {"status": "failed", "summary": "Both files must exist to compare them"}
+            return {"status": "done", "summary": f"Compared {rel} with {other.relative_to(self.root)}",
+                    "changes": ocade_documents.compare(path, other)}
         if kind == "file_extract":
             from ocade_documents import Unreadable, extract_text
             try:

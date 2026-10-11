@@ -120,6 +120,7 @@ const CHANGES_FILES = [
 /** Actions that only read the device's state: the only independent evidence of a result. */
 const READS_BACK = new Set([
   "file_info",
+  "file_compare",
   "file_read",
   "file_list",
   "file_find",

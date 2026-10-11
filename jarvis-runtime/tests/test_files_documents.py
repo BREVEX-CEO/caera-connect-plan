@@ -171,3 +171,35 @@ class RealWordTest(unittest.TestCase):
         saved, _ = ocade_documents.extract_text(root / "report.docx", 30_000)
         self.assertIn("North", saved)
         self.assertIn("Prepared by JARVIS.", saved)
+
+
+class CompareTest(unittest.TestCase):
+    """P18: What changed, read from the original and the result themselves."""
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp())
+        self.pc = Computer(str(self.root))
+
+    def test_workbooks_by_cell(self):
+        from openpyxl import Workbook
+        for name, total in (("before.xlsx", 10), ("after.xlsx", "=SUM(A1:A2)")):
+            book = Workbook()
+            book.active.title = "Orders"
+            book.active["A1"], book.active["A3"] = 4, total
+            book.save(self.root / name)
+        out = self.pc.run({"action": "file_compare", "path": "before.xlsx", "to": "after.xlsx"})
+        self.assertEqual(out["status"], "done", out)
+        self.assertEqual(out["changes"]["cells"],
+                         [{"sheet": "Orders", "cell": "A3", "before": 10, "after": "=SUM(A1:A2)"}])
+
+    def test_text_by_line_and_other_files_by_bytes(self):
+        (self.root / "a.txt").write_text("one\ntwo\n")
+        (self.root / "b.txt").write_text("one\n2\n")
+        lines = self.pc.run({"action": "file_compare", "path": "a.txt", "to": "b.txt"})["changes"]
+        self.assertEqual(lines["lines"], ["-two", "+2"])
+        (self.root / "a.bin").write_bytes(b"\x00\x01")
+        (self.root / "b.bin").write_bytes(b"\x00\x01")
+        same = self.pc.run({"action": "file_compare", "path": "a.bin", "to": "b.bin"})["changes"]
+        self.assertEqual((same["kind"], same["same"]), ("bytes", True))
+        self.assertEqual(self.pc.run({"action": "file_compare", "path": "a.txt", "to": "../x"})["status"],
+                         "blocked")

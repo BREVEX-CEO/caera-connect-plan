@@ -163,3 +163,43 @@ def edit_document(path: Path, ops: list[dict], undo_dir: Path, cancel, close: bo
                                                              "progId": server["progId"]}, cancel, server["app"])
     result.update(backup=kept.name, app=server["app"])
     return result
+
+
+def compare(before: Path, after: Path, limit: int = 60) -> dict:
+    """What changed from `before` to `after`, read from the two files themselves: cells for
+    workbooks, lines for documents and text, otherwise only whether the bytes differ."""
+    workbooks = (".xlsx", ".xlsm")
+    if before.suffix.lower() in workbooks and after.suffix.lower() in workbooks:
+        from openpyxl import load_workbook
+        from openpyxl.utils import get_column_letter
+
+        def cells(path: Path) -> dict[str, dict[str, object]]:
+            book = load_workbook(str(path), read_only=True)  # formulas as written, not cached values
+            try:
+                return {sheet.title: {f"{get_column_letter(c)}{r}": value
+                                      for r, row in enumerate(sheet.iter_rows(values_only=True), 1)
+                                      for c, value in enumerate(row, 1) if value is not None}
+                        for sheet in book.worksheets}
+            finally:
+                book.close()
+
+        old, new = cells(before), cells(after)
+        changed = [{"sheet": title, "cell": cell, "before": old[title].get(cell), "after": new[title].get(cell)}
+                   for title in old.keys() & new.keys()
+                   for cell in sorted(old[title].keys() | new[title].keys())
+                   if old[title].get(cell) != new[title].get(cell)]
+        return {"kind": "cells", "sheetsAdded": sorted(new.keys() - old.keys()),
+                "sheetsRemoved": sorted(old.keys() - new.keys()),
+                "cells": changed[:limit], "more": max(0, len(changed) - limit)}
+    try:
+        old_text, _ = extract_text(before, 200_000)
+        new_text, _ = extract_text(after, 200_000)
+    except Unreadable:
+        import filecmp
+        return {"kind": "bytes", "same": filecmp.cmp(before, after, shallow=False),
+                "sizes": [before.stat().st_size, after.stat().st_size]}
+    import difflib
+    lines = [line for line in difflib.unified_diff(old_text.splitlines(), new_text.splitlines(),
+                                                   lineterm="", n=0)
+             if line[:1] in "+-" and not line.startswith(("+++", "---"))]
+    return {"kind": "lines", "lines": lines[:limit], "more": max(0, len(lines) - limit)}
