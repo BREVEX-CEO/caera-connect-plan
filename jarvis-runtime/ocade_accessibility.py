@@ -55,16 +55,27 @@ def _owner(control) -> str:
         return ""
 
 
+def _hidden_from_capture(control) -> bool:
+    """The window asked Windows to keep its contents out of screen capture: whatever its name,
+    it is treated as a protected surface (password managers and secure views do this)."""
+    import ctypes
+    handle = getattr(control, "NativeWindowHandle", 0)
+    affinity = ctypes.c_uint(0)
+    return bool(handle) and bool(ctypes.windll.user32.GetWindowDisplayAffinity(
+        handle, ctypes.byref(affinity))) and affinity.value != 0
+
+
 def _protected(control) -> bool:
     """A password manager, a credential prompt or Windows Security owns this control, the window
-    holding it, or (for Store apps, whose frame belongs to ApplicationFrameHost) the app inside it."""
+    holding it, or (for Store apps, whose frame belongs to ApplicationFrameHost) the app inside it;
+    or any window holding it keeps itself out of screen capture."""
     protected = _gates()[2]
     node = control
     for _ in range(8):  # an unreadable step raises: the caller refuses rather than guesses
         if node is None:
             break
         owner = _owner(node)
-        if owner in protected:
+        if owner in protected or _hidden_from_capture(node):
             return True
         if owner == "applicationframehost.exe":
             if any(_owner(child) in protected for child in node.GetChildren()):

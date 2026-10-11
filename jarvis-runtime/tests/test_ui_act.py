@@ -83,3 +83,24 @@ class ActTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@unittest.skipUnless(sys.platform == "win32", "Windows display affinity")
+class ProtectedSurfaceTest(unittest.TestCase):
+    """Whatever its name, a window that hides itself from capture is never read or operated."""
+
+    def test_a_window_excluded_from_capture_is_protected(self):
+        import ctypes
+
+        def affinity(value):
+            def read(handle, out):
+                ctypes.cast(out, ctypes.POINTER(ctypes.c_uint)).contents.value = value
+                return 1
+            return read
+
+        window = SimpleNamespace(NativeWindowHandle=4242, ProcessId=0, GetParentControl=lambda: None)
+        with unittest.mock.patch.object(a11y, "_owner", return_value="any-unknown-app.exe"):
+            with unittest.mock.patch.object(ctypes.windll.user32, "GetWindowDisplayAffinity", affinity(0x11)):
+                self.assertTrue(a11y._protected(window))
+            with unittest.mock.patch.object(ctypes.windll.user32, "GetWindowDisplayAffinity", affinity(0)):
+                self.assertFalse(a11y._protected(window))
