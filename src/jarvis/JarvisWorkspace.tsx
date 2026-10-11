@@ -1083,6 +1083,10 @@ export function JarvisWorkspace({
                       toast.error("That task cannot restart now. Is its computer busy or offline?"),
                     )
                   }
+                  checks={(jarvis?.activity ?? [])
+                    .filter((entry) => entry.task_id === conversationTask.id && entry.check)
+                    .slice(0, 5)
+                    .map((entry) => entry.summary)}
                   // A new task through the same planner, checks and receipts: only the inputs change.
                   onRepeat={() => {
                     setDraft(`Do "${conversationTask.title}" again, with these new inputs: `);

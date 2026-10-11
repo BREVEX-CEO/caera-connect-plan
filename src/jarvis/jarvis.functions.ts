@@ -21,6 +21,7 @@ import {
   deviceAction,
   FINISHED,
   hostOf,
+  READS_BACK,
   TASK_STATUSES,
   type TaskStatus,
 } from "./protocol";
@@ -87,6 +88,8 @@ export interface JarvisState {
     summary: string;
     status: string;
     created_at: string;
+    /** A successful read-back of the device: a receipt, not the model's word. */
+    check: boolean;
   }[];
   sites: string[];
   /** Each computer's apps, with that computer's Allowed Apps rule for each. */
@@ -248,7 +251,12 @@ export const readJarvisState = createServerFn({ method: "GET" })
       permissions: permissionRows,
       memories: memories.data ?? [],
       schedules: schedules.data ?? [],
-      activity: (activity.data ?? []).map(({ action: _action, ...rest }) => rest),
+      activity: (activity.data ?? []).map(({ action, ...rest }) => ({
+        ...rest,
+        check:
+          rest.status === "done" &&
+          READS_BACK.has(String((action as { action?: unknown } | null)?.action ?? "")),
+      })),
       sites: [...sites].sort().slice(0, 100),
       apps,
       unlimited: Boolean(unlimited),

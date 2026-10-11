@@ -16,6 +16,7 @@ import {
   commandClass,
   describeAction,
   NOT_VERIFIED,
+  READS_BACK,
   type DeviceAction,
   type TaskStatus,
 } from "./protocol";
@@ -116,27 +117,6 @@ const CHANGES_FILES = [
   "doc_edit",
   "download",
 ];
-
-/** Actions that only read the device's state: the only independent evidence of a result. */
-const READS_BACK = new Set([
-  "file_info",
-  "file_compare",
-  "file_read",
-  "file_list",
-  "file_find",
-  "file_extract",
-  "file_locate",
-  "sheet_inspect",
-  "observe",
-  "look",
-  "screen",
-  "ui_inspect",
-  "window_list",
-  "apps",
-  "app_info",
-  "drives",
-  "system_status",
-]);
 
 /**
  * Why this task cannot be recorded completed yet, or null when it can.

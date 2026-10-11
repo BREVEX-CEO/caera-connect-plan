@@ -59,6 +59,7 @@ export function TaskCard({
   onResume,
   onRetry,
   onRepeat,
+  checks = [],
 }: {
   task: JarvisTaskRow;
   running: boolean;
@@ -69,6 +70,8 @@ export function TaskCard({
   onRetry?: () => void;
   /** Start the same work again with new inputs, from the composer. */
   onRepeat?: () => void;
+  /** What the device read back for this task: receipts, newest first. */
+  checks?: string[];
 }) {
   const total = Math.max(1, task.plan.length);
   const done = FINISHED.includes(task.status);
@@ -116,6 +119,21 @@ export function TaskCard({
       {done && task.result ? (
         <p className="mb-2 whitespace-pre-wrap text-xs" data-testid="jarvis-task-result">
           {task.result}
+        </p>
+      ) : null}
+      {/* JARVIS's own words above; what the device itself read back below. */}
+      {done && checks.length ? (
+        <div className="mb-2 text-xs" data-testid="jarvis-task-checks">
+          <p className="font-medium">Checked on the device</p>
+          <ul className="list-disc pl-5 text-muted-foreground">
+            {checks.map((check, index) => (
+              <li key={`${index}-${check}`}>{check}</li>
+            ))}
+          </ul>
+        </div>
+      ) : done && task.status === "completed" ? (
+        <p className="mb-2 text-xs text-muted-foreground">
+          No device check is recorded for this result.
         </p>
       ) : null}
       {!running && task.status === "running" ? (

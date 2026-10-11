@@ -530,6 +530,27 @@ export const TASK_STATUS: Record<TaskStatus, string> = {
 };
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 export const FINISHED: readonly TaskStatus[] = ["stopped", "blocked", "failed", "completed"];
+/** Actions that only read the device's state: the only independent evidence of a result. */
+export const READS_BACK = new Set([
+  "file_info",
+  "file_compare",
+  "file_read",
+  "file_list",
+  "file_find",
+  "file_extract",
+  "file_locate",
+  "sheet_inspect",
+  "observe",
+  "look",
+  "screen",
+  "ui_inspect",
+  "window_list",
+  "apps",
+  "app_info",
+  "drives",
+  "system_status",
+]);
+
 /** Starts the task authority's refusal of a "completed" that nothing on the device confirmed. */
 export const NOT_VERIFIED = "Not verified: ";
 
