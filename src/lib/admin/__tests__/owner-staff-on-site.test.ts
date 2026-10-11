@@ -303,6 +303,14 @@ describe("unlimited use", () => {
 });
 
 describe("handing over ownership", () => {
+  it("locks both Owners and requires exactly one Primary Owner at the end (P05)", async () => {
+    const verify = await twin.runScript(
+      "supabase/verification",
+      "20261011090000_ownership_transfer_locks_both_owners_verify.sql",
+    );
+    expect(verify.error).toBeUndefined();
+  });
+
   it("goes only to an Owner, leaves exactly one Primary Owner, and the former one stays an Owner", async () => {
     const toAdmin = await ask(
       OWNER,

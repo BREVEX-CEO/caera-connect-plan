@@ -400,14 +400,15 @@ export class DatabaseTwin {
      * transaction-local, so concurrent calls on PGlite's single connection
      * cannot interleave identities and nothing outlives the request.
      */
+    // Minted before the transaction starts, as a real token is before its request: read
+    // inside it, a second boundary could put the proof after now() ("a proof in the future").
+    const claims = JSON.stringify(claimsFor(userId, session));
     try {
       const res = await this.db.transaction(async (tx) => {
         await tx.exec("set local role authenticated");
         await tx.query(`select set_config('request.jwt.claim.sub', $1, true)`, [userId]);
         await tx.query(`select set_config('request.jwt.claim.role', 'authenticated', true)`);
-        await tx.query(`select set_config('request.jwt.claims', $1, true)`, [
-          JSON.stringify(claimsFor(userId, session)),
-        ]);
+        await tx.query(`select set_config('request.jwt.claims', $1, true)`, [claims]);
         return tx.query<T>(sql);
       });
       return { rows: res.rows };

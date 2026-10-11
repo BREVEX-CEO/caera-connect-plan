@@ -453,6 +453,8 @@ The following mandatory steps and verification criteria come from the latest own
 
 **Target DONE:** direct API/RLS and UI invariants agree; stale callbacks/proofs cannot cross accounts.
 
+**Work record — P05-A ownership hand-over (11 October 2026):** Reproduced by source trace: `ocade_staff_transfer_ownership` (20261003090000) checked both roles unlocked; a concurrent removal of the target let the caller demote itself while the promotion touched zero rows, committing no Primary Owner. **FIX:** forward migration `20261011090000_ownership_transfer_locks_both_owners` (+ verify, rollback) locks both rows in one order, re-reads roles under the lock, requires exactly one row per write and exactly one Primary Owner at the end (`40001` otherwise, whole transaction rolled back). PGlite suites PASS; verification fails without the migration. Two-session race proof: **BLOCKED** (no real PostgreSQL locally; a Supabase branch needs owner approval). NOT applied to production. Replaying 20261003090000 after it would restore the unlocked body: apply in order only. Also fixed the recurring `staff-authority` flake: the twin minted the token's proof time inside the transaction, so a second boundary made the proof later than `now()` and the "proof in the future" rule refused it; claims are now minted first (5/5 clean admin runs). Still OPEN: P05-B/C/D.
+
 ### P06 — Make export and erasure complete, bounded and recoverable
 
 **Current:** `src/lib/account/data-rights.ts` uses offset pagination without a stable snapshot/order; `erase.server.ts` can proceed after a partial storage sweep; `src/lib/library/tombstones.server.ts` must not turn a failed count into zero pending work. No autonomous retry consumer was established by the inspection.
