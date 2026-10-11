@@ -42,6 +42,7 @@ final class Control {
     private static final int MAX_CONTROLS = 150;
 
     private static int seq;
+    static final String NEEDS_ACCESSIBILITY = "Turn on OCADE JARVIS in Android's Accessibility settings first";
     private static volatile String uiObservation;
     private static long uiObservedAt;
     private static final long OBSERVATION_MAX_AGE_MS = 60_000; // the desktop agent's limit
@@ -95,7 +96,7 @@ final class Control {
         }
         OcadeAccessibility a11y = OcadeAccessibility.instance;
         if (a11y == null) {
-            return result("blocked", "Turn on OCADE JARVIS in Android's Accessibility settings first");
+            return result("blocked", NEEDS_ACCESSIBILITY);
         }
         switch (kind) {
             case "ui_inspect":

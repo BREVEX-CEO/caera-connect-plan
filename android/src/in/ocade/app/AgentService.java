@@ -99,6 +99,20 @@ public final class AgentService extends Service {
         });
     }
 
+    /** A task step needs app control that is off: one tap opens Android's own switch for it. */
+    private void askForAccessibility() {
+        PendingIntent settings = PendingIntent.getActivity(this, 2,
+                new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE);
+        getSystemService(NotificationManager.class).notify(2, new Notification.Builder(this, CHANNEL)
+                .setSmallIcon(android.R.drawable.presence_online)
+                .setContentTitle("JARVIS needs app control for this task")
+                .setContentText("Turn on OCADE JARVIS in Accessibility, then press Continue in OCADE.")
+                .setContentIntent(settings)
+                .setAutoCancel(true)
+                .build());
+    }
+
     private Notification notification() {
         PendingIntent open = PendingIntent.getActivity(this, 0,
                 new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
@@ -189,6 +203,10 @@ public final class AgentService extends Service {
             try {
                 if (step != null && !step.isAlive()) {
                     JSONObject done = outcome[0];
+                    if (OcadeAccessibility.instance == null
+                            && done.optString("summary").startsWith(Control.NEEDS_ACCESSIBILITY)) {
+                        askForAccessibility(); // asked when a task needs it, not before
+                    }
                     JSONObject observation = done.optJSONObject("observation");
                     String live = observation == null ? null : (String) observation.remove("frame");
                     JSONObject result = new JSONObject().put("id", stepId)

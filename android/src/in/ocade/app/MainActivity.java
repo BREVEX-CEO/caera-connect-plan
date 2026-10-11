@@ -92,8 +92,13 @@ public final class MainActivity extends Activity {
         checklist = new LinearLayout(this);
         checklist.setOrientation(LinearLayout.VERTICAL);
         page.addView(checklist);
+        // Pairing comes first; afterwards only what a task needs is asked for.
         setup = button("Set up OCADE", v -> {
             problem = null;
+            if (!identity.connected() && !identity.waiting()) {
+                connectPhone();
+                return;
+            }
             guiding = true;
             nextPermission();
         });
@@ -206,7 +211,9 @@ public final class MainActivity extends Activity {
         walked++;
         if (lastAsked != null && !allowed(lastAsked)) declined.add(lastAsked);
         String missing = null;
-        for (String step : new String[] {"notifications", "overlay", "accessibility"}) {
+        // Notifications carry the task and its STOP; the bubble and app control are offered,
+        // with their reasons, in the list below and asked for when a task needs them.
+        for (String step : new String[] {"notifications"}) {
             if (!allowed(step) && !declined.contains(step)) {
                 missing = step;
                 break;
@@ -235,8 +242,6 @@ public final class MainActivity extends Activity {
             // The bubble appears as soon as it is allowed.
             if (AgentService.running != null) AgentService.running.stopSelf();
             if (identity.connected() || identity.waiting()) AgentService.start(this);
-            // The last step of setting up: connecting this phone to the person's OCADE.
-            else connectPhone();
         }
         if (guiding) lastAsked = missing;
         render();
@@ -275,21 +280,26 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private boolean everythingAllowed() {
-        return notificationsAllowed() && overlayAllowed() && accessibilityAllowed();
-    }
-
     /** One line in plain words: Setting up, Needs your permission, Waiting for approval, Ready, Offline. */
     private void render() {
         checklist.removeAllViews();
         // Only what is still missing, each with why; nothing once everything is allowed.
         if (!notificationsAllowed()) checklist.addView(item("Notifications",
                 "So you can see what JARVIS is doing and stop it from the notification."));
-        if (!overlayAllowed()) checklist.addView(item("Display over other apps",
-                "For the floating OCADE bubble: task, STOP, Talk and Open JARVIS from any app."));
-        if (!accessibilityAllowed()) checklist.addView(item("Accessibility: OCADE JARVIS",
-                "So JARVIS can read and use apps on this phone when you ask."));
-        if (skipped && !everythingAllowed()) {
+        if (!overlayAllowed()) {
+            checklist.addView(item("Display over other apps (optional)",
+                    "For the floating OCADE bubble: task, STOP, Talk and Open JARVIS from any app."));
+            checklist.addView(button("Allow the bubble", v -> startActivity(new Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName())))));
+        }
+        if (!accessibilityAllowed()) {
+            checklist.addView(item("Accessibility: OCADE JARVIS (optional)",
+                    "Only for tasks that use apps on this phone. You can turn it off in Android's "
+                            + "Accessibility settings at any time."));
+            checklist.addView(button("Allow app control",
+                    v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))));
+        }
+        if (skipped && !notificationsAllowed()) {
             checklist.addView(text("Some of this was left off. OCADE works without it, with less: "
                     + "press Set up OCADE again whenever you want to allow it.", 13, false));
         }
@@ -300,18 +310,18 @@ public final class MainActivity extends Activity {
         } else if (identity.waiting()) {
             now = "Waiting for approval in OCADE. The fingerprint is " + identity.fingerprint() + ".";
         } else if (!connected) {
-            now = problem != null ? problem : everythingAllowed() ? "Not set up" : "Needs your permission";
+            now = problem != null ? problem : "Not set up";
         } else if ("Offline".equals(AgentService.status)) {
             now = "Offline";
         } else {
-            now = everythingAllowed() ? "Ready" : "Needs your permission";
+            now = notificationsAllowed() ? "Ready" : "Needs your permission";
             JSONObject task = AgentService.task;
             if (task != null) now += "\n" + task.optString("title");
         }
         state.setText(now);
         boolean wakeOn = identity.prefs.getBoolean("wake", false);
         wake.setText(wakeOn ? "Turn off Wake (" + WakeService.status + ")" : "Turn on Wake: say \u201cOCADE\u201d");
-        boolean ready = connected && everythingAllowed();
+        boolean ready = connected && notificationsAllowed();
         setup.setVisibility(ready || identity.waiting() || guiding || connecting ? View.GONE : View.VISIBLE);
         stop.setVisibility(connected ? View.VISIBLE : View.GONE);
         openOcade.setVisibility(connected && !overlayAllowed() ? View.VISIBLE : View.GONE);
