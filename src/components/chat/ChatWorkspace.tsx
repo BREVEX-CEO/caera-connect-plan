@@ -545,7 +545,35 @@ export function ChatWorkspace() {
                     })}
                   </div>
 
-                  {/*
+                  {/* Each option that is on shows as a chip; its x turns it off. */}
+                  {[
+                    canResearch && research && { label: "Research", off: () => setResearch(false) },
+                    canThink && thinking && { label: "Thinking", off: () => setThinking(false) },
+                    chat.temporary && { label: "Temporary", off: () => chat.setTemporary(false) },
+                  ]
+                    .filter((chip): chip is { label: string; off: () => void } => Boolean(chip))
+                    .map((chip) => (
+                      <button
+                        key={chip.label}
+                        type="button"
+                        onClick={chip.off}
+                        aria-label={`Turn off ${chip.label}`}
+                        className="mr-1 h-6 rounded-md border border-border bg-accent px-2 text-xs text-foreground"
+                      >
+                        {chip.label} ×
+                      </button>
+                    ))}
+
+                  <details className="relative mr-1">
+                    <summary className="flex h-6 cursor-pointer list-none items-center rounded-md px-2 text-xs text-muted-foreground hover:text-foreground">
+                      More
+                    </summary>
+                    <div
+                      role="group"
+                      aria-label="More options"
+                      className="absolute bottom-8 right-0 z-20 flex flex-col items-stretch gap-1 rounded-md border border-border bg-background p-1 shadow-lg"
+                    >
+                      {/*
                     TEMPORARY CHAT, WHERE THE CHOICE IS MADE.
                     `PLAN.md`: a temporary conversation is memory-only and
                     never synchronises. It sits beside the mode selector
@@ -553,66 +581,68 @@ export function ChatWorkspace() {
                     this message — and it says so while it is on rather than
                     hiding the state in a menu.
                   */}
-                  {canResearch ? (
-                    <button
-                      type="button"
-                      onClick={() => setResearch((current) => !current)}
-                      aria-pressed={research}
-                      title={
-                        research
-                          ? "OCADE looks things up and says where it found them."
-                          : "Look it up on the web first"
-                      }
-                      className={cn(
-                        "mr-1 h-6 rounded-md border px-2 text-xs transition-colors",
-                        research
-                          ? "border-border bg-accent text-foreground"
-                          : "border-transparent text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      Research
-                    </button>
-                  ) : null}
+                      {canResearch ? (
+                        <button
+                          type="button"
+                          onClick={() => setResearch((current) => !current)}
+                          aria-pressed={research}
+                          title={
+                            research
+                              ? "OCADE looks things up and says where it found them."
+                              : "Look it up on the web first"
+                          }
+                          className={cn(
+                            "mr-1 h-6 rounded-md border px-2 text-xs transition-colors",
+                            research
+                              ? "border-border bg-accent text-foreground"
+                              : "border-transparent text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          Research
+                        </button>
+                      ) : null}
 
-                  {canThink ? (
-                    <button
-                      type="button"
-                      onClick={() => setThinking((current) => !current)}
-                      aria-pressed={thinking}
-                      title={
-                        thinking
-                          ? "OCADE thinks before answering. Slower, on this device."
-                          : "Think before answering"
-                      }
-                      className={cn(
-                        "mr-1 h-6 rounded-md border px-2 text-xs transition-colors",
-                        thinking
-                          ? "border-border bg-accent text-foreground"
-                          : "border-transparent text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      Thinking
-                    </button>
-                  ) : null}
+                      {canThink ? (
+                        <button
+                          type="button"
+                          onClick={() => setThinking((current) => !current)}
+                          aria-pressed={thinking}
+                          title={
+                            thinking
+                              ? "OCADE thinks before answering. Slower, on this device."
+                              : "Think before answering"
+                          }
+                          className={cn(
+                            "mr-1 h-6 rounded-md border px-2 text-xs transition-colors",
+                            thinking
+                              ? "border-border bg-accent text-foreground"
+                              : "border-transparent text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          Thinking
+                        </button>
+                      ) : null}
 
-                  <button
-                    type="button"
-                    onClick={() => chat.setTemporary(!chat.temporary)}
-                    aria-pressed={chat.temporary}
-                    title={
-                      chat.temporary
-                        ? "This chat is not being saved. Turn off to save chats again."
-                        : "Start a chat that is not saved"
-                    }
-                    className={cn(
-                      "mr-1 h-6 rounded-md border px-2 text-xs transition-colors",
-                      chat.temporary
-                        ? "border-border bg-accent text-foreground"
-                        : "border-transparent text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    Temporary
-                  </button>
+                      <button
+                        type="button"
+                        onClick={() => chat.setTemporary(!chat.temporary)}
+                        aria-pressed={chat.temporary}
+                        title={
+                          chat.temporary
+                            ? "This chat is not being saved. Turn off to save chats again."
+                            : "Start a chat that is not saved"
+                        }
+                        className={cn(
+                          "mr-1 h-6 rounded-md border px-2 text-xs transition-colors",
+                          chat.temporary
+                            ? "border-border bg-accent text-foreground"
+                            : "border-transparent text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        Temporary
+                      </button>
+                    </div>
+                  </details>
 
                   {dictation.supported ? (
                     <IconButton
