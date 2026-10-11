@@ -1,0 +1,133 @@
+# Manual cloud Android APK/emulator test; never uses owner's desktop or Android Studio.
+# 'smoke' is a real Android emulator install/launch check, NOT full gesture acceptance.
+# 'full' also invokes the existing Appium UI journey with a local stubbed backend.
+name: Cloud Android emulator (isolated)
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Source ref to test (full UI journey requires Linux-portable android-journey.mjs)
+        required: true
+        default: main
+        type: string
+      coverage:
+        description: Real emulator boot/install or full Appium GUI journey
+        required: true
+        default: smoke
+        type: choice
+        options:
+          - smoke
+          - full
+      android_api:
+        description: Android version to exercise, one per run to conserve minutes
+        required: true
+        default: "35"
+        type: choice
+        options:
+          - "30"
+          - "35"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android ${{ inputs.android_api }} / ${{ inputs.coverage }} · cloud emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      CI: "true"
+    steps:
+      - name: Checkout test source without persistent GitHub token
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.source_ref }}
+          persist-credentials: false
+
+      - name: Prepare Python for APK packaging
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Prepare Java 17 for the Android builder
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Prepare Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK build tools, platform and emulator image
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          python -m pip install --disable-pip-version-check cryptography
+
+      - name: Build isolated debug APK, never release-sign
+        run: python android/build.py
+
+      - name: Prepare browser and Appium only for full Android GUI tests
+        if: inputs.coverage == 'full'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          ./node_modules/.bin/playwright install --with-deps chromium
+          npm install --global appium@2
+          appium driver install uiautomator2
+          nohup node scripts/e2e/harness.mjs --serve > "${RUNNER_TEMP}/ocade-stub.log" 2>&1 &
+          echo $! > "${RUNNER_TEMP}/ocade-stub.pid"
+          for n in {1..120}; do
+            if curl --silent --fail http://127.0.0.1:8788/ > /dev/null; then
+              echo "Cloud OCADE site and test Supabase stub are ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          tail -n 90 "${RUNNER_TEMP}/ocade-stub.log"
+          exit 1
+
+      - name: Enable KVM for the disposable emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -e /dev/kvm || { echo "::error::This runner has no /dev/kvm. Do not pretend an emulator passed."; exit 1; }
+          sudo chmod 666 /dev/kvm
+
+      - name: Run isolated Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ inputs.android_api }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          emulator-boot-timeout: 360
+          script: |
+            set -e
+            adb install -r android/build/OCADE-test.apk
+            adb shell am start -n in.ocade.app/.MainActivity --es server http://10.0.2.2:8788
+            sleep 8
+            adb shell pidof in.ocade.app
+            adb shell uiautomator dump /sdcard/ocade-window.xml
+            adb exec-out cat /sdcard/ocade-window.xml | grep -E 'Set up OCADE|Needs your permission|Connecting|Ready'
+            if [ "${{ inputs.coverage }}" = "full" ]; then
+              node scripts/e2e/android-journey.mjs
+            fi
+
+      # Existing storage is nearly full: NO persisted APK, screenshots or logs.
+      # The APK is an unsigned-for-release test artifact confined to the runner.
+      - name: Stop disposable local stub after the run
+        if: always() && inputs.coverage == 'full'
+        shell: bash
+        run: |
+          if [ -f "${RUNNER_TEMP}/ocade-stub.pid" ]; then
+            kill "$(cat "${RUNNER_TEMP}/ocade-stub.pid")" || true
+          fi
