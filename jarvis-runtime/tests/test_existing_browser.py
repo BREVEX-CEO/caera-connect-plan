@@ -4,6 +4,7 @@ The attach test starts its OWN Chromium with remote debugging on (a stand-in
 for the person's browser) and never touches a browser already running here.
 """
 import functools
+import shutil
 import http.server
 import socket
 import subprocess
@@ -43,6 +44,7 @@ class PermissionPageTest(unittest.TestCase):
 class DiscoveryTest(unittest.TestCase):
     def setUp(self):
         self.root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.root, True)
         self.listener = socket.socket()
         self.listener.bind(("127.0.0.1", 0))
         self.listener.listen()
@@ -53,9 +55,8 @@ class DiscoveryTest(unittest.TestCase):
 
     def test_a_running_browser_is_found_on_loopback(self):
         _port_file(self.root / "chrome", self.port)
-        found = ocade_existing_browser.find({"chrome": [self.root / "chrome"]})
-        self.assertEqual(found, {"browser": "chrome",
-                                 "endpoint": f"ws://127.0.0.1:{self.port}/devtools/browser/abc"})
+        found = ocade_existing_browser.find([self.root / "chrome"])
+        self.assertEqual(found, {"endpoint": f"ws://127.0.0.1:{self.port}/devtools/browser/abc"})
 
     def test_a_file_left_by_a_closed_browser_is_ignored(self):
         closed = socket.socket()
@@ -63,14 +64,33 @@ class DiscoveryTest(unittest.TestCase):
         port = closed.getsockname()[1]
         closed.close()
         _port_file(self.root / "chrome", port)
-        self.assertIsNone(ocade_existing_browser.find({"chrome": [self.root / "chrome"]}))
+        self.assertIsNone(ocade_existing_browser.find([self.root / "chrome"]))
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows layout")
+    def test_any_registered_chromium_browser_is_found_without_its_name(self):
+        import unittest.mock
+        local = self.root / "Local"
+        program = self.root / "Programs/AnyVendor/AnyBrowser/Application/any.exe"
+        program.parent.mkdir(parents=True)
+        program.write_text("")
+        (program.parent / "1.0").mkdir()
+        (program.parent / "1.0" / "resources.pak").write_text("")
+        other = self.root / "Programs/Other/other.exe"  # not Chromium: no resources.pak
+        other.parent.mkdir(parents=True)
+        other.write_text("")
+        _port_file(local / "AnyVendor/AnyBrowser/User Data", self.port)
+        with unittest.mock.patch.dict("os.environ", {"LOCALAPPDATA": str(local)}), \
+                unittest.mock.patch.object(ocade_existing_browser, "_registered_windows",
+                                           return_value=[("Other", other), ("Any Browser", program)]):
+            self.assertEqual(ocade_existing_browser.browsers(), [("Any Browser", program)])
+            self.assertIsNotNone(ocade_existing_browser.find())
 
     def test_nothing_else_is_accepted(self):
         _port_file(self.root / "a", self.port, "/json/version")
         (self.root / "b").mkdir()
         (self.root / "b" / "DevToolsActivePort").write_text("not a port")
         self.assertIsNone(ocade_existing_browser.find(
-            {"chrome": [self.root / "a", self.root / "b", self.root / "missing"]}))
+            [self.root / "a", self.root / "b", self.root / "missing"]))
 
 
 def _chromium() -> str | None:
@@ -107,11 +127,14 @@ class AttachTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.browser.kill()
+        cls.browser.wait(10)
         cls.server.shutdown()
+        shutil.rmtree(cls.site, True)
+        shutil.rmtree(cls.profile, True)
 
     def test_attach_observe_act_and_leave_the_persons_tabs_alone(self):
         from actions.browser_control import _BrowserSession
-        found = ocade_existing_browser.find({"chrome": [self.profile]})
+        found = ocade_existing_browser.find([self.profile])
         self.assertIsNotNone(found, "the running browser was not found")
         session = _BrowserSession("chrome", mode="real", cdp_endpoint=found["endpoint"])
         session.start()
@@ -133,7 +156,7 @@ class AttachTest(unittest.TestCase):
     def test_a_tab_of_the_persons_that_jarvis_switches_to_keeps_the_network_boundary(self):
         from actions.browser_control import _BrowserSession
         from ocade_egress import Policy
-        found = ocade_existing_browser.find({"chrome": [self.profile]})
+        found = ocade_existing_browser.find([self.profile])
         egress = type("Egress", (), {"policy": Policy()})()
         session = _BrowserSession("chrome", mode="real", cdp_endpoint=found["endpoint"], egress=egress)
         session.start()
@@ -157,15 +180,16 @@ class RestartTest(unittest.TestCase):
              "--headless=new", "--no-first-run", "about:blank"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         deadline = time.monotonic() + 20
-        while time.monotonic() < deadline and not ocade_existing_browser.find({"chrome": [self.profile]}):
+        while time.monotonic() < deadline and not ocade_existing_browser.find([self.profile]):
             time.sleep(0.2)
         return browser
 
     def test_reconnects_after_the_browser_restarts(self):
         import ocade_device
         self.profile = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.profile, True)
         original = ocade_existing_browser.find
-        ocade_existing_browser.find = lambda dirs=None: original({"chrome": [self.profile]})
+        ocade_existing_browser.find = lambda dirs=None: original([self.profile])
         browsers = ocade_device.Browsers(headless=True, cdp=None)
         try:
             first = self._start()

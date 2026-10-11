@@ -5,12 +5,9 @@ import asyncio
 import json
 import re
 import os
-import platform
-import subprocess
 import threading
 import time
 from pathlib import Path
-from typing import Optional
 
 from playwright.async_api import (
     async_playwright,
@@ -19,7 +16,6 @@ from playwright.async_api import (
     Playwright,
     TimeoutError as PlaywrightTimeout,
 )
-_OS = platform.system()   # "Windows" | "Darwin" | "Linux"
 
 def _normalize_url(url: str) -> str:
     """
@@ -38,67 +34,6 @@ def _normalize_url(url: str) -> str:
     return "https://" + url
 
 
-def _find_exe_windows(prog_name: str) -> Optional[str]:
-    try:
-        import winreg
-        paths_to_try = [
-            rf"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{prog_name}.exe",
-            rf"SOFTWARE\Clients\StartMenuInternet\{prog_name}\shell\open\command",
-        ]
-        for key_path in paths_to_try:
-            for hive in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
-                try:
-                    k   = winreg.OpenKey(hive, key_path)
-                    val = winreg.QueryValue(k, None)
-                    winreg.CloseKey(k)
-                    exe = val.strip().strip('"').split('"')[0].split(" --")[0].strip()
-                    if exe and Path(exe).exists():
-                        return exe
-                except Exception:
-                    continue
-    except Exception:
-        pass
-    return None
-
-
-def _detect_default_browser() -> str:
-    try:
-        if _OS == "Windows":
-            import winreg
-            k = winreg.OpenKey(
-                winreg.HKEY_CURRENT_USER,
-                r"Software\Microsoft\Windows\Shell\Associations"
-                r"\UrlAssociations\http\UserChoice",
-            )
-            prog_id = winreg.QueryValueEx(k, "ProgId")[0].lower()
-            winreg.CloseKey(k)
-            for kw in ("edge", "firefox", "opera", "brave", "vivaldi", "chrome"):
-                if kw in prog_id:
-                    return kw
-        elif _OS == "Darwin":
-            out = subprocess.run(
-                ["defaults", "read",
-                 "com.apple.LaunchServices/com.apple.launchservices.secure",
-                 "LSHandlers"],
-                capture_output=True, text=True, timeout=5,
-            ).stdout.lower()
-            for kw in ("firefox", "opera", "brave", "vivaldi", "safari", "chrome", "edge"):
-                if kw in out:
-                    return kw
-        elif _OS == "Linux":
-            out = subprocess.run(
-                ["xdg-settings", "get", "default-web-browser"],
-                capture_output=True, text=True, timeout=5,
-            ).stdout.lower()
-            for kw in ("firefox", "opera", "brave", "vivaldi", "chrome", "edge"):
-                if kw in out:
-                    return kw
-    except Exception:
-        pass
-    return "chrome"
-
-
-# Windows registry lookup names for browsers whose spec has no explicit binary
 
 
 # ── OCADE structured-control page scripts and safety gates ───────────────────
