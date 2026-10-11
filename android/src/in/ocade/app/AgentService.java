@@ -200,6 +200,7 @@ public final class AgentService extends Service {
         final JSONObject[] outcome = new JSONObject[1];
         String stepId = null;
         String stepTask = null;
+        long stepStarted = 0;
         long reached = System.currentTimeMillis();
         long appsSent = 0;
         while (!stopping.get()) {
@@ -220,7 +221,9 @@ public final class AgentService extends Service {
                     detail.remove("status");
                     detail.remove("summary");
                     detail.remove("observation");
-                    if (detail.length() > 0) result.put("detail", detail);
+                    // How long the phone itself took, for measuring where a task's time goes.
+                    detail.put("ms", System.currentTimeMillis() - stepStarted);
+                    result.put("detail", detail);
                     results.put(result);
                     // The running mark goes only once the result itself is safely kept.
                     if (keepPending(results)) keep(RUNNING, new JSONArray());
@@ -337,6 +340,7 @@ public final class AgentService extends Service {
                             }
                         }
                     }, "ocade-step");
+                    stepStarted = System.currentTimeMillis();
                     step.start();
                 }
                 setStatus(step != null || busy ? statusFrom(task, true) : "Ready");

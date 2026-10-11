@@ -539,6 +539,7 @@ class Agent:
         action = command["action"]
         confirmed = bool(command.get("confirmed"))
         browser = action.get("action") in BROWSER_ACTIONS
+        started = time.monotonic()
         try:
             if browser:
                 outcome = self.browsers.run(mode, action, confirmed, command.get("sites", []), cancel,
@@ -548,6 +549,8 @@ class Agent:
                 outcome = self.computer.run(action, confirmed, cancel)
         except Exception as e:  # a crashed action is reported, never retried blindly
             outcome = {"status": "failed", "summary": f"The action failed ({type(e).__name__})"}
+        # How long the computer itself took, for measuring where a task's time goes (audit G).
+        outcome["ms"] = round((time.monotonic() - started) * 1000)
         live = (outcome.get("observation") or {}).pop("frame", None) or (
             self.browsers.frame(mode) if browser else None)
         if live:  # with the moment it was taken, so a late picture is never shown as new
