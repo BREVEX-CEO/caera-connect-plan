@@ -705,15 +705,11 @@ const COMPUTER_TOGGLES: [Capability, string, string][] = [
 export function PermissionsDrawer({
   state,
   signedIn,
-  accent,
-  onAccent,
   onClose,
   onChanged,
 }: {
   state: JarvisState | undefined;
   signedIn: boolean;
-  accent: string | null;
-  onAccent: (accent: string | null) => void;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -784,26 +780,6 @@ export function PermissionsDrawer({
         ) : (
           <p className="text-sm text-muted-foreground">Sign in to manage what JARVIS may do.</p>
         )}
-        <h3 className="mt-4 text-sm font-medium">Orb colour</h3>
-        <div className="mt-1 flex items-center gap-2">
-          <label htmlFor="jarvis-accent" className="sr-only">
-            Orb colour
-          </label>
-          <input
-            id="jarvis-accent"
-            type="color"
-            value={accent ?? "#ffffff"}
-            onChange={(event) => onAccent(event.target.value)}
-            className="h-8 w-12 rounded border border-border/60 bg-transparent"
-          />
-          <button
-            type="button"
-            onClick={() => onAccent(null)}
-            className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent"
-          >
-            Monochrome
-          </button>
-        </div>
       </div>
     </div>
   );

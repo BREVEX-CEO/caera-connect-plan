@@ -36,7 +36,12 @@ import { LiveControl, statusReply, workIntent } from "./live-control";
 import { liveDeps, ModelRefused, Unavailable } from "./live-deps";
 import { isAllowed } from "./permissions";
 import { FINISHED } from "./protocol";
-import { readPreferences, writePreferences, type JarvisPreferences } from "./preferences";
+import {
+  PREFERENCES_CHANGED,
+  readPreferences,
+  writePreferences,
+  type JarvisPreferences,
+} from "./preferences";
 import { stopEverywhere } from "./stop-everywhere";
 import { useJarvisVoice, voiceCommand } from "./use-voice";
 import {
@@ -98,7 +103,12 @@ export function JarvisWorkspace({
     wake: false,
     speak: true,
   });
-  useEffect(() => setPrefs(readPreferences()), []);
+  useEffect(() => {
+    const follow = () => setPrefs(readPreferences());
+    follow();
+    window.addEventListener(PREFERENCES_CHANGED, follow);
+    return () => window.removeEventListener(PREFERENCES_CHANGED, follow);
+  }, []);
   const updatePrefs = (patch: Partial<JarvisPreferences>) =>
     setPrefs((current) => {
       const next = { ...current, ...patch };
@@ -1315,8 +1325,6 @@ export function JarvisWorkspace({
         <PermissionsDrawer
           state={jarvis}
           signedIn={signedIn}
-          accent={prefs.accent}
-          onAccent={(accent) => updatePrefs({ accent })}
           onClose={() => setPermissionsOpen(false)}
           onChanged={refresh}
         />

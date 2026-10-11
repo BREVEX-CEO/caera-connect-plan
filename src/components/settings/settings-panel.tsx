@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { useModalFocus } from "@/lib/use-modal-focus";
 import { useAppearance } from "@/lib/appearance";
 import { useBubblePlacement, writePlacement } from "@/jarvis/bubble-state";
+import { readPreferences, writePreferences } from "@/jarvis/preferences";
 import { useSession } from "@/lib/session";
 import { AdvancedSection } from "./AdvancedSection";
 import { SignInMethods } from "./SignInMethods";
@@ -335,6 +336,36 @@ function BubbleSetting() {
   );
 }
 
+/** The JARVIS Orb's accent, kept on this device; Monochrome puts it back. */
+function OrbColour() {
+  const [accent, setAccent] = useState<string | null>(null);
+  useEffect(() => setAccent(readPreferences().accent), []);
+  const choose = (next: string | null) => {
+    setAccent(next);
+    writePreferences({ ...readPreferences(), accent: next });
+  };
+  return (
+    <Row label="Orb colour" description="The JARVIS Orb's accent on this device.">
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          aria-label="Orb colour"
+          value={accent ?? "#ffffff"}
+          onChange={(event) => choose(event.target.value)}
+          className="h-8 w-12 rounded border border-border/60 bg-transparent"
+        />
+        <button
+          type="button"
+          onClick={() => choose(null)}
+          className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent"
+        >
+          Monochrome
+        </button>
+      </div>
+    </Row>
+  );
+}
+
 function AppearanceSettings() {
   const { theme, reducedMotion, highContrast, setAppearance, saveError } = useAppearance();
 
@@ -377,6 +408,7 @@ function AppearanceSettings() {
         />
       </Row>
       <BubbleSetting />
+      <OrbColour />
       {saveError ? (
         <p className="pt-3 text-[13px] text-muted-foreground" role="status">
           {saveError}

@@ -30,10 +30,14 @@ export function readPreferences(): JarvisPreferences {
   }
 }
 
+/** Fired when any surface changes them, so an open JARVIS page follows Settings at once. */
+export const PREFERENCES_CHANGED = "ocade:jarvis-preferences";
+
 export function writePreferences(prefs: JarvisPreferences): void {
   try {
     window.localStorage.setItem(KEY, JSON.stringify(prefs));
   } catch {
     /* A blocked store only means the choice is not remembered. */
   }
+  window.dispatchEvent(new Event(PREFERENCES_CHANGED));
 }
