@@ -19,7 +19,7 @@ CARCC is the company; OCADE is the product. The owner's latest explicit instruct
 - Model success, HTTP success and file existence do not establish task completion. Require independent postconditions and durable receipts. Reconcile unknown effects before retrying.
 - One mutation owner per shared app/document/session. Persist intent/outcomes across crashes. Preserve originals; never overwrite later user edits during rollback.
 - Do not extract browser passwords/cookies, bypass UAC/CAPTCHA/OTP/passkeys, complete final purchases/payments or expose credentials. Dangerous submissions follow explicit policy/confirmation.
-- Preserve immutable imports, donor ZIPs, applied migrations, legal/provenance and recovery evidence. Inspect donor techniques before reinvention, but reuse only where the exact licence permits it. No percentage reuse quota overrides safety or licensing.
+- Donor ZIPs/snapshots were removed 11 October 2026 (PLAN Section 0.4); never reimport donor code. Preserve applied migrations, legal/provenance and recovery evidence. Inspect donor techniques before reinvention, but reuse only where the exact licence permits it. No percentage reuse quota overrides safety or licensing.
 - Customer UI names OCADE, not hidden provider/model identities or keys. Preserve the existing opaque offline-release identity gate; approved technical history exceptions are not permission to expose identifiers elsewhere.
 
 ## Smallest correct change

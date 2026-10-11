@@ -14,8 +14,7 @@ CLAUDE.md
 # Written by scripts in their own layout.
 release/**/*.json
 
-# Immutable JARVIS provenance and the Python runtime: never reformatted.
-imports/ocade-jarvis/source-original/
+# The Python runtime: never reformatted by Prettier.
 jarvis-runtime/
 
 # Audit evidence, preserved verbatim.

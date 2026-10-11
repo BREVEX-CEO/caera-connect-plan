@@ -176,7 +176,7 @@ Future billing acceptance requires provider sandbox tests for authenticated chec
 
 For this mission, verify only authorised Markdown and documentation-only audit-checkpoint changes: current authority hierarchy, requirement preservation, source paths, local links/anchors, document disposition, no competing work queues, model-identity guard compatibility and formatting. Check the final diff includes no source/config/schema/dependency/generated-output changes. Commit/push authorisation is provided by the current owner request; it does not authorise production deployment. Recheck remote main after publishing.
 
-Preserve historical evidence through its retained history/archive and map superseded requirements into the canonical documents. Do not delete legal/licence, immutable donor, recovery or unique test evidence as cosmetic cleanup.
+Preserve historical evidence through its retained history/archive and map superseded requirements into the canonical documents. Do not delete legal/licence, recovery or unique test evidence as cosmetic cleanup.
 
 At interruption/reset, record exact checkpoint, files, next unfinished item and blockers in the authorised evidence location. Resume from that checkpoint rather than restarting completed work. The final handoff gives current source/deployment identities, exact PASS/FAIL/BLOCKED/UNTESTED evidence, unresolved defects, recovery instructions and the next PLAN package.
 

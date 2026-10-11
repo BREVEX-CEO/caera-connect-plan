@@ -27,6 +27,4 @@
 *.bat text eol=crlf
 *.cmd text eol=crlf
 
-# Immutable JARVIS provenance: stored byte-for-byte, never normalised.
-imports/ocade-jarvis/source-original/** -text
 *.zip binary

@@ -278,7 +278,7 @@ Label emulator, WebKit, local database and mocks accurately. Physical Android, O
 
 ## 14. Provenance, reuse and retirement
 
-Immutable donor sources/ZIPs stay immutable and outside production imports. Preserve historical requirements/evidence via versioned references; deleted ledgers are not unquestioned current truth. The historical approximately98% donor capability/logic reuse aspiration never overrides licensing, safety, measured parity or the smallest correct implementation.
+Donor sources/ZIPs were removed from the repository on 11 October 2026 and are never reimported. Preserve historical requirements/evidence via versioned references; deleted ledgers are not unquestioned current truth. The historical approximately98% donor capability/logic reuse aspiration never overrides licensing, safety, measured parity or the smallest correct implementation.
 
 Before copying/adapting donor or competitor code, record the exact revision and licence for those bytes. Public visibility/attribution is not commercial permission. Current `FatihMakes/Mark-LV` declares CC BY-NC4.0; do not assume paid OCADE reuse is authorised. Audit the preserved donor's own licence independently and resolve permission before affected distribution. Conceptual techniques can be implemented independently without importing competing runtimes.
 

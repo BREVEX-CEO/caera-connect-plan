@@ -94,7 +94,7 @@ For every requested change, use the first option that **fully** solves it:
 
 - Preserve OCADE's local-first execution, scoped permissions, STOP/Take Over, account isolation, authentic task-result receipts, original-file safety, durable recovery, Offline Chat isolation, and online-only JARVIS planning.
 - Never eliminate trust-boundary validation, crash/data-loss handling, accessibility, authorisation, auditability, security, required compatibility, or meaningful regression tests just to reduce lines.
-- Preserve immutable donor sources, migration history, licences, signed update checks, and mandatory legal/commercial constraints.
+- Never reimport donor sources (removed 11 October 2026). Preserve migration history, licences, signed update checks, and mandatory legal/commercial constraints.
 - Keep essential edge cases correct; fewer lines are a benefit **only when outputs, correctness, security and maintenance are at least as good**.
 - Never invent 0 bugs, 100% performance or guaranteed correctness. Treat any missing evidence as UNTESTED or BLOCKED, not PASS.
 

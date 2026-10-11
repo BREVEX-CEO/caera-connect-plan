@@ -2,7 +2,7 @@
 
 This directory is the active trusted companion. [Architecture](../docs/ARCHITECTURE.md) owns protocol/platform contracts, [PLAN](../PLAN.md) owns implementation, and [Testing](../docs/TESTING.md) owns development and installed-release evidence.
 
-Keep the immutable donor under imports/ocade-jarvis/source-original unchanged. Inspect relevant donor logic before reinvention, but check its exact licence before reuse or commercial distribution. Production never imports from that snapshot. Preserve bundled signed wake assets, tray presence, scoped files, cancellation, durable outcomes, native Office fidelity and signed update/rollback.
+The donor ZIPs and snapshot were removed from the repository on 11 October 2026 (manifest in [ToRemove](../ToRemove.md)); never reimport donor code. Code adapted from them earlier still needs its rights cleared before commercial distribution (PLAN P00-B). Preserve bundled signed wake assets, tray presence, scoped files, cancellation, durable outcomes, native Office fidelity and signed update/rollback.
 
 Online intelligence stays server-owned; the companion does not hold provider keys or choose an offline fallback for JARVIS. Customers pair through ocade.in and do not install developer MCP servers or a mandatory browser extension. Browser session access must be legitimate; no password/cookie extraction. Native execution capability depends on explicit OS permissions and platform proof.
 
