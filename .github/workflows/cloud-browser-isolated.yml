@@ -3,6 +3,10 @@
 name: Cloud browser journeys (isolated)
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/cloud-browser-isolated.yml"
   workflow_dispatch:
     inputs:
       source_ref:
@@ -39,7 +43,7 @@ jobs:
       - name: Checkout requested branch in cloud only
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ inputs.source_ref }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || inputs.source_ref }}
           persist-credentials: false
 
       - name: Use project Node version
@@ -58,7 +62,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ inputs.suite }}" == "smoke" ]]; then
+          if [[ "${{ github.event_name }}" == "pull_request" || "${{ inputs.suite }}" == "smoke" ]]; then
             journeys=(shell auth chat browsers)
           else
             # Excludes native Office and Android: those cannot be proved by Playwright.
