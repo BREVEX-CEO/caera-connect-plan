@@ -1083,6 +1083,11 @@ export function JarvisWorkspace({
                       toast.error("That task cannot restart now. Is its computer busy or offline?"),
                     )
                   }
+                  // A new task through the same planner, checks and receipts: only the inputs change.
+                  onRepeat={() => {
+                    setDraft(`Do "${conversationTask.title}" again, with these new inputs: `);
+                    document.getElementById("jarvis-composer")?.focus();
+                  }}
                 />
               ) : null}
               {confirmAsk ? (

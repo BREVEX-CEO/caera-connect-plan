@@ -58,6 +58,7 @@ export function TaskCard({
   onTakeOver,
   onResume,
   onRetry,
+  onRepeat,
 }: {
   task: JarvisTaskRow;
   running: boolean;
@@ -66,6 +67,8 @@ export function TaskCard({
   onResume: () => void;
   /** Ask JARVIS to try a task that failed or could not continue. */
   onRetry?: () => void;
+  /** Start the same work again with new inputs, from the composer. */
+  onRepeat?: () => void;
 }) {
   const total = Math.max(1, task.plan.length);
   const done = FINISHED.includes(task.status);
@@ -128,6 +131,15 @@ export function TaskCard({
           className="rounded-full border border-border px-3 py-1 text-xs hover:bg-accent"
         >
           Try again
+        </button>
+      ) : null}
+      {onRepeat && task.status === "completed" && !running ? (
+        <button
+          type="button"
+          onClick={onRepeat}
+          className="rounded-full border border-border px-3 py-1 text-xs hover:bg-accent"
+        >
+          Repeat with new inputs
         </button>
       ) : null}
     </section>
