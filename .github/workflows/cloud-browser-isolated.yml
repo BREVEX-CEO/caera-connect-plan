@@ -22,6 +22,7 @@ on:
         options:
           - smoke
           - broad
+          - offline-real
 
 permissions:
   contents: read
@@ -56,12 +57,35 @@ jobs:
       - name: Install isolated Chromium, Firefox and WebKit
         run: node node_modules/playwright-core/cli.js install --with-deps chromium firefox webkit
 
+      - name: Put the real Offline Intelligence release in the local test bucket
+        if: github.event_name == 'workflow_dispatch' && inputs.suite == 'offline-real'
+        shell: bash
+        env:
+          OCADE_OFFLINE_SOURCE_URL: ${{ secrets.OCADE_OFFLINE_SOURCE_URL }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${OCADE_OFFLINE_SOURCE_URL}" ]]; then
+            echo "::error::BLOCKED: no OCADE_OFFLINE_SOURCE_URL secret for the real release"
+            exit 1
+          fi
+          release=$(node -p "require('./release/OCADE_OFFLINE_RELEASE.json').releaseId")
+          digest=$(node -p "require('./release/OCADE_OFFLINE_RELEASE.json').sha256")
+          artifact="${RUNNER_TEMP}/offline-release.bin"
+          curl -fsSL --retry 3 -o "${artifact}" "${OCADE_OFFLINE_SOURCE_URL}"
+          echo "${digest}  ${artifact}" | sha256sum --check --status
+          node -e "const c=require('./wrangler.json'); delete c.routes; require('fs').writeFileSync('wrangler.e2e.json', JSON.stringify(c,null,2))"
+          node node_modules/wrangler/bin/wrangler.js r2 object put "ocade-private-models/r/${release}/a"             --file "${artifact}" --local --config wrangler.e2e.json
+          rm -f "${artifact}"
+
       - name: Run real browser journeys against local synthetic accounts
         shell: bash
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" || "${{ inputs.suite }}" == "smoke" ]]; then
             journeys=(shell auth chat browsers)
+          elif [[ "${{ inputs.suite }}" == "offline-real" ]]; then
+            # The real release, installed in the browser and answering with the network cut off.
+            journeys=(offline-real)
           else
             # Excludes native Office and Android: those cannot be proved by Playwright.
             # Real Gemini is not used here; the fixture deliberately scripts model outputs.
