@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 import unittest.mock
@@ -629,3 +630,31 @@ class AccessibilityTest(unittest.TestCase):
             self.assertEqual(ocade_accessibility.inspect("OCADE gate probe")["status"], "done")
         finally:
             form.kill()
+
+
+class FinalStopTest(unittest.TestCase):
+    """P02: STOP that arrives while a target is being found reaches the effect itself."""
+
+    def test_stop_during_app_lookup_never_launches(self):
+        stop = threading.Event()
+        pc = Computer(None)
+
+        def found(name, cancel):
+            stop.set()  # STOP pressed while the app list was being read
+            return {"name": name, "launch": "x"}
+
+        with unittest.mock.patch.object(Computer, "_app_named", staticmethod(found)), \
+                unittest.mock.patch.object(ocade_computer, "_launch") as launch:
+            out = pc._open_app("Anything", stop)
+        self.assertTrue(out.get("stopped"), out)
+        launch.assert_not_called()
+
+    def test_stop_before_a_system_action_never_runs_it(self):
+        stop = threading.Event()
+        stop.set()
+        pc = Computer(None)
+        with unittest.mock.patch.dict(os.environ, {"OCADE_JARVIS_DRY_SYSTEM": ""}), \
+                unittest.mock.patch.object(ocade_computer.subprocess, "Popen") as popen:
+            out = pc._system("lock", True, stop)
+        self.assertTrue(out.get("stopped") or out["status"] == "failed", out)
+        popen.assert_not_called()

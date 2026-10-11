@@ -339,7 +339,7 @@ class Computer:
             if kind == "run":
                 return self._run(str(action.get("command", "")), action.get("cwd"), confirmed, cancel)
             if kind == "system":
-                return self._system(str(action.get("op", "")), confirmed)
+                return self._system(str(action.get("op", "")), confirmed, cancel)
             if kind == "setting":
                 import ocade_settings
                 return ocade_settings.setting(str(action.get("name", "")),
@@ -364,7 +364,7 @@ class Computer:
                 if self._gui() is None:
                     return {"status": "blocked", "summary": "This computer does not allow screen control"}
                 with self._lock:
-                    return self._window(kind, action, confirmed)
+                    return self._window(kind, action, confirmed, cancel)
         except ScopeError as e:
             return {"status": "blocked", "summary": str(e)}
         except Exception as e:  # reported, never retried blindly
@@ -399,6 +399,8 @@ class Computer:
             return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
         if app is None:
             return {"status": "failed", "summary": f"{name} is not installed on this computer"}
+        if cancel.is_set():  # STOP while the app was being found: it is not opened
+            return dict(STOPPED)
         _launch(app)
         return {"status": "done", "summary": f"Opened {app['name']}"}
 
@@ -905,7 +907,7 @@ class Computer:
                   "restart": ["systemctl", "reboot"], "shut_down": ["systemctl", "poweroff"]},
     }
 
-    def _system(self, op: str, confirmed: bool) -> dict:
+    def _system(self, op: str, confirmed: bool, cancel: threading.Event) -> dict:
         command = self.SYSTEM_COMMANDS.get(SYSTEM, {}).get(op)
         if not command:
             return {"status": "failed", "summary": "That system action is not available here"}
@@ -913,6 +915,8 @@ class Computer:
             return {"status": "needs_confirmation", "summary": f"Confirm: {op.replace('_', ' ')} this computer"}
         if os.environ.get("OCADE_JARVIS_DRY_SYSTEM") == "1":
             return {"status": "done", "summary": f"Would run {' '.join(command)}"}
+        if cancel.is_set():
+            return dict(STOPPED)
         subprocess.Popen(command)
         return {"status": "done", "summary": f"Asked the computer to {op.replace('_', ' ')}"}
 
@@ -991,7 +995,8 @@ class Computer:
                     pass
         return None
 
-    def _window(self, kind: str, action: dict, confirmed: bool) -> dict:
+    def _window(self, kind: str, action: dict, confirmed: bool,
+                cancel: threading.Event | None = None) -> dict:
         """Existing app windows first (never a script built from a title)."""
         import pygetwindow
         if kind == "window_list":
@@ -1012,6 +1017,8 @@ class Computer:
         state = str(action.get("state", "focus"))
         if state == "close" and not confirmed:
             return {"status": "needs_confirmation", "summary": f"Close “{window.title[:80]}”?"}
+        if cancel is not None and cancel.is_set():  # STOP while the window was being found
+            return dict(STOPPED)
         self.guard.ours()
         if state == "minimize":
             window.minimize()
