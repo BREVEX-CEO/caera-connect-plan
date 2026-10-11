@@ -540,10 +540,12 @@ class Agent:
         confirmed = bool(command.get("confirmed"))
         browser = action.get("action") in BROWSER_ACTIONS
         try:
-            outcome = (self.browsers.run(mode, action, confirmed, command.get("sites", []), cancel,
-                                         self.computer.root)
-                       if browser else
-                       self.computer.run(action, confirmed, cancel))
+            if browser:
+                outcome = self.browsers.run(mode, action, confirmed, command.get("sites", []), cancel,
+                                            self.computer.root)
+            else:
+                self.computer.refuse_apps(command.get("never") or [])
+                outcome = self.computer.run(action, confirmed, cancel)
         except Exception as e:  # a crashed action is reported, never retried blindly
             outcome = {"status": "failed", "summary": f"The action failed ({type(e).__name__})"}
         live = (outcome.get("observation") or {}).pop("frame", None) or (

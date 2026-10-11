@@ -250,7 +250,8 @@ def automation_server(extension: str) -> dict | None:
     friendly = 4  # ASSOCSTR_FRIENDLYAPPNAME
     query = ctypes.windll.shlwapi.AssocQueryStringW
     shown = query(0, friendly, extension.lower(), None, name, ctypes.byref(size)) == 0
-    return {"progId": prog_id, "app": name.value if shown else Path(program(server)).stem.capitalize()}
+    return {"progId": prog_id, "app": name.value if shown else Path(program(server)).stem.capitalize(),
+            "program": Path(program(server)).name}
 
 
 def backup(path: Path, undo_dir: Path) -> Path:

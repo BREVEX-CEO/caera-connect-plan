@@ -46,6 +46,16 @@ PROTECTED = {"status": "blocked",
              "summary": "JARVIS does not read or operate password managers, sign-in prompts or "
                         "security settings. Take over for this part."}
 
+# Programs of the apps the person set to Never, by program file name (lower case) -> app name.
+# Set for each action by the computer; reaching one by UI, screen or keys is refused (audit E04).
+NEVER: dict[str, str] = {}
+
+
+def _never(owner: str) -> dict | None:
+    app = NEVER.get(owner)
+    return None if app is None else {
+        "status": "blocked", "summary": f"{app} is set to Never in Devices, under Apps and websites."}
+
 
 def _owner(control) -> str:
     import psutil
@@ -65,23 +75,26 @@ def _hidden_from_capture(control) -> bool:
         handle, ctypes.byref(affinity))) and affinity.value != 0
 
 
-def _protected(control) -> bool:
-    """A password manager, a credential prompt or Windows Security owns this control, the window
-    holding it, or (for Store apps, whose frame belongs to ApplicationFrameHost) the app inside it;
-    or any window holding it keeps itself out of screen capture."""
+def _protected(control) -> dict | None:
+    """Why this control may not be read or operated, or None: a password manager, a credential
+    prompt or Windows Security owns it, the window holding it, or (for Store apps, whose frame
+    belongs to ApplicationFrameHost) the app inside it; any window holding it keeps itself out
+    of screen capture; or it belongs to an app the person set to Never."""
     protected = _gates()[2]
     node = control
     for _ in range(8):  # an unreadable step raises: the caller refuses rather than guesses
         if node is None:
             break
-        owner = _owner(node)
-        if owner in protected or _hidden_from_capture(node):
-            return True
-        if owner == "applicationframehost.exe":
-            if any(_owner(child) in protected for child in node.GetChildren()):
-                return True
+        owners = [_owner(node)]
+        if owners[0] == "applicationframehost.exe":
+            owners += [_owner(child) for child in node.GetChildren()]
+        if any(owner in protected for owner in owners) or _hidden_from_capture(node):
+            return PROTECTED
+        for owner in owners:
+            if refused := _never(owner):
+                return refused
         node = node.GetParentControl()
-    return False
+    return None
 
 
 class _State:
@@ -144,8 +157,8 @@ def inspect(title: str | None = None, find: str | None = None, cancel=None) -> d
         window = _window(title)
         if window is None:
             return {"status": "failed", "summary": "No such window is open"}
-        if _protected(window):
-            return PROTECTED
+        if refused := _protected(window):
+            return refused
         _State.seq += 1
         obs_id = f"u{_State.seq}"
         refs, elements = {}, []
@@ -225,8 +238,8 @@ def gate_at(x: int | None, y: int | None, confirmed: bool, press: bool = False) 
         # Whole pixels: a desktop point is a float, and UI Automation refused one, which
         # the caller read as "unreadable" and let every coordinate click through.
         control = auto.GetFocusedControl() if x is None else auto.ControlFromPoint(round(x), round(y))
-        if control is not None and _protected(control):
-            return PROTECTED
+        if control is not None and (refused := _protected(control)):
+            return refused
         if x is None and control is not None and control.IsPassword:
             return {"status": "human_required",
                     "summary": "A password is needed. Take over and type it yourself."}
@@ -267,8 +280,8 @@ def act(action: dict, confirmed: bool, cancel=None) -> dict:
             return {"status": "stale", "summary": "That control changed or is gone.",
                     "observation": inspect(window.Name if window else None).get("observation")}
         purchase, sensitive, _ = _gates()
-        if _protected(control):
-            return PROTECTED
+        if refused := _protected(control):
+            return refused
         if op in ("invoke", "toggle", "select") and purchase.search(name):
             return {"status": "blocked", "summary": "JARVIS never completes a purchase or payment"}
         if op in ("invoke", "toggle", "select") and sensitive.search(name) and not confirmed:

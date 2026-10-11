@@ -547,6 +547,35 @@ class ScreenTest(unittest.TestCase):
                          "needs_confirmation")
 
 
+class NeverAppsTest(unittest.TestCase):
+    """Audit E04: an app set to Never is not reached by a command, a window or Office either."""
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp())
+        self.pc = Computer(str(self.root))
+
+    def test_a_command_starting_a_never_app_is_refused(self):
+        program = Path(sys.executable).name
+        self.pc.never = {program.lower(): "Python"}
+        out = self.pc.run({"action": "run", "command": f"{program} -c print(1)"}, confirmed=True)
+        self.assertEqual(out["status"], "blocked", out)
+        self.assertIn("Python is set to Never", out["summary"])
+        self.pc.never = {}
+        self.assertNotIn("set to Never", str(self.pc.run({"action": "run", "command": f"{program} -c print(1)"})))
+
+    def test_the_refusal_names_the_app_only_for_its_program(self):
+        self.pc.never = {"editor.exe": "Editor"}
+        self.assertIn("Editor", self.pc._never_refusal("C:/Apps/Editor.EXE")["summary"])
+        self.assertIsNone(self.pc._never_refusal("C:/Apps/other.exe"))
+        self.assertIsNone(self.pc._never_refusal(None))
+
+    def test_no_never_apps_clears_what_was_set(self):
+        self.pc.never = {"editor.exe": "Editor"}
+        self.pc._never_names = {"editor"}
+        self.pc.refuse_apps([])
+        self.assertEqual(self.pc.never, {})
+
+
 class AppNamesTest(unittest.TestCase):
     """Audit C07: apps are found by their own names in any script, and none is hidden by another."""
 

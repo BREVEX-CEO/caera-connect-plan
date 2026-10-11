@@ -320,6 +320,8 @@ class Computer:
         self._lock = threading.Lock()  # one controller of mouse and keyboard at a time
         self._undo: list[tuple] = []  # (what was done, how to reverse it, its result, the result's print)
         self._made: set[Path] = set()  # files JARVIS itself created or copied: free to edit
+        self.never: dict[str, str] = {}  # program file (lower case) -> the app set to Never
+        self._never_names: set[str] = set()
         # Linux: a real filesystem boundary. Elsewhere: one direct program in the workspace.
         self.sandbox = "bubblewrap" if SYSTEM == "Linux" and shutil.which("bwrap") else (
             None if SYSTEM == "Linux" else "workspace")
@@ -347,6 +349,33 @@ class Computer:
                 "terminal": self.root is not None and self.sandbox is not None,
                 # Only a real filesystem boundary confines what a script inside a command does.
                 "terminal_sandbox": self.sandbox == "bubblewrap"}
+
+    # -- apps set to Never -------------------------------------------------------------
+
+    def refuse_apps(self, names: list[str]) -> None:
+        """The apps the person set to Never, for the next action: their programs, found from this
+        computer's own app list, are refused on every route (UI, screen, keys, window, command,
+        Office). An app whose program cannot be found here cannot be reached by name either."""
+        wanted = {str(name).lower() for name in names}
+        if not wanted:
+            self.never = {}
+        elif wanted != self._never_names:
+            import ocade_discovery
+            apps = _APPS["list"] if time.monotonic() - _APPS["at"] < APPS_FRESH_S else installed_apps()
+            found = {}
+            for app in apps:
+                if app["name"].lower() in wanted and (program := ocade_discovery._program(app)):
+                    found[Path(program).name.lower()] = app["name"]
+            self.never = found
+        self._never_names = wanted
+        if SYSTEM == "Windows":
+            import ocade_accessibility
+            ocade_accessibility.NEVER = self.never
+
+    def _never_refusal(self, program: str | None) -> dict | None:
+        app = self.never.get(Path(program).name.lower()) if program else None
+        return None if app is None else {
+            "status": "blocked", "summary": f"{app} is set to Never in Devices, under Apps and websites."}
 
     # -- one action ----------------------------------------------------------------
 
@@ -646,8 +675,11 @@ class Computer:
             if kind == "sheet_inspect":
                 return {"status": "done", "summary": f"Inspected {rel}",
                         "workbook": ocade_sheets.inspect(path, sheet)}
+            # An app set to Never is not opened to do it: the file itself is edited instead.
+            server = ocade_sheets.automation_server(path.suffix)
+            engine = "file" if server and self._never_refusal(server.get("program")) else None
             out = ocade_sheets.edit(path, sheet, list(action.get("ops") or []), self._undo_dir(), cancel,
-                                   close=bool(action.get("_close")))
+                                   engine=engine, close=bool(action.get("_close")))
         except ocade_sheets.SheetError as e:
             return {"status": "failed", "summary": str(e)}
         except KeyError:
@@ -683,6 +715,10 @@ class Computer:
         if not path.is_file():
             return {"status": "failed", "summary": f"{rel} does not exist"}
         if refused := self._original(path, rel, action):
+            return refused
+        import ocade_sheets
+        server = ocade_sheets.automation_server(path.suffix)
+        if server and (refused := self._never_refusal(server.get("program"))):
             return refused
         try:
             out = ocade_documents.edit_document(path, list(action.get("ops") or []), self._undo_dir(), cancel,
@@ -860,6 +896,12 @@ class Computer:
     # -- commands: inside the workspace, bounded, isolated where the host allows -----
 
     def _run(self, command: str, cwd: str | None, confirmed: bool, cancel: threading.Event) -> dict:
+        try:  # the program a command starts is never an app the person set to Never
+            first = shlex.split(command, posix=SYSTEM != "Windows")[0].strip("\"'")
+        except (ValueError, IndexError):
+            first = ""
+        if first and (refused := self._never_refusal(shutil.which(first) or first)):
+            return refused
         if self.sandbox is None:
             return {"status": "blocked",
                     "summary": "Running commands is not available on this computer yet"}
@@ -1091,6 +1133,8 @@ class Computer:
             return {"status": "failed", "summary": "Several windows match; use the full title",
                     "windows": [w.title for w in matches][:10]}
         window = max(exact or matches, key=lambda w: (w.visible, w.width * w.height))
+        if refused := self._never_refusal(_window_program(window)):
+            return refused
         title = window.title  # read now: a closed window has no title left to report
         state = str(action.get("state", "focus"))
         if state == "close" and not confirmed:
@@ -1287,6 +1331,22 @@ def _starts_things(folder: Path) -> bool:
 
 class _Stopped(Exception):
     pass
+
+
+def _window_program(window) -> str | None:
+    """The program file of the process that owns a window, where Windows says."""
+    handle = getattr(window, "_hWnd", None)
+    if SYSTEM != "Windows" or not handle:
+        return None
+    import ctypes
+
+    import psutil
+    pid = ctypes.c_ulong(0)
+    ctypes.windll.user32.GetWindowThreadProcessId(handle, ctypes.byref(pid))
+    try:
+        return psutil.Process(pid.value).name()
+    except psutil.Error:
+        return None
 
 
 def _front_window_title() -> str | None:

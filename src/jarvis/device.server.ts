@@ -15,7 +15,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import contract from "../../jarvis-runtime/ocade_protocol.json";
-import { needsConfirmation, refuseAction } from "./permissions";
+import { appDecision, needsConfirmation, refuseAction } from "./permissions";
 import type { DeviceAction } from "./protocol";
 
 type Admin = SupabaseClient<Database>;
@@ -474,6 +474,8 @@ export interface DeviceCommand {
   mode: "isolated" | "real";
   /** Sites the person allowed; only these may resolve to a private network address. */
   sites: string[];
+  /** Apps set to Never for this computer: no route may reach them (audit E04). */
+  never: string[];
 }
 
 export async function exchange(
@@ -861,6 +863,11 @@ export async function exchange(
   const sites = permissions
     .filter((p) => p.allowed && p.device_id === null && p.capability.startsWith("site:"))
     .map((p) => p.capability.slice(5));
+  const never = [
+    ...new Set(
+      permissions.filter((p) => p.capability.startsWith("app:")).map((p) => p.capability.slice(4)),
+    ),
+  ].filter((name) => appDecision(permissions, name, device.id) === false);
   return {
     ...envelope,
     commands: run.map((step) => ({
@@ -870,6 +877,7 @@ export async function exchange(
       confirmed: step.confirmed,
       mode,
       sites,
+      never,
     })),
     cancel,
     rotated,

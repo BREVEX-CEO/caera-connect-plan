@@ -165,6 +165,22 @@ describe("dispatch", () => {
     }
   });
 
+  it("tells the computer which apps are set to Never, so no route reaches them (E04)", async () => {
+    const t = await task();
+    await permit("files", true);
+    await permit("app:editor", false);
+    await permit("app:browser", true);
+    await twin.asServiceRole(
+      `insert into public.jarvis_permissions (user_id, capability, allowed, device_id)
+       values ('${A}', 'app:notes', false, '${device}'), ('${A}', 'app:mail', false, null),
+              ('${A}', 'app:mail', true, '${device}')`,
+    );
+    await queue(t, { action: "file_list", path: "." });
+    const [command] = (await run({ results: [] })).commands;
+    // Account-wide or for this computer; this computer's own Always wins over an account Never.
+    expect([...command!.never].sort()).toEqual(["editor", "notes"]);
+  });
+
   it("refuses when the master switch was turned off", async () => {
     const t = await task();
     await permit("files", true);
