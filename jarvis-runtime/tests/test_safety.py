@@ -141,6 +141,25 @@ class StopTest(unittest.TestCase):
                                                 "summary": "Stopped before it started"})
         self.assertEqual(self.ended, [])  # it never ran
 
+    def test_exit_with_a_task_running_tells_ocade_stop_before_ending(self):
+        """P11: Exit used to end the loop at once; OCADE never heard the STOP."""
+        sent = {"n": 0}
+
+        def reply(body):
+            sent["n"] += 1
+            return {"commands": [self.command] if sent["n"] == 1 else [], "busy": True}
+
+        agent, identity = _agent(self.home, reply)
+        self._slow_action(agent)
+        runner = self._run(agent, 0)
+        time.sleep(1.5)
+        agent.stop_everything()  # the tray's Exit: STOP, then end
+        agent.stop.set()
+        runner.join(10)
+        last = identity.bodies[-1]
+        self.assertTrue(last.get("stop"), last)
+        self.assertEqual([r["id"] for r in last["results"]], ["a1"])
+
     def _segment(self, n):
         return [{"id": f"s{i}", "taskId": "t1", "action": {"action": "file_list", "path": str(i)}}
                 for i in range(1, n + 1)]

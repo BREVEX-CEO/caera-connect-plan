@@ -624,6 +624,8 @@ The following mandatory steps and verification criteria come from the latest own
 
 **Tests:** tampering, occupied port, wrong profile, multi-account chooser, interrupted update, revoked device and existing-profile preservation.
 
+**Work record — P11 Exit stops owned work (11 October 2026):** Reproduced by test: tray Exit with a task running set STOP and ended the exchange loop at once, so OCADE never heard the STOP and the task stayed "running" until orphan detection paused it. **FIX:** after halting, a pending STOP is sent in one last best-effort exchange with the halted step's result; anything not received stays in the result journal for the next start. Test fails without the fix; safety/agent 59/59 PASS. Still OPEN (installed-lifecycle, manual): signed installer identity, pairing fingerprint display, reboot/sign-out/revoke matrix, Chrome default-profile vs managed profile, idle CPU/RSS measurement, uninstall/reinstall. Evidence class LOCAL.
+
 ### P12 — Make voice interruptible without duplicating the task engine
 
 **Current:** `src/jarvis/use-voice.ts` stops recognition during speech output and waits before restarting; a button interruption is not spoken barge-in. Output error handling must not leave the speaking state stuck.

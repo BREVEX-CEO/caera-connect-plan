@@ -440,6 +440,16 @@ class Agent:
             else:
                 self.stop.wait(POLL_IDLE_SECONDS if self.state["busy"] else self.DORMANT_S)
         self._halt(active)
+        if self.stop_all.is_set():
+            # Exit with a task open: OCADE hears the STOP before the agent ends, best effort;
+            # whatever it did not receive stays in the journal for the next start.
+            results += [outcome for outcome, _live in (active or {}).get("done", [])]
+            try:
+                self.identity.exchange({"results": results, "stop": True, "running": []})
+                results = []
+            except Exception:
+                pass
+            self._keep_pending(results)
         return 0
 
     def _start(self, commands: list[dict]) -> dict:
