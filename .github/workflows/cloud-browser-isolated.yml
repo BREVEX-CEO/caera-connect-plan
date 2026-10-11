@@ -38,7 +38,6 @@ jobs:
     env:
       # Never point the harness at an account, real database, or deployed site.
       CI: "true"
-      OCADE_VISUAL_DIR: "${{ runner.temp }}/ocade-visual"
     steps:
       - name: Checkout requested branch in cloud only
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
