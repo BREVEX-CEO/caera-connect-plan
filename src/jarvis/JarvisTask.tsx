@@ -162,14 +162,22 @@ export function BrowserPanel({
   onResume: () => void;
 }) {
   // Held with the task it shows: another task's picture is never shown under this one.
-  const [shown, setShown] = useState<{ taskId: string; frame: string | null } | null>(null);
+  const [shown, setShown] = useState<{
+    taskId: string;
+    frame: string | null;
+    at: string | null;
+  } | null>(null);
   const frame = shown?.taskId === task.id ? shown.frame : null;
+  const at = shown?.taskId === task.id && shown.at ? new Date(shown.at) : null;
+  // Older than a few polls, or the task is not running: the picture is history, not "now".
+  const stale = !at || Date.now() - at.getTime() > 10_000 || task.status !== "running";
+  const when = at ? at.toLocaleTimeString() : null;
   useEffect(() => {
     if (!open) return;
     let live = true;
     const pull = () =>
       readJarvisFrame({ data: { taskId: task.id } })
-        .then((value) => live && setShown({ taskId: task.id, frame: value.frame }))
+        .then((value) => live && setShown({ taskId: task.id, frame: value.frame, at: value.at }))
         .catch(() => undefined);
     void pull();
     const timer = window.setInterval(pull, 1500);
@@ -206,12 +214,26 @@ export function BrowserPanel({
       {open ? (
         <div className="px-3">
           {frame ? (
-            <img
-              src={`data:image/jpeg;base64,${frame}`}
-              alt="What JARVIS currently sees in the browser"
-              className="w-full rounded-md border border-border/60"
-              data-testid="jarvis-live-frame"
-            />
+            <figure>
+              <img
+                src={`data:image/jpeg;base64,${frame}`}
+                alt={
+                  stale
+                    ? `What the browser showed at ${when ?? "an unknown time"}`
+                    : "What JARVIS currently sees in the browser"
+                }
+                className={cn("w-full rounded-md border border-border/60", stale && "opacity-60")}
+                data-testid="jarvis-live-frame"
+              />
+              <figcaption
+                className="pt-1 text-xs text-muted-foreground"
+                data-testid="jarvis-frame-time"
+              >
+                {stale
+                  ? `Not current: captured ${when ?? "at an unknown time"}`
+                  : `Live, captured ${when}`}
+              </figcaption>
+            </figure>
           ) : (
             <p className="py-6 text-center text-xs text-muted-foreground">No live view yet.</p>
           )}

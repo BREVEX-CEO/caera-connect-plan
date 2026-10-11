@@ -670,7 +670,7 @@ export async function exchange(
   if (input.frame) {
     await admin
       .from("jarvis_tasks")
-      .update({ live_frame: input.frame.jpeg })
+      .update({ live_frame: input.frame.jpeg, live_frame_at: now })
       .eq("id", input.frame.taskId)
       .eq("device_id", device.id)
       .in("status", ["running", "waiting", "taken_over"]);

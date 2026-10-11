@@ -434,6 +434,7 @@ export type Database = {
           finished_at: string | null
           id: string
           live_frame: string | null
+          live_frame_at: string | null
           plan: Json
           result: string | null
           status: string
@@ -453,6 +454,7 @@ export type Database = {
           finished_at?: string | null
           id?: string
           live_frame?: string | null
+          live_frame_at?: string | null
           plan?: Json
           result?: string | null
           status?: string
@@ -472,6 +474,7 @@ export type Database = {
           finished_at?: string | null
           id?: string
           live_frame?: string | null
+          live_frame_at?: string | null
           plan?: Json
           result?: string | null
           status?: string

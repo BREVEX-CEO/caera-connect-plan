@@ -975,10 +975,13 @@ export const readJarvisFrame = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("jarvis_tasks")
-      .select("live_frame, status")
+      .select("live_frame, live_frame_at, status")
       .eq("id", data.taskId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     const live = row && !FINISHED.includes(row.status as TaskStatus);
-    return { frame: live ? (row.live_frame as string | null) : null };
+    return {
+      frame: live ? (row.live_frame as string | null) : null,
+      at: live ? (row.live_frame_at as string | null) : null,
+    };
   });
