@@ -24,7 +24,14 @@ const failing = new Set<string>();
 const deleteUser = vi.fn(async () => ({ error: null }));
 const updates: { values: Record<string, unknown>; ids: unknown }[] = [];
 let storageError: { message: string } | null = null;
-let owed: { id: string; bucket: string; storage_path: string; attempts: number }[] = [];
+let owed: {
+  id: string;
+  bucket: string;
+  storage_path: string;
+  attempts: number;
+  owner_id: string;
+}[] = [];
+let countError: { message: string } | null = null;
 let staffRole: string | null = null;
 
 function table(name: string) {
@@ -35,7 +42,7 @@ function table(name: string) {
   chain.insert = async () => ({ error: null });
   chain.select = () => {
     const read: Record<string, unknown> = {};
-    for (const m of ["eq", "is", "order"]) read[m] = () => read;
+    for (const m of ["eq", "is", "not", "lt", "order"]) read[m] = () => read;
     read.limit = async () => {
       const rows = owed;
       owed = [];
@@ -45,7 +52,10 @@ function table(name: string) {
       data: name === "ocade_staff" && staffRole ? { role: staffRole } : null,
       error: null,
     });
-    read.then = (resolve: (v: unknown) => void) => resolve({ count: owed.length });
+    read.then = (resolve: (v: unknown) => void) =>
+      resolve(
+        countError ? { count: null, error: countError } : { count: owed.length, error: null },
+      );
     return read;
   };
   chain.update = (values: Record<string, unknown>) => ({
@@ -81,6 +91,7 @@ beforeEach(() => {
   updates.length = 0;
   storageError = null;
   owed = [];
+  countError = null;
   staffRole = null;
 });
 
@@ -114,7 +125,7 @@ describe("account deletion", () => {
 
 describe("tombstone sweep", () => {
   it("acknowledges a tombstone only after Storage confirms removal", async () => {
-    owed = [{ id: "t1", bucket: "library", storage_path: "u1/a", attempts: 0 }];
+    owed = [{ id: "t1", bucket: "library", storage_path: "u1/a", attempts: 0, owner_id: "u1" }];
     const { sweepTombstones } = await import("../../library/tombstones.server");
     await sweepTombstones("u1");
     expect(updates).toHaveLength(1);
@@ -123,12 +134,31 @@ describe("tombstone sweep", () => {
   });
 
   it("keeps a tombstone pending with its error when Storage refuses", async () => {
-    owed = [{ id: "t2", bucket: "library", storage_path: "u1/b", attempts: 1 }];
+    owed = [{ id: "t2", bucket: "library", storage_path: "u1/b", attempts: 1, owner_id: "u1" }];
     storageError = { message: "storage unavailable" };
     const { sweepTombstones } = await import("../../library/tombstones.server");
     const result = await sweepTombstones("u1");
     expect(result.pending).toBe(1);
     expect(updates[0]!.values).toEqual({ attempts: 2, last_error: "storage unavailable" });
     expect(updates.some((u) => "purged_at" in u.values)).toBe(false);
+  });
+
+  it("the scheduled sweep settles an erased account's files and never another folder", async () => {
+    owed = [
+      { id: "t3", bucket: "library", storage_path: "gone/c", attempts: 3, owner_id: "gone" },
+      { id: "t4", bucket: "library", storage_path: "other/d", attempts: 0, owner_id: "gone" },
+    ];
+    const { sweepTombstones } = await import("../../library/tombstones.server");
+    await sweepTombstones(null, 1);
+    const closed = updates.find((u) => u.values.last_error === "Not this account's object");
+    expect(closed?.ids).toEqual(["t4"]);
+    expect(updates.find((u) => u.values.last_error === null)?.ids).toEqual(["t3"]);
+  });
+
+  it("reports an uncountable backlog as unknown, never as nothing pending", async () => {
+    owed = [{ id: "t5", bucket: "library", storage_path: "u1/e", attempts: 0, owner_id: "u1" }];
+    countError = { message: "count failed" };
+    const { sweepTombstones } = await import("../../library/tombstones.server");
+    expect((await sweepTombstones("u1", 1)).pending).toBe(-1);
   });
 });

@@ -482,6 +482,8 @@ Owners: account data-class map, `buildAccountExport`, deletion and tombstone own
 
 **Tests:** concurrent data changes, storage outage, auth deletion before cleanup, restart, orphan objects and wrong account.
 
+**Work record — P06 step 5 and unknown counts (11 October 2026):** Reproduced by source trace: storage tombstones outlive the identity (no FK, by design), but they were retried only "at the next deletion by the same owner", which never comes after erasure; and a failed pending count became `count ?? 0` (unknown reported as nothing pending). **FIX:** one sweep owner `sweepTombstones(ownerId | null)`: null sweeps every account's due objects under a 10-attempt budget (row and last error kept for an operator), each object checked against its own row's owner folder; `cloudflare-entry.ts` `scheduled` runs one bounded batch a minute beside the JARVIS clock; an uncountable backlog reports -1. Tests: 2 fail without the fix, 8/8 PASS. Still OPEN: export cursor/snapshot contract (steps 2–3), erasure intent persistence and receipts, per-attempt backoff timestamps, operator dashboard for dead-lettered rows, real Storage outage proof. Evidence class LOCAL (fake service client).
+
 ### P07 — Make Offline Intelligence survive a real cold offline start
 
 **KEEP** the existing model, OPFS vault, installation authority, runtime activation, Web Locks, signed lease and single usage settlement. **Current gap:** `installation-browser.ts` consults an authenticated release resolver before `installation-authority.ts` checks local bytes; a new offline document may fail despite an installed model. Warm-tab tests do not establish cold-start operation.

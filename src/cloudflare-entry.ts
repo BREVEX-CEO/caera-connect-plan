@@ -5,6 +5,17 @@ import { useNitroApp as getNitroApp, useNitroHooks as getNitroHooks } from "nitr
 
 import { canonicalOriginRedirect, withPublicSecurityHeaders } from "./lib/security/public-response";
 
+/** One bounded batch a minute: file deletions still owed, also for accounts already erased. */
+async function runErasureSweep(): Promise<void> {
+  try {
+    const { sweepTombstones } = await import("./lib/library/tombstones.server");
+    const { pending } = await sweepTombstones(null, 1);
+    if (pending !== 0) console.warn("erasure.pending", pending);
+  } catch (error) {
+    console.error("erasure.sweep", error instanceof Error ? error.message : "failed");
+  }
+}
+
 async function runJarvisClock(): Promise<void> {
   try {
     const { supabaseAdmin } = await import("./integrations/supabase/client.server");
@@ -143,6 +154,7 @@ export default {
           Promise.resolve(),
         // Every minute: JARVIS reminders and scheduled work that are due.
         runJarvisClock(),
+        runErasureSweep(),
       ]),
     );
   },

@@ -4,31 +4,42 @@
  * A deleted Library row leaves a tombstone naming its object (trigger-written,
  * so cascades cannot skip it). This removes those objects and marks a
  * tombstone purged only after Storage confirms. A failure stays pending with
- * its error, and the next deletion by the same owner retries it. The service
- * role is needed because no browser role may write tombstones; the scope is
- * always one owner, chosen by the server.
+ * its error. One owner's sweep runs at their deletion; the scheduled sweep
+ * (`ownerId` null) retries every account's due objects, including accounts
+ * already erased, until the attempt budget is spent and the row stays for an
+ * operator. The service role is needed because no browser role may write
+ * tombstones; every object is checked against its own row's owner folder.
+ * `pending` is -1 when it could not be counted: unknown is never zero.
  */
 const BATCH = 500;
 const MAX_BATCHES = 20;
+const MAX_ATTEMPTS = 10;
 
-export async function sweepTombstones(ownerId: string): Promise<{ pending: number }> {
+export async function sweepTombstones(
+  ownerId: string | null,
+  maxBatches = MAX_BATCHES,
+): Promise<{ pending: number }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  for (let batch = 0; batch < MAX_BATCHES; batch += 1) {
-    const { data: owed, error } = await supabaseAdmin
+  const due = () => {
+    const query = supabaseAdmin
       .from("storage_tombstones")
-      .select("id, bucket, storage_path, attempts")
-      .eq("owner_id", ownerId)
+      .select("id, bucket, storage_path, attempts, owner_id")
       .is("purged_at", null)
-      .order("requested_at")
-      .limit(BATCH);
+      .not("owner_id", "is", null);
+    return ownerId ? query.eq("owner_id", ownerId) : query.lt("attempts", MAX_ATTEMPTS);
+  };
+
+  for (let batch = 0; batch < maxBatches; batch += 1) {
+    const { data: owed, error } = await due().order("requested_at").limit(BATCH);
     if (error) throw new Error(error.message);
     if (!owed?.length) return { pending: 0 };
 
     let settled = 0;
-    // Only this owner's own folder is ever removed with the service role. A path that names
+    // Only an owner's own folder is ever removed with the service role. A path that names
     // somebody else's object (a forged index row) is closed without touching it.
-    const foreign = owed.filter((row) => !row.storage_path.startsWith(`${ownerId}/`));
+    const ownFolder = (row: (typeof owed)[number]) =>
+      row.storage_path.startsWith(`${row.owner_id}/`);
+    const foreign = owed.filter((row) => !ownFolder(row));
     if (foreign.length) {
       const closed = await supabaseAdmin
         .from("storage_tombstones")
@@ -40,7 +51,7 @@ export async function sweepTombstones(ownerId: string): Promise<{ pending: numbe
       if (closed.error) throw new Error(closed.error.message);
       settled += foreign.length;
     }
-    const own = owed.filter((row) => row.storage_path.startsWith(`${ownerId}/`));
+    const own = owed.filter(ownFolder);
     for (const bucket of new Set(own.map((row) => row.bucket))) {
       const rows = own.filter((row) => row.bucket === bucket);
       // Removing an object that is already gone is not an error, so a retry
@@ -71,10 +82,13 @@ export async function sweepTombstones(ownerId: string): Promise<{ pending: numbe
     if (settled === 0) return { pending: owed.length };
   }
 
-  const { count } = await supabaseAdmin
+  const counted = supabaseAdmin
     .from("storage_tombstones")
     .select("id", { count: "exact", head: true })
-    .eq("owner_id", ownerId)
-    .is("purged_at", null);
-  return { pending: count ?? 0 };
+    .is("purged_at", null)
+    .not("owner_id", "is", null);
+  const { count, error } = await (ownerId
+    ? counted.eq("owner_id", ownerId)
+    : counted.lt("attempts", MAX_ATTEMPTS));
+  return { pending: error || count === null ? -1 : count };
 }
