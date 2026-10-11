@@ -235,3 +235,32 @@ describe("a turn the account saved while its answer was lost", () => {
     ).resolves.toBe(true);
   });
 });
+
+describe("two tabs saving offline at the same moment (P07)", () => {
+  it("both use one key, so a restart can read every turn", async () => {
+    const turn = (clientKey: string) => ({
+      clientKey,
+      conversationId: "c2",
+      role: "user" as const,
+      content: `held ${clientKey}`,
+      modelId: null,
+      providerId: null,
+      attachments: [],
+      createdAt: "2026-10-11T10:00:00.000Z",
+    });
+    const first = await boot("account-race");
+    const second = await boot("account-race");
+    await Promise.all([
+      first.rememberUnsyncedTurn(turn("tab-1")),
+      second.rememberUnsyncedTurn(turn("tab-2")),
+    ]);
+    const restarted = await boot("account-race");
+    expect(
+      restarted
+        .unsyncedTurns()
+        .map((t) => t.clientKey)
+        .sort(),
+    ).toEqual(["tab-1", "tab-2"]);
+    await restarted.forgetAllUnsyncedTurns("account-race");
+  });
+});

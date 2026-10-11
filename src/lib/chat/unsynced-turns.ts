@@ -88,8 +88,18 @@ function keyFor(accountId: string): Promise<CryptoKey> {
         "encrypt",
         "decrypt",
       ]);
-      await run(KEYS, "readwrite", (s) => s.put({ accountId, key: made }));
-      return made;
+      // `add`, not `put`: another tab that made its key first keeps it, and this one uses
+      // theirs, so no turn is ever written under a key that is then replaced.
+      try {
+        await run(KEYS, "readwrite", (s) => s.add({ accountId, key: made }));
+        return made;
+      } catch (lost) {
+        const won = await run<{ key: CryptoKey } | undefined>(KEYS, "readonly", (s) =>
+          s.get(accountId),
+        );
+        if (won) return won.key;
+        throw lost;
+      }
     })();
     keys.set(accountId, key);
     key.catch(() => keys.delete(accountId));
@@ -131,8 +141,7 @@ async function load(accountId: string): Promise<void> {
       const turn = JSON.parse(new TextDecoder().decode(plain)) as UnsyncedTurn;
       if (account === accountId) buffer.set(turn.clientKey, turn);
     } catch {
-      // Unreadable (key gone): it can never be sent, so it is dropped.
-      await run(TURNS, "readwrite", (s) => s.delete(row.clientKey));
+      // Unreadable: kept, never silently deleted; signing out or erasure removes it.
     }
   }
 }
