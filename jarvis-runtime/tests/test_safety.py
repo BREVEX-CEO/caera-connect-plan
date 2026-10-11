@@ -160,6 +160,27 @@ class StopTest(unittest.TestCase):
         self.assertTrue(last.get("stop"), last)
         self.assertEqual([r["id"] for r in last["results"]], ["a1"])
 
+    def test_a_step_cut_off_by_a_crash_is_reported_unknown_never_lost(self):
+        """P03: intent is written before a step runs; after a crash its outcome is unknown."""
+        agent, _ = _agent(self.home, lambda body: {"commands": []})
+        agent._keep(agent.intent_path, ["s1", "s2"])
+        agent._keep(agent.pending_path, [{"id": "s1", "status": "done", "summary": "ok"}])
+        again, _ = _agent(self.home, lambda body: {"commands": []})  # the agent starts again
+        results = again._load_pending()
+        self.assertEqual([(r["id"], r["status"]) for r in results], [("s1", "done"), ("s2", "failed")])
+        self.assertIn("unknown", results[1]["summary"])
+        self.assertFalse(again.intent_path.exists())
+        self.assertEqual(again._load_pending(), results)  # kept until OCADE has it
+
+    def test_a_segment_writes_its_intent_before_it_runs(self):
+        agent, _ = _agent(self.home, lambda body: {"commands": []})
+        seen = []
+        agent.computer.run = lambda *a: (seen.append(agent._read(agent.intent_path)) or
+                                         {"status": "done"})
+        active = agent._start(self._segment(2))
+        active["thread"].join(5)
+        self.assertEqual(seen[0], ["s1", "s2"])
+
     def _segment(self, n):
         return [{"id": f"s{i}", "taskId": "t1", "action": {"action": "file_list", "path": str(i)}}
                 for i in range(1, n + 1)]

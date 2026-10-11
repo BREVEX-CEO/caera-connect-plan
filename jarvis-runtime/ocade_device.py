@@ -54,7 +54,8 @@ HALT_JOIN_S = 10.0
 
 HOME = Path(os.environ.get("OCADE_JARVIS_HOME", Path.home() / ".ocade_jarvis"))
 POLL_IDLE_SECONDS = 1.0
-MAX_SEGMENT = 12  # steps one exchange may hand this agent (segment_v1)
+MAX_SEGMENT = 12
+INTERRUPTED = "The agent stopped while this step ran, so what it did is unknown. Check before repeating it."  # steps one exchange may hand this agent (segment_v1)
 
 
 def connect(server: str, name: str, open_browser: bool = True) -> Identity:
@@ -214,6 +215,7 @@ class Agent:
         self.state = {"busy": False, "background": False, "connected": True, "update": False,
                       "task": None, "offline": False}
         self.pending_path = identity.home / "pending.json"
+        self.intent_path = identity.home / "running.json"  # steps handed to the computer, not yet reported
         self._planning: threading.Thread | None = None
         self._plan_after = 0.0
 
@@ -290,25 +292,40 @@ class Agent:
             return "Waiting for you"
         return "Working" if self.state.get("busy") else "Ready"
 
-    def _load_pending(self) -> list[dict]:
-        # Results finished before a crash, a reboot or a lost connection still reach OCADE.
+    @staticmethod
+    def _read(path: Path) -> list:
         try:
-            return json.loads(self.pending_path.read_text())
+            return json.loads(path.read_text())
         except FileNotFoundError:
             return []
         except (OSError, ValueError):
             # Kept for diagnosis rather than silently overwritten.
-            self.pending_path.replace(self.pending_path.with_suffix(".damaged"))
+            path.replace(path.with_suffix(".damaged"))
             return []
 
-    def _keep_pending(self, results: list[dict]) -> None:
-        if results:
-            tmp = self.pending_path.with_suffix(".tmp")
-            tmp.write_text(json.dumps(results))
+    @staticmethod
+    def _keep(path: Path, items: list) -> None:
+        if items:
+            tmp = path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(items))
             tmp.chmod(0o600)
-            os.replace(tmp, self.pending_path)  # never a half-written journal
+            os.replace(tmp, path)  # never a half-written journal
         else:
-            self.pending_path.unlink(missing_ok=True)
+            path.unlink(missing_ok=True)
+
+    def _load_pending(self) -> list[dict]:
+        # Results finished before a crash, a reboot or a lost connection still reach OCADE.
+        results = self._read(self.pending_path)
+        # A step that was running when the agent stopped: its effect is unknown, never "not done".
+        reported = {result.get("id") for result in results}
+        results += [{"id": step, "status": "failed", "summary": INTERRUPTED}
+                    for step in self._read(self.intent_path) if step not in reported]
+        self._keep(self.pending_path, results)
+        self._keep(self.intent_path, [])
+        return results
+
+    def _keep_pending(self, results: list[dict]) -> None:
+        self._keep(self.pending_path, results)
 
     def _halt(self, active: dict | None) -> None:
         """Cancel the running action and wait for it to end, before anything else happens."""
@@ -342,6 +359,7 @@ class Agent:
                         frame = {"taskId": active["taskId"], "jpeg": live}
                 self._keep_pending(results)
                 if finished:
+                    self._keep(self.intent_path, [])
                     active = None
             body = {"results": results, "frame": frame,
                     "capabilities": {**self.browsers.capabilities(), **self.computer.capabilities(),
@@ -378,6 +396,7 @@ class Agent:
                 active = None
                 self.identity.forget()
                 self.pending_path.unlink(missing_ok=True)
+                self.intent_path.unlink(missing_ok=True)
                 self.state["connected"] = False
                 print("This device is no longer connected. Its key was removed.", flush=True)
                 return 2
@@ -463,6 +482,7 @@ class Agent:
                 cancel.set()
         active = {"id": commands[0]["id"], "taskId": commands[0]["taskId"],
                   "left": [c["id"] for c in commands], "done": [], "skip": set()}
+        self._keep(self.intent_path, list(active["left"]))  # written before anything runs
 
         def work() -> None:
             ended = False

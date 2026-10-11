@@ -118,25 +118,50 @@ public final class AgentService extends Service {
     }
 
     /** Results finished before a crash, a reboot or a lost connection still reach OCADE. */
-    private android.util.AtomicFile pending() {
-        return new android.util.AtomicFile(new java.io.File(getFilesDir(), "pending-results.json"));
+    private static final String PENDING = "pending-results.json";
+    /** The step handed to this phone and not yet reported, written before it runs. */
+    private static final String RUNNING = "running-step.json";
+
+    private android.util.AtomicFile journal(String name) {
+        return new android.util.AtomicFile(new java.io.File(getFilesDir(), name));
     }
 
-    private JSONArray loadPending() {
+    private JSONArray read(String name) {
         try {
-            return new JSONArray(new String(pending().readFully(), java.nio.charset.StandardCharsets.UTF_8));
+            return new JSONArray(new String(journal(name).readFully(), java.nio.charset.StandardCharsets.UTF_8));
         } catch (java.io.FileNotFoundException e) {
             return new JSONArray();
         } catch (Exception e) {
             // Kept for diagnosis rather than silently overwritten.
-            java.io.File base = pending().getBaseFile();
+            java.io.File base = journal(name).getBaseFile();
             base.renameTo(new java.io.File(base.getPath() + ".damaged"));
             return new JSONArray();
         }
     }
 
+    /** Pending results, plus the step that was running when the app stopped: its effect is unknown. */
+    private JSONArray loadPending() {
+        JSONArray results = read(PENDING);
+        String cut = read(RUNNING).optString(0, "");
+        try {
+            if (!cut.isEmpty() && !results.toString().contains(cut)) {
+                results.put(new JSONObject().put("id", cut).put("status", "failed").put("summary",
+                        "The app stopped while this step ran, so what it did is unknown. Check before repeating it."));
+            }
+        } catch (org.json.JSONException impossible) {
+            // a literal object cannot fail to build
+        }
+        keep(PENDING, results);
+        keep(RUNNING, new JSONArray());
+        return results;
+    }
+
     private void keepPending(JSONArray results) {
-        android.util.AtomicFile file = pending();
+        keep(PENDING, results);
+    }
+
+    private void keep(String name, JSONArray results) {
+        android.util.AtomicFile file = journal(name);
         if (results.length() == 0) {
             file.delete();
             return;
@@ -177,6 +202,7 @@ public final class AgentService extends Service {
                     if (detail.length() > 0) result.put("detail", detail);
                     results.put(result);
                     keepPending(results);
+                    keep(RUNNING, new JSONArray());
                     if (live != null) frame = new JSONObject().put("taskId", stepTask).put("jpeg", live);
                     step = null;
                 }
@@ -253,6 +279,7 @@ public final class AgentService extends Service {
                 if (step == null && commands != null && commands.length() > 0) {
                     JSONObject command = commands.getJSONObject(0);
                     stepId = command.getString("id");
+                    keep(RUNNING, new JSONArray().put(stepId)); // before anything runs
                     stepTask = command.optString("taskId");
                     AtomicBoolean mine;
                     synchronized (admit) { // a STOP just before cannot be lost on the old token
