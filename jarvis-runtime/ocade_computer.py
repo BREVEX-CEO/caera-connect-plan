@@ -358,7 +358,7 @@ class Computer:
                 with self._lock:
                     if kind == "ui_inspect":
                         return ocade_accessibility.inspect(action.get("title"), action.get("find"), cancel)
-                    return ocade_accessibility.act(action, confirmed)
+                    return ocade_accessibility.act(action, confirmed, cancel)
             if kind in ("window_list", "window"):
                 if self._gui() is None:
                     return {"status": "blocked", "summary": "This computer does not allow screen control"}

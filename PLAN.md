@@ -362,6 +362,8 @@ Owners: `Agent.stop_everything/_start`, `Computer.run/_screen`, accessibility `a
 
 **Target DONE:** no newly admitted mutation after cancellation; quiescence and latency measured separately.
 
+**Work record — P02 phase 1 (11 October 2026):** Reproduced by source trace: `ocade_computer` called `ocade_accessibility.act` without the cancel token, and Android `Control.act` resolved and pressed its target with no STOP check (the screen paths already checked). **FIX:** both now check STOP immediately before Invoke/Toggle/SetValue/click and before the touch fallback, and refuse a control observation older than 60 s (the screen observation limit). Desktop tests: STOP and stale-age cases fail without the fix, `test_ui_act.py` 5/5 PASS; Android compiles (`build.py`), emulator proof deferred to the final test stage (UNTESTED). Still OPEN: control epoch on the wire, window/DPI/orientation binding for UI refs, invalidation on accessibility events, measured STOP latency. Evidence class LOCAL.
+
 ### P03 — Preserve commands and outcomes across identity rotation and restart
 
 **Current:** `ocade_identity.py` rotation consumes an exchange response but can ignore its command list, while `device.server.ts` can still dispatch actions in that exchange. Desktop results are more durable than Android's in-memory pending results.

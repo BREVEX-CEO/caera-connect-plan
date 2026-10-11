@@ -21,6 +21,7 @@ MAX_ELEMENTS = 250
 PRIORITY = ("Edit", "ComboBox", "Button", "SplitButton", "MenuItem", "CheckBox", "RadioButton", "TabItem",
             "Hyperlink", "Document", "Slider", "Spinner")
 MAX_DEPTH = 25
+OBSERVATION_MAX_AGE_S = 60  # the same limit as a screen observation
 ROLES_WORTH_LISTING = {
     "Button", "CheckBox", "ComboBox", "Edit", "Hyperlink", "ListItem", "MenuItem", "RadioButton",
     "SplitButton", "TabItem", "TreeItem", "DataItem", "Document", "Slider", "Spinner", "Text",
@@ -161,7 +162,8 @@ def inspect(title: str | None = None, find: str | None = None, cancel=None) -> d
             elements.append(item)
         if cancel and cancel.is_set():
             return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
-        _State.held = {obs_id: {"window": tuple(window.GetRuntimeId()), "refs": refs}}
+        _State.held = {obs_id: {"window": tuple(window.GetRuntimeId()), "refs": refs,
+                                "at": time.monotonic()}}
         if len(elements) > MAX_ELEMENTS:
             rank = {role: i for i, role in enumerate(PRIORITY)}
             kept = sorted(elements, key=lambda e: rank.get(e["role"], len(PRIORITY)))[:MAX_ELEMENTS]
@@ -234,13 +236,16 @@ def gate_at(x: int | None, y: int | None, confirmed: bool, press: bool = False) 
     return None
 
 
-def act(action: dict, confirmed: bool) -> dict:
+def act(action: dict, confirmed: bool, cancel=None) -> dict:
     auto = _uia()
     held = _State.held.get(str(action.get("observationId", "")))
     ref = str(action.get("ref", ""))
     op = str(action.get("op", "invoke"))
     if not held or ref not in held["refs"]:
         return {"status": "stale", "summary": "That control is not in the current observation.",
+                "observation": inspect().get("observation")}
+    if time.monotonic() - held["at"] > OBSERVATION_MAX_AGE_S:
+        return {"status": "stale", "summary": "That control observation is too old.",
                 "observation": inspect().get("observation")}
     runtime_id, role, name = held["refs"][ref]
     with auto.UIAutomationInitializerInThread():
@@ -268,6 +273,9 @@ def act(action: dict, confirmed: bool) -> dict:
         def pattern(kind: str):
             return control.GetPattern(getattr(auto.PatternId, kind))
 
+        # STOP that arrived while the control was found and checked: nothing is pressed.
+        if cancel and cancel.is_set():
+            return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
         if op == "invoke":
             invoke = pattern("InvokePattern")
             toggle = None if invoke else pattern("TogglePattern")

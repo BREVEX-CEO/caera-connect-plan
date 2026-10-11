@@ -43,6 +43,8 @@ final class Control {
 
     private static int seq;
     private static String uiObservation;
+    private static long uiObservedAt;
+    private static final long OBSERVATION_MAX_AGE_MS = 60_000; // the desktop agent's limit
     private static final Map<String, AccessibilityNodeInfo> refs = new HashMap<>();
     private static String screenObservation;
     private static float screenScale = 1f;
@@ -99,7 +101,7 @@ final class Control {
             case "ui_inspect":
                 return inspect(a11y);
             case "ui_act":
-                return act(a11y, action, confirmed);
+                return act(a11y, action, confirmed, cancel);
             case "window_list":
                 return windows(a11y);
             case "screen":
@@ -152,6 +154,7 @@ final class Control {
         if (root == null) return result("failed", "Nothing on screen can be read right now");
         refs.clear();
         uiObservation = "u" + (++seq);
+        uiObservedAt = android.os.SystemClock.elapsedRealtime();
         JSONArray elements = new JSONArray();
         List<AccessibilityNodeInfo> stack = new ArrayList<>();
         stack.add(root);
@@ -271,8 +274,10 @@ final class Control {
         return node;
     }
 
-    private static JSONObject act(OcadeAccessibility a11y, JSONObject action, boolean confirmed) throws Exception {
-        if (!action.optString("observationId").equals(uiObservation)) {
+    private static JSONObject act(OcadeAccessibility a11y, JSONObject action, boolean confirmed,
+                                  AtomicBoolean cancel) throws Exception {
+        if (!action.optString("observationId").equals(uiObservation)
+                || android.os.SystemClock.elapsedRealtime() - uiObservedAt > OBSERVATION_MAX_AGE_MS) {
             JSONObject fresh = inspect(a11y);
             fresh.put("status", "stale").put("summary", "The screen changed since it was read: read it again");
             return fresh;
@@ -288,6 +293,8 @@ final class Control {
             JSONObject gated = gate(node, confirmed);
             if (gated != null) return gated;
         }
+        // STOP that arrived while the control was found and checked: nothing is pressed.
+        if (cancel.get()) return result("failed", "Stopped before it reached the screen");
         boolean ok;
         switch (op) {
             case "set_value": {
@@ -312,7 +319,7 @@ final class Control {
                 // Some lists take a click only as a touch: tap the middle of the same control.
                 android.graphics.Rect box = new android.graphics.Rect();
                 target.getBoundsInScreen(box);
-                if (!ok && !box.isEmpty()) {
+                if (!ok && !box.isEmpty() && !cancel.get()) {
                     Path at = new Path();
                     at.moveTo(box.exactCenterX(), box.exactCenterY());
                     ok = gesture(a11y, at, 0, 60);

@@ -31,8 +31,9 @@ class CheckBox:
 
 
 class ActTest(unittest.TestCase):
-    def act(self, control, op):
-        a11y._State.held["u9"] = {"window": (1,), "refs": {"a1": ((2,), "CheckBox", "Edit")}}
+    def act(self, control, op, cancel=None, age=0.0):
+        a11y._State.held["u9"] = {"window": (1,), "refs": {"a1": ((2,), "CheckBox", "Edit")},
+                                  "at": a11y.time.monotonic() - age}
         auto = SimpleNamespace(PatternId=IDS, UIAutomationInitializerInThread=unittest.mock.MagicMock)
         never = re.compile(r"(?!)")
         with unittest.mock.patch.object(a11y, "_uia", return_value=auto), \
@@ -42,7 +43,23 @@ class ActTest(unittest.TestCase):
                 unittest.mock.patch.object(a11y, "_protected", return_value=False), \
                 unittest.mock.patch.object(a11y, "inspect", return_value={"observation": {}}), \
                 unittest.mock.patch.object(a11y.time, "sleep"):
-            return a11y.act({"observationId": "u9", "ref": "a1", "op": op}, confirmed=False)
+            return a11y.act({"observationId": "u9", "ref": "a1", "op": op}, confirmed=False, cancel=cancel)
+
+    def test_stop_during_the_checks_presses_nothing(self):
+        import threading
+        stop = threading.Event()
+        stop.set()
+        box = CheckBox()
+        out = self.act(box, "invoke", cancel=stop)
+        self.assertTrue(out.get("stopped"), out)
+        box.toggle.Toggle.assert_not_called()
+        box.Click.assert_not_called()
+
+    def test_an_old_observation_is_never_acted_on(self):
+        box = CheckBox()
+        out = self.act(box, "invoke", age=a11y.OBSERVATION_MAX_AGE_S + 1)
+        self.assertEqual(out["status"], "stale", out)
+        box.toggle.Toggle.assert_not_called()
 
     def test_invoke_on_a_check_box_presses_it(self):
         box = CheckBox()
