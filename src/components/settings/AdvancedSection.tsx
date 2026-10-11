@@ -52,7 +52,16 @@ export function AdvancedSection() {
   });
 
   const outcome = revokeOne.data ?? revokeRest.data;
-  const refused = outcome && !outcome.ok ? outcome.reason : null;
+  // A cancelled identity check is the person's choice, not a failure to report.
+  const failed = [revokeOne.error, revokeRest.error].some(
+    (error) => error && !needsFreshProof(error.message),
+  );
+  const refused =
+    outcome && !outcome.ok
+      ? outcome.reason
+      : failed
+        ? "Signing out did not finish. Check your connection and try again."
+        : null;
   const others = (sessions.data?.sessions ?? []).filter((session) => !session.current);
 
   return (
