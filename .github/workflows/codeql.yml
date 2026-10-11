@@ -1,46 +1,36 @@
-name: CodeQL
-
-# Static security analysis, which this repository did not have.
-#
-# It is deliberately NOT part of ci.yml: CodeQL takes minutes and its findings
-# are advisory rather than a build gate, and putting it in the same workflow
-# would mean a security query timing out blocks a typecheck. Its own workflow,
-# its own schedule, its own failure.
+# GitHub CodeQL code scanning cannot upload results for a private GitHub Free repository.
+# This weekly dependency audit uses the available free hosted-runner allowance instead.
+# It is NOT a replacement for CodeQL static analysis, and must not be reported as such.
+# Push/PR CI separately runs verify:full (including lint and built-bundle secret checks)
+# plus npm audit. Keep both security paths visible and fail on real findings.
+name: Private-repo dependency security
 
 on:
   schedule:
-    # Weekly, offset from the hour so it does not join the stampede at :00.
+    # Check for newly disclosed production dependency vulnerabilities once a week.
     - cron: "23 4 * * 1"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
-  group: codeql-${{ github.ref }}
+  group: private-dependency-audit-${{ github.ref }}
   cancel-in-progress: true
 
-permissions: {}
-
 jobs:
-  analyze:
-    name: Analyse JavaScript and TypeScript
+  production-dependencies:
+    name: Audit production dependencies
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      # The three CodeQL needs and nothing else.
-      actions: read
-      contents: read
-      security-events: write
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Checkout exact lockfile
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Initialise CodeQL
-        uses: github/codeql-action/init@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
+      - name: Set up Node and npm
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          languages: javascript-typescript
-          queries: security-and-quality
+          node-version-file: .node-version
 
-      # No build step: this is an interpreted-language analysis, and letting
-      # CodeQL autobuild a Vite app wastes minutes to produce the same result.
-      - name: Analyse
-        uses: github/codeql-action/analyze@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
-        with:
-          category: /language:javascript-typescript
+      - name: Fail on newly disclosed production dependency vulnerabilities
+        run: npm audit --omit=dev
