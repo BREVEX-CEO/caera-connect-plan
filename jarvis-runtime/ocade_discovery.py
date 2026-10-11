@@ -387,9 +387,13 @@ def _store() -> dict:
         return {}
 
 
+QUARANTINE_AFTER = 2  # failures in a row before a recipe is set aside
+
+
 def recipes_for(app: str, version: str | None) -> tuple[list[dict], int]:
     mine = [r for r in _store().values() if r.get("app", "").lower() == app.lower()]
-    current = [r for r in mine if r.get("major") in (_major(version), "any")]
+    current = [r for r in mine if r.get("major") in (_major(version), "any")
+               and r.get("failures", 0) < QUARANTINE_AFTER]
     return current[:3], len(mine) - len(current)
 
 
@@ -405,10 +409,19 @@ def save_recipe(recipe: dict, version: str | None) -> dict:
                                                 "personal paths, addresses, codes or secrets"}
     store = _store()
     key = f"{fields['app'].lower()}@{_major(version)}"
-    store[key] = {**fields, "major": _major(version), "version": version,
-                  "updated": time.strftime("%Y-%m-%d"), "uses": store.get(key, {}).get("uses", 0) + 1}
+    if recipe.get("worked") is False:
+        if key not in store:
+            return {"status": "done", "summary": f"No recipe for {fields['app']} was remembered here"}
+        store[key]["failures"] = store[key].get("failures", 0) + 1
+        set_aside = store[key]["failures"] >= QUARANTINE_AFTER
+    else:
+        store[key] = {**fields, "major": _major(version), "version": version, "failures": 0,
+                      "updated": time.strftime("%Y-%m-%d"), "uses": store.get(key, {}).get("uses", 0) + 1}
     HOME.mkdir(parents=True, exist_ok=True)
     tmp = HOME / "recipes.json.tmp"
     tmp.write_text(json.dumps(dict(list(store.items())[-200:]), indent=1), encoding="utf-8")
     os.replace(tmp, HOME / "recipes.json")
+    if recipe.get("worked") is False:
+        return {"status": "done", "summary": f"Noted that the {fields['app']} recipe failed"
+                + ("; it is set aside until a new way works" if set_aside else "")}
     return {"status": "done", "summary": f"Remembered how {fields['app']} was driven, on this computer only"}

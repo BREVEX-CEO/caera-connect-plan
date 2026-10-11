@@ -566,6 +566,8 @@ The following mandatory steps and verification criteria come from the latest own
 
 **Tests:** missed/reordered events, token expiry, reconnect, DST, duplicate occurrence and stopped-generation renewal.
 
+**Work record — P09 decision (11 October 2026):** The web planner already wakes on Realtime action events with a bounded polling fallback (`changes.ts` `actionChanged`); the desktop and Android agents poll every 1 s while their task runs and every 5 s when idle. A device wake hint needs a push channel the device can authenticate to; without one, a server-held long poll would query the database more often than the 5 s idle poll. Per this package's rule (no new relay until measured), no code change: device first-step latency stays ≤5 s idle, measured in the final campaign. Steps 2 (device wake hints) and 5–6 remain OPEN pending that measurement.
+
 ### P10 — Discover capabilities and learn safe recipes
 
 Extend `ocade_discovery.py`, `ocade_computer.py`, `src/jarvis/docs.server.ts` and existing task memory. Collect installed app identity/version, executable signer/path, supported automation interfaces and granted resource scopes. Cache only metadata actually used; no continuous full-content indexing or global file upload.
@@ -593,6 +595,8 @@ Owners: `app_info`, version discovery, `recipes_for`, `save_recipe`.
 7. Quarantine a failed recipe without disabling unrelated recipes.
 
 **Target DONE:** repeats reduce planning/intervention while preserving independently verified results.
+
+**Work record — P10 step 7 (11 October 2026):** Discovery (`app_info`: program, version, COM servers, file types, scripting folders, cached per program build) and sanitised device-local recipes (no coordinates, paths, addresses, codes or secrets; a new major version hides old ones) already exist. Gap: a recipe that stopped working kept being offered. **FIX:** `recipe_save` takes `worked: false`; two failures in a row set the recipe aside, a later success restores it, and the planner prompt says to report failures. Tests: `test_discovery.py` 10/10 PASS. Still OPEN: typed parameter schema and verifier references per recipe, multi-fixture compile gate, canary after drift, account sync (opt-in). Evidence class LOCAL.
 
 ### P11 — Deliver one extension-free installation and browser experience
 

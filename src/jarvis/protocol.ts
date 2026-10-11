@@ -274,6 +274,8 @@ const COMPUTER_ACTIONS = [
     steps: z.array(recipeText).max(8),
     verify: recipeText,
     recovery: recipeText.optional(),
+    /** False: a remembered recipe did not work here; two failures in a row set it aside. */
+    worked: z.boolean().optional(),
   }),
   z.object({ action: z.literal("drives") }),
   // File names, sizes and dates across the person's folders and connected drives.
@@ -717,7 +719,7 @@ Browser rules:
 - If humanBoundary is captcha, otp or passkey, or a password is needed, stop and ask the person to take over.
 Choosing what to work on: when one file, app or device obviously fits, proceed and say which you chose. Ask one short question, listing the likely choices, only when several remain and a wrong choice would change the result or cause harm.
 Computer rules:
-- Any app, known or not: before driving an app you have not used in this task, call app_info. It gives the program, its version, its registered automation (COM ProgIDs), the file types and links it opens, scripting or SDK folders, and recipes that worked on this computer before. Pick the strongest route: the app's official automation, scripting or command line (a short script written to the work folder and started with run), then direct work on its files, then ui_inspect and ui_act, then the screen with fresh coordinates. A scripting folder's readmes say how a script connects to the app: one script that does the whole job and prints what it did beats many clicks, each of which is a separate step. So when app_info shows registered automation or a scripting folder with readmes, your first route is a script written to the work folder and started with run (set any paths it needs inside the script itself; run takes one program, no shell); when it fails, read the error, look up what the object offers (for example dir() in Python) and fix the script. Turn to the app's window only after two scripts failed for a reason a script cannot fix. When what you remember about an app may be out of date, read its official documentation with docs. Check the real result afterwards. When the work succeeded, save a recipe with recipe_save: the route, the steps and how you checked, never coordinates, personal data or secrets; an olderRecipes count means the app changed, so discover again.
+- Any app, known or not: before driving an app you have not used in this task, call app_info. It gives the program, its version, its registered automation (COM ProgIDs), the file types and links it opens, scripting or SDK folders, and recipes that worked on this computer before. Pick the strongest route: the app's official automation, scripting or command line (a short script written to the work folder and started with run), then direct work on its files, then ui_inspect and ui_act, then the screen with fresh coordinates. A scripting folder's readmes say how a script connects to the app: one script that does the whole job and prints what it did beats many clicks, each of which is a separate step. So when app_info shows registered automation or a scripting folder with readmes, your first route is a script written to the work folder and started with run (set any paths it needs inside the script itself; run takes one program, no shell); when it fails, read the error, look up what the object offers (for example dir() in Python) and fix the script. Turn to the app's window only after two scripts failed for a reason a script cannot fix. When what you remember about an app may be out of date, read its official documentation with docs. Check the real result afterwards. When the work succeeded, save a recipe with recipe_save: the route, the steps and how you checked, never coordinates, personal data or secrets; an olderRecipes count means the app changed, so discover again. When a remembered recipe did not work, recipe_save it with worked false and find another way.
 - Files outside the work folder: find them with file_locate (names only), then file_import makes a copy in the work folder; the original is never touched. Unless the person asked to overwrite, save the finished work as a new copy (for example "Report - completed.xlsx") and place it next to the original with file_export. Reopen or read back the result before saying it is done.
 - A workbook or document the person already has is their original: file_copy it to a new name first (for example "Sales - completed.xlsx") and edit the copy. Set overwrite: true on sheet_edit or doc_edit only when the person asked to change that file itself. A result line "Check: ..." names cells that refer to themselves or show an error: fix them before finishing. drives lists connected drives, external ones included.
 - Prefer the most direct way: open_app, file actions and run inside the workspace before anything visual. Before opening an app, call window_list and switch to its open window with window (state focus) if there is one. For an app's own buttons, fields and menus use ui_inspect then ui_act with the ref and observationId it returned. Use screen, then screen_click with the current screen observationId, only when nothing more direct works, and look again after the screen changes.
@@ -850,6 +852,11 @@ export function jarvisTools(memory: boolean, schedule = true): NormalizedToolDef
         },
         verify: str("For recipe_save: how the result was checked."),
         recovery: str("For recipe_save: what to do when it fails."),
+        worked: {
+          type: "BOOLEAN",
+          description:
+            "For recipe_save: false when a remembered recipe did not work here; it is set aside after two failures.",
+        },
         step: { type: "INTEGER", description: "The plan step (1-based) this action serves." },
         sequence: sequence("computer"),
       }),

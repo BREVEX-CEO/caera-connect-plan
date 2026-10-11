@@ -37,6 +37,20 @@ class RecipeTest(unittest.TestCase):
         same, older = ocade_discovery.recipes_for("Paint", "12.0.0")
         self.assertEqual((len(same), older), (0, 1))
 
+    def test_a_recipe_that_keeps_failing_is_set_aside_until_one_works(self):
+        """P10: a failed recipe is quarantined; it is never offered again as if it worked."""
+        recipe = {"app": "Paint", "route": "ribbon", "steps": [], "verify": "size reads 50%"}
+        ocade_discovery.save_recipe(recipe, "11.2.0")
+        failed = {**recipe, "worked": False}
+        ocade_discovery.save_recipe(failed, "11.2.0")
+        self.assertEqual(len(ocade_discovery.recipes_for("Paint", "11.2.0")[0]), 1)  # once may be chance
+        out = ocade_discovery.save_recipe(failed, "11.2.0")
+        self.assertIn("set aside", out["summary"])
+        self.assertEqual(ocade_discovery.recipes_for("Paint", "11.2.0"), ([], 1))
+        ocade_discovery.save_recipe(recipe, "11.2.0")  # a way that works again
+        self.assertEqual(len(ocade_discovery.recipes_for("Paint", "11.2.0")[0]), 1)
+        self.assertIn("No recipe", ocade_discovery.save_recipe({**failed, "app": "Gimp"}, None)["summary"])
+
 
 class CapabilityCacheTest(unittest.TestCase):
     """PLAN.md section F: an app's surfaces are found once per program build."""
