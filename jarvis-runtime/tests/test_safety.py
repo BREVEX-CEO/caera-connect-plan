@@ -721,6 +721,10 @@ class UninstallTest(unittest.TestCase):
                     self.assertEqual(said, ocade_agent.GREETING)  # a greeting, never "ok"
             self.assertEqual(ended, [])
         finally:
+            try:  # wakes the listener waiting in accept(), so the port is free again on Linux
+                guard.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
             guard.close()
 
     def test_an_agent_that_does_not_answer_is_ended_and_nothing_starts_at_login(self):

@@ -117,6 +117,83 @@ Status: **binding target requirements and OPEN implementation packages, not ship
 
 **Stage C, second pass (owner decision: finish all non-payment coding first):** P05-B one proof per sensitive action (migration `20261011100000`, spent in `requireAssurance` with the function name and an input digest); P02 final STOP checks for app launch, system actions and window changes, with the protocol-v2 epoch decision recorded under P02; P10 typed recipe inputs and server-side "recipes only for checked work"; P13 pair-first Android setup, optional bubble/app-control with reasons, and an Accessibility prompt when a task needs it; P15 honest 404, Stop not confirmed, Library delete confirmation, live-frame capture time (migration `20261011110000`), device read-back receipts on finished tasks, Chat More menu with removable chips, Orb colour in Appearance, JARVIS conversation search; P18 `file_compare` What changed? and Repeat with new inputs; P00-B licence inventory (two LGPL agent libraries, no GPL/non-commercial code) with notices and replaceable modules packaged. **Owner-only blockers:** a verified support mailbox for Help (PRD), production migration order (both new migrations before the code), dev-only `wrangler` audit fix age (recheck after 22 October), Apple hardware (P14), merchant (P20), release (P21). **Release order:** apply `20261011090000`, `20261011100000`, `20261011110000` before deploying this code.
 
+### 0.7 Audit reconciliation register — 12 October 2026 (branch `ocade/p00-p22-implementation`)
+
+Both 11 October audits (kept verbatim at the repository root) were read in full and every unique finding re-checked on the current source. Status words: **FIXED** = source change plus a regression test that ran green in cloud CI (`ci.yml` `verify:full` on GitHub-hosted Ubuntu, and the `cloud-python-isolated.yml` full suite) at or after the named commit; **FIXED · RUNTIME OPEN** = source change and unit evidence, but the behaviour needs a real Windows/Office/Android/browser run (Stage D) before PASS; **KEEP** = the audit itself says keep; **OPEN** / **BLOCKED** as defined in §2. Any material change after the evidence run re-opens the item.
+
+**Codebase/PLAN audit (C01–C28, R01–R05, S01–S03)**
+
+| ID | Package | Status | Change (commit) |
+|---|---|---|---|
+| C01 own-row completion bypass | P01 | FIXED | DB trigger: only the service role sets `completed`; `changeTask` writes completion with the service client (`7fe7d8b6`, migration `20261012090000`) |
+| C02 metadata read ≠ content proof | P01 | FIXED | Content edits need a content read; `finish_task` must quote evidence found in the final device reads (`7fe7d8b6`). Typed per-artifact predicates beyond quoted evidence: OPEN (P01/P18) |
+| C03 first 1,000 rows | P01 | FIXED | More than 1,000 actions fails closed (`7fe7d8b6`) |
+| C04 permission withdrawal mid-segment | P02 | FIXED | Running steps rechecked each exchange; withdrawn ones cancelled (`3398f54c`) |
+| C05 STOP before final effect | P02 | FIXED · RUNTIME OPEN | STOP rechecked after target resolution for UIA, Android taps/typing, file write/move/copy (`3398f54c`); UIA/Android need Stage D |
+| C06 co-work takeover exemption | P02 | FIXED | Exemption, switch and wire field retired; physical input always pauses (`3398f54c`) |
+| C07 missing/unknown ACKs dropped | P03 | FIXED | Desktop and Android retire only answered results, also at exit (`3b7e9557`) |
+| C08 revocation deletes evidence | P03 | FIXED | Unreported results kept in `unreported-results.json` (`3b7e9557`) |
+| C09 Android swallowed journal writes | P03 | FIXED · RUNTIME OPEN | Checked writes; an unrecorded step does not run (`3b7e9557`); Android emulator run in Stage D |
+| C10 undo over later edits | P04 | FIXED | Undo only while the file is exactly what JARVIS left (SHA-256) (`3b7e9557`) |
+| C11 Office partial-edit accounting | P04 | FIXED · RUNTIME OPEN | `$started` before the first op drives `maybeChanged`/`unsavedEdits` (`3b7e9557`); needs real Office |
+| C12 reopen mismatch reported done | P04 | FIXED · RUNTIME OPEN | `reopenChecked` + mismatch = failed, undo kept (`3b7e9557`) |
+| C13 undurable resume frontier | P07 | FIXED | Checkpoint published only after a successful flush (`f89ab114`) |
+| C14 Repair skips verification | P07 | FIXED | Repair re-hashes a "verified" model (`f89ab114`) |
+| C15 dead letters hidden | P06 | FIXED | `pending` and `deadLetters` counted from the table (`f89ab114`) |
+| C16 offset export pagination | P06 | FIXED | Keyset pages in unique-key order (`f89ab114`) |
+| C17 proof reuse via direct RPC | P05 | FIXED | Staff changes spend the proof in the DB; one follow-on change per web spend (`f3857c2d`, migration `20261012091000`) |
+| C18 broad `has_role` reads | P05 | FIXED | Four policies use the granular staff permission; a guard test lists any `has_role` policy (`4be9ce3d`, migration `20261012092000`). Roll back `20261012092000` before older staff migrations |
+| C19 unconfined commands | P02 | FIXED · RUNTIME OPEN | Where no sandbox confines a command, re-running code the task changed asks first; the device reports `terminal_sandbox` (`3398f54c`). Supersedes the 2 Oct "routine runs unasked" policy for that one case; owner may reverse |
+| C20 stale recogniser callbacks | P12 | FIXED · RUNTIME OPEN | Owner-fenced callbacks (`f89ab114`); no hook test harness, browser voice journey in Stage D |
+| C21 TTS error leaves "speaking" | P12 | FIXED · RUNTIME OPEN | `onerror` ends speaking like `onend` (`f89ab114`) |
+| C22 a11y gate passes on nothing | P19 | FIXED | Fails on an unreadable root or zero files (`4be9ce3d`) |
+| C23 BLOCKED journeys exit 0 | P19 | FIXED | Harness exits 3 on BLOCKED unless `OCADE_ALLOW_BLOCKED=1` (`4be9ce3d`) |
+| C24 frame shows receipt time | P15 | FIXED | Device capture time; an older frame never replaces a newer one (`4be9ce3d`) |
+| C25 modal focus | P15 | FIXED · RUNTIME OPEN | Existing `useModalFocus` on three JARVIS dialogs (`4be9ce3d`); keyboard proof in browser journeys |
+| C26 graph cap per category | P15 | FIXED | 60 nodes in all, shared; omitted count announced (`4be9ce3d`) |
+| C27 compare truncation | P18 | FIXED | `partial` + `differsLater` (`3b7e9557`) |
+| C28 planner gives up before the device deadline | P04 | FIXED | Per-action waits (commands 330 s, Office 210 s); claimed TTL 360 s (`3b7e9557`) |
+| R01 COM interface assumed | P04/P10 | FIXED · RUNTIME OPEN | Scripts refuse an app lacking `Workbooks`/`Documents` before any edit (`bd7fa828`); alternative suites UNTESTED |
+| R02 Chromium discovery layouts | P11 | OPEN · RUNTIME | Linux CI discovery test fixed for the CI sandbox only (`3b7e9557`); custom profile layouts need Stage D |
+| R03 segment handoff race | P03/P08 | FIXED | A finished segment is joined before the next exchange (`3b7e9557`) |
+| R04 push across account switch | P05 | FIXED · RUNTIME OPEN | Enable recorded only for the asking account (`4be9ce3d`) |
+| R05 late identity confirmation | P05 | FIXED · RUNTIME OPEN | Submission fenced to its own request (`4be9ce3d`) |
+| S01 deployed schema drift | P21 | BLOCKED | Needs production access at release; the migrations below must be applied before this code |
+| S02 signed installer evidence | P11/P21 | BLOCKED | Owner signing certificate |
+| S03 hosted provider configuration | P16/P21 | BLOCKED | Owner-approved staging credential |
+
+**Universal-control/competitor audit**
+
+| ID | Status | Change / note |
+|---|---|---|
+| C01 `automation_server` naming heuristic | FIXED · RUNTIME OPEN | Interface checked before edits (R01) |
+| C02/C03 workbook and document executors | KEEP | Native fidelity unchanged |
+| C04 English heading names | FIXED · RUNTIME OPEN | Outline level + built-in Title id (`bd7fa828`) |
+| C05/C06 formats and extraction | KEEP | — |
+| C07 ASCII-only, capped, colliding app names | FIXED | Unicode names, 500 cap, duplicates kept by source; DB rule accepts them (`bd7fa828`, migration `20261012093000`) |
+| C08 stale server inventory | FIXED | An `apps` look reaches OCADE at the next exchange (`bd7fa828`) |
+| C09 heuristic API discovery | OPEN | Interface evidence/confidence per surface (P10) |
+| C10–C13 browser, UIA, screen fallback | KEEP | Background-versus-foreground delivery contract OPEN for Stage D measurement |
+| C14 protected-app list | KEEP | Security exception, now joined by Never apps (E04) |
+| C15 command classes | KEEP | Plus C19 |
+| C16 Android label identity | FIXED | 500 cap; Unicode labels accepted server-side (`bd7fa828`) |
+| C17–C19, C21 labels, push hosts, attachments, packaging | KEEP | — |
+| C20 "needs Excel" wording | FIXED | Capability wording (`bd7fa828`) |
+| E01 completion ≠ correctness | FIXED (as C02) | — |
+| E02 cancelled ≠ never ran; late detail | FIXED | Claimed-then-cancelled keeps `unknown`; a late result is kept in full (`7fe7d8b6`) |
+| E03 undo over edits | FIXED (as C10) | — |
+| E04 Never only blocks `open_app` | FIXED · RUNTIME OPEN | Never apps refused on UI, screen, keys, window, command and Office routes (`883ff76e`) |
+| E05 unconfined scripts; README untrusted | FIXED | C19, and `app_info` counts as untrusted outside words (`3398f54c`) |
+| E06 STOP versus a committed Office effect | OPEN · documented | Killing PowerShell cannot undo a committed save; reported as a possible change (C11). Quiescence measured in Stage D |
+| E07 journal durability barriers | FIXED | fsync of the file and its folder (`3b7e9557`) |
+| E08 recipes keyed per app; "any" version | FIXED | Per-route keys, exact version line (`45f0d6a5`). Typed verifier predicates OPEN |
+| G performance waits and polling | OPEN · MEASURE FIRST | No blind wait removal; p50/p95/p99 instrumentation and Windows measurement in Stage D |
+| H/I competitor superiority | UNTESTED | No fair comparative run yet; no superiority claim |
+| J debloat: tracked `.pyc` | FIXED | Removed, bytecode ignored (`031ead7c`) |
+| J other removals | NONE PROVEN | Neither audit proved another safe deletion; Office executors kept |
+
+**Owner decisions surfaced by this pass:** (1) C19 asks before re-running task-changed code on computers without a sandbox (the owner may restore the 2 October "routine runs unasked" policy knowingly); (2) the Co-work switch is retired: the person's own input always pauses JARVIS. **Release order:** apply `20261012090000`, `20261012091000`, `20261012092000` and `20261012093000` (after the three 11 October migrations) before deploying this code; roll back newest first.
+
 ## 1. Read this first
 
 CARCC is the company; OCADE is the product. Build a website-first assistant at `ocade.in` that delivers independently checked work in the customer's existing applications. Keep Chat, its Auto/Online/Offline Intelligence choices and the approximately 0.6B offline model. Keep JARVIS a separate online-only experience. Never silently route JARVIS to the offline model.

@@ -37,6 +37,17 @@ class FakeIdentity:
         pass
 
 
+def _release(guard) -> None:
+    """Close a guard whose exit listener is waiting in accept(). On Linux a plain close leaves
+    the port held while that thread waits; shutting it down first wakes it."""
+    import socket
+    try:
+        guard.shutdown(socket.SHUT_RDWR)
+    except OSError:
+        pass
+    guard.close()
+
+
 class LifecycleTest(unittest.TestCase):
     def setUp(self):
         self.home = Path(tempfile.mkdtemp())
@@ -93,7 +104,7 @@ class LifecycleTest(unittest.TestCase):
                                                lambda root: counted.append(root)),                     unittest.mock.patch.object(sys, "argv", ["ocade-agent"]):
                 ocade_agent.main()
         finally:
-            running.close()
+            _release(running)
         self.assertEqual(counted, [])
 
     def test_a_stranger_on_the_port_is_not_the_agent(self):
@@ -119,7 +130,7 @@ class LifecycleTest(unittest.TestCase):
         try:
             self.assertTrue(ocade_agent.already_running())
         finally:
-            agent.close()
+            _release(agent)
 
     def test_autostart_and_uninstall_leave_nothing_behind(self):
         ocade_agent.install_autostart()
