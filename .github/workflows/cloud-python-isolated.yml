@@ -1,0 +1,63 @@
+# Runs Python/device-adapter regression tests in a disposable cloud Linux desktop.
+# Never tests the user's Windows/Office installation. GUI-live tests stay opt-in
+# and are SKIPPED here; a green run is not real Windows Office acceptance.
+name: Cloud device and file tests (isolated)
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Source branch or SHA to test without customer files
+        required: true
+        default: ocade/p00-p22-implementation
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud-python-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python file, safety and device regressions · cloud Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: "true"
+      OCADE_LIVE_TESTS: "0"
+    steps:
+      - name: Checkout requested branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.source_ref }}
+          persist-credentials: false
+
+      - name: Install Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: jarvis-runtime/requirements-agent.txt
+
+      - name: Install isolated display and Linux sandbox helper
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb xauth bubblewrap
+
+      - name: Install existing pinned runtime dependencies
+        run: python -m pip install --disable-pip-version-check -r jarvis-runtime/requirements-agent.txt
+
+      - name: Verify Python imports and syntax
+        run: python -m compileall -q jarvis-runtime android/build.py
+
+      - name: Run complete non-live Python regression suite against temporary HOME
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HOME="${RUNNER_TEMP}/ocade-test-home"
+          mkdir -p "$HOME"
+          xvfb-run -a python -m unittest discover -s jarvis-runtime/tests -p 'test_*.py' -v
+
+      # No persistence of logs, screenshots, secrets or artifacts to GitHub storage.
