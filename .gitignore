@@ -35,3 +35,7 @@ supabase/.temp/
 # Android build output (python android/build.py)
 android/build/
 wrangler.e2e.json
+
+# Python bytecode is generated, never source.
+__pycache__/
+*.pyc
