@@ -127,9 +127,7 @@ jobs:
             adb shell pidof in.ocade.app
             adb shell uiautomator dump /sdcard/ocade-window.xml
             adb exec-out cat /sdcard/ocade-window.xml | grep -E 'Set up OCADE|Needs your permission|Connecting|Ready'
-            if [ "${{ inputs.coverage }}" = "full" ]; then
-              node scripts/e2e/android-journey.mjs
-            fi
+            [ "${{ inputs.coverage }}" != "full" ] || node scripts/e2e/android-journey.mjs
 
       # Existing storage is nearly full: NO persisted APK, screenshots or logs.
       # The APK is an unsigned-for-release test artifact confined to the runner.
