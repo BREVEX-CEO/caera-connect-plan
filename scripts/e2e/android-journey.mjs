@@ -14,6 +14,7 @@
  * Android asks every question itself; this only answers them as a person would.
  */
 import { execFileSync, spawn } from "node:child_process";
+import path from "node:path";
 import { chromium } from "playwright-core";
 
 const arg = (name, fallback) => {
@@ -26,8 +27,11 @@ const PHONE_BASE = "http://10.0.2.2:8788"; // the emulator's view of this comput
 const UDID = arg("udid", "emulator-5554");
 const APPIUM = "http://127.0.0.1:4725";
 const DECLINE = process.argv.includes("--decline");
-const SDK = process.env.ANDROID_HOME ?? `${process.env.LOCALAPPDATA}\\Android\\Sdk`;
-const ADB = `${SDK}\\platform-tools\\adb.exe`;
+const SDK =
+  process.env.ANDROID_HOME ??
+  process.env.ANDROID_SDK_ROOT ??
+  path.join(process.env.LOCALAPPDATA ?? process.env.HOME ?? "", "Android", "Sdk");
+const ADB = path.join(SDK, "platform-tools", process.platform === "win32" ? "adb.exe" : "adb");
 const APK = "android/build/OCADE-test.apk";
 
 let failures = 0;
@@ -111,10 +115,14 @@ await context.addInitScript(
 );
 const web = await context.newPage();
 
-const appium = spawn("appium", ["--port", "4725", "--log-level", "error"], {
-  shell: true,
-  stdio: "ignore",
-});
+const appium = spawn(
+  process.platform === "win32" ? "appium.cmd" : "appium",
+  ["--port", "4725", "--log-level", "error"],
+  {
+    shell: process.platform === "win32",
+    stdio: "ignore",
+  },
+);
 try {
   await until(async () => (await fetch(`${APPIUM}/status`)).ok, 60_000);
 
@@ -430,10 +438,14 @@ try {
   check("installed again, it starts fresh", again.includes("in.ocade.app/.MainActivity"));
 } finally {
   if (session) await wd("DELETE", "", undefined).catch(() => undefined);
-  try {
-    execFileSync("taskkill", ["/PID", String(appium.pid), "/T", "/F"], { stdio: "ignore" });
-  } catch {
-    /* already gone */
+  if (process.platform === "win32") {
+    try {
+      execFileSync("taskkill", ["/PID", String(appium.pid), "/T", "/F"], { stdio: "ignore" });
+    } catch {
+      /* already gone */
+    }
+  } else {
+    appium.kill("SIGTERM");
   }
   await browser.close();
 }

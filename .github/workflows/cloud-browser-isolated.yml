@@ -1,0 +1,77 @@
+# Manual, cloud-only end-to-end browser tests. No owner PC, no production credentials.
+# Kept separate from the lightweight push/PR CI to protect GitHub Free minutes.
+name: Cloud browser journeys (isolated)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/cloud-browser-isolated.yml"
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Branch or SHA of OCADE to test (no secrets or deployed services)
+        required: true
+        default: ocade/p00-p22-implementation
+        type: string
+      suite:
+        description: Which isolated browser journeys to execute
+        required: true
+        default: smoke
+        type: choice
+        options:
+          - smoke
+          - broad
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud-browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: Playwright browsers · disposable Ubuntu
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      # Never point the harness at an account, real database, or deployed site.
+      CI: "true"
+    steps:
+      - name: Checkout requested branch in cloud only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || inputs.source_ref }}
+          persist-credentials: false
+
+      - name: Use project Node version
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+
+      - name: Install exact project dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install isolated Chromium, Firefox and WebKit
+        run: node node_modules/playwright-core/cli.js install --with-deps chromium firefox webkit
+
+      - name: Run real browser journeys against local synthetic accounts
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" || "${{ inputs.suite }}" == "smoke" ]]; then
+            journeys=(shell auth chat browsers)
+          else
+            # Excludes native Office and Android: those cannot be proved by Playwright.
+            # Real Gemini is not used here; the fixture deliberately scripts model outputs.
+            journeys=(shell auth chat usage pricing online offline library settings polish final visual browsers admin bubble mfa carry-on push controls)
+          fi
+          node scripts/e2e/harness.mjs "${journeys[@]}" 2>&1 | tee "${RUNNER_TEMP}/ocade-browser-result.log"
+          if grep -Eq '(^|[[:space:]])BLOCKED([[:space:]]|$)' "${RUNNER_TEMP}/ocade-browser-result.log"; then
+            echo "::error::Required browser journey reported BLOCKED, so the run is not an acceptance pass"
+            exit 1
+          fi
+
+      # Storage is already near its free allowance: no screenshots, traces, or
+      # artifact uploads by default. Failures remain visible in job logs.
