@@ -396,9 +396,7 @@ function NotFoundComponent() {
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm text-center">
         <h1 className="text-4xl font-semibold tracking-tight text-foreground">404</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          This page is not part of OCADE. Your chats and files are where you left them.
-        </p>
+        <p className="mt-3 text-sm text-muted-foreground">We could not find this page.</p>
         <Link
           to="/"
           className="mt-6 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"

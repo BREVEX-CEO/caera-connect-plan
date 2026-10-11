@@ -40,5 +40,8 @@ export async function stopEverywhere(recorded: () => void = () => undefined): Pr
       return;
     }
   }
-  toast.warning("Your computer has not confirmed the stop yet. Check that it is online.", { id });
+  toast.warning(
+    "Stop not confirmed: the computer has not answered. Press STOP JARVIS in the OCADE tray on that computer, or check that it is online.",
+    { id },
+  );
 }

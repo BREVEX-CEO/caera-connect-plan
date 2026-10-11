@@ -265,7 +265,12 @@ function LibraryPage() {
                 <button
                   type="button"
                   aria-label={`Delete ${item.name}`}
-                  onClick={() => remove.mutate(item.id)}
+                  onClick={() => {
+                    // Deletion removes the stored file too and cannot be undone.
+                    if (window.confirm(`Delete ${item.name}? This cannot be undone.`)) {
+                      remove.mutate(item.id);
+                    }
+                  }}
                   className={ROW_ACTION}
                 >
                   <Trash2 className="h-4 w-4" aria-hidden />

@@ -351,7 +351,7 @@ const QUESTIONS: {
   },
   {
     category: "Troubleshooting",
-    question: "“Your computer has not confirmed the stop yet”",
+    question: "“Stop not confirmed”",
     words: "stop confirm computer offline",
     answer: (
       <p>

@@ -144,6 +144,7 @@ try {
 
   /* --- deleting one ------------------------------------------------------- */
 
+  page.once("dialog", (dialog) => void dialog.accept()); // deletion asks first: it cannot be undone
   await page.getByRole("button", { name: "Delete notes.txt" }).click();
   await page.waitForSelector("text=Nothing here yet", { timeout: 15_000 });
   check("deleting an item removes it", true);
