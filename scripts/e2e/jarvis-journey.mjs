@@ -318,9 +318,15 @@ try {
       viewport: { width: 1280, height: 860 },
       extraHTTPHeaders: { "cf-connecting-ip": "203.0.113.9" },
     });
+    // The person signed in on that other computer: a session of its own.
+    const elsewhereSession = await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: EMAIL, password: "proof" }),
+    }).then((r) => r.json());
     await elsewhere.addInitScript(
       ([key, value]) => window.localStorage.setItem(key, value),
-      [storageKey, JSON.stringify(session)],
+      [storageKey, JSON.stringify(elsewhereSession)],
     );
     const phished = await elsewhere.newPage();
     await phished.goto(/OCADE: (\S+)/.exec(thief.out())[1], { waitUntil: "networkidle" });
@@ -379,6 +385,17 @@ try {
       .getByRole("textbox", { name: "Fingerprint the device shows" })
       .fill(printed ?? "");
     await phished.getByRole("button", { name: "Connect", exact: true }).click();
+    // One confirmation covers one change (P05-B): the wrong try above spent it.
+    const ask = phished.getByRole("dialog", { name: "Confirm it's you" });
+    check(
+      "after a wrong try, connecting asks to confirm it's you again",
+      await ask.waitFor({ timeout: 10_000 }).then(
+        () => true,
+        () => false,
+      ),
+    );
+    await ask.getByLabel("Verification code").fill("123456");
+    await ask.getByRole("button", { name: "Confirm", exact: true }).click();
     check(
       "the fingerprint the computer shows, typed from another network, connects it",
       (await laptop.exit) === 0 && laptop.out().includes("Connected as Proof laptop"),
@@ -512,6 +529,8 @@ except i.UpdateRequired:
     // Try again continues the same task: one record, one history, not a copy.
     await script("Continue the task from where it stopped", [
       { tool: "computer", args: { action: "file_write", path: "retried.md", content: "retried" } },
+      // Completed needs the changed file read back on the device (P01).
+      { tool: "computer", args: { action: "file_read", path: "retried.md" } },
       { tool: "finish_task", args: { outcome: "completed", result: "Written." } },
       { text: "Written this time." },
     ]);
@@ -532,19 +551,22 @@ except i.UpdateRequired:
         tool: "computer",
         args: { action: "file_write", path: "notes.md", content: "OCADE was here" },
       },
-      terminal
-        ? {
-            tool: "computer",
-            args: {
-              action: "run",
-              // One program, no shell: the same command on Linux (bubblewrap) and Windows.
-              command:
-                process.platform === "win32"
-                  ? `python -c "print(open('notes.md').read())"`
-                  : "cat notes.md",
+      ...(terminal
+        ? [
+            {
+              tool: "computer",
+              args: {
+                action: "run",
+                // One program, no shell: the same command on Linux (bubblewrap) and Windows.
+                command:
+                  process.platform === "win32"
+                    ? `python -c "print(open('notes.md').read())"`
+                    : "cat notes.md",
+              },
             },
-          }
-        : { tool: "computer", args: { action: "file_read", path: "notes.md" } },
+          ]
+        : []),
+      { tool: "computer", args: { action: "file_read", path: "notes.md" } },
       { tool: "computer", args: { action: "file_read", path: "../outside.txt" } },
       ...(terminal
         ? [{ tool: "computer", args: { action: "run", command: "git push origin main" } }]
@@ -603,6 +625,7 @@ except i.UpdateRequired:
       },
       { tool: "browser", args: { action: "wait", seconds: 5, step: 1 } },
       { tool: "browser", args: { action: "wait", seconds: 5, step: 2 } },
+      { tool: "browser", args: { action: "observe", step: 2 } },
       { tool: "finish_task", args: { outcome: "completed", result: "Tidied." } },
       { text: "All tidy." },
     ]);
@@ -848,6 +871,7 @@ except i.UpdateRequired:
       { tool: "browser", args: { action: "observe" } },
       { tool: "browser", args: { action: "click", name: "Lamp", step: 3 } },
       { tool: "browser", args: { action: "click_at", x: 5, y: 5, observationId: "o1" } },
+      { tool: "browser", args: { action: "observe" } },
       { tool: "finish_task", args: { outcome: "completed", result: "The lamp page is open." } },
       { text: "Done: the lamp page is open." },
     ]);

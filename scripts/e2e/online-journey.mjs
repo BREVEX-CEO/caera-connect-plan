@@ -50,6 +50,23 @@ function check(name, ok, detail = "") {
   process.stdout.write(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}\n`);
 }
 
+/** Research, Thinking and Temporary live under More: is one offered there, and choosing it. */
+function moreMenu(page) {
+  return page.locator("details", { has: page.locator("summary", { hasText: "More" }) });
+}
+async function offered(page, name) {
+  const menu = moreMenu(page);
+  await menu.locator("summary").click();
+  const count = await menu.getByRole("button", { name, exact: true }).count();
+  await menu.locator("summary").click();
+  return count === 1;
+}
+async function choose(page, name) {
+  const menu = moreMenu(page);
+  await menu.locator("summary").click();
+  await menu.getByRole("button", { name, exact: true }).click();
+}
+
 const storageKey = (url) => `sb-${new URL(url).hostname.split(".")[0]}-auth-token`;
 const EMAIL = `online-${Date.now()}@ocade.test`;
 
@@ -252,19 +269,16 @@ try {
   // The refusal section above left the boundary failing on purpose.
   await setBoundary(200);
   await page.goto(`${BASE}/?new=true`, { waitUntil: "networkidle" });
-  check(
-    "Research is offered on the connected engine",
-    (await page.getByRole("button", { name: "Research" }).count()) === 1,
-  );
+  check("Research is offered on the connected engine", await offered(page, "Research"));
   await page.getByRole("button", { name: "Offline", exact: true }).click();
   check(
     "and never on manual Offline, which sends no provider traffic at all",
-    (await page.getByRole("button", { name: "Research" }).count()) === 0,
+    !(await offered(page, "Research")),
   );
   await page.getByRole("button", { name: "Auto", exact: true }).click();
 
   const beforeResearch = await usageRemaining(page);
-  await page.getByRole("button", { name: "Research" }).click();
+  await choose(page, "Research");
   await page.fill("#ocade-composer", "What happened this week?");
   await page.click('button[aria-label="Send"]');
   await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });

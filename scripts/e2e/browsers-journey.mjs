@@ -1,7 +1,7 @@
 /**
  * The same signed-in OCADE and JARVIS flow in every browser engine people use:
  * Chromium, Firefox and WebKit, at desktop size and as an iPhone- and an
- * Android-sized phone. WebKit here is Safari's engine on Windows: it is
+ * Android-sized phone, plus an iPad-sized tablet. WebKit here is Safari's engine on Windows: it is
  * compatibility evidence, never proof of a real iPhone or Mac.
  *
  * Usage: node scripts/e2e/browsers-journey.mjs [--base=…] [--supabase=…]
@@ -44,6 +44,7 @@ const RUNS = [
     context: { viewport: { width: 1280, height: 800 } },
   },
   { name: "WebKit iPhone-sized", engine: webkit, launch: {}, context: { ...devices["iPhone 13"] } },
+  { name: "WebKit iPad-sized", engine: webkit, launch: {}, context: { ...devices["iPad Pro 11"] } },
   {
     name: "Chromium Android-sized",
     engine: chromium,

@@ -37,6 +37,23 @@ function check(name, ok, detail = "") {
   process.stdout.write(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}\n`);
 }
 
+/** Research, Thinking and Temporary live under More: is one offered there, and choosing it. */
+function moreMenu(page) {
+  return page.locator("details", { has: page.locator("summary", { hasText: "More" }) });
+}
+async function offered(page, name) {
+  const menu = moreMenu(page);
+  await menu.locator("summary").click();
+  const count = await menu.getByRole("button", { name, exact: true }).count();
+  await menu.locator("summary").click();
+  return count === 1;
+}
+async function choose(page, name) {
+  const menu = moreMenu(page);
+  await menu.locator("summary").click();
+  await menu.getByRole("button", { name, exact: true }).click();
+}
+
 const storageKey = (url) => `sb-${new URL(url).hostname.split(".")[0]}-auth-token`;
 const EMAIL = `offline-${Date.now()}@ocade.test`;
 
@@ -126,19 +143,16 @@ try {
 
   await page.keyboard.press("Escape");
   await page.waitForTimeout(300);
-  check(
-    "Thinking is not offered while Auto is selected",
-    (await page.getByRole("button", { name: "Thinking" }).count()) === 0,
-  );
+  check("Thinking is not offered while Auto is selected", !(await offered(page, "Thinking")));
   await page.getByRole("button", { name: "Online", exact: true }).click();
   check(
     "nor while Online is selected, where the boundary has no such parameter",
-    (await page.getByRole("button", { name: "Thinking" }).count()) === 0,
+    !(await offered(page, "Thinking")),
   );
   await page.getByRole("button", { name: "Offline", exact: true }).click();
   check(
     "and is offered on Offline, where the artifact carries both modes",
-    (await page.getByRole("button", { name: "Thinking" }).count()) === 1,
+    await offered(page, "Thinking"),
   );
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();

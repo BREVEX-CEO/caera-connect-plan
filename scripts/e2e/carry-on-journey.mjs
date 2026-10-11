@@ -182,6 +182,8 @@ try {
       },
     },
     { tool: "computer", args: { action: "file_write", path: "wait.py", content: WAIT, step: 1 } },
+    // Every file it changes is read back before it may finish.
+    { tool: "computer", args: { action: "file_info", path: "wait.py", step: 1 } },
     { tool: "computer", args: { action: "run", command: "python wait.py", step: 2 } },
     {
       tool: "computer",
@@ -256,7 +258,7 @@ try {
     uses
       .filter((row) => row.action)
       .map((row) => row.action.action)
-      .join(",") === "file_write,run,file_write,file_read" &&
+      .join(",") === "file_write,file_info,run,file_write,file_read" &&
       readFileSync(path.join(workspace, "slept.txt"), "utf8") === "x",
     uses
       .filter((row) => row.action)
@@ -520,6 +522,7 @@ try {
   await script("later-work", [
     { text: "(the task was started by OCADE's clock)" },
     { tool: "computer", args: { action: "file_write", path: "later.txt", content: "on time" } },
+    { tool: "computer", args: { action: "file_read", path: "later.txt" } },
     { tool: "finish_task", args: { outcome: "completed", result: "The later file is written." } },
   ]);
   await plan.context().close();

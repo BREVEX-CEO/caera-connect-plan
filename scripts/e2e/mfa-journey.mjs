@@ -326,8 +326,19 @@ try {
   const codes = await sheetD.locator("li").allInnerTexts();
   await sheetD.getByRole("button", { name: "I saved them" }).click();
 
-  // Making a new sheet retires the old one.
+  // Making a new sheet retires the old one. The first sheet spent this sign-in's
+  // confirmation (one confirmation, one change), so the authenticator is asked again.
   await pageD.getByRole("button", { name: "Make new codes", exact: true }).click();
+  const askD = pageD.getByRole("dialog", { name: "Confirm it's you" });
+  check(
+    "a second change asks for the authenticator code again",
+    await askD.waitFor({ timeout: 10_000 }).then(
+      () => true,
+      () => false,
+    ),
+  );
+  await askD.getByLabel("Verification code").fill(totp(keyD, 1)); // the setup used this window's code
+  await askD.getByRole("button", { name: "Confirm", exact: true }).click();
   await sheetD.waitFor({ timeout: 10_000 });
   const newCodes = await sheetD.locator("li").allInnerTexts();
   check(

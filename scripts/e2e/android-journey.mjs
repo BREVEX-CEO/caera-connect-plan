@@ -6,10 +6,10 @@
  *   python android/build.py                              (the app)
  *   node scripts/e2e/android-journey.mjs [--decline]     (an emulator must be running)
  *
- * Covers: first screen, the guided walk-through of Android's own permission
- * screens (all allowed, or with one declined and never asked in a loop),
- * connecting the phone with its own key and a one-click approval in OCADE,
- * the floating bubble, JARVIS opening an app and reading its controls on the
+ * Covers: first screen, connecting the phone first with its own key and a
+ * one-click approval in OCADE, then Android's own notification question (allowed,
+ * or declined and never asked in a loop), the optional bubble and app control
+ * from their own buttons, the floating bubble, JARVIS opening an app and reading its controls on the
  * phone, STOP from the bubble, removal in OCADE, orientation, reinstall.
  * Android asks every question itself; this only answers them as a person would.
  */
@@ -157,52 +157,26 @@ try {
   await wd("POST", "/appium/settings", { settings: { enableMultiWindows: true } });
 
   check(
-    "the first screen says what OCADE needs, with one button to set it up",
-    await until(
-      async () => (await exists(ui("Needs your permission"))) && (await exists(ui("Set up OCADE"))),
-    ),
+    "the first screen says OCADE is not set up, with one button to set it up",
+    await until(async () => (await exists(ui("Not set up"))) && (await exists(ui("Set up OCADE")))),
   );
   check(
-    "it lists what it needs and why, before asking for any of it",
+    "it lists what it needs and why, with the bubble and app control marked optional",
     (await exists('new UiSelector().description("Notifications: not allowed yet")')) &&
-      (await exists('new UiSelector().description("Display over other apps: not allowed yet")')) &&
       (await exists(
-        'new UiSelector().description("Accessibility: OCADE JARVIS: not allowed yet")',
+        'new UiSelector().description("Display over other apps (optional): not allowed yet")',
+      )) &&
+      (await exists(
+        'new UiSelector().description("Accessibility: OCADE JARVIS (optional): not allowed yet")',
       )),
   );
 
-  /* --- one button: Android's own permission screens, then connecting -------- */
+  /* --- Set up connects first: the phone's own key, one approval ------------ */
   // Requests already waiting (an earlier run's) are not this phone's.
   const earlier = new Set(
     (await devices("user_id=is.null&kind=eq.android&select=id")).map((row) => row.id),
   );
   await tap(ui("Set up OCADE"));
-  await find(ui(DECLINE ? "Don’t allow" : "Allow"), 20_000);
-  check("Android itself asks about notifications", true);
-  await tap(ui(DECLINE ? "Don’t allow" : "Allow"));
-  check(
-    "then it moves on to Display over other apps by itself",
-    await until(async () => await exists(ui("Display over other apps")), 20_000),
-  );
-  if (await exists(ui("OCADE"))) await tap(ui("OCADE")); // a list of apps first on newer Android
-  await tap(ui("Allow display over other apps"));
-  await until(async () => /checked="true"/.test(await source()), 5_000);
-  await back();
-  if (await exists(ui("Display over other apps"))) await back();
-  check(
-    "then Accessibility, by itself",
-    await until(async () => await exists(ui("OCADE JARVIS")), 20_000),
-  );
-  await tap(ui("OCADE JARVIS"));
-  await tap('new UiSelector().resourceId("com.android.settings:id/main_switch_bar")');
-  await find(ui("Allow"), 10_000);
-  check("Android warns about full control in its own words", /full control/i.test(await source()));
-  await tap(ui("Allow"));
-  await until(async () => await exists(ui("Use OCADE JARVIS")), 5_000);
-  await back();
-  await back();
-
-  /* --- the same button then connects: the phone's own key, one approval ---- */
   let phone = null;
   await until(async () => {
     phone =
@@ -212,32 +186,13 @@ try {
     return Boolean(phone);
   }, 30_000);
   check(
-    "with the permissions done, the same Set up asks OCADE to connect it, as an Android device",
-    Boolean(phone),
+    "Set up asks OCADE to connect it, as an Android device, before any permission",
+    Boolean(phone) && !(await exists(ui("Allow"))),
     JSON.stringify(phone),
   );
   // The approval page opened in the phone's browser; the person approves where they are signed in.
   await web.goto(`${BASE}/ocade-jarvis?connect=${phone.id}`, { waitUntil: "networkidle" });
   adb("shell", "am", "start", "-n", "in.ocade.app/.MainActivity");
-  if (DECLINE) {
-    check(
-      "the one left off is said plainly, and was asked about only once",
-      await until(
-        async () =>
-          (await exists('new UiSelector().description("Notifications: not allowed yet")')) &&
-          (await exists('new UiSelector().textContains("Some of this was left off")')),
-        10_000,
-      ),
-    );
-  } else {
-    check(
-      "nothing is left off: no permission is still listed",
-      (await until(
-        async () => !(await exists('new UiSelector().textContains("not allowed")')),
-        10_000,
-      )) && !(await exists('new UiSelector().descriptionContains("not allowed yet")')),
-    );
-  }
   let printed = "";
   await until(async () => {
     printed = /fingerprint is ([0-9A-F]{4}(?:-[0-9A-F]{4}){3})/.exec(await source())?.[1] ?? "";
@@ -264,9 +219,63 @@ try {
   }
   await web.getByRole("button", { name: "Connect", exact: true }).click();
   check(
-    "and Connect connects it, and the phone says Ready",
-    await until(async () => await exists('new UiSelector().textStartsWith("Ready")'), 30_000),
+    "Connect connects it, and the phone then asks only for notifications",
+    await until(
+      async () => (await exists(ui("Needs your permission"))) && (await exists(ui("Set up OCADE"))),
+      30_000,
+    ),
     (await web.locator("body").innerText()).replace(/\s+/g, " ").slice(0, 300),
+  );
+
+  /* --- Android's own notification question, then the optional ones -------- */
+  await tap(ui("Set up OCADE"));
+  await find(ui(DECLINE ? "Don’t allow" : "Allow"), 20_000);
+  check("Android itself asks about notifications", true);
+  await tap(ui(DECLINE ? "Don’t allow" : "Allow"));
+  if (DECLINE) {
+    check(
+      "the one left off is said plainly, and was asked about only once",
+      await until(
+        async () =>
+          (await exists('new UiSelector().description("Notifications: not allowed yet")')) &&
+          (await exists('new UiSelector().textContains("Some of this was left off")')) &&
+          !(await exists(ui("Don’t allow"))),
+        10_000,
+      ),
+    );
+  } else {
+    check(
+      "notifications allowed, the phone says Ready",
+      await until(async () => await exists('new UiSelector().textStartsWith("Ready")'), 20_000),
+    );
+  }
+  // The bubble: the person's choice, from its own button with its reason.
+  await tap(ui("Allow the bubble"));
+  await until(async () => await exists(ui("Display over other apps")), 20_000);
+  if (await exists(ui("OCADE"))) await tap(ui("OCADE")); // a list of apps first on newer Android
+  await tap(ui("Allow display over other apps"));
+  await until(async () => /checked="true"/.test(await source()), 5_000);
+  await back();
+  if (await exists(ui("Display over other apps"))) await back();
+  // App control: the same, through Android's Accessibility screen.
+  await tap(ui("Allow app control"));
+  await until(async () => await exists(ui("OCADE JARVIS")), 20_000);
+  await tap(ui("OCADE JARVIS"));
+  await tap('new UiSelector().resourceId("com.android.settings:id/main_switch_bar")');
+  await find(ui("Allow"), 10_000);
+  check("Android warns about full control in its own words", /full control/i.test(await source()));
+  await tap(ui("Allow"));
+  await until(async () => await exists(ui("Use OCADE JARVIS")), 5_000);
+  await back();
+  await back();
+  adb("shell", "am", "start", "-n", "in.ocade.app/.MainActivity");
+  check(
+    "the bubble and app control, once allowed, are no longer listed",
+    await until(
+      async () =>
+        !(await exists('new UiSelector().descriptionContains("(optional): not allowed yet")')),
+      10_000,
+    ),
   );
 
   /* --- the floating bubble ------------------------------------------------- */
@@ -325,6 +334,8 @@ try {
         { tool: "computer", args: { action: "ui_inspect" } },
         // A control used by its name in the observation, through the same hard rules.
         { tool: "computer", args: { action: "ui_act", op: "invoke", name: "Network & internet" } },
+        // Completed needs a read-back after the last change (P01).
+        { tool: "computer", args: { action: "ui_inspect" } },
         { tool: "finish_task", args: { outcome: "completed", result: "Settings is open." } },
       ],
     }),

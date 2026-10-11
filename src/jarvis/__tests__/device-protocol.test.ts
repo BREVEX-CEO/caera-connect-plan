@@ -9,11 +9,14 @@ import { canonical, PROTOCOL, readSigned, verifySignature } from "../device.serv
  */
 const BASE = "https://ocade.test";
 /** The agent's own dependency; without it the cross-language proof cannot run here. */
-const pythonAgent =
-  spawnSync("python3", [
-    "-c",
-    "import sys; sys.path.insert(0, 'jarvis-runtime'); import ocade_identity",
-  ]).status === 0;
+// `python3` on Linux and macOS, `python` on Windows.
+const pythonAgent = ["python3", "python"].find(
+  (python) =>
+    spawnSync(python, [
+      "-c",
+      "import sys; sys.path.insert(0, 'jarvis-runtime'); import ocade_identity",
+    ]).status === 0,
+);
 const PATH = PROTOCOL.paths.exchange;
 
 const b64url = (bytes: ArrayBuffer) =>
@@ -113,7 +116,7 @@ path = i.PROTOCOL["paths"]["exchange"]
 print(json.dumps({"public": i.public_text(key), "ts": ts, "body": body.decode(),
   "signature": i.sign(key, i.canonical("POST", path, "d9", ts, body)),
   "fingerprint": i.fingerprint(i.public_text(key))}))`;
-    const run = spawnSync("python3", ["-c", script], { encoding: "utf8" });
+    const run = spawnSync(pythonAgent!, ["-c", script], { encoding: "utf8" });
     expect(run.stderr).toBe("");
     const vector = JSON.parse(run.stdout) as Record<string, string | number>;
     const request = new Request(`${BASE}${PATH}`, {

@@ -117,8 +117,34 @@ async function open(session, viewport = { width: 1280, height: 800 }) {
   }
   const page = await context.newPage();
   page.on("pageerror", (error) => errors.push(`${page.url()} ${String(error).slice(0, 160)}`));
+  void answerConfirmations(page);
   return page;
 }
+
+/**
+ * One confirmation covers one change (P05-B), so a staff member making many
+ * changes is asked "Confirm it's you" again and again. They answer with the
+ * emailed code each time; the count is checked at the end.
+ */
+let confirmations = 0;
+async function answerConfirmations(page) {
+  const ask = page.getByRole("dialog", { name: "Confirm it's you" });
+  while (!page.isClosed()) {
+    const field = ask.getByLabel("Verification code");
+    if (await field.isVisible().catch(() => false)) {
+      await field.fill("123456").catch(() => undefined);
+      await ask
+        .getByRole("button", { name: "Confirm", exact: true })
+        .click({ timeout: 2_000 })
+        .then(() => (confirmations += 1))
+        .catch(() => undefined);
+    }
+    await page.waitForTimeout(250).catch(() => undefined);
+  }
+}
+/** The session a page holds now: confirming it's you by email replaces the one it opened with. */
+const sessionOf = async (page) =>
+  JSON.parse(await page.evaluate((key) => localStorage.getItem(key), storageKey));
 const seen = (locator, timeout = 10_000) =>
   locator
     .first()
@@ -687,7 +713,7 @@ try {
   );
   await owner.goto(`${SITE}/ocade-jarvis`, { waitUntil: "load" });
   check("and so does JARVIS", await seen(owner.getByText("Unlimited JARVIS use"), 20_000));
-  const recorded0 = await asCustomer(ownerSession, "/rest/v1/rpc/ocade_staff_can", {
+  const recorded0 = await asCustomer(await sessionOf(owner), "/rest/v1/rpc/ocade_staff_can", {
     method: "POST",
     body: JSON.stringify({ p_permission: "grants.manage" }),
   }).then((r) => r.json());
@@ -892,6 +918,7 @@ try {
   );
 
   // Emergency: every staff session ends, except the owner's own.
+  const strongNow = await sessionOf(strong);
   await tab(owner, "Staff").click();
   const emergency = owner.getByRole("region", { name: /Emergency/ });
   const signOut = emergency.getByRole("button", { name: "Sign all staff out" });
@@ -902,7 +929,7 @@ try {
     "every other staff session ends",
     await seen(owner.getByText(/Every other staff session ended/)),
   );
-  const copied = await asCustomer(strongSession, "/rest/v1/rpc/ocade_staff_can", {
+  const copied = await asCustomer(strongNow, "/rest/v1/rpc/ocade_staff_can", {
     method: "POST",
     body: JSON.stringify({ p_permission: "customers.read" }),
   });
@@ -924,6 +951,11 @@ try {
     await seen(owner.getByRole("heading", { name: "Owner Console", exact: true }), 20_000),
   );
 
+  check(
+    "changes after the first asked to confirm it's you again",
+    confirmations > 0,
+    `${confirmations} confirmations`,
+  );
   check("no page errors", errors.length === 0, errors.join(" | "));
 } catch (error) {
   check("the admin journey runs", false, String(error).slice(0, 900));

@@ -35,6 +35,16 @@ function check(name, ok, detail = "") {
   process.stdout.write(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}\n`);
 }
 
+/** Research, Thinking and Temporary live under More: choosing one. */
+function moreMenu(page) {
+  return page.locator("details", { has: page.locator("summary", { hasText: "More" }) });
+}
+async function choose(page, name) {
+  const menu = moreMenu(page);
+  await menu.locator("summary").click();
+  await menu.getByRole("button", { name, exact: true }).click();
+}
+
 /**
  * The storage key `@supabase/supabase-js` writes its session under.
  *
@@ -419,7 +429,7 @@ try {
   // Counted first: earlier sections leave real conversations behind, and what
   // this proves is that a temporary one ADDS nothing, not that history is empty.
   const savedBefore = await page.locator("aside ul li").count();
-  await page.getByRole("button", { name: "Temporary" }).click();
+  await choose(page, "Temporary");
   await page.fill("#ocade-composer", "Nothing about this is saved");
   await page.click('button[aria-label="Send"]');
   await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
