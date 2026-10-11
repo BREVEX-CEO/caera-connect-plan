@@ -597,6 +597,9 @@ export async function exchange(
   const rotated = input.rotate
     ? await rotateKey(admin, device.id, input.rotate.publicKey)
     : undefined;
+  // A rotation is only a rotation: the device does not run what its answer carries,
+  // so nothing is claimed for it, and its running work is not judged without the list.
+  if (input.rotate) return { ...envelope, commands: [], cancel: [], rotated };
 
   for (const result of input.results) {
     // A person decides a confirmation; the result says one is needed. A stale action did not

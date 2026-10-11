@@ -383,6 +383,31 @@ describe("Disconnect from the computer (forget)", () => {
   });
 });
 
+describe("key rotation (P03)", () => {
+  it("never claims work in the rotation exchange, whose answer the device does not run", async () => {
+    const t = await task();
+    await permit("files", true);
+    const id = await queue(t, { action: "file_list", path: "." });
+    const [{ key }] = await twin.asServiceRole<{ key: string }>(
+      `select public_key as key from public.jarvis_devices where id = '${device}'`,
+    );
+    const pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, [
+      "sign",
+    ]);
+    const fresh = Buffer.from(await crypto.subtle.exportKey("spki", pair.publicKey)).toString(
+      "base64url",
+    );
+    const reply = await run({ results: [], rotate: { publicKey: fresh } });
+    expect(reply.rotated).toBe(true);
+    expect(reply.commands).toEqual([]);
+    expect((await status(id)).status).toBe("queued");
+    expect((await run({ results: [] })).commands.map((c) => c.id)).toEqual([id]);
+    await twin.asServiceRole(
+      `update public.jarvis_devices set public_key = '${key}' where id = '${device}'`,
+    );
+  });
+});
+
 describe("completion needs evidence from the device (P01)", () => {
   const settle = async (id: string, status: string, result: object | null = null) =>
     twin.asServiceRole(

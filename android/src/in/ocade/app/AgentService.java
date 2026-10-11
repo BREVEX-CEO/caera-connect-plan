@@ -117,8 +117,42 @@ public final class AgentService extends Service {
                 .build();
     }
 
+    /** Results finished before a crash, a reboot or a lost connection still reach OCADE. */
+    private android.util.AtomicFile pending() {
+        return new android.util.AtomicFile(new java.io.File(getFilesDir(), "pending-results.json"));
+    }
+
+    private JSONArray loadPending() {
+        try {
+            return new JSONArray(new String(pending().readFully(), java.nio.charset.StandardCharsets.UTF_8));
+        } catch (java.io.FileNotFoundException e) {
+            return new JSONArray();
+        } catch (Exception e) {
+            // Kept for diagnosis rather than silently overwritten.
+            java.io.File base = pending().getBaseFile();
+            base.renameTo(new java.io.File(base.getPath() + ".damaged"));
+            return new JSONArray();
+        }
+    }
+
+    private void keepPending(JSONArray results) {
+        android.util.AtomicFile file = pending();
+        if (results.length() == 0) {
+            file.delete();
+            return;
+        }
+        java.io.FileOutputStream out = null;
+        try {
+            out = file.startWrite(); // never a half-written journal
+            out.write(results.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            file.finishWrite(out);
+        } catch (java.io.IOException e) {
+            if (out != null) file.failWrite(out);
+        }
+    }
+
     private void work() {
-        JSONArray results = new JSONArray();
+        JSONArray results = loadPending();
         JSONObject frame = null;
         Thread step = null;
         final JSONObject[] outcome = new JSONObject[1];
@@ -142,6 +176,7 @@ public final class AgentService extends Service {
                     detail.remove("observation");
                     if (detail.length() > 0) result.put("detail", detail);
                     results.put(result);
+                    keepPending(results);
                     if (live != null) frame = new JSONObject().put("taskId", stepTask).put("jpeg", live);
                     step = null;
                 }
@@ -201,6 +236,7 @@ public final class AgentService extends Service {
                     }
                 }
                 results = again;
+                keepPending(results);
                 frame = null;
                 task = reply.body.optJSONObject("task");
                 boolean busy = reply.body.optBoolean("busy");
@@ -211,6 +247,7 @@ public final class AgentService extends Service {
                 if (step == null && commands != null && commands.length() > 0 && stopAll.get()) {
                     results.put(new JSONObject().put("id", commands.getJSONObject(0).getString("id"))
                             .put("status", "failed").put("summary", "Stopped before it started"));
+                    keepPending(results);
                     commands = null;
                 }
                 if (step == null && commands != null && commands.length() > 0) {

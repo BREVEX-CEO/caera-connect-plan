@@ -358,9 +358,12 @@ public final class MainActivity extends Activity {
         new Thread(() -> {
             try {
                 // Its key stops working in OCADE too.
-                identity.exchange(new JSONObject().put("results", new org.json.JSONArray()).put("forget", true));
-            } catch (Exception ignored) {
-                // offline: the person can remove it in OCADE Devices
+                Identity.Reply reply = identity.exchange(
+                        new JSONObject().put("results", new org.json.JSONArray()).put("forget", true));
+                if (reply.status != 200) throw new IllegalStateException("disconnect " + reply.status);
+            } catch (Exception notConfirmed) {
+                problem = "OCADE did not confirm the disconnect, so this phone may still be listed: "
+                        + "remove it in OCADE Devices.";
             }
             identity.forget();
             if (AgentService.running != null) AgentService.running.stopSelf();
