@@ -160,7 +160,7 @@ export async function completionGap(
   // A refused or skipped action never ran on the device: it changed nothing.
   const rows = (
     (data ?? []) as {
-      action: { action?: string } | null;
+      action: { action?: string; path?: unknown } | null;
       status: string;
       result: { status?: string } | null;
     }[]
@@ -172,10 +172,27 @@ export async function completionGap(
   let since = rows.length;
   while (since > 0 && reads(rows[since - 1]!)) since -= 1;
   const checked = rows.slice(since).some((row) => row.status === "done");
-  return checked
-    ? null
-    : "nothing has read the result back since the last change. Check it with a fresh read (file_info, sheet_inspect, observe or ui_inspect), then finish.";
+  if (!checked) {
+    return "nothing has read the result back since the last change. Check it with a fresh read (file_info, sheet_inspect, observe or ui_inspect), then finish.";
+  }
+  // Each file whose content changed is itself read back after its last change, not another one.
+  for (const [at, row] of rows.entries()) {
+    const path = row.action?.path;
+    if (!EDITS_CONTENT.has(row.action?.action ?? "") || typeof path !== "string") continue;
+    const later = rows.slice(at + 1).filter((next) => next.action?.path === path);
+    if (later.some((next) => EDITS_CONTENT.has(next.action?.action ?? ""))) continue;
+    if (
+      !later.some((next) => READS_FILE.has(next.action?.action ?? "") && next.status === "done")
+    ) {
+      return `${path} was changed but never read back. Read it (file_info, file_read, file_extract or sheet_inspect), then finish.`;
+    }
+  }
+  return null;
 }
+
+/** Actions that change a file's content in place, and the reads that check that content. */
+const EDITS_CONTENT = new Set(["file_write", "sheet_edit", "doc_edit"]);
+const READS_FILE = new Set(["file_info", "file_read", "file_extract", "sheet_inspect"]);
 
 export interface TaskChange {
   id: string;

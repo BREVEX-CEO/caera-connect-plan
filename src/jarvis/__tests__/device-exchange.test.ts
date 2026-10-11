@@ -513,6 +513,13 @@ describe("completion needs evidence from the device (P01)", () => {
     expect(await gap(t)).toMatch(/read the result back/);
   });
 
+  it("refuses when a different file was read than the one changed", async () => {
+    const t = await task();
+    await settle(await queue(t, { action: "file_write", path: "a.txt", content: "x" }), "done");
+    await settle(await queue(t, { action: "file_info", path: "b.txt" }), "done");
+    expect(await gap(t)).toMatch(/a\.txt was changed but never read back/);
+  });
+
   it("accepts a change read back successfully, ignoring refused steps that never ran", async () => {
     const t = await task();
     await settle(await queue(t, { action: "file_write", path: "a.txt", content: "x" }), "done");
