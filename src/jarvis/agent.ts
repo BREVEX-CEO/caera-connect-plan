@@ -23,7 +23,9 @@ import {
   browserAction,
   computerAction,
   describeAction,
+  finishChange,
   FINISHED,
+  NOT_VERIFIED,
   JARVIS_SYSTEM_PROMPT,
   type DeviceAction,
   type TaskStatus,
@@ -632,23 +634,15 @@ export async function runJarvisTurn(
           : runDevice(call.name, args);
       case "finish_task": {
         if (!task) return { error: "There is no task to finish." };
-        const outcome = String(args.outcome);
-        const status: TaskStatus =
-          outcome === "completed" ? "completed" : outcome === "blocked" ? "blocked" : "failed";
-        const step = status === "completed" ? task.plan.length : task.current_step;
-        // Progress and the recovery checkpoint always agree, finished or not.
-        const done = await update({
-          id: task.id,
-          status,
-          result: String(args.result ?? "").slice(0, 8000) || null,
-          currentStep: step,
-          checkpoint: {
-            step,
-            lastAction: status === "completed" ? "Finished" : `Ended: ${status}`,
-            lastUrl: null,
-            at: new Date().toISOString(),
-          },
-        });
+        let done: JarvisTaskRow;
+        try {
+          done = await update({ id: task.id, ...finishChange(args, task) });
+        } catch (error) {
+          if (error instanceof Error && error.message.startsWith(NOT_VERIFIED)) {
+            return { error: error.message };
+          }
+          throw error;
+        }
         setTask(done);
         task = null;
         return { ok: true };

@@ -9,6 +9,7 @@ import {
   type ModelStep,
 } from "../agent";
 import type { JarvisTaskRow } from "../jarvis.functions";
+import { NOT_VERIFIED } from "../protocol";
 import type { NormalizedMessage } from "@/lib/intelligence/contract";
 
 const TASK: JarvisTaskRow = {
@@ -115,6 +116,22 @@ describe("a JARVIS turn", () => {
     expect(h.queued).toEqual([{ action: "run", command: "python export.py" }]);
     expect(h.status()).toBe("completed");
     expect(out.answer).toBeDefined();
+  });
+
+  it("hands an unverified completed back to the model, which must check or fail honestly", async () => {
+    const h = harness([
+      { text: "", toolCalls: [call("computer", { action: "file_write", path: "a.txt" })] },
+      { text: "", toolCalls: [call("finish_task", { outcome: "completed", result: "Written" })] },
+      { text: "", toolCalls: [call("finish_task", { outcome: "failed", result: "Unchecked" })] },
+    ]);
+    const update = h.deps.updateTask;
+    h.deps.updateTask = vi.fn(async (input) => {
+      if (input.status === "completed") throw new Error(`${NOT_VERIFIED}read it back first.`);
+      return update(input);
+    });
+    await runJarvisTurn({ ...h.input, task: { ...TASK } }, h.hooks, h.deps);
+    expect(h.status()).toBe("failed");
+    expect(JSON.stringify(h.seen.at(-1))).toContain(NOT_VERIFIED);
   });
 
   it("runs a tool call the model wrote as text, through the same checks, and never shows it", async () => {

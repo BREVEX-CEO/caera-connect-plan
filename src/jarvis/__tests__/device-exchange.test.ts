@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DatabaseTwin } from "../../../scripts/db-twin.mts";
 import { enrollmentRoom, exchange, MAX_PENDING_PER_SOURCE } from "../device.server";
+import { NOT_VERIFIED } from "../protocol";
+import { changeTask, completionGap } from "../task-authority.server";
 import { lit, restOver } from "./rest-adapter";
 
 /**
@@ -378,6 +380,57 @@ describe("Disconnect from the computer (forget)", () => {
     await expect(
       exchange(rest() as never, { id: missing, userId: A }, { results: [], forget: true }),
     ).rejects.toThrow(/not disconnected/);
+  });
+});
+
+describe("completion needs evidence from the device (P01)", () => {
+  const settle = async (id: string, status: string, result: object | null = null) =>
+    twin.asServiceRole(
+      `update public.jarvis_activity set status = '${status}', result = ${result ? lit(result) : "null"}
+       where id = '${id}'`,
+    );
+  const gap = (t: string) => completionGap(rest() as never, A, t);
+
+  it("refuses a model that says completed when nothing was done or checked", async () => {
+    const t = await task();
+    expect(await gap(t)).toMatch(/read the result back/);
+    await expect(
+      changeTask(rest() as never, rest() as never, A, { id: t, status: "completed" }),
+    ).rejects.toThrow(NOT_VERIFIED);
+    const [row] = await twin.asServiceRole<{ status: string }>(
+      `select status from public.jarvis_tasks where id = '${t}'`,
+    );
+    expect(row!.status).toBe("running");
+  });
+
+  it("refuses while an action's outcome is still unknown", async () => {
+    const t = await task();
+    await queue(t, { action: "file_write", path: "a.txt", content: "x" });
+    expect(await gap(t)).toMatch(/has not finished/);
+  });
+
+  it("refuses a change that nothing read back afterwards, even if a read came before it", async () => {
+    const t = await task();
+    await settle(await queue(t, { action: "file_info", path: "a.txt" }), "done");
+    await settle(await queue(t, { action: "file_write", path: "a.txt", content: "x" }), "done");
+    expect(await gap(t)).toMatch(/read the result back/);
+  });
+
+  it("refuses when the read after the change failed", async () => {
+    const t = await task();
+    await settle(await queue(t, { action: "file_write", path: "a.txt", content: "x" }), "done");
+    await settle(await queue(t, { action: "file_info", path: "a.txt" }), "failed");
+    expect(await gap(t)).toMatch(/read the result back/);
+  });
+
+  it("accepts a change read back successfully, ignoring refused steps that never ran", async () => {
+    const t = await task();
+    await settle(await queue(t, { action: "file_write", path: "a.txt", content: "x" }), "done");
+    await settle(await queue(t, { action: "file_info", path: "a.txt" }), "done");
+    await settle(await queue(t, { action: "run", command: "rm -rf /" }), "failed", {
+      status: "refused",
+    });
+    expect(await gap(t)).toBeNull();
   });
 });
 

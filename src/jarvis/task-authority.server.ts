@@ -12,7 +12,13 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { commandClass, describeAction, type DeviceAction, type TaskStatus } from "./protocol";
+import {
+  commandClass,
+  describeAction,
+  NOT_VERIFIED,
+  type DeviceAction,
+  type TaskStatus,
+} from "./protocol";
 import { needsConfirmation, refuseAction, type PermissionRow } from "./permissions";
 import { TASK_COLUMNS, type JarvisTaskRow } from "./task-row";
 
@@ -111,6 +117,66 @@ const CHANGES_FILES = [
   "download",
 ];
 
+/** Actions that only read the device's state: the only independent evidence of a result. */
+const READS_BACK = new Set([
+  "file_info",
+  "file_read",
+  "file_list",
+  "file_find",
+  "file_extract",
+  "file_locate",
+  "sheet_inspect",
+  "observe",
+  "look",
+  "screen",
+  "ui_inspect",
+  "window_list",
+  "apps",
+  "app_info",
+  "drives",
+  "system_status",
+]);
+
+/**
+ * Why this task cannot be recorded completed yet, or null when it can.
+ *
+ * The model's word is not evidence. Completed needs every action settled and
+ * a successful read of the device after its last change, on the same task.
+ */
+export async function completionGap(
+  service: Db,
+  userId: string,
+  taskId: string,
+): Promise<string | null> {
+  const { data, error } = await service
+    .from("jarvis_activity")
+    .select("action, status, result, created_at")
+    .eq("user_id", userId)
+    .eq("task_id", taskId)
+    .neq("status", "note")
+    .order("created_at", { ascending: true })
+    .limit(1000);
+  if (error) return "the task's actions could not be read back.";
+  // A refused action never reached the device: it changed nothing.
+  const rows = (
+    (data ?? []) as {
+      action: { action?: string } | null;
+      status: string;
+      result: { status?: string } | null;
+    }[]
+  ).filter((row) => row.result?.status !== "refused");
+  if (rows.some((row) => ["queued", "claimed", "needs_confirmation"].includes(row.status))) {
+    return "an action has not finished. Wait for its result before finishing.";
+  }
+  const reads = (row: (typeof rows)[number]) => READS_BACK.has(row.action?.action ?? "");
+  let since = rows.length;
+  while (since > 0 && reads(rows[since - 1]!)) since -= 1;
+  const checked = rows.slice(since).some((row) => row.status === "done");
+  return checked
+    ? null
+    : "nothing has read the result back since the last change. Check it with a fresh read (file_info, sheet_inspect, observe or ui_inspect), then finish.";
+}
+
 export interface TaskChange {
   id: string;
   status?: TaskStatus;
@@ -134,6 +200,10 @@ export async function changeTask(
   userId: string,
   data: TaskChange,
 ): Promise<JarvisTaskRow | null> {
+  if (data.status === "completed") {
+    const gap = await completionGap(service, userId, data.id);
+    if (gap) throw new Error(NOT_VERIFIED + gap);
+  }
   const patch: Record<string, unknown> = {};
   if (data.controller !== undefined) patch.controller = data.controller;
   else if (data.owner !== undefined) patch.controller = data.owner; // same value: a touch

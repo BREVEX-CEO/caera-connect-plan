@@ -329,6 +329,8 @@ Owners: `runJarvisTurn`, `changeTask`, `queueTaskAction`, `exchange`, local exec
 
 **Rollback:** disable affected mutation admission; never restore model-owned proof.
 
+**Work record — P01 phase 1 (11 October 2026, branch `ocade/p00-p22-implementation`):** Reproduced: `agent.ts` and `background.server.ts` each turned `finish_task` straight into `completed` (two copies of the same transition). **FIX:** one `finishChange` shared by both loops; `changeTask`, the single status owner, now refuses `completed` (error prefix `NOT_VERIFIED`) unless every task action has settled and a successful read-only action (file_info, sheet_inspect, observe, ui_inspect, …) ran on the same task after its last change; refused steps that never ran are ignored. The open loop returns the refusal to the model; Background Mode records it and plans again. Prompt states the rule. Tests: 5 real-Postgres cases (lying finish, unsettled action, change after read, failed read, honest path) and an agent-loop case that fails without the fix; jarvis suite 195 PASS. Still OPEN: typed per-outcome predicates (digest, sheets/ranges, reopen), crash-after-save reconciliation, commercial settlement through the gate, real Excel reopen. Evidence class LOCAL.
+
 ### P02 — Close STOP, takeover and stale-observation races
 
 **Current:** Python `ocade_computer.py` passes semantic actions to `ocade_accessibility.py` without propagating cancellation to the final effect; Android control can resolve a target after an earlier STOP check. `OcadeAccessibility.java` does not currently provide the complete observation invalidation needed by `Control.java`.

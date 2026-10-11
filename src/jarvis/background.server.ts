@@ -40,7 +40,9 @@ import {
   browserAction,
   computerAction,
   describeAction,
+  finishChange,
   invalidReason,
+  NOT_VERIFIED,
   type TaskStatus,
 } from "./protocol";
 import { changeTask, permissionsOf, queueTaskAction } from "./task-authority.server";
@@ -374,24 +376,17 @@ export async function carryOn(
     const first = Array.isArray(given.sequence) ? given.sequence[0] : null;
     const args = (first && typeof first === "object" ? first : given) as Record<string, unknown>;
     if (call.name === "finish_task") {
-      const outcome = String(args.outcome);
-      const status: TaskStatus =
-        outcome === "completed" ? "completed" : outcome === "blocked" ? "blocked" : "failed";
-      const step = status === "completed" ? task.plan.length : task.current_step;
-      const result = String(args.result ?? "").slice(0, 8000);
-      const done = await change({
-        status,
-        result: result || null,
-        currentStep: step,
-        checkpoint: {
-          step,
-          lastAction: status === "completed" ? "Finished" : `Ended: ${status}`,
-          lastUrl: null,
-          at: new Date().toISOString(),
-        },
-      });
+      const finish = finishChange(args, task);
+      let done;
+      try {
+        done = await change(finish);
+      } catch (error) {
+        if (!(error instanceof Error && error.message.startsWith(NOT_VERIFIED))) throw error;
+        await record({ action: "finish_task" }, error.message);
+        return { state: "queued" };
+      }
       if (!done) return idle;
-      await say(reply.text || result);
+      await say(reply.text || finish.result || "");
       return { state: "finished" };
     }
     if (call.name === "docs") {
