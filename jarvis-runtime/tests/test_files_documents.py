@@ -6,6 +6,7 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from conftest import live  # noqa: E402
 from ocade_computer import Computer  # noqa: E402
 
 
@@ -136,6 +137,7 @@ class WordValidationTest(unittest.TestCase):
                 ocade_documents.validate_word(ops)
 
 
+@live
 @unittest.skipUnless(__import__("ocade_documents").word_available(), "needs Microsoft Word (Windows)")
 class RealWordTest(unittest.TestCase):
     """A report finished in the person's Word: replaced, styled, formatted, a table, saved and reopened."""

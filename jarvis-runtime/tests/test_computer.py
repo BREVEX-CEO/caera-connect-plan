@@ -15,6 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import conftest  # noqa: E402,F401  test isolation for unittest runs too, not only pytest
 import ocade_computer  # noqa: E402
+from conftest import live  # noqa: E402
 from ocade_computer import Computer  # noqa: E402
 
 
@@ -314,6 +315,7 @@ class DirectCommandTest(unittest.TestCase):
         self.assertEqual(missing["status"], "failed", missing)
         self.assertIn("was not found", missing["summary"])
 
+    @live
     @unittest.skipUnless(sys.platform == "win32", "a real screen")
     def test_a_screen_look_names_the_frame_clicks_are_given_in(self):
         obs = self.pc.run({"action": "screen"})["observation"]
@@ -447,6 +449,7 @@ def _other_hand(x: int, y: int) -> None:
         mouse.move(x - px, y - py)
 
 
+@live
 @unittest.skipUnless(os.environ.get("DISPLAY") or sys.platform in ("win32", "darwin"),
                      "needs a display (run under xvfb-run)")
 class ScreenTest(unittest.TestCase):
@@ -512,6 +515,7 @@ class MultiMonitorTest(unittest.TestCase):
         self.assertIsNone(pc._point("x", 10))
 
 
+@live
 @unittest.skipUnless(sys.platform == "win32", "Windows window management")
 class WindowTest(unittest.TestCase):
     def test_lists_windows_and_refuses_unknown_or_unconfirmed_close(self):
@@ -525,34 +529,52 @@ class WindowTest(unittest.TestCase):
                          "needs_confirmation")
 
 
+def _probe_form(title: str, buttons: list[str]) -> subprocess.Popen:
+    """A throwaway Windows Forms window OCADE owns: buttons by name and a label that says which was pressed."""
+    quote = lambda s: "'" + s.replace("'", "''") + "'"  # noqa: E731
+    lines = ["Add-Type -AssemblyName System.Windows.Forms;",
+             f"$f = New-Object Windows.Forms.Form; $f.Text = {quote(title)}; $f.Height = 120 + 60 * {len(buttons)};",
+             "$l = New-Object Windows.Forms.Label; $l.Text = 'nothing pressed'; $l.Width = 300; $f.Controls.Add($l);"]
+    for at, name in enumerate(buttons):
+        lines.append(f"$b = New-Object Windows.Forms.Button; $b.Text = {quote(name)}; $b.Top = {30 + 60 * at};"
+                     " $b.Width = 200; $b.Height = 50; $b.Add_Click({ $l.Text = 'pressed ' + $this.Text });"
+                     " $f.Controls.Add($b);")
+    lines.append("[Windows.Forms.Application]::Run($f)")
+    return subprocess.Popen(["powershell", "-NoProfile", "-Command", "".join(lines)],
+                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+
+
+@live
 @unittest.skipUnless(sys.platform == "win32" and Computer(None).capabilities()["accessibility"],
                      "Windows UI Automation")
 class AccessibilityTest(unittest.TestCase):
-    """A native app driven by its controls, not by pixels: Windows Calculator."""
+    """Any app's own controls, by name and role, never pixels: a synthetic window with varied names."""
 
-    def test_calculator_by_its_buttons(self):
+    def test_controls_are_found_and_pressed_by_name_whatever_the_name(self):
+        names = ["Weiter", "次へ", "Envoyer le rapport", "प्रारूप सहेजें"]
+        title = f"OCADE probe {os.getpid()}"
+        form = _probe_form(title, names)
         pc = Computer(None)
-        pc.run({"action": "open_app", "name": "Calculator"})
-        for _ in range(20):
-            seen = pc.run({"action": "ui_inspect", "title": "Calculator"})
-            if seen["status"] == "done" and any(e["name"] == "Seven" for e in seen["observation"]["elements"]):
-                break
-            time.sleep(0.5)
-        obs = seen["observation"]
         try:
-            for name in ("Clear", "Seven", "Multiply by", "Six", "Equals"):
+            for _ in range(30):
+                seen = pc.run({"action": "ui_inspect", "title": title})
+                if seen["status"] == "done" and len(seen["observation"]["elements"]) >= len(names):
+                    break
+                time.sleep(0.5)
+            obs = seen["observation"]
+            for name in names:
                 ref = next(e["ref"] for e in obs["elements"] if e["name"] == name)
                 out = pc.run({"action": "ui_act", "ref": ref, "observationId": obs["observationId"],
                               "op": "invoke"})
                 self.assertEqual(out["status"], "done", out)
                 obs = out["observation"]
-            self.assertIn("Display is 42", [e["name"] for e in obs["elements"]])
-            found = pc.run({"action": "ui_inspect", "title": "Calculator", "find": "Seven"})
-            self.assertEqual([e["name"] for e in found["observation"]["elements"]], ["Seven"])
+                self.assertIn(f"pressed {name}", [e["name"] for e in obs["elements"]])
+            found = pc.run({"action": "ui_inspect", "title": title, "find": names[1]})
+            self.assertEqual([e["name"] for e in found["observation"]["elements"]], [names[1]])
             stale = pc.run({"action": "ui_act", "ref": "a1", "observationId": "u0", "op": "invoke"})
             self.assertEqual(stale["status"], "stale")
         finally:
-            pc.run({"action": "window", "title": "Calculator", "state": "close"}, confirmed=True)
+            form.kill()
 
     @unittest.skipUnless(sys.platform == "win32", "Windows UI Automation")
     def test_a_click_by_coordinates_meets_the_same_hard_rules(self):

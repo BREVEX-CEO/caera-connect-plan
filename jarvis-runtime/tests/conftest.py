@@ -23,3 +23,9 @@ with socket.socket() as probe:  # a port nobody else is using, not the installed
     probe.bind(("127.0.0.1", 0))
     ocade_agent.SINGLE_INSTANCE_PORT = probe.getsockname()[1]
 ocade_agent.AUTOSTART_NAME = "OCADE-test"
+
+import unittest  # noqa: E402
+
+# Tests that drive a real screen, mouse, window or Office app run only in the final campaign.
+live = unittest.skipUnless(os.environ.get("OCADE_LIVE_TESTS") == "1",
+                           "live GUI/Office test: final campaign only (OCADE_LIVE_TESTS=1)")

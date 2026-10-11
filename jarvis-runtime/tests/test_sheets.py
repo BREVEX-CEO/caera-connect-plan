@@ -8,6 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import ocade_sheets  # noqa: E402
+from conftest import live  # noqa: E402
 from ocade_computer import Computer  # noqa: E402
 
 ORDERS = [("North", "Laptop", 4, 950), ("South", "Monitor", 10, 180), ("East", "Laptop", 2, 950),
@@ -215,6 +216,7 @@ class FileEngineTest(unittest.TestCase):
                                  "sheet": "Missing"})["status"], "failed")
 
 
+@live
 @unittest.skipUnless(ocade_sheets.excel_available(), "needs Microsoft Excel (Windows)")
 class OriginalsAndChecksTest(unittest.TestCase):
     """Found on the preview: asked to keep the original, JARVIS edited it and then copied it, and
@@ -249,6 +251,7 @@ class OriginalsAndChecksTest(unittest.TestCase):
         self.assertEqual(len(out["problems"]), 2)
 
 
+@live
 class RealExcelTest(unittest.TestCase):
     """The acceptance task in the person's real Excel: visible, calculated, saved, reopened, verified."""
 
