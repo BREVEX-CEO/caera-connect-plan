@@ -30,8 +30,8 @@ function Read-Doc($doc) {
 
 $word = $null; $opened = $false; $doc = $null; $applied = @()
 try {
-  try { $word = [Runtime.InteropServices.Marshal]::GetActiveObject("Word.Application") }
-  catch { $word = New-Object -ComObject Word.Application }
+  try { $word = [Runtime.InteropServices.Marshal]::GetActiveObject([string]$job.progId) }
+  catch { $word = New-Object -ComObject ([string]$job.progId) }
   $word.Visible = $true
   $alerts = $word.DisplayAlerts
   $word.DisplayAlerts = 0
@@ -114,11 +114,11 @@ try {
     }
   }
   if (-not $job.close) { $word.DisplayAlerts = $alerts }
-  Out-Result @{ ok = $true; engine = "word"; applied = $applied; read = $read; savedAndReopened = $reopened }
+  Out-Result @{ ok = $true; engine = "automation"; applied = $applied; read = $read; savedAndReopened = $reopened }
 }
 catch {
   if ($opened -and $doc) { try { $doc.Close(0) } catch {} }
   if ($word) { try { $word.DisplayAlerts = if ($null -ne $alerts) { $alerts } else { -1 } } catch {} }
-  Out-Result @{ ok = $false; engine = "word"; applied = $applied; error = $_.Exception.Message
+  Out-Result @{ ok = $false; engine = "automation"; applied = $applied; error = $_.Exception.Message
     unsavedEdits = ((-not $opened) -and $null -ne $doc -and $applied.Count -gt 0) }
 }

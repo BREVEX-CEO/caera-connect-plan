@@ -1,13 +1,15 @@
 """
-Spreadsheets, done the way a skilled Excel user would: inspect the workbook's
-structure first, then formulas, fill, formats, tables and charts in a few
-structured operations rather than typing cell by cell.
+Spreadsheets, done the way a skilled spreadsheet user would: inspect the
+workbook's structure first, then formulas, fill, formats, tables and charts in a
+few structured operations rather than typing cell by cell.
 
 Two engines, one vocabulary:
-- "excel": the person's real Excel on Windows (actions/ocade_excel.ps1 over
-  COM). Everything the workbook holds is preserved, formulas are calculated,
+- "automation": the app this computer registers to open the file type, driven
+  through its COM automation server (actions/ocade_workbook.ps1, which speaks the
+  common workbook object model). Found from the file type, never from an app's
+  name. Everything the workbook holds is preserved, formulas are calculated,
   the result is visible, saved, reopened and read back.
-- "file": openpyxl, where Excel is not installed. It cannot calculate, and it
+- "file": openpyxl, where no such app is registered. It cannot calculate, and it
   would drop charts, pictures and pivot tables it did not create, so a workbook
   holding those is refused here rather than damaged.
 
@@ -215,15 +217,32 @@ def inspect(path: Path, sheet: str | None = None) -> dict:
             "holds": {k: v for k, v in held.items() if k != "lossy"}}
 
 
-def excel_available() -> bool:
+def automation_server(extension: str) -> dict | None:
+    """{"progId", "app"} of the COM automation server of the app registered to open this file
+    type, else None. Found from the file type, never an app's name: the type's ProgID names its
+    vendor, whose "<vendor>.Application" counts only when its server is the same program the
+    computer opens that type with."""
     if SYSTEM != "Windows":
-        return False
+        return None
+    import winreg
+
+    def value(key: str) -> str:
+        with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, key) as opened:
+            return str(winreg.QueryValueEx(opened, "")[0])
+
+    def program(command: str) -> str:
+        return command.strip().strip('"').split('"')[0].split(" /")[0].strip().lower()
+
     try:
-        import winreg
-        winreg.CloseKey(winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, r"Excel.Application\CLSID"))
-        return True
+        doc = value(extension.lower())
+        prog_id = doc.split(".")[0] + ".Application"
+        server = value(rf"CLSID\{value(prog_id + r'\CLSID')}\LocalServer32")
+        opener = value(rf"{doc}\shell\Open\command")
     except OSError:
-        return False
+        return None
+    if not prog_id[0].isalpha() or program(server) != program(opener):
+        return None
+    return {"progId": prog_id, "app": Path(program(server)).stem.capitalize()}
 
 
 def backup(path: Path, undo_dir: Path) -> Path:
@@ -279,10 +298,12 @@ def _read_ranges(ops: list[dict]) -> list[str]:
     return ranges[:10]
 
 
-def edit_with_excel(path: Path, sheet: str | None, ops: list[dict], cancel: threading.Event,
-                    close: bool = False) -> dict:
-    return office_job("ocade_excel.ps1", {"path": str(path), "sheet": sheet, "ops": ops,
-                                          "read": _read_ranges(ops), "close": close}, cancel, "Excel")
+def edit_with_automation(path: Path, sheet: str | None, ops: list[dict], cancel: threading.Event,
+                         close: bool, server: dict) -> dict:
+    out = office_job("ocade_workbook.ps1", {"path": str(path), "sheet": sheet, "ops": ops,
+                                            "read": _read_ranges(ops), "close": close,
+                                            "progId": server["progId"]}, cancel, server["app"])
+    return {**out, "app": server["app"]}
 
 
 def edit_file(path: Path, sheet: str | None, ops: list[dict], cancel: threading.Event) -> dict:
@@ -421,7 +442,7 @@ def edit_file(path: Path, sheet: str | None, ops: list[dict], cancel: threading.
         rows = rows if isinstance(rows[0], tuple) else (rows,)
         read[address] = {"formulas": [[str(c.value if c.value is not None else "") for c in row[:20]] for row in rows[:50]]}
     return {"ok": True, "engine": "file", "applied": applied, "read": read, "sheet": ws.title,
-            "note": "Formulas calculate when the workbook is opened in Excel"}
+            "note": "Formulas calculate when the workbook is opened in a spreadsheet app"}
 
 
 def edit(path: Path, sheet: str | None, ops: list[dict], undo_dir: Path,
@@ -434,8 +455,8 @@ def edit(path: Path, sheet: str | None, ops: list[dict], undo_dir: Path,
     if cancel.is_set():
         return {"ok": False, "stopped": True, "error": "Stopped before it finished"}
     kept = backup(path, undo_dir)
-    chosen = engine or ("excel" if excel_available() else "file")
-    out = (edit_with_excel(path, sheet, ops, cancel, close) if chosen == "excel"
+    server = None if engine == "file" else automation_server(path.suffix)
+    out = (edit_with_automation(path, sheet, ops, cancel, close, server) if server
            else edit_file(path, sheet, ops, cancel))
     out["backup"] = kept.name
     return out

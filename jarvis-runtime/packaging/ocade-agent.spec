@@ -24,8 +24,8 @@ a = Analysis(
     # build that forgot one fails its own health check before it ships.
     datas=[(str(root / "ocade_protocol.json"), "."),
            (str(root / "actions" / "ocade_page.js"), "actions"),
-           (str(root / "actions" / "ocade_excel.ps1"), "actions"),
-           (str(root / "actions" / "ocade_word.ps1"), "actions"),
+           (str(root / "actions" / "ocade_workbook.ps1"), "actions"),
+           (str(root / "actions" / "ocade_document.ps1"), "actions"),
            # OCADE's wake model and its signed manifest: bundled, never downloaded.
            *[(str(f), "wake") for f in (root / "wake").iterdir()
              if f.name in ("manifest.json", "manifest.sig") or f.suffix == ".npz" and f.stem != "candidate"],

@@ -147,29 +147,19 @@ def validate_word(ops: list[dict]) -> list[dict]:
     return out
 
 
-def word_available() -> bool:
-    if platform.system() != "Windows":
-        return False
-    try:
-        import winreg
-        winreg.CloseKey(winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, r"Word.Application\CLSID"))
-        return True
-    except OSError:
-        return False
-
-
-def edit_word(path: Path, ops: list[dict], undo_dir: Path, cancel, close: bool = False) -> dict:
-    """Edit a Word document in the person's Word, after keeping a copy in the undo folder."""
+def edit_document(path: Path, ops: list[dict], undo_dir: Path, cancel, close: bool = False) -> dict:
+    """Edit a document in the app this computer automates its type with, after keeping a copy."""
     import ocade_sheets
     ops = validate_word(ops)
     if path.suffix.lower() not in (".docx", ".docm", ".doc", ".rtf"):
-        raise DocumentError("JARVIS edits Word documents (.docx, .doc, .rtf)")
-    if not word_available():
-        raise DocumentError("Editing a document needs Microsoft Word on this computer")
+        raise DocumentError("JARVIS edits .docx, .docm, .doc and .rtf documents")
+    server = ocade_sheets.automation_server(path.suffix)
+    if server is None:
+        raise DocumentError("Editing this document needs an app on this computer that automates it")
     if cancel.is_set():
         return {"ok": False, "stopped": True, "error": "Stopped before it finished"}
     kept = ocade_sheets.backup(path, undo_dir)
-    result = ocade_sheets.office_job("ocade_word.ps1", {"path": str(path), "ops": ops, "close": close},
-                                     cancel, "Word")
-    result["backup"] = kept.name
+    result = ocade_sheets.office_job("ocade_document.ps1", {"path": str(path), "ops": ops, "close": close,
+                                                             "progId": server["progId"]}, cancel, server["app"])
+    result.update(backup=kept.name, app=server["app"])
     return result

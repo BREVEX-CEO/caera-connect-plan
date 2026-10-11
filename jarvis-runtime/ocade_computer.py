@@ -605,7 +605,7 @@ class Computer:
         found = ocade_sheets.problems(out.get("read") or {})
         check = f". Check: {'; '.join(found[:3])}" if found else ""
         return {"status": "done", "summary": f"Updated {rel} ({len(out['applied'])} changes, "
-                                             f"{'in Excel' if out['engine'] == 'excel' else 'in the file'}){check}",
+                                             f"{'in ' + out['app'] if out.get('app') else 'in the file'}){check}",
                 **({"problems": found} if found else {}),
                 **{k: v for k, v in out.items() if k != "ok"}}
 
@@ -628,7 +628,7 @@ class Computer:
         if refused := self._original(path, rel, action):
             return refused
         try:
-            out = ocade_documents.edit_word(path, list(action.get("ops") or []), self._undo_dir(), cancel,
+            out = ocade_documents.edit_document(path, list(action.get("ops") or []), self._undo_dir(), cancel,
                                             close=bool(action.get("_close")))
         except ocade_documents.DocumentError as e:
             return {"status": "failed", "summary": str(e)}
@@ -636,7 +636,7 @@ class Computer:
             return self._unfinished(out, rel, path, "document")
         kept = self._undo_dir() / str(out["backup"])
         self._remember(f"updating {rel}", lambda: self._put_back(kept, path))
-        return {"status": "done", "summary": f"Updated {rel} in Word ({len(out['applied'])} changes)",
+        return {"status": "done", "summary": f"Updated {rel} in {out.get('app', 'its app')} ({len(out['applied'])} changes)",
                 **{k: v for k, v in out.items() if k != "ok"}}
 
     def _unfinished(self, out: dict, rel: str, path: Path, what: str) -> dict:

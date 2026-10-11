@@ -468,7 +468,7 @@ def health_check() -> int:
             model = ocade_wake.Model(ocade_wake.bundled() / ocade_wake.verify()["file"])
             assert 0.0 <= model.score(ocade_wake.log_mel(np.zeros(ocade_wake.WINDOW_SAMPLES, np.float32))) <= 1.0
         actions = Path(ocade_sheets.__file__).resolve().parent / "actions"
-        assert (actions / "ocade_excel.ps1").is_file() and (actions / "ocade_word.ps1").is_file()
+        assert (actions / "ocade_workbook.ps1").is_file() and (actions / "ocade_document.ps1").is_file()
         import pystray
         from PIL import Image
         pystray.Icon("ocade-health", Image.new("RGBA", (16, 16)), "OCADE")

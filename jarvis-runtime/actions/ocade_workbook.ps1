@@ -43,8 +43,8 @@ function Read-Range($sheet, $address) {
 
 $excel = $null; $created = $false; $opened = $false; $book = $null
 try {
-  try { $excel = [Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application") }
-  catch { $excel = New-Object -ComObject Excel.Application; $created = $true }
+  try { $excel = [Runtime.InteropServices.Marshal]::GetActiveObject([string]$job.progId) }
+  catch { $excel = New-Object -ComObject ([string]$job.progId); $created = $true }
   $excel.Visible = $true
   $alerts = $excel.DisplayAlerts
   $excel.DisplayAlerts = $false
@@ -59,7 +59,7 @@ try {
     foreach ($candidate in $excel.Workbooks) {
       if ($candidate.Name -ieq $leaf) {
         $excel.DisplayAlerts = $alerts  # the person's Excel gets its own setting back before we leave it
-        $excel = New-Object -ComObject Excel.Application; $created = $true; $excel.Visible = $true
+        $excel = New-Object -ComObject ([string]$job.progId); $created = $true; $excel.Visible = $true
         $alerts = $excel.DisplayAlerts; $excel.DisplayAlerts = $false; break
       }
     }
@@ -184,7 +184,7 @@ try {
     if ($created -and $excel.Workbooks.Count -eq 0) { $excel.Quit() }
   }
   else { $excel.DisplayAlerts = $alerts }
-  Out-Result @{ ok = $true; engine = "excel"; applied = $applied; read = $read; savedAndReopened = $reopened; sheet = $sheetName }
+  Out-Result @{ ok = $true; engine = "automation"; applied = $applied; read = $read; savedAndReopened = $reopened; sheet = $sheetName }
 }
 catch {
   # A workbook OCADE opened closes without saving; the caller compares the file with the kept
@@ -192,6 +192,6 @@ catch {
   # workbook keeps whatever was applied, unsaved: that is said, not hidden.
   if ($opened -and $book) { try { $book.Close($false) } catch {} }
   if ($excel) { try { $excel.DisplayAlerts = if ($null -ne $alerts) { $alerts } else { $true } } catch {} }
-  Out-Result @{ ok = $false; engine = "excel"; applied = $applied; error = $_.Exception.Message
+  Out-Result @{ ok = $false; engine = "automation"; applied = $applied; error = $_.Exception.Message
     unsavedEdits = ((-not $opened) -and $null -ne $book -and $applied.Count -gt 0) }
 }

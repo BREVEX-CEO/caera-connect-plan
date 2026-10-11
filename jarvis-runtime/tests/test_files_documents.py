@@ -138,7 +138,7 @@ class WordValidationTest(unittest.TestCase):
 
 
 @live
-@unittest.skipUnless(__import__("ocade_documents").word_available(), "needs Microsoft Word (Windows)")
+@unittest.skipUnless(__import__("ocade_sheets").automation_server(".docx"), "needs an app that automates .docx")
 class RealWordTest(unittest.TestCase):
     """A report finished in the person's Word: replaced, styled, formatted, a table, saved and reopened."""
 
