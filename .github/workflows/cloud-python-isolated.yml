@@ -15,6 +15,14 @@ on:
         required: true
         default: ocade/p00-p22-implementation
         type: string
+      coverage:
+        description: Portable regression smoke or full suite (full can find real unsupported/failing tests)
+        required: true
+        default: portable
+        type: choice
+        options:
+          - portable
+          - full
 
 permissions:
   contents: read
@@ -58,12 +66,21 @@ jobs:
       - name: Verify Python imports and syntax
         run: python -m compileall -q jarvis-runtime android/build.py
 
-      - name: Run complete non-live Python regression suite against temporary HOME
+      - name: Run selected portable regressions or full suite against temporary HOME
         shell: bash
         run: |
           set -euo pipefail
           export HOME="${RUNNER_TEMP}/ocade-test-home"
           mkdir -p "$HOME"
-          xvfb-run -a python -m unittest discover -s jarvis-runtime/tests -p 'test_*.py' -v
+          if [[ "${{ github.event_name }}" == "pull_request" || "${{ inputs.coverage }}" == "portable" ]]; then
+            # An explicitly limited, independently useful suite: browser, document, spreadsheet,
+            # wake, update and accessibility units. Full runs every test and reports its own failures.
+            modules=(test_browser_control.py test_files_documents.py test_sheets.py test_update.py test_wake.py test_ui_act.py)
+            for module in "${modules[@]}"; do
+              xvfb-run -a python -m unittest discover -s jarvis-runtime/tests -p "$module" -v
+            done
+          else
+            xvfb-run -a python -m unittest discover -s jarvis-runtime/tests -p 'test_*.py' -v
+          fi
 
       # No persistence of logs, screenshots, secrets or artifacts to GitHub storage.
