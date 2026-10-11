@@ -701,6 +701,8 @@ The following mandatory steps and verification criteria come from the latest own
 
 **Target DONE:** semantic control tests, screenshots, keyboard/touch/assistive checks and idle-resource measurement.
 
+**Owner B11–B20 smooth-start contract (11 October 2026):** Keep the existing three main destinations and one composer. The first viewport communicates the benefit in one honest sentence, offers a usable composer, a genuinely runnable fixture/example and an optional short recorded demonstration, without demanding a payment method. For native work, offer drag/drop, browse, pasted supported input and previously consented file selection. One signed official installer action → readiness check → guided pairing → scoped OS permission with why/what/revoke/local-data explanation. Never auto-grant privilege or silently select wrong file/device. Show current application, meaningful checkpoints, verified final files, re-open/check evidence and next action; no fabricated percentages or estimated savings. On error, state actual cause, preserve already-applied changes and distinguish partial/unknown from failure; direct STOP, takeover, approvals and status always reachable. Optional detail stays discoverable on narrow screens; a nonselected extra convenience feature is not a reason to delete baseline safety or accessibility.
+
 ### P16 — Bound online intelligence, memory and tool selection
 
 Keep the existing online intelligence authority and server-hidden provider routing (`src/jarvis/background-model.server.ts`, `background.server.ts`, `src/lib/intelligence/`). Pin supported structured-output contracts and validate tool arguments. Planner chooses goal decomposition, uncertainty recovery and semantic interpretation; local execution handles deterministic work. Reuse stable prompt prefixes and compact durable checkpoints inspired by Manus; do not repeatedly send unchanged screenshots or full history.
@@ -782,6 +784,8 @@ The following mandatory steps and verification criteria come from the latest own
 
 Each workflow preserves originals, provides a receipt for every mandatory artifact and records actual elapsed time/interventions. Public sharing is separate consent.
 
+**Owner B01–B10/B41–B47 repeat-value contract:** Prioritise checked accounting totals and cross-app Excel → editable Word/PDF before expanding demo breadth. Run a real free example and user-authorised actual inputs through the same verifier: record accuracy, provenance, elapsed work and human corrections, not claimed universal app support or speculative hours saved. One approved workflow can be repeated with fresh resource scope, rechecked application version and approved output preferences; store only sanitised reusable steps and user-authorised metadata, never retained credentials/raw private inputs or stale coordinates. Give clear before/after and exception-only human review. User can discover weekly finance, monthly client pack, browser reconciliation and regular document uses; expand professional coverage only when repeat demand, fidelity and support costs justify it. The customer controls whether any verified proof/recipe is exported or shared.
+
 ### P19 — Close verification holes and freeze the release candidate
 
 Repair `scripts/check-accessibility.mjs` so missing build/root/zero inspected targets cannot pass. Repair `scripts/e2e/harness.mjs`/consumers so BLOCKED is machine-readable and cannot count as a passed release gate despite process exit zero. Preserve useful local skipped-tool reporting but make required release scope fail closed. Inspect every gate's denominator, discovery and skipped-test treatment.
@@ -813,6 +817,8 @@ Repair unsafe/misleading harnesses before execution:
 
 Freeze the candidate and run meaningful required tests. Missing required evidence remains BLOCKED/UNTESTED.
 
+**Owner B01–B50 growth evidence gates:** Evaluate the first free real result and optional pairing via actual browser/device user journeys; observe first-screen comprehension, input methods, accurate result, denial/failed install, STOP, receipts, partial save, safe repeat, pricing visibility, checkout decline, free-without-card, successful cancellation, accessible refusal and privacy-safe share. Require real denominators and a dated cohort record for activation, checked task accuracy, 7/30-day voluntary reuse, paid conversion, customer-reported benefit, support and refunds. Source demonstrations and competitor challenges must be independently replayed on comparable authorised inputs, real saved results and software identities. A marketing claim is UNTESTED without matching executed evidence; a small five-person two-week trial is qualitative, not statistically representative.
+
 ### P20 — Introduce honest paid access after merchant and margin gates
 
 **Current:** paid checkout/subscription infrastructure was retired; active entitlements are admin grants/free defaults and owner unlimited access. `src/lib/commercial/entitlement-resolver.ts`, settings Billing/Usage and the retirement migration are the baseline. Do not advertise a working subscription or revive old tables by reverting migration history.
@@ -839,6 +845,8 @@ The following mandatory steps and verification criteria come from the latest own
 8. Require merchant/legal approval before live checkout.
 
 No pricing hypothesis becomes a deployed bill without approval.
+
+**Owner B21–B30 buying contract:** Let a useful result precede the upgrade request. Keep free Chat genuinely useful without requiring a card; limit free native/AI spend honestly. The permitted initial paid pilot offer exposes price, currency, full tax-inclusive payable amount where required, calendar renewal, work allowance, reset, concurrency, throttling, support, user-visible remaining balance, valid refund policy, cancellation and accessible billing history. Do not debit failed or empty answers or count internal retries as customer tasks; partial effects and ambiguous payment settlement must be stated truthfully and reconciled before deduction. A user spending limit cannot authorise work beyond safety or provider limits. Reserved words such as 'faster' or 'priority' require measured resource availability, no deceptive queue privileges. Test plan comparison and customer purchase clarity; first offer remains one approved tier until data supports alternatives. No dark-pattern prompts, urgency clocks, invented testimonials or covert fees.
 
 ### P21 — Release safely and grow from proven work
 
@@ -871,6 +879,8 @@ The following mandatory steps and verification criteria come from the latest own
 7. Reconcile in-flight effects during rollback.
 
 Documentation merge does not authorise this release.
+
+**Owner B31–B50 distribution and loyalty contract:** Use a privacy-safe, proof-first landing/demo funnel. Discovery tests may use search, video creators, professional communities, educator/student communities, accounting groups, software partners and freelancer networks, only with authentic consented material and an owner-approved spend ceiling. Fair referral-credit pilots give both users bounded benefits only after verified legitimate value and abuse screening. Show optional redacted checked outputs and editable files, never leak a user's private input by default. Compare competing assistants monthly only when legitimate test access and matched outcomes exist; record accuracy, time, recovery, cost and failures, not popularity-only leaderboards. Hindi-first localisation and other markets require actual UI, speech/privacy, payment/legal and human support capability validation. Long-term loyalty must come from reliable signed execution, verified task history, saved scope-safe recipes and continuous measured improvement; no addictive streak manipulation or hidden renewal tactics. Scale marketing after evidence of repeat use and positive unit economics, not after view count alone.
 
 ### P22 — Proof-based cleanup and gated expansion
 
