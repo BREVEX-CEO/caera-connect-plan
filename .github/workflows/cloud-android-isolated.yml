@@ -64,8 +64,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Prepare Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Use GitHub-hosted Android SDK (do not install obsolete tools)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${ANDROID_HOME:-}" && test -d "$ANDROID_HOME"
+          echo "$ANDROID_HOME/cmdline-tools/16.0/bin" >> "$GITHUB_PATH"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
 
       - name: Install Android SDK build tools, platform and emulator image
         shell: bash
