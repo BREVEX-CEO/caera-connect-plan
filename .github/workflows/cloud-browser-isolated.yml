@@ -23,6 +23,7 @@ on:
           - smoke
           - broad
           - offline-real
+          - jarvis
 
 permissions:
   contents: read
@@ -57,6 +58,16 @@ jobs:
       - name: Install isolated Chromium, Firefox and WebKit
         run: node node_modules/playwright-core/cli.js install --with-deps chromium firefox webkit
 
+      - name: Install the Device Agent's Python runtime for the JARVIS journeys
+        if: github.event_name == 'workflow_dispatch' && inputs.suite == 'jarvis'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb xauth xdotool bubblewrap
+          python3 -m pip install --disable-pip-version-check -r jarvis-runtime/requirements-agent.txt
+          python3 -m playwright install --with-deps chromium
+
       - name: Put the real Offline Intelligence release in the local test bucket
         if: github.event_name == 'workflow_dispatch' && inputs.suite == 'offline-real'
         shell: bash
@@ -83,6 +94,9 @@ jobs:
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" || "${{ inputs.suite }}" == "smoke" ]]; then
             journeys=(shell auth chat browsers)
+          elif [[ "${{ inputs.suite }}" == "jarvis" ]]; then
+            # The real Device Agent on this disposable Linux VM; the model's turns are scripted.
+            journeys=(jarvis carry-on)
           elif [[ "${{ inputs.suite }}" == "offline-real" ]]; then
             # The real release, installed in the browser and answering with the network cut off.
             journeys=(offline-real)
@@ -91,7 +105,10 @@ jobs:
             # Real Gemini is not used here; the fixture deliberately scripts model outputs.
             journeys=(shell auth chat usage pricing online offline library settings polish final visual browsers admin bubble mfa carry-on push controls)
           fi
-          node scripts/e2e/harness.mjs "${journeys[@]}" 2>&1 | tee "${RUNNER_TEMP}/ocade-browser-result.log"
+          run=(node scripts/e2e/harness.mjs "${journeys[@]}")
+          # The Device Agent's screen tests need a display: a virtual one on this throwaway VM.
+          [[ "${{ inputs.suite }}" == "jarvis" ]] && run=(xvfb-run -a "${run[@]}")
+          "${run[@]}" 2>&1 | tee "${RUNNER_TEMP}/ocade-browser-result.log"
           if grep -Eq '(^|[[:space:]])BLOCKED([[:space:]]|$)' "${RUNNER_TEMP}/ocade-browser-result.log"; then
             echo "::error::Required browser journey reported BLOCKED, so the run is not an acceptance pass"
             exit 1

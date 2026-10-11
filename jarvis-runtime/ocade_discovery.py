@@ -291,6 +291,11 @@ def app_info(app: dict, cancel: threading.Event | None = None) -> dict:
                     os.replace(tmp, HOME / "capabilities.json")
                 except OSError:
                     pass  # a cache that cannot be written is only slower next time
+    if info.get("automation") or info.get("scripting"):
+        # Found from registry entries and folder names, not tried: a surface is a lead, not a
+        # promise that it works for this task (audit-2 C09).
+        info["evidence"] = ("found on this computer, not yet tried: make one harmless read "
+                            "through it before relying on it")
     info["recipes"], stale = recipes_for(app["name"], info.get("version"))
     if stale:
         info["olderRecipes"] = stale  # written for another major version: rediscover, never replay
