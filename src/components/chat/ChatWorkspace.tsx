@@ -14,7 +14,7 @@
  */
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
 import { ArrowUp, ArrowLeft, ArrowRight, Mic, Plus, Square, X } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { useSession } from "@/lib/session";
@@ -44,6 +44,10 @@ const CHOICES: { id: IntelligenceChoice; label: string }[] = [
   { id: "online", label: "Online" },
   { id: "offline", label: "Offline" },
 ];
+
+/** A choice under More closes it; the chip beside the composer then says it is on. */
+const closeMore = (event: MouseEvent<HTMLElement>) =>
+  event.currentTarget.closest("details")?.removeAttribute("open");
 
 /**
  * Whether this browser currently has a network at all.
@@ -573,18 +577,13 @@ export function ChatWorkspace() {
                       aria-label="More options"
                       className="absolute bottom-8 right-0 z-20 flex flex-col items-stretch gap-1 rounded-md border border-border bg-background p-1 shadow-lg"
                     >
-                      {/*
-                    TEMPORARY CHAT, WHERE THE CHOICE IS MADE.
-                    `PLAN.md`: a temporary conversation is memory-only and
-                    never synchronises. It sits beside the mode selector
-                    because both answer the same question — what happens to
-                    this message — and it says so while it is on rather than
-                    hiding the state in a menu.
-                  */}
                       {canResearch ? (
                         <button
                           type="button"
-                          onClick={() => setResearch((current) => !current)}
+                          onClick={(event) => {
+                            setResearch((current) => !current);
+                            closeMore(event);
+                          }}
                           aria-pressed={research}
                           title={
                             research
@@ -605,7 +604,10 @@ export function ChatWorkspace() {
                       {canThink ? (
                         <button
                           type="button"
-                          onClick={() => setThinking((current) => !current)}
+                          onClick={(event) => {
+                            setThinking((current) => !current);
+                            closeMore(event);
+                          }}
                           aria-pressed={thinking}
                           title={
                             thinking
@@ -625,7 +627,10 @@ export function ChatWorkspace() {
 
                       <button
                         type="button"
-                        onClick={() => chat.setTemporary(!chat.temporary)}
+                        onClick={(event) => {
+                          chat.setTemporary(!chat.temporary);
+                          closeMore(event);
+                        }}
                         aria-pressed={chat.temporary}
                         title={
                           chat.temporary
