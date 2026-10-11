@@ -107,7 +107,7 @@ class Browsers:
 
     def _make(self, mode: str):
         return self._session(
-            "chrome", mode=mode, headless=self.headless,
+            "browser", mode=mode, headless=self.headless,
             executable=os.environ.get("OCADE_BROWSER_EXECUTABLE") or None,
             cdp_endpoint=self.endpoint() if mode == "real" else None, egress=self.egress)
 

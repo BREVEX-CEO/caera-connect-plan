@@ -309,3 +309,12 @@ class UploadDownloadTest(unittest.TestCase):
             self.assertEqual(out["status"], "blocked", path)
         self.assertEqual(self.run_({"action": "download", "ref": "e1", "observationId": "o1"},
                                    root=None)["status"], "blocked")
+
+
+class AddressTest(unittest.TestCase):
+    def test_the_host_opened_is_the_host_that_was_permitted(self):
+        """It once opened "x.com" for "x", a host the person's site permission never named."""
+        from actions.browser_control import _normalize_url
+        self.assertEqual(_normalize_url("instagram"), "https://instagram")
+        self.assertEqual(_normalize_url(" example.org/a "), "https://example.org/a")
+        self.assertEqual(_normalize_url("http://intranet/x"), "http://intranet/x")

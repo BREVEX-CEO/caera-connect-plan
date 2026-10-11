@@ -18,20 +18,12 @@ from playwright.async_api import (
 )
 
 def _normalize_url(url: str) -> str:
-    """
-    Bare words like "instagram" → "https://instagram.com"
-    Domains like "instagram.com" → "https://instagram.com"
-    Full URLs pass through unchanged.
-    """
+    """Add a missing https:// and nothing else: the host opened is exactly the host OCADE
+    checked the person's site permission against (it once guessed "x" meant "x.com")."""
     url = url.strip()
     if not url:
         return "about:blank"
-    if "://" in url:
-        return url
-    # No dot at all → assume .com  (e.g. "instagram" → "instagram.com")
-    if "." not in url:
-        url = url + ".com"
-    return "https://" + url
+    return url if "://" in url else "https://" + url
 
 
 
