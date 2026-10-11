@@ -101,6 +101,9 @@ export function useConfirmIdentity(): {
   );
 
   const submit = async () => {
+    // This confirmation only: one cancelled or replaced meanwhile is not answered by its code (R05).
+    const mine = settle.current;
+    const current = () => mine !== null && settle.current === mine;
     setBusy(true);
     setProblem(null);
     try {
@@ -123,8 +126,9 @@ export function useConfirmIdentity(): {
           await supabase.auth.admin.signOut(replaced, "local").catch(() => undefined);
         }
       }
-      finish(true);
+      if (current()) finish(true);
     } catch (error) {
+      if (!current()) return;
       setProblem(error instanceof Error ? error.message : "That code was not accepted.");
       setCode("");
     } finally {

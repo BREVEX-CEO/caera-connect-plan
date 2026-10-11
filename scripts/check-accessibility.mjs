@@ -39,16 +39,20 @@ const jsonOnly = process.argv.includes("--json");
 
 const resolveFromRoot = (path) => (isAbsolute(path) ? path : join(root, path));
 
-function walk(dir, acc = []) {
+/** Scan roots that could not be read: a gate that read nothing has proved nothing (C22). */
+const unreadable = [];
+
+function walk(dir, acc = [], top = true) {
   let entries;
   try {
     entries = readdirSync(resolveFromRoot(dir));
   } catch {
+    if (top) unreadable.push(dir);
     return acc;
   }
   for (const name of entries) {
     const path = join(resolveFromRoot(dir), name);
-    if (statSync(path).isDirectory()) walk(path, acc);
+    if (statSync(path).isDirectory()) walk(path, acc, false);
     else if (/\.tsx$/.test(name)) acc.push(path);
   }
   return acc;
@@ -387,4 +391,10 @@ if (jsonOnly) {
   console.log(`\nNot checked here (needs a rendered page): ${report.notChecked.join("; ")}`);
 }
 
+if (unreadable.length || files.length === 0) {
+  console.error(
+    `Accessibility audit FAILED: nothing to check in ${unreadable.join(", ") || ROOTS.join(", ")}.`,
+  );
+  process.exit(1);
+}
 process.exit(regressions.length === 0 ? 0 : 1);

@@ -47,8 +47,15 @@ export async function pushDeviceState(): Promise<PushDeviceState> {
   return subscription ? "on" : "off";
 }
 
+async function signedInAs(): Promise<string | null> {
+  const supabase = await loadSupabaseClient();
+  return (await supabase.auth.getSession()).data.session?.user.id ?? null;
+}
+
 /** Called from the person's own press: browsers refuse the prompt otherwise. */
 export async function turnPushOn(): Promise<PushDeviceState> {
+  // Recorded only for whoever pressed it: the prompt can stay open while the account changes (R04).
+  const asker = await signedInAs();
   const permission = await Notification.requestPermission();
   if (permission !== "granted") return permission === "denied" ? "denied" : "off";
   const ready = await navigator.serviceWorker.ready;
@@ -62,6 +69,12 @@ export async function turnPushOn(): Promise<PushDeviceState> {
           "This browser could not reach its notification service just now. Try again later.",
         );
       }));
+  if (!asker || (await signedInAs()) !== asker) {
+    await subscription.unsubscribe().catch(() => false);
+    throw new Error(
+      "The account changed while notifications were being turned on. Turn them on again.",
+    );
+  }
   if (!(await record(subscription))) {
     await subscription.unsubscribe().catch(() => false);
     throw new Error("OCADE could not turn notifications on here just now. Try again.");

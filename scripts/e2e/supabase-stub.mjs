@@ -415,7 +415,13 @@ function matches(row, params) {
       const clauses = raw.replace(/^\(|\)$/g, "").split(",");
       if (
         !clauses.some((clause) =>
-          matches(row, [[clause.split(".")[0], clause.slice(clause.indexOf(".") + 1)]]),
+          matches(row, [
+            [
+              clause.split(".")[0],
+              // A quoted value (a timestamp) is compared without its quotes, as PostgREST does.
+              clause.slice(clause.indexOf(".") + 1).replace(/^(\w+)\."(.*)"$/, "$1.$2"),
+            ],
+          ]),
         )
       ) {
         return false;

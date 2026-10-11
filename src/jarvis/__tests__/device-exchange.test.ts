@@ -752,6 +752,31 @@ describe("a result the device got slightly wrong", () => {
   });
 });
 
+describe("the live picture (C24)", () => {
+  it("shows when the device captured it, and a late older picture never replaces a newer one", async () => {
+    const t = await task();
+    const frame = async () =>
+      (
+        await twin.asServiceRole<{ live_frame: string; at: number }>(
+          `select live_frame, (extract(epoch from live_frame_at) * 1000)::float8 as at
+             from public.jarvis_tasks where id = '${t}'`,
+        )
+      )[0]!;
+    const newer = new Date(Date.now() - 2_000).toISOString();
+    const older = new Date(Date.now() - 9_000).toISOString();
+    await run({ results: [], frame: { taskId: t, jpeg: "bmV3", capturedAt: newer } });
+    expect((await frame()).at).toBe(Date.parse(newer));
+    await run({ results: [], frame: { taskId: t, jpeg: "b2xk", capturedAt: older } });
+    expect((await frame()).live_frame).toBe("bmV3");
+    // A device clock ahead of the server is never shown as a time still to come.
+    await run({
+      results: [],
+      frame: { taskId: t, jpeg: "ZnV0", capturedAt: new Date(Date.now() + 60_000).toISOString() },
+    });
+    expect((await frame()).at).toBeLessThanOrEqual(Date.now());
+  });
+});
+
 describe("results (JARVIS-027)", () => {
   it("answers every reported result: kept, stopped, or unknown", async () => {
     const t = await task();

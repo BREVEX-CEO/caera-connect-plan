@@ -483,7 +483,9 @@ describe("sessions", () => {
     expect((await reset(ADMIN, ADMIN)).error).toMatch(/their own/);
     expect((await reset(ADMIN, CUSTOMER_A)).rows[0]!.ok).toBe(true);
     // Only that account: its sessions and its old codes.
-    const left = await twin.asSuperuser<{ user_id: string }>(`select user_id from auth.sessions`);
+    const left = await twin.asSuperuser<{ user_id: string }>(
+      `select user_id from auth.sessions where user_id <> '${ADMIN}'`,
+    );
     expect(left.map((row) => row.user_id)).toEqual([CUSTOMER_B]);
     const codes = await twin.asSuperuser<{ user_id: string }>(
       `select user_id from public.ocade_mfa_recovery_codes`,
@@ -1157,5 +1159,25 @@ describe("staff reads straight at the database (C18)", () => {
         order by 1`,
     );
     expect(coarse.map((row) => row.policy)).toEqual([]);
+  });
+
+  it("an Admin denied usage.read cannot read a customer's usage through the API", async () => {
+    await twin.execSuperuser(
+      `insert into public.ocade_commercial_usage (user_id, window_kind, window_start, used_hundredths)
+       values ('${CUSTOMER_A}', 'session', now() - interval '1 hour', 275)`,
+    );
+    const read = async () =>
+      (
+        await twin.asTenant(
+          ADMIN,
+          `select used_hundredths from public.ocade_commercial_usage where user_id = '${CUSTOMER_A}'`,
+          fresh,
+        )
+      ).rows.length;
+    expect(await read()).toBe(1);
+    await twin.execSuperuser(
+      `update public.ocade_staff set denied = '{usage.read}' where user_id = '${ADMIN}'`,
+    );
+    expect(await read()).toBe(0);
   });
 });

@@ -34,6 +34,8 @@ export interface GraphEdge {
 export interface Graph {
   nodes: GraphNode[];
   edges: GraphEdge[];
+  /** Records left out of the picture to keep it readable; every one is in its panel's list. */
+  omitted?: number;
 }
 
 const HUBS: Record<Category, { label: string; direction: [number, number, number] }> = {
@@ -74,6 +76,8 @@ const date = (iso: string) =>
   new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(iso));
 
 const MAX_PER_CATEGORY = 60;
+/** At most this many nodes are drawn in all, the centre and hubs included (design system). */
+const GRAPH_BUDGET = 60;
 
 export function buildGraph(state: JarvisState | undefined): Graph {
   const nodes: GraphNode[] = [
@@ -179,16 +183,35 @@ export function buildGraph(state: JarvisState | undefined): Graph {
     ].slice(0, MAX_PER_CATEGORY),
   };
 
-  for (const category of Object.keys(HUBS) as Category[]) {
-    const members = groups[category];
-    if (members.length === 0) continue;
+  // One budget for the whole picture: each category in turn gets one more node until it is spent.
+  const categories = (Object.keys(HUBS) as Category[]).filter((c) => groups[c].length > 0);
+  const shown = Object.fromEntries(categories.map((c) => [c, 0])) as Record<Category, number>;
+  let room = GRAPH_BUDGET - 1 - categories.length;
+  while (room > 0 && categories.some((c) => shown[c] < groups[c].length)) {
+    for (const c of categories) {
+      if (room > 0 && shown[c] < groups[c].length) {
+        shown[c] += 1;
+        room -= 1;
+      }
+    }
+  }
+  let omitted = 0;
+  for (const category of categories) {
+    const all = groups[category];
+    const members = all.slice(0, shown[category]);
+    omitted += all.length - members.length;
     const hubId = `hub:${category}`;
     nodes.push({
       id: hubId,
       kind: "hub",
       category,
       label: HUBS[category].label,
-      meta: [["Items", String(members.length)]],
+      meta: [
+        ["Items", String(all.length)],
+        ...(members.length < all.length
+          ? ([["Shown here", String(members.length)]] as [string, string][])
+          : []),
+      ],
       position: normalise(HUBS[category].direction).map((v) => v * 0.62) as [
         number,
         number,
@@ -205,9 +228,11 @@ export function buildGraph(state: JarvisState | undefined): Graph {
   const present = new Set(nodes.map((n) => n.id));
   for (const t of state.tasks.slice(0, MAX_PER_CATEGORY)) {
     const conversation = `conversation:${t.conversation_id}`;
-    if (present.has(conversation)) edges.push({ from: `task:${t.id}`, to: conversation });
     const device = `device:${t.device_id}`;
-    if (t.device_id && present.has(device)) edges.push({ from: `task:${t.id}`, to: device });
+    const task = `task:${t.id}`;
+    if (!present.has(task)) continue;
+    if (present.has(conversation)) edges.push({ from: task, to: conversation });
+    if (t.device_id && present.has(device)) edges.push({ from: task, to: device });
   }
-  return { nodes, edges };
+  return { nodes, edges, omitted };
 }

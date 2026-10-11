@@ -437,7 +437,12 @@ export const exchangeInput = z.object({
     )
     .max(20),
   frame: z
-    .object({ taskId: z.string().uuid(), jpeg: z.string().max(400_000) })
+    .object({
+      taskId: z.string().uuid(),
+      jpeg: z.string().max(400_000),
+      /** When the device captured it (its own clock, checked against the exchange's). */
+      capturedAt: z.string().datetime().optional(),
+    })
     .nullable()
     .optional(),
   capabilities: z.record(z.string().max(40), z.boolean()).optional(),
@@ -673,12 +678,18 @@ export async function exchange(
   }
 
   if (input.frame) {
+    // Shown as the time the device captured it, never later than now; an older picture that
+    // arrives late never replaces a newer one (C24). An old agent says nothing: received now.
+    const at = new Date(
+      Math.min(Date.parse(input.frame.capturedAt ?? now), Date.parse(now)),
+    ).toISOString();
     await admin
       .from("jarvis_tasks")
-      .update({ live_frame: input.frame.jpeg, live_frame_at: now })
+      .update({ live_frame: input.frame.jpeg, live_frame_at: at })
       .eq("id", input.frame.taskId)
       .eq("device_id", device.id)
-      .in("status", ["running", "waiting", "taken_over"]);
+      .in("status", ["running", "waiting", "taken_over"])
+      .or(`live_frame_at.is.null,live_frame_at.lt."${at}"`);
   }
 
   // An action nobody ran in time never runs later against a page that moved on,

@@ -333,4 +333,6 @@ console.log(
     ? `\n${journeys.length - blocked} of ${journeys.length} browser journeys passed${blockedNote}.`
     : `\n${failed} of ${journeys.length} browser journeys failed${blockedNote}.`,
 );
-process.exit(failed === 0 ? 0 : 1);
+// A required journey that could not run is not a pass (C23): BLOCKED exits 3, only when the
+// caller lets BLOCKED stand as a known gap (OCADE_ALLOW_BLOCKED=1) does it exit 0.
+process.exit(failed > 0 ? 1 : blocked > 0 && process.env.OCADE_ALLOW_BLOCKED !== "1" ? 3 : 0);

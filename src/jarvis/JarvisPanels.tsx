@@ -1,7 +1,8 @@
 /** The rail's sections, the Permissions drawer and the graph node panel. */
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Trash2, X } from "lucide-react";
+import { useModalFocus } from "@/lib/use-modal-focus";
 import { deleteConversation } from "@/lib/ocade.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -730,6 +731,8 @@ export function PermissionsDrawer({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+  const self = useRef<HTMLDivElement>(null);
+  useModalFocus(self, true);
   const rows = state?.permissions ?? [];
   const set = (capability: Capability, allowed: boolean) =>
     void decide(capability, allowed, null, onChanged);
@@ -742,6 +745,7 @@ export function PermissionsDrawer({
         onClick={onClose}
       />
       <div
+        ref={self}
         role="dialog"
         aria-modal="true"
         aria-label="Permissions"
@@ -901,6 +905,8 @@ export function ConnectDevice({
   const [busy, setBusy] = useState(false);
   const [code, setCode] = useState("");
   const { withProof, dialog } = useConfirmIdentity();
+  const self = useRef<HTMLElement>(null);
+  useModalFocus(self, true);
   const row = request.data;
   const device = row?.kind === "android" ? "phone" : "computer";
   const connect = () => {
@@ -921,6 +927,7 @@ export function ConnectDevice({
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
       {dialog}
       <section
+        ref={self}
         role="dialog"
         aria-modal="true"
         aria-label="Connect a device"

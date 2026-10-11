@@ -370,7 +370,7 @@ class Agent:
                     outcome, live = active["done"].pop(0)
                     results.append(outcome)
                     if live:
-                        frame = {"taskId": active["taskId"], "jpeg": live}
+                        frame = {"taskId": active["taskId"], "jpeg": live[0], "capturedAt": live[1]}
                 self._keep_pending(results)
                 if finished:
                     self._keep(self.intent_path, [])
@@ -544,6 +544,8 @@ class Agent:
             outcome = {"status": "failed", "summary": f"The action failed ({type(e).__name__})"}
         live = (outcome.get("observation") or {}).pop("frame", None) or (
             self.browsers.frame(mode) if browser else None)
+        if live:  # with the moment it was taken, so a late picture is never shown as new
+            live = (live, time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
         core = {k: outcome.pop(k) for k in ("status", "summary", "changed", "observation") if k in outcome}
         return {"id": command["id"], **core, **({"detail": outcome} if outcome else {})}, live
 

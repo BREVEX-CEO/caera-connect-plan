@@ -78,6 +78,33 @@ describe("the orb graph", () => {
     expect(text).not.toContain("passport");
   });
 
+  it("draws at most 60 nodes in all and says how many more are in the lists (C26)", () => {
+    const many = (n: number, make: (i: number) => object) =>
+      Array.from({ length: n }, (_, i) => make(i));
+    const graph = buildGraph({
+      ...empty,
+      conversations: many(50, (i) => ({
+        id: `c${i}`,
+        title: `C${i}`,
+        archived: false,
+        created_at: at,
+        updated_at: at,
+      })) as JarvisState["conversations"],
+      memories: many(50, (i) => ({
+        id: `m${i}`,
+        content: "x",
+        created_at: at,
+      })) as JarvisState["memories"],
+      sites: many(50, (i) => `site${i}.example`),
+    });
+    expect(graph.nodes.length).toBeLessThanOrEqual(60);
+    expect(graph.omitted).toBe(150 - (graph.nodes.length - 4));
+    const kinds = graph.nodes.map((n) => n.category ?? n.kind);
+    // Shared fairly: no category crowds the others out.
+    expect(kinds.filter((k) => k === "conversation").length).toBeGreaterThan(15);
+    expect(kinds.filter((k) => k === "app").length).toBeGreaterThan(15);
+  });
+
   it("draws the same shape for the same data", () => {
     const state = { ...empty, sites: ["example.com"] };
     expect(buildGraph(state)).toEqual(buildGraph(state));

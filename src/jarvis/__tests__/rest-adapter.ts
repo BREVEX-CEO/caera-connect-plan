@@ -60,14 +60,16 @@ export function restOver(twin: DatabaseTwin) {
           where.push(vs.length ? `${col(c)} in (${vs.map(lit).join(",")})` : "false"),
           q
         ),
-        // PostgREST's `or`: comma-separated `column.is.null` / `column.eq.value` terms.
+        // PostgREST's `or`: comma-separated `column.is.null` / `.eq.` / `.lt.` terms.
         or: (terms: string) => (
           where.push(
             `(${terms
               .split(",")
               .map((term) => {
-                const [, c, op, v] = term.match(/^(.+?)\.(is|eq)\.(.*)$/)!;
-                return op === "is" ? `${col(c!)} is null` : `${col(c!)} = ${lit(v)}`;
+                const [, c, op, raw] = term.match(/^(.+?)\.(is|eq|lt)\.(.*)$/)!;
+                const v = raw!.replace(/^"(.*)"$/, "$1");
+                if (op === "is") return `${col(c!)} is null`;
+                return `${col(c!)} ${op === "eq" ? "=" : "<"} ${lit(v)}`;
               })
               .join(" or ")})`,
           ),

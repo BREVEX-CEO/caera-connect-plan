@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/session";
+import { useModalFocus } from "@/lib/use-modal-focus";
 import { useActionChanges } from "./changes";
 import { useAppearance } from "@/lib/appearance";
 import { useSettingsPanel } from "@/components/settings/settings-panel";
@@ -153,6 +154,8 @@ export function JarvisWorkspace({
   const permissions = jarvis?.permissions ?? [];
   const jarvisOn = isAllowed(permissions, "master");
   const graph = useMemo(() => buildGraph(jarvis), [jarvis]);
+  const signInPrompt = useRef<HTMLElement>(null);
+  useModalFocus(signInPrompt, Boolean(connectId && !signedIn && !loading));
 
   const [turns, setTurns] = useState<Turn[]>([]);
   const [liveAnswer, setLiveAnswer] = useState<string | null>(null);
@@ -1291,6 +1294,7 @@ export function JarvisWorkspace({
       {connectId && !signedIn && !loading ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
           <section
+            ref={signInPrompt}
             role="dialog"
             aria-modal="true"
             aria-label="Connect a device"

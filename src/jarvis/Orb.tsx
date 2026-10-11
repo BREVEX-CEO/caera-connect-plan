@@ -356,7 +356,9 @@ export function Orb({
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label={`JARVIS graph with ${detailNodes.length} items`}
+        aria-label={`JARVIS graph with ${detailNodes.length} items${
+          graph.omitted ? `; ${graph.omitted} more are in the lists` : ""
+        }`}
         className="h-full w-full touch-none text-foreground"
         onPointerMove={(event) => {
           const p = local(event);

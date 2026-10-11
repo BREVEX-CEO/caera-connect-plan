@@ -224,7 +224,12 @@ public final class AgentService extends Service {
                     results.put(result);
                     // The running mark goes only once the result itself is safely kept.
                     if (keepPending(results)) keep(RUNNING, new JSONArray());
-                    if (live != null) frame = new JSONObject().put("taskId", stepTask).put("jpeg", live);
+                    if (live != null) {
+                        // With the moment it was taken, so a late picture is never shown as new.
+                        frame = new JSONObject().put("taskId", stepTask).put("jpeg", live)
+                                .put("capturedAt", java.time.Instant.now().truncatedTo(
+                                        java.time.temporal.ChronoUnit.SECONDS).toString());
+                    }
                     step = null;
                 }
                 JSONObject body = new JSONObject()
