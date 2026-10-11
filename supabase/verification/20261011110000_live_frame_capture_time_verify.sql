@@ -1,3 +1,4 @@
+-- The live browser picture carries the time it was captured.
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public'
