@@ -95,6 +95,7 @@ export interface AccountDataExport {
 export type PostgrestFailure = { message: string } | null;
 
 export interface RowPage {
+  order(column: string): RowPage;
   range(
     from: number,
     to: number,
@@ -113,6 +114,21 @@ export interface DynamicTableClient {
   };
 }
 
+/**
+ * Each table's unique key, so pages read in one stable order: without it PostgreSQL may
+ * return a row on two pages, or on none. Every other exported table is keyed by `id`.
+ */
+const UNIQUE_KEY: Partial<Record<AccountTable, readonly string[]>> = {
+  ocade_push_subscriptions: ["endpoint"],
+  user_settings: ["user_id"],
+  ocade_notification_preferences: ["user_id"],
+  data_class_privacy: ["user_id", "data_class"],
+  user_private_records: ["user_id", "data_class", "id"],
+};
+
+const ordered = (page: RowPage, table: AccountTable) =>
+  (UNIQUE_KEY[table] ?? ["id"]).reduce((query, column) => query.order(column), page);
+
 /** Read one table completely, a page at a time. */
 async function readTable(
   admin: DynamicTableClient,
@@ -122,11 +138,10 @@ async function readTable(
 ): Promise<AccountExportTable> {
   const rows: ExportedRow[] = [];
   for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await admin
-      .from(table)
-      .select("*")
-      .eq(owner, userId)
-      .range(from, from + PAGE_SIZE - 1);
+    const { data, error } = await ordered(
+      admin.from(table).select("*").eq(owner, userId),
+      table,
+    ).range(from, from + PAGE_SIZE - 1);
     if (error) return { table, rows, unavailable: error.message };
     if (!data || data.length === 0) break;
     rows.push(...data);
@@ -156,11 +171,10 @@ async function readCascadedTable(
   for (let index = 0; index < parentIds.length; index += CHUNK) {
     const slice = parentIds.slice(index, index + CHUNK);
     for (let from = 0; ; from += PAGE_SIZE) {
-      const { data, error } = await admin
-        .from(table)
-        .select("*")
-        .in(parentColumn, slice)
-        .range(from, from + PAGE_SIZE - 1);
+      const { data, error } = await ordered(
+        admin.from(table).select("*").in(parentColumn, slice),
+        table,
+      ).range(from, from + PAGE_SIZE - 1);
       if (error) return { table, rows, unavailable: error.message };
       if (!data || data.length === 0) break;
       rows.push(...data);

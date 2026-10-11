@@ -22,7 +22,10 @@ import { ACCOUNT_DATA_CLASSES, type AccountTable } from "../data-classes";
  * is a parameter, and these tests hand it thousands.
  */
 
-/** A fake that answers `.range()` honestly, one page at a time. */
+/**
+ * A fake that answers `.range()` as PostgreSQL does: in a stable order only when one was
+ * asked for. Unordered, each page sees the rows in a different order.
+ */
 function fakeDatabase(options: {
   rows?: Partial<Record<AccountTable, ExportedRow[]>>;
   failOn?: AccountTable;
@@ -31,10 +34,23 @@ function fakeDatabase(options: {
   deleted?: AccountTable[];
 }): DynamicTableClient {
   const rows = options.rows ?? {};
-  const page = (all: ExportedRow[], failure: PostgrestFailure) => ({
-    range: (from: number, to: number) =>
-      Promise.resolve({ data: failure ? null : all.slice(from, to + 1), error: failure }),
-  });
+  let calls = 0;
+  const page = (all: ExportedRow[], failure: PostgrestFailure) => {
+    const by: string[] = [];
+    const query = {
+      order: (column: string) => (by.push(column), query),
+      range: (from: number, to: number) => {
+        calls += 1;
+        const view = by.length
+          ? [...all].sort((a, b) => String(a[by[0]!]).localeCompare(String(b[by[0]!])))
+          : calls % 2
+            ? all
+            : [...all].reverse();
+        return Promise.resolve({ data: failure ? null : view.slice(from, to + 1), error: failure });
+      },
+    };
+    return query;
+  };
   return {
     from(table: AccountTable) {
       const failure = options.failOn === table ? { message: "permission denied" } : null;
@@ -70,6 +86,19 @@ function manyRows(
 }
 
 describe("exporting an account", () => {
+  it("reads every row exactly once even when the database's own order changes between pages", async () => {
+    const all = manyRows(1200);
+    const exported = await buildAccountExport(
+      fakeDatabase({ rows: { ocade_library_items: all } }),
+      "account-1",
+    );
+    const read = exported.classes
+      .flatMap((entry) => entry.tables)
+      .find((entry) => entry.table === "ocade_library_items")!.rows;
+    expect(new Set(read.map((row) => row.id)).size).toBe(all.length);
+    expect(read).toHaveLength(all.length);
+  });
+
   it("reads past the first page rather than stopping at it", async () => {
     // 1,700 conversations is three pages of 500 and a remainder. An unpaged
     // read returns the first page and reports it as the whole account.
