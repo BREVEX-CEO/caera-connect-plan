@@ -132,6 +132,38 @@ class FileEngineTest(unittest.TestCase):
         self.assertTrue(out["stopped"])
         self.assertEqual(self.book.read_bytes(), before)
 
+    def test_a_failure_after_the_save_is_reported_as_a_change_with_undo(self):
+        """P04: Excel saved, then its read-back threw; the job said only "failed"."""
+        import unittest.mock
+
+        def saved_then_failed(path, sheet, ops, cancel, close=False):
+            path.write_bytes(b"changed by the job")
+            return {"ok": False, "engine": "excel", "applied": ["set"], "error": "read-back failed"}
+
+        before = self.book.read_bytes()
+        pc = Computer(str(self.root))
+        with unittest.mock.patch.object(ocade_sheets, "excel_available", return_value=True), \
+                unittest.mock.patch.object(ocade_sheets, "edit_with_excel", saved_then_failed):
+            out = pc.run({"action": "sheet_edit", "path": "sales.xlsx", "overwrite": True,
+                          "ops": FINISH_ORDERS[:1]})
+        self.assertEqual(out["status"], "failed")
+        self.assertTrue(out["changed"], out)
+        self.assertIn("was partly changed", out["summary"])
+        self.assertEqual(pc.run({"action": "undo"})["status"], "done")
+        self.assertEqual(self.book.read_bytes(), before)
+
+    def test_a_failure_that_changed_nothing_says_so(self):
+        import unittest.mock
+        failed = {"ok": False, "engine": "excel", "applied": ["set"], "error": "Excel refused",
+                  "unsavedEdits": True}
+        with unittest.mock.patch.object(ocade_sheets, "excel_available", return_value=True), \
+                unittest.mock.patch.object(ocade_sheets, "edit_with_excel", return_value=failed):
+            out = Computer(str(self.root)).run({"action": "sheet_edit", "path": "sales.xlsx",
+                                                "overwrite": True, "ops": FINISH_ORDERS[:1]})
+        self.assertFalse(out["changed"])
+        self.assertIn("was not changed", out["summary"])
+        self.assertIn("close it without saving", out["summary"])
+
     def test_a_range_too_large_for_the_file_engine_is_refused(self):
         with self.assertRaisesRegex(ocade_sheets.SheetError, "too large"):
             ocade_sheets.edit(self.book, "Orders", [{"op": "format", "range": "A1:Z100000", "bold": True}],

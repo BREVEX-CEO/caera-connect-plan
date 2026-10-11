@@ -425,6 +425,8 @@ Owners: `backup`, `office_job`, `edit_with_excel`, Word adapter and native scrip
 
 **Tests:** macros, multiple sheets/workbooks, protected files, disk full, late STOP, user edits while paused, save/ACK loss.
 
+**Work record — P04 phase 1 (11 October 2026):** Reproduced by source trace: `ocade_excel.ps1`/`ocade_word.ps1` save before read-back and reopen; a throw after `Save()` reported "failed" with no `maybeChanged`, and `_unfinished` then told the planner "not changed". A failure on the person's own open workbook left applied edits unsaved in their Office, unmentioned. **FIX:** `_unfinished` compares the file with the kept original (`filecmp`, byte-exact) and registers undo when it differs; both scripts report `unsavedEdits`, which the summary states. Tests: two cases fail without the fix; `test_sheets.py` + `test_files_documents.py` 22/22 PASS including real Excel and Word on this PC. Still OPEN: disk-full, protected files, macros matrix, user edits while paused, effect/execution/verification metadata on the wire. Evidence class LOCAL (real Office 16).
+
 ### P05 — Repair account isolation, granular staff rights and owner transfer
 
 **Current:** coarse `has_role` RLS policies can differ from granular staff grants/denials; owner transfer and staff revocation may race because one target read is not locked. A unique primary-owner index proves at most one, not at least one.

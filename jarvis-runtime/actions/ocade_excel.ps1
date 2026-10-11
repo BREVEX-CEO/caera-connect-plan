@@ -187,8 +187,11 @@ try {
   Out-Result @{ ok = $true; engine = "excel"; applied = $applied; read = $read; savedAndReopened = $reopened; sheet = $sheetName }
 }
 catch {
-  # A job that failed part-way is not saved; a workbook OCADE opened closes unchanged.
+  # A workbook OCADE opened closes without saving; the caller compares the file with the kept
+  # original, because a failure after Save leaves a changed file. The person's own open
+  # workbook keeps whatever was applied, unsaved: that is said, not hidden.
   if ($opened -and $book) { try { $book.Close($false) } catch {} }
   if ($excel) { try { $excel.DisplayAlerts = if ($null -ne $alerts) { $alerts } else { $true } } catch {} }
-  Out-Result @{ ok = $false; engine = "excel"; applied = $applied; error = $_.Exception.Message }
+  Out-Result @{ ok = $false; engine = "excel"; applied = $applied; error = $_.Exception.Message
+    unsavedEdits = ((-not $opened) -and $null -ne $book -and $applied.Count -gt 0) }
 }

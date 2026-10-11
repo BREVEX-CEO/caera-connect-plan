@@ -31,6 +31,7 @@ Continue, unless they turned on Co-work for this computer.
 from __future__ import annotations
 
 import base64
+import filecmp
 import io
 import json
 import os
@@ -642,13 +643,21 @@ class Computer:
         """An Office job that did not finish: Office may have saved part of it, so the kept
         original stays one undo away instead of claiming nothing changed."""
         why = str(out.get("error", ""))[:200]
-        if out.get("maybeChanged") and out.get("backup"):
-            kept = self._undo_dir() / str(out["backup"])
+        kept = self._undo_dir() / str(out["backup"]) if out.get("backup") else None
+        # The file itself says whether it changed, not the job's own account of it.
+        changed = bool(kept and kept.is_file() and path.is_file()
+                       and not filecmp.cmp(kept, path, shallow=False))
+        if changed or (kept and out.get("maybeChanged")):
             self._remember(f"updating {rel}", lambda: self._put_back(kept, path))
-            summary = f"The {what} may be partly changed ({why}); undo puts the original back"
+            summary = (f"The {what} {'was' if changed else 'may be'} partly changed ({why}); "
+                       "undo puts the original back")
         else:
             summary = f"The {what} was not changed: {why}"
-        return {"status": "failed", "stopped": bool(out.get("stopped")), "summary": summary}
+        if out.get("unsavedEdits"):
+            summary += (f". The {what} you have open still shows unsaved partial changes: "
+                        "close it without saving to discard them")
+        return {"status": "failed", "stopped": bool(out.get("stopped")), "summary": summary,
+                "changed": changed}
 
     def _find(self, folder: Path, rel: str, name: str, extension: str, cancel: threading.Event) -> dict:
         """Donor find_files: name and/or extension, bounded, inside the workspace only."""

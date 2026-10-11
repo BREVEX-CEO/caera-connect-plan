@@ -119,5 +119,6 @@ try {
 catch {
   if ($opened -and $doc) { try { $doc.Close(0) } catch {} }
   if ($word) { try { $word.DisplayAlerts = if ($null -ne $alerts) { $alerts } else { -1 } } catch {} }
-  Out-Result @{ ok = $false; engine = "word"; applied = $applied; error = $_.Exception.Message }
+  Out-Result @{ ok = $false; engine = "word"; applied = $applied; error = $_.Exception.Message
+    unsavedEdits = ((-not $opened) -and $null -ne $doc -and $applied.Count -gt 0) }
 }
