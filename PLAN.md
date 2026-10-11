@@ -148,6 +148,8 @@ Dated research and licence decisions are retained in [Global AI Competition](OCA
 
 ## 3B. Fast PC execution: measurable design
 
+**How fast PC control will work (target, not yet proved):** OCADE's online AI plans once; the paired, authorised **local Device Agent** validates and executes bounded, deterministic action segments on the customer's PC (P08), with durable receipts, independent result checks and immediate local STOP. P09 uses authenticated event wakeups, retaining recovery polling; no cloud/model round trip for each local click after a segment is admitted. **Choose the fastest safe interface per application:** (1) native APIs/object models such as Office COM, installed-app scripting, CLI and scoped file operations; (2) authorised browser DOM/Playwright/CDP where supported by the selected browser/profile; (3) Windows UI Automation/accessibility; (4) fresh screenshot/vision-guided **PyAutoGUI-style** mouse/keyboard fallback only when structured interfaces cannot perform the task. Do not add Playwright/PyAutoGUI as duplicate runtimes or assume access to a customer's ordinary signed-in Chrome profile. Never store/replay stale screen coordinates. Batch only independently admissible steps, keep one foreground input owner, preserve existing permissions and verify real outputs. Measure p50/p95 latency, local resource cost and failure/recovery against the old path; “super fast” is a goal, **not** a verified claim. Existing implementation owners and P01–P17 dependencies remain authoritative.
+
 ### 4.1 Current source baseline
 
 The current source establishes:
