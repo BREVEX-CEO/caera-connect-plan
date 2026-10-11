@@ -48,6 +48,10 @@ GREETING = b"OCADE-agent\n"
 def single_instance() -> socket.socket | None:
     """Hold a loopback port for the life of the process. None when another agent holds it."""
     guard = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if os.name == "posix":
+        # An agent that just ended leaves the port waiting out old connections; another agent
+        # still listening on it keeps it all the same. (On Windows this option would share it.)
+        guard.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         guard.bind(("127.0.0.1", SINGLE_INSTANCE_PORT))
         guard.listen(1)

@@ -28,7 +28,7 @@ function Read-Doc($doc) {
   return @{ text = $text; paragraphs = $doc.Paragraphs.Count; tables = $doc.Tables.Count; headings = $headings }
 }
 
-$word = $null; $opened = $false; $doc = $null; $applied = @()
+$word = $null; $opened = $false; $doc = $null; $applied = @(); $started = $false
 try {
   try { $word = [Runtime.InteropServices.Marshal]::GetActiveObject([string]$job.progId) }
   catch { $word = New-Object -ComObject ([string]$job.progId) }
@@ -47,6 +47,7 @@ try {
   if ($doc.ReadOnly) { throw "The document is open read-only somewhere else" }
 
   foreach ($op in $job.ops) {
+    $started = $true  # from here the document may differ from the file, even if this op throws
     switch ($op.op) {
       "replace" {
         $range = $doc.Content
@@ -114,11 +115,11 @@ try {
     }
   }
   if (-not $job.close) { $word.DisplayAlerts = $alerts }
-  Out-Result @{ ok = $true; engine = "automation"; applied = $applied; read = $read; savedAndReopened = $reopened }
+  Out-Result @{ ok = $true; engine = "automation"; applied = $applied; read = $read; savedAndReopened = $reopened; reopenChecked = $opened }
 }
 catch {
   if ($opened -and $doc) { try { $doc.Close(0) } catch {} }
   if ($word) { try { $word.DisplayAlerts = if ($null -ne $alerts) { $alerts } else { -1 } } catch {} }
   Out-Result @{ ok = $false; engine = "automation"; applied = $applied; error = $_.Exception.Message
-    unsavedEdits = ((-not $opened) -and $null -ne $doc -and $applied.Count -gt 0) }
+    unsavedEdits = ((-not $opened) -and $null -ne $doc -and $started); maybeChanged = $started }
 }

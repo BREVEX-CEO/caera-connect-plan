@@ -203,3 +203,13 @@ class CompareTest(unittest.TestCase):
         self.assertEqual((same["kind"], same["same"]), ("bytes", True))
         self.assertEqual(self.pc.run({"action": "file_compare", "path": "a.txt", "to": "../x"})["status"],
                          "blocked")
+
+    def test_a_difference_past_the_compared_part_is_not_called_no_change(self):
+        """C27: two long texts that differ only near the end."""
+        body = "same line\n" * 25_000  # 250,000 characters
+        (self.root / "long1.txt").write_text(body + "end A\n")
+        (self.root / "long2.txt").write_text(body + "end B\n")
+        out = self.pc.run({"action": "file_compare", "path": "long1.txt", "to": "long2.txt"})["changes"]
+        self.assertEqual(out["lines"], [])
+        self.assertIn("partial", out)
+        self.assertTrue(out["differsLater"])

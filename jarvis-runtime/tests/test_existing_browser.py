@@ -6,6 +6,7 @@ for the person's browser) and never touches a browser already running here.
 import functools
 import shutil
 import http.server
+import os
 import socket
 import subprocess
 import sys
@@ -93,6 +94,11 @@ class DiscoveryTest(unittest.TestCase):
             [self.root / "a", self.root / "b", self.root / "missing"]))
 
 
+# A disposable Linux test machine may forbid Chromium's own sandbox (no user namespaces): the
+# test browser runs without it there. Never a setting for the person's browser.
+NO_SANDBOX = ["--no-sandbox"] if sys.platform.startswith("linux") and os.environ.get("CI") else []
+
+
 def _chromium() -> str | None:
     try:
         from playwright.sync_api import sync_playwright
@@ -118,7 +124,7 @@ class AttachTest(unittest.TestCase):
         cls.profile = Path(tempfile.mkdtemp())
         cls.browser = subprocess.Popen(
             [_chromium(), f"--user-data-dir={cls.profile}", "--remote-debugging-port=0",
-             "--headless=new", "--no-first-run", "about:blank"],
+             "--headless=new", "--no-first-run", *NO_SANDBOX, "about:blank"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline and not (cls.profile / "DevToolsActivePort").exists():
@@ -177,7 +183,7 @@ class RestartTest(unittest.TestCase):
     def _start(self):
         browser = subprocess.Popen(
             [_chromium(), f"--user-data-dir={self.profile}", "--remote-debugging-port=0",
-             "--headless=new", "--no-first-run", "about:blank"],
+             "--headless=new", "--no-first-run", *NO_SANDBOX, "about:blank"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline and not ocade_existing_browser.find([self.profile]):

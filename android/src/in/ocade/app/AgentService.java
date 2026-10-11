@@ -170,23 +170,26 @@ public final class AgentService extends Service {
         return results;
     }
 
-    private void keepPending(JSONArray results) {
-        keep(PENDING, results);
+    private boolean keepPending(JSONArray results) {
+        return keep(PENDING, results);
     }
 
-    private void keep(String name, JSONArray results) {
+    /** Whether the journal now holds exactly these entries: a failed write is never assumed kept. */
+    private boolean keep(String name, JSONArray results) {
         android.util.AtomicFile file = journal(name);
         if (results.length() == 0) {
             file.delete();
-            return;
+            return !file.getBaseFile().exists();
         }
         java.io.FileOutputStream out = null;
         try {
             out = file.startWrite(); // never a half-written journal
             out.write(results.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
             file.finishWrite(out);
+            return true;
         } catch (java.io.IOException e) {
             if (out != null) file.failWrite(out);
+            return false;
         }
     }
 
@@ -219,8 +222,8 @@ public final class AgentService extends Service {
                     detail.remove("observation");
                     if (detail.length() > 0) result.put("detail", detail);
                     results.put(result);
-                    keepPending(results);
-                    keep(RUNNING, new JSONArray());
+                    // The running mark goes only once the result itself is safely kept.
+                    if (keepPending(results)) keep(RUNNING, new JSONArray());
                     if (live != null) frame = new JSONObject().put("taskId", stepTask).put("jpeg", live);
                     step = null;
                 }
@@ -267,17 +270,19 @@ public final class AgentService extends Service {
                 reached = System.currentTimeMillis();
                 if (body.has("apps")) appsSent = reached;
                 if (body.has("stop")) stopAll.set(false);
-                // Only what OCADE kept leaves: a result it could not save is sent again.
+                // Only what OCADE answered for leaves: a result it could not save, or did not
+                // answer for at all, is sent again (an old server that sends no answers kept them).
                 JSONArray acks = reply.body.optJSONArray("acks");
                 JSONArray again = new JSONArray();
-                for (int i = 0; acks != null && i < acks.length(); i++) {
-                    JSONObject ack = acks.getJSONObject(i);
-                    if (!"retry".equals(ack.optString("outcome"))) continue;
-                    for (int j = 0; j < results.length(); j++) {
-                        if (ack.optString("id").equals(results.getJSONObject(j).optString("id"))) {
-                            again.put(results.getJSONObject(j));
+                for (int j = 0; acks != null && j < results.length(); j++) {
+                    String id = results.getJSONObject(j).optString("id");
+                    String answer = null;
+                    for (int i = 0; i < acks.length(); i++) {
+                        if (id.equals(acks.getJSONObject(i).optString("id"))) {
+                            answer = acks.getJSONObject(i).optString("outcome");
                         }
                     }
+                    if (answer == null || "retry".equals(answer)) again.put(results.getJSONObject(j));
                 }
                 results = again;
                 keepPending(results);
@@ -297,7 +302,17 @@ public final class AgentService extends Service {
                 if (step == null && commands != null && commands.length() > 0) {
                     JSONObject command = commands.getJSONObject(0);
                     stepId = command.getString("id");
-                    keep(RUNNING, new JSONArray().put(stepId)); // before anything runs
+                    // Recorded before anything runs; a step that cannot be recorded does not run.
+                    if (!keep(RUNNING, new JSONArray().put(stepId))) {
+                        results.put(new JSONObject().put("id", stepId).put("status", "failed")
+                                .put("summary", "The phone could not record this step, so it did not run."));
+                        keepPending(results);
+                        stepId = null;
+                        commands = null;
+                    }
+                }
+                if (step == null && commands != null && commands.length() > 0) {
+                    JSONObject command = commands.getJSONObject(0);
                     stepTask = command.optString("taskId");
                     AtomicBoolean mine;
                     synchronized (admit) { // a STOP just before cannot be lost on the old token

@@ -46,6 +46,16 @@ const POLL_MS = 400;
 /** With change events, the fail-safe read happens this often instead. */
 const EVENT_FALLBACK_MS = 2_000;
 const ACTION_TIMEOUT_MS = 120_000;
+/**
+ * How long the computer itself may work on these before it gives up (its RUN_TIMEOUT_S and
+ * Office job deadline), plus time for the answer to travel: never given up on sooner, or a
+ * build or an Office save still running would be cancelled half-way (audit C28).
+ */
+const DEVICE_DEADLINE_MS: Partial<Record<string, number>> = {
+  run: 330_000,
+  sheet_edit: 210_000,
+  doc_edit: 210_000,
+};
 
 export class Stopped extends Error {
   /** True when another tab or device took the task, rather than the person stopping it. */
@@ -426,8 +436,8 @@ export async function runJarvisTurn(
     hooks.onActivity();
   };
 
-  async function waitFor(id: string): Promise<ActionState> {
-    const deadline = Date.now() + ACTION_TIMEOUT_MS;
+  async function waitFor(id: string, kind: string): Promise<ActionState> {
+    const deadline = Date.now() + (DEVICE_DEADLINE_MS[kind] ?? ACTION_TIMEOUT_MS);
     while (Date.now() < deadline) {
       stopIfAsked();
       const state = await deps.readAction(id);
@@ -512,13 +522,13 @@ export async function runJarvisTurn(
   /** Wait for a queued action's outcome: its confirmation, a hand-over, the checkpoint. */
   async function settleStep({ id, action }: Queued, afterHandover = false): Promise<unknown> {
     if (!task) throw new Stopped();
-    let state = await waitFor(id);
+    let state = await waitFor(id, action.action);
     if (state.status === "needs_confirmation") {
       const accepted = await untilAborted(hooks.confirm(state.summary), hooks.signal);
       stopIfAsked();
       await deps.decide({ id, accept: accepted });
       if (!accepted) return { status: "declined", summary: "The person declined this step." };
-      state = await waitFor(id);
+      state = await waitFor(id, action.action);
     }
     hooks.onActivity();
     if (state.taskStatus === "taken_over") return handOver("You took over.");

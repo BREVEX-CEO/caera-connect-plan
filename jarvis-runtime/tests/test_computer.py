@@ -3,6 +3,7 @@
 Run: xvfb-run -a python -m unittest discover -s jarvis-runtime/tests -p 'test_computer.py'
 The screen tests need a display and skip without one.
 """
+import importlib
 import os
 import subprocess
 import sys
@@ -25,6 +26,10 @@ class WorkspaceTest(unittest.TestCase):
         self.home = tempfile.mkdtemp()
         os.environ["HOME"] = self.home  # the Trash lives in this throwaway home
         os.environ.pop("XDG_DATA_HOME", None)
+        # send2trash finds its Trash once, on import: found again here for this home.
+        for name in ("send2trash.plat_other", "send2trash"):
+            if name in sys.modules:
+                importlib.reload(sys.modules[name])
         self.root = Path(self.home, "project")
         self.root.mkdir()
         (self.root / "notes.md").write_text("hello")
@@ -234,6 +239,32 @@ class UndoTest(unittest.TestCase):
         (self.root / "kept/theirs.txt").write_text("x")
         self.assertIn("things in it", self.pc.run({"action": "undo"})["summary"])
         self.assertTrue((self.root / "kept/theirs.txt").is_file())
+
+    def test_an_undo_never_loses_what_the_person_changed_afterwards(self):
+        """C10: undo goes ahead only while the result is exactly what JARVIS left."""
+        self.do(action="file_write", path="notes.md", content="jarvis")
+        (self.root / "notes.md").write_text("jarvis, then the person's own line")
+        out = self.pc.run({"action": "undo"})
+        self.assertEqual(out["status"], "failed")
+        self.assertIn("later changes are kept", out["summary"])
+        self.assertEqual((self.root / "notes.md").read_text(), "jarvis, then the person's own line")
+
+        self.do(action="file_write", path="made.txt", content="x")  # a file JARVIS made
+        (self.root / "made.txt").write_text("now the person's")
+        self.assertEqual(self.pc.run({"action": "undo"})["status"], "failed")
+        self.assertTrue((self.root / "made.txt").is_file())
+
+    def test_an_office_save_that_reads_back_differently_is_not_done(self):
+        """C12: reopened and read back unlike what was saved is a failure, not success."""
+        out = Computer._not_read_back({"ok": True, "reopenChecked": True, "savedAndReopened": False},
+                                      "r.docx", "document")
+        self.assertEqual(out["status"], "failed")
+        self.assertIn("differs", out["summary"])
+        self.assertIsNone(Computer._not_read_back({"reopenChecked": True, "savedAndReopened": True},
+                                                  "r.docx", "document"))
+        # The person's own open document is not closed to manufacture a reopen: read separately.
+        self.assertIsNone(Computer._not_read_back({"reopenChecked": False, "savedAndReopened": False},
+                                                  "r.docx", "document"))
 
     def test_only_the_recent_past_is_kept(self):
         for n in range(ocade_computer.UNDO_DEPTH + 3):

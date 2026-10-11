@@ -100,6 +100,8 @@ class LifecycleTest(unittest.TestCase):
         """F-111: only an agent that greets as one counts as running."""
         import socket
         stranger = socket.socket()
+        if os.name == "posix":  # as the agent does: an earlier test's closed port may still wait
+            stranger.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         stranger.bind(("127.0.0.1", ocade_agent.SINGLE_INSTANCE_PORT))
         stranger.listen(5)
         token = ocade_agent.ocade_device.HOME / "exit.token"
@@ -304,7 +306,19 @@ class LifecycleTest(unittest.TestCase):
         self.assertIsNotNone(seen["stopped_at"], "the action kept running after removal")
         self.assertLessEqual(seen["stopped_at"], forgot["at"])
         self.assertFalse(forgot["action_alive"], "the key went while the action still ran")
-        self.assertFalse((self.home / "pending.json").exists())  # no late result survives
+        # Nothing is reported with the key gone, but what the action did is kept here (C08).
+        self.assertFalse((self.home / "pending.json").exists())
+        kept = json.loads((self.home / "unreported-results.json").read_text())
+        self.assertEqual([r["id"] for r in kept], ["a1"])
+
+    def test_only_results_ocade_answered_for_leave_the_journal(self):
+        """C07: a result with no answer, or 'retry', goes again; accepted/stopped/unknown leave."""
+        results = [{"id": i, "status": "done"} for i in ("kept", "stopped", "lost", "again", "gone")]
+        reply = {"acks": [{"id": "kept", "outcome": "accepted"}, {"id": "stopped", "outcome": "stopped"},
+                          {"id": "again", "outcome": "retry"}, {"id": "gone", "outcome": "unknown"}]}
+        self.assertEqual([r["id"] for r in ocade_device.Agent._unanswered(results, reply)],
+                         ["lost", "again"])
+        self.assertEqual(ocade_device.Agent._unanswered(results, {"commands": []}), [])
 
     def test_losing_ocade_during_an_action_stops_it(self):
         command = {"id": "a1", "taskId": "t1", "action": {"action": "file_list", "path": "."}}

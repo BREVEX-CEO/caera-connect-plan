@@ -41,7 +41,7 @@ function Read-Range($sheet, $address) {
   return @{ text = $text; formulas = $formulas }
 }
 
-$excel = $null; $created = $false; $opened = $false; $book = $null
+$excel = $null; $created = $false; $opened = $false; $book = $null; $started = $false
 try {
   try { $excel = [Runtime.InteropServices.Marshal]::GetActiveObject([string]$job.progId) }
   catch { $excel = New-Object -ComObject ([string]$job.progId); $created = $true }
@@ -77,6 +77,7 @@ try {
 
   $applied = @()
   foreach ($op in $job.ops) {
+    $started = $true  # from here the workbook may differ from the file, even if this op throws
     # Direct assignment: a Range sent through the pipeline unrolls into its cells.
     $target = $null
     if ($op.range) { $target = $sheet.Range([string]$op.range) }
@@ -184,7 +185,7 @@ try {
     if ($created -and $excel.Workbooks.Count -eq 0) { $excel.Quit() }
   }
   else { $excel.DisplayAlerts = $alerts }
-  Out-Result @{ ok = $true; engine = "automation"; applied = $applied; read = $read; savedAndReopened = $reopened; sheet = $sheetName }
+  Out-Result @{ ok = $true; engine = "automation"; applied = $applied; read = $read; savedAndReopened = $reopened; reopenChecked = $opened; sheet = $sheetName }
 }
 catch {
   # A workbook OCADE opened closes without saving; the caller compares the file with the kept
@@ -193,5 +194,5 @@ catch {
   if ($opened -and $book) { try { $book.Close($false) } catch {} }
   if ($excel) { try { $excel.DisplayAlerts = if ($null -ne $alerts) { $alerts } else { $true } } catch {} }
   Out-Result @{ ok = $false; engine = "automation"; applied = $applied; error = $_.Exception.Message
-    unsavedEdits = ((-not $opened) -and $null -ne $book -and $applied.Count -gt 0) }
+    unsavedEdits = ((-not $opened) -and $null -ne $book -and $started); maybeChanged = $started }
 }

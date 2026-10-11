@@ -207,6 +207,7 @@ class SurfacesTest(unittest.TestCase):
         readmes = ocade_discovery._readme(str(sdk))["readmes"]
         self.assertIn("scriptapp", readmes[0]["start"])
 
+    @unittest.skipUnless(sys.platform == "win32", "Store app packages and their paths are Windows only")
     def test_the_launched_app_of_a_package_not_the_first(self):
         package = Path(tempfile.mkdtemp())
         (package / "AppxManifest.xml").write_text(

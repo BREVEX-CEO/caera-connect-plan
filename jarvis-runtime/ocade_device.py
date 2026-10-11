@@ -307,11 +307,20 @@ class Agent:
     def _keep(path: Path, items: list) -> None:
         if items:
             tmp = path.with_suffix(".tmp")
-            tmp.write_text(json.dumps(items))
+            with open(tmp, "w", encoding="utf-8") as out:
+                out.write(json.dumps(items))
+                out.flush()
+                os.fsync(out.fileno())  # on disk before it replaces the journal, not just cached
             tmp.chmod(0o600)
             os.replace(tmp, path)  # never a half-written journal
         else:
             path.unlink(missing_ok=True)
+        if os.name == "posix":  # the rename itself survives a power cut once its folder is synced
+            folder = os.open(path.parent, os.O_RDONLY)
+            try:
+                os.fsync(folder)
+            finally:
+                os.close(folder)
 
     def _load_pending(self) -> list[dict]:
         # Results finished before a crash, a reboot or a lost connection still reach OCADE.
@@ -351,6 +360,11 @@ class Agent:
         active: dict | None = None  # the segment running now: {"id", "left", "done", "skip", "thread"}
         while not self.stop.is_set():
             if active:
+                if not active["left"]:
+                    # Every step has run; only the last result is being appended. Waiting for it
+                    # keeps "nothing running" and "segment over" one fact, so the next segment
+                    # OCADE hands out is never ignored while this one winds down.
+                    active["thread"].join(5)
                 finished = not active["thread"].is_alive()  # read first: nothing is appended after it
                 while active["done"]:
                     outcome, live = active["done"].pop(0)
@@ -390,13 +404,17 @@ class Agent:
             try:
                 reply = self.identity.exchange(body)
             except NotEnrolled:
-                # Removed in OCADE: the physical work stops first, then the key goes,
-                # and nothing this device finishes afterwards is ever reported.
+                # Removed in OCADE: the physical work stops first, then the key goes, and nothing
+                # this device finishes afterwards is ever reported. What it did but could not
+                # report is kept on this computer, not lost with the key.
                 self._halt(active)
+                results += [outcome for outcome, _live in (active or {}).get("done", [])]
                 active = None
                 self.identity.forget()
+                self._keep(self.pending_path, results)
+                kept = self.pending_path.with_name("unreported-results.json")
+                self._keep(kept, self._read(kept) + self._load_pending())
                 self.pending_path.unlink(missing_ok=True)
-                self.intent_path.unlink(missing_ok=True)
                 self.state["connected"] = False
                 print("This device is no longer connected. Its key was removed.", flush=True)
                 return 2
@@ -431,9 +449,7 @@ class Agent:
                 self.resume_asked.clear()
             self.state.update(busy=bool(reply.get("busy")), background=bool(reply.get("background")),
                               task=reply.get("task"))
-            # Only what OCADE kept leaves the journal: a result it could not save goes again.
-            again = {a.get("id") for a in reply.get("acks") or [] if a.get("outcome") == "retry"}
-            results, frame = [r for r in results if r.get("id") in again], None
+            results, frame = self._unanswered(results, reply), None
             self._keep_pending(results)
             if active:
                 stopped = set(reply.get("cancel", []))
@@ -464,12 +480,21 @@ class Agent:
             # whatever it did not receive stays in the journal for the next start.
             results += [outcome for outcome, _live in (active or {}).get("done", [])]
             try:
-                self.identity.exchange({"results": results, "stop": True, "running": []})
-                results = []
+                reply = self.identity.exchange({"results": results, "stop": True, "running": []})
+                results = self._unanswered(results, reply)
             except Exception:
                 pass
             self._keep_pending(results)
         return 0
+
+    @staticmethod
+    def _unanswered(results: list[dict], reply: dict) -> list[dict]:
+        """Only what OCADE answered for leaves the journal: a result it could not save, or did
+        not answer for at all, goes again. An old server that sends no answers kept them all."""
+        if "acks" not in reply:
+            return []
+        answers = {a.get("id"): a.get("outcome") for a in reply.get("acks") or []}
+        return [r for r in results if answers.get(r.get("id"), "retry") == "retry"]
 
     def _start(self, commands: list[dict]) -> dict:
         """Run a segment in order, one action at a time. After a step that did not finish, or a
@@ -514,7 +539,7 @@ class Agent:
             outcome = (self.browsers.run(mode, action, confirmed, command.get("sites", []), cancel,
                                          self.computer.root)
                        if browser else
-                       self.computer.run(action, confirmed, cancel=cancel))
+                       self.computer.run(action, confirmed, cancel))
         except Exception as e:  # a crashed action is reported, never retried blindly
             outcome = {"status": "failed", "summary": f"The action failed ({type(e).__name__})"}
         live = (outcome.get("observation") or {}).pop("frame", None) or (

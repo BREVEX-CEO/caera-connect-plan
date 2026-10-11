@@ -458,6 +458,8 @@ export const exchangeInput = z.object({
 
 /** Matches how long the planning loop waits for one action. */
 const ACTION_TTL_MS = 120_000;
+/** Longer than the longest step a computer may take (a 300-second command) and its answer. */
+const CLAIMED_TTL_MS = 360_000;
 
 export interface DeviceCommand {
   id: string;
@@ -692,7 +694,7 @@ export async function exchange(
     .update({ status: "failed", completed_at: now })
     .eq("device_id", device.id)
     .eq("status", "claimed")
-    .lt("created_at", new Date(Date.now() - 2 * ACTION_TTL_MS).toISOString());
+    .lt("created_at", new Date(Date.now() - CLAIMED_TTL_MS).toISOString());
 
   // The action the device runs now continues only while it is still claimed
   // and its task still running; anything else (STOP, Take Over, the task

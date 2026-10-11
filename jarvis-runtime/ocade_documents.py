@@ -191,15 +191,23 @@ def compare(before: Path, after: Path, limit: int = 60) -> dict:
         return {"kind": "cells", "sheetsAdded": sorted(new.keys() - old.keys()),
                 "sheetsRemoved": sorted(old.keys() - new.keys()),
                 "cells": changed[:limit], "more": max(0, len(changed) - limit)}
+    import filecmp
     try:
-        old_text, _ = extract_text(before, 200_000)
-        new_text, _ = extract_text(after, 200_000)
+        old_text, _ = extract_text(before, COMPARED)
+        new_text, _ = extract_text(after, COMPARED)
     except Unreadable:
-        import filecmp
         return {"kind": "bytes", "same": filecmp.cmp(before, after, shallow=False),
                 "sizes": [before.stat().st_size, after.stat().st_size]}
     import difflib
     lines = [line for line in difflib.unified_diff(old_text.splitlines(), new_text.splitlines(),
                                                    lineterm="", n=0)
              if line[:1] in "+-" and not line.startswith(("+++", "---"))]
-    return {"kind": "lines", "lines": lines[:limit], "more": max(0, len(lines) - limit)}
+    out = {"kind": "lines", "lines": lines[:limit], "more": max(0, len(lines) - limit)}
+    # A long document is compared only so far: never reported unchanged past that point (C27).
+    if len(old_text) >= COMPARED or len(new_text) >= COMPARED:
+        out["partial"] = f"Only the first {COMPARED:,} characters of each were compared."
+        out["differsLater"] = not lines and not filecmp.cmp(before, after, shallow=False)
+    return out
+
+
+COMPARED = 200_000

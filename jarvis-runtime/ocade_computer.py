@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import base64
 import filecmp
+import hashlib
 import io
 import json
 import os
@@ -59,6 +60,19 @@ IMPORT_LIMIT = 1 << 30  # a copy into the work folder
 RESERVED = re.compile(r"(?i)con|prn|aux|nul|com[0-9]|lpt[0-9]|conin\$|conout\$")
 _APPS: dict = {"at": float("-inf"), "list": []}
 STOPPED = {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+
+
+def _fingerprint(path: Path) -> str | None:
+    """A file's exact content (its SHA-256), "folder" for a folder, None when it is gone."""
+    if path.is_dir():
+        return "folder"
+    if not path.is_file():
+        return None
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for block in iter(lambda: source.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
 MOVED = 12  # mean grey-level change around a point that makes its observation stale
 
 # Anything a shell (or cmd.exe for .cmd/.bat programs) would interpret.
@@ -279,7 +293,7 @@ class Computer:
         self._obs_seq = 0
         self._observation: dict | None = None
         self._lock = threading.Lock()  # one controller of mouse and keyboard at a time
-        self._undo: list[tuple[str, object]] = []  # (what was done, how to reverse it), newest last
+        self._undo: list[tuple] = []  # (what was done, how to reverse it, its result, the result's print)
         self._made: set[Path] = set()  # files JARVIS itself created or copied: free to edit
         # Linux: a real filesystem boundary. Elsewhere: one direct program in the workspace.
         self.sandbox = "bubblewrap" if SYSTEM == "Linux" and shutil.which("bwrap") else (
@@ -453,7 +467,7 @@ class Computer:
             shutil.copy2(source, target)
             self._made.add(target)
             rel = str(target.relative_to(self.root))
-            self._remember(f"copying {source.name} in", lambda: self._to_trash(target))
+            self._remember(f"copying {source.name} in", lambda: self._to_trash(target), target)
             return {"status": "done", "summary": f"Copied {source.name} into the work folder as {rel}",
                     "path": rel}
         source = self._inside(str(action.get("path", "")))
@@ -546,7 +560,7 @@ class Computer:
                 if os.path.lexists(tmp):
                     os.unlink(tmp)
             self._remember(f"writing {rel}", (lambda: self._put_back(kept, path)) if kept
-                           else (lambda: self._to_trash(path)))
+                           else (lambda: self._to_trash(path)), path)
             return {"status": "done", "summary": f"Wrote {rel}"}
         if cancel.is_set():  # the last moment before any other change: STOP means none
             return dict(STOPPED)
@@ -616,7 +630,9 @@ class Computer:
         if not out.get("ok"):
             return self._unfinished(out, rel, path, "workbook")
         kept = self._undo_dir() / str(out["backup"])
-        self._remember(f"updating {rel}", lambda: self._put_back(kept, path))
+        self._remember(f"updating {rel}", lambda: self._put_back(kept, path), path)
+        if unread := self._not_read_back(out, rel, "workbook"):
+            return unread
         # What a person would see at once: a formula that counts itself, or an error value.
         found = ocade_sheets.problems(out.get("read") or {})
         check = f". Check: {'; '.join(found[:3])}" if found else ""
@@ -651,8 +667,20 @@ class Computer:
         if not out.get("ok"):
             return self._unfinished(out, rel, path, "document")
         kept = self._undo_dir() / str(out["backup"])
-        self._remember(f"updating {rel}", lambda: self._put_back(kept, path))
+        self._remember(f"updating {rel}", lambda: self._put_back(kept, path), path)
+        if unread := self._not_read_back(out, rel, "document"):
+            return unread
         return {"status": "done", "summary": f"Updated {rel} in {out.get('app', 'its app')} ({len(out['applied'])} changes)",
+                **{k: v for k, v in out.items() if k != "ok"}}
+
+    @staticmethod
+    def _not_read_back(out: dict, rel: str, what: str) -> dict | None:
+        """Saved, reopened, and what was read back differs from what was saved: not done (C12)."""
+        if not out.get("reopenChecked") or out.get("savedAndReopened"):
+            return None
+        return {"status": "failed", "fileChanged": True,
+                "summary": f"{rel} was saved, but the {what} read back after reopening it differs from "
+                           "what was saved; undo puts the original back",
                 **{k: v for k, v in out.items() if k != "ok"}}
 
     def _unfinished(self, out: dict, rel: str, path: Path, what: str) -> dict:
@@ -664,7 +692,7 @@ class Computer:
         changed = bool(kept and kept.is_file() and path.is_file()
                        and not filecmp.cmp(kept, path, shallow=False))
         if changed or (kept and out.get("maybeChanged")):
-            self._remember(f"updating {rel}", lambda: self._put_back(kept, path))
+            self._remember(f"updating {rel}", lambda: self._put_back(kept, path), path)
             summary = (f"The {what} {'was' if changed else 'may be'} partly changed ({why}); "
                        "undo puts the original back")
         else:
@@ -736,11 +764,11 @@ class Computer:
             else:
                 shutil.copy2(source, target)
                 self._made.add(target)
-            self._remember(f"copying {rel} to {to}", lambda: self._to_trash(target))
+            self._remember(f"copying {rel} to {to}", lambda: self._to_trash(target), target)
             return {"status": "done", "summary": f"Copied {rel} to {to}"}
         shutil.move(str(source), str(target))
         self._remember(f"{'renaming' if kind == 'file_rename' else 'moving'} {rel} to {to}",
-                       lambda: self._move_back(target, source))
+                       lambda: self._move_back(target, source), target)
         return {"status": "done", "summary": f"{'Renamed' if kind == 'file_rename' else 'Moved'} {rel} to {to}"}
 
     # -- undo: what JARVIS changed in the workspace, newest first --
@@ -753,8 +781,10 @@ class Computer:
         import ocade_sheets
         return ocade_sheets.backup(path, self._undo_dir())
 
-    def _remember(self, label: str, reverse) -> None:
-        self._undo.append((label, reverse))
+    def _remember(self, label: str, reverse, result: Path | None = None) -> None:
+        """`result`: the file JARVIS's change left. Undo goes ahead only while it is still exactly
+        that, so it never overwrites or removes what the person did to it afterwards."""
+        self._undo.append((label, reverse, result, _fingerprint(result) if result else None))
         del self._undo[:-UNDO_DEPTH]  # the recent past is what people ask to undo
 
     def _undo_last(self) -> dict:
@@ -762,8 +792,11 @@ class Computer:
             return {"status": "failed", "summary": "There is nothing to undo. Only file changes JARVIS made "
                                                    "here since it started can be undone."}
         # Taken off first: a failing undo is not retried against files that have moved on.
-        label, reverse = self._undo.pop()
+        label, reverse, result, left = self._undo.pop()
         try:
+            if result is not None and _fingerprint(result) != left:
+                raise ScopeError("it was changed after JARVIS's change, so nothing was undone "
+                                 "and the later changes are kept")
             reverse()
         except ScopeError as e:
             return {"status": "failed", "summary": f"Could not undo {label}: {e}"}
@@ -908,6 +941,10 @@ class Computer:
         try:  # the whole group; bwrap --die-with-parent takes the rest
             os.killpg(process.pid, signal.SIGKILL) if hasattr(os, "killpg") else process.kill()
         except (ProcessLookupError, PermissionError):
+            pass
+        try:  # and the program itself, should it not lead a group of its own
+            process.kill()
+        except (ProcessLookupError, PermissionError, OSError):
             pass
 
     # -- the system: only after the person confirmed ---------------------------------
