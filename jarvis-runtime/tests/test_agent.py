@@ -130,6 +130,27 @@ class LifecycleTest(unittest.TestCase):
         self.assertIsNone(self._autostart_entry())
         self.assertFalse(self.home.exists())
         self.assertIn("PC control, background tasks and wake features have stopped", message)
+        self.assertNotIn("did not confirm", message)
+
+    def test_uninstall_says_when_ocade_never_confirmed_the_disconnect(self):
+        import unittest.mock
+
+        class Refused:
+            connected = True
+
+            def __init__(self, home):
+                pass
+
+            def exchange(self, body):
+                raise RuntimeError("The device was not disconnected.")
+
+        with unittest.mock.patch.object(ocade_agent, "Identity", Refused), \
+                unittest.mock.patch.object(ocade_agent, "remove_autostart", lambda: None), \
+                unittest.mock.patch.object(ocade_agent, "stop_running_agent", lambda *a: True):
+            (self.home / "device.key").write_text("k")
+            message = ocade_agent.uninstall(self.home)
+        self.assertFalse(self.home.exists())
+        self.assertIn("remove it in OCADE Devices", message)
 
     def test_a_first_start_waits_offline_and_asks_again_only_when_the_person_says(self):
         shown, opened = [], []

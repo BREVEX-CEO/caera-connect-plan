@@ -482,20 +482,28 @@ export async function exchange(
 }> {
   if (input.forget) {
     const at = new Date().toISOString();
-    await admin
-      .from("jarvis_activity")
-      .update({ status: "cancelled", completed_at: at })
-      .eq("device_id", device.id)
-      .in("status", ["queued", "needs_confirmation", "claimed"]);
-    await admin
-      .from("jarvis_tasks")
-      .update({ status: "stopped", blocker: "The device was disconnected." })
-      .eq("device_id", device.id)
-      .in("status", ["running", "waiting", "taken_over"]);
-    await admin
+    // Work ends first and the key last: a failure leaves a key that can ask again.
+    const ended = await Promise.all([
+      admin
+        .from("jarvis_activity")
+        .update({ status: "cancelled", completed_at: at })
+        .eq("device_id", device.id)
+        .in("status", ["queued", "needs_confirmation", "claimed"]),
+      admin
+        .from("jarvis_tasks")
+        .update({ status: "stopped", blocker: "The device was disconnected." })
+        .eq("device_id", device.id)
+        .in("status", ["running", "waiting", "taken_over"]),
+    ]);
+    const failed = ended.find((write) => write.error);
+    if (failed?.error) throw new Error(failed.error.message);
+    const revoked = await admin
       .from("jarvis_devices")
       .update({ revoked_at: at, public_key: null })
-      .eq("id", device.id);
+      .eq("id", device.id)
+      .select("id");
+    if (revoked.error) throw new Error(revoked.error.message);
+    if (revoked.data?.length !== 1) throw new Error("The device was not disconnected.");
     return {
       protocol: PROTOCOL.version,
       deviceId: device.id,
@@ -526,19 +534,21 @@ export async function exchange(
     const failed = stopped.find((write) => write.error);
     if (failed?.error) throw new Error(failed.error.message);
   }
-  if (input.pause && !input.stop) {
-    await admin
-      .from("jarvis_tasks")
-      .update({ status: "taken_over", blocker: "Paused on the computer." })
-      .eq("device_id", device.id)
-      .in("status", ["running", "waiting"]);
-  } else if (input.resume && !input.stop) {
-    await admin
-      .from("jarvis_tasks")
-      .update({ status: "running", blocker: null })
-      .eq("device_id", device.id)
-      .eq("status", "taken_over");
-  }
+  const toggled =
+    input.pause && !input.stop
+      ? await admin
+          .from("jarvis_tasks")
+          .update({ status: "taken_over", blocker: "Paused on the computer." })
+          .eq("device_id", device.id)
+          .in("status", ["running", "waiting"])
+      : input.resume && !input.stop
+        ? await admin
+            .from("jarvis_tasks")
+            .update({ status: "running", blocker: null })
+            .eq("device_id", device.id)
+            .eq("status", "taken_over")
+        : null;
+  if (toggled?.error) throw new Error(toggled.error.message);
   // A task nobody drives waits at its checkpoint, unless this computer may
   // carry on with it (Background Mode): then it is told to ask for the next step.
   const { taskToCarryOn } = await import("./background.server");

@@ -222,6 +222,30 @@ describe("Pause and Resume from the computer's tray", () => {
     await run({ results: [], resume: true });
     expect((await taskStatus(t)).status).toBe("stopped");
   });
+
+  it("never lets the computer believe a pause that was not saved", async () => {
+    const broken = {
+      from: (name: string) =>
+        name === "jarvis_tasks"
+          ? {
+              ...rest().from(name),
+              update: () => {
+                const q = {
+                  eq: () => q,
+                  in: () => q,
+                  then: (resolve: (r: unknown) => void) =>
+                    resolve({ data: null, error: { message: "tasks unavailable" } }),
+                };
+                return q;
+              },
+            }
+          : rest().from(name),
+    };
+    await task();
+    await expect(
+      exchange(broken as never, { id: device, userId: A }, { results: [], pause: true }),
+    ).rejects.toThrow(/unavailable/);
+  });
 });
 
 describe("a task nobody drives any more", () => {
@@ -287,6 +311,73 @@ describe("Activity privacy (JARVIS-021)", () => {
       ),
     ).toBe("Failed: [Errno 2] No such file: '[path]' and [path] and [path]");
     expect(redactLocal("Wrote notes/today.md")).toBe("Wrote notes/today.md");
+  });
+});
+
+describe("Disconnect from the computer (forget)", () => {
+  const failing = (table: string) => {
+    const real = rest();
+    return {
+      from: (name: string) =>
+        name === table
+          ? {
+              update: () => {
+                const broken = {
+                  eq: () => broken,
+                  in: () => broken,
+                  select: () => broken,
+                  then: (resolve: (r: unknown) => void) =>
+                    resolve({ data: null, error: { message: `${table} is unavailable` } }),
+                };
+                return broken;
+              },
+            }
+          : real.from(name),
+    };
+  };
+  const keyOf = async (id: string) =>
+    (
+      await twin.asServiceRole<{ revoked: boolean; key: string | null }>(
+        `select revoked_at is not null as revoked, public_key as key from public.jarvis_devices where id = '${id}'`,
+      )
+    )[0]!;
+  const freshDevice = async () =>
+    (
+      await twin.asServiceRole<{ id: string }>(
+        `insert into public.jarvis_devices (user_id, name, public_key, capabilities)
+         values ('${A}', 'Spare', repeat(md5(random()::text), 4), '{"files": true}') returning id`,
+      )
+    )[0]!.id;
+
+  it("ends its work and revokes its key", async () => {
+    const id = await freshDevice();
+    const [{ id: t }] = await twin.asServiceRole<{ id: string }>(
+      `insert into public.jarvis_tasks (user_id, conversation_id, device_id, title)
+       values ('${A}', '${conversation}', '${id}', 't') returning id`,
+    );
+    await exchange(rest() as never, { id, userId: A }, { results: [], forget: true });
+    expect(await keyOf(id)).toEqual({ revoked: true, key: null });
+    const [row] = await twin.asServiceRole<{ status: string }>(
+      `select status from public.jarvis_tasks where id = '${t}'`,
+    );
+    expect(row!.status).toBe("stopped");
+  });
+
+  for (const table of ["jarvis_activity", "jarvis_tasks", "jarvis_devices"]) {
+    it(`never reports success when ${table} could not be written`, async () => {
+      const id = await freshDevice();
+      await expect(
+        exchange(failing(table) as never, { id, userId: A }, { results: [], forget: true }),
+      ).rejects.toThrow(/unavailable/);
+      if (table !== "jarvis_devices") expect((await keyOf(id)).revoked).toBe(false);
+    });
+  }
+
+  it("never reports success when no device row was revoked", async () => {
+    const missing = "0276ec3b-3462-468d-864b-bd218fd7d28f";
+    await expect(
+      exchange(rest() as never, { id: missing, userId: A }, { results: [], forget: true }),
+    ).rejects.toThrow(/not disconnected/);
   });
 });
 

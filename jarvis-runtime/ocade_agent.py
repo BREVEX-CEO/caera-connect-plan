@@ -219,15 +219,17 @@ def uninstall(home: Path) -> str:
         raise SystemExit("OCADE Device Agent is still running and could not be stopped. "
                          "Exit it from the tray, then uninstall again.")
     identity = Identity(home)
+    unconfirmed = ""
     if identity.connected:
         try:  # this computer's key stops working in OCADE too
             identity.exchange({"results": [], "forget": True})
         except Exception:
-            pass  # offline: the person can still remove it in OCADE Devices
+            unconfirmed = (" OCADE did not confirm the disconnect, so this computer may still be "
+                           "listed: remove it in OCADE Devices.")
     shutil.rmtree(home, ignore_errors=True)  # the key, pending results and the cache
     return ("OCADE Device Agent was removed from this computer. PC control, background tasks and "
             "wake features have stopped. Your OCADE conversations and task history stay in your "
-            "account until you delete them there.")
+            "account until you delete them there." + unconfirmed)
 
 
 class Presence:

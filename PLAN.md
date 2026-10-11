@@ -296,6 +296,8 @@ The following mandatory steps and verification criteria come from the latest own
 
 **Target DONE:** counts/hashes/ranges reconcile; documentation is source-backed. Distribution remains blocked for unresolved shipped rights.
 
+**Work record — P00-A (11 October 2026):** SHA base `d70484da`, branch `ocade/p00-p22-implementation`; Windows 11, Node 24.16.0, npm ci. Production audit `npm audit --package-lock-only --omit=dev`: **PASS** (0; seroval/source-map-js fixed by #75 overrides). Dev-only audit: **FAIL/accepted-open** — `sharp <0.35.5` high ([GHSA-wq5f-xc86-pv6w](https://github.com/advisories/GHSA-wq5f-xc86-pv6w)) via `wrangler 4.145.0 → miniflare`; only fix `wrangler 4.149.0` was published 2026-10-08, under the two-week supply-chain age floor; recheck after 2026-10-22. Baseline `verify:full` on main: **FAIL** at `format:check` (three docs); fixed by Prettier, whitespace/emphasis only. Deploy gate gap: `scripts/deploy.mjs --execute` built and uploaded without any dependency audit; it now runs `npm audit --omit=dev` first and stops before build (test fails without the change). After: `verify:full` **PASS** 15/15 gates, 1258 tests; Python runtime 181 PASS/3 skipped. Known flakes (UNTESTED root cause): `staff-authority.test.ts` "unverified address" failed once in three full runs (grant returned an error, not reproduced in 6 isolated runs); `test_computer.py::test_click_needs_the_current_observation` failed once in a `-x` run, passed alone and in the full run. Licence clearance (P00 step 3) and P00-B: **BLOCKED** on owner rights decisions. Evidence class LOCAL.
+
 ### P01 — Make task completion depend on independent evidence
 
 **Current:** `src/jarvis/agent.ts` handles `finish_task` around lines 633–654 and can adopt model completion without a mandatory durable verifier receipt. Prompts already ask for verification; wording alone is insufficient.
@@ -385,6 +387,8 @@ Owners: `_load_pending`, `_keep_pending`, `_exchange_loop`, `Identity.exchange/r
 7. Reconcile effects before retry.
 
 **Tests:** crash at each boundary; lost ACK; partial result batch; old/new key disagreement; corrupt journal.
+
+**Work record — disconnect false success (11 October 2026, partial P03/P05/P06):** SHA base `d70484da`. Reproduced the §2A hypothesis: `exchange` with `forget` ignored all three write errors and returned a success envelope; tray Pause/Resume ignored their write errors too. **FIX:** forget ends activity and tasks first, revokes the key last with `.select("id")` readback, and throws on any error or zero revoked rows, so a failure leaves a key that can retry; Pause/Resume throw on write error. Desktop uninstall still removes the local key (required) but now says when OCADE did not confirm the disconnect. Regression `device-exchange.test.ts`: 5 new failure-injection cases fail on the old code and pass on the fix (26/26); `test_agent.py` uninstall cases PASS. Android `disconnectPhone` still reports nothing on failure: OPEN. Rotation, durable Android results and the full fault matrix: OPEN. Evidence class LOCAL (real PostgreSQL twin).
 
 ### P04 — Treat partial Office/file effects honestly
 
