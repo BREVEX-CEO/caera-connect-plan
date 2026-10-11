@@ -73,7 +73,9 @@ const devicePath = z
   .min(3)
   .max(1000)
   .refine((p) => !p.includes("\0") && /^([A-Za-z]:[\\/]|\/|\\\\)/.test(p), "an absolute path");
-const appName = z.string().regex(/^[A-Za-z0-9_ .+&()'-]{1,80}$/);
+/** An app's name in any script (letters, digits, their marks, a little punctuation); never
+ * control or direction-changing characters. The device applies the same rule. */
+const appName = z.string().regex(/^[\p{L}\p{N}\p{M}_ .+&()'’-]{1,80}$/u);
 const recipeText = z.string().trim().max(200);
 
 const cellRange = z

@@ -46,6 +46,7 @@ import sys
 import tempfile
 import threading
 import time
+import unicodedata
 from pathlib import Path
 
 SYSTEM = platform.system()
@@ -167,6 +168,32 @@ def file_properties(path: Path) -> dict:
         comtypes.CoUninitialize()
 
 
+APP_NAME_PUNCTUATION = frozenset(" _.+&()'’-")
+MOST_APPS = 500
+
+
+def app_name_usable(name: str) -> bool:
+    """A name OCADE can show and refer to safely, in any script: letters, digits and their
+    combining marks, and a little punctuation; never control or direction-changing characters
+    (the same rule the website applies)."""
+    return 1 <= len(name) <= 80 and all(
+        ch.isalnum() or unicodedata.category(ch).startswith("M") or ch in APP_NAME_PUNCTUATION
+        for ch in name)
+
+
+def _add_app(found: dict[str, dict], app: dict, source: str) -> None:
+    """Two different apps with one name both stay listed: the second is told apart by where
+    it comes from, never silently dropped (audit C07)."""
+    key = app["name"].lower()
+    if key not in found:
+        found[key] = app
+        return
+    if found[key]["launch"] == app["launch"]:
+        return
+    named = f"{app['name']} ({source})"[:80]
+    found.setdefault(named.lower(), {**app, "name": named})
+
+
 def installed_apps() -> list[dict]:
     """Useful apps found locally: name plus how to launch them. Nothing leaves the device but names."""
     found: dict[str, dict] = {}
@@ -174,18 +201,18 @@ def installed_apps() -> list[dict]:
         # Every app in Start, Store/UWP ones included, with the id Windows
         # itself launches it by (an AppsFolder id), then plain shortcuts.
         for app in _start_apps():
-            found.setdefault(app["name"].lower(), app)
+            _add_app(found, app, app["launch"].split("!")[0].split("_")[0][-40:])
         roots = [Path(os.environ.get("ProgramData", "C:/ProgramData")),
                  Path(os.environ.get("APPDATA", ""))]
         for root in roots:
             for link in (root / "Microsoft/Windows/Start Menu/Programs").rglob("*.lnk"):
                 if "uninstall" not in link.stem.lower():
-                    found.setdefault(link.stem.lower(), {"name": link.stem, "launch": str(link)})
+                    _add_app(found, {"name": link.stem, "launch": str(link)}, link.parent.name)
     elif SYSTEM == "Darwin":
         for root in (Path("/Applications"), Path.home() / "Applications",
                      Path("/System/Applications")):
             for app in root.glob("*.app"):
-                found.setdefault(app.stem.lower(), {"name": app.stem, "launch": str(app)})
+                _add_app(found, {"name": app.stem, "launch": str(app)}, root.name)
     else:
         data = [Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share"))] + [
             Path(p) for p in os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share").split(":")]
@@ -194,11 +221,9 @@ def installed_apps() -> list[dict]:
                 fields = _desktop_fields(entry)
                 if fields.get("Name") and fields.get("NoDisplay", "").lower() != "true" \
                         and fields.get("Type", "Application") == "Application" and fields.get("Exec"):
-                    found.setdefault(fields["Name"].lower(),
-                                     {"name": fields["Name"], "launch": str(entry)})
-    # Only names OCADE can refer to safely (the same pattern the website accepts).
-    usable = [a for a in found.values() if re.fullmatch(r"[A-Za-z0-9_ .+&()'-]{1,80}", a["name"])]
-    return sorted(usable, key=lambda a: a["name"].lower())[:300]
+                    _add_app(found, {"name": fields["Name"], "launch": str(entry)}, entry.stem)
+    usable = [a for a in found.values() if app_name_usable(a["name"])]
+    return sorted(usable, key=lambda a: a["name"].lower())[:MOST_APPS]
 
 
 def _start_apps() -> list[dict]:

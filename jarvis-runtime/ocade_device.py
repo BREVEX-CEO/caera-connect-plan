@@ -35,7 +35,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from ocade_computer import Computer, installed_apps  # noqa: E402
+from ocade_computer import _APPS, Computer, installed_apps  # noqa: E402
 from ocade_identity import (PROTOCOL, SOFTWARE_VERSION, ClockSkew, Identity, NotEnrolled,  # noqa: E402
                             UpdateRequired)
 
@@ -387,7 +387,11 @@ class Agent:
             elif self.resume_asked.is_set():
                 body["resume"] = True
             due = not apps_sent or time.monotonic() - apps_sent > APPS_EVERY_S
-            if due and "apps" in found:
+            if _APPS["at"] > apps_sent:
+                # Just looked (the apps action, or an app opened after an install): OCADE learns
+                # of a new app now, not at the next hourly look (audit C08).
+                body["apps"] = [a["name"] for a in _APPS["list"]]
+            elif due and "apps" in found:
                 body["apps"] = found.pop("apps")
             elif due and (finder is None or not finder.is_alive()):
                 finder = threading.Thread(

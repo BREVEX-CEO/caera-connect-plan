@@ -68,7 +68,7 @@ final class Control {
         List<String> names = new ArrayList<>();
         for (ResolveInfo info : pm.queryIntentActivities(launcher, 0)) {
             String name = String.valueOf(info.loadLabel(pm)).trim();
-            if (!name.isEmpty() && !names.contains(name) && names.size() < 300) names.add(name);
+            if (!name.isEmpty() && !names.contains(name) && names.size() < 500) names.add(name);
         }
         return names;
     }

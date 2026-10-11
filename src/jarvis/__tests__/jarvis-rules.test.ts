@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { browserAction, describeAction, deviceAction, hostOf, jarvisTools } from "../protocol";
+import {
+  browserAction,
+  computerAction,
+  describeAction,
+  deviceAction,
+  hostOf,
+  jarvisTools,
+} from "../protocol";
 import {
   isAllowed,
   isPrivateHost,
@@ -521,5 +528,22 @@ describe("which computer does the work", () => {
       message: expect.stringContaining("not online"),
     });
     expect(chooseTaskDevice([], [], "computer")).toMatchObject({ ok: false });
+  });
+});
+
+describe("app names (audit C07)", () => {
+  it("accepts an app named in any script and refuses control or direction characters", () => {
+    const open = (name: string) => computerAction.safeParse({ action: "open_app", name }).success;
+    for (const name of [
+      "Visual Studio Code",
+      "हिन्दी नोट्स",
+      "日本語エディタ",
+      "O’Reilly Reader",
+    ]) {
+      expect(open(name), name).toBe(true);
+    }
+    for (const name of ["", "evil‮exe.txt", "bell\u0007", "zero​width", "x".repeat(81)]) {
+      expect(open(name), JSON.stringify(name)).toBe(false);
+    }
   });
 });

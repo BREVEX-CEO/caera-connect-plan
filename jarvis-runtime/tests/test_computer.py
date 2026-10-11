@@ -547,6 +547,24 @@ class ScreenTest(unittest.TestCase):
                          "needs_confirmation")
 
 
+class AppNamesTest(unittest.TestCase):
+    """Audit C07: apps are found by their own names in any script, and none is hidden by another."""
+
+    def test_names_in_any_script_but_never_control_or_direction_characters(self):
+        usable = ocade_computer.app_name_usable
+        for name in ("Visual Studio Code", "हिन्दी नोट्स", "日本語エディタ", "Café Pro 2", "O’Reilly Reader"):
+            self.assertTrue(usable(name), name)
+        for name in ("", "x" * 81, "evil‮exe.txt", "bell", "tab	name", "zero​width"):
+            self.assertFalse(usable(name), repr(name))
+
+    def test_two_apps_with_one_name_are_both_listed(self):
+        found: dict = {}
+        ocade_computer._add_app(found, {"name": "Code", "launch": "a.lnk"}, "Editors")
+        ocade_computer._add_app(found, {"name": "Code", "launch": "a.lnk"}, "Editors")  # the same app
+        ocade_computer._add_app(found, {"name": "Code", "launch": "b.lnk"}, "Insiders")
+        self.assertEqual(sorted(a["name"] for a in found.values()), ["Code", "Code (Insiders)"])
+
+
 if __name__ == "__main__":
     unittest.main()
 

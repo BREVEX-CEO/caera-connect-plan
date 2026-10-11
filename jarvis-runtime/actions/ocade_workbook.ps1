@@ -45,6 +45,11 @@ $excel = $null; $created = $false; $opened = $false; $book = $null; $started = $
 try {
   try { $excel = [Runtime.InteropServices.Marshal]::GetActiveObject([string]$job.progId) }
   catch { $excel = New-Object -ComObject ([string]$job.progId); $created = $true }
+  # The app that opens this file type must offer the workbook interface these steps use; one
+  # that does not is refused here, before anything is changed (audit R01).
+  if (-not ($excel | Get-Member -Name Workbooks)) {
+    throw "The app that opens this file type does not offer the workbook interface OCADE uses"
+  }
   $excel.Visible = $true
   $alerts = $excel.DisplayAlerts
   $excel.DisplayAlerts = $false

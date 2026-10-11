@@ -20,9 +20,12 @@ function Read-Doc($doc) {
   $text = $doc.Content.Text
   if ($text.Length -gt 20000) { $text = $text.Substring(0, 20000) }
   $headings = @()
+  # Headings by their outline level and the built-in Title style (-63), in any Word language
+  # (audit C04): a style's local name is "Überschrift 1" in German.
+  $title = [string]$doc.Styles.Item(-63).NameLocal
   foreach ($p in $doc.Paragraphs) {
     $style = [string]$p.Style.NameLocal
-    if ($style -like "Heading*" -or $style -eq "Title") { $headings += "$style|$($p.Range.Text.Trim())" }
+    if ($p.OutlineLevel -lt 10 -or $style -eq $title) { $headings += "$style|$($p.Range.Text.Trim())" }
     if ($headings.Count -ge 50) { break }
   }
   return @{ text = $text; paragraphs = $doc.Paragraphs.Count; tables = $doc.Tables.Count; headings = $headings }
@@ -32,6 +35,11 @@ $word = $null; $opened = $false; $doc = $null; $applied = @(); $started = $false
 try {
   try { $word = [Runtime.InteropServices.Marshal]::GetActiveObject([string]$job.progId) }
   catch { $word = New-Object -ComObject ([string]$job.progId) }
+  # The app that opens this file type must offer the document interface these steps use; one
+  # that does not is refused here, before anything is changed (audit R01).
+  if (-not ($word | Get-Member -Name Documents)) {
+    throw "The app that opens this file type does not offer the document interface OCADE uses"
+  }
   $word.Visible = $true
   $alerts = $word.DisplayAlerts
   $word.DisplayAlerts = 0

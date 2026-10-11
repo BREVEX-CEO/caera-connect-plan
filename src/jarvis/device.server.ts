@@ -447,7 +447,7 @@ export const exchangeInput = z.object({
     .optional(),
   capabilities: z.record(z.string().max(40), z.boolean()).optional(),
   softwareVersion: z.string().trim().max(40).optional(),
-  apps: z.array(z.string().max(80)).max(300).optional(),
+  apps: z.array(z.string().max(80)).max(500).optional(),
   /** The action the device is executing now and the segment steps still to come; the reply says which to cancel. */
   running: z.array(z.string().uuid()).max(MAX_SEGMENT).optional(),
   /** STOP JARVIS from the computer's own tray. */

@@ -139,7 +139,7 @@ def features(path: Path) -> dict:
         with zipfile.ZipFile(path) as archive:
             names = archive.namelist()
     except zipfile.BadZipFile as e:
-        raise SheetError("That workbook is damaged or not an Excel file") from e
+        raise SheetError("That workbook is damaged or not an .xlsx/.xlsm file") from e
     return {"charts": any("xl/charts/" in n for n in names),
             "pictures": any("xl/media/" in n for n in names),
             "pivots": any("xl/pivotTables/" in n for n in names),
@@ -328,8 +328,9 @@ def edit_file(path: Path, sheet: str | None, ops: list[dict], cancel: threading.
 
     held = features(path)
     if held["lossy"]:
-        raise SheetError("This workbook has charts, pictures or pivot tables that editing without "
-                         "Excel would lose. Open it on a computer with Excel.")
+        raise SheetError("This workbook has charts, pictures or pivot tables that editing the file "
+                         "directly would lose. It needs a spreadsheet app on this computer that "
+                         "OCADE can work in.")
     book = load_workbook(str(path), keep_vba=held["macros"])
     ws = book[sheet] if sheet else book.worksheets[0]
     hexcolor = lambda value: str(value).lstrip("#").upper()  # noqa: E731
@@ -344,7 +345,7 @@ def edit_file(path: Path, sheet: str | None, ops: list[dict], cancel: threading.
             if not re.search(r"\d", address):  # whole columns: openpyxl walks only the used rows
                 height = max(ws.max_row, 1)
             if width * height > FILE_CELLS:
-                raise SheetError("That range is too large to change without Excel")
+                raise SheetError("That range is too large to change without a spreadsheet app OCADE can work in")
         cells = [c for row in ws[address] for c in (row if isinstance(row, tuple) else (row,))] \
             if address and ":" in address else ([ws[address]] if address else [])
         if kind == "set":
@@ -401,7 +402,7 @@ def edit_file(path: Path, sheet: str | None, ops: list[dict], cancel: threading.
                 needle = str(op["value"]).replace('"', '""')
                 rule = FormulaRule(formula=[f'ISNUMBER(SEARCH("{needle}",{first}))'], **style)
             else:
-                raise SheetError(f"{op['rule']} formatting needs Excel")
+                raise SheetError(f"{op['rule']} formatting needs a spreadsheet app OCADE can work in")
             ws.conditional_formatting.add(address, rule)
         elif kind == "table":
             table = Table(displayName=op.get("name") or f"Table{len(ws.tables) + 1}", ref=address)
@@ -431,7 +432,7 @@ def edit_file(path: Path, sheet: str | None, ops: list[dict], cancel: threading.
                 chart.title = op["title"]
             ws.add_chart(chart, op["anchor"])
         elif kind == "sort":
-            raise SheetError("Sorting needs Excel")
+            raise SheetError("Sorting needs a spreadsheet app OCADE can work in")
         applied.append(kind)
     if cancel.is_set():
         return {"ok": False, "stopped": True, "error": "Stopped before it finished"}

@@ -563,7 +563,7 @@ const capability = z.union([
     .max(260),
   z
     .string()
-    .regex(/^app:[A-Za-z0-9_ .+&()'-]{1,80}$/)
+    .regex(/^app:[\p{L}\p{N}\p{M}_ .+&()'’-]{1,80}$/u)
     .transform((value) => value.toLowerCase()),
 ]);
 
