@@ -72,16 +72,6 @@ export function deliveryReport(
   return report;
 }
 
-/**
- * The state after one more refusal from a provider.
- *
- * Attempts are counted by the caller because they belong to the queue, not to
- * the record; what this decides is only the word.
- */
-export function afterFailedAttempt(attempt: number): DeliveryState {
-  return attempt >= DELIVERY_ATTEMPTS ? "dead_letter" : "failed";
-}
-
 /** Read a stored `delivery` column back, discarding anything unrecognised. */
 export function parseDeliveryReport(value: unknown): DeliveryReport {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -90,30 +80,4 @@ export function parseDeliveryReport(value: unknown): DeliveryReport {
     if (isDeliveryState(state)) report[channel as NotificationChannelId] = state;
   }
   return report;
-}
-
-/**
- * What to tell somebody about one channel, in a sentence.
- *
- * Written here rather than in the screen so the history and any future digest
- * say the same thing, and so the wording is testable.
- */
-export function describeDelivery(channel: NotificationChannel, state: DeliveryState): string {
-  switch (state) {
-    case "sent":
-      return `Sent to ${channel.title.toLowerCase()}.`;
-    case "held":
-      return `Held for ${channel.title.toLowerCase()} — muted, in quiet hours, or not enabled for this kind.`;
-    case "unavailable":
-      return `${channel.title} is not configured on this deployment, so nothing was promised there.`;
-    case "failed":
-      return `${channel.title} refused it. OCADE will try again.`;
-    case "dead_letter":
-      return `${channel.title} refused it every time. OCADE has stopped trying; the notification is still here.`;
-  }
-}
-
-/** True when any channel's delivery has been given up on. */
-export function hasDeadLetter(report: DeliveryReport): boolean {
-  return Object.values(report).some((state) => state === "dead_letter");
 }

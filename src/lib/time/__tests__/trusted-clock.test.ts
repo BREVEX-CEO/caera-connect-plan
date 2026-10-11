@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatRemaining,
-  formatTimeUntil,
-  hasTrustedClockStorage,
-  observeNow,
-} from "@/lib/time/trusted-clock";
+import { hasTrustedClockStorage, observeNow } from "@/lib/time/trusted-clock";
 
 /** A durable store standing in for `localStorage`. */
 function memoryStore(): Pick<Storage, "getItem" | "setItem"> & { map: Map<string, string> } {
@@ -78,28 +73,6 @@ describe("the trusted clock", () => {
     observeNow(7_000, store);
     expect(hasTrustedClockStorage(store)).toBe(true);
     expect(observeNow(1_000, store)).toBe(7_000);
-  });
-});
-
-describe("durations as a person reads them", () => {
-  it("counts a future instant down in hours and minutes", () => {
-    const now = 0;
-    expect(formatTimeUntil(null, now)).toBe("now");
-    expect(formatTimeUntil(-1, now)).toBe("now");
-    expect(formatTimeUntil(60_000, now)).toBe("1 minute");
-    expect(formatTimeUntil(2 * 60_000, now)).toBe("2 minutes");
-    expect(formatTimeUntil(60 * 60_000, now)).toBe("1 hour");
-    expect(formatTimeUntil(90 * 60_000, now)).toBe("1 hour 30 minutes");
-    expect(formatTimeUntil(2 * 60 * 60_000, now)).toBe("2 hours");
-  });
-
-  it("shows seconds only once the end is close", () => {
-    expect(formatRemaining(20 * 60_000)).toBe("20 min left");
-    expect(formatRemaining(10 * 60_000)).toBe("10 min left");
-    expect(formatRemaining(9 * 60_000 + 30_000)).toBe("9:30 left");
-    expect(formatRemaining(65_000)).toBe("1:05 left");
-    expect(formatRemaining(0)).toBe("0:00 left");
-    expect(formatRemaining(-5_000)).toBe("0:00 left");
   });
 });
 

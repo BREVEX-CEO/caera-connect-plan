@@ -256,11 +256,6 @@ export class StreamingSha256 {
   }
 }
 
-/** SHA-256 of one buffer, for short inputs where streaming buys nothing. */
-export function sha256OfBytes(bytes: Uint8Array): string {
-  return new StreamingSha256().update(bytes).digest();
-}
-
 /**
  * SHA-256 of a blob, read in bounded pieces.
  *

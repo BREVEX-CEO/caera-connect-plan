@@ -3,7 +3,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { DatabaseTwin } from "../../../../scripts/db-twin.mts";
 import {
   ACCOUNT_DATA_CLASSES,
-  deletableAccountDataClasses,
   exportedTablesFor,
   findAccountDataClass,
   NOT_EXPORTED,
@@ -12,14 +11,14 @@ import {
 /**
  * THE MAP THAT ACCESS AND ERASURE BOTH READ, CHECKED AGAINST THE REAL SCHEMA.
  *
- * PLAN.md §O asks for an export of synchronised account data and deletion of a
+ * PLAN.md ??O asks for an export of synchronised account data and deletion of a
  * single data class. Both are driven from `data-classes.ts`, and the way that
  * file fails is silent in both directions: a table that no longer exists makes
  * a deletion clear nothing and an export omit a class, and neither raises an
  * error a person would ever see.
  *
- * So the map is checked against Postgres itself — the real migrations applied
- * to PGlite — rather than against the generated types alone. The types are
+ * So the map is checked against Postgres itself ??? the real migrations applied
+ * to PGlite ??? rather than against the generated types alone. The types are
  * regenerated from a project that may be ahead of or behind the migrations in
  * this repository; the migrations are what a deployment actually runs.
  */
@@ -56,7 +55,7 @@ beforeAll(async () => {
    * This is what "owns" means here. Asserting only that the column EXISTS is
    * not enough and was not enough: `ocade_memory` has both `id` and `user_id`,
    * so a map that named `id` as the owner passed a presence check and would
-   * have exported by primary key — matching one row, or none, and reporting an
+   * have exported by primary key ??? matching one row, or none, and reporting an
    * empty class as though the account held nothing.
    */
   const accountKeys = await twin.asSuperuser<{ table_name: string; column_name: string }>(
@@ -80,7 +79,7 @@ describe("the account data map", () => {
   it("found a schema to check against, so an empty read cannot pass", () => {
     /*
      * The reduced schema. Phase 10 removed seventy tables belonging to products
-     * OCADE no longer is, so the floor is what the final product actually has —
+     * OCADE no longer is, so the floor is what the final product actually has ???
      * high enough that an empty read still cannot pass.
      */
     expect(tables.size).toBeGreaterThan(20);
@@ -115,7 +114,7 @@ describe("the account data map", () => {
     /*
      * The deletion path deletes PARENTS and relies on ON DELETE CASCADE to take
      * the children. A cascade claimed here but declared NO ACTION in the schema
-     * would leave the children behind — rows the person asked to be rid of,
+     * would leave the children behind ??? rows the person asked to be rid of,
      * still in the database, with the parent that explained them gone.
      *
      * The check follows a CHAIN rather than one edge, because one of these
@@ -165,19 +164,6 @@ describe("what may and may not be erased", () => {
     }
   });
 
-  it("offers every other class for erasure", () => {
-    const deletable = deletableAccountDataClasses().map((entry) => entry.id);
-    expect(deletable).toEqual([
-      "conversations",
-      "library",
-      "activity",
-      "jarvis",
-      "devices",
-      "settings",
-      "notifications",
-    ]);
-  });
-
   it("exports every class, including the ones it will not delete", () => {
     // The access right is not conditional on the erasure right. A class kept
     // for a retention period is exactly the one somebody most needs a copy of.
@@ -190,7 +176,7 @@ describe("what may and may not be erased", () => {
     /*
      * Account deletion and per-class deletion are two paths over one account.
      * A table the irreversible path knows about and this map does not is a
-     * table the export silently omits — somebody downloads their data, deletes
+     * table the export silently omits ??? somebody downloads their data, deletes
      * their account, and finds afterwards that a class was never in the file.
      */
     const deletionPath = [

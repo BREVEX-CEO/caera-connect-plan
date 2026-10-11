@@ -1,11 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { webcrypto } from "node:crypto";
-import {
-  StreamingSha256,
-  sha256OfBytes,
-  sha256OfBlobStreaming,
-  type DigestCheckpoint,
-} from "../streaming-digest";
+import { StreamingSha256, sha256OfBlobStreaming, type DigestCheckpoint } from "../streaming-digest";
 
 /**
  * The streaming digest is only useful if it is the SAME function the publisher
@@ -50,19 +45,19 @@ describe("it computes SHA-256, not something that resembles it", () => {
   for (const size of sizes) {
     it(`matches the platform digest for ${size} bytes`, async () => {
       const bytes = noise(size, size + 1);
-      expect(sha256OfBytes(bytes)).toBe(await platform(bytes));
+      expect(new StreamingSha256().update(bytes).digest()).toBe(await platform(bytes));
     });
   }
 
   it("matches for the empty string's well-known digest", () => {
-    expect(sha256OfBytes(new Uint8Array(0))).toBe(
+    expect(new StreamingSha256().update(new Uint8Array(0)).digest()).toBe(
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     );
   });
 
   it("matches for a multi-megabyte input", async () => {
     const bytes = noise(5 * 1024 * 1024 + 331, 7);
-    expect(sha256OfBytes(bytes)).toBe(await platform(bytes));
+    expect(new StreamingSha256().update(bytes).digest()).toBe(await platform(bytes));
   });
 });
 

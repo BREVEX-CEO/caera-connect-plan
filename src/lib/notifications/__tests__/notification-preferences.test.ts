@@ -5,7 +5,7 @@ import {
   NOTIFICATION_CATEGORIES,
   type NotificationCategoryId,
 } from "../categories";
-import { availableChannels, resolveChannels, type NotificationChannel } from "../channels";
+import { resolveChannels, type NotificationChannel } from "../channels";
 import {
   decideDelivery,
   defaultPreferences,
@@ -83,7 +83,11 @@ describe("the categories", () => {
 describe("channels are derived from the deployment, never assumed", () => {
   it("reports in-app as available with nothing configured at all", () => {
     // No provider stands between OCADE and its own screen.
-    expect(availableChannels({}).map((channel) => channel.id)).toEqual(["in_app"]);
+    expect(
+      resolveChannels({})
+        .filter((c) => c.available)
+        .map((channel) => channel.id),
+    ).toEqual(["in_app"]);
   });
 
   it("gives every unavailable channel a reason a person can act on", () => {
@@ -95,10 +99,11 @@ describe("channels are derived from the deployment, never assumed", () => {
   });
 
   it("opens a channel by itself once the deployment is configured", () => {
-    expect(availableChannels({ webPushPublicKey: "k" }).map((c) => c.id)).toEqual([
-      "in_app",
-      "web_push",
-    ]);
+    expect(
+      resolveChannels({ webPushPublicKey: "k" })
+        .filter((c) => c.available)
+        .map((c) => c.id),
+    ).toEqual(["in_app", "web_push"]);
     expect(EVERY_CHANNEL.filter((channel) => !channel.available).map((c) => c.id)).toEqual([
       "email",
     ]);

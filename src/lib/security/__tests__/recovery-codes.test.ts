@@ -4,7 +4,6 @@ import {
   RECOVERY_CODE_BITS,
   RECOVERY_CODE_COUNT,
   drawSymbols,
-  formatRecoveryCode,
   generateRecoveryCode,
   hashRecoveryCode,
   generateRecoveryCodes,
@@ -191,11 +190,6 @@ describe("reading a code back the way people actually type it", () => {
     ]) {
       expect(looksLikeRecoveryCode(nonsense), nonsense).toBe(false);
     }
-  });
-
-  it("prints a normalized code back in the shape it was issued in", () => {
-    const code = generateRecoveryCode(real);
-    expect(formatRecoveryCode(normalizeRecoveryCode(code))).toBe(code);
   });
 });
 

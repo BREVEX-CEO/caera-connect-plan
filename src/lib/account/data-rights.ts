@@ -19,7 +19,6 @@ import type { Json } from "@/integrations/supabase/types";
 import {
   ACCOUNT_DATA_CLASSES,
   exportedTablesFor,
-  findAccountDataClass,
   type AccountDataClassId,
   type AccountTable,
   type OwnerColumn,
@@ -244,66 +243,5 @@ export async function buildAccountExport(
         ? "At least one table could not be read; every table that failed says so in its own entry."
         : "Every table was read in full.",
     ],
-  };
-}
-
-export interface DataClassDeletionReceipt {
-  dataClass: AccountDataClassId;
-  label: string;
-  completedAt: string;
-  /** Tables cleared, parents and the children their cascade removed. */
-  cleared: string[];
-  /**
-   * Said out loud because it is the question people actually have: clearing a
-   * class of account data does not touch the model on the device.
-   */
-  offlineIntelligencePreserved: true;
-}
-
-export interface ClearDataClassRequest {
-  dataClass: string;
-  /** The person types the class label. A button alone is not consent. */
-  confirmation: string;
-}
-
-/**
- * Clear one class of account data.
- *
- * Throws rather than returning a failure shape: every reason to refuse is
- * something the person needs to read — a class that may not be erased, a
- * confirmation that does not match, a table that would not clear — and a
- * silent no-op on a deletion is the worst of the available outcomes.
- */
-export async function clearAccountDataClass(
-  admin: DynamicTableClient,
-  userId: string,
-  request: ClearDataClassRequest,
-): Promise<DataClassDeletionReceipt> {
-  const entry = findAccountDataClass(request.dataClass);
-  if (!entry) throw new Error("That is not a data class OCADE holds.");
-  /*
-   * REFUSED HERE, not merely absent from the screen. The retention reason is
-   * the product's answer to a legal obligation, and an obligation that only
-   * holds while somebody uses the interface is not an obligation.
-   */
-  if (entry.retention !== null) throw new Error(entry.retention);
-  if (request.confirmation.trim().toLowerCase() !== entry.label.toLowerCase()) {
-    throw new Error(`Type ${entry.label} exactly to confirm.`);
-  }
-
-  const cleared: string[] = [];
-  for (const table of entry.tables) {
-    const { error } = await admin.from(table.table).delete().eq(table.owner, userId);
-    if (error) throw new Error(`${table.table} could not be cleared: ${error.message}`);
-    cleared.push(table.table);
-    cleared.push(...(table.cascades ?? []));
-  }
-
-  return {
-    dataClass: entry.id,
-    label: entry.label,
-    completedAt: new Date().toISOString(),
-    cleared,
-    offlineIntelligencePreserved: true,
   };
 }

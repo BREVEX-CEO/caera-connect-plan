@@ -89,8 +89,3 @@ export function deploymentChannelConfiguration(): ChannelConfiguration {
     webPushPublicKey: env.VITE_WEB_PUSH_PUBLIC_KEY,
   };
 }
-
-/** Just the channels a person could genuinely turn on. */
-export function availableChannels(configuration: ChannelConfiguration): NotificationChannel[] {
-  return resolveChannels(configuration).filter((channel) => channel.available);
-}

@@ -88,41 +88,6 @@ export async function checkAssurance(
   return decideAssurance({ requires, session, now: Date.now() });
 }
 
-export type ProofOutcome =
-  | { proved: true }
-  /** OCADE does not know this account's address, so it cannot check a password. */
-  | { proved: false; reason: "no_email" }
-  /** The password did not match. */
-  | { proved: false; reason: "wrong_password" };
-
-/**
- * Prove identity with the account's current password.
- *
- * Supabase has no "reauthenticate" call, so the check is a sign-in against the
- * current password: it succeeds only for somebody who knows it, and it
- * REFRESHES THE SAME SESSION rather than starting a new one — so nothing about
- * the open page changes when it passes, and the token comes back carrying a
- * fresh entry in its authentication-methods list, which is precisely what makes
- * the next action recent enough.
- *
- * The caller supplies the address and the prose. Both existing call sites had
- * their own wording, correctly: on the password screen the way out is the
- * emailed reset link, and on the sign-in-methods panel it is setting a password
- * first. Only the mechanism is shared.
- */
-export async function proveIdentityWithPassword(
-  email: string | null | undefined,
-  password: string,
-  override?: unknown,
-): Promise<ProofOutcome> {
-  if (!email) return { proved: false, reason: "no_email" };
-  const supabase = (override ?? (await loadSupabaseClient())) as Awaited<
-    ReturnType<typeof loadSupabaseClient>
-  >;
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  return error ? { proved: false, reason: "wrong_password" } : { proved: true };
-}
-
 /**
  * The refusal a Supabase RPC sends back when the database declined.
  *

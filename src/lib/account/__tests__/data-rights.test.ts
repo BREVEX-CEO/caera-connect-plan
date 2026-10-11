@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAccountExport,
-  clearAccountDataClass,
   type DynamicTableClient,
   type ExportedRow,
   type PostgrestFailure,
@@ -11,7 +10,7 @@ import { ACCOUNT_DATA_CLASSES, type AccountTable } from "../data-classes";
 /**
  * THE TWO FAILURES AN EXPORT HAS, AND NEITHER OF THEM RAISES AN ERROR.
  *
- * PostgREST returns at most `db-max-rows` — a thousand by default — and says
+ * PostgREST returns at most `db-max-rows` â€” a thousand by default â€” and says
  * nothing about the rest. An unpaged export therefore hands somebody a file
  * that looks complete and stops partway, which is worse than failing, because
  * they will rely on it. The second failure is quieter still: a cascaded child
@@ -151,75 +150,5 @@ describe("exporting an account", () => {
     expect(notes).toMatch(/never received/i);
     expect(notes).not.toMatch(/Browser Only|PC Vault/i);
     expect(notes).toMatch(/Offline Intelligence/);
-  });
-});
-
-describe("clearing one class", () => {
-  it("clears the class and names every table it emptied", async () => {
-    const deleted: AccountTable[] = [];
-    const receipt = await clearAccountDataClass(fakeDatabase({ deleted }), "account-1", {
-      dataClass: "conversations",
-      confirmation: "Conversations",
-    });
-    expect(deleted).toEqual(["ocade_conversations"]);
-    // The cascaded child is named on the receipt even though it is never
-    // deleted directly: the person is owed a true account of what went.
-    expect(receipt.cleared).toContain("ocade_messages");
-    expect(receipt.offlineIntelligencePreserved).toBe(true);
-  });
-
-  it("refuses a class that has to be kept, and says why", async () => {
-    const deleted: AccountTable[] = [];
-    for (const id of ["billing", "legal", "profile"]) {
-      await expect(
-        clearAccountDataClass(fakeDatabase({ deleted }), "account-1", {
-          dataClass: id,
-          confirmation: "anything",
-        }),
-      ).rejects.toThrow(/retention|consent|account/i);
-    }
-    expect(deleted).toEqual([]);
-  });
-
-  it("refuses a confirmation that does not match, without deleting anything", async () => {
-    const deleted: AccountTable[] = [];
-    await expect(
-      clearAccountDataClass(fakeDatabase({ deleted }), "account-1", {
-        dataClass: "activity",
-        confirmation: "yes",
-      }),
-    ).rejects.toThrow(/Type Activity exactly/);
-    expect(deleted).toEqual([]);
-  });
-
-  it("accepts the label in any case, because a phrase is consent and not a password", async () => {
-    const deleted: AccountTable[] = [];
-    await clearAccountDataClass(fakeDatabase({ deleted }), "account-1", {
-      dataClass: "activity",
-      confirmation: "  activity ",
-    });
-    expect(deleted).toEqual(["activity_log"]);
-  });
-
-  it("refuses a class that does not exist", async () => {
-    await expect(
-      clearAccountDataClass(fakeDatabase({}), "account-1", {
-        dataClass: "everything",
-        confirmation: "everything",
-      }),
-    ).rejects.toThrow(/not a data class/i);
-  });
-
-  it("stops on a table that will not clear rather than reporting success", async () => {
-    /*
-     * A deletion that half-worked and said "done" is the failure that costs
-     * trust: the person believes their conversations are gone and they are not.
-     */
-    await expect(
-      clearAccountDataClass(fakeDatabase({ failOn: "ocade_library_items" }), "account-1", {
-        dataClass: "library",
-        confirmation: "Library",
-      }),
-    ).rejects.toThrow(/ocade_library_items could not be cleared/);
   });
 });

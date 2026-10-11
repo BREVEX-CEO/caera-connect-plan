@@ -1,10 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-import {
-  assuranceRefusalOf,
-  checkAssurance,
-  proveIdentityWithPassword,
-  readSessionAssurance,
-} from "../reauthentication";
+import { describe, expect, it } from "vitest";
+import { assuranceRefusalOf, checkAssurance, readSessionAssurance } from "../reauthentication";
 import { HIGH_RISK } from "../assurance-middleware";
 import { RECENT_PROOF_MS } from "../assurance";
 
@@ -135,38 +130,6 @@ describe("deciding whether to ask", () => {
       }),
     );
     expect(decision).toMatchObject({ allowed: false, reason: "reauthentication_required" });
-  });
-});
-
-describe("proving identity with the current password", () => {
-  it("signs in against the account's own address on the same session", async () => {
-    const onSignIn = vi.fn();
-    const outcome = await proveIdentityWithPassword(
-      "person@example.com",
-      "correct horse",
-      client({ onSignIn }),
-    );
-    expect(outcome).toEqual({ proved: true });
-    expect(onSignIn).toHaveBeenCalledWith({
-      email: "person@example.com",
-      password: "correct horse",
-    });
-  });
-
-  it("reports a wrong password without saying which part was wrong", async () => {
-    const outcome = await proveIdentityWithPassword(
-      "person@example.com",
-      "guess",
-      client({ signInError: { message: "Invalid login credentials" } }),
-    );
-    expect(outcome).toEqual({ proved: false, reason: "wrong_password" });
-  });
-
-  it("refuses rather than guessing when the address is unknown", async () => {
-    const onSignIn = vi.fn();
-    const outcome = await proveIdentityWithPassword(null, "anything", client({ onSignIn }));
-    expect(outcome).toEqual({ proved: false, reason: "no_email" });
-    expect(onSignIn, "a sign-in was attempted with no address").not.toHaveBeenCalled();
   });
 });
 

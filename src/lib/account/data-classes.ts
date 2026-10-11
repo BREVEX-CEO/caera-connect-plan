@@ -230,11 +230,6 @@ export function findAccountDataClass(id: string): AccountDataClass | null {
   return ACCOUNT_DATA_CLASSES.find((entry) => entry.id === id) ?? null;
 }
 
-/** Just the classes a person may clear without closing the account. */
-export function deletableAccountDataClasses(): readonly AccountDataClass[] {
-  return ACCOUNT_DATA_CLASSES.filter((entry) => entry.retention === null);
-}
-
 /**
  * Every table an export must read, parents and cascaded children alike.
  *

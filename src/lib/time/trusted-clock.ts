@@ -102,30 +102,6 @@ export function hasTrustedClockStorage(storage?: ReadWriteStore): boolean {
   }
 }
 
-/** How long until a future instant, as a person reads it. */
-export function formatTimeUntil(target: number | null, now: number): string {
-  if (target === null || target <= now) return "now";
-  const totalMinutes = Math.ceil((target - now) / 60_000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (hours <= 0) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
-  return `${hours} hour${hours === 1 ? "" : "s"}${minutes ? ` ${minutes} minutes` : ""}`;
-}
-
-/**
- * A remaining duration, as a person reads it.
- *
- * Whole minutes above ten minutes and `m:ss` below it: the long middle of a
- * window stays calm, and the last few minutes are unambiguous.
- */
-export function formatRemaining(remainingMs: number): string {
-  const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  if (minutes >= 10) return `${minutes} min left`;
-  return `${minutes}:${String(seconds).padStart(2, "0")} left`;
-}
-
 function safeLocalStorage(): Storage | null {
   if (typeof window === "undefined") return null;
   try {

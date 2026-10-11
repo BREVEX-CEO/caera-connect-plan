@@ -1,13 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  DELIVERY_ATTEMPTS,
-  afterFailedAttempt,
-  deliveryReport,
-  describeDelivery,
-  hasDeadLetter,
-  isDeliveryState,
-  parseDeliveryReport,
-} from "../delivery";
+import { deliveryReport, isDeliveryState, parseDeliveryReport } from "../delivery";
 import { resolveChannels } from "../channels";
 import type { DeliveryDecision } from "../preferences";
 
@@ -64,20 +56,6 @@ describe("the delivery report", () => {
   });
 });
 
-describe("retry and dead-letter", () => {
-  it("stays failed while attempts remain, and dies once they are spent", () => {
-    expect(afterFailedAttempt(1)).toBe("failed");
-    expect(afterFailedAttempt(DELIVERY_ATTEMPTS - 1)).toBe("failed");
-    expect(afterFailedAttempt(DELIVERY_ATTEMPTS)).toBe("dead_letter");
-    expect(afterFailedAttempt(DELIVERY_ATTEMPTS + 5)).toBe("dead_letter");
-  });
-
-  it("is noticed on a report so the screen can say so", () => {
-    expect(hasDeadLetter({ in_app: "sent", email: "dead_letter" })).toBe(true);
-    expect(hasDeadLetter({ in_app: "sent", email: "unavailable" })).toBe(false);
-  });
-});
-
 describe("reading a stored report back", () => {
   it("keeps the states it understands", () => {
     expect(parseDeliveryReport({ in_app: "sent", email: "held" })).toEqual({
@@ -101,28 +79,5 @@ describe("reading a stored report back", () => {
     }
     expect(isDeliveryState("delivered")).toBe(false);
     expect(isDeliveryState(undefined)).toBe(false);
-  });
-});
-
-describe("what a person is told", () => {
-  const email = CONFIGURED.find((channel) => channel.id === "web_push")!;
-
-  it("distinguishes never-promised from promised-and-failed", () => {
-    expect(describeDelivery(email, "unavailable")).toMatch(/not configured/i);
-    expect(describeDelivery(email, "unavailable")).toMatch(/nothing was promised/i);
-    expect(describeDelivery(email, "dead_letter")).toMatch(/stopped trying/i);
-    // And says the notification survived, because that is the thing somebody
-    // reading "we gave up" needs to know.
-    expect(describeDelivery(email, "dead_letter")).toMatch(/still here/i);
-  });
-
-  it("says a retry is coming while one is", () => {
-    expect(describeDelivery(email, "failed")).toMatch(/try again/i);
-  });
-
-  it("has a sentence for every state, so none renders as blank", () => {
-    for (const state of ["sent", "held", "unavailable", "failed", "dead_letter"] as const) {
-      expect(describeDelivery(email, state).length, state).toBeGreaterThan(10);
-    }
   });
 });

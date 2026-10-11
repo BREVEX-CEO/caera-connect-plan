@@ -130,20 +130,6 @@ export function looksLikeRecoveryCode(input: string): boolean {
 }
 
 /**
- * Group a normalized code back into the form it was printed in.
- *
- * So the "you have used this one" line in an audit trail, and anything shown
- * back to a person, matches the sheet in their hand.
- */
-export function formatRecoveryCode(normalized: string): string {
-  const groups: string[] = [];
-  for (let index = 0; index < normalized.length; index += GROUP) {
-    groups.push(normalized.slice(index, index + GROUP));
-  }
-  return groups.join("-");
-}
-
-/**
  * What the database stores instead of the code: SHA-256 over the account and
  * the normalized code, lowercase hex.
  *
