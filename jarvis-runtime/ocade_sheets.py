@@ -242,7 +242,15 @@ def automation_server(extension: str) -> dict | None:
         return None
     if not prog_id[0].isalpha() or program(server) != program(opener):
         return None
-    return {"progId": prog_id, "app": Path(program(server)).stem.capitalize()}
+    # The name Windows shows people for that app ("Word", not its program file "winword").
+    import ctypes
+
+    name = ctypes.create_unicode_buffer(260)
+    size = ctypes.c_ulong(260)
+    friendly = 4  # ASSOCSTR_FRIENDLYAPPNAME
+    query = ctypes.windll.shlwapi.AssocQueryStringW
+    shown = query(0, friendly, extension.lower(), None, name, ctypes.byref(size)) == 0
+    return {"progId": prog_id, "app": name.value if shown else Path(program(server)).stem.capitalize()}
 
 
 def backup(path: Path, undo_dir: Path) -> Path:

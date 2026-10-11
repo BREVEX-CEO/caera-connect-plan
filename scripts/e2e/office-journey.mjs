@@ -68,11 +68,12 @@ function python(code) {
 }
 
 const office = python(
-  "import json, ocade_sheets, ocade_documents; print(json.dumps({'excel': ocade_sheets.excel_available(), 'word': ocade_documents.word_available()}))",
+  "import json, ocade_sheets; print(json.dumps({'sheet': ocade_sheets.automation_server('.xlsx'), 'document': ocade_sheets.automation_server('.docx')}))",
 );
-if (!office.excel || !office.word) {
+// Whatever this computer opens workbooks and documents with, if it can be automated.
+if (!office.sheet || !office.document) {
   process.stdout.write(
-    "BLOCKED  office journey — Microsoft Excel and Word are not both installed\n",
+    "BLOCKED  office journey — no automatable app opens .xlsx and .docx on this computer\n",
   );
   process.exit(3);
 }
@@ -241,7 +242,13 @@ try {
   check(
     "JARVIS finishes the task on the computer",
     await until(async () => (await task())?.status === "completed", 240_000),
-    JSON.stringify(await task()).slice(0, 300) + deviceLog.slice(-300),
+    JSON.stringify(await task()).slice(0, 300) +
+      deviceLog.slice(-300) +
+      JSON.stringify(
+        (await table("jarvis_activity", `user_id=eq.${USER}&order=created_at.asc`)).map((row) =>
+          `${row.action?.action}:${row.status}:${row.summary}`.slice(0, 160),
+        ),
+      ),
   );
   const activity = await table(
     "jarvis_activity",

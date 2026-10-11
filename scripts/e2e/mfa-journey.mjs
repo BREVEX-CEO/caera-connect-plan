@@ -328,6 +328,8 @@ try {
 
   // Making a new sheet retires the old one. The first sheet spent this sign-in's
   // confirmation (one confirmation, one change), so the authenticator is asked again.
+  // Proof times are whole seconds: a person reading the sheet takes longer than one.
+  await pageD.waitForTimeout(1_100);
   await pageD.getByRole("button", { name: "Make new codes", exact: true }).click();
   const askD = pageD.getByRole("dialog", { name: "Confirm it's you" });
   check(
