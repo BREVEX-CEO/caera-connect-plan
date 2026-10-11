@@ -54,6 +54,7 @@ HALT_JOIN_S = 10.0
 
 HOME = Path(os.environ.get("OCADE_JARVIS_HOME", Path.home() / ".ocade_jarvis"))
 POLL_IDLE_SECONDS = 1.0
+MAX_SEGMENT = 12  # steps one exchange may hand this agent (segment_v1)
 
 
 def connect(server: str, name: str, open_browser: bool = True) -> Identity:
@@ -330,19 +331,23 @@ class Agent:
         apps_sent = 0.0
         found: dict = {}  # the app inventory, found off this loop (it can take seconds)
         finder: threading.Thread | None = None
-        active: dict | None = None  # {"id", "thread", "outcome"} of the action running now
+        active: dict | None = None  # the segment running now: {"id", "left", "done", "skip", "thread"}
         while not self.stop.is_set():
-            if active and not active["thread"].is_alive():
-                outcome, live = active["outcome"]
-                results.append(outcome)
+            if active:
+                finished = not active["thread"].is_alive()  # read first: nothing is appended after it
+                while active["done"]:
+                    outcome, live = active["done"].pop(0)
+                    results.append(outcome)
+                    if live:
+                        frame = {"taskId": active["taskId"], "jpeg": live}
                 self._keep_pending(results)
-                if live:
-                    frame = {"taskId": active["taskId"], "jpeg": live}
-                active = None
+                if finished:
+                    active = None
             body = {"results": results, "frame": frame,
-                    "capabilities": {**self.browsers.capabilities(), **self.computer.capabilities()},
+                    "capabilities": {**self.browsers.capabilities(), **self.computer.capabilities(),
+                                     "segment_v1": True},
                     "softwareVersion": SOFTWARE_VERSION,
-                    "running": [active["id"]] if active else []}
+                    "running": list(active["left"]) if active else []}
             if self.stop_all.is_set():
                 body["stop"] = True
             elif self.pause_asked.is_set():
@@ -411,20 +416,23 @@ class Agent:
             again = {a.get("id") for a in reply.get("acks") or [] if a.get("outcome") == "retry"}
             results, frame = [r for r in results if r.get("id") in again], None
             self._keep_pending(results)
-            if active and active["id"] in reply.get("cancel", []):
-                self.cancel.set()  # stopped in OCADE (web STOP, Take Over, task ended)
-            # OCADE hands out work only while nothing runs; one action at a time
+            if active:
+                stopped = set(reply.get("cancel", []))
+                active["skip"].update(stopped)  # steps still to come never start
+                if active["id"] in stopped and active["id"] in active["left"]:
+                    self.cancel.set()  # stopped in OCADE (web STOP, Take Over, task ended)
+            # OCADE hands out work only while nothing runs; one segment at a time
             # owns this computer, and this loop keeps listening for STOP meanwhile.
-            commands = [] if active else reply.get("commands", [])[:1]
+            commands = [] if active else reply.get("commands", [])[:MAX_SEGMENT]
             # STOP or Pause pressed while this exchange was on its way: the work it
             # handed out never starts; OCADE hears the STOP on the next exchange.
             if commands and (self.stop_all.is_set() or self.pause_asked.is_set()):
-                results.append({"id": commands[0]["id"], "status": "failed",
-                                "summary": "Stopped before it started"})
+                results.extend({"id": c["id"], "status": "failed", "summary": "Stopped before it started"}
+                               for c in commands)
                 self._keep_pending(results)
                 commands = []
             if commands and not self.stop.is_set():
-                active = self._start(commands[0])
+                active = self._start(commands)
             elif reply.get("continue") and not active and not self.stop.is_set():
                 self._carry_on(str(reply["continue"]))
             if active:
@@ -434,18 +442,33 @@ class Agent:
         self._halt(active)
         return 0
 
-    def _start(self, command: dict) -> dict:
+    def _start(self, commands: list[dict]) -> dict:
+        """Run a segment in order, one action at a time. After a step that did not finish, or a
+        STOP, the rest never start: each is reported skipped, never as done."""
         # The new token is published and checked against STOP/Pause in one step: a STOP pressed
-        # just before cannot be lost on the old token while this action starts on a fresh one.
+        # just before cannot be lost on the old token while this segment starts on a fresh one.
         with self._admit:
             cancel = self.cancel = threading.Event()
             if self.stop_all.is_set() or self.pause_asked.is_set():
                 cancel.set()
-        active = {"id": command["id"], "taskId": command["taskId"],
-                  "outcome": ({"id": command["id"], "status": "failed", "summary": "The action failed"}, None)}
+        active = {"id": commands[0]["id"], "taskId": commands[0]["taskId"],
+                  "left": [c["id"] for c in commands], "done": [], "skip": set()}
 
         def work() -> None:
-            active["outcome"] = self._execute(command, cancel)
+            ended = False
+            for command in commands:
+                if ended or cancel.is_set() or command["id"] in active["skip"]:
+                    # "skipped" exists only for servers that sent a segment; a first step stays "failed".
+                    outcome = ({"id": command["id"], "status": "failed", "summary": "Stopped before it started"}
+                               if command is commands[0] else
+                               {"id": command["id"], "status": "skipped",
+                                "summary": "Not run: a step before it did not finish"}, None)
+                else:
+                    active["id"] = command["id"]
+                    outcome = self._execute(command, cancel)
+                    ended = outcome[0].get("status") != "done"
+                active["left"].remove(command["id"])  # before its result is visible: never both
+                active["done"].append(outcome)
 
         active["thread"] = threading.Thread(target=work, daemon=True, name="ocade-action")
         active["thread"].start()

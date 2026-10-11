@@ -134,10 +134,65 @@ class StopTest(unittest.TestCase):
         agent, _ = _agent(self.home, lambda body: {"commands": []})
         self._slow_action(agent)
         agent.stop_everything()  # between the loop's admission check and the action's start
-        active = agent._start(self.command)
+        active = agent._start([self.command])
         active["thread"].join(5)
         self.assertFalse(active["thread"].is_alive())
-        self.assertEqual(active["outcome"][0]["status"], "failed")
+        self.assertEqual(active["done"][0][0], {"id": "a1", "status": "failed",
+                                                "summary": "Stopped before it started"})
+        self.assertEqual(self.ended, [])  # it never ran
+
+    def _segment(self, n):
+        return [{"id": f"s{i}", "taskId": "t1", "action": {"action": "file_list", "path": str(i)}}
+                for i in range(1, n + 1)]
+
+    def test_a_segment_runs_in_order_and_stops_at_the_first_step_that_did_not_finish(self):
+        """P08: steps after a failure never start; each is reported skipped, never done."""
+        ran = []
+        agent, _ = _agent(self.home, lambda body: {"commands": []})
+        agent.computer.run = lambda action, *a: (ran.append(action["path"]) or
+                                                 {"status": "failed" if action["path"] == "2" else "done"})
+        active = agent._start(self._segment(4))
+        active["thread"].join(5)
+        self.assertEqual(ran, ["1", "2"])
+        self.assertEqual([o[0]["status"] for o in active["done"]], ["done", "failed", "skipped", "skipped"])
+        self.assertEqual(active["left"], [])
+
+    def test_a_segment_sent_in_one_exchange_reports_every_step_and_lists_what_is_left(self):
+        sent = {"n": 0}
+
+        def reply(body):
+            sent["n"] += 1
+            return {"commands": self._segment(3) if sent["n"] == 1 else [], "busy": True}
+
+        agent, identity = _agent(self.home, reply)
+        agent.computer.run = lambda *a: (time.sleep(0.6) or {"status": "done", "summary": "ok"})
+        runner = self._run(agent, 0)
+        time.sleep(4)
+        agent.stop.set()
+        runner.join(10)
+        self.assertTrue(identity.bodies[0]["capabilities"]["segment_v1"])
+        self.assertTrue(any(len(b.get("running", [])) > 1 for b in identity.bodies))
+        results = [r["id"] for b in identity.bodies for r in b["results"]]
+        self.assertEqual(sorted(set(results)), ["s1", "s2", "s3"])
+
+    def test_cancel_of_a_step_still_to_come_skips_it_without_stopping_the_one_running(self):
+        agent, _ = _agent(self.home, lambda body: {"commands": []})
+        gate = threading.Event()
+        ran = []
+
+        def run(action, confirmed, cowork, cancel):
+            ran.append(action["path"])
+            if action["path"] == "1":
+                gate.wait(5)
+            return {"status": "failed" if cancel.is_set() else "done"}
+        agent.computer.run = run
+        active = agent._start(self._segment(2))
+        time.sleep(0.3)
+        active["skip"].add("s2")  # what the loop does with a cancel for a step still to come
+        gate.set()
+        active["thread"].join(5)
+        self.assertEqual(ran, ["1"])
+        self.assertEqual([o[0]["status"] for o in active["done"]], ["done", "skipped"])
 
     def test_losing_ocade_cancels_the_action_even_while_the_exchange_hangs(self):
         self.addCleanup(setattr, ocade_device, "CONTROL_LOSS_S", ocade_device.CONTROL_LOSS_S)

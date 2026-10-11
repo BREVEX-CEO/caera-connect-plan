@@ -656,8 +656,11 @@ describe("a sequence: several known actions, one model step", () => {
       ],
       { a: [{ status: "done" }, { status: "failed", summary: "That file does not exist" }] },
     );
+    h.deps.cancelAction = vi.fn(async () => undefined);
     await runJarvisTurn(h.input, h.hooks, h.deps);
-    expect(h.queued).toHaveLength(2);
+    // Queued together for one exchange (P08); the step after the failure is withdrawn.
+    expect(h.queued).toHaveLength(3);
+    expect(h.deps.cancelAction).toHaveBeenCalledWith("a3");
     expect(h.seen[2]!.at(-1)!.content).toContain('"stoppedAfter":2');
   });
 

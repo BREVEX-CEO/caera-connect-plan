@@ -383,6 +383,71 @@ describe("Disconnect from the computer (forget)", () => {
   });
 });
 
+describe("segments (P08)", () => {
+  const offer = (segments: boolean) =>
+    twin.asServiceRole(
+      `update public.jarvis_devices set capabilities = '{"files": true, "apps": true, "segment_v1": ${segments}}'
+       where id = '${device}'`,
+    );
+  afterAll(() => offer(false));
+
+  it("hands a device that runs segments the task's queued steps in one exchange", async () => {
+    await offer(true);
+    const t = await task();
+    await permit("files", true);
+    const ids = [
+      await queue(t, { action: "file_list", path: "." }),
+      await queue(t, { action: "file_list", path: "a" }),
+      await queue(t, { action: "file_list", path: "b" }),
+    ];
+    const out = await run({ results: [] });
+    expect(out.commands.map((c) => c.id)).toEqual(ids);
+    for (const id of ids) expect((await status(id)).status).toBe("claimed");
+  });
+
+  it("ends the segment before a step that still needs the person", async () => {
+    await offer(true);
+    const t = await task();
+    await permit("files", true);
+    const first = await queue(t, { action: "file_list", path: "." });
+    const ask = await queue(t, { action: "file_delete", path: "old.txt" });
+    await queue(t, { action: "file_list", path: "b" });
+    expect((await run({ results: [] })).commands.map((c) => c.id)).toEqual([first]);
+    expect((await status(ask)).status).toBe("queued");
+  });
+
+  it("gives a device without segments one step at a time", async () => {
+    await offer(false);
+    const t = await task();
+    await permit("files", true);
+    const first = await queue(t, { action: "file_list", path: "." });
+    await queue(t, { action: "file_list", path: "a" });
+    expect((await run({ results: [] })).commands.map((c) => c.id)).toEqual([first]);
+  });
+
+  it("cancels every step of a running segment when the task stops, and records skipped as not done", async () => {
+    await offer(true);
+    const t = await task();
+    await permit("files", true);
+    const ids = [
+      await queue(t, { action: "file_list", path: "." }),
+      await queue(t, { action: "file_list", path: "a" }),
+    ];
+    await run({ results: [] });
+    expect((await run({ results: [], running: ids })).cancel).toEqual([]);
+    await run({
+      results: [
+        { id: ids[0]!, status: "failed", summary: "No such folder" },
+        { id: ids[1]!, status: "skipped", summary: "Not run" },
+      ],
+    });
+    expect((await status(ids[1]!)).status).toBe("cancelled");
+    await twin.asServiceRole(`update public.jarvis_tasks set status = 'stopped' where id = '${t}'`);
+    const third = await queue(t, { action: "file_list", path: "c" });
+    expect((await run({ results: [], running: [third] })).cancel).toEqual([third]);
+  });
+});
+
 describe("key rotation (P03)", () => {
   it("never claims work in the rotation exchange, whose answer the device does not run", async () => {
     const t = await task();

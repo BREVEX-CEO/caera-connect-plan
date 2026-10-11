@@ -398,7 +398,12 @@ const RESULT_STATUSES = [
   "human_required",
   "needs_confirmation",
   "stale",
+  /** A segment step that never ran because a step before it did not finish. */
+  "skipped",
 ] as const;
+
+/** Steps one exchange may hand a device that runs segments (`segment_v1`). */
+const MAX_SEGMENT = 12;
 
 /**
  * The last line of defence for what a device says in Activity: local paths
@@ -432,8 +437,8 @@ export const exchangeInput = z.object({
   capabilities: z.record(z.string().max(40), z.boolean()).optional(),
   softwareVersion: z.string().trim().max(40).optional(),
   apps: z.array(z.string().max(80)).max(300).optional(),
-  /** The action the device is executing now; the reply says whether to cancel it. */
-  running: z.array(z.string().uuid()).max(1).optional(),
+  /** The action the device is executing now and the segment steps still to come; the reply says which to cancel. */
+  running: z.array(z.string().uuid()).max(MAX_SEGMENT).optional(),
   /** STOP JARVIS from the computer's own tray. */
   stop: z.boolean().optional(),
   /** Pause from the tray: the person takes control of this computer's task. */
@@ -604,7 +609,12 @@ export async function exchange(
   for (const result of input.results) {
     // A person decides a confirmation; the result says one is needed. A stale action did not
     // happen (the screen changed first): recorded as not done, never as "done".
-    const status = result.status === "stale" ? "failed" : result.status;
+    const status =
+      result.status === "stale"
+        ? "failed"
+        : result.status === "skipped"
+          ? "cancelled"
+          : result.status;
     const outcome = JSON.stringify({
       status: result.status,
       changed: result.changed ?? [],
@@ -688,7 +698,7 @@ export async function exchange(
       .select("id, status, task_id")
       .eq("device_id", device.id)
       .in("id", input.running)
-      .limit(1);
+      .limit(MAX_SEGMENT);
     const { data: liveTasks } = await admin
       .from("jarvis_tasks")
       .select("id")
@@ -708,17 +718,17 @@ export async function exchange(
     return { ...envelope, commands: [], cancel, rotated };
   }
 
-  const { data: queued } = await admin
+  const { data: head } = await admin
     .from("jarvis_activity")
     .select("id, task_id, action, confirmed")
     .eq("device_id", device.id)
     .eq("status", "queued")
     .order("created_at", { ascending: true })
     .limit(1);
-  if (!queued?.length) {
+  if (!head?.length) {
     return { ...envelope, commands: [], cancel, rotated, ...(carry ? { continue: carry } : {}) };
   }
-  const row = queued[0];
+  const row = head[0];
 
   const [
     { data: task, error: taskError },
@@ -750,54 +760,90 @@ export async function exchange(
     return { ...envelope, commands: [], cancel, rotated };
   }
   const permissions = rows;
-  const action = row.action as DeviceAction;
   const mode = task.browser_mode as "isolated" | "real";
+  const offered = (deviceRow?.capabilities ?? {}) as Record<string, boolean>;
   // Permission is checked again when the action leaves for the device, not
   // only when it was queued: a switch turned off meanwhile stops it here.
-  const refusal = deviceRow
-    ? refuseAction(permissions, {
-        deviceId: device.id,
-        mode,
-        action,
-        offered: (deviceRow.capabilities ?? {}) as Record<string, boolean>,
-      })
-    : { message: "This device was removed." };
-  if (refusal || (needsConfirmation(permissions, action, device.id) && !row.confirmed)) {
+  const refused = (step: typeof row): string | null => {
+    const action = step.action as DeviceAction;
+    if (!deviceRow) return "This device was removed.";
+    const refusal = refuseAction(permissions, { deviceId: device.id, mode, action, offered });
+    if (refusal) return refusal.message;
+    if (needsConfirmation(permissions, action, device.id) && !step.confirmed) {
+      return "Needs confirmation again.";
+    }
+    return null;
+  };
+  const headRefusal = refused(row);
+  if (headRefusal) {
     await admin
       .from("jarvis_activity")
       .update({
         status: "cancelled",
         completed_at: now,
-        result: { status: "refused", reason: refusal?.message ?? "Needs confirmation again." },
+        result: { status: "refused", reason: headRefusal },
       })
       .eq("id", row.id)
       .eq("status", "queued");
     return { ...envelope, commands: [], cancel, rotated };
   }
 
+  // A computer that runs segments takes the task's next queued steps in one exchange,
+  // up to the first one that is not cleared to run; anything else takes one step.
+  let segment = [row];
+  if (offered.segment_v1 === true) {
+    const { data: next } = await admin
+      .from("jarvis_activity")
+      .select("id, task_id, action, confirmed")
+      .eq("device_id", device.id)
+      .eq("task_id", row.task_id)
+      .eq("status", "queued")
+      .order("created_at", { ascending: true })
+      .limit(MAX_SEGMENT);
+    segment = [];
+    for (const step of next ?? []) {
+      if (step.id !== row.id && refused(step)) break;
+      segment.push(step);
+    }
+    if (segment[0]?.id !== row.id) segment = [row];
+  }
+
   const { data: claimed } = await admin
     .from("jarvis_activity")
     .update({ status: "claimed" })
-    .eq("id", row.id)
+    .in(
+      "id",
+      segment.map((step) => step.id),
+    )
     .eq("status", "queued")
-    .select("id")
-    .maybeSingle();
-  if (!claimed) return { ...envelope, commands: [], cancel, rotated };
+    .select("id");
+  const taken = new Set((claimed ?? []).map((step) => step.id as string));
+  // Only an unbroken run from the head leaves: a step claimed elsewhere ends it.
+  const run: typeof segment = [];
+  for (const step of segment) {
+    if (!taken.has(step.id)) break;
+    run.push(step);
+  }
+  const strays = [...taken].filter((id) => !run.some((step) => step.id === id));
+  if (strays.length) {
+    await admin.from("jarvis_activity").update({ status: "queued" }).in("id", strays);
+  }
+  if (!run.length) return { ...envelope, commands: [], cancel, rotated };
+  const cowork = isAllowed(permissions, "cowork", device.id);
+  const sites = permissions
+    .filter((p) => p.allowed && p.device_id === null && p.capability.startsWith("site:"))
+    .map((p) => p.capability.slice(5));
   return {
     ...envelope,
-    commands: [
-      {
-        id: row.id,
-        taskId: row.task_id,
-        action: row.action as Record<string, unknown>,
-        confirmed: row.confirmed,
-        mode,
-        cowork: isAllowed(permissions, "cowork", device.id),
-        sites: permissions
-          .filter((p) => p.allowed && p.device_id === null && p.capability.startsWith("site:"))
-          .map((p) => p.capability.slice(5)),
-      },
-    ],
+    commands: run.map((step) => ({
+      id: step.id,
+      taskId: step.task_id,
+      action: step.action as Record<string, unknown>,
+      confirmed: step.confirmed,
+      mode,
+      cowork,
+      sites,
+    })),
     cancel,
     rotated,
   };

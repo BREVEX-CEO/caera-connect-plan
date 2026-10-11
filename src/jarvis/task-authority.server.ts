@@ -157,14 +157,14 @@ export async function completionGap(
     .order("created_at", { ascending: true })
     .limit(1000);
   if (error) return "the task's actions could not be read back.";
-  // A refused action never reached the device: it changed nothing.
+  // A refused or skipped action never ran on the device: it changed nothing.
   const rows = (
     (data ?? []) as {
       action: { action?: string } | null;
       status: string;
       result: { status?: string } | null;
     }[]
-  ).filter((row) => row.result?.status !== "refused");
+  ).filter((row) => !["refused", "skipped"].includes(row.result?.status ?? ""));
   if (rows.some((row) => ["queued", "claimed", "needs_confirmation"].includes(row.status))) {
     return "an action has not finished. Wait for its result before finishing.";
   }

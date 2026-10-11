@@ -444,18 +444,21 @@ export async function runJarvisTurn(
     };
   }
 
-  /** `afterHandover`: the person just resumed, so their page is reported, not handed back again. */
-  async function runDevice(
+  type Queued = { id: string; action: DeviceAction };
+
+  /** Validate and queue one action; anything that did not reach the queue is its result. */
+  async function queueStep(
     family: "browser" | "computer",
     args: Record<string, unknown>,
-    afterHandover = false,
-  ): Promise<unknown> {
-    if (!task) return { error: `Call start_task before using the ${family}.` };
+  ): Promise<Queued | { result: unknown }> {
+    if (!task) return { result: { error: `Call start_task before using the ${family}.` } };
     const { step, ...rest } = args;
     const parsed = (family === "browser" ? browserAction : computerAction).safeParse(rest);
     // Say why: told only "not valid", the model retried blind and each retry was a billed use.
     if (!parsed.success) {
-      return { error: `That ${family} action is not valid (${invalidReason(parsed.error)}).` };
+      return {
+        result: { error: `That ${family} action is not valid (${invalidReason(parsed.error)}).` },
+      };
     }
     lastFamily = family;
     if (typeof step === "number" && step >= 1 && step - 1 !== task.current_step) {
@@ -476,18 +479,24 @@ export async function runJarvisTurn(
     if (!queued.ok) {
       if (queued.lost) throw new Stopped(true, queued.message);
       const status = await deps.readTaskStatus(task.id);
-      if (status === "taken_over") return handOver("You took over.");
+      if (status === "taken_over") return { result: await handOver("You took over.") };
       if (status !== "running") throw new Stopped();
-      return { status: "refused", summary: queued.message };
+      return { result: { status: "refused", summary: queued.message } };
     }
     hooks.onActivity();
-    let state = await waitFor(queued.id);
+    return { id: queued.id, action: parsed.data };
+  }
+
+  /** Wait for a queued action's outcome: its confirmation, a hand-over, the checkpoint. */
+  async function settleStep({ id, action }: Queued, afterHandover = false): Promise<unknown> {
+    if (!task) throw new Stopped();
+    let state = await waitFor(id);
     if (state.status === "needs_confirmation") {
       const accepted = await untilAborted(hooks.confirm(state.summary), hooks.signal);
       stopIfAsked();
-      await deps.decide({ id: queued.id, accept: accepted });
+      await deps.decide({ id, accept: accepted });
       if (!accepted) return { status: "declined", summary: "The person declined this step." };
-      state = await waitFor(queued.id);
+      state = await waitFor(id);
     }
     hooks.onActivity();
     if (state.taskStatus === "taken_over") return handOver("You took over.");
@@ -498,7 +507,7 @@ export async function runJarvisTurn(
     if (!afterHandover && boundary && HUMAN_BOUNDARIES[boundary]) {
       return handOver(HUMAN_BOUNDARIES[boundary]);
     }
-    if (parsed.data.action === "look" || parsed.data.action === "screen") {
+    if (action.action === "look" || action.action === "screen") {
       const image = await deps.frame(task.id);
       if (image) {
         attachments = [{ name: "screen.jpg", mime: "image/jpeg", sizeBytes: image.length, image }];
@@ -510,7 +519,7 @@ export async function runJarvisTurn(
       id: task.id,
       checkpoint: {
         step: task.current_step,
-        lastAction: describeAction(parsed.data),
+        lastAction: describeAction(action),
         lastUrl: typeof url === "string" ? url.slice(0, 2000) : null,
         at: new Date().toISOString(),
       },
@@ -518,6 +527,16 @@ export async function runJarvisTurn(
     // The device's own status (e.g. "stale") wins; status and summary lead the record.
     const { status: deviceStatus, ...outcome } = (state.result ?? {}) as { status?: string };
     return compact({ status: deviceStatus ?? state.status, summary: state.summary, ...outcome });
+  }
+
+  /** `afterHandover`: the person just resumed, so their page is reported, not handed back again. */
+  async function runDevice(
+    family: "browser" | "computer",
+    args: Record<string, unknown>,
+    afterHandover = false,
+  ): Promise<unknown> {
+    const queued = await queueStep(family, args);
+    return "result" in queued ? queued.result : settleStep(queued, afterHandover);
   }
 
   /**
@@ -534,7 +553,57 @@ export async function runJarvisTurn(
     const base = seen;
     const ran: { action: string; status: unknown; summary: unknown }[] = [];
     let last: unknown = null;
-    for (const raw of steps) {
+    const record = (action: unknown, outcome: unknown) => {
+      const o = (outcome ?? {}) as { status?: unknown; summary?: unknown; error?: unknown };
+      ran.push({
+        action: String(action),
+        status: o.error ? "invalid" : o.status,
+        summary: o.error ?? o.summary,
+      });
+      return !o.error && o.status === "done";
+    };
+    /*
+     * The steps that need no fresh observation are queued together, so a computer that runs
+     * segments takes them in one exchange instead of one round trip each. Each still settles in
+     * order with its own confirmation and STOP; after one that did not finish, the rest are
+     * withdrawn and never run.
+     */
+    const isStep = (raw: unknown): raw is Record<string, unknown> =>
+      Boolean(raw) && typeof raw === "object" && !Array.isArray(raw);
+    let free = 0;
+    while (
+      free < steps.length &&
+      isStep(steps[free]) &&
+      (steps[free] as { observationId?: unknown }).observationId !== "latest"
+    ) {
+      free += 1;
+    }
+    if (free > 1) {
+      const queued: Queued[] = [];
+      let refusal: { action: unknown; result: unknown } | null = null;
+      for (const raw of steps.slice(0, free) as Record<string, unknown>[]) {
+        stopIfAsked();
+        const step = await queueStep(family, { ...raw });
+        if ("result" in step) {
+          refusal = { action: raw.action, result: step.result };
+          break;
+        }
+        queued.push(step);
+      }
+      for (const [index, step] of queued.entries()) {
+        last = await settleStep(step);
+        if (!record(step.action.action, last)) {
+          for (const rest of queued.slice(index + 1)) await deps.cancelAction?.(rest.id);
+          return { sequence: ran, stoppedAfter: ran.length, last };
+        }
+      }
+      if (refusal) {
+        last = refusal.result;
+        record(refusal.action, last);
+        return { sequence: ran, stoppedAfter: ran.length, last };
+      }
+    }
+    for (const raw of steps.slice(free > 1 ? free : 0)) {
       stopIfAsked();
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
         return { error: "Each sequence step is one action object.", sequence: ran };
@@ -547,13 +616,7 @@ export async function runJarvisTurn(
         step.observationId = now!.observationId;
       }
       last = await runDevice(family, step);
-      const outcome = (last ?? {}) as { status?: unknown; summary?: unknown; error?: unknown };
-      ran.push({
-        action: String(step.action),
-        status: outcome.error ? "invalid" : outcome.status,
-        summary: outcome.error ?? outcome.summary,
-      });
-      if (outcome.error || outcome.status !== "done") break;
+      if (!record(step.action, last)) break;
     }
     return {
       sequence: ran,
