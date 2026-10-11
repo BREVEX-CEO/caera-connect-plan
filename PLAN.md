@@ -69,6 +69,14 @@ Status: **binding target requirements and OPEN implementation packages, not ship
 
 ---
 
+### 0.5 Stage A/B record and Stage C progress — 11 October 2026 (branch `ocade/p00-p22-implementation`)
+
+**Stage A done** (`9e59e5bc`): all 64 tracked donor files (7,732,547 bytes) removed; manifest in [ToRemove](ToRemove.md); donor licences were the owner's own (kept in `jarvis-runtime/LICENSE`); preservation test replaced by `no-donor-runtime.test.ts` (donor absent, no active reference; provider-key, retired-GUI and runtime-module checks kept).
+
+**Stage B done:** Calculator 7 × 6 test replaced by a synthetic varied-name Windows Forms fixture; every live screen/mouse/window/Office test needs `OCADE_LIVE_TESTS=1` (final campaign). Office edits route by the file type's registered automation server (no `Excel`/`Word` names; adapters `ocade_workbook.ps1`, `ocade_document.ps1`); browsers discovered from the OS; no `.com` guessing; planner prompt names file types. **Recorded exception:** the protected-app denylist (password managers, credential prompts, Windows Security) stays — no generic signal is as strong — now joined by a generic rule (windows hidden from screen capture are protected). Orphan-module and dependency scans: none unused. Active source: 844 files / 131,589 lines at `a41983bd`; 844 / 131,635 after Stage B (+46 net: discovery code and tests).
+
+**Stage C so far:** P01 file-bound evidence (each changed file read back by path); P03 crash-intent journal on desktop and Android; P06 export pages ordered by unique key; P07 cross-tab offline key race fixed (atomic `add`), unreadable turns kept; exchange tolerates an overlong summary or malformed `changed` list (a P04 field that would have stalled agents was found and fixed); P18 "Repeat with new inputs". P05-C (epoch before the allowance await) already present in source. Payments (P20) and release (P21) deferred by owner order.
+
 ## 1. Read this first
 
 CARCC is the company; OCADE is the product. Build a website-first assistant at `ocade.in` that delivers independently checked work in the customer's existing applications. Keep Chat, its Auto/Online/Offline Intelligence choices and the approximately 0.6B offline model. Keep JARVIS a separate online-only experience. Never silently route JARVIS to the offline model.
