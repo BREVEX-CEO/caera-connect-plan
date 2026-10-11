@@ -177,3 +177,23 @@ These are **28 new owner-selected business experiments**, added to—not replaci
 **Evidence closure:** For each G choice record dated source SHA; exact customer cohort and consent; experiment eligibility and actual price/capacity where applicable; independently checked outcome, retention, costs, support/refunds and sample size; PASS/FAIL/PARTIAL/BLOCKED/UNTESTED. Scale targets ($1B–$10B valuation, eventual $1B+ ARR/profit-scale ambition) are goals, not guarantees or substitutes for accounting. Never conflate valuation, revenue, ARR, cash flow and profit. No competitor is beaten by a feature checklist or an unexecuted comparison.
 
 **Genuinely pending owner-only operational inputs (not unresolved MCQ answers):** the actual available cash/runway and approved paid-test spend ceiling when expenditure is proposed; identity of the authorised payment merchant, final legal/tax/refund obligations and final price(s) after experimentation; production/deployment approval and any decision to seek or accept investment. They become actionable only at the relevant gate and do not block independent code/security work. All G01–G28 choices themselves are resolved.
+
+## Owner's 50 multi-select customer decisions — 11 October 2026
+
+These additional selections refine existing P15 (UI), P18 (verified workflows), P19 (proof), P20 (billing), P21 (growth) and P22 (evidence-gated expansion). Preserve earlier 60 owner selections, the final 1A/2A/3A and G01–G28, and all P00–P22 dependencies. Selected codes below are copied exactly from the owner's response; a letter means the full corresponding option in the owner's 50-question questionnaire. Unselected answers are not new requests. Older security, privacy, permission, refund and STOP commitments remain binding even if an option is unselected here.
+
+| Questions | Exact owner answers | Product authority |
+| --- | --- | --- |
+| B01–B10 — motivation/value | 1ABCD 2ABCD 3ABCD 4ABCD 5ABCD 6ABCD 7AD 8ABCD 9ABCD 10ABCD | PRD; P18 |
+| B11–B20 — smooth first use | 11ABCD 12ABCD 13ABCD 14ABCD 15ABCD 16ABD 17AB 18ABCD 19ABCD 20AB | Design; P11/P15 |
+| B21–B30 — buying and trust | 21ABCD 22ABCD 23ABCD 24ABD 25ABD 26CD 27ABCD 28ABCD 29ABCD 30ABCD | PRD/Security; P20 |
+| B31–B40 — distribution | 31ABCD 32ABCD 33BCD 34ABCD 35ABCD 36ABD 37ABCD 38BCD 39ABCD 40ABCD | PRD; P19/P21 |
+| B41–B50 — retention/scale | 41ABCD 42ABCD 43ABD 44B 45ABC 46ABD 47ABCD 48BCD 49ACD 50ACD | PRD/Testing; P18/P21/P22 |
+
+**Execution interpretation:** First show real utility, then a truthful verified result, then a fair optional paid upgrade after success; recurring useful workflows make retention more durable than artificial attention traps. Lead with accuracy, preservation of work, consent and instant STOP. Keep the three-product navigation, existing local-first agent, single JARVIS planner, and legal checkout gate unchanged. Marketing can show genuine opted-in results and matched benchmarks, not invented results, coercion, automatic posting or unsupported superiority claims.
+
+**Priorities:** P0 security/STOP/verified outcome and first useful result; P1 repeat/report improvements, clear value/progress/pricing and measured professional demos; P2 additional content channels, multilingual support, partners, enterprise and future app coverage after repeat use and profitable delivery are measured. Selecting ABCD repeatedly does not mean every item must be built in the first release. No new billing, marketing expense, hiring or production approval is implied.
+
+**Specific omission safeguards:** B44 selected only B (safe repair of affected work); older truthful disclosure, support and applicable refund commitments still stand. B49 omitted B (staff controls), B50 omitted B (privacy/security), and B48 omitted A (model spend); prior binding access control, privacy and budget protection are unchanged. B26 selected C and D (card-free free use and usage limits), not a removal of cancellation/refund rules. Use the original question wording when expanding these codes and never infer an unselected option as a new decision.
+
+**Measure:** first verified task, accuracy/false completion, first-use friction, repeat 7/30-day use, paid conversion, voluntary referral, customer satisfaction and complaints, cost per verified successful workflow, refund/support load and gross/contribution margins. Segment student, independent professional, accounting and international cohorts. Large revenue is a strategic ambition, not an observed or guaranteed outcome.
