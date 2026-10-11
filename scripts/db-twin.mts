@@ -273,6 +273,14 @@ export interface TenantSession {
   omitAmr?: boolean;
   /** The `session_id` claim, for functions that must spare the caller's own session. */
   sessionId?: string;
+  /**
+   * A person who confirms each request afresh: the caller's own live session (one is made if
+   * `sessionId` is not given) and a proof no earlier request used. One proof covers one
+   * sensitive change, so a test that changes several things confirms each, as a person would.
+   */
+  confirmEach?: boolean;
+  /** The proof's exact time, in seconds (set by `confirmEach`). */
+  provedAt?: number;
 }
 
 function claimsFor(userId: string, session: TenantSession): Record<string, unknown> {
@@ -285,7 +293,8 @@ function claimsFor(userId: string, session: TenantSession): Record<string, unkno
   if (!session.omitAmr) {
     // Supabase reports these in SECONDS, which is the detail a millisecond
     // reading gets wrong by a factor of a thousand and silently.
-    const proved = Math.floor(Date.now() / 1000) - (session.provedSecondsAgo ?? 0);
+    const proved =
+      session.provedAt ?? Math.floor(Date.now() / 1000) - (session.provedSecondsAgo ?? 0);
     claims["amr"] = [{ method: "password", timestamp: proved }];
   }
   return claims;
@@ -323,6 +332,26 @@ function refusal(cause: unknown): TwinRefusal {
 
 export class DatabaseTwin {
   private constructor(readonly db: PGlite) {}
+
+  /** The latest proof `confirmEach` handed out; each next one is a second earlier or now. */
+  private lastProof = Number.POSITIVE_INFINITY;
+
+  /** The person's live session, made once they have none. */
+  private async liveSession(userId: string): Promise<string> {
+    const [found] = (
+      await this.db.query<{ id: string }>(
+        `select id from auth.sessions where user_id = $1 order by created_at limit 1`,
+        [userId],
+      )
+    ).rows;
+    if (found) return found.id;
+    return (
+      await this.db.query<{ id: string }>(
+        `insert into auth.sessions (user_id) values ($1) returning id`,
+        [userId],
+      )
+    ).rows[0]!.id;
+  }
 
   static async create(): Promise<DatabaseTwin> {
     // Real contrib pgcrypto, so migration 1's `CREATE EXTENSION "pgcrypto"`
@@ -400,6 +429,15 @@ export class DatabaseTwin {
      * transaction-local, so concurrent calls on PGlite's single connection
      * cannot interleave identities and nothing outlives the request.
      */
+    if (session.confirmEach) {
+      this.lastProof = Math.min(Math.floor(Date.now() / 1000), this.lastProof - 1);
+      session = {
+        ...session,
+        aal: session.aal ?? "aal2",
+        sessionId: session.sessionId ?? (await this.liveSession(userId)),
+        provedAt: this.lastProof,
+      };
+    }
     // Minted before the transaction starts, as a real token is before its request: read
     // inside it, a second boundary could put the proof after now() ("a proof in the future").
     const claims = JSON.stringify(claimsFor(userId, session));

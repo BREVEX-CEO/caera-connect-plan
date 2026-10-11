@@ -19,7 +19,8 @@ const CUSTOMER = "2e2e2e2e-5555-4eee-8eee-eeeeeeeeeeee";
 const OTHER = "2f2f2f2f-6666-4fff-8fff-ffffffffffff";
 
 const as = (user: string, sql: string, aal: "aal1" | "aal2" = "aal2") =>
-  twin.asTenant<Record<string, unknown>>(user, sql, { aal });
+  // Each request confirmed afresh, as a person would: one proof covers one change.
+  twin.asTenant<Record<string, unknown>>(user, sql, { aal, confirmEach: true });
 const one = async (sql: string) => (await twin.asSuperuser<Record<string, unknown>>(sql))[0];
 
 const adjust = (

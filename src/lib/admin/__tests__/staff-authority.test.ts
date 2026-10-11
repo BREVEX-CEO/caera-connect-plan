@@ -16,7 +16,8 @@ const ADMIN = "0c0c0c0c-3333-4ccc-8ccc-cccccccccccc";
 const SUPPORT = "0d0d0d0d-4444-4ddd-8ddd-dddddddddddd";
 const CUSTOMER_A = "0e0e0e0e-5555-4eee-8eee-eeeeeeeeeeee";
 const CUSTOMER_B = "0f0f0f0f-6666-4fff-8fff-ffffffffffff";
-const fresh = { aal: "aal2" as const };
+// A person confirming each change afresh: one proof covers one change (audit C17).
+const fresh = { aal: "aal2" as const, confirmEach: true };
 
 const staff = async (user: string) =>
   (
@@ -343,6 +344,68 @@ describe("removing access", () => {
   });
 });
 
+describe("one proof, one staff change (C17)", () => {
+  it("is spent by the change itself, also straight at the database, and refused on reuse", async () => {
+    const [{ id }] = await twin.asSuperuser<{ id: string }>(
+      `insert into auth.sessions (user_id) values ('${OWNER}') returning id`,
+    );
+    const proof = { aal: "aal2" as const, sessionId: id, provedSecondsAgo: 5 };
+    const end = () =>
+      twin.asTenant(
+        OWNER,
+        `select public.ocade_staff_end_all_sessions('Rotating every staff key')`,
+        proof,
+      );
+    expect((await end()).error).toBeUndefined();
+    const again = await end();
+    expect(again.errorCode).toBe("42501");
+    expect(again.error).toMatch(/each confirmation covers one change/);
+    // A new confirmation is a new proof.
+    expect(
+      (
+        await twin.asTenant(
+          OWNER,
+          `select public.ocade_staff_end_all_sessions('Once more, confirmed')`,
+          {
+            ...proof,
+            provedSecondsAgo: 1,
+          },
+        )
+      ).error,
+    ).toBeUndefined();
+  });
+
+  it("follows OCADE's own spend for the same proof once, and never twice", async () => {
+    const [{ id }] = await twin.asSuperuser<{ id: string }>(
+      `insert into auth.sessions (user_id) values ('${OWNER}') returning id`,
+    );
+    const proof = { aal: "aal2" as const, sessionId: id, provedSecondsAgo: 7 };
+    const spent = await twin.asTenant<{ ok: boolean }>(
+      OWNER,
+      `select public.ocade_spend_proof('endAllStaffSessions', '${"b".repeat(64)}') as ok`,
+      proof,
+    );
+    expect(spent.rows[0]!.ok).toBe(true);
+    const end = () =>
+      twin.asTenant(
+        OWNER,
+        `select public.ocade_staff_end_all_sessions('Rotating every staff key')`,
+        proof,
+      );
+    expect((await end()).error).toBeUndefined();
+    expect((await end()).error).toMatch(/each confirmation covers one change/);
+  });
+
+  it("lets a token with no session change nothing", async () => {
+    const out = await twin.asTenant(
+      OWNER,
+      `select public.ocade_staff_end_all_sessions('No session behind this token')`,
+      { aal: "aal2" },
+    );
+    expect(out.error).toMatch(/each confirmation covers one change/);
+  });
+});
+
 describe("sessions", () => {
   it("the emergency sign-out ends every staff session but the one asking, and no customer's", async () => {
     await twin.execSuperuser(`delete from auth.sessions`);
@@ -356,7 +419,7 @@ describe("sessions", () => {
     const result = await twin.asTenant<{ n: number }>(
       OWNER,
       `select public.ocade_staff_end_all_sessions('Suspected staff credential leak') as n`,
-      { aal: "aal2", sessionId: mine!.id },
+      { aal: "aal2", sessionId: mine!.id, confirmEach: true },
     );
     expect(result.rows[0]!.n).toBe(3);
     const left = await twin.asSuperuser<{ user_id: string }>(
@@ -381,7 +444,7 @@ describe("sessions", () => {
     const ended = await twin.asTenant(
       OWNER,
       `select public.ocade_staff_end_all_sessions('Suspected staff credential leak')`,
-      { aal: "aal2", sessionId: owners },
+      { aal: "aal2", sessionId: owners, confirmEach: true },
     );
     expect(ended.error).toBeUndefined();
     // The copied token is still signed and unexpired; the session behind it is gone.
@@ -1080,5 +1143,19 @@ describe("rolled back and applied again", () => {
     );
     const again = await twin.runScript("supabase/verification", `${MIGRATION}_verify.sql`);
     expect(again.error).toBeUndefined();
+  });
+});
+
+describe("staff reads straight at the database (C18)", () => {
+  // The console checks each permission, including one an Owner denied; a table policy that
+  // lets in the broad admin role would let that person read the same rows through the API.
+  it("no table policy grants staff access by the broad admin role", async () => {
+    const coarse = await twin.asSuperuser<{ policy: string }>(
+      `select schemaname || '.' || tablename || ': ' || policyname as policy
+         from pg_policies
+        where coalesce(qual, '') ~ 'has_role' or coalesce(with_check, '') ~ 'has_role'
+        order by 1`,
+    );
+    expect(coarse.map((row) => row.policy)).toEqual([]);
   });
 });
