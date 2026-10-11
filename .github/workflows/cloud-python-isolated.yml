@@ -1,0 +1,86 @@
+# Runs Python/device-adapter regression tests in a disposable cloud Linux desktop.
+# Never tests the user's Windows/Office installation. GUI-live tests stay opt-in
+# and are SKIPPED here; a green run is not real Windows Office acceptance.
+name: Cloud device and file tests (isolated)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/cloud-python-isolated.yml"
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Source branch or SHA to test without customer files
+        required: true
+        default: ocade/p00-p22-implementation
+        type: string
+      coverage:
+        description: Portable regression smoke or full suite (full can find real unsupported/failing tests)
+        required: true
+        default: portable
+        type: choice
+        options:
+          - portable
+          - full
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud-python-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python file, safety and device regressions · cloud Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: "true"
+      OCADE_LIVE_TESTS: "0"
+      PLAYWRIGHT_BROWSERS_PATH: /tmp/ocade-playwright-browsers
+    steps:
+      - name: Checkout requested branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || inputs.source_ref }}
+          persist-credentials: false
+
+      - name: Install Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install isolated display and Linux sandbox helper
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb xauth xdotool
+
+      - name: Install existing pinned runtime dependencies
+        run: python -m pip install --disable-pip-version-check -r jarvis-runtime/requirements-agent.txt
+
+      - name: Install Python Playwright browser in this disposable environment
+        run: python -m playwright install --with-deps chromium
+
+      - name: Verify Python imports and syntax
+        run: python -m compileall -q jarvis-runtime android/build.py
+
+      - name: Run selected portable regressions or full suite against temporary HOME
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HOME="${RUNNER_TEMP}/ocade-test-home"
+          mkdir -p "$HOME"
+          if [[ "${{ github.event_name }}" == "pull_request" || "${{ inputs.coverage }}" == "portable" ]]; then
+            # An explicitly limited, independently useful suite: browser, document, spreadsheet,
+            # wake, update and accessibility units. Full runs every test and reports its own failures.
+            modules=(test_browser_control.py test_files_documents.py test_sheets.py test_update.py test_wake.py test_ui_act.py)
+            for module in "${modules[@]}"; do
+              xvfb-run -a python -m unittest discover -s jarvis-runtime/tests -p "$module" -v
+            done
+          else
+            xvfb-run -a python -m unittest discover -s jarvis-runtime/tests -p 'test_*.py' -v
+          fi
+
+      # No persistence of logs, screenshots, secrets or artifacts to GitHub storage.
