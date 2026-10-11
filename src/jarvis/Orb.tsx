@@ -110,6 +110,7 @@ export function Orb({
   hoverId.current = hover?.node.id ?? null;
   const [zoomShown, setZoomShown] = useState(1);
   const draw = useRef<() => void>(() => undefined);
+  const animate = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -296,17 +297,22 @@ export function Orb({
     };
     draw.current = paint;
 
+    // It turns only while there is sound to show; idle or hidden, it draws no frames.
     const tick = (now: number) => {
       const dt = Math.min(64, now - last);
       last = now;
       view.current.yaw += dt * 0.00006 * (1 + levelRef.current * 3);
       paint();
+      frame = levelRef.current > 0.01 ? requestAnimationFrame(tick) : 0;
+    };
+    animate.current = () => {
+      if (frame || reducedMotion) return;
+      last = performance.now();
       frame = requestAnimationFrame(tick);
     };
     const resize = new ResizeObserver(() => paint());
     resize.observe(canvas);
-    if (reducedMotion) paint();
-    else frame = requestAnimationFrame(tick);
+    paint();
     return () => {
       cancelAnimationFrame(frame);
       resize.disconnect();
@@ -314,8 +320,9 @@ export function Orb({
   }, [graph, accent, reducedMotion, selectedId]);
 
   useEffect(() => {
-    if (reducedMotion) draw.current();
-  }, [level, hover, reducedMotion]);
+    if (level > 0.01) animate.current();
+    else draw.current();
+  }, [level, hover]);
 
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const pinch = useRef(new Map<number, { x: number; y: number }>());
@@ -376,7 +383,6 @@ export function Orb({
           }
           const found = hit(p.x, p.y);
           setHover(found ? { node: found.node, x: found.x, y: found.y } : null);
-          if (reducedMotion) draw.current();
         }}
         onPointerLeave={() => {
           pointer.current.inside = false;

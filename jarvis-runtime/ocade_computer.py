@@ -351,7 +351,7 @@ class Computer:
                 return self._undo_last()
             if kind.startswith("screen"):
                 with self._lock:
-                    return self._screen(kind, action, confirmed, cowork, cancel)
+                    return self._screen(kind, action, confirmed, cancel)
             if kind in ("ui_inspect", "ui_act"):
                 if SYSTEM != "Windows":
                     return {"status": "blocked", "summary": "App controls are read on Windows only so far"}
@@ -968,7 +968,7 @@ class Computer:
             return None
         return geo["x"] + px, geo["y"] + py
 
-    def _paste(self, gui, text: str, cowork: bool) -> dict | None:
+    def _paste(self, gui, text: str) -> dict | None:
         import pyperclip
         try:
             before = pyperclip.paste()
@@ -976,7 +976,7 @@ class Computer:
             before = None
         try:
             pyperclip.copy(text)
-            if self._stale(self._observation["id"]) or (self.guard.user_input_at and not cowork):
+            if self._stale(self._observation["id"]) or self.guard.user_input_at:
                 return {"status": "needs_confirmation",
                         "summary": "The screen changed before typing, so JARVIS paused. Continue?"}
             self.guard.ours()
@@ -1100,14 +1100,15 @@ class Computer:
         self.guard.user_input_at = 0.0
         return None
 
-    def _screen(self, kind: str, action: dict, confirmed: bool, cowork: bool,
-                cancel: threading.Event) -> dict:
+    def _screen(self, kind: str, action: dict, confirmed: bool, cancel: threading.Event) -> dict:
         gui = self._gui()
         if gui is None:
             return {"status": "blocked", "summary": "This computer does not allow screen control"}
         if kind == "screen":
             return {"status": "done", "summary": "Looked at the screen", "observation": self.observe()}
-        if paused := self._paused(cowork, confirmed):
+        # The person's own mouse or keyboard always wins over JARVIS's input, co-work or not:
+        # two hands on one keyboard type into the wrong place.
+        if paused := self._paused(False, confirmed):
             return paused
         # Every input lands on the screen it was planned against: a changed
         # window or size, or an old observation, gets a fresh look instead.
@@ -1146,7 +1147,7 @@ class Computer:
             # Long text goes in by paste (donor _smart_type), then the clipboard is put back.
             if cancel.is_set():
                 return dict(STOPPED)
-            outcome = self._paste(gui, str(action.get("text", ""))[:20_000], cowork)
+            outcome = self._paste(gui, str(action.get("text", ""))[:20_000])
             if outcome:
                 return outcome
             detail = "Typed"
@@ -1155,8 +1156,7 @@ class Computer:
             for at in range(0, len(text), 40):
                 if cancel.is_set():
                     return dict(STOPPED)
-                if at and (self._stale(self._observation["id"]) or
-                           (self.guard.user_input_at and not cowork)):
+                if at and (self._stale(self._observation["id"]) or self.guard.user_input_at):
                     return {"status": "needs_confirmation",
                             "summary": "The screen changed while typing, so JARVIS paused. Continue?"}
                 self.guard.ours()

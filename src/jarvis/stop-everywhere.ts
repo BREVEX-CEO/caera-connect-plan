@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { actionChanged } from "./changes";
 import { readJarvisAction, stopAllJarvis } from "./jarvis.functions";
 
 /**
@@ -29,7 +30,8 @@ export async function stopEverywhere(recorded: () => void = () => undefined): Pr
   const id = toast.loading("Stopping…");
   const deadline = Date.now() + 8000;
   while (Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Woken by the device's acknowledgement as it arrives; a lost event costs one second.
+    await Promise.race(result.running.map((action) => actionChanged(action, 1000)));
     const acks = await Promise.all(
       result.running.map((action) => readJarvisAction({ data: { id: action } }).catch(() => null)),
     );

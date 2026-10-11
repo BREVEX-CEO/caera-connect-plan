@@ -107,6 +107,10 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
   const stream = useRef<MediaStream | null>(null);
   const audio = useRef<AudioContext | null>(null);
   const meter = useRef(0);
+  // Each voice session and each utterance has its own number: a late callback from an
+  // ended one finds a newer number and does nothing (no second microphone, no echo).
+  const session = useRef(0);
+  const utterances = useRef(0);
   const stateRef = useRef<VoiceState>("off");
   const endRef = useRef<() => void>(() => undefined);
   const deliver = useRef(onHeard);
@@ -197,16 +201,17 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
 
   const start = useCallback(async () => {
     setError(null);
+    const mine = ++session.current;
     set("starting");
     try {
       const media = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.current = media;
-      // Ended (End, sign-out, leaving) while the permission prompt was open:
-      // the microphone is released at once instead of left running.
-      if (stateRef.current !== "starting") {
-        endRef.current();
+      // Ended (End, sign-out, leaving) or started again while the permission prompt was
+      // open: this session's microphone is released at once instead of left running.
+      if (session.current !== mine) {
+        media.getTracks().forEach((track) => track.stop());
         return;
       }
+      stream.current = media;
       const context = new AudioContext();
       audio.current = context;
       const analyser = context.createAnalyser();
@@ -215,7 +220,7 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
       const data = new Uint8Array(analyser.fftSize);
       let lastPaint = 0;
       const sample = (now: number) => {
-        if (!audio.current) return;
+        if (session.current !== mine) return;
         analyser.getByteTimeDomainData(data);
         let sum = 0;
         for (const value of data) sum += ((value - 128) / 128) ** 2;
@@ -234,6 +239,7 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
       };
       requestAnimationFrame(sample);
     } catch {
+      if (session.current !== mine) return; // a newer session owns the microphone now
       // Whatever part started is released; nothing keeps the microphone.
       endRef.current();
       setError("Microphone access was refused.");
@@ -252,10 +258,11 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
       stopListening();
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text.slice(0, 4000));
+      const spoken = ++utterances.current;
       utterance.onend = () => {
-        if (stateRef.current !== "speaking") return;
+        if (utterances.current !== spoken || stateRef.current !== "speaking") return;
         window.setTimeout(() => {
-          if (stateRef.current !== "speaking") return;
+          if (utterances.current !== spoken || stateRef.current !== "speaking") return;
           set("listening");
           listen();
         }, ECHO_TAIL_MS);
@@ -293,6 +300,8 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
   }, [listen]);
 
   const end = useCallback(() => {
+    session.current += 1;
+    utterances.current += 1;
     set("off");
     if (typeof window !== "undefined" && "speechSynthesis" in window)
       window.speechSynthesis.cancel();

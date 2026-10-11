@@ -480,7 +480,9 @@ class ScreenTest(unittest.TestCase):
         time.sleep(0.6)
         _other_hand(100, 100)
         time.sleep(0.5)
-        self.assertEqual(self.pc.run({**keys, "observationId": look()}, cowork=True)["status"], "done")
+        # Co-work does not let JARVIS type over the person's own input (ToRemove: cowork exemption).
+        self.assertEqual(self.pc.run({**keys, "observationId": look()}, cowork=True)["status"],
+                         "needs_confirmation")
 
 
 if __name__ == "__main__":
