@@ -169,6 +169,7 @@ function SectionBody({
   const [opened, setOpened] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
   const [appFilter, setAppFilter] = useState("");
+  const [find, setFind] = useState("");
 
   if (section === "conversations") {
     // Tasks live in their conversations: each row names its latest task and
@@ -192,53 +193,70 @@ function SectionBody({
     if (list.length === 0) {
       return <p className="text-muted-foreground">Nothing here yet.</p>;
     }
+    const wanted = find.trim().toLowerCase();
+    const shown = wanted
+      ? list.filter((item) => `${item.title} ${item.sub}`.toLowerCase().includes(wanted))
+      : list;
     return (
-      <ul className="flex flex-col gap-0.5">
-        {list.map((item) => (
-          <li key={item.id} className="flex flex-wrap items-center gap-1">
-            <button
-              type="button"
-              onClick={() => onOpenConversation(item.open)}
-              aria-current={item.open === activeConversation ? "true" : undefined}
-              className="min-w-0 flex-1 rounded-md px-2 py-1.5 text-left hover:bg-accent"
-            >
-              <span className="block truncate">{item.title}</span>
-              <span className="block text-xs text-muted-foreground">{item.sub}</span>
-            </button>
-            {section === "conversations" ? (
+      <>
+        <input
+          type="search"
+          value={find}
+          onChange={(event) => setFind(event.target.value)}
+          placeholder="Search conversations"
+          aria-label="Search conversations"
+          className="mb-2 h-8 w-full rounded-md border border-border bg-transparent px-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        />
+        {shown.length === 0 ? (
+          <p className="text-muted-foreground">No conversation matches.</p>
+        ) : null}
+        <ul className="flex flex-col gap-0.5">
+          {shown.map((item) => (
+            <li key={item.id} className="flex flex-wrap items-center gap-1">
               <button
                 type="button"
-                aria-label={`Delete ${item.title}`}
-                onClick={() => {
-                  if (!window.confirm("Delete this conversation and its tasks for good?")) return;
-                  void deleteConversation({ data: { id: item.id } })
-                    .then(() => {
-                      onChanged();
-                      if (item.id === activeConversation) onOpenConversation(null);
-                    })
-                    .catch(() => toast.error("That conversation could not be deleted."));
-                }}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive"
+                onClick={() => onOpenConversation(item.open)}
+                aria-current={item.open === activeConversation ? "true" : undefined}
+                className="min-w-0 flex-1 rounded-md px-2 py-1.5 text-left hover:bg-accent"
               >
-                <Trash2 className="h-4 w-4" aria-hidden />
+                <span className="block truncate">{item.title}</span>
+                <span className="block text-xs text-muted-foreground">{item.sub}</span>
               </button>
-            ) : null}
-            {item.result ? (
-              opened === item.id ? (
-                <p className="w-full whitespace-pre-wrap px-2 pb-1 text-xs">{item.result}</p>
-              ) : (
+              {section === "conversations" ? (
                 <button
                   type="button"
-                  onClick={() => setOpened(item.id)}
-                  className="px-2 pb-1 text-xs underline underline-offset-2"
+                  aria-label={`Delete ${item.title}`}
+                  onClick={() => {
+                    if (!window.confirm("Delete this conversation and its tasks for good?")) return;
+                    void deleteConversation({ data: { id: item.id } })
+                      .then(() => {
+                        onChanged();
+                        if (item.id === activeConversation) onOpenConversation(null);
+                      })
+                      .catch(() => toast.error("That conversation could not be deleted."));
+                  }}
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive"
                 >
-                  Show result
+                  <Trash2 className="h-4 w-4" aria-hidden />
                 </button>
-              )
-            ) : null}
-          </li>
-        ))}
-      </ul>
+              ) : null}
+              {item.result ? (
+                opened === item.id ? (
+                  <p className="w-full whitespace-pre-wrap px-2 pb-1 text-xs">{item.result}</p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setOpened(item.id)}
+                    className="px-2 pb-1 text-xs underline underline-offset-2"
+                  >
+                    Show result
+                  </button>
+                )
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </>
     );
   }
 
