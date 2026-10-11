@@ -1,9 +1,8 @@
 /**
  * OCADE'S CLOCK FOR JARVIS: reminders and work a person asked for later.
  *
- * Adapted from the donor's reminder (a notification at a time), background
- * monitor and proactive rules (work that starts by itself): here they are one
- * schedule table and OCADE's own task authority, not a second system. The
+ * A reminder (a notification at a time) and work that starts by itself are
+ * one schedule table and OCADE's own task authority, not a second system. The
  * Worker's cron calls `runDueSchedules` every minute.
  *
  * A REMINDER notifies the person and appears in its conversation. SCHEDULED

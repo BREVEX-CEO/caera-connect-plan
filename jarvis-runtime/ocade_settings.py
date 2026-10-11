@@ -1,6 +1,5 @@
 """
-Computer settings and a system snapshot, adapted from the donor's
-actions/computer_settings.py and actions/system_monitor.py.
+Computer settings and a system snapshot.
 
 Settings: master volume, mute, screen brightness, dark appearance. Each goes
 through the operating system's own interface (the audio endpoint, the monitor's
@@ -11,7 +10,7 @@ so it can be verified and put back.
 
 Status: processor, memory, disk, battery and uptime, read directly.
 
-Not brought over from the donor: Wi-Fi on/off (it would cut the agent off from
+Deliberately absent: Wi-Fi on/off (it would cut the agent off from
 OCADE mid-task and needs administrator rights), and the keyboard shortcuts for
 tabs, zoom and windows, which the browser and window actions already do against
 a known target.
@@ -183,7 +182,7 @@ def setting(name: str, value=None) -> dict:
 
 
 def status() -> dict:
-    """Donor get_system_status, plus disk and battery."""
+    """Processor, memory, disk and battery."""
     import psutil
     memory = psutil.virtual_memory()
     disk = psutil.disk_usage(Path.home().anchor or "/")

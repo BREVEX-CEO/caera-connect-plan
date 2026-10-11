@@ -151,7 +151,7 @@ class WorkspaceTest(unittest.TestCase):
 
 
 class UndoTest(unittest.TestCase):
-    """Donor undo: act at once, remember how to reverse it, newest first."""
+    """Undo: act at once, remember how to reverse it, newest first."""
 
     def setUp(self):
         self.home = tempfile.mkdtemp()
@@ -217,7 +217,7 @@ class UndoTest(unittest.TestCase):
 
 
 class SettingsTest(unittest.TestCase):
-    """Donor computer_settings and system_monitor, through the system's own interfaces."""
+    """Computer settings and system status, through the system's own interfaces."""
 
     def test_status_reports_this_computer(self):
         out = Computer(None).run({"action": "system_status"})

@@ -1,5 +1,5 @@
 """
-Document text, read directly (donor file_processor, without its provider model).
+Document text, read directly, with no provider model.
 
 Structure first, pixels never: PDF text through pypdf; Word and PowerPoint
 from their own XML (a .docx/.pptx is a ZIP), so no Office library is needed;

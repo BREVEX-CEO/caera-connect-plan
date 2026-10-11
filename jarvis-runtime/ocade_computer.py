@@ -53,7 +53,7 @@ MAX_OUTPUT = 12_000
 RUN_TIMEOUT_S = 300
 FRAME_WIDTH = 1280
 PASTE_OVER = 40  # longer text is pasted (and the clipboard restored) instead of typed key by key
-UNDO_DEPTH = 10  # donor core/undo.py: roughly "this conversation"
+UNDO_DEPTH = 10  # roughly "this conversation"
 APPS_FRESH_S = 600  # the app list open_app trusts before looking again
 IMPORT_LIMIT = 1 << 30  # a copy into the work folder
 RESERVED = re.compile(r"(?i)con|prn|aux|nul|com[0-9]|lpt[0-9]|conin\$|conout\$")
@@ -518,7 +518,7 @@ class Computer:
                     "content": data.decode("utf-8", errors="replace"),
                     "truncated": path.stat().st_size > MAX_READ}
         if kind == "file_write":
-            # An overwrite keeps what was there first (donor undo: act, and remember how to reverse it).
+            # An overwrite keeps what was there first (act, and remember how to reverse it).
             kept = self._keep(path) if path.is_file() else None
             if kept is None:
                 self._made.add(path)
@@ -660,7 +660,7 @@ class Computer:
                 "changed": changed}
 
     def _find(self, folder: Path, rel: str, name: str, extension: str, cancel: threading.Event) -> dict:
-        """Donor find_files: name and/or extension, bounded, inside the workspace only."""
+        """Find files by name and/or extension, bounded, inside the workspace only."""
         if not folder.is_dir():
             return {"status": "failed", "summary": f"{rel} is not a folder"}
         found, folders = [], 0
@@ -682,7 +682,7 @@ class Computer:
         return {"status": "done", "summary": f"Found {len(found)} file(s)", "entries": found}
 
     def _relocate(self, kind: str, source: Path, rel: str, action: dict, cancel: threading.Event) -> dict:
-        """Donor move/copy/rename: never over an existing file, both ends inside the workspace."""
+        """Move, copy or rename: never over an existing file, both ends inside the workspace."""
         if not source.exists():
             return {"status": "failed", "summary": f"{rel} does not exist"}
         if kind == "file_rename":
@@ -725,7 +725,7 @@ class Computer:
                        lambda: self._move_back(target, source))
         return {"status": "done", "summary": f"{'Renamed' if kind == 'file_rename' else 'Moved'} {rel} to {to}"}
 
-    # -- undo: what JARVIS changed in the workspace, newest first (donor core/undo.py) --
+    # -- undo: what JARVIS changed in the workspace, newest first --
 
     @staticmethod
     def _undo_dir() -> Path:
@@ -992,7 +992,7 @@ class Computer:
         return None
 
     def _window(self, kind: str, action: dict, confirmed: bool) -> dict:
-        """Existing app windows first (donor focus_window, without building a script from a title)."""
+        """Existing app windows first (never a script built from a title)."""
         import pygetwindow
         if kind == "window_list":
             return {"status": "done", "summary": "Listed the open windows", "windows": _windows()}
@@ -1144,7 +1144,7 @@ class Computer:
                                                              press="\n" in str(action.get("text", "")))):
             return gated
         elif kind == "screen_type" and len(str(action.get("text", ""))) > PASTE_OVER:
-            # Long text goes in by paste (donor _smart_type), then the clipboard is put back.
+            # Long text goes in by paste, then the clipboard is put back.
             if cancel.is_set():
                 return dict(STOPPED)
             outcome = self._paste(gui, str(action.get("text", ""))[:20_000])

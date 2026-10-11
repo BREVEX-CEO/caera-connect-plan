@@ -2,7 +2,7 @@
 
 # JARVIS Donor Capability Ledger
 
-Source: `imports/ocade-jarvis/source-original/ocade jarvis 25-09/` (58 files, SHA-256 manifest `source-original.sha256`, verified unchanged 2026-09-29).
+Source (historical): the owner's own JARVIS ZIP and snapshot (58 files), removed from the repository on 11 October 2026 (manifest in [ToRemove](../ToRemove.md)); retrievable only from Git history. Never reimport. Its LICENSE named the owner as copyright holder. This ledger records which active OCADE modules descend from it, for the P00-B rights review.
 
 Classes: **KEEP** (logic reused as-is in the active runtime), **ADAPT** (logic copied/adapted into an OCADE executor), **REPLACE** (capability delivered by an OCADE authority instead), **PRESERVE UNUSED** (kept only in the immutable donor), **REMOVE FROM ACTIVE** (a verbatim copy exists under `jarvis-runtime/` but is not wired; delete once the adapted path is proven).
 

@@ -1,4 +1,4 @@
-"""Donor-derived file operations and direct document reading, inside the workspace only."""
+"""File operations and direct document reading, inside the workspace only."""
 import sys
 import tempfile
 import unittest
