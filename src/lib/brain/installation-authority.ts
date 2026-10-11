@@ -573,6 +573,16 @@ export class ModelInstallationAuthority {
      * something OCADE has not shipped.
      */
     if (target === "unreachable") {
+      // Offline: the model already verified on this device needs no release lookup.
+      await this.deps.vault.load({ fresh: true });
+      const installed = this.deps.vault.activeVersion();
+      if (
+        installed &&
+        this.deps.vault.readMeta(installed)?.verified &&
+        (await this.deps.vault.bytesOf(installed)) > 0
+      ) {
+        return this.activate(path, installed, signal);
+      }
       return {
         ok: false,
         stop: true,

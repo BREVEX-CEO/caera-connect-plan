@@ -73,6 +73,31 @@ describe("an ordinary update on a device that already installed it", () => {
   });
 });
 
+describe("a cold start with no connection (P07)", () => {
+  const offline = (meta: { verified: boolean } | null, onDisk: number) => {
+    const built = authorityOver(meta, onDisk);
+    const deps = (built.authority as unknown as { deps: AuthorityDeps }).deps;
+    deps.resolveTarget = async () => "unreachable";
+    (deps.vault as unknown as { activeVersion: () => string }).activeVersion = () => VERSION;
+    return built;
+  };
+
+  it("runs the model already verified on this device without asking OCADE", async () => {
+    const { authority, network, activated } = offline({ verified: true }, BYTES);
+    const state = await authority.install({ reason: "app_bootstrap" });
+    expect(state.problem).toBeNull();
+    expect(network).not.toHaveBeenCalled();
+    expect(activated).toHaveBeenCalledWith("wasm_threaded", VERSION, expect.any(Function));
+  });
+
+  it("still says OCADE is unreachable when nothing verified is here", async () => {
+    const { authority, activated } = offline({ verified: false }, BYTES);
+    const state = await authority.install({ reason: "app_bootstrap" });
+    expect(state.problem).toMatch(/could not reach/);
+    expect(activated).not.toHaveBeenCalled();
+  });
+});
+
 describe("removal while the engine is loading (F-069)", () => {
   it("never announces ready and unloads what finished loading", async () => {
     let finish!: () => void;

@@ -512,6 +512,8 @@ The following mandatory steps and verification criteria come from the latest own
 
 **Target DONE:** actual cold offline operation and independently reconciled balances. No silent JARVIS offline fallback.
 
+**Work record — P07 cold offline activation (11 October 2026):** Reproduced by source trace and test: with no connection `resolveTarget` returned `unreachable` and `attemptPath` stopped with "could not reach your account" before looking at the vault, so a device holding a verified model could not start Offline Intelligence in a new document. **FIX:** on `unreachable`, the authority activates the vault's active version when its metadata is verified and its bytes are present; otherwise it reports unreachable as before. Test fails without the fix; brain suite 171/171 PASS. Still OPEN: app-shell availability of a brand-new offline document (service worker), corrupt-bytes quarantine instead of deletion, cross-tab key race, real cold-offline browser proof (final campaign). Evidence class LOCAL.
+
 ### P08 — Execute admitted deterministic segments on the device
 
 **Current:** `agent.ts` sequence loop around 528–555 calls `runDevice` for each action; `live-deps.ts` queues one action and `device.server.ts` claims one. This reduces some planning calls, not per-action cloud dispatch. Raising the sequence limit alone is not the fix.
