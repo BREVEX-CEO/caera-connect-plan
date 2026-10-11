@@ -14,6 +14,7 @@ What this computer offers for a task, found on the computer itself (owner addend
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import platform
@@ -392,8 +393,11 @@ QUARANTINE_AFTER = 2  # failures in a row before a recipe is set aside
 
 def recipes_for(app: str, version: str | None) -> tuple[list[dict], int]:
     mine = [r for r in _store().values() if r.get("app", "").lower() == app.lower()]
-    current = [r for r in mine if r.get("major") in (_major(version), "any")
+    # Only a recipe kept for this very version line: one kept when the version was unknown
+    # is not trusted for a known one (audit E08). Most recently kept first.
+    current = [r for r in mine if r.get("major") == _major(version)
                and r.get("failures", 0) < QUARANTINE_AFTER]
+    current.sort(key=lambda r: r.get("updated", ""), reverse=True)
     return current[:3], len(mine) - len(current)
 
 
@@ -417,7 +421,10 @@ def save_recipe(recipe: dict, version: str | None) -> dict:
         return {"status": "blocked", "summary": "Recipes keep only how the app is driven: no coordinates, "
                                                 "personal paths, addresses, codes or secrets"}
     store = _store()
-    key = f"{fields['app'].lower()}@{_major(version)}"
+    # One recipe per way of doing a thing: another task's recipe for the same app is kept beside
+    # it, never replaced by it (audit E08).
+    route = hashlib.sha256(fields["route"].lower().encode()).hexdigest()[:12]
+    key = f"{fields['app'].lower()}@{_major(version)}#{route}"
     if recipe.get("worked") is False:
         if key not in store:
             return {"status": "done", "summary": f"No recipe for {fields['app']} was remembered here"}

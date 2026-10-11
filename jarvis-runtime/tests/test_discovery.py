@@ -64,6 +64,21 @@ class RecipeTest(unittest.TestCase):
         self.assertIn("No recipe", ocade_discovery.save_recipe({**failed, "app": "Gimp"}, None)["summary"])
 
 
+    def test_another_tasks_recipe_is_kept_beside_and_unknown_versions_stay_apart(self):
+        """Audit E08: one recipe per way of doing a thing; an unknown version is its own line."""
+        resize = {"app": "Paint", "route": "ribbon resize", "steps": [], "verify": "size reads 50%"}
+        crop = {"app": "Paint", "route": "select then crop", "steps": [], "verify": "width reads 400"}
+        ocade_discovery.save_recipe(resize, "11.2.0")
+        ocade_discovery.save_recipe(crop, "11.2.0")
+        routes = {r["route"] for r in ocade_discovery.recipes_for("Paint", "11.2.0")[0]}
+        self.assertEqual(routes, {"ribbon resize", "select then crop"})
+        ocade_discovery.save_recipe({**resize, "route": "menu resize"}, None)  # version unknown then
+        self.assertNotIn("menu resize",
+                         {r["route"] for r in ocade_discovery.recipes_for("Paint", "11.2.0")[0]})
+        self.assertEqual([r["route"] for r in ocade_discovery.recipes_for("Paint", None)[0]],
+                         ["menu resize"])
+
+
 class CapabilityCacheTest(unittest.TestCase):
     """PLAN.md section F: an app's surfaces are found once per program build."""
 
