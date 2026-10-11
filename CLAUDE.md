@@ -86,7 +86,7 @@ For every requested change, use the first option that **fully** solves it:
 - **Do not micro-modularise.** Group related operations in the existing domain file; split functions/files only when clarity, true reuse, testing, or ownership improves. No arbitrary function-length limit.
 - **Readable beats shortest.** Descriptive names, obvious control flow, consistent project style; no dense clever one-liners, unnecessary comments, or hidden side effects.
 - **Dependencies are liabilities.** Prefer existing capabilities. Introduce a new package only with a demonstrated gap, licence/security review, and measurable maintenance benefit.
-- **Deletion is work, not an assumption.** For explicitly requested debloating, inventory scoped redundancies, trace all callers, measure baseline, prove replacement parity, then delete and retest. Preserve unrelated existing code otherwise.
+- **Debloat means removing code.** Actively identify and **delete** proven duplicate, dead, unused, obsolete and unnecessary production code—not merely shorten new code. Treat the owner's cleanup request and `ToRemove.md` as explicit permission to assess existing candidates, but remove each only after tracing all callers, demonstrating replacement/behaviour parity, preserving required safeguards and tests, and rerunning regressions. Do not delete useful, undocumented-but-live, or unrelated code based solely on file size or search results.
 - **No bloat in fixes.** Reproduce a defect; repair the shared root cause instead of stacking sleeps, retries, polling, flags, fallbacks, or duplicate error handlers.
 - **Avoid repeat context scans.** Reuse SHA-bound prior evidence; inspect changed, uncovered and directly affected files only. Report concise results, not repeated transcripts.
 
