@@ -36,7 +36,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cloud-python-${{ github.ref }}
+  group: cloud-python-${{ github.ref }}-${{ inputs.platform || 'linux' }}
   cancel-in-progress: true
 
 jobs:
