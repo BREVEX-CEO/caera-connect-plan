@@ -10,6 +10,14 @@
 import sys
 from pathlib import Path
 
+from PyInstaller.utils.hooks import copy_metadata
+
+# Licence texts travel with each bundled package (see THIRD_PARTY_NOTICES.txt).
+NOTICED = ["cryptography", "playwright", "pillow", "mss", "pyautogui", "pynput", "pygetwindow",
+           "psutil", "pyperclip", "pystray", "send2trash", "openpyxl", "et_xmlfile", "pypdf",
+           "sounddevice", "numpy"] + (["uiautomation", "comtypes", "pycaw"] if sys.platform == "win32" else [])
+metadata = [entry for name in NOTICED for entry in copy_metadata(name)]
+
 root = Path(SPECPATH).parent
 # Windows UI Automation helper DLLs ship inside the uiautomation package.
 uia_bin = []
@@ -23,13 +31,17 @@ a = Analysis(
     # Every file the runtime opens by path. `--health` opens them all, so a
     # build that forgot one fails its own health check before it ships.
     datas=[(str(root / "ocade_protocol.json"), "."),
+           (str(root / "LICENSE"), "."),
+           (str(root / "THIRD_PARTY_NOTICES.txt"), "."),
            (str(root / "actions" / "ocade_page.js"), "actions"),
            (str(root / "actions" / "ocade_workbook.ps1"), "actions"),
            (str(root / "actions" / "ocade_document.ps1"), "actions"),
            # OCADE's wake model and its signed manifest: bundled, never downloaded.
            *[(str(f), "wake") for f in (root / "wake").iterdir()
              if f.name in ("manifest.json", "manifest.sig") or f.suffix == ".npz" and f.stem != "candidate"],
-           *uia_bin],
+           *uia_bin, *metadata],
+    # LGPL-3.0 libraries ship as plain, replaceable .py files in the install folder.
+    module_collection_mode={"pynput": "py", "pystray": "py"},
     hiddenimports=[
         "ocade_device", "ocade_identity", "ocade_computer", "ocade_update",
         "ocade_egress", "ocade_wake", "ocade_existing_browser", "ocade_documents", "ocade_sheets", "ocade_accessibility",

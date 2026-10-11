@@ -1,0 +1,23 @@
+OCADE Device Agent - third-party software notices
+
+The OCADE Device Agent is proprietary software of its copyright holder (see
+LICENSE). It includes the open-source components below, each under its own
+licence. Their copyright notices and licence texts are installed with each
+component's package metadata in this folder.
+
+GNU Lesser General Public License v3 (LGPL-3.0):
+  pynput, pystray
+  These libraries are installed as separate, unmodified Python modules in this
+  folder. You may replace them with a modified version of the same library;
+  their source code is available from https://pypi.org/project/pynput/ and
+  https://pypi.org/project/pystray/ and on request from OCADE.
+
+Apache License 2.0: playwright, uiautomation
+Apache-2.0 OR BSD-3-Clause: cryptography
+MIT License: comtypes, mss, openpyxl, et_xmlfile, sounddevice, pycaw
+MIT-CMU (Historical Permission Notice and Disclaimer): pillow
+BSD License: pyautogui, pygetwindow, pyperclip, send2trash, psutil, pypdf, numpy
+Python Software Foundation License: the bundled Python runtime
+
+Chromium, downloaded by Playwright on first use, is distributed by its authors
+under its own BSD-style licence and notices.
