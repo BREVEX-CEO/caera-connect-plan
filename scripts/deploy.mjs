@@ -487,6 +487,18 @@ export async function runDeployment({
           "The npm CLI entrypoint is unavailable; invoke deployment through npm run deploy:web.",
       };
     }
+    const audited = runner(nodeCommand, [npmCli, "audit", "--omit=dev"], {
+      cwd,
+      env,
+      inherit: true,
+    });
+    if (commandFailed(audited)) {
+      return {
+        status: "failed",
+        plan,
+        reason: "Production dependency audit failed; nothing was built or uploaded.",
+      };
+    }
     const built = runner(nodeCommand, [npmCli, "run", "build"], {
       cwd,
       env,

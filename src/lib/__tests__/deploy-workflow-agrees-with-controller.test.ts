@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { createDeploymentPlan } from "../../../scripts/deploy.mjs";
+import { createDeploymentPlan, runDeployment } from "../../../scripts/deploy.mjs";
 
 /**
  * THE DEPLOYMENT PATH MUST ACCEPT THE TREE IT SHIPS.
@@ -35,5 +35,22 @@ describe("the production deployment workflow", () => {
     for (const name of Object.keys(WORKFLOW_ENVIRONMENT)) {
       expect(WORKFLOW).toContain(`${name}:`);
     }
+  });
+
+  it("refuses to build or upload when the production dependency audit fails", async () => {
+    const ran: string[][] = [];
+    const runner = (_command: string, args: string[]) => {
+      ran.push(args);
+      return { status: args.includes("audit") ? 1 : 0, stdout: "" };
+    };
+    const result = await runDeployment({
+      mode: "deploy",
+      env: { ...WORKFLOW_ENVIRONMENT, npm_execpath: "package.json" },
+      runner: runner as never,
+    });
+    expect(result.status).toBe("failed");
+    expect(result.reason).toMatch(/dependency audit/);
+    expect(ran.some((args) => args.includes("build"))).toBe(false);
+    expect(ran.some((args) => args.includes("upload"))).toBe(false);
   });
 });
