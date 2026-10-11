@@ -286,6 +286,9 @@ const NOT_SAVED = {
 export class ModelInstallationAuthority {
   private state: InstallState = INITIAL;
   private readonly listeners = new Set<(state: InstallState) => void>();
+  /** Repair asked: an installed model's bytes are hashed again before it is trusted. */
+  private reverify = false;
+
   /** The operation in flight. THE reason two callers cannot compete. */
   private running: Promise<InstallState> | null = null;
   private controller: AbortController | null = null;
@@ -443,6 +446,7 @@ export class ModelInstallationAuthority {
     const run = this.runInstall(this.controller.signal).finally(() => {
       this.running = null;
       this.controller = null;
+      this.reverify = false;
     });
     this.running = run;
     return run;
@@ -578,6 +582,7 @@ export class ModelInstallationAuthority {
       const installed = this.deps.vault.activeVersion();
       if (
         installed &&
+        !this.reverify &&
         this.deps.vault.readMeta(installed)?.verified &&
         (await this.deps.vault.bytesOf(installed)) > 0
       ) {
@@ -606,7 +611,8 @@ export class ModelInstallationAuthority {
     await this.deps.vault.load({ fresh: true });
     const existing = this.deps.vault.readMeta(target.version);
     const onDisk = await this.deps.vault.bytesOf(target.version);
-    if (existing?.verified && onDisk > 0) {
+    // Repair proves the bytes again: a model marked verified can since have been damaged (C14).
+    if (existing?.verified && onDisk > 0 && !this.reverify) {
       if (!(await this.deps.vault.activate(target.version))) return NOT_SAVED;
       await this.deps.vault.cleanupAfterActivation(target.version);
       return this.activate(path, target.version, signal);
@@ -1058,6 +1064,7 @@ export class ModelInstallationAuthority {
     // new progress bar at 100% from its first byte.
     this.highestFraction = 0;
     this.publish({ stage: "repairing", problem: null, remedies: [] });
+    this.reverify = true;
     for (const stored of await this.deps.vault.listVersions()) {
       const meta = stored.meta;
       // A version with no digest recorded can never be proven, so its bytes are

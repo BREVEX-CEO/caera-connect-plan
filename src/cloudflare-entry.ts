@@ -9,8 +9,9 @@ import { canonicalOriginRedirect, withPublicSecurityHeaders } from "./lib/securi
 async function runErasureSweep(): Promise<void> {
   try {
     const { sweepTombstones } = await import("./lib/library/tombstones.server");
-    const { pending } = await sweepTombstones(null, 1);
+    const { pending, deadLetters } = await sweepTombstones(null, 1);
     if (pending !== 0) console.warn("erasure.pending", pending);
+    if (deadLetters !== 0) console.warn("erasure.dead_letters", deadLetters);
   } catch (error) {
     console.error("erasure.sweep", error instanceof Error ? error.message : "failed");
   }

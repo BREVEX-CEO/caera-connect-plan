@@ -136,3 +136,29 @@ describe("another tab's ready (F-184)", () => {
     expect(authority.isReady()).toBe(true);
   });
 });
+
+describe("Repair (C14)", () => {
+  it("proves a model marked verified again, and never activates damaged bytes", async () => {
+    const { authority, activated } = authorityOver({ verified: true }, BYTES);
+    const deps = (authority as unknown as { deps: AuthorityDeps }).deps;
+    const vault = deps.vault as unknown as Record<string, unknown>;
+    const removed = vi.fn(async () => {});
+    vault.listVersions = async () => [];
+    vault.removeVersion = removed;
+    vault.readArtifact = async () => new Blob(["damaged"]);
+    // Same length, wrong content: only hashing can tell.
+    deps.hashBlob = async () => "0".repeat(64);
+    // Stop before any download: the point is what Repair does with the bytes already here.
+    deps.storageHeadroom = async () => 0;
+    const state = await authority.repair();
+    expect(removed).toHaveBeenCalledWith(VERSION);
+    expect(activated).not.toHaveBeenCalled();
+    expect(state.stage).not.toBe("ready");
+  });
+
+  it("an ordinary start still trusts the recorded proof", async () => {
+    const { authority, activated } = authorityOver({ verified: true }, BYTES);
+    await authority.install({ reason: "app_bootstrap" });
+    expect(activated).toHaveBeenCalled();
+  });
+});

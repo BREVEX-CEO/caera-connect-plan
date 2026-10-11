@@ -32,6 +32,8 @@ let owed: {
   owner_id: string;
 }[] = [];
 let countError: { message: string } | null = null;
+/** What the table still owes after the sweep: retried, and spent (dead letters). */
+let backlog = { retried: 0, spent: 0 };
 let staffRole: string | null = null;
 
 function table(name: string) {
@@ -42,7 +44,9 @@ function table(name: string) {
   chain.insert = async () => ({ error: null });
   chain.select = () => {
     const read: Record<string, unknown> = {};
+    let spent = false;
     for (const m of ["eq", "is", "not", "lt", "order"]) read[m] = () => read;
+    read.gte = () => ((spent = true), read);
     read.limit = async () => {
       const rows = owed;
       owed = [];
@@ -54,7 +58,9 @@ function table(name: string) {
     });
     read.then = (resolve: (v: unknown) => void) =>
       resolve(
-        countError ? { count: null, error: countError } : { count: owed.length, error: null },
+        countError
+          ? { count: null, error: countError }
+          : { count: spent ? backlog.spent : backlog.retried, error: null },
       );
     return read;
   };
@@ -92,6 +98,7 @@ beforeEach(() => {
   storageError = null;
   owed = [];
   countError = null;
+  backlog = { retried: 0, spent: 0 };
   staffRole = null;
 });
 
@@ -136,6 +143,7 @@ describe("tombstone sweep", () => {
   it("keeps a tombstone pending with its error when Storage refuses", async () => {
     owed = [{ id: "t2", bucket: "library", storage_path: "u1/b", attempts: 1, owner_id: "u1" }];
     storageError = { message: "storage unavailable" };
+    backlog = { retried: 1, spent: 0 };
     const { sweepTombstones } = await import("../../library/tombstones.server");
     const result = await sweepTombstones("u1");
     expect(result.pending).toBe(1);
@@ -153,6 +161,21 @@ describe("tombstone sweep", () => {
     const closed = updates.find((u) => u.values.last_error === "Not this account's object");
     expect(closed?.ids).toEqual(["t4"]);
     expect(updates.find((u) => u.values.last_error === null)?.ids).toEqual(["t3"]);
+  });
+
+  it("reports deletions that spent their attempts, not 'nothing pending' (C15)", async () => {
+    owed = [];
+    backlog = { retried: 0, spent: 2 };
+    const { sweepTombstones } = await import("../../library/tombstones.server");
+    expect(await sweepTombstones(null, 1)).toEqual({ pending: 0, deadLetters: 2 });
+  });
+
+  it("counts the whole backlog, not the one batch that failed (C15)", async () => {
+    owed = [{ id: "t6", bucket: "library", storage_path: "u1/f", attempts: 0, owner_id: "u1" }];
+    storageError = { message: "storage unavailable" };
+    backlog = { retried: 750, spent: 0 };
+    const { sweepTombstones } = await import("../../library/tombstones.server");
+    expect((await sweepTombstones("u1")).pending).toBe(750);
   });
 
   it("reports an uncountable backlog as unknown, never as nothing pending", async () => {

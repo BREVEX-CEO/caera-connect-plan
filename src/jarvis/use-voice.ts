@@ -148,7 +148,10 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
     r.continuous = true;
     r.interimResults = false;
     r.lang = navigator.language || "en-US";
+    // Only the recogniser listening now is heard: a stopped one's late words or errors are not (C20).
+    const mine = () => recognition.current === r;
     r.onresult = (event) => {
+      if (!mine()) return;
       for (let at = event.resultIndex; at < event.results.length; at += 1) {
         const result = event.results[at]!;
         if (!result.isFinal) continue;
@@ -159,7 +162,7 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
     r.onerror = (event) => {
       // Silence and our own aborts are routine; anything else ends voice and says why,
       // rather than restarting a recogniser that cannot work.
-      if (event.error === "no-speech" || event.error === "aborted") return;
+      if (!mine() || event.error === "no-speech" || event.error === "aborted") return;
       setError(
         event.error === "not-allowed" || event.error === "service-not-allowed"
           ? "Microphone access was refused."
@@ -168,6 +171,7 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
       endRef.current();
     };
     r.onend = () => {
+      if (!mine()) return;
       recognition.current = null;
       // The recogniser ends on its own after silence; keep listening while voice is on.
       if (stateRef.current === "listening") window.setTimeout(listen, 300);
@@ -187,6 +191,8 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
     recognition.current = null;
     if (r) {
       r.onend = null;
+      r.onresult = null;
+      r.onerror = null;
       r.abort();
     }
   }, []);
@@ -259,7 +265,8 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text.slice(0, 4000));
       const spoken = ++utterances.current;
-      utterance.onend = () => {
+      // Ended or failed, speaking is over the same way: never stuck "speaking" (C21).
+      utterance.onend = utterance.onerror = () => {
         if (utterances.current !== spoken || stateRef.current !== "speaking") return;
         window.setTimeout(() => {
           if (utterances.current !== spoken || stateRef.current !== "speaking") return;

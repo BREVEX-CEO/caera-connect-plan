@@ -22,9 +22,39 @@ import { ACCOUNT_DATA_CLASSES, type AccountTable } from "../data-classes";
  * is a parameter, and these tests hand it thousands.
  */
 
+/** PostgREST's `or` filter over one row: `a.gt."x"` and `and(a.eq."x",b.gt."y")` terms. */
+function matchesOr(row: ExportedRow, filters: string): boolean {
+  const terms: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let at = 0; at < filters.length; at += 1) {
+    const c = filters[at];
+    if (c === "(") depth += 1;
+    if (c === ")") depth -= 1;
+    if (c === "," && depth === 0) {
+      terms.push(filters.slice(start, at));
+      start = at + 1;
+    }
+  }
+  terms.push(filters.slice(start));
+  return terms.some((term) => {
+    if (term.startsWith("and(")) {
+      return term
+        .slice(4, -1)
+        .split(",")
+        .every((part) => matchesOr(row, part));
+    }
+    const [, column, op, raw] = /^(\w+)\.(eq|gt)\.(.*)$/.exec(term)!;
+    const value = raw!.replace(/^"(.*)"$/, "$1").replace(/\\(.)/g, "$1");
+    const order = String(row[column!]).localeCompare(value);
+    return op === "eq" ? order === 0 : order > 0;
+  });
+}
+
 /**
- * A fake that answers `.range()` as PostgreSQL does: in a stable order only when one was
- * asked for. Unordered, each page sees the rows in a different order.
+ * A fake that answers pages as PostgreSQL does: in a stable order only when one was
+ * asked for. Unordered, each page sees the rows in a different order. `between` runs
+ * after each page, so a test can change the table while an export reads it.
  */
 function fakeDatabase(options: {
   rows?: Partial<Record<AccountTable, ExportedRow[]>>;
@@ -32,21 +62,26 @@ function fakeDatabase(options: {
   /** Every `.in()` list this fake was asked for, to check chunking. */
   seenIdBatches?: number[];
   deleted?: AccountTable[];
+  between?: () => void;
 }): DynamicTableClient {
   const rows = options.rows ?? {};
   let calls = 0;
   const page = (all: ExportedRow[], failure: PostgrestFailure) => {
     const by: string[] = [];
+    let filter: string | null = null;
     const query = {
       order: (column: string) => (by.push(column), query),
-      range: (from: number, to: number) => {
+      or: (filters: string) => ((filter = filters), query),
+      limit: (count: number) => {
         calls += 1;
         const view = by.length
           ? [...all].sort((a, b) => String(a[by[0]!]).localeCompare(String(b[by[0]!])))
           : calls % 2
             ? all
             : [...all].reverse();
-        return Promise.resolve({ data: failure ? null : view.slice(from, to + 1), error: failure });
+        const page = view.filter((row) => !filter || matchesOr(row, filter)).slice(0, count);
+        options.between?.();
+        return Promise.resolve({ data: failure ? null : page, error: failure });
       },
     };
     return query;
@@ -97,6 +132,33 @@ describe("exporting an account", () => {
       .find((entry) => entry.table === "ocade_library_items")!.rows;
     expect(new Set(read.map((row) => row.id)).size).toBe(all.length);
     expect(read).toHaveLength(all.length);
+  });
+
+  it("misses no row when an earlier one is deleted between pages (C16)", async () => {
+    const all = manyRows(1200).map((row, index) => ({
+      ...row,
+      id: `row-${String(index).padStart(4, "0")}`,
+    }));
+    const expected = all.map((row) => row.id);
+    let pages = 0;
+    const exported = await buildAccountExport(
+      fakeDatabase({
+        rows: { ocade_library_items: all },
+        // After the first page, the person deletes a row that page already read.
+        between: () => {
+          pages += 1;
+          if (pages === 1) all.splice(0, 1);
+        },
+      }),
+      "account-1",
+    );
+    const read = exported.classes
+      .flatMap((entry) => entry.tables)
+      .find((entry) => entry.table === "ocade_library_items")!
+      .rows.map((row) => row.id);
+    // Every row that still exists was read, once: none slid into a page already passed.
+    expect(read.slice(1)).toEqual(expected.slice(1));
+    expect(new Set(read).size).toBe(read.length);
   });
 
   it("reads past the first page rather than stopping at it", async () => {

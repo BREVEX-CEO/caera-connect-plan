@@ -242,6 +242,33 @@ describe("an interruption", () => {
     expect(resumed.ok && resumed.verified).toBe(true);
   });
 
+  it("never records a frontier whose bytes could not be made durable (C13)", async () => {
+    const bytes = artifact(SIZE);
+    const writer = arrayWriter(SIZE);
+    const controller = new AbortController();
+    // Every flush fails: nothing past where the transfer began is known to be on disk.
+    const unflushable = { ...writer, flush: async () => false };
+    const published: TransferCheckpoint[] = [];
+    const stopping = await transferModel(
+      {
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
+        totalBytes: SIZE,
+        sha256: await digestOf(bytes),
+        plan: { ...PLAN, concurrency: 1 },
+        onCheckpoint: (value) => void published.push(value),
+        onProgress: (progress) => {
+          if (progress.receivedBytes >= SIZE / 2) controller.abort();
+        },
+        signal: controller.signal,
+      },
+      { fetchImpl: rangedServer(bytes).fetch, writer: unflushable, sleep: async () => {} },
+    );
+    expect(stopping.ok).toBe(false);
+    if (stopping.ok) return;
+    expect(published).toEqual([]);
+    expect(stopping.checkpoint?.contiguousChunks ?? 0).toBe(0);
+  });
+
   it("falls back to whole-file reading from the source that answered, not the one that failed (F-190)", async () => {
     const bytes = artifact(SIZE);
     const asked: string[] = [];

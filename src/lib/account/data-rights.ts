@@ -96,10 +96,8 @@ export type PostgrestFailure = { message: string } | null;
 
 export interface RowPage {
   order(column: string): RowPage;
-  range(
-    from: number,
-    to: number,
-  ): PromiseLike<{ data: ExportedRow[] | null; error: PostgrestFailure }>;
+  or(filters: string): RowPage;
+  limit(count: number): PromiseLike<{ data: ExportedRow[] | null; error: PostgrestFailure }>;
 }
 
 export interface RowSelection {
@@ -126,28 +124,53 @@ const UNIQUE_KEY: Partial<Record<AccountTable, readonly string[]>> = {
   user_private_records: ["user_id", "data_class", "id"],
 };
 
-const ordered = (page: RowPage, table: AccountTable) =>
-  (UNIQUE_KEY[table] ?? ["id"]).reduce((query, column) => query.order(column), page);
+/** A value inside a PostgREST `or` filter, quoted so commas, dots and colons stay data. */
+const quoted = (value: unknown) => `"${String(value).replace(/["\\]/g, (c) => `\\${c}`)}"`;
 
-/** Read one table completely, a page at a time. */
-async function readTable(
+/** Rows after `last` in key order: (k1 > v1) or (k1 = v1 and k2 > v2) or ... */
+function after(keys: readonly string[], last: ExportedRow): string {
+  return keys
+    .map((key, at) => {
+      const before = keys.slice(0, at).map((k) => `${k}.eq.${quoted(last[k])}`);
+      const next = `${key}.gt.${quoted(last[key])}`;
+      return before.length ? `and(${[...before, next].join(",")})` : next;
+    })
+    .join(",");
+}
+
+/**
+ * Read every row a query selects, a page at a time, each page continuing after the last row
+ * read in the table's own unique-key order. Unlike counting rows to skip, a row deleted or
+ * added meanwhile cannot make a later row be skipped (C16). `fixed` names key columns the
+ * query already pins (the owner), which need no ordering.
+ */
+async function readByKey(
+  table: AccountTable,
+  query: () => RowPage,
+  fixed: readonly string[] = [],
+): Promise<AccountExportTable> {
+  const keys = (UNIQUE_KEY[table] ?? ["id"]).filter((key) => !fixed.includes(key));
+  const rows: ExportedRow[] = [];
+  for (let last: ExportedRow | undefined; ;) {
+    const ordered = keys.reduce((page, key) => page.order(key), query());
+    const { data, error } = await (last ? ordered.or(after(keys, last)) : ordered).limit(PAGE_SIZE);
+    if (error) return { table, rows, unavailable: error.message };
+    if (!data || data.length === 0) break;
+    rows.push(...data);
+    if (data.length < PAGE_SIZE) break;
+    last = data[data.length - 1];
+  }
+  return { table, rows };
+}
+
+/** Read one table completely. */
+function readTable(
   admin: DynamicTableClient,
   table: AccountTable,
   userId: string,
   owner: OwnerColumn,
 ): Promise<AccountExportTable> {
-  const rows: ExportedRow[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await ordered(
-      admin.from(table).select("*").eq(owner, userId),
-      table,
-    ).range(from, from + PAGE_SIZE - 1);
-    if (error) return { table, rows, unavailable: error.message };
-    if (!data || data.length === 0) break;
-    rows.push(...data);
-    if (data.length < PAGE_SIZE) break;
-  }
-  return { table, rows };
+  return readByKey(table, () => admin.from(table).select("*").eq(owner, userId), [owner]);
 }
 
 /**
@@ -170,16 +193,11 @@ async function readCascadedTable(
   const CHUNK = 100;
   for (let index = 0; index < parentIds.length; index += CHUNK) {
     const slice = parentIds.slice(index, index + CHUNK);
-    for (let from = 0; ; from += PAGE_SIZE) {
-      const { data, error } = await ordered(
-        admin.from(table).select("*").in(parentColumn, slice),
-        table,
-      ).range(from, from + PAGE_SIZE - 1);
-      if (error) return { table, rows, unavailable: error.message };
-      if (!data || data.length === 0) break;
-      rows.push(...data);
-      if (data.length < PAGE_SIZE) break;
-    }
+    const read = await readByKey(table, () =>
+      admin.from(table).select("*").in(parentColumn, slice),
+    );
+    rows.push(...read.rows);
+    if (read.unavailable) return { table, rows, unavailable: read.unavailable };
   }
   return { table, rows };
 }

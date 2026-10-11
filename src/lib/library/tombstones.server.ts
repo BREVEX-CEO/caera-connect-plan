@@ -9,7 +9,10 @@
  * already erased, until the attempt budget is spent and the row stays for an
  * operator. The service role is needed because no browser role may write
  * tombstones; every object is checked against its own row's owner folder.
- * `pending` is -1 when it could not be counted: unknown is never zero.
+ * `pending` is every deletion still owed that a sweep retries; `deadLetters` the
+ * ones that spent their attempts and wait for an operator. Both are counted from
+ * the table, never from one batch, and -1 when they could not be: unknown is
+ * never zero (C15).
  */
 const BATCH = 500;
 const MAX_BATCHES = 20;
@@ -18,7 +21,7 @@ const MAX_ATTEMPTS = 10;
 export async function sweepTombstones(
   ownerId: string | null,
   maxBatches = MAX_BATCHES,
-): Promise<{ pending: number }> {
+): Promise<{ pending: number; deadLetters: number }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const due = () => {
     const query = supabaseAdmin
@@ -32,7 +35,7 @@ export async function sweepTombstones(
   for (let batch = 0; batch < maxBatches; batch += 1) {
     const { data: owed, error } = await due().order("requested_at").limit(BATCH);
     if (error) throw new Error(error.message);
-    if (!owed?.length) return { pending: 0 };
+    if (!owed?.length) break;
 
     let settled = 0;
     // Only an owner's own folder is ever removed with the service role. A path that names
@@ -78,17 +81,23 @@ export async function sweepTombstones(
       if (marked.error) throw new Error(marked.error.message);
       settled += rows.length;
     }
-    // Nothing moved this round: the rest is failing and stays pending.
-    if (settled === 0) return { pending: owed.length };
+    // Nothing moved this round: the rest is failing and stays owed.
+    if (settled === 0) break;
   }
 
-  const counted = supabaseAdmin
-    .from("storage_tombstones")
-    .select("id", { count: "exact", head: true })
-    .is("purged_at", null)
-    .not("owner_id", "is", null);
-  const { count, error } = await (ownerId
-    ? counted.eq("owner_id", ownerId)
-    : counted.lt("attempts", MAX_ATTEMPTS));
-  return { pending: error || count === null ? -1 : count };
+  const owedRows = () => {
+    const query = supabaseAdmin
+      .from("storage_tombstones")
+      .select("id", { count: "exact", head: true })
+      .is("purged_at", null)
+      .not("owner_id", "is", null);
+    return ownerId ? query.eq("owner_id", ownerId) : query;
+  };
+  const [retried, spent] = await Promise.all([
+    ownerId ? owedRows() : owedRows().lt("attempts", MAX_ATTEMPTS),
+    owedRows().gte("attempts", MAX_ATTEMPTS),
+  ]);
+  const known = (counted: { count: number | null; error: unknown }) =>
+    counted.error || counted.count === null ? -1 : counted.count;
+  return { pending: known(retried), deadLetters: known(spent) };
 }

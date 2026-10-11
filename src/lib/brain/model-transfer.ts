@@ -330,6 +330,18 @@ export async function transferModel(
     chunkBytes,
     totalBytes,
   });
+  /**
+   * The frontier known to be on disk: where this transfer started, then every frontier a
+   * successful flush confirmed. A frontier whose flush failed is never published (C13).
+   */
+  let durable = checkpointNow();
+  const flushedFrontier = async (): Promise<TransferCheckpoint> => {
+    if (await deps.writer.flush()) {
+      durable = checkpointNow();
+      await request.onCheckpoint?.(durable);
+    }
+    return durable;
+  };
 
   if (request.signal?.aborted) {
     return finish({
@@ -497,7 +509,8 @@ export async function transferModel(
       };
       return false;
     }
-    await request.onCheckpoint?.(checkpointNow());
+    durable = checkpointNow();
+    await request.onCheckpoint?.(durable);
     return true;
   };
 
@@ -728,23 +741,21 @@ export async function transferModel(
   }
 
   if (request.signal?.aborted) {
-    await deps.writer.flush();
-    // Same reasoning as the failure path below: the frontier is durable, so it
-    // is recorded rather than left for the periodic checkpoint that will not
-    // come. Stopping is not discarding.
-    await request.onCheckpoint?.(checkpointNow());
+    // Same reasoning as the failure path below: a durable frontier is recorded
+    // rather than left for the periodic checkpoint that will not come.
+    // Stopping is not discarding.
+    const checkpoint = await flushedFrontier();
     return finish({
       ok: false,
       failure: "cancelled",
       reason: "Preparation stopped.",
       retriable: true,
-      checkpoint: checkpointNow(),
+      checkpoint,
       metrics,
     });
   }
 
   if (failure) {
-    await deps.writer.flush();
     /*
      * PERSIST THE FRONTIER ON THE WAY OUT, NOT ONLY AT THE 32 MB CADENCE.
      *
@@ -756,11 +767,11 @@ export async function transferModel(
      * lose valid downloaded progress" rule, broken in the one situation the
      * rule exists for.
      *
-     * The flush above has already made those bytes durable, so telling the
-     * caller about them costs nothing and is simply true.
+     * Only once the flush says those bytes are durable is the caller told about
+     * them; a failed flush leaves the last frontier that was (C13).
      */
-    await request.onCheckpoint?.(checkpointNow());
-    return finish({ ...failure, ok: false, checkpoint: checkpointNow(), metrics });
+    const checkpoint = await flushedFrontier();
+    return finish({ ...failure, ok: false, checkpoint, metrics });
   }
 
   if (!(await persist())) {
@@ -769,7 +780,7 @@ export async function transferModel(
       failure: failure ?? "storage",
       reason: "OCADE could not save what it downloaded.",
       retriable: true,
-      checkpoint: checkpointNow(),
+      checkpoint: durable,
       metrics,
     } as TransferResult & { ok: false });
   }
