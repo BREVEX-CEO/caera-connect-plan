@@ -18,7 +18,20 @@ public final class OcadeAccessibility extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        // Nothing is watched: the tree is read only when a step asks for it.
+        // Nothing is recorded. A new window, dialog or overlay only makes what JARVIS read
+        // before stale, so its next step reads the screen again; OCADE's own bubble does not.
+        int type = event.getEventType();
+        boolean moved = type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                || type == AccessibilityEvent.TYPE_WINDOWS_CHANGED;
+        if (moved && !getPackageName().contentEquals(String.valueOf(event.getPackageName()))) {
+            Control.invalidate();
+        }
+    }
+
+    @Override
+    public void onConfigurationChanged(android.content.res.Configuration configuration) {
+        super.onConfigurationChanged(configuration);
+        Control.invalidate(); // rotated, resized or density changed: every position moved
     }
 
     @Override

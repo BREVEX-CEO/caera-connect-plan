@@ -683,6 +683,8 @@ Owners: `android/src/in/ocade/app/AgentService.java`, `Control.java`, `Identity.
 
 **Target DONE:** state-verified emulator suite plus separate physical proof. Developer ADB/Termux is not a customer requirement.
 
+**Work record — P13 step 3 (11 October 2026):** `OcadeAccessibility` ignored every event, so a control or screen observation stayed "current" across a new activity, dialog, overlay or rotation until the next read. **FIX:** window-state and window-list changes from other apps (OCADE's own bubble excluded) and configuration changes (rotation, resize, density) invalidate both held observations; the next step reads the screen again. Steps 2 and 4 landed earlier (durable results; STOP at the final effect, 60 s observation age). Compiles (`build.py`); emulator proof deferred to the final campaign (UNTESTED). Still OPEN: guided per-task permission requests, interrupted gesture reconciliation, Doze/process-death/revoke matrix, physical OEM evidence (BLOCKED: no hardware).
+
 ### P14 — Stage Apple support honestly
 
 Inspect `jarvis-runtime/packaging/macos/build.sh`, entitlements, install-root assumptions in `ocade_agent.py`, `ocade_computer.py` and update paths. Current source does not prove Windows-equivalent semantic control on macOS. Implement legitimate Accessibility/Apple Events permissions and native bundle lifecycle only after real Mac testing is available. Do not claim an unsigned development launch proves a signed/notarised update installation.

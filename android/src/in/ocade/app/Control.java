@@ -42,11 +42,11 @@ final class Control {
     private static final int MAX_CONTROLS = 150;
 
     private static int seq;
-    private static String uiObservation;
+    private static volatile String uiObservation;
     private static long uiObservedAt;
     private static final long OBSERVATION_MAX_AGE_MS = 60_000; // the desktop agent's limit
     private static final Map<String, AccessibilityNodeInfo> refs = new HashMap<>();
-    private static String screenObservation;
+    private static volatile String screenObservation;
     private static float screenScale = 1f;
 
     private Control() {}
@@ -480,6 +480,12 @@ final class Control {
         if (!sent) return false;
         done.await(3, TimeUnit.SECONDS);
         return ok.get();
+    }
+
+    /** The screen changed under JARVIS: what it read before is stale. */
+    static void invalidate() {
+        uiObservation = null;
+        screenObservation = null;
     }
 
     /** STOP: a gesture in flight is abandoned. */
