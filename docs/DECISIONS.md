@@ -141,36 +141,36 @@ No choice authorises a cloud desktop, unrestricted credentials, unsafe elevation
 
 These are **28 new owner-selected business experiments**, added to—not replacing—the original 60 owner selections and three later 1A/2A/3A technical refinements. Their exact letters are recorded below; each implementation belongs to its existing PLAN P-package. Product options belong to PRD, pricing/merchant rules to Security and P20, implementation order to PLAN, and real evidence to Testing. **None of these selections authorises advertising a live paid plan, purchasing ads, changing entitlements, enrolling customers without consent or deploying to production.** Prices are A/B hypotheses subject to cost, tax, merchant, consumer-law and owner release approval; 28/8 is optional positioning, not a revenue mechanism. Customer primary audience remains India students and independent professionals; accountants are only the first professional validation niche.
 
-| ID | Choice | Binding business experiment or decision | Owning package |
-| --- | --- | --- | --- |
-| G01 | **A** | Accountants are the first professional *discovery niche*, not replacement for India students/independent professionals | P18 |
-| G02 | **A** | Lead with reconciliation/incorrect spreadsheet totals rather than formatting | P18 |
-| G03 | **D** | Use labelled synthetic fixtures and separately consented real data | P18/P19 |
-| G04 | **A** | Initial design-partner observation lasts 2 weeks | P18 |
-| G05 | **A** | Recruit 5 consenting design partners initially, a qualitative sample | P18 |
-| G06 | **A** | Rank verified accuracy ahead of speed/setup/presentation in first experiment | P18/P19 |
-| G07 | **A** | Increase growth spending only after repeat use and sound retained contribution | P21 |
-| G08 | **A** | Test capped India entry at ₹288/month; no unlimited work | P20 |
-| G09 | **A** | A/B test India solo ₹888 versus ₹999/month | P20 |
-| G10 | **B** | Investigate India higher-usage individual candidate ₹2,888/month | P20 |
-| G11 | **A** | A/B test international solo US$28 versus US$29/month | P20 |
-| G12 | **C** | Investigate international higher-usage individual candidate US$88/month | P20 |
-| G13 | **A** | Use 28/8 subtly as optional price identity, never as proven causal conversion benefit | P20 |
-| G14 | **A** | Pricing cards lead with verified-work allowance and exact total payable price | P20/PRD |
-| G15 | **A** | Prioritise UPI + cards in India, subject to approved merchant capabilities | P20 |
-| G16 | **B** | Consider annual subscriptions only after 90 days of credible retention/economics evidence | P20 |
-| G17 | **A** | Investigate a clear time-limited refund with provider/legal terms before launch | P20/Security |
-| G18 | **A** | Target 5 separate paid pilots only after P19/P20 release, merchant and legal gates | P20/P21 |
-| G19 | **A** | Bootstrap first; assess angel capital only when evidence justifies it | P21 |
-| G20 | **D** | Set monthly acquisition/experimentation budget from real available runway | P21 |
-| G21 | **A** | First paid acquisition test uses Google/search intent | P21 |
-| G22 | **A** | Lead organic content with consented real-result task demonstrations | P21 |
-| G23 | **A** | Trial anti-fraud referral credits after verified legitimate customer value | P21 |
-| G24 | **A** | Choose a proof-led website launch, contingent on release readiness | P21 |
-| G25 | **A** | Hindi is the first additional language to qualify; test actual support/accuracy | P15/P21 |
-| G26 | **A** | Expand into English-language markets based on actual demand and local readiness | P21 |
-| G27 | **A** | First B2B discovery cohort: accounting/operations firms with client-data boundaries | P18/P21 |
-| G28 | **A** | Publish monthly matched, evidence-labelled competitor comparisons where runnable | P19/P21 |
+| ID  | Choice | Binding business experiment or decision                                                                                | Owning package |
+| --- | ------ | ---------------------------------------------------------------------------------------------------------------------- | -------------- |
+| G01 | **A**  | Accountants are the first professional _discovery niche_, not replacement for India students/independent professionals | P18            |
+| G02 | **A**  | Lead with reconciliation/incorrect spreadsheet totals rather than formatting                                           | P18            |
+| G03 | **D**  | Use labelled synthetic fixtures and separately consented real data                                                     | P18/P19        |
+| G04 | **A**  | Initial design-partner observation lasts 2 weeks                                                                       | P18            |
+| G05 | **A**  | Recruit 5 consenting design partners initially, a qualitative sample                                                   | P18            |
+| G06 | **A**  | Rank verified accuracy ahead of speed/setup/presentation in first experiment                                           | P18/P19        |
+| G07 | **A**  | Increase growth spending only after repeat use and sound retained contribution                                         | P21            |
+| G08 | **A**  | Test capped India entry at ₹288/month; no unlimited work                                                               | P20            |
+| G09 | **A**  | A/B test India solo ₹888 versus ₹999/month                                                                             | P20            |
+| G10 | **B**  | Investigate India higher-usage individual candidate ₹2,888/month                                                       | P20            |
+| G11 | **A**  | A/B test international solo US$28 versus US$29/month                                                                   | P20            |
+| G12 | **C**  | Investigate international higher-usage individual candidate US$88/month                                                | P20            |
+| G13 | **A**  | Use 28/8 subtly as optional price identity, never as proven causal conversion benefit                                  | P20            |
+| G14 | **A**  | Pricing cards lead with verified-work allowance and exact total payable price                                          | P20/PRD        |
+| G15 | **A**  | Prioritise UPI + cards in India, subject to approved merchant capabilities                                             | P20            |
+| G16 | **B**  | Consider annual subscriptions only after 90 days of credible retention/economics evidence                              | P20            |
+| G17 | **A**  | Investigate a clear time-limited refund with provider/legal terms before launch                                        | P20/Security   |
+| G18 | **A**  | Target 5 separate paid pilots only after P19/P20 release, merchant and legal gates                                     | P20/P21        |
+| G19 | **A**  | Bootstrap first; assess angel capital only when evidence justifies it                                                  | P21            |
+| G20 | **D**  | Set monthly acquisition/experimentation budget from real available runway                                              | P21            |
+| G21 | **A**  | First paid acquisition test uses Google/search intent                                                                  | P21            |
+| G22 | **A**  | Lead organic content with consented real-result task demonstrations                                                    | P21            |
+| G23 | **A**  | Trial anti-fraud referral credits after verified legitimate customer value                                             | P21            |
+| G24 | **A**  | Choose a proof-led website launch, contingent on release readiness                                                     | P21            |
+| G25 | **A**  | Hindi is the first additional language to qualify; test actual support/accuracy                                        | P15/P21        |
+| G26 | **A**  | Expand into English-language markets based on actual demand and local readiness                                        | P21            |
+| G27 | **A**  | First B2B discovery cohort: accounting/operations firms with client-data boundaries                                    | P18/P21        |
+| G28 | **A**  | Publish monthly matched, evidence-labelled competitor comparisons where runnable                                       | P19/P21        |
 
 **Cross-functional executive ownership:** Founder/CEO (also acting board/president at this stage) owns strategy, runway and final owner approvals. Engineering/CTO owns safety, deterministic execution and delivery; AI Research/Evaluation owns verified benchmarks; Product/Design owns onboarding and clear feedback; Security/Legal/Finance owns licences, privacy, payment and compliance; Growth owns search, proof clips and customer-consented referrals; Support/Operations owns real customer outcomes. These are decision responsibilities, **not** claims of hired staff or an actual corporate board. No invented headcount or spending commitment.
 
@@ -182,13 +182,13 @@ These are **28 new owner-selected business experiments**, added to—not replaci
 
 These additional selections refine existing P15 (UI), P18 (verified workflows), P19 (proof), P20 (billing), P21 (growth) and P22 (evidence-gated expansion). Preserve earlier 60 owner selections, the final 1A/2A/3A and G01–G28, and all P00–P22 dependencies. Selected codes below are copied exactly from the owner's response; a letter means the full corresponding option in the owner's 50-question questionnaire. Unselected answers are not new requests. Older security, privacy, permission, refund and STOP commitments remain binding even if an option is unselected here.
 
-| Questions | Exact owner answers | Product authority |
-| --- | --- | --- |
-| B01–B10 — motivation/value | 1ABCD 2ABCD 3ABCD 4ABCD 5ABCD 6ABCD 7AD 8ABCD 9ABCD 10ABCD | PRD; P18 |
-| B11–B20 — smooth first use | 11ABCD 12ABCD 13ABCD 14ABCD 15ABCD 16ABD 17AB 18ABCD 19ABCD 20AB | Design; P11/P15 |
-| B21–B30 — buying and trust | 21ABCD 22ABCD 23ABCD 24ABD 25ABD 26CD 27ABCD 28ABCD 29ABCD 30ABCD | PRD/Security; P20 |
-| B31–B40 — distribution | 31ABCD 32ABCD 33BCD 34ABCD 35ABCD 36ABD 37ABCD 38BCD 39ABCD 40ABCD | PRD; P19/P21 |
-| B41–B50 — retention/scale | 41ABCD 42ABCD 43ABD 44B 45ABC 46ABD 47ABCD 48BCD 49ACD 50ACD | PRD/Testing; P18/P21/P22 |
+| Questions                  | Exact owner answers                                                | Product authority        |
+| -------------------------- | ------------------------------------------------------------------ | ------------------------ |
+| B01–B10 — motivation/value | 1ABCD 2ABCD 3ABCD 4ABCD 5ABCD 6ABCD 7AD 8ABCD 9ABCD 10ABCD         | PRD; P18                 |
+| B11–B20 — smooth first use | 11ABCD 12ABCD 13ABCD 14ABCD 15ABCD 16ABD 17AB 18ABCD 19ABCD 20AB   | Design; P11/P15          |
+| B21–B30 — buying and trust | 21ABCD 22ABCD 23ABCD 24ABD 25ABD 26CD 27ABCD 28ABCD 29ABCD 30ABCD  | PRD/Security; P20        |
+| B31–B40 — distribution     | 31ABCD 32ABCD 33BCD 34ABCD 35ABCD 36ABD 37ABCD 38BCD 39ABCD 40ABCD | PRD; P19/P21             |
+| B41–B50 — retention/scale  | 41ABCD 42ABCD 43ABD 44B 45ABC 46ABD 47ABCD 48BCD 49ACD 50ACD       | PRD/Testing; P18/P21/P22 |
 
 **Execution interpretation:** First show real utility, then a truthful verified result, then a fair optional paid upgrade after success; recurring useful workflows make retention more durable than artificial attention traps. Lead with accuracy, preservation of work, consent and instant STOP. Keep the three-product navigation, existing local-first agent, single JARVIS planner, and legal checkout gate unchanged. Marketing can show genuine opted-in results and matched benchmarks, not invented results, coercion, automatic posting or unsupported superiority claims.
 
