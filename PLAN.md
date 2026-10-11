@@ -707,6 +707,8 @@ The following mandatory steps and verification criteria come from the latest own
 
 **Rollback:** clear unsupported capability refusal, preserving other platforms.
 
+**Work record — P14 (11 October 2026):** No code change. Source keeps the claims honest: the desktop agent reports `accessibility` only on Windows and refuses `ui_inspect`/`ui_act` elsewhere; macOS screen/control capabilities follow TCC grants. Every Mac/iOS capability claim needs real hardware: **BLOCKED** (no Mac or iPhone/iPad; iOS website coverage will be Playwright WebKit emulation, labelled as such, native/physical iOS UNTESTED).
+
 ### P15 — Rebuild the visible experience around truthful work state
 
 Implement [PRD](docs/PRD.md)'s complete route/control matrix and [Design system](docs/JARVIS_DESIGN_SYSTEM.md)'s single palette. Keep top-level Chat, JARVIS, Library; JARVIS contains Conversations, Activity, Devices. Keep exactly five Settings groups; use the names/options in PRD, not a second list here. No extra routes for things already well served by a panel.
@@ -760,6 +762,8 @@ The following mandatory steps and verification criteria come from the latest own
 7. Keep cited research fresh and scope private inputs explicitly.
 
 **Tests:** endless streams, missing IDs, provider loss, nested abort, poisoned memory, cross-account retrieval and exhausted budget.
+
+**Work record — P16 step: history no longer resends old observations (11 October 2026):** The open planning loop kept every tool result in full: up to 30 observations of 120 elements each were resent on every model call, and their ids were stale anyway. **FIX:** when a newer observation arrives, earlier results in the history keep only their observation id, marked superseded (Background Mode already kept only its last few results in full). Test fails without the change; jarvis 201 PASS. Token savings to be measured on held-out tasks in the final campaign. Still OPEN: structured-output pinning, per-task token budgets, memory-poisoning and cross-account retrieval tests.
 
 ### P17 — Add professional application coverage through supported interfaces
 

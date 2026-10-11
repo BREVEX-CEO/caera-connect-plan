@@ -134,6 +134,30 @@ describe("a JARVIS turn", () => {
     expect(JSON.stringify(h.seen.at(-1))).toContain(NOT_VERIFIED);
   });
 
+  it("keeps only the newest observation in the history; older ones become an id (P16)", async () => {
+    const page = (id: string) => ({
+      observation: { observationId: id, elements: [{ ref: "e1", name: `Button ${id}` }] },
+    });
+    const h = harness(
+      [
+        { text: "", toolCalls: [call("browser", { action: "observe" })] },
+        { text: "", toolCalls: [call("browser", { action: "observe" })] },
+        { text: "", toolCalls: [call("finish_task", { outcome: "failed", result: "x" })] },
+      ],
+      {
+        a: [
+          { status: "done", result: page("o1") },
+          { status: "done", result: page("o2") },
+        ],
+      },
+    );
+    await runJarvisTurn({ ...h.input, task: { ...TASK } }, h.hooks, h.deps);
+    const history = JSON.stringify(h.seen.at(-1));
+    expect(history).toContain("Button o2");
+    expect(history).not.toContain("Button o1");
+    expect(history).toContain("A newer observation replaced this one.");
+  });
+
   it("runs a tool call the model wrote as text, through the same checks, and never shows it", async () => {
     const h = harness([
       {
