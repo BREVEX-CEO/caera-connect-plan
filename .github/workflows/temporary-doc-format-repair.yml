@@ -1,0 +1,40 @@
+# One-time, branch-limited repair of existing Markdown formatting drift.
+# Remove this workflow after it makes the dedicated maintenance commit.
+name: Temporary format repair (maintenance branch only)
+
+on:
+  push:
+    branches:
+      - maintenance/private-free-security-20261011
+    paths:
+      - .github/workflows/temporary-doc-format-repair.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format-three-existing-documents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout only maintenance branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: true
+      - name: Setup exact Node version
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Install exact locked formatter
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Fix only the three existing unformatted Markdown files
+        run: npx --no-install prettier --write docs/DECISIONS.md docs/JARVIS_DESIGN_SYSTEM.md docs/PRD.md
+      - name: Commit only the verified formatting repair
+        run: |
+          git add -- docs/DECISIONS.md docs/JARVIS_DESIGN_SYSTEM.md docs/PRD.md
+          git diff --cached --check
+          if ! git diff --cached --quiet; then
+            git -c user.name="OCADE CI Format Repair" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "style(docs): restore Prettier parity for three canonical documents"
+            git push origin HEAD:maintenance/private-free-security-20261011
+          fi
