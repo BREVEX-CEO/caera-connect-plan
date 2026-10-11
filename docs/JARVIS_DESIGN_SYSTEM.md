@@ -244,3 +244,21 @@ Use only authorised real conversations, tasks, devices, allowed apps/sites and a
 | Stopped         | Known applied effects and remaining uncertainty  |
 
 STOP and active confirmation never fade. Pause rendering when hidden, backgrounded, reduced-motion or low-power conditions require it.
+
+## Human-first onboarding and earned upgrade interaction — B11–B30
+
+Design ownership is the *presentation* of the [PRD](PRD.md) flows, never a new task, permission, billing or content authority. This section does not change approved graphite/white/blue tokens, responsive breakpoints, 64px desktop/48px phone Orb, five settings categories, three destinations or reduced-motion contract.
+
+| Surface | Primary user action | State/negative behaviour | Evidence gate |
+| --- | --- | --- | --- |
+| Public landing | Understand the one-sentence value; try working Chat or a **real** sample | No forced card or installer; avoid a false playable demo | Comprehension, working first input, keyboard/mobile QA |
+| Example selection | Run verified fixture or upload/drag/paste supported file | Distinguish user data, fixtures, unsupported type and size; preserve privacy | Real completed output and proper file scope |
+| Optional PC pairing | Install signed Agent, see readiness, pair and grant needed permission | Explain why/what/locality/revoke; show denial and repair honestly | Native signature, real OS permission and recovery |
+| In-progress JARVIS | Follow actual step, current app and live approval; STOP/Take Over | Paused/disconnected/stale clearly labelled, no fictional percent | Event/receipt-bound control state and physical STOP proof |
+| Verified task result | Open actual native file, inspect checks and repeat with fresh input | Partial or unknown never says Completed; real elapsed time only | Independent reopen/readback and version check |
+| Upgrade invitation | View one optional approved pilot plan with capacity and exact total | Only after real checked value; no timers, forced card, hidden fee | Contract/merchant tests, user comprehension, cancellation |
+| Returning customer | Find proven task history and consented repeat workflow | Missing file, version change, revoked grant or new account requires revalidation | New independent receipts and account isolation |
+
+**Microcopy guidance:** direct outcome-first language. Explain a permission's practical need before offering an OS handoff; use “Working in Excel”, “Checking totals”, “Waiting for your permission”, “Could not confirm the final file”, “You can continue free”, and “Paid plan: [accurate capacity] for [full payable cost]” only where supported by actual state. Don't imply it saw a file/browser/screen that it did not access. Keep easy Exit, Back, Skip, STOP, cancellation and privacy controls; no fake popularity or guilt framing.
+
+**Device and accessibility review:** at 320px, phone landscape, desktop and 200%/400% zoom, confirm the composer, readable price/limits, install consent, visible errors, STOP and final file remain usable with pointer, keyboard, switch/screen reader and reduced motion. Derive layout from existing components before adding new ones. No permanent carousel, animated popup or growth modal may obstruct an active task. Test control contrast, focus after dialog dismissal, IME composition and signed-out/failing-fetch states.
