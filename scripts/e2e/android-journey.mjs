@@ -115,10 +115,14 @@ await context.addInitScript(
 );
 const web = await context.newPage();
 
-const appium = spawn(process.platform === "win32" ? "appium.cmd" : "appium", ["--port", "4725", "--log-level", "error"], {
-  shell: process.platform === "win32",
-  stdio: "ignore",
-});
+const appium = spawn(
+  process.platform === "win32" ? "appium.cmd" : "appium",
+  ["--port", "4725", "--log-level", "error"],
+  {
+    shell: process.platform === "win32",
+    stdio: "ignore",
+  },
+);
 try {
   await until(async () => (await fetch(`${APPIUM}/status`)).ok, 60_000);
 
