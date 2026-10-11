@@ -23,6 +23,14 @@ on:
         options:
           - portable
           - full
+      platform:
+        description: Linux (portable suite) or a disposable Windows VM (also its real UI Automation, screen and window tests; no Office licence there)
+        required: false
+        default: linux
+        type: choice
+        options:
+          - linux
+          - windows
 
 permissions:
   contents: read
@@ -32,7 +40,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  windows:
+    name: Python device tests with live UI · disposable Windows VM
+    if: github.event_name == 'workflow_dispatch' && inputs.platform == 'windows'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      CI: "true"
+      # Real Windows UI Automation, screen and window tests on this throwaway VM, never a person's PC.
+      OCADE_LIVE_TESTS: "1"
+    steps:
+      - name: Checkout requested branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.source_ref }}
+          persist-credentials: false
+
+      - name: Install Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install existing pinned runtime dependencies
+        run: python -m pip install --disable-pip-version-check -r jarvis-runtime/requirements-agent.txt
+
+      - name: Install Python Playwright browser in this disposable environment
+        run: python -m playwright install chromium
+
+      - name: Run the whole suite against a temporary profile
+        shell: pwsh
+        run: |
+          $env:USERPROFILE = Join-Path $env:RUNNER_TEMP "ocade-test-home"
+          $env:LOCALAPPDATA = Join-Path $env:USERPROFILE "AppData\Local"
+          New-Item -ItemType Directory -Force -Path $env:LOCALAPPDATA | Out-Null
+          python -m unittest discover -s jarvis-runtime/tests -p "test_*.py" -v
+
   python:
+    if: github.event_name == 'pull_request' || inputs.platform != 'windows'
     name: Python file, safety and device regressions · cloud Linux
     runs-on: ubuntu-latest
     timeout-minutes: 25
