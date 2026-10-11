@@ -657,7 +657,7 @@ class Computer:
             summary += (f". The {what} you have open still shows unsaved partial changes: "
                         "close it without saving to discard them")
         return {"status": "failed", "stopped": bool(out.get("stopped")), "summary": summary,
-                "changed": changed}
+                "fileChanged": changed}
 
     def _find(self, folder: Path, rel: str, name: str, extension: str, cancel: threading.Event) -> dict:
         """Find files by name and/or extension, bounded, inside the workspace only."""

@@ -158,7 +158,8 @@ class FileEngineTest(unittest.TestCase):
             out = pc.run({"action": "sheet_edit", "path": "sales.xlsx", "overwrite": True,
                           "ops": FINISH_ORDERS[:1]})
         self.assertEqual(out["status"], "failed")
-        self.assertTrue(out["changed"], out)
+        self.assertTrue(out["fileChanged"], out)
+        self.assertNotIn("changed", out)  # reserved: the exchange schema takes a list of strings there
         self.assertIn("was partly changed", out["summary"])
         self.assertEqual(pc.run({"action": "undo"})["status"], "done")
         self.assertEqual(self.book.read_bytes(), before)
@@ -171,7 +172,7 @@ class FileEngineTest(unittest.TestCase):
                 unittest.mock.patch.object(ocade_sheets, "edit_with_automation", return_value=failed):
             out = Computer(str(self.root)).run({"action": "sheet_edit", "path": "sales.xlsx",
                                                 "overwrite": True, "ops": FINISH_ORDERS[:1]})
-        self.assertFalse(out["changed"])
+        self.assertFalse(out["fileChanged"])
         self.assertIn("was not changed", out["summary"])
         self.assertIn("close it without saving", out["summary"])
 
