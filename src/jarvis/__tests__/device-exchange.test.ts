@@ -556,6 +556,17 @@ describe("completion needs evidence from the device (P01)", () => {
     });
     expect(await gap(t)).toBeNull();
   });
+
+  it("ignores a step the person declined, but not one the device stopped part-way", async () => {
+    const t = await task();
+    await settle(await queue(t, { action: "file_write", path: "a.txt", content: "x" }), "done");
+    await settle(await queue(t, { action: "file_info", path: "a.txt" }), "done");
+    const push = await queue(t, { action: "run", command: "git push origin main" });
+    await settle(push, "cancelled");
+    expect(await gap(t)).toBeNull();
+    await settle(push, "cancelled", { status: "cancelled" });
+    expect(await gap(t)).toMatch(/read the result back/);
+  });
 });
 
 describe("the emergency stop", () => {
