@@ -62,6 +62,15 @@ export async function turnPushOn(): Promise<PushDeviceState> {
           "This browser could not reach its notification service just now. Try again later.",
         );
       }));
+  if (!(await record(subscription))) {
+    await subscription.unsubscribe().catch(() => false);
+    throw new Error("OCADE could not turn notifications on here just now. Try again.");
+  }
+  return "on";
+}
+
+/** Records this browser's address for the session signed in now. */
+async function record(subscription: PushSubscription): Promise<boolean> {
   const keys = subscription.toJSON().keys ?? {};
   const supabase = await loadSupabaseClient();
   const { error } = await supabase.rpc("ocade_push_subscribe", {
@@ -69,11 +78,17 @@ export async function turnPushOn(): Promise<PushDeviceState> {
     p_p256dh: keys.p256dh ?? "",
     p_auth: keys.auth ?? "",
   });
-  if (error) {
-    await subscription.unsubscribe().catch(() => false);
-    throw new Error("OCADE could not turn notifications on here just now. Try again.");
-  }
-  return "on";
+  return !error;
+}
+
+/**
+ * The same person in a new session (an emailed "Confirm it's you" code opens
+ * one): this browser's address moves to it before the old session ends, which
+ * would otherwise take the address with it.
+ */
+export async function movePushToThisSession(): Promise<void> {
+  const subscription = await (await registration())?.pushManager.getSubscription();
+  if (subscription) await record(subscription);
 }
 
 /** This browser stops receiving them, for whoever is signed in. */

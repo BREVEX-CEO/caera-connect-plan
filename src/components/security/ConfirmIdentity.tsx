@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
+import { movePushToThisSession } from "@/lib/notifications/push-device";
 import { answerChallenge, listVerifiedFactors } from "@/lib/security/mfa";
 import { useModalFocus } from "@/lib/use-modal-focus";
 
@@ -107,6 +108,7 @@ export function useConfirmIdentity(): {
         await answerChallenge(step.factorId, code);
       } else if (step.kind === "email" && step.email) {
         const supabase = await loadSupabaseClient();
+        const replaced = (await supabase.auth.getSession()).data.session?.access_token;
         const { error } = await supabase.auth.verifyOtp({
           email: step.email,
           token: code.replace(/\D/g, ""),
@@ -114,6 +116,12 @@ export function useConfirmIdentity(): {
         });
         if (error)
           throw new Error("That code was not accepted. Check the latest email and try again.");
+        // The code opened a new session: the one it replaces ends, so it never
+        // lingers as "another sign-in". `admin.signOut` only needs that session's own token.
+        if (replaced) {
+          await movePushToThisSession().catch(() => undefined);
+          await supabase.auth.admin.signOut(replaced, "local").catch(() => undefined);
+        }
       }
       finish(true);
     } catch (error) {

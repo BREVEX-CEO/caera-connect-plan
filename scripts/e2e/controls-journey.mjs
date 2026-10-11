@@ -167,10 +167,38 @@ try {
     String(await rows().count()),
   );
   const before = await rows().count();
+  const tokenHere = async () =>
+    JSON.parse(await page.evaluate((key) => localStorage.getItem(key), storageKey)).access_token;
+  const replaced = await tokenHere();
   await rows().first().click();
+  // The export spent this sign-in's confirmation: one confirmation covers one change (P05-B).
+  const ask = page.getByRole("dialog", { name: "Confirm it's you" });
   check(
-    "signing out one other session removes it from the list",
+    "a second change asks to confirm it's you again",
+    await ask.waitFor({ timeout: 10_000 }).then(
+      () => true,
+      () => false,
+    ),
+  );
+  await ask.getByLabel("Verification code").fill("123456");
+  await ask.getByRole("button", { name: "Confirm", exact: true }).click();
+  check(
+    "signing out one other session removes it from the list, and confirming left no extra sign-in",
     await until(async () => (await rows().count()) === before - 1),
+    `${await rows().count()} against ${before}`,
+  );
+  // The code opened a new session here; the one it replaced is over, not lingering.
+  const current = { access_token: await tokenHere() };
+  check(
+    "the session the confirmation replaced no longer works",
+    current.access_token !== replaced &&
+      (
+        await fetch(`${SUPABASE}/rest/v1/rpc/ocade_staff_can`, {
+          method: "POST",
+          headers: { "content-type": "application/json", authorization: `Bearer ${replaced}` },
+          body: JSON.stringify({ p_permission: "customers.read" }),
+        })
+      ).status === 401,
   );
   const copied = await fetch(`${SUPABASE}/rest/v1/rpc/ocade_staff_can`, {
     method: "POST",
@@ -184,7 +212,7 @@ try {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${session.access_token}`,
+      authorization: `Bearer ${current.access_token}`,
     },
     body: JSON.stringify({ p_permission: "customers.read" }),
   });

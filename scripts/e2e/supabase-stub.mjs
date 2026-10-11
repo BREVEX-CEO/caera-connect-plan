@@ -68,6 +68,8 @@ const unlimitedGrants = new Map();
 const pkceCodes = new Map();
 /** hashed_token -> { email, expiresAt }: one-time sign-ins from generateLink, used once. */
 const oneTimeSignIns = new Map();
+/** "session_id:proved_at" pairs already spent (private.ocade_spent_proofs). */
+const spentProofs = new Set();
 /** The assurance of the session making the current request. */
 let requestAal = "aal1";
 /** The token of the session making the current request (the one an emergency sign-out spares). */
@@ -913,6 +915,19 @@ function handleRpc(name, args, userId) {
         });
       }
       return [...seen.values()];
+    }
+
+    case "ocade_spend_proof": {
+      // public.ocade_spend_proof (20261011100000): one proof, one sensitive action.
+      const claims = JSON.parse(
+        Buffer.from(requestToken.split(".")[1] ?? "", "base64url").toString() || "{}",
+      );
+      const provedAt = Math.max(...(claims.amr ?? []).map((entry) => entry.timestamp));
+      if (!claims.session_id || !Number.isFinite(provedAt)) return false;
+      const proof = `${claims.session_id}:${provedAt}`;
+      if (spentProofs.has(proof)) return false;
+      spentProofs.add(proof);
+      return true;
     }
 
     case "ocade_factor_added_since_sign_in":
@@ -1941,7 +1956,13 @@ const server = createServer((request, response) => {
           pushSubscriptions.delete(endpoint);
         }
       }
-      sessions.delete(token);
+      // The whole session ends, as auth.sessions does: every token and refresh it gave out.
+      for (const [held] of [...sessions]) {
+        if (held === token || (ended && tokenSession.get(held) === ended)) sessions.delete(held);
+      }
+      for (const [refresh, held] of [...refreshes]) {
+        if (ended && held.sessionId === ended) refreshes.delete(refresh);
+      }
       return send(204);
     }
 
