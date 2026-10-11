@@ -403,6 +403,15 @@ def save_recipe(recipe: dict, version: str | None) -> dict:
               "verify": str(recipe.get("verify", ""))[:200], "recovery": str(recipe.get("recovery", ""))[:200]}
     if not fields["app"] or not fields["route"]:
         return {"status": "failed", "summary": "A recipe needs the app and the route that worked"}
+    inputs = [{"name": str(i.get("name", "")), "kind": str(i.get("kind", ""))}
+              for i in (recipe.get("inputs") or [])[:8] if isinstance(i, dict)]
+    if any(not re.fullmatch(r"[a-z][a-z0-9_]{0,30}", i["name"])
+           or i["kind"] not in ("file", "folder", "text", "number", "date") for i in inputs):
+        return {"status": "failed", "summary": "Recipe inputs are a lowercase name and a kind"}
+    named = {i["name"] for i in inputs}
+    used = set(re.findall(r"\{([a-z][a-z0-9_]{0,30})\}", " ".join([fields["route"], *fields["steps"]])))
+    if used - named:
+        return {"status": "failed", "summary": f"The steps use inputs never declared: {', '.join(sorted(used - named))}"}
     if any(_SECRETISH.search(value) for value in [*fields.values(), *fields["steps"]]
            if isinstance(value, str)):
         return {"status": "blocked", "summary": "Recipes keep only how the app is driven: no coordinates, "
@@ -415,7 +424,7 @@ def save_recipe(recipe: dict, version: str | None) -> dict:
         store[key]["failures"] = store[key].get("failures", 0) + 1
         set_aside = store[key]["failures"] >= QUARANTINE_AFTER
     else:
-        store[key] = {**fields, "major": _major(version), "version": version, "failures": 0,
+        store[key] = {**fields, "inputs": inputs, "major": _major(version), "version": version, "failures": 0,
                       "updated": time.strftime("%Y-%m-%d"), "uses": store.get(key, {}).get("uses", 0) + 1}
     HOME.mkdir(parents=True, exist_ok=True)
     tmp = HOME / "recipes.json.tmp"

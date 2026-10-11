@@ -37,6 +37,18 @@ class RecipeTest(unittest.TestCase):
         same, older = ocade_discovery.recipes_for("Paint", "12.0.0")
         self.assertEqual((len(same), older), (0, 1))
 
+    def test_a_recipe_declares_the_inputs_its_steps_use(self):
+        """P10: typed inputs; a step naming an input nobody declared is refused."""
+        recipe = {"app": "Paint", "route": "open {source}", "steps": ["resize {source} by {pct}"],
+                  "verify": "size read back", "inputs": [{"name": "source", "kind": "file"},
+                                                          {"name": "pct", "kind": "number"}]}
+        self.assertEqual(ocade_discovery.save_recipe(recipe, "11.2.0")["status"], "done")
+        self.assertEqual(ocade_discovery.recipes_for("Paint", "11.2.0")[0][0]["inputs"], recipe["inputs"])
+        undeclared = {**recipe, "inputs": [{"name": "source", "kind": "file"}]}
+        self.assertIn("pct", ocade_discovery.save_recipe(undeclared, "11.2.0")["summary"])
+        self.assertEqual(ocade_discovery.save_recipe(
+            {**recipe, "inputs": [{"name": "Source!", "kind": "file"}]}, "11.2.0")["status"], "failed")
+
     def test_a_recipe_that_keeps_failing_is_set_aside_until_one_works(self):
         """P10: a failed recipe is quarantined; it is never offered again as if it worked."""
         recipe = {"app": "Paint", "route": "ribbon", "steps": [], "verify": "size reads 50%"}

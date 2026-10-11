@@ -338,6 +338,12 @@ export async function queueTaskAction(
     offered: (device.capabilities ?? {}) as Record<string, boolean>,
   });
   if (refusal) return { ok: false, message: refusal.message };
+  // A recipe is kept only for work that was checked: the same evidence completion needs.
+  if (data.action.action === "recipe_save" && data.action.worked !== false) {
+    const gap = await completionGap(service, userId, task.id);
+    if (gap)
+      return { ok: false, message: `Save a recipe only after the result is checked: ${gap}` };
+  }
   if (data.action.action === "open_app") {
     const installed = (device.installed_apps ?? []) as string[];
     const wanted = data.action.name.toLowerCase();

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DatabaseTwin } from "../../../scripts/db-twin.mts";
 import { enrollmentRoom, exchange, MAX_PENDING_PER_SOURCE } from "../device.server";
 import { NOT_VERIFIED } from "../protocol";
-import { changeTask, completionGap } from "../task-authority.server";
+import { changeTask, completionGap, queueTaskAction } from "../task-authority.server";
 import { lit, restOver } from "./rest-adapter";
 
 /**
@@ -511,6 +511,33 @@ describe("completion needs evidence from the device (P01)", () => {
     await settle(await queue(t, { action: "file_write", path: "a.txt", content: "x" }), "done");
     await settle(await queue(t, { action: "file_info", path: "a.txt" }), "failed");
     expect(await gap(t)).toMatch(/read the result back/);
+  });
+
+  it("keeps a recipe only for work that was checked (P10)", async () => {
+    const t = await task();
+    await permit("apps", true);
+    await twin.asServiceRole(
+      `update public.jarvis_tasks set controller = '${A}' where id = '${t}'`,
+    );
+    const recipe = {
+      action: "recipe_save",
+      app: "Paint",
+      route: "ribbon",
+      steps: [],
+      verify: "read back",
+    };
+    const save = () =>
+      queueTaskAction(rest() as never, rest() as never, A, {
+        taskId: t,
+        controller: A,
+        action: recipe as never,
+      });
+    await settle(await queue(t, { action: "file_write", path: "a.txt", content: "x" }), "done");
+    const refused = await save();
+    expect(refused).toMatchObject({ ok: false });
+    expect((refused as { message: string }).message).toMatch(/only after the result is checked/);
+    await settle(await queue(t, { action: "file_info", path: "a.txt" }), "done");
+    expect(await save()).toMatchObject({ ok: true });
   });
 
   it("refuses when a different file was read than the one changed", async () => {
