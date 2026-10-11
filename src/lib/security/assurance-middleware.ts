@@ -88,7 +88,7 @@ export function requireAssurance(
 ) {
   return createMiddleware({ type: "function" })
     .middleware([requireSession])
-    .server(async ({ next, context }) => {
+    .server(async ({ next, context, data, serverFnMeta }) => {
       const session = await readSessionAssurance(
         context as unknown as Parameters<typeof readSessionAssurance>[0],
       );
@@ -109,7 +109,11 @@ export function requireAssurance(
       const { supabase } = context as unknown as {
         supabase: {
           rpc: (
-            fn: "ocade_factor_added_since_sign_in" | "ocade_two_step_set_up_in_this_sign_in",
+            fn:
+              | "ocade_factor_added_since_sign_in"
+              | "ocade_two_step_set_up_in_this_sign_in"
+              | "ocade_spend_proof",
+            args?: Record<string, string>,
           ) => PromiseLike<{ data: unknown; error: unknown }>;
         };
       };
@@ -123,6 +127,29 @@ export function requireAssurance(
         throw new AssuranceRequiredError(
           "reauthentication_required",
           "You set up two-step verification after signing in here. Sign in again, then try this.",
+          false,
+        );
+      }
+      /*
+       * ONE PROOF, ONE ACTION. The proof is spent on this action and a digest of
+       * what it acts on; a second sensitive action with the same proof asks again,
+       * so a token taken right after a confirmation cannot do a string of them.
+       */
+      const digest = new Uint8Array(
+        await crypto.subtle.digest(
+          "SHA-256",
+          new TextEncoder().encode(JSON.stringify(data ?? null)),
+        ),
+      );
+      const { data: spent, error: spendError } = await supabase.rpc("ocade_spend_proof", {
+        p_action: (serverFnMeta?.name || "sensitive action").slice(0, 120),
+        p_target_digest: Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join(""),
+      });
+      if (spendError) throw new Error("OCADE could not check this session just now. Try again.");
+      if (spent !== true) {
+        throw new AssuranceRequiredError(
+          "reauthentication_required",
+          "Confirm it is you again: each confirmation covers one change.",
           false,
         );
       }

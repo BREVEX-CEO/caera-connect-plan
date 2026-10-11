@@ -100,3 +100,34 @@ describe("a session that was ended stops at once", () => {
     );
   });
 });
+
+describe("one fresh proof covers one sensitive action (P05-B)", () => {
+  const digest = "a".repeat(64);
+  const spend = (sessionId: string | undefined, provedSecondsAgo = 0, action = "deleteMyAccount") =>
+    twin.asTenant<{ ok: boolean }>(
+      PLAIN,
+      `select public.ocade_spend_proof('${action}', '${digest}') as ok`,
+      { sessionId, provedSecondsAgo },
+    );
+
+  it("verifies", async () => {
+    const result = await twin.runScript(
+      "supabase/verification",
+      "20261011100000_one_proof_one_action_verify.sql",
+    );
+    expect(result.error).toBeUndefined();
+  });
+
+  it("is spent by the first action and refused for a second, until a new proof", async () => {
+    const [{ id }] = await twin.asSuperuser<{ id: string }>(
+      `insert into auth.sessions (user_id) values ('${PLAIN}') returning id`,
+    );
+    expect((await spend(id, 5)).rows[0]!.ok).toBe(true);
+    expect((await spend(id, 5, "revokeOtherSessions")).rows[0]!.ok).toBe(false);
+    expect((await spend(id, 0)).rows[0]!.ok).toBe(true); // proved again: a new proof
+  });
+
+  it("refuses a token with no session to spend against", async () => {
+    expect((await spend(undefined)).rows[0]!.ok).toBe(false);
+  });
+});
