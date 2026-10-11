@@ -1,4 +1,5 @@
 """Spreadsheets: structure first, formulas not typing, preservation, and real Excel where it exists."""
+import os
 import shutil
 import sys
 import tempfile
@@ -217,6 +218,11 @@ class OriginalsAndChecksTest(unittest.TestCase):
         self.assertEqual(len(out["problems"]), 2)
 
 
+@unittest.skipUnless(
+    sys.platform == "win32" and os.environ.get("OCADE_LIVE_TESTS") == "1"
+    and ocade_sheets.excel_available(),
+    "real Excel acceptance: explicit final campaign on authorised Windows test environment only",
+)
 class RealExcelTest(unittest.TestCase):
     """The acceptance task in the person's real Excel: visible, calculated, saved, reopened, verified."""
 
