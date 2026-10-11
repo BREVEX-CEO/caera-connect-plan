@@ -1090,7 +1090,14 @@ describe("rolled back and applied again", () => {
       )
     ).rows[0]?.r;
 
+  // A later migration whose read policies ask staff permissions is rolled back first, as a
+  // real rollback runs newest first, and applied again at the end.
+  const GRANULAR = "20261012092000_staff_reads_follow_granular_rights";
+
   it("operators keep operating through a rollback, and come back as staff when it is applied again", async () => {
+    expect(
+      (await twin.runScript("supabase/rollback", `${GRANULAR}_rollback.sql`)).error,
+    ).toBeUndefined();
     expect((await undo()).error).toBeUndefined();
     expect(
       (
@@ -1145,6 +1152,10 @@ describe("rolled back and applied again", () => {
     );
     const again = await twin.runScript("supabase/verification", `${MIGRATION}_verify.sql`);
     expect(again.error).toBeUndefined();
+    expect((await twin.runScript("supabase/migrations", `${GRANULAR}.sql`)).error).toBeUndefined();
+    expect(
+      (await twin.runScript("supabase/verification", `${GRANULAR}_verify.sql`)).error,
+    ).toBeUndefined();
   });
 });
 

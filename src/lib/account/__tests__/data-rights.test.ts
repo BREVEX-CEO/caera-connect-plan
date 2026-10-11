@@ -62,11 +62,11 @@ function fakeDatabase(options: {
   /** Every `.in()` list this fake was asked for, to check chunking. */
   seenIdBatches?: number[];
   deleted?: AccountTable[];
-  between?: () => void;
+  between?: (table: AccountTable) => void;
 }): DynamicTableClient {
   const rows = options.rows ?? {};
   let calls = 0;
-  const page = (all: ExportedRow[], failure: PostgrestFailure) => {
+  const page = (all: ExportedRow[], failure: PostgrestFailure, table: AccountTable) => {
     const by: string[] = [];
     let filter: string | null = null;
     const query = {
@@ -80,7 +80,7 @@ function fakeDatabase(options: {
             ? all
             : [...all].reverse();
         const page = view.filter((row) => !filter || matchesOr(row, filter)).slice(0, count);
-        options.between?.();
+        options.between?.(table);
         return Promise.resolve({ data: failure ? null : page, error: failure });
       },
     };
@@ -92,11 +92,11 @@ function fakeDatabase(options: {
       const all = rows[table] ?? [];
       return {
         select: () => ({
-          eq: () => page(all, failure),
+          eq: () => page(all, failure, table),
           in: (_column: string, values: readonly string[]) => {
             options.seenIdBatches?.push(values.length);
             const matching = all.filter((row) => values.includes(String(row.parent)));
-            return page(matching, failure);
+            return page(matching, failure, table);
           },
         }),
         delete: () => ({
@@ -145,7 +145,8 @@ describe("exporting an account", () => {
       fakeDatabase({
         rows: { ocade_library_items: all },
         // After the first page, the person deletes a row that page already read.
-        between: () => {
+        between: (table) => {
+          if (table !== "ocade_library_items") return;
           pages += 1;
           if (pages === 1) all.splice(0, 1);
         },
