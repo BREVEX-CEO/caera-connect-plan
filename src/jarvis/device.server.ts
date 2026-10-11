@@ -422,8 +422,14 @@ export const exchangeInput = z.object({
       z.object({
         id: z.string().uuid(),
         status: z.enum(RESULT_STATUSES),
-        summary: z.string().max(300).optional(),
-        changed: z.array(z.string().max(20)).max(10).optional(),
+        // One overlong or malformed field never rejects the whole exchange: the device would
+        // resend the same batch forever and nothing else would get through.
+        summary: z
+          .string()
+          .max(20_000)
+          .transform((text) => text.slice(0, 300))
+          .optional(),
+        changed: z.array(z.string().max(20)).max(10).optional().catch(undefined),
         observation: z.unknown().optional(),
         /** What a computer action returned: a listing, file text, command output. */
         detail: z.unknown().optional(),

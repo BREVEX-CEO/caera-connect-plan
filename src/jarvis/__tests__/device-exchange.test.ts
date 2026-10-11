@@ -549,6 +549,24 @@ describe("the emergency stop", () => {
   });
 });
 
+describe("a result the device got slightly wrong", () => {
+  it("is kept, never rejecting the batch the device would resend forever", async () => {
+    const { exchangeInput } = await import("../device.server");
+    const parsed = exchangeInput.parse({
+      results: [
+        {
+          id: "0276ec3b-3462-468d-864b-bd218fd7d28e",
+          status: "failed",
+          summary: "x".repeat(900),
+          changed: true,
+        },
+      ],
+    });
+    expect(parsed.results[0]!.summary).toHaveLength(300);
+    expect(parsed.results[0]!.changed).toBeUndefined();
+  });
+});
+
 describe("results (JARVIS-027)", () => {
   it("answers every reported result: kept, stopped, or unknown", async () => {
     const t = await task();
