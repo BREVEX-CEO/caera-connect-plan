@@ -88,7 +88,10 @@ async function exists(selector) {
 }
 async function tap(selector) {
   const element = await find(selector);
-  if (!element) throw new Error(`not on screen: ${selector}`);
+  if (!element) {
+    const shown = ((await source()).match(/(text|content-desc)="[^"]+"/g) ?? []).slice(0, 25);
+    throw new Error(`not on screen: ${selector} — showing ${shown.join(" ")}`);
+  }
   await wd("POST", `/element/${element}/click`, {});
 }
 const source = () => wd("GET", "/source");
@@ -565,8 +568,17 @@ try {
         ).includes("Accessibility settings first"),
       60_000,
     ),
+    (
+      JSON.stringify(
+        await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) => r.json()),
+      ).match(/Result of computer[^}]{0,200}/g) ?? []
+    )
+      .slice(-2)
+      .join(" | "),
   );
-  await until(async () => (await web.getByText("App control is off.").count()) >= 1, 30_000);
+  // The task ends before the next one starts, whatever the step was told.
+  await until(async () => (await web.getByText("App control is off.").count()) >= 1, 60_000);
+  await web.reload({ waitUntil: "networkidle" });
   // App control back on, as the person turns it on again.
   adb(
     "shell",
