@@ -24,6 +24,7 @@ on:
           - broad
           - offline-real
           - jarvis
+          - live
 
 permissions:
   contents: read
@@ -59,7 +60,7 @@ jobs:
         run: node node_modules/playwright-core/cli.js install --with-deps chromium firefox webkit
 
       - name: Install the Device Agent's Python runtime for the JARVIS journeys
-        if: github.event_name == 'workflow_dispatch' && inputs.suite == 'jarvis'
+        if: github.event_name == 'workflow_dispatch' && (inputs.suite == 'jarvis' || inputs.suite == 'live')
         shell: bash
         run: |
           set -euo pipefail
@@ -99,6 +100,10 @@ jobs:
 
       - name: Run real browser journeys against local synthetic accounts
         shell: bash
+        env:
+          # Only the live suite gets the capped staging model key; every other suite is scripted.
+          OCADE_LIVE_GEMINI_KEY: ${{ inputs.suite == 'live' && secrets.OCADE_STAGING_GEMINI_KEY || '' }}
+          OCADE_LIVE_MAX_CALLS: "150"
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" || "${{ inputs.suite }}" == "smoke" ]]; then
@@ -106,6 +111,9 @@ jobs:
           elif [[ "${{ inputs.suite }}" == "jarvis" ]]; then
             # The real Device Agent on this disposable Linux VM; the model's turns are scripted.
             journeys=(jarvis carry-on)
+          elif [[ "${{ inputs.suite }}" == "live" ]]; then
+            # One request planned by real Gemini (a capped staging key), on the real Device Agent.
+            journeys=(live)
           elif [[ "${{ inputs.suite }}" == "offline-real" ]]; then
             # The real release, installed in the browser and answering with the network cut off.
             journeys=(offline-real)

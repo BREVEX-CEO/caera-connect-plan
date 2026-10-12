@@ -1495,6 +1495,12 @@ function handleRpc(name, args, userId) {
 let jarvisScript = null;
 /** Planner turns answered per script trigger, for the timing report (`GET /__fixture/jarvis-script`). */
 const plannerTurns = {};
+/** A real model for unscripted requests, only when a staging key is given; capped per run. */
+const LIVE_GEMINI_KEY = process.env.OCADE_LIVE_GEMINI_KEY ?? "";
+const LIVE_MAX_CALLS = Number(process.env.OCADE_LIVE_MAX_CALLS) || 400;
+let liveCalls = 0;
+/** Whether the live model answers now: only a journey that asks for it gets one. */
+let liveModel = false;
 /** How long charging an answer takes, set by /__fixture/slow-settlement. */
 let settleDelayMs = 0;
 
@@ -1754,6 +1760,11 @@ const server = createServer((request, response) => {
       if (request.method === "GET") return send(200, plannerTurns);
       jarvisScript = JSON.parse(body || "null");
       return send(200, { ok: true });
+    }
+
+    if (url.pathname === "/__fixture/live-model") {
+      liveModel = JSON.parse(body || "{}").on === true;
+      return send(200, { on: liveModel, available: Boolean(LIVE_GEMINI_KEY) });
     }
 
     if (url.pathname === "/__fixture/auth-providers") {
@@ -2529,6 +2540,65 @@ const server = createServer((request, response) => {
           },
         });
         response.end();
+        return;
+      }
+      /*
+       * A REAL MODEL, WHEN A STAGING KEY IS GIVEN (OCADE_LIVE_GEMINI_KEY).
+       *
+       * Unscripted requests then go through OCADE's own boundary code
+       * (edge-handler.ts, as deployed) to Gemini, so a journey proves planning by
+       * a real model. Permits are the stub's; the key stays in this process; at
+       * most OCADE_LIVE_MAX_CALLS calls (default 400) are made, then 429.
+       */
+      if (LIVE_GEMINI_KEY && liveModel) {
+        if (++liveCalls > LIVE_MAX_CALLS) return send(429, { error: "live_call_cap" });
+        plannerTurns.gemini = liveCalls;
+        void (async () => {
+          const { handleOnlineIntelligence } =
+            await import("../../src/lib/intelligence/edge-handler.ts");
+          const live = await handleOnlineIntelligence(
+            new Request(`http://127.0.0.1:${PORT}${url.pathname}`, {
+              method: "POST",
+              headers: Object.entries(request.headers).filter(
+                ([name, value]) =>
+                  typeof value === "string" && !/^(host|content-length)$/.test(name),
+              ),
+              body,
+            }),
+            {
+              allowedOrigins: new Set([request.headers.origin ?? ""]),
+              providerReady: true,
+              model: process.env.OCADE_LIVE_GEMINI_MODEL || undefined,
+              verifyJwt: async (token) =>
+                sessions.has(token) ? { userId: sessions.get(token) } : null,
+              verifyService: async (req) =>
+                serverDoor && onlineBoundary.lastRequest.authorized
+                  ? { userId: req.headers.get("x-ocade-user") }
+                  : null,
+              claimPermit: async () => ({ ok: true }),
+              callProvider: ({ model, body: providerBody, signal }) =>
+                fetch(
+                  `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "content-type": "application/json",
+                      "x-goog-api-key": LIVE_GEMINI_KEY,
+                    },
+                    body: JSON.stringify(providerBody),
+                    signal,
+                  },
+                ),
+            },
+          );
+          response.writeHead(live.status, Object.fromEntries(live.headers));
+          for await (const chunk of live.body ?? []) response.write(chunk);
+          response.end();
+        })().catch((error) => {
+          console.error(`live model request failed: ${error.message}`);
+          if (!response.headersSent) send(502, { error: "live_model_failed" });
+          else response.end();
+        });
         return;
       }
       /*

@@ -63,6 +63,7 @@ const ALL = [
   "office",
   "push",
   "controls",
+  "live",
 ];
 
 const requested = process.argv.slice(2).filter((value) => !value.startsWith("--"));
