@@ -79,7 +79,11 @@ export function TaskCard({
   const measurable = task.plan.length > 0 && task.status !== "completed";
   const progress = Math.round((Math.min(task.current_step, total) / total) * 100);
   return (
-    <section aria-label="Task" className="glass-strong ocade-pop rounded-xl p-3" data-testid="jarvis-task">
+    <section
+      aria-label="Task"
+      className="glass-strong ocade-pop rounded-xl p-3"
+      data-testid="jarvis-task"
+    >
       <div className="mb-1 flex items-center justify-between gap-2">
         <h2 className="truncate text-sm font-medium">{task.title}</h2>
         <span className="shrink-0 text-xs text-muted-foreground" data-testid="jarvis-task-status">
