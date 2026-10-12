@@ -69,6 +69,11 @@ jobs:
           # them so the Device Agent's bubblewrap sandbox can confine commands, as on a desktop
           # where the person allowed it. The agent itself checks that it really works.
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          # A spoken question for the real-speech check, played into Chrome's fake microphone.
+          sudo apt-get install -y espeak-ng
+          espeak-ng -s 140 -w "${RUNNER_TEMP}/question.wav" "What is the capital of France?"
+          echo "OCADE_SPEECH_WAV=${RUNNER_TEMP}/question.wav" >> "$GITHUB_ENV"
+          echo "OCADE_SPEECH_BROWSER=$(command -v google-chrome || true)" >> "$GITHUB_ENV"
           python3 -m pip install --disable-pip-version-check -r jarvis-runtime/requirements-agent.txt
           python3 -m playwright install --with-deps chromium
 

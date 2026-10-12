@@ -1455,7 +1455,46 @@ except i.UpdateRequired:
         (await talker.getByText("Speech recognition is not available right now").count()) >= 1,
     )) && (await talker.getByRole("button", { name: "Start voice", exact: true }).count()) === 1,
   );
-  blocked("real speech service", "the browser's own recognition service is not reachable here");
+  // A real recognition service: Google Chrome on the cloud VM hears a spoken question played
+  // into its microphone from a recording. Without that browser or recording, it stays BLOCKED.
+  const speechBrowser = process.env.OCADE_SPEECH_BROWSER;
+  const spoken = process.env.OCADE_SPEECH_WAV;
+  if (speechBrowser && spoken && existsSync(spoken)) {
+    const real = await chromium.launch({
+      executablePath: speechBrowser,
+      headless: false,
+      args: [
+        "--no-sandbox",
+        "--use-fake-ui-for-media-stream",
+        "--use-fake-device-for-media-stream",
+        `--use-file-for-fake-audio-capture=${spoken}`,
+      ],
+    });
+    try {
+      const heard = await real.newContext({ viewport: { width: 1280, height: 800 } });
+      await heard.grantPermissions(["microphone"], { origin: BASE });
+      await heard.addInitScript(
+        ([key, value]) => window.localStorage.setItem(key, value),
+        [storageKey, JSON.stringify(session)],
+      );
+      const listener = await heard.newPage();
+      await listener.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
+      await listener.getByRole("button", { name: "Start voice", exact: true }).click();
+      const understood = await until(
+        async () => (await listener.getByText(/capital of france/i).count()) >= 1,
+        90_000,
+      );
+      if (understood) {
+        check("a real speech service turns the person's spoken words into their message", true);
+      } else {
+        blocked("real speech service", "Chrome's recognition service did not answer on this VM");
+      }
+    } finally {
+      await real.close();
+    }
+  } else {
+    blocked("real speech service", "the browser's own recognition service is not reachable here");
+  }
   const woken = await speech.newPage();
   await woken.goto(`${BASE}/ocade-jarvis?voice=1`, { waitUntil: "networkidle" });
   check(
