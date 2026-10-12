@@ -25,7 +25,12 @@ import { cn } from "@/lib/utils";
 import { useModalFocus } from "@/lib/use-modal-focus";
 import { useAppearance } from "@/lib/appearance";
 import { useBubblePlacement, writePlacement } from "@/jarvis/bubble-state";
-import { readPreferences, writePreferences } from "@/jarvis/preferences";
+import {
+  JARVIS_DEFAULTS,
+  readPreferences,
+  useJarvisPreferences,
+  writePreferences,
+} from "@/jarvis/preferences";
 import { useSession } from "@/lib/session";
 import { AdvancedSection } from "./AdvancedSection";
 import { SignInMethods } from "./SignInMethods";
@@ -338,12 +343,8 @@ function BubbleSetting() {
 
 /** The JARVIS Orb's accent, kept on this device; Monochrome puts it back. */
 function OrbColour() {
-  const [accent, setAccent] = useState<string | null>(null);
-  useEffect(() => setAccent(readPreferences().accent), []);
-  const choose = (next: string | null) => {
-    setAccent(next);
-    writePreferences({ ...readPreferences(), accent: next });
-  };
+  const { accent } = useJarvisPreferences();
+  const choose = (next: string | null) => writePreferences({ ...readPreferences(), accent: next });
   return (
     <Row label="Orb colour" description="The JARVIS Orb's accent on this device.">
       <div className="flex items-center gap-2">
@@ -362,6 +363,77 @@ function OrbColour() {
           Monochrome
         </button>
       </div>
+    </Row>
+  );
+}
+
+/**
+ * The voice JARVIS answers in, from the voices this device has: browsers do not say which voice
+ * is female or male, so each is listed by its own name (natural/online voices first) to hear
+ * with Preview and choose.
+ */
+function JarvisVoiceSetting() {
+  const { voice } = useJarvisPreferences();
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) return;
+    const list = () =>
+      setVoices(
+        window.speechSynthesis
+          .getVoices()
+          .slice()
+          .sort(
+            (a, b) =>
+              Number(/natural|online|neural/i.test(b.name)) -
+                Number(/natural|online|neural/i.test(a.name)) || a.name.localeCompare(b.name),
+          ),
+      );
+    list();
+    window.speechSynthesis.addEventListener("voiceschanged", list);
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", list);
+  }, []);
+  const choose = (next: string | null) => writePreferences({ ...readPreferences(), voice: next });
+  const preview = () => {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance("Hello, I'm JARVIS.");
+    utterance.voice = voices.find((each) => each.voiceURI === voice) ?? null;
+    window.speechSynthesis.speak(utterance);
+  };
+  if (!voices.length) {
+    return (
+      <Row label="JARVIS voice" description="This browser has no voices to read answers in." />
+    );
+  }
+  return (
+    <Row label="JARVIS voice" description="The voice answers are read in on this device.">
+      <div className="flex items-center gap-2">
+        <select
+          aria-label="JARVIS voice"
+          value={voices.some((each) => each.voiceURI === voice) ? (voice ?? "") : ""}
+          onChange={(event) => choose(event.target.value || null)}
+          className="h-8 max-w-56 rounded-md border border-border bg-background px-2 text-sm text-foreground"
+        >
+          <option value="">Browser default</option>
+          {voices.map((each) => (
+            <option key={each.voiceURI} value={each.voiceURI}>
+              {each.name} ({each.lang})
+            </option>
+          ))}
+        </select>
+        <Action label="Preview" onClick={preview} />
+      </div>
+    </Row>
+  );
+}
+
+/** Every JARVIS choice on this device back to how it started; nothing else is touched. */
+function ResetJarvis() {
+  return (
+    <Row
+      label="Reset JARVIS settings"
+      description="Voice, wake phrase, spoken answers, Orb colour and layout go back to their defaults on this device."
+    >
+      <Action label="Reset" onClick={() => writePreferences(JARVIS_DEFAULTS)} />
     </Row>
   );
 }
@@ -409,6 +481,8 @@ function AppearanceSettings() {
       </Row>
       <BubbleSetting />
       <OrbColour />
+      <JarvisVoiceSetting />
+      <ResetJarvis />
       {saveError ? (
         <p className="pt-3 text-[13px] text-muted-foreground" role="status">
           {saveError}

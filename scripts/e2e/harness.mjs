@@ -30,6 +30,7 @@ import { generateKeyPairSync } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright-core";
+import { printTimings } from "./timings.mjs";
 
 // The full Chromium build, never Playwright's separate headless shell: the shell
 // build shipped with this Playwright crashes on pages real Chrome renders.
@@ -325,6 +326,9 @@ for (const journey of journeys) {
   else if (result.status !== 0) failed += 1;
 }
 
+await printTimings(SUPABASE_URL).catch((error) =>
+  console.log(`TIMING  unavailable: ${error.message}`),
+);
 stopEverything();
 // A blocked journey is reported as blocked, never folded into "passed" (F-132).
 const blockedNote = blocked ? `, ${blocked} BLOCKED` : "";

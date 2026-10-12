@@ -212,6 +212,38 @@ try {
     );
   }
 
+  /* --- JARVIS voice and Reset, kept on this device ------------------------- */
+
+  await page.getByRole("button", { name: "Appearance", exact: true }).click();
+  const stored = () =>
+    page.evaluate(() => JSON.parse(localStorage.getItem("ocade:jarvis:v1") ?? "{}"));
+  const voicePicker = page.getByRole("combobox", { name: "JARVIS voice" });
+  if ((await voicePicker.count()) === 1) {
+    const offered = await voicePicker
+      .locator("option")
+      .evaluateAll((all) => all.map((o) => o.value));
+    await voicePicker.selectOption(offered[1]);
+    check("a chosen JARVIS voice is kept", (await stored()).voice === offered[1], offered[1]);
+  } else {
+    check(
+      "without voices, the JARVIS voice row says so",
+      /no voices/.test(await dialog.innerText()),
+    );
+  }
+  await page.getByLabel("Orb colour").fill("#33aa88");
+  check("an Orb colour is kept", (await stored()).accent === "#33aa88");
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
+  const reset = await stored();
+  check(
+    "Reset puts every JARVIS choice back to its default",
+    reset.accent === null && reset.voice === null && reset.speak === true && reset.wake === false,
+    JSON.stringify(reset),
+  );
+  check(
+    "and the Orb colour on screen follows the reset",
+    (await page.getByLabel("Orb colour").inputValue()) === "#ffffff",
+  );
+
   /* --- every category is reachable on a phone and a tablet ---------------- */
 
   /*

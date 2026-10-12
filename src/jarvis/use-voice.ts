@@ -14,6 +14,7 @@
  * standard recogniser.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { readPreferences } from "./preferences";
 
 interface RecognitionResult {
   isFinal: boolean;
@@ -264,6 +265,10 @@ export function useJarvisVoice(onHeard: (text: string) => void, wake: boolean): 
       stopListening();
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text.slice(0, 4000));
+      // The person's chosen voice when this device still has it; otherwise the browser's own.
+      const chosen = readPreferences().voice;
+      utterance.voice =
+        window.speechSynthesis.getVoices().find((voice) => voice.voiceURI === chosen) ?? null;
       const spoken = ++utterances.current;
       // Ended or failed, speaking is over the same way: never stuck "speaking" (C21).
       utterance.onend = utterance.onerror = () => {

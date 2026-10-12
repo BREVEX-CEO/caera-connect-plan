@@ -16,6 +16,7 @@
 import { execFileSync, spawn } from "node:child_process";
 import path from "node:path";
 import { chromium } from "playwright-core";
+import { printTimings } from "./timings.mjs";
 
 const arg = (name, fallback) => {
   const found = process.argv.find((entry) => entry.startsWith(`--${name}=`));
@@ -725,6 +726,7 @@ try {
     appium.kill("SIGTERM");
   }
   await browser.close();
+  await printTimings(SUPABASE).catch((error) => console.log(`TIMING  unavailable: ${error.message}`));
 }
 process.stdout.write(failures === 0 ? "\nAndroid journey passed.\n" : `\n${failures} failed.\n`);
 process.exit(failures === 0 ? 0 : 1);

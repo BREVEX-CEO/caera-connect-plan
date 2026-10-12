@@ -1493,6 +1493,8 @@ function handleRpc(name, args, userId) {
 
 /** The scripted JARVIS steps set by `/__fixture/jarvis-script`, or null. */
 let jarvisScript = null;
+/** Planner turns answered per script trigger, for the timing report (`GET /__fixture/jarvis-script`). */
+const plannerTurns = {};
 /** How long charging an answer takes, set by /__fixture/slow-settlement. */
 let settleDelayMs = 0;
 
@@ -1517,6 +1519,7 @@ function jarvisStep(messages) {
     (m) => m.role === "assistant" && String(m.content).startsWith("Called "),
   ).length;
   const step = jarvisScript.steps[taken];
+  plannerTurns[jarvisScript.trigger] = (plannerTurns[jarvisScript.trigger] ?? 0) + 1;
   if (!step) return { text: "Nothing more to do." };
   // A control named rather than referenced: a browser element, or an app control (ui_act).
   const named = step.args?.name && (step.tool === "browser" || step.args.action === "ui_act");
@@ -1748,6 +1751,7 @@ const server = createServer((request, response) => {
        * the real device, the real page and the real observation. It proves the
        * loop, the permits and the device path; it proves nothing about a model.
        */
+      if (request.method === "GET") return send(200, plannerTurns);
       jarvisScript = JSON.parse(body || "null");
       return send(200, { ok: true });
     }

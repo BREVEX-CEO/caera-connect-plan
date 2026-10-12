@@ -38,6 +38,7 @@ import { liveDeps, ModelRefused, Unavailable } from "./live-deps";
 import { isAllowed } from "./permissions";
 import { FINISHED } from "./protocol";
 import {
+  JARVIS_DEFAULTS,
   PREFERENCES_CHANGED,
   readPreferences,
   writePreferences,
@@ -98,12 +99,7 @@ export function JarvisWorkspace({
   const queryClient = useQueryClient();
   const { motionReduced } = useAppearance();
   const settings = useSettingsPanel();
-  const [prefs, setPrefs] = useState<JarvisPreferences>({
-    accent: null,
-    railExpanded: false,
-    wake: false,
-    speak: true,
-  });
+  const [prefs, setPrefs] = useState<JarvisPreferences>(JARVIS_DEFAULTS);
   useEffect(() => {
     const follow = () => setPrefs(readPreferences());
     follow();
