@@ -708,6 +708,17 @@ export async function exchange(
     .eq("device_id", device.id)
     .eq("status", "claimed")
     .lt("created_at", new Date(Date.now() - CLAIMED_TTL_MS).toISOString());
+  // A step handed out earlier that the device neither runs nor reports did not reach it, or
+  // was lost with it (the app killed before recording it): settled now as unknown, not left
+  // claimed for minutes. Every agent lists what it runs and reports what it ran.
+  const known = [...(input.running ?? []), ...input.results.map((result) => result.id)];
+  let lost = admin
+    .from("jarvis_activity")
+    .update({ status: "failed", completed_at: now })
+    .eq("device_id", device.id)
+    .eq("status", "claimed");
+  if (known.length) lost = lost.not("id", "in", `(${known.join(",")})`);
+  await lost;
 
   // The action the device runs now continues only while it is still claimed
   // and its task still running; anything else (STOP, Take Over, the task

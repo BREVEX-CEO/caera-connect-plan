@@ -793,6 +793,23 @@ describe("the live picture (C24)", () => {
   });
 });
 
+describe("a step the device lost (killed before recording it)", () => {
+  it("is settled unknown at the device's next exchange, not left claimed for minutes", async () => {
+    const t = await task();
+    await permit("files", true);
+    const id = await queue(t, { action: "file_list", path: "." });
+    expect((await run({ results: [] })).commands.map((c) => c.id)).toEqual([id]);
+    // Still running on the device: left alone.
+    await run({ results: [], running: [id] });
+    expect((await status(id)).status).toBe("claimed");
+    // Restarted without it, and nothing reported: the device does not have it.
+    await run({ results: [], running: [] });
+    const row = await status(id);
+    expect(row.status).toBe("failed");
+    expect(row.result).toEqual({ status: "unknown" });
+  });
+});
+
 describe("results (JARVIS-027)", () => {
   it("answers every reported result: kept, stopped, or unknown", async () => {
     const t = await task();

@@ -586,7 +586,7 @@ try {
       async () =>
         JSON.stringify(
           await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) => r.json()),
-        ).includes("Accessibility settings"),
+        ).includes("app control on this phone"),
       60_000,
     ),
     (
@@ -637,15 +637,16 @@ try {
       async () => (await activity(`id=eq.${id}&select=status`))[0]?.status !== "claimed",
       60_000,
     );
-    const [row] = await activity(`id=eq.${id}&select=status,summary`);
-    if (/unknown/.test(row?.summary ?? "")) cut = row;
+    const [row] = await activity(`id=eq.${id}&select=status,summary,result`);
+    // Reported by the phone on restart, or settled by OCADE when the phone no longer had it.
+    if (/unknown/.test(`${row?.summary} ${row?.result?.status}`)) cut = row;
     else
       process.stdout.write(`INFO  the step ended (${row?.status}) before the kill landed; again\n`);
   }
   if (cut) {
     check(
       "a step cut off by the app being killed is reported as unknown after restart, never as done",
-      cut.status === "failed" && /unknown/.test(cut.summary ?? ""),
+      cut.status === "failed" && /unknown/.test(`${cut.summary} ${cut.result?.status}`),
       JSON.stringify(cut),
     );
   } else {

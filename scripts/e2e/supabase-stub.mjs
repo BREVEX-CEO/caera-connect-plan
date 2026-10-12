@@ -431,8 +431,17 @@ function matches(row, params) {
     const [operator, ...rest] = raw.split(".");
     const value = rest.join(".");
     if (operator === "not") {
-      // `not.is.null` is the only negation the product uses.
+      // `not.is.null` and `not.in.(…)` are the negations the product uses.
       const [inner, innerValue] = rest;
+      if (inner === "in") {
+        const listed = rest
+          .slice(1)
+          .join(".")
+          .replace(/^\(|\)$/g, "")
+          .split(",");
+        if (listed.includes(String(row[key]))) return false;
+        continue;
+      }
       if (
         inner === "is" &&
         innerValue === "null" &&

@@ -56,6 +56,19 @@ export function restOver(twin: DatabaseTwin) {
         lt: (c: string, v: unknown) => (where.push(`${c} < ${lit(v)}`), q),
         lte: (c: string, v: unknown) => (where.push(`${c} <= ${lit(v)}`), q),
         is: (c: string, v: unknown) => (where.push(`${c} is ${lit(v)}`), q),
+        // PostgREST's `not.in`: the only negation the server code builds besides `not.is`.
+        not: (c: string, op: string, v: string) => (
+          where.push(
+            op === "in"
+              ? `${col(c)} not in (${v
+                  .replace(/^\(|\)$/g, "")
+                  .split(",")
+                  .map(lit)
+                  .join(",")})`
+              : `${c} is not ${lit(v)}`,
+          ),
+          q
+        ),
         in: (c: string, vs: unknown[]) => (
           where.push(vs.length ? `${col(c)} in (${vs.map(lit).join(",")})` : "false"),
           q
