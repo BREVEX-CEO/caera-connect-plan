@@ -261,7 +261,7 @@ try {
     uses
       .filter((row) => row.action)
       .map((row) => row.action.action)
-      .join(",") === "file_write,file_info,run,file_write,file_read" &&
+      .join(",") === "file_write,file_read,run,file_write,file_read" &&
       readFileSync(path.join(workspace, "slept.txt"), "utf8") === "x",
     uses
       .filter((row) => row.action)
