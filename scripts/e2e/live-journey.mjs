@@ -222,7 +222,20 @@ try {
       finished && task?.status === "completed",
       `${task?.status}: ${task?.result ?? task?.blocker ?? ""}`.slice(0, 400),
     );
-    if (task?.status !== "completed") await dumpTurns();
+    if (task?.status !== "completed") {
+      await dumpTurns();
+      // As a person would before asking something else: STOP the unfinished task, or the next
+      // request is taken as an answer to it.
+      await page
+        .getByTestId("jarvis-task")
+        .getByRole("button", { name: "Stop", exact: true })
+        .click({ timeout: 10_000 })
+        .catch(() => undefined);
+      await until(async () => {
+        const [last] = await table("jarvis_tasks", `id=eq.${task?.id}&select=status`);
+        return !last || !["running", "waiting"].includes(last.status);
+      }, 30_000);
+    }
     return steps;
   };
   const dumpTurns = async () => {
