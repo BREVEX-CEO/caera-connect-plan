@@ -36,7 +36,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cloud-android-${{ github.ref }}
+  group: cloud-android-${{ github.ref }}-${{ inputs.android_api }}
   cancel-in-progress: true
 
 jobs:
