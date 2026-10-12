@@ -11,7 +11,7 @@ export async function printTimings(supabase) {
   const read = (path) => fetch(`${supabase}${path}`).then((r) => (r.ok ? r.json() : []));
   const [tasks, steps, turns] = await Promise.all([
     read("/rest/v1/jarvis_tasks?select=id,title,status,created_at,updated_at,finished_at"),
-    read("/rest/v1/jarvis_activity?select=task_id,status,action,result"),
+    read("/rest/v1/jarvis_activity?select=task_id,status,summary,action,result"),
     read("/__fixture/jarvis-script"),
   ]);
   const ran = steps.filter((step) => step.action);
@@ -39,6 +39,15 @@ export async function printTimings(supabase) {
     const sorted = all.sort((a, b) => a - b);
     console.log(
       `TIMING  ${kind} | ${sorted.length} | ${percentile(sorted, 50)} | ${percentile(sorted, 95)} | ${percentile(sorted, 99)}`,
+    );
+  }
+  const slowest = ran
+    .filter((step) => typeof step.result?.detail?.ms === "number")
+    .sort((a, b) => b.result.detail.ms - a.result.detail.ms)
+    .slice(0, 5);
+  for (const step of slowest) {
+    console.log(
+      `TIMING  slow: ${step.action.action} ${step.result.detail.ms} ms — ${step.summary}`,
     );
   }
   console.log(`TIMING  scripted planner turns per task trigger: ${JSON.stringify(turns)}`);
