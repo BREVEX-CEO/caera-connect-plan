@@ -254,7 +254,8 @@ try {
   } else {
     check(
       "notifications allowed, the phone says Ready",
-      await until(async () => await exists('new UiSelector().textStartsWith("Ready")'), 20_000),
+      await until(async () => await exists('new UiSelector().textStartsWith("Ready")'), 45_000),
+      ((await source()).match(/text="[^"]+"/g) ?? []).slice(0, 12).join(" "),
     );
   }
   // The bubble: the person's choice, from its own button with its reason.

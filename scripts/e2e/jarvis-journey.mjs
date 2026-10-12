@@ -1204,6 +1204,7 @@ except i.UpdateRequired:
       },
       { text: "Saved the summary." },
     ]);
+    await page.reload({ waitUntil: "networkidle" }); // the refilled allowance unlocks the composer
     await say("editor-task write the quarterly summary");
     await idle();
     const saved = path.join(workspace, "summary.html");
