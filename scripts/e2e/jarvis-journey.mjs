@@ -520,10 +520,11 @@ except i.UpdateRequired:
     const terminal = await commands.isEnabled();
     if (terminal) await commands.click();
     else {
-      check(
-        "running commands is shown unavailable where it cannot be confined",
-        process.platform !== "linux",
-      );
+      // On Linux, only where bubblewrap cannot actually run (namespaces forbidden).
+      const confinable =
+        process.platform === "linux" &&
+        spawnSync("bwrap", ["--ro-bind", "/", "/", "--unshare-pid", "true"]).status === 0;
+      check("running commands is shown unavailable where it cannot be confined", !confinable);
     }
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
     // Try again continues the same task: one record, one history, not a copy.
