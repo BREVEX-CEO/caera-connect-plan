@@ -24,7 +24,7 @@ import { describe, expect, it } from "vitest";
 const HELP = readFileSync("src/routes/help.tsx", "utf8");
 const PUBLIC_PAGE = readFileSync("src/components/shell/PublicPage.tsx", "utf8");
 const ROWS = readFileSync("src/components/settings/rows.tsx", "utf8");
-const PANEL = readFileSync("src/components/settings/settings-panel.tsx", "utf8");
+const PANEL = readFileSync("src/components/settings/settings-dialog.tsx", "utf8");
 const AUTHED = readFileSync("src/routes/_authenticated/route.tsx", "utf8");
 
 describe("what Help says about Offline", () => {

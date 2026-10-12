@@ -94,6 +94,7 @@ try {
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();
   const dialog = page.getByRole("dialog", { name: "Settings" });
+  await dialog.waitFor();
   const categories = await dialog.locator("nav button").allInnerTexts();
   check(
     "Settings offers exactly the five categories the design system names",
@@ -269,6 +270,7 @@ try {
     // the visible one is the only one a person could press.
     await view.locator('aside button[aria-haspopup="menu"]:visible').first().click();
     await view.getByRole("menuitem", { name: "Settings" }).click();
+    await view.getByRole("dialog", { name: "Settings" }).waitFor();
 
     let reachable = 0;
     for (const category of CATEGORY_NAMES) {

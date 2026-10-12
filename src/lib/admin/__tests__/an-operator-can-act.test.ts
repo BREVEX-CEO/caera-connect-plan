@@ -19,7 +19,7 @@ import { searchableAccountTerm } from "../access.functions";
  * The sanitizer below is real logic and is tested as logic.
  */
 const ADMIN = readFileSync("src/routes/_authenticated/admin.tsx", "utf8");
-const PANEL = readFileSync("src/components/settings/settings-panel.tsx", "utf8");
+const PANEL = readFileSync("src/components/settings/settings-dialog.tsx", "utf8");
 const TWO_STEP = readFileSync("src/components/settings/TwoStep.tsx", "utf8");
 const ACCESS = readFileSync("src/lib/admin/access.functions.ts", "utf8");
 

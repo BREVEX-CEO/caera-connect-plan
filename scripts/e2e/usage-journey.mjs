@@ -275,7 +275,13 @@ try {
   await page.getByRole("menuitem", { name: "Settings" }).click();
   check(
     "Settings still opens",
-    (await page.getByRole("dialog", { name: "Settings" }).count()) === 1,
+    await page
+      .getByRole("dialog", { name: "Settings" })
+      .waitFor({ timeout: 10_000 })
+      .then(
+        () => true,
+        () => false,
+      ),
   );
   await page.getByRole("button", { name: "Billing & Usage" }).click();
   await page.waitForSelector("text=of 28 left", { timeout: 15_000 });

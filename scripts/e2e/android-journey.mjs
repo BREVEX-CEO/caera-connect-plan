@@ -215,8 +215,11 @@ try {
   check(
     "Set up asks OCADE to connect it, as an Android device, before any permission",
     Boolean(phone) && !(await exists(ui("Allow"))),
-    JSON.stringify(phone),
+    phone
+      ? JSON.stringify(phone)
+      : `no request reached OCADE; the phone shows: ${((await source()).match(/text="[^"]+"/g) ?? []).slice(0, 15).join(" ")}`,
   );
+  if (!phone) throw new Error("the phone never asked OCADE to connect");
   // The approval page opened in the phone's browser; the person approves where they are signed in.
   await web.goto(`${BASE}/ocade-jarvis?connect=${phone.id}`, { waitUntil: "networkidle" });
   adb("shell", "am", "start", "-n", "in.ocade.app/.MainActivity");

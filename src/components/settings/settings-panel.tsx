@@ -23,7 +23,8 @@ import {
 } from "react";
 
 // Loaded when Settings first opens: none of its sections are part of a first visit.
-const SettingsDialog = lazy(() => import("./settings-dialog"));
+const loadDialog = () => import("./settings-dialog");
+const SettingsDialog = lazy(loadDialog);
 
 const SETTINGS_CATEGORIES = [
   "account",
@@ -37,6 +38,8 @@ export type SettingsCategory = (typeof SETTINGS_CATEGORIES)[number];
 interface SettingsPanelValue {
   open: (category?: SettingsCategory) => void;
   close: () => void;
+  /** Starts loading Settings' contents when opening it is likely (its menu opened). */
+  preload: () => void;
 }
 
 const SettingsPanelContext = createContext<SettingsPanelValue | null>(null);
@@ -46,14 +49,17 @@ export function useSettingsPanel(): SettingsPanelValue {
   return useContext(SettingsPanelContext) ?? NO_PANEL;
 }
 
-const NO_PANEL: SettingsPanelValue = { open: () => {}, close: () => {} };
+const NO_PANEL: SettingsPanelValue = { open: () => {}, close: () => {}, preload: () => {} };
 
 export function SettingsPanelProvider({ children }: { children: ReactNode }) {
   const [category, setCategory] = useState<SettingsCategory | null>(null);
 
   const open = useCallback((next: SettingsCategory = "account") => setCategory(next), []);
   const close = useCallback(() => setCategory(null), []);
-  const value = useMemo<SettingsPanelValue>(() => ({ open, close }), [open, close]);
+  const value = useMemo<SettingsPanelValue>(
+    () => ({ open, close, preload: () => void loadDialog() }),
+    [open, close],
+  );
 
   /*
    * A LINK CAN OPEN SETTINGS: `?settings=privacy` on any page. Settings is a
