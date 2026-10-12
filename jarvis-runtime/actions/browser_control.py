@@ -150,8 +150,12 @@ class _BrowserSession:
         if cancel is None:
             return future.result(timeout=timeout)
         deadline = time.monotonic() + timeout
-        while not future.done():
-            if cancel.wait(0.1):
+        # Woken the moment the step finishes, not at the next STOP check (every step took a
+        # multiple of 100 ms before); STOP is still seen within 100 ms.
+        finished = threading.Event()
+        future.add_done_callback(lambda _: finished.set())
+        while not finished.wait(0.1):
+            if cancel.is_set():
                 future.cancel()  # cancels the page operation inside the browser loop
                 return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
             if time.monotonic() > deadline:

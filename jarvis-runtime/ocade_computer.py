@@ -936,8 +936,13 @@ class Computer:
                                        stdin=subprocess.DEVNULL, **extra)
             summary = None
             while process.poll() is None:
+                try:  # back the moment the command ends; STOP and the time limit checked every 100 ms
+                    process.wait(timeout=0.1)
+                    break
+                except subprocess.TimeoutExpired:
+                    pass
                 over = time.monotonic() - started > RUN_TIMEOUT_S
-                if cancel.wait(0.1) or over:
+                if cancel.is_set() or over:
                     self._kill(process)
                     process.wait()
                     summary = (f"The command ran over {RUN_TIMEOUT_S} seconds and was stopped"
