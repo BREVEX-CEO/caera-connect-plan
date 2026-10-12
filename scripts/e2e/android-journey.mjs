@@ -389,6 +389,95 @@ try {
   );
   await until(async () => (await web.getByText("Settings is open.").count()) >= 1, 30_000);
 
+  /* --- a long task across apps the phone itself lists ------------------------ */
+  // No app is named in advance: three are drawn, with a recorded seed, from the list the phone
+  // reported to OCADE, so each run may work in different apps.
+  const reported =
+    (await devices(`id=eq.${phone.id}&select=installed_apps`))[0]?.installed_apps ?? [];
+  const seed = Number(process.env.OCADE_SEED ?? Date.now() % 100_000);
+  let state = seed;
+  const random = () => (state = (state * 48_271) % 2_147_483_647) / 2_147_483_647;
+  const pool = reported.filter((name) => !/^(OCADE|Settings)$/i.test(name));
+  const chosen = [];
+  while (chosen.length < 3 && pool.length)
+    chosen.push(...pool.splice(Math.floor(random() * pool.length), 1));
+  process.stdout
+    .write(`INFO  long task seed ${seed}: ${chosen.join(", ")} (of ${reported.length} apps)
+`);
+  check(
+    "the phone reported enough apps for a task across several",
+    chosen.length === 3,
+    reported.join(", "),
+  );
+  const visit = (name) => [
+    { tool: "computer", args: { action: "open_app", name } },
+    { tool: "computer", args: { action: "screen" } },
+    { tool: "computer", args: { action: "ui_inspect" } },
+  ];
+  await fetch(`${SUPABASE}/__fixture/jarvis-script`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      trigger: "phone-long",
+      steps: [
+        {
+          tool: "start_task",
+          args: {
+            title: "Check three apps, then the network",
+            where: "computer",
+            steps: ["Apps", "Network"],
+          },
+        },
+        ...chosen.flatMap(visit),
+        ...visit("Settings"),
+        { tool: "computer", args: { action: "ui_act", op: "invoke", name: "Network & internet" } },
+        { tool: "computer", args: { action: "ui_inspect" } },
+        {
+          tool: "finish_task",
+          args: {
+            outcome: "completed",
+            result: "Visited the apps and opened the network settings.",
+            evidence: ["Internet"],
+          },
+        },
+      ],
+    }),
+  });
+  await web.locator("#jarvis-composer").fill("phone-long check three of my apps and the network");
+  await web.getByRole("button", { name: "Send", exact: true }).click();
+  const fronts = new Set();
+  let interrupted = false;
+  const finished = await until(async () => {
+    const ask = web.getByRole("alertdialog", { name: "Confirm this step" });
+    if ((await ask.count()) === 1) await ask.getByRole("button", { name: "Confirm" }).click();
+    fronts.add(await wd("GET", "/appium/device/current_package").catch(() => ""));
+    // An interruption mid-task: the person rotates the phone and goes Home once.
+    if (!interrupted && fronts.size >= 3) {
+      interrupted = true;
+      await wd("POST", "/orientation", { orientation: "LANDSCAPE" }).catch(() => undefined);
+      await wd("POST", "/appium/device/press_keycode", { keycode: 3 }).catch(() => undefined);
+      await wd("POST", "/orientation", { orientation: "PORTRAIT" }).catch(() => undefined);
+    }
+    return (await web.getByText("Visited the apps and opened the network settings.").count()) >= 1;
+  }, 240_000);
+  const steps = JSON.stringify(
+    await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) => r.json()),
+  );
+  check(
+    "a 17-step task across four apps finishes, checked against what the phone read back",
+    finished,
+    `${[...fronts].filter(Boolean).join(" > ")}`,
+  );
+  check(
+    "each app it was asked for came to the front",
+    [...fronts].filter((p) => p && p !== "in.ocade.app").length >= 3,
+    [...fronts].join(" > "),
+  );
+  check(
+    "and it read each one's controls",
+    (steps.match(/Read the controls on screen/g) ?? []).length >= 4,
+  );
+
   /* --- STOP from the bubble ------------------------------------------------ */
   // Android hides every app's floating windows over its own Settings; from the home screen it is there.
   await wd("POST", "/appium/device/press_keycode", { keycode: 3 });
