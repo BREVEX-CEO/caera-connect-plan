@@ -784,6 +784,19 @@ describe("capacity failures that must not look like each other", () => {
     expect(order.indexOf("charged user-1 idempotency-1")).toBeLessThan(order.indexOf("final"));
   });
 
+  it("sends nothing, and claims nothing, for an account that has not agreed to online use", async () => {
+    const callProvider = vi.fn(async () => provider([]));
+    const claimPermit = vi.fn(async () => ({ ok: true as const }));
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ callProvider, claimPermit, consented: async () => false }),
+    );
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: "online_not_consented" });
+    expect(claimPermit).not.toHaveBeenCalled();
+    expect(callProvider).not.toHaveBeenCalled();
+  });
+
   it("says when the reply starts a JARVIS task, whose one use is charged at completion", async () => {
     const settled: boolean[] = [];
     for (const parts of [

@@ -35,6 +35,7 @@ const DATABASE_BACKED = [
   "src/lib/__tests__/security-definer.test.ts",
   "src/lib/account/__tests__/a-deletion-leaves-a-record.test.ts",
   "src/lib/account/__tests__/data-rights-map.test.ts",
+  "src/lib/commercial/__tests__/jarvis-task-is-one-use.test.ts",
   "src/lib/admin/__tests__/admin-operations-schema.test.ts",
   "src/lib/chat/__tests__/regenerate-drops-turns-atomically.test.ts",
   "src/lib/commercial/__tests__/device-registration-against-postgres.test.ts",

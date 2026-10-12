@@ -11,6 +11,10 @@ import {
   watchDeviceRegistration,
 } from "@/lib/commercial/device-identity";
 import { useSession } from "@/lib/session";
+import {
+  readOnlineConsent,
+  recordOnlineConsent,
+} from "@/lib/intelligence/online-consent.functions";
 import { Action, Confirm, Row } from "./rows";
 
 /**
@@ -47,7 +51,35 @@ export function DataControlsSection() {
       <LibrarySection />
       <ExportSection />
       <OfflineIntelligenceSection />
+      <OnlineConsentSection />
     </div>
+  );
+}
+
+/** The agreement online answers need (20261013091000), shown and withdrawable here. */
+function OnlineConsentSection() {
+  const client = useQueryClient();
+  const read = useQuery({ queryKey: ["online-consent"], queryFn: () => readOnlineConsent() });
+  const change = useMutation({
+    mutationFn: (given: boolean) => recordOnlineConsent({ data: { given } }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["online-consent"] }),
+  });
+  const agreedAt = read.data?.agreedAt ?? null;
+  return (
+    <Row
+      label="Online answers"
+      description={stated(
+        read,
+        change,
+        agreedAt
+          ? `You agreed on ${new Date(agreedAt).toLocaleDateString()} that what you send online may be kept and used by a third-party AI service to improve its products. Withdraw it, and nothing is sent online until you agree again; Offline Chat still works.`
+          : "Not agreed: online answers and JARVIS ask before anything is sent. Offline Chat sends nothing.",
+      )}
+    >
+      {agreedAt ? (
+        <Action label="Withdraw" busy={change.isPending} onClick={() => change.mutate(false)} />
+      ) : null}
+    </Row>
   );
 }
 

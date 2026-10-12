@@ -36,60 +36,49 @@ export class Unavailable extends Error {
   }
 }
 
+/**
+ * A busy answer (rate limited, unavailable) is waited out a little and asked again, of
+ * the same model, before the task pauses: a per-minute limit usually clears within these
+ * (live cloud runs, 13 Oct). Each failed attempt is released, never charged; STOP ends
+ * the wait at once.
+ */
+export const BUSY_WAITS_MS = [15_000, 30_000];
+
+export function waitOrStop(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(signal.reason);
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        reject(signal.reason);
+      },
+      { once: true },
+    );
+  });
+}
+
+/** Asks again after each busy answer, then lets the task pause with the last one. */
+export async function askThroughBusy<T>(
+  ask: () => Promise<T>,
+  signal?: AbortSignal,
+  waits: readonly number[] = BUSY_WAITS_MS,
+): Promise<T> {
+  for (const pause of waits) {
+    try {
+      return await ask();
+    } catch (error) {
+      if (!(error instanceof Unavailable)) throw error;
+      await waitOrStop(pause, signal);
+    }
+  }
+  return ask();
+}
+
 export function liveDeps(conversationId: string): AgentDeps {
   return {
-    async model({ messages, memory, attachments, signal, onText }) {
-      const billed = await beginBilledRequest({ surface: "jarvis" });
-      if (!billed) return null;
-      let text = "";
-      const toolCalls: NormalizedToolCall[] = [];
-      let refusal: { reason: string; code: string; retryable: boolean } | null = null;
-      try {
-        for await (const event of online.stream({
-          permit: billed.permit,
-          generationId: billed.permit.generationId,
-          idempotencyKey: billed.permit.idempotencyKey,
-          surface: "jarvis",
-          mode: "online",
-          messages,
-          tools: jarvisTools(memory),
-          attachments,
-          privacy: { onlineInferenceConsented: true, sealed: false },
-          conversationId,
-          signal,
-        })) {
-          if (event.type === "token") {
-            text += event.text;
-            onText?.(text);
-          } else if (event.type === "tool_call") toolCalls.push(event.call);
-          else if (event.type === "refusal") refusal = event;
-          else if (event.type === "final") {
-            text = event.response.text || text;
-            if (toolCalls.length === 0) toolCalls.push(...event.response.toolCalls);
-          }
-        }
-        billed.recordDelivery({
-          answer: text || (toolCalls.length ? JSON.stringify(toolCalls) : ""),
-        });
-      } finally {
-        await billed.settle();
-      }
-      if (refusal && !text && toolCalls.length === 0) {
-        if (
-          refusal.retryable &&
-          [
-            "provider_rate_limited",
-            "online_unavailable",
-            "empty_response",
-            "provider_failed",
-          ].includes(refusal.code)
-        ) {
-          throw new Unavailable();
-        }
-        throw new ModelRefused(refusal.reason);
-      }
-      return { text, toolCalls };
-    },
+    model: (input) => askThroughBusy(() => askOnce(input, conversationId), input.signal),
     startTask: (data) => startJarvisTask({ data }),
     updateTask: async (data) => {
       const task = await updateJarvisTask({ data });
@@ -108,4 +97,57 @@ export function liveDeps(conversationId: string): AgentDeps {
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     changed: actionChanged,
   };
+}
+
+async function askOnce(
+  { messages, memory, attachments, signal, onText }: Parameters<AgentDeps["model"]>[0],
+  conversationId: string,
+): ReturnType<AgentDeps["model"]> {
+  const billed = await beginBilledRequest({ surface: "jarvis" });
+  if (!billed) return null;
+  let text = "";
+  const toolCalls: NormalizedToolCall[] = [];
+  let refusal: { reason: string; code: string; retryable: boolean } | null = null;
+  try {
+    for await (const event of online.stream({
+      permit: billed.permit,
+      generationId: billed.permit.generationId,
+      idempotencyKey: billed.permit.idempotencyKey,
+      surface: "jarvis",
+      mode: "online",
+      messages,
+      tools: jarvisTools(memory),
+      attachments,
+      privacy: { onlineInferenceConsented: true, sealed: false },
+      conversationId,
+      signal,
+    })) {
+      if (event.type === "token") {
+        text += event.text;
+        onText?.(text);
+      } else if (event.type === "tool_call") toolCalls.push(event.call);
+      else if (event.type === "refusal") refusal = event;
+      else if (event.type === "final") {
+        text = event.response.text || text;
+        if (toolCalls.length === 0) toolCalls.push(...event.response.toolCalls);
+      }
+    }
+    billed.recordDelivery({
+      answer: text || (toolCalls.length ? JSON.stringify(toolCalls) : ""),
+    });
+  } finally {
+    await billed.settle();
+  }
+  if (refusal && !text && toolCalls.length === 0) {
+    if (
+      refusal.retryable &&
+      ["provider_rate_limited", "online_unavailable", "empty_response", "provider_failed"].includes(
+        refusal.code,
+      )
+    ) {
+      throw new Unavailable();
+    }
+    throw new ModelRefused(refusal.reason);
+  }
+  return { text, toolCalls };
 }

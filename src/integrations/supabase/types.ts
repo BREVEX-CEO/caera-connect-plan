@@ -791,6 +791,27 @@ export type Database = {
         }
         Relationships: []
       }
+      ocade_jarvis_task_charges: {
+        Row: {
+          charged_at: string
+          charged_hundredths: number
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          charged_at?: string
+          charged_hundredths: number
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          charged_at?: string
+          charged_hundredths?: number
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_generation_permits: {
         Row: {
           charged_hundredths: number | null
@@ -807,6 +828,7 @@ export type Database = {
           session_window_start: string
           status: string
           surface: string
+          task_id: string | null
           tier: string
           transport_claimed_at: string | null
           updated_at: string
@@ -830,6 +852,7 @@ export type Database = {
           session_window_start: string
           status?: string
           surface: string
+          task_id?: string | null
           tier: string
           transport_claimed_at?: string | null
           updated_at?: string
@@ -853,6 +876,7 @@ export type Database = {
           session_window_start?: string
           status?: string
           surface?: string
+          task_id?: string | null
           tier?: string
           transport_claimed_at?: string | null
           updated_at?: string
@@ -1470,6 +1494,8 @@ export type Database = {
           id: string
           locale: string
           occupation: string | null
+          online_ai_consent_at: string | null
+          online_ai_consent_version: string | null
           onboarding_completed: boolean
           onboarding_step: string | null
           phone: string | null
@@ -1489,6 +1515,8 @@ export type Database = {
           id: string
           locale?: string
           occupation?: string | null
+          online_ai_consent_at?: string | null
+          online_ai_consent_version?: string | null
           onboarding_completed?: boolean
           onboarding_step?: string | null
           phone?: string | null
@@ -1508,6 +1536,8 @@ export type Database = {
           id?: string
           locale?: string
           occupation?: string | null
+          online_ai_consent_at?: string | null
+          online_ai_consent_version?: string | null
           onboarding_completed?: boolean
           onboarding_step?: string | null
           phone?: string | null
@@ -1970,6 +2000,10 @@ export type Database = {
         Returns: undefined
       }
       ocade_push_unsubscribe: { Args: { p_endpoint: string }; Returns: undefined }
+      ocade_record_online_ai_consent: {
+        Args: { p_given: boolean; p_version: string }
+        Returns: string
+      }
       ocade_record_notification: {
         Args: {
           p_body: string

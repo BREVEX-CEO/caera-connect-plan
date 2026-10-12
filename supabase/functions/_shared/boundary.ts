@@ -4,6 +4,7 @@ import {
   type OnlineHandlerDependencies,
 } from "../../../src/lib/intelligence/edge-handler.ts";
 import { SERVICE_USER_HEADER } from "../../../src/lib/intelligence/contract.ts";
+import { ONLINE_CONSENT_VERSION } from "../../../src/lib/intelligence/online-consent-version.ts";
 import { buildHealthRecord } from "../../../src/lib/telemetry/operation-health.ts";
 import {
   DEFAULT_ONLINE_MODEL,
@@ -166,6 +167,30 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
   providerSlots: CONFIGURED_SLOTS,
   observe,
   model: GEMINI_MODEL,
+  async consented(userId) {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=online_ai_consent_at,online_ai_consent_version`,
+      {
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          ...(!SUPABASE_SERVICE_ROLE_KEY.startsWith("sb_secret_")
+            ? { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` }
+            : {}),
+        },
+      },
+    );
+    // Unreadable is not agreed: nothing is sent on a guess.
+    if (!response.ok) return false;
+    const rows = (await response.json().catch(() => [])) as {
+      online_ai_consent_at?: string;
+      online_ai_consent_version?: string;
+    }[];
+    // Agreed to the words shown now: a new version of them is asked again.
+    return (
+      Boolean(rows[0]?.online_ai_consent_at) &&
+      rows[0]?.online_ai_consent_version === ONLINE_CONSENT_VERSION
+    );
+  },
   async claimPermit({ userId, permit }) {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/ocade_claim_generation_transport`, {
       method: "POST",

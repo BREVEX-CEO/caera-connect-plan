@@ -16,6 +16,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { AppearanceProvider } from "@/lib/appearance";
 import { SettingsPanelProvider } from "@/components/settings/settings-panel";
+import { OnlineConsentDialog } from "@/lib/intelligence/OnlineConsent";
 import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
 import { useInstallationBootstrap } from "@/lib/brain/use-installation";
 import { useSession } from "@/lib/session";
@@ -214,6 +215,7 @@ function RootComponent() {
             <Outlet />
           </ErrorBoundary>
           <JarvisBubble />
+          <OnlineConsentDialog />
         </SettingsPanelProvider>
       </AppearanceProvider>
     </QueryClientProvider>

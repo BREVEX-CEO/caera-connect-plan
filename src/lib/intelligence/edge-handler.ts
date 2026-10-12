@@ -111,6 +111,11 @@ export interface OnlineHandlerDependencies {
    * still claimed for that person, so this cannot spend what the gate did not grant.
    */
   verifyService?(request: Request): Promise<{ userId: string } | null>;
+  /**
+   * Whether this account has agreed that what it sends may be used by the model's
+   * provider (the free tier's terms, 20261013091000). Nothing is sent without it.
+   */
+  consented?(userId: string): Promise<boolean>;
   claimPermit(input: {
     userId: string;
     permit: IntelligencePermit;
@@ -714,6 +719,10 @@ async function runOnlineIntelligence(
   const configured = deps.model ?? DEFAULT_ONLINE_MODEL;
   if (!deps.providerReady || !isAllowedOnlineModel(configured)) {
     return json(503, { error: "online_unavailable" }, origin);
+  }
+  // Before anything is claimed or sent: the account's own agreement, read on the server.
+  if (deps.consented && !(await deps.consented(identity.userId))) {
+    return json(403, { error: "online_not_consented" }, origin);
   }
   const claimed = await deps.claimPermit({ userId: identity.userId, permit: body.permit });
   if (!claimed.ok) return json(409, { error: "permit_refused", reason: claimed.reason }, origin);

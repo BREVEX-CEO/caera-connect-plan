@@ -16,6 +16,8 @@ export interface OnlineClientDependencies {
     configured: boolean;
   };
   online(): boolean;
+  /** Asks the person to agree to online use; true only when they did and it was saved. */
+  askConsent?(): Promise<boolean>;
 }
 
 async function browserAccessToken(): Promise<string | null> {
@@ -53,6 +55,8 @@ function defaults(): OnlineClientDependencies {
     fetch: (input, init) => globalThis.fetch(input, init),
     getAccessToken: browserAccessToken,
     refreshAccessToken: refreshedAccessToken,
+    // Only where the dialog is mounted (a browser); anywhere else nothing is asked or sent.
+    askConsent: () => import("./online-consent-ask").then((module) => module.askOnlineConsent()),
     /*
      * NO SECOND SWITCH OVER WHETHER THE PRODUCT WORKS, AND THAT WAS THE OTHER
      * WHOLE BUG.
@@ -213,6 +217,26 @@ export function createOnlineIntelligenceTransport(
           return;
         }
         response = await send(fresh);
+      }
+      // Not agreed to online use: asked once, and the SAME request sent again only on
+      // "I agree" (the boundary refused before claiming anything, so nothing is charged).
+      if (response.status === 403) {
+        const refused = (await response
+          .clone()
+          .json()
+          .catch(() => null)) as { error?: string } | null;
+        if (refused?.error === "online_not_consented") {
+          if (!(await deps.askConsent?.().catch(() => false))) {
+            yield {
+              type: "refusal",
+              code: "online_not_consented",
+              reason: "Nothing was sent. Online answers need your agreement first.",
+              retryable: false,
+            };
+            return;
+          }
+          response = await send((await deps.getAccessToken()) ?? token);
+        }
       }
 
       if (!response.ok) {

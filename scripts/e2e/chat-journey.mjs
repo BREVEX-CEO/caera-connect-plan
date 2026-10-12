@@ -480,6 +480,52 @@ try {
       !(await page.locator("body").innerText()).includes("Nothing about this is saved"),
   );
 
+  /* --- nothing goes online without the person's agreement ----------------- */
+
+  // The person withdraws it (Settings), then asks: OCADE asks first, and sends nothing on "Not now".
+  await fetch(`${SUPABASE}/rest/v1/rpc/ocade_record_online_ai_consent`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ p_version: "2026-10-13", p_given: false }),
+  });
+  const consent = page.getByRole("alertdialog", { name: "Before OCADE answers online" });
+  const answersBefore = await page.locator("text=stubbed OCADE answer").count();
+  await page.fill("#ocade-composer", "Is this sent?");
+  await page.click('button[aria-label="Send"]');
+  check(
+    "without agreement, OCADE asks before anything is sent online",
+    await consent.waitFor({ timeout: 20_000 }).then(
+      () => true,
+      () => false,
+    ),
+  );
+  await consent.getByRole("button", { name: "Not now" }).click();
+  await page.waitForTimeout(1500);
+  check(
+    "and on Not now, nothing is answered online",
+    (await page.locator("text=stubbed OCADE answer").count()) === answersBefore,
+  );
+  await page.fill("#ocade-composer", "Is this sent now?");
+  await page.click('button[aria-label="Send"]');
+  await consent.waitFor({ timeout: 20_000 });
+  await consent.getByRole("button", { name: "I agree" }).click();
+  check(
+    "on I agree, the same request goes and is answered",
+    await page
+      .waitForFunction(
+        (before) => document.body.innerText.split("stubbed OCADE answer").length - 1 > before,
+        answersBefore,
+        { timeout: 20_000 },
+      )
+      .then(
+        () => true,
+        () => false,
+      ),
+  );
+
   // Phone width still works.
   const phone = await browser.newContext({ viewport: { width: 375, height: 812 } });
   await phone.addInitScript(

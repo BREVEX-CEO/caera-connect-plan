@@ -173,11 +173,12 @@ export const ACCOUNT_DATA_CLASSES: readonly AccountDataClass[] = [
     id: "billing",
     label: "Plan access",
     description:
-      "Pro or Max access given to this account, by whom, why and for how long, and the usage counted against it.",
+      "Pro or Max access given to this account, by whom, why and for how long, and the usage counted against it, including each completed JARVIS task.",
     tables: [
       { table: "ocade_entitlement_grants", owner: "user_id" },
       { table: "ocade_unlimited_grants", owner: "user_id" },
       { table: "ocade_commercial_usage", owner: "user_id" },
+      { table: "ocade_jarvis_task_charges", owner: "user_id" },
       { table: "ocade_usage_adjustments", owner: "user_id" },
       { table: "ocade_offline_usage_allocations", owner: "user_id" },
       { table: "ocade_offline_usage_events", owner: "user_id" },

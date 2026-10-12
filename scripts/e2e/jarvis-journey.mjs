@@ -1148,11 +1148,21 @@ except i.UpdateRequired:
     await panel.getByRole("button", { name: "Close", exact: true }).click();
 
     /* --- usage ------------------------------------------------------------- */
+    // One completed task is one use (20261013090000); failed and stopped ones are free.
+    const completed = (
+      await fetch(
+        `${SUPABASE}/rest/v1/jarvis_tasks?user_id=eq.${session.user.id}&status=eq.completed&select=id`,
+      ).then((r) => r.json())
+    ).length;
+    await until(
+      async () => startUses - Number((await meter.innerText()).split(" ")[0]) >= 1 + completed,
+      15_000,
+    );
     const afterUses = Number((await meter.innerText()).split(" ")[0]);
     check(
-      "JARVIS work was charged to JARVIS",
-      afterUses < startUses - 1,
-      `${startUses} → ${afterUses}`,
+      "JARVIS work was charged to JARVIS: the first answer, and one use per completed task",
+      completed >= 3 && startUses - afterUses >= 1 + completed,
+      `${startUses} → ${afterUses}, ${completed} tasks completed`,
     );
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
     await page.waitForSelector("text=of 28 left", { timeout: 15_000 });

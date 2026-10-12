@@ -78,6 +78,46 @@ describe("online intelligence client", () => {
     });
   });
 
+  it("asks once when the account has not agreed, and sends the SAME request only on agreement", async () => {
+    const refused = () =>
+      new Response(JSON.stringify({ error: "online_not_consented" }), { status: 403 });
+    const final = `data: ${JSON.stringify({
+      type: "final",
+      response: {
+        text: "hi",
+        toolCalls: [],
+        toolResults: [],
+        backend: "online",
+        stopReason: "end_turn",
+      },
+    })}\n\n`;
+    for (const agreed of [true, false]) {
+      const fetcher = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(refused())
+        .mockResolvedValueOnce(new Response(final, { status: 200 }));
+      const askConsent = vi.fn(async () => agreed);
+      const transport = createOnlineIntelligenceTransport({ ...deps(fetcher), askConsent });
+      const events = [];
+      for await (const event of transport.stream(request())) events.push(event);
+      expect(askConsent).toHaveBeenCalledTimes(1);
+      if (agreed) {
+        expect(fetcher).toHaveBeenCalledTimes(2);
+        expect(fetcher.mock.calls[1]![1]?.body).toBe(fetcher.mock.calls[0]![1]?.body);
+        expect(events.at(-1)).toMatchObject({ type: "final", response: { text: "hi" } });
+      } else {
+        expect(fetcher).toHaveBeenCalledTimes(1);
+        expect(events).toEqual([
+          expect.objectContaining({
+            type: "refusal",
+            code: "online_not_consented",
+            retryable: false,
+          }),
+        ]);
+      }
+    }
+  });
+
   it("normalizes rate limiting without rotating credentials", async () => {
     const fetcher = vi.fn<typeof fetch>(async () => new Response(null, { status: 429 }));
     const transport = createOnlineIntelligenceTransport(deps(fetcher));

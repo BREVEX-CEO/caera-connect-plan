@@ -161,6 +161,14 @@ try {
   const ask = async (label, words) => {
     const turnsBefore =
       (await fetch(`${SUPABASE}/__fixture/jarvis-script`).then((r) => r.json())).gemini ?? 0;
+    // Each request in a conversation of its own, as a person starts something new.
+    await page
+      .getByRole("navigation", { name: "JARVIS" })
+      .getByRole("button", { name: "New conversation" })
+      .click();
+    await page
+      .waitForURL((url) => !url.search.includes("c="), { timeout: 10_000 })
+      .catch(() => undefined);
     const started = Date.now();
     await page.locator("#jarvis-composer").fill(words);
     await page.getByRole("button", { name: "Send", exact: true }).click();

@@ -451,7 +451,11 @@ export function JarvisWorkspace({
         {
           signal: controller.signal,
           onText: (answer) => mine() && setLiveAnswer(answer),
-          onTask: (task) => mine() && setActiveTask(task),
+          onTask: (task) => {
+            if (mine()) setActiveTask(task);
+            // A finished task is when its one use is charged (on the server): show it now.
+            if (task && FINISHED.includes(task.status)) refresh();
+          },
           onActivity: refresh,
           onNoDevice: (message) => mine() && setNoDevice(message),
           live: liveControl,

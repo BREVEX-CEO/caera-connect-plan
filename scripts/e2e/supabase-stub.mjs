@@ -511,6 +511,21 @@ function addUsage(userId, kind, startsAt, hundredths) {
 /** Each surface spends its own windows, as the migration's window kinds do. */
 const kindFor = (surface, kind) => (surface === "jarvis" ? `jarvis_${kind}` : kind);
 
+/**
+ * An account's profile row, made when first needed. Accounts start having agreed to
+ * online use, as an existing customer has (20261013091000); the record RPC changes it.
+ */
+function profileOf(id) {
+  const list = rows(id, "profiles");
+  if (!list.length) list.push({ id });
+  const profile = list[0];
+  if (!("online_ai_consent_at" in profile)) {
+    profile.online_ai_consent_at = "2026-10-13T00:00:00.000Z";
+    profile.online_ai_consent_version = "2026-10-13";
+  }
+  return profile;
+}
+
 function handleRpc(name, args, userId) {
   const now = Date.now();
   const refuse = (message, code = "42501") => ({ __error: { code, message } });
@@ -550,6 +565,13 @@ function handleRpc(name, args, userId) {
   const week = windowFor("week", now);
 
   switch (name) {
+    case "ocade_record_online_ai_consent": {
+      const profile = profileOf(userId);
+      profile.online_ai_consent_at = args.p_given ? new Date().toISOString() : null;
+      profile.online_ai_consent_version = args.p_given ? args.p_version : null;
+      return profile.online_ai_consent_at;
+    }
+
     case "ocade_delete_all_library_items": {
       const held = rows(userId, "ocade_library_items");
       const removed = held.length;
@@ -2375,7 +2397,9 @@ const server = createServer((request, response) => {
                       ...rows(id, "profiles")[0],
                     }))
                   : [...tables.values()].flatMap((owned) => owned.user_roles ?? [])
-                : rows(userId, name);
+                : name === "profiles"
+                  ? [profileOf(userId)]
+                  : rows(userId, name);
       const single = (request.headers.accept ?? "").includes("vnd.pgrst.object");
 
       // A signed-in session never reads a staff table directly, exactly as the grants say.
@@ -2567,6 +2591,15 @@ const server = createServer((request, response) => {
           caller,
         );
       };
+      // As the boundary: nothing is sent for an account that has not agreed to online use.
+      const agreed = caller && profileOf(caller);
+      if (
+        !agreed ||
+        !agreed.online_ai_consent_at ||
+        agreed.online_ai_consent_version !== "2026-10-13"
+      ) {
+        return send(403, { error: "online_not_consented" });
+      }
       const scripted = parsed.surface === "jarvis" ? jarvisStep(parsed.messages ?? []) : null;
       if (scripted) {
         response.writeHead(200, {
@@ -2642,7 +2675,29 @@ const server = createServer((request, response) => {
                     body: JSON.stringify(providerBody),
                     signal,
                   },
-                ),
+                ).then(async (answer) => {
+                  // Google's own reason for a refusal (which quota, and when to retry), never
+                  // the key: what tells a per-minute limit from a per-day one.
+                  if (!answer.ok) {
+                    const said = await answer
+                      .clone()
+                      .json()
+                      .catch(() => ({}));
+                    const details = (said.error?.details ?? [])
+                      .map(
+                        (d) => d.violations?.map((v) => v.quotaId).join(",") ?? d.retryDelay ?? "",
+                      )
+                      .filter(Boolean)
+                      .join(" ");
+                    console.log(
+                      `live provider ${answer.status}: ${String(said.error?.status ?? "")} ${details}`.slice(
+                        0,
+                        300,
+                      ),
+                    );
+                  }
+                  return answer;
+                }),
             },
           );
           // Each answer's status in the log; a refusal's own words, never the key, beside it.
