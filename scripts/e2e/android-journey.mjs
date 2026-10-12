@@ -457,8 +457,8 @@ try {
           args: {
             outcome: "completed",
             result: "Visited the apps and opened the network settings.",
-            // Only on the network page itself, not on Settings' first page.
-            evidence: ["Airplane mode"],
+            // Only on the network page itself (near its top), not on Settings' first page.
+            evidence: ["SIMs"],
           },
         },
       ],
