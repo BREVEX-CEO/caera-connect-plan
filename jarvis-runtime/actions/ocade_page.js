@@ -89,7 +89,9 @@
   sy: Math.round(scrollY), m: window.__ocadeMutations || 0});
   const atPoint = (x, y) => {
   const el = document.elementFromPoint(x, y);
-  return el ? identityOf(el.closest('a,button,input,select,textarea,[role]') || el) : {name: ''};
+  // The page itself under the point is nothing pressed: its whole text is not a button's name.
+  if (!el || el === document.body || el === document.documentElement) return {name: ''};
+  return identityOf(el.closest('a,button,input,select,textarea,[role]') || el);
   };
   const byRef = (ref) => document.querySelector(`[data-ocade-ref="${ref}"]`);
   window.__ocade = { snapshot, geometry, identityOf, submitOf, atPoint, byRef };
