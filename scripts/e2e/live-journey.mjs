@@ -207,7 +207,16 @@ print(json.dumps({"rows": rows, "charts": sum(len(s._charts) for s in wb.workshe
       summary.slice(0, 200),
     );
   }
-  if (failures) process.stdout.write(`device log tail:\n${deviceLog.slice(-1500)}\n`);
+  if (failures) {
+    process.stdout.write(`device log tail:\n${deviceLog.slice(-1500)}\n`);
+    // What the model last saw and called, so a failure shows its own cause.
+    const { turns = [] } = await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) =>
+      r.json(),
+    );
+    for (const turn of turns.slice(-24)) {
+      process.stdout.write(`TURN  ${turn.role}: ${String(turn.content).replace(/\s+/g, " ")}\n`);
+    }
+  }
 } finally {
   await fetch(`${SUPABASE}/__fixture/live-model`, { method: "POST", body: '{"on":false}' }).catch(
     () => undefined,
