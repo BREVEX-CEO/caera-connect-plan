@@ -506,6 +506,95 @@ try {
     (steps.match(/Read the controls on screen/g) ?? []).length >= 4,
   );
 
+  /* --- breaking it: app control taken away, then the app killed mid-step ----- */
+  const activity = (query) =>
+    fetch(`${SUPABASE}/rest/v1/jarvis_activity?${query}`).then((r) => r.json());
+  const run = async (trigger, steps, words) => {
+    await fetch(`${SUPABASE}/__fixture/jarvis-script`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ trigger, steps }),
+    });
+    await web.locator("#jarvis-composer").fill(`${trigger} ${words}`);
+    await web.getByRole("button", { name: "Send", exact: true }).click();
+  };
+  // The person turns app control off in Android while OCADE is connected.
+  adb("shell", "settings", "put", "secure", "enabled_accessibility_services", "null");
+  await run(
+    "phone-revoked",
+    [
+      {
+        tool: "start_task",
+        args: { title: "Read the screen", where: "computer", steps: ["Read"] },
+      },
+      { tool: "computer", args: { action: "ui_inspect" } },
+      { tool: "finish_task", args: { outcome: "blocked", result: "App control is off." } },
+    ],
+    "read what is on my screen",
+  );
+  check(
+    "with app control taken away, a step that needs it is refused, saying how to turn it back on",
+    await until(
+      async () =>
+        JSON.stringify(
+          await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) => r.json()),
+        ).includes("Accessibility settings first"),
+      60_000,
+    ),
+  );
+  await until(async () => (await web.getByText("App control is off.").count()) >= 1, 30_000);
+  // App control back on, as the person turns it on again.
+  adb(
+    "shell",
+    "settings",
+    "put",
+    "secure",
+    "enabled_accessibility_services",
+    "in.ocade.app/.OcadeAccessibility",
+  );
+  adb("shell", "settings", "put", "secure", "accessibility_enabled", "1");
+  // Killed while a step runs: its outcome is unknown, never lost and never "done".
+  let cut = null;
+  for (let attempt = 0; attempt < 3 && !cut; attempt += 1) {
+    await run(
+      `phone-killed-${attempt}`,
+      [
+        {
+          tool: "start_task",
+          args: { title: `Look ${attempt}`, where: "computer", steps: ["Look"] },
+        },
+        { tool: "computer", args: { action: "screen" } },
+        { tool: "finish_task", args: { outcome: "failed", result: "Stopped." } },
+      ],
+      "look at my screen",
+    );
+    const claimed = await until(
+      async () => (await activity("status=eq.claimed&select=id")).length > 0,
+      30_000,
+    );
+    if (!claimed) continue;
+    const [{ id }] = await activity("status=eq.claimed&select=id");
+    adb("shell", "am", "force-stop", "in.ocade.app");
+    adb("shell", "am", "start", "-n", "in.ocade.app/.MainActivity");
+    await until(
+      async () => (await activity(`id=eq.${id}&select=status`))[0]?.status !== "claimed",
+      60_000,
+    );
+    const [row] = await activity(`id=eq.${id}&select=status,summary`);
+    if (/unknown/.test(row?.summary ?? "")) cut = row;
+    else
+      process.stdout.write(`INFO  the step ended (${row?.status}) before the kill landed; again\n`);
+  }
+  if (cut) {
+    check(
+      "a step cut off by the app being killed is reported as unknown after restart, never as done",
+      cut.status === "failed" && /unknown/.test(cut.summary ?? ""),
+      JSON.stringify(cut),
+    );
+  } else {
+    process.stdout.write("BLOCKED  killed mid-step — every step finished before the kill landed\n");
+  }
+
   /* --- STOP from the bubble ------------------------------------------------ */
   // Android hides every app's floating windows over its own Settings; from the home screen it is there.
   await wd("POST", "/appium/device/press_keycode", { keycode: 3 });
