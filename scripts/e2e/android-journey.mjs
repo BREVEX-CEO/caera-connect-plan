@@ -387,6 +387,14 @@ try {
         ).includes("Used the control"),
       45_000,
     ),
+    // What the phone answered instead, when it did not use the control.
+    (
+      JSON.stringify(
+        await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) => r.json()),
+      ).match(/Result of computer[^}]{0,300}/g) ?? []
+    )
+      .slice(-2)
+      .join(" | "),
   );
   await until(async () => (await web.getByText("Settings is open.").count()) >= 1, 30_000);
 
@@ -438,7 +446,8 @@ try {
           args: {
             outcome: "completed",
             result: "Visited the apps and opened the network settings.",
-            evidence: ["Internet"],
+            // Only on the network page itself, not on Settings' first page.
+            evidence: ["Airplane mode"],
           },
         },
       ],
