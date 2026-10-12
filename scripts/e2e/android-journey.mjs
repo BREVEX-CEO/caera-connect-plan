@@ -92,6 +92,17 @@ async function tap(selector) {
   await wd("POST", `/element/${element}/click`, {});
 }
 const source = () => wd("GET", "/source");
+/** Text on screen, or scrolled into view as a person would: Settings lists differ per version. */
+async function reach(text, timeoutMs = 20_000) {
+  const scrolled = `new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(${ui(text)})`;
+  let found = null;
+  await until(async () => {
+    if (await exists(ui(text))) found = ui(text);
+    else if (await exists(scrolled).catch(() => false)) found = scrolled;
+    return Boolean(found);
+  }, timeoutMs);
+  return found;
+}
 const back = () => wd("POST", "/back", {});
 
 /* --- OCADE's side: the account the phone is connected to ---------------------- */
@@ -278,18 +289,19 @@ try {
   // The bubble: the person's choice, from its own button with its reason.
   await tap(ui("Allow the bubble"));
   await until(async () => await exists(ui("Display over other apps")), 20_000);
-  if (await exists(ui("OCADE"))) await tap(ui("OCADE")); // a list of apps first on newer Android
-  await tap(ui("Allow display over other apps"));
+  // A list of apps first on some versions: OCADE's own row, scrolled to if needed.
+  if (!(await exists(ui("Allow display over other apps")))) {
+    const row = await reach("OCADE", 10_000);
+    if (row) await tap(row);
+  }
+  await tap((await reach("Allow display over other apps")) ?? ui("Allow display over other apps"));
   await until(async () => /checked="true"/.test(await source()), 5_000);
   await back();
   if (await exists(ui("Display over other apps"))) await back();
   // App control: the same, through Android's Accessibility screen.
   await tap(ui("Allow app control"));
   // Scrolled to, as a person would: the list of services can be longer than the screen.
-  const service =
-    'new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().text("OCADE JARVIS"))';
-  await until(async () => await exists(service), 30_000);
-  await tap(service);
+  await tap((await reach("OCADE JARVIS", 30_000)) ?? ui("OCADE JARVIS"));
   await tap('new UiSelector().resourceId("com.android.settings:id/main_switch_bar")');
   await find(ui("Allow"), 10_000);
   check("Android warns about full control in its own words", /full control/i.test(await source()));
