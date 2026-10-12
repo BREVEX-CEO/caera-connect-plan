@@ -5,6 +5,7 @@ import asyncio
 import json
 import re
 import os
+import sys
 import threading
 import time
 from pathlib import Path
@@ -460,14 +461,24 @@ class _BrowserSession:
                 detail = f"Clicked “{info.get('name') or info.get('role')}”"
             elif kind == "type":
                 text = str(action.get("text", ""))[:2000]
-                await loc.fill(text, timeout=8_000)
+                if info.get("editable"):
+                    await loc.fill(text, timeout=8_000)
+                else:
+                    # A rich editor (contenteditable): typed as keys at its caret, at the end when
+                    # it was not in use yet. Filling it replaced what was there and bypassed the
+                    # editor, so its toolbar formatting and earlier words were lost.
+                    if not await loc.evaluate("el => el.contains(document.activeElement)"):
+                        await loc.click(timeout=8_000)
+                        await page.keyboard.press("Meta+ArrowDown" if sys.platform == "darwin"
+                                                  else "Control+End")
+                    await page.keyboard.type(text)
                 if action.get("submit"):
                     submit_gate = _gate("submit", await loc.evaluate(_OCADE_FORM_SUBMIT), confirmed)
                     if submit_gate:
                         return submit_gate
                     await loc.press("Enter")
-                value = await loc.input_value() if info.get("editable") else text
-                if value != text:
+                typed = (await loc.input_value() == text) if info.get("editable") else                     " ".join(text.split()) in " ".join((await loc.inner_text()).split())
+                if not typed:
                     return {"status": "failed", "summary": "The field did not take the text",
                             "observation": await self.observe()}
                 detail = f"Typed into “{info.get('name') or 'a field'}”"

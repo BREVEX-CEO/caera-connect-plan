@@ -29,6 +29,9 @@ PAGES = {
                  "<div id='rm' role='button' tabindex='0'>Delete account</div>",
     "captcha.html": "<title>Check</title><div class='g-recaptcha'></div><p>Verify you are human</p>",
     "otp.html": "<title>Code</title><input autocomplete='one-time-code'>",
+    # A rich editor: its own Bold button makes what is typed next bold, as editors do.
+    "rich.html": """<title>Rich</title><div id='ed' contenteditable aria-label='Body'>Draft:</div>
+      <button onmousedown="event.preventDefault()" onclick="document.execCommand('bold')">Bold</button>""",
 }
 
 
@@ -86,6 +89,22 @@ class BrowserControlTest(unittest.TestCase):
         self.assertEqual(out["status"], "done")
         field = next(e for e in out["observation"]["elements"] if e["name"] == "Search")
         self.assertEqual(field["value"], "hello")
+
+    def test_typing_into_a_rich_editor_adds_to_it_and_keeps_its_formatting(self):
+        out = self.act({"action": "open", "url": f"{self.base}/rich.html"})
+        obs = out["observation"]
+        out = self.act({"action": "type", "ref": self.ref(obs, "Body"), "text": " revenue up",
+                        "observationId": obs["observationId"]})
+        self.assertEqual(out["status"], "done", out)
+        obs = out["observation"]
+        self.act({"action": "click", "ref": self.ref(obs, "Bold"), "observationId": obs["observationId"]})
+        obs = self.act({"action": "observe"})["observation"]
+        out = self.act({"action": "type", "ref": self.ref(obs, "Body"), "text": " Approved",
+                        "observationId": obs["observationId"]})
+        self.assertEqual(out["status"], "done", out)
+        html = self.s.run(self.s._page.inner_html("#ed"))
+        self.assertIn("Draft: revenue up", html.replace("&nbsp;", " "))
+        self.assertRegex(html, r"<b>\s*Approved</b>")
 
     def test_stale_coordinates_are_refused_after_resize(self):
         obs = self.home()

@@ -449,6 +449,8 @@ try {
         ...chosen.flatMap(visit),
         ...visit("Settings"),
         { tool: "computer", args: { action: "ui_act", op: "invoke", name: "Network & internet" } },
+        // A look first: the new page takes a moment to replace the old one.
+        { tool: "computer", args: { action: "screen" } },
         { tool: "computer", args: { action: "ui_inspect" } },
         {
           tool: "finish_task",
@@ -483,7 +485,7 @@ try {
     await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) => r.json()),
   );
   check(
-    "a 17-step task across four apps finishes, checked against what the phone read back",
+    "an 18-step task across four apps finishes, checked against what the phone read back",
     finished,
     `${[...fronts].filter(Boolean).join(" > ")} · ${(steps.match(/Result of (computer|finish_task)[^}]{0,160}/g) ?? []).slice(-4).join(" | ")}`,
   );
