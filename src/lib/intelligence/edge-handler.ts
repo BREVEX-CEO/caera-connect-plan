@@ -70,7 +70,13 @@ const MAX_ATTACHMENT_IMAGE = 7 * 1_048_576;
  * Generous enough that no ordinary answer meets it — a long technical reply
  * with code is a few thousand tokens — and low enough that a runaway one stops.
  */
-const MAX_OUTPUT_TOKENS = 8_192;
+const MAX_OUTPUT_TOKENS = 16_384;
+/**
+ * How hard the model thinks before answering. Thinking counts against the output cap
+ * above, which is why the cap is twice an ordinary answer. "medium": JARVIS turns are
+ * planning steps that need it; "minimal" is refused by the pinned model.
+ */
+const THINKING_LEVEL = "medium";
 const PROVIDER_TIMEOUT_MS = 110_000;
 /** How long one key may take to START answering before the next key is tried. */
 const ATTEMPT_TIMEOUT_MS = 25_000;
@@ -305,7 +311,10 @@ function providerBody(body: OnlineRequestBody): Record<string, unknown> {
   }
   return {
     contents,
-    generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS },
+    generationConfig: {
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      thinkingConfig: { thinkingLevel: THINKING_LEVEL },
+    },
     /*
      * RESEARCH IS THE PROVIDER'S OWN GROUNDED SEARCH.
      *

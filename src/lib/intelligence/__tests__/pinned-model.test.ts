@@ -12,7 +12,7 @@ const EDGE_FUNCTION = readFileSync("supabase/functions/_shared/boundary.ts", "ut
 
 describe("the pinned online model", () => {
   it("is one exact identifier", () => {
-    expect(DEFAULT_ONLINE_MODEL).toBe("gemini-3.1-flash-lite");
+    expect(DEFAULT_ONLINE_MODEL).toBe("gemini-3.8-flash");
   });
 
   it("is the only model the allowlist accepts", () => {
@@ -23,6 +23,9 @@ describe("the pinned online model", () => {
     // something nobody chose.
     expect(isAllowedOnlineModel("latest")).toBe(false);
     expect(isAllowedOnlineModel("gemini-3.7-flash")).toBe(false);
+    // No weaker fallback (owner, 13 Oct 2026), and no paid Pro by accident.
+    expect(isAllowedOnlineModel("gemini-3.1-flash-lite")).toBe(false);
+    expect(isAllowedOnlineModel("gemini-3.1-pro-preview")).toBe(false);
     expect(isAllowedOnlineModel("gemini-1.5-pro")).toBe(false);
   });
 

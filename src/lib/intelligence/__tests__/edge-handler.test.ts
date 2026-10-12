@@ -134,7 +134,7 @@ describe("authenticated Online Intelligence Edge handler", () => {
       }),
       callProvider: vi.fn(async ({ model, body: providerInput }) => {
         order.push("provider");
-        expect(model).toBe("gemini-3.1-flash-lite");
+        expect(model).toBe("gemini-3.8-flash");
         expect(providerInput).toMatchObject({
           system_instruction: { parts: [{ text: "You are OCADE." }] },
           contents: [{ role: "user", parts: [{ text: "Hello" }] }],
@@ -203,9 +203,9 @@ describe("authenticated Online Intelligence Edge handler", () => {
     await response.text();
     expect(call).toHaveBeenCalledTimes(3);
     expect(call.mock.calls.map(([input]) => input.model)).toEqual([
-      "gemini-3.1-flash-lite",
-      "gemini-3.1-flash-lite",
-      "gemini-3.1-flash-lite",
+      "gemini-3.8-flash",
+      "gemini-3.8-flash",
+      "gemini-3.8-flash",
     ]);
     // Three slots were offered and none of them was reached for: a retry is not
     // a rotation, and a 429 is the one failure that must never become one.
@@ -551,6 +551,10 @@ describe("the health record this function leaves behind", () => {
       .generationConfig.maxOutputTokens;
     expect(cap).toBeGreaterThan(1_000);
     expect(cap).toBeLessThanOrEqual(16_384);
+    // Thinking is asked for explicitly, at a level the pinned model accepts.
+    expect(sent).toMatchObject({
+      generationConfig: { thinkingConfig: { thinkingLevel: "medium" } },
+    });
   });
 
   it("delivers an answer that reached the length cap instead of calling it a failure", async () => {

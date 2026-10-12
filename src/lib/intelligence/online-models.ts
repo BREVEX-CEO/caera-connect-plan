@@ -12,18 +12,24 @@
  * was taken — implementation drift rather than an owner change, and the kind
  * that is invisible because everything still works, just not with the model the
  * product documents.
+ *
+ * Owner decision, 13 October 2026: the strongest genuinely free model for both Chat
+ * and JARVIS, with no weaker fallback and no switch after a 429/503. Checked that day
+ * against Google's pricing and model pages: `gemini-3.8-flash` is stable and on the
+ * free tier (function calling, thinking low/medium/high). `gemini-3.1-flash-lite`,
+ * which it replaces, could not carry a long JARVIS task in nine live cloud runs.
  */
 export const ONLINE_MODEL_CATALOG = [
   {
-    id: "gemini-3.1-flash-lite",
+    id: "gemini-3.8-flash",
     status: "stable",
     provider: "google",
-    checkedAt: "2026-09-10",
+    checkedAt: "2026-10-13",
   },
 ] as const;
 
 export type OnlineModelId = (typeof ONLINE_MODEL_CATALOG)[number]["id"];
-export const DEFAULT_ONLINE_MODEL: OnlineModelId = "gemini-3.1-flash-lite";
+export const DEFAULT_ONLINE_MODEL: OnlineModelId = "gemini-3.8-flash";
 
 export function isAllowedOnlineModel(value: string): value is OnlineModelId {
   return ONLINE_MODEL_CATALOG.some((model) => model.id === value);
