@@ -29,7 +29,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cloud-browser-${{ github.ref }}
+  group: cloud-browser-${{ github.ref }}-${{ inputs.suite }}
   cancel-in-progress: true
 
 jobs:
