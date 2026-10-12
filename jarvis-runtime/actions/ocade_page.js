@@ -68,7 +68,10 @@
     elements.push(item);
   }
   window.__ocadeRefSeq = seq;
-  const text = (document.body ? document.body.innerText : '').replace(/\n{3,}/g, '\n\n');
+  // The page's own main content when it marks one: on long pages the first lines of the body are
+  // navigation, and what the person came for was past the part a look carries.
+  const main = document.querySelector('main, [role=main], article') || document.body;
+  const text = (main ? main.innerText : '').replace(/\n{3,}/g, '\n\n');
   const q = (s) => !!document.querySelector(s);
   let boundary = null;
   if (q('iframe[src*="recaptcha"],iframe[src*="hcaptcha"],iframe[src*="challenges.cloudflare.com"],'
@@ -94,5 +97,17 @@
   return identityOf(el.closest('a,button,input,select,textarea,[role]') || el);
   };
   const byRef = (ref) => document.querySelector(`[data-ocade-ref="${ref}"]`);
-  window.__ocade = { snapshot, geometry, identityOf, submitOf, atPoint, byRef };
+  // Like Ctrl+F over the whole page: each place the words appear, with the text around it.
+  const findText = (q) => {
+    const all = (document.body ? document.body.innerText : '').replace(/\s+/g, ' ');
+    const lower = all.toLowerCase();
+    const needle = String(q).toLowerCase();
+    const found = [];
+    for (let at = lower.indexOf(needle); needle && at >= 0 && found.length < 8;
+         at = lower.indexOf(needle, at + 300)) {
+      found.push(all.slice(Math.max(0, at - 150), at + needle.length + 150));
+    }
+    return found;
+  };
+  window.__ocade = { snapshot, geometry, identityOf, submitOf, atPoint, byRef, findText };
 })();

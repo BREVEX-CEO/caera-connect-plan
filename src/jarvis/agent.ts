@@ -40,6 +40,21 @@ export const MAX_MODEL_STEPS = 30;
 export const MAX_SEQUENCE = 12;
 /** Consecutive invalid or refused calls before a turn stops and asks. */
 export const MAX_FAILED_CALLS = 3;
+/** The same step, exactly, this often in one turn is a loop, not progress (live Gemini, 13 Oct). */
+export const MAX_SAME_CALL = 3;
+/** Steps that rightly repeat unchanged: moving through a page or list, waiting, looking again. */
+const REPEATS = new Set([
+  "scroll",
+  "press",
+  "wait",
+  "observe",
+  "look",
+  "screen",
+  "ui_inspect",
+  "window_list",
+  "screen_scroll",
+  "screen_keys",
+]);
 /** The loop touches its task this often, so a closed surface is told apart from a slow step. */
 export const HEARTBEAT_MS = 60_000;
 const POLL_MS = 400;
@@ -411,6 +426,7 @@ export async function runJarvisTurn(
   let seen: Seen | null = null;
   /** The history entry holding the newest observation; older ones are superseded. */
   const observed: { at: number; name: string; result: unknown }[] = [];
+  const made = new Map<string, number>();
   // Once page content has been read this turn, nothing may be written to memory.
   let untrustedSeen = false;
   // Which kind of observation hands control back after the person takes over.
@@ -728,10 +744,19 @@ export async function runJarvisTurn(
         return { ok: true, message: `Stopped “${title}”.` };
       }
       case "browser":
-      case "computer":
+      case "computer": {
+        const same = JSON.stringify([call.name, args]);
+        const times = (made.get(same) ?? 0) + 1;
+        made.set(same, times);
+        if (times > MAX_SAME_CALL && !REPEATS.has(String(args.action))) {
+          return {
+            error: `This exact step already ran ${times - 1} times in this task and will not give anything new. Do something different: read the facts with find_text, use another action, or call finish_task.`,
+          };
+        }
         return Array.isArray(args.sequence)
           ? runSequence(call.name, args.sequence)
           : runDevice(call.name, args);
+      }
       case "finish_task": {
         if (!task) return { error: "There is no task to finish." };
         let done: JarvisTaskRow;

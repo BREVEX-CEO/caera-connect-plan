@@ -48,6 +48,7 @@ const READS_THE_WEB = [
   "ui_inspect",
   "observe",
   "look",
+  "find_text",
   "open",
   "new_tab",
   "click",

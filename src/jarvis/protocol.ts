@@ -17,6 +17,8 @@ const observationId = z.string().regex(/^o\d{1,9}$/);
 const BROWSER_ACTIONS = [
   z.object({ action: z.literal("observe") }),
   z.object({ action: z.literal("look") }),
+  // Like Ctrl+F over the whole page: the text around each place the words appear.
+  z.object({ action: z.literal("find_text"), text: z.string().min(1).max(100) }),
   z.object({
     action: z.literal("open"),
     url: z.string().min(1).max(2000),
@@ -553,6 +555,7 @@ export const READS_BACK = new Set([
   "sheet_inspect",
   "observe",
   "look",
+  "find_text",
   "screen",
   "ui_inspect",
   "window_list",
@@ -728,6 +731,8 @@ export function describeAction(action: DeviceAction): string {
       return `Opening ${hostOf(action.url) ?? "a page"}`;
     case "observe":
       return "Reading the page";
+    case "find_text":
+      return `Looking for “${action.text.slice(0, 60)}” on the page`;
     case "look":
       return "Looking at the screen";
     case "click":
@@ -823,14 +828,14 @@ export function jarvisTools(memory: boolean, schedule = true): NormalizedToolDef
     {
       name: "browser",
       description:
-        "Operate the task's browser. Actions: observe, look, open, new_tab, click, type, select, press, scroll, switch_tab, close_tab, back, forward, wait, click_at, drag_at (x, y to toX, toY), upload (a work-folder file into a file field), download (saves into the work folder's Downloads).",
+        "Operate the task's browser. Actions: observe, look, find_text (text: words to find anywhere on the page, with the text around each place; use it to read facts on long pages), open, new_tab, click, type, select, press, scroll, switch_tab, close_tab, back, forward, wait, click_at, drag_at (x, y to toX, toY), upload (a work-folder file into a file field), download (saves into the work folder's Downloads).",
       inputSchema: obj({
         action: str("The browser action."),
         url: str("For open and new_tab."),
         path: str("For upload: the file's path inside the work folder."),
         ref: str("Element ref from the latest observation."),
         observationId: str("The observationId the ref or point came from."),
-        text: str("For type."),
+        text: str("For type, and the words to look for with find_text."),
         submit: { type: "BOOLEAN", description: "Press Enter after typing." },
         option: str("For select."),
         key: str("For press, e.g. Enter, Tab, Escape."),

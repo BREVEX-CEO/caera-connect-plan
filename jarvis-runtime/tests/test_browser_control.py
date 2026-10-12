@@ -33,6 +33,9 @@ PAGES = {
     "rich.html": """<title>Rich</title><div id='ed' contenteditable aria-label='Body'>Draft:</div>
       <button onmousedown="event.preventDefault()" onclick="document.execCommand('bold')">Bold</button>""",
     # A timeline clip moved by dragging it, beside a button that must never be pressed unasked.
+    # A long article: the fact sits far past the first screenful, under navigation.
+    "long.html": "<title>City</title><nav>" + "Menu link " * 600 + "</nav><main><h1>City</h1>"
+                 + "<p>History. </p>" * 300 + "<p>The population was 13,960,236 in 2023.</p></main>",
     "drag.html": """<title>Timeline</title>
       <div id='clip' style='position:absolute;left:20px;top:20px;width:60px;height:40px;background:#888'>Clip</div>
       <button style='position:absolute;left:400px;top:20px'>Pay now</button>
@@ -138,6 +141,15 @@ class BrowserControlTest(unittest.TestCase):
         out = self.act({"action": "click_at", "x": 20, "y": 20,
                         "observationId": obs["observationId"]})
         self.assertEqual(out["status"], "done")
+
+    def test_find_text_reads_a_fact_anywhere_on_a_long_page(self):
+        obs = self.act({"action": "open", "url": f"{self.base}/long.html"})["observation"]
+        self.assertTrue(obs["text"].startswith("City"), obs["text"][:60])  # the main content, not the menu
+        out = self.act({"action": "find_text", "text": "POPULATION"})
+        self.assertEqual(out["status"], "done", out)
+        self.assertEqual(len(out["found"]), 1)
+        self.assertIn("13,960,236", out["found"][0])
+        self.assertEqual(self.act({"action": "find_text", "text": "absent words"})["found"], [])
 
     def test_drag_moves_what_is_under_the_point_and_gates_where_it_lands(self):
         obs = self.act({"action": "open", "url": f"{self.base}/drag.html"})["observation"]

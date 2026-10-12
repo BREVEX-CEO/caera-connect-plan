@@ -51,6 +51,7 @@ _OCADE_FOCUSED_SUBMIT = _page_fn("()", "return window.__ocade.submitOf(document.
 _OCADE_FOCUSED = _page_fn("()", "const el = document.activeElement; "
                           "return el ? window.__ocade.identityOf(el.closest('a,button,input,select,textarea,[role]') || el) : {name: ''};")
 _OCADE_AT_POINT = _page_fn("[x, y]", "return window.__ocade.atPoint(x, y);")
+_OCADE_FIND = _page_fn("q", "return window.__ocade.findText(q);")
 
 _KEYS = {"Enter", "Tab", "Escape", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
          "PageUp", "PageDown", "Home", "End", "Backspace", "Space"}
@@ -403,6 +404,11 @@ class _BrowserSession:
         if kind == "look":
             return {"status": "done", "summary": "Looked at the screen",
                     "observation": await self.observe(with_frame=True)}
+        if kind == "find_text":
+            query = str(action.get("text", ""))[:100]
+            found = await page.evaluate(_OCADE_FIND, query)
+            return {"status": "done", "summary": f"Found {len(found)} places with \u201c{query}\u201d",
+                    "found": found}
 
         if kind in ("click", "type", "select", "press", "click_at", "drag_at") and \
                 self._boundary in ("captcha", "otp", "passkey"):

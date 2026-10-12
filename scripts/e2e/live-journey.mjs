@@ -60,10 +60,11 @@ async function until(condition, timeoutMs = 30_000) {
   }
 }
 
+const EMAIL = `live-${Date.now()}@ocade.test`;
 const session = await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, {
   method: "POST",
   headers: { "content-type": "application/json" },
-  body: JSON.stringify({ email: `live-${Date.now()}@ocade.test`, password: "proof" }),
+  body: JSON.stringify({ email: EMAIL, password: "proof" }),
 }).then((r) => r.json());
 const USER = session.user.id;
 const table = (name, query) => fetch(`${SUPABASE}/rest/v1/${name}?${query}`).then((r) => r.json());
@@ -126,6 +127,12 @@ try {
 
   /* --- one request, said once ---------------------------------------------- */
   await fetch(`${SUPABASE}/__fixture/live-model`, { method: "POST", body: '{"on":true}' });
+  // A Pro customer's allowance: each model turn is one use, and Free's 28 a session cannot carry
+  // a long task (reported to the owner as a pricing finding, 13 Oct).
+  await fetch(`${SUPABASE}/__fixture/spend-allowance`, {
+    method: "POST",
+    body: JSON.stringify({ email: EMAIL, allowanceUses: 140, remainingUses: 140 }),
+  });
   const started = Date.now();
   await page.locator("#jarvis-composer").fill(REQUEST);
   await page.getByRole("button", { name: "Send", exact: true }).click();
