@@ -178,8 +178,9 @@ def install_autostart() -> None:
     system = platform.system()
     if system == "Windows":
         import winreg
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
-                            r"Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_SET_VALUE) as key:
+        # Created when missing: a new Windows profile may not have its Run key yet.
+        with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER,
+                                r"Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_SET_VALUE) as key:
             winreg.SetValueEx(key, AUTOSTART_NAME, 0, winreg.REG_SZ, " ".join(f'"{c}"' for c in command))
         return
     path = autostart_path()

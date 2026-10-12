@@ -484,6 +484,13 @@ try {
   const steps = JSON.stringify(
     await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) => r.json()),
   );
+  if (!finished) {
+    // What the phone itself shows now, to tell a press that missed from a page still loading.
+    process.stdout.write(
+      `INFO  on screen: ${((await source()).match(/text="[^"]+"/g) ?? []).slice(0, 20).join(" ")}
+`,
+    );
+  }
   check(
     "an 18-step task across four apps finishes, checked against what the phone read back",
     finished,

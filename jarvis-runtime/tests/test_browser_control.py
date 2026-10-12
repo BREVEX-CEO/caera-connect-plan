@@ -102,8 +102,8 @@ class BrowserControlTest(unittest.TestCase):
         out = self.act({"action": "type", "ref": self.ref(obs, "Body"), "text": " Approved",
                         "observationId": obs["observationId"]})
         self.assertEqual(out["status"], "done", out)
-        html = self.s.run(self.s._page.inner_html("#ed"))
-        self.assertIn("Draft: revenue up", html.replace("&nbsp;", " "))
+        html = self.s.run(self.s._page.inner_html("#ed")).replace("&nbsp;", " ")
+        self.assertIn("Draft: revenue up", html)
         self.assertRegex(html, r"<b>\s*Approved</b>")
 
     def test_stale_coordinates_are_refused_after_resize(self):
