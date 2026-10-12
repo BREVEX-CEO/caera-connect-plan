@@ -273,8 +273,11 @@ try {
   if (await exists(ui("Display over other apps"))) await back();
   // App control: the same, through Android's Accessibility screen.
   await tap(ui("Allow app control"));
-  await until(async () => await exists(ui("OCADE JARVIS")), 20_000);
-  await tap(ui("OCADE JARVIS"));
+  // Scrolled to, as a person would: the list of services can be longer than the screen.
+  const service =
+    'new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().text("OCADE JARVIS"))';
+  await until(async () => await exists(service), 30_000);
+  await tap(service);
   await tap('new UiSelector().resourceId("com.android.settings:id/main_switch_bar")');
   await find(ui("Allow"), 10_000);
   check("Android warns about full control in its own words", /full control/i.test(await source()));
