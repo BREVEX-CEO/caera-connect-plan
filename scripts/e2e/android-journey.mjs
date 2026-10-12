@@ -36,6 +36,7 @@ const ADB = path.join(SDK, "platform-tools", process.platform === "win32" ? "adb
 const APK = "android/build/OCADE-test.apk";
 
 let failures = 0;
+let blocked = 0;
 function check(name, ok, detail = "") {
   if (!ok) failures += 1;
   process.stdout.write(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}\n`);
@@ -259,7 +260,7 @@ try {
           : await exists('new UiSelector().textStartsWith("Ready")'),
       30_000,
     ),
-    (await web.locator("body").innerText()).replace(/\s+/g, " ").slice(0, 300),
+    `the phone shows: ${((await source()).match(/text="[^"]+"/g) ?? []).slice(0, 15).join(" ")}`,
   );
 
   /* --- Android's own notification question, then the optional ones -------- */
@@ -621,24 +622,27 @@ try {
   );
   adb("shell", "settings", "put", "secure", "accessibility_enabled", "1");
   // Killed while a step runs: its outcome is unknown, never lost and never "done".
+  // The step: opening Settings from cold, which lasts until its window is on screen.
   let cut = null;
   for (let attempt = 0; attempt < 3 && !cut; attempt += 1) {
+    adb("shell", "am", "force-stop", "com.android.settings");
     await run(
       `phone-killed-${attempt}`,
       [
         {
           tool: "start_task",
-          args: { title: `Look ${attempt}`, where: "computer", steps: ["Look"] },
+          args: { title: `Open ${attempt}`, where: "computer", steps: ["Open"] },
         },
-        { tool: "computer", args: { action: "screen" } },
+        { tool: "computer", args: { action: "open_app", name: "Settings" } },
         { tool: "finish_task", args: { outcome: "failed", result: "Stopped." } },
       ],
-      "look at my screen",
+      "open my settings",
     );
-    const claimed = await until(
-      async () => (await activity("status=eq.claimed&select=id")).length > 0,
-      30_000,
-    );
+    const claimed = await until(async () => {
+      const ask = web.getByRole("alertdialog", { name: "Confirm this step" });
+      if ((await ask.count()) === 1) await ask.getByRole("button", { name: "Confirm" }).click();
+      return (await activity("status=eq.claimed&select=id")).length > 0;
+    }, 30_000);
     if (!claimed) continue;
     const [{ id }] = await activity("status=eq.claimed&select=id");
     adb("shell", "am", "force-stop", "in.ocade.app");
@@ -660,6 +664,7 @@ try {
       JSON.stringify(cut),
     );
   } else {
+    blocked += 1;
     process.stdout.write("BLOCKED  killed mid-step — every step finished before the kill landed\n");
   }
 
@@ -743,5 +748,12 @@ try {
     console.log(`TIMING  unavailable: ${error.message}`),
   );
 }
-process.stdout.write(failures === 0 ? "\nAndroid journey passed.\n" : `\n${failures} failed.\n`);
-process.exit(failures === 0 ? 0 : 1);
+// A required check that could not run is not a pass: BLOCKED exits 3, as the browser harness does.
+process.stdout.write(
+  failures
+    ? `\n${failures} failed.\n`
+    : blocked
+      ? `\nAndroid journey: ${blocked} BLOCKED.\n`
+      : "\nAndroid journey passed.\n",
+);
+process.exit(failures ? 1 : blocked ? 3 : 0);
