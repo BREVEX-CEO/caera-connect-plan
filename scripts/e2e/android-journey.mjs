@@ -713,7 +713,17 @@ try {
     !adb("shell", "pm", "list", "packages").includes("in.ocade.app"),
   );
   adb("install", "-r", APK);
-  adb("shell", "am", "start", "-W", "-n", "in.ocade.app/.MainActivity", "--es", "server", PHONE_BASE);
+  adb(
+    "shell",
+    "am",
+    "start",
+    "-W",
+    "-n",
+    "in.ocade.app/.MainActivity",
+    "--es",
+    "server",
+    PHONE_BASE,
+  );
   await sleep(3_000);
   const again = adb("shell", "dumpsys", "activity", "activities");
   check("installed again, it starts fresh", again.includes("in.ocade.app/.MainActivity"));
