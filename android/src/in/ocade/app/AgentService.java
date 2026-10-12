@@ -95,7 +95,11 @@ public final class AgentService extends Service {
         status = next;
         main.post(() -> {
             getSystemService(NotificationManager.class).notify(1, notification());
-            if (bubble != null) bubble.refresh();
+            if (bubble != null) {
+                // Allowed after the service started (Set up asks later): it appears now.
+                bubble.show();
+                bubble.refresh();
+            }
         });
     }
 
