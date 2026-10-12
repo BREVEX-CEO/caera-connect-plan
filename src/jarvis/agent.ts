@@ -663,7 +663,12 @@ export async function runJarvisTurn(
     stopIfAsked();
     switch (call.name) {
       case "start_task": {
-        if (task) return { error: "A task is already running." };
+        // Its own task, said so: read as "another task", a real model tried to stop it (13 Oct).
+        if (task) {
+          return {
+            error: `Your task “${task.title}” is already started. Continue it with the browser and computer tools (both work in it), or call finish_task; do not start or stop it again.`,
+          };
+        }
         const title = String(args.title ?? "").slice(0, 200) || "Task";
         const plan = Array.isArray(args.steps) ? args.steps.map(String).slice(0, 8) : [];
         const started = await deps.startTask({

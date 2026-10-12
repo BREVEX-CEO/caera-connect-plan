@@ -177,6 +177,22 @@ describe("a JARVIS turn", () => {
     expect(pseudoCall('Called finish_task ["x"]')).toBeNull();
   });
 
+  it("tells a model that starts its task twice to continue it, not to stop it (live Gemini, 13 Oct)", async () => {
+    const h = harness([
+      { text: "", toolCalls: [call("start_task", { steps: ["look up", "write"] })] },
+      {
+        text: "",
+        toolCalls: [call("start_task", { title: "Cities", where: "browser", steps: ["look up"] })],
+      },
+      { text: "", toolCalls: [call("finish_task", { outcome: "failed", result: "x" })] },
+    ]);
+    await runJarvisTurn(h.input, h.hooks, h.deps);
+    expect(h.deps.startTask).toHaveBeenCalledTimes(1);
+    const fed = JSON.stringify(h.seen.at(-1));
+    expect(fed).toContain("is already started. Continue it with the browser and computer tools");
+    expect(fed).not.toContain("A task is already running");
+  });
+
   it("stops the task the computer is busy with only after start_task found it, then starts", async () => {
     const h = harness([
       { text: "", toolCalls: [call("stop_task", { because: "cancel it" })] },
