@@ -136,7 +136,12 @@ describe("a JARVIS turn", () => {
 
   it("keeps only the newest observation in the history; older ones become an id (P16)", async () => {
     const page = (id: string) => ({
-      observation: { observationId: id, elements: [{ ref: "e1", name: `Button ${id}` }] },
+      observation: {
+        observationId: id,
+        url: `https://example.com/${id}`,
+        text: `Page ${id} says the population is ${id === "o1" ? "14 million" : "33 million"}.`,
+        elements: [{ ref: "e1", name: `Button ${id}` }],
+      },
     });
     const h = harness(
       [
@@ -156,6 +161,8 @@ describe("a JARVIS turn", () => {
     expect(history).toContain("Button o2");
     expect(history).not.toContain("Button o1");
     expect(history).toContain("A newer observation replaced this one.");
+    // What the replaced page said at its opening stays, so its facts are not lost (13 Oct).
+    expect(history).toContain("Page o1 says the population is 14 million");
   });
 
   it("runs a tool call the model wrote as text, through the same checks, and never shows it", async () => {

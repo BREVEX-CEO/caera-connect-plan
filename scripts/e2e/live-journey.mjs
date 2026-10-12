@@ -13,6 +13,9 @@
  * 2. Video: a public-domain NASA video found on Wikimedia Commons, played,
  *    paused at exactly 0:30, its captions read and summarised. Checked from the
  *    device's own record of the player and against the captions fetched here.
+ * 3. Photo: a photo made here (red left half, blue right half) edited in a real
+ *    browser editor (miniPaint, MIT, its public demo): cropped, resized,
+ *    brightened, exported. Checked from the exported file's pixels.
  *
  * Usage: node scripts/e2e/live-journey.mjs [--base=…] [--supabase=…]
  */
@@ -35,6 +38,10 @@ const VIDEO_TITLE = "NASA's Fermi Spies a Supercharged Supernova (SVS15041)";
 const CAPTIONS = `https://commons.wikimedia.org/w/index.php?title=${encodeURIComponent(
   `TimedText:${VIDEO_TITLE}.webm.en.srt`,
 )}&action=raw`;
+const PHOTO_REQUEST =
+  "Using the photo editor at https://viliusle.github.io/miniPaint/, open photo.jpg from my work " +
+  "folder, crop it to its left half, resize it to 400 pixels wide keeping its proportions, make " +
+  "it brighter, and export it as a PNG into my work folder.";
 const VIDEO_REQUEST =
   `Find the public-domain NASA video "${VIDEO_TITLE}" on Wikimedia Commons, play it, then ` +
   "pause it at exactly 0:30. Read its English captions and write video-summary.md in my work " +
@@ -294,6 +301,54 @@ print(json.dumps({"rows": rows, "charts": sum(len(s._charts) for s in wb.workshe
     told.slice(0, 300),
   );
   check("and says where it paused", /0:30|00:30|30 ?s(econds)?/i.test(told), told.slice(0, 300));
+
+  /* --- 3. a photo: cropped, resized, brightened, exported ------------------ */
+  // The person's own photo: 1200×800, a red left half and a blue right half, mid-bright.
+  spawnSync(PYTHON, [
+    "-c",
+    `from PIL import Image, ImageDraw
+im = Image.new("RGB", (1200, 800), (40, 40, 140)); d = ImageDraw.Draw(im)
+d.rectangle([0, 0, 599, 799], fill=(140, 40, 40)); d.ellipse([150, 250, 450, 550], fill=(110, 90, 30))
+im.save(${JSON.stringify(path.join(workspace, "photo.jpg"))}, quality=95)`,
+  ]);
+  await ask("photo → crop, resize, brighten, export", PHOTO_REQUEST);
+  const measured = spawnSync(
+    PYTHON,
+    [
+      "-c",
+      `import json, pathlib, sys
+from PIL import Image, ImageStat
+root = pathlib.Path(sys.argv[1])
+pngs = sorted(root.rglob("*.png"), key=lambda f: f.stat().st_mtime)
+if not pngs: print("{}"); raise SystemExit
+im = Image.open(pngs[-1]).convert("RGB")
+r, g, b = ImageStat.Stat(im).mean
+print(json.dumps({"file": str(pngs[-1].relative_to(root)), "size": im.size, "rgb": [round(r), round(g), round(b)]}))`,
+      workspace,
+    ],
+    { encoding: "utf8" },
+  );
+  const photo = JSON.parse(measured.stdout || "{}");
+  check("an edited PNG is in the work folder", Boolean(photo.file), measured.stderr.slice(-200));
+  if (photo.file) {
+    const [width, height] = photo.size;
+    // The left half is 600×800: at 400 wide, 533 or 534 high.
+    check(
+      "cropped to the left half and resized to 400 wide",
+      width === 400 && Math.abs(height - 533) <= 1,
+      `${width}×${height}`,
+    );
+    // Only the left half's colours: red over blue, as the original's left half (140, 40, 40).
+    const [red, green, blue] = photo.rgb;
+    check(
+      "only the left half remains (red, not the blue right half)",
+      red > blue + 40,
+      photo.rgb.join(","),
+    );
+    // Brighter than the original left half (mean 136, 47, 39: luminance 72.8, measured).
+    const luminance = 0.299 * red + 0.587 * green + 0.114 * blue;
+    check("and it is brighter than the original", luminance > 82, luminance.toFixed(1));
+  }
 } finally {
   await fetch(`${SUPABASE}/__fixture/live-model`, { method: "POST", body: '{"on":false}' }).catch(
     () => undefined,

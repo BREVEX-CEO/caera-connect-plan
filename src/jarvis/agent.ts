@@ -334,10 +334,18 @@ export function observationOf(result: unknown): Seen | null {
 export function superseded(result: unknown): unknown {
   if (!result || typeof result !== "object") return result;
   const value = result as { observation?: Partial<Seen>; last?: unknown };
-  const id = (seen: Partial<Seen> | undefined) => ({
-    observationId: seen?.observationId,
-    superseded: "A newer observation replaced this one.",
-  });
+  // The page it was, with its opening text: a model working across several pages kept
+  // forgetting what each said once the next opened, and reopened them in a loop (13 Oct).
+  const id = (seen: Partial<Seen> | undefined) => {
+    const page = (seen ?? {}) as { url?: unknown; title?: unknown; text?: unknown };
+    return {
+      observationId: seen?.observationId,
+      ...(typeof page.url === "string" ? { url: page.url } : {}),
+      ...(typeof page.title === "string" ? { title: page.title } : {}),
+      ...(typeof page.text === "string" ? { opening: page.text.slice(0, 600) } : {}),
+      superseded: "A newer observation replaced this one.",
+    };
+  };
   return {
     ...value,
     ...(value.observation ? { observation: id(value.observation) } : {}),
