@@ -104,6 +104,13 @@ jobs:
           tail -n 90 "${RUNNER_TEMP}/ocade-stub.log"
           exit 1
 
+      - name: Free disk space on the disposable VM for the emulator's data partition
+        shell: bash
+        run: |
+          # The emulator refused to start: 7.1 GB free, 7.4 GB needed. Unused toolchains go.
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/lib/android/sdk/ndk             /usr/share/swift /opt/hostedtoolcache/CodeQL
+          df -h /
+
       - name: Enable KVM for the disposable emulator
         shell: bash
         run: |
@@ -121,6 +128,7 @@ jobs:
           # All the VM's cores and a software GPU path that boots headless.
           cores: 4
           ram-size: 4096M
+          disk-size: 4096M
           # -no-metrics: newer emulators otherwise wait on a consent prompt nobody can answer here.
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -no-metrics
           disable-animations: true

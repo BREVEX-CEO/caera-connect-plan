@@ -113,8 +113,10 @@ jobs:
           # Google Chrome on this VM has a real push service; Playwright's Chromium has none.
           export OCADE_PUSH_BROWSER="$(command -v google-chrome || true)"
           run=(node scripts/e2e/harness.mjs "${journeys[@]}")
-          # The Device Agent's screen tests need a display: a virtual one on this throwaway VM.
-          [[ "${{ inputs.suite }}" == "jarvis" ]] && run=(xvfb-run -a "${run[@]}")
+          # A virtual display on this throwaway VM: the Device Agent's screen tests and the real
+          # browser with a push service need one.
+          command -v xvfb-run >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y xvfb xauth; }
+          run=(xvfb-run -a "${run[@]}")
           "${run[@]}" 2>&1 | tee "${RUNNER_TEMP}/ocade-browser-result.log"
           if grep -Eq '(^|[[:space:]])BLOCKED([[:space:]]|$)' "${RUNNER_TEMP}/ocade-browser-result.log"; then
             echo "::error::Required browser journey reported BLOCKED, so the run is not an acceptance pass"

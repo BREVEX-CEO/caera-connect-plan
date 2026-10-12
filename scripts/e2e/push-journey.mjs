@@ -85,8 +85,11 @@ const rpc = (name, args) =>
 
 // A browser with a real push service when one is given (Google Chrome on the cloud VM):
 // Playwright's own Chromium build has none.
+// Headless Chrome has no push service either: with a real browser it runs on a display (virtual
+// on the cloud VM).
 const browser = await chromium.launch({
   executablePath: process.env.OCADE_PUSH_BROWSER || EXECUTABLE,
+  headless: !process.env.OCADE_PUSH_BROWSER,
   args: ["--no-sandbox"],
 });
 const errors = [];
