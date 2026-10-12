@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import base64
 import filecmp
+import functools
 import hashlib
 import io
 import json
@@ -61,6 +62,19 @@ IMPORT_LIMIT = 1 << 30  # a copy into the work folder
 RESERVED = re.compile(r"(?i)con|prn|aux|nul|com[0-9]|lpt[0-9]|conin\$|conout\$")
 _APPS: dict = {"at": float("-inf"), "list": []}
 STOPPED = {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+
+
+@functools.cache
+def _bubblewrap_works() -> bool:
+    """bwrap installed is not bwrap usable: a system that forbids unprivileged namespaces (as
+    Ubuntu 24.04 does by default) makes every sandboxed command fail. Tried once, harmlessly."""
+    if not shutil.which("bwrap"):
+        return False
+    try:
+        return subprocess.run(["bwrap", "--ro-bind", "/", "/", "--unshare-pid", "true"],
+                              capture_output=True, timeout=10).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
 
 
 def _fingerprint(path: Path) -> str | None:
@@ -323,7 +337,7 @@ class Computer:
         self.never: dict[str, str] = {}  # program file (lower case) -> the app set to Never
         self._never_names: set[str] = set()
         # Linux: a real filesystem boundary. Elsewhere: one direct program in the workspace.
-        self.sandbox = "bubblewrap" if SYSTEM == "Linux" and shutil.which("bwrap") else (
+        self.sandbox = "bubblewrap" if SYSTEM == "Linux" and _bubblewrap_works() else (
             None if SYSTEM == "Linux" else "workspace")
 
     # -- what this computer offers ------------------------------------------------

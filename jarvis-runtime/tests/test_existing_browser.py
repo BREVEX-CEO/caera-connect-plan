@@ -126,8 +126,9 @@ class AttachTest(unittest.TestCase):
             [_chromium(), f"--user-data-dir={cls.profile}", "--remote-debugging-port=0",
              "--headless=new", "--no-first-run", *NO_SANDBOX, "about:blank"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        deadline = time.monotonic() + 20
-        while time.monotonic() < deadline and not (cls.profile / "DevToolsActivePort").exists():
+        # Until it is found as a person's browser would be: the port file written AND listening.
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline and not ocade_existing_browser.find([cls.profile]):
             time.sleep(0.2)
 
     @classmethod

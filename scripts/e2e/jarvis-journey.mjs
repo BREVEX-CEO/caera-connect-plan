@@ -636,7 +636,11 @@ except i.UpdateRequired:
       { tool: "browser", args: { action: "wait", seconds: 5, step: 1 } },
       { tool: "browser", args: { action: "wait", seconds: 5, step: 2 } },
       { tool: "browser", args: { action: "observe", step: 2 } },
-      { tool: "finish_task", args: { outcome: "completed", result: "Tidied." } },
+      // Completed quotes what the last look showed: the fresh browser's empty page.
+      {
+        tool: "finish_task",
+        args: { outcome: "completed", result: "Tidied.", evidence: ["about:blank"] },
+      },
       { text: "All tidy." },
     ]);
     await say("live-task tidy my notes");
@@ -856,13 +860,28 @@ except i.UpdateRequired:
       "the person can allow it in Devices, under Apps and websites",
       await until(async () => await page.getByRole("switch", { name: "127.0.0.1" }).isChecked()),
     );
-    // A computer reports every app it has; one is found by name, not by scrolling.
-    await page.getByRole("searchbox", { name: "Find an app" }).fill("calc");
-    const found = await page.locator('select[id^="app-"]').count();
+    // A computer reports every app it has; one is found by name, not by scrolling. Which one
+    // is drawn from what this computer reported, never a name chosen in advance.
+    const reported = (
+      await fetch(`${SUPABASE}/rest/v1/jarvis_devices?select=installed_apps`).then((r) => r.json())
+    ).flatMap((row) => row.installed_apps ?? []);
+    const search = page.getByRole("searchbox", { name: "Find an app" });
+    if (reported.length === 0) {
+      blocked("Apps and websites finds an app by name", "this computer reported no apps");
+    } else {
+      const pick = reported[Date.now() % reported.length];
+      await search.fill(pick.slice(0, Math.max(3, Math.ceil(pick.length / 2))));
+      const found = await page.locator('select[id^="app-"]').count();
+      check(
+        "Apps and websites finds an app by name among all the computer's apps",
+        found >= 1 && found < reported.length + 1,
+        `${pick}: ${found} of ${reported.length}`,
+      );
+    }
+    await search.fill("zz-no-such-app-zz");
     check(
-      "Apps and websites finds an app by name among all the computer's apps",
-      found >= 1 && found < 10,
-      String(found),
+      "and finds nothing for a name no app has",
+      (await page.locator('select[id^="app-"]').count()) === 0,
     );
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
 

@@ -183,8 +183,8 @@ try {
     },
     { tool: "computer", args: { action: "file_write", path: "wait.py", content: WAIT, step: 1 } },
     // Every file it changes is read back before it may finish.
-    { tool: "computer", args: { action: "file_info", path: "wait.py", step: 1 } },
-    { tool: "computer", args: { action: "run", command: "python wait.py", step: 2 } },
+    { tool: "computer", args: { action: "file_read", path: "wait.py", step: 1 } },
+    { tool: "computer", args: { action: "run", command: `${PYTHON} wait.py`, step: 2 } },
     {
       tool: "computer",
       args: { action: "file_write", path: "report.txt", content: "done away", step: 3 },
@@ -293,7 +293,7 @@ try {
       tool: "start_task",
       args: { title: "Clear old files", where: "computer", steps: ["Wait", "Delete"] },
     },
-    { tool: "computer", args: { action: "run", command: "python wait.py", step: 1 } },
+    { tool: "computer", args: { action: "run", command: `${PYTHON} wait.py`, step: 1 } },
     { tool: "computer", args: { action: "file_delete", path: "report.txt", step: 2 } },
     { tool: "finish_task", args: { outcome: "completed", result: "Deleted." } },
   ]);
@@ -343,8 +343,8 @@ try {
       tool: "start_task",
       args: { title: "Long job", where: "computer", steps: ["One", "Two", "Three"] },
     },
-    { tool: "computer", args: { action: "run", command: "python wait.py", step: 1 } },
-    { tool: "computer", args: { action: "run", command: "python wait.py", step: 2 } },
+    { tool: "computer", args: { action: "run", command: `${PYTHON} wait.py`, step: 1 } },
+    { tool: "computer", args: { action: "run", command: `${PYTHON} wait.py`, step: 2 } },
     { tool: "computer", args: { action: "file_write", path: "never.txt", content: "no", step: 3 } },
     { tool: "finish_task", args: { outcome: "completed", result: "Done." } },
   ]);
