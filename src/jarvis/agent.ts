@@ -5,9 +5,11 @@
  * ONLINE ONLY. The transport is the Online boundary itself, not the router, so
  * no path here can fall back to on-device inference.
  *
- * EVERY MODEL STEP IS ITS OWN PERMIT on the `jarvis` surface: a step that
- * produced output (text or a tool call) is charged one JARVIS use, and a step
- * that failed or produced nothing is released. Chat's allowance is untouched.
+ * EVERY MODEL STEP IS ITS OWN PERMIT on the `jarvis` surface, settled by the server:
+ * a step of a task (the one that starts it included) costs nothing, and the task is
+ * one JARVIS use when the server records it completed; failed, stopped or unverified
+ * tasks cost nothing. A step that only answers is one use. Chat's allowance is
+ * untouched (20261013090000).
  *
  * THE MODEL CANNOT GRANT ITSELF ANYTHING. Its tools are start_task, browser, computer,
  * finish_task, stop_task (only the person's own task that start_task just found

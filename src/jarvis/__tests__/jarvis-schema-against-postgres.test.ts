@@ -337,11 +337,13 @@ describe("usage", () => {
     expect(await used(A, "chat")).toBe(200);
   });
 
-  it("finalizes a successful JARVIS step into the JARVIS window", async () => {
+  it("settles a JARVIS step of an open task as part of that task's one use", async () => {
+    // A has a task open (above): its step costs nothing now; the task is charged when it
+    // completes (20261013090000, proved in jarvis-task-is-one-use.test.ts).
     await twin.asServiceRole(
       `select * from public.ocade_finalize_generation_permit('${A}'::uuid, 'jarvis-1', 100)`,
     );
-    expect(await used(A, "jarvis")).toBe(100);
+    expect(await used(A, "jarvis")).toBe(0);
     expect(await permit(A, "jarvis-1", "jarvis")).toBe("duplicate_completed");
   });
 

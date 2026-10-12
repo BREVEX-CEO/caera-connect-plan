@@ -200,13 +200,15 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
           reason: "The generation permit is invalid or was already used.",
         };
   },
-  finalizePermit({ userId, permit }) {
+  finalizePermit({ userId, permit, startsTask }) {
     // One use, charged here the moment the answer is complete. The browser's
     // own finalize then finds it settled; its "release" can no longer refund it.
+    // A JARVIS reply that starts a task is part of that task, whose one use is
+    // charged only when it completes (20261013090000).
     return settle("ocade_finalize_generation_permit", {
       p_user_id: userId,
       p_idempotency_key: permit.idempotencyKey,
-      p_cost_hundredths: 100,
+      p_cost_hundredths: startsTask && permit.surface === "jarvis" ? 0 : 100,
     });
   },
   releasePermit({ userId, permit }) {

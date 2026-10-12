@@ -784,6 +784,27 @@ describe("capacity failures that must not look like each other", () => {
     expect(order.indexOf("charged user-1 idempotency-1")).toBeLessThan(order.indexOf("final"));
   });
 
+  it("says when the reply starts a JARVIS task, whose one use is charged at completion", async () => {
+    const settled: boolean[] = [];
+    for (const parts of [
+      [{ functionCall: { name: "start_task", args: { title: "Report" } } }],
+      [{ text: "Paris." }],
+    ]) {
+      const finalize = vi.fn(async (input: { startsTask: boolean }) => {
+        settled.push(input.startsTask);
+      });
+      const response = await handleOnlineIntelligence(
+        request(),
+        dependencies({
+          callProvider: vi.fn(async () => provider([{ candidates: [{ content: { parts } }] }])),
+          finalizePermit: finalize,
+        }),
+      );
+      await response.text();
+    }
+    expect(settled).toEqual([true, false]);
+  });
+
   it("never charges for an answer that did not arrive", async () => {
     const finalize = vi.fn(async () => undefined);
     const response = await handleOnlineIntelligence(

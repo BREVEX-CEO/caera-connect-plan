@@ -830,8 +830,24 @@ function handleRpc(name, args, userId) {
        * allowance appeared to go down by a quarter per request.
        */
       // As the migration: Free is one use, anything else at least a quarter of one.
-      const charged =
+      let charged =
         permit.tier === "free" ? 100 : Math.max(25, Number(args.p_cost_hundredths) || 0);
+      // As 20261013090000: a JARVIS turn that starts a task (cost 0 from the boundary), or
+      // one while a task is open or just finished (150 at most), is part of that task.
+      if (permit.surface === "jarvis") {
+        const bound = (id) => rows(userId, "__permits").filter((p) => p.taskId === id).length;
+        const task = (jarvisTables.jarvis_tasks ?? [])
+          .filter(
+            (t) =>
+              t.user_id === userId &&
+              (["running", "waiting", "taken_over"].includes(t.status) ||
+                (t.finished_at && Date.now() - Date.parse(t.finished_at) < 600_000)) &&
+              bound(t.id) < 150,
+          )
+          .sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at))[0];
+        if (Number(args.p_cost_hundredths) === 0 || task) charged = 0;
+        if (task && Number(args.p_cost_hundredths) !== 0) permit.taskId = task.id;
+      }
       const difference = charged - permit.reserved;
       addUsage(userId, kindFor(permit.surface, "session"), permit.sessionStart, difference);
       addUsage(userId, kindFor(permit.surface, "week"), permit.weekStart, difference);
@@ -1493,6 +1509,8 @@ function handleRpc(name, args, userId) {
 
 /** The scripted JARVIS steps set by `/__fixture/jarvis-script`, or null. */
 let jarvisScript = null;
+/** Tasks already charged their one use (`ocade_jarvis_task_charges`). */
+const taskCharges = new Set();
 /** Planner turns answered per script trigger, for the timing report (`GET /__fixture/jarvis-script`). */
 const plannerTurns = {};
 /** A real model for unscripted requests, only when a staging key is given; capped per run. */
@@ -2298,7 +2316,25 @@ const server = createServer((request, response) => {
         const patch = JSON.parse(body || "{}");
         const changed = found();
         for (const row of changed) {
+          const was = row.status;
           Object.assign(row, patch, { updated_at: new Date().toISOString() });
+          // As 20261013090000: a task the server records completed is one use, once.
+          if (
+            name === "jarvis_tasks" &&
+            row.status === "completed" &&
+            was !== "completed" &&
+            !taskCharges.has(row.id)
+          ) {
+            taskCharges.add(row.id);
+            for (const kind of ["session", "week"]) {
+              addUsage(
+                row.user_id,
+                kindFor("jarvis", kind),
+                windowFor(kind, Date.now()).startsAt,
+                100,
+              );
+            }
+          }
           if (
             name === "jarvis_tasks" &&
             ["stopped", "blocked", "failed", "completed"].includes(row.status)
@@ -2515,6 +2551,22 @@ const server = createServer((request, response) => {
       if (onlineBoundary.status !== 200) {
         return send(onlineBoundary.status, { error: "provider_unavailable" });
       }
+      // Settled here when an answer arrives, as the boundary settles it (boundary.ts).
+      const caller = serverDoor
+        ? request.headers["x-ocade-user"]
+        : sessions.get((request.headers.authorization ?? "").replace(/^Bearer\s+/i, ""));
+      const settleAsBoundary = (startsTask) => {
+        if (!caller || !parsed.permit?.idempotencyKey) return;
+        handleRpc(
+          "ocade_finalize_generation_permit",
+          {
+            p_user_id: caller,
+            p_idempotency_key: parsed.permit.idempotencyKey,
+            p_cost_hundredths: startsTask && parsed.surface === "jarvis" ? 0 : 100,
+          },
+          caller,
+        );
+      };
       const scripted = parsed.surface === "jarvis" ? jarvisStep(parsed.messages ?? []) : null;
       if (scripted) {
         response.writeHead(200, {
@@ -2539,6 +2591,7 @@ const server = createServer((request, response) => {
             stopReason: calls.length ? "tool_use" : "end_turn",
           },
         });
+        settleAsBoundary(calls.some((call) => call.name === "start_task"));
         response.end();
         return;
       }
@@ -2576,6 +2629,7 @@ const server = createServer((request, response) => {
                   ? { userId: req.headers.get("x-ocade-user") }
                   : null,
               claimPermit: async () => ({ ok: true }),
+              finalizePermit: async ({ startsTask }) => settleAsBoundary(startsTask),
               callProvider: ({ model, body: providerBody, signal }) =>
                 fetch(
                   `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,

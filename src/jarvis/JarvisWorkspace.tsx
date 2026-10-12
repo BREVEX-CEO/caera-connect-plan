@@ -930,7 +930,10 @@ export function JarvisWorkspace({
           <h1 className="text-sm font-medium tracking-wide">OCADE JARVIS</h1>
           <div className="flex-1" />
           {usage ? (
-            <p className="text-xs text-muted-foreground">
+            <p
+              className="text-xs text-muted-foreground"
+              title="A JARVIS use is one completed task or one answer. A task that fails or is stopped uses nothing."
+            >
               <span className="sm:hidden">{usage.remaining} left</span>
               <span className="hidden sm:inline">
                 {usage.remaining} of {usage.allowance} JARVIS uses left

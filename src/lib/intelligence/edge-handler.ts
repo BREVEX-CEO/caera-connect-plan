@@ -147,7 +147,12 @@ export interface OnlineHandlerDependencies {
    * not the browser: a client that "releases" after reading an answer would
    * otherwise use OCADE for free.
    */
-  finalizePermit?(input: { userId: string; permit: IntelligencePermit }): Promise<void>;
+  finalizePermit?(input: {
+    userId: string;
+    permit: IntelligencePermit;
+    /** The reply starts a JARVIS task: the turn is part of that task's one use. */
+    startsTask: boolean;
+  }): Promise<void>;
   /** Give the permit back when the claimed transport ended without any output. */
   releasePermit?(input: { userId: string; permit: IntelligencePermit }): Promise<void>;
 }
@@ -487,7 +492,7 @@ function normalizedProviderStream(
   signal: AbortSignal,
   cleanup: () => void,
   cancelProvider: (reason: unknown) => void,
-  delivered: () => Promise<void> = async () => undefined,
+  delivered: (toolCalls: NormalizedToolCall[]) => Promise<void> = async () => undefined,
   undelivered: () => Promise<void> = async () => undefined,
 ): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
@@ -508,7 +513,7 @@ function normalizedProviderStream(
         if (settled) return;
         settled = true;
         const anything = answer.trim() !== "" || toolCalls.length > 0;
-        await (anything ? delivered() : undelivered()).catch(() => undefined);
+        await (anything ? delivered(toolCalls) : undelivered()).catch(() => undefined);
       };
       try {
         if (!provider.body) throw new Error("Provider returned no stream.");
@@ -868,11 +873,14 @@ async function runOnlineIntelligence(
         (reason) => {
           if (!controller.signal.aborted) controller.abort(reason);
         },
-        () => {
+        (toolCalls) => {
           ended("succeeded");
           return (
-            deps.finalizePermit?.({ userId: identity.userId, permit: body.permit }) ??
-            Promise.resolve()
+            deps.finalizePermit?.({
+              userId: identity.userId,
+              permit: body.permit,
+              startsTask: toolCalls.some((call) => call.name === "start_task"),
+            }) ?? Promise.resolve()
           );
         },
         () => {
