@@ -134,9 +134,14 @@ final class Control {
                 CharSequence front = null;
                 long until = android.os.SystemClock.elapsedRealtime() + 5_000;
                 while (a11y != null && android.os.SystemClock.elapsedRealtime() < until && !cancel.get()) {
-                    AccessibilityNodeInfo root = a11y.getRootInActiveWindow();
-                    front = root == null ? null : root.getPackageName();
-                    if (front != null && wanted.contentEquals(front)) return result("done", "Opened " + name);
+                    // Any window on screen: a starting app is drawn before it becomes the active one.
+                    for (android.view.accessibility.AccessibilityWindowInfo window : a11y.getWindows()) {
+                        AccessibilityNodeInfo root = window.getRoot();
+                        if (root != null && wanted.contentEquals(root.getPackageName())) {
+                            return result("done", "Opened " + name);
+                        }
+                        if (root != null && window.isActive()) front = root.getPackageName();
+                    }
                     Thread.sleep(100);
                 }
                 if (a11y == null) return result("done", "Opened " + name);
