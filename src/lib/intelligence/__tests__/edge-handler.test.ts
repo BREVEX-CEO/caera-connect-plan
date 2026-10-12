@@ -784,6 +784,31 @@ describe("capacity failures that must not look like each other", () => {
     expect(order.indexOf("charged user-1 idempotency-1")).toBeLessThan(order.indexOf("final"));
   });
 
+  it("does not retry a day's limit, and says when capacity returns", async () => {
+    const callProvider = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              status: "RESOURCE_EXHAUSTED",
+              details: [
+                { violations: [{ quotaId: "GenerateRequestsPerDayPerProjectPerModel-FreeTier" }] },
+                { "@type": "type.googleapis.com/google.rpc.RetryInfo", retryDelay: "14427s" },
+              ],
+            },
+          }),
+          { status: 429 },
+        ),
+    );
+    const response = await handleOnlineIntelligence(request(), dependencies({ callProvider }));
+    expect(callProvider).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(429);
+    expect(await response.json()).toEqual({
+      error: "provider_unavailable",
+      retryAfterSeconds: 14427,
+    });
+  });
+
   it("sends nothing, and claims nothing, for an account that has not agreed to online use", async () => {
     const callProvider = vi.fn(async () => provider([]));
     const claimPermit = vi.fn(async () => ({ ok: true as const }));

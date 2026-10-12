@@ -32,6 +32,18 @@ describe("a busy model answer", () => {
     expect(refused).toHaveBeenCalledTimes(1);
   });
 
+  it("does not wait at all when capacity returns long after the waits (a day's limit)", async () => {
+    const busy = vi.fn(async () => {
+      throw new Unavailable(4 * 60 * 60_000);
+    });
+    const started = Date.now();
+    await expect(askThroughBusy(busy, undefined, [30_000, 60_000])).rejects.toBeInstanceOf(
+      Unavailable,
+    );
+    expect(busy).toHaveBeenCalledTimes(1);
+    expect(Date.now() - started).toBeLessThan(1_000);
+  });
+
   it("stops waiting the moment STOP is pressed", async () => {
     const stop = new AbortController();
     const busy = vi.fn(async () => {

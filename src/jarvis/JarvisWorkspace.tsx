@@ -499,7 +499,11 @@ export function JarvisWorkspace({
         if (mine()) setTurns((list) => [...list, { id: saved, role: "assistant", content }]);
       } else if (error instanceof Unavailable) {
         busyStrikes.current += 1;
-        const wait = Math.min(300_000, 30_000 * 2 ** (busyStrikes.current - 1));
+        // A known long wait (the day's online capacity) is waited for whole, once.
+        const wait = Math.max(
+          error.retryAfterMs ?? 0,
+          Math.min(300_000, 30_000 * 2 ** (busyStrikes.current - 1)),
+        );
         setBusyUntil(Date.now() + wait);
         const open = activeTaskRef.current;
         if (open && !FINISHED.includes(open.status)) {
@@ -509,7 +513,10 @@ export function JarvisWorkspace({
               data: {
                 id: open.id,
                 status: "waiting",
-                blocker: "Waiting for OCADE JARVIS to be available again.",
+                blocker:
+                  wait > 300_000
+                    ? `OCADE JARVIS has reached its online capacity for now. It continues by itself at ${new Date(Date.now() + wait).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`
+                    : "Waiting for OCADE JARVIS to be available again.",
               },
             }),
           );

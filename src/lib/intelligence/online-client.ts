@@ -241,6 +241,12 @@ export function createOnlineIntelligenceTransport(
 
       if (!response.ok) {
         const retryable = response.status === 429 || response.status >= 500;
+        const said = (await response
+          .clone()
+          .json()
+          .catch(() => null)) as { retryAfterSeconds?: number } | null;
+        const later =
+          typeof said?.retryAfterSeconds === "number" ? said.retryAfterSeconds * 1000 : undefined;
         yield {
           type: "refusal",
           code: response.status === 429 ? "provider_rate_limited" : "online_unavailable",
@@ -251,6 +257,7 @@ export function createOnlineIntelligenceTransport(
                 ? "Research is busy right now. Nothing was charged. Try again later, or turn Research off to ask without live sources."
                 : "Online Intelligence is busy. Nothing was charged. Try again in a moment, or use Offline.",
           retryable,
+          ...(later ? { retryAfterMs: later } : {}),
         };
         return;
       }

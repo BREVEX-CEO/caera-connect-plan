@@ -31,7 +31,8 @@ export class ModelRefused extends Error {}
  * OCADE's own words, never the provider's: the reason stays on the server.
  */
 export class Unavailable extends Error {
-  constructor() {
+  /** When capacity returns, when it is known to be a long way off (a daily limit). */
+  constructor(readonly retryAfterMs?: number) {
     super("OCADE JARVIS is busy right now. Nothing was charged.");
   }
 }
@@ -69,7 +70,8 @@ export async function askThroughBusy<T>(
     try {
       return await ask();
     } catch (error) {
-      if (!(error instanceof Unavailable)) throw error;
+      // Not busy, or busy until long after these waits: the task pauses now.
+      if (!(error instanceof Unavailable) || (error.retryAfterMs ?? 0) > pause) throw error;
       await waitOrStop(pause, signal);
     }
   }
@@ -107,7 +109,8 @@ async function askOnce(
   if (!billed) return null;
   let text = "";
   const toolCalls: NormalizedToolCall[] = [];
-  let refusal: { reason: string; code: string; retryable: boolean } | null = null;
+  let refusal: { reason: string; code: string; retryable: boolean; retryAfterMs?: number } | null =
+    null;
   try {
     for await (const event of online.stream({
       permit: billed.permit,
@@ -145,7 +148,7 @@ async function askOnce(
         refusal.code,
       )
     ) {
-      throw new Unavailable();
+      throw new Unavailable(refusal.retryAfterMs);
     }
     throw new ModelRefused(refusal.reason);
   }

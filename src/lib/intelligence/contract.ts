@@ -154,6 +154,8 @@ export type IntelligenceEvent =
       reason: string;
       /** Automatic mode may fall back only before meaningful output. */
       retryable: boolean;
+      /** When capacity returns, if the boundary knows it is a long way off (a daily limit). */
+      retryAfterMs?: number;
     }
   | { type: "final"; response: NormalizedResponse };
 

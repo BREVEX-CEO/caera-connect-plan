@@ -71,6 +71,8 @@ const MAX_ATTACHMENT_IMAGE = 7 * 1_048_576;
  * with code is a few thousand tokens — and low enough that a runaway one stops.
  */
 const MAX_OUTPUT_TOKENS = 16_384;
+/** A provider wait longer than this is a limit for the day, not a moment: never retried. */
+const LONG_WAIT_SECONDS = 60;
 /**
  * How hard the model thinks before answering. Thinking counts against the output cap
  * above, which is why the cap is twice an ordinary answer. "medium": JARVIS turns are
@@ -790,6 +792,7 @@ async function runOnlineIntelligence(
         : [PROVIDER_KEY_SLOTS[0]];
     let provider: Response | null = null;
     let quotaExhausted = false;
+    let capacityReturnsIn = 0;
     controller.signal.throwIfAborted(); // stopped during the claim: no provider is called
 
     outer: for (const slot of slots) {
@@ -843,6 +846,21 @@ async function runOnlineIntelligence(
          * per request, and a provider outage is exactly when every request takes
          * all nine.
          */
+        if (response.status === 429) {
+          quotaExhausted = true;
+          // How long the provider says to wait. A day's limit (hours away) is not retried:
+          // the caller is told when capacity returns (live cloud runs, 13 Oct 2026).
+          const detail = await response.text().catch(() => "");
+          const delay = Number(/"retryDelay"\s*:\s*"(\d+)(?:\.\d+)?s"/.exec(detail)?.[1] ?? 0);
+          if (delay > LONG_WAIT_SECONDS) {
+            capacityReturnsIn = delay;
+            break outer;
+          }
+          if (attempt === MAX_PROVIDER_ATTEMPTS - 1) break outer;
+          await sleep(retryAfter(response, attempt), controller.signal);
+          continue;
+        }
+
         if (response.status === 400) {
           // Google reports a bad or expired key as 400: that is THIS key, not the request.
           const detail = await response.text().catch(() => "");
@@ -852,13 +870,6 @@ async function runOnlineIntelligence(
         void response.body?.cancel().catch(() => undefined);
 
         if (response.status === 401 || response.status === 403) continue outer;
-
-        if (response.status === 429) {
-          quotaExhausted = true;
-          if (attempt === MAX_PROVIDER_ATTEMPTS - 1) break outer;
-          await sleep(retryAfter(response, attempt), controller.signal);
-          continue;
-        }
 
         if (response.status >= 500) {
           if (attempt === MAX_PROVIDER_ATTEMPTS - 1) continue outer;
@@ -871,7 +882,14 @@ async function runOnlineIntelligence(
     }
 
     if (!provider?.ok) {
-      return json(quotaExhausted ? 429 : 503, { error: "provider_unavailable" }, origin);
+      return json(
+        quotaExhausted ? 429 : 503,
+        {
+          error: "provider_unavailable",
+          ...(capacityReturnsIn ? { retryAfterSeconds: capacityReturnsIn } : {}),
+        },
+        origin,
+      );
     }
     handedOff = true;
     return new Response(
