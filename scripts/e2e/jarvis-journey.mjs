@@ -1162,7 +1162,9 @@ except i.UpdateRequired:
     check(
       "JARVIS work was charged to JARVIS: the first answer, and one use per completed task",
       completed >= 3 && startUses - afterUses >= 1 + completed,
-      `${startUses} → ${afterUses}, ${completed} tasks completed`,
+      `${startUses} → ${afterUses}, ${completed} tasks completed; ledger ${JSON.stringify(
+        await fetch(`${SUPABASE}/__fixture/usage?user=${session.user.id}`).then((r) => r.json()),
+      )}`,
     );
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
     await page.waitForSelector("text=of 28 left", { timeout: 15_000 });

@@ -512,18 +512,19 @@ function addUsage(userId, kind, startsAt, hundredths) {
 const kindFor = (surface, kind) => (surface === "jarvis" ? `jarvis_${kind}` : kind);
 
 /**
- * An account's profile row, made when first needed. Accounts start having agreed to
- * online use, as an existing customer has (20261013091000); the record RPC changes it.
+ * An account's agreement to online use (20261013091000). Accounts start having agreed,
+ * as an existing customer has; the record RPC changes it. Kept apart from the profile
+ * rows so no other read of a profile changes.
  */
-function profileOf(id) {
-  const list = rows(id, "profiles");
-  if (!list.length) list.push({ id });
-  const profile = list[0];
-  if (!("online_ai_consent_at" in profile)) {
-    profile.online_ai_consent_at = "2026-10-13T00:00:00.000Z";
-    profile.online_ai_consent_version = "2026-10-13";
+const consents = new Map();
+function consentOf(id) {
+  if (!consents.has(id)) {
+    consents.set(id, {
+      online_ai_consent_at: "2026-10-13T00:00:00.000Z",
+      online_ai_consent_version: "2026-10-13",
+    });
   }
-  return profile;
+  return consents.get(id);
 }
 
 function handleRpc(name, args, userId) {
@@ -566,10 +567,10 @@ function handleRpc(name, args, userId) {
 
   switch (name) {
     case "ocade_record_online_ai_consent": {
-      const profile = profileOf(userId);
-      profile.online_ai_consent_at = args.p_given ? new Date().toISOString() : null;
-      profile.online_ai_consent_version = args.p_given ? args.p_version : null;
-      return profile.online_ai_consent_at;
+      const consent = consentOf(userId);
+      consent.online_ai_consent_at = args.p_given ? new Date().toISOString() : null;
+      consent.online_ai_consent_version = args.p_given ? args.p_version : null;
+      return consent.online_ai_consent_at;
     }
 
     case "ocade_delete_all_library_items": {
@@ -1802,6 +1803,17 @@ const server = createServer((request, response) => {
       return send(200, { ok: true });
     }
 
+    if (url.pathname === "/__fixture/usage") {
+      // An account's usage ledger and charged tasks, for a journey's failure detail.
+      const user = url.searchParams.get("user") ?? "";
+      return send(200, {
+        usage: rows(user, "__usage"),
+        charged: (jarvisTables.jarvis_tasks ?? [])
+          .filter((task) => task.user_id === user && taskCharges.has(task.id))
+          .map((task) => task.id),
+      });
+    }
+
     if (url.pathname === "/__fixture/live-model") {
       liveModel = JSON.parse(body || "{}").on === true;
       return send(200, { on: liveModel, available: Boolean(LIVE_GEMINI_KEY) });
@@ -2397,8 +2409,8 @@ const server = createServer((request, response) => {
                       ...rows(id, "profiles")[0],
                     }))
                   : [...tables.values()].flatMap((owned) => owned.user_roles ?? [])
-                : name === "profiles"
-                  ? [profileOf(userId)]
+                : name === "profiles" && (select ?? "").includes("online_ai_consent")
+                  ? [{ id: userId, ...consentOf(userId) }]
                   : rows(userId, name);
       const single = (request.headers.accept ?? "").includes("vnd.pgrst.object");
 
@@ -2592,7 +2604,7 @@ const server = createServer((request, response) => {
         );
       };
       // As the boundary: nothing is sent for an account that has not agreed to online use.
-      const agreed = caller && profileOf(caller);
+      const agreed = caller && consentOf(caller);
       if (
         !agreed ||
         !agreed.online_ai_consent_at ||
