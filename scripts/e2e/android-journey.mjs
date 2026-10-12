@@ -314,7 +314,12 @@ try {
   await tap(ui("Allow app control"));
   // Scrolled to, as a person would: the list of services can be longer than the screen.
   await tap((await reach("OCADE JARVIS", 30_000)) ?? ui("OCADE JARVIS"));
-  await tap('new UiSelector().resourceId("com.android.settings:id/main_switch_bar")');
+  // Its on switch: a bar on newer Android, a "Use OCADE JARVIS" row on Android 11.
+  await tap(
+    (await exists('new UiSelector().resourceId("com.android.settings:id/main_switch_bar")'))
+      ? 'new UiSelector().resourceId("com.android.settings:id/main_switch_bar")'
+      : ui("Use OCADE JARVIS"),
+  );
   await find(ui("Allow"), 10_000);
   check("Android warns about full control in its own words", /full control/i.test(await source()));
   await tap(ui("Allow"));
@@ -543,6 +548,13 @@ try {
   );
 
   /* --- breaking it: app control taken away, then the app killed mid-step ----- */
+  // The long task spent most of the account's JARVIS uses: a fresh allowance for these.
+  await fetch(`${SUPABASE}/__fixture/spend-allowance`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: EMAIL, remainingUses: 28, allowanceUses: 28, surface: "jarvis" }),
+  });
+  await web.reload({ waitUntil: "networkidle" });
   const activity = (query) =>
     fetch(`${SUPABASE}/rest/v1/jarvis_activity?${query}`).then((r) => r.json());
   const run = async (trigger, steps, words) => {
