@@ -2591,6 +2591,10 @@ const server = createServer((request, response) => {
                 ),
             },
           );
+          // Each answer's status in the log; a refusal's own words, never the key, beside it.
+          console.log(`live model answered ${live.status}`);
+          if (!live.ok)
+            console.log(`live model refusal: ${(await live.clone().text()).slice(0, 300)}`);
           response.writeHead(live.status, Object.fromEntries(live.headers));
           for await (const chunk of live.body ?? []) response.write(chunk);
           response.end();

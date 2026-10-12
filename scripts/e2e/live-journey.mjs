@@ -165,6 +165,25 @@ try {
     await page.locator("#jarvis-composer").fill(words);
     await page.getByRole("button", { name: "Send", exact: true }).click();
     let confirmations = 0;
+    // A request that never became a task says why on the page; waiting longer would hide it.
+    const begun = await until(async () => {
+      const [task] = await table(
+        "jarvis_tasks",
+        `user_id=eq.${USER}&select=created_at&order=created_at.desc&limit=1`,
+      );
+      return task && Date.parse(task.created_at) >= started - 2_000;
+    }, 180_000);
+    if (!begun) {
+      const said = (
+        await page
+          .locator("main")
+          .innerText()
+          .catch(() => "")
+      ).replace(/\s+/g, " ");
+      check(`${label}: the request starts a task`, false, said.slice(-400));
+      await dumpTurns();
+      return [];
+    }
     const finished = await until(async () => {
       const confirm = page.getByRole("alertdialog", { name: "Confirm this step" });
       if ((await confirm.count()) === 1) {

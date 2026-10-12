@@ -37,7 +37,8 @@ jobs:
   browser:
     name: Playwright browsers · disposable Ubuntu
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    # Live tasks are long, one prompt each, three in a run.
+    timeout-minutes: ${{ inputs.suite == 'live' && 90 || 35 }}
     env:
       # Never point the harness at an account, real database, or deployed site.
       CI: "true"
