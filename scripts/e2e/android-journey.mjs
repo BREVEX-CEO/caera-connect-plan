@@ -168,9 +168,13 @@ try {
     "the first screen says OCADE is not set up, with one button to set it up",
     await until(async () => (await exists(ui("Not set up"))) && (await exists(ui("Set up OCADE")))),
   );
+  // Android 13 (API 33) and later ask about notifications; older Android grants them.
+  const SDK = Number(adb("shell", "getprop", "ro.build.version.sdk").trim());
+  const asksNotifications = SDK >= 33;
   check(
     "it lists what it needs and why, with the bubble and app control marked optional",
-    (await exists('new UiSelector().description("Notifications: not allowed yet")')) &&
+    (await exists('new UiSelector().description("Notifications: not allowed yet")')) ===
+      asksNotifications &&
       (await exists(
         'new UiSelector().description("Display over other apps (optional): not allowed yet")',
       )) &&
@@ -227,41 +231,49 @@ try {
   }
   await web.getByRole("button", { name: "Connect", exact: true }).click();
   check(
-    "Connect connects it, and the phone then asks only for notifications",
+    asksNotifications
+      ? "Connect connects it, and the phone then asks only for notifications"
+      : "Connect connects it, and with nothing to ask the phone is Ready",
     await until(
-      async () => (await exists(ui("Needs your permission"))) && (await exists(ui("Set up OCADE"))),
+      async () =>
+        asksNotifications
+          ? (await exists(ui("Needs your permission"))) && (await exists(ui("Set up OCADE")))
+          : await exists('new UiSelector().textStartsWith("Ready")'),
       30_000,
     ),
     (await web.locator("body").innerText()).replace(/\s+/g, " ").slice(0, 300),
   );
 
   /* --- Android's own notification question, then the optional ones -------- */
-  await tap(ui("Set up OCADE"));
-  await find(ui(DECLINE ? "Don’t allow" : "Allow"), 20_000);
-  check("Android itself asks about notifications", true);
-  // Answered as a person would: again if the dialog was still animating in and missed the tap.
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    if (!(await exists(ui(DECLINE ? "Don’t allow" : "Allow")))) break;
-    await tap(ui(DECLINE ? "Don’t allow" : "Allow")).catch(() => undefined);
-    await sleep(1_500);
-  }
-  if (DECLINE) {
-    check(
-      "the one left off is said plainly, and was asked about only once",
-      await until(
-        async () =>
-          (await exists('new UiSelector().description("Notifications: not allowed yet")')) &&
-          (await exists('new UiSelector().textContains("Some of this was left off")')) &&
-          !(await exists(ui("Don’t allow"))),
-        10_000,
-      ),
-    );
-  } else {
-    check(
-      "notifications allowed, the phone says Ready",
-      await until(async () => await exists('new UiSelector().textStartsWith("Ready")'), 45_000),
-      ((await source()).match(/text="[^"]+"/g) ?? []).slice(0, 12).join(" "),
-    );
+  if (asksNotifications) await askedAboutNotifications();
+  async function askedAboutNotifications() {
+    await tap(ui("Set up OCADE"));
+    await find(ui(DECLINE ? "Don’t allow" : "Allow"), 20_000);
+    check("Android itself asks about notifications", true);
+    // Answered as a person would: again if the dialog was still animating in and missed the tap.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (!(await exists(ui(DECLINE ? "Don’t allow" : "Allow")))) break;
+      await tap(ui(DECLINE ? "Don’t allow" : "Allow")).catch(() => undefined);
+      await sleep(1_500);
+    }
+    if (DECLINE) {
+      check(
+        "the one left off is said plainly, and was asked about only once",
+        await until(
+          async () =>
+            (await exists('new UiSelector().description("Notifications: not allowed yet")')) &&
+            (await exists('new UiSelector().textContains("Some of this was left off")')) &&
+            !(await exists(ui("Don’t allow"))),
+          10_000,
+        ),
+      );
+    } else {
+      check(
+        "notifications allowed, the phone says Ready",
+        await until(async () => await exists('new UiSelector().textStartsWith("Ready")'), 45_000),
+        ((await source()).match(/text="[^"]+"/g) ?? []).slice(0, 12).join(" "),
+      );
+    }
   }
   // The bubble: the person's choice, from its own button with its reason.
   await tap(ui("Allow the bubble"));
