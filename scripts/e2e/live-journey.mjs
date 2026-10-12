@@ -127,11 +127,19 @@ try {
 
   /* --- one request, said once ---------------------------------------------- */
   await fetch(`${SUPABASE}/__fixture/live-model`, { method: "POST", body: '{"on":true}' });
-  // A Pro customer's allowance: each model turn is one use, and Free's 28 a session cannot carry
-  // a long task (reported to the owner as a pricing finding, 13 Oct).
-  await fetch(`${SUPABASE}/__fixture/spend-allowance`, {
+  // A Pro customer, by the entitlement grant staff give: each model turn is one use, and Free's
+  // 28 a session cannot carry a long task (reported to the owner as a pricing finding, 13 Oct).
+  await fetch(`${SUPABASE}/rest/v1/ocade_entitlement_grants`, {
     method: "POST",
-    body: JSON.stringify({ email: EMAIL, allowanceUses: 140, remainingUses: 140 }),
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      user_id: USER,
+      tier: "pro",
+      reason: "cloud live journey",
+      starts_at: new Date().toISOString(),
+      ends_at: new Date(Date.now() + 86_400_000).toISOString(),
+      revoked_at: null,
+    }),
   });
   const started = Date.now();
   await page.locator("#jarvis-composer").fill(REQUEST);
