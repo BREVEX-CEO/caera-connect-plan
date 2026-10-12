@@ -307,9 +307,14 @@ try {
     );
     adb("shell", "appops", "set", "in.ocade.app", "SYSTEM_ALERT_WINDOW", "allow");
   }
-  await until(async () => /checked="true"/.test(await source()), 5_000);
-  await back();
-  if (await exists(ui("Display over other apps"))) await back();
+  if (toggle) {
+    await until(async () => /checked="true"/.test(await source()), 5_000);
+    await back();
+    if (await exists(ui("Display over other apps"))) await back();
+  }
+  // Back to OCADE itself: Back from Android's list can land elsewhere (another app's page).
+  adb("shell", "am", "start", "-n", "in.ocade.app/.MainActivity");
+  await until(async () => await exists(ui("Allow app control")), 15_000);
   // App control: the same, through Android's Accessibility screen.
   await tap(ui("Allow app control"));
   // Scrolled to, as a person would: the list of services can be longer than the screen.
@@ -498,8 +503,9 @@ try {
           args: {
             outcome: "completed",
             result: "Visited the apps and opened the network settings.",
-            // Only on the network page itself (near its top), not on Settings' first page.
-            evidence: ["SIMs"],
+            // The emulator's Wi-Fi network: listed on the network page on every version, never on
+            // Settings' first page.
+            evidence: ["AndroidWifi"],
           },
         },
       ],

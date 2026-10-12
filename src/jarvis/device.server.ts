@@ -704,7 +704,7 @@ export async function exchange(
     .lt("created_at", new Date(Date.now() - ACTION_TTL_MS).toISOString());
   await admin
     .from("jarvis_activity")
-    .update({ status: "failed", completed_at: now })
+    .update({ status: "failed", completed_at: now, result: { status: "unknown" } })
     .eq("device_id", device.id)
     .eq("status", "claimed")
     .lt("created_at", new Date(Date.now() - CLAIMED_TTL_MS).toISOString());
@@ -714,7 +714,7 @@ export async function exchange(
   const known = [...(input.running ?? []), ...input.results.map((result) => result.id)];
   let lost = admin
     .from("jarvis_activity")
-    .update({ status: "failed", completed_at: now })
+    .update({ status: "failed", completed_at: now, result: { status: "unknown" } })
     .eq("device_id", device.id)
     .eq("status", "claimed");
   if (known.length) lost = lost.not("id", "in", `(${known.join(",")})`);
