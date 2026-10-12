@@ -1,17 +1,18 @@
 /**
- * ONE REQUEST, A REAL MODEL, SEVERAL APPS: what a person would actually ask.
+ * ONE REQUEST EACH, A REAL MODEL, SEVERAL APPS: what a person would actually ask.
  *
- * A signed-in person gives JARVIS a single natural-language request that needs
- * the browser (three real Wikipedia pages), a workbook with a formula and a chart,
- * and a written summary, on their own computer (the real Device Agent on this
- * disposable VM). The model is Gemini through OCADE's own boundary code
- * (`OCADE_LIVE_GEMINI_KEY`, a capped staging key); nothing is scripted. The
- * person only says it once; a "Confirm this step" is answered as they would.
+ * A signed-in person gives JARVIS single natural-language requests, each said
+ * once, on their own computer (the real Device Agent on this disposable VM). The
+ * model is Gemini through OCADE's own boundary code (`OCADE_LIVE_GEMINI_KEY`, a
+ * capped staging key); nothing is scripted. A "Confirm this step" is answered as
+ * the person would.
  *
- * Checked from the files themselves and the source pages, not from what JARVIS
- * says: each population in the workbook appears on that city's own page, the
- * total is a SUM formula, a chart is there, and the summary names the city the
- * workbook shows largest.
+ * 1. Research → workbook → summary: three real Wikipedia pages, a workbook with
+ *    a SUM formula and a chart, a summary. Checked from the files against the
+ *    source pages.
+ * 2. Video: a public-domain NASA video found on Wikimedia Commons, played,
+ *    paused at exactly 0:30, its captions read and summarised. Checked from the
+ *    device's own record of the player and against the captions fetched here.
  *
  * Usage: node scripts/e2e/live-journey.mjs [--base=…] [--supabase=…]
  */
@@ -30,6 +31,14 @@ const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
 const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 const PYTHON = process.env.PYTHON ?? (process.platform === "win32" ? "python" : "python3");
 const CITIES = ["Tokyo", "Delhi", "Shanghai"];
+const VIDEO_TITLE = "NASA's Fermi Spies a Supercharged Supernova (SVS15041)";
+const CAPTIONS = `https://commons.wikimedia.org/w/index.php?title=${encodeURIComponent(
+  `TimedText:${VIDEO_TITLE}.webm.en.srt`,
+)}&action=raw`;
+const VIDEO_REQUEST =
+  `Find the public-domain NASA video "${VIDEO_TITLE}" on Wikimedia Commons, play it, then ` +
+  "pause it at exactly 0:30. Read its English captions and write video-summary.md in my work " +
+  "folder: a three-sentence summary of what the video explains, and the exact time you paused at.";
 const REQUEST =
   "Using the browser, look up the population of Tokyo, Delhi and Shanghai on their English " +
   "Wikipedia pages. In my work folder, create cities.xlsx with a header row City and Population, " +
@@ -141,35 +150,67 @@ try {
       revoked_at: null,
     }),
   });
-  const started = Date.now();
-  await page.locator("#jarvis-composer").fill(REQUEST);
-  await page.getByRole("button", { name: "Send", exact: true }).click();
-  let confirmations = 0;
-  const finished = await until(async () => {
-    const ask = page.getByRole("alertdialog", { name: "Confirm this step" });
-    if ((await ask.count()) === 1) {
-      confirmations += 1;
-      await ask.getByRole("button", { name: "Confirm" }).click();
-    }
+  /** One request, said once, carried to its end; what it took is recorded. */
+  const ask = async (label, words) => {
+    const turnsBefore =
+      (await fetch(`${SUPABASE}/__fixture/jarvis-script`).then((r) => r.json())).gemini ?? 0;
+    const started = Date.now();
+    await page.locator("#jarvis-composer").fill(words);
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    let confirmations = 0;
+    const finished = await until(async () => {
+      const confirm = page.getByRole("alertdialog", { name: "Confirm this step" });
+      if ((await confirm.count()) === 1) {
+        confirmations += 1;
+        await confirm.getByRole("button", { name: "Confirm" }).click();
+      }
+      const [task] = await table(
+        "jarvis_tasks",
+        `user_id=eq.${USER}&select=status,created_at&order=created_at.desc&limit=1`,
+      );
+      // This request's own task: one started after it was sent, ended.
+      return (
+        task &&
+        Date.parse(task.created_at) >= started - 2_000 &&
+        !["running", "waiting"].includes(task.status)
+      );
+    }, 20 * 60_000);
     const [task] = await table(
       "jarvis_tasks",
-      `user_id=eq.${USER}&select=status,result&order=created_at.desc&limit=1`,
+      `user_id=eq.${USER}&select=id,status,result,blocker&order=created_at.desc&limit=1`,
     );
-    return task && !["running", "waiting"].includes(task.status);
-  }, 20 * 60_000);
-  const seconds = ((Date.now() - started) / 1000).toFixed(0);
-  const [task] = await table(
-    "jarvis_tasks",
-    `user_id=eq.${USER}&select=status,result,blocker&order=created_at.desc&limit=1`,
-  );
-  check(
-    "one request is carried to the end without being asked again",
-    finished && task?.status === "completed",
-    `${task?.status} after ${seconds}s, ${confirmations} confirmations: ${task?.result ?? task?.blocker ?? ""}`.slice(
-      0,
-      400,
-    ),
-  );
+    const steps = await table(
+      "jarvis_activity",
+      `task_id=eq.${task?.id}&select=status,action,result`,
+    );
+    const turns =
+      ((await fetch(`${SUPABASE}/__fixture/jarvis-script`).then((r) => r.json())).gemini ?? 0) -
+      turnsBefore;
+    process.stdout.write(
+      `RESULT  ${label} | ${task?.status} | ${((Date.now() - started) / 1000).toFixed(0)} s | ${turns} Gemini calls | ${
+        steps.filter((step) => step.action).length
+      } steps | ${steps.filter((step) => ["failed", "refused"].includes(step.status)).length} failed | ${confirmations} confirmations\n`,
+    );
+    check(
+      `${label}: one request is carried to the end without being asked again`,
+      finished && task?.status === "completed",
+      `${task?.status}: ${task?.result ?? task?.blocker ?? ""}`.slice(0, 400),
+    );
+    if (task?.status !== "completed") await dumpTurns();
+    return steps;
+  };
+  const dumpTurns = async () => {
+    process.stdout.write(`device log tail:\n${deviceLog.slice(-1500)}\n`);
+    // What the model last saw and called, so a failure shows its own cause.
+    const { turns = [] } = await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) =>
+      r.json(),
+    );
+    for (const turn of turns.slice(-24)) {
+      process.stdout.write(`TURN  ${turn.role}: ${String(turn.content).replace(/\s+/g, " ")}\n`);
+    }
+  };
+
+  await ask("research → workbook → summary", REQUEST);
 
   /* --- the files themselves, against the source pages ---------------------- */
   const sheetPath = path.join(workspace, "cities.xlsx");
@@ -222,16 +263,37 @@ print(json.dumps({"rows": rows, "charts": sum(len(s._charts) for s in wb.workshe
       summary.slice(0, 200),
     );
   }
-  if (failures) {
-    process.stdout.write(`device log tail:\n${deviceLog.slice(-1500)}\n`);
-    // What the model last saw and called, so a failure shows its own cause.
-    const { turns = [] } = await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) =>
-      r.json(),
-    );
-    for (const turn of turns.slice(-24)) {
-      process.stdout.write(`TURN  ${turn.role}: ${String(turn.content).replace(/\s+/g, " ")}\n`);
-    }
-  }
+
+  /* --- 2. a video: found, played, paused exactly, captions summarised ------ */
+  const videoSteps = await ask("video → pause at 0:30 → captions → summary", VIDEO_REQUEST);
+  const players = videoSteps
+    .map((step) => step.result?.detail?.media)
+    .filter((media) => media && typeof media.currentTime === "number");
+  const last = players.at(-1);
+  check(
+    "the video was left paused at 0:30, by the player's own record",
+    Boolean(last?.paused) && Math.abs(last.currentTime - 30) <= 0.5,
+    JSON.stringify(last ?? null),
+  );
+  check(
+    "its captions were read on the page",
+    videoSteps.some((step) => step.action?.op === "captions" && step.status === "done"),
+  );
+  const captions = await fetch(CAPTIONS, {
+    headers: { "user-agent": "OCADE-e2e/1.0 (cloud acceptance test)" },
+  }).then((r) => r.text());
+  const videoPath = path.join(workspace, "video-summary.md");
+  const told = existsSync(videoPath) ? readFileSync(videoPath, "utf8") : "";
+  // The facts the captions themselves give; an accurate summary carries the explanation.
+  const facts = ["magnetar", "gamma", "supernova"].filter(
+    (fact) => captions.toLowerCase().includes(fact) && told.toLowerCase().includes(fact),
+  );
+  check(
+    "the summary carries what the captions explain (supernova, gamma rays, the magnetar)",
+    facts.length === 3,
+    told.slice(0, 300),
+  );
+  check("and says where it paused", /0:30|00:30|30 ?s(econds)?/i.test(told), told.slice(0, 300));
 } finally {
   await fetch(`${SUPABASE}/__fixture/live-model`, { method: "POST", body: '{"on":false}' }).catch(
     () => undefined,

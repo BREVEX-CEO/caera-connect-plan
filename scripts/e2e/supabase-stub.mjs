@@ -654,7 +654,7 @@ function handleRpc(name, args, userId) {
     case "ocade_active_entitlement_grant":
     case "ocade_my_entitlement_grant": {
       // Without a grant the account is on Free, which is what the allowance tests want.
-      const who = name === "ocade_my_entitlement_grant" ? userId : args.p_user;
+      const who = name === "ocade_my_entitlement_grant" ? userId : args.target_user;
       const live = (jarvisTables.ocade_entitlement_grants ?? []).find(
         (g) => g.user_id === who && !g.revoked_at && Date.parse(g.ends_at) > Date.now(),
       );

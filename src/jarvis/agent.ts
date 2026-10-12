@@ -745,7 +745,12 @@ export async function runJarvisTurn(
       }
       case "browser":
       case "computer": {
-        const same = JSON.stringify([call.name, args]);
+        // Keys in a fixed order: a model writes the same step with its keys in any order.
+        const same = JSON.stringify([call.name, args], (_, value) =>
+          value && typeof value === "object" && !Array.isArray(value)
+            ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)))
+            : value,
+        );
         const times = (made.get(same) ?? 0) + 1;
         made.set(same, times);
         if (times > MAX_SAME_CALL && !REPEATS.has(String(args.action))) {
@@ -869,6 +874,9 @@ export async function runJarvisTurn(
       if (reply.text) {
         answer = reply.text;
         hooks.onText(answer);
+        // Its own notes stay with it: a page's observation is replaced when the next one opens,
+        // and what the model wrote down from it was all that remained (live Gemini, 13 Oct).
+        if (reply.toolCalls.length > 0) messages.push({ role: "assistant", content: reply.text });
       }
       if (reply.toolCalls.length === 0) {
         if (!task || FINISHED.includes(task.status)) return { answer, task };

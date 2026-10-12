@@ -182,13 +182,30 @@ describe("a JARVIS turn", () => {
     const scroll = call("browser", { action: "scroll", direction: "down" });
     const h = harness([
       ...Array.from({ length: 4 }, () => ({ text: "", toolCalls: [scroll] })),
-      ...Array.from({ length: 4 }, () => ({ text: "", toolCalls: [open] })),
+      ...Array.from({ length: 2 }, () => ({ text: "", toolCalls: [open] })),
+      // The same step with its keys in another order is the same step.
+      ...Array.from({ length: 2 }, () => ({
+        text: "",
+        toolCalls: [call("browser", { url: "https://example.com/a", action: "open" })],
+      })),
       { text: "", toolCalls: [call("finish_task", { outcome: "failed", result: "x" })] },
     ]);
     await runJarvisTurn({ ...h.input, task: { ...TASK } }, h.hooks, h.deps);
     expect(h.queued.filter((a) => (a as { action: string }).action === "scroll")).toHaveLength(4);
     expect(h.queued.filter((a) => (a as { action: string }).action === "open")).toHaveLength(3);
     expect(JSON.stringify(h.seen.at(-1))).toContain("This exact step already ran 3 times");
+  });
+
+  it("keeps the model's own notes beside its calls when the page it read is replaced", async () => {
+    const h = harness([
+      {
+        text: "Tokyo: 14,187,176.",
+        toolCalls: [call("browser", { action: "open", url: "https://example.com/b" })],
+      },
+      { text: "", toolCalls: [call("finish_task", { outcome: "failed", result: "x" })] },
+    ]);
+    await runJarvisTurn({ ...h.input, task: { ...TASK } }, h.hooks, h.deps);
+    expect(JSON.stringify(h.seen.at(-1))).toContain("Tokyo: 14,187,176.");
   });
 
   it("tells a model that starts its task twice to continue it, not to stop it (live Gemini, 13 Oct)", async () => {
