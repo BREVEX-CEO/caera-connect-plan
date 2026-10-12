@@ -708,8 +708,6 @@ except i.UpdateRequired:
       "and the task still finishes",
       (await page.locator("[data-testid=jarvis-task-status]").innerText()) === "Completed",
     );
-    // The live-talk proof spent uses of its own; the later proofs start from a full allowance.
-    await setJarvisRemaining(28);
     await page.reload({ waitUntil: "networkidle" });
 
     /* --- Online capacity unavailable: a calm OCADE state, the task saved -------- */
@@ -903,7 +901,6 @@ except i.UpdateRequired:
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
 
     /* --- a real browser task across two tabs -------------------------------- */
-    await setJarvisRemaining(28);
     await script("shop-task", [
       {
         tool: "start_task",
@@ -954,7 +951,6 @@ except i.UpdateRequired:
     check("a stale coordinate was refused, not clicked", shopTurns.includes('{"status":"stale"'));
 
     /* --- sensitive confirmation and purchase prohibition -------------------- */
-    await setJarvisRemaining(28);
     await script("sensitive-task", [
       { tool: "start_task", args: { title: "Send and buy", steps: ["Send", "Buy"] } },
       { tool: "browser", args: { action: "open", url: `${SITE}/shop` } },
@@ -989,7 +985,6 @@ except i.UpdateRequired:
     );
 
     /* --- CAPTCHA hands over, and resumes from a fresh look ------------------- */
-    await setJarvisRemaining(28);
     await script("captcha-task", [
       { tool: "start_task", args: { title: "Get past a check", steps: ["Open"] } },
       { tool: "browser", args: { action: "open", url: `${SITE}/captcha` } },
@@ -1015,7 +1010,6 @@ except i.UpdateRequired:
     check("resume re-observes before anything else", captchaTurns.includes("fresh observation"));
 
     /* --- Take Over, then Stop ------------------------------------------------ */
-    await setJarvisRemaining(28);
     await script("slow-task", [
       { tool: "start_task", args: { title: "Slow work", steps: ["Wait"] } },
       { tool: "browser", args: { action: "open", url: `${SITE}/shop` } },
@@ -1050,7 +1044,6 @@ except i.UpdateRequired:
     );
 
     /* --- prompt injection cannot grant anything ------------------------------ */
-    await setJarvisRemaining(28);
     await script("inject-task", [
       { tool: "start_task", args: { title: "Read a notice", steps: ["Open"] } },
       { tool: "browser", args: { action: "open", url: `${SITE}/inject` } },
@@ -1106,7 +1099,6 @@ except i.UpdateRequired:
     );
     await siteSwitch.click();
     await until(async () => !(await siteSwitch.isChecked()));
-    await setJarvisRemaining(28);
     await script("site-task", [
       { tool: "start_task", args: { title: "Open a turned-off site", steps: ["Open"] } },
       { tool: "browser", args: { action: "open", url: `${SITE}/lamp` } },
@@ -1148,23 +1140,34 @@ except i.UpdateRequired:
     await panel.getByRole("button", { name: "Close", exact: true }).click();
 
     /* --- usage ------------------------------------------------------------- */
-    // One completed task is one use (20261013090000); failed and stopped ones are free.
+    // One completed task is one use (20261013090000), charged once; failed and stopped ones
+    // are free; an answer with no task is one use. The meter shows exactly the ledger.
     const completed = (
       await fetch(
         `${SUPABASE}/rest/v1/jarvis_tasks?user_id=eq.${session.user.id}&status=eq.completed&select=id`,
       ).then((r) => r.json())
-    ).length;
+    ).map((task) => task.id);
+    const ledger = await fetch(`${SUPABASE}/__fixture/usage?user=${session.user.id}`).then((r) =>
+      r.json(),
+    );
+    const spent =
+      (ledger.usage.find((row) => row.kind === "jarvis_session")?.usedHundredths ?? 0) / 100;
     await until(
-      async () => startUses - Number((await meter.innerText()).split(" ")[0]) >= 1 + completed,
+      async () => startUses - Number((await meter.innerText()).split(" ")[0]) === spent,
       15_000,
     );
     const afterUses = Number((await meter.innerText()).split(" ")[0]);
     check(
-      "JARVIS work was charged to JARVIS: the first answer, and one use per completed task",
-      completed >= 3 && startUses - afterUses >= 1 + completed,
-      `${startUses} → ${afterUses}, ${completed} tasks completed; ledger ${JSON.stringify(
-        await fetch(`${SUPABASE}/__fixture/usage?user=${session.user.id}`).then((r) => r.json()),
-      )}`,
+      "each completed task was charged exactly one use, and only those",
+      completed.length >= 3 &&
+        ledger.charged.length === completed.length &&
+        completed.every((id) => ledger.charged.includes(id)),
+      `${completed.length} completed, ${ledger.charged.length} charged`,
+    );
+    check(
+      "the JARVIS meter shows exactly what was charged: the answers and the completed tasks",
+      startUses - afterUses === spent && spent >= 1 + completed.length,
+      `${startUses} → ${afterUses}, ledger ${spent}`,
     );
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
     await page.waitForSelector("text=of 28 left", { timeout: 15_000 });
@@ -1188,6 +1191,7 @@ except i.UpdateRequired:
       "while Chat keeps its own allowance",
       (await page.getByText("28 of 28 left").count()) >= 1,
     );
+    // A new session window: the proofs after the spent one start with uses again.
     await setJarvisRemaining(28);
 
     /* --- a real web editor: write, format, save, then check the saved file ------ */
@@ -1195,7 +1199,6 @@ except i.UpdateRequired:
     // would; the words differ every run, and the file is read from disk, not from the page.
     const figure = 10 + (Date.now() % 80);
     const words = `Quarterly summary: revenue up ${figure}%.`;
-    await setJarvisRemaining(28);
     await script("editor-task", [
       {
         tool: "start_task",
@@ -1292,7 +1295,6 @@ except i.UpdateRequired:
     await ownBrowser.click();
     await until(async () => await ownBrowser.isChecked());
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
-    await setJarvisRemaining(28);
     await script("real-task", [
       { tool: "start_task", args: { title: "Use my browser", steps: ["Open"] } },
       { tool: "browser", args: { action: "open", url: `${SITE}/lamp` } },
