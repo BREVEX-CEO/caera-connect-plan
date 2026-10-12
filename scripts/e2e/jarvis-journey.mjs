@@ -1196,6 +1196,8 @@ except i.UpdateRequired:
         tool: "browser",
         args: { action: "type", name: "Document body", text: " Approved", step: 2 },
       },
+      // A fresh look before saving, as after any typing: the page moved on since the last one.
+      { tool: "browser", args: { action: "observe", step: 3 } },
       { tool: "browser", args: { action: "download", name: "Download document", step: 3 } },
       { tool: "computer", args: { action: "file_read", path: "summary.html", step: 4 } },
       {

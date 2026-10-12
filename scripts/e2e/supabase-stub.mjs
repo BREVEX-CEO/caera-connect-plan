@@ -1514,22 +1514,29 @@ function jarvisStep(messages) {
   if (!named) return step;
   // The newest result of that kind that carries an observation: a declined or
   // refused step returns none, and the page it left is still the one on screen.
-  let observation = null;
+  // Read from the text itself: a long observation reaches the model shortened, and a shortened
+  // result is not JSON. An app control's id starts with "u", a page's with "o".
+  const kind = step.args.action === "ui_act" ? "u" : "o";
+  const wanted = JSON.stringify(step.args.name);
+  let observationId = null;
+  let ref = null;
   for (const message of [...after].reverse()) {
-    const text = String(message.content);
+    const text = String(message.content).replace(/\\"/g, '"');
     if (message.role !== "user" || !text.startsWith(`Result of ${step.tool}`)) continue;
-    try {
-      observation = JSON.parse(text.slice(text.indexOf("{"))).observation ?? null;
-    } catch {
-      observation = null;
+    observationId = new RegExp(`"observationId":"(${kind}\\d+)"`).exec(text)?.[1] ?? null;
+    if (!observationId) continue;
+    for (const element of text.match(/\{[^{}]*\}/g) ?? []) {
+      if (element.includes(`"name":${wanted}`)) {
+        ref = /"ref":"([^"]+)"/.exec(element)?.[1] ?? null;
+        if (ref) break;
+      }
     }
-    if (observation) break;
+    break;
   }
-  const element = observation?.elements?.find((e) => e.name === step.args.name);
   const { name: _name, ...rest } = step.args;
   return {
     tool: step.tool,
-    args: { ...rest, ref: element?.ref ?? "e0", observationId: observation?.observationId ?? "o0" },
+    args: { ...rest, ref: ref ?? "e0", observationId: observationId ?? `${kind}0` },
   };
 }
 
