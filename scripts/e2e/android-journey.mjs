@@ -222,7 +222,7 @@ try {
   if (!phone) throw new Error("the phone never asked OCADE to connect");
   // The approval page opened in the phone's browser; the person approves where they are signed in.
   await web.goto(`${BASE}/ocade-jarvis?connect=${phone.id}`, { waitUntil: "networkidle" });
-  adb("shell", "am", "start", "-n", "in.ocade.app/.MainActivity");
+  adb("shell", "am", "start", "-W", "-n", "in.ocade.app/.MainActivity");
   let printed = "";
   await until(async () => {
     printed = /fingerprint is ([0-9A-F]{4}(?:-[0-9A-F]{4}){3})/.exec(await source())?.[1] ?? "";
@@ -317,7 +317,7 @@ try {
     if (await exists(ui("Display over other apps"))) await back();
   }
   // Back to OCADE itself: Back from Android's list can land elsewhere (another app's page).
-  adb("shell", "am", "start", "-n", "in.ocade.app/.MainActivity");
+  adb("shell", "am", "start", "-W", "-n", "in.ocade.app/.MainActivity");
   await until(async () => await exists(ui("Allow app control")), 15_000);
   // App control: the same, through Android's Accessibility screen.
   await tap(ui("Allow app control"));
@@ -335,7 +335,7 @@ try {
   await until(async () => await exists(ui("Use OCADE JARVIS")), 5_000);
   await back();
   await back();
-  adb("shell", "am", "start", "-n", "in.ocade.app/.MainActivity");
+  adb("shell", "am", "start", "-W", "-n", "in.ocade.app/.MainActivity");
   check(
     "the bubble and app control, once allowed, are no longer listed",
     await until(
@@ -642,7 +642,7 @@ try {
     if (!claimed) continue;
     const [{ id }] = await activity("status=eq.claimed&select=id");
     adb("shell", "am", "force-stop", "in.ocade.app");
-    adb("shell", "am", "start", "-n", "in.ocade.app/.MainActivity");
+    adb("shell", "am", "start", "-W", "-n", "in.ocade.app/.MainActivity");
     await until(
       async () => (await activity(`id=eq.${id}&select=status`))[0]?.status !== "claimed",
       60_000,
@@ -676,7 +676,7 @@ try {
   await tap(bubble);
 
   /* --- orientation ---------------------------------------------------------- */
-  adb("shell", "am", "start", "-n", "in.ocade.app/.MainActivity");
+  adb("shell", "am", "start", "-W", "-n", "in.ocade.app/.MainActivity");
   await wd("POST", "/orientation", { orientation: "LANDSCAPE" });
   check(
     "turned sideways, OCADE still shows its state and controls",
@@ -713,7 +713,7 @@ try {
     !adb("shell", "pm", "list", "packages").includes("in.ocade.app"),
   );
   adb("install", "-r", APK);
-  adb("shell", "am", "start", "-n", "in.ocade.app/.MainActivity", "--es", "server", PHONE_BASE);
+  adb("shell", "am", "start", "-W", "-n", "in.ocade.app/.MainActivity", "--es", "server", PHONE_BASE);
   await sleep(3_000);
   const again = adb("shell", "dumpsys", "activity", "activities");
   check("installed again, it starts fresh", again.includes("in.ocade.app/.MainActivity"));

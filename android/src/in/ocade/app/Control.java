@@ -90,7 +90,7 @@ final class Control {
                 return out;
             }
             case "open_app":
-                return openApp(context, action.optString("name"));
+                return openApp(context, action.optString("name"), cancel);
             default:
                 break;
         }
@@ -117,7 +117,8 @@ final class Control {
         }
     }
 
-    private static JSONObject openApp(Context context, String name) throws Exception {
+    private static JSONObject openApp(Context context, String name, AtomicBoolean cancel)
+            throws Exception {
         PackageManager pm = context.getPackageManager();
         Intent launcher = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
         for (ResolveInfo info : pm.queryIntentActivities(launcher, 0)) {
@@ -126,7 +127,21 @@ final class Control {
                 if (open == null) break;
                 open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(open);
-                return result("done", "Opened " + name);
+                // Done once it is in front, so the next look reads the app rather than what it
+                // replaced; without app control, Android accepting the launch is all there is to see.
+                String wanted = info.activityInfo.packageName;
+                OcadeAccessibility a11y = OcadeAccessibility.instance;
+                CharSequence front = null;
+                for (int waited = 0; a11y != null && waited < 5_000 && !cancel.get(); waited += 100) {
+                    AccessibilityNodeInfo root = a11y.getRootInActiveWindow();
+                    front = root == null ? null : root.getPackageName();
+                    if (front != null && wanted.contentEquals(front)) return result("done", "Opened " + name);
+                    Thread.sleep(100);
+                }
+                if (a11y == null) return result("done", "Opened " + name);
+                // Opened, with something else in front of it (a permission prompt, say): said as seen.
+                return result("done", "Asked " + name + " to open; " + (front == null ? "nothing readable" : front)
+                        + " is in front now");
             }
         }
         return result("failed", name + " is not installed on this phone");
