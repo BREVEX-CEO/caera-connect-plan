@@ -83,7 +83,12 @@ const rpc = (name, args) =>
     body: JSON.stringify(args),
   });
 
-const browser = await chromium.launch({ executablePath: EXECUTABLE, args: ["--no-sandbox"] });
+// A browser with a real push service when one is given (Google Chrome on the cloud VM):
+// Playwright's own Chromium build has none.
+const browser = await chromium.launch({
+  executablePath: process.env.OCADE_PUSH_BROWSER || EXECUTABLE,
+  args: ["--no-sandbox"],
+});
 const errors = [];
 try {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });

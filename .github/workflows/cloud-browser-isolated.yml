@@ -106,6 +106,8 @@ jobs:
             # carry-on runs with the real Device Agent in the 'jarvis' suite.
             journeys=(shell auth chat usage pricing online offline library settings polish final visual browsers admin bubble mfa push controls)
           fi
+          # Google Chrome on this VM has a real push service; Playwright's Chromium has none.
+          export OCADE_PUSH_BROWSER="$(command -v google-chrome || true)"
           run=(node scripts/e2e/harness.mjs "${journeys[@]}")
           # The Device Agent's screen tests need a display: a virtual one on this throwaway VM.
           [[ "${{ inputs.suite }}" == "jarvis" ]] && run=(xvfb-run -a "${run[@]}")
