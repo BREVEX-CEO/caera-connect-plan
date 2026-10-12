@@ -414,7 +414,8 @@ try {
   const seed = Number(process.env.OCADE_SEED ?? Date.now() % 100_000);
   let state = seed;
   const random = () => (state = (state * 48_271) % 2_147_483_647) / 2_147_483_647;
-  const pool = reported.filter((name) => !/^(OCADE|Settings)$/i.test(name));
+  // OCADE itself, Settings (the task's last stop) and the test harness's own helper are not drawn.
+  const pool = reported.filter((name) => !/^(OCADE|Settings|Appium Settings)$/i.test(name));
   const chosen = [];
   while (chosen.length < 3 && pool.length)
     chosen.push(...pool.splice(Math.floor(random() * pool.length), 1));
@@ -484,7 +485,7 @@ try {
   check(
     "a 17-step task across four apps finishes, checked against what the phone read back",
     finished,
-    `${[...fronts].filter(Boolean).join(" > ")}`,
+    `${[...fronts].filter(Boolean).join(" > ")} · ${(steps.match(/Result of (computer|finish_task)[^}]{0,160}/g) ?? []).slice(-4).join(" | ")}`,
   );
   check(
     "each app it was asked for came to the front",

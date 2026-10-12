@@ -1201,7 +1201,7 @@ except i.UpdateRequired:
       { tool: "browser", args: { action: "scroll", direction: "down", step: 3 } },
       { tool: "browser", args: { action: "observe", step: 3 } },
       { tool: "browser", args: { action: "download", name: "Download document", step: 3 } },
-      { tool: "computer", args: { action: "file_read", path: "summary.html", step: 4 } },
+      { tool: "computer", args: { action: "file_read", path: "Downloads/summary.html", step: 4 } },
       {
         tool: "finish_task",
         args: { outcome: "completed", result: "Summary saved.", evidence: [words, "Approved"] },
@@ -1225,7 +1225,8 @@ except i.UpdateRequired:
       .slice(-8)
       .map((c) => c.slice(0, 200))
       .join(" | ");
-    const saved = path.join(workspace, "summary.html");
+    // A download lands in the work folder's Downloads.
+    const saved = path.join(workspace, "Downloads", "summary.html");
     const html = existsSync(saved) ? readFileSync(saved, "utf8") : "";
     check("the editor's own download reached the work folder", existsSync(saved), editorTurns);
     check("with the words typed into the editor", html.includes(words), html.slice(0, 200));
