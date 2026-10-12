@@ -348,7 +348,9 @@ public final class AgentService extends Service {
                     step.start();
                 }
                 setStatus(step != null || busy ? statusFrom(task, true) : "Ready");
-                Thread.sleep(step != null || busy ? BUSY_MS : IDLE_MS);
+                // Back the moment a running step ends (as the computer agent does), not a second later.
+                if (step != null) step.join(BUSY_MS);
+                else Thread.sleep(busy ? BUSY_MS : IDLE_MS);
             } catch (InterruptedException e) {
                 return;
             } catch (Exception e) {
