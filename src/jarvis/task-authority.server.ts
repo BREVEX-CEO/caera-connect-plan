@@ -49,6 +49,7 @@ const READS_THE_WEB = [
   "observe",
   "look",
   "find_text",
+  "media",
   "open",
   "new_tab",
   "click",

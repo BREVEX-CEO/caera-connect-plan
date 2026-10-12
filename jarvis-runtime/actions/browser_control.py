@@ -52,6 +52,7 @@ _OCADE_FOCUSED = _page_fn("()", "const el = document.activeElement; "
                           "return el ? window.__ocade.identityOf(el.closest('a,button,input,select,textarea,[role]') || el) : {name: ''};")
 _OCADE_AT_POINT = _page_fn("[x, y]", "return window.__ocade.atPoint(x, y);")
 _OCADE_FIND = _page_fn("q", "return window.__ocade.findText(q);")
+_OCADE_MEDIA = _page_fn("[op, s, ref]", "return window.__ocade.media(op, s, ref);")
 
 _KEYS = {"Enter", "Tab", "Escape", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
          "PageUp", "PageDown", "Home", "End", "Backspace", "Space"}
@@ -409,6 +410,14 @@ class _BrowserSession:
             found = await page.evaluate(_OCADE_FIND, query)
             return {"status": "done", "summary": f"Found {len(found)} places with \u201c{query}\u201d",
                     "found": found}
+        if kind == "media":
+            op = str(action.get("op", "state"))
+            state = await page.evaluate(_OCADE_MEDIA, [op, action.get("seconds"), action.get("ref")])
+            if state.get("error"):
+                return {"status": "failed", "summary": state["error"][:200], "media": state}
+            where = f"{state['currentTime']} s of {state['duration']} s"
+            return {"status": "done", "summary": f"{'Paused' if state['paused'] else 'Playing'} at {where}",
+                    "media": state}
 
         if kind in ("click", "type", "select", "press", "click_at", "drag_at") and \
                 self._boundary in ("captcha", "otp", "passkey"):

@@ -4,11 +4,13 @@ Run: OCADE_BROWSER_EXECUTABLE=/path/to/chromium python -m unittest discover jarv
 """
 import functools
 import http.server
+import mimetypes
 import os
 import sys
 import tempfile
 import threading
 import unittest
+import wave
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -36,6 +38,10 @@ PAGES = {
     # A long article: the fact sits far past the first screenful, under navigation.
     "long.html": "<title>City</title><nav>" + "Menu link " * 600 + "</nav><main><h1>City</h1>"
                  + "<p>History. </p>" * 300 + "<p>The population was 13,960,236 in 2023.</p></main>",
+    # Three seconds of audio with English captions, played and read through the media action.
+    "media.html": "<title>Clip</title><audio src='tone.wav' controls>"
+                  "<track kind='captions' srclang='en' src='clip.vtt'></audio>",
+    "clip.vtt": "WEBVTT\n\n00:00.500 --> 00:02.000\nHello from the clip\n",
     "drag.html": """<title>Timeline</title>
       <div id='clip' style='position:absolute;left:20px;top:20px;width:60px;height:40px;background:#888'>Clip</div>
       <button style='position:absolute;left:400px;top:20px'>Pay now</button>
@@ -52,6 +58,12 @@ class BrowserControlTest(unittest.TestCase):
         cls.root = tempfile.mkdtemp()
         for name, html in PAGES.items():
             Path(cls.root, name).write_text(html)
+        with wave.open(str(Path(cls.root, "tone.wav")), "wb") as tone:
+            tone.setnchannels(1)
+            tone.setsampwidth(2)
+            tone.setframerate(8000)
+            tone.writeframes(b"\x00\x10" * 24000)
+        mimetypes.add_type("text/vtt", ".vtt")
         handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=cls.root)
         http.server.SimpleHTTPRequestHandler.log_message = lambda *a: None
         cls.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
@@ -150,6 +162,19 @@ class BrowserControlTest(unittest.TestCase):
         self.assertEqual(len(out["found"]), 1)
         self.assertIn("13,960,236", out["found"][0])
         self.assertEqual(self.act({"action": "find_text", "text": "absent words"})["found"], [])
+
+    def test_media_seeks_pauses_and_reads_captions_exactly(self):
+        self.act({"action": "open", "url": f"{self.base}/media.html"})
+        out = self.act({"action": "media", "op": "seek", "seconds": 1.5})
+        self.assertEqual(out["status"], "done", out)
+        self.assertEqual(out["media"]["currentTime"], 1.5)
+        self.assertEqual(out["media"]["duration"], 3.0)
+        out = self.act({"action": "media", "op": "pause"})
+        self.assertTrue(out["media"]["paused"])
+        out = self.act({"action": "media", "op": "captions"})
+        self.assertIn("0.5s Hello from the clip", out["media"]["captions"])
+        self.act({"action": "open", "url": f"{self.base}/next.html"})
+        self.assertEqual(self.act({"action": "media", "op": "state"})["status"], "failed")
 
     def test_drag_moves_what_is_under_the_point_and_gates_where_it_lands(self):
         obs = self.act({"action": "open", "url": f"{self.base}/drag.html"})["observation"]

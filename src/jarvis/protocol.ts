@@ -19,6 +19,14 @@ const BROWSER_ACTIONS = [
   z.object({ action: z.literal("look") }),
   // Like Ctrl+F over the whole page: the text around each place the words appear.
   z.object({ action: z.literal("find_text"), text: z.string().min(1).max(100) }),
+  // The page's video or audio through its own media API; the first one unless a ref names it.
+  z.object({
+    action: z.literal("media"),
+    op: z.enum(["state", "play", "pause", "seek", "captions"]),
+    seconds: z.number().min(0).max(86_400).optional(),
+    ref: ref.optional(),
+    observationId: observationId.optional(),
+  }),
   z.object({
     action: z.literal("open"),
     url: z.string().min(1).max(2000),
@@ -556,6 +564,7 @@ export const READS_BACK = new Set([
   "observe",
   "look",
   "find_text",
+  "media",
   "screen",
   "ui_inspect",
   "window_list",
@@ -733,6 +742,12 @@ export function describeAction(action: DeviceAction): string {
       return "Reading the page";
     case "find_text":
       return `Looking for “${action.text.slice(0, 60)}” on the page`;
+    case "media":
+      return action.op === "seek"
+        ? `Moving the video to ${action.seconds ?? 0} s`
+        : action.op === "captions"
+          ? "Reading the video's captions"
+          : `Video: ${action.op}`;
     case "look":
       return "Looking at the screen";
     case "click":
@@ -828,7 +843,7 @@ export function jarvisTools(memory: boolean, schedule = true): NormalizedToolDef
     {
       name: "browser",
       description:
-        "Operate the task's browser. Actions: observe, look, find_text (text: words to find anywhere on the page, with the text around each place; use it to read facts on long pages), open, new_tab, click, type, select, press, scroll, switch_tab, close_tab, back, forward, wait, click_at, drag_at (x, y to toX, toY), upload (a work-folder file into a file field), download (saves into the work folder's Downloads).",
+        "Operate the task's browser. Actions: observe, look, find_text (text: words to find anywhere on the page, with the text around each place; use it to read facts on long pages), media (op: state, play, pause, seek with seconds, or captions — the page's video or audio, exactly, by its own controls), open, new_tab, click, type, select, press, scroll, switch_tab, close_tab, back, forward, wait, click_at, drag_at (x, y to toX, toY), upload (a work-folder file into a file field), download (saves into the work folder's Downloads).",
       inputSchema: obj({
         action: str("The browser action."),
         url: str("For open and new_tab."),
@@ -841,7 +856,8 @@ export function jarvisTools(memory: boolean, schedule = true): NormalizedToolDef
         key: str("For press, e.g. Enter, Tab, Escape."),
         direction: str("up or down, for scroll."),
         index: { type: "INTEGER", description: "Tab index for switch_tab." },
-        seconds: num("For wait."),
+        seconds: num("For wait, and the time to move to with media seek."),
+        op: str("For media: state, play, pause, seek or captions."),
         x: num("For click_at and drag_at."),
         y: num("For click_at and drag_at."),
         toX: num("For drag_at: where to let go."),

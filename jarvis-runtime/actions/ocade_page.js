@@ -109,5 +109,36 @@
     }
     return found;
   };
-  window.__ocade = { snapshot, geometry, identityOf, submitOf, atPoint, byRef, findText };
+  // A page's video or audio through its own media API: play, pause, seek, and its captions.
+  const media = async (op, seconds, ref) => {
+    const el = ref ? byRef(ref) : document.querySelector('video, audio');
+    if (!(el instanceof HTMLMediaElement)) return {error: 'There is no video or audio here'};
+    let problem = null;
+    if (op === 'play') await el.play().catch((e) => { problem = 'It did not play: ' + e.name; });
+    if (op === 'pause') el.pause();
+    if (op === 'seek') {
+      const sought = new Promise((done) => {
+        el.addEventListener('seeked', done, {once: true});
+        setTimeout(done, 5000);
+      });
+      el.currentTime = Math.max(0, Math.min(Number(seconds) || 0, el.duration || Infinity));
+      await sought;
+    }
+    const tracks = [...el.textTracks].filter((t) => /captions|subtitles/.test(t.kind));
+    let captions;
+    if (op === 'captions') {
+      const track = tracks.find((t) => /^en/i.test(t.language)) || tracks[0];
+      if (!track) return {error: 'This video has no captions to read'};
+      if (track.mode === 'disabled') track.mode = 'hidden';
+      for (let waited = 0; (!track.cues || !track.cues.length) && waited < 5000; waited += 200) {
+        await new Promise((done) => setTimeout(done, 200));
+      }
+      captions = [...(track.cues || [])].map((c) => c.startTime.toFixed(1) + 's ' + c.text.replace(/\s+/g, ' '))
+        .join('\n').slice(0, 8000);
+    }
+    return {currentTime: Math.round(el.currentTime * 10) / 10, duration: Math.round(el.duration * 10) / 10 || null,
+      paused: el.paused, muted: el.muted, captionLanguages: tracks.map((t) => t.language || t.label),
+      ...(captions === undefined ? {} : {captions}), ...(problem ? {error: problem} : {})};
+  };
+  window.__ocade = { snapshot, geometry, identityOf, submitOf, atPoint, byRef, findText, media };
 })();
