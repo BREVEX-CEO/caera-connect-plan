@@ -239,7 +239,12 @@ try {
   await tap(ui("Set up OCADE"));
   await find(ui(DECLINE ? "Don’t allow" : "Allow"), 20_000);
   check("Android itself asks about notifications", true);
-  await tap(ui(DECLINE ? "Don’t allow" : "Allow"));
+  // Answered as a person would: again if the dialog was still animating in and missed the tap.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (!(await exists(ui(DECLINE ? "Don’t allow" : "Allow")))) break;
+    await tap(ui(DECLINE ? "Don’t allow" : "Allow")).catch(() => undefined);
+    await sleep(1_500);
+  }
   if (DECLINE) {
     check(
       "the one left off is said plainly, and was asked about only once",

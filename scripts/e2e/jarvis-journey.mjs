@@ -1207,14 +1207,23 @@ except i.UpdateRequired:
     // Back on JARVIS (the usage proof ended in Chat), with the refilled allowance.
     await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
     await say("editor-task write the quarterly summary");
-    await idle();
+    // Until the task itself ends, then what the device answered for each step.
+    await until(
+      async () =>
+        ["completed", "failed", "blocked", "stopped"].includes(
+          await taskStatus("Write the summary"),
+        ),
+      180_000,
+    );
+    const editorTurns = (await boundary()).turns
+      .map((t) => t.content)
+      .filter((c) => c.startsWith("Result of"))
+      .slice(-8)
+      .map((c) => c.slice(0, 200))
+      .join(" | ");
     const saved = path.join(workspace, "summary.html");
     const html = existsSync(saved) ? readFileSync(saved, "utf8") : "";
-    check(
-      "the editor's own download reached the work folder",
-      existsSync(saved),
-      html.slice(0, 120),
-    );
+    check("the editor's own download reached the work folder", existsSync(saved), editorTurns);
     check("with the words typed into the editor", html.includes(words), html.slice(0, 200));
     check(
       "and the formatting applied in the editor",
