@@ -126,6 +126,8 @@ export function refuseAction(
     mode: "isolated" | "real";
     action: DeviceAction;
     offered?: Record<string, boolean>;
+    /** A phone: what it cannot do yet is usually app control the person can turn on. */
+    phone?: boolean;
   },
 ): Refusal | null {
   if (!isAllowed(rows, "master"))
@@ -141,7 +143,13 @@ export function refuseAction(
   )
     return { capability: "browser", message: "Browser control is turned off for this device." };
   if (needed !== "browser" && input.offered && input.offered[needed] !== true)
-    return { capability: needed, message: `${label} is not available on this device.` };
+    return {
+      capability: needed,
+      message:
+        input.phone && input.offered.accessibility === false
+          ? `${label} needs app control on this phone: turn on OCADE JARVIS in Android's Accessibility settings, then try again.`
+          : `${label} is not available on this device.`,
+    };
   if (
     needed === "browser" &&
     input.mode === "real" &&

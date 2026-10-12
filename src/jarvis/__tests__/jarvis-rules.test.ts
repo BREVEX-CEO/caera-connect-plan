@@ -547,3 +547,25 @@ describe("app names (audit C07)", () => {
     }
   });
 });
+
+describe("a phone without app control (P13)", () => {
+  it("is told how to turn it on, where a computer is only told it is unavailable", async () => {
+    const { refuseAction } = await import("../permissions");
+    const rows = [
+      { capability: "screen", allowed: true, device_id: null },
+      { capability: "computer_control", allowed: true, device_id: null },
+    ];
+    const offered = { apps: true, screen: false, computer_control: false, accessibility: false };
+    const action = { action: "ui_inspect" } as never;
+    const phone = refuseAction(rows, {
+      deviceId: "d",
+      mode: "isolated",
+      action,
+      offered,
+      phone: true,
+    });
+    expect(phone?.message).toMatch(/Android's Accessibility settings/);
+    const computer = refuseAction(rows, { deviceId: "d", mode: "isolated", action, offered });
+    expect(computer?.message).toMatch(/not available on this device/);
+  });
+});

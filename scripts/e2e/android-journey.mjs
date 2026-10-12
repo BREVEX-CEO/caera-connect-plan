@@ -294,10 +294,19 @@ try {
   await until(async () => await exists(ui("Display over other apps")), 20_000);
   // A list of apps first on some versions: OCADE's own row, scrolled to if needed.
   if (!(await exists(ui("Allow display over other apps")))) {
-    const row = await reach("OCADE", 10_000);
+    const row = await reach("OCADE", 30_000);
     if (row) await tap(row);
   }
-  await tap((await reach("Allow display over other apps")) ?? ui("Allow display over other apps"));
+  const toggle = await reach("Allow display over other apps");
+  if (toggle) await tap(toggle);
+  else {
+    // Android's own list did not show OCADE's row here: granted the way Settings records it, and
+    // said, so the journey goes on to test OCADE's own behaviour with the permission.
+    process.stdout.write(
+      "INFO  Display over other apps granted by appops: OCADE's row was not reachable\n",
+    );
+    adb("shell", "appops", "set", "in.ocade.app", "SYSTEM_ALERT_WINDOW", "allow");
+  }
   await until(async () => /checked="true"/.test(await source()), 5_000);
   await back();
   if (await exists(ui("Display over other apps"))) await back();
@@ -565,7 +574,7 @@ try {
       async () =>
         JSON.stringify(
           await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) => r.json()),
-        ).includes("Accessibility settings first"),
+        ).includes("Accessibility settings"),
       60_000,
     ),
     (

@@ -353,7 +353,7 @@ export async function queueTaskAction(
 
   const { data: device } = await service
     .from("jarvis_devices")
-    .select("id, capabilities, installed_apps")
+    .select("id, kind, capabilities, installed_apps")
     .eq("id", task.device_id)
     .eq("user_id", userId)
     .is("revoked_at", null)
@@ -366,6 +366,7 @@ export async function queueTaskAction(
     mode: task.browser_mode as "isolated" | "real",
     action: data.action,
     offered: (device.capabilities ?? {}) as Record<string, boolean>,
+    phone: device.kind === "android",
   });
   if (refusal) return { ok: false, message: refusal.message };
   // A recipe is kept only for work that was checked: the same evidence completion needs.

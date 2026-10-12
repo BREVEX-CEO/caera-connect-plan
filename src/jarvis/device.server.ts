@@ -741,7 +741,13 @@ export async function exchange(
     if (!rows || rowsError || deviceError) return "Permissions could not be read.";
     const action = step.action as DeviceAction;
     if (!deviceRow) return "This device was removed.";
-    const refusal = refuseAction(rows, { deviceId: device.id, mode, action, offered });
+    const refusal = refuseAction(rows, {
+      deviceId: device.id,
+      mode,
+      action,
+      offered,
+      phone: device.kind === "android",
+    });
     if (refusal) return refusal.message;
     if (needsConfirmation(rows, action, device.id) && !step.confirmed) {
       return "Needs confirmation again.";
