@@ -400,7 +400,7 @@ class _BrowserSession:
             return {"status": "done", "summary": "Looked at the screen",
                     "observation": await self.observe(with_frame=True)}
 
-        if kind in ("click", "type", "select", "press", "click_at") and \
+        if kind in ("click", "type", "select", "press", "click_at", "drag_at") and \
                 self._boundary in ("captcha", "otp", "passkey"):
             # Human verification is the person's to complete; JARVIS never does it.
             return {"status": "human_required",
@@ -525,19 +525,28 @@ class _BrowserSession:
                     return gate
             await page.keyboard.press(key)
             detail = f"Pressed {key}"
-        elif kind == "click_at":
+        elif kind in ("click_at", "drag_at"):
             why = await self._stale(page, action.get("observationId"))
             if why:
                 return {"status": "stale", "summary": why, "observation": await self.observe()}
-            x, y = float(action.get("x", -1)), float(action.get("y", -1))
-            if not (0 <= x <= before.get("w", 0) and 0 <= y <= before.get("h", 0)):
-                return {"status": "failed", "summary": "That point is outside the page"}
-            info = await page.evaluate(_OCADE_AT_POINT, [x, y])
-            gate = _gate("click", info, confirmed)
-            if gate:
-                return gate
-            await page.mouse.click(x, y)
-            detail = "Clicked a point on the page"
+            points = [(float(action.get("x", -1)), float(action.get("y", -1)))]
+            if kind == "drag_at":  # a timeline clip, a crop handle, a slider: pressed, moved, let go
+                points.append((float(action.get("toX", -1)), float(action.get("toY", -1))))
+            for x, y in points:  # letting go is a press where it lands, so both points are gated
+                if not (0 <= x <= before.get("w", 0) and 0 <= y <= before.get("h", 0)):
+                    return {"status": "failed", "summary": "That point is outside the page"}
+                gate = _gate("click", await page.evaluate(_OCADE_AT_POINT, [x, y]), confirmed)
+                if gate:
+                    return gate
+            if kind == "drag_at":
+                await page.mouse.move(*points[0])
+                await page.mouse.down()
+                await page.mouse.move(*points[1], steps=12)
+                await page.mouse.up()
+                detail = "Dragged on the page"
+            else:
+                await page.mouse.click(*points[0])
+                detail = "Clicked a point on the page"
         else:
             return {"status": "failed", "summary": "Unknown browser action"}
 

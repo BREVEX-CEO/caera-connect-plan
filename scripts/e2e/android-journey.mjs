@@ -726,7 +726,9 @@ try {
     appium.kill("SIGTERM");
   }
   await browser.close();
-  await printTimings(SUPABASE).catch((error) => console.log(`TIMING  unavailable: ${error.message}`));
+  await printTimings(SUPABASE).catch((error) =>
+    console.log(`TIMING  unavailable: ${error.message}`),
+  );
 }
 process.stdout.write(failures === 0 ? "\nAndroid journey passed.\n" : `\n${failures} failed.\n`);
 process.exit(failures === 0 ? 0 : 1);

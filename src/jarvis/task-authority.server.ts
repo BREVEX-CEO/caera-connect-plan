@@ -55,6 +55,7 @@ const READS_THE_WEB = [
   "select",
   "press",
   "click_at",
+  "drag_at",
 ];
 
 async function taskReadTheWeb(service: Db, userId: string, taskId: string): Promise<boolean> {

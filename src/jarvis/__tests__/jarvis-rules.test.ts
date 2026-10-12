@@ -37,6 +37,20 @@ describe("the action contract", () => {
       browserAction.safeParse({ action: "click", ref: "button", observationId: "o2" }).success,
     ).toBe(false);
     expect(browserAction.safeParse({ action: "click_at", x: 1, y: 2 }).success).toBe(false);
+    // A drag needs where it lets go, and the observation its points came from.
+    expect(
+      browserAction.safeParse({ action: "drag_at", x: 1, y: 2, observationId: "o2" }).success,
+    ).toBe(false);
+    expect(
+      browserAction.safeParse({
+        action: "drag_at",
+        x: 1,
+        y: 2,
+        toX: 30,
+        toY: 2,
+        observationId: "o2",
+      }).success,
+    ).toBe(true);
     expect(
       browserAction.safeParse({ action: "set_permission", capability: "master" }).success,
     ).toBe(false);

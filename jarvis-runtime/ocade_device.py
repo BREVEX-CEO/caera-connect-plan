@@ -41,7 +41,7 @@ from ocade_identity import (PROTOCOL, SOFTWARE_VERSION, ClockSkew, Identity, Not
 
 BROWSER_ACTIONS = {"observe", "look", "open", "new_tab", "click", "type", "select", "press",
                    "scroll", "switch_tab", "close_tab", "back", "forward", "wait", "click_at",
-                   "upload", "download"}
+                   "drag_at", "upload", "download"}
 APPS_EVERY_S = 3600
 # With OCADE out of reach this long, a running action is stopped: nobody could STOP it remotely.
 CONTROL_LOSS_S = 15.0

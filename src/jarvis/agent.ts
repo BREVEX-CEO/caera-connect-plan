@@ -330,7 +330,7 @@ export function superseded(result: unknown): unknown {
   };
 }
 
-const COORDINATES = new Set(["click_at", "screen_click", "screen_drag"]);
+const COORDINATES = new Set(["click_at", "drag_at", "screen_click", "screen_drag"]);
 
 /**
  * Why a sequence step may not act on the observation the previous step left, or null.

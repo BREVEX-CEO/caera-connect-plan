@@ -32,6 +32,14 @@ PAGES = {
     # A rich editor: its own Bold button makes what is typed next bold, as editors do.
     "rich.html": """<title>Rich</title><div id='ed' contenteditable aria-label='Body'>Draft:</div>
       <button onmousedown="event.preventDefault()" onclick="document.execCommand('bold')">Bold</button>""",
+    # A timeline clip moved by dragging it, beside a button that must never be pressed unasked.
+    "drag.html": """<title>Timeline</title>
+      <div id='clip' style='position:absolute;left:20px;top:20px;width:60px;height:40px;background:#888'>Clip</div>
+      <button style='position:absolute;left:400px;top:20px'>Pay now</button>
+      <script>let grip = null;
+        clip.onmousedown = (e) => grip = e.clientX - clip.offsetLeft;
+        onmousemove = (e) => { if (grip !== null) clip.style.left = (e.clientX - grip) + 'px'; };
+        onmouseup = () => grip = null;</script>""",
 }
 
 
@@ -130,6 +138,18 @@ class BrowserControlTest(unittest.TestCase):
         out = self.act({"action": "click_at", "x": 20, "y": 20,
                         "observationId": obs["observationId"]})
         self.assertEqual(out["status"], "done")
+
+    def test_drag_moves_what_is_under_the_point_and_gates_where_it_lands(self):
+        obs = self.act({"action": "open", "url": f"{self.base}/drag.html"})["observation"]
+        out = self.act({"action": "drag_at", "x": 40, "y": 40, "toX": 240, "toY": 40,
+                        "observationId": obs["observationId"]})
+        self.assertEqual(out["status"], "done", out)
+        self.assertEqual(self.s.run(self.s._page.evaluate("clip.offsetLeft")), 220)
+        obs = out["observation"]
+        out = self.act({"action": "drag_at", "x": 240, "y": 40, "toX": 420, "toY": 30,
+                        "observationId": obs["observationId"]})
+        self.assertEqual(out["status"], "blocked")
+        self.assertEqual(self.s.run(self.s._page.evaluate("clip.offsetLeft")), 220)
 
     def test_changed_element_identity_is_refused(self):
         obs = self.home()
