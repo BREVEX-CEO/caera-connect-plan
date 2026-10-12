@@ -132,7 +132,8 @@ final class Control {
                 String wanted = info.activityInfo.packageName;
                 OcadeAccessibility a11y = OcadeAccessibility.instance;
                 CharSequence front = null;
-                for (int waited = 0; a11y != null && waited < 5_000 && !cancel.get(); waited += 100) {
+                long until = android.os.SystemClock.elapsedRealtime() + 5_000;
+                while (a11y != null && android.os.SystemClock.elapsedRealtime() < until && !cancel.get()) {
                     AccessibilityNodeInfo root = a11y.getRootInActiveWindow();
                     front = root == null ? null : root.getPackageName();
                     if (front != null && wanted.contentEquals(front)) return result("done", "Opened " + name);

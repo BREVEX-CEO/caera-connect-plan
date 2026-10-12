@@ -51,6 +51,8 @@ public final class MainActivity extends Activity {
     private final java.util.Set<String> declined = new java.util.HashSet<>();
     /** Something was left off: said plainly, and Set up can be pressed again at any time. */
     private boolean skipped;
+    /** What the checklist last listed, so it is rebuilt only when that changes. */
+    private String listed;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Runnable tick = new Runnable() {
         @Override
@@ -282,8 +284,19 @@ public final class MainActivity extends Activity {
 
     /** One line in plain words: Setting up, Needs your permission, Waiting for approval, Ready, Offline. */
     private void render() {
+        // Rebuilt only when what it lists changes: rebuilt every second, a tap that spanned a
+        // rebuild was lost and a screen reader's place was reset.
+        String missing = "" + notificationsAllowed() + overlayAllowed() + accessibilityAllowed() + skipped;
+        if (!missing.equals(listed)) {
+            listed = missing;
+            renderChecklist();
+        }
+        renderState();
+    }
+
+    /** Only what is still missing, each with why; nothing once everything is allowed. */
+    private void renderChecklist() {
         checklist.removeAllViews();
-        // Only what is still missing, each with why; nothing once everything is allowed.
         if (!notificationsAllowed()) checklist.addView(item("Notifications",
                 "So you can see what JARVIS is doing and stop it from the notification."));
         if (!overlayAllowed()) {
@@ -303,6 +316,9 @@ public final class MainActivity extends Activity {
             checklist.addView(text("Some of this was left off. OCADE works without it, with less: "
                     + "press Set up OCADE again whenever you want to allow it.", 13, false));
         }
+    }
+
+    private void renderState() {
         String now;
         boolean connected = identity.connected();
         if (guiding || connecting) {
