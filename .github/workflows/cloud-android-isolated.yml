@@ -89,8 +89,9 @@ jobs:
           set -euo pipefail
           npm ci --no-audit --no-fund
           node node_modules/playwright-core/cli.js install --with-deps chromium
-          npm install --global appium@2
-          appium driver install uiautomator2
+          # A pinned, compatible pair: driver 4.x supports Appium 2 (5.x needs Appium 3).
+          npm install --global appium@2.19.0
+          appium driver install uiautomator2@4.2.9
           nohup node scripts/e2e/harness.mjs --serve > "${RUNNER_TEMP}/ocade-stub.log" 2>&1 &
           echo $! > "${RUNNER_TEMP}/ocade-stub.pid"
           for n in {1..120}; do

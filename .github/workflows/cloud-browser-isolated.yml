@@ -103,7 +103,8 @@ jobs:
           else
             # Excludes native Office and Android: those cannot be proved by Playwright.
             # Real Gemini is not used here; the fixture deliberately scripts model outputs.
-            journeys=(shell auth chat usage pricing online offline library settings polish final visual browsers admin bubble mfa carry-on push controls)
+            # carry-on runs with the real Device Agent in the 'jarvis' suite.
+            journeys=(shell auth chat usage pricing online offline library settings polish final visual browsers admin bubble mfa push controls)
           fi
           run=(node scripts/e2e/harness.mjs "${journeys[@]}")
           # The Device Agent's screen tests need a display: a virtual one on this throwaway VM.

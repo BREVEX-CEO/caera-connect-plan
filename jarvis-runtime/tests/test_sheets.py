@@ -263,6 +263,7 @@ class OriginalsAndChecksTest(unittest.TestCase):
 
 
 @live
+@unittest.skipUnless(ocade_sheets.automation_server(".xlsx"), "needs an app that automates .xlsx")
 class RealSpreadsheetAppTest(unittest.TestCase):
     """The acceptance task in the person's real Excel: visible, calculated, saved, reopened, verified."""
 
