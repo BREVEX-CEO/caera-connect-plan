@@ -131,6 +131,7 @@ const CHANGES_FILES = [
   "file_import",
   "sheet_edit",
   "doc_edit",
+  "deck_edit",
   "download",
 ];
 
@@ -210,7 +211,7 @@ export async function completionGap(
 const MOST_CHECKED = 1000;
 
 /** Actions that change a file's content in place, and the reads that check that content. */
-const EDITS_CONTENT = new Set(["file_write", "sheet_edit", "doc_edit"]);
+const EDITS_CONTENT = new Set(["file_write", "sheet_edit", "doc_edit", "deck_edit"]);
 const READS_FILE = new Set(["file_read", "file_extract", "file_compare", "sheet_inspect"]);
 
 const normal = (text: string) => text.toLowerCase().replace(/\s+/g, " ").trim();

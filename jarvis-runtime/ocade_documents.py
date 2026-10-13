@@ -263,6 +263,126 @@ def read_docx_from(doc) -> str:
     return "\n".join(lines)[:20000]
 
 
+CHART_KINDS = {"bar": "BAR_CLUSTERED", "column": "COLUMN_CLUSTERED", "line": "LINE_MARKERS", "pie": "PIE"}
+IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".bmp"}
+
+
+def validate_deck(ops: list[dict]) -> list[dict]:
+    """The presentation operations, checked before a deck is touched."""
+    if not isinstance(ops, list) or not 1 <= len(ops) <= 60:
+        raise DocumentError("Give between 1 and 60 presentation operations")
+    out = []
+    for op in ops:
+        kind = op.get("op")
+        if kind == "slide":
+            title = str(op.get("title", ""))
+            bullets = op.get("bullets") or []
+            if not 1 <= len(title) <= 200 or not isinstance(bullets, list) or len(bullets) > 12 or any(
+                    not 1 <= len(str(b)) <= 300 for b in bullets):
+                raise DocumentError("A slide has a title (up to 200 characters) and up to 12 bullets")
+            out.append({"op": kind, "title": title, "bullets": [str(b) for b in bullets],
+                        "layout": "title" if op.get("layout") == "title" else "content",
+                        "notes": str(op.get("notes", ""))[:2000]})
+        elif kind == "chart":
+            categories, series = op.get("categories"), op.get("series")
+            if op.get("kind") not in CHART_KINDS or not isinstance(categories, list) or not 1 <= len(
+                    categories) <= 24 or not isinstance(series, list) or not 1 <= len(series) <= 6 or any(
+                    not isinstance(s, dict) or not isinstance(s.get("values"), list)
+                    or len(s["values"]) != len(categories) for s in series):
+                raise DocumentError("A chart is a kind (bar, column, line, pie), 1-24 categories and 1-6 "
+                                    "series with one number per category")
+            try:
+                values = [[float(v) for v in s["values"]] for s in series]
+            except (TypeError, ValueError):
+                raise DocumentError("Chart values are numbers") from None
+            out.append({"op": kind, "kind": op["kind"], "title": str(op.get("title", ""))[:200],
+                        "categories": [str(c)[:80] for c in categories],
+                        "series": [{"name": str(s.get("name", ""))[:80], "values": v} for s, v in zip(series, values)]})
+        elif kind == "image":
+            if Path(str(op.get("path", ""))).suffix.lower() not in IMAGE_SUFFIXES:
+                raise DocumentError("An image is a .png, .jpg, .gif or .bmp in the work folder")
+            out.append({"op": kind, "path": str(op["path"]), "caption": str(op.get("caption", ""))[:200]})
+        else:
+            raise DocumentError(f"Unknown presentation operation {kind!s:.30}")
+    return out
+
+
+def read_deck(path: Path) -> dict:
+    """What a .pptx holds, read back from the saved file: each slide's title, text, charts and pictures."""
+    from pptx import Presentation
+    deck = Presentation(str(path))
+    slides = []
+    for slide in deck.slides:
+        title = slide.shapes.title.text if slide.shapes.title is not None else ""
+        text = [shape.text_frame.text for shape in slide.shapes if shape.has_text_frame and shape.text_frame.text]
+        charts = [shape.chart.chart_type for shape in slide.shapes if shape.has_chart]
+        slides.append({"title": title, "text": "\n".join(text)[:2000],
+                       "charts": [str(kind).split(" ")[0] for kind in charts],
+                       "pictures": sum(1 for shape in slide.shapes if shape.shape_type == 13),
+                       "notes": slide.notes_slide.notes_text_frame.text[:500] if slide.has_notes_slide else ""})
+    return {"slides": slides, "count": len(slides),
+            "size": [round(deck.slide_width / 914400, 2), round(deck.slide_height / 914400, 2)]}
+
+
+def edit_deck(path: Path, ops: list[dict], root: Path) -> dict:
+    """Slides added to a .pptx (new, 16:9, when it does not exist yet): titled bullet slides, native
+    charts with their data, and images from the work folder; saved, reopened and read back."""
+    from pptx import Presentation
+    from pptx.chart.data import CategoryChartData
+    from pptx.enum.chart import XL_CHART_TYPE
+    from pptx.util import Inches, Pt
+    ops = validate_deck(ops)
+    new = not path.exists()
+    deck = Presentation(str(path)) if not new else Presentation()
+    if new:
+        deck.slide_width, deck.slide_height = Inches(13.333), Inches(7.5)
+    width, height = deck.slide_width, deck.slide_height
+    area = (Inches(0.8), Inches(1.6), width - Inches(1.6), height - Inches(2.2))
+    applied = []
+    for op in ops:
+        if op["op"] == "slide":
+            layout = deck.slide_layouts[0 if op["layout"] == "title" else (1 if op["bullets"] else 5)]
+            slide = deck.slides.add_slide(layout)
+            slide.shapes.title.text = op["title"]
+            if op["bullets"]:
+                body = slide.placeholders[1].text_frame
+                body.text = op["bullets"][0]
+                for bullet in op["bullets"][1:]:
+                    body.add_paragraph().text = bullet
+            if op["notes"]:
+                slide.notes_slide.notes_text_frame.text = op["notes"]
+        elif not len(deck.slides):
+            return {"ok": False, "applied": applied, "error": "Add a slide before a chart or an image"}
+        elif op["op"] == "chart":
+            data = CategoryChartData()
+            data.categories = op["categories"]
+            for series in op["series"]:
+                data.add_series(series["name"] or "Series", series["values"])
+            frame = deck.slides[-1].shapes.add_chart(getattr(XL_CHART_TYPE, CHART_KINDS[op["kind"]]), *area, data)
+            chart = frame.chart
+            chart.has_legend = len(op["series"]) > 1 or op["kind"] == "pie"
+            if op["title"]:
+                chart.has_title = True
+                chart.chart_title.text_frame.text = op["title"]
+        elif op["op"] == "image":
+            image = (root / op["path"]).resolve()
+            if root.resolve() not in image.parents or not image.is_file():
+                return {"ok": False, "applied": applied, "error": f"{op['path'][:80]} is not a file in the work folder"}
+            picture = deck.slides[-1].shapes.add_picture(str(image), area[0], area[1], height=area[3])
+            if picture.width > area[2]:  # kept inside the slide, in proportion
+                ratio = area[2] / picture.width
+                picture.width, picture.height = int(area[2]), int(picture.height * ratio)
+            if op["caption"]:
+                caption = deck.slides[-1].shapes.add_textbox(area[0], height - Inches(0.6), area[2], Inches(0.4))
+                caption.text_frame.text = op["caption"]
+                caption.text_frame.paragraphs[0].runs[0].font.size = Pt(12)
+        applied.append(op["op"])
+    deck.save(str(path))
+    read = read_deck(path)
+    return {"ok": True, "engine": "file", "applied": applied, "read": read, "new": new,
+            "savedAndReopened": True, "reopenChecked": True}
+
+
 def compare(before: Path, after: Path, limit: int = 60) -> dict:
     """What changed from `before` to `after`, read from the two files themselves: cells for
     workbooks, lines for documents and text, otherwise only whether the bytes differ."""

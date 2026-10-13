@@ -200,6 +200,31 @@ const wordStyle = z.enum([
   "Quote",
 ]);
 /** One document operation, done in the app this computer edits the file type with: find and replace, styles, emphasis, tables. */
+const deckOp = z.discriminatedUnion("op", [
+  z.object({
+    op: z.literal("slide"),
+    title: z.string().min(1).max(200),
+    bullets: z.array(z.string().min(1).max(300)).max(12).optional(),
+    layout: z.enum(["title", "content"]).optional(),
+    notes: z.string().max(2000).optional(),
+  }),
+  z.object({
+    op: z.literal("chart"),
+    kind: z.enum(["bar", "column", "line", "pie"]),
+    title: z.string().max(200).optional(),
+    categories: z.array(z.string().min(1).max(80)).min(1).max(24),
+    series: z
+      .array(z.object({ name: z.string().max(80).optional(), values: z.array(z.number()).max(24) }))
+      .min(1)
+      .max(6),
+  }),
+  z.object({
+    op: z.literal("image"),
+    path: workspacePath,
+    caption: z.string().max(200).optional(),
+  }),
+]);
+
 const docOp = z.discriminatedUnion("op", [
   z.object({
     op: z.literal("replace"),
@@ -354,6 +379,13 @@ const COMPUTER_ACTIONS = [
     // Only when the person asked to change this file itself; otherwise the work goes into a copy.
     overwrite: z.boolean().optional(),
   }),
+  // A presentation made or extended as its own file: slides, native charts, images.
+  z.object({
+    action: z.literal("deck_edit"),
+    path: workspacePath,
+    ops: z.array(deckOp).min(1).max(60),
+    overwrite: z.boolean().optional(),
+  }),
   z.object({
     action: z.literal("sheet_inspect"),
     path: workspacePath,
@@ -457,6 +489,7 @@ export function capabilityFor(action: DeviceAction): Capability {
     case "sheet_inspect":
     case "sheet_edit":
     case "doc_edit":
+    case "deck_edit":
     case "undo":
       return "files";
     case "run":
@@ -704,6 +737,8 @@ export function describeAction(action: DeviceAction): string {
       return `Copying ${action.path.slice(0, 80)} to ${action.to.slice(0, 80)}`;
     case "doc_edit":
       return `Updating the document ${action.path.slice(0, 100)} (${action.ops.length} changes)`;
+    case "deck_edit":
+      return `Building the presentation ${action.path.slice(0, 100)} (${action.ops.length} changes)`;
     case "sheet_inspect":
       return `Looking through the workbook ${action.path.slice(0, 120)}`;
     case "sheet_edit":
@@ -803,6 +838,7 @@ Computer rules:
 - A workbook or document the person already has is their original: file_copy it to a new name first (for example "Sales - completed.xlsx") and edit the copy. Set overwrite: true on sheet_edit or doc_edit only when the person asked to change that file itself. A result line "Check: ..." names cells that refer to themselves or show an error: fix them before finishing. drives lists connected drives, external ones included.
 - Prefer the most direct way: open_app, file actions and run inside the workspace before anything visual. Before opening an app, call window_list and switch to its open window with window (state focus) if there is one. For an app's own buttons, fields and menus use ui_inspect then ui_act with the ref and observationId it returned. Use screen, then screen_click with the current screen observationId, only when nothing more direct works, and look again after the screen changes.
 - Spreadsheets: call sheet_inspect first to learn the sheets, headers, existing formulas and formats. Then one sheet_edit with formulas and fills (a relative formula filled down a range), lookups, totals and formatting, never values you calculated yourself and typed in. Check the read-back values it returns before saying it is done.
+- Presentations: one deck_edit builds the whole .pptx (a title slide, content slides, native charts from real numbers, images already in the work folder); read it back with file_extract before saying it is done.
 - Documents (.docx, .doc, .rtf): read them with file_extract, then one doc_edit with the changes; check the read-back text before saying it is done. Where no app on the computer automates Word documents, doc_edit on a .docx path that does not exist yet makes a new document (title, headings, paragraphs, tables, bold).
 - Files and commands stay inside the workspace the person selected. The task's own builds, tests, scripts and git reads run at once; deleting permanently, shells, installs, network tools, publishing and system changes wait for the person.
 - Volume, mute, brightness and dark mode: use setting (name, with level 0-100 or on true/false), never keys or the screen. It answers with the value before the change; to put a setting back, set that value again. To take back a file change you made (write, move, rename, copy, new folder, workbook or document edit), use undo: it reverses the newest one.
@@ -874,7 +910,7 @@ export function jarvisTools(memory: boolean, schedule = true): NormalizedToolDef
     {
       name: "computer",
       description:
-        "Work on the task's computer. Actions: apps, open_app, app_info (program, version, automation, file types, scripting folders, recipes), recipe_save (app, route, steps, verify, recovery), drives, file_locate (name and/or extension, outside the work folder too), file_import (from: a full path, copied into the work folder), file_export (path in the work folder, to: a full folder path, name), ui_inspect (an app's buttons, fields and menus by ref), ui_act (invoke, set_value, toggle, select, expand, collapse, focus a ref), window_list, window (focus/minimize/maximize/restore/close an open window by title), file_list, file_read, file_write, file_extract (text of .pdf, .docx, .pptx, .xlsx), sheet_inspect, sheet_edit, doc_edit (documents: replace, append with style, style, bold/italic/highlight, table), file_find, file_info, file_compare (path: the original, to: the result; what changed, cell by cell or line by line), file_mkdir, file_move, file_copy, file_rename, file_trash, file_delete, run, screen, screen_click (button, double), screen_drag, screen_type, screen_keys, screen_scroll, system, setting (volume, mute, brightness, dark_mode: read, or change with level or on), system_status (processor, memory, disk, battery), undo (reverse the newest file change JARVIS made).",
+        "Work on the task's computer. Actions: apps, open_app, app_info (program, version, automation, file types, scripting folders, recipes), recipe_save (app, route, steps, verify, recovery), drives, file_locate (name and/or extension, outside the work folder too), file_import (from: a full path, copied into the work folder), file_export (path in the work folder, to: a full folder path, name), ui_inspect (an app's buttons, fields and menus by ref), ui_act (invoke, set_value, toggle, select, expand, collapse, focus a ref), window_list, window (focus/minimize/maximize/restore/close an open window by title), file_list, file_read, file_write, file_extract (text of .pdf, .docx, .pptx, .xlsx), sheet_inspect, sheet_edit, doc_edit (documents: replace, append with style, style, bold/italic/highlight, table), deck_edit (a .pptx made or extended: slides with title and bullets, native charts with their data, images from the work folder, notes), file_find, file_info, file_compare (path: the original, to: the result; what changed, cell by cell or line by line), file_mkdir, file_move, file_copy, file_rename, file_trash, file_delete, run, screen, screen_click (button, double), screen_drag, screen_type, screen_keys, screen_scroll, system, setting (volume, mute, brightness, dark_mode: read, or change with level or on), system_status (processor, memory, disk, battery), undo (reverse the newest file change JARVIS made).",
       inputSchema: obj({
         action: str("The computer action."),
         name: str(
@@ -891,7 +927,7 @@ export function jarvisTools(memory: boolean, schedule = true): NormalizedToolDef
         ops: {
           type: "ARRAY",
           description:
-            "For doc_edit: {op:'replace',find,with}, {op:'append',text,style}, {op:'style',find,style}, {op:'bold',find}, {op:'table',rows}. For sheet_edit: operations like {op:'fill',range:'E2:E50',formula:'=C2*D2'}, {op:'set',cell:'E51',value:'=SUM(E2:E50)'}, {op:'format',range,numberFormat,bold,fillColor,fontColor,align,border,columnWidth}, {op:'conditional',range,rule,value,fillColor}, table, filter, freeze, name, chart, sort, sheet_add, sheet_rename.",
+            "For deck_edit: {op:'slide',title,bullets,layout:'title'|'content',notes}, then on that slide {op:'chart',kind:'bar'|'column'|'line'|'pie',title,categories,series:[{name,values}]} or {op:'image',path,caption}. For doc_edit: {op:'replace',find,with}, {op:'append',text,style}, {op:'style',find,style}, {op:'bold',find}, {op:'table',rows}. For sheet_edit: operations like {op:'fill',range:'E2:E50',formula:'=C2*D2'}, {op:'set',cell:'E51',value:'=SUM(E2:E50)'}, {op:'format',range,numberFormat,bold,fillColor,fontColor,align,border,columnWidth}, {op:'conditional',range,rule,value,fillColor}, table, filter, freeze, name, chart, sort, sheet_add, sheet_rename.",
           items: { type: "OBJECT" },
         },
         content: str("For file_write."),

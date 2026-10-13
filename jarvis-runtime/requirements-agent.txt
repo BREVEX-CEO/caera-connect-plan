@@ -28,6 +28,9 @@ pypdf==6.19.0
 python-docx==1.2.0
 lxml==6.0.2
 typing_extensions==4.15.0
+# A .pptx made or extended as its own file: slides, native charts (their data in XlsxWriter) and images.
+python-pptx==1.0.2
+XlsxWriter==3.2.5
 # Local "OCADE" / "Hey OCADE" listening in Background/Wake Mode only: OCADE's own
 # bundled model (wake/), its features and network run in numpy.
 sounddevice==0.5.2

@@ -420,6 +420,8 @@ class Computer:
                 return self._sheet(kind, action, cancel)
             if kind == "doc_edit":
                 return self._doc(action, cancel)
+            if kind == "deck_edit":
+                return self._deck(action, cancel)
             if kind == "run":
                 return self._run(str(action.get("command", "")), action.get("cwd"), confirmed, cancel)
             if kind == "system":
@@ -752,6 +754,34 @@ class Computer:
         if unread := self._not_read_back(out, rel, "document"):
             return unread
         return {"status": "done", "summary": f"Updated {rel} in {out.get('app', 'its app')} ({len(out['applied'])} changes)",
+                **{k: v for k, v in out.items() if k != "ok"}}
+
+    def _deck(self, action: dict, cancel: threading.Event) -> dict:
+        """A presentation made or extended as its own file: slides, charts and images."""
+        import ocade_documents
+        import ocade_sheets
+        path = self._inside(str(action.get("path", "")), change=True)
+        rel = str(path.relative_to(self.root))
+        if path.suffix.lower() != ".pptx":
+            return {"status": "failed", "summary": "JARVIS makes and extends .pptx presentations"}
+        if refused := self._original(path, rel, action):
+            return refused
+        if cancel.is_set():
+            return dict(STOPPED)
+        kept = ocade_sheets.backup(path, self._undo_dir()) if path.exists() else None
+        try:
+            out = ocade_documents.edit_deck(path, list(action.get("ops") or []), self.root)
+        except ocade_documents.DocumentError as e:
+            return {"status": "failed", "summary": str(e)}
+        if not out.get("ok"):
+            return {"status": "failed", "summary": str(out.get("error", "The presentation was not changed"))[:200]}
+        if kept:
+            self._remember(f"updating {rel}", lambda: self._put_back(kept, path), path)
+        else:
+            self._made.add(path)
+            self._remember(f"making {rel}", lambda: self._to_trash(path), path)
+        return {"status": "done", "summary": f"{'Made' if out['new'] else 'Updated'} {rel}: "
+                                             f"{out['read']['count']} slides",
                 **{k: v for k, v in out.items() if k != "ok"}}
 
     @staticmethod

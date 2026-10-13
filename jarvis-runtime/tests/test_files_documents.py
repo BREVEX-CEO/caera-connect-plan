@@ -138,6 +138,49 @@ class WordValidationTest(unittest.TestCase):
 
 
 @live
+class DeckTest(unittest.TestCase):
+    """A presentation built as its own file: a title slide, bullets, a native chart with its data,
+    an image from the work folder; reopened and read back; undo takes a new deck away."""
+
+    def test_build_a_deck_with_a_chart_and_an_image(self):
+        from PIL import Image
+        root = Path(tempfile.mkdtemp())
+        Image.new("RGB", (640, 360), (30, 90, 160)).save(root / "map.png")
+        pc = Computer(str(root))
+        out = pc.run({"action": "deck_edit", "path": "cities.pptx", "ops": [
+            {"op": "slide", "title": "Three cities", "bullets": ["October 2026"], "layout": "title"},
+            {"op": "slide", "title": "Findings", "bullets": ["Tokyo is largest", "Delhi grows fastest"],
+             "notes": "Sources: Wikipedia"},
+            {"op": "slide", "title": "Population (millions)"},
+            {"op": "chart", "kind": "column", "title": "Population",
+             "categories": ["Tokyo", "Delhi", "Shanghai"],
+             "series": [{"name": "2023", "values": [14.0, 11.0, 24.9]}]},
+            {"op": "slide", "title": "Where"},
+            {"op": "image", "path": "map.png", "caption": "Map"},
+        ]})
+        self.assertEqual(out["status"], "done", out)
+        read = out["read"]
+        self.assertEqual(read["count"], 4)
+        self.assertEqual(read["size"], [13.33, 7.5])
+        self.assertEqual([s["title"] for s in read["slides"]],
+                         ["Three cities", "Findings", "Population (millions)", "Where"])
+        self.assertIn("Delhi grows fastest", read["slides"][1]["text"])
+        self.assertEqual(read["slides"][1]["notes"], "Sources: Wikipedia")
+        self.assertEqual(read["slides"][2]["charts"], ["COLUMN_CLUSTERED"])
+        self.assertEqual(read["slides"][3]["pictures"], 1)
+        from pptx import Presentation
+        chart = next(sh.chart for sh in Presentation(str(root / "cities.pptx")).slides[2].shapes if sh.has_chart)
+        self.assertEqual(list(chart.plots[0].categories), ["Tokyo", "Delhi", "Shanghai"])
+        self.assertEqual(list(chart.series[0].values), [14.0, 11.0, 24.9])
+        # Nothing outside the work folder goes in, and a chart needs numbers.
+        self.assertEqual(pc.run({"action": "deck_edit", "path": "cities.pptx",
+                                 "ops": [{"op": "image", "path": "../x.png"}]})["status"], "failed")
+        self.assertEqual(pc.run({"action": "deck_edit", "path": "cities.pptx", "ops": [
+            {"op": "chart", "kind": "pie", "categories": ["a"], "series": [{"values": ["x"]}]}]})["status"], "failed")
+        self.assertEqual(pc.run({"action": "undo"})["status"], "done")
+        self.assertFalse((root / "cities.pptx").exists())
+
+
 @unittest.skipIf(__import__("ocade_sheets").automation_server(".docx"), "an app automates .docx here")
 class DocxWithoutWordTest(unittest.TestCase):
     """No app automates Word documents (Linux, macOS without Office): the .docx is made and

@@ -37,6 +37,25 @@ describe("the action contract", () => {
       browserAction.safeParse({ action: "click", ref: "button", observationId: "o2" }).success,
     ).toBe(false);
     expect(browserAction.safeParse({ action: "click_at", x: 1, y: 2 }).success).toBe(false);
+    // A deck's chart needs one series of numbers; its image comes from the work folder.
+    expect(
+      computerAction.safeParse({
+        action: "deck_edit",
+        path: "cities.pptx",
+        ops: [
+          { op: "slide", title: "Population" },
+          { op: "chart", kind: "column", categories: ["A", "B"], series: [{ values: [1, 2] }] },
+          { op: "image", path: "map.png" },
+        ],
+      }).success,
+    ).toBe(true);
+    expect(
+      computerAction.safeParse({
+        action: "deck_edit",
+        path: "cities.pptx",
+        ops: [{ op: "chart", kind: "radar", categories: ["A"], series: [{ values: [1] }] }],
+      }).success,
+    ).toBe(false);
     // A drag needs where it lets go, and the observation its points came from.
     expect(
       browserAction.safeParse({ action: "drag_at", x: 1, y: 2, observationId: "o2" }).success,
