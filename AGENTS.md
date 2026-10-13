@@ -4,7 +4,7 @@ CARCC is the company; OCADE is the product. The owner's latest explicit instruct
 
 ## Start and resume
 
-1. Read current owner scope, PLAN and the owning domain contract. Fetch main; inspect SHA, working tree and relevant current evidence. Preserve unrelated work.
+1. Read current owner scope, PLAN Section 0.8 (the continuation checkpoint), the 13 October entries in [Decisions](docs/DECISIONS.md) and the owning domain contract. Fetch main; inspect SHA, working tree and relevant current evidence. Preserve unrelated work.
 2. Resume the first dependency-ready OPEN package. Do not restart completed work, append a new master plan or require missing historical ledgers. Retrieve old evidence from the links in [Decisions](docs/DECISIONS.md) when relevant.
 3. Reproduce the defect, trace callers and identify the existing owner before editing. Source inspection, local tests, deployed behaviour and physical-device proof are different evidence classes.
 4. Record PASS, FAIL, PARTIAL, BLOCKED or UNTESTED with SHA/environment. Continue independent work when one gate is blocked. Never report zero bugs or turn missing hardware into PASS.
@@ -34,7 +34,7 @@ Run targeted regression, sibling/integration paths, real applicable workflow and
 
 Update the owning contract and PLAN record in the same change; no duplicate active ledger. Preserve dated evidence as history. Check local Markdown links, referenced files, formatting, source/data scope and diff before commit. Never print secrets or store customer data in evidence without consent.
 
-Commit/push/merge within the owner's explicit authorisation. This documentation redesign is authorised for main; it does not authorise application changes or deployment. Future production releases require the owner's release approval, exact candidate evidence and rollback gate. Never force-push shared history. A commit is not a deployment and a health check is not a verified customer workflow.
+Commit/push/merge within the owner's explicit authorisation. Implementation stays on `ocade/p00-p22-implementation`: no merge to main and no deployment until the release criteria pass. Spend nothing beyond included allowances. Test only in disposable cloud environments, never on the owner's PC, real browser profile, files, phone or local emulator without separate explicit approval. Future production releases require the owner's release approval, exact candidate evidence and rollback gate. Never force-push shared history. A commit is not a deployment and a health check is not a verified customer workflow.
 
 ## Binding decisions and audit provenance — 10 October 2026
 

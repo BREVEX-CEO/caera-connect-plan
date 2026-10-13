@@ -2,6 +2,21 @@
 
 Current decisions are implemented through [PLAN](../PLAN.md), not a second work queue. Research baseline: `f521e23529542d709a9627181341b0e904a8b0c3`; redesign dated 9 October 2026. The owner authorised documentation changes and publication only; implementation/deployment remains future work.
 
+## Owner decisions — 13 October 2026 (current; supersede anything older that conflicts)
+
+Status of each lives in [PLAN](../PLAN.md) Section 0.8; this is the register.
+
+- **Model.** One online model for Chat and JARVIS on all three key slots and the staging key: `gemini-3.5-flash-lite` (second decision that day, replacing `gemini-3.8-flash`). No weaker or other fallback, no paid tier, no model switch on 429/503. Key slots are redundancy, never a way round a per-project quota; no extra projects to multiply quota.
+- **Spending.** ₹0 beyond included allowances (GitHub Actions minutes, free Gemini tier, Cloudflare/Supabase free use). Anything billable needs the owner first.
+- **Use accounting.** One completed, server-verified JARVIS task = one use. Model turns, retries, failed, empty, stopped and unverified tasks are free; server-authoritative, idempotent, race-proof.
+- **Calls.** Do not accept one task per day as the architecture: plan once, batch deterministic local actions, call the model only when needed; measure calls per completed task without lowering accuracy, security or verification. Preserve unfinished tasks when capacity runs out. Scripted planners are for intermediate tests; final acceptance uses genuine Gemini. No commercial launch until real tasks pass and a sustainable, privacy-compliant capacity model exists.
+- **Privacy.** Free-tier content may be used by Google: informed, versioned, withdrawable consent before online use; production with confidential data stays BLOCKED until a no-training tier or owner sign-off.
+- **Testing priority.** (1) Windows: deep desktop control, GUI fallback, native apps, browser, Office, files, multitasking, STOP, recovery. (2) Android: real emulator automation, apps, permissions, browser, media, cross-device. (3) macOS on isolated cloud runners within free capacity. (4) iOS: free simulators where genuinely available, Safari/PWA; state platform limits. (5) Linux: no non-essential expansion; keep cross-platform CI and regression. Isolated cloud environments only; never the owner's PC, real Chrome profile, files, phone or local emulator without separate explicit approval (configured MCPs are not that approval).
+- **Scope of verification.** Every feature and journey, including failure paths (concurrency, interruption, network loss, quota exhaustion, deployment change, permission denial, malicious input); outputs checked independently; scripted-model passes never counted as real Gemini successes. Ten real acceptance tasks first.
+- **Platforms and content.** Office: self-hosted ONLYOFFICE first, Microsoft 365 later. Video: CapCut and legitimate alternatives; real 720p and 1080p exports. Only owned, public-domain or licensed media; never bypass YouTube. iOS: simulators and browser first; a paid iPhone needs approval. macOS: free/included resources first. Disposable free test accounts; ask the owner only for OTPs, sign-ins and consent. Correctness first, then speed. Paid competitor benchmarks deferred.
+- **Evidence.** Private GitHub Actions artifacts and the private R2 bucket `ocade-private-models` (never public). The offline model is read in CI with the owner's read-only key `OCADE_R2_ACCESS_KEY_ID` / `OCADE_R2_SECRET_ACCESS_KEY` / `OCADE_R2_ENDPOINT` (GitHub secrets).
+- **Release.** No merge to `main` and no deployment until release criteria pass; production Supabase SQL only at release with owner approval; never modify production secrets or disable protections without approval. Ask the owner only for unavoidable financial, legal or account decisions.
+
 ## Decisions superseding older instructions
 
 - One website-first OCADE: Chat retains Auto/Online/Offline; JARVIS remains separate and online-only. Native work uses the existing paired signed companion; no mandatory extension, store or customer MCP setup.
