@@ -579,7 +579,10 @@ try {
   );
   adb("shell", "am", "set-debug-app", "--persistent", "com.android.chrome");
   // Its notifications already answered, as on a phone in use: otherwise Chrome asks over the page.
-  adb("shell", "pm", "grant", "com.android.chrome", "android.permission.POST_NOTIFICATIONS");
+  // (Android 13 and later only: earlier versions have no such permission to answer.)
+  if (SDK >= 33) {
+    adb("shell", "pm", "grant", "com.android.chrome", "android.permission.POST_NOTIFICATIONS");
+  }
   adb("shell", "am", "force-stop", "com.android.chrome");
   await fetch(`${SUPABASE}/__fixture/spend-allowance`, {
     method: "POST",
