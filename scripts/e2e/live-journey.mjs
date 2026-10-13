@@ -282,6 +282,7 @@ print(json.dumps({"rows": rows, "charts": sum(len(s._charts) for s in wb.workshe
       );
       const sheet = JSON.parse(read.stdout || '{"rows":[],"charts":0}');
       const values = {};
+      process.stdout.write(`INFO  workbook rows: ${JSON.stringify(sheet.rows).slice(0, 600)}\n`);
       for (const city of CITIES) {
         const row = sheet.rows.find((r) => String(r[0] ?? "").includes(city));
         const value = Number(String(row?.[1] ?? "").replace(/[^\d.]/g, ""));
@@ -311,7 +312,8 @@ print(json.dumps({"rows": rows, "charts": sum(len(s._charts) for s in wb.workshe
       const summary = existsSync(summaryPath) ? readFileSync(summaryPath, "utf8") : "";
       check(
         "the summary names the city the workbook shows largest",
-        summary.includes(largest),
+        // Only with a population read for every city: with none, any city "is" the largest.
+        CITIES.every((city) => values[city] > 0) && summary.includes(largest),
         summary.slice(0, 200),
       );
     }
