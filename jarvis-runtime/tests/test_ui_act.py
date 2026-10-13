@@ -31,11 +31,15 @@ class CheckBox:
 
 
 class ActTest(unittest.TestCase):
+    def setUp(self):
+        self.keys = unittest.mock.Mock()
+
     def act(self, control, op, cancel=None, age=0.0, value="", hands=None):
         role = control.ControlTypeName.replace("Control", "")
         a11y._State.held["u9"] = {"window": (1,), "refs": {"a1": ((2,), role, control.Name)},
                                   "at": a11y.time.monotonic() - age}
-        auto = SimpleNamespace(PatternId=IDS, UIAutomationInitializerInThread=unittest.mock.MagicMock)
+        auto = SimpleNamespace(PatternId=IDS, UIAutomationInitializerInThread=unittest.mock.MagicMock,
+                               SendKeys=self.keys)
         never = re.compile(r"(?!)")
         with unittest.mock.patch.object(a11y, "_uia", return_value=auto), \
                 unittest.mock.patch.object(a11y, "_by_runtime_id", return_value=SimpleNamespace(Name="App")), \
@@ -148,20 +152,28 @@ class ActTest(unittest.TestCase):
         self.assertEqual(out["status"], "failed", out)
         self.assertEqual(typed["value"], "")
 
-    def test_a_button_refusing_its_invoke_is_clicked_only_when_the_hands_are_free(self):
+    def test_a_button_refusing_its_invoke_is_pressed_by_its_key_only_when_the_hands_are_free(self):
         def refuse():
             raise OSError("COMError")
         button = SimpleNamespace(ControlTypeName="ButtonControl", Name="Save", IsPassword=False,
-                                 IsEnabled=True, Click=unittest.mock.Mock(),
+                                 IsEnabled=True, Click=unittest.mock.Mock(), SetFocus=lambda: None,
+                                 HasKeyboardFocus=True,
                                  GetPattern=lambda pid: SimpleNamespace(Invoke=refuse)
                                  if pid == IDS.InvokePattern else None)
         self.assertEqual(self.act(button, "invoke", hands=lambda text=None: True)["status"], "done")
+        self.keys.assert_called_once()
+        self.assertEqual(self.keys.call_args.args[0], "{Space}")
+        button.Click.assert_not_called()
+        # Focus refused too: a click on its own bounds.
+        button.HasKeyboardFocus = False
+        self.assertEqual(self.act(button, "invoke", hands=lambda text=None: True)["status"], "done")
         button.Click.assert_called_once()
         button.Click.reset_mock()
-        with self.assertRaises(OSError):  # reported by the computer as "did not work", never clicked
+        self.keys.reset_mock()
+        with self.assertRaises(OSError):  # reported by the computer as "did not work", nothing pressed
             self.act(button, "invoke", hands=lambda text=None: False)
         button.Click.assert_not_called()
-
+        self.keys.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main()

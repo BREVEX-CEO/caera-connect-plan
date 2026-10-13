@@ -313,7 +313,16 @@ def act(action: dict, confirmed: bool, cancel=None, hands=None) -> dict:
                     except Exception:
                         if not (hands and hands()):
                             raise
-                # No pattern, or one the app refused: a click on the control itself, by its own
+                    # Refused by the app (a real Save As button, 0x80040200): the control's own
+                    # key once it holds the focus — a click on that dialog's button did not land.
+                    try:
+                        control.SetFocus()
+                        focused = control.HasKeyboardFocus
+                    except Exception:
+                        focused = False
+                    if focused:
+                        return auto.SendKeys("{Space}", waitTime=0.2)
+                # No pattern, or no focus to be had: a click on the control itself, by its own
                 # bounds — the name gates above have already been applied to it.
                 control.Click(simulateMove=False)
         elif op == "set_value":
