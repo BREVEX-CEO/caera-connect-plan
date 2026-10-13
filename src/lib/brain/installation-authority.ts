@@ -406,6 +406,11 @@ export class ModelInstallationAuthority {
    * keystroke, a route change, a second tab and a background warm-up all wait
    * on the SAME operation. There is no path by which a second download starts.
    */
+  /** The preparation under way, if any, to wait on without starting one. */
+  pending(): Promise<InstallState> | null {
+    return this.running;
+  }
+
   install(options?: { reason?: InstallReason }): Promise<InstallState> {
     if (this.state.stage === "ready") return Promise.resolve(this.state);
     if (this.running) return this.running;

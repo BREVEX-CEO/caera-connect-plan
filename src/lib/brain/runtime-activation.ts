@@ -38,9 +38,6 @@ export interface RuntimeProgress {
  */
 let live: { path: CapabilityPath; adapter: BrainAdapter; version: string } | null = null;
 
-/** An engine being started now: a question asked meanwhile waits for it instead of failing. */
-let starting: Promise<unknown> | null = null;
-
 /** The running engine, for routing. Null until the authority has started one. */
 function activeRuntime(): { path: CapabilityPath; adapter: BrainAdapter } | null {
   return live ? { path: live.path, adapter: live.adapter } : null;
@@ -64,12 +61,7 @@ export async function activateRuntimeForPath(
     live = null;
   }
 
-  const started = startWasm(path, version, report);
-  // One engine starts at a time (the authority's install lock), so one pending start is held.
-  starting = started.finally(() => {
-    starting = null;
-  });
-  return started;
+  return startWasm(path, version, report);
 }
 
 async function startWasm(
@@ -158,11 +150,18 @@ export function authorityBackedAdapter(): BrainAdapter {
     },
     async stream(messages, handlers) {
       /*
-       * A QUESTION ASKED WHILE THE ENGINE STARTS WAITS FOR IT. Opening OCADE starts the engine
-       * from the stored model, which takes seconds; a question sent in those seconds was
-       * answered "still preparing, try again" and dropped (the real model, offline, 13 Oct).
+       * A QUESTION ASKED WHILE OCADE PREPARES THIS DEVICE WAITS FOR IT. Opening OCADE checks
+       * the stored model and starts the engine from it, which takes seconds; a question sent
+       * in those seconds was answered "still preparing, try again" and dropped (the real
+       * model, offline, 13 Oct). Only preparation already under way is joined: a question
+       * never starts a download.
        */
-      if (!current() && starting) await starting.catch(() => undefined);
+      if (!current()) {
+        const { installationAuthority } = await import("./installation-browser");
+        await installationAuthority()
+          .pending()
+          ?.catch(() => undefined);
+      }
       const adapter = current();
       if (!adapter) {
         return {
