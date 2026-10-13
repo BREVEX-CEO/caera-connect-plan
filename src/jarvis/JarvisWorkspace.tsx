@@ -2,6 +2,7 @@
  * The OCADE JARVIS workspace: a compact rail, the orb, the conversation, and
  * the task, browser and voice controls that appear only when they apply.
  */
+import type { NormalizedMessage } from "@/lib/intelligence/contract";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -188,6 +189,8 @@ export function JarvisWorkspace({
   };
   const busyStrikes = useRef(0);
   const resumeAfterBusy = useRef<string | null>(null);
+  /** A paused task's own work, given back to the model when it continues. */
+  const carried = useRef<{ taskId: string; work: NormalizedMessage[] } | null>(null);
   const abort = useRef<AbortController | null>(null);
   const admitting = useRef(false);
   // The running turn's mailbox and pause switch: the person talks while JARVIS works.
@@ -433,7 +436,16 @@ export function JarvisWorkspace({
     setNoDevice(null);
     setRunning(true);
     setLiveAnswer(null);
-    const history = before.slice(-20).map((t) => ({ role: t.role, content: t.content }));
+    /*
+     * A TASK PAUSED BY A BUSY MODEL CONTINUES FROM ITS OWN WORK. Its calls and results were
+     * dropped at the pause, so each automatic continue read every page again and spent the
+     * person's online capacity on what it had already seen (live Gemini, 13 Oct 2026).
+     */
+    const prior = task && carried.current?.taskId === task.id ? carried.current.work : [];
+    const history = [
+      ...before.slice(-20).map((t) => ({ role: t.role, content: t.content })),
+      ...prior,
+    ];
     try {
       const out = await runJarvisTurn(
         {
@@ -457,6 +469,11 @@ export function JarvisWorkspace({
             if (task && FINISHED.includes(task.status)) refresh();
           },
           onActivity: refresh,
+          onProgress: (work) => {
+            const open = activeTaskRef.current;
+            // The newest 60 messages: older observations are already only their digest.
+            if (open) carried.current = { taskId: open.id, work: [...prior, ...work].slice(-60) };
+          },
           onNoDevice: (message) => mine() && setNoDevice(message),
           live: liveControl,
           // A question from a conversation no longer on screen is declined.
@@ -472,6 +489,7 @@ export function JarvisWorkspace({
         liveDeps(id),
       );
       busyStrikes.current = 0;
+      carried.current = null; // the turn ended on its own: nothing is left to carry
       if (out.answer) {
         // Saved to the conversation it belongs to, shown only if still on screen.
         const saved = await persistChatMessage({

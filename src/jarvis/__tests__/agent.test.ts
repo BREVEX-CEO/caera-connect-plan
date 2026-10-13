@@ -896,3 +896,32 @@ describe("web search in the rules", () => {
     expect(systemPrompt({ task: null })).not.toContain("call research");
   });
 });
+
+describe("a task paused by a busy model", () => {
+  it("hands back its own work after each step, so the continuation reads nothing again", async () => {
+    const h = harness(
+      [
+        { text: "", toolCalls: [call("browser", { action: "observe" })] },
+        { text: "", toolCalls: [call("finish_task", { outcome: "failed", result: "x" })] },
+      ],
+      {
+        a: [
+          {
+            status: "done",
+            result: { observation: { observationId: "o1", url: "https://example.com/a" } },
+          },
+        ],
+      },
+    );
+    const work: string[] = [];
+    await runJarvisTurn(
+      { ...h.input, task: { ...TASK } },
+      { ...h.hooks, onProgress: (messages) => work.push(JSON.stringify(messages)) },
+      h.deps,
+    );
+    expect(work[0]).toContain("Called browser");
+    expect(work[0]).toContain("https://example.com/a");
+    // Only this turn's work: not the rules, the history or the request again.
+    expect(work[0]).not.toContain("OCADE JARVIS");
+  });
+});

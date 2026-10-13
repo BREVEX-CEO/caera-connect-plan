@@ -187,6 +187,12 @@ export interface AgentHooks {
   onNoDevice?(message: string): void;
   /** What the person says while the turn runs, and their Pause/Continue. */
   live?: LiveControl;
+  /**
+   * This turn's work so far — its calls and their results, older observations already reduced
+   * to their digest — after each step, so a task paused by a busy model continues from it
+   * instead of reading everything again.
+   */
+  onProgress?(work: NormalizedMessage[]): void;
 }
 
 export interface TurnInput {
@@ -438,6 +444,8 @@ export async function runJarvisTurn(
     ...input.history,
     { role: "user", content: input.text },
   ];
+  /** Where this turn's own work starts in the conversation sent to the model. */
+  const begun = messages.length;
   let task = input.task && !FINISHED.includes(input.task.status) ? input.task : null;
   // This turn's planning loop. Only the loop named on the task may queue actions.
   const controller = crypto.randomUUID();
@@ -960,6 +968,7 @@ export async function runJarvisTurn(
         const outcome = (result ?? {}) as { error?: unknown; status?: unknown };
         failing = outcome.error || outcome.status === "refused" ? failing + 1 : 0;
       }
+      hooks.onProgress?.(messages.slice(begun));
       if (finishedWith !== null) {
         if (!answer) hooks.onText(finishedWith);
         return { answer: answer || finishedWith, task };
