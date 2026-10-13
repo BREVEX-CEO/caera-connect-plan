@@ -57,8 +57,7 @@ try {
   const page = context.pages()[0] ?? (await context.newPage());
   const consoleErrors = [];
   page.on("console", (message) => {
-    if (message.type() === "error" || message.type() === "warning")
-      consoleErrors.push(`${message.type()}: ${message.text().slice(0, 300)}`);
+    consoleErrors.push(`${message.type()}: ${message.text().slice(0, 300)}`);
   });
   page.on("pageerror", (error) => consoleErrors.push(String(error).slice(0, 300)));
   // Every delivery of the artifact, from the first: preparation may start as the page opens.
@@ -178,10 +177,11 @@ try {
       // Settled: nothing new for a few seconds and Send is back.
       if (steady >= 2 && (await page.locator('button[aria-label="Send"]').count()) === 1) break;
     }
-    // The question's own marker is not an answer.
+    // The question's own marker and the answer's buttons are not an answer.
     const answer = text
       .replace(question, "")
       .replace("Waiting to be saved to your account.", "")
+      .replace(/^(Copy|Retry|Regenerate)$/gm, "")
       .trim();
     if (!answer) {
       // What the person sees instead, and what the page reported, so the cause is in the log.
@@ -190,7 +190,9 @@ try {
         .innerText()
         .catch(() => "");
       process.stdout.write(`INFO  on screen: ${shown.replace(/\s+/g, " ").slice(-600)}\n`);
-      process.stdout.write(`INFO  page errors: ${consoleErrors.slice(-8).join(" | ") || "none"}\n`);
+      process.stdout.write(
+        `INFO  page errors: ${consoleErrors.slice(-15).join(" | ") || "none"}\n`,
+      );
     }
     return { answer, seconds: (Date.now() - asked) / 1000 };
   };
