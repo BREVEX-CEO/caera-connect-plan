@@ -95,7 +95,14 @@ async function tap(selector) {
     const shown = ((await source()).match(/(text|content-desc)="[^"]+"/g) ?? []).slice(0, 25);
     throw new Error(`not on screen: ${selector} — showing ${shown.join(" ")}`);
   }
-  await wd("POST", `/element/${element}/click`, {});
+  try {
+    await wd("POST", `/element/${element}/click`, {});
+  } catch (error) {
+    // The screen redrew between finding and pressing it (Android does, as a list settles):
+    // found once more and pressed, as a person's second look would.
+    if (!/stale element/.test(String(error))) throw error;
+    await wd("POST", `/element/${await find(selector)}/click`, {});
+  }
 }
 const source = () => wd("GET", "/source");
 /** Text on screen, or scrolled into view as a person would: Settings lists differ per version. */
