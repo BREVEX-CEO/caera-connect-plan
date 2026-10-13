@@ -253,10 +253,10 @@ try {
   const dumpTurns = async () => {
     process.stdout.write(`device log tail:\n${deviceLog.slice(-1500)}\n`);
     // What the model last saw and called, so a failure shows its own cause.
-    const { turns = [] } = await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) =>
+    const { agentTurns = [] } = await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) =>
       r.json(),
     );
-    for (const turn of turns.slice(-24)) {
+    for (const turn of agentTurns.slice(-40)) {
       process.stdout.write(`TURN  ${turn.role}: ${String(turn.content).replace(/\s+/g, " ")}\n`);
     }
   };

@@ -1768,7 +1768,11 @@ const server = createServer((request, response) => {
        * request body the boundary received, which is how the journey checks
        * that the browser carried a permit rather than merely believing it had.
        */
-      if (request.method === "GET") return send(200, onlineBoundary.lastRequest ?? {});
+      if (request.method === "GET")
+        return send(200, {
+          ...(onlineBoundary.lastRequest ?? {}),
+          agentTurns: onlineBoundary.lastAgentTurns ?? [],
+        });
       onlineBoundary.status = Number(JSON.parse(body || "{}").status ?? 200);
       return send(200, { ok: true });
     }
@@ -2578,6 +2582,8 @@ const server = createServer((request, response) => {
           content: String(message?.content ?? "").slice(0, 200),
         })),
       };
+      // The last agent turn too: a web search sent after it would hide what the agent last saw.
+      if (!parsed.research) onlineBoundary.lastAgentTurns = onlineBoundary.lastRequest.turns;
       if (!onlineBoundary.lastRequest.authorized) {
         return send(401, { error: "authentication_required" });
       }
@@ -2701,10 +2707,15 @@ const server = createServer((request, response) => {
                       )
                       .filter(Boolean)
                       .join(" ");
+                    // Which kind of call was refused (a grounded web search or an agent turn), and
+                    // how big it was: a per-minute token limit and an unavailable tool look alike.
+                    const kind = providerBody.tools?.some((tool) => tool.google_search)
+                      ? "research"
+                      : "agent";
                     console.log(
-                      `live provider ${answer.status}: ${String(said.error?.status ?? "")} ${details}`.slice(
+                      `live provider ${answer.status} (${kind}, ${JSON.stringify(providerBody).length} chars): ${String(said.error?.status ?? "")} ${String(said.error?.message ?? "").slice(0, 200)} ${details}`.slice(
                         0,
-                        300,
+                        500,
                       ),
                     );
                   }

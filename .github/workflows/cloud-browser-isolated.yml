@@ -124,6 +124,20 @@ jobs:
           model=$(node -p "require('fs').readFileSync('src/lib/intelligence/online-models.ts','utf8').match(/DEFAULT_ONLINE_MODEL[^=]*= \"([^\"]+)\"/)[1]")
           curl -fsS -H "x-goog-api-key: ${KEY}" "https://generativelanguage.googleapis.com/v1beta/models/${model}"             | node -e "const m=JSON.parse(require('fs').readFileSync(0,'utf8'));console.log('pinned model visible:',m.name,'|',m.displayName,'| methods:',m.supportedGenerationMethods.join(','),'| thinking:',m.thinking)"
 
+      - name: Whether this key may use web-search grounding (one tiny request)
+        if: github.event_name == 'workflow_dispatch' && inputs.suite == 'live'
+        shell: bash
+        env:
+          KEY: ${{ secrets.OCADE_STAGING_GEMINI_KEY }}
+        run: |
+          set -uo pipefail
+          model=$(node -p "require('fs').readFileSync('src/lib/intelligence/online-models.ts','utf8').match(/DEFAULT_ONLINE_MODEL[^=]*= \"([^\"]+)\"/)[1]")
+          # Google lists grounding as not available on the free tier; this records what the key gets.
+          body='{"contents":[{"role":"user","parts":[{"text":"Reply with the word OK."}]}],"tools":[{"google_search":{}}]}'
+          code=$(curl -sS -o "${RUNNER_TEMP}/grounding.json" -w "%{http_code}" -H "x-goog-api-key: ${KEY}" -H "content-type: application/json" -d "${body}" "https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent")
+          echo "grounding probe HTTP ${code}"
+          node -e "const r=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(r.error?('refused: '+r.error.status+' '+String(r.error.message).slice(0,300)):('answered; grounded: '+Boolean(r.candidates?.[0]?.groundingMetadata)))" "${RUNNER_TEMP}/grounding.json"
+
       - name: Run real browser journeys against local synthetic accounts
         shell: bash
         env:
