@@ -181,7 +181,7 @@ try {
     const answer = text
       .replace(question, "")
       .replace("Waiting to be saved to your account.", "")
-      .replace(/^(Copy|Retry|Regenerate)$/gm, "")
+      .replace(/^(Copy|Retry|Regenerate|Edit|Remove)$/gm, "")
       .trim();
     if (!answer) {
       // What the person sees instead, and what the page reported, so the cause is in the log.
