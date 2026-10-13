@@ -89,14 +89,27 @@ class ActTest(unittest.TestCase):
         def refuse(_text):
             raise OSError("COMError")
         own = SimpleNamespace(IsReadOnly=False, SetValue=refuse, Value="")
-        edit = SimpleNamespace(GetValuePattern=lambda: SimpleNamespace(SetValue=lambda t: typed.update(value=t)))
+        edit = SimpleNamespace(GetValuePattern=lambda: SimpleNamespace(
+            SetValue=lambda t: typed.update(value=t), Value=typed["value"]))
+        # The combo box itself does not report what its edit field holds, as on the real dialog.
         combo = SimpleNamespace(ControlTypeName="ComboBoxControl", Name="File name:", IsPassword=False,
                                 IsEnabled=True, GetPattern=lambda pid: own if pid == IDS.ValuePattern else None,
-                                EditControl=lambda searchDepth: edit,
-                                GetValuePattern=lambda: SimpleNamespace(Value=typed["value"]))
+                                EditControl=lambda searchDepth: edit, GetValuePattern=lambda: own)
         out = self.act(combo, "set_value", value=r"C:\work\minutes.txt")
         self.assertEqual(out["status"], "done", out)
         self.assertEqual(typed["value"], r"C:\work\minutes.txt")
+
+    def test_a_field_no_write_reaches_says_why(self):
+        def refuse(_text):
+            raise OSError("COMError")
+        own = SimpleNamespace(IsReadOnly=False, SetValue=refuse, Value="")
+        field = SimpleNamespace(ControlTypeName="EditControl", Name="Name", IsPassword=False, IsEnabled=True,
+                                GetPattern=lambda pid: own if pid == IDS.ValuePattern else None,
+                                GetValuePattern=lambda: own,
+                                GetLegacyIAccessiblePattern=lambda: SimpleNamespace(SetValue=refuse))
+        out = self.act(field, "set_value", value="minutes")
+        self.assertEqual(out["status"], "failed", out)
+        self.assertIn("OSError / OSError", out["summary"])
 
     def test_a_long_text_is_checked_as_far_as_it_can_be_read(self):
         long = "x" * 900

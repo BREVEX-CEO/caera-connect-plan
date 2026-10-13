@@ -307,18 +307,27 @@ def act(action: dict, confirmed: bool, cancel=None) -> dict:
             value = pattern("ValuePattern")
             if not value or value.IsReadOnly:
                 return {"status": "failed", "summary": f"“{name[:60]}” does not take text; type into it instead"}
+            # Some controls refuse the write their own pattern offers (a file dialog's name box,
+            # COMError): the edit field inside a combo box, then the control's accessible value,
+            # still take it — no keystrokes, no focus taken. The field written is the one checked.
+            inner = control.EditControl(searchDepth=1) if role == "ComboBox" else None
+            written: list = []
+
             def effect():
-                # Some controls refuse the write their own pattern offers (a file dialog's name box,
-                # COMError): the edit field inside a combo box, then the control's accessible value,
-                # still take it — no keystrokes, no focus taken. If none does, the check below says so.
-                inner = control.EditControl(searchDepth=1) if role == "ComboBox" else None
-                for write in (lambda: value.SetValue(text),
-                              lambda: inner.GetValuePattern().SetValue(text),
-                              lambda: control.GetLegacyIAccessiblePattern().SetValue(text)):
-                    try:
-                        return write()
-                    except Exception:
+                refused = []
+                for field, write in ((control, lambda: value.SetValue(text)),
+                                     (inner, lambda: inner.GetValuePattern().SetValue(text)),
+                                     (control, lambda: control.GetLegacyIAccessiblePattern().SetValue(text))):
+                    if field is None:
                         continue
+                    try:
+                        write()
+                        if (_value(field) or "") == text[:500]:  # _value reads 500 at most
+                            written.append(field)
+                            return
+                    except Exception as e:
+                        refused.append(type(e).__name__)
+                written.append(" / ".join(refused) or "no write changed it")
         elif op in ("toggle", "select", "expand", "collapse"):
             found = pattern({"toggle": "TogglePattern", "select": "SelectionItemPattern"}
                             .get(op, "ExpandCollapsePattern"))
@@ -335,8 +344,8 @@ def act(action: dict, confirmed: bool, cancel=None) -> dict:
         if cancel and cancel.is_set():
             return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
         effect()
-        if op == "set_value" and (_value(control) or "") != text[:500]:  # _value reads 500 at most
-            return {"status": "failed", "summary": "The field did not take the text"}
+        if op == "set_value" and isinstance(written[0], str):
+            return {"status": "failed", "summary": f"The field did not take the text ({written[0]})"}
         time.sleep(0.4)
         title = window.Name
     after = inspect(title)
