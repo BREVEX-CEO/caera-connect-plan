@@ -11,10 +11,14 @@ let finishLoading!: () => void;
 let preparing: Promise<unknown> | null = null;
 
 vi.mock("../installation-browser", () => ({
-  installationAuthority: () => ({ pending: () => preparing }),
+  installationAuthority: () => ({ pending: () => preparing, install: warm }),
 }));
 
-vi.mock("../model-vault", () => ({ modelVault: {} }));
+let stored: string | null = "v1";
+const warm = vi.fn(async () => undefined);
+vi.mock("../model-vault", () => ({
+  modelVault: { load: async () => undefined, activeVersion: () => stored },
+}));
 vi.mock("../adapters/browser-wasm", () => ({
   BrowserWasmAdapter: class {
     async probe() {
@@ -50,9 +54,27 @@ describe("an engine still starting", () => {
     await disposeRuntime();
   });
 
-  it("still says it is preparing when nothing is under way", async () => {
+  it("starts the stored model when nothing is under way, and answers once it has", async () => {
+    const { activateRuntimeForPath, authorityBackedAdapter, disposeRuntime } =
+      await import("../runtime-activation");
+    warm.mockImplementationOnce(async () => {
+      finishLoading = undefined as never; // the engine this start loads, not the last one
+      const activation = activateRuntimeForPath("wasm_single", "v1", () => {});
+      await vi.waitFor(() => expect(finishLoading).toBeTypeOf("function"));
+      finishLoading();
+      await activation;
+    });
+    expect(await authorityBackedAdapter().probe()).toMatchObject({ available: true });
+    expect(warm).toHaveBeenCalledWith({ reason: "warm" });
+    await disposeRuntime();
+  });
+
+  it("never waits for, or starts, a model that is not on the device yet", async () => {
+    stored = null;
+    warm.mockClear();
     const { authorityBackedAdapter } = await import("../runtime-activation");
     const answer = await authorityBackedAdapter().stream([], {} as never);
     expect(answer).toMatchObject({ ok: false, reason: "OCADE is still preparing this device." });
+    expect(warm).not.toHaveBeenCalled();
   });
 });

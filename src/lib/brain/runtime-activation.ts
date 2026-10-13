@@ -125,11 +125,30 @@ async function startWasm(
 export function authorityBackedAdapter(): BrainAdapter {
   const current = (): BrainAdapter | null => activeRuntime()?.adapter ?? null;
 
+  /*
+   * A MODEL ALREADY ON THIS DEVICE IS STARTED, AND WAITED FOR, WHEN IT IS ASKED FOR.
+   *
+   * Opening OCADE checks the stored model and starts the engine from it, which takes seconds;
+   * a question in those seconds (or before preparation had even begun) was answered "still
+   * preparing, try again" and dropped — the real model, offline, 13 Oct 2026. With verified
+   * bytes on the device that start is only loading them, so it is joined or begun here. A
+   * model still to be downloaded is never waited for: Automatic answers online meanwhile.
+   */
+  const started = async (): Promise<BrainAdapter | null> => {
+    if (current()) return current();
+    await modelVault.load();
+    if (!modelVault.activeVersion()) return null;
+    const { installationAuthority } = await import("./installation-browser");
+    const authority = installationAuthority();
+    await (authority.pending() ?? authority.install({ reason: "warm" })).catch(() => undefined);
+    return current();
+  };
+
   return {
     id: "browser_wasm",
     displayName: "OCADE Offline Intelligence",
     async probe() {
-      const adapter = current();
+      const adapter = await started();
       if (adapter) return adapter.probe();
       return {
         available: false as const,
@@ -149,20 +168,7 @@ export function authorityBackedAdapter(): BrainAdapter {
       await current()?.preload?.();
     },
     async stream(messages, handlers) {
-      /*
-       * A QUESTION ASKED WHILE OCADE PREPARES THIS DEVICE WAITS FOR IT. Opening OCADE checks
-       * the stored model and starts the engine from it, which takes seconds; a question sent
-       * in those seconds was answered "still preparing, try again" and dropped (the real
-       * model, offline, 13 Oct). Only preparation already under way is joined: a question
-       * never starts a download.
-       */
-      if (!current()) {
-        const { installationAuthority } = await import("./installation-browser");
-        await installationAuthority()
-          .pending()
-          ?.catch(() => undefined);
-      }
-      const adapter = current();
+      const adapter = await started();
       if (!adapter) {
         return {
           ok: false as const,
