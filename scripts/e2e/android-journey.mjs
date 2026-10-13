@@ -635,10 +635,15 @@ try {
     browsed,
     browsed
       ? `finished with ${word}`
-      : (browsedSteps.match(/Result of (computer|finish_task)[^}]{0,200}/g) ?? [])
-          .slice(-3)
-          .join(" | "),
+      : // Each step's own summary, in order, so the one that went wrong is named.
+        (browsedSteps.match(/summary\\?":\\?"[^"\\]{1,120}/g) ?? [])
+          .map((summary) => summary.replace(/^summary\\?":\\?"/, ""))
+          .join(" > "),
   );
+  if (!browsed) {
+    const shown = (await source()).match(/(text|content-desc)="[^"]+"/g) ?? [];
+    process.stdout.write(`INFO  on screen: ${shown.slice(0, 30).join(" ")}\n`);
+  }
   check(
     "and the second page really was on the phone's screen",
     (await wd("GET", "/appium/device/current_package").catch(() => "")) === "com.android.chrome" &&
