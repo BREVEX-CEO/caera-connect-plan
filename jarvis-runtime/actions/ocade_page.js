@@ -113,6 +113,18 @@
   const media = async (op, seconds, ref) => {
     const el = ref ? byRef(ref) : document.querySelector('video, audio');
     if (!(el instanceof HTMLMediaElement)) return {error: 'There is no video or audio here'};
+    // Just opened, it may not know its length yet, and a seek before that is dropped: load it.
+    if (el.readyState < 1) {
+      const known = new Promise((done) => {
+        el.addEventListener('loadedmetadata', done, {once: true});
+        setTimeout(done, 8000);
+      });
+      if (el.networkState === HTMLMediaElement.NETWORK_EMPTY || el.preload === 'none') {
+        el.preload = 'metadata';
+        el.load();
+      }
+      await known;
+    }
     let problem = null;
     if (op === 'play') await el.play().catch((e) => { problem = 'It did not play: ' + e.name; });
     if (op === 'pause') el.pause();
