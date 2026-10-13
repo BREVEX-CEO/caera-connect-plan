@@ -64,6 +64,7 @@ const ALL = [
   "push",
   "controls",
   "live",
+  "offline-real",
 ];
 
 const requested = process.argv.slice(2).filter((value) => !value.startsWith("--"));
