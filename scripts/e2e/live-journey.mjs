@@ -53,6 +53,10 @@ const REQUEST =
   "cities. Then write summary.md saying which city is largest and by how much it exceeds the " +
   "smallest.";
 
+/** Which of the tasks to run (OCADE_LIVE_TASKS=research,video,photo); all when unset. */
+const wanted = (name) =>
+  !process.env.OCADE_LIVE_TASKS || process.env.OCADE_LIVE_TASKS.split(",").includes(name);
+
 if (!process.env.OCADE_LIVE_GEMINI_KEY) {
   process.stdout.write("BLOCKED  live journey — no staging Gemini key (OCADE_LIVE_GEMINI_KEY)\n");
   process.exit(3);
@@ -257,106 +261,111 @@ try {
     }
   };
 
-  await ask("research → workbook → summary", REQUEST);
+  if (wanted("research")) {
+    await ask("research → workbook → summary", REQUEST);
 
-  /* --- the files themselves, against the source pages ---------------------- */
-  const sheetPath = path.join(workspace, "cities.xlsx");
-  check("cities.xlsx is in the work folder", existsSync(sheetPath));
-  if (existsSync(sheetPath)) {
-    const read = spawnSync(
-      PYTHON,
-      [
-        "-c",
-        `import json, openpyxl, sys
+    /* --- the files themselves, against the source pages ---------------------- */
+    const sheetPath = path.join(workspace, "cities.xlsx");
+    check("cities.xlsx is in the work folder", existsSync(sheetPath));
+    if (existsSync(sheetPath)) {
+      const read = spawnSync(
+        PYTHON,
+        [
+          "-c",
+          `import json, openpyxl, sys
 wb = openpyxl.load_workbook(sys.argv[1]); ws = wb.active
 rows = [[c.value for c in r] for r in ws.iter_rows(max_col=2)]
 print(json.dumps({"rows": rows, "charts": sum(len(s._charts) for s in wb.worksheets)}, default=str))`,
-        sheetPath,
-      ],
-      { encoding: "utf8" },
-    );
-    const sheet = JSON.parse(read.stdout || '{"rows":[],"charts":0}');
-    const values = {};
-    for (const city of CITIES) {
-      const row = sheet.rows.find((r) => String(r[0] ?? "").includes(city));
-      const value = Number(String(row?.[1] ?? "").replace(/[^\d.]/g, ""));
-      values[city] = value;
-      const source = await fetch(
-        `https://en.wikipedia.org/w/api.php?action=parse&page=${city}&prop=text&format=json&formatversion=2`,
-        { headers: { "user-agent": "OCADE-e2e/1.0 (cloud acceptance test)" } },
-      )
-        .then((r) => r.json())
-        .then((j) => String(j.parse?.text ?? "").replace(/<[^>]+>/g, " "));
-      const written = value.toLocaleString("en-US");
+          sheetPath,
+        ],
+        { encoding: "utf8" },
+      );
+      const sheet = JSON.parse(read.stdout || '{"rows":[],"charts":0}');
+      const values = {};
+      for (const city of CITIES) {
+        const row = sheet.rows.find((r) => String(r[0] ?? "").includes(city));
+        const value = Number(String(row?.[1] ?? "").replace(/[^\d.]/g, ""));
+        values[city] = value;
+        const source = await fetch(
+          `https://en.wikipedia.org/w/api.php?action=parse&page=${city}&prop=text&format=json&formatversion=2`,
+          { headers: { "user-agent": "OCADE-e2e/1.0 (cloud acceptance test)" } },
+        )
+          .then((r) => r.json())
+          .then((j) => String(j.parse?.text ?? "").replace(/<[^>]+>/g, " "));
+        const written = value.toLocaleString("en-US");
+        check(
+          `${city}'s population is one its own page states`,
+          value > 1_000_000 && (source.includes(written) || source.includes(String(value))),
+          String(row?.[1]),
+        );
+      }
+      const total = sheet.rows.find((r) => /total/i.test(String(r[0] ?? "")));
       check(
-        `${city}'s population is one its own page states`,
-        value > 1_000_000 && (source.includes(written) || source.includes(String(value))),
-        String(row?.[1]),
+        "the total is a SUM formula, not a typed number",
+        /^=SUM\(/i.test(String(total?.[1] ?? "")),
+        String(total?.[1]),
+      );
+      check("the workbook has a chart", sheet.charts >= 1, String(sheet.charts));
+      const largest = CITIES.reduce((a, b) => (values[a] >= values[b] ? a : b));
+      const summaryPath = path.join(workspace, "summary.md");
+      const summary = existsSync(summaryPath) ? readFileSync(summaryPath, "utf8") : "";
+      check(
+        "the summary names the city the workbook shows largest",
+        summary.includes(largest),
+        summary.slice(0, 200),
       );
     }
-    const total = sheet.rows.find((r) => /total/i.test(String(r[0] ?? "")));
-    check(
-      "the total is a SUM formula, not a typed number",
-      /^=SUM\(/i.test(String(total?.[1] ?? "")),
-      String(total?.[1]),
-    );
-    check("the workbook has a chart", sheet.charts >= 1, String(sheet.charts));
-    const largest = CITIES.reduce((a, b) => (values[a] >= values[b] ? a : b));
-    const summaryPath = path.join(workspace, "summary.md");
-    const summary = existsSync(summaryPath) ? readFileSync(summaryPath, "utf8") : "";
-    check(
-      "the summary names the city the workbook shows largest",
-      summary.includes(largest),
-      summary.slice(0, 200),
-    );
   }
 
-  /* --- 2. a video: found, played, paused exactly, captions summarised ------ */
-  const videoSteps = await ask("video → pause at 0:30 → captions → summary", VIDEO_REQUEST);
-  const players = videoSteps
-    .map((step) => step.result?.detail?.media)
-    .filter((media) => media && typeof media.currentTime === "number");
-  const last = players.at(-1);
-  check(
-    "the video was left paused at 0:30, by the player's own record",
-    Boolean(last?.paused) && Math.abs(last.currentTime - 30) <= 0.5,
-    JSON.stringify(last ?? null),
-  );
-  check(
-    "its captions were read on the page",
-    videoSteps.some((step) => step.action?.op === "captions" && step.status === "done"),
-  );
-  const captions = await fetch(CAPTIONS, {
-    headers: { "user-agent": "OCADE-e2e/1.0 (cloud acceptance test)" },
-  }).then((r) => r.text());
-  const videoPath = path.join(workspace, "video-summary.md");
-  const told = existsSync(videoPath) ? readFileSync(videoPath, "utf8") : "";
-  // The facts the captions themselves give; an accurate summary carries the explanation.
-  const facts = ["magnetar", "gamma", "supernova"].filter(
-    (fact) => captions.toLowerCase().includes(fact) && told.toLowerCase().includes(fact),
-  );
-  check(
-    "the summary carries what the captions explain (supernova, gamma rays, the magnetar)",
-    facts.length === 3,
-    told.slice(0, 300),
-  );
-  check("and says where it paused", /0:30|00:30|30 ?s(econds)?/i.test(told), told.slice(0, 300));
+  if (wanted("video")) {
+    /* --- 2. a video: found, played, paused exactly, captions summarised ------ */
+    const videoSteps = await ask("video → pause at 0:30 → captions → summary", VIDEO_REQUEST);
+    const players = videoSteps
+      .map((step) => step.result?.detail?.media)
+      .filter((media) => media && typeof media.currentTime === "number");
+    const last = players.at(-1);
+    check(
+      "the video was left paused at 0:30, by the player's own record",
+      Boolean(last?.paused) && Math.abs(last.currentTime - 30) <= 0.5,
+      JSON.stringify(last ?? null),
+    );
+    check(
+      "its captions were read on the page",
+      videoSteps.some((step) => step.action?.op === "captions" && step.status === "done"),
+    );
+    const captions = await fetch(CAPTIONS, {
+      headers: { "user-agent": "OCADE-e2e/1.0 (cloud acceptance test)" },
+    }).then((r) => r.text());
+    const videoPath = path.join(workspace, "video-summary.md");
+    const told = existsSync(videoPath) ? readFileSync(videoPath, "utf8") : "";
+    // The facts the captions themselves give; an accurate summary carries the explanation.
+    const facts = ["magnetar", "gamma", "supernova"].filter(
+      (fact) => captions.toLowerCase().includes(fact) && told.toLowerCase().includes(fact),
+    );
+    check(
+      "the summary carries what the captions explain (supernova, gamma rays, the magnetar)",
+      facts.length === 3,
+      told.slice(0, 300),
+    );
+    check("and says where it paused", /0:30|00:30|30 ?s(econds)?/i.test(told), told.slice(0, 300));
+  }
 
-  /* --- 3. a photo: cropped, resized, brightened, exported ------------------ */
-  // The person's own photo: 1200×800, a red left half and a blue right half, mid-bright.
-  spawnSync(PYTHON, [
-    "-c",
-    `from PIL import Image, ImageDraw
+  if (wanted("photo")) {
+    /* --- 3. a photo: cropped, resized, brightened, exported ------------------ */
+    // The person's own photo: 1200×800, a red left half and a blue right half, mid-bright.
+    spawnSync(PYTHON, [
+      "-c",
+      `from PIL import Image, ImageDraw
 im = Image.new("RGB", (1200, 800), (40, 40, 140)); d = ImageDraw.Draw(im)
 d.rectangle([0, 0, 599, 799], fill=(140, 40, 40)); d.ellipse([150, 250, 450, 550], fill=(110, 90, 30))
 im.save(${JSON.stringify(path.join(workspace, "photo.jpg"))}, quality=95)`,
-  ]);
-  await ask("photo → crop, resize, brighten, export", PHOTO_REQUEST);
-  const measured = spawnSync(
-    PYTHON,
-    [
-      "-c",
-      `import json, pathlib, sys
+    ]);
+    await ask("photo → crop, resize, brighten, export", PHOTO_REQUEST);
+    const measured = spawnSync(
+      PYTHON,
+      [
+        "-c",
+        `import json, pathlib, sys
 from PIL import Image, ImageStat
 root = pathlib.Path(sys.argv[1])
 pngs = sorted(root.rglob("*.png"), key=lambda f: f.stat().st_mtime)
@@ -364,30 +373,31 @@ if not pngs: print("{}"); raise SystemExit
 im = Image.open(pngs[-1]).convert("RGB")
 r, g, b = ImageStat.Stat(im).mean
 print(json.dumps({"file": str(pngs[-1].relative_to(root)), "size": im.size, "rgb": [round(r), round(g), round(b)]}))`,
-      workspace,
-    ],
-    { encoding: "utf8" },
-  );
-  const photo = JSON.parse(measured.stdout || "{}");
-  check("an edited PNG is in the work folder", Boolean(photo.file), measured.stderr.slice(-200));
-  if (photo.file) {
-    const [width, height] = photo.size;
-    // The left half is 600×800: at 400 wide, 533 or 534 high.
-    check(
-      "cropped to the left half and resized to 400 wide",
-      width === 400 && Math.abs(height - 533) <= 1,
-      `${width}×${height}`,
+        workspace,
+      ],
+      { encoding: "utf8" },
     );
-    // Only the left half's colours: red over blue, as the original's left half (140, 40, 40).
-    const [red, green, blue] = photo.rgb;
-    check(
-      "only the left half remains (red, not the blue right half)",
-      red > blue + 40,
-      photo.rgb.join(","),
-    );
-    // Brighter than the original left half (mean 136, 47, 39: luminance 72.8, measured).
-    const luminance = 0.299 * red + 0.587 * green + 0.114 * blue;
-    check("and it is brighter than the original", luminance > 82, luminance.toFixed(1));
+    const photo = JSON.parse(measured.stdout || "{}");
+    check("an edited PNG is in the work folder", Boolean(photo.file), measured.stderr.slice(-200));
+    if (photo.file) {
+      const [width, height] = photo.size;
+      // The left half is 600×800: at 400 wide, 533 or 534 high.
+      check(
+        "cropped to the left half and resized to 400 wide",
+        width === 400 && Math.abs(height - 533) <= 1,
+        `${width}×${height}`,
+      );
+      // Only the left half's colours: red over blue, as the original's left half (140, 40, 40).
+      const [red, green, blue] = photo.rgb;
+      check(
+        "only the left half remains (red, not the blue right half)",
+        red > blue + 40,
+        photo.rgb.join(","),
+      );
+      // Brighter than the original left half (mean 136, 47, 39: luminance 72.8, measured).
+      const luminance = 0.299 * red + 0.587 * green + 0.114 * blue;
+      check("and it is brighter than the original", luminance > 82, luminance.toFixed(1));
+    }
   }
 } finally {
   await fetch(`${SUPABASE}/__fixture/live-model`, { method: "POST", body: '{"on":false}' }).catch(

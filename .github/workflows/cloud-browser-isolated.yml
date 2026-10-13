@@ -25,6 +25,11 @@ on:
           - offline-real
           - jarvis
           - live
+      live_tasks:
+        description: For the live suite, which tasks (research,video,photo); empty runs all
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -117,6 +122,7 @@ jobs:
           # Only the live suite gets the capped staging model key; every other suite is scripted.
           OCADE_LIVE_GEMINI_KEY: ${{ inputs.suite == 'live' && secrets.OCADE_STAGING_GEMINI_KEY || '' }}
           OCADE_LIVE_MAX_CALLS: "150"
+          OCADE_LIVE_TASKS: ${{ inputs.live_tasks }}
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" || "${{ inputs.suite }}" == "smoke" ]]; then
