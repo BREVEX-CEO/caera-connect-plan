@@ -1457,7 +1457,10 @@ def _plain(error: Exception) -> str:
                         (TimeoutError, "That took too long")):
         if isinstance(error, kind):
             return words
-    return f"That did not work ({type(error).__name__})"
+    # A COM error's code names the cause (element gone, not allowed, busy) and carries nothing local.
+    code = getattr(error, "hresult", None)
+    code = f" 0x{code & 0xFFFFFFFF:08X}" if isinstance(code, int) else ""
+    return f"That did not work ({type(error).__name__}{code})"
 
 
 def _tail(file) -> str:

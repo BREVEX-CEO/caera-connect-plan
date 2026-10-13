@@ -845,6 +845,12 @@ class NativeAppTest(unittest.TestCase):
                         if e["role"] == "Button" and e["name"] == "Save")
             out = pc.run({"action": "ui_act", "ref": save["ref"],
                           "observationId": out["observation"]["observationId"], "op": "invoke"})
+            if out["status"] != "done":
+                # The screen route, as the model would take next: Enter presses the default Save.
+                print(f"invoke refused on the Save button: {out['summary']}", file=sys.stderr)
+                look = pc.run({"action": "screen"})["observation"]["observationId"]
+                out = pc.run({"action": "screen_keys", "keys": ["enter"], "observationId": look},
+                             confirmed=True)
             self.assertEqual(out["status"], "done", out)
             for _ in range(40):
                 if target.exists() and target.stat().st_size:

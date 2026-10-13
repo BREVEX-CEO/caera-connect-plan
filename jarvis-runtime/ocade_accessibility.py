@@ -328,7 +328,9 @@ def act(action: dict, confirmed: bool, cancel=None) -> dict:
                             written.append(field)
                             return
                     except Exception as e:
-                        refused.append(type(e).__name__)
+                        code = getattr(e, "hresult", None)
+                        refused.append(type(e).__name__ + (f" 0x{code & 0xFFFFFFFF:08X}"
+                                                           if isinstance(code, int) else ""))
                 written.append(" / ".join(refused) or "no write changed it")
         elif op in ("toggle", "select", "expand", "collapse"):
             found = pattern({"toggle": "TogglePattern", "select": "SelectionItemPattern"}
