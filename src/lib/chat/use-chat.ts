@@ -204,6 +204,8 @@ export function useChat(): ChatState & ChatActions {
   const [temporary, setTemporary] = useState(false);
   /** Which conversation the in-flight transcript read belongs to. */
   const opened = useRef<string | null>(null);
+  /** The conversation `send` just started: there is nothing on the server to read yet. */
+  const started = useRef<string | null>(null);
   const abort = useRef<AbortController | null>(null);
 
   /*
@@ -368,6 +370,19 @@ export function useChat(): ChatState & ChatActions {
   useEffect(() => {
     if (!conversationId) {
       setMessages([]);
+      setMessagesFailed(false);
+      return;
+    }
+    /*
+     * A CONVERSATION THIS TAB JUST STARTED IS NOT READ BACK.
+     *
+     * `send` holds its turns. Reading it raced them, and with no network the read failed and
+     * replaced an offline answer with "This conversation could not be opened".
+     */
+    if (conversationId === started.current) {
+      // Once: coming back to it later reads it like any other.
+      started.current = null;
+      opened.current = conversationId;
       setMessagesFailed(false);
       return;
     }
@@ -555,6 +570,7 @@ export function useChat(): ChatState & ChatActions {
             return true;
           }
           id = row.id;
+          started.current = id;
           setConversationId(id);
           setConversations((current) => [row, ...current]);
         }
