@@ -55,6 +55,11 @@ try {
     [storageKey(SUPABASE), JSON.stringify(session)],
   );
   const page = context.pages()[0] ?? (await context.newPage());
+  const consoleErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text().slice(0, 300));
+  });
+  page.on("pageerror", (error) => consoleErrors.push(String(error).slice(0, 300)));
   // Every delivery of the artifact, from the first: preparation may start as the page opens.
   const delivered = [];
   const bytes = { before: 0, after: 0 };
@@ -169,7 +174,14 @@ try {
       // Settled: nothing new for a few seconds and Send is back.
       if (steady >= 2 && (await page.locator('button[aria-label="Send"]').count()) === 1) break;
     }
-    return { answer: text.replace(question, "").trim(), seconds: (Date.now() - asked) / 1000 };
+    const answer = text.replace(question, "").trim();
+    if (!answer) {
+      // What the person sees instead, and what the page reported, so the cause is in the log.
+      const shown = await page.locator("main").innerText().catch(() => "");
+      process.stdout.write(`INFO  on screen: ${shown.replace(/\s+/g, " ").slice(-600)}\n`);
+      process.stdout.write(`INFO  page errors: ${consoleErrors.slice(-8).join(" | ") || "none"}\n`);
+    }
+    return { answer, seconds: (Date.now() - asked) / 1000 };
   };
 
   await context.setOffline(true);
