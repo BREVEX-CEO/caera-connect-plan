@@ -763,3 +763,83 @@ class FinalStopTest(unittest.TestCase):
             out = pc._system("lock", True, stop)
         self.assertTrue(out.get("stopped") or out["status"] == "failed", out)
         popen.assert_not_called()
+
+
+@live
+@unittest.skipUnless(sys.platform == "win32" and Computer(None).capabilities()["accessibility"],
+                     "Windows UI Automation")
+class NativeAppTest(unittest.TestCase):
+    """A real Windows app through JARVIS's own actions only: Notepad opened by name, text put in through
+    its control, another app used in between, saved through the real Save As dialog, closed — and the
+    file read back from disk. A STOP before an edit leaves the app untouched."""
+
+    def _window(self, pc, title, timeout_s=30):
+        seen = {}
+        for _ in range(timeout_s * 2):
+            seen = pc.run({"action": "ui_inspect", "title": title})
+            if seen["status"] == "done" and seen["observation"]["elements"]:
+                return seen["observation"]
+            time.sleep(0.5)
+        self.fail(f"no window titled {title!r}: {seen}")
+
+    def _keys(self, pc, keys):
+        look = pc.run({"action": "screen"})["observation"]["observationId"]
+        return pc.run({"action": "screen_keys", "keys": keys, "observationId": look})
+
+    def test_notepad_written_saved_through_its_dialog_and_read_back(self):
+        pc = Computer(tempfile.mkdtemp())
+        target = Path(tempfile.mkdtemp()) / f"ocade-note-{os.getpid()}.txt"
+        words = f"Minutes {os.getpid()}: OCADE wrote this through Notepad's own controls."
+        opened = pc.run({"action": "open_app", "name": "Notepad"})
+        self.assertEqual(opened["status"], "done", opened)
+        form = None
+        try:
+            obs = self._window(pc, "Notepad")
+            editor = next(e for e in obs["elements"] if e["role"] in ("Edit", "Document"))
+            # STOP first: nothing is typed.
+            stop = threading.Event()
+            stop.set()
+            stopped = pc.run({"action": "ui_act", "ref": editor["ref"], "observationId": obs["observationId"],
+                              "op": "set_value", "value": "must not appear"}, cancel=stop)
+            self.assertTrue(stopped.get("stopped"), stopped)
+            obs = self._window(pc, "Notepad")
+            editor = next(e for e in obs["elements"] if e["role"] in ("Edit", "Document"))
+            out = pc.run({"action": "ui_act", "ref": editor["ref"], "observationId": obs["observationId"],
+                          "op": "set_value", "value": words})
+            self.assertEqual(out["status"], "done", out)
+
+            # Another app in between, worked by name; Notepad keeps its text.
+            other = f"OCADE second app {os.getpid()}"
+            form = _probe_form(other, ["Next"])
+            seen = self._window(pc, other)
+            pressed = pc.run({"action": "ui_act", "op": "invoke", "observationId": seen["observationId"],
+                              "ref": next(e["ref"] for e in seen["elements"] if e["name"] == "Next")})
+            self.assertIn("pressed Next", [e["name"] for e in pressed["observation"]["elements"]])
+
+            self.assertEqual(pc.run({"action": "window", "title": "Notepad", "state": "focus"})["status"],
+                             "done")
+            self.assertEqual(self._keys(pc, ["ctrl", "s"])["status"], "done")
+            dialog = self._window(pc, "Save As")
+            name = next(e for e in dialog["elements"]
+                        if e["role"] in ("Edit", "ComboBox") and "file name" in e["name"].lower())
+            out = pc.run({"action": "ui_act", "ref": name["ref"], "observationId": dialog["observationId"],
+                          "op": "set_value", "value": str(target)})
+            self.assertEqual(out["status"], "done", out)
+            save = next(e for e in out["observation"]["elements"]
+                        if e["role"] == "Button" and e["name"] == "Save")
+            out = pc.run({"action": "ui_act", "ref": save["ref"],
+                          "observationId": out["observation"]["observationId"], "op": "invoke"})
+            self.assertEqual(out["status"], "done", out)
+            for _ in range(40):
+                if target.exists() and target.stat().st_size:
+                    break
+                time.sleep(0.25)
+            self.assertEqual(target.read_text(encoding="utf-8-sig").strip(), words)
+            # Saved: the window now carries the file's name.
+            self.assertEqual(self._window(pc, target.stem)["window"].count(target.stem), 1)
+        finally:
+            if form:
+                form.kill()
+            closed = pc.run({"action": "window", "title": target.stem, "state": "close"}, confirmed=True)
+            if closed["status"] != "done":
+                pc.run({"action": "window", "title": "Notepad", "state": "close"}, confirmed=True)
