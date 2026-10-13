@@ -166,8 +166,9 @@ class BrowserControlTest(unittest.TestCase):
         self.assertEqual(obs["facts"], "Population (2023)\nCity: 13,960,236")
         out = self.act({"action": "find_text", "text": "POPULATION"})
         self.assertEqual(out["status"], "done", out)
-        self.assertEqual(len(out["found"]), 1)
-        self.assertIn("13,960,236", out["found"][0])
+        # Both places it appears (the fact box and the paragraph far below), each with its figure.
+        self.assertEqual(len(out["found"]), 2)
+        self.assertTrue(all("13,960,236" in found for found in out["found"]), out["found"])
         self.assertEqual(self.act({"action": "find_text", "text": "absent words"})["found"], [])
 
     def test_media_seeks_pauses_and_reads_captions_exactly(self):
