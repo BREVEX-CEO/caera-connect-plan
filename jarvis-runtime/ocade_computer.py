@@ -726,12 +726,14 @@ class Computer:
         import ocade_documents
         path = self._inside(str(action.get("path", "")), change=True)
         rel = str(path.relative_to(self.root))
-        if not path.is_file():
-            return {"status": "failed", "summary": f"{rel} does not exist"}
-        if refused := self._original(path, rel, action):
-            return refused
         import ocade_sheets
         server = ocade_sheets.automation_server(path.suffix)
+        # A new .docx is made where no app automates Word documents; anything else must exist.
+        new = not path.exists() and server is None and path.suffix.lower() == ".docx"
+        if not path.is_file() and not new:
+            return {"status": "failed", "summary": f"{rel} does not exist"}
+        if not new and (refused := self._original(path, rel, action)):
+            return refused
         if server and (refused := self._never_refusal(server.get("program"))):
             return refused
         try:
@@ -741,8 +743,12 @@ class Computer:
             return {"status": "failed", "summary": str(e)}
         if not out.get("ok"):
             return self._unfinished(out, rel, path, "document")
-        kept = self._undo_dir() / str(out["backup"])
-        self._remember(f"updating {rel}", lambda: self._put_back(kept, path), path)
+        if out.get("backup"):
+            kept = self._undo_dir() / str(out["backup"])
+            self._remember(f"updating {rel}", lambda: self._put_back(kept, path), path)
+        else:  # made new: JARVIS's own file, and undo takes it away
+            self._made.add(path)
+            self._remember(f"making {rel}", lambda: self._to_trash(path), path)
         if unread := self._not_read_back(out, rel, "document"):
             return unread
         return {"status": "done", "summary": f"Updated {rel} in {out.get('app', 'its app')} ({len(out['applied'])} changes)",

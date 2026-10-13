@@ -148,21 +148,119 @@ def validate_word(ops: list[dict]) -> list[dict]:
 
 
 def edit_document(path: Path, ops: list[dict], undo_dir: Path, cancel, close: bool = False) -> dict:
-    """Edit a document in the app this computer automates its type with, after keeping a copy."""
+    """Edit a document in the app this computer automates its type with, after keeping a copy;
+    a .docx with no such app (Linux, macOS without Office) is edited as its own file."""
     import ocade_sheets
     ops = validate_word(ops)
     if path.suffix.lower() not in (".docx", ".docm", ".doc", ".rtf"):
         raise DocumentError("JARVIS edits .docx, .docm, .doc and .rtf documents")
     server = ocade_sheets.automation_server(path.suffix)
-    if server is None:
+    if server is None and path.suffix.lower() != ".docx":
         raise DocumentError("Editing this document needs an app on this computer that automates it")
     if cancel.is_set():
         return {"ok": False, "stopped": True, "error": "Stopped before it finished"}
+    if server is None:
+        kept = ocade_sheets.backup(path, undo_dir) if path.exists() else None
+        result = edit_docx_file(path, ops)
+        result.update(backup=kept.name if kept else None, app="the document itself")
+        return result
     kept = ocade_sheets.backup(path, undo_dir)
     result = ocade_sheets.office_job("ocade_document.ps1", {"path": str(path), "ops": ops, "close": close,
                                                              "progId": server["progId"]}, cancel, server["app"])
     result.update(backup=kept.name, app=server["app"])
     return result
+
+
+_STYLE_NAMES = {number: name for name, number in WORD_STYLES.items()}
+
+
+def _set_text(paragraph, text: str, bold_part: str = "", how: str = "") -> None:
+    """The paragraph's text in plain runs, with one part formatted. ponytail: other formatting
+    inside that one paragraph is not kept; keep it run by run if a document needs it."""
+    for run in list(paragraph.runs):
+        run._r.getparent().remove(run._r)
+    if not bold_part:
+        paragraph.add_run(text)
+        return
+    at = text.find(bold_part)
+    before, after = text[:at], text[at + len(bold_part):]
+    if before:
+        paragraph.add_run(before)
+    marked = paragraph.add_run(bold_part)
+    if how == "bold":
+        marked.bold = True
+    elif how == "italic":
+        marked.italic = True
+    else:
+        from docx.enum.text import WD_COLOR_INDEX
+        marked.font.highlight_color = WD_COLOR_INDEX.YELLOW
+    if after:
+        paragraph.add_run(after)
+
+
+def read_docx(path: Path) -> dict:
+    """What a .docx holds, read back from the saved file: as the Office route reads it."""
+    from docx import Document
+    doc = Document(str(path))
+    lines = [p.text for p in doc.paragraphs]
+    for table in doc.tables:
+        lines.extend("\t".join(cell.text for cell in row.cells) for row in table.rows)
+    headings = [f"{p.style.name}|{p.text.strip()}" for p in doc.paragraphs
+                if p.style.name.startswith("Heading") or p.style.name in ("Title", "Subtitle")][:50]
+    return {"text": "\n".join(lines)[:20000], "paragraphs": len(doc.paragraphs),
+            "tables": len(doc.tables), "headings": headings}
+
+
+def edit_docx_file(path: Path, ops: list[dict]) -> dict:
+    """The operations applied to the .docx itself (new when it does not exist yet), saved,
+    reopened and read back."""
+    from docx import Document
+    doc = Document(str(path)) if path.exists() else Document()
+    applied = []
+    for op in ops:
+        kind = op["op"]
+        matching = [p for p in doc.paragraphs if op.get("find") and op["find"] in p.text]
+        if kind == "append":
+            paragraph = doc.add_paragraph(op["text"])
+            if "style" in op:
+                paragraph.style = doc.styles[_STYLE_NAMES[op["style"]]]
+        elif kind == "replace":
+            for paragraph in matching:
+                _set_text(paragraph, paragraph.text.replace(op["find"], op["with"]))
+        elif kind == "style":
+            for paragraph in matching:
+                paragraph.style = doc.styles[_STYLE_NAMES[op["style"]]]
+        elif kind in ("bold", "italic", "highlight"):
+            for paragraph in matching:
+                _set_text(paragraph, paragraph.text, op["find"], kind)
+        elif kind == "table":
+            rows = op["rows"]
+            table = doc.add_table(rows=len(rows), cols=len(rows[0]))
+            table.style = doc.styles["Table Grid"]
+            for r, row in enumerate(rows):
+                for c, value in enumerate(row):
+                    cell = table.cell(r, c)
+                    cell.text = value
+                    if op["header"] and r == 0:
+                        for run in cell.paragraphs[0].runs:
+                            run.bold = True
+        if kind in ("replace", "style", "bold", "italic", "highlight") and not matching:
+            return {"ok": False, "engine": "file", "applied": applied,
+                    "error": f"{op['find'][:60]!r} is not in the document"}
+        applied.append(kind)
+    saved = read_docx_from(doc)
+    doc.save(str(path))
+    read = read_docx(path)
+    return {"ok": True, "engine": "file", "applied": applied, "read": read,
+            "savedAndReopened": read["text"] == saved, "reopenChecked": True}
+
+
+def read_docx_from(doc) -> str:
+    """The text a document object holds, in read_docx's order, before it is saved."""
+    lines = [p.text for p in doc.paragraphs]
+    for table in doc.tables:
+        lines.extend("\t".join(cell.text for cell in row.cells) for row in table.rows)
+    return "\n".join(lines)[:20000]
 
 
 def compare(before: Path, after: Path, limit: int = 60) -> dict:

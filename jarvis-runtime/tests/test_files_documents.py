@@ -138,6 +138,45 @@ class WordValidationTest(unittest.TestCase):
 
 
 @live
+@unittest.skipIf(__import__("ocade_sheets").automation_server(".docx"), "an app automates .docx here")
+class DocxWithoutWordTest(unittest.TestCase):
+    """No app automates Word documents (Linux, macOS without Office): the .docx is made and
+    edited as its own file, reopened and read back, and undo takes a new one away."""
+
+    def test_make_a_report_then_finish_it(self):
+        root = Path(tempfile.mkdtemp())
+        pc = Computer(str(root))
+        made = pc.run({"action": "doc_edit", "path": "report.docx", "ops": [
+            {"op": "append", "text": "Quarterly report", "style": "Title"},
+            {"op": "append", "text": "Revenue", "style": "Heading 1"},
+            {"op": "append", "text": "Revenue grew 12% in every region."},
+            {"op": "table", "rows": [["Region", "Revenue"], ["North", "120"], ["South", "95"]]},
+            {"op": "bold", "find": "12%"},
+        ]})
+        self.assertEqual(made["status"], "done", made)
+        self.assertTrue(made["savedAndReopened"])
+        read = made["read"]
+        self.assertIn("Title|Quarterly report", read["headings"])
+        self.assertIn("Heading 1|Revenue", read["headings"])
+        self.assertEqual(read["tables"], 1)
+        self.assertIn("North	120", read["text"])
+        from docx import Document
+        runs = Document(str(root / "report.docx")).paragraphs[2].runs
+        self.assertEqual([(r.text, bool(r.bold)) for r in runs],
+                         [("Revenue grew ", False), ("12%", True), (" in every region.", False)])
+        # JARVIS's own new file is not the person's original: edited without overwrite.
+        done = pc.run({"action": "doc_edit", "path": "report.docx",
+                       "ops": [{"op": "replace", "find": "12%", "with": "14%"}]})
+        self.assertEqual(done["status"], "done", done)
+        self.assertIn("Revenue grew 14% in every region.", done["read"]["text"])
+        missing = pc.run({"action": "doc_edit", "path": "report.docx",
+                          "ops": [{"op": "bold", "find": "not there"}]})
+        self.assertEqual(missing["status"], "failed")
+        self.assertEqual(pc.run({"action": "undo"})["status"], "done")  # the 14% edit
+        self.assertEqual(pc.run({"action": "undo"})["status"], "done")  # the new file
+        self.assertFalse((root / "report.docx").exists())
+
+
 @unittest.skipUnless(__import__("ocade_sheets").automation_server(".docx"), "needs an app that automates .docx")
 class RealWordTest(unittest.TestCase):
     """A report finished in the person's Word: replaced, styled, formatted, a table, saved and reopened."""
