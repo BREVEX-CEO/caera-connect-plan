@@ -164,9 +164,37 @@ export interface TransferDeps {
   now?: () => number;
   sleep?: (ms: number) => Promise<void>;
   random?: () => number;
+  /** No bytes for this long and a request is dropped and tried again. */
+  stallMs?: number;
 }
 
 const DEFAULT_ATTEMPTS = 5;
+/**
+ * A request that stops delivering is dropped after this long without a byte. Nothing
+ * bounded one: an install resumed in the cloud browser sat at 58% for fifteen minutes on a
+ * request that never finished (13 Oct 2026). Generous enough for a slow but moving link.
+ */
+const STALL_MS = 30_000;
+
+/** A chunk's body, read as it arrives; every piece proves the connection is still alive. */
+async function readChunk(response: Response, expected: number, alive: () => void) {
+  if (!response.body) return new Uint8Array(await response.arrayBuffer());
+  const reader = response.body.getReader();
+  const out = new Uint8Array(expected);
+  let at = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) return at === expected ? out : out.subarray(0, at);
+    alive();
+    if (at + value.length > expected) {
+      // Longer than the range asked for: not this chunk, and retried as a short one would be.
+      await reader.cancel().catch(() => undefined);
+      return new Uint8Array(0);
+    }
+    out.set(value, at);
+    at += value.length;
+  }
+}
 /** How often throughput is measured and concurrency reconsidered. */
 const SAMPLE_WINDOW_MS = 2500;
 
@@ -519,15 +547,23 @@ export async function transferModel(
     let lastStatus: number | null = null;
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
       if (request.signal?.aborted) return null;
+      const stalled = new AbortController();
+      let timer = setTimeout(() => stalled.abort(), deps.stallMs ?? STALL_MS);
+      const alive = () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => stalled.abort(), deps.stallMs ?? STALL_MS);
+      };
       try {
         const response = await deps.fetchImpl(source().url, {
-          signal: request.signal,
+          signal: request.signal
+            ? AbortSignal.any([request.signal, stalled.signal])
+            : stalled.signal,
           headers: { Range: `bytes=${chunk.start}-${chunk.end}` },
         });
 
         if (response.status === 206) {
           metrics.ranged = true;
-          const buffer = new Uint8Array(await response.arrayBuffer());
+          const buffer = await readChunk(response, chunk.bytes, alive);
           if (metrics.firstByteMs === null) metrics.firstByteMs = now() - startedAt;
           if (buffer.length !== chunk.bytes) {
             // A short chunk is a broken transfer, not a smaller file. Retried
@@ -611,6 +647,8 @@ export async function transferModel(
          */
         if (attempt >= 2) rotateSource();
         await sleep(retryDelayMs(attempt, random));
+      } finally {
+        clearTimeout(timer);
       }
     }
     // The source refusing is not the connection dropping, and says so (F-104).

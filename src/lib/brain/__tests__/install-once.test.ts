@@ -51,6 +51,8 @@ function rangedServer(
     corruptFirstChunk?: boolean;
     /** Links this server still honours. Anything else answers 410, as expired. */
     liveUrls?: Set<string>;
+    /** The first ranged answer starts and then never delivers a byte. */
+    stallFirst?: boolean;
   } = {},
 ): Server {
   const server: Server = { fetch: null as never, ranges: [], peakConcurrency: 0 };
@@ -73,6 +75,17 @@ function rangedServer(
       const end = Number(match[2]);
       server.ranges.push({ start, end });
       if (options.fail?.(index)) return new Response(null, { status: 503 });
+      if (options.stallFirst && server.ranges.length === 1) {
+        // Headers, then silence: the body errors only when the request is aborted, as fetch's does.
+        const body = new ReadableStream({
+          start(controller) {
+            init?.signal?.addEventListener("abort", () =>
+              controller.error(new DOMException("aborted", "AbortError")),
+            );
+          },
+        });
+        return new Response(body, { status: 206 });
+      }
       const slice = bytes.slice(start, end + 1);
       if (options.corruptFirstChunk && start === 0) slice[0] ^= 0xff;
       return new Response(slice as unknown as BodyInit, {
@@ -106,6 +119,35 @@ function arrayWriter(size: number): ModelFileWriter & { bytes: Uint8Array; write
 
 const PLAN = { chunkBytes: 1024, concurrency: 4, because: "test" };
 const SIZE = 16 * 1024;
+
+describe("a request that stops delivering", () => {
+  it("is dropped and tried again, so the install finishes instead of hanging", async () => {
+    const bytes = artifact(SIZE);
+    const server = rangedServer(bytes, { stallFirst: true });
+    const writer = arrayWriter(SIZE);
+    const result = await transferModel(
+      {
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
+        totalBytes: SIZE,
+        sha256: await digestOf(bytes),
+        plan: PLAN,
+      },
+      // A sleep that yields to timers: the stall deadline is one, and an instant sleep would spin.
+      {
+        fetchImpl: server.fetch,
+        writer,
+        sleep: () => new Promise((r) => setTimeout(r, 1)),
+        stallMs: 50,
+      },
+    );
+    expect(result.ok).toBe(true);
+    expect(writer.bytes).toEqual(bytes);
+    // The stalled range was asked for again.
+    expect(server.ranges.filter((range) => range.start === server.ranges[0]!.start)).toHaveLength(
+      2,
+    );
+  });
+});
 
 describe("the first install", () => {
   it("fetches the whole artifact in ranged chunks and verifies it", async () => {
