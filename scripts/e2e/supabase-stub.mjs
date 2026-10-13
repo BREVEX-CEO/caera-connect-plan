@@ -1688,14 +1688,26 @@ function jarvisStep(messages) {
   plannerTurns[jarvisScript.trigger] = (plannerTurns[jarvisScript.trigger] ?? 0) + 1;
   if (!step) return { text: "Nothing more to do." };
   // A control named rather than referenced: a browser element, or an app control (ui_act).
-  const named = step.args?.name && (step.tool === "browser" || step.args.action === "ui_act");
+  // By its exact name, by part of it ("~words"), or by its role: an app's own wording can differ
+  // between versions (a browser's address box), and the script must still find the one meant.
+  const named =
+    (step.args?.name || step.args?.role) &&
+    (step.tool === "browser" || step.args.action === "ui_act");
   if (!named) return step;
   // The newest result of that kind that carries an observation: a declined or
   // refused step returns none, and the page it left is still the one on screen.
   // Read from the text itself: a long observation reaches the model shortened, and a shortened
   // result is not JSON. An app control's id starts with "u", a page's with "o".
   const kind = step.args.action === "ui_act" ? "u" : "o";
-  const wanted = JSON.stringify(step.args.name);
+  const wanted = String(step.args.name ?? "");
+  const matches = (element) => {
+    const name = /"name":"((?:[^"\\]|\\.)*)"/.exec(element)?.[1] ?? "";
+    if (step.args.role && /"role":"([^"]+)"/.exec(element)?.[1] !== step.args.role) return false;
+    if (!wanted) return true;
+    return wanted.startsWith("~")
+      ? name.toLowerCase().includes(wanted.slice(1).toLowerCase())
+      : name === wanted;
+  };
   let observationId = null;
   let ref = null;
   for (const message of [...after].reverse()) {
@@ -1704,14 +1716,14 @@ function jarvisStep(messages) {
     observationId = new RegExp(`"observationId":"(${kind}\\d+)"`).exec(text)?.[1] ?? null;
     if (!observationId) continue;
     for (const element of text.match(/\{[^{}]*\}/g) ?? []) {
-      if (element.includes(`"name":${wanted}`)) {
+      if (matches(element)) {
         ref = /"ref":"([^"]+)"/.exec(element)?.[1] ?? null;
         if (ref) break;
       }
     }
     break;
   }
-  const { name: _name, ...rest } = step.args;
+  const { name: _name, role: _role, ...rest } = step.args;
   return {
     tool: step.tool,
     args: { ...rest, ref: ref ?? "e0", observationId: observationId ?? `${kind}0` },

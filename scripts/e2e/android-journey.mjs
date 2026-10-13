@@ -14,6 +14,7 @@
  * Android asks every question itself; this only answers them as a person would.
  */
 import { execFileSync, spawn } from "node:child_process";
+import { createServer } from "node:http";
 import path from "node:path";
 import { chromium } from "playwright-core";
 import { printTimings } from "./timings.mjs";
@@ -557,6 +558,93 @@ try {
     "and it read each one's controls",
     (steps.match(/Read the controls on screen/g) ?? []).length >= 4,
   );
+
+  /* --- the phone's own browser: an address typed, a link followed, a fact read back -- */
+  // Two pages on this computer, which the emulator reaches as 10.0.2.2. The code word is new on
+  // every run, so finishing with it proves the second page was really read on the phone.
+  const word = `lighthouse-${seed}`;
+  const site = createServer((request, response) => {
+    response.writeHead(200, { "content-type": "text/html" });
+    response.end(
+      request.url === "/two"
+        ? `<title>Harbour notes</title><h1>Second page</h1><p>Code word: ${word}</p>`
+        : `<title>Harbour report</title><h1>Harbour report</h1><p>The ferry leaves at 07:45.</p><p><a href="/two">Next page</a></p>`,
+    );
+  });
+  await new Promise((resolve) => site.listen(8799, "127.0.0.1", resolve));
+  // Chrome as a person who has used it has it: past its first-run screens (test setup only).
+  adb(
+    "shell",
+    "echo 'chrome --disable-fre --no-default-browser-check --no-first-run' > /data/local/tmp/chrome-command-line",
+  );
+  adb("shell", "am", "set-debug-app", "--persistent", "com.android.chrome");
+  adb("shell", "am", "force-stop", "com.android.chrome");
+  await fetch(`${SUPABASE}/__fixture/spend-allowance`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: EMAIL, remainingUses: 28, allowanceUses: 28, surface: "jarvis" }),
+  });
+  await fetch(`${SUPABASE}/__fixture/jarvis-script`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      trigger: "phone-web",
+      steps: [
+        {
+          tool: "start_task",
+          args: { title: "Read the harbour notes", where: "computer", steps: ["Open", "Read"] },
+        },
+        { tool: "computer", args: { action: "open_app", name: "Chrome" } },
+        { tool: "computer", args: { action: "screen" } },
+        { tool: "computer", args: { action: "ui_inspect" } },
+        // Its address box, by part of its words: they differ between Chrome versions.
+        { tool: "computer", args: { action: "ui_act", op: "invoke", name: "~search or type" } },
+        { tool: "computer", args: { action: "screen" } },
+        { tool: "computer", args: { action: "ui_inspect" } },
+        {
+          tool: "computer",
+          args: { action: "ui_act", op: "set_value", role: "Edit", value: "http://10.0.2.2:8799/" },
+        },
+        { tool: "computer", args: { action: "screen_keys", keys: ["enter"] } },
+        { tool: "computer", args: { action: "screen" } },
+        { tool: "computer", args: { action: "ui_inspect" } },
+        { tool: "computer", args: { action: "ui_act", op: "invoke", name: "Next page" } },
+        { tool: "computer", args: { action: "screen" } },
+        { tool: "computer", args: { action: "ui_inspect" } },
+        {
+          tool: "finish_task",
+          args: { outcome: "completed", result: "Read the harbour notes.", evidence: [word] },
+        },
+      ],
+    }),
+  });
+  await web.reload({ waitUntil: "networkidle" });
+  await web.locator("#jarvis-composer").fill("phone-web read the harbour notes in Chrome");
+  await web.getByRole("button", { name: "Send", exact: true }).click();
+  const browsed = await until(async () => {
+    const ask = web.getByRole("alertdialog", { name: "Confirm this step" });
+    if ((await ask.count()) === 1) await ask.getByRole("button", { name: "Confirm" }).click();
+    return (await web.getByText("Read the harbour notes.").count()) >= 1;
+  }, 180_000);
+  const browsedSteps = JSON.stringify(
+    await fetch(`${SUPABASE}/__fixture/online-boundary`).then((r) => r.json()),
+  );
+  check(
+    "in the phone's own browser, JARVIS types an address, follows a link and reads the page",
+    // Finished only past the evidence gate: the code word must have been observed.
+    browsed,
+    browsed
+      ? `finished with ${word}`
+      : (browsedSteps.match(/Result of (computer|finish_task)[^}]{0,200}/g) ?? [])
+          .slice(-3)
+          .join(" | "),
+  );
+  check(
+    "and the second page really was on the phone's screen",
+    (await wd("GET", "/appium/device/current_package").catch(() => "")) === "com.android.chrome" &&
+      (await source()).includes(word),
+  );
+  site.close();
 
   /* --- breaking it: app control taken away, then the app killed mid-step ----- */
   // The long task spent most of the account's JARVIS uses: a fresh allowance for these.
