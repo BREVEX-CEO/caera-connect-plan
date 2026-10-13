@@ -260,7 +260,10 @@ def gate_at(x: int | None, y: int | None, confirmed: bool, press: bool = False) 
     return None
 
 
-def act(action: dict, confirmed: bool, cancel=None) -> dict:
+def act(action: dict, confirmed: bool, cancel=None, hands=None) -> dict:
+    """`hands(text=None)`: the computer's mouse and keyboard, for a control that refuses every
+    UI Automation route (a real Save As dialog: 0x80040200). It returns False, and nothing is
+    pressed, while the person is using them; with text it pastes over the focused field."""
     auto = _uia()
     held = _State.held.get(str(action.get("observationId", "")))
     ref = str(action.get("ref", ""))
@@ -301,15 +304,26 @@ def act(action: dict, confirmed: bool, cancel=None) -> dict:
         if op == "invoke":
             invoke = pattern("InvokePattern")
             toggle = None if invoke else pattern("TogglePattern")
-            effect = (invoke.Invoke if invoke else toggle.Toggle if toggle
-                      else lambda: control.Click(simulateMove=False))
+            press = invoke.Invoke if invoke else toggle.Toggle if toggle else None
+
+            def effect():
+                if press:
+                    try:
+                        return press()
+                    except Exception:
+                        if not (hands and hands()):
+                            raise
+                # No pattern, or one the app refused: a click on the control itself, by its own
+                # bounds — the name gates above have already been applied to it.
+                control.Click(simulateMove=False)
         elif op == "set_value":
             value = pattern("ValuePattern")
             if not value or value.IsReadOnly:
                 return {"status": "failed", "summary": f"“{name[:60]}” does not take text; type into it instead"}
             # Some controls refuse the write their own pattern offers (a file dialog's name box,
             # COMError): the edit field inside a combo box, then the control's accessible value,
-            # still take it — no keystrokes, no focus taken. The field written is the one checked.
+            # still take it without keystrokes; last, the text is pasted into the focused field.
+            # The field written is the one checked.
             inner = control.EditControl(searchDepth=1) if role == "ComboBox" else None
             written: list = []
 
@@ -331,6 +345,15 @@ def act(action: dict, confirmed: bool, cancel=None) -> dict:
                         code = getattr(e, "hresult", None)
                         refused.append(type(e).__name__ + (f" 0x{code & 0xFFFFFFFF:08X}"
                                                            if isinstance(code, int) else ""))
+                field = inner or control
+                try:
+                    field.SetFocus()
+                    focused = field.HasKeyboardFocus
+                except Exception:
+                    focused = False
+                if focused and hands and hands(text) and (_value(field) or "") == text[:500]:
+                    written.append(field)
+                    return
                 written.append(" / ".join(refused) or "no write changed it")
         elif op in ("toggle", "select", "expand", "collapse"):
             found = pattern({"toggle": "TogglePattern", "select": "SelectionItemPattern"}

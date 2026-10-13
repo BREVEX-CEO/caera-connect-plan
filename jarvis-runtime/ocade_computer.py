@@ -445,7 +445,7 @@ class Computer:
                 with self._lock:
                     if kind == "ui_inspect":
                         return ocade_accessibility.inspect(action.get("title"), action.get("find"), cancel)
-                    return ocade_accessibility.act(action, confirmed, cancel)
+                    return ocade_accessibility.act(action, confirmed, cancel, hands=self._hands)
             if kind in ("window_list", "window"):
                 if self._gui() is None:
                     return {"status": "blocked", "summary": "This computer does not allow screen control"}
@@ -1273,6 +1273,35 @@ class Computer:
             return None if confirmed else {
                 "status": "needs_confirmation",
                 "summary": "JARVIS could not check what is at that spot on the screen. Continue?"}
+
+    def _hands(self, text: str | None = None) -> bool:
+        """Mouse and keyboard for a control that refuses UI Automation: never while the person is
+        using them. With text, it is pasted over the focused field and their clipboard put back."""
+        gui = self._gui()
+        if gui is None or self._paused(False):
+            return False
+        self.guard.ours()
+        if text is None:
+            return True
+        import pyperclip
+        try:
+            before = pyperclip.paste()
+        except Exception:  # the clipboard held something that is not text
+            before = None
+        try:
+            pyperclip.copy(text)
+            self.guard.ours()
+            gui.hotkey("ctrl", "a")
+            gui.hotkey("ctrl", "v")
+            self.guard.ours()
+            time.sleep(0.3)  # the app reads the clipboard after the key press
+        finally:
+            if before is not None:
+                try:
+                    pyperclip.copy(before)
+                except Exception:
+                    pass
+        return True
 
     def _paused(self, confirmed: bool) -> dict | None:
         """The person's own input pauses JARVIS until they say Continue (their

@@ -824,33 +824,15 @@ class NativeAppTest(unittest.TestCase):
                         if e["role"] in ("Edit", "ComboBox") and "file name" in e["name"].lower())
             out = pc.run({"action": "ui_act", "ref": name["ref"], "observationId": dialog["observationId"],
                           "op": "set_value", "value": str(target)})
-            if out["status"] != "done":
-                # Refused by the field: the result says what to do instead, and that route works.
-                print(f"set_value refused on the Save As name field: {out['summary']}", file=sys.stderr)
-                self.assertIn("type into it instead", out["summary"])
-                dialog = self._window(pc, "Save As")
-                name = next(e for e in dialog["elements"]
-                            if e["role"] in ("Edit", "ComboBox") and "file name" in e["name"].lower())
-                focused = pc.run({"action": "ui_act", "ref": name["ref"], "op": "focus",
-                                  "observationId": dialog["observationId"]})
-                self.assertEqual(focused["status"], "done", focused)
-                self.assertEqual(self._keys(pc, ["ctrl", "a"])["status"], "done")
-                look = pc.run({"action": "screen"})["observation"]["observationId"]
-                typed = pc.run({"action": "screen_type", "text": str(target), "observationId": look})
-                self.assertEqual(typed["status"], "done", typed)
-                out = {"observation": self._window(pc, "Save As")}
-            else:
-                out["observation"] = out["observation"] or self._window(pc, "Save As")
+            # The real Save As box refuses every UI Automation write (0x80040200): one action
+            # still puts the name in, through the keyboard, with nobody else using it.
+            self.assertEqual(out["status"], "done", out)
+            out["observation"] = out["observation"] or self._window(pc, "Save As")
             save = next(e for e in out["observation"]["elements"]
                         if e["role"] == "Button" and e["name"] == "Save")
             out = pc.run({"action": "ui_act", "ref": save["ref"],
                           "observationId": out["observation"]["observationId"], "op": "invoke"})
-            if out["status"] != "done":
-                # The screen route, as the model would take next: Enter presses the default Save.
-                print(f"invoke refused on the Save button: {out['summary']}", file=sys.stderr)
-                look = pc.run({"action": "screen"})["observation"]["observationId"]
-                out = pc.run({"action": "screen_keys", "keys": ["enter"], "observationId": look},
-                             confirmed=True)
+            # And its Save button refuses its invoke: one action still presses it, by a click.
             self.assertEqual(out["status"], "done", out)
             for _ in range(40):
                 if target.exists() and target.stat().st_size:

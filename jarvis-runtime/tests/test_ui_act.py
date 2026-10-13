@@ -31,7 +31,7 @@ class CheckBox:
 
 
 class ActTest(unittest.TestCase):
-    def act(self, control, op, cancel=None, age=0.0, value=""):
+    def act(self, control, op, cancel=None, age=0.0, value="", hands=None):
         role = control.ControlTypeName.replace("Control", "")
         a11y._State.held["u9"] = {"window": (1,), "refs": {"a1": ((2,), role, control.Name)},
                                   "at": a11y.time.monotonic() - age}
@@ -45,7 +45,7 @@ class ActTest(unittest.TestCase):
                 unittest.mock.patch.object(a11y, "inspect", return_value={"observation": {}}), \
                 unittest.mock.patch.object(a11y.time, "sleep"):
             return a11y.act({"observationId": "u9", "ref": "a1", "op": op, "value": value},
-                            confirmed=False, cancel=cancel)
+                            confirmed=False, cancel=cancel, hands=hands)
 
     def test_stop_during_the_checks_presses_nothing(self):
         import threading
@@ -119,6 +119,48 @@ class ActTest(unittest.TestCase):
                                IsEnabled=True, GetPattern=lambda pid: field if pid == IDS.ValuePattern else None,
                                GetValuePattern=lambda: field)
         self.assertEqual(self.act(edit, "set_value", value=long)["status"], "done")
+
+
+    @staticmethod
+    def refusing_field():
+        """A field that refuses every UI Automation write, as the real Save As name box does."""
+        def refuse(*_):
+            raise OSError("COMError")
+        typed = {"value": ""}
+        own = SimpleNamespace(IsReadOnly=False, SetValue=refuse)
+        field = SimpleNamespace(ControlTypeName="EditControl", Name="File name:", IsPassword=False,
+                                IsEnabled=True, HasKeyboardFocus=True, SetFocus=lambda: None,
+                                GetPattern=lambda pid: own if pid == IDS.ValuePattern else None,
+                                GetValuePattern=lambda: SimpleNamespace(Value=typed["value"]),
+                                GetLegacyIAccessiblePattern=lambda: SimpleNamespace(SetValue=refuse))
+        return field, typed
+
+    def test_a_field_refusing_every_write_is_pasted_into_when_the_hands_are_free(self):
+        field, typed = self.refusing_field()
+        out = self.act(field, "set_value", value="minutes.txt",
+                       hands=lambda text=None: typed.update(value=text) or True)
+        self.assertEqual(out["status"], "done", out)
+        self.assertEqual(typed["value"], "minutes.txt")
+
+    def test_and_nothing_is_typed_while_the_person_uses_mouse_or_keyboard(self):
+        field, typed = self.refusing_field()
+        out = self.act(field, "set_value", value="minutes.txt", hands=lambda text=None: False)
+        self.assertEqual(out["status"], "failed", out)
+        self.assertEqual(typed["value"], "")
+
+    def test_a_button_refusing_its_invoke_is_clicked_only_when_the_hands_are_free(self):
+        def refuse():
+            raise OSError("COMError")
+        button = SimpleNamespace(ControlTypeName="ButtonControl", Name="Save", IsPassword=False,
+                                 IsEnabled=True, Click=unittest.mock.Mock(),
+                                 GetPattern=lambda pid: SimpleNamespace(Invoke=refuse)
+                                 if pid == IDS.InvokePattern else None)
+        self.assertEqual(self.act(button, "invoke", hands=lambda text=None: True)["status"], "done")
+        button.Click.assert_called_once()
+        button.Click.reset_mock()
+        with self.assertRaises(OSError):  # reported by the computer as "did not work", never clicked
+            self.act(button, "invoke", hands=lambda text=None: False)
+        button.Click.assert_not_called()
 
 
 if __name__ == "__main__":
