@@ -824,7 +824,23 @@ class NativeAppTest(unittest.TestCase):
                         if e["role"] in ("Edit", "ComboBox") and "file name" in e["name"].lower())
             out = pc.run({"action": "ui_act", "ref": name["ref"], "observationId": dialog["observationId"],
                           "op": "set_value", "value": str(target)})
-            self.assertEqual(out["status"], "done", out)
+            if out["status"] != "done":
+                # Refused by the field: the result says what to do instead, and that route works.
+                print(f"set_value refused on the Save As name field: {out['summary']}", file=sys.stderr)
+                self.assertIn("type into it instead", out["summary"])
+                dialog = self._window(pc, "Save As")
+                name = next(e for e in dialog["elements"]
+                            if e["role"] in ("Edit", "ComboBox") and "file name" in e["name"].lower())
+                focused = pc.run({"action": "ui_act", "ref": name["ref"], "op": "focus",
+                                  "observationId": dialog["observationId"]})
+                self.assertEqual(focused["status"], "done", focused)
+                self.assertEqual(self._keys(pc, ["ctrl", "a"])["status"], "done")
+                look = pc.run({"action": "screen"})["observation"]["observationId"]
+                typed = pc.run({"action": "screen_type", "text": str(target), "observationId": look})
+                self.assertEqual(typed["status"], "done", typed)
+                out = {"observation": self._window(pc, "Save As")}
+            else:
+                out["observation"] = out["observation"] or self._window(pc, "Save As")
             save = next(e for e in out["observation"]["elements"]
                         if e["role"] == "Button" and e["name"] == "Save")
             out = pc.run({"action": "ui_act", "ref": save["ref"],

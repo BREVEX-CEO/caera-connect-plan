@@ -317,7 +317,9 @@ def act(action: dict, confirmed: bool, cancel=None) -> dict:
                 refused = []
                 for field, write in ((control, lambda: value.SetValue(text)),
                                      (inner, lambda: inner.GetValuePattern().SetValue(text)),
-                                     (control, lambda: control.GetLegacyIAccessiblePattern().SetValue(text))):
+                                     (control, lambda: control.GetLegacyIAccessiblePattern().SetValue(text)),
+                                     # Some fields accept a write only while they hold the keyboard focus.
+                                     (control, lambda: (control.SetFocus(), value.SetValue(text)))):
                     if field is None:
                         continue
                     try:
@@ -345,7 +347,8 @@ def act(action: dict, confirmed: bool, cancel=None) -> dict:
             return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
         effect()
         if op == "set_value" and isinstance(written[0], str):
-            return {"status": "failed", "summary": f"The field did not take the text ({written[0]})"}
+            return {"status": "failed",
+                    "summary": f"The field did not take the text ({written[0]}); focus it and type into it instead"}
         time.sleep(0.4)
         title = window.Name
     after = inspect(title)
