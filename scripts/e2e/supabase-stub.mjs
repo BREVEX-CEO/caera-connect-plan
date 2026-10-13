@@ -2824,34 +2824,43 @@ const server = createServer((request, response) => {
                     body: JSON.stringify(providerBody),
                     signal,
                   },
-                ).then(async (answer) => {
-                  // Google's own reason for a refusal (which quota, and when to retry), never
-                  // the key: what tells a per-minute limit from a per-day one.
-                  if (!answer.ok) {
-                    const said = await answer
-                      .clone()
-                      .json()
-                      .catch(() => ({}));
-                    const details = (said.error?.details ?? [])
-                      .map(
-                        (d) => d.violations?.map((v) => v.quotaId).join(",") ?? d.retryDelay ?? "",
-                      )
-                      .filter(Boolean)
-                      .join(" ");
-                    // Which kind of call was refused (a grounded web search or an agent turn), and
-                    // how big it was: a per-minute token limit and an unavailable tool look alike.
-                    const kind = providerBody.tools?.some((tool) => tool.google_search)
-                      ? "research"
-                      : "agent";
-                    console.log(
-                      `live provider ${answer.status} (${kind}, ${JSON.stringify(providerBody).length} chars): ${String(said.error?.status ?? "")} ${String(said.error?.message ?? "").slice(0, 200)} ${details}`.slice(
-                        0,
-                        500,
-                      ),
-                    );
-                  }
-                  return answer;
-                }),
+                ).then(
+                  async (answer) => {
+                    // Google's own reason for a refusal (which quota, and when to retry), never
+                    // the key: what tells a per-minute limit from a per-day one.
+                    if (!answer.ok) {
+                      const said = await answer
+                        .clone()
+                        .json()
+                        .catch(() => ({}));
+                      const details = (said.error?.details ?? [])
+                        .map(
+                          (d) =>
+                            d.violations?.map((v) => v.quotaId).join(",") ?? d.retryDelay ?? "",
+                        )
+                        .filter(Boolean)
+                        .join(" ");
+                      // Which kind of call was refused (a grounded web search or an agent turn), and
+                      // how big it was: a per-minute token limit and an unavailable tool look alike.
+                      const kind = providerBody.tools?.some((tool) => tool.google_search)
+                        ? "research"
+                        : "agent";
+                      console.log(
+                        `live provider ${answer.status} (${kind}, ${JSON.stringify(providerBody).length} chars): ${String(said.error?.status ?? "")} ${String(said.error?.message ?? "").slice(0, 200)} ${details}`.slice(
+                          0,
+                          500,
+                        ),
+                      );
+                    }
+                    return answer;
+                  },
+                  (cause) => {
+                    // No answer at all (a hung or dropped connection): said, so it is not mistaken
+                    // for a refusal.
+                    console.log(`live provider transport: ${cause?.name ?? "error"}`);
+                    throw cause;
+                  },
+                ),
             },
           );
           // Each answer's status in the log; a refusal's own words, never the key, beside it.
