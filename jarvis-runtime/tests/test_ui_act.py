@@ -31,8 +31,9 @@ class CheckBox:
 
 
 class ActTest(unittest.TestCase):
-    def act(self, control, op, cancel=None, age=0.0):
-        a11y._State.held["u9"] = {"window": (1,), "refs": {"a1": ((2,), "CheckBox", "Edit")},
+    def act(self, control, op, cancel=None, age=0.0, value=""):
+        role = control.ControlTypeName.replace("Control", "")
+        a11y._State.held["u9"] = {"window": (1,), "refs": {"a1": ((2,), role, control.Name)},
                                   "at": a11y.time.monotonic() - age}
         auto = SimpleNamespace(PatternId=IDS, UIAutomationInitializerInThread=unittest.mock.MagicMock)
         never = re.compile(r"(?!)")
@@ -43,7 +44,8 @@ class ActTest(unittest.TestCase):
                 unittest.mock.patch.object(a11y, "_protected", return_value=False), \
                 unittest.mock.patch.object(a11y, "inspect", return_value={"observation": {}}), \
                 unittest.mock.patch.object(a11y.time, "sleep"):
-            return a11y.act({"observationId": "u9", "ref": "a1", "op": op}, confirmed=False, cancel=cancel)
+            return a11y.act({"observationId": "u9", "ref": "a1", "op": op, "value": value},
+                            confirmed=False, cancel=cancel)
 
     def test_stop_during_the_checks_presses_nothing(self):
         import threading
@@ -79,6 +81,31 @@ class ActTest(unittest.TestCase):
         box.GetPattern = lambda pattern_id: None
         self.assertEqual(self.act(box, "invoke")["status"], "done")
         box.Click.assert_called_once()
+
+    def test_a_combo_box_that_refuses_the_write_takes_it_through_its_edit_field(self):
+        # Found on a real Windows Save As dialog: its file-name combo box raised COMError on SetValue.
+        typed = {"value": ""}
+
+        def refuse(_text):
+            raise OSError("COMError")
+        own = SimpleNamespace(IsReadOnly=False, SetValue=refuse, Value="")
+        edit = SimpleNamespace(GetValuePattern=lambda: SimpleNamespace(SetValue=lambda t: typed.update(value=t)))
+        combo = SimpleNamespace(ControlTypeName="ComboBoxControl", Name="File name:", IsPassword=False,
+                                IsEnabled=True, GetPattern=lambda pid: own if pid == IDS.ValuePattern else None,
+                                EditControl=lambda searchDepth: edit,
+                                GetValuePattern=lambda: SimpleNamespace(Value=typed["value"]))
+        out = self.act(combo, "set_value", value=r"C:\work\minutes.txt")
+        self.assertEqual(out["status"], "done", out)
+        self.assertEqual(typed["value"], r"C:\work\minutes.txt")
+
+    def test_a_long_text_is_checked_as_far_as_it_can_be_read(self):
+        long = "x" * 900
+        field = SimpleNamespace(IsReadOnly=False, Value="")
+        field.SetValue = lambda t: setattr(field, "Value", t)
+        edit = SimpleNamespace(ControlTypeName="EditControl", Name="Text editor", IsPassword=False,
+                               IsEnabled=True, GetPattern=lambda pid: field if pid == IDS.ValuePattern else None,
+                               GetValuePattern=lambda: field)
+        self.assertEqual(self.act(edit, "set_value", value=long)["status"], "done")
 
 
 if __name__ == "__main__":
