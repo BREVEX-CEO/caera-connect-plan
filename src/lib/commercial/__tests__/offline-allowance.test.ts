@@ -10,6 +10,10 @@ const mocks = vi.hoisted(() => ({
   install: vi.fn(),
   key: vi.fn(),
   forget: vi.fn(),
+  ready: vi.fn(),
+}));
+vi.mock("@/lib/brain/model-vault", () => ({
+  modelVault: { installationView: async () => ({ ready: mocks.ready() }) },
 }));
 vi.mock("../device-identity", () => ({ ensureCurrentDeviceIdentity: mocks.identity }));
 vi.mock("../offline-counter", () => ({
@@ -59,12 +63,18 @@ beforeEach(() => {
   mocks.events.mockResolvedValue([]);
   mocks.key.mockResolvedValue("device-public-key");
   mocks.allocate.mockResolvedValue({ ok: false, reason: "session_exhausted" });
+  mocks.ready.mockReturnValue(true);
 });
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
 
+it("takes no block on a browser that cannot answer offline, so Chat keeps its allowance", async () => {
+  mocks.ready.mockReturnValue(false);
+  await syncOfflineAllowance();
+  expect(mocks.allocate).not.toHaveBeenCalled();
+});
 it("registers a fresh browser before asking the server for its first signed block", async () => {
   await syncOfflineAllowance();
   expect(mocks.identity).toHaveBeenCalledOnce();

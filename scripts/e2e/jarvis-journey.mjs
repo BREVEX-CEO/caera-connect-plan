@@ -1171,7 +1171,24 @@ except i.UpdateRequired:
     );
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
     await page.waitForSelector("text=of 28 left", { timeout: 15_000 });
-    check("and never to Chat", (await page.getByText("28 of 28 left").count()) >= 1);
+    /*
+     * Chat's window holds only this browser's offline block: issued (and charged) when Chat
+     * opens, as the database does it. Nothing JARVIS did is in it.
+     */
+    const chatLedger = async () => {
+      const now = await fetch(`${SUPABASE}/__fixture/usage?user=${session.user.id}`).then((r) =>
+        r.json(),
+      );
+      const used = (now.usage.find((row) => row.kind === "session")?.usedHundredths ?? 0) / 100;
+      return { used, held: now.offlineHeld / 100 };
+    };
+    const chat = await chatLedger();
+    const chatLeft = await page.getByText(`${28 - chat.used} of 28 left`).count();
+    check(
+      "and never to Chat",
+      chat.used === chat.held && chatLeft >= 1,
+      `Chat ${chat.used} used, ${chat.held} of them held for offline`,
+    );
 
     await setJarvisRemaining(0);
     await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
@@ -1187,9 +1204,12 @@ except i.UpdateRequired:
     );
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
     await page.waitForSelector("text=of 28 left", { timeout: 15_000 });
+    const after = await chatLedger();
     check(
       "while Chat keeps its own allowance",
-      (await page.getByText("28 of 28 left").count()) >= 1,
+      after.used === after.held &&
+        (await page.getByText(`${28 - after.used} of 28 left`).count()) >= 1,
+      `Chat ${after.used} used, ${after.held} held for offline`,
     );
     // A new session window: the proofs after the spent one start with uses again.
     await setJarvisRemaining(28);

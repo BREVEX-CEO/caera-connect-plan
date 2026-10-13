@@ -63,6 +63,14 @@ export async function syncOfflineAllowance(): Promise<void> {
 
     /* --- hold a block only while one is actually needed -------------------- */
 
+    /*
+     * ONLY A DEVICE THAT CAN ANSWER WITH IT HOLDS ONE. A block is charged to Chat's online
+     * allowance when issued, and every Chat visit took one, model or not: a new account
+     * opened Chat to "21 of 28 left" on a browser that could not answer offline at all.
+     */
+    const { modelVault } = await import("@/lib/brain/model-vault");
+    if (!(await modelVault.installationView()).ready) return;
+
     const remaining = installed.reduce((total, entry) => {
       const time = trustedOfflineTimeNow(entry.lease.payload.issuedAt);
       if (

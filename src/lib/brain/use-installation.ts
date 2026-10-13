@@ -112,6 +112,17 @@ export function useInstallation(): InstallationControls {
  * answer offline, so preparing the engine there only spends a download and the
  * processor. A transient failure or no network is not a refusal: preparation goes on.
  */
+/**
+ * A device that has just become able to answer offline takes its signed allowance at once,
+ * while it still has a network: a block is held only by a ready device.
+ */
+function holdAllowanceWhenReady(state: { stage: string }): void {
+  if (state.stage !== "ready") return;
+  void import("@/lib/commercial/offline-allowance")
+    .then((module) => module.syncOfflineAllowance())
+    .catch(() => undefined);
+}
+
 export async function offlineAllowedHere(): Promise<boolean> {
   const { ensureCurrentDeviceIdentity, deviceRegistrationProblem } =
     await import("@/lib/commercial/device-identity");
@@ -154,7 +165,7 @@ export function useInstallationBootstrap(options?: { enabled?: boolean }): void 
       void offlineAllowedHere().then((allowed) => {
         if (!allowed || cancelled) return;
         void authority().then((a) => {
-          if (!cancelled) void a.install({ reason: "app_bootstrap" });
+          if (!cancelled) void a.install({ reason: "app_bootstrap" }).then(holdAllowanceWhenReady);
         });
       });
     };
@@ -200,7 +211,7 @@ export function useInstallationBootstrap(options?: { enabled?: boolean }): void 
       void offlineAllowedHere().then((allowed) => {
         if (!allowed) return;
         void authority().then((a) => {
-          if (!a.isReady()) void a.install({ reason: "resumed" });
+          if (!a.isReady()) void a.install({ reason: "resumed" }).then(holdAllowanceWhenReady);
         });
       });
     };

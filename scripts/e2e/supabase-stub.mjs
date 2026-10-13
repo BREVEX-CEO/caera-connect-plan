@@ -1946,6 +1946,10 @@ const server = createServer((request, response) => {
         charged: (jarvisTables.jarvis_tasks ?? [])
           .filter((task) => task.user_id === user && taskCharges.has(task.id))
           .map((task) => task.id),
+        // Offline blocks issued to its devices: charged to Chat's window when issued.
+        offlineHeld: offlineLeases
+          .filter((lease) => lease.userId === user && lease.status === "active")
+          .reduce((sum, lease) => sum + lease.allocated, 0),
       });
     }
 
