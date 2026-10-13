@@ -181,9 +181,10 @@ try {
     const answer = text
       .replace(question, "")
       .replace("Waiting to be saved to your account.", "")
-      .replace(/^(Copy|Retry|Regenerate|Edit|Remove)$/gm, "")
+      .replace(/^(Copy|Retry|Regenerate|Edit|Remove|Delete)$/gm, "")
       .trim();
-    if (!answer) {
+    // Always: a few words of the screen and console say more than a failed comparison.
+    {
       // What the person sees instead, and what the page reported, so the cause is in the log.
       const shown = await page
         .locator("main")
