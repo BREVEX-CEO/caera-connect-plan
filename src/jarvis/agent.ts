@@ -910,12 +910,18 @@ export async function runJarvisTurn(
         );
         return { answer, task };
       }
+      // A task finished in this reply ends the turn with its own result: one more model
+      // call only to say "done" spends the person's online capacity on nothing (13 Oct).
+      let finishedWith: string | null = null;
       for (const call of reply.toolCalls) {
         messages.push({
           role: "assistant",
           content: `Called ${call.name} ${JSON.stringify(call.arguments ?? {})}`,
         });
         const result = await runTool(call);
+        if (call.name === "finish_task" && (result as { ok?: unknown } | null)?.ok === true) {
+          finishedWith = String(call.arguments?.result ?? "");
+        }
         const shown = observationOf(result) ?? observationOf((result as { last?: unknown })?.last);
         const said = (name: string, value: unknown): NormalizedMessage => ({
           role: "user",
@@ -930,6 +936,10 @@ export async function runJarvisTurn(
         messages.push(said(call.name, result));
         const outcome = (result ?? {}) as { error?: unknown; status?: unknown };
         failing = outcome.error || outcome.status === "refused" ? failing + 1 : 0;
+      }
+      if (finishedWith !== null) {
+        if (!answer) hooks.onText(finishedWith);
+        return { answer: answer || finishedWith, task };
       }
       // Calls that keep failing validation or being refused only spend the person's uses.
       if (failing >= MAX_FAILED_CALLS && task && !FINISHED.includes(task.status)) {

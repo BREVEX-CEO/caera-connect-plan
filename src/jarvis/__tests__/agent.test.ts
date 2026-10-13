@@ -287,7 +287,9 @@ describe("a JARVIS turn", () => {
       { text: "All done.", toolCalls: [] },
     ]);
     const out = await runJarvisTurn(h.input, h.hooks, h.deps);
-    expect(out.answer).toBe("All done.");
+    // Finished: the task's own result is the answer, with no model call only to say so.
+    expect(out.answer).toBe("Found it");
+    expect(h.deps.model).toHaveBeenCalledTimes(3);
     expect(h.queued).toEqual([{ action: "open", url: "example.com" }]);
     expect(h.status()).toBe("completed");
     const fed = h.seen[2]!.map((m) => m.content).join("\n");
@@ -710,7 +712,7 @@ describe("a sequence: several known actions, one model step", () => {
       "file_copy",
       "file_read",
     ]);
-    expect(h.deps.model).toHaveBeenCalledTimes(4); // start, the sequence, finish, the answer: not 6
+    expect(h.deps.model).toHaveBeenCalledTimes(3); // start, the sequence, finish: not 6
     const told = h.seen[2]!.at(-1)!.content;
     expect(told).toContain('"sequence"');
   });
