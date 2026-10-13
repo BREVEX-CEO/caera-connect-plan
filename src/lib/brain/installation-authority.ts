@@ -662,7 +662,9 @@ export class ModelInstallationAuthority {
     /* 3. Room. Checked BEFORE starting, not after failing. */
     this.publish({ stage: "checking_storage" });
     const headroom = await this.deps.storageHeadroom();
-    const needed = target.totalBytes === null ? null : Math.ceil(target.totalBytes * 1.1);
+    // A resumed transfer writes over the bytes it already kept: only the rest needs room.
+    const kept = await this.deps.vault.bytesOf(target.version);
+    const needed = target.totalBytes === null ? null : Math.ceil(target.totalBytes * 1.1) - kept;
     if (headroom !== null && needed !== null && headroom < needed) {
       /*
        * NOT "unsupported". This device is fine; it is full. Those need

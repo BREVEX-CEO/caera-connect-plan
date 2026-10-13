@@ -162,3 +162,30 @@ describe("Repair (C14)", () => {
     expect(activated).toHaveBeenCalled();
   });
 });
+
+describe("room for a resumed install", () => {
+  const withRoom = (onDisk: number, headroom: number) => {
+    const built = authorityOver({ verified: false }, onDisk);
+    const deps = (built.authority as unknown as { deps: AuthorityDeps }).deps;
+    deps.storageHeadroom = async () => headroom;
+    // The transfer, once reached, waits forever: reaching it is what is measured.
+    const network = vi.fn(() => new Promise<Response>(() => {}));
+    deps.fetchImpl = network as unknown as typeof fetch;
+    return { authority: built.authority, network };
+  };
+
+  it("counts the bytes it already kept: only the rest needs room", async () => {
+    // 200 MB kept of 484 MB, 400 MB free: enough for the rest, so the transfer goes on.
+    const { authority, network } = withRoom(200_000_000, 400_000_000);
+    void authority.install({ reason: "resumed" });
+    await vi.waitFor(() => expect(network).toHaveBeenCalled());
+    expect(authority.snapshot().stage).not.toBe("insufficient_storage");
+  });
+
+  it("still says so when the rest does not fit", async () => {
+    const { authority, network } = withRoom(200_000_000, 300_000_000);
+    const state = await authority.install({ reason: "resumed" });
+    expect(state.problem).toMatch(/more local storage/);
+    expect(network).not.toHaveBeenCalled();
+  });
+});
