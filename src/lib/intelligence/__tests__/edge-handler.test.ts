@@ -809,6 +809,34 @@ describe("capacity failures that must not look like each other", () => {
     });
   });
 
+  it("says once that a web search is not in the plan, instead of retrying it as busy", async () => {
+    // What the free tier answers to grounding with Google Search: a 429 with no time to wait.
+    const refused = () =>
+      new Response(
+        JSON.stringify({
+          error: { status: "RESOURCE_EXHAUSTED", message: "You exceeded your current quota" },
+        }),
+        { status: 429 },
+      );
+    const callProvider = vi.fn(async () => refused());
+    const response = await handleOnlineIntelligence(
+      request({ ...body(), research: true }),
+      dependencies({ callProvider }),
+    );
+    expect(callProvider).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: "research_unavailable" });
+
+    // An ordinary question meeting the same 429 is still busy, and retried.
+    const ordinary = vi.fn(async () => refused());
+    const busy = await handleOnlineIntelligence(
+      request(),
+      dependencies({ callProvider: ordinary }),
+    );
+    expect(busy.status).toBe(429);
+    expect(ordinary.mock.calls.length).toBeGreaterThan(1);
+  });
+
   it("sends nothing, and claims nothing, for an account that has not agreed to online use", async () => {
     const callProvider = vi.fn(async () => provider([]));
     const claimPermit = vi.fn(async () => ({ ok: true as const }));

@@ -29,6 +29,7 @@ import {
   FINISHED,
   NOT_VERIFIED,
   JARVIS_SYSTEM_PROMPT,
+  RESEARCH_GUIDANCE,
   type DeviceAction,
   type TaskStatus,
   invalidReason,
@@ -248,6 +249,8 @@ export function systemPrompt(input: {
   devices?: DeviceFact[];
   deviceId?: string | null;
   hereDeviceId?: string | null;
+  /** Web search is offered (see RESEARCH_GUIDANCE). */
+  research?: boolean;
 }): string {
   const zone = safeZone(input.timeZone);
   const clock = `\n\nThe time now is ${localIso(input.now ?? new Date(), zone)} (${zone}).`;
@@ -255,7 +258,7 @@ export function systemPrompt(input: {
   const base = where
     ? `${JARVIS_SYSTEM_PROMPT}\n\nThe open task "${input.task!.title}" was last at step ${where.step + 1}, after: ${where.lastAction}${where.lastUrl ? ` (${where.lastUrl})` : ""}. Observe first; never repeat a step the observation shows is done.`
     : JARVIS_SYSTEM_PROMPT;
-  return base + clock + devicesLine(input);
+  return base + (input.research ? `\n\n${RESEARCH_GUIDANCE}` : "") + clock + devicesLine(input);
 }
 
 /**
@@ -423,7 +426,7 @@ export async function runJarvisTurn(
   deps: AgentDeps,
 ): Promise<{ answer: string; task: JarvisTaskRow | null }> {
   const messages: NormalizedMessage[] = [
-    { role: "system", content: systemPrompt(input) },
+    { role: "system", content: systemPrompt({ ...input, research: Boolean(deps.research) }) },
     ...memoryMessage(input),
     ...input.history,
     { role: "user", content: input.text },

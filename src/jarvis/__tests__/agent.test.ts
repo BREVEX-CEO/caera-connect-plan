@@ -4,12 +4,13 @@ import {
   pseudoCall,
   runJarvisTurn,
   Stopped,
+  systemPrompt,
   type AgentDeps,
   type AgentHooks,
   type ModelStep,
 } from "../agent";
 import type { JarvisTaskRow } from "../jarvis.functions";
-import { NOT_VERIFIED } from "../protocol";
+import { NOT_VERIFIED, RESEARCH_GUIDANCE } from "../protocol";
 import type { NormalizedMessage } from "@/lib/intelligence/contract";
 
 const TASK: JarvisTaskRow = {
@@ -884,4 +885,11 @@ describe("STOP between the calls of one reply", () => {
   function start() {
     return call("start_task", { title: "Files", where: "computer", steps: ["work"] });
   }
+});
+
+describe("web search in the rules", () => {
+  it("is described only while it is offered", () => {
+    expect(systemPrompt({ task: null, research: true })).toContain(RESEARCH_GUIDANCE);
+    expect(systemPrompt({ task: null })).not.toContain("call research");
+  });
 });

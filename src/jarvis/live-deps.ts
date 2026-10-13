@@ -79,6 +79,13 @@ export async function askThroughBusy<T>(
   return ask();
 }
 
+/**
+ * Whether web search is offered. A plan without it (the free tier: grounding is "Not
+ * available") refuses the first search; from then on, in this tab, JARVIS is not offered it,
+ * so no later task spends a turn on a tool that cannot answer.
+ */
+let webSearch = true;
+
 export function liveDeps(conversationId: string): AgentDeps {
   return {
     model: (input) => askThroughBusy(() => askOnce(input, conversationId), input.signal),
@@ -96,30 +103,34 @@ export function liveDeps(conversationId: string): AgentDeps {
     frame: async (taskId) => (await readJarvisFrame({ data: { taskId } })).frame,
     remember: (content) => rememberJarvis({ data: { content } }),
     readDocs: (data) => readJarvisDocs({ data }),
-    research: async ({ question, signal, taskId }) => {
-      const found = await askThroughBusy(
-        () => researchOnce(question, conversationId, signal),
-        signal,
-      );
-      // The sources the answer cited, counted from its own list: progress says only what happened.
-      const hosts =
-        "answer" in found
-          ? [...found.answer.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)].map((m) => {
-              try {
-                return new URL(m[1]!).hostname;
-              } catch {
-                return "";
-              }
-            })
-          : [];
-      await recordJarvisResearch({
-        data: { taskId, question, hosts: hosts.filter(Boolean), ok: "answer" in found },
-      }).catch(() => undefined);
-      return found;
-    },
+    research: webSearch ? research(conversationId) : undefined,
     schedule: (data) => scheduleJarvis({ data }),
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     changed: actionChanged,
+  };
+}
+
+function research(conversationId: string): AgentDeps["research"] {
+  return async ({ question, signal, taskId }) => {
+    const found = await askThroughBusy(
+      () => researchOnce(question, conversationId, signal),
+      signal,
+    );
+    // The sources the answer cited, counted from its own list: progress says only what happened.
+    const hosts =
+      "answer" in found
+        ? [...found.answer.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)].map((m) => {
+            try {
+              return new URL(m[1]!).hostname;
+            } catch {
+              return "";
+            }
+          })
+        : [];
+    await recordJarvisResearch({
+      data: { taskId, question, hosts: hosts.filter(Boolean), ok: "answer" in found },
+    }).catch(() => undefined);
+    return found;
   };
 }
 
@@ -159,6 +170,13 @@ async function researchOnce(
   }
   if (!text && refusal) {
     if (refusal.retryable) throw new Unavailable(refusal.retryAfterMs);
+    if (refusal.code === "research_unavailable") {
+      webSearch = false; // not on this plan: not offered again in this tab
+      return {
+        error:
+          "Web search is not available. Open the pages you need with the browser and read them with find_text; do not call research again in this task.",
+      };
+    }
     return { error: refusal.reason };
   }
   return { answer: text.slice(0, 8000) };
@@ -182,7 +200,7 @@ async function askOnce(
       surface: "jarvis",
       mode: "online",
       messages,
-      tools: jarvisTools(memory),
+      tools: jarvisTools(memory, true, webSearch),
       attachments,
       privacy: { onlineInferenceConsented: true, sealed: false },
       conversationId,

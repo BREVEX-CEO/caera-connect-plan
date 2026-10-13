@@ -225,6 +225,16 @@ export function createOnlineIntelligenceTransport(
           .clone()
           .json()
           .catch(() => null)) as { error?: string } | null;
+        if (refused?.error === "research_unavailable") {
+          yield {
+            type: "refusal",
+            code: "research_unavailable",
+            reason:
+              "Answers with live web sources are not available right now. Nothing was charged. Turn Research off to ask without them.",
+            retryable: false,
+          };
+          return;
+        }
         if (refused?.error === "online_not_consented") {
           if (!(await deps.askConsent?.().catch(() => false))) {
             yield {

@@ -852,6 +852,17 @@ async function runOnlineIntelligence(
           // the caller is told when capacity returns (live cloud runs, 13 Oct 2026).
           const detail = await response.text().catch(() => "");
           const delay = Number(/"retryDelay"\s*:\s*"(\d+)(?:\.\d+)?s"/.exec(detail)?.[1] ?? 0);
+          /*
+           * A WEB SEARCH THE PLAN DOES NOT INCLUDE IS NOT A BUSY PROVIDER.
+           *
+           * On the free tier, grounding with Google Search is "Not available" (Google's pricing
+           * page): every grounded request is a 429 with no time to wait, and JARVIS spent
+           * minutes retrying one as if it were busy (live cloud runs, 13 Oct 2026). Said once,
+           * not retried; it answers again if the plan ever includes it.
+           */
+          if (body.research && delay === 0) {
+            return json(403, { error: "research_unavailable" }, origin);
+          }
           if (delay > LONG_WAIT_SECONDS) {
             capacityReturnsIn = delay;
             break outer;

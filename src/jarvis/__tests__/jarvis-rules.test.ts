@@ -113,6 +113,8 @@ describe("the action contract", () => {
       "schedule",
     ]);
     expect(jarvisTools(true).map((tool) => tool.name)).toContain("remember");
+    // A plan without web search: not offered, so no turn is spent on it.
+    expect(jarvisTools(false, true, false).map((tool) => tool.name)).not.toContain("research");
     // While the person is away nothing is remembered and nothing new is scheduled.
     expect(jarvisTools(false, false).map((tool) => tool.name)).toEqual([
       "start_task",

@@ -137,6 +137,7 @@ export type IntelligenceRefusalCode =
   | "online_unavailable"
   | "local_unavailable"
   | "provider_rate_limited"
+  | "research_unavailable"
   | "provider_failed"
   /** The request itself was refused by the model's content rules: never retried. */
   | "content_blocked"
