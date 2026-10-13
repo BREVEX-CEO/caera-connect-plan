@@ -157,6 +157,18 @@ try {
   // OCADE opened once more while online, as a person would before leaving the network: the
   // visit brings this device's signed offline allowance up to date.
   await page.reload({ waitUntil: "networkidle" });
+  // Its signed offline allowance, issued by OCADE while there is still a network.
+  const held = async () =>
+    (await fetch(`${SUPABASE}/__fixture/usage?user=${session.user.id}`).then((r) => r.json()))
+      .offlineHeld ?? 0;
+  const allowanceAt = Date.now();
+  while ((await held()) === 0 && Date.now() - allowanceAt < 30_000)
+    await page.waitForTimeout(1_000);
+  check(
+    "once ready, the device holds its offline allowance before the network goes",
+    (await held()) > 0,
+    `${(await held()) / 100} uses held after ${Math.round((Date.now() - allowanceAt) / 1000)} s`,
+  );
 
   /* --- an answer with the network cut off ---------------------------------- */
   const ask = async (question) => {
