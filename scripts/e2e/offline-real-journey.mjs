@@ -9,7 +9,9 @@
  *
  * Usage: node scripts/e2e/offline-real-journey.mjs [--base=…] [--supabase=…]
  */
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { chromium } from "playwright-core";
 
 const arg = (name, fallback) => {
@@ -41,14 +43,18 @@ const session = await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, {
   body: JSON.stringify({ email: `offline-real-${Date.now()}@ocade.test`, password: "proof" }),
 }).then((response) => response.json());
 
-const browser = await chromium.launch({ executablePath: EXECUTABLE, args: ["--no-sandbox"] });
+// A real profile on disk, as a person's browser keeps one: an in-memory context's storage quota is a
+// fraction of memory, too small for the model, which is not what OCADE meets on a device.
+const context = await chromium.launchPersistentContext(
+  mkdtempSync(path.join(tmpdir(), "ocade-offline-profile-")),
+  { executablePath: EXECUTABLE, args: ["--no-sandbox"], viewport: { width: 1280, height: 860 } },
+);
 try {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 860 } });
   await context.addInitScript(
     ([key, value]) => window.localStorage.setItem(key, value),
     [storageKey(SUPABASE), JSON.stringify(session)],
   );
-  const page = await context.newPage();
+  const page = context.pages()[0] ?? (await context.newPage());
   // Every delivery of the artifact, from the first: preparation may start as the page opens.
   const delivered = [];
   const bytes = { before: 0, after: 0 };
@@ -209,7 +215,7 @@ try {
 } catch (error) {
   check("the offline-real journey runs", false, String(error).slice(0, 400));
 } finally {
-  await browser.close();
+  await context.close();
 }
 process.stdout.write(
   failures ? `\n${failures} offline-real check(s) failed\n` : "\nall offline-real checks passed\n",
