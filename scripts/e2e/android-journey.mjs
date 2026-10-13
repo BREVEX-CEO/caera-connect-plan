@@ -578,6 +578,8 @@ try {
     "echo 'chrome --disable-fre --no-default-browser-check --no-first-run' > /data/local/tmp/chrome-command-line",
   );
   adb("shell", "am", "set-debug-app", "--persistent", "com.android.chrome");
+  // Its notifications already answered, as on a phone in use: otherwise Chrome asks over the page.
+  adb("shell", "pm", "grant", "com.android.chrome", "android.permission.POST_NOTIFICATIONS");
   adb("shell", "am", "force-stop", "com.android.chrome");
   await fetch(`${SUPABASE}/__fixture/spend-allowance`, {
     method: "POST",
