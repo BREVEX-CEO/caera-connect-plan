@@ -203,7 +203,19 @@ if (!skipBuild) {
  * and the config is the repository root one, where a real `.dev.vars` may hold
  * a developer's own values that a harness must never overwrite.
  */
+/*
+ * An offline-allowance signing key for this run (Ed25519), as production holds one in its
+ * secrets: without it the server refuses to issue blocks, and nothing can answer offline.
+ */
+const LEASE_KEY = generateKeyPairSync("ed25519");
+const LEASE_VARS = [
+  "OCADE_LEASE_SIGNING_KEY_ID:e2e-lease-key",
+  `OCADE_LEASE_SIGNING_PRIVATE_KEY:${LEASE_KEY.privateKey.export({ format: "der", type: "pkcs8" }).toString("base64")}`,
+  `OCADE_LEASE_SIGNING_PUBLIC_KEY:${LEASE_KEY.publicKey.export({ format: "der", type: "spki" }).subarray(-32).toString("base64")}`,
+  "OCADE_LEASE_SIGNING_NOT_BEFORE:2026-01-01T00:00:00Z",
+];
 const STUB_VARS = [
+  ...LEASE_VARS,
   `SUPABASE_URL:${SUPABASE_URL}`,
   `SUPABASE_PUBLISHABLE_KEY:${BUILD_ENVIRONMENT.VITE_SUPABASE_PUBLISHABLE_KEY}`,
   "SUPABASE_SERVICE_ROLE_KEY:sb_secret_loopback_stub",

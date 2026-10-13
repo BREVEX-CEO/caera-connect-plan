@@ -517,6 +517,10 @@ const kindFor = (surface, kind) => (surface === "jarvis" ? `jarvis_${kind}` : ki
  * rows so no other read of a profile changes.
  */
 const consents = new Map();
+
+/** Signed offline allowance blocks, and each device's one offline-usage key. */
+const offlineLeases = [];
+const offlineKeys = new Map();
 function consentOf(id) {
   if (!consents.has(id)) {
     consents.set(id, {
@@ -762,8 +766,123 @@ function handleRpc(name, args, userId) {
       return before - jarvisTables.jarvis_activity.length;
     }
 
+    /*
+     * OFFLINE ALLOWANCE BLOCKS (20260907011350, 20260918081533), as the database keeps them.
+     *
+     * Without these no browser ever held a signed block, so the real offline model, installed,
+     * could never answer: the stub, not the product, stood between them. The rules that matter
+     * end to end are modelled — an active device grant, its one key, a request key that returns
+     * the same block, the session window spent — and proved in full against PostgreSQL in
+     * offline-capacity-against-postgres.test.ts.
+     */
+    case "ocade_allocate_offline_usage": {
+      const owner = args.p_user_id;
+      const device = rows(owner, "devices").find((d) => d.id === args.p_device_id && !d.revoked_at);
+      const grant = rows(owner, "browser_grants").find(
+        (g) => g.device_id === args.p_device_id && !g.revoked_at,
+      );
+      if (!device || grant?.browser_install_id !== String(args.p_browser_install_id).trim()) {
+        return refuse("device or browser grant is not active for this account");
+      }
+      offlineKeys.set(
+        args.p_device_id,
+        offlineKeys.get(args.p_device_id) ?? args.p_device_public_key,
+      );
+      if (offlineKeys.get(args.p_device_id) !== args.p_device_public_key) {
+        return refuse("device offline-usage key does not match its registered key");
+      }
+      const row = (lease, outcome) => ({
+        lease_id: lease.id,
+        outcome,
+        tier: lease.tier,
+        allocated_hundredths: lease.allocated,
+        consumed_hundredths: 0,
+        sequence_start: 1,
+        sequence_end: 1_000_000,
+        session_window_start: lease.sessionStart,
+        session_reset_at: lease.sessionReset,
+        week_window_start: lease.weekStart,
+        week_reset_at: lease.weekReset,
+        issued_at: lease.issuedAt,
+        not_before: lease.sessionStart,
+        expires_at: lease.sessionReset,
+        preissued: false,
+      });
+      const same = offlineLeases.find(
+        (lease) => lease.userId === owner && lease.requestKey === args.p_request_key,
+      );
+      if (same) return [row(same, "duplicate")];
+      const amount = Number(args.p_amount_hundredths);
+      if (usedIn(owner, "session", session.startsAt) + amount > args.p_session_limit_hundredths) {
+        return [{ ...row({ id: null, tier: args.p_tier, allocated: 0 }, "session_exhausted") }];
+      }
+      addUsage(owner, "session", session.startsAt, amount);
+      if (args.p_week_limit_hundredths !== null) addUsage(owner, "week", week.startsAt, amount);
+      const lease = {
+        id: randomUUID(),
+        userId: owner,
+        deviceId: args.p_device_id,
+        requestKey: args.p_request_key,
+        tier: args.p_tier,
+        allocated: amount,
+        status: "pending_signature",
+        sessionStart: new Date(session.startsAt).toISOString(),
+        sessionReset: new Date(session.endsAt).toISOString(),
+        weekStart: new Date(week.startsAt).toISOString(),
+        weekReset: new Date(week.endsAt).toISOString(),
+        issuedAt: new Date(now).toISOString(),
+      };
+      offlineLeases.push(lease);
+      return [row(lease, "allocated")];
+    }
+
+    case "ocade_activate_offline_usage_lease": {
+      const lease = offlineLeases.find(
+        (l) => l.id === args.p_lease_id && l.userId === args.p_user_id,
+      );
+      if (!lease || lease.status !== "pending_signature") return false;
+      Object.assign(lease, {
+        status: "active",
+        keyId: args.p_key_id,
+        signedPayload: args.p_signed_payload,
+        signature: args.p_server_signature,
+      });
+      return true;
+    }
+
+    case "ocade_cancel_unsigned_offline_usage": {
+      const lease = offlineLeases.find(
+        (l) => l.id === args.p_lease_id && l.userId === args.p_user_id,
+      );
+      if (lease?.status === "pending_signature") lease.status = "cancelled";
+      return null;
+    }
+
     case "ocade_read_offline_usage":
-      return [];
+      return offlineLeases
+        .filter((l) => l.userId === args.p_user_id && l.status === "active")
+        .map((l) => ({
+          lease_id: l.id,
+          device_id: l.deviceId,
+          status: l.status,
+          tier: l.tier,
+          allocated_hundredths: l.allocated,
+          consumed_hundredths: 0,
+          pending_hundredths: 0,
+          session_window_start: l.sessionStart,
+          session_reset_at: l.sessionReset,
+          week_window_start: l.weekStart,
+          week_reset_at: l.weekReset,
+          preissued: false,
+          not_before: l.sessionStart,
+          expires_at: l.sessionReset,
+          last_sequence: 0,
+          last_event_hash: null,
+          device_public_key: offlineKeys.get(l.deviceId) ?? null,
+          key_id: l.keyId,
+          signed_payload: l.signedPayload,
+          server_signature: l.signature,
+        }));
 
     case "ocade_expire_commercial_permits":
       return 0;

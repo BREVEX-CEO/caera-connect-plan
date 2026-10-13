@@ -154,6 +154,9 @@ try {
   );
   const installedBytes = await storedBytes();
   await page.keyboard.press("Escape");
+  // OCADE opened once more while online, as a person would before leaving the network: the
+  // visit brings this device's signed offline allowance up to date.
+  await page.reload({ waitUntil: "networkidle" });
 
   /* --- an answer with the network cut off ---------------------------------- */
   const ask = async (question) => {
@@ -177,7 +180,10 @@ try {
     const answer = text.replace(question, "").trim();
     if (!answer) {
       // What the person sees instead, and what the page reported, so the cause is in the log.
-      const shown = await page.locator("main").innerText().catch(() => "");
+      const shown = await page
+        .locator("main")
+        .innerText()
+        .catch(() => "");
       process.stdout.write(`INFO  on screen: ${shown.replace(/\s+/g, " ").slice(-600)}\n`);
       process.stdout.write(`INFO  page errors: ${consoleErrors.slice(-8).join(" | ") || "none"}\n`);
     }
@@ -185,6 +191,14 @@ try {
   };
 
   await context.setOffline(true);
+  const said = page.getByText("No connection. OCADE answers on this device.");
+  check(
+    "with the network cut, OCADE says it answers on this device",
+    await said.waitFor({ timeout: 15_000 }).then(
+      () => true,
+      () => false,
+    ),
+  );
   const first = await ask("In one word: what colour is a clear daytime sky?");
   check(
     "with no network at all, the device answers on its own",
