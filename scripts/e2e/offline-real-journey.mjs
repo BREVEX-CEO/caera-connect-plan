@@ -154,7 +154,8 @@ try {
   const ask = async (question) => {
     await page.getByRole("button", { name: "Offline", exact: true }).click();
     const transcript = page.locator("[data-transcript]");
-    const before = (await transcript.innerText()).length;
+    // A new conversation shows its welcome until the first message: no transcript yet.
+    const before = (await transcript.count()) ? (await transcript.innerText()).length : 0;
     await page.fill("#ocade-composer", question);
     const asked = Date.now();
     await page.click('button[aria-label="Send"]');
@@ -162,7 +163,7 @@ try {
     let steady = 0;
     while (Date.now() - asked < ANSWER_TIMEOUT_MS) {
       await page.waitForTimeout(1_500);
-      const now = (await transcript.innerText()).slice(before);
+      const now = (await transcript.count()) ? (await transcript.innerText()).slice(before) : "";
       steady = now === text && now.length > question.length + 1 ? steady + 1 : 0;
       text = now;
       // Settled: nothing new for a few seconds and Send is back.
