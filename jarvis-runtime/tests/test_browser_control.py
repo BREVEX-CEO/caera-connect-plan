@@ -37,6 +37,8 @@ PAGES = {
     # A timeline clip moved by dragging it, beside a button that must never be pressed unasked.
     # A long article: the fact sits far past the first screenful, under navigation.
     "long.html": "<title>City</title><nav>" + "Menu link " * 600 + "</nav><main><h1>City</h1>"
+                 + "<table><tr><th colspan=2>Population (2023)</th></tr><tr><th>City</th><td>13,960,236</td>"
+                 + "</tr><tr><td>no heading cell</td><td>left out</td></tr></table>"
                  + "<p>History. </p>" * 300 + "<p>The population was 13,960,236 in 2023.</p></main>",
     # Three seconds of audio with English captions, played and read through the media action.
     # Loaded whole as a blob: this test server cannot serve byte ranges, which seeking needs.
@@ -160,6 +162,8 @@ class BrowserControlTest(unittest.TestCase):
     def test_find_text_reads_a_fact_anywhere_on_a_long_page(self):
         obs = self.act({"action": "open", "url": f"{self.base}/long.html"})["observation"]
         self.assertTrue(obs["text"].startswith("City"), obs["text"][:60])  # the main content, not the menu
+        # Its fact box, labelled, in order; a row with no heading cell is not a fact.
+        self.assertEqual(obs["facts"], "Population (2023)\nCity: 13,960,236")
         out = self.act({"action": "find_text", "text": "POPULATION"})
         self.assertEqual(out["status"], "done", out)
         self.assertEqual(len(out["found"]), 1)

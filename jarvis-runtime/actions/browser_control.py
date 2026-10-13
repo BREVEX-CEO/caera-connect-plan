@@ -332,6 +332,8 @@ class _BrowserSession:
         out = {"observationId": obs_id, "url": page.url, "title": (await page.title())[:120],
                "tabs": tabs, "viewport": {k: geo.get(k) for k in ("w", "h", "dpr", "zoom", "sx", "sy")},
                "elements": snap["elements"], "text": snap["text"], "humanBoundary": snap["boundary"]}
+        if snap.get("facts"):
+            out["facts"] = snap["facts"]
         if with_frame:
             out["frame"] = await self.frame()
         return out

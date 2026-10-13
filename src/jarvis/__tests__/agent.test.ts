@@ -141,6 +141,7 @@ describe("a JARVIS turn", () => {
         observationId: id,
         url: `https://example.com/${id}`,
         text: `Page ${id} says the population is ${id === "o1" ? "14 million" : "33 million"}.`,
+        facts: `Area: ${id === "o1" ? "2,194 km2" : "1,484 km2"}`,
         elements: [{ ref: "e1", name: `Button ${id}` }],
       },
     });
@@ -164,6 +165,8 @@ describe("a JARVIS turn", () => {
     expect(history).toContain("A newer observation replaced this one.");
     // What the replaced page said at its opening stays, so its facts are not lost (13 Oct).
     expect(history).toContain("Page o1 says the population is 14 million");
+    // And its labelled values: a fact past the opening is not lost either.
+    expect(history).toContain("Area: 2,194 km2");
   });
 
   it("runs a tool call the model wrote as text, through the same checks, and never shows it", async () => {

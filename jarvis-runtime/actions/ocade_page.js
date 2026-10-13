@@ -85,7 +85,26 @@
   } else if (q('input[type=password]')) {
     boundary = 'password';
   }
-  return {elements, text: text.slice(0, 3000), boundary};
+  // The page's labelled values (table rows with a heading cell, definition lists), in order:
+  // a fact box or spec sheet read once, where its first lines of text rarely reach the figure.
+  const clean = (el) => (el ? el.innerText : '').replace(/\s+/g, ' ').trim();
+  const facts = [];
+  let size = 0;
+  for (const row of document.querySelectorAll('tr, dt')) {
+    let line = '';
+    if (row.tagName === 'DT') {
+      line = clean(row).slice(0, 60) + ': ' + clean(row.nextElementSibling).slice(0, 100);
+    } else {
+      const label = row.querySelector('th');
+      if (!label) continue;
+      const value = [...row.children].filter((cell) => cell !== label).map(clean).join(' ').trim();
+      line = clean(label).slice(0, 60) + (value ? ': ' + value.slice(0, 100) : '');
+    }
+    if (line.length < 3 || size + line.length > 1500) break;
+    facts.push(line);
+    size += line.length + 1;
+  }
+  return {elements, text: text.slice(0, 3000), facts: facts.join('\n'), boundary};
   };
   const geometry = () => ({w: innerWidth, h: innerHeight, dpr: devicePixelRatio,
   zoom: window.visualViewport ? visualViewport.scale : 1, sx: Math.round(scrollX),

@@ -345,12 +345,19 @@ export function superseded(result: unknown): unknown {
   // The page it was, with its opening text: a model working across several pages kept
   // forgetting what each said once the next opened, and reopened them in a loop (13 Oct).
   const id = (seen: Partial<Seen> | undefined) => {
-    const page = (seen ?? {}) as { url?: unknown; title?: unknown; text?: unknown };
+    const page = (seen ?? {}) as {
+      url?: unknown;
+      title?: unknown;
+      text?: unknown;
+      facts?: unknown;
+    };
     return {
       observationId: seen?.observationId,
       ...(typeof page.url === "string" ? { url: page.url } : {}),
       ...(typeof page.title === "string" ? { title: page.title } : {}),
       ...(typeof page.text === "string" ? { opening: page.text.slice(0, 600) } : {}),
+      // Its labelled values too: the figures a task came for usually live there.
+      ...(typeof page.facts === "string" ? { facts: page.facts.slice(0, 1500) } : {}),
       superseded: "A newer observation replaced this one.",
     };
   };
