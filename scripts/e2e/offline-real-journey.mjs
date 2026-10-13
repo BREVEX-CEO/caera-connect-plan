@@ -57,7 +57,8 @@ try {
   const page = context.pages()[0] ?? (await context.newPage());
   const consoleErrors = [];
   page.on("console", (message) => {
-    if (message.type() === "error") consoleErrors.push(message.text().slice(0, 300));
+    if (message.type() === "error" || message.type() === "warning")
+      consoleErrors.push(`${message.type()}: ${message.text().slice(0, 300)}`);
   });
   page.on("pageerror", (error) => consoleErrors.push(String(error).slice(0, 300)));
   // Every delivery of the artifact, from the first: preparation may start as the page opens.
@@ -177,7 +178,11 @@ try {
       // Settled: nothing new for a few seconds and Send is back.
       if (steady >= 2 && (await page.locator('button[aria-label="Send"]').count()) === 1) break;
     }
-    const answer = text.replace(question, "").trim();
+    // The question's own marker is not an answer.
+    const answer = text
+      .replace(question, "")
+      .replace("Waiting to be saved to your account.", "")
+      .trim();
     if (!answer) {
       // What the person sees instead, and what the page reported, so the cause is in the log.
       const shown = await page
