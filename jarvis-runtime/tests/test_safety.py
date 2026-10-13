@@ -199,13 +199,22 @@ class StopTest(unittest.TestCase):
 
     def test_a_segment_sent_in_one_exchange_reports_every_step_and_lists_what_is_left(self):
         sent = {"n": 0}
+        reported = threading.Event()  # an exchange happened while the segment was running
 
         def reply(body):
             sent["n"] += 1
+            if sent["n"] > 1 and body.get("running"):
+                reported.set()
             return {"commands": self._segment(3) if sent["n"] == 1 else [], "busy": True}
 
         agent, identity = _agent(self.home, reply)
-        agent.computer.run = lambda *a: (time.sleep(0.6) or {"status": "done", "summary": "ok"})
+        # The first step lasts until the agent has reported in mid-segment: no race with a timer.
+        def run(action, *rest):
+            if action["path"] == "1":
+                reported.wait(5)
+            return {"status": "done", "summary": "ok"}
+
+        agent.computer.run = run
         runner = self._run(agent, 0)
         time.sleep(4)
         agent.stop.set()

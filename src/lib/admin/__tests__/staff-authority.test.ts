@@ -349,7 +349,12 @@ describe("one proof, one staff change (C17)", () => {
     const [{ id }] = await twin.asSuperuser<{ id: string }>(
       `insert into auth.sessions (user_id) values ('${OWNER}') returning id`,
     );
-    const proof = { aal: "aal2" as const, sessionId: id, provedSecondsAgo: 5 };
+    // One proof, one moment: "5 seconds ago" recomputed per call could straddle a second.
+    const proof = {
+      aal: "aal2" as const,
+      sessionId: id,
+      provedAt: Math.floor(Date.now() / 1000) - 5,
+    };
     const end = () =>
       twin.asTenant(
         OWNER,
@@ -366,10 +371,7 @@ describe("one proof, one staff change (C17)", () => {
         await twin.asTenant(
           OWNER,
           `select public.ocade_staff_end_all_sessions('Once more, confirmed')`,
-          {
-            ...proof,
-            provedSecondsAgo: 1,
-          },
+          { ...proof, provedAt: proof.provedAt + 4 },
         )
       ).error,
     ).toBeUndefined();
@@ -379,7 +381,11 @@ describe("one proof, one staff change (C17)", () => {
     const [{ id }] = await twin.asSuperuser<{ id: string }>(
       `insert into auth.sessions (user_id) values ('${OWNER}') returning id`,
     );
-    const proof = { aal: "aal2" as const, sessionId: id, provedSecondsAgo: 7 };
+    const proof = {
+      aal: "aal2" as const,
+      sessionId: id,
+      provedAt: Math.floor(Date.now() / 1000) - 7,
+    };
     const spent = await twin.asTenant<{ ok: boolean }>(
       OWNER,
       `select public.ocade_spend_proof('endAllStaffSessions', '${"b".repeat(64)}') as ok`,
