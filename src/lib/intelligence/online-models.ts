@@ -13,15 +13,17 @@
  * that is invisible because everything still works, just not with the model the
  * product documents.
  *
- * Owner decision, 13 October 2026: the strongest genuinely free model for both Chat
- * and JARVIS, with no weaker fallback and no switch after a 429/503. Checked that day
- * against Google's pricing and model pages: `gemini-3.8-flash` is stable and on the
- * free tier (function calling, thinking low/medium/high). `gemini-3.1-flash-lite`,
- * which it replaces, could not carry a long JARVIS task in nine live cloud runs.
+ * Owner decision, 13 October 2026 (second, replacing `gemini-3.8-flash` the same day):
+ * `gemini-3.5-flash-lite` for Chat and JARVIS on every key slot, with no fallback and
+ * no switch after a 429/503. Checked that day against Google's model, pricing and
+ * thinking pages: stable, free of charge on the free tier, function calling and
+ * thinking minimal/low/medium/high. Google Search grounding is "Not available" on the
+ * free tier for this model (and for 3.8 Flash), so a grounded request is refused,
+ * never billed, on a free-tier project.
  */
 export const ONLINE_MODEL_CATALOG = [
   {
-    id: "gemini-3.8-flash",
+    id: "gemini-3.5-flash-lite",
     status: "stable",
     provider: "google",
     checkedAt: "2026-10-13",
@@ -29,7 +31,7 @@ export const ONLINE_MODEL_CATALOG = [
 ] as const;
 
 export type OnlineModelId = (typeof ONLINE_MODEL_CATALOG)[number]["id"];
-export const DEFAULT_ONLINE_MODEL: OnlineModelId = "gemini-3.8-flash";
+export const DEFAULT_ONLINE_MODEL: OnlineModelId = "gemini-3.5-flash-lite";
 
 export function isAllowedOnlineModel(value: string): value is OnlineModelId {
   return ONLINE_MODEL_CATALOG.some((model) => model.id === value);

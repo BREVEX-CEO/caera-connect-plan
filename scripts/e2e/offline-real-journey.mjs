@@ -9,6 +9,7 @@
  *
  * Usage: node scripts/e2e/offline-real-journey.mjs [--base=…] [--supabase=…]
  */
+import { readFileSync } from "node:fs";
 import { chromium } from "playwright-core";
 
 const arg = (name, fallback) => {
@@ -21,6 +22,11 @@ const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
 const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 const INSTALL_TIMEOUT_MS = 15 * 60_000;
 const ANSWER_TIMEOUT_MS = 5 * 60_000;
+const RELEASE_BYTES = JSON.parse(
+  readFileSync("release/OCADE_OFFLINE_RELEASE.json", "utf8"),
+).totalBytes;
+/** Where the install is interrupted by a reload, to prove it resumes rather than restarts. */
+const INTERRUPT_AT_PERCENT = 20;
 
 let failures = 0;
 function check(name, ok, detail = "") {
@@ -45,10 +51,36 @@ try {
   const page = await context.newPage();
   // Every delivery of the artifact, from the first: preparation may start as the page opens.
   const delivered = [];
+  const bytes = { before: 0, after: 0 };
+  let interrupted = false;
   page.on("response", (response) => {
-    if (response.url().includes("/api/offline/bytes/")) delivered.push(response.status());
+    if (!response.url().includes("/api/offline/bytes/")) return;
+    delivered.push(response.status());
+    bytes[interrupted ? "after" : "before"] += Number(response.headers()["content-length"] ?? 0);
   });
+  // Slow the first part of the download so it can be interrupted part-way, as a closed tab would.
+  const network = await context.newCDPSession(page);
+  await network.send("Network.enable");
+  const throttle = (bytesPerSecond) =>
+    network.send("Network.emulateNetworkConditions", {
+      offline: false,
+      latency: 0,
+      downloadThroughput: bytesPerSecond,
+      uploadThroughput: -1,
+    });
+  await throttle(16 * 1024 * 1024);
   await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  /** Every byte OCADE keeps in this origin's private file system. */
+  const storedBytes = () =>
+    page.evaluate(async () => {
+      const walk = async (dir) => {
+        let total = 0;
+        for await (const entry of dir.values())
+          total += entry.kind === "file" ? (await entry.getFile()).size : await walk(entry);
+        return total;
+      };
+      return walk(await navigator.storage.getDirectory());
+    });
 
   /* --- the install, through the delivery route, to Ready ------------------- */
   const settings = async () => {
@@ -62,7 +94,19 @@ try {
   const started = Date.now();
   let ready = false;
   let last = "";
+  let resumedAt = null;
   while (Date.now() - started < INSTALL_TIMEOUT_MS) {
+    const bar = page.getByRole("progressbar", { name: "Downloading" });
+    const percent = (await bar.count()) ? Number(await bar.getAttribute("aria-valuenow")) : null;
+    if (interrupted && resumedAt === null && percent !== null) resumedAt = percent;
+    if (!interrupted && percent !== null && percent >= INTERRUPT_AT_PERCENT) {
+      // Interrupted part-way: the page goes away mid-download and comes back at full speed.
+      interrupted = true;
+      await throttle(-1);
+      await page.reload({ waitUntil: "networkidle" });
+      await settings();
+      continue;
+    }
     const panel = await page.getByRole("dialog", { name: "Settings" }).innerText();
     last =
       panel
@@ -88,6 +132,14 @@ try {
     ready && delivered.length > 0 && delivered.every((status) => status === 200 || status === 206),
     `${last} · ${delivered.length} deliveries in ${Math.round((Date.now() - started) / 1000)} s`,
   );
+  check(
+    "a download interrupted part-way resumes where it stopped, not from the start",
+    interrupted && resumedAt !== null && resumedAt > 0 && bytes.after < RELEASE_BYTES * 0.9,
+    interrupted
+      ? `interrupted at ${INTERRUPT_AT_PERCENT}%, came back at ${resumedAt}% · ${Math.round(bytes.before / 1e6)} MB before, ${Math.round(bytes.after / 1e6)} MB after of ${Math.round(RELEASE_BYTES / 1e6)} MB`
+      : "the download finished before it could be interrupted",
+  );
+  const installedBytes = await storedBytes();
   await page.keyboard.press("Escape");
 
   /* --- an answer with the network cut off ---------------------------------- */
@@ -134,6 +186,24 @@ try {
     );
   }
   await context.setOffline(false);
+
+  /* --- Remove deletes it from the device, and nothing comes back by itself -- */
+  await settings();
+  await page.getByRole("button", { name: "Remove", exact: true }).click();
+  await page.getByRole("button", { name: "Remove", exact: true }).first().click();
+  await page.getByRole("button", { name: "Install", exact: true }).waitFor({ timeout: 60_000 });
+  const left = await storedBytes();
+  check(
+    "Remove deletes the offline model from the device",
+    installedBytes >= RELEASE_BYTES && left < RELEASE_BYTES * 0.05,
+    `${Math.round(installedBytes / 1e6)} MB stored before, ${Math.round(left / 1e6)} MB after`,
+  );
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(10_000);
+  check(
+    "and it stays removed after OCADE opens again",
+    (await storedBytes()) < RELEASE_BYTES * 0.05,
+  );
 } catch (error) {
   check("the offline-real journey runs", false, String(error).slice(0, 400));
 } finally {

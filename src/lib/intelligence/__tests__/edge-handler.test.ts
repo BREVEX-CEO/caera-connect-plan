@@ -134,7 +134,7 @@ describe("authenticated Online Intelligence Edge handler", () => {
       }),
       callProvider: vi.fn(async ({ model, body: providerInput }) => {
         order.push("provider");
-        expect(model).toBe("gemini-3.8-flash");
+        expect(model).toBe("gemini-3.5-flash-lite");
         expect(providerInput).toMatchObject({
           system_instruction: { parts: [{ text: "You are OCADE." }] },
           contents: [{ role: "user", parts: [{ text: "Hello" }] }],
@@ -203,9 +203,9 @@ describe("authenticated Online Intelligence Edge handler", () => {
     await response.text();
     expect(call).toHaveBeenCalledTimes(3);
     expect(call.mock.calls.map(([input]) => input.model)).toEqual([
-      "gemini-3.8-flash",
-      "gemini-3.8-flash",
-      "gemini-3.8-flash",
+      "gemini-3.5-flash-lite",
+      "gemini-3.5-flash-lite",
+      "gemini-3.5-flash-lite",
     ]);
     // Three slots were offered and none of them was reached for: a retry is not
     // a rotation, and a 429 is the one failure that must never become one.
