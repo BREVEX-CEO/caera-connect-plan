@@ -38,6 +38,9 @@ export interface RuntimeProgress {
  */
 let live: { path: CapabilityPath; adapter: BrainAdapter; version: string } | null = null;
 
+/** An engine being started now: a question asked meanwhile waits for it instead of failing. */
+let starting: Promise<unknown> | null = null;
+
 /** The running engine, for routing. Null until the authority has started one. */
 function activeRuntime(): { path: CapabilityPath; adapter: BrainAdapter } | null {
   return live ? { path: live.path, adapter: live.adapter } : null;
@@ -61,7 +64,12 @@ export async function activateRuntimeForPath(
     live = null;
   }
 
-  return startWasm(path, version, report);
+  const started = startWasm(path, version, report);
+  // One engine starts at a time (the authority's install lock), so one pending start is held.
+  starting = started.finally(() => {
+    starting = null;
+  });
+  return started;
 }
 
 async function startWasm(
@@ -149,6 +157,12 @@ export function authorityBackedAdapter(): BrainAdapter {
       await current()?.preload?.();
     },
     async stream(messages, handlers) {
+      /*
+       * A QUESTION ASKED WHILE THE ENGINE STARTS WAITS FOR IT. Opening OCADE starts the engine
+       * from the stored model, which takes seconds; a question sent in those seconds was
+       * answered "still preparing, try again" and dropped (the real model, offline, 13 Oct).
+       */
+      if (!current() && starting) await starting.catch(() => undefined);
       const adapter = current();
       if (!adapter) {
         return {
