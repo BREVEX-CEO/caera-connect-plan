@@ -95,10 +95,53 @@ export function liveDeps(conversationId: string): AgentDeps {
     frame: async (taskId) => (await readJarvisFrame({ data: { taskId } })).frame,
     remember: (content) => rememberJarvis({ data: { content } }),
     readDocs: (data) => readJarvisDocs({ data }),
+    research: ({ question, signal }) =>
+      askThroughBusy(() => researchOnce(question, conversationId, signal), signal),
     schedule: (data) => scheduleJarvis({ data }),
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     changed: actionChanged,
   };
+}
+
+/** One grounded web search on the Online boundary: the answer and its sources, as text. */
+async function researchOnce(
+  question: string,
+  conversationId: string,
+  signal?: AbortSignal,
+): Promise<{ answer: string } | { error: string }> {
+  const billed = await beginBilledRequest({ surface: "jarvis" });
+  if (!billed) return { error: "Research is not available right now." };
+  let text = "";
+  let refusal: { reason: string; code: string; retryable: boolean; retryAfterMs?: number } | null =
+    null;
+  try {
+    for await (const event of online.stream({
+      permit: billed.permit,
+      generationId: billed.permit.generationId,
+      idempotencyKey: billed.permit.idempotencyKey,
+      surface: "jarvis",
+      mode: "online",
+      messages: [{ role: "user", content: question }],
+      tools: [],
+      attachments: [],
+      privacy: { onlineInferenceConsented: true, sealed: false },
+      conversationId,
+      research: true,
+      signal,
+    })) {
+      if (event.type === "token") text += event.text;
+      else if (event.type === "refusal") refusal = event;
+      else if (event.type === "final") text = event.response.text || text;
+    }
+    billed.recordDelivery({ answer: text });
+  } finally {
+    await billed.settle();
+  }
+  if (!text && refusal) {
+    if (refusal.retryable) throw new Unavailable(refusal.retryAfterMs);
+    return { error: refusal.reason };
+  }
+  return { answer: text.slice(0, 8000) };
 }
 
 async function askOnce(

@@ -39,8 +39,11 @@ PAGES = {
     "long.html": "<title>City</title><nav>" + "Menu link " * 600 + "</nav><main><h1>City</h1>"
                  + "<p>History. </p>" * 300 + "<p>The population was 13,960,236 in 2023.</p></main>",
     # Three seconds of audio with English captions, played and read through the media action.
-    "media.html": "<title>Clip</title><audio src='tone.wav' controls>"
-                  "<track kind='captions' srclang='en' src='clip.vtt'></audio>",
+    # Loaded whole as a blob: this test server cannot serve byte ranges, which seeking needs.
+    "media.html": "<title>Clip</title><audio controls>"
+                  "<track kind='captions' srclang='en' src='clip.vtt'></audio><script>"
+                  "fetch('tone.wav').then(r => r.blob()).then(b => {"
+                  "document.querySelector('audio').src = URL.createObjectURL(b); });</script>",
     "clip.vtt": "WEBVTT\n\n00:00.500 --> 00:02.000\nHello from the clip\n",
     "drag.html": """<title>Timeline</title>
       <div id='clip' style='position:absolute;left:20px;top:20px;width:60px;height:40px;background:#888'>Clip</div>

@@ -109,6 +109,7 @@ describe("the action contract", () => {
       "stop_task",
       "docs",
       "finish_task",
+      "research",
       "schedule",
     ]);
     expect(jarvisTools(true).map((tool) => tool.name)).toContain("remember");

@@ -133,8 +133,13 @@
         el.addEventListener('seeked', done, {once: true});
         setTimeout(done, 5000);
       });
-      el.currentTime = Math.max(0, Math.min(Number(seconds) || 0, el.duration || Infinity));
+      const target = Math.max(0, Math.min(Number(seconds) || 0, el.duration || Infinity));
+      el.currentTime = target;
       await sought;
+      // Said when it did not land (a site that does not let its media be moved), never "done at 0 s".
+      if (Math.abs(el.currentTime - target) > 0.5) {
+        problem = 'This media did not move to ' + target + ' s (it is at ' + el.currentTime.toFixed(1) + ' s)';
+      }
     }
     const tracks = [...el.textTracks].filter((t) => /captions|subtitles/.test(t.kind));
     let captions;

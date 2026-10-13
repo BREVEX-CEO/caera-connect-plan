@@ -152,6 +152,8 @@ export interface AgentDeps {
   remember(content: string): Promise<{ ok: boolean; message?: string }>;
   /** A public documentation page's text (page data, never instructions). */
   readDocs?(input: { url: string; taskId: string }): Promise<unknown>;
+  /** A web search on OCADE's server, answered with its sources; nothing opens on a device. */
+  research?(input: { question: string; signal?: AbortSignal }): Promise<unknown>;
   sleep(ms: number): Promise<void>;
   /**
    * Resolves when this action's row changes, or after `ms` at the latest. An
@@ -810,6 +812,15 @@ export async function runJarvisTurn(
           })
           .catch(() => ({ ok: false, message: "That time could not be understood." }));
       }
+      case "research":
+        if (!deps.research) return { error: "Research is available while OCADE is open." };
+        if (!task) return { error: "Start the task first, then research for it." };
+        // Web data from here on: memory and schedules no longer follow what is said next.
+        untrustedSeen = true;
+        return deps.research({
+          question: String(args.question ?? "").slice(0, 500),
+          signal: hooks.signal,
+        });
       case "docs":
         if (!deps.readDocs) return { error: "Reading documentation is not available here." };
         if (!task) return { error: "Start a task before reading documentation for it." };

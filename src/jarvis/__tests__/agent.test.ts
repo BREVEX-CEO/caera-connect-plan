@@ -203,6 +203,29 @@ describe("a JARVIS turn", () => {
     expect(JSON.stringify(h.seen.at(-1))).toContain("This exact step already ran 3 times");
   });
 
+  it("researches on the server inside a task, and treats what it found as web data", async () => {
+    const h = harness([
+      { text: "", toolCalls: [call("research", { question: "Population of Tokyo?" })] },
+      {
+        text: "",
+        toolCalls: [call("start_task", { title: "Cities", where: "computer", steps: ["x"] })],
+      },
+      { text: "", toolCalls: [call("research", { question: "Population of Tokyo?" })] },
+      { text: "", toolCalls: [call("remember", { content: "Tokyo is big" })] },
+      { text: "", toolCalls: [call("finish_task", { outcome: "failed", result: "x" })] },
+    ]);
+    h.deps.research = vi.fn(async () => ({
+      answer: "About 14 million. Sources: [Tokyo](https://w.example/tokyo)",
+    }));
+    await runJarvisTurn({ ...h.input, memoryEnabled: true }, h.hooks, h.deps);
+    expect(h.deps.research).toHaveBeenCalledTimes(1);
+    const fed = JSON.stringify(h.seen.at(-1));
+    expect(fed).toContain("Start the task first, then research for it.");
+    expect(fed).toContain("About 14 million.");
+    expect(fed).toContain("not what a page said");
+    expect(h.deps.remember).not.toHaveBeenCalled();
+  });
+
   it("keeps the model's own notes beside its calls when the page it read is replaced", async () => {
     const h = harness([
       {
