@@ -153,7 +153,7 @@ export interface AgentDeps {
   /** A public documentation page's text (page data, never instructions). */
   readDocs?(input: { url: string; taskId: string }): Promise<unknown>;
   /** A web search on OCADE's server, answered with its sources; nothing opens on a device. */
-  research?(input: { question: string; signal?: AbortSignal }): Promise<unknown>;
+  research?(input: { question: string; taskId: string; signal?: AbortSignal }): Promise<unknown>;
   sleep(ms: number): Promise<void>;
   /**
    * Resolves when this action's row changes, or after `ms` at the latest. An
@@ -819,6 +819,7 @@ export async function runJarvisTurn(
         untrustedSeen = true;
         return deps.research({
           question: String(args.question ?? "").slice(0, 500),
+          taskId: task.id,
           signal: hooks.signal,
         });
       case "docs":

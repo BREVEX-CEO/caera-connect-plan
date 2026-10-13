@@ -851,6 +851,52 @@ export const readJarvisDocs = createServerFn({ method: "POST" })
 /** Documentation pages one task may read. */
 const DOCS_PER_TASK = 20;
 
+/**
+ * A web search JARVIS made on OCADE's server for a running task, in its activity: how many
+ * sources the answer cited, and from where, so progress says only what really happened.
+ */
+export const recordJarvisResearch = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) =>
+    z
+      .object({
+        taskId: uuid,
+        question: z.string().max(500),
+        hosts: z.array(z.string().max(253)).max(30),
+        ok: z.boolean(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const service = await admin();
+    const { data: task } = await service
+      .from("jarvis_tasks")
+      .select("id")
+      .eq("id", data.taskId)
+      .eq("user_id", context.userId)
+      .eq("status", "running")
+      .maybeSingle();
+    if (!task) return { ok: false as const };
+    const unique = [...new Set(data.hosts)];
+    await service.from("jarvis_activity").insert({
+      user_id: context.userId,
+      task_id: task.id,
+      summary: (data.ok
+        ? `Searched the web: ${unique.length} ${unique.length === 1 ? "source" : "sources"}${
+            unique.length
+              ? ` (${unique.slice(0, 4).join(", ")}${unique.length > 4 ? ", …" : ""})`
+              : ""
+          }`
+        : "The web search did not answer"
+      ).slice(0, 300),
+      action: { action: "research", question: data.question.slice(0, 500) },
+      status: data.ok ? "done" : "failed",
+      result: { status: data.ok ? "done" : "failed", sources: unique.length },
+      completed_at: new Date().toISOString(),
+    });
+    return { ok: true as const };
+  });
+
 export const rememberJarvis = createServerFn({ method: "POST" })
   .middleware([requireSession])
   .validator((i) => z.object({ content: z.string().trim().min(1).max(500) }).parse(i))

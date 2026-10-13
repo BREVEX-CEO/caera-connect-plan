@@ -16,6 +16,7 @@ import {
   readJarvisDocs,
   readJarvisFrame,
   readJarvisTask,
+  recordJarvisResearch,
   rememberJarvis,
   scheduleJarvis,
   startJarvisTask,
@@ -95,8 +96,27 @@ export function liveDeps(conversationId: string): AgentDeps {
     frame: async (taskId) => (await readJarvisFrame({ data: { taskId } })).frame,
     remember: (content) => rememberJarvis({ data: { content } }),
     readDocs: (data) => readJarvisDocs({ data }),
-    research: ({ question, signal }) =>
-      askThroughBusy(() => researchOnce(question, conversationId, signal), signal),
+    research: async ({ question, signal, taskId }) => {
+      const found = await askThroughBusy(
+        () => researchOnce(question, conversationId, signal),
+        signal,
+      );
+      // The sources the answer cited, counted from its own list: progress says only what happened.
+      const hosts =
+        "answer" in found
+          ? [...found.answer.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)].map((m) => {
+              try {
+                return new URL(m[1]!).hostname;
+              } catch {
+                return "";
+              }
+            })
+          : [];
+      await recordJarvisResearch({
+        data: { taskId, question, hosts: hosts.filter(Boolean), ok: "answer" in found },
+      }).catch(() => undefined);
+      return found;
+    },
     schedule: (data) => scheduleJarvis({ data }),
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     changed: actionChanged,

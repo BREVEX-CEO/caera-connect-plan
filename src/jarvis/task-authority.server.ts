@@ -50,6 +50,7 @@ const READS_THE_WEB = [
   "look",
   "find_text",
   "media",
+  "research",
   "open",
   "new_tab",
   "click",
