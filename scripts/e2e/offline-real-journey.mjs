@@ -69,7 +69,8 @@ try {
       uploadThroughput: -1,
     });
   await throttle(16 * 1024 * 1024);
-  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  // "load", not "networkidle": the download may start as the page opens and keep the network busy.
+  await page.goto(`${BASE}/`, { waitUntil: "load" });
   /** Every byte OCADE keeps in this origin's private file system. */
   const storedBytes = () =>
     page.evaluate(async () => {
@@ -84,6 +85,7 @@ try {
 
   /* --- the install, through the delivery route, to Ready ------------------- */
   const settings = async () => {
+    await page.waitForSelector('aside button[aria-haspopup="menu"]', { timeout: 60_000 });
     await page.click('aside button[aria-haspopup="menu"]');
     await page.getByRole("menuitem", { name: "Settings" }).click();
     await page.getByRole("button", { name: "Privacy & Security" }).click();
@@ -103,7 +105,7 @@ try {
       // Interrupted part-way: the page goes away mid-download and comes back at full speed.
       interrupted = true;
       await throttle(-1);
-      await page.reload({ waitUntil: "networkidle" });
+      await page.reload({ waitUntil: "load" });
       await settings();
       continue;
     }
