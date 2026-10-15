@@ -55,6 +55,8 @@
 
 ## B. Starting checkpoint, already completed work and unresolved launch gates
 
+### 0.8 CONTINUATION CHECKPOINT — 13 October 2026 (historical; check latest SHA before acting)
+
 **Where.** Branch `ocade/p00-p22-implementation`; product code last changed at `8ae42bf4` (later commits are documentation only); `main` is `82f4f4c5`, untouched. Nothing merged, deployed or applied to production. Working tree clean; no unverified uncommitted change. Decisions in force: [Decisions — 13 October 2026](docs/DECISIONS.md#owner-decisions--13-october-2026-current-supersede-anything-older-that-conflicts). The dated paragraphs in 0.7 below are history; this subsection is the current state.
 
 **Evidence at this checkpoint** (disposable GitHub-hosted VMs only; run ids are `https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/<id>`; a journeys run marked "failure" because of a BLOCKED check is the gate working, not a failed check):
@@ -1743,7 +1745,9 @@ After repeated failure of the same approach, stop repeating it and diagnose the 
 
 **Dependencies:** prior phases in the listed sequence. The test/verification plan for this phase is not deferred to a later phase; later release matrices are distinct, full-candidate regression gates.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P00)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P00)
+
+### P00 — Establish a trustworthy baseline and supply-chain gate
 
 **Documentation review checkpoint (10 October 2026):** Source-coverage reconciliation is now recorded in the linked checkpoint; do not repeat its hash-equal reads. Required merge security gate remains **FAIL**: `npm audit --package-lock-only --omit=dev --json` reported `seroval@1.5.6` (critical; [GHSA-p6vx-979v-rg4c](https://github.com/advisories/GHSA-p6vx-979v-rg4c), plus [GHSA-jp82-f5mq-hwhp](https://github.com/advisories/GHSA-jp82-f5mq-hwhp)) and `source-map-js@1.2.1` (high; [GHSA-68fv-2mgg-jv7q](https://github.com/advisories/GHSA-68fv-2mgg-jv7q)). This is a lockfile/advisory result, not a demonstrated deployed exploit. No dependency, lockfile or product changes were made. Claude's first implementation action is P00-A: resolve these through the minimum compatible dependency repair and required checks, then proceed to the first unmet safety dependency. Documentation PR merge remains blocked until its required checks pass.
 
@@ -1756,7 +1760,7 @@ After repeated failure of the same approach, stop repeating it and diagnose the 
 
 **Two gates:** P00-A is the recorded current baseline, dependency/licence findings and safe development scope; it unlocks isolated safety repairs even when distribution is blocked. P00-B requires exact source and installed package identities, no unexplained required gate failure and completed licence clearance for shipped code/models/assets. All later implementation dependencies on P00 mean P00-A; public distribution requires P00-B. If permission remains unavailable, distribution of affected code is BLOCKED. **Rollback:** revert dependency change and withhold release, never suppress audit. **Cost/platform:** portable tests first, installed Windows proof separate; no paid service required. **Retire:** obsolete vulnerable versions only after lockfile/build parity.
 
-#### Detailed ordered implementation supplement — P00
+##### Detailed ordered implementation supplement — P00
 
 1. Preserve the dirty checkpoint before any reconciliation.
 2. Reverify refs and hash identities.
@@ -1770,7 +1774,7 @@ After repeated failure of the same approach, stop repeating it and diagnose the 
 
 **Work record — P00-A (11 October 2026):** SHA base `d70484da`, branch `ocade/p00-p22-implementation`; Windows 11, Node 24.16.0, npm ci. Production audit `npm audit --package-lock-only --omit=dev`: **PASS** (0; seroval/source-map-js fixed by #75 overrides). Dev-only audit: **FAIL/accepted-open** — `sharp <0.35.5` high ([GHSA-wq5f-xc86-pv6w](https://github.com/advisories/GHSA-wq5f-xc86-pv6w)) via `wrangler 4.145.0 → miniflare`; only fix `wrangler 4.149.0` was published 2026-10-08, under the two-week supply-chain age floor; recheck after 2026-10-22. Baseline `verify:full` on main: **FAIL** at `format:check` (three docs); fixed by Prettier, whitespace/emphasis only. Deploy gate gap: `scripts/deploy.mjs --execute` built and uploaded without any dependency audit; it now runs `npm audit --omit=dev` first and stops before build (test fails without the change). After: `verify:full` **PASS** 15/15 gates, 1258 tests; Python runtime 181 PASS/3 skipped. Known flakes (UNTESTED root cause): `staff-authority.test.ts` "unverified address" failed once in three full runs (grant returned an error, not reproduced in 6 isolated runs); `test_computer.py::test_click_needs_the_current_observation` failed once in a `-x` run, passed alone and in the full run. Licence clearance (P00 step 3) and P00-B: **BLOCKED** on owner rights decisions. Evidence class LOCAL.
 
-### New audited repair and completion details (legacy P00)
+#### New audited repair and completion details (legacy P00)
 
 **Goal:** make implementation start from current facts and a complete, traceable requirement inventory.
 
@@ -1807,9 +1811,9 @@ After repeated failure of the same approach, stop repeating it and diagnose the 
 
 ---
 
-### Additional research, defect provenance and cross-platform constraints owned by this phase
+#### Additional research, defect provenance and cross-platform constraints owned by this phase
 
-### 0.0 First action: reconcile BOTH owner-provided audit files BEFORE coding or full testing
+#### 0.0 First action: reconcile BOTH owner-provided audit files BEFORE coding or full testing
 
 **Mandatory source inputs at repository root (exact filenames):**
 
@@ -1826,7 +1830,7 @@ Create **one deduplicated audit-to-PLAN reconciliation register INSIDE existing 
 
 **Authority and order:** This section supersedes the older cleanup, hardcoded-application, donor-preservation and test-scheduling instructions wherever they conflict. Preserve the rest of this PLAN.md, P00–P22, AGENTS.md, CLAUDE.md and their security/functional requirements. This is an implementation instruction, **not evidence that the work has happened**. Continue from the latest committed and uncommitted engineering checkpoint; do not reset or overwrite Claude's valid work. Work on the existing implementation branch, not on `main`, until the final gates below pass. Do not confuse this separately published PLAN.md download branch with the implementation branch.
 
-### 0.7 Audit reconciliation register — 12 October 2026 (branch `ocade/p00-p22-implementation`)
+#### 0.7 Audit reconciliation register — 12 October 2026 (branch `ocade/p00-p22-implementation`)
 
 Both 11 October audits (kept verbatim at the repository root) were read in full and every unique finding re-checked on the current source. Status words: **FIXED** = source change plus a regression test that ran green in cloud CI (`ci.yml` `verify:full` on GitHub-hosted Ubuntu, and the `cloud-python-isolated.yml` full suite) at or after the named commit; **FIXED · RUNTIME OPEN** = source change and unit evidence, but the behaviour needs a real Windows/Office/Android/browser run (Stage D) before PASS; **KEEP** = the audit itself says keep; **OPEN** / **BLOCKED** as defined in §2. Any material change after the evidence run re-opens the item.
 
@@ -1928,7 +1932,7 @@ Both 11 October audits (kept verbatim at the repository root) were read in full 
 
 **Checkpoint — 13 October 2026, second owner decision (model, priorities, R2).** *Model:* the owner replaced `gemini-3.8-flash` with `gemini-3.5-flash-lite` for Chat and JARVIS on all three key slots and the staging key; verified that day on Google's model, pricing and thinking pages (stable; free of charge on the free tier; function calling; thinking minimal–high) and by the staging key's metadata read; `gemini-3.8-flash` is now refused like any unchosen model (`online-models.ts`, `pinned-model.test.ts`). One model for every slot; per-project quotas untouched. Production `GEMINI_MODEL`, if set there, must be cleared or updated at release (the allowlist fails closed). *Web search:* Google lists grounding with Search as "Not available" on the free tier for this model (and 3.8 Flash); the live probe confirms every grounded request is a 429 with no wait. The boundary now answers it once as `research_unavailable` (not retried as busy); Chat says live sources are not available; JARVIS reads pages with the browser and is no longer offered web search in that tab. Server-side research at ₹0 therefore needs a different free source (BLOCKED on an owner account decision if a keyed search API is wanted). *Windows (priority 1):* a live test on a disposable Windows VM drives real Notepad through JARVIS's own actions — opened by name, STOP before an edit leaves it untouched, text put in through its control, a second app worked in between, saved through the real Save As dialog, read back from disk — PASS (run 38391990706, 228 tests). Found and fixed on the way: the Save As dialog refuses every UI Automation write and invoke (`0x80040200`), so one action now finishes such a control through the keyboard (paste over the focused field, the button's own key) only while the person is not using mouse or keyboard, clipboard restored; COM error codes are kept in results; a text over 500 characters was reported as not taken. *Offline (R2):* the workflow reads the private object with the owner's read-only R2 key over the S3 API (bucket stays private): 484,220,160 bytes, SHA-256 matches. Journey: install through OCADE's delivery route to Ready (≈35 s), an interrupted download resumes (fetches only the rest), "answers on this device" shown offline, Remove deletes all 484 MB and it stays removed — PASS. Found and fixed: a resumed install demanded room for the whole model again; the E2E stand-in never issued signed offline allowance blocks; a new conversation was read back from the server and, offline, replaced the answer with "could not be opened". Then the answer itself: a question sent while the engine was starting, or before preparation began, was refused "still preparing" (the readiness check, not only the answer) — a model already on the device is now started and waited for when asked for; a download request that stopped delivering hung the install (now dropped after 30 s without a byte and retried); a new conversation was read back from the server offline. Result (run 38411957360): install, resume, the 7-use signed allowance held before the network goes, "answers on this device", an answer with no network (10.6 s) and after a cold start ("7 + 5 = 12"), Remove and staying removed — PASS; answer quality is the small model's: "blue" in one run, "clear sky" in the next (FAIL recorded, not tuned away). *Live Gemini:* research→workbook→summary not yet completed (0 of 10 real tasks); Flash-Lite reopened the same pages in a loop — observations now carry each page's labelled values and keep them after the next page opens. *Budget:* ≈1,380 of the free private-repo Actions minutes were already used this month before today's runs (Windows ×2, macOS ×10): macOS and iOS-simulator runs are deferred until the allowance renews or the owner chooses otherwise; iOS stays Safari/WebKit emulation (`browsers` journey) meanwhile. *Later the same day:* a signed offline block was taken on every Chat visit, model or not — 7 of the free 28 charged to Chat when issued, so a new account opened Chat to "21 of 28 left" (broad `usage` journey, once the E2E stand-in issued blocks as the database does); now held only by a device with a verified model and taken as soon as an install is ready. A task paused by a busy model now continues from its own calls and results (they were dropped at each pause, so pages were read again). Android: the core journey stays green (28 checks); the new Chrome task (address typed, link followed, code word read back) FAILS — the address is set but Enter does not navigate (open). Live Gemini on the free tier: `gemini-3.5-flash-lite` answered 503 "high demand" to most calls (20 of 27 in the last run); research→workbook→summary reached a created workbook and summary but not completion — 0 of 10 real tasks. Regression at `7f6cf75c`+: CI 15 gates / 1,318 tests PASS; JARVIS suite 0 FAIL (real speech BLOCKED); broad 17/18 (push BLOCKED); Python Linux 228 OK; Windows 228 OK (live Notepad + Save As).
 
-### Phase 00 exclusive exit gate
+#### Phase 00 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Cloud source/lockfile/licence inventory, branch/SHA diff, negative harness controls (zero tests, missing fixture, disabled gate) and untouched artifact hashes. Historical results stay historical.
@@ -1944,7 +1948,9 @@ Both 11 October audits (kept verbatim at the repository root) were read in full 
 
 **Cloud verification technique for this phase:** Ephemeral PostgreSQL integration with concurrent settlements, 151+ internal calls, task receipts, replay, interruption and tampered evidence; independent spreadsheet/document property verification.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P01)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P01)
+
+### P01 — Make task completion depend on independent evidence
 
 **Current:** `src/jarvis/agent.ts` handles `finish_task` around lines 633–654 and can adopt model completion without a mandatory durable verifier receipt. Prompts already ask for verification; wording alone is insufficient.
 
@@ -1956,7 +1962,7 @@ Use the existing device read/inspect actions for readback in a fresh observation
 
 **Failure:** missing/contradictory evidence → partial/unknown, preserve artefact, bounded re-observation; no blind repeated write or fabricated evidence to make the verifier pass. A newly admitted bounded repair after independent observation is allowed within authority; an uncertain irreversible action is never blindly replayed. STOP during verification yields cancelled/partial with known effects, not rollback fiction. **Tests:** extend `src/jarvis/__tests__/agent.test.ts`, `device-protocol.test.ts`, `carry-on.test.ts`: lying finish, stale/wrong-task receipt, omitted predicate, digest mismatch, crash after save and before acknowledgement, unreadable artefact. Real Excel reopen and independent recomputation must agree. **DONE:** no terminal completed path bypasses required receipt. **Cost:** deterministic verification first; no default extra model call. **Rollback:** disable new task admission if settlement cannot be trusted; never restore model-owned completion. **Depends:** P00. **Retire:** old direct completed assignment after all callers migrate.
 
-#### Detailed ordered implementation supplement — P01
+##### Detailed ordered implementation supplement — P01
 
 Owners: `runJarvisTurn`, `changeTask`, `queueTaskAction`, `exchange`, local executors.
 
@@ -1973,7 +1979,7 @@ Owners: `runJarvisTurn`, `changeTask`, `queueTaskAction`, `exchange`, local exec
 
 **Work record — P01 phase 1 (11 October 2026, branch `ocade/p00-p22-implementation`):** Reproduced: `agent.ts` and `background.server.ts` each turned `finish_task` straight into `completed` (two copies of the same transition). **FIX:** one `finishChange` shared by both loops; `changeTask`, the single status owner, now refuses `completed` (error prefix `NOT_VERIFIED`) unless every task action has settled and a successful read-only action (file_info, sheet_inspect, observe, ui_inspect, …) ran on the same task after its last change; refused steps that never ran are ignored. The open loop returns the refusal to the model; Background Mode records it and plans again. Prompt states the rule. Tests: 5 real-Postgres cases (lying finish, unsettled action, change after read, failed read, honest path) and an agent-loop case that fails without the fix; jarvis suite 195 PASS. Still OPEN: typed per-outcome predicates (digest, sheets/ranges, reopen), crash-after-save reconciliation, commercial settlement through the gate, real Excel reopen. Evidence class LOCAL.
 
-### New audited repair and completion details (legacy P01)
+#### New audited repair and completion details (legacy P01)
 
 **Goal:** one independently verified outcome produces exactly one JARVIS use.
 
@@ -2012,7 +2018,7 @@ Owners: `runJarvisTurn`, `changeTask`, `queueTaskAction`, `exchange`, local exec
 
 ---
 
-### Phase 01 exclusive exit gate
+#### Phase 01 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Ephemeral PostgreSQL integration with concurrent settlements, 151+ internal calls, task receipts, replay, interruption and tampered evidence; independent spreadsheet/document property verification.
@@ -2028,7 +2034,9 @@ Owners: `runJarvisTurn`, `changeTask`, `queueTaskAction`, `exchange`, local exec
 
 **Cloud verification technique for this phase:** Isolated Windows VM/UIAutomation barrier interleavings, native accessibility tracing, stale geometry/foreground-change cases, permission revocation and local STOP measured without the network.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P02)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P02)
+
+### P02 — Close STOP, takeover and stale-observation races
 
 **Current:** Python `ocade_computer.py` passes semantic actions to `ocade_accessibility.py` without propagating cancellation to the final effect; Android control can resolve a target after an earlier STOP check. `OcadeAccessibility.java` does not currently provide the complete observation invalidation needed by `Control.java`.
 
@@ -2039,7 +2047,7 @@ Owners: `runJarvisTurn`, `changeTask`, `queueTaskAction`, `exchange`, local exec
 
 **Tests:** barrier-controlled STOP between resolve and Invoke; permission withdrawal immediately before effect; physical user click during semantic fallback; rotate/scroll/overlay between screenshot and tap; stale resume; disconnected remote STOP; crash/restart with revoked epoch; no mutation admitted after cancellation. Extend runtime `test_safety.py`, `test_ui_act.py`, `test_computer.py`, web execution-control tests and real Android instrumentation. **DONE:** races reproduced then prevented; local latency budget measured; UI does not claim quiescence without evidence. **Cost:** event generations, not continuous full screenshots. **Rollback:** disable unsafe input capability, retain read-only/status. **Depends:** P00; P01 for truthful terminal state. **Retire:** preflight-only cancellation checks after final-point checks cover every path.
 
-#### Detailed ordered implementation supplement — P02
+##### Detailed ordered implementation supplement — P02
 
 Owners: `Agent.stop_everything/_start`, `Computer.run/_screen`, accessibility `act`, Android control.
 
@@ -2059,7 +2067,7 @@ Owners: `Agent.stop_everything/_start`, `Computer.run/_screen`, accessibility `a
 
 **Work record — P02 phase 2 (11 October 2026):** Final STOP checks added where they were missing: an app found after STOP is not launched, a system action after STOP is not run, a window change after STOP is not made (2 non-GUI tests). Android invalidates observations on window, overlay and rotation changes (P13 record). **Control epoch decision:** the safety goals the v2 epoch fields serve are met by mechanisms already on the wire: every action is claimed per exchange after a fresh permission and task-state check; STOP/Take Over/end cancel every claimed and queued row and reach the running step and the rest of its segment through `cancel` on the next exchange (≤1 s while busy); the device's local STOP and admission share one lock; a device that cannot reach OCADE for 15 s cancels its step (the local lease). The remaining window is one step already in flight when a remote STOP lands, which no epoch can close without a push channel (P09). Protocol v2 fields are therefore not added; revisit with P09's wake channel. Measured STOP latency: final campaign.
 
-### New audited repair and completion details (legacy P02)
+#### New audited repair and completion details (legacy P02)
 
 **Goal:** prevent stale or revoked authority from admitting another mutation.
 
@@ -2089,7 +2097,7 @@ Owners: `Agent.stop_everything/_start`, `Computer.run/_screen`, accessibility `a
 
 ---
 
-### Additional research, defect provenance and cross-platform constraints owned by this phase
+#### Additional research, defect provenance and cross-platform constraints owned by this phase
 
 **Safety and recovery should become stronger while the execution path becomes simpler.**
 
@@ -2118,7 +2126,7 @@ The direct command route also explicitly acknowledges that its process is not co
 
 ---
 
-### Phase 02 exclusive exit gate
+#### Phase 02 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Isolated Windows VM/UIAutomation barrier interleavings, native accessibility tracing, stale geometry/foreground-change cases, permission revocation and local STOP measured without the network.
@@ -2134,7 +2142,9 @@ The direct command route also explicitly acknowledges that its process is not co
 
 **Cloud verification technique for this phase:** Disposable device-agent process-kill and disk-full experiments; packet-loss/reordered/malformed ACK network simulator; Android emulator process death during journal transitions.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P03)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P03)
+
+### P03 — Preserve commands and outcomes across identity rotation and restart
 
 **Current:** `ocade_identity.py` rotation consumes an exchange response but can ignore its command list, while `device.server.ts` can still dispatch actions in that exchange. Desktop results are more durable than Android's in-memory pending results.
 
@@ -2144,7 +2154,7 @@ Extend `ocade_identity.py`, `ocade_device.py` (desktop loop/journal), `ocade_age
 
 **Tests:** queued action during rotation; running action during rotation; response loss before/after persisted key; old key replay; duplicate result acknowledgement; process kill after effect and before acknowledgement; Android restart with pending result. Extend `test_agent.py`, `device-exchange.test.ts`, Android lifecycle tests. **DONE:** no lost claimed command and no duplicated external write across the fault matrix. **Resources:** bounded journal retention after server acknowledgement, encrypted/scope-safe where needed; no screenshot journal. **Rollback:** stop new dispatch on incompatible protocol, retain recovery records and old executable for supported rollback. **Depends:** P01/P02. **Retire:** in-memory-only authoritative pending results and ambiguous rotation response path.
 
-#### Detailed ordered implementation supplement — P03
+##### Detailed ordered implementation supplement — P03
 
 Owners: `_load_pending`, `_keep_pending`, `_exchange_loop`, `Identity.exchange/rotate`, Android `AgentService`.
 
@@ -2162,7 +2172,7 @@ Owners: `_load_pending`, `_keep_pending`, `_exchange_loop`, `Identity.exchange/r
 
 **Work record — rotation and durable Android results (11 October 2026):** Reproduced: a rotation exchange (`ocade_identity.rotate`, empty results, no `running` list) went through full dispatch and could claim a queued command whose reply the client discards; the command then sat claimed until timed out as failed, and work could be handed out while another action ran. **FIX:** a rotation-only exchange rotates and returns with no claims and no cancel judgement (real-Postgres test fails on the old code). Android `AgentService` results were memory-only; they now persist in an app-private `AtomicFile` on every change, load on start, keep a damaged file aside, and leave only after OCADE's acknowledgement — the desktop journal's rules. Android compiles; restart-with-pending-result emulator proof deferred (UNTESTED). Still OPEN: intent-before-effect for an action interrupted by a crash, per-operation digest acknowledgement, bounded pending-key recovery tests.
 
-### New audited repair and completion details (legacy P03)
+#### New audited repair and completion details (legacy P03)
 
 **Goal:** survive crashes, exchange loss and identity rotation without losing effects or blindly repeating them.
 
@@ -2192,7 +2202,7 @@ Owners: `_load_pending`, `_keep_pending`, `_exchange_loop`, `Identity.exchange/r
 
 ---
 
-### Phase 03 exclusive exit gate
+#### Phase 03 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Disposable device-agent process-kill and disk-full experiments; packet-loss/reordered/malformed ACK network simulator; Android emulator process death during journal transitions.
@@ -2208,7 +2218,9 @@ Owners: `_load_pending`, `_keep_pending`, `_exchange_loop`, `Identity.exchange/r
 
 **Cloud verification technique for this phase:** Provider-contract fakes and golden structured Gemini tool-call transcripts, signed/thought-metadata continuity, strict 429/503 and deadline budget simulations; separately authorised bounded actual Gemini calls.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P16)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P16)
+
+### P16 — Bound online intelligence, memory and tool selection
 
 Keep the existing online intelligence authority and server-hidden provider routing (`src/jarvis/background-model.server.ts`, `background.server.ts`, `src/lib/intelligence/`). Pin supported structured-output contracts and validate tool arguments. Planner chooses goal decomposition, uncertainty recovery and semantic interpretation; local execution handles deterministic work. Reuse stable prompt prefixes and compact durable checkpoints inspired by Manus; do not repeatedly send unchanged screenshots or full history.
 
@@ -2218,7 +2230,7 @@ Questions during execution read current context without cancelling work. New act
 
 **Tests:** malicious webpage instructions; tool-schema spoofing; invalid JSON; timeout/rate limit; partial stream; context compression loses goal; budget exhausted; concurrent user redirect; cached capability revoked; account switch. **DONE:** representative held-out tasks retain correctness with fewer tokens/calls; no provider secrets/names in ordinary customer UI. **Cost:** per-task token/audio/tool budgets, ledger reconciled with actual provider usage. **Rollback:** previous pinned compatible prompt/model configuration with recorded version; no automatic untested fallback. **Depends:** P01/P08/P10/P12. **Retire:** duplicate task summaries/state owners after checkpoint parity.
 
-#### Detailed ordered implementation supplement — P16
+##### Detailed ordered implementation supplement — P16
 
 1. Retain existing turn/failure limits unless measured evidence justifies changes.
 2. Bind frames to account, conversation and generation.
@@ -2232,7 +2244,7 @@ Questions during execution read current context without cancelling work. New act
 
 **Work record — P16 step: history no longer resends old observations (11 October 2026):** The open planning loop kept every tool result in full: up to 30 observations of 120 elements each were resent on every model call, and their ids were stale anyway. **FIX:** when a newer observation arrives, earlier results in the history keep only their observation id, marked superseded (Background Mode already kept only its last few results in full). Test fails without the change; jarvis 201 PASS. Token savings to be measured on held-out tasks in the final campaign. Still OPEN: structured-output pinning, per-task token budgets, memory-poisoning and cross-account retrieval tests.
 
-### New audited repair and completion details (legacy P16)
+#### New audited repair and completion details (legacy P16)
 
 **Goal:** make the selected model operate efficiently and recover without losing protocol history.
 
@@ -2262,7 +2274,7 @@ Questions during execution read current context without cancelling work. New act
 
 ---
 
-### Additional research, defect provenance and cross-platform constraints owned by this phase
+#### Additional research, defect provenance and cross-platform constraints owned by this phase
 
 **Why passing tests coexist with 0/10 accepted tasks**
 
@@ -2671,7 +2683,7 @@ Retain supported attachment, managed sessions and UIA/visual fallback. Never cop
 
 ---
 
-### Phase 04 exclusive exit gate
+#### Phase 04 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Provider-contract fakes and golden structured Gemini tool-call transcripts, signed/thought-metadata continuity, strict 429/503 and deadline budget simulations; separately authorised bounded actual Gemini calls.
@@ -2687,7 +2699,9 @@ Retain supported attachment, managed sessions and UIA/visual fallback. Never cop
 
 **Cloud verification technique for this phase:** Disposable agent/action queue with deterministic 12-step sequence, mid-step cancellation, crash/restart, foreground-to-background parity and mutation-resource locks.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P08)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P08)
+
+### P08 — Execute admitted deterministic segments on the device
 
 **Current:** `agent.ts` sequence loop around 528–555 calls `runDevice` for each action; `live-deps.ts` queues one action and `device.server.ts` claims one. This reduces some planning calls, not per-action cloud dispatch. Raising the sequence limit alone is not the fix.
 
@@ -2697,7 +2711,7 @@ Local executor loops over bounded steps, journals P03 state, checks P02 immediat
 
 **Tests:** schema parity TS/Python/Android; oversized/deep payload; 12-step boundary; changed scope mid-segment; capability downgrade; crash at every journal boundary; duplicate segment; wrong digest; reordered acknowledgement; STOP between steps; external-write timeout. Compare old and new paths on identical 30-step fixtures, including durable flush and verification time. **DONE:** fewer server exchanges with unchanged output/safety; model calls must not increase and are measured separately because existing model batching already predicts sequences, measured p95 improvement. **Resources:** bounded outputs/ring buffers, no unbounded local queue. **Rollback:** server feature flag stops segment admission; drain/reconcile in-flight work before returning to single actions. **Depends:** P01–P04/P05. **Retire:** old per-action path only after minimum supported installed versions are upgraded; keep compatibility until then.
 
-#### Detailed ordered implementation supplement — P08
+##### Detailed ordered implementation supplement — P08
 
 1. Extend the shared schema and all language consumers together.
 2. Add negotiated segment admission.
@@ -2712,7 +2726,7 @@ Local executor loops over bounded steps, journals P03 state, checks P02 immediat
 
 **Work record — P08 phase 1 (11 October 2026):** Reproduced: a 12-step sequence cost 12 queue→claim→result round trips (one claimed command per exchange). **IMPLEMENTED `segment_v1`:** the desktop agent advertises it; for such a device one exchange claims the task's contiguous queued steps (≤12), re-checking permission and confirmation per step and ending before any step that needs the person; the agent runs them in order with STOP checked before each, reports each result as it lands, lists the steps still to come in `running` (so a server cancel reaches them), and reports steps after a failure or cancel as `skipped` (stored `cancelled`, ignored by the P01 evidence gate). The planner queues the observation-free prefix of a sequence together and settles each in order, withdrawing the rest after a step that did not finish; steps that act on "latest" still wait for the previous result. Old agents and Android receive one step as before; a first step that never started stays `failed`, so a new agent never sends `skipped` to an older server. Also fixed: the running-work check read only one row (`limit(1)`). Tests: 4 real-Postgres segment cases, 3 agent segment/cancel cases, planner withdraw case; jarvis 200 PASS, Python safety/agent 58 PASS. Still OPEN: declared previous-step output references, per-step journal of intent, measured p95 on identical 30-step fixtures (final campaign), Android segments. Evidence class LOCAL.
 
-### New audited repair and completion details (legacy P08)
+#### New audited repair and completion details (legacy P08)
 
 **Goal:** reduce unnecessary model turns while preserving authority and recovery.
 
@@ -2742,7 +2756,7 @@ Local executor loops over bounded steps, journals P03 state, checks P02 immediat
 
 ---
 
-### Phase 05 exclusive exit gate
+#### Phase 05 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Disposable agent/action queue with deterministic 12-step sequence, mid-step cancellation, crash/restart, foreground-to-background parity and mutation-resource locks.
@@ -2758,7 +2772,9 @@ Local executor loops over bounded steps, journals P03 state, checks P02 immediat
 
 **Cloud verification technique for this phase:** Cloud event/queue integration against reordered events, browser-tab closure, stale watchers, scheduled duplicate occurrences, reconnect and provider timeout.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P09)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P09)
+
+### P09 — Use events for wakeup, durable state for truth
 
 Extend `src/jarvis/changes.ts`, `device.server.ts`, background scheduling and companion exchange. Reuse authenticated Realtime/task-change notifications to wake a durable fetch; a notification is neither authorisation nor task completion. Retain bounded backoff polling for lost events, reconnect and unsupported environments. Do not add a new relay service until measured scale/latency requires it.
 
@@ -2766,7 +2782,7 @@ Add task/device revision and last-ack cursor; fetch missing revisions after reco
 
 **Tests:** drop/duplicate/reorder notifications; websocket unavailable; token expiry; device asleep; server restart; two tabs; forced polling fallback; notification arriving before committed row. **DONE:** no lost task or duplicate effect, recovery delay measured; never remove fallback merely because one event arrived once. **Cost:** compare messages, open connections and idle CPU against baseline, no screenshot heartbeat. **Rollback:** fallback polling with jitter and rate caps. **Depends:** P03/P08. **Retire:** independent polling loops after shared subscription parity; retain fail-safe fetch.
 
-#### Detailed ordered implementation supplement — P09
+##### Detailed ordered implementation supplement — P09
 
 1. Reuse web action-change authority.
 2. Add negotiated device wake hints behind the same broker.
@@ -2779,7 +2795,7 @@ Add task/device revision and last-ack cursor; fetch missing revisions after reco
 
 **Work record — P09 decision (11 October 2026):** The web planner already wakes on Realtime action events with a bounded polling fallback (`changes.ts` `actionChanged`); the desktop and Android agents poll every 1 s while their task runs and every 5 s when idle. A device wake hint needs a push channel the device can authenticate to; without one, a server-held long poll would query the database more often than the 5 s idle poll. Per this package's rule (no new relay until measured), no code change: device first-step latency stays ≤5 s idle, measured in the final campaign. Steps 2 (device wake hints) and 5–6 remain OPEN pending that measurement.
 
-### New audited repair and completion details (legacy P09)
+#### New audited repair and completion details (legacy P09)
 
 **Goal:** avoid losing an occurrence between schedule advancement and task creation.
 
@@ -2809,7 +2825,7 @@ Add task/device revision and last-ack cursor; fetch missing revisions after reco
 
 ---
 
-### Phase 06 exclusive exit gate
+#### Phase 06 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Cloud event/queue integration against reordered events, browser-tab closure, stale watchers, scheduled duplicate occurrences, reconnect and provider timeout.
@@ -2825,7 +2841,9 @@ Add task/device revision and last-ack cursor; fetch missing revisions after reco
 
 **Cloud verification technique for this phase:** Disposable Windows desktop images with actual supported Office/ONLYOFFICE editions where licensed; independent reopen/recalculation/layout comparison, locked and corrupt input tests.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P04)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P04)
+
+### P04 — Treat partial Office/file effects honestly
 
 **Current:** `actions/ocade_excel.ps1` and `ocade_word.ps1` can mutate/save before readback throws; `ocade_computer.py` relies on `maybeChanged` to expose recovery. Existing backups in `ocade_sheets.py` and `ocade_documents.py` are valuable and must remain.
 
@@ -2835,7 +2853,7 @@ Use the existing shared Office job machinery. Reopen the actual saved output wit
 
 **Tests:** save succeeds then verification fails; exception after sheet addition; STOP during copy; disk full; locked workbook; user edits while task waits; macro preservation; formula recalculation; 2 tasks same file; failure restoring backup. Extend `test_sheets.py`, `test_files_documents.py`, real Excel/Word fixtures. **DONE:** receipts never say unchanged after known mutation; copies reopen and unrelated content matches baseline. **Cost:** bounded batch reads/writes, no cell-by-cell model calls. **Rollback:** restore only after checking no subsequent user change; otherwise preserve both versions and explain. **Depends:** P01–P03. **Retire:** duplicate backup mechanics only after shared parity proof, not the native Office adapters.
 
-#### Detailed ordered implementation supplement — P04
+##### Detailed ordered implementation supplement — P04
 
 Owners: `backup`, `office_job`, `edit_with_excel`, Word adapter and native scripts.
 
@@ -2852,7 +2870,7 @@ Owners: `backup`, `office_job`, `edit_with_excel`, Word adapter and native scrip
 
 **Work record — P04 phase 1 (11 October 2026):** Reproduced by source trace: `ocade_excel.ps1`/`ocade_word.ps1` save before read-back and reopen; a throw after `Save()` reported "failed" with no `maybeChanged`, and `_unfinished` then told the planner "not changed". A failure on the person's own open workbook left applied edits unsaved in their Office, unmentioned. **FIX:** `_unfinished` compares the file with the kept original (`filecmp`, byte-exact) and registers undo when it differs; both scripts report `unsavedEdits`, which the summary states. Tests: two cases fail without the fix; `test_sheets.py` + `test_files_documents.py` 22/22 PASS including real Excel and Word on this PC. Still OPEN: disk-full, protected files, macros matrix, user edits while paused, effect/execution/verification metadata on the wire. Evidence class LOCAL (real Office 16).
 
-### New audited repair and completion details (legacy P04)
+#### New audited repair and completion details (legacy P04)
 
 **Goal:** report partial effects accurately and preserve originals and later user edits.
 
@@ -2882,7 +2900,7 @@ Owners: `backup`, `office_job`, `edit_with_excel`, Word adapter and native scrip
 
 ---
 
-### Phase 07 exclusive exit gate
+#### Phase 07 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Disposable Windows desktop images with actual supported Office/ONLYOFFICE editions where licensed; independent reopen/recalculation/layout comparison, locked and corrupt input tests.
@@ -2898,7 +2916,9 @@ Owners: `backup`, `office_job`, `edit_with_excel`, Word adapter and native scrip
 
 **Cloud verification technique for this phase:** Temporary PostgreSQL/Supabase local clone, direct API/RLS attack tests, staff-session MFA and fresh-proof tests, expired consent, account-switch and forged-grant negatives.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P05)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P05)
+
+### P05 — Repair account isolation, granular staff rights and owner transfer
 
 **Current:** coarse `has_role` RLS policies can differ from granular staff grants/denials; owner transfer and staff revocation may race because one target read is not locked. A unique primary-owner index proves at most one, not at least one.
 
@@ -2908,7 +2928,7 @@ For transfer/revoke, lock the same owner-authority row and target membership in 
 
 **Tests:** real local PostgreSQL with two sessions, transfer vs revoke, transfer vs transfer, rollback halfway, target deleted, stale MFA, denied granular permission with broad admin role, ordinary customer direct REST/SQL access, account A identifiers submitted by B. Use existing `src/lib/admin/__tests__` and migration suites; PGlite alone cannot close concurrency proof. **DONE:** API and direct-RLS matrix agree, owner invariant survives interleavings. **Failure/recovery:** fail closed; no automatic privileged retry after assurance expiry. **Platform/cost:** server-only logic shared by all clients, bounded queries/index review. **Rollback:** forward corrective migration and disable privileged mutation UI while inconsistent; never drop audit data. **Depends:** P00. **Retire:** redundant frontend permission authority after one server-derived view is proved.
 
-#### Detailed ordered implementation supplement — P05
+##### Detailed ordered implementation supplement — P05
 
 **P05-A:** invitation withdrawal and owner-transfer/revoke races require conditional database commits and actual two-client tests.
 
@@ -2922,7 +2942,7 @@ For transfer/revoke, lock the same owner-authority row and target membership in 
 
 **Work record — P05-A ownership hand-over (11 October 2026):** Reproduced by source trace: `ocade_staff_transfer_ownership` (20261003090000) checked both roles unlocked; a concurrent removal of the target let the caller demote itself while the promotion touched zero rows, committing no Primary Owner. **FIX:** forward migration `20261011090000_ownership_transfer_locks_both_owners` (+ verify, rollback) locks both rows in one order, re-reads roles under the lock, requires exactly one row per write and exactly one Primary Owner at the end (`40001` otherwise, whole transaction rolled back). PGlite suites PASS; verification fails without the migration. Two-session race proof: **BLOCKED** (no real PostgreSQL locally; a Supabase branch needs owner approval). NOT applied to production. Replaying 20261003090000 after it would restore the unlocked body: apply in order only. Also fixed the recurring `staff-authority` flake: the twin minted the token's proof time inside the transaction, so a second boundary made the proof later than `now()` and the "proof in the future" rule refused it; claims are now minted first (5/5 clean admin runs). Still OPEN: P05-B/C/D.
 
-### New audited repair and completion details (legacy P05)
+#### New audited repair and completion details (legacy P05)
 
 **Goal:** enforce least privilege and customer-approved support access without weakening MFA.
 
@@ -2952,7 +2972,7 @@ For transfer/revoke, lock the same owner-authority row and target membership in 
 
 ---
 
-### Phase 08 exclusive exit gate
+#### Phase 08 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Temporary PostgreSQL/Supabase local clone, direct API/RLS attack tests, staff-session MFA and fresh-proof tests, expired consent, account-switch and forged-grant negatives.
@@ -2968,7 +2988,9 @@ For transfer/revoke, lock the same owner-authority row and target membership in 
 
 **Cloud verification technique for this phase:** Cloud object storage/database fault injection with large streamed export, failed chunk/retry, concurrent erasure, worker crash, expired download and deletion receipts.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P06)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P06)
+
+### P06 — Make export and erasure complete, bounded and recoverable
 
 **Current:** `src/lib/account/data-rights.ts` uses offset pagination without a stable snapshot/order; `erase.server.ts` can proceed after a partial storage sweep; `src/lib/library/tombstones.server.ts` must not turn a failed count into zero pending work. No autonomous retry consumer was established by the inspection.
 
@@ -2978,7 +3000,7 @@ Persist deletion requests and object tombstones before losing auth context. Wire
 
 **Tests:** singleton/no-created_at/composite-key tables; updates to pre-cutoff rows; insertion/deletion during export pages; repeated cursor; storage failure then auth deletion; count-query error; restart; actual scheduled-entrypoint invocation after identity deletion; duplicate delete request; orphan object; revoked account retry; cross-account tombstone; unrecoverable provider error. **DONE:** each account-data class is mapped and reconciled, retries have an actual invocation path and monitored backlog. **STOP:** export cancels safely; erasure once committed is not universally reversible, so cancellation semantics must be explicit before confirmation. **Cost:** bounded pages, no full account payload in RAM. **Rollback:** pause consumer while retaining tombstones; never resurrect deleted data. **Depends:** P05. **Retire:** silent partial-success paths.
 
-#### Detailed ordered implementation supplement — P06
+##### Detailed ordered implementation supplement — P06
 
 Owners: account data-class map, `buildAccountExport`, deletion and tombstone owners.
 
@@ -2993,7 +3015,7 @@ Owners: account data-class map, `buildAccountExport`, deletion and tombstone own
 
 **Work record — P06 step 5 and unknown counts (11 October 2026):** Reproduced by source trace: storage tombstones outlive the identity (no FK, by design), but they were retried only "at the next deletion by the same owner", which never comes after erasure; and a failed pending count became `count ?? 0` (unknown reported as nothing pending). **FIX:** one sweep owner `sweepTombstones(ownerId | null)`: null sweeps every account's due objects under a 10-attempt budget (row and last error kept for an operator), each object checked against its own row's owner folder; `cloudflare-entry.ts` `scheduled` runs one bounded batch a minute beside the JARVIS clock; an uncountable backlog reports -1. Tests: 2 fail without the fix, 8/8 PASS. Still OPEN: export cursor/snapshot contract (steps 2–3), erasure intent persistence and receipts, per-attempt backoff timestamps, operator dashboard for dead-lettered rows, real Storage outage proof. Evidence class LOCAL (fake service client).
 
-### New audited repair and completion details (legacy P06)
+#### New audited repair and completion details (legacy P06)
 
 **Goal:** produce honest exports and durable erasure receipts.
 
@@ -3023,7 +3045,7 @@ Owners: account data-class map, `buildAccountExport`, deletion and tombstone own
 
 ---
 
-### Phase 09 exclusive exit gate
+#### Phase 09 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Cloud object storage/database fault injection with large streamed export, failed chunk/retry, concurrent erasure, worker crash, expired download and deletion receipts.
@@ -3039,7 +3061,9 @@ Owners: account data-class map, `buildAccountExport`, deletion and tombstone own
 
 **Cloud verification technique for this phase:** Cloud Chromium offline journeys with forced network isolation after verified install, interrupted download, OPFS storage pressure, cross-tab/account changes and held-out answer-quality test.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P07)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P07)
+
+### P07 — Make Offline Intelligence survive a real cold offline start
 
 **KEEP** the existing model, OPFS vault, installation authority, runtime activation, Web Locks, signed lease and single usage settlement. **Current gap:** `installation-browser.ts` consults an authenticated release resolver before `installation-authority.ts` checks local bytes; a new offline document may fail despite an installed model. Warm-tab tests do not establish cold-start operation.
 
@@ -3050,7 +3074,7 @@ Owners: account data-class map, `buildAccountExport`, deletion and tombstone own
 
 **Tests:** fresh browser process, installed bytes, network disabled before launch, valid lease; expired lease; evicted OPFS; wrong digest with same length; interrupted range download; two tabs create keys simultaneously; crash mid-install; update without re-download; offline journal sync after reconnection; account switch. Extend brain/commercial/chat tests and `scripts/e2e/offline-journey.mjs`; browser stubs cannot replace actual storage/restart evidence. **DONE:** cold offline use and repair work on declared browser/device matrix. **Privacy/cost:** local pre/post-processing only inside granted scope, no model-byte re-download on ordinary app update. **Rollback:** retain compatible previous manifest/runtime; never discard only conversation copy. **Depends:** P00/P05, independent of native-control work. **Retire:** network-first activation and destructive ciphertext-error cleanup after parity.
 
-#### Detailed ordered implementation supplement — P07
+##### Detailed ordered implementation supplement — P07
 
 1. Preserve final-byte signing and upstream model identity.
 2. Define readiness across bytes, signature, runtime, lease, keys and trusted clock.
@@ -3065,7 +3089,7 @@ Owners: account data-class map, `buildAccountExport`, deletion and tombstone own
 
 **Work record — P07 cold offline activation (11 October 2026):** Reproduced by source trace and test: with no connection `resolveTarget` returned `unreachable` and `attemptPath` stopped with "could not reach your account" before looking at the vault, so a device holding a verified model could not start Offline Intelligence in a new document. **FIX:** on `unreachable`, the authority activates the vault's active version when its metadata is verified and its bytes are present; otherwise it reports unreachable as before. Test fails without the fix; brain suite 171/171 PASS. Still OPEN: app-shell availability of a brand-new offline document (service worker), corrupt-bytes quarantine instead of deletion, cross-tab key race, real cold-offline browser proof (final campaign). Evidence class LOCAL.
 
-### New audited repair and completion details (legacy P07)
+#### New audited repair and completion details (legacy P07)
 
 **Goal:** make installed Offline Intelligence usable and understandable without network access.
 
@@ -3095,7 +3119,7 @@ Owners: account data-class map, `buildAccountExport`, deletion and tombstone own
 
 ---
 
-### Phase 10 exclusive exit gate
+#### Phase 10 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Cloud Chromium offline journeys with forced network isolation after verified install, interrupted download, OPFS storage pressure, cross-tab/account changes and held-out answer-quality test.
@@ -3111,7 +3135,9 @@ Owners: account data-class map, `buildAccountExport`, deletion and tombstone own
 
 **Cloud verification technique for this phase:** Isolated Windows VM with newly installed unfamiliar compatible software and version changes; interface discovery harmless read, recipe promotion/quarantine and forbidden app-name shortcut checks.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P10)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P10)
+
+### P10 — Discover capabilities and learn safe recipes
 
 Extend `ocade_discovery.py`, `ocade_computer.py`, `src/jarvis/docs.server.ts` and existing task memory. Collect installed app identity/version, executable signer/path, supported automation interfaces and granted resource scopes. Cache only metadata actually used; no continuous full-content indexing or global file upload.
 
@@ -3121,7 +3147,7 @@ Compile a recipe only after multiple successful varied fixtures and a negative t
 
 **Tests:** app upgrade; forged docs instruction; stale selector; missing API; renamed window; injected credential request; recipe from account A on B; drift forces replan; unfamiliar application chosen after freeze. **DONE:** repeat workflow uses fewer planning calls without reduced proof/fidelity, and safely refuses stale recipes. **Cost:** warm lookup budget; cache measured misses rather than speculative global registry. **Rollback:** invalidate recipe, use canonical planner/action path. **Depends:** P08/P09. **Retire:** static coordinates and redundant maps only after parity; retain compact aliases and advantageous native adapters.
 
-#### Detailed ordered implementation supplement — P10
+##### Detailed ordered implementation supplement — P10
 
 Owners: `app_info`, version discovery, `recipes_for`, `save_recipe`.
 
@@ -3137,7 +3163,7 @@ Owners: `app_info`, version discovery, `recipes_for`, `save_recipe`.
 
 **Work record — P10 step 7 (11 October 2026):** Discovery (`app_info`: program, version, COM servers, file types, scripting folders, cached per program build) and sanitised device-local recipes (no coordinates, paths, addresses, codes or secrets; a new major version hides old ones) already exist. Gap: a recipe that stopped working kept being offered. **FIX:** `recipe_save` takes `worked: false`; two failures in a row set the recipe aside, a later success restores it, and the planner prompt says to report failures. Tests: `test_discovery.py` 10/10 PASS. Still OPEN: typed parameter schema and verifier references per recipe, multi-fixture compile gate, canary after drift, account sync (opt-in). Evidence class LOCAL.
 
-### New audited repair and completion details (legacy P10)
+#### New audited repair and completion details (legacy P10)
 
 **Goal:** support unfamiliar applications through existing capabilities without app-name proliferation.
 
@@ -3167,7 +3193,7 @@ Owners: `app_info`, version discovery, `recipes_for`, `save_recipe`.
 
 ---
 
-### Additional research, defect provenance and cross-platform constraints owned by this phase
+#### Additional research, defect provenance and cross-platform constraints owned by this phase
 
 **Unfamiliar applications should be handled through capability discovery and qualification.**
 
@@ -3177,7 +3203,7 @@ The missing progression is:
 
 ---
 
-### Phase 11 exclusive exit gate
+#### Phase 11 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Isolated Windows VM with newly installed unfamiliar compatible software and version changes; interface discovery harmless read, recipe promotion/quarantine and forbidden app-name shortcut checks.
@@ -3193,7 +3219,9 @@ The missing progression is:
 
 **Cloud verification technique for this phase:** Disposable Windows VM clean install/pairing, signed-updater simulation, rollback/uninstall, browser profile authorisation, Playwright DOM/CDP coverage and browser-access revocation.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P11)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P11)
+
+### P11 — Deliver one extension-free installation and browser experience
 
 Reuse `src/lib/agent/release.ts`, `release.functions.ts`, `src/routes/api/jarvis/enroll.ts`, `ocade_identity.py`, `ocade_existing_browser.py`, `ocade_update.py` and existing packaging. Pair through authenticated website + short-lived one-time code bound to device public key; display device identity and require the local user's consent. Agent uses outbound authenticated exchange. Do not expose unauthenticated localhost/LAN/CDP control, permanent pairing codes or browser-origin trust alone.
 
@@ -3203,7 +3231,7 @@ For existing signed-in Chrome/Edge, use a supported attachment only when legitim
 
 **Tests:** clean non-admin Windows install; website closed/reopened; OS restart; multiple accounts; duplicate agents; revoked pairing; replay/CSRF/origin probes; Chrome default profile versus managed profile; tab/window restart; upload/download scope; partial signed update; rollback; uninstall/reinstall. Use manual installed lifecycle/update/existing-Chrome probes and real signed artefact. **DONE:** no customer developer setup, correct browser/privacy explanation, measured idle supervisor target <0.5% of one CPU core and <100 MiB RSS on reference hardware with wake off (proposed, revise only with evidence). **Cost:** sign/distribution trust has real operational cost; zero app-store fee does not mean free code-signing. **Rollback:** signed last-known-good package, compatible protocol, no signature bypass. **Depends:** P03/P08–P10. **Retire:** duplicate installer/browser authority and post-install wake-download path only after bundled signed parity.
 
-#### Detailed ordered implementation supplement — P11
+##### Detailed ordered implementation supplement — P11
 
 1. Verify signed installer identity.
 2. Pair exact fingerprint/account.
@@ -3217,7 +3245,7 @@ For existing signed-in Chrome/Edge, use a supported attachment only when legitim
 
 **Work record — P11 Exit stops owned work (11 October 2026):** Reproduced by test: tray Exit with a task running set STOP and ended the exchange loop at once, so OCADE never heard the STOP and the task stayed "running" until orphan detection paused it. **FIX:** after halting, a pending STOP is sent in one last best-effort exchange with the halted step's result; anything not received stays in the result journal for the next start. Test fails without the fix; safety/agent 59/59 PASS. Still OPEN (installed-lifecycle, manual): signed installer identity, pairing fingerprint display, reboot/sign-out/revoke matrix, Chrome default-profile vs managed profile, idle CPU/RSS measurement, uninstall/reinstall. Evidence class LOCAL.
 
-### New audited repair and completion details (legacy P11)
+#### New audited repair and completion details (legacy P11)
 
 **Goal:** provide one secure installation path and supported browser control.
 
@@ -3247,7 +3275,7 @@ For existing signed-in Chrome/Edge, use a supported attachment only when legitim
 
 ---
 
-### Phase 12 exclusive exit gate
+#### Phase 12 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Disposable Windows VM clean install/pairing, signed-updater simulation, rollback/uninstall, browser profile authorisation, Playwright DOM/CDP coverage and browser-access revocation.
@@ -3263,7 +3291,9 @@ For existing signed-in Chrome/Edge, use a supported attachment only when legitim
 
 **Cloud verification technique for this phase:** Isolated recorded-audio fixtures plus cloud browser microphone permission/turn-state simulations, false-wake, interrupted speech playback, user input during speaking and hard STOP.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P12)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P12)
+
+### P12 — Make voice interruptible without duplicating the task engine
 
 **Current:** `src/jarvis/use-voice.ts` stops recognition during speech output and waits before restarting; a button interruption is not spoken barge-in. Output error handling must not leave the speaking state stuck.
 
@@ -3275,7 +3305,7 @@ Status questions read task state without replanning. Redirect creates a new inte
 
 **Tests:** speak over TTS; false barge-in from speaker echo; output service error; double start; microphone denied/revoked; tab background; device lock; network loss during tool effect; reconnect replay; Indian English and consented Hindi-English utterances; STOP in noise; text-only fallback. **DONE:** no stuck mic/speaking state; explicit task STOP prevents the next admitted effect, while an audio-only interruption/status question leaves valid task execution intact; record end-of-speech-to-first-response p50/p95 and false wake/interruption rates. Initial targets: p95 local playback interruption ≤150 ms after recognised local interruption, provider response measured separately. **Cost:** push-to-talk free baseline; cap streamed minutes, avoid audio during idle. **Rollback:** text and push-to-talk remain usable, disable full-duplex experimentally. **Depends:** P02/P03/P09; no paid audio rollout before P20. **Retire:** overlapping recognisers/wake services only after parity.
 
-#### Detailed ordered implementation supplement — P12
+##### Detailed ordered implementation supplement — P12
 
 Owners: `useJarvisVoice` and existing local wake authority.
 
@@ -3291,7 +3321,7 @@ Owners: `useJarvisVoice` and existing local wake authority.
 
 **Work record — P12 phase 1 and ToRemove voice/UI rows (11 October 2026):** Reproduced by source trace in `useJarvisVoice`: Start → End → Start while the permission prompt was open let the first `getUserMedia` land in the second session (a second microphone stream nobody stopped); the meter's `requestAnimationFrame` loop checked only `audio.current`, so an old loop survived a restart; a cancelled utterance's late `onend` could switch a newer utterance to listening mid-speech (echo). **FIX:** one session number for start/meter/end and one per utterance; a stale callback releases only its own stream and does nothing else. Also: `stopEverywhere` waits on the device acknowledgement event instead of a fixed 1 s sleep (1 s fallback kept); the Orb draws frames only while there is sound (idle and hidden: zero frames; hover, level, drag and zoom repaint); co-work no longer lets JARVIS's clicks, typing or paste continue over the person's own input (foreground-only actions keep the co-work choice). Tests: typecheck/lint; `test_computer.py` 34 PASS with the co-work rule inverted; voice hook and Orb have no DOM test harness here: browser proof in the final campaign (UNTESTED). Still OPEN: barge-in vs task STOP distinction, Hindi/English code-switching tests, provider reconnect. Graph per-category cap deferred until the campaign measures paint cost without the idle loop.
 
-### New audited repair and completion details (legacy P12)
+#### New audited repair and completion details (legacy P12)
 
 **Goal:** voice controls the same task engine without creating competing audio or execution owners.
 
@@ -3321,7 +3351,7 @@ Owners: `useJarvisVoice` and existing local wake authority.
 
 ---
 
-### Phase 13 exclusive exit gate
+#### Phase 13 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Isolated recorded-audio fixtures plus cloud browser microphone permission/turn-state simulations, false-wake, interrupted speech playback, user input during speaking and hard STOP.
@@ -3337,7 +3367,9 @@ Owners: `useJarvisVoice` and existing local wake authority.
 
 **Cloud verification technique for this phase:** Cloud Android Studio emulator API-level/OEM-variation matrix where possible, real browser navigation/readback, rotation, overlays, accessibility revocation, Doze and process/reboot recovery.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P13)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P13)
+
+### P13 — Make Android reliable within Android's actual permissions
 
 Extend the existing `android/src/in/ocade/app` classes and signed APK packaging rather than introducing another mobile framework. Guided website onboarding requests only the permissions required for the chosen task: pairing first, Accessibility for app control, notification/foreground service for continuing work, microphone for voice, overlay for optional bubble. Explain denial and revocation with a retry path. Keep OS-owned prompts and protected authentication boundaries.
 
@@ -3345,7 +3377,7 @@ Apply P02 observation generations and P03 durable journal before claiming depend
 
 **Tests:** Pixel 6a API 34 x86_64 Google APIs emulator as pinned primary configuration, stable snapshot, 2–4 vCPU/2–4 GiB guest RAM depending on host capacity; separate API 33 fixture only where a research benchmark requires it. Test rotation, keyboard, overlay, notification denial, accessibility revoke, process death, Doze/background limits, reboot, install/update/uninstall, bubble focus and STOP. Real-device OEM/background/wake evidence remains BLOCKED until hardware is available. **DONE:** supported scope passes emulator plus required physical gate; no extrapolation to all OEMs. **Cost:** local emulator/WHPX first; free hosted quota only after checking availability. **Rollback:** last signed compatible APK, disable app-control capability if stale-state safety fails. **Depends:** P02/P03/P08/P11/P12. **Retire:** duplicate permission/setup screens after guided flow parity.
 
-#### Detailed ordered implementation supplement — P13
+##### Detailed ordered implementation supplement — P13
 
 Owners: `android/src/in/ocade/app/AgentService.java`, `Control.java`, `Identity.java`, `OcadeAccessibility.java`.
 
@@ -3360,7 +3392,7 @@ Owners: `android/src/in/ocade/app/AgentService.java`, `Control.java`, `Identity.
 
 **Work record — P13 step 3 (11 October 2026):** `OcadeAccessibility` ignored every event, so a control or screen observation stayed "current" across a new activity, dialog, overlay or rotation until the next read. **FIX:** window-state and window-list changes from other apps (OCADE's own bubble excluded) and configuration changes (rotation, resize, density) invalidate both held observations; the next step reads the screen again. Steps 2 and 4 landed earlier (durable results; STOP at the final effect, 60 s observation age). Compiles (`build.py`); emulator proof deferred to the final campaign (UNTESTED). Still OPEN: guided per-task permission requests, interrupted gesture reconciliation, Doze/process-death/revoke matrix, physical OEM evidence (BLOCKED: no hardware).
 
-### New audited repair and completion details (legacy P13)
+#### New audited repair and completion details (legacy P13)
 
 **Goal:** reliable permitted phone workflows with durable recovery.
 
@@ -3390,7 +3422,7 @@ Owners: `android/src/in/ocade/app/AgentService.java`, `Control.java`, `Identity.
 
 ---
 
-### Phase 14 exclusive exit gate
+#### Phase 14 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Cloud Android Studio emulator API-level/OEM-variation matrix where possible, real browser navigation/readback, rotation, overlays, accessibility revocation, Doze and process/reboot recovery.
@@ -3406,7 +3438,9 @@ Owners: `android/src/in/ocade/app/AgentService.java`, `Control.java`, `Identity.
 
 **Cloud verification technique for this phase:** Cloud WebKit/iOS viewport and Safari/PWA journey tests, remote paired-computer workflow checks; label any macOS/physical iPhone requirements BLOCKED until legitimate device evidence exists.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P14)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P14)
+
+### P14 — Stage Apple support honestly
 
 Inspect `jarvis-runtime/packaging/macos/build.sh`, entitlements, install-root assumptions in `ocade_agent.py`, `ocade_computer.py` and update paths. Current source does not prove Windows-equivalent semantic control on macOS. Implement legitimate Accessibility/Apple Events permissions and native bundle lifecycle only after real Mac testing is available. Do not claim an unsigned development launch proves a signed/notarised update installation.
 
@@ -3414,7 +3448,7 @@ Ship Safari/PWA Chat, files within browser permission and remote paired-PC JARVI
 
 **Tests:** WebKit layout/auth/storage/service-worker compatibility; physical Safari install/resume/share; device sleep/reconnect; Mac TCC denial/revoke; update app-bundle path; multi-monitor and keyboard layout; remote STOP from iPhone. **DONE:** per-capability platform table with actual evidence; no blanket universal badge. **Cost:** borrowed/owner-provided legitimate hardware first, paid device services owner-approved; no unsupported virtual Mac. **Rollback:** remove unsupported capability advertisement while retaining remote-PC/PWA. **Depends:** P11; P02/P03 for native execution. **Retire:** unsupported parity claims, not genuine cross-platform code that preserves a security boundary.
 
-#### Detailed ordered implementation supplement — P14
+##### Detailed ordered implementation supplement — P14
 
 1. Add only sanctioned capability adapters behind the same broker.
 2. Check Mac permissions/signing and actual installed interfaces.
@@ -3426,7 +3460,7 @@ Ship Safari/PWA Chat, files within browser permission and remote paired-PC JARVI
 
 **Work record — P14 (11 October 2026):** No code change. Source keeps the claims honest: the desktop agent reports `accessibility` only on Windows and refuses `ui_inspect`/`ui_act` elsewhere; macOS screen/control capabilities follow TCC grants. Every Mac/iOS capability claim needs real hardware: **BLOCKED** (no Mac or iPhone/iPad; iOS website coverage will be Playwright WebKit emulation, labelled as such, native/physical iOS UNTESTED).
 
-### New audited repair and completion details (legacy P14)
+#### New audited repair and completion details (legacy P14)
 
 **Goal:** offer useful Apple access without pretending to have unsupported native control.
 
@@ -3456,7 +3490,7 @@ Ship Safari/PWA Chat, files within browser permission and remote paired-PC JARVI
 
 ---
 
-### Phase 15 exclusive exit gate
+#### Phase 15 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Cloud WebKit/iOS viewport and Safari/PWA journey tests, remote paired-computer workflow checks; label any macOS/physical iPhone requirements BLOCKED until legitimate device evidence exists.
@@ -3472,7 +3506,9 @@ Ship Safari/PWA Chat, files within browser permission and remote paired-PC JARVI
 
 **Cloud verification technique for this phase:** Cloud Playwright browser E2E across mobile/desktop viewports, keyboard/screen-reader automation, snapshot visual regression, reduced motion, authorisation UI and state-injection tests.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P15)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P15)
+
+### P15 — Rebuild the visible experience around truthful work state
 
 Implement [PRD](docs/PRD.md)'s complete route/control matrix and [Design system](docs/JARVIS_DESIGN_SYSTEM.md)'s single palette. Keep top-level Chat, JARVIS, Library; JARVIS contains Conversations, Activity, Devices. Keep exactly five Settings groups; use the names/options in PRD, not a second list here. No extra routes for things already well served by a panel.
 
@@ -3482,7 +3518,7 @@ Browser previews include capture time, target identity and stale/disconnected st
 
 **Tests:** every retained control has an event/action and success/failure/disabled state; signed-in query failure; keyboard-only navigation; screen reader names; focus return; 200%/400% zoom; touch; narrow landscape; offline; 404 safe escape; owner links absent for customers; CSS contrast; dark/light; no phantom success. Use existing shell/settings/polish/jarvis/auth/library journeys. **DONE:** full PRD control matrix with evidence, accessible contrast and no required hidden setup. **Cost:** measure main-thread blocking, animation CPU and bundle delta before/after. **Rollback:** coherent UI revert, preserve backend state contracts. **Depends:** P01/P05/P07/P11/P12; UI skeleton work may start earlier. **Retire:** duplicated settings, dead controls and always-mounted expensive visuals only after coverage.
 
-#### Detailed ordered implementation supplement — P15
+##### Detailed ordered implementation supplement — P15
 
 1. Apply the selected tokens/layout.
 2. Complete the source-callback control matrix.
@@ -3498,7 +3534,7 @@ Browser previews include capture time, target identity and stale/disconnected st
 
 **Work record — P15 failure states (11 October 2026):** Scanned every UI query and mutation for unhandled failures. Reads: all distinguish failure from empty (`Pending`), except the staff-console link, which correctly hides on error. Mutations: Settings > Advanced "Sign out"/"Sign out everywhere else" swallowed thrown errors (the button simply reset). **FIX:** a thrown failure now says "Signing out did not finish. Check your connection and try again."; a cancelled identity check stays silent. Typecheck/lint PASS; browser proof in the final campaign (UNTESTED). Still OPEN: the PRD route/control matrix, token/layout rebuild, focus/IME rules, preview frame generations, every width/theme/input mode.
 
-### New audited repair and completion details (legacy P15)
+#### New audited repair and completion details (legacy P15)
 
 **Goal:** implement the screen/control matrix in Part B without another UI framework.
 
@@ -3528,7 +3564,7 @@ Browser previews include capture time, target identity and stale/disconnected st
 
 ---
 
-### Additional research, defect provenance and cross-platform constraints owned by this phase
+#### Additional research, defect provenance and cross-platform constraints owned by this phase
 
 The approved product structure is already sensible. Preserve it.
 
@@ -3825,11 +3861,11 @@ Apple’s button guidance is useful for consistency and clear action meaning; co
 
 ---
 
-## 15. Product navigation and screen decisions
+### 15. Product navigation and screen decisions
 
 Use the existing [PRD](docs/PRD.md) and [design authority](docs/JARVIS_DESIGN_SYSTEM.md). Do not introduce another design system.
 
-### Main experience
+#### Main experience
 
 | Screen | KEEP | IMPROVE / COMBINE | REMOVE | ADD |
 |---|---|---|---|---|
@@ -3843,7 +3879,7 @@ Use the existing [PRD](docs/PRD.md) and [design authority](docs/JARVIS_DESIGN_SY
 | Browser preview | Existing observation surface | Show capture time and stale state | Implied live video when it is a snapshot | Current page/application identity |
 | Task result | Open/download output | Show what was verified and exceptions | Green completion based only on model text | Durable receipt and recovery options |
 
-### Task controls
+#### Task controls
 
 - **STOP:** always reachable during active work.
 - **Take over:** releases automated input ownership and invalidates observations.
@@ -3853,7 +3889,7 @@ Use the existing [PRD](docs/PRD.md) and [design authority](docs/JARVIS_DESIGN_SY
 - **Open result:** opens the verified version, not an arbitrary similarly named file.
 - **Undo:** available only when conflict checks permit safe restoration.
 
-### Exactly five Settings groups
+#### Exactly five Settings groups
 
 | Group | Options and implementation direction |
 |---|---|
@@ -3867,7 +3903,7 @@ Reuse [settings-panel.tsx](src/components/settings/settings-panel.tsx), [Billing
 
 Do not delete a security control because its current component name says “Advanced.”
 
-### Device permissions
+#### Device permissions
 
 Preserve the current permission authority. Present:
 
@@ -3887,7 +3923,7 @@ Preserve the current permission authority. Present:
 
 Changing a permission must affect admission and final effect execution. Hiding a control does not revoke its authority.
 
-### Auth, help and public pages
+#### Auth, help and public pages
 
 | Screen | Required treatment |
 |---|---|
@@ -3902,7 +3938,7 @@ Changing a permission must affect admission and final effect execution. Hiding a
 
 The current [Help page](src/routes/help.tsx:366) explicitly says dedicated support/privacy/security/grievance email addresses are not published. This is a launch gap, not a reason to invent addresses in the UI.
 
-### Owner and staff console
+#### Owner and staff console
 
 Retain the integrated console with five clear modules:
 
@@ -3928,7 +3964,7 @@ Do not display mock revenue as business performance.
 
 Private-content access requires customer approval scoped to the specific case, content, reader and expiry. Notification after access is not consent before access.
 
-### Visual and interaction rules
+#### Visual and interaction rules
 
 - Preserve graphite/black/white/blue.
 - Use semantic colour with text labels.
@@ -3941,7 +3977,7 @@ Private-content access requires customer approval scoped to the specific case, c
 - Keep controls comfortably touchable; STOP should be particularly easy to reach.
 - Do not fabricate completion percentages.
 
-### Phase 16 exclusive exit gate
+#### Phase 16 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Cloud Playwright browser E2E across mobile/desktop viewports, keyboard/screen-reader automation, snapshot visual regression, reduced motion, authorisation UI and state-injection tests.
@@ -3957,7 +3993,9 @@ Private-content access requires customer approval scoped to the specific case, c
 
 **Cloud verification technique for this phase:** Cloud disposable application VMs and fixture media projects: inspect editable project/slide/workbook, actual chart numbers, generated 720p/1080p renders, save/reopen and unsupported edition refusals.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P17)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P17)
+
+### P17 — Add professional application coverage through supported interfaces
 
 Use P10 discovery and P08 broker; do not install whole competitor frameworks. Excel/Word use existing object-model adapters. Browser workflows use supported DOM/accessibility paths. Coding uses scoped filesystem, task-owned terminal/Git and tests; never automatic commit/push unless authorised by the user. Blender uses its installed Python API on a copy; Fusion uses the installed supported API; Resolve/Fusion video work uses the installed scripting documentation and edition/version capability. Old web examples are not proof of current SDK availability.
 
@@ -3965,7 +4003,7 @@ For each new family, implement a thin typed capability only if existing generic 
 
 **Tests:** Excel macro/formula workbook; Word styled document with images; Blender native scene/reopen/render dimensions; Fusion units/components/export plus native reopen; video project/media relink/frame rate and bounded sample render; coding fixture diff and tests; unfamiliar installed app with no adapter selected after freeze. Include missing licence, unsupported edition, disk full, app crash, user modification and STOP. **DONE:** each advertised application/version has its own current native evidence, not merely a successful click. **Cost:** customer-installed licensed apps; no bundled commercial licence assumption, no default GPU cloud render. **Rollback:** preserve original and outputs, invalidate capability version; avoid killing shared app. **Depends:** P01/P04/P08/P10. **Retire:** specialised adapter only when generic replacement proves superior fidelity/safety/time.
 
-#### Detailed ordered implementation supplement — P17
+##### Detailed ordered implementation supplement — P17
 
 First qualify Excel, Word, PowerPoint and browsers, then coding, CAD/Blender, creative/media and connectors according to installed capability and customer evidence.
 
@@ -3982,7 +4020,7 @@ For each adapter:
 
 No second universal execution engine.
 
-### New audited repair and completion details (legacy P17)
+#### New audited repair and completion details (legacy P17)
 
 **Goal:** preserve editable native results and supported fidelity.
 
@@ -4012,11 +4050,11 @@ No second universal execution engine.
 
 ---
 
-### Additional research, defect provenance and cross-platform constraints owned by this phase
+#### Additional research, defect provenance and cross-platform constraints owned by this phase
 
-## 16. Offline, platforms and professional applications
+### 16. Offline, platforms and professional applications
 
-### Offline Chat
+#### Offline Chat
 
 Retain the existing model, OPFS storage, installation authority, signed release identity, Web Locks and signed usage allowance.
 
@@ -4036,13 +4074,13 @@ Offline inference is not the same as local-only storage. The current product can
 
 JARVIS remains online-only. Provider failure must not silently route it to the offline model.
 
-### Windows
+#### Windows
 
 Primary native launch platform. Require the full website→server→companion→application→verifier chain in disposable Windows environments.
 
 Keep native APIs, UI Automation, controlled browser access and visual fallback.
 
-### Android
+#### Android
 
 Keep the existing on-device APK. Do not require customers to install ADB or a desktop harness.
 
@@ -4050,7 +4088,7 @@ Qualify Chrome navigation, permission revocation, process death, Doze, rotation,
 
 Google Play’s Accessibility policy restricts autonomous initiation, planning and execution through that API. Distribution must be qualified against the actual policy; APK sideloading is not evidence of Play approval. [Google Play Accessibility policy](https://support.google.com/googleplay/android-developer/answer/10964491)
 
-### Apple
+#### Apple
 
 Initial claim:
 
@@ -4063,7 +4101,7 @@ Native macOS control requires real permission, packaging, signing, update and re
 
 Do not claim arbitrary iPhone application control. Simulator/WebKit evidence does not establish physical-device behaviour.
 
-### Professional software
+#### Professional software
 
 - ONLYOFFICE first under the owner’s current priority, subject to exact edition/licence and deployment suitability.
 - Preserve Microsoft Office adapters for fidelity and later licensed qualification.
@@ -4073,7 +4111,7 @@ Do not claim arbitrary iPhone application control. Simulator/WebKit evidence doe
 - Validate actual 720p/1080p outputs and editable source projects.
 - Use only owned, licensed or public-domain media.
 
-### Phase 17 exclusive exit gate
+#### Phase 17 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Cloud disposable application VMs and fixture media projects: inspect editable project/slide/workbook, actual chart numbers, generated 720p/1080p renders, save/reopen and unsupported edition refusals.
@@ -4089,7 +4127,9 @@ Do not claim arbitrary iPhone application control. Simulator/WebKit evidence doe
 
 **Cloud verification technique for this phase:** Frozen public/synthetic held-out customer fixtures with full model→device→artifact chain; independent verifier checks, 30 parameterised cases per recurring workflow and human-intervention accounting.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P18)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P18)
+
+### P18 — Ship three measurable recurring workflows
 
 1. **Weekly checked Excel report:** accept scoped source workbook/CSV files; agree target columns, totals and exceptions; produce a new editable workbook and concise review summary; verify totals via independent calculation and reopen in Excel. Ask only for unresolved business rules. Record source/output digests and differences without exposing contents in public proof.
 2. **Client document/PDF pack:** populate approved templates, preserve styles, validate required fields, render/reopen and compare page/attachment checklist; stop before sending unless the user explicitly authorises delivery. Separate structural completeness from human approval of wording.
@@ -4101,7 +4141,7 @@ Wire through existing task templates/prompts, Library and receipts; do not creat
 
 **Tests/DONE:** 30 parameterised tasks per workflow, fresh/repeat cases, corrupted input, changed app version, permission withdrawal and recovery; target ≥95% independently verified success on the declared held-out pilot scope, zero falsely verified completions and no critical safety violation. Report confidence/sample size; 30/30 is not proof of universal reliability. Compare competitors only on the same allowed task, model/version, device and time/cost accounting. **Cost:** include human support/recovery minutes in margin. **Rollback:** disable recipe, retain manual output review; no paid guarantee before P20. **Depends:** P01–P12 relevant gates and P15/P16; P17 only for claimed apps. **Retire:** demo-only flows that cannot show a checked customer outcome.
 
-#### Detailed ordered implementation supplement — P18
+##### Detailed ordered implementation supplement — P18
 
 **Flagship:** browser research or local input → Excel calculation → Word/PDF report, optionally PowerPoint. At least two installed applications must perform substantive work.
 
@@ -4113,7 +4153,7 @@ Each workflow preserves originals, provides a receipt for every mandatory artifa
 
 **Owner B01–B10/B41–B47 repeat-value contract:** Prioritise checked accounting totals and cross-app Excel → editable Word/PDF before expanding demo breadth. Run a real free example and user-authorised actual inputs through the same verifier: record accuracy, provenance, elapsed work and human corrections, not claimed universal app support or speculative hours saved. One approved workflow can be repeated with fresh resource scope, rechecked application version and approved output preferences; store only sanitised reusable steps and user-authorised metadata, never retained credentials/raw private inputs or stale coordinates. Give clear before/after and exception-only human review. User can discover weekly finance, monthly client pack, browser reconciliation and regular document uses; expand professional coverage only when repeat demand, fidelity and support costs justify it. The customer controls whether any verified proof/recipe is exported or shared.
 
-### New audited repair and completion details (legacy P18)
+#### New audited repair and completion details (legacy P18)
 
 **Goal:** prove useful customer outcomes before scaling feature breadth.
 
@@ -4150,7 +4190,7 @@ Each workflow preserves originals, provides a receipt for every mandatory artifa
 
 ---
 
-### Additional research, defect provenance and cross-platform constraints owned by this phase
+#### Additional research, defect provenance and cross-platform constraints owned by this phase
 
 This is a specification for later authorised implementation. No changes were made.
 
@@ -4254,7 +4294,7 @@ Use durable aggregate state or a verified journal frontier plus complete handlin
 
 ---
 
-### Phase 18 exclusive exit gate
+#### Phase 18 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Frozen public/synthetic held-out customer fixtures with full model→device→artifact chain; independent verifier checks, 30 parameterised cases per recurring workflow and human-intervention accounting.
@@ -4270,7 +4310,9 @@ Use durable aggregate state or a verified journal frontier plus complete handlin
 
 **Cloud verification technique for this phase:** Before/after package build and binary size, dependency, request/idle CPU, latency and behavior snapshots on the SAME immutable fixtures; reinstate changes on any lost capability.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P22)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P22)
+
+### P22 — Proof-based cleanup and gated expansion
 
 Apply Ponytail Ultra after behaviour is proven: search all callers, identify replacement, measure baseline, delete, rerun regression, adversarial and real-user proof. Follow [ToRemove.md](ToRemove.md). No deletion quota. Preserve signatures, cancellation checks, licences, immutable donor sources, applied migrations, recovery, accessibility and unique evidence. Publish changed active LOC/modules/dependencies/package size and relevant p50/p95; do not count immutable history as disposable bloat.
 
@@ -4278,13 +4320,13 @@ Apply Ponytail Ultra after behaviour is proven: search all callers, identify rep
 
 Candidate ideas to test: a private difference preview before each recurring run; resume by reconciling reality after a crash; exception-only human review; a receipt portable across organisations without raw data; version-change canary tests that quarantine a recipe before customer damage. Each reuses existing contracts. Measure customer willingness to pay and reduction in support, not novelty. **DONE:** simplified shipped scope retains every required capability and gate; expansion has a paying problem and a bounded experiment. **Rollback:** revert cleanup as a coherent commit; do not restore an unsafe bypass. **Depends:** release-scope cleanup follows P19/P20 and returns through final P19/P00-B before P21; later expansion follows P21. **Retire:** only individually proven obsolete paths.
 
-#### Detailed ordered implementation supplement — P22
+##### Detailed ordered implementation supplement — P22
 
 Apply the exact inventory below only after replacement proof. Any candidate-changing cleanup invalidates affected qualification evidence.
 
 Expand teams, connectors, Apple and professional breadth through the same contracts. Preserve the complete vision without crowding initial navigation or advertising unsupported functions.
 
-### New audited repair and completion details (legacy P22)
+#### New audited repair and completion details (legacy P22)
 
 **Goal:** reduce maintenance and execution cost without deleting useful capability.
 
@@ -4316,7 +4358,7 @@ Run release-scope simplification before the core P19 freeze. Later expansion is 
 
 ---
 
-### Additional research, defect provenance and cross-platform constraints owned by this phase
+#### Additional research, defect provenance and cross-platform constraints owned by this phase
 
 The largest useful reductions are in duplicated ownership, repeated model work and misleading UI—not indiscriminate deletion.
 
@@ -4369,7 +4411,7 @@ Do not claim a percentage reduction, package-size saving or latency improvement 
 
 ---
 
-## 17. Debloat decisions
+### 17. Debloat decisions
 
 **No entire PC-control subsystem or dependency was proved removable by this inspection.**
 
@@ -4394,7 +4436,7 @@ Do not claim a percentage reduction, package-size saving or latency improvement 
 
 Measure active code, package size, dependency count, idle CPU, requests and p95 latency before and after each simplification. Do not invent savings.
 
-### Phase 19 exclusive exit gate
+#### Phase 19 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Before/after package build and binary size, dependency, request/idle CPU, latency and behavior snapshots on the SAME immutable fixtures; reinstate changes on any lost capability.
@@ -4410,7 +4452,9 @@ Measure active code, package size, dependency count, idle CPU, requests and p95 
 
 **Cloud verification technique for this phase:** Independent adversarial cloud matrix: dependency, auth/RLS, Windows, web, Android, offline, privacy, restore, latency and negative pass/fail gates. Freeze candidate SHA and test receipt lineage.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P19)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P19)
+
+### P19 — Close verification holes and freeze the release candidate
 
 Repair `scripts/check-accessibility.mjs` so missing build/root/zero inspected targets cannot pass. Repair `scripts/e2e/harness.mjs`/consumers so BLOCKED is machine-readable and cannot count as a passed release gate despite process exit zero. Preserve useful local skipped-tool reporting but make required release scope fail closed. Inspect every gate's denominator, discovery and skipped-test treatment.
 
@@ -4420,7 +4464,7 @@ Run one independent adversarial pass and one real-user preview pass. Audit full 
 
 **DONE:** no required skip/blocked hidden as PASS, no Critical/Major release-scope defect, full evidence manifest bound to candidate SHA and explicit cloud-vs-real-OS evidence. **Resources:** apply Section 0.1's cloud-first order and MCP safeguards. Prefer preinstalled scripts/CLI over new MCPs; use Playwright/CDP for browser, isolated interactive Windows accessibility/API interfaces for native apps, Appium for remote Android emulator, and GitHub for source/CI. An MCP interface does not substitute for an operating system, installed application, legitimate licence or actual outcome proof. Tools are developer aids, not customer dependencies. **Rollback:** no promotion until proof; invalidate evidence after material code/config change. **Depends:** P00–P18 for shipped scope. **Retire:** brittle source-text tests only after stronger behavioural tests cover the invariant; never delete all negative tests as duplication.
 
-#### Detailed ordered implementation supplement — P19
+##### Detailed ordered implementation supplement — P19
 
 Repair unsafe/misleading harnesses before execution:
 
@@ -4441,7 +4485,7 @@ Freeze the candidate and run meaningful required tests. Missing required evidenc
 
 **Owner B01–B50 growth evidence gates:** Evaluate the first free real result and optional pairing via actual browser/device user journeys; observe first-screen comprehension, input methods, accurate result, denial/failed install, STOP, receipts, partial save, safe repeat, pricing visibility, checkout decline, free-without-card, successful cancellation, accessible refusal and privacy-safe share. Require real denominators and a dated cohort record for activation, checked task accuracy, 7/30-day voluntary reuse, paid conversion, customer-reported benefit, support and refunds. Source demonstrations and competitor challenges must be independently replayed on comparable authorised inputs, real saved results and software identities. A marketing claim is UNTESTED without matching executed evidence; a small five-person two-week trial is qualitative, not statistically representative.
 
-### New audited repair and completion details (legacy P19)
+#### New audited repair and completion details (legacy P19)
 
 **Goal:** establish release evidence for the exact candidate.
 
@@ -4471,7 +4515,7 @@ Freeze the candidate and run meaningful required tests. Missing required evidenc
 
 ---
 
-### Additional research, defect provenance and cross-platform constraints owned by this phase
+#### Additional research, defect provenance and cross-platform constraints owned by this phase
 
 **Implementation should follow P00–P22’s existing dependency order, with these concrete additions to the owning packages.**
 
@@ -4513,7 +4557,7 @@ These are planning estimates for one experienced engineer using an AI coding ass
 
 ---
 
-### Phase 20 exclusive exit gate
+#### Phase 20 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Independent adversarial cloud matrix: dependency, auth/RLS, Windows, web, Android, offline, privacy, restore, latency and negative pass/fail gates. Freeze candidate SHA and test receipt lineage.
@@ -4529,7 +4573,9 @@ These are planning estimates for one experienced engineer using an AI coding ass
 
 **Cloud verification technique for this phase:** Payment sandbox webhook signature tests, duplicate/reordered capture/refund cycles, concurrency, renewal reconciliation, tax/invoice correctness and lifecycle email delivery; live merchant checks only after approval.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P20)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P20)
+
+### P20 — Introduce honest paid access after merchant and margin gates
 
 **Current:** paid checkout/subscription infrastructure was retired; active entitlements are admin grants/free defaults and owner unlimited access. `src/lib/commercial/entitlement-resolver.ts`, settings Billing/Usage and the retirement migration are the baseline. Do not advertise a working subscription or revive old tables by reverting migration history.
 
@@ -4539,7 +4585,7 @@ Add forward billing schema only after selecting an approved merchant provider an
 
 **Tests:** duplicate/reordered/forged events; payment success with browser closed; payment failure after redirect; refund; cancel at period end; grace expiry; quota reservation/release after failed task; two simultaneous jobs; owner/account switch; webhook replay; reconciliation against provider sandbox then authorised low-value live transaction. **DONE:** paid access accurately reconciles; merchant approval and legal commitments recorded; unit economics include provider, audio, hosting, support, tax/payment fees/refunds. **STOP/recovery:** cancellation of a task does not independently reverse a payment; settlement follows explicit terms. **Rollback:** disable new checkout, preserve paid entitlements and reconcile obligations. **Depends:** P05/P06/P18/P19. **Retire:** dead subscription controls before launch; do not destroy historical invoices/records that must be retained.
 
-#### Detailed ordered implementation supplement — P20
+##### Detailed ordered implementation supplement — P20
 
 1. Preserve current entitlements/grants until approved migration.
 2. Reconcile retired checkout and legacy tier UI.
@@ -4554,7 +4600,7 @@ No pricing hypothesis becomes a deployed bill without approval.
 
 **Owner B21–B30 buying contract:** Let a useful result precede the upgrade request. Keep free Chat genuinely useful without requiring a card; limit free native/AI spend honestly. The permitted initial paid pilot offer exposes price, currency, full tax-inclusive payable amount where required, calendar renewal, work allowance, reset, concurrency, throttling, support, user-visible remaining balance, valid refund policy, cancellation and accessible billing history. Do not debit failed or empty answers or count internal retries as customer tasks; partial effects and ambiguous payment settlement must be stated truthfully and reconciled before deduction. A user spending limit cannot authorise work beyond safety or provider limits. Reserved words such as 'faster' or 'priority' require measured resource availability, no deceptive queue privileges. Test plan comparison and customer purchase clarity; first offer remains one approved tier until data supports alternatives. No dark-pattern prompts, urgency clocks, invented testimonials or covert fees.
 
-### New audited repair and completion details (legacy P20)
+#### New audited repair and completion details (legacy P20)
 
 **Goal:** introduce real paid access only after the core product is qualified.
 
@@ -4595,7 +4641,7 @@ No pricing hypothesis becomes a deployed bill without approval.
 
 ---
 
-### Phase 21 exclusive exit gate
+#### Phase 21 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Payment sandbox webhook signature tests, duplicate/reordered capture/refund cycles, concurrency, renewal reconciliation, tax/invoice correctness and lifecycle email delivery; live merchant checks only after approval.
@@ -4611,7 +4657,9 @@ No pricing hypothesis becomes a deployed bill without approval.
 
 **Cloud verification technique for this phase:** Final immutable-candidate cloud matrix after payment changes, controlled cohort observation, staging disaster recovery/rollback, customer service incidents and production gate evidence; no unapproved deployment.
 
-### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P21)
+#### Exact repository baseline, implementation procedure, target effects and historical work records (legacy P21)
+
+### P21 — Release safely and grow from proven work
 
 Use existing Workers/R2 release controller, not a new Pages deployment pipeline. `scripts/deploy.mjs` stages an immutable Worker version at zero traffic and probes identity/assets before promotion; extend gates where missing. Health confirms liveness/configuration identity, not successful model calls, RLS, billing or native installation. Signed update manifests must verify the final packaged bytes; never bypass InvalidSignature.
 
@@ -4627,7 +4675,7 @@ Growth starts with Indian students and independent professionals, with accountan
 
 **Tests/DONE:** signed install/update/uninstall, preview customer journey, rollback and data compatibility, hosted permission/provider checks, reconciled usage; five pilot customers repeat valuable work for four weeks before broad claims. **Cost:** proposed early gross margin ≥70% after variable compute/support accounting; revise price/scope if unmet. **Rollback:** stop acquisition/checkout or revert candidate while honouring existing customers. **Depends:** P19/P20 and owner production approval. **Retire:** stale release instructions and unsupported marketing, never recovery/provenance records.
 
-#### Detailed ordered implementation supplement — P21
+##### Detailed ordered implementation supplement — P21
 
 1. Freeze source/runtime/schema identities.
 2. Clear shipped rights.
@@ -4641,7 +4689,7 @@ Documentation merge does not authorise this release.
 
 **Owner B31–B50 distribution and loyalty contract:** Use a privacy-safe, proof-first landing/demo funnel. Discovery tests may use search, video creators, professional communities, educator/student communities, accounting groups, software partners and freelancer networks, only with authentic consented material and an owner-approved spend ceiling. Fair referral-credit pilots give both users bounded benefits only after verified legitimate value and abuse screening. Show optional redacted checked outputs and editable files, never leak a user's private input by default. Compare competing assistants monthly only when legitimate test access and matched outcomes exist; record accuracy, time, recovery, cost and failures, not popularity-only leaderboards. Hindi-first localisation and other markets require actual UI, speech/privacy, payment/legal and human support capability validation. Long-term loyalty must come from reliable signed execution, verified task history, saved scope-safe recipes and continuous measured improvement; no addictive streak manipulation or hidden renewal tactics. Scale marketing after evidence of repeat use and positive unit economics, not after view count alone.
 
-### New audited repair and completion details (legacy P21)
+#### New audited repair and completion details (legacy P21)
 
 **Goal:** controlled public availability with recovery, support and honest claims.
 
@@ -4671,7 +4719,7 @@ Documentation merge does not authorise this release.
 
 ---
 
-### Phase 22 exclusive exit gate
+#### Phase 22 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
 - Demonstrate Final immutable-candidate cloud matrix after payment changes, controlled cohort observation, staging disaster recovery/rollback, customer service incidents and production gate evidence; no unapproved deployment.
