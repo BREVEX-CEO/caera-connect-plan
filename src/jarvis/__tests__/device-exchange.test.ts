@@ -30,8 +30,10 @@ async function task(): Promise<string> {
 
 async function queue(taskId: string, action: object, confirmed = false): Promise<string> {
   const [row] = await twin.asServiceRole<{ id: string }>(
-    `insert into public.jarvis_activity (user_id, task_id, device_id, summary, action, status, confirmed)
-     values ('${A}', '${taskId}', '${device}', 's', ${lit(action)}, 'queued', ${confirmed})
+    // Queued by the loop that controls the task, as queueTaskAction does (20261016100000).
+    `insert into public.jarvis_activity (user_id, task_id, device_id, summary, action, status, confirmed, controller)
+     values ('${A}', '${taskId}', '${device}', 's', ${lit(action)}, 'queued', ${confirmed},
+             (select controller from public.jarvis_tasks where id = '${taskId}'))
      returning id`,
   );
   return row!.id;
@@ -227,6 +229,77 @@ describe("results", () => {
 });
 
 describe("STOP", () => {
+  const LOOP = "11111111-2222-4333-8444-555555555555";
+  const OTHER_LOOP = "99999999-8888-4777-8666-555555555555";
+  /** queueTaskAction as a loop sees it when STOP or a takeover lands between its read and insert. */
+  const queueAfterARace = async (t: string, action: object) => {
+    const real = rest();
+    const snapshot = {
+      id: t,
+      status: "running",
+      device_id: device,
+      browser_mode: "isolated",
+      controller: LOOP,
+    };
+    const read = {
+      select: () => read,
+      eq: () => read,
+      maybeSingle: () => Promise.resolve({ data: snapshot, error: null }),
+    };
+    const stale = { from: (table: string) => (table === "jarvis_tasks" ? read : real.from(table)) };
+    return queueTaskAction(stale as never, real as never, A, {
+      taskId: t,
+      controller: LOOP,
+      action: action as never,
+    });
+  };
+
+  it("queues nothing that lands after STOP or a takeover, and says which (Phase 02, V03)", async () => {
+    const t = await task();
+    await permit("files", true);
+    await twin.asServiceRole(
+      `update public.jarvis_tasks set controller = '${LOOP}' where id = '${t}'`,
+    );
+    const fine = await queueAfterARace(t, { action: "file_list", path: "." });
+    expect(fine).toMatchObject({ ok: true });
+    // Another tab took it over after this loop read the task.
+    await twin.asServiceRole(
+      `update public.jarvis_tasks set controller = '${OTHER_LOOP}' where id = '${t}'`,
+    );
+    expect(await queueAfterARace(t, { action: "file_list", path: "." })).toEqual({
+      ok: false,
+      lost: true,
+      message: "Another device took control of this task.",
+    });
+    // STOP after this loop read the task.
+    await twin.asServiceRole(
+      `update public.jarvis_tasks set controller = '${LOOP}', status = 'stopped' where id = '${t}'`,
+    );
+    expect(await queueAfterARace(t, { action: "file_write", path: "a.txt", content: "x" })).toEqual(
+      {
+        ok: false,
+        message: "The task is not running.",
+      },
+    );
+    const [{ n }] = await twin.asServiceRole<{ n: number }>(
+      `select count(*)::int as n from public.jarvis_activity where task_id = '${t}' and status = 'queued'`,
+    );
+    expect(n).toBe(1); // only the step queued while it was running
+  });
+
+  it("clears a step left queued on a task that no longer runs, so it cannot hold the queue", async () => {
+    const t = await task();
+    await permit("files", true);
+    const stuck = await queue(t, { action: "file_list", path: "." });
+    // As an older server could leave it: queued, but its task already stopped.
+    await twin.asServiceRole(`update public.jarvis_tasks set status = 'stopped' where id = '${t}'`);
+    expect((await run({ results: [] })).commands).toEqual([]);
+    expect((await status(stuck)).status).toBe("cancelled");
+    const next = await task();
+    const id = await queue(next, { action: "file_list", path: "." });
+    expect((await run({ results: [] })).commands.map((c) => c.id)).toEqual([id]);
+  });
+
   it("cancels the running action and never counts its late result as done", async () => {
     const t = await task();
     await permit("files", true);
@@ -539,8 +612,8 @@ describe("segments (P08)", () => {
       ],
     });
     expect((await status(ids[1]!)).status).toBe("cancelled");
-    await twin.asServiceRole(`update public.jarvis_tasks set status = 'stopped' where id = '${t}'`);
     const third = await queue(t, { action: "file_list", path: "c" });
+    await twin.asServiceRole(`update public.jarvis_tasks set status = 'stopped' where id = '${t}'`);
     expect((await run({ results: [], running: [third] })).cancel).toEqual([third]);
   });
 });

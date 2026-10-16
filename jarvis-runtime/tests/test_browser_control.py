@@ -2,6 +2,7 @@
 
 Run: OCADE_BROWSER_EXECUTABLE=/path/to/chromium python -m unittest discover jarvis-runtime/tests
 """
+import asyncio
 import functools
 import http.server
 import mimetypes
@@ -10,12 +11,14 @@ import sys
 import tempfile
 import threading
 import unittest
+import unittest.mock
 import wave
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import conftest  # noqa: E402,F401  test isolation for unittest runs too, not only pytest
 from actions.browser_control import _BrowserSession  # noqa: E402
+from playwright.async_api import Mouse  # noqa: E402
 
 PAGES = {
     "index.html": """<title>Home</title><h1>Home</h1>
@@ -195,6 +198,25 @@ class BrowserControlTest(unittest.TestCase):
                         "observationId": obs["observationId"]})
         self.assertEqual(out["status"], "blocked")
         self.assertEqual(self.s.run(self.s._page.evaluate("clip.offsetLeft")), 220)
+
+    def test_a_drag_cut_short_still_lets_go_of_the_button(self):
+        """V19: STOP or an error between press and release must not leave the button held."""
+        obs = self.act({"action": "open", "url": f"{self.base}/drag.html"})["observation"]
+        real_move = Mouse.move
+
+        async def cut_short(mouse, x, y, steps=1):
+            if steps > 1:  # the drag's own movement, after the press
+                raise asyncio.CancelledError
+            return await real_move(mouse, x, y, steps=steps)
+
+        with unittest.mock.patch.object(Mouse, "move", cut_short):
+            with self.assertRaises(BaseException):
+                self.act({"action": "drag_at", "x": 40, "y": 40, "toX": 240, "toY": 40,
+                          "observationId": obs["observationId"]})
+        # The page saw the release: nothing is still gripped, and the next move drags nothing.
+        self.assertIsNone(self.s.run(self.s._page.evaluate("grip")))
+        self.s.run(self.s._page.mouse.move(300, 60))
+        self.assertEqual(self.s.run(self.s._page.evaluate("clip.offsetLeft")), 20)
 
     def test_changed_element_identity_is_refused(self):
         obs = self.home()

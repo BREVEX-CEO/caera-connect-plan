@@ -346,6 +346,10 @@ final class Control {
                     Path at = new Path();
                     at.moveTo(box.exactCenterX(), box.exactCenterY());
                     ok = gesture(a11y, at, 0, 60);
+                    if (!ok && cancel.get()) {
+                        uiObservation = null;
+                        return stoppedMidGesture();
+                    }
                 }
             }
         }
@@ -426,6 +430,7 @@ final class Control {
                 // STOP while what lies under the point was read and checked: no tap.
                 if (cancel.get()) return result("failed", "Stopped before it reached the screen");
                 boolean ok = gesture(a11y, at, 0, 60) && (!twice || (!cancel.get() && gesture(a11y, at, 0, 60)));
+                if (!ok && cancel.get()) return stoppedMidGesture();
                 return result(ok ? "done" : "failed", ok ? (twice ? "Double-tapped" : "Tapped") + " on the screen" : "The tap did not reach the screen");
             }
             case "screen_scroll": {
@@ -435,7 +440,9 @@ final class Control {
                 Path swipe = new Path();
                 swipe.moveTo(mid, size.heightPixels * (down ? 0.7f : 0.3f));
                 swipe.lineTo(mid, size.heightPixels * (down ? 0.3f : 0.7f));
+                if (cancel.get()) return result("failed", "Stopped before it reached the screen");
                 boolean ok = gesture(a11y, swipe, 0, 300);
+                if (!ok && cancel.get()) return stoppedMidGesture();
                 return result(ok ? "done" : "failed", ok ? "Scrolled " + (down ? "down" : "up") : "The scroll did not reach the screen");
             }
             case "screen_type": {
@@ -476,6 +483,7 @@ final class Control {
                     default:
                         return result("failed", "That key is not available on a phone");
                 }
+                if (cancel.get()) return result("failed", "Stopped before it reached the screen");
                 boolean ok = a11y.performGlobalAction(global);
                 return result(ok ? "done" : "failed", ok ? "Pressed " + key : "Android refused that key");
             }
@@ -514,7 +522,16 @@ final class Control {
         screenObservation = null;
     }
 
-    /** STOP: a gesture in flight is abandoned. */
+    /**
+     * STOP released the wait for a gesture Android may already have dispatched: it can have
+     * landed, so it is reported as stopped with its effect unknown, never as "did not reach".
+     */
+    private static JSONObject stoppedMidGesture() throws Exception {
+        return result("failed", "Stopped: the gesture may already have reached the screen")
+                .put("stopped", true);
+    }
+
+    /** STOP: the wait for a gesture in flight ends; the OS may still complete it. */
     static void cancelGestures() {
         CountDownLatch waiting = gestureWait.getAndSet(null);
         if (waiting != null) waiting.countDown();

@@ -175,6 +175,63 @@ class ActTest(unittest.TestCase):
         button.Click.assert_not_called()
         self.keys.assert_not_called()
 
+    def test_each_operation_uses_only_its_own_pattern_method(self):
+        """V20: a real pattern object has only its own methods; asking it for another's raised."""
+        for op, kind, method in (("toggle", IDS.TogglePattern, "Toggle"),
+                                 ("select", IDS.SelectionItemPattern, "Select"),
+                                 ("expand", IDS.ExpandCollapsePattern, "Expand"),
+                                 ("collapse", IDS.ExpandCollapsePattern, "Collapse")):
+            pressed = unittest.mock.Mock()
+            strict = SimpleNamespace(**{method: pressed})  # nothing else: no Toggle on a selection
+            control = SimpleNamespace(ControlTypeName="ListItemControl", Name="Item", IsPassword=False,
+                                      IsEnabled=True, GetPattern=lambda pid, k=kind, s=strict: s if pid == k else None)
+            out = self.act(control, op)
+            self.assertEqual(out["status"], "done", (op, out))
+            pressed.assert_called_once()
+
+    def test_stop_during_a_refused_write_tries_no_other_route_and_pastes_nothing(self):
+        """V03: STOP checked before every route of the fallback, not only before the first."""
+        import threading
+        stop = threading.Event()
+        tried = []
+
+        def refuse_and_stop(_text):
+            tried.append("pattern")
+            stop.set()  # the person pressed STOP while the first write was being refused
+            raise OSError("COMError")
+        own = SimpleNamespace(IsReadOnly=False, SetValue=refuse_and_stop)
+        legacy = SimpleNamespace(SetValue=lambda _t: tried.append("legacy"))
+        field = SimpleNamespace(ControlTypeName="EditControl", Name="File name:", IsPassword=False,
+                                IsEnabled=True, HasKeyboardFocus=True,
+                                SetFocus=lambda: tried.append("focus"),
+                                GetPattern=lambda pid: own if pid == IDS.ValuePattern else None,
+                                GetValuePattern=lambda: SimpleNamespace(Value=""),
+                                GetLegacyIAccessiblePattern=lambda: legacy)
+        out = self.act(field, "set_value", value="minutes.txt", cancel=stop,
+                       hands=lambda text=None: tried.append("paste") or True)
+        self.assertTrue(out.get("stopped"), out)
+        self.assertEqual(tried, ["pattern"])
+
+    def test_stop_during_a_refused_invoke_presses_no_key_and_clicks_nothing(self):
+        import threading
+        stop = threading.Event()
+
+        def refuse_and_stop():
+            stop.set()
+            raise OSError("COMError")
+        button = SimpleNamespace(ControlTypeName="ButtonControl", Name="Save", IsPassword=False,
+                                 IsEnabled=True, Click=unittest.mock.Mock(), SetFocus=unittest.mock.Mock(),
+                                 HasKeyboardFocus=True,
+                                 GetPattern=lambda pid: SimpleNamespace(Invoke=refuse_and_stop)
+                                 if pid == IDS.InvokePattern else None)
+        hands = unittest.mock.Mock(return_value=True)
+        out = self.act(button, "invoke", cancel=stop, hands=hands)
+        self.assertTrue(out.get("stopped"), out)
+        hands.assert_not_called()
+        button.SetFocus.assert_not_called()
+        self.keys.assert_not_called()
+        button.Click.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()
 

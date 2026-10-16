@@ -205,6 +205,7 @@ export type Database = {
           action: Json | null
           completed_at: string | null
           confirmed: boolean
+          controller: string | null
           created_at: string
           device_id: string | null
           id: string
@@ -218,6 +219,7 @@ export type Database = {
           action?: Json | null
           completed_at?: string | null
           confirmed?: boolean
+          controller?: string | null
           created_at?: string
           device_id?: string | null
           id?: string
@@ -231,6 +233,7 @@ export type Database = {
           action?: Json | null
           completed_at?: string | null
           confirmed?: boolean
+          controller?: string | null
           created_at?: string
           device_id?: string | null
           id?: string

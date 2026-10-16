@@ -815,6 +815,15 @@ export async function exchange(
     .eq("device_id", device.id)
     .eq("status", "running")
     .maybeSingle();
+  // A step of a task that no longer runs never runs: cleared, so it cannot hold the queue.
+  if (!task && !taskError) {
+    await admin
+      .from("jarvis_activity")
+      .update({ status: "cancelled", completed_at: now })
+      .eq("id", row.id)
+      .eq("status", "queued");
+    return { ...envelope, commands: [], cancel, rotated };
+  }
   // Nothing leaves for the device unless its task, the person's permissions and
   // the device itself were all read.
   if (!task || taskError || rowsError || deviceError || !rows) {

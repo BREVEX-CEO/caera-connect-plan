@@ -562,8 +562,12 @@ class _BrowserSession:
             if kind == "drag_at":
                 await page.mouse.move(*points[0])
                 await page.mouse.down()
-                await page.mouse.move(*points[1], steps=12)
-                await page.mouse.up()
+                try:
+                    await page.mouse.move(*points[1], steps=12)
+                finally:
+                    # Let go even when STOP or an error cuts the move short: a held button
+                    # would keep dragging whatever the page's next mouse move reaches.
+                    await page.mouse.up()
                 detail = "Dragged on the page"
             else:
                 await page.mouse.click(*points[0])

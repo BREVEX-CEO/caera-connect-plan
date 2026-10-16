@@ -352,6 +352,25 @@ class TerminalTest(unittest.TestCase):
         self.assertEqual(out["status"], "failed")
         self.assertTrue(out["stopped"])
 
+    def test_local_stop_latency_is_measured_without_any_network(self):
+        """Phase 02: from STOP to the command's end on this computer, no OCADE or model involved."""
+        self.pc.sandbox = "bubblewrap"
+        self.pc._sandboxed = lambda command, folder, network: (
+            [sys.executable, "-c", "import time; time.sleep(30)"], {})
+        latencies = []
+        for _ in range(10):
+            cancel = threading.Event()
+            pressed = {}
+            timer = threading.Timer(0.3, lambda: (pressed.setdefault("at", time.monotonic()), cancel.set()))
+            timer.start()
+            out = self.pc.run({"action": "run", "command": "sleep"}, cancel=cancel)
+            latencies.append(time.monotonic() - pressed["at"])
+            self.assertTrue(out["stopped"], out)
+        latencies.sort()
+        p50, p95 = latencies[len(latencies) // 2], latencies[int(len(latencies) * 0.95) - 1]
+        print(f"TIMING local STOP of a running command: p50 {p50 * 1000:.0f} ms, p95 {p95 * 1000:.0f} ms")
+        self.assertLess(p95, 1.0)
+
 
 class WorkspaceWriteTest(unittest.TestCase):
     """JARVIS-051: nothing planted in the workspace can redirect a write outside it."""

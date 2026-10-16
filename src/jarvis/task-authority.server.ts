@@ -560,12 +560,21 @@ export async function queueTaskAction(
       device_id: device.id,
       summary: describeAction(data.action),
       action: data.action,
+      // The database queues it only if this loop still controls the running task (20261016100000).
+      controller: data.controller,
       status: ask ? "needs_confirmation" : "queued",
       // Model-issued actions are never pre-confirmed, but for that repeat.
       confirmed: repeat,
     })
     .select("id")
     .single();
+  // STOP, a takeover or completion landed after the checks above: nothing was queued.
+  if (insertError?.message.includes("Another loop controls that task")) {
+    return { ok: false, lost: true, message: "Another device took control of this task." };
+  }
+  if (/That task is (not running|completed)/.test(insertError?.message ?? "")) {
+    return { ok: false, message: "The task is not running." };
+  }
   if (insertError) throw new Error(insertError.message);
   return { ok: true, id: row.id as string, needsConfirmation: ask };
 }

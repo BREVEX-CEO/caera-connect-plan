@@ -178,8 +178,8 @@ describe("which task a computer may carry on with", () => {
   it("a step awaiting the person's confirmation is never carried past", async () => {
     const t = await task();
     await sql(
-      `insert into public.jarvis_activity (user_id, task_id, device_id, summary, action, status)
-       values ('${A}', '${t}', '${device}', 'Permanently deleting x', '{"action":"file_delete","path":"x"}'::jsonb, 'needs_confirmation')`,
+      `insert into public.jarvis_activity (user_id, task_id, device_id, summary, action, status, controller)
+       values ('${A}', '${t}', '${device}', 'Permanently deleting x', '{"action":"file_delete","path":"x"}'::jsonb, 'needs_confirmation', '${TAB}')`,
     );
     expect(await taskToCarryOn(admin(), me())).toBeNull();
     await exchange(admin(), me(), { results: [] });

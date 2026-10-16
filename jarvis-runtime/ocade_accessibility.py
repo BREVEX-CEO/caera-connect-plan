@@ -260,6 +260,10 @@ def gate_at(x: int | None, y: int | None, confirmed: bool, press: bool = False) 
     return None
 
 
+class _Stopped(Exception):
+    """STOP arrived between two routes of one effect: no further route is tried."""
+
+
 def act(action: dict, confirmed: bool, cancel=None, hands=None) -> dict:
     """`hands(text=None)`: the computer's mouse and keyboard, for a control that refuses every
     UI Automation route (a real Save As dialog: 0x80040200). It returns False, and nothing is
@@ -300,6 +304,10 @@ def act(action: dict, confirmed: bool, cancel=None, hands=None) -> dict:
         def pattern(kind: str):
             return control.GetPattern(getattr(auto.PatternId, kind))
 
+        def halt():  # before every route that can change the control, fallbacks included
+            if cancel and cancel.is_set():
+                raise _Stopped
+
         # The control's pattern is resolved first; the STOP check sits right before the effect.
         if op == "invoke":
             invoke = pattern("InvokePattern")
@@ -311,15 +319,20 @@ def act(action: dict, confirmed: bool, cancel=None, hands=None) -> dict:
                     try:
                         return press()
                     except Exception:
+                        halt()
                         if not (hands and hands()):
                             raise
                     # Refused by the app (a real Save As button, 0x80040200): the control's own
                     # key once it holds the focus — a click on that dialog's button did not land.
                     try:
+                        halt()
                         control.SetFocus()
                         focused = control.HasKeyboardFocus
+                    except _Stopped:
+                        raise
                     except Exception:
                         focused = False
+                    halt()
                     if focused:
                         return auto.SendKeys("{Space}", waitTime=0.2)
                 # No pattern, or no focus to be had: a click on the control itself, by its own
@@ -345,6 +358,7 @@ def act(action: dict, confirmed: bool, cancel=None, hands=None) -> dict:
                                      (control, lambda: (control.SetFocus(), value.SetValue(text)))):
                     if field is None:
                         continue
+                    halt()
                     try:
                         write()
                         if (_value(field) or "") == text[:500]:  # _value reads 500 at most
@@ -355,11 +369,13 @@ def act(action: dict, confirmed: bool, cancel=None, hands=None) -> dict:
                         refused.append(type(e).__name__ + (f" 0x{code & 0xFFFFFFFF:08X}"
                                                            if isinstance(code, int) else ""))
                 field = inner or control
+                halt()
                 try:
                     field.SetFocus()
                     focused = field.HasKeyboardFocus
                 except Exception:
                     focused = False
+                halt()
                 if focused and hands and hands(text) and (_value(field) or "") == text[:500]:
                     written.append(field)
                     return
@@ -370,8 +386,8 @@ def act(action: dict, confirmed: bool, cancel=None, hands=None) -> dict:
             if not found:
                 return {"status": "failed",
                         "summary": f"“{name[:60] or role}” cannot {op}; use invoke to press it"}
-            effect = {"toggle": found.Toggle, "select": found.Select,
-                      "expand": found.Expand, "collapse": found.Collapse}[op]
+            # Only the requested method: a real pattern object has no other operation's method.
+            effect = getattr(found, op.capitalize())
         elif op == "focus":
             effect = control.SetFocus
         else:
@@ -379,7 +395,10 @@ def act(action: dict, confirmed: bool, cancel=None, hands=None) -> dict:
         # STOP that arrived while the control was found, checked and resolved: nothing is pressed.
         if cancel and cancel.is_set():
             return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
-        effect()
+        try:
+            effect()
+        except _Stopped:
+            return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
         if op == "set_value" and isinstance(written[0], str):
             return {"status": "failed",
                     "summary": f"The field did not take the text ({written[0]}); focus it and type into it instead"}
