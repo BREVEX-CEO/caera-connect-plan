@@ -175,6 +175,56 @@ class ActTest(unittest.TestCase):
         button.Click.assert_not_called()
         self.keys.assert_not_called()
 
+    def test_a_window_is_never_guessed_from_part_of_a_title_several_windows_share(self):
+        """The Notepad incident (16 Oct): "Notepad" matched the person's own window first, and the
+        text went into their document. Several matches are refused; an exact title is the window."""
+        windows = [SimpleNamespace(Name="*Meeting notes - Notepad"), SimpleNamespace(Name="Untitled - Notepad")]
+        root = SimpleNamespace(GetChildren=lambda: windows)
+        auto = SimpleNamespace(GetRootControl=lambda: root, UIAutomationInitializerInThread=unittest.mock.MagicMock)
+        with unittest.mock.patch.object(a11y, "_uia", return_value=auto):
+            with self.assertRaises(a11y._Ambiguous):
+                a11y._window("Notepad")
+            self.assertIs(a11y._window("untitled - notepad"), windows[1])
+            out = a11y.inspect("Notepad")
+        self.assertEqual(out["status"], "failed")
+        self.assertIn("Several windows match", out["summary"])
+
+    def test_a_window_that_now_shows_another_document_is_not_written_to(self):
+        own = SimpleNamespace(IsReadOnly=False, SetValue=unittest.mock.Mock(), Value="")
+        editor = SimpleNamespace(ControlTypeName="EditControl", Name="Text editor", IsPassword=False, IsEnabled=True,
+                                 GetPattern=lambda pid: own if pid == IDS.ValuePattern else None,
+                                 GetValuePattern=lambda: own)
+        a11y._State.held["u9"] = {"window": (1,), "title": "notes.txt - Notepad",
+                                  "refs": {"a1": ((2,), "Edit", "Text editor")}, "at": a11y.time.monotonic()}
+        for now, written in (("*notes.txt - Notepad", True), ("other.txt - Notepad", False)):
+            own.SetValue.reset_mock()
+            auto = SimpleNamespace(PatternId=IDS, UIAutomationInitializerInThread=unittest.mock.MagicMock)
+            with unittest.mock.patch.object(a11y, "_uia", return_value=auto), \
+                    unittest.mock.patch.object(a11y, "_by_runtime_id", return_value=SimpleNamespace(Name=now)), \
+                    unittest.mock.patch.object(a11y, "_find", return_value=editor), \
+                    unittest.mock.patch.object(a11y, "_gates", return_value=(re.compile(r"(?!)"),) * 3), \
+                    unittest.mock.patch.object(a11y, "_protected", return_value=False), \
+                    unittest.mock.patch.object(a11y, "inspect", return_value={"observation": {}}), \
+                    unittest.mock.patch.object(a11y.time, "sleep"):
+                out = a11y.act({"observationId": "u9", "ref": "a1", "op": "set_value", "value": "x"},
+                               confirmed=False)
+            self.assertEqual(own.SetValue.called, written, (now, out))
+            if not written:
+                self.assertEqual(out["status"], "stale", out)
+
+    def test_replacing_a_documents_existing_text_asks_first(self):
+        typed = {"value": "Somebody's notes"}
+        own = SimpleNamespace(IsReadOnly=False, Value="")
+        own.SetValue = lambda t: typed.update(value=t)
+        document = SimpleNamespace(ControlTypeName="DocumentControl", Name="Text editor", IsPassword=False,
+                                   IsEnabled=True, GetPattern=lambda pid: own if pid == IDS.ValuePattern else None,
+                                   GetValuePattern=lambda: SimpleNamespace(Value=typed["value"]))
+        out = self.act(document, "set_value", value="replacement")
+        self.assertEqual(out["status"], "needs_confirmation", out)
+        self.assertEqual(typed["value"], "Somebody's notes")
+        typed["value"] = ""
+        self.assertEqual(self.act(document, "set_value", value="fresh")["status"], "done")
+
     def test_each_operation_uses_only_its_own_pattern_method(self):
         """V20: a real pattern object has only its own methods; asking it for another's raised."""
         for op, kind, method in (("toggle", IDS.TogglePattern, "Toggle"),

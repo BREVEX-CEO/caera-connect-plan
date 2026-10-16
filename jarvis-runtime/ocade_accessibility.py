@@ -107,25 +107,51 @@ def _uia():
     return uiautomation
 
 
+class _Ambiguous(Exception):
+    """More than one window answers to that title: none is guessed (the Notepad incident, 16 Oct)."""
+
+    def __init__(self, names: list[str]):
+        super().__init__("several windows")
+        self.names = names
+
+
+def _pick(windows: list, wanted: str):
+    """The window titled exactly that, else the only one whose title contains it; several: refused."""
+    exact = [w for w in windows if w.Name.strip().lower() == wanted]
+    if exact:
+        return exact[0]
+    matches = [w for w in windows if wanted in w.Name.lower()]
+    if len({w.Name.strip().lower() for w in matches}) > 1:
+        raise _Ambiguous([w.Name for w in matches][:10])
+    return matches[0] if matches else None
+
+
 def _window(title: str | None):
     auto = _uia()
     if not title:
         control = auto.GetForegroundControl()
         return control.GetTopLevelControl() if control else None
-    wanted = title.lower()
-    tops = auto.GetRootControl().GetChildren()
-    for window in tops:
-        if window.Name and wanted in window.Name.lower():
-            return window
+    wanted = title.strip().lower()
+    tops = [w for w in auto.GetRootControl().GetChildren() if w.Name]
+    found = _pick(tops, wanted)
+    if found is not None:
+        return found
     # A modal dialog (Open, Save, Import) often sits under the window that owns it.
+    dialogs = []
     for window in tops:
         try:
-            for child in window.GetChildren():
-                if child.ControlTypeName == "WindowControl" and child.Name and wanted in child.Name.lower():
-                    return child
+            dialogs += [c for c in window.GetChildren() if c.ControlTypeName == "WindowControl" and c.Name]
         except Exception:
             continue
-    return None
+    return _pick(dialogs, wanted)
+
+
+def _same_document(now: str | None, then: str | None) -> bool:
+    """A window's title names the document it shows; "*" (unsaved) aside, a new title is a new one:
+    another tab, another file. What was read no longer describes it."""
+    def name(title):
+        return (title or "").strip().lstrip("*").strip().lower()
+    return name(now) == name(then)
 
 
 def _value(control) -> str | None:
@@ -154,7 +180,11 @@ def _walk(window, cancel=None):
 def inspect(title: str | None = None, find: str | None = None, cancel=None) -> dict:
     auto = _uia()
     with auto.UIAutomationInitializerInThread():
-        window = _window(title)
+        try:
+            window = _window(title)
+        except _Ambiguous as several:
+            return {"status": "failed", "summary": "Several windows match; use the full title",
+                    "windows": several.names}
         if window is None:
             return {"status": "failed", "summary": "No such window is open"}
         if refused := _protected(window):
@@ -186,7 +216,7 @@ def inspect(title: str | None = None, find: str | None = None, cancel=None) -> d
             elements.append(item)
         if cancel and cancel.is_set():
             return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
-        _State.held = {obs_id: {"window": tuple(window.GetRuntimeId()), "refs": refs,
+        _State.held = {obs_id: {"window": tuple(window.GetRuntimeId()), "title": window.Name, "refs": refs,
                                 "at": time.monotonic()}}
         if len(elements) > MAX_ELEMENTS:
             rank = {role: i for i, role in enumerate(PRIORITY)}
@@ -281,6 +311,10 @@ def act(action: dict, confirmed: bool, cancel=None, hands=None) -> dict:
     runtime_id, role, name = held["refs"][ref]
     with auto.UIAutomationInitializerInThread():
         window = _by_runtime_id(held["window"])
+        # The same window now showing another document (a tab, a file): its controls are not the ones read.
+        if window is not None and not _same_document(window.Name, held.get("title", window.Name)):
+            return {"status": "stale", "summary": "That window now shows another document. Read it again first.",
+                    "observation": inspect(window.Name).get("observation")}
         control = _find(window, runtime_id) if window else None
         if control is None or control.ControlTypeName.replace("Control", "") != role \
                 or (control.Name or "").strip() != name:
@@ -342,6 +376,10 @@ def act(action: dict, confirmed: bool, cancel=None, hands=None) -> dict:
             value = pattern("ValuePattern")
             if not value or value.IsReadOnly:
                 return {"status": "failed", "summary": f"“{name[:60]}” does not take text; type into it instead"}
+            # A document's whole text is replaced by a write: what is already in it is somebody's work.
+            if role == "Document" and (_value(control) or "").strip() and not confirmed:
+                return {"status": "needs_confirmation",
+                        "summary": f"Replace everything already written in “{(window.Name or name)[:60]}”?"}
             # Some controls refuse the write their own pattern offers (a file dialog's name box,
             # COMError): the edit field inside a combo box, then the control's accessible value,
             # still take it without keystrokes; last, the text is pasted into the focused field.

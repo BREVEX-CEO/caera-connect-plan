@@ -790,11 +790,16 @@ class NativeAppTest(unittest.TestCase):
         pc = Computer(tempfile.mkdtemp())
         target = Path(tempfile.mkdtemp()) / f"ocade-note-{os.getpid()}.txt"
         words = f"Minutes {os.getpid()}: OCADE wrote this through Notepad's own controls."
+        # Never beside somebody's own Notepad: on a person's computer it opens as a tab of their
+        # window (the incident of 16 Oct). Disposable machines only.
+        if any("notepad" in w["title"].lower() for w in pc.run({"action": "window_list"})["windows"]):
+            self.skipTest("a Notepad window is already open here: this test never runs beside it")
         opened = pc.run({"action": "open_app", "name": "Notepad"})
         self.assertEqual(opened["status"], "done", opened)
+        mine = opened.get("window") or "Notepad"
         form = None
         try:
-            obs = self._window(pc, "Notepad")
+            obs = self._window(pc, mine)
             editor = next(e for e in obs["elements"] if e["role"] in ("Edit", "Document"))
             # STOP first: nothing is typed.
             stop = threading.Event()
@@ -802,7 +807,7 @@ class NativeAppTest(unittest.TestCase):
             stopped = pc.run({"action": "ui_act", "ref": editor["ref"], "observationId": obs["observationId"],
                               "op": "set_value", "value": "must not appear"}, cancel=stop)
             self.assertTrue(stopped.get("stopped"), stopped)
-            obs = self._window(pc, "Notepad")
+            obs = self._window(pc, mine)
             editor = next(e for e in obs["elements"] if e["role"] in ("Edit", "Document"))
             out = pc.run({"action": "ui_act", "ref": editor["ref"], "observationId": obs["observationId"],
                           "op": "set_value", "value": words})
@@ -816,7 +821,7 @@ class NativeAppTest(unittest.TestCase):
                               "ref": next(e["ref"] for e in seen["elements"] if e["name"] == "Next")})
             self.assertIn("pressed Next", [e["name"] for e in pressed["observation"]["elements"]])
 
-            self.assertEqual(pc.run({"action": "window", "title": "Notepad", "state": "focus"})["status"],
+            self.assertEqual(pc.run({"action": "window", "title": mine, "state": "focus"})["status"],
                              "done")
             self.assertEqual(self._keys(pc, ["ctrl", "s"])["status"], "done")
             dialog = self._window(pc, "Save As")
@@ -844,6 +849,7 @@ class NativeAppTest(unittest.TestCase):
         finally:
             if form:
                 form.kill()
+            # Only the window this test opened, by its own title: never "Notepad" in general.
             closed = pc.run({"action": "window", "title": target.stem, "state": "close"}, confirmed=True)
-            if closed["status"] != "done":
-                pc.run({"action": "window", "title": "Notepad", "state": "close"}, confirmed=True)
+            if closed["status"] != "done" and mine != "Notepad":
+                pc.run({"action": "window", "title": mine, "state": "close"}, confirmed=True)

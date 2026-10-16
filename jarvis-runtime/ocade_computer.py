@@ -487,8 +487,22 @@ class Computer:
             return {"status": "failed", "summary": f"{name} is not installed on this computer"}
         if cancel.is_set():  # STOP while the app was being found: it is not opened
             return dict(STOPPED)
+        if SYSTEM != "Windows":
+            _launch(app)
+            return {"status": "done", "summary": f"Opened {app['name']}"}
+        before = {w["title"] for w in _windows()}
         _launch(app)
-        return {"status": "done", "summary": f"Opened {app['name']}"}
+        # The window it opened in, by its full title: an app that opens inside a window already open
+        # (a new tab in Notepad, a document in a running Word) shows up as a title not there before.
+        # Every later step names it exactly, never a part of an app's name that other windows share.
+        for _ in range(12):
+            opened = [w["title"] for w in _windows() if w["title"] not in before]
+            if opened or cancel.wait(0.25):
+                break
+        if opened:
+            return {"status": "done", "summary": f"Opened {app['name']} in “{opened[0]}”", "window": opened[0]}
+        return {"status": "done", "summary": f"Opened {app['name']}; no new window showed yet. "
+                "Read the windows (window_list) and use the full title of the one it opened."}
 
     # -- discovery: any app, the drives, files by name; copies in and out ------------
 

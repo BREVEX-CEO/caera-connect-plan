@@ -2562,6 +2562,13 @@ Success requires zero newly admitted effects after observed STOP/revocation, mea
 
 **Phase 02 status: PARTIAL.** The code is in place and passed the cloud checks listed above. The lease change and real-UIA barrier evidence are BLOCKED by the Actions allowance.
 
+**Incident and repair — 16 October 2026 (owner-approved PC run, then PC testing withdrawn by the owner).**
+- *Owner PC run.* On the owner's Windows 11 PC, the Python suite passed 238 tests once 3 regressions I had introduced in Phase 03 were fixed (`20fe42c6`). The live tests passed real Excel and Word.
+- *Incident.* The live Notepad test **wrote into the owner's own unsaved Notepad tab**, replacing its text; one Ctrl+Z did not restore it. The 5 other tabs were unmodified, and nothing was closed.
+- *Root cause.* Windows 11 Notepad opens a new document as a tab of the window already open. `ocade_accessibility._window` then took the **first** window whose title contained "Notepad", so the write went to the person's document. The `window` action already refused such ambiguity; the UI Automation path did not.
+- *Repair.* Exact title wins; several matching windows are refused; an observation is bound to the window's document title, so a tab or file switch makes it stale. Replacing a document's existing text asks first. `open_app` reports the exact title of the window it opened. The live test skips beside any open Notepad and closes only its own window.
+- *Tests.* New strict fixture tests in `test_ui_act.py` cover these rules. They are **UNTESTED**: the owner then stopped all PC testing, and GitHub Actions still refuses jobs. The real tabbed-Notepad proof cannot run on cloud Windows Server; it is deferred as PC-02-01 in [BLOCKED_REAL_PC_TESTS.md](BLOCKED_REAL_PC_TESTS.md).
+
 #### Phase 02 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
