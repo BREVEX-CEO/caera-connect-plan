@@ -143,6 +143,8 @@ public final class AgentService extends Service {
     private static final String PENDING = "pending-results.json";
     /** The step handed to this phone and not yet reported, written before it runs. */
     private static final String RUNNING = "running-step.json";
+    /** What OCADE answers for a result it holds (accepted), kept as stopped, or no longer has. */
+    private static final java.util.Set<String> ACKED = java.util.Set.of("accepted", "stopped", "unknown");
 
     private android.util.AtomicFile journal(String name) {
         return new android.util.AtomicFile(new java.io.File(getFilesDir(), name));
@@ -173,13 +175,29 @@ public final class AgentService extends Service {
         } catch (org.json.JSONException impossible) {
             // a literal object cannot fail to build
         }
-        keep(PENDING, results);
-        keep(RUNNING, new JSONArray());
+        // The running mark goes only once what it became is safely in the journal.
+        if (keepPending(results)) keep(RUNNING, new JSONArray());
         return results;
     }
 
+    /** False while the journal cannot be written: nothing new runs until it can. */
+    private volatile boolean journalOk = true;
+
+    /**
+     * Each result carries its own receipt, so only OCADE's answer to that very result retires
+     * it; a failed write is said, never assumed kept.
+     */
     private boolean keepPending(JSONArray results) {
-        return keep(PENDING, results);
+        try {
+            for (int i = 0; i < results.length(); i++) {
+                JSONObject result = results.getJSONObject(i);
+                if (!result.has("receipt")) result.put("receipt", java.util.UUID.randomUUID().toString());
+            }
+        } catch (org.json.JSONException impossible) {
+            // every entry is an object this service built
+        }
+        journalOk = keep(PENDING, results);
+        return journalOk;
     }
 
     /** Whether the journal now holds exactly these entries: a failed write is never assumed kept. */
@@ -286,21 +304,27 @@ public final class AgentService extends Service {
                 reached = android.os.SystemClock.elapsedRealtime();
                 if (body.has("apps")) appsSent = System.currentTimeMillis();
                 if (body.has("stop")) stopAll.set(false);
-                // Only what OCADE answered for leaves: a result it could not save, or did not
-                // answer for at all, is sent again (an old server that sends no answers kept them).
+                // Only a result OCADE answered for, by id and receipt, with an answer that says it
+                // holds it, leaves. No answer, "retry", an unknown answer, another receipt, or a
+                // reply with no answers at all: the result stays and goes again.
                 JSONArray acks = reply.body.optJSONArray("acks");
-                JSONArray again = new JSONArray();
-                for (int j = 0; acks != null && j < results.length(); j++) {
-                    String id = results.getJSONObject(j).optString("id");
-                    String answer = null;
-                    for (int i = 0; i < acks.length(); i++) {
-                        if (id.equals(acks.getJSONObject(i).optString("id"))) {
-                            answer = acks.getJSONObject(i).optString("outcome");
+                if (acks != null) {
+                    JSONArray again = new JSONArray();
+                    for (int j = 0; j < results.length(); j++) {
+                        JSONObject result = results.getJSONObject(j);
+                        boolean answered = false;
+                        for (int i = 0; i < acks.length(); i++) {
+                            JSONObject ack = acks.optJSONObject(i);
+                            if (ack != null && result.optString("id").equals(ack.optString("id"))
+                                    && result.optString("receipt").equals(ack.optString("receipt"))
+                                    && ACKED.contains(ack.optString("outcome"))) {
+                                answered = true;
+                            }
                         }
+                        if (!answered) again.put(result);
                     }
-                    if (answer == null || "retry".equals(answer)) again.put(results.getJSONObject(j));
+                    results = again;
                 }
-                results = again;
                 keepPending(results);
                 frame = null;
                 task = reply.body.optJSONObject("task");
@@ -318,8 +342,9 @@ public final class AgentService extends Service {
                 if (step == null && commands != null && commands.length() > 0) {
                     JSONObject command = commands.getJSONObject(0);
                     stepId = command.getString("id");
-                    // Recorded before anything runs; a step that cannot be recorded does not run.
-                    if (!keep(RUNNING, new JSONArray().put(stepId))) {
+                    // Recorded before anything runs; a step that cannot be recorded does not run,
+                    // nor does any step while the results journal cannot be written.
+                    if (!journalOk || !keep(RUNNING, new JSONArray().put(stepId))) {
                         results.put(new JSONObject().put("id", stepId).put("status", "failed")
                                 .put("summary", "The phone could not record this step, so it did not run."));
                         keepPending(results);

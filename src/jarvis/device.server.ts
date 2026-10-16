@@ -416,12 +416,21 @@ export function redactLocal(text: string): string {
     .replace(/(?:~|\/(?:Users|home|root|var\/folders))\/[^\s"'<>|]*/g, "[path]");
 }
 
+/** OCADE's answer for one reported result, bound to the receipt the device gave it. */
+type Ack = {
+  id: string;
+  receipt?: string;
+  outcome: "accepted" | "stopped" | "unknown" | "retry";
+};
+
 export const exchangeInput = z.object({
   results: z
     .array(
       z.object({
         id: z.string().uuid(),
         status: z.enum(RESULT_STATUSES),
+        /** The device's own name for this result: echoed in its answer, so only it retires it. */
+        receipt: z.string().max(64).optional().catch(undefined),
         // One overlong or malformed field never rejects the whole exchange: the device would
         // resend the same batch forever and nothing else would get through.
         summary: z
@@ -493,7 +502,7 @@ export async function exchange(
   /** Running actions the device must cancel now (STOP, Take Over, task ended). */
   cancel: string[];
   /** What happened to each reported result: kept, or why not; "retry": send it again. */
-  acks?: { id: string; outcome: "accepted" | "stopped" | "unknown" | "retry" }[];
+  acks?: Ack[];
   /** Background Mode: the running task this computer should ask OCADE to continue now. */
   continue?: string;
   rotated?: boolean;
@@ -584,7 +593,7 @@ export async function exchange(
   // Every reply names the protocol and the device it is for, so a device can
   // refuse work that was not addressed to it; `busy` and `background` decide
   // whether it stays active or goes dormant.
-  const acks: { id: string; outcome: "accepted" | "stopped" | "unknown" | "retry" }[] = [];
+  const acks: Ack[] = [];
   const envelope = {
     acks,
     protocol: PROTOCOL.version,
@@ -650,12 +659,12 @@ export async function exchange(
       .eq("status", "claimed")
       .select("id");
     if (settled?.length) {
-      acks.push({ id: result.id, outcome: "accepted" });
+      acks.push({ id: result.id, receipt: result.receipt, outcome: "accepted" });
       continue;
     }
     // Not saved: the device keeps this result and sends it again, never drops the only copy.
     if (settleError) {
-      acks.push({ id: result.id, outcome: "retry" });
+      acks.push({ id: result.id, receipt: result.receipt, outcome: "retry" });
       continue;
     }
     // A result for an action that was stopped meanwhile never counts as done, but what
@@ -675,6 +684,7 @@ export async function exchange(
       .select("id");
     acks.push({
       id: result.id,
+      receipt: result.receipt,
       outcome: stopError ? "retry" : stopped?.length ? "stopped" : "unknown",
     });
   }

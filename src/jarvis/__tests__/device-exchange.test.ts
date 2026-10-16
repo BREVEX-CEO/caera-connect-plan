@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DatabaseTwin } from "../../../scripts/db-twin.mts";
-import { enrollmentRoom, exchange, MAX_PENDING_PER_SOURCE } from "../device.server";
+import { enrollmentRoom, exchange, exchangeInput, MAX_PENDING_PER_SOURCE } from "../device.server";
 import { NOT_VERIFIED } from "../protocol";
 import { changeTask, completionGap, queueTaskAction } from "../task-authority.server";
 import { lit, restOver } from "./rest-adapter";
@@ -225,6 +225,26 @@ describe("results", () => {
     const row = await status(id);
     expect(row.status).toBe("failed");
     expect((row.result as { status: string }).status).toBe("stale");
+  });
+
+  it("answers each result with the receipt the device gave it, and a resent one is not counted twice (V04)", async () => {
+    const t = await task();
+    await permit("files", true);
+    const id = await queue(t, { action: "file_write", path: "a.txt", content: "x" });
+    await run({ results: [] });
+    const first = await run({
+      results: [{ id, status: "done", summary: "Wrote", receipt: "r-1" }],
+    });
+    expect(first.acks).toEqual([{ id, receipt: "r-1", outcome: "accepted" }]);
+    // The reply was lost: the device sends the same result again, under its own receipt.
+    const again = await run({
+      results: [{ id, status: "done", summary: "Wrote", receipt: "r-1" }],
+    });
+    expect(again.acks).toEqual([{ id, receipt: "r-1", outcome: "unknown" }]);
+    expect((await status(id)).status).toBe("done");
+    // A malformed receipt never rejects the exchange: the result is read with no receipt to match.
+    const parsed = exchangeInput.parse({ results: [{ id, status: "done", receipt: 42 }] });
+    expect(parsed.results[0]!.receipt).toBeUndefined();
   });
 });
 

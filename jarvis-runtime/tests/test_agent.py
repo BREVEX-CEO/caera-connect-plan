@@ -10,6 +10,7 @@ import tempfile
 import threading
 import time
 import unittest
+import unittest.mock
 import urllib.error
 from pathlib import Path
 
@@ -323,13 +324,72 @@ class LifecycleTest(unittest.TestCase):
         self.assertEqual([r["id"] for r in kept], ["a1"])
 
     def test_only_results_ocade_answered_for_leave_the_journal(self):
-        """C07: a result with no answer, or 'retry', goes again; accepted/stopped/unknown leave."""
-        results = [{"id": i, "status": "done"} for i in ("kept", "stopped", "lost", "again", "gone")]
-        reply = {"acks": [{"id": "kept", "outcome": "accepted"}, {"id": "stopped", "outcome": "stopped"},
-                          {"id": "again", "outcome": "retry"}, {"id": "gone", "outcome": "unknown"}]}
+        """C07/V04: only an answer for that id AND receipt, saying OCADE holds it, retires a
+        result. No answer, retry, an unknown answer, another receipt, or no answers at all: kept."""
+        ids = ("kept", "stopped", "lost", "again", "gone", "odd", "other")
+        results = [{"id": i, "status": "done", "receipt": f"r-{i}"} for i in ids]
+        reply = {"acks": [{"id": "kept", "receipt": "r-kept", "outcome": "accepted"},
+                          {"id": "stopped", "receipt": "r-stopped", "outcome": "stopped"},
+                          {"id": "again", "receipt": "r-again", "outcome": "retry"},
+                          {"id": "gone", "receipt": "r-gone", "outcome": "unknown"},
+                          {"id": "odd", "receipt": "r-odd", "outcome": "saved-maybe"},
+                          {"id": "other", "receipt": "r-earlier", "outcome": "accepted"},
+                          "not an answer"]}
         self.assertEqual([r["id"] for r in ocade_device.Agent._unanswered(results, reply)],
-                         ["lost", "again"])
-        self.assertEqual(ocade_device.Agent._unanswered(results, {"commands": []}), [])
+                         ["lost", "again", "odd", "other"])
+        # A reply without answers (malformed, or cut short) retires nothing.
+        self.assertEqual(ocade_device.Agent._unanswered(results, {"commands": []}), results)
+        self.assertEqual(ocade_device.Agent._unanswered(results, {"acks": None}), results)
+
+    def test_every_journalled_result_carries_its_own_receipt(self):
+        agent, _ = self._agent([])
+        results = [{"id": "a1", "status": "done"}, {"id": "a2", "status": "failed", "receipt": "mine"}]
+        self.assertTrue(agent._keep_pending(results))
+        kept = json.loads((self.home / "pending.json").read_text())
+        self.assertEqual(kept[1]["receipt"], "mine")
+        self.assertRegex(kept[0]["receipt"], r"^[0-9a-f]{32}$")
+
+    def test_nothing_runs_while_the_journal_cannot_be_written(self):
+        """V04: a step whose start cannot be recorded never runs; it is reported not run."""
+        command = {"id": "a1", "taskId": "t1", "action": {"action": "file_write", "path": "x.txt",
+                                                          "content": "x"}}
+        agent, identity = self._agent([{"commands": [command], "busy": True},
+                                       {"commands": [], "busy": False}])
+        real_keep = ocade_device.Agent._keep
+
+        def full_disk(path, items):
+            if path.name == "running.json" and items:
+                raise OSError(28, "No space left on device")
+            return real_keep(path, items)
+        with unittest.mock.patch.object(ocade_device.Agent, "_keep", staticmethod(full_disk)):
+            runner = threading.Thread(target=agent.run)
+            runner.start()
+            time.sleep(1.5)
+            agent.stop.set()
+            runner.join(10)
+        self.assertFalse((self.home / "x.txt").exists())
+        sent = [r for body in identity.bodies for r in body.get("results", [])]
+        self.assertTrue(sent and sent[0]["id"] == "a1" and sent[0]["status"] == "failed", sent)
+        self.assertIn("did not run", sent[0]["summary"])
+
+    def test_a_crash_after_the_effect_keeps_the_step_as_unknown_until_its_result_is_kept(self):
+        """V04: the running mark goes only once the journal holds what it became."""
+        agent, _ = self._agent([])
+        agent._keep(agent.intent_path, ["a1"])  # the agent died while a1 ran
+        real_keep = ocade_device.Agent._keep
+
+        def pending_fails(path, items):
+            if path.name == "pending.json":
+                raise OSError(13, "Permission denied")
+            return real_keep(path, items)
+        with unittest.mock.patch.object(ocade_device.Agent, "_keep", staticmethod(pending_fails)):
+            results = agent._load_pending()
+        self.assertEqual([r["id"] for r in results], ["a1"])
+        self.assertEqual(json.loads(agent.intent_path.read_text()), ["a1"])  # not cleared
+        again, _ = self._agent([])
+        recovered = again._load_pending()
+        self.assertEqual(recovered[0]["summary"], ocade_device.INTERRUPTED)
+        self.assertFalse(again.intent_path.exists())
 
     def test_losing_ocade_during_an_action_stops_it(self):
         command = {"id": "a1", "taskId": "t1", "action": {"action": "file_list", "path": "."}}

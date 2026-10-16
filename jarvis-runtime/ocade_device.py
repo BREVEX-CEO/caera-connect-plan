@@ -30,6 +30,7 @@ import sys
 import threading
 import time
 import urllib.error
+import uuid
 import webbrowser
 from pathlib import Path
 
@@ -57,7 +58,10 @@ HALT_JOIN_S = 10.0
 HOME = Path(os.environ.get("OCADE_JARVIS_HOME", Path.home() / ".ocade_jarvis"))
 POLL_IDLE_SECONDS = 1.0
 MAX_SEGMENT = 12
-INTERRUPTED = "The agent stopped while this step ran, so what it did is unknown. Check before repeating it."  # steps one exchange may hand this agent (segment_v1)
+INTERRUPTED = "The agent stopped while this step ran, so what it did is unknown. Check before repeating it."
+NOT_RECORDED = "This computer could not record the step before running it, so it did not run it."
+# What OCADE answers for a result it holds (accepted), kept as stopped, or no longer has (unknown).
+ACKED = {"accepted", "stopped", "unknown"}  # steps one exchange may hand this agent (segment_v1)
 
 
 def connect(server: str, name: str, open_browser: bool = True) -> Identity:
@@ -331,12 +335,26 @@ class Agent:
         reported = {result.get("id") for result in results}
         results += [{"id": step, "status": "failed", "summary": INTERRUPTED}
                     for step in self._read(self.intent_path) if step not in reported]
-        self._keep(self.pending_path, results)
-        self._keep(self.intent_path, [])
+        # The running mark goes only once what it became is safely in the journal.
+        if self._keep_pending(results):
+            self._kept(self.intent_path, [])
         return results
 
-    def _keep_pending(self, results: list[dict]) -> None:
-        self._keep(self.pending_path, results)
+    def _keep_pending(self, results: list[dict]) -> bool:
+        """Each result carries its own receipt, so only OCADE's answer to that very result retires
+        it. False when the journal could not be written: nothing new runs until it can."""
+        for result in results:
+            result.setdefault("receipt", uuid.uuid4().hex)
+        self.state["journal"] = self._kept(self.pending_path, results)
+        return self.state["journal"]
+
+    def _kept(self, path: Path, items: list) -> bool:
+        try:
+            self._keep(path, items)
+            return True
+        except OSError as e:  # a full disk, a lost permission: said, never assumed written
+            print(f"OCADE could not write {path.name}: {e}", flush=True)
+            return False
 
     def _halt(self, active: dict | None) -> None:
         """Cancel the running action and wait for it to end, before anything else happens."""
@@ -373,9 +391,9 @@ class Agent:
                     results.append(outcome)
                     if live:
                         frame = {"taskId": active["taskId"], "jpeg": live[0], "capturedAt": live[1]}
-                self._keep_pending(results)
+                if self._keep_pending(results) and finished:
+                    self._kept(self.intent_path, [])
                 if finished:
-                    self._keep(self.intent_path, [])
                     active = None
             body = {"results": results, "frame": frame,
                     "capabilities": {**self.browsers.capabilities(), **self.computer.capabilities(),
@@ -473,7 +491,13 @@ class Agent:
                 self._keep_pending(results)
                 commands = []
             if commands and not self.stop.is_set():
-                active = self._start(commands)
+                # Nothing runs that this computer could not record first: its outcome could be lost.
+                if self.state.get("journal", True) and self._kept(self.intent_path, [c["id"] for c in commands]):
+                    active = self._start(commands)
+                else:
+                    results.extend({"id": c["id"], "status": "failed", "summary": NOT_RECORDED}
+                                   for c in commands)
+                    self._keep_pending(results)
             elif reply.get("continue") and not active and not self.stop.is_set():
                 self._carry_on(str(reply["continue"]))
             if active:
@@ -485,6 +509,7 @@ class Agent:
             # Exit with a task open: OCADE hears the STOP before the agent ends, best effort;
             # whatever it did not receive stays in the journal for the next start.
             results += [outcome for outcome, _live in (active or {}).get("done", [])]
+            self._keep_pending(results)  # kept, with receipts, before it is sent
             try:
                 reply = self.identity.exchange({"results": results, "stop": True, "running": []})
                 results = self._unanswered(results, reply)
@@ -495,12 +520,15 @@ class Agent:
 
     @staticmethod
     def _unanswered(results: list[dict], reply: dict) -> list[dict]:
-        """Only what OCADE answered for leaves the journal: a result it could not save, or did
-        not answer for at all, goes again. An old server that sends no answers kept them all."""
-        if "acks" not in reply:
-            return []
-        answers = {a.get("id"): a.get("outcome") for a in reply.get("acks") or []}
-        return [r for r in results if answers.get(r.get("id"), "retry") == "retry"]
+        """Only a result OCADE answered for, by its id and receipt, with an answer that says it
+        holds it, leaves the journal. No answer, "retry", an answer this agent does not know, one
+        for another receipt, or a reply without answers at all: the result stays and goes again."""
+        acks = reply.get("acks")
+        if not isinstance(acks, list):
+            return list(results)
+        done = {(a.get("id"), a.get("receipt")) for a in acks
+                if isinstance(a, dict) and a.get("outcome") in ACKED}
+        return [r for r in results if (r.get("id"), r.get("receipt")) not in done]
 
     def _start(self, commands: list[dict]) -> dict:
         """Run a segment in order, one action at a time. After a step that did not finish, or a
@@ -513,7 +541,6 @@ class Agent:
                 cancel.set()
         active = {"id": commands[0]["id"], "taskId": commands[0]["taskId"],
                   "left": [c["id"] for c in commands], "done": [], "skip": set()}
-        self._keep(self.intent_path, list(active["left"]))  # written before anything runs
 
         def work() -> None:
             ended = False
