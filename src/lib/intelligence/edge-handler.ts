@@ -71,8 +71,6 @@ const MAX_ATTACHMENT_IMAGE = 7 * 1_048_576;
  * with code is a few thousand tokens — and low enough that a runaway one stops.
  */
 const MAX_OUTPUT_TOKENS = 16_384;
-/** A provider wait longer than this is a limit for the day, not a moment: never retried. */
-const LONG_WAIT_SECONDS = 60;
 /**
  * How hard the model thinks before answering. Thinking counts against the output cap
  * above, which is why the cap is twice an ordinary answer. "medium": JARVIS turns are
@@ -84,7 +82,13 @@ const PROVIDER_TIMEOUT_MS = 110_000;
 const ATTEMPT_TIMEOUT_MS = 25_000;
 /** Finish reasons that mean the content itself was refused: never a capacity problem. */
 const BLOCKED_FINISH = new Set(["SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII"]);
+/**
+ * Upstream requests for ONE boundary request, across every key: the keys are credential
+ * redundancy, not more quota, so a failover spends from the same three.
+ */
 const MAX_PROVIDER_ATTEMPTS = 3;
+/** A provider wait longer than this is not slept here: the caller is told when to ask again. */
+const MAX_INLINE_WAIT_MS = 2_000;
 
 interface OnlineRequestBody {
   permit: IntelligencePermit;
@@ -358,13 +362,28 @@ function providerBody(body: OnlineRequestBody): Record<string, unknown> {
   };
 }
 
-function retryAfter(response: Response, attempt: number): number {
-  // An absent or empty header is no instruction (Number(null) is 0): the default backoff applies.
+/**
+ * How long the provider says to wait, in ms, or undefined when it does not say: Retry-After as
+ * seconds (fractions kept) or an HTTP date, else the body's `retryDelay` ("12.5s").
+ */
+export function providerWait(
+  response: Response,
+  detail = "",
+  now = Date.now(),
+): number | undefined {
   const header = response.headers.get("retry-after")?.trim();
-  const seconds = header ? Number(header) : Number.NaN;
-  if (Number.isFinite(seconds) && seconds >= 0) return Math.min(seconds * 1_000, 2_000);
-  return Math.min(250 * 2 ** attempt, 2_000);
+  if (header) {
+    const seconds = Number(header);
+    if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1_000;
+    const at = Date.parse(header);
+    if (Number.isFinite(at)) return Math.max(0, at - now);
+  }
+  const body = /"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/.exec(detail)?.[1];
+  return body === undefined ? undefined : Number(body) * 1_000;
 }
+
+/** Without a provider instruction: 250 ms, then 500, never more than 2 s. */
+const backoff = (attempt: number) => Math.min(250 * 2 ** attempt, MAX_INLINE_WAIT_MS);
 
 async function defaultSleep(ms: number, signal: AbortSignal): Promise<void> {
   await new Promise<void>((resolve, reject) => {
@@ -541,8 +560,13 @@ function normalizedProviderStream(
               const raw = line.slice(5).trim();
               if (!raw || raw === "[DONE]") continue;
               for (const event of normalizeProviderChunk(JSON.parse(raw), "online", toolIndex)) {
+                // A call is held until the turn ends complete: a turn cut short or refused
+                // after a call must never hand that call to anything that would act on it.
+                if (event.type === "tool_call") {
+                  toolCalls.push(event.call);
+                  continue;
+                }
                 if (event.type === "token") answer += event.text;
-                if (event.type === "tool_call") toolCalls.push(event.call);
                 if (event.type === "usage") usage = event.usage;
                 if (event.type === "refusal") refused = true;
                 controller.enqueue(sse(event));
@@ -552,9 +576,9 @@ function normalizedProviderStream(
           }
         }
         if (buffer.trim()) throw new Error("Provider ended with an incomplete stream event.");
-        if (!answer.trim() && toolCalls.length === 0) {
-          // Already refused with its real reason: never add a retryable "empty" on top.
-          if (refused) return;
+        if (refused) {
+          // Refused with its real reason already sent: no final answer, and no call is released.
+        } else if (!answer.trim() && toolCalls.length === 0) {
           controller.enqueue(
             sse({
               type: "refusal",
@@ -564,6 +588,7 @@ function normalizedProviderStream(
             }),
           );
         } else {
+          for (const call of toolCalls) controller.enqueue(sse({ type: "tool_call", call }));
           // Charged by the server before the person is told it is complete.
           await settle();
           controller.enqueue(
@@ -795,101 +820,111 @@ async function runOnlineIntelligence(
     let capacityReturnsIn = 0;
     controller.signal.throwIfAborted(); // stopped during the claim: no provider is called
 
-    outer: for (const slot of slots) {
-      for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS; attempt += 1) {
-        let response: Response;
+    let slotIndex = 0;
+    while (attempted.attempts < MAX_PROVIDER_ATTEMPTS && slotIndex < slots.length) {
+      const slot = slots[slotIndex]!;
+      const attempt = attempted.attempts;
+      const last = attempt === MAX_PROVIDER_ATTEMPTS - 1;
+      let response: Response;
+      /*
+       * One key that hangs must not hold the whole request: it has its own
+       * deadline to START answering. Only to start: the timer is cleared the
+       * moment headers arrive, so a long answer is never cut off by it.
+       */
+      const hung = new AbortController();
+      const attemptTimer = setTimeout(
+        () => hung.abort(new DOMException("Provider key timeout", "TimeoutError")),
+        ATTEMPT_TIMEOUT_MS,
+      );
+      try {
+        attempted.slot = slot;
+        attempted.attempts += 1; // counted before the request, so a failed transport counts too
+        response = await deps.callProvider({
+          model: configured,
+          body: providerBody(body),
+          signal: AbortSignal.any([controller.signal, hung.signal]),
+          slot,
+        });
+      } catch (cause) {
         /*
-         * One key that hangs must not hold the whole request: it has its own
-         * deadline to START answering. Only to start: the timer is cleared the
-         * moment headers arrive, so a long answer is never cut off by it.
+         * A THROW IS A TRANSPORT FAILURE OF THIS SLOT — unless we asked for
+         * it. An abort is the person leaving or the whole request's deadline,
+         * and trying the next key after that would be spending their
+         * allowance on a request nobody is waiting for. A key that hung or
+         * could not be reached is failed over, within the same budget.
          */
-        const hung = new AbortController();
-        const attemptTimer = setTimeout(
-          () => hung.abort(new DOMException("Provider key timeout", "TimeoutError")),
-          ATTEMPT_TIMEOUT_MS,
-        );
-        try {
-          attempted.slot = slot;
-          attempted.attempts += 1;
-          response = await deps.callProvider({
-            model: configured,
-            body: providerBody(body),
-            signal: AbortSignal.any([controller.signal, hung.signal]),
-            slot,
-          });
-        } catch (cause) {
-          /*
-           * A THROW IS A TRANSPORT FAILURE OF THIS SLOT — unless we asked for
-           * it. An abort is the person leaving or the whole request's deadline,
-           * and trying the next key after that would be spending their
-           * allowance on a request nobody is waiting for. A key that only hung
-           * past its own deadline is failed over like any transport fault.
-           */
-          if (controller.signal.aborted) throw cause;
-          // A key that hung once gets no second 25 seconds of the person's wait.
-          if (hung.signal.aborted || attempt === MAX_PROVIDER_ATTEMPTS - 1) continue outer;
-          await sleep(retryAfter(new Response(null, { status: 503 }), attempt), controller.signal);
-          continue;
-        } finally {
-          clearTimeout(attemptTimer);
-        }
-
-        provider = response;
-        if (response.ok) break outer;
-
-        /*
-         * A REFUSED ATTEMPT'S BODY IS STILL AN OPEN STREAM.
-         *
-         * Nothing reads it — only its status decides what happens next — and a
-         * body that is neither read nor cancelled holds its connection until the
-         * runtime collects it. Three attempts across three keys is nine of them
-         * per request, and a provider outage is exactly when every request takes
-         * all nine.
-         */
-        if (response.status === 429) {
-          quotaExhausted = true;
-          // How long the provider says to wait. A day's limit (hours away) is not retried:
-          // the caller is told when capacity returns (live cloud runs, 13 Oct 2026).
-          const detail = await response.text().catch(() => "");
-          const delay = Number(/"retryDelay"\s*:\s*"(\d+)(?:\.\d+)?s"/.exec(detail)?.[1] ?? 0);
-          /*
-           * A WEB SEARCH THE PLAN DOES NOT INCLUDE IS NOT A BUSY PROVIDER.
-           *
-           * On the free tier, grounding with Google Search is "Not available" (Google's pricing
-           * page): every grounded request is a 429 with no time to wait, and JARVIS spent
-           * minutes retrying one as if it were busy (live cloud runs, 13 Oct 2026). Said once,
-           * not retried; it answers again if the plan ever includes it.
-           */
-          if (body.research && delay === 0) {
-            return json(403, { error: "research_unavailable" }, origin);
-          }
-          if (delay > LONG_WAIT_SECONDS) {
-            capacityReturnsIn = delay;
-            break outer;
-          }
-          if (attempt === MAX_PROVIDER_ATTEMPTS - 1) break outer;
-          await sleep(retryAfter(response, attempt), controller.signal);
-          continue;
-        }
-
-        if (response.status === 400) {
-          // Google reports a bad or expired key as 400: that is THIS key, not the request.
-          const detail = await response.text().catch(() => "");
-          if (/API_KEY_INVALID|API key (not valid|expired)/i.test(detail)) continue outer;
-          return json(503, { error: "provider_unavailable" }, origin);
-        }
-        void response.body?.cancel().catch(() => undefined);
-
-        if (response.status === 401 || response.status === 403) continue outer;
-
-        if (response.status >= 500) {
-          if (attempt === MAX_PROVIDER_ATTEMPTS - 1) continue outer;
-          await sleep(retryAfter(response, attempt), controller.signal);
-          continue;
-        }
-
-        return json(503, { error: "provider_unavailable" }, origin);
+        if (controller.signal.aborted) throw cause;
+        slotIndex += 1;
+        continue;
+      } finally {
+        clearTimeout(attemptTimer);
       }
+
+      provider = response;
+      if (response.ok) break;
+
+      /*
+       * A REFUSED ATTEMPT'S BODY IS STILL AN OPEN STREAM: read for its reason where the status
+       * needs one, otherwise cancelled so it does not hold its connection.
+       */
+      if (response.status === 429) {
+        quotaExhausted = true;
+        const detail = await response.text().catch(() => "");
+        const wait = providerWait(response, detail);
+        /*
+         * A WEB SEARCH THE PLAN DOES NOT INCLUDE IS NOT A BUSY PROVIDER.
+         *
+         * On the free tier, grounding with Google Search is "Not available" (Google's pricing
+         * page): every grounded request is a 429 with no time to wait, and JARVIS spent
+         * minutes retrying one as if it were busy (live cloud runs, 13 Oct 2026). Said once,
+         * not retried; it answers again if the plan ever includes it.
+         */
+        if (body.research && !wait) {
+          return json(403, { error: "research_unavailable" }, origin);
+        }
+        // Quota belongs to the PROJECT: the same key is retried, never another one. A wait the
+        // provider asks for that is longer than a moment is not slept here, and never cut short.
+        if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
+          capacityReturnsIn = Math.ceil(wait / 1_000);
+          break;
+        }
+        if (last) break;
+        await sleep(wait ?? backoff(attempt), controller.signal);
+        continue;
+      }
+
+      if (response.status === 400) {
+        // Google reports a bad or expired key as 400: that is THIS key, not the request.
+        const detail = await response.text().catch(() => "");
+        if (/API_KEY_INVALID|API key (not valid|expired)/i.test(detail)) {
+          slotIndex += 1;
+          continue;
+        }
+        // The request itself was refused: asking again, or elsewhere, gets the same answer.
+        return json(400, { error: "provider_rejected_request" }, origin);
+      }
+      const wait = providerWait(response);
+      void response.body?.cancel().catch(() => undefined);
+
+      // THIS key is refused: the next one may not be.
+      if (response.status === 401 || response.status === 403) {
+        slotIndex += 1;
+        continue;
+      }
+
+      // The provider is overloaded or failing. Every key reaches the same provider, so the same
+      // key is retried, as long as the budget lasts and the provider allows it.
+      if (response.status >= 500) {
+        if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
+          capacityReturnsIn = Math.ceil(wait / 1_000);
+          break;
+        }
+        if (last) break;
+        await sleep(wait ?? backoff(attempt), controller.signal);
+        continue;
+      }
+
+      return json(503, { error: "provider_unavailable" }, origin);
     }
 
     if (!provider?.ok) {

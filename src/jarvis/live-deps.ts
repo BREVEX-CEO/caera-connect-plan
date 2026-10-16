@@ -183,6 +183,14 @@ async function researchOnce(
   return { answer: text.slice(0, 8000) };
 }
 
+/** Refusals about the request itself: asking again would get the same answer. */
+const FINAL_REFUSALS = [
+  "content_blocked",
+  "cancelled",
+  "online_not_consented",
+  "research_unavailable",
+];
+
 async function askOnce(
   { messages, memory, attachments, signal, onText, taskId }: Parameters<AgentDeps["model"]>[0],
   conversationId: string,
@@ -190,6 +198,7 @@ async function askOnce(
   const billed = await beginBilledRequest({ surface: "jarvis", taskId });
   if (!billed) return null;
   let text = "";
+  let complete = false;
   const toolCalls: NormalizedToolCall[] = [];
   let refusal: { reason: string; code: string; retryable: boolean; retryAfterMs?: number } | null =
     null;
@@ -213,6 +222,7 @@ async function askOnce(
       } else if (event.type === "tool_call") toolCalls.push(event.call);
       else if (event.type === "refusal") refusal = event;
       else if (event.type === "final") {
+        complete = true;
         text = event.response.text || text;
         if (toolCalls.length === 0) toolCalls.push(...event.response.toolCalls);
       }
@@ -223,16 +233,11 @@ async function askOnce(
   } finally {
     await billed.settle();
   }
-  if (refusal && !text && toolCalls.length === 0) {
-    if (
-      refusal.retryable &&
-      ["provider_rate_limited", "online_unavailable", "empty_response", "provider_failed"].includes(
-        refusal.code,
-      )
-    ) {
-      throw new Unavailable(refusal.retryAfterMs);
-    }
-    throw new ModelRefused(refusal.reason);
+  // Only a turn that ended complete is planned from. One cut short released no call, so asking
+  // again is safe (Unavailable); a refusal about the request itself is not asked again.
+  if (!complete) {
+    if (refusal && FINAL_REFUSALS.includes(refusal.code)) throw new ModelRefused(refusal.reason);
+    throw new Unavailable(refusal?.retryAfterMs);
   }
   return { text, toolCalls, permitKey: billed.permit.idempotencyKey };
 }

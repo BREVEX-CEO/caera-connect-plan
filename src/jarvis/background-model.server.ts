@@ -64,6 +64,7 @@ export const serverModel: BackgroundDeps["model"] = async ({
     online: () => true,
   });
   let text = "";
+  let complete = false;
   const toolCalls: NormalizedToolCall[] = [];
   let refusal: { code: string; retryable: boolean } | null = null;
   try {
@@ -91,6 +92,7 @@ export const serverModel: BackgroundDeps["model"] = async ({
       else if (event.type === "tool_call") toolCalls.push(event.call);
       else if (event.type === "refusal") refusal = event;
       else if (event.type === "final") {
+        complete = true;
         text = event.response.text || text;
         if (toolCalls.length === 0) toolCalls.push(...event.response.toolCalls);
       }
@@ -98,7 +100,8 @@ export const serverModel: BackgroundDeps["model"] = async ({
   } catch {
     refusal = { code: "online_unavailable", retryable: true };
   }
-  const delivered = Boolean(text || toolCalls.length);
+  // Only a turn that ended complete is acted on; one cut short released no call (Phase 04, V07).
+  const delivered = complete && Boolean(text || toolCalls.length);
   if (delivered) await gate.finalizePersisted({ userId, idempotencyKey: request });
   else await gate.releasePersisted({ userId, idempotencyKey: request, reason: "failed" });
   if (delivered) return { text, toolCalls };

@@ -240,49 +240,45 @@ describe("authenticated Online Intelligence Edge handler", () => {
     expect(sleep, "a revoked key was waited on before being abandoned").not.toHaveBeenCalled();
   });
 
-  it("moves to the next key after a slot's health attempts are spent", async () => {
+  it("retries an overloaded provider on the same key within ONE budget of three, never multiplied across keys", async () => {
     const call = vi
       .fn<OnlineHandlerDependencies["callProvider"]>()
-      .mockResolvedValue(new Response(null, { status: 503 }))
-      .mockResolvedValueOnce(new Response(null, { status: 503 }))
-      .mockResolvedValueOnce(new Response(null, { status: 503 }))
-      .mockResolvedValueOnce(new Response(null, { status: 503 }))
-      .mockResolvedValueOnce(
-        provider([{ candidates: [{ content: { parts: [{ text: "ok" }] } }] }]),
-      );
+      .mockResolvedValue(new Response(null, { status: 503 }));
     const deps = dependencies({ callProvider: call, sleep: vi.fn(async () => undefined) });
 
     const response = await handleOnlineIntelligence(request(), deps);
-    expect(response.status).toBe(200);
-    await response.text();
-    // Three attempts on the primary, then the secondary answers.
-    expect(call.mock.calls.map(([input]) => input.slot)).toEqual([
-      "primary",
-      "primary",
-      "primary",
-      "secondary",
-    ]);
+    expect(response.status).toBe(503);
+    // Every key reaches the same provider: three attempts in all, all on the primary (V06).
+    expect(call.mock.calls.map(([input]) => input.slot)).toEqual(["primary", "primary", "primary"]);
   });
 
-  it("treats a thrown transport error as this slot's failure, not the request's", async () => {
-    const call = vi
+  it("treats a thrown transport error as this slot's failure, and spends the same budget on the next key", async () => {
+    const once = vi
       .fn<OnlineHandlerDependencies["callProvider"]>()
-      .mockRejectedValueOnce(new TypeError("network"))
-      .mockRejectedValueOnce(new TypeError("network"))
       .mockRejectedValueOnce(new TypeError("network"))
       .mockResolvedValueOnce(
         provider([{ candidates: [{ content: { parts: [{ text: "ok" }] } }] }]),
       );
-    const deps = dependencies({ callProvider: call, sleep: vi.fn(async () => undefined) });
-
-    const response = await handleOnlineIntelligence(request(), deps);
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ callProvider: once, sleep: vi.fn(async () => undefined) }),
+    );
     expect(response.status).toBe(200);
     await response.text();
-    expect(call.mock.calls.map(([input]) => input.slot)).toEqual([
-      "primary",
-      "primary",
+    expect(once.mock.calls.map(([input]) => input.slot)).toEqual(["primary", "secondary"]);
+    // Unreachable everywhere: three attempts in all, one per key, then an honest refusal.
+    const never = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockRejectedValue(new TypeError("network"));
+    const refused = await handleOnlineIntelligence(
+      request(),
+      dependencies({ callProvider: never, sleep: vi.fn(async () => undefined) }),
+    );
+    expect(refused.status).toBe(503);
+    expect(never.mock.calls.map(([input]) => input.slot)).toEqual([
       "primary",
       "secondary",
+      "tertiary",
     ]);
   });
 
@@ -720,8 +716,77 @@ describe("capacity failures that must not look like each other", () => {
       request(),
       dependencies({ callProvider: call }),
     );
-    expect(response.status).toBe(503);
+    // The request itself was refused: not reported as an outage a caller would ask again (V06).
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "provider_rejected_request" });
     expect(call).toHaveBeenCalledTimes(1);
+  });
+
+  it("never retries before the provider allows, and tells the caller when it may ask again (V06)", async () => {
+    const date = new Date(Date.now() + 40_000).toUTCString();
+    for (const [answer, seconds] of [
+      [new Response(null, { status: 503, headers: { "Retry-After": "30" } }), 30],
+      [new Response(null, { status: 503, headers: { "Retry-After": date } }), 40],
+      [new Response('{"error":{"details":[{"retryDelay":"12.5s"}]}}', { status: 429 }), 13],
+    ] as const) {
+      const sleep = vi.fn(async () => undefined);
+      const call = vi.fn(async () => answer.clone());
+      const response = await handleOnlineIntelligence(
+        request(),
+        dependencies({ callProvider: call, sleep }),
+      );
+      expect([503, 429]).toContain(response.status);
+      const said = (await response.json()) as { retryAfterSeconds: number };
+      expect(Math.abs(said.retryAfterSeconds - seconds)).toBeLessThanOrEqual(1);
+      expect(call).toHaveBeenCalledTimes(1);
+      expect(sleep).not.toHaveBeenCalled();
+    }
+    // A short wait is waited out exactly, fractions kept.
+    const sleep = vi.fn(async () => undefined);
+    let calls = 0;
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({
+        sleep,
+        callProvider: vi.fn(async () =>
+          ++calls === 1
+            ? new Response(null, { status: 503, headers: { "Retry-After": "1.5" } })
+            : provider([{ candidates: [{ content: { parts: [{ text: "ok" }] } }] }]),
+        ),
+      }),
+    );
+    await response.text();
+    expect(sleep).toHaveBeenCalledWith(1500, expect.anything());
+  });
+
+  it("releases a call only from a turn that ended complete (V07)", async () => {
+    const call = { functionCall: { name: "computer", args: { action: "file_write" } } };
+    const run = async (body: string) =>
+      (
+        await handleOnlineIntelligence(
+          request(),
+          dependencies({ callProvider: vi.fn(async () => new Response(body, { status: 200 })) }),
+        )
+      ).text();
+    const frame = (chunk: unknown) => `data: ${JSON.stringify(chunk)}\n\n`;
+    // A call, then the provider stops the turn: the call never leaves the boundary.
+    const stopped = await run(
+      frame({ candidates: [{ content: { parts: [call] } }] }) +
+        frame({ candidates: [{ content: { parts: [] }, finishReason: "OTHER" }] }),
+    );
+    expect(stopped).toContain('"type":"refusal"');
+    expect(stopped).not.toContain('"type":"tool_call"');
+    expect(stopped).not.toContain('"type":"final"');
+    // A call, then the stream breaks mid-event.
+    const cut = await run(frame({ candidates: [{ content: { parts: [call] } }] }) + "data: {trunc");
+    expect(cut).not.toContain('"type":"tool_call"');
+    // Complete: the call is released, before the final answer that confirms it.
+    const whole = await run(
+      frame({ candidates: [{ content: { parts: [call] } }] }) +
+        frame({ candidates: [{ content: { parts: [] }, finishReason: "STOP" }] }),
+    );
+    expect(whole.indexOf('"type":"tool_call"')).toBeGreaterThan(-1);
+    expect(whole.indexOf('"type":"tool_call"')).toBeLessThan(whole.indexOf('"type":"final"'));
   });
 
   it("gives a key that never starts answering its own deadline, then uses the next key", async () => {
