@@ -10,6 +10,7 @@ import os
 import sys
 import tempfile
 import threading
+import time
 import unittest
 import unittest.mock
 import wave
@@ -50,6 +51,8 @@ PAGES = {
                   "fetch('tone.wav').then(r => r.blob()).then(b => {"
                   "document.querySelector('audio').src = URL.createObjectURL(b); });</script>",
     "clip.vtt": "WEBVTT\n\n00:00.500 --> 00:02.000\nHello from the clip\n",
+    # Media that never learns its length: the page waits for it before any change.
+    "nometa.html": "<title>Never loads</title><audio src='missing.wav'></audio>",
     "drag.html": """<title>Timeline</title>
       <div id='clip' style='position:absolute;left:20px;top:20px;width:60px;height:40px;background:#888'>Clip</div>
       <button style='position:absolute;left:400px;top:20px'>Pay now</button>
@@ -198,6 +201,17 @@ class BrowserControlTest(unittest.TestCase):
                         "observationId": obs["observationId"]})
         self.assertEqual(out["status"], "blocked")
         self.assertEqual(self.s.run(self.s._page.evaluate("clip.offsetLeft")), 220)
+
+    def test_stop_while_media_loads_sends_no_change_to_the_page(self):
+        """STOP during the page's wait for media must not let the page seek once the wait ends."""
+        self.act({"action": "open", "url": f"{self.base}/nometa.html"})
+        stop = threading.Event()
+        threading.Timer(1.0, stop.set).start()
+        out = self.s.run(self.s.act({"action": "media", "op": "seek", "seconds": 2}, False),
+                         timeout=60, cancel=stop)
+        self.assertTrue(out.get("stopped"), out)
+        time.sleep(9)  # past the page's own 8 s wait for the media
+        self.assertEqual(self.s.run(self.s._page.evaluate("document.querySelector('audio').currentTime")), 0)
 
     def test_a_drag_cut_short_still_lets_go_of_the_button(self):
         """V19: STOP or an error between press and release must not leave the button held."""

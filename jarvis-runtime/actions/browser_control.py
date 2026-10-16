@@ -414,6 +414,10 @@ class _BrowserSession:
                     "found": found}
         if kind == "media":
             op = str(action.get("op", "state"))
+            if op in ("play", "pause", "seek"):
+                # Waiting for the media to load is its own call, so a STOP during that wait cancels
+                # before the change is sent: a cancelled wait inside the page would still go on to act.
+                await page.evaluate(_OCADE_MEDIA, ["state", None, action.get("ref")])
             state = await page.evaluate(_OCADE_MEDIA, [op, action.get("seconds"), action.get("ref")])
             if state.get("error"):
                 return {"status": "failed", "summary": state["error"][:200], "media": state}
