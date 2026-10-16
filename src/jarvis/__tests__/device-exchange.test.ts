@@ -662,11 +662,15 @@ describe("completion needs evidence from the device (P01)", () => {
     const done = (id: string, result: object = { status: "done" }) => settle(id, "done", result);
     const sheet = (cells: Record<string, unknown>, name = "Sheet1") => ({
       status: "done",
-      summary: "Inspected r.xlsx",
-      workbook: {
-        sheet: name,
-        sheets: [{ name: "Sheet1" }, { name: "Summary" }],
-        cells: [Object.entries(cells).map(([cell, value]) => ({ cell, value }))],
+      changed: [],
+      observation: null,
+      // As the exchange stores a device result: everything beyond its status is `detail`.
+      detail: {
+        workbook: {
+          sheet: name,
+          sheets: [{ name: "Sheet1" }, { name: "Summary" }],
+          cells: [Object.entries(cells).map(([cell, value]) => ({ cell, value }))],
+        },
       },
     });
     const complete = (t: string) =>

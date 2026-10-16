@@ -142,7 +142,8 @@ const CHANGES_FILES = [
 type ActionRow = {
   action: { action?: string; path?: unknown; to?: unknown; op?: unknown } | null;
   status: string;
-  result: { status?: string; workbook?: unknown } | null;
+  /** As the exchange stores it: what the device returned beyond its status is under `detail`. */
+  result: { status?: string; detail?: { workbook?: unknown } | null } | null;
 };
 
 const PAGE = 1000;
@@ -247,7 +248,7 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
     const cell = check.cell.toUpperCase();
     const shows = after
       .filter((row) => row.action?.action === "sheet_inspect")
-      .map((row) => cellIn(row.result?.workbook, check.sheet, cell))
+      .map((row) => cellIn(row.result?.detail?.workbook, check.sheet, cell))
       .filter((found) => found !== undefined);
     const latest = shows[shows.length - 1];
     if (!latest) {
