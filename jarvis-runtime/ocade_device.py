@@ -44,7 +44,9 @@ BROWSER_ACTIONS = {"observe", "look", "open", "new_tab", "click", "type", "selec
                    "drag_at", "find_text", "media", "upload", "download"}
 APPS_EVERY_S = 3600
 # With OCADE out of reach this long, a running action is stopped: nobody could STOP it remotely.
-CONTROL_LOSS_S = 15.0
+# The Architecture's native lease: at most 5 s from the last exchange (time.monotonic, so a clock
+# change cannot extend it), renewed by every exchange, about once a second while a step runs.
+CONTROL_LOSS_S = 5.0
 # Planning one step can take OCADE as long as its slowest answer; a step that
 # failed or had nothing to do is not asked for again sooner than this.
 CARRY_ON_TIMEOUT_S = 150.0

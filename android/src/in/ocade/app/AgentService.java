@@ -30,8 +30,12 @@ public final class AgentService extends Service {
     static final String CHANNEL = "ocade";
     private static final long BUSY_MS = 1_000;
     private static final long IDLE_MS = 5_000;
-    /** Unreachable this long with a step running: it is stopped, nobody could STOP it remotely. */
-    private static final long CONTROL_LOSS_MS = 15_000;
+    /**
+     * Unreachable this long with a step running: it is stopped, nobody could STOP it remotely.
+     * The Architecture's native lease (at most 5 s), measured on the monotonic clock: a clock
+     * change cannot extend it.
+     */
+    private static final long CONTROL_LOSS_MS = 5_000;
 
     static volatile AgentService running;
     /** What the bubble and the screen show, in the words the person reads everywhere. */
@@ -205,7 +209,7 @@ public final class AgentService extends Service {
         String stepId = null;
         String stepTask = null;
         long stepStarted = 0;
-        long reached = System.currentTimeMillis();
+        long reached = android.os.SystemClock.elapsedRealtime();
         long appsSent = 0;
         while (!stopping.get()) {
             try {
@@ -253,7 +257,7 @@ public final class AgentService extends Service {
                 final AtomicBoolean held = cancel;
                 Runnable lost = () -> held.set(true);
                 if (step != null) {
-                    main.postDelayed(lost, Math.max(0, CONTROL_LOSS_MS - (System.currentTimeMillis() - reached)));
+                    main.postDelayed(lost, Math.max(0, CONTROL_LOSS_MS - (android.os.SystemClock.elapsedRealtime() - reached)));
                 }
                 Identity.Reply reply;
                 try {
@@ -279,8 +283,8 @@ public final class AgentService extends Service {
                 }
                 if (reply.status != 200) throw new IllegalStateException("exchange " + reply.status);
                 if (identity.waiting()) identity.approved();
-                reached = System.currentTimeMillis();
-                if (body.has("apps")) appsSent = reached;
+                reached = android.os.SystemClock.elapsedRealtime();
+                if (body.has("apps")) appsSent = System.currentTimeMillis();
                 if (body.has("stop")) stopAll.set(false);
                 // Only what OCADE answered for leaves: a result it could not save, or did not
                 // answer for at all, is sent again (an old server that sends no answers kept them).
@@ -355,7 +359,7 @@ public final class AgentService extends Service {
                 return;
             } catch (Exception e) {
                 // Fail closed: work OCADE can no longer see or stop does not continue.
-                if (step != null && System.currentTimeMillis() - reached > CONTROL_LOSS_MS) cancel.set(true);
+                if (step != null && android.os.SystemClock.elapsedRealtime() - reached > CONTROL_LOSS_MS) cancel.set(true);
                 setStatus("Offline");
                 try {
                     Thread.sleep(3_000);
