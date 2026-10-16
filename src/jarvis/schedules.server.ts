@@ -15,7 +15,7 @@
  * cannot run it twice, and a run missed while OCADE was down is skipped.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { executionDisabled } from "./device.server";
 import { isAllowed } from "./permissions";
 import { nextOccurrence, type Repeat } from "./schedule-time";
@@ -37,12 +37,13 @@ interface Schedule {
   next_at: string;
   repeat: Repeat;
   time_zone: string;
+  checks: Json | null;
 }
 
 export async function runDueSchedules(admin: Admin, now = new Date()): Promise<number> {
   const { data: due, error } = await admin
     .from("jarvis_schedules")
-    .select("id, user_id, conversation_id, device_id, what, next_at, repeat, time_zone")
+    .select("id, user_id, conversation_id, device_id, what, next_at, repeat, time_zone, checks")
     .eq("active", true)
     .lte("next_at", now.toISOString())
     .order("next_at", { ascending: true })
@@ -162,6 +163,8 @@ async function startScheduledWork(admin: Admin, schedule: Schedule, now: Date): 
       device_id: device.id,
       title: schedule.what.slice(0, 200),
       plan: [],
+      // The checks fixed when the person scheduled it.
+      outcome: schedule.checks,
       browser_mode: "isolated",
       // The computer holds the loop from the first step: nobody else is driving it.
       controller: device.id,

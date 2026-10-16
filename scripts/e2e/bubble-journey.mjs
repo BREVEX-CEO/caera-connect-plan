@@ -216,7 +216,15 @@ try {
     body: JSON.stringify({
       trigger: "bubble-work",
       steps: [
-        { tool: "start_task", args: { title: "Open a page", where: "browser", steps: ["Open"] } },
+        {
+          tool: "start_task",
+          args: {
+            checks: [{ contains: ["done"] }],
+            title: "Open a page",
+            where: "browser",
+            steps: ["Open"],
+          },
+        },
         { text: "That needs a connected device." },
       ],
     }),

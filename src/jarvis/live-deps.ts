@@ -113,7 +113,7 @@ export function liveDeps(conversationId: string): AgentDeps {
 function research(conversationId: string): AgentDeps["research"] {
   return async ({ question, signal, taskId }) => {
     const found = await askThroughBusy(
-      () => researchOnce(question, conversationId, signal),
+      () => researchOnce(question, conversationId, taskId, signal),
       signal,
     );
     // The sources the answer cited, counted from its own list: progress says only what happened.
@@ -138,9 +138,10 @@ function research(conversationId: string): AgentDeps["research"] {
 async function researchOnce(
   question: string,
   conversationId: string,
+  taskId: string,
   signal?: AbortSignal,
 ): Promise<{ answer: string } | { error: string }> {
-  const billed = await beginBilledRequest({ surface: "jarvis" });
+  const billed = await beginBilledRequest({ surface: "jarvis", taskId });
   if (!billed) return { error: "Research is not available right now." };
   let text = "";
   let refusal: { reason: string; code: string; retryable: boolean; retryAfterMs?: number } | null =
@@ -183,10 +184,10 @@ async function researchOnce(
 }
 
 async function askOnce(
-  { messages, memory, attachments, signal, onText }: Parameters<AgentDeps["model"]>[0],
+  { messages, memory, attachments, signal, onText, taskId }: Parameters<AgentDeps["model"]>[0],
   conversationId: string,
 ): ReturnType<AgentDeps["model"]> {
-  const billed = await beginBilledRequest({ surface: "jarvis" });
+  const billed = await beginBilledRequest({ surface: "jarvis", taskId });
   if (!billed) return null;
   let text = "";
   const toolCalls: NormalizedToolCall[] = [];
@@ -233,5 +234,5 @@ async function askOnce(
     }
     throw new ModelRefused(refusal.reason);
   }
-  return { text, toolCalls };
+  return { text, toolCalls, permitKey: billed.permit.idempotencyKey };
 }

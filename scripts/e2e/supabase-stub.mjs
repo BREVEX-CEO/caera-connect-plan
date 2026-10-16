@@ -953,6 +953,28 @@ function handleRpc(name, args, userId) {
     case "ocade_claim_generation_transport":
       return true;
 
+    case "ocade_bind_permit_to_task": {
+      // As 20261016090000: an open task of the same account, a JARVIS permit not yet
+      // charged, at most 150 turns a task.
+      const permits = rows(userId, "__permits");
+      const permit = permits.find((entry) => entry.idempotencyKey === args.p_idempotency_key);
+      if (!permit || permit.surface !== "jarvis") return "refused";
+      if (permit.taskId === args.p_task_id) return "bound";
+      if (permit.taskId || (permit.settled && permit.charged !== 0)) return "refused";
+      const open = (jarvisTables.jarvis_tasks ?? []).some(
+        (t) =>
+          t.id === args.p_task_id &&
+          t.user_id === userId &&
+          ["running", "waiting", "taken_over"].includes(t.status),
+      );
+      if (!open) return "task_not_open";
+      const turns = permits.filter(
+        (p) => p.taskId === args.p_task_id && (!p.settled || p.charged !== undefined),
+      ).length;
+      if (turns >= 150) return "task_budget_exhausted";
+      permit.taskId = args.p_task_id;
+      return "bound";
+    }
     case "ocade_finalize_generation_permit": {
       const permit = rows(userId, "__permits").find(
         (entry) => entry.idempotencyKey === args.p_idempotency_key,
@@ -974,22 +996,10 @@ function handleRpc(name, args, userId) {
       // As the migration: Free is one use, anything else at least a quarter of one.
       let charged =
         permit.tier === "free" ? 100 : Math.max(25, Number(args.p_cost_hundredths) || 0);
-      // As 20261013090000: a JARVIS turn that starts a task (cost 0 from the boundary), or
-      // one while a task is open or just finished (150 at most), is part of that task.
-      if (permit.surface === "jarvis") {
-        const bound = (id) => rows(userId, "__permits").filter((p) => p.taskId === id).length;
-        const task = (jarvisTables.jarvis_tasks ?? [])
-          .filter(
-            (t) =>
-              t.user_id === userId &&
-              (["running", "waiting", "taken_over"].includes(t.status) ||
-                (t.finished_at && Date.now() - Date.parse(t.finished_at) < 600_000)) &&
-              bound(t.id) < 150,
-          )
-          .sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at))[0];
-        if (Number(args.p_cost_hundredths) === 0 || task) charged = 0;
-        if (task && Number(args.p_cost_hundredths) !== 0) permit.taskId = task.id;
-      }
+      // As 20261016090000: a JARVIS turn bound to its task, or one that starts a task (cost 0
+      // from the boundary), is part of that task. Nothing is inferred from open tasks.
+      if (permit.surface === "jarvis" && (Number(args.p_cost_hundredths) === 0 || permit.taskId))
+        charged = 0;
       const difference = charged - permit.reserved;
       addUsage(userId, kindFor(permit.surface, "session"), permit.sessionStart, difference);
       addUsage(userId, kindFor(permit.surface, "week"), permit.weekStart, difference);

@@ -182,6 +182,15 @@ try {
     {
       tool: "start_task",
       args: {
+        // What finished means, fixed before any change: the totals row and the report's words.
+        checks: [
+          { path: "sales - completed.xlsx", cell: "D8", equals: "Total" },
+          { path: "sales - completed.xlsx", cell: "E8", equals: "=SUM(E2:E7)" },
+          {
+            path: "report - completed.docx",
+            contains: ["Q3 2026", "finance@example.com", "Regional results"],
+          },
+        ],
         title: "Finish the sales workbook and report",
         where: "computer",
         steps: ["Look at the workbook", "Finish the orders", "Finish the report"],
@@ -229,7 +238,7 @@ try {
         ],
       },
     },
-    // Completed needs each changed file read back, and evidence from those reads (P01).
+    // Completed needs each changed file read back, and every fixed check passed by those reads.
     { tool: "computer", args: { action: "sheet_inspect", path: "sales - completed.xlsx" } },
     { tool: "computer", args: { action: "file_extract", path: "report - completed.docx" } },
     {
@@ -237,7 +246,6 @@ try {
       args: {
         outcome: "completed",
         result: "Workbook and report finished.",
-        evidence: ["Q3 2026", "finance@example.com", "Regional results"],
       },
     },
   ]);
@@ -429,7 +437,6 @@ print(json.dumps({"text": text}))
         args: {
           outcome: "completed",
           result: "The discount bug is fixed.",
-          evidence: ["subtotal * (1 - discount)"],
         },
       },
     ]);

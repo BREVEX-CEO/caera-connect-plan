@@ -338,8 +338,15 @@ describe("usage", () => {
   });
 
   it("settles a JARVIS step of an open task as part of that task's one use", async () => {
-    // A has a task open (above): its step costs nothing now; the task is charged when it
-    // completes (20261013090000, proved in jarvis-task-is-one-use.test.ts).
+    // A has a task open (above): a step bound to it costs nothing now; the task is charged
+    // when it completes (20261016090000, proved in jarvis-task-is-one-use.test.ts).
+    const [open] = await twin.asServiceRole<{ id: string }>(
+      `select id from public.jarvis_tasks where user_id = '${A}' and status = 'running' limit 1`,
+    );
+    const [bound] = await twin.asServiceRole<{ r: string }>(
+      `select public.ocade_bind_permit_to_task('${A}'::uuid, 'jarvis-1', '${open!.id}'::uuid) as r`,
+    );
+    expect(bound!.r).toBe("bound");
     await twin.asServiceRole(
       `select * from public.ocade_finalize_generation_permit('${A}'::uuid, 'jarvis-1', 100)`,
     );

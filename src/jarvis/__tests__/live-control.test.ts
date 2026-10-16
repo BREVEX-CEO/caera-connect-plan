@@ -103,11 +103,13 @@ function deps(
   return { d, seen };
 }
 
+/** A model's tool call; start_task carries a check unless the test names its own. */
 const call = (name: string, args: Record<string, unknown> = {}) => ({
   id: name,
   name,
-  arguments: args,
+  arguments: name === "start_task" && !("checks" in args) ? { checks: CHECKS, ...args } : args,
 });
+const CHECKS = [{ contains: ["done"] }];
 
 describe("a turn hears the person between steps", () => {
   it("feeds a redirect to the planner as the person's words, and keeps working", async () => {

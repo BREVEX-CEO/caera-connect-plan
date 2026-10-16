@@ -15,9 +15,12 @@ import type { Database } from "@/integrations/supabase/types";
 import {
   commandClass,
   describeAction,
+  BROWSER_ACTION_NAMES,
   NOT_VERIFIED,
-  READS_BACK,
+  outcomeChecks,
+  readsBack,
   type DeviceAction,
+  type OutcomeCheck,
   type TaskStatus,
 } from "./protocol";
 import { needsConfirmation, refuseAction, type PermissionRow } from "./permissions";
@@ -136,41 +139,49 @@ const CHANGES_FILES = [
   "download",
 ];
 
-/**
- * Why this task cannot be recorded completed yet, or null when it can.
- *
- * The model's word is not evidence. Completed needs every action settled, a
- * successful read of the device after its last change, on the same task, and —
- * when `evidence` is given — each quoted value found in those reads.
- */
-export async function completionGap(
+type ActionRow = {
+  action: { action?: string; path?: unknown; to?: unknown; op?: unknown } | null;
+  status: string;
+  result: { status?: string; workbook?: unknown } | null;
+};
+
+const PAGE = 1000;
+
+/** Every action of the task, in order, all pages: a later one is never judged from a prefix. */
+async function taskActions(
   service: Db,
   userId: string,
   taskId: string,
-  evidence?: string[],
-): Promise<string | null> {
-  const { data, error } = await service
-    .from("jarvis_activity")
-    .select("action, status, result, created_at")
-    .eq("user_id", userId)
-    .eq("task_id", taskId)
-    .neq("status", "note")
-    .order("created_at", { ascending: true })
-    .limit(MOST_CHECKED + 1);
-  if (error) return "the task's actions could not be read back.";
-  // A later action past the window could be unfinished or unchecked: never judged from a prefix.
-  if ((data ?? []).length > MOST_CHECKED) {
-    return `this task has more than ${MOST_CHECKED} actions, more than OCADE checks at once. Finish it as failed and start the rest as a new task.`;
+): Promise<ActionRow[] | null> {
+  const rows: ActionRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await service
+      .from("jarvis_activity")
+      .select("action, status, result")
+      .eq("user_id", userId)
+      .eq("task_id", taskId)
+      .neq("status", "note")
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) return null;
+    rows.push(...((data ?? []) as ActionRow[]));
+    if ((data ?? []).length < PAGE) return rows;
   }
+}
+
+/**
+ * Why these actions cannot stand as a checked result, or null when they can.
+ *
+ * The model's word is not evidence. Every action settled; a successful read of the device
+ * after its last change; each changed file's content read after its change; an action whose
+ * outcome is unknown read back after it; and, when `checks` is given, each of the task's
+ * fixed checks passed by what the device read (never by what the model says it saw).
+ */
+function verificationGap(all: ActionRow[], checks?: readonly OutcomeCheck[] | null): string | null {
   // A refused or skipped action never ran on the device, nor did one cancelled before
   // the device reported anything (a step the person declined): none changed anything.
-  const rows = (
-    (data ?? []) as {
-      action: { action?: string; path?: unknown } | null;
-      status: string;
-      result: { status?: string } | null;
-    }[]
-  ).filter(
+  const rows = all.filter(
     (row) =>
       !["refused", "skipped"].includes(row.result?.status ?? "") &&
       !(row.status === "cancelled" && row.result == null),
@@ -178,46 +189,151 @@ export async function completionGap(
   if (rows.some((row) => ["queued", "claimed", "needs_confirmation"].includes(row.status))) {
     return "an action has not finished. Wait for its result before finishing.";
   }
-  const reads = (row: (typeof rows)[number]) => READS_BACK.has(row.action?.action ?? "");
+  const read = (row: ActionRow) => readsBack(row.action) && row.status === "done";
   let since = rows.length;
-  while (since > 0 && reads(rows[since - 1]!)) since -= 1;
-  const finalReads = rows.slice(since).filter((row) => row.status === "done");
-  if (!finalReads.length) {
+  while (since > 0 && readsBack(rows[since - 1]!.action)) since -= 1;
+  if (!rows.slice(since).some(read)) {
     return "nothing has read the result back since the last change. Check it with a fresh read (file_info, sheet_inspect, observe or ui_inspect), then finish.";
   }
-  // Each file whose content changed is itself read back after its last change, not another one.
   for (const [at, row] of rows.entries()) {
-    const path = row.action?.path;
-    if (!EDITS_CONTENT.has(row.action?.action ?? "") || typeof path !== "string") continue;
-    const later = rows.slice(at + 1).filter((next) => next.action?.path === path);
-    if (later.some((next) => EDITS_CONTENT.has(next.action?.action ?? ""))) continue;
-    if (
-      !later.some((next) => READS_FILE.has(next.action?.action ?? "") && next.status === "done")
-    ) {
+    const path = typeof row.action?.path === "string" ? row.action.path : null;
+    const later = rows.slice(at + 1);
+    // Stopped while the device held it: it may have acted. Read what it could have changed.
+    if (row.result?.status === "unknown" && !readsBack(row.action)) {
+      if (!later.some((next) => read(next) && (!path || samePath(next, path)))) {
+        return `an action's outcome is unknown (it was stopped while the device held it). Read ${path ?? "the result"} again, then finish.`;
+      }
+    }
+    // Each file whose content changed is itself read back after its last change, not another one.
+    if (!EDITS_CONTENT.has(row.action?.action ?? "") || !path) continue;
+    const onIt = later.filter((next) => samePath(next, path));
+    if (onIt.some((next) => EDITS_CONTENT.has(next.action?.action ?? ""))) continue;
+    if (!onIt.some((next) => READS_FILE.has(next.action?.action ?? "") && next.status === "done")) {
       return `${path} was changed but its content was never read back. Read it (file_read, file_extract or sheet_inspect), then finish.`;
     }
   }
-  if (evidence === undefined) return null;
-  // What the model says it saw must be in what the device read after the last change.
-  if (!evidence.length) {
-    return "give as evidence the exact values or words your last reads show that prove the request is met.";
+  if (checks === undefined) return null;
+  if (!checks?.length) {
+    return "this task has no checks for its result, so OCADE cannot confirm it. Finish it as failed, or start it again with checks.";
   }
-  const seen = normal(finalReads.map((row) => textOf(row.result)).join(" "));
-  const missing = evidence.find((item) => !seen.includes(normal(item)));
-  return missing === undefined
-    ? null
-    : `"${missing.slice(0, 80)}" is not in anything the device read back after the last change. Read the result again and quote what it shows, or finish as failed.`;
+  for (const check of checks) {
+    const failed = checkGap(rows, check);
+    if (failed) return failed;
+  }
+  return null;
 }
 
-const MOST_CHECKED = 1000;
+/** Why one fixed check is not met by the device's own reads, or null. */
+function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
+  const path = check.path ?? null;
+  // What could have changed the target last: the file itself, or anything on the computer
+  // without a path (a command, an app's window); for the screen or page, anything without a path.
+  let last = -1;
+  rows.forEach((row, at) => {
+    if (readsBack(row.action) || (path && BROWSER_ACTION_NAMES.has(row.action?.action ?? "")))
+      return;
+    if (path ? samePath(row, path) || pathless(row) : pathless(row)) last = at;
+  });
+  const after = rows
+    .slice(last + 1)
+    .filter(
+      (row) =>
+        readsBack(row.action) &&
+        row.status === "done" &&
+        (path ? samePath(row, path) : pathless(row)),
+    );
+  const target = path ?? "the screen or page";
+  if (check.cell !== undefined) {
+    const cell = check.cell.toUpperCase();
+    const shows = after
+      .filter((row) => row.action?.action === "sheet_inspect")
+      .map((row) => cellIn(row.result?.workbook, check.sheet, cell))
+      .filter((found) => found !== undefined);
+    const latest = shows[shows.length - 1];
+    if (!latest) {
+      return `${cell} of ${target}${check.sheet ? ` (${check.sheet})` : ""} was not read after its last change. Read it with sheet_inspect, then finish.`;
+    }
+    if (!sameValue(latest.value, check.equals!) && !sameValue(latest.formula, check.equals!)) {
+      return `${cell} of ${target} shows ${JSON.stringify(latest.value ?? latest.formula ?? null)}, not ${JSON.stringify(check.equals)}. Fix it, or finish as failed and say what differs.`;
+    }
+    return null;
+  }
+  const reads =
+    path && check.contains?.length
+      ? after.filter((row) => READS_FILE.has(row.action?.action ?? ""))
+      : after;
+  if (!reads.length) {
+    return `${target} was not read${path && check.contains?.length ? " for its content" : ""} after its last change. Read it again, then finish.`;
+  }
+  const seen = normal(reads.map((row) => textOf(row.result)).join(" "));
+  const missing = check.contains?.find((text) => !seen.includes(normal(text)));
+  return missing === undefined
+    ? null
+    : `"${missing.slice(0, 80)}" is not in ${target} as the device read it after its last change. Fix it, or finish as failed and say what differs.`;
+}
+
+/**
+ * Why this task cannot be recorded completed yet, or null when it can (see verificationGap).
+ * Without `checks`, only the structural rules apply (a recipe is kept for checked work).
+ */
+export async function completionGap(
+  service: Db,
+  userId: string,
+  taskId: string,
+  checks?: readonly OutcomeCheck[] | null,
+): Promise<string | null> {
+  const rows = await taskActions(service, userId, taskId);
+  return rows ? verificationGap(rows, checks) : "the task's actions could not be read back.";
+}
 
 /** Actions that change a file's content in place, and the reads that check that content. */
 const EDITS_CONTENT = new Set(["file_write", "sheet_edit", "doc_edit", "deck_edit"]);
 const READS_FILE = new Set(["file_read", "file_extract", "file_compare", "sheet_inspect"]);
 
 const normal = (text: string) => text.toLowerCase().replace(/\s+/g, " ").trim();
+const normalPath = (path: string) =>
+  path.trim().replace(/\\/g, "/").replace(/^\.\//, "").toLowerCase();
+const pathless = (row: ActionRow) =>
+  typeof row.action?.path !== "string" && typeof row.action?.to !== "string";
+const samePath = (row: ActionRow, path: string) =>
+  [row.action?.path, row.action?.to].some(
+    (value) => typeof value === "string" && normalPath(value) === normalPath(path),
+  );
 
-/** Every string and number a result holds, for matching quoted evidence. */
+/** A cell as sheet_inspect read it: of the named sheet, or the first when none is named. */
+function cellIn(
+  workbook: unknown,
+  sheet: string | undefined,
+  cell: string,
+): { value?: unknown; formula?: unknown } | undefined {
+  const book = workbook as {
+    sheet?: string;
+    sheets?: { name?: string }[];
+    cells?: { cell?: string; value?: unknown; formula?: unknown }[][];
+  } | null;
+  const wanted = sheet ?? book?.sheets?.[0]?.name;
+  if (!book || !wanted || normal(String(book.sheet ?? "")) !== normal(wanted)) return undefined;
+  for (const row of book.cells ?? []) {
+    const found = row.find((item) => String(item.cell ?? "").toUpperCase() === cell);
+    if (found) return found;
+  }
+  return {}; // read, and empty
+}
+
+/** Numbers by value, anything else as words. */
+function sameValue(actual: unknown, wanted: string): boolean {
+  if (actual === undefined || actual === null || typeof actual === "boolean") {
+    return actual != null && normal(String(actual)) === normal(wanted);
+  }
+  const a = Number(actual);
+  const w = Number(wanted);
+  if (String(actual).trim() && wanted.trim() && Number.isFinite(a) && Number.isFinite(w)) {
+    return Math.abs(a - w) <= 1e-9 * Math.max(1, Math.abs(w));
+  }
+  return normal(String(actual)) === normal(wanted);
+}
+
+/** Every string and number a result holds, for matching expected words. */
 function textOf(value: unknown): string {
   if (typeof value === "string" || typeof value === "number") return String(value);
   if (Array.isArray(value)) return value.map(textOf).join(" ");
@@ -240,8 +356,6 @@ export interface TaskChange {
    */
   owner?: string;
   checkpoint?: { step: number; lastAction: string; lastUrl: string | null; at: string };
-  /** For completed: what the model quotes from the device's last reads. */
-  evidence?: string[];
 }
 
 export async function changeTask(
@@ -250,11 +364,23 @@ export async function changeTask(
   userId: string,
   data: TaskChange,
 ): Promise<JarvisTaskRow | null> {
-  if (data.status === "completed") {
-    const gap = await completionGap(service, userId, data.id, data.evidence ?? []);
-    if (gap) throw new Error(NOT_VERIFIED + gap);
-  }
   const patch: Record<string, unknown> = {};
+  if (data.status === "completed") {
+    const { data: fixed } = await service
+      .from("jarvis_tasks")
+      .select("outcome")
+      .eq("id", data.id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    const checks = outcomeChecks.safeParse(fixed?.outcome);
+    const rows = await taskActions(service, userId, data.id);
+    const gap = rows
+      ? verificationGap(rows, checks.success ? checks.data : null)
+      : "the task's actions could not be read back.";
+    if (gap) throw new Error(NOT_VERIFIED + gap);
+    // The database refuses completed if the task holds any other actions when it is written.
+    patch.verified_actions = rows!.length;
+  }
   if (data.controller !== undefined) patch.controller = data.controller;
   else if (data.owner !== undefined) patch.controller = data.owner; // same value: a touch
   if (data.checkpoint !== undefined) patch.checkpoint = data.checkpoint;
@@ -271,6 +397,12 @@ export async function changeTask(
     .eq("user_id", userId);
   if (data.owner !== undefined) write = write.eq("controller", data.owner);
   const { data: task, error } = await write.select(TASK_COLUMNS).maybeSingle();
+  // The database found an action added between the check above and this write.
+  if (error?.message.includes("changed after its result was checked")) {
+    throw new Error(
+      NOT_VERIFIED + "an action was added after the check. Read the result again, then finish.",
+    );
+  }
   if (error) throw new Error(error.message);
   if (!task && data.owner !== undefined) return null; // control moved elsewhere
   if (!task) throw new Error("That task no longer exists.");

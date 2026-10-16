@@ -115,6 +115,12 @@ export interface CommercialUsageLedger {
     reserved: number;
   }): Promise<DurablePermitAcquisition>;
   finalizePermit?(input: { userId: string; idempotencyKey: string }): Promise<number>;
+  /** Make a JARVIS permit part of its task (free; at most 150 a task). */
+  bindPermitToTask?(input: {
+    userId: string;
+    idempotencyKey: string;
+    taskId: string;
+  }): Promise<TaskBinding>;
   releasePermit?(input: {
     userId: string;
     idempotencyKey: string;
@@ -131,6 +137,8 @@ export class AllowanceExhausted extends Error {
     this.name = "AllowanceExhausted";
   }
 }
+
+export type TaskBinding = "bound" | "task_budget_exhausted" | "task_not_open" | "refused";
 
 /** Why a permit was released without being charged. */
 export type ReleaseReason = "failed" | "cancelled_before_output" | "superseded" | "abandoned";
@@ -160,7 +168,8 @@ export type AcquireResult =
     }
   | {
       ok: false;
-      reason: "duplicate_completed" | "idempotency_conflict";
+      reason:
+        "duplicate_completed" | "idempotency_conflict" | "task_budget_exhausted" | "task_not_open";
       exhausted?: never;
       resetsAt?: never;
     };
@@ -184,6 +193,8 @@ export interface AcquireRequest {
   generationId?: string;
   /** Product surface acquiring the shared account allowance. */
   surface?: GenerationSurface;
+  /** The JARVIS task this planning turn belongs to: the turn is then part of its one use. */
+  taskId?: string;
 }
 
 function windowKey(window: UsageWindow): string {
@@ -229,6 +240,28 @@ export class CommercialGenerationGate {
       }
       if (!durable.permitId) {
         throw new Error("The commercial ledger granted a permit without an identity.");
+      }
+      if (request.taskId) {
+        if (!this.ledger.bindPermitToTask) {
+          throw new Error("The commercial ledger cannot bind a permit to its task.");
+        }
+        const binding = await this.ledger.bindPermitToTask({
+          userId: request.userId,
+          idempotencyKey: request.idempotencyKey,
+          taskId: request.taskId,
+        });
+        if (binding !== "bound") {
+          // Nothing was sent: the reservation goes back, and the task pauses uncharged.
+          await this.ledger.releasePermit?.({
+            userId: request.userId,
+            idempotencyKey: request.idempotencyKey,
+            reason: "cancelled_before_output",
+          });
+          return {
+            ok: false,
+            reason: binding === "task_budget_exhausted" ? binding : "task_not_open",
+          };
+        }
       }
       return {
         ok: true,

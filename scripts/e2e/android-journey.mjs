@@ -404,7 +404,12 @@ try {
       steps: [
         {
           tool: "start_task",
-          args: { title: "Open Settings", where: "computer", steps: ["Open", "Read"] },
+          args: {
+            checks: [{ contains: ["Network & internet"] }],
+            title: "Open Settings",
+            where: "computer",
+            steps: ["Open", "Read"],
+          },
         },
         { tool: "computer", args: { action: "open_app", name: "Settings" } },
         { tool: "computer", args: { action: "ui_inspect" } },
@@ -417,7 +422,6 @@ try {
           args: {
             outcome: "completed",
             result: "Settings is open.",
-            evidence: ["Network & internet"],
           },
         },
       ],
@@ -500,6 +504,9 @@ try {
         {
           tool: "start_task",
           args: {
+            // The emulator's Wi-Fi network: listed on the network page on every version, never on
+            // Settings' first page.
+            checks: [{ contains: ["AndroidWifi"] }],
             title: "Check three apps, then the network",
             where: "computer",
             steps: ["Apps", "Network"],
@@ -516,9 +523,6 @@ try {
           args: {
             outcome: "completed",
             result: "Visited the apps and opened the network settings.",
-            // The emulator's Wi-Fi network: listed on the network page on every version, never on
-            // Settings' first page.
-            evidence: ["AndroidWifi"],
           },
         },
       ],
@@ -604,7 +608,12 @@ try {
       steps: [
         {
           tool: "start_task",
-          args: { title: "Read the harbour notes", where: "computer", steps: ["Open", "Read"] },
+          args: {
+            checks: [{ contains: [word] }],
+            title: "Read the harbour notes",
+            where: "computer",
+            steps: ["Open", "Read"],
+          },
         },
         { tool: "computer", args: { action: "open_app", name: "Chrome" } },
         { tool: "computer", args: { action: "screen" } },
@@ -625,7 +634,7 @@ try {
         { tool: "computer", args: { action: "ui_inspect" } },
         {
           tool: "finish_task",
-          args: { outcome: "completed", result: "Read the harbour notes.", evidence: [word] },
+          args: { outcome: "completed", result: "Read the harbour notes." },
         },
       ],
     }),
@@ -689,7 +698,12 @@ try {
     [
       {
         tool: "start_task",
-        args: { title: "Read the screen", where: "computer", steps: ["Read"] },
+        args: {
+          checks: [{ contains: ["done"] }],
+          title: "Read the screen",
+          where: "computer",
+          steps: ["Read"],
+        },
       },
       { tool: "computer", args: { action: "ui_inspect" } },
       { tool: "finish_task", args: { outcome: "blocked", result: "App control is off." } },
@@ -736,7 +750,12 @@ try {
       [
         {
           tool: "start_task",
-          args: { title: `Open ${attempt}`, where: "computer", steps: ["Open"] },
+          args: {
+            checks: [{ contains: ["done"] }],
+            title: `Open ${attempt}`,
+            where: "computer",
+            steps: ["Open"],
+          },
         },
         { tool: "computer", args: { action: "open_app", name: "Settings" } },
         { tool: "finish_task", args: { outcome: "failed", result: "Stopped." } },

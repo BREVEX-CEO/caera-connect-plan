@@ -24,6 +24,7 @@ export function restOver(twin: DatabaseTwin) {
       let columns = "*";
       let patch: Record<string, unknown> = {};
       let tail = "";
+      const orders: string[] = [];
       let returning = false;
       let one: "single" | "maybe" | null = null;
       let counting = false;
@@ -89,14 +90,19 @@ export function restOver(twin: DatabaseTwin) {
           q
         ),
         order: (c: string, o: { ascending: boolean }) => (
-          (tail += ` order by ${c} ${o.ascending ? "asc" : "desc"}`),
+          orders.push(`${c} ${o.ascending ? "asc" : "desc"}`),
           q
         ),
         limit: (n: number) => ((tail += ` limit ${n}`), q),
+        range: (from: number, to: number) => (
+          (tail += ` limit ${to - from + 1} offset ${from}`),
+          q
+        ),
         maybeSingle: () => ((one = "maybe"), q),
         single: () => ((one = "single"), q),
         then(resolve: (r: unknown) => void) {
           const w = where.length ? ` where ${where.join(" and ")}` : "";
+          if (orders.length) tail = ` order by ${orders.join(", ")}${tail}`;
           const t = `public.${table}`;
           const sql =
             verb === "select"

@@ -63,6 +63,8 @@ export interface BackgroundDeps {
   model(input: {
     userId: string;
     conversationId: string;
+    /** The task it plans for: the turn is part of that task's one use. */
+    taskId: string;
     messages: NormalizedMessage[];
     attachments: NormalizedAttachment[];
   }): Promise<ModelStep | null | "unavailable">;
@@ -325,6 +327,7 @@ export async function carryOn(
   const reply = await deps.model({
     userId,
     conversationId: task.conversation_id,
+    taskId: task.id,
     messages,
     attachments,
   });

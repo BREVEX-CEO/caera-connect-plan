@@ -420,7 +420,15 @@ try {
     body: JSON.stringify({
       trigger: "paused-agent",
       steps: [
-        { tool: "start_task", args: { title: "Tidy files", where: "computer", steps: ["Tidy"] } },
+        {
+          tool: "start_task",
+          args: {
+            checks: [{ contains: ["done"] }],
+            title: "Tidy files",
+            where: "computer",
+            steps: ["Tidy"],
+          },
+        },
         { text: "Computer work is paused right now." },
       ],
     }),

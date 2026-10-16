@@ -379,6 +379,7 @@ export type Database = {
       jarvis_schedules: {
         Row: {
           active: boolean
+          checks: Json | null
           conversation_id: string
           created_at: string
           device_id: string | null
@@ -393,6 +394,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          checks?: Json | null
           conversation_id: string
           created_at?: string
           device_id?: string | null
@@ -407,6 +409,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          checks?: Json | null
           conversation_id?: string
           created_at?: string
           device_id?: string | null
@@ -435,12 +438,14 @@ export type Database = {
           id: string
           live_frame: string | null
           live_frame_at: string | null
+          outcome: Json | null
           plan: Json
           result: string | null
           status: string
           title: string
           updated_at: string
           user_id: string
+          verified_actions: number | null
         }
         Insert: {
           checkpoint?: Json | null
@@ -455,12 +460,14 @@ export type Database = {
           id?: string
           live_frame?: string | null
           live_frame_at?: string | null
+          outcome?: Json | null
           plan?: Json
           result?: string | null
           status?: string
           title: string
           updated_at?: string
           user_id: string
+          verified_actions?: number | null
         }
         Update: {
           checkpoint?: Json | null
@@ -475,12 +482,14 @@ export type Database = {
           id?: string
           live_frame?: string | null
           live_frame_at?: string | null
+          outcome?: Json | null
           plan?: Json
           result?: string | null
           status?: string
           title?: string
           updated_at?: string
           user_id?: string
+          verified_actions?: number | null
         }
         Relationships: [
           {
@@ -1805,6 +1814,10 @@ export type Database = {
           week_reset_at: string
           week_window_start: string
         }[]
+      }
+      ocade_bind_permit_to_task: {
+        Args: { p_idempotency_key: string; p_task_id: string; p_user_id: string }
+        Returns: string
       }
       ocade_cancel_unsigned_offline_usage: {
         Args: { p_device_id: string; p_lease_id: string; p_user_id: string }

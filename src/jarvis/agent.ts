@@ -28,6 +28,8 @@ import {
   finishChange,
   FINISHED,
   NOT_VERIFIED,
+  outcomeChecks,
+  type OutcomeCheck,
   JARVIS_SYSTEM_PROMPT,
   RESEARCH_GUIDANCE,
   type DeviceAction,
@@ -97,6 +99,8 @@ export interface Checkpoint {
 export interface ModelStep {
   text: string;
   toolCalls: NormalizedToolCall[];
+  /** The permit this turn was asked under: a turn that starts a task becomes part of it. */
+  permitKey?: string;
 }
 
 export interface ActionState {
@@ -115,6 +119,8 @@ export interface AgentDeps {
     signal: AbortSignal;
     /** The answer so far, as it streams in (customer-facing text only). */
     onText?: (text: string) => void;
+    /** The open task this turn plans for: the turn is part of that task's one use. */
+    taskId?: string;
   }): Promise<ModelStep | null>;
   startTask(input: {
     deviceId?: string;
@@ -123,6 +129,10 @@ export interface AgentDeps {
     where: "browser" | "computer";
     title: string;
     plan: string[];
+    /** What the result must pass, fixed from the start. */
+    checks: OutcomeCheck[];
+    /** The turn that asked to start it, made part of the task. */
+    planningPermit?: string;
     hereDeviceId?: string;
     on?: "here" | "computer";
   }): Promise<StartTaskResult>;
@@ -136,8 +146,6 @@ export interface AgentDeps {
     /** Write only while this loop owns the task; a loop that lost it gets Stopped(true). */
     owner?: string;
     checkpoint?: Checkpoint;
-    /** For completed: what the model quotes from the device's last reads. */
-    evidence?: string[];
   }): Promise<JarvisTaskRow>;
   readTaskStatus(id: string): Promise<TaskStatus>;
   queue(input: {
@@ -170,6 +178,8 @@ export interface AgentDeps {
     repeat: "none" | "daily" | "weekdays" | "weekly";
     timeZone: string;
     onComputer: boolean;
+    /** For work on the computer: what its result must pass. */
+    checks?: OutcomeCheck[];
     deviceId?: string;
   }): Promise<{ ok: boolean; message: string }>;
 }
@@ -452,6 +462,8 @@ export async function runJarvisTurn(
   let claimed = false;
   /** The task start_task found the computer busy with, the only one stop_task may stop. */
   let busy: { id: string; title: string } | null = null;
+  /** The permit of the latest model turn. */
+  let permitKey: string | undefined;
   let attachments: NormalizedAttachment[] = [];
   /** The last page or screen the model was shown: what a sequence's later steps were planned on. */
   let seen: Seen | null = null;
@@ -718,7 +730,15 @@ export async function runJarvisTurn(
         }
         const title = String(args.title ?? "").slice(0, 200) || "Task";
         const plan = Array.isArray(args.steps) ? args.steps.map(String).slice(0, 8) : [];
+        const checks = outcomeChecks.safeParse(args.checks);
+        if (!checks.success) {
+          return {
+            error: `start_task needs 1 to 10 valid checks the finished result must pass (${checks.error.issues[0]?.message ?? "invalid"}). Write them from what the person asked, then call start_task again.`,
+          };
+        }
         const started = await deps.startTask({
+          checks: checks.data,
+          ...(permitKey ? { planningPermit: permitKey } : {}),
           conversationId: input.conversationId,
           ...(input.deviceId ? { deviceId: input.deviceId } : {}),
           ...(input.hereDeviceId ? { hereDeviceId: input.hereDeviceId } : {}),
@@ -818,8 +838,16 @@ export async function runJarvisTurn(
         const repeat = ["daily", "weekdays", "weekly"].includes(String(args.repeat))
           ? (String(args.repeat) as "daily" | "weekdays" | "weekly")
           : "none";
+        const checks = outcomeChecks.safeParse(args.checks);
+        if (args.on_computer === true && !checks.success) {
+          return {
+            error:
+              "Work on the computer needs 1 to 10 valid checks its result must pass. Write them from what the person asked, then schedule again.",
+          };
+        }
         return deps
           .schedule({
+            ...(args.on_computer === true && checks.success ? { checks: checks.data } : {}),
             conversationId: input.conversationId,
             what: String(args.what ?? "").slice(0, 500),
             when: String(args.when ?? ""),
@@ -883,7 +911,9 @@ export async function runJarvisTurn(
           attachments,
           signal: hooks.signal,
           onText: hooks.onText,
+          ...(task && !FINISHED.includes(task.status) ? { taskId: task.id } : {}),
         });
+        permitKey = reply?.permitKey;
       } catch (error) {
         // Stop mid-answer surfaces from the stream as an abort error: it is a Stop.
         if (hooks.signal.aborted) throw new Stopped();

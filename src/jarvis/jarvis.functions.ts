@@ -21,7 +21,8 @@ import {
   deviceAction,
   FINISHED,
   hostOf,
-  READS_BACK,
+  outcomeChecks,
+  readsBack,
   TASK_STATUSES,
   type TaskStatus,
 } from "./protocol";
@@ -254,8 +255,7 @@ export const readJarvisState = createServerFn({ method: "GET" })
       activity: (activity.data ?? []).map(({ action, ...rest }) => ({
         ...rest,
         check:
-          rest.status === "done" &&
-          READS_BACK.has(String((action as { action?: unknown } | null)?.action ?? "")),
+          rest.status === "done" && readsBack(action as { action?: unknown; op?: unknown } | null),
       })),
       sites: [...sites].sort().slice(0, 100),
       apps,
@@ -336,6 +336,10 @@ export const startJarvisTask = createServerFn({ method: "POST" })
         on: z.enum(["here", "computer"]).optional(),
         title: z.string().trim().min(1).max(200),
         plan: z.array(z.string().trim().min(1).max(200)).max(12),
+        /** What the result must pass, fixed from now on. */
+        checks: outcomeChecks,
+        /** The planning turn that asked to start it: part of this task, never a request of its own. */
+        planningPermit: z.string().trim().min(1).max(200).optional(),
       })
       .parse(i),
   )
@@ -393,6 +397,7 @@ export const startJarvisTask = createServerFn({ method: "POST" })
         device_id: device.id,
         title: data.title,
         plan: data.plan.slice(0, 12),
+        outcome: data.checks,
         browser_mode: real ? "real" : "isolated",
         controller: data.controller,
       })
@@ -421,6 +426,13 @@ export const startJarvisTask = createServerFn({ method: "POST" })
       };
     }
     if (insertError) throw new Error(insertError.message);
+    if (data.planningPermit) {
+      await service.rpc("ocade_bind_permit_to_task", {
+        p_user_id: context.userId,
+        p_idempotency_key: data.planningPermit,
+        p_task_id: task.id,
+      });
+    }
     await service.from("jarvis_activity").insert({
       user_id: context.userId,
       task_id: task.id,
@@ -449,7 +461,6 @@ export const updateJarvisTask = createServerFn({ method: "POST" })
         currentStep: z.number().int().min(0).max(12).optional(),
         result: z.string().max(8000).nullable().optional(),
         blocker: z.string().max(300).nullable().optional(),
-        evidence: z.array(z.string().max(200)).max(10).optional(),
         /** Claim the task for this planning loop; any other loop stops queueing. */
         controller: uuid.optional(),
         /**
@@ -930,6 +941,8 @@ export const scheduleJarvis = createServerFn({ method: "POST" })
         repeat: z.enum(["none", "daily", "weekdays", "weekly"]).default("none"),
         timeZone: z.string().max(64).default("UTC"),
         onComputer: z.boolean().default(false),
+        /** For work on the computer: what its result must pass, fixed now. */
+        checks: outcomeChecks.optional(),
         deviceId: uuid.optional(),
       })
       .parse(i),
@@ -961,6 +974,13 @@ export const scheduleJarvis = createServerFn({ method: "POST" })
     }
     let deviceId: string | null = null;
     let computer = "";
+    if (data.onComputer && !data.checks) {
+      return {
+        ok: false,
+        message:
+          "Work on the computer needs the checks its result must pass. Schedule it with checks.",
+      };
+    }
     if (data.onComputer) {
       const { data: agents } = await service
         .from("jarvis_devices")
@@ -992,6 +1012,7 @@ export const scheduleJarvis = createServerFn({ method: "POST" })
       next_at: new Date(at).toISOString(),
       repeat: data.repeat,
       time_zone: safeZone(data.timeZone),
+      checks: data.onComputer ? data.checks : null,
     });
     if (error) throw new Error(error.message);
     return {

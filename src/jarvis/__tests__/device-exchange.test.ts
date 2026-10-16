@@ -651,39 +651,191 @@ describe("completion needs evidence from the device (P01)", () => {
     expect(await gap(t)).toMatch(/content was never read back/);
   });
 
-  it("checks quoted evidence against what the device read after the last change", async () => {
-    const t = await task();
-    await settle(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }), "done");
-    const old = await queue(t, { action: "sheet_inspect", path: "old.xlsx" });
-    await settle(old, "done", { status: "done", detail: { cells: { B9: 3100 } } });
-    await settle(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }), "done");
-    await settle(await queue(t, { action: "sheet_inspect", path: "r.xlsx" }), "done", {
+  describe("the task's fixed checks decide completed, not the model's quotes (Phase 01)", () => {
+    const withChecks = async (checks: object[]) => {
+      const [row] = await twin.asServiceRole<{ id: string }>(
+        `insert into public.jarvis_tasks (user_id, conversation_id, device_id, title, outcome)
+         values ('${A}', '${conversation}', '${device}', 't', ${lit(checks)}) returning id`,
+      );
+      return row!.id;
+    };
+    const done = (id: string, result: object = { status: "done" }) => settle(id, "done", result);
+    const sheet = (cells: Record<string, unknown>, name = "Sheet1") => ({
       status: "done",
-      summary: "Sheet1: 10 rows",
-      detail: { cells: { B10: 4520, A10: "Grand  Total" } },
+      summary: "Inspected r.xlsx",
+      workbook: {
+        sheet: name,
+        sheets: [{ name: "Sheet1" }, { name: "Summary" }],
+        cells: [Object.entries(cells).map(([cell, value]) => ({ cell, value }))],
+      },
     });
-    const check = (evidence: string[]) => completionGap(rest() as never, A, t, evidence);
-    expect(await check(["4520", "grand total"])).toBeNull();
-    expect(await check([])).toMatch(/give as evidence/);
-    // Seen before the last change is not evidence of the result.
-    expect(await check(["3100"])).toMatch(/"3100" is not in anything the device read back/);
-    expect(await check(["9999"])).toMatch(/is not in anything/);
-    await expect(
-      changeTask(rest() as never, rest() as never, A, {
-        id: t,
-        status: "completed",
-        evidence: ["9999"],
-      }),
-    ).rejects.toThrow(NOT_VERIFIED);
-    await changeTask(rest() as never, rest() as never, A, {
-      id: t,
-      status: "completed",
-      evidence: ["4520"],
+    const complete = (t: string) =>
+      changeTask(rest() as never, rest() as never, A, { id: t, status: "completed" });
+    const statusOf = async (t: string) =>
+      (
+        await twin.asServiceRole<{ status: string; verified_actions: number | null }>(
+          `select status, verified_actions from public.jarvis_tasks where id = '${t}'`,
+        )
+      )[0]!;
+
+    it("refuses a task that has no checks, however well it was read back", async () => {
+      const t = await task();
+      await done(await queue(t, { action: "file_write", path: "a.txt", content: "x" }));
+      await done(await queue(t, { action: "file_read", path: "a.txt" }), {
+        status: "done",
+        text: "x",
+      });
+      expect(await completionGap(rest() as never, A, t)).toBeNull(); // structure alone
+      await expect(complete(t)).rejects.toThrow(/no checks for its result/);
     });
-    const [row] = await twin.asServiceRole<{ status: string }>(
-      `select status from public.jarvis_tasks where id = '${t}'`,
-    );
-    expect(row!.status).toBe("completed");
+
+    it("refuses the right words with the wrong total, then completes once the cell is right", async () => {
+      const t = await withChecks([{ path: "r.xlsx", cell: "B10", equals: "4520" }]);
+      await done(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }));
+      await done(
+        await queue(t, { action: "sheet_inspect", path: "r.xlsx" }),
+        sheet({ A10: "Grand Total", B10: 4250 }),
+      );
+      await expect(complete(t)).rejects.toThrow(/B10 of r\.xlsx shows 4250, not "4520"/);
+      await done(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }));
+      await done(
+        await queue(t, { action: "sheet_inspect", path: "r.xlsx" }),
+        sheet({ A10: "Grand Total", B10: 4520 }),
+      );
+      await complete(t);
+      expect(await statusOf(t)).toEqual({ status: "completed", verified_actions: 4 });
+    });
+
+    it("refuses a check met only by another file, another sheet or a read before the last change", async () => {
+      const t = await withChecks([
+        { path: "r.xlsx", contains: ["Total"] },
+        { path: "r.xlsx", sheet: "Summary", cell: "A1", equals: "Done" },
+      ]);
+      await done(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }));
+      await done(
+        await queue(t, { action: "sheet_inspect", path: "old.xlsx" }),
+        sheet({ A1: "Total" }),
+      );
+      await expect(complete(t)).rejects.toThrow(/content was never read back/);
+      await done(
+        await queue(t, { action: "sheet_inspect", path: "r.xlsx" }),
+        sheet({ A1: "Total" }),
+      );
+      // The first sheet was read; the check names Summary.
+      await expect(complete(t)).rejects.toThrow(/A1 of r\.xlsx \(Summary\) was not read/);
+      await done(
+        await queue(t, { action: "sheet_inspect", path: "r.xlsx", sheet: "Summary" }),
+        sheet({ A1: "Done" }, "Summary"),
+      );
+      // A command could have changed any file: what was read before it no longer counts.
+      await done(await queue(t, { action: "run", command: "python tidy.py" }));
+      await done(await queue(t, { action: "file_info", path: "r.xlsx" }));
+      await expect(complete(t)).rejects.toThrow(/r\.xlsx was not read for its content/);
+      await done(await queue(t, { action: "file_read", path: "R.XLSX" }), {
+        status: "done",
+        text: "Total",
+      });
+      await expect(complete(t)).rejects.toThrow(/A1 of r\.xlsx \(Summary\) was not read/);
+      await done(
+        await queue(t, { action: "sheet_inspect", path: "r.xlsx", sheet: "Summary" }),
+        sheet({ A1: "Done" }, "Summary"),
+      );
+      await complete(t);
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
+    it("checks a page by what was read after the last thing done in the browser", async () => {
+      const t = await withChecks([{ contains: ["Order 1234 placed"] }]);
+      await done(await queue(t, { action: "observe" }), {
+        status: "done",
+        text: "Order 1234 placed",
+      });
+      await done(await queue(t, { action: "click", ref: "e1", observationId: "o1" }));
+      // Playing a video is a change, not a read.
+      await done(await queue(t, { action: "media", op: "play" }));
+      await expect(complete(t)).rejects.toThrow(/nothing has read the result back/);
+      await done(await queue(t, { action: "media", op: "state" }), {
+        status: "done",
+        text: "playing",
+      });
+      await expect(complete(t)).rejects.toThrow(/"Order 1234 placed" is not in the screen or page/);
+      await done(await queue(t, { action: "find_text", text: "Order" }), {
+        status: "done",
+        text: "Order 1234 placed",
+      });
+      await complete(t);
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
+    it("does not let an action stopped while the device held it pass unread", async () => {
+      const t = await withChecks([{ path: "b.txt" }]);
+      const write = await queue(t, { action: "file_write", path: "a.txt", content: "x" });
+      await settle(write, "claimed");
+      await settle(write, "cancelled"); // the database keeps it as unknown
+      expect((await status(write)).result).toEqual({ status: "unknown" });
+      await done(await queue(t, { action: "file_info", path: "b.txt" }));
+      await expect(complete(t)).rejects.toThrow(/outcome is unknown.*Read a\.txt again/);
+      await done(await queue(t, { action: "file_read", path: "a.txt" }), {
+        status: "done",
+        text: "x",
+      });
+      await complete(t);
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
+    it("checks every action of a long task instead of refusing past 1,000", async () => {
+      const t = await withChecks([{ path: "a.txt" }]);
+      await twin.asServiceRole(
+        `insert into public.jarvis_activity (user_id, task_id, device_id, summary, action, status, result, created_at)
+         select '${A}', '${t}', '${device}', 's', '{"action":"file_info","path":"a.txt"}'::jsonb,
+                'done', '{"status":"done"}'::jsonb, now() - interval '1 hour' + n * interval '1 ms'
+           from generate_series(1, 1100) as n`,
+      );
+      const last = await queue(t, { action: "file_write", path: "a.txt", content: "x" });
+      await expect(complete(t)).rejects.toThrow(/has not finished/); // the 1,101st is seen
+      await done(last);
+      await done(await queue(t, { action: "file_read", path: "a.txt" }), {
+        status: "done",
+        text: "x",
+      });
+      await complete(t);
+      expect(await statusOf(t)).toEqual({ status: "completed", verified_actions: 1102 });
+    }, 60_000);
+
+    it("refuses, in the database, a completion that does not match the actions checked", async () => {
+      const t = await withChecks([{ path: "a.txt" }]);
+      await done(await queue(t, { action: "file_info", path: "a.txt" }));
+      expect(await completionGap(rest() as never, A, t, [{ path: "a.txt" }])).toBeNull();
+      // An action queued after that check: the count written with completed is stale.
+      await queue(t, { action: "file_write", path: "a.txt", content: "late" });
+      const stale = await twin
+        .asServiceRole(
+          `update public.jarvis_tasks set status = 'completed', verified_actions = 1 where id = '${t}'`,
+        )
+        .catch((error: Error) => error);
+      expect(String(stale)).toMatch(/changed after its result was checked/);
+      expect((await statusOf(t)).status).toBe("running");
+    });
+
+    it("queues nothing on a completed task, and nobody can change its checks", async () => {
+      const t = await withChecks([{ path: "a.txt" }]);
+      await done(await queue(t, { action: "file_info", path: "a.txt" }));
+      await complete(t);
+      await expect(queue(t, { action: "file_write", path: "a.txt", content: "x" })).rejects.toThrow(
+        /That task is completed/,
+      );
+      const asService = await twin
+        .asServiceRole(
+          `update public.jarvis_tasks set outcome = '[{"path":"b.txt"}]'::jsonb where id = '${t}'`,
+        )
+        .catch((error: Error) => error);
+      expect(String(asService)).toMatch(/fixed when it starts/);
+      const asPerson = await twin.asTenant(
+        A,
+        `update public.jarvis_tasks set outcome = null where id = '${t}'`,
+      );
+      expect(asPerson.errorCode).toBe("42501");
+    });
   });
 
   it("is enforced by the database: the person's own client cannot set completed", async () => {
@@ -698,16 +850,6 @@ describe("completion needs evidence from the device (P01)", () => {
       `update public.jarvis_tasks set status = 'stopped' where id = '${t}'`,
     );
     expect(stop.error).toBeUndefined();
-  });
-
-  it("never judges a task from the first thousand of its actions", async () => {
-    const t = await task();
-    await twin.asServiceRole(
-      `insert into public.jarvis_activity (user_id, task_id, device_id, summary, action, status)
-       select '${A}', '${t}', '${device}', 's', '{"action": "file_list", "path": "."}', 'done'
-         from generate_series(1, 1001)`,
-    );
-    expect(await gap(t)).toMatch(/more than 1000 actions/);
   });
 
   it("accepts a change read back successfully, ignoring refused steps that never ran", async () => {

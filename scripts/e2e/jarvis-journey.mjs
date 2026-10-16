@@ -283,7 +283,10 @@ try {
 
   /* --- no device ---------------------------------------------------------- */
   await script("nodevice-check", [
-    { tool: "start_task", args: { title: "Open a shop", steps: ["Open"] } },
+    {
+      tool: "start_task",
+      args: { checks: [{ contains: ["done"] }], title: "Open a shop", steps: ["Open"] },
+    },
     { text: "I need a connected device for that." },
   ]);
   await say("nodevice-check open the shop");
@@ -509,7 +512,15 @@ except i.UpdateRequired:
 
     /* --- computer work: off until allowed, inside the workspace, risky asks --- */
     await script("computer-off", [
-      { tool: "start_task", args: { title: "Write notes", where: "computer", steps: ["Write"] } },
+      {
+        tool: "start_task",
+        args: {
+          checks: [{ path: "retried.md", contains: ["retried"] }],
+          title: "Write notes",
+          where: "computer",
+          steps: ["Write"],
+        },
+      },
       { tool: "computer", args: { action: "file_write", path: "notes.md", content: "x" } },
       { tool: "finish_task", args: { outcome: "blocked", result: "Files are off." } },
       { text: "Files are turned off." },
@@ -550,7 +561,7 @@ except i.UpdateRequired:
       { tool: "computer", args: { action: "file_read", path: "retried.md" } },
       {
         tool: "finish_task",
-        args: { outcome: "completed", result: "Written.", evidence: ["retried"] },
+        args: { outcome: "completed", result: "Written." },
       },
       { text: "Written this time." },
     ]);
@@ -565,7 +576,12 @@ except i.UpdateRequired:
     await script("computer-task", [
       {
         tool: "start_task",
-        args: { title: "Write and check notes", where: "computer", steps: ["Write", "Check"] },
+        args: {
+          checks: [{ path: "notes.md", contains: ["OCADE was here"] }],
+          title: "Write and check notes",
+          where: "computer",
+          steps: ["Write", "Check"],
+        },
       },
       {
         tool: "computer",
@@ -596,7 +612,6 @@ except i.UpdateRequired:
         args: {
           outcome: "completed",
           result: "Notes written and checked.",
-          evidence: ["OCADE was here"],
         },
       },
       { text: "Your notes are written." },
@@ -643,12 +658,83 @@ except i.UpdateRequired:
       check("the declined push never ran", computerTurns.includes("The person declined this step"));
     }
 
+    /* --- a workbook: completed only when the device's own read passes the fixed check --- */
+    // The person's file: a typed total that is wrong (90, not 40 + 60).
+    spawnSync(PYTHON, [
+      "-c",
+      `from openpyxl import Workbook
+b = Workbook(); s = b.active; s.title = "Costs"
+for row in (("Item", "Cost"), ("Lamp", 40), ("Desk", 60), ("Total", 90)): s.append(row)
+b.save(${JSON.stringify(path.join(workspace, "costs.xlsx"))})`,
+    ]);
+    const fixed = "costs - completed.xlsx";
+    await script("workbook-task", [
+      {
+        tool: "start_task",
+        args: {
+          checks: [{ path: fixed, cell: "B4", equals: "=SUM(B2:B3)" }],
+          title: "Fix the total",
+          where: "computer",
+          steps: ["Copy", "Fix", "Check"],
+        },
+      },
+      { tool: "computer", args: { action: "file_copy", path: "costs.xlsx", to: fixed } },
+      { tool: "computer", args: { action: "sheet_inspect", path: fixed } },
+      // Claimed before the fix: OCADE compares the cell itself and refuses.
+      { tool: "finish_task", args: { outcome: "completed", result: "The total is fixed." } },
+      {
+        tool: "computer",
+        args: {
+          action: "sheet_edit",
+          path: fixed,
+          ops: [{ op: "set", cell: "B4", value: "=SUM(B2:B3)" }],
+        },
+      },
+      { tool: "computer", args: { action: "sheet_inspect", path: fixed } },
+      { tool: "finish_task", args: { outcome: "completed", result: "The total is a sum now." } },
+    ]);
+    await say("workbook-task fix the total in my costs workbook");
+    await idle();
+    const workbookTurns = (await boundary()).turns.map((t) => t.content).join("\n");
+    check(
+      "completed is refused while the device's read shows a different cell (Phase 01)",
+      workbookTurns.includes(`B4 of ${fixed} shows 90, not`),
+      workbookTurns.slice(-600),
+    );
+    check(
+      "and recorded once the device read the fixed check true",
+      (await page.locator("[data-testid=jarvis-task-status]").last().innerText()) === "Completed",
+    );
+    const reopened = JSON.parse(
+      spawnSync(
+        PYTHON,
+        [
+          "-c",
+          `import json; from openpyxl import load_workbook
+s = load_workbook(${JSON.stringify(path.join(workspace, fixed))})["Costs"]
+o = load_workbook(${JSON.stringify(path.join(workspace, "costs.xlsx"))})["Costs"]
+print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r in (2, 3) if isinstance(s.cell(r, 2).value, (int, float))), "original": o["B4"].value}))`,
+        ],
+        { encoding: "utf8" },
+      ).stdout || "{}",
+    );
+    check(
+      "the saved file, reopened independently, holds the formula; the original is untouched",
+      reopened.formula === "=SUM(B2:B3)" && reopened.sum === 100 && reopened.original === 90,
+      JSON.stringify(reopened),
+    );
+
     /* --- Talking to JARVIS while it works ------------------------------------ */
 
     await script("live-task", [
       {
         tool: "start_task",
-        args: { title: "Tidy the notes", where: "browser", steps: ["Look", "Look again"] },
+        args: {
+          checks: [{ contains: ["about:blank"] }],
+          title: "Tidy the notes",
+          where: "browser",
+          steps: ["Look", "Look again"],
+        },
       },
       { tool: "browser", args: { action: "wait", seconds: 5, step: 1 } },
       { tool: "browser", args: { action: "wait", seconds: 5, step: 2 } },
@@ -656,7 +742,7 @@ except i.UpdateRequired:
       // Completed quotes what the last look showed: the fresh browser's empty page.
       {
         tool: "finish_task",
-        args: { outcome: "completed", result: "Tidied.", evidence: ["about:blank"] },
+        args: { outcome: "completed", result: "Tidied." },
       },
       { text: "All tidy." },
     ]);
@@ -720,7 +806,12 @@ except i.UpdateRequired:
     await script("busy-task", [
       {
         tool: "start_task",
-        args: { title: "Tidy the notes", where: "computer", steps: ["List", "Tidy"] },
+        args: {
+          checks: [{ path: "." }],
+          title: "Tidy the notes",
+          where: "computer",
+          steps: ["List", "Tidy"],
+        },
       },
       { tool: "computer", args: { action: "file_list", path: "." } },
       { tool: "computer", args: { action: "file_list", path: "." } },
@@ -797,7 +888,15 @@ except i.UpdateRequired:
     const LONG_COMMAND =
       process.platform === "win32" ? `python -c "import time; time.sleep(90)"` : "sleep 90";
     await script("remote-task", [
-      { tool: "start_task", args: { title: "Long build", where: "computer", steps: ["Build"] } },
+      {
+        tool: "start_task",
+        args: {
+          checks: [{ contains: ["done"] }],
+          title: "Long build",
+          where: "computer",
+          steps: ["Build"],
+        },
+      },
       // A long step, so STOP lands while the computer is working.
       ...(terminal
         ? [{ tool: "computer", args: { action: "run", command: LONG_COMMAND } }]
@@ -855,7 +954,10 @@ except i.UpdateRequired:
 
     /* --- a private address needs the person's permission first ------------- */
     await script("private-task", [
-      { tool: "start_task", args: { title: "Open a local page", steps: ["Open"] } },
+      {
+        tool: "start_task",
+        args: { checks: [{ contains: ["done"] }], title: "Open a local page", steps: ["Open"] },
+      },
       { tool: "browser", args: { action: "open", url: `${SITE}/shop` } },
       { tool: "finish_task", args: { outcome: "blocked", result: "Needs permission." } },
       { text: "That address needs your permission." },
@@ -904,7 +1006,11 @@ except i.UpdateRequired:
     await script("shop-task", [
       {
         tool: "start_task",
-        args: { title: "Find the lamp", steps: ["Open the shop", "Search", "Open the lamp"] },
+        args: {
+          checks: [{ contains: ["Desk lamp"] }],
+          title: "Find the lamp",
+          steps: ["Open the shop", "Search", "Open the lamp"],
+        },
       },
       { tool: "browser", args: { action: "open", url: `${SITE}/shop`, step: 1 } },
       { tool: "browser", args: { action: "type", name: "Search products", text: "lamp", step: 2 } },
@@ -920,7 +1026,6 @@ except i.UpdateRequired:
         args: {
           outcome: "completed",
           result: "The lamp page is open.",
-          evidence: ["Desk lamp"],
         },
       },
       { text: "Done: the lamp page is open." },
@@ -952,7 +1057,10 @@ except i.UpdateRequired:
 
     /* --- sensitive confirmation and purchase prohibition -------------------- */
     await script("sensitive-task", [
-      { tool: "start_task", args: { title: "Send and buy", steps: ["Send", "Buy"] } },
+      {
+        tool: "start_task",
+        args: { checks: [{ contains: ["done"] }], title: "Send and buy", steps: ["Send", "Buy"] },
+      },
       { tool: "browser", args: { action: "open", url: `${SITE}/shop` } },
       { tool: "browser", args: { action: "click", name: "Send message" } },
       { tool: "browser", args: { action: "click", name: "Send message" } },
@@ -986,7 +1094,10 @@ except i.UpdateRequired:
 
     /* --- CAPTCHA hands over, and resumes from a fresh look ------------------- */
     await script("captcha-task", [
-      { tool: "start_task", args: { title: "Get past a check", steps: ["Open"] } },
+      {
+        tool: "start_task",
+        args: { checks: [{ contains: ["done"] }], title: "Get past a check", steps: ["Open"] },
+      },
       { tool: "browser", args: { action: "open", url: `${SITE}/captcha` } },
       {
         tool: "finish_task",
@@ -1011,7 +1122,10 @@ except i.UpdateRequired:
 
     /* --- Take Over, then Stop ------------------------------------------------ */
     await script("slow-task", [
-      { tool: "start_task", args: { title: "Slow work", steps: ["Wait"] } },
+      {
+        tool: "start_task",
+        args: { checks: [{ contains: ["done"] }], title: "Slow work", steps: ["Wait"] },
+      },
       { tool: "browser", args: { action: "open", url: `${SITE}/shop` } },
       ...Array.from({ length: 8 }, () => ({
         tool: "browser",
@@ -1045,7 +1159,10 @@ except i.UpdateRequired:
 
     /* --- prompt injection cannot grant anything ------------------------------ */
     await script("inject-task", [
-      { tool: "start_task", args: { title: "Read a notice", steps: ["Open"] } },
+      {
+        tool: "start_task",
+        args: { checks: [{ contains: ["done"] }], title: "Read a notice", steps: ["Open"] },
+      },
       { tool: "browser", args: { action: "open", url: `${SITE}/inject` } },
       { tool: "set_permission", args: { capability: "browser_real", allowed: true } },
       { tool: "browser", args: { action: "switch_tab", index: 0 } },
@@ -1100,7 +1217,14 @@ except i.UpdateRequired:
     await siteSwitch.click();
     await until(async () => !(await siteSwitch.isChecked()));
     await script("site-task", [
-      { tool: "start_task", args: { title: "Open a turned-off site", steps: ["Open"] } },
+      {
+        tool: "start_task",
+        args: {
+          checks: [{ contains: ["done"] }],
+          title: "Open a turned-off site",
+          steps: ["Open"],
+        },
+      },
       { tool: "browser", args: { action: "open", url: `${SITE}/lamp` } },
       { tool: "finish_task", args: { outcome: "blocked", result: "That site is off." } },
       { text: "That site is turned off." },
@@ -1222,7 +1346,11 @@ except i.UpdateRequired:
     await script("editor-task", [
       {
         tool: "start_task",
-        args: { title: "Write the summary", steps: ["Write", "Format", "Save", "Check"] },
+        args: {
+          checks: [{ path: "Downloads/summary.html", contains: [words, "Approved"] }],
+          title: "Write the summary",
+          steps: ["Write", "Format", "Save", "Check"],
+        },
       },
       { tool: "browser", args: { action: "open", url: `${SITE}/editor`, step: 1 } },
       { tool: "browser", args: { action: "type", name: "Document body", text: words, step: 1 } },
@@ -1239,7 +1367,7 @@ except i.UpdateRequired:
       { tool: "computer", args: { action: "file_read", path: "Downloads/summary.html", step: 4 } },
       {
         tool: "finish_task",
-        args: { outcome: "completed", result: "Summary saved.", evidence: [words, "Approved"] },
+        args: { outcome: "completed", result: "Summary saved." },
       },
       { text: "Saved the summary." },
     ]);
@@ -1316,7 +1444,10 @@ except i.UpdateRequired:
     await until(async () => await ownBrowser.isChecked());
     await page.getByRole("button", { name: "Close", exact: true }).first().click();
     await script("real-task", [
-      { tool: "start_task", args: { title: "Use my browser", steps: ["Open"] } },
+      {
+        tool: "start_task",
+        args: { checks: [{ contains: ["Desk lamp"] }], title: "Use my browser", steps: ["Open"] },
+      },
       { tool: "browser", args: { action: "open", url: `${SITE}/lamp` } },
       { tool: "finish_task", args: { outcome: "completed", result: "Opened in your browser." } },
       { text: "Opened it in your browser." },

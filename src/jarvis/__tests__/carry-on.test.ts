@@ -37,8 +37,9 @@ const sql = <T = Record<string, unknown>>(text: string) => twin.asServiceRole<T>
 /** A running task the tab that started it has not touched for `silentMinutes`. */
 async function task(silentMinutes = 5, controller: string | null = TAB): Promise<string> {
   const [row] = await sql<{ id: string }>(
-    `insert into public.jarvis_tasks (user_id, conversation_id, device_id, title, plan, controller)
-     values ('${A}', '${conversation}', '${device}', 'Tidy the reports', '["List","Finish"]'::jsonb, ${lit(controller)})
+    `insert into public.jarvis_tasks (user_id, conversation_id, device_id, title, plan, controller, outcome)
+     values ('${A}', '${conversation}', '${device}', 'Tidy the reports', '["List","Finish"]'::jsonb, ${lit(controller)},
+             '[{"path":"."}]'::jsonb)
      returning id`,
   );
   await age(row!.id, silentMinutes);
@@ -222,7 +223,6 @@ describe("carrying on", () => {
       call("finish_task", {
         outcome: "completed",
         result: "The reports are tidy.",
-        evidence: ["q3.xlsx"],
       }),
     );
     expect(await carryOn(admin(), me(), t, second)).toEqual({ state: "finished" });

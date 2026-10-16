@@ -176,6 +176,7 @@ try {
     {
       tool: "start_task",
       args: {
+        checks: [{ path: "report.txt", contains: ["done away"] }],
         title: "Write the report",
         where: "computer",
         steps: ["Prepare", "Wait", "Write", "Finish"],
@@ -192,7 +193,7 @@ try {
     { tool: "computer", args: { action: "file_read", path: "report.txt", step: 3 } },
     {
       tool: "finish_task",
-      args: { outcome: "completed", result: "The report is written.", evidence: ["done away"] },
+      args: { outcome: "completed", result: "The report is written." },
     },
   ]);
   await say(desk.page, "carry-check write the report");
@@ -291,7 +292,12 @@ try {
   await script("needs-you", [
     {
       tool: "start_task",
-      args: { title: "Clear old files", where: "computer", steps: ["Wait", "Delete"] },
+      args: {
+        checks: [{ path: "." }],
+        title: "Clear old files",
+        where: "computer",
+        steps: ["Wait", "Delete"],
+      },
     },
     { tool: "computer", args: { action: "run", command: `${PYTHON} wait.py`, step: 1 } },
     { tool: "computer", args: { action: "file_delete", path: "report.txt", step: 2 } },
@@ -341,7 +347,12 @@ try {
   await script("stop-away", [
     {
       tool: "start_task",
-      args: { title: "Long job", where: "computer", steps: ["One", "Two", "Three"] },
+      args: {
+        checks: [{ path: "never.txt" }],
+        title: "Long job",
+        where: "computer",
+        steps: ["One", "Two", "Three"],
+      },
     },
     { tool: "computer", args: { action: "run", command: `${PYTHON} wait.py`, step: 1 } },
     { tool: "computer", args: { action: "run", command: `${PYTHON} wait.py`, step: 2 } },
@@ -481,7 +492,12 @@ try {
   await script("later-check", [
     {
       tool: "schedule",
-      args: { what: "later-work write the later file", when: soon, on_computer: true },
+      args: {
+        what: "later-work write the later file",
+        when: soon,
+        on_computer: true,
+        checks: [{ path: "later.txt", contains: ["on time"] }],
+      },
     },
     { text: "Scheduled." },
   ]);
@@ -515,7 +531,12 @@ try {
   await script("later-check", [
     {
       tool: "schedule",
-      args: { what: "later-work write the later file", when: soon, on_computer: true },
+      args: {
+        what: "later-work write the later file",
+        when: soon,
+        on_computer: true,
+        checks: [{ path: "later.txt", contains: ["on time"] }],
+      },
     },
     { text: "Scheduled again." },
   ]);
@@ -528,7 +549,7 @@ try {
     { tool: "computer", args: { action: "file_read", path: "later.txt" } },
     {
       tool: "finish_task",
-      args: { outcome: "completed", result: "The later file is written.", evidence: ["on time"] },
+      args: { outcome: "completed", result: "The later file is written." },
     },
   ]);
   await plan.context().close();

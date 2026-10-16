@@ -20,6 +20,7 @@ const BUSY = ["provider_rate_limited", "online_unavailable", "empty_response", "
 export const serverModel: BackgroundDeps["model"] = async ({
   userId,
   conversationId,
+  taskId,
   messages,
   attachments,
 }) => {
@@ -38,6 +39,7 @@ export const serverModel: BackgroundDeps["model"] = async ({
     idempotencyKey: request,
     generationId: request,
     surface: "jarvis",
+    taskId,
   });
   if (!acquired.ok) return null;
 
