@@ -32,7 +32,11 @@ class FakeIdentity:
 
     def exchange(self, body: dict) -> dict:
         self.bodies.append(json.loads(json.dumps(body)))
-        return self.reply(body)
+        reply = self.reply(body)
+        # As OCADE does: every reported result is answered, by its id and receipt.
+        reply.setdefault("acks", [{"id": r["id"], "receipt": r.get("receipt"), "outcome": "accepted"}
+                                  for r in body.get("results", [])])
+        return reply
 
     def forget(self):
         pass
@@ -127,7 +131,7 @@ class StopTest(unittest.TestCase):
         runner.join(10)
         self.assertEqual(started, [])
         self.assertTrue(identity.bodies[1].get("stop"))
-        self.assertEqual(identity.bodies[1]["results"],
+        self.assertEqual([{k: v for k, v in r.items() if k != "receipt"} for r in identity.bodies[1]["results"]],
                          [{"id": "a1", "status": "failed", "summary": "Stopped before it started"}])
 
     def test_a_stop_just_before_an_action_starts_reaches_that_action(self):

@@ -491,10 +491,9 @@ class Agent:
                 self._keep_pending(results)
                 commands = []
             if commands and not self.stop.is_set():
-                # Nothing runs that this computer could not record first: its outcome could be lost.
-                if self.state.get("journal", True) and self._kept(self.intent_path, [c["id"] for c in commands]):
-                    active = self._start(commands)
-                else:
+                active = self._start(commands) if self.state.get("journal", True) else None
+                if active is None:
+                    # Nothing runs that this computer could not record first: its outcome could be lost.
                     results.extend({"id": c["id"], "status": "failed", "summary": NOT_RECORDED}
                                    for c in commands)
                     self._keep_pending(results)
@@ -530,7 +529,7 @@ class Agent:
                 if isinstance(a, dict) and a.get("outcome") in ACKED}
         return [r for r in results if (r.get("id"), r.get("receipt")) not in done]
 
-    def _start(self, commands: list[dict]) -> dict:
+    def _start(self, commands: list[dict]) -> dict | None:
         """Run a segment in order, one action at a time. After a step that did not finish, or a
         STOP, the rest never start: each is reported skipped, never as done."""
         # The new token is published and checked against STOP/Pause in one step: a STOP pressed
@@ -541,6 +540,8 @@ class Agent:
                 cancel.set()
         active = {"id": commands[0]["id"], "taskId": commands[0]["taskId"],
                   "left": [c["id"] for c in commands], "done": [], "skip": set()}
+        if not self._kept(self.intent_path, list(active["left"])):  # written before anything runs
+            return None
 
         def work() -> None:
             ended = False
