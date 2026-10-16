@@ -372,6 +372,55 @@ class LifecycleTest(unittest.TestCase):
         self.assertTrue(sent and sent[0]["id"] == "a1" and sent[0]["status"] == "failed", sent)
         self.assertIn("did not run", sent[0]["summary"])
 
+    def test_an_agent_process_killed_after_the_effect_reports_it_unknown_on_restart(self):
+        """V04, a real process kill: the step wrote its file, the process died before its result
+        reached the journal. On restart the step is reported unknown, never lost and never done."""
+        import subprocess
+        work = self.home / "work"
+        work.mkdir()
+        child = (
+            "import json, sys, threading, time\n"
+            f"sys.path.insert(0, {str(Path(__file__).resolve().parents[1])!r})\n"
+            "import ocade_device\n"
+            "from pathlib import Path\n"
+            "class Identity:\n"
+            f"    home = Path({str(self.home)!r})\n"
+            "    meta = {'server': 'https://ocade.test', 'deviceId': 'd1'}\n"
+            "    sent = 0\n"
+            "    def exchange(self, body):\n"
+            "        Identity.sent += 1\n"
+            "        cmd = {'id': 'a1', 'taskId': 't1', 'action': {'action': 'file_write', 'path': 'x.txt', 'content': 'x'}}\n"
+            "        return {'commands': [cmd] if Identity.sent == 1 else [], 'busy': True, 'acks': []}\n"
+            "    def forget(self): pass\n"
+            "agent = ocade_device.Agent(Identity(), headless=True, cdp=None, "
+            f"workspace={str(work)!r})\n"
+            "real = agent._keep_pending\n"
+            "def slow(results):\n"
+            "    if any(r.get('id') == 'a1' for r in results):\n"
+            "        print('EFFECT-DONE', flush=True)\n"
+            "        time.sleep(60)  # killed here: the result never reaches the journal\n"
+            "    return real(results)\n"
+            "agent._keep_pending = slow\n"
+            "agent.run()\n")
+        proc = subprocess.Popen([sys.executable, "-c", child], stdout=subprocess.PIPE, text=True,
+                                env={**os.environ, "OCADE_JARVIS_HOME": str(self.home)})
+        try:
+            deadline = time.monotonic() + 30
+            line = ""
+            while "EFFECT-DONE" not in line and time.monotonic() < deadline:
+                line = proc.stdout.readline()
+            self.assertIn("EFFECT-DONE", line)
+        finally:
+            proc.kill()  # SIGKILL / TerminateProcess: no cleanup runs
+            proc.wait(10)
+            proc.stdout.close()
+        self.assertEqual((work / "x.txt").read_text(), "x")  # the effect happened
+        self.assertFalse((self.home / "pending.json").exists())  # its result was never kept
+        again, _ = self._agent([])
+        recovered = again._load_pending()
+        self.assertEqual([(r["id"], r["status"], r["summary"]) for r in recovered],
+                         [("a1", "failed", ocade_device.INTERRUPTED)])
+
     def test_a_crash_after_the_effect_keeps_the_step_as_unknown_until_its_result_is_kept(self):
         """V04: the running mark goes only once the journal holds what it became."""
         agent, _ = self._agent([])
