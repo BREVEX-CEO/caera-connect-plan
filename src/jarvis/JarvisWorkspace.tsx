@@ -471,8 +471,11 @@ export function JarvisWorkspace({
           onActivity: refresh,
           onProgress: (work) => {
             const open = activeTaskRef.current;
-            // The newest 60 messages: older observations are already only their digest.
-            if (open) carried.current = { taskId: open.id, work: [...prior, ...work].slice(-60) };
+            // The newest 60 messages: older observations are already only their digest. A result
+            // whose call was cut off is dropped too: the provider refuses an answer to no call.
+            const kept = [...prior, ...work].slice(-60);
+            while (kept[0]?.toolResult) kept.shift();
+            if (open) carried.current = { taskId: open.id, work: kept };
           },
           onNoDevice: (message) => mine() && setNoDevice(message),
           live: liveControl,

@@ -1082,3 +1082,140 @@ describe("the door for OCADE's own server", () => {
     expect(deps.callProvider).not.toHaveBeenCalled();
   });
 });
+
+describe("native tool continuity (PLAN Phase 04 V05)", () => {
+  const sent = async (messages: unknown[]) => {
+    const callProvider = vi.fn<OnlineHandlerDependencies["callProvider"]>(async () =>
+      provider([{ candidates: [{ content: { parts: [{ text: "ok" }] }, finishReason: "STOP" }] }]),
+    );
+    const response = await handleOnlineIntelligence(
+      request({ ...body(), messages }),
+      dependencies({ callProvider }),
+    );
+    await response.text();
+    return { status: response.status, provider: callProvider.mock.calls[0]?.[0].body as never };
+  };
+
+  it("keeps the provider's call ids and opaque signatures, and makes up neither", async () => {
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({
+        callProvider: vi.fn(async () =>
+          provider([
+            {
+              candidates: [
+                {
+                  content: {
+                    parts: [
+                      { text: "Reading both." },
+                      {
+                        functionCall: { id: "fc-a", name: "browser", args: { action: "observe" } },
+                        thoughtSignature: "sig-a",
+                      },
+                      { functionCall: { name: "computer", args: { action: "file_list" } } },
+                    ],
+                  },
+                  finishReason: "STOP",
+                },
+              ],
+            },
+          ]),
+        ),
+      }),
+    );
+    const final = (await response.text())
+      .split("\n\n")
+      .map((frame) => frame.replace(/^data: /, ""))
+      .filter(Boolean)
+      .map((frame) => JSON.parse(frame))
+      .find((event) => event.type === "final");
+    expect(final.response.toolCalls).toEqual([
+      { id: "fc-a", name: "browser", arguments: { action: "observe" }, signature: "sig-a" },
+      { id: "provider-tool-0", name: "computer", arguments: { action: "file_list" } },
+    ]);
+  });
+
+  it("sends a turn's calls and their results back as native parts, in order (golden)", async () => {
+    const { status, provider: sentBody } = await sent([
+      { role: "system", content: "You are OCADE." },
+      { role: "user", content: "List and look." },
+      {
+        role: "assistant",
+        content: "Reading both.",
+        toolCalls: [
+          { id: "fc-a", name: "browser", arguments: { action: "observe" }, signature: "sig-a" },
+          { id: "provider-tool-0", name: "computer", arguments: { action: "file_list" } },
+        ],
+      },
+      { role: "user", content: "page", toolResult: { callId: "fc-a", name: "browser" } },
+      {
+        role: "user",
+        content: "files",
+        toolResult: { callId: "provider-tool-0", name: "computer" },
+      },
+      { role: "user", content: "Thanks, carry on." },
+    ]);
+    expect(status).toBe(200);
+    expect((sentBody as { contents: unknown }).contents).toEqual([
+      { role: "user", parts: [{ text: "List and look." }] },
+      {
+        role: "model",
+        parts: [
+          { text: "Reading both." },
+          {
+            functionCall: { id: "fc-a", name: "browser", args: { action: "observe" } },
+            thoughtSignature: "sig-a",
+          },
+          // A local id is never passed off as the provider's.
+          { functionCall: { name: "computer", args: { action: "file_list" } } },
+        ],
+      },
+      {
+        role: "user",
+        parts: [
+          { functionResponse: { id: "fc-a", name: "browser", response: { result: "page" } } },
+          { functionResponse: { name: "computer", response: { result: "files" } } },
+        ],
+      },
+      { role: "user", parts: [{ text: "Thanks, carry on." }] },
+    ]);
+  });
+
+  it("marks a rebuilt call that has no signature with the documented skip value, once per turn", async () => {
+    const { provider: sentBody } = await sent([
+      { role: "user", content: "Tidy it." },
+      {
+        role: "assistant",
+        content: "",
+        toolCalls: [
+          { id: "provider-tool-row-1", name: "computer", arguments: { action: "file_list" } },
+          { id: "provider-tool-row-2", name: "computer", arguments: { action: "file_read" } },
+        ],
+      },
+    ]);
+    expect((sentBody as { contents: { parts: unknown[] }[] }).contents[1]!.parts).toEqual([
+      {
+        functionCall: { name: "computer", args: { action: "file_list" } },
+        thoughtSignature: "skip_thought_signature_validator",
+      },
+      { functionCall: { name: "computer", args: { action: "file_read" } } },
+    ]);
+  });
+
+  it("refuses native parts in the wrong place or out of bounds before any provider call", async () => {
+    const good = { id: "c", name: "computer", arguments: {} };
+    for (const message of [
+      { role: "user", content: "", toolCalls: [good] },
+      { role: "assistant", content: "", toolCalls: [] },
+      { role: "assistant", content: "", toolCalls: [{ ...good, arguments: "x" }] },
+      { role: "assistant", content: "", toolCalls: [{ ...good, id: "" }] },
+      { role: "assistant", content: "", toolCalls: [{ ...good, signature: "s".repeat(100_001) }] },
+      { role: "assistant", content: "", toolResult: { callId: "c", name: "computer" } },
+      { role: "user", content: "x", toolResult: { callId: "c" } },
+    ]) {
+      const { status, provider: sentBody } = await sent([{ role: "user", content: "Hi" }, message]);
+      expect(status, JSON.stringify(message).slice(0, 120)).toBe(400);
+      expect(sentBody).toBeUndefined();
+    }
+  });
+});

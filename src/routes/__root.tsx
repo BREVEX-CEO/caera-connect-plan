@@ -23,6 +23,9 @@ import { useSession } from "@/lib/session";
 import { needsFullNavigation } from "@/lib/security/isolation";
 import { markHydrated } from "@/lib/after-hydration";
 
+/** Where this document was loaded: its isolation was fixed then, by that path's headers. */
+const DOCUMENT_PATH = typeof window === "undefined" ? "/" : window.location.pathname;
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   /*
    * CROSSING THE ISOLATION BOUNDARY NEEDS A NEW DOCUMENT.
@@ -38,13 +41,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
    * `needsFullNavigation` has existed for this the whole time and nothing
    * consulted it. Both directions matter: the back button is the other one.
    *
-   * The document's own URL is the question, not the router's idea of it, and
-   * the answer is false for every ordinary navigation — which is all of them
-   * except into and out of sign-in.
+   * The question is the path this document was CREATED at, not its current
+   * URL: the router may already have pushed the new URL when this runs, and then
+   * `window.location` names the destination and nothing ever reloaded (the
+   * shell journey found sign-in isolated, 16 October 2026). The answer is false
+   * for every ordinary navigation — all of them except into and out of sign-in.
    */
   beforeLoad: ({ location }) => {
     if (typeof window === "undefined") return;
-    if (!needsFullNavigation(window.location.pathname, location.pathname)) return;
+    if (!needsFullNavigation(DOCUMENT_PATH, location.pathname)) return;
     throw redirect({ href: location.href, reloadDocument: true });
   },
   head: () => ({

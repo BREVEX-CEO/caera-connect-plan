@@ -87,7 +87,11 @@ function scripted(...steps: (ModelStep | null | "unavailable" | (() => Promise<M
   const seen: string[][] = [];
   const model: BackgroundDeps["model"] = async ({ userId, messages }) => {
     expect(userId).toBe(A);
-    seen.push(messages.map((m) => `${m.role}: ${m.content}`));
+    seen.push(
+      messages.map(
+        (m) => `${m.role}: ${m.content}${m.toolCalls ? JSON.stringify(m.toolCalls) : ""}`,
+      ),
+    );
     const step = steps.shift();
     if (step === undefined) throw new Error("the model was asked for a step nobody expected");
     return typeof step === "function" ? step() : step;
@@ -227,9 +231,13 @@ describe("carrying on", () => {
     );
     expect(await carryOn(admin(), me(), t, second)).toEqual({ state: "finished" });
     const shown = second.seen[0]!.join("\n");
-    expect(shown).toContain('assistant: Called computer {"path":".","action":"file_list"}');
+    // The saved step goes back as the native call it was, then its result (Phase 04 V05).
+    const step = '"name":"computer","arguments":{"path":".","action":"file_list"}';
+    expect(shown).toContain(step);
+    expect(shown).not.toContain("Called computer");
     expect(shown).toContain("q3.xlsx");
-    expect(shown.indexOf("Tidy the reports folder")).toBeLessThan(shown.indexOf("Called computer"));
+    expect(shown.indexOf("Tidy the reports folder")).toBeLessThan(shown.indexOf(step));
+    expect(shown.indexOf(step)).toBeLessThan(shown.indexOf("q3.xlsx"));
 
     const done = await taskRow(t);
     expect(done).toMatchObject({

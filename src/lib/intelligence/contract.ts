@@ -34,6 +34,10 @@ export interface IntelligencePermit {
 export interface NormalizedMessage {
   role: "system" | "user" | "assistant";
   content: string;
+  /** An assistant turn's calls, exactly as the provider returned them. */
+  toolCalls?: NormalizedToolCall[];
+  /** A user turn answering one call; `content` is its result (untrusted data). */
+  toolResult?: { callId: string; name: string };
 }
 
 export interface NormalizedToolDefinition {
@@ -43,9 +47,12 @@ export interface NormalizedToolDefinition {
 }
 
 export interface NormalizedToolCall {
+  /** The provider's own id when it gave one, else a local one starting `provider-tool-`. */
   id: string;
   name: string;
   arguments: Record<string, unknown>;
+  /** Opaque provider continuation (a thought signature): never shown, never authority. */
+  signature?: string;
 }
 
 export interface NormalizedToolResult {

@@ -77,6 +77,10 @@ const MAX_OUTPUT_TOKENS = 16_384;
  * planning steps that need it; "minimal" is refused by the pinned model.
  */
 const THINKING_LEVEL = "medium";
+/** A call id OCADE made because the provider gave none: never sent back as the provider's. */
+const LOCAL_CALL_ID = "provider-tool-";
+/** Google's documented value for a call whose real signature does not exist (thought-signatures docs). */
+const SKIP_SIGNATURE = "skip_thought_signature_validator";
 const PROVIDER_TIMEOUT_MS = 110_000;
 /** How long one key may take to START answering before the next key is tried. */
 const ATTEMPT_TIMEOUT_MS = 25_000;
@@ -223,6 +227,25 @@ function boundedString(value: unknown, maximum: number): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= maximum;
 }
 
+/** An assistant turn's native calls: what the provider returned, bounded, nothing more. */
+function validCalls(message: Record<string, unknown>): boolean {
+  const calls = message.toolCalls;
+  return (
+    message.role === "assistant" &&
+    Array.isArray(calls) &&
+    calls.length > 0 &&
+    calls.length <= 32 &&
+    calls.every(
+      (call) =>
+        isRecord(call) &&
+        boundedString(call.id, 200) &&
+        boundedString(call.name, 128) &&
+        isRecord(call.arguments) &&
+        (call.signature === undefined || boundedString(call.signature, 100_000)),
+    )
+  );
+}
+
 function parseBody(value: unknown): OnlineRequestBody | null {
   if (!isRecord(value) || !isRecord(value.permit) || !isRecord(value.privacy)) return null;
   const permit = value.permit;
@@ -257,7 +280,13 @@ function parseBody(value: unknown): OnlineRequestBody | null {
         !isRecord(message) ||
         !["system", "user", "assistant"].includes(String(message.role)) ||
         typeof message.content !== "string" ||
-        message.content.length > 200_000,
+        message.content.length > 200_000 ||
+        (message.toolCalls !== undefined && !validCalls(message)) ||
+        (message.toolResult !== undefined &&
+          (message.role !== "user" ||
+            !isRecord(message.toolResult) ||
+            !boundedString(message.toolResult.callId, 200) ||
+            !boundedString(message.toolResult.name, 128))),
     ) ||
     value.tools.some(
       (tool) =>
@@ -297,12 +326,45 @@ function providerBody(body: OnlineRequestBody): Record<string, unknown> {
     .filter((message) => message.role === "system")
     .map((message) => message.content)
     .join("\n\n");
-  const contents = body.messages
-    .filter((message) => message.role !== "system")
-    .map((message) => ({
-      role: message.role === "assistant" ? "model" : "user",
-      parts: [{ text: message.content }],
-    }));
+  /*
+   * NATIVE CALLS GO BACK AS THE PROVIDER SENT THEM (PLAN Phase 04 V05).
+   *
+   * A call travels as a functionCall part with its own id and opaque thought
+   * signature, and its result as a functionResponse, rather than as prose
+   * ("Called …", "Result of …") the model has to reread and may imitate. The
+   * answers to one turn's parallel calls share one content, in call order. A
+   * call that came back without a signature (written as text, or rebuilt from
+   * the task's saved steps) carries the provider's documented skip value on
+   * the first call of its turn, so a rebuilt history is still accepted.
+   */
+  type Part = Record<string, unknown>;
+  const contents: { role: string; parts: Part[] }[] = [];
+  const nativeId = (id: string) => (id.startsWith(LOCAL_CALL_ID) ? {} : { id });
+  for (const message of body.messages) {
+    if (message.role === "system") continue;
+    if (message.toolResult) {
+      const part = {
+        functionResponse: {
+          ...nativeId(message.toolResult.callId),
+          name: message.toolResult.name,
+          response: { result: message.content },
+        },
+      };
+      const previous = contents.at(-1);
+      if (previous?.parts.every((p) => "functionResponse" in p)) previous.parts.push(part);
+      else contents.push({ role: "user", parts: [part] });
+      continue;
+    }
+    const parts: Part[] = message.toolCalls && !message.content ? [] : [{ text: message.content }];
+    message.toolCalls?.forEach((call, index) => {
+      const signature = call.signature ?? (index === 0 ? SKIP_SIGNATURE : undefined);
+      parts.push({
+        functionCall: { ...nativeId(call.id), name: call.name, args: call.arguments },
+        ...(signature ? { thoughtSignature: signature } : {}),
+      });
+    });
+    contents.push({ role: message.role === "assistant" ? "model" : "user", parts });
+  }
 
   /*
    * ATTACHMENTS RIDE WITH THE LAST QUESTION, AND THEY ARE LABELLED.
@@ -429,9 +491,14 @@ function normalizeProviderChunk(
     }
     if (isRecord(part.functionCall) && boundedString(part.functionCall.name, 128)) {
       const call: NormalizedToolCall = {
-        id: `provider-tool-${toolIndex.value++}`,
+        id: boundedString(part.functionCall.id, 200)
+          ? part.functionCall.id
+          : `${LOCAL_CALL_ID}${toolIndex.value++}`,
         name: part.functionCall.name,
         arguments: isRecord(part.functionCall.args) ? part.functionCall.args : {},
+        ...(boundedString(part.thoughtSignature, 100_000)
+          ? { signature: part.thoughtSignature }
+          : {}),
       };
       events.push({ type: "tool_call", call });
     }

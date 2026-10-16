@@ -163,8 +163,11 @@ try {
   });
   /** One request, said once, carried to its end; what it took is recorded. */
   const ask = async (label, words) => {
-    const turnsBefore =
-      (await fetch(`${SUPABASE}/__fixture/jarvis-script`).then((r) => r.json())).gemini ?? 0;
+    const counts = async () => {
+      const said = await fetch(`${SUPABASE}/__fixture/jarvis-script`).then((r) => r.json());
+      return { boundary: said.boundary ?? 0, gemini: said.gemini ?? 0 };
+    };
+    const before = await counts();
     // Each request in a conversation of its own, as a person starts something new.
     await page
       .getByRole("navigation", { name: "JARVIS" })
@@ -221,11 +224,9 @@ try {
       "jarvis_activity",
       `task_id=eq.${task?.id}&select=status,action,result`,
     );
-    const turns =
-      ((await fetch(`${SUPABASE}/__fixture/jarvis-script`).then((r) => r.json())).gemini ?? 0) -
-      turnsBefore;
+    const after = await counts();
     process.stdout.write(
-      `RESULT  ${label} | ${task?.status} | ${((Date.now() - started) / 1000).toFixed(0)} s | ${turns} Gemini calls | ${
+      `RESULT  ${label} | ${task?.status} | ${((Date.now() - started) / 1000).toFixed(0)} s | ${after.boundary - before.boundary} planner requests | ${after.gemini - before.gemini} upstream Gemini requests | ${
         steps.filter((step) => step.action).length
       } steps | ${steps.filter((step) => ["failed", "refused"].includes(step.status)).length} failed | ${confirmations} confirmations\n`,
     );

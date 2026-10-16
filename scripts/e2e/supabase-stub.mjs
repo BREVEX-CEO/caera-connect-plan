@@ -1674,6 +1674,26 @@ let liveModel = false;
 /** How long charging an answer takes, set by /__fixture/slow-settlement. */
 let settleDelayMs = 0;
 
+/**
+ * A request's native turns (PLAN Phase 04 V05) read as the lines the scripts and journeys match:
+ * each call as "Called <tool> {args}", each result as "Result of <tool> …".
+ */
+function asLines(messages) {
+  return messages.flatMap((message) => {
+    if (message?.toolResult) {
+      return [{ role: "user", content: `Result of ${message.toolResult.name} ${message.content}` }];
+    }
+    if (!Array.isArray(message?.toolCalls)) return [message];
+    return [
+      ...(message.content ? [{ role: "assistant", content: message.content }] : []),
+      ...message.toolCalls.map((call) => ({
+        role: "assistant",
+        content: `Called ${call.name} ${JSON.stringify(call.arguments ?? {})}`,
+      })),
+    ];
+  });
+}
+
 /** The next scripted step for this conversation, or null for an ordinary answer. */
 function jarvisStep(messages) {
   if (!jarvisScript) return null;
@@ -2722,7 +2742,7 @@ const server = createServer((request, response) => {
          * person typed TWICE. Nothing on screen shows that, and no check here
          * could see it. The sequence is what proves it.
          */
-        turns: (parsed.messages ?? []).map((message) => ({
+        turns: asLines(parsed.messages ?? []).map((message) => ({
           role: message?.role ?? null,
           content: String(message?.content ?? "").slice(0, 200),
         })),
@@ -2763,7 +2783,8 @@ const server = createServer((request, response) => {
       ) {
         return send(403, { error: "online_not_consented" });
       }
-      const scripted = parsed.surface === "jarvis" ? jarvisStep(parsed.messages ?? []) : null;
+      const scripted =
+        parsed.surface === "jarvis" ? jarvisStep(asLines(parsed.messages ?? [])) : null;
       if (scripted) {
         response.writeHead(200, {
           "content-type": "text/event-stream",
@@ -2797,11 +2818,15 @@ const server = createServer((request, response) => {
        * Unscripted requests then go through OCADE's own boundary code
        * (edge-handler.ts, as deployed) to Gemini, so a journey proves planning by
        * a real model. Permits are the stub's; the key stays in this process; at
-       * most OCADE_LIVE_MAX_CALLS calls (default 400) are made, then 429.
+       * most OCADE_LIVE_MAX_CALLS upstream requests (default 400) are made, then 429.
+       *
+       * Two counts, never one (PLAN Phase 04 V06): `boundary` is OCADE's requests to its
+       * boundary, `gemini` every actual request to Google, counted just before each fetch
+       * (a retry or a failover to another key is another one).
        */
       if (LIVE_GEMINI_KEY && liveModel) {
-        if (++liveCalls > LIVE_MAX_CALLS) return send(429, { error: "live_call_cap" });
-        plannerTurns.gemini = liveCalls;
+        if (liveCalls >= LIVE_MAX_CALLS) return send(429, { error: "live_call_cap" });
+        plannerTurns.boundary = (plannerTurns.boundary ?? 0) + 1;
         void (async () => {
           const { handleOnlineIntelligence } =
             await import("../../src/lib/intelligence/edge-handler.ts");
@@ -2827,54 +2852,56 @@ const server = createServer((request, response) => {
               claimPermit: async () => ({ ok: true }),
               finalizePermit: async ({ startsTask }) => settleAsBoundary(startsTask),
               callProvider: ({ model, body: providerBody, signal }) =>
-                fetch(
-                  `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-                  {
-                    method: "POST",
-                    headers: {
-                      "content-type": "application/json",
-                      "x-goog-api-key": LIVE_GEMINI_KEY,
-                    },
-                    body: JSON.stringify(providerBody),
-                    signal,
-                  },
-                ).then(
-                  async (answer) => {
-                    // Google's own reason for a refusal (which quota, and when to retry), never
-                    // the key: what tells a per-minute limit from a per-day one.
-                    if (!answer.ok) {
-                      const said = await answer
-                        .clone()
-                        .json()
-                        .catch(() => ({}));
-                      const details = (said.error?.details ?? [])
-                        .map(
-                          (d) =>
-                            d.violations?.map((v) => v.quotaId).join(",") ?? d.retryDelay ?? "",
-                        )
-                        .filter(Boolean)
-                        .join(" ");
-                      // Which kind of call was refused (a grounded web search or an agent turn), and
-                      // how big it was: a per-minute token limit and an unavailable tool look alike.
-                      const kind = providerBody.tools?.some((tool) => tool.google_search)
-                        ? "research"
-                        : "agent";
-                      console.log(
-                        `live provider ${answer.status} (${kind}, ${JSON.stringify(providerBody).length} chars): ${String(said.error?.status ?? "")} ${String(said.error?.message ?? "").slice(0, 200)} ${details}`.slice(
-                          0,
-                          500,
-                        ),
-                      );
-                    }
-                    return answer;
-                  },
-                  (cause) => {
-                    // No answer at all (a hung or dropped connection): said, so it is not mistaken
-                    // for a refusal.
-                    console.log(`live provider transport: ${cause?.name ?? "error"}`);
-                    throw cause;
-                  },
-                ),
+                (plannerTurns.gemini = ++liveCalls) > LIVE_MAX_CALLS
+                  ? Promise.resolve(new Response(null, { status: 429 }))
+                  : fetch(
+                      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+                      {
+                        method: "POST",
+                        headers: {
+                          "content-type": "application/json",
+                          "x-goog-api-key": LIVE_GEMINI_KEY,
+                        },
+                        body: JSON.stringify(providerBody),
+                        signal,
+                      },
+                    ).then(
+                      async (answer) => {
+                        // Google's own reason for a refusal (which quota, and when to retry), never
+                        // the key: what tells a per-minute limit from a per-day one.
+                        if (!answer.ok) {
+                          const said = await answer
+                            .clone()
+                            .json()
+                            .catch(() => ({}));
+                          const details = (said.error?.details ?? [])
+                            .map(
+                              (d) =>
+                                d.violations?.map((v) => v.quotaId).join(",") ?? d.retryDelay ?? "",
+                            )
+                            .filter(Boolean)
+                            .join(" ");
+                          // Which kind of call was refused (a grounded web search or an agent turn), and
+                          // how big it was: a per-minute token limit and an unavailable tool look alike.
+                          const kind = providerBody.tools?.some((tool) => tool.google_search)
+                            ? "research"
+                            : "agent";
+                          console.log(
+                            `live provider ${answer.status} (${kind}, ${JSON.stringify(providerBody).length} chars): ${String(said.error?.status ?? "")} ${String(said.error?.message ?? "").slice(0, 200)} ${details}`.slice(
+                              0,
+                              500,
+                            ),
+                          );
+                        }
+                        return answer;
+                      },
+                      (cause) => {
+                        // No answer at all (a hung or dropped connection): said, so it is not mistaken
+                        // for a refusal.
+                        console.log(`live provider transport: ${cause?.name ?? "error"}`);
+                        throw cause;
+                      },
+                    ),
             },
           );
           // Each answer's status in the log; a refusal's own words, never the key, beside it.
