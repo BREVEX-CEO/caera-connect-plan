@@ -3681,6 +3681,15 @@ Add `task_id` to the existing cursor map, then compare every exported table's ke
 
 **Restore ownership:** this phase owns backup/restore and erasure-reconciliation mechanisms, including protection against restoring already-erased customer content. Phase 20 rehearses isolated restore and checks restored permissions, journal/settlement consistency and deletion obligations; Phase 22 only requalifies the final candidate.
 
+**Work record — Phase 09 (17 October 2026, Anthropic-managed Linux VM).**
+
+- *V15 — REPRODUCED, FIXED.* `ocade_jarvis_task_charges` is keyed by `task_id`; the export ordered it by a nonexistent `id`, so every export with that class was partial. Its key is now in the export's one key map, and a schema-driven test compares every exported table's export key with its real unique keys from `pg_index` (both new tests failed before). A real-PostgreSQL export of 1,001 charges reads three pages, each row exactly once, `partial: false`.
+- *Bounded export — FIXED.* The export was built whole in the Worker's memory. It is now one page-at-a-time generator: the download is a pulled stream (raw `Response` through the server function; the next page is read only when the last was taken), and `buildAccountExport` parses the same text, so there is no second implementation. The test adapter learned PostgREST's `gt`, nested `and(...)` and default ascending order to run it for real.
+- *Regression caught here.* The MFA journey failed after Phase 08's recovery change because the cloud stub did not know the new RPC; the stub now mirrors it. Controls, MFA and settings journeys 78+41 PASS (export downloads and holds the account's data by kind).
+- *Evidence.* `verify:full` 15/15, 1,381 tests. Open checks: [BLOCKED_TESTS.md](BLOCKED_TESTS.md) DATA-09-01/02/03.
+
+**Phase 09 status: PARTIAL.**
+
 #### Phase 09 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.

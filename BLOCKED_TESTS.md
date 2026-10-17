@@ -209,6 +209,19 @@ Common safety rules for every PC entry:
 
 - **Reason:** as SEC-08-02. Proven on PostgreSQL with the real migrations and in the cloud chat/admin journeys against the stub.
 
+## DATA-09-01 — Restore must not bring back erased content
+
+- **Reason:** restore is a database-provider operation (point-in-time recovery) on a project this session cannot reach; rehearsing it is Phase 20's, the reconciliation against tombstones is this phase's mechanism and is UNTESTED until a staging restore exists.
+
+## DATA-09-02 — Storage faults during erasure; expired download links
+
+- **Reason:** the tombstone sweep is proven against a fake Storage client (11 Oct record); real Supabase Storage failure and signed-URL expiry need a staging project.
+
+## DATA-09-03 — A very large export end to end on the deployed Worker
+
+- **Test:** an account with tens of MB of messages exports completely through the deployed Worker within its memory.
+- **Status:** the export is now streamed a page at a time (tests prove one database read per page pulled); the deployed Worker's memory and time limits are not measured here.
+
 ## PC-07-01 — Licensed Microsoft Excel and Word: finish, save, reopen and verify a real workbook and document
 
 - **Phase / test ID:** Phase 07 (native file and Office fidelity) · `test_sheets.RealSpreadsheetAppTest.test_finish_the_orders_sheet_in_excel`, `test_files_documents.DeckTest`, Office routes of `office-journey.mjs`.

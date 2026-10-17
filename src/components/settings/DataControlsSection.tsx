@@ -154,10 +154,11 @@ function ExportSection() {
   const download = useMutation({
     mutationFn: async () => {
       setProblem(null);
-      const data = await withProof(() => exportMyAccountData());
+      const response = await withProof(() => exportMyAccountData());
+      if (!response.ok) throw new Error("The export could not be made just now. Try again.");
       saveFile(
         `ocade-account-export-${new Date().toISOString().slice(0, 10)}.json`,
-        new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }),
+        new Blob([await response.blob()], { type: "application/json" }),
       );
     },
     onError: (error: Error) => setProblem(error.message),

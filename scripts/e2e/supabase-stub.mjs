@@ -207,6 +207,20 @@ function tablesFor(userId) {
   return tables.get(userId);
 }
 
+/** As ocade_consume_mfa_recovery_code: five wrong codes lock, a right one is spent once. */
+function consumeRecoveryCode(userId, hash) {
+  const sheet = recoverySheets.get(userId) ?? { hashes: new Map(), failed: 0 };
+  recoverySheets.set(userId, sheet);
+  if (sheet.failed >= 5) return "locked";
+  if (sheet.hashes.get(hash) !== false) {
+    sheet.failed += 1;
+    return sheet.failed >= 5 ? "locked" : "rejected";
+  }
+  sheet.hashes.set(hash, true);
+  sheet.failed = 0;
+  return "consumed";
+}
+
 /** Until when the customer shares this conversation with support (ms), or 0. */
 function sharedWithSupport(customer, conversation, now) {
   return Math.max(
@@ -1070,17 +1084,34 @@ function handleRpc(name, args, userId) {
       return args.p_code_hashes.length;
 
     // Single use, and five wrong guesses lock it, as the database function does.
-    case "ocade_consume_mfa_recovery_code": {
+    case "ocade_consume_mfa_recovery_code":
+      return consumeRecoveryCode(userId, args.p_code_hash);
+
+    // As 20261017110000 (PLAN Phase 08 V11): the session that spent a code finishes its recovery.
+    case "ocade_begin_mfa_recovery": {
       const sheet = recoverySheets.get(userId) ?? { hashes: new Map(), failed: 0 };
       recoverySheets.set(userId, sheet);
-      if (sheet.failed >= 5) return "locked";
-      if (sheet.hashes.get(args.p_code_hash) !== false) {
-        sheet.failed += 1;
-        return sheet.failed >= 5 ? "locked" : "rejected";
+      sheet.recoveries ??= new Map();
+      const open = sheet.recoveries.get(args.p_code_hash);
+      if (open && !open.done && open.session === args.p_session && now - open.at < 900_000) {
+        return { status: "resume", factors: open.factors };
       }
-      sheet.hashes.set(args.p_code_hash, true);
-      sheet.failed = 0;
-      return "consumed";
+      if (!args.p_session) return { status: "rejected" };
+      const status = consumeRecoveryCode(userId, args.p_code_hash);
+      if (status !== "consumed") return { status };
+      sheet.recoveries.set(args.p_code_hash, {
+        session: args.p_session,
+        factors: args.p_factor_ids,
+        at: now,
+        done: false,
+      });
+      return { status, factors: args.p_factor_ids };
+    }
+
+    case "ocade_finish_mfa_recovery": {
+      const open = recoverySheets.get(userId)?.recoveries?.get(args.p_code_hash);
+      if (open) open.done = true;
+      return null;
     }
 
     case "ocade_revoke_other_account_sessions":

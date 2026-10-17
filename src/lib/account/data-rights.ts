@@ -122,7 +122,12 @@ const UNIQUE_KEY: Partial<Record<AccountTable, readonly string[]>> = {
   ocade_notification_preferences: ["user_id"],
   data_class_privacy: ["user_id", "data_class"],
   user_private_records: ["user_id", "data_class", "id"],
+  // Keyed by its task: it has no `id`, so ordering by `id` made every export partial (V15).
+  ocade_jarvis_task_charges: ["task_id"],
 };
+
+/** The columns an exported table's pages are ordered by: its unique key. */
+export const exportKeyOf = (table: AccountTable): readonly string[] => UNIQUE_KEY[table] ?? ["id"];
 
 /** A value inside a PostgREST `or` filter, quoted so commas, dots and colons stay data. */
 const quoted = (value: unknown) => `"${String(value).replace(/["\\]/g, (c) => `\\${c}`)}"`;
@@ -138,39 +143,43 @@ function after(keys: readonly string[], last: ExportedRow): string {
     .join(",");
 }
 
+/** One page of a table's rows, or why the table could not be read further. */
+type Page = { rows: ExportedRow[] } | { unavailable: string };
+
 /**
- * Read every row a query selects, a page at a time, each page continuing after the last row
+ * Every row a query selects, a page at a time, each page continuing after the last row
  * read in the table's own unique-key order. Unlike counting rows to skip, a row deleted or
  * added meanwhile cannot make a later row be skipped (C16). `fixed` names key columns the
  * query already pins (the owner), which need no ordering.
  */
-async function readByKey(
+async function* pagesByKey(
   table: AccountTable,
   query: () => RowPage,
   fixed: readonly string[] = [],
-): Promise<AccountExportTable> {
-  const keys = (UNIQUE_KEY[table] ?? ["id"]).filter((key) => !fixed.includes(key));
-  const rows: ExportedRow[] = [];
+): AsyncGenerator<Page> {
+  const keys = exportKeyOf(table).filter((key) => !fixed.includes(key));
   for (let last: ExportedRow | undefined; ;) {
     const ordered = keys.reduce((page, key) => page.order(key), query());
     const { data, error } = await (last ? ordered.or(after(keys, last)) : ordered).limit(PAGE_SIZE);
-    if (error) return { table, rows, unavailable: error.message };
-    if (!data || data.length === 0) break;
-    rows.push(...data);
-    if (data.length < PAGE_SIZE) break;
+    if (error) {
+      yield { unavailable: error.message };
+      return;
+    }
+    if (!data || data.length === 0) return;
+    yield { rows: data };
+    if (data.length < PAGE_SIZE) return;
     last = data[data.length - 1];
   }
-  return { table, rows };
 }
 
-/** Read one table completely. */
-function readTable(
+/** One table completely. */
+function tablePages(
   admin: DynamicTableClient,
   table: AccountTable,
   userId: string,
   owner: OwnerColumn,
-): Promise<AccountExportTable> {
-  return readByKey(table, () => admin.from(table).select("*").eq(owner, userId), [owner]);
+): AsyncGenerator<Page> {
+  return pagesByKey(table, () => admin.from(table).select("*").eq(owner, userId), [owner]);
 }
 
 /**
@@ -181,25 +190,24 @@ function readTable(
  * assuming a column the schema does not have — and the parent ids are already
  * in hand from the read above, so this costs no extra query to find them.
  */
-async function readCascadedTable(
+async function* cascadedPages(
   admin: DynamicTableClient,
   table: AccountTable,
   parentColumn: string,
   parentIds: string[],
-): Promise<AccountExportTable> {
-  const rows: ExportedRow[] = [];
+): AsyncGenerator<Page> {
   // Chunked so the id list cannot outgrow a query string, which is how the
   // previous version of the deletion path failed at a few thousand rows.
   const CHUNK = 100;
   for (let index = 0; index < parentIds.length; index += CHUNK) {
     const slice = parentIds.slice(index, index + CHUNK);
-    const read = await readByKey(table, () =>
+    for await (const page of pagesByKey(table, () =>
       admin.from(table).select("*").in(parentColumn, slice),
-    );
-    rows.push(...read.rows);
-    if (read.unavailable) return { table, rows, unavailable: read.unavailable };
+    )) {
+      yield page;
+      if ("unavailable" in page) return;
+    }
   }
-  return { table, rows };
 }
 
 /** Which column ties each cascaded child to its parent. */
@@ -209,71 +217,86 @@ const CASCADE_PARENT_COLUMN: Partial<
   ocade_messages: { parent: "ocade_conversations", column: "conversation_id" },
 };
 
-/** The `id` column of every row that has one, for the cascaded reads below. */
-function identifiersIn(rows: readonly ExportedRow[]): string[] {
-  return rows.map((row) => row.id).filter((id): id is string => typeof id === "string");
-}
-
 /**
- * Everything the account holds, read completely.
- *
- * A table that fails is reported in its own entry and `partial` is set; the
- * export still returns. A partial export that SAYS it is partial is useful; one
- * that silently omits a table is a lie in a file somebody may rely on later.
+ * Everything the account holds, as the JSON text of an `AccountDataExport`, one page of
+ * rows at a time (PLAN Phase 09). Built whole in the Worker, a large account's export could
+ * outgrow its memory and arrive as nothing; streamed, only one page is held at once, and
+ * `rowCount` and `partial`, known only at the end, come last in the file.
  */
-export async function buildAccountExport(
-  admin: DynamicTableClient,
-  userId: string,
-): Promise<AccountDataExport> {
-  const classes: AccountExportClass[] = [];
+async function* exportText(admin: DynamicTableClient, userId: string): AsyncGenerator<string> {
+  const json = JSON.stringify;
   let rowCount = 0;
   let partial = false;
   /** Parent ids collected as they are read, for the cascaded children. */
   const idsByTable = new Map<AccountTable, string[]>();
-
-  for (const entry of ACCOUNT_DATA_CLASSES) {
-    const tables: AccountExportTable[] = [];
-    for (const table of entry.tables) {
-      const read = await readTable(admin, table.table, userId, table.owner);
-      tables.push(read);
-      idsByTable.set(table.table, identifiersIn(read.rows));
+  yield `{"schemaVersion":${ACCOUNT_EXPORT_SCHEMA_VERSION},"generatedAt":${json(new Date().toISOString())},"accountId":${json(userId)},"classes":[`;
+  for (const [at, entry] of ACCOUNT_DATA_CLASSES.entries()) {
+    yield `${at ? "," : ""}{"id":${json(entry.id)},"label":${json(entry.label)},"description":${json(entry.description)},"retention":${json(entry.retention)},"tables":[`;
+    let tables = 0;
+    async function* table(name: AccountTable, pages: AsyncGenerator<Page>) {
+      yield `${tables++ ? "," : ""}{"table":${json(name)},"rows":[`;
+      const ids: string[] = [];
+      let first = true;
+      let unavailable: string | null = null;
+      for await (const page of pages) {
+        if ("unavailable" in page) {
+          unavailable = page.unavailable;
+          break;
+        }
+        yield page.rows.map((row) => `${first ? "" : ","}${((first = false), json(row))}`).join("");
+        rowCount += page.rows.length;
+        for (const row of page.rows) if (typeof row.id === "string") ids.push(row.id);
+      }
+      idsByTable.set(name, ids);
+      if (unavailable !== null) partial = true;
+      yield `]${unavailable !== null ? `,"unavailable":${json(unavailable)}` : ""}}`;
+    }
+    for (const owned of entry.tables) {
+      yield* table(owned.table, tablePages(admin, owned.table, userId, owned.owner));
     }
     for (const child of exportedTablesFor(entry)) {
       const link = CASCADE_PARENT_COLUMN[child];
       if (!link) continue;
       const parentIds = idsByTable.get(link.parent) ?? [];
-      const read = await readCascadedTable(admin, child, link.column, parentIds);
-      tables.push(read);
-      idsByTable.set(child, identifiersIn(read.rows));
+      yield* table(child, cascadedPages(admin, child, link.column, parentIds));
     }
-    for (const table of tables) {
-      rowCount += table.rows.length;
-      if (table.unavailable) partial = true;
-    }
-    classes.push({
-      id: entry.id,
-      label: entry.label,
-      description: entry.description,
-      retention: entry.retention,
-      tables,
-    });
+    yield "]}";
   }
+  const notes = [
+    "This file contains the data OCADE holds for this account in its own database.",
+    "Anything OCADE never received is not in here — a draft you never sent, or a file you never uploaded.",
+    "Offline Intelligence is a model on your device, not account data, and is unaffected by an export or a deletion.",
+    "Not included: security credentials (recovery-code hashes, device keys, short-lived permits) and OCADE's own operator records.",
+    partial
+      ? "At least one table could not be read; every table that failed says so in its own entry."
+      : "Every table was read in full.",
+  ];
+  yield `],"rowCount":${rowCount},"partial":${partial},"notes":${json(notes)}}`;
+}
 
-  return {
-    schemaVersion: ACCOUNT_EXPORT_SCHEMA_VERSION,
-    generatedAt: new Date().toISOString(),
-    accountId: userId,
-    rowCount,
-    partial,
-    classes,
-    notes: [
-      "This file contains the data OCADE holds for this account in its own database.",
-      "Anything OCADE never received is not in here — a draft you never sent, or a file you never uploaded.",
-      "Offline Intelligence is a model on your device, not account data, and is unaffected by an export or a deletion.",
-      "Not included: security credentials (recovery-code hashes, device keys, short-lived permits) and OCADE's own operator records.",
-      partial
-        ? "At least one table could not be read; every table that failed says so in its own entry."
-        : "Every table was read in full.",
-    ],
-  };
+/** The export as a byte stream that reads the next page only when the last was taken. */
+export function streamAccountExport(
+  admin: DynamicTableClient,
+  userId: string,
+): ReadableStream<Uint8Array> {
+  const text = exportText(admin, userId);
+  const encoder = new TextEncoder();
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      const { value, done } = await text.next();
+      if (done) controller.close();
+      else controller.enqueue(encoder.encode(value));
+    },
+    async cancel() {
+      await text.return(undefined);
+    },
+  });
+}
+
+/** Everything the account holds, read completely, as one object (the same text, parsed). */
+export async function buildAccountExport(
+  admin: DynamicTableClient,
+  userId: string,
+): Promise<AccountDataExport> {
+  return JSON.parse(await new Response(streamAccountExport(admin, userId)).text());
 }

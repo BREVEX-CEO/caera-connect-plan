@@ -7,6 +7,8 @@ import {
   findAccountDataClass,
   NOT_EXPORTED,
 } from "../data-classes";
+import { buildAccountExport, exportKeyOf } from "../data-rights";
+import { restOver } from "../../../jarvis/__tests__/rest-adapter";
 
 /**
  * THE MAP THAT ACCESS AND ERASURE BOTH READ, CHECKED AGAINST THE REAL SCHEMA.
@@ -205,5 +207,46 @@ describe("what may and may not be erased", () => {
     for (const table of Object.keys(NOT_EXPORTED)) {
       expect(owned.has(table) && !covered.has(table), table).toBe(true);
     }
+  });
+});
+
+describe("every exported table pages by a key it really has (V15)", () => {
+  it("orders each table by its own primary or unique key, as the migrations define it", async () => {
+    const keys = await twin.asSuperuser<{ table_name: string; columns: string[] }>(
+      `select c.relname as table_name, array_agg(a.attname order by a.attname) as columns
+         from pg_index i
+         join pg_class c on c.oid = i.indrelid
+         join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+         join pg_attribute a on a.attrelid = c.oid and a.attnum = any(i.indkey)
+        where i.indisunique
+        group by c.relname, i.indexrelid`,
+    );
+    const wrong = ACCOUNT_DATA_CLASSES.flatMap((entry) => exportedTablesFor(entry)).filter(
+      (table) => {
+        const key = [...exportKeyOf(table)].sort();
+        return !keys.some(
+          (unique) => unique.table_name === table && unique.columns.every((c) => key.includes(c)),
+        );
+      },
+    );
+    expect(wrong).toEqual([]);
+  });
+
+  it("exports an account's task charges whole, across pages, with no table left partial", async () => {
+    const user = "cccccccc-3333-4ccc-8ccc-cccccccccccc";
+    await twin.execSuperuser(
+      `insert into auth.users (id, email) values ('${user}', 'charges@export.invalid') on conflict do nothing;
+       insert into public.ocade_jarvis_task_charges (task_id, user_id, charged_hundredths)
+         select gen_random_uuid(), '${user}', 100 from generate_series(1, 1001);`,
+    );
+    const exported = await buildAccountExport(restOver(twin) as never, user);
+    const charges = exported.classes
+      .flatMap((entry) => entry.tables)
+      .find((table) => table.table === "ocade_jarvis_task_charges");
+    expect(charges?.unavailable).toBeUndefined();
+    // Three pages of 500, each row exactly once.
+    expect(charges?.rows).toHaveLength(1001);
+    expect(new Set(charges?.rows.map((row) => row.task_id)).size).toBe(1001);
+    expect(exported.partial).toBe(false);
   });
 });

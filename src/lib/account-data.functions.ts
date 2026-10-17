@@ -20,11 +20,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { HIGH_RISK, requireAssurance } from "@/lib/security/assurance-middleware";
-import {
-  buildAccountExport,
-  type AccountDataExport,
-  type DynamicTableClient,
-} from "@/lib/account/data-rights";
+import { streamAccountExport, type DynamicTableClient } from "@/lib/account/data-rights";
 
 /** The service client, in the shape the data-rights core asks for. */
 async function adminClient(): Promise<DynamicTableClient> {
@@ -32,8 +28,15 @@ async function adminClient(): Promise<DynamicTableClient> {
   return supabaseAdmin as unknown as DynamicTableClient;
 }
 
+/**
+ * Streamed, a page of rows at a time (PLAN Phase 09): a large account's export no longer has
+ * to fit in the Worker's memory at once. The browser receives the response itself.
+ */
 export const exportMyAccountData = createServerFn({ method: "POST" })
   .middleware([requireAssurance(HIGH_RISK)])
-  .handler(async ({ context }): Promise<AccountDataExport> =>
-    buildAccountExport(await adminClient(), context.userId),
+  .handler(
+    async ({ context }): Promise<Response> =>
+      new Response(streamAccountExport(await adminClient(), context.userId), {
+        headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+      }),
   );

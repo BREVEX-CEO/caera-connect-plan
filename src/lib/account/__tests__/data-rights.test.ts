@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAccountExport,
+  streamAccountExport,
   type DynamicTableClient,
   type ExportedRow,
   type PostgrestFailure,
@@ -242,5 +243,33 @@ describe("exporting an account", () => {
     expect(notes).toMatch(/never received/i);
     expect(notes).not.toMatch(/Browser Only|PC Vault/i);
     expect(notes).toMatch(/Offline Intelligence/);
+  });
+});
+
+describe("the export is streamed, a page at a time (PLAN Phase 09)", () => {
+  it("reads the next page only when the last one was taken, and parses to the same export", async () => {
+    let reads = 0;
+    const database = fakeDatabase({
+      rows: { ocade_conversations: [{ id: "c1", user_id: "account-1", title: "One" }] },
+      between: () => (reads += 1),
+    });
+    const stream = streamAccountExport(database, "account-1").getReader();
+    await stream.read(); // the file's opening
+    expect(reads).toBe(0);
+    await stream.read(); // the first class's opening
+    await stream.read(); // its first table's opening
+    await stream.read(); // that table's first page: one database read so far
+    expect(reads).toBe(1);
+    await stream.cancel();
+    const whole = await buildAccountExport(
+      fakeDatabase({
+        rows: { ocade_conversations: [{ id: "c1", user_id: "account-1", title: "One" }] },
+      }),
+      "account-1",
+    );
+    expect(whole.classes[0]!.tables[0]!.rows).toEqual([
+      { id: "c1", user_id: "account-1", title: "One" },
+    ]);
+    expect(whole.rowCount).toBe(1);
   });
 });
