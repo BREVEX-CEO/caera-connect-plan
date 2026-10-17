@@ -65,6 +65,10 @@ const ALLOWED = new Map([
   ],
 
   // --- device preferences and per-device UI state -------------------------
+  [
+    "src/lib/intelligence/system-prompt.ts",
+    'A per-device opt-in to the candidate instructions ("ocade.prompt"), no content.',
+  ],
   ["src/lib/appearance.tsx", "Theme, motion and contrast, which are per-device choices."],
   [
     "src/jarvis/preferences.ts",

@@ -15,67 +15,69 @@ Common safety rules for every PC entry:
 
 ## Summary
 
-| ID          | Phase        | Check                                                   | Status   | Needs                                                 |
-| ----------- | ------------ | ------------------------------------------------------- | -------- | ----------------------------------------------------- |
-| REL-00-01   | 00 / release | Production rollback rehearsal                           | BLOCKED  | Cloudflare credentials (GitHub environment or owner)  |
-| REL-00-02   | 00 / release | Production deploys only through the approved gate       | FAIL     | Owner: Cloudflare Git auto-deploy setting             |
-| CI-00-01    | all          | GitHub Actions cloud workflows                          | BLOCKED  | Actions allowance (renews 1 Nov 2026) or owner choice |
-| PC-02-01    | 02           | Windows 11 tabbed Notepad target identity               | BLOCKED  | Owner-approved Windows 11 client                      |
-| WIN-02-01   | 02           | UIA barrier interleavings on real apps; 5 s lease timed | BLOCKED  | Isolated Windows VM                                   |
-| AND-02-01   | 02           | Interrupted gesture on a device/emulator                | BLOCKED  | Android emulator                                      |
-| NET-03-01   | 03           | Packet-loss / reordered / malformed ACK simulator       | RESOLVED | —                                                     |
-| AND-03-01   | 03           | Android process death at each journal transition        | BLOCKED  | Android emulator                                      |
-| GEM-04-01   | 04           | Three-key failover with real keys                       | BLOCKED  | Two more staging keys                                 |
-| GEM-04-02   | 04           | Background Mode step planned by the real model          | UNTESTED | Cloud session + staging key (can run)                 |
-| GEM-04-03   | 04           | Durable thought signatures for Background Mode          | OPEN     | Migration + owner deployment gate                     |
-| LIVE-04-01  | 04 / 17      | Live video task: captions read on the page              | FAIL     | Wikimedia 429 to clear; rerun                         |
-| LIVE-04-02  | 04 / 11 / 17 | Live photo task in a canvas editor (miniPaint)          | FAIL     | Fix in canvas/vision route                            |
-| VER-01-01   | 01           | A claim about an effect no check covers is refused      | OPEN     | Verifier contract                                     |
-| PERF-05-01  | 05           | Identical 30-step old/new timing; Windows batch timing  | BLOCKED  | Isolated Windows VM                                   |
-| AND-05-01   | 05           | Android multi-step segments                             | OPEN     | Android implementation + emulator                     |
-| BRW-00-01   | 16           | Firefox and WebKit legs of the browsers journey         | RESOLVED | —                                                     |
-| BRW-00-02   | 16           | Real push service                                       | BLOCKED  | Browser build with a push service                     |
-| VOI-13-01   | 13           | Real speech-recognition service                         | BLOCKED  | Reachable speech service                              |
-| PC-07-01    | 07           | Licensed Excel and Word automation                      | BLOCKED  | Owner-approved Windows PC with Office                 |
-| NOTIF-06-01 | 06           | Email delivery of task and security notifications       | BLOCKED  | Staging email provider                                |
-| WAKE-06-01  | 06           | Device wake hints and first-step latency                | MEASURED | Owner: faster first step vs idle requests             |
-| SCH-06-01   | 06           | Scheduler kill on the deployed Worker cron              | BLOCKED  | Staging deployment                                    |
-| WIN-07-01   | 07           | Office helpers restore alerts, quit only own instance   | BLOCKED  | Isolated Windows VM with Office                       |
-| WIN-07-02   | 07           | Native Office reopen/layout; locked and corrupt inputs  | BLOCKED  | Isolated Windows VM with Office                       |
-| FS-07-01    | 07           | A user edit between undo's comparison and restore       | UNTESTED | Cloud session (can run)                               |
-| SEC-08-01   | 08           | A staff proof binds the exact target                    | OPEN     | Proof contract                                        |
-| SEC-08-02   | 08           | Recovery against real Supabase Auth                     | BLOCKED  | Staging Supabase project                              |
-| UI-08-01    | 08           | Consent dialog: account switch and unmount while asking | RESOLVED | —                                                     |
-| SUP-08-01   | 08           | Support share flow on staging                           | BLOCKED  | Staging Supabase project                              |
-| DATA-09-01  | 09           | Restore must not bring back erased content              | BLOCKED  | Staging restore                                       |
-| DATA-09-02  | 09           | Storage faults during erasure; expired links            | BLOCKED  | Staging Supabase project                              |
-| DATA-09-03  | 09           | A very large export on the deployed Worker              | BLOCKED  | Staging deployment                                    |
-| OFF-10-01   | 10           | Real Offline Intelligence install and cold answer       | BLOCKED  | R2 read access (owner)                                |
-| OFF-10-02   | 10           | Offline answer quality, storage pressure, accounts      | BLOCKED  | As OFF-10-01                                          |
-| WIN-11-01   | 11           | Unfamiliar Windows app qualification                    | BLOCKED  | Isolated Windows VM                                   |
-| WIN-12-01   | 12           | Windows install, pairing, update, rollback, uninstall   | BLOCKED  | Isolated Windows VM                                   |
-| AND-14-01   | 14           | Android app on an emulator or device                    | BLOCKED  | KVM emulator or device                                |
-| IOS-15-01   | 15           | Physical iPhone/iPad and macOS behaviour                | BLOCKED  | Apple hardware / macOS runner                         |
-| UI-16-01    | 16           | Pixel-baseline visual regression                        | OPEN     | Baseline images + comparison step                     |
-| UI-16-02    | 16           | Device refusal: revoked authority, STOP while saving    | RESOLVED | —                                                     |
-| SR-16-01    | 16           | Real screen readers (NVDA, VoiceOver, TalkBack)         | BLOCKED  | Windows/macOS/Android with screen reader              |
-| APP-17-01   | 17           | Independent reopen in LibreOffice on every CI run       | BLOCKED  | CI-00-01; LibreOffice in the Python job               |
-| ONL-17-01   | 17           | ONLYOFFICE opens and recalculates OCADE's files         | BLOCKED  | Owner: edition/licence; a VM where it starts          |
-| MED-17-01   | 17           | Creative/media families: editable project + 720p/1080p  | OPEN     | Owner: which family to support first                  |
-| WF-18-01    | 18           | Reconcile workflow: 30 held-out real-model cases        | FAIL     | Rerun on fixed code; outcome templates                |
-| WF-18-02    | 18           | Client pack workflow: 30 held-out real-model cases      | UNTESTED | Gemini daily quota (resets daily)                     |
-| WF-18-03    | 18           | Order status workflow: 30 held-out real-model cases     | UNTESTED | Gemini daily quota (resets daily)                     |
-| WF-18-04    | 18 / 01      | Zero falsely verified completions                       | FAIL     | Outcome templates (VER-01-01)                         |
-| WF-18-05    | 18           | Five consenting design partners, two weeks              | BLOCKED  | Owner: recruit partners                               |
-| WIN-18-01   | 18           | PDF through Word/Excel/PowerPoint on Windows            | OPEN     | Isolated Windows VM with Office                       |
-| DEB-19-01   | 19 / 04      | One provider retry budget (no nested retries)           | UNTESTED | Live 429/503 reliability before/after (quota)         |
-| DEB-19-02   | 19           | Bubble and Workspace share one turn lifecycle           | OPEN     | Merge with account-switch/STOP/handoff proof          |
-| REL-20-01   | 20           | Frozen candidate SHA with an evidence manifest          | OPEN     | Phases 18 and 20 gates closed first                   |
-| SEC-20-01   | 20           | Independent adversarial review of release scope         | BLOCKED  | A reviewer independent of this session                |
-| PAY-21-01   | 21           | Approved merchant provider, legal/tax/refund terms      | BLOCKED  | Owner decision                                        |
-| PAY-21-02   | 21           | Approved price catalogue (one contract)                 | BLOCKED  | Owner: choose between the two proposals               |
-| PAY-21-03   | 21           | Sandbox webhook, replay, refund, renewal cycles         | BLOCKED  | PAY-21-01 (provider sandbox account)                  |
-| LAU-22-01   | 22           | Post-payment final matrix and controlled launch         | BLOCKED  | Phase 21, REL-20-01, owner launch approval            |
+| ID           | Phase        | Check                                                   | Status   | Needs                                                 |
+| ------------ | ------------ | ------------------------------------------------------- | -------- | ----------------------------------------------------- |
+| PROMPT-00-01 | 04 / 16      | Redesigned system prompt: A/B on matched live tasks     | UNTESTED | Gemini daily quota (resets ~00:00 UTC)                |
+| MOB-00-01    | 14 / 15      | Phone harnesses on a real emulator/simulator/device     | BLOCKED  | KVM emulator, macOS simulator or a phone (₹0)         |
+| REL-00-01    | 00 / release | Production rollback rehearsal                           | BLOCKED  | Cloudflare credentials (GitHub environment or owner)  |
+| REL-00-02    | 00 / release | Production deploys only through the approved gate       | FAIL     | Owner: Cloudflare Git auto-deploy setting             |
+| CI-00-01     | all          | GitHub Actions cloud workflows                          | BLOCKED  | Actions allowance (renews 1 Nov 2026) or owner choice |
+| PC-02-01     | 02           | Windows 11 tabbed Notepad target identity               | BLOCKED  | Owner-approved Windows 11 client                      |
+| WIN-02-01    | 02           | UIA barrier interleavings on real apps; 5 s lease timed | BLOCKED  | Isolated Windows VM                                   |
+| AND-02-01    | 02           | Interrupted gesture on a device/emulator                | BLOCKED  | Android emulator                                      |
+| NET-03-01    | 03           | Packet-loss / reordered / malformed ACK simulator       | RESOLVED | —                                                     |
+| AND-03-01    | 03           | Android process death at each journal transition        | BLOCKED  | Android emulator                                      |
+| GEM-04-01    | 04           | Three-key failover with real keys                       | BLOCKED  | Two more staging keys                                 |
+| GEM-04-02    | 04           | Background Mode step planned by the real model          | UNTESTED | Cloud session + staging key (can run)                 |
+| GEM-04-03    | 04           | Durable thought signatures for Background Mode          | OPEN     | Migration + owner deployment gate                     |
+| LIVE-04-01   | 04 / 17      | Live video task: captions read on the page              | FAIL     | Wikimedia 429 to clear; rerun                         |
+| LIVE-04-02   | 04 / 11 / 17 | Live photo task in a canvas editor (miniPaint)          | FAIL     | Fix in canvas/vision route                            |
+| VER-01-01    | 01           | A claim about an effect no check covers is refused      | OPEN     | Verifier contract                                     |
+| PERF-05-01   | 05           | Identical 30-step old/new timing; Windows batch timing  | BLOCKED  | Isolated Windows VM                                   |
+| AND-05-01    | 05           | Android multi-step segments                             | OPEN     | Android implementation + emulator                     |
+| BRW-00-01    | 16           | Firefox and WebKit legs of the browsers journey         | RESOLVED | —                                                     |
+| BRW-00-02    | 16           | Real push service                                       | BLOCKED  | Browser build with a push service                     |
+| VOI-13-01    | 13           | Real speech-recognition service                         | BLOCKED  | Reachable speech service                              |
+| PC-07-01     | 07           | Licensed Excel and Word automation                      | BLOCKED  | Owner-approved Windows PC with Office                 |
+| NOTIF-06-01  | 06           | Email delivery of task and security notifications       | BLOCKED  | Staging email provider                                |
+| WAKE-06-01   | 06           | Device wake hints and first-step latency                | MEASURED | Owner: faster first step vs idle requests             |
+| SCH-06-01    | 06           | Scheduler kill on the deployed Worker cron              | BLOCKED  | Staging deployment                                    |
+| WIN-07-01    | 07           | Office helpers restore alerts, quit only own instance   | BLOCKED  | Isolated Windows VM with Office                       |
+| WIN-07-02    | 07           | Native Office reopen/layout; locked and corrupt inputs  | BLOCKED  | Isolated Windows VM with Office                       |
+| FS-07-01     | 07           | A user edit between undo's comparison and restore       | UNTESTED | Cloud session (can run)                               |
+| SEC-08-01    | 08           | A staff proof binds the exact target                    | OPEN     | Proof contract                                        |
+| SEC-08-02    | 08           | Recovery against real Supabase Auth                     | BLOCKED  | Staging Supabase project                              |
+| UI-08-01     | 08           | Consent dialog: account switch and unmount while asking | RESOLVED | —                                                     |
+| SUP-08-01    | 08           | Support share flow on staging                           | BLOCKED  | Staging Supabase project                              |
+| DATA-09-01   | 09           | Restore must not bring back erased content              | BLOCKED  | Staging restore                                       |
+| DATA-09-02   | 09           | Storage faults during erasure; expired links            | BLOCKED  | Staging Supabase project                              |
+| DATA-09-03   | 09           | A very large export on the deployed Worker              | BLOCKED  | Staging deployment                                    |
+| OFF-10-01    | 10           | Real Offline Intelligence install and cold answer       | BLOCKED  | R2 read access (owner)                                |
+| OFF-10-02    | 10           | Offline answer quality, storage pressure, accounts      | BLOCKED  | As OFF-10-01                                          |
+| WIN-11-01    | 11           | Unfamiliar Windows app qualification                    | BLOCKED  | Isolated Windows VM                                   |
+| WIN-12-01    | 12           | Windows install, pairing, update, rollback, uninstall   | BLOCKED  | Isolated Windows VM                                   |
+| AND-14-01    | 14           | Android app on an emulator or device                    | BLOCKED  | KVM emulator or device                                |
+| IOS-15-01    | 15           | Physical iPhone/iPad and macOS behaviour                | BLOCKED  | Apple hardware / macOS runner                         |
+| UI-16-01     | 16           | Pixel-baseline visual regression                        | OPEN     | Baseline images + comparison step                     |
+| UI-16-02     | 16           | Device refusal: revoked authority, STOP while saving    | RESOLVED | —                                                     |
+| SR-16-01     | 16           | Real screen readers (NVDA, VoiceOver, TalkBack)         | BLOCKED  | Windows/macOS/Android with screen reader              |
+| APP-17-01    | 17           | Independent reopen in LibreOffice on every CI run       | BLOCKED  | CI-00-01; LibreOffice in the Python job               |
+| ONL-17-01    | 17           | ONLYOFFICE opens and recalculates OCADE's files         | BLOCKED  | Owner: edition/licence; a VM where it starts          |
+| MED-17-01    | 17           | Creative/media families: editable project + 720p/1080p  | OPEN     | Owner: which family to support first                  |
+| WF-18-01     | 18           | Reconcile workflow: 30 held-out real-model cases        | FAIL     | Rerun on fixed code; outcome templates                |
+| WF-18-02     | 18           | Client pack workflow: 30 held-out real-model cases      | UNTESTED | Gemini daily quota (resets daily)                     |
+| WF-18-03     | 18           | Order status workflow: 30 held-out real-model cases     | UNTESTED | Gemini daily quota (resets daily)                     |
+| WF-18-04     | 18 / 01      | Zero falsely verified completions                       | FAIL     | Outcome templates (VER-01-01)                         |
+| WF-18-05     | 18           | Five consenting design partners, two weeks              | BLOCKED  | Owner: recruit partners                               |
+| WIN-18-01    | 18           | PDF through Word/Excel/PowerPoint on Windows            | OPEN     | Isolated Windows VM with Office                       |
+| DEB-19-01    | 19 / 04      | One provider retry budget (no nested retries)           | PARTIAL  | Live 429/503 reliability check (quota)                |
+| DEB-19-02    | 19           | Bubble and Workspace share one turn lifecycle           | OPEN     | Merge with account-switch/STOP/handoff proof          |
+| REL-20-01    | 20           | Frozen candidate SHA with an evidence manifest          | OPEN     | Phases 18 and 20 gates closed first                   |
+| SEC-20-01    | 20           | Independent adversarial review of release scope         | BLOCKED  | A reviewer independent of this session                |
+| PAY-21-01    | 21           | Approved merchant provider, legal/tax/refund terms      | BLOCKED  | Owner decision                                        |
+| PAY-21-02    | 21           | Approved price catalogue (one contract)                 | BLOCKED  | Owner: choose between the two proposals               |
+| PAY-21-03    | 21           | Sandbox webhook, replay, refund, renewal cycles         | BLOCKED  | PAY-21-01 (provider sandbox account)                  |
+| LAU-22-01    | 22           | Post-payment final matrix and controlled launch         | BLOCKED  | Phase 21, REL-20-01, owner launch approval            |
 
 ---
 
@@ -356,6 +358,7 @@ Common safety rules for every PC entry:
 - **Status:** FAIL. Reconcile cases 6, 7 and 11 ended "completed" while Matched (and in case 7 Unmatched) was empty. The server checked exactly the checks the model wrote at start_task — `{"path": "reconciliation.xlsx"}`, or that path containing "Matched" and "Unmatched" — and those passed: the file existed and named its sheets.
 - **Attempted:** none that closes it: the model cannot know the expected records or total before working them out, so a prompt rule cannot make its own checks strong enough.
 - **Fix in place (17 Oct, not yet proven live):** a check `{path, sheet}` now means that sheet exists with rows below its header, judged from the device's own `sheet_inspect` read (`device-exchange.test.ts`: an empty Matched sheet is refused, a filled one completes; fails before, passes after). The model is told to write one for every sheet the person asked for. It still depends on the model writing that check.
+- **Server rule (18 Oct, model-independent):** every workbook a task made or changed must show rows below its header on every sheet, read by `sheet_inspect` after the last change, whatever checks the model chose (`task-authority.server.ts`; `device-exchange.test.ts`: an empty Unmatched sheet no check named is refused — fails before, passes after). All three observed false completions had an empty sheet.
 - **Remains:** rerun the reconcile cases live (Gemini daily quota) and count false completions; approved outcome templates per workflow (PLAN Phase 18; VER-01-01) so a recurring workflow's checks are fixed by OCADE, not authored by the model.
 
 ## WF-18-05 — Design partners
@@ -368,9 +371,8 @@ Common safety rules for every PC entry:
 
 ## DEB-19-01 — One provider retry budget
 
-- **Measured (17 Oct, source trace):** the Worker makes up to 3 provider attempts (`MAX_PROVIDER_ATTEMPTS`, inline waits ≤ 2 s) and the browser's `askThroughBusy` asks again up to twice (15 s, 30 s) whenever the answer is busy with no longer wait: a provider failing with 503 and no stated wait costs up to 9 upstream requests per model turn.
-- **Status:** UNTESTED, unchanged on purpose. PLAN Phase 19 requires before/after 429/503 reliability on the same fixtures before merging the budgets; the Gemini daily limit was spent the same day (WF-18-02).
-- **Remains:** a controlled run (provider stub returning 503/429 with and without waits, plus a live sample), then let only one layer retry.
+- **Fixed (18 Oct source, `live-deps.ts askThroughBusy`):** the Worker makes up to 3 provider attempts; the browser asked again up to twice more whenever the answer was busy, so a provider failing with 503 and no stated wait cost up to 9 upstream requests a turn. Now the browser asks again only when OCADE passes on a wait the provider named that fits its pause (Retry-After obeyed); with no wait named, the task pauses and continues by itself. Worst case for a no-wait failure: 9 → 3 upstream requests a turn. `busy-model.test.ts`: asked once with no wait named (new), still waited out and asked again with a named short wait.
+- **Remains (PARTIAL):** live reliability before/after under real 429/503 (quota).
 
 ## DEB-19-02 — Bubble and Workspace turn lifecycle
 
@@ -392,6 +394,19 @@ Common safety rules for every PC entry:
 ## LAU-22-01 — Final matrix and launch
 
 - **Reason:** depends on Phase 21 and an owner-approved launch; no production promotion from this session.
+
+## PROMPT-00-01 — Redesigned system prompt (owner's candidate)
+
+- **Integrated, off by default (18 Oct):** `src/lib/intelligence/system-prompt.ts` holds the model-facing CORE, CHAT and JARVIS sections of `OCADE_SYSTEM_PROMPT_REDESIGNED.md` (its integration and developer notes are not sent). JARVIS v2 = CORE + JARVIS MODE + the current tool rules, minus 7 current lines the candidate says itself (`JARVIS_SYSTEM_PROMPT_V2`); Chat v2 = CORE + CHAT MODE, added only on the Online route (`online-client.ts`), never Offline (its local model's context is 1024 tokens). A browser opts in with localStorage `ocade.prompt` = `v2`; the live journey with `OCADE_LIVE_PROMPT=v2`. Background Mode (server) stays v1.
+- **Measured size:** JARVIS v1 10 241 characters, v2 21 037 (+105%: the candidate adds behaviour, the tool contract stays); Chat v1 none (only the attachment citation rule), v2 5 622.
+- **Status:** UNTESTED. The A/B on matched live tasks (same seeds, same checkers: reconcile, pack, status, research, video) needs the Gemini daily quota; the live journey now reports request characters, prompt and output tokens per task from Gemini's own `usageMetadata`.
+- **Adopt only if:** no lower verified success, no more false completions, and the token cost is justified; else trim or keep v1.
+
+## MOB-00-01 — Phone harnesses for Android and iOS
+
+- **Evaluated (18 Oct, read-only clones):** `droidrun/mobile-harness` (MIT, 2026-10-13; agent skills and instructions, not a device), `mobile-next/mobile-mcp` (Apache-2.0, 2026-10-14; MCP server over local ADB/simulators, or its paid Mobile Next Cloud), `ZachDreamZ/universal-phone-harness` (MIT, 2026-09-04; Python MCP server over ADB/UIAutomator and WebDriverAgent, plus a mock backend). Each needs a real device, an emulator or a simulator behind it; none is one.
+- **Reason BLOCKED:** this VM has no `/dev/kvm` and no virtualisation CPU flags (no Android emulator can boot), no macOS (no iOS simulator), no attached phone; the cloud device service is paid (₹0 rule). The mock backend is not device evidence. No customer-facing MCP was added.
+- **Remains:** an isolated environment with an emulator or simulator; then the smallest adapter is `universal-phone-harness`'s CLI driving the existing `android-journey.mjs` steps, dev-only.
 
 ## PC-07-01 — Licensed Microsoft Excel and Word: finish, save, reopen and verify a real workbook and document
 

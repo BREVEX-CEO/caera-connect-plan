@@ -16,6 +16,7 @@
  * the computer busy with) and (when memory is on) remember. Confirmation and
  * take-over are decisions only the person's own clicks resolve.
  */
+import { promptVariant } from "@/lib/intelligence/system-prompt";
 import type {
   NormalizedAttachment,
   NormalizedMessage,
@@ -31,6 +32,7 @@ import {
   outcomeChecks,
   type OutcomeCheck,
   JARVIS_SYSTEM_PROMPT,
+  JARVIS_SYSTEM_PROMPT_V2,
   RESEARCH_GUIDANCE,
   type DeviceAction,
   type TaskStatus,
@@ -272,9 +274,10 @@ export function systemPrompt(input: {
   const zone = safeZone(input.timeZone);
   const clock = `\n\nThe time now is ${localIso(input.now ?? new Date(), zone)} (${zone}).`;
   const where = input.task?.checkpoint;
+  const rules = promptVariant() === "v2" ? JARVIS_SYSTEM_PROMPT_V2 : JARVIS_SYSTEM_PROMPT;
   const base = where
-    ? `${JARVIS_SYSTEM_PROMPT}\n\nThe open task "${input.task!.title}" was last at step ${where.step + 1}, after: ${where.lastAction}${where.lastUrl ? ` (${where.lastUrl})` : ""}. Observe first; never repeat a step the observation shows is done.`
-    : JARVIS_SYSTEM_PROMPT;
+    ? `${rules}\n\nThe open task "${input.task!.title}" was last at step ${where.step + 1}, after: ${where.lastAction}${where.lastUrl ? ` (${where.lastUrl})` : ""}. Observe first; never repeat a step the observation shows is done.`
+    : rules;
   return base + (input.research ? `\n\n${RESEARCH_GUIDANCE}` : "") + clock + devicesLine(input);
 }
 

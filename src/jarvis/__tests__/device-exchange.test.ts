@@ -772,7 +772,10 @@ describe("completion needs evidence from the device (P01)", () => {
       detail: {
         workbook: {
           sheet: name,
-          sheets: [{ name: "Sheet1" }, { name: "Summary" }],
+          sheets: [
+            { name: "Sheet1", rows: 12 },
+            { name: "Summary", rows: 3 },
+          ],
           cells: [Object.entries(cells).map(([cell, value]) => ({ cell, value }))],
         },
       },
@@ -827,6 +830,24 @@ describe("completion needs evidence from the device (P01)", () => {
       await expect(complete(t)).rejects.toThrow(
         /Matched sheet of r\.xlsx has no rows below its header/,
       );
+      // Not named by any check, still empty: a sheet nobody filled is no finished result.
+      await done(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }));
+      await done(await queue(t, { action: "sheet_inspect", path: "r.xlsx" }), {
+        status: "done",
+        changed: [],
+        observation: null,
+        detail: {
+          workbook: {
+            sheet: "Matched",
+            sheets: [
+              { name: "Matched", rows: 8 },
+              { name: "Unmatched", rows: 1 },
+            ],
+            cells: [],
+          },
+        },
+      });
+      await expect(complete(t)).rejects.toThrow(/Unmatched sheet of r\.xlsx has no rows/);
       await done(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }));
       await done(await queue(t, { action: "sheet_inspect", path: "r.xlsx" }), book(8));
       await complete(t);

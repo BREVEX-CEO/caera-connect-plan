@@ -71,8 +71,14 @@ export async function askThroughBusy<T>(
     try {
       return await ask();
     } catch (error) {
-      // Not busy, or busy until long after these waits: the task pauses now.
-      if (!(error instanceof Unavailable) || (error.retryAfterMs ?? 0) > pause) throw error;
+      // Not busy, busy until long after these waits, or busy with no wait named (OCADE's server
+      // has already retried it, DEB-19-01): the task pauses now and continues by itself.
+      if (
+        !(error instanceof Unavailable) ||
+        error.retryAfterMs === undefined ||
+        error.retryAfterMs > pause
+      )
+        throw error;
       await waitOrStop(pause, signal);
     }
   }

@@ -116,8 +116,12 @@ let device = null;
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await context.addInitScript(
-    ([key, value]) => window.localStorage.setItem(key, value),
-    [storageKey, JSON.stringify(session)],
+    ([key, value, prompt]) => {
+      window.localStorage.setItem(key, value);
+      // The A/B of the instructions: OCADE_LIVE_PROMPT=v2 opts this browser in (system-prompt.ts).
+      if (prompt) window.localStorage.setItem("ocade.prompt", prompt);
+    },
+    [storageKey, JSON.stringify(session), process.env.OCADE_LIVE_PROMPT ?? ""],
   );
   const page = await context.newPage();
   await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
@@ -188,7 +192,13 @@ try {
   const ask = async (label, words) => {
     const counts = async () => {
       const said = await fetch(`${SUPABASE}/__fixture/jarvis-script`).then((r) => r.json());
-      return { boundary: said.boundary ?? 0, gemini: said.gemini ?? 0 };
+      return {
+        boundary: said.boundary ?? 0,
+        gemini: said.gemini ?? 0,
+        chars: said.chars ?? 0,
+        promptTokens: said.promptTokens ?? 0,
+        outputTokens: said.outputTokens ?? 0,
+      };
     };
     const before = await counts();
     // Each request in a conversation of its own, as a person starts something new.
@@ -251,7 +261,7 @@ try {
     process.stdout.write(
       `RESULT  ${label} | ${task?.status} | ${((Date.now() - started) / 1000).toFixed(0)} s | ${after.boundary - before.boundary} planner requests | ${after.gemini - before.gemini} upstream Gemini requests | ${
         steps.filter((step) => step.action).length
-      } steps | ${steps.filter((step) => ["failed", "refused"].includes(step.status)).length} failed | ${confirmations} confirmations\n`,
+      } steps | ${steps.filter((step) => ["failed", "refused"].includes(step.status)).length} failed | ${confirmations} confirmations | ${after.chars - before.chars} request chars | ${after.promptTokens - before.promptTokens} prompt tokens | ${after.outputTokens - before.outputTokens} output tokens\n`,
     );
     process.stdout.write(
       `INFO  steps: ${steps.map((step) => `${step.action?.action ?? "?"}${step.action?.op ? `:${step.action.op}` : ""}=${step.status}`).join(" ")}\n`,

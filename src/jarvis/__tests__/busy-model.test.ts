@@ -13,7 +13,7 @@ describe("a busy model answer", () => {
   it("is waited out and asked again, the same request, before the task pauses", async () => {
     const ask = vi
       .fn<() => Promise<string>>()
-      .mockRejectedValueOnce(new Unavailable())
+      .mockRejectedValueOnce(new Unavailable(1))
       .mockResolvedValueOnce("answer");
     await expect(askThroughBusy(ask, undefined, [1, 1])).resolves.toBe("answer");
     expect(ask).toHaveBeenCalledTimes(2);
@@ -21,7 +21,7 @@ describe("a busy model answer", () => {
 
   it("pauses the task after the last wait, and never waits on a refusal that is not busy", async () => {
     const busy = vi.fn(async () => {
-      throw new Unavailable();
+      throw new Unavailable(1);
     });
     await expect(askThroughBusy(busy, undefined, [1, 1])).rejects.toBeInstanceOf(Unavailable);
     expect(busy).toHaveBeenCalledTimes(3);
@@ -44,10 +44,20 @@ describe("a busy model answer", () => {
     expect(Date.now() - started).toBeLessThan(1_000);
   });
 
+  it("does not ask again when OCADE already retried and the provider named no wait", async () => {
+    // Each ask is up to 3 provider attempts on OCADE's server: asking again here made it up to
+    // 9 a turn (BLOCKED_TESTS DEB-19-01). The task pauses and continues by itself instead.
+    const busy = vi.fn(async () => {
+      throw new Unavailable();
+    });
+    await expect(askThroughBusy(busy, undefined, [1, 1])).rejects.toBeInstanceOf(Unavailable);
+    expect(busy).toHaveBeenCalledTimes(1);
+  });
+
   it("stops waiting the moment STOP is pressed", async () => {
     const stop = new AbortController();
     const busy = vi.fn(async () => {
-      throw new Unavailable();
+      throw new Unavailable(1);
     });
     const asked = askThroughBusy(busy, stop.signal, [60_000]);
     stop.abort(new Error("stopped"));

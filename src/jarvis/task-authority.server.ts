@@ -216,6 +216,21 @@ function verificationGap(all: ActionRow[], checks?: readonly OutcomeCheck[] | nu
     if (!onIt.some((next) => READS_FILE.has(next.action?.action ?? "") && next.status === "done")) {
       return `${path} was changed but its content was never read back. Read it (file_read, file_extract or sheet_inspect), then finish.`;
     }
+    // A workbook this task made or changed holds data on every sheet, as the device last read
+    // it: whatever checks were chosen, an empty sheet is never a finished result (WF-18-04).
+    if (row.action?.action !== "sheet_edit") continue;
+    const book = onIt
+      .filter((next) => next.action?.action === "sheet_inspect" && next.status === "done")
+      .map(
+        (next) => next.result?.detail?.workbook as { sheets?: { name?: string; rows?: number }[] },
+      )
+      .filter(Boolean)
+      .at(-1);
+    if (!book) return `${path} was changed but not read with sheet_inspect. Read it, then finish.`;
+    const empty = (book.sheets ?? []).find((sheet) => (sheet.rows ?? 0) < 2);
+    if (empty) {
+      return `the ${empty.name} sheet of ${path} has no rows below its header. Fill it, or finish as failed and say why it is empty.`;
+    }
   }
   if (checks === undefined) return null;
   if (!checks?.length) {

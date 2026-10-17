@@ -2952,6 +2952,28 @@ const server = createServer((request, response) => {
                       },
                     ).then(
                       async (answer) => {
+                        // What each request cost, by Google's own count (usageMetadata), for A/B runs.
+                        plannerTurns.chars =
+                          (plannerTurns.chars ?? 0) + JSON.stringify(providerBody).length;
+                        if (answer.ok) {
+                          void answer
+                            .clone()
+                            .text()
+                            .then((said) => {
+                              const last = (name) =>
+                                Math.max(
+                                  0,
+                                  ...[
+                                    ...said.matchAll(new RegExp(`"${name}":\\s*(\\d+)`, "g")),
+                                  ].map((m) => Number(m[1])),
+                                );
+                              plannerTurns.promptTokens =
+                                (plannerTurns.promptTokens ?? 0) + last("promptTokenCount");
+                              plannerTurns.outputTokens =
+                                (plannerTurns.outputTokens ?? 0) + last("candidatesTokenCount");
+                            })
+                            .catch(() => undefined);
+                        }
                         // Google's own reason for a refusal (which quota, and when to retry), never
                         // the key: what tells a per-minute limit from a per-day one.
                         if (!answer.ok) {
