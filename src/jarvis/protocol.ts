@@ -624,7 +624,9 @@ export function readsBack(action: { action?: unknown; op?: unknown } | null | un
  *   file's last change, holds that value (or formula);
  * - `path` + `contains`: a content read of that file after its last change shows each text;
  * - `path` alone: that file was read successfully after its last change;
- * - `contains` alone: the page, read after the last change made to it, shows each text.
+ * - `contains` alone: the page, read after the last change made to it, shows each text;
+ * - `pausedAt` alone: the page's video or audio, read by media state after the last change made
+ *   to the page, is paused within half a second of that time (the player's own record).
  */
 export const outcomeCheck = z.preprocess(
   // A model may send an unused field as "" or []: absent, not invalid.
@@ -648,13 +650,18 @@ export const outcomeCheck = z.preprocess(
         .optional(),
       equals: z.string().max(500).optional(),
       contains: z.array(z.string().trim().min(1).max(200)).max(10).optional(),
+      pausedAt: z.number().min(0).max(86_400).optional(),
     })
     .strict()
+    .refine(
+      (c) => c.pausedAt === undefined || (c.path ?? c.cell ?? c.contains) === undefined,
+      "pausedAt stands alone",
+    )
     .refine((c) => (c.cell === undefined) === (c.equals === undefined), "cell needs equals")
     .refine((c) => c.cell === undefined || c.path !== undefined, "cell needs path")
     .refine((c) => c.sheet === undefined || c.cell !== undefined, "sheet needs cell")
     .refine(
-      (c) => c.path !== undefined || (c.contains?.length ?? 0) > 0,
+      (c) => c.path !== undefined || (c.contains?.length ?? 0) > 0 || c.pausedAt !== undefined,
       "a page check needs text",
     ),
 );
@@ -936,7 +943,7 @@ export function jarvisTools(
           checks: {
             type: "ARRAY",
             description:
-              "1 to 10 checks the finished result must pass, fixed for the task: path + cell + equals (a workbook cell's value or formula), path + contains (words the file must show), path alone (the file exists), or contains alone (words the page must show).",
+              "1 to 10 checks the finished result must pass, fixed for the task: path + cell + equals (a workbook cell's value or formula), path + contains (words the file must show), path alone (the file exists), contains alone (words the page must show), or pausedAt alone (the page's video left paused at that second, as media state reads it).",
             items: obj({
               path: str("The file's exact path in the work folder."),
               sheet: str("For a cell: the sheet, when not the first."),
@@ -947,6 +954,7 @@ export function jarvisTools(
                 items: { type: "STRING" },
                 description: "Words that must appear.",
               },
+              pausedAt: num("For a page's video or audio: the second it must be left paused at."),
             }),
           },
         },

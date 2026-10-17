@@ -143,7 +143,10 @@ type ActionRow = {
   action: { action?: string; path?: unknown; to?: unknown; op?: unknown } | null;
   status: string;
   /** As the exchange stores it: what the device returned beyond its status is under `detail`. */
-  result: { status?: string; detail?: { workbook?: unknown } | null } | null;
+  result: {
+    status?: string;
+    detail?: { workbook?: unknown; media?: { paused?: unknown; currentTime?: unknown } } | null;
+  } | null;
 };
 
 const PAGE = 1000;
@@ -244,6 +247,21 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
         (path ? samePath(row, path) : pathless(row)),
     );
   const target = path ?? "the screen or page";
+  if (check.pausedAt !== undefined) {
+    // The player's own record, read after the last change to the page: never the model's word.
+    const media = after
+      .filter((row) => row.action?.action === "media")
+      .map((row) => row.result?.detail?.media)
+      .filter(Boolean)
+      .at(-1);
+    if (!media || typeof media.currentTime !== "number") {
+      return "the page's video was not read with media state after its last change. Read it, then finish.";
+    }
+    if (media.paused !== true || Math.abs(media.currentTime - check.pausedAt) > 0.5) {
+      return `the page's video is ${media.paused === true ? "paused" : "playing"} at ${media.currentTime} s, not paused at ${check.pausedAt} s. Fix it, or finish as failed and say what differs.`;
+    }
+    return null;
+  }
   if (check.cell !== undefined) {
     const cell = check.cell.toUpperCase();
     const shows = after

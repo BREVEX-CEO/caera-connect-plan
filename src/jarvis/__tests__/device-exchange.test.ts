@@ -775,6 +775,28 @@ describe("completion needs evidence from the device (P01)", () => {
         )
       )[0]!;
 
+    it("judges a pause by the player's own record, never by clicks (live Gemini, 17 Oct)", async () => {
+      const t = await withChecks([{ pausedAt: 30 }]);
+      const player = (paused: boolean, currentTime: number) => ({
+        status: "done",
+        changed: [],
+        observation: null,
+        detail: { media: { paused, currentTime, duration: 120 } },
+      });
+      // Clicked the player and looked: no media state read, so nothing proves where it stopped.
+      await done(await queue(t, { action: "click", ref: "e1", observationId: "o1" }));
+      await done(await queue(t, { action: "observe" }));
+      await expect(complete(t)).rejects.toThrow(/not read with media state/);
+      await done(await queue(t, { action: "media", op: "state" }), player(false, 31));
+      await expect(complete(t)).rejects.toThrow(/playing at 31 s, not paused at 30 s/);
+      await done(await queue(t, { action: "media", op: "pause" }), player(true, 30.2));
+      // The pause's own answer is a change, not a read of the page after it.
+      await expect(complete(t)).rejects.toThrow(/read the result back|not read with media state/);
+      await done(await queue(t, { action: "media", op: "state" }), player(true, 30.2));
+      await complete(t);
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
     it("refuses a task that has no checks, however well it was read back", async () => {
       const t = await task();
       await done(await queue(t, { action: "file_write", path: "a.txt", content: "x" }));
