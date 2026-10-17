@@ -4,6 +4,7 @@ import os
 import sys
 import tempfile
 import threading
+import re
 import unittest
 import unittest.mock
 from pathlib import Path
@@ -244,3 +245,23 @@ class SurfacesTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NoAppNameShortcutTest(unittest.TestCase):
+    """PLAN Phase 11: apps are discovered and qualified, never special-cased by name. A string
+    naming a particular product in the runtime's code is a shortcut that works for one app and
+    fails silently for the next version or the next app."""
+
+    APPS = re.compile(r"""["'](?:[^"'\n]*\b)?(notepad|winword|excel|powerpnt|outlook|mspaint|"""
+                      r"""photoshop|chrome|msedge|firefox|vlc|spotify)(?:\.exe)?\b[^"'\n]*["']""",
+                      re.IGNORECASE)
+
+    def test_the_runtime_names_no_application_in_its_code(self):
+        root = Path(__file__).resolve().parents[1]
+        found = []
+        for source in [*root.glob("ocade_*.py"), *root.glob("actions/*.py")]:
+            for number, line in enumerate(source.read_text(encoding="utf-8").splitlines(), 1):
+                code = line.split("#", 1)[0]
+                if self.APPS.search(code) and not code.lstrip().startswith(('"""', "'''")):
+                    found.append(f"{source.name}:{number}: {line.strip()[:120]}")
+        self.assertEqual(found, [], "\n".join(found))

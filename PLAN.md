@@ -3769,6 +3769,10 @@ Add `task_id` to the existing cursor map, then compare every exported table's ke
 
 ---
 
+**Work record — Phase 10 (17 October 2026, Anthropic-managed Linux VM).** No source-verified defect is owned here. `offline-journey.mjs` PASS. The real-release journey cannot run without the private release (OFF-10-01); it used to report that as 8 FAILs after 15 minutes and now reports BLOCKED with the delivery statuses. Open checks: [BLOCKED_TESTS.md](BLOCKED_TESTS.md) OFF-10-01, OFF-10-02.
+
+**Phase 10 status: PARTIAL.**
+
 #### Phase 10 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
@@ -3858,6 +3862,10 @@ The missing progression is:
 
 ---
 
+**Work record — Phase 11 (17 October 2026, Anthropic-managed Linux VM).** Re-checked the owners: recipes already carry typed inputs, version-line scoping, secret filtering, quarantine after two failures, and are saved only after a server-checked result (Phase 01 test). No application is special-cased by name in the runtime's code (comments only); a standing test now keeps it so (`NoAppNameShortcutTest`: catches `"excel"`, `"chrome.exe"`, `"Open Notepad"`; ignores `wintypes.WORD`, `word/document.xml`). `test_discovery.py` 13 OK. Open checks: [BLOCKED_TESTS.md](BLOCKED_TESTS.md) WIN-11-01.
+
+**Phase 11 status: PARTIAL.**
+
 #### Phase 11 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
@@ -3934,6 +3942,10 @@ For existing signed-in Chrome/Edge, use a supported attachment only when legitim
 **Evidence:** update tests, existing-browser tests and the existing JARVIS/Office harness running on disposable Windows.
 
 ---
+
+**Work record — Phase 12 (17 October 2026, Anthropic-managed Linux VM).** No source-verified defect is owned here. Signed-update verification 28 OK; real attachment to an already-running Chromium 7 OK (previously skipped here). Runtime suite 251 run, 0 failures, 29 skipped (Windows-only or final-campaign live GUI). Open checks: [BLOCKED_TESTS.md](BLOCKED_TESTS.md) WIN-12-01.
+
+**Phase 12 status: PARTIAL.**
 
 #### Phase 12 exclusive exit gate
 

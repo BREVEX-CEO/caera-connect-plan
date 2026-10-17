@@ -222,6 +222,26 @@ Common safety rules for every PC entry:
 - **Test:** an account with tens of MB of messages exports completely through the deployed Worker within its memory.
 - **Status:** the export is now streamed a page at a time (tests prove one database read per page pulled); the deployed Worker's memory and time limits are not measured here.
 
+## OFF-10-01 — Real Offline Intelligence install and cold offline answer
+
+- **Test:** `offline-real-journey.mjs`: the published release (`ocr-2dc0ee44eb397906`, 484 MB, SHA-256 in `release/OCADE_OFFLINE_RELEASE.json`) installs through OCADE's delivery route, resumes after an interrupted download, answers correctly with the network cut, answers again from the stored model, and Remove deletes it.
+- **Reason:** the release lives in the private bucket `ocade-private-models`; the cloud workflow copies it into the local test bucket with the owner's read-only R2 key (`OCADE_R2_*` GitHub secrets). This session has no such key, and GitHub Actions refuses jobs (CI-00-01).
+- **Error (17 Oct):** with no release present the journey ran 15 minutes and reported 8 FAILs ("Preparing OCADE · 30 deliveries in 902 s") instead of BLOCKED. Fixed: it now reports BLOCKED with the delivery statuses when no delivery succeeded.
+- **Passed instead:** `offline-journey.mjs` (the surface: states in OCADE's own words, no claim that a published release is unavailable).
+- **Remains:** the owner adds the read-only R2 key as a session network secret or environment variable, or Actions resumes.
+
+## OFF-10-02 — Offline answer quality, storage pressure, cross-account
+
+- **Reason / remains:** as OFF-10-01; these run on the installed real model.
+
+## WIN-11-01 — Unfamiliar Windows app qualification
+
+- **Reason:** discovery reads Windows executables, COM servers and Start-menu registrations (`test_discovery.py` skips them on Linux). Added in the cloud (17 Oct): a standing test that the runtime's code names no particular application.
+
+## WIN-12-01 — Windows install, pairing, signed update, rollback and uninstall
+
+- **Reason:** the installed lifecycle (`manual_installed_lifecycle.py`, `manual_real_update.py`) needs a Windows VM and the shipped signing certificate. Proven in the cloud (17 Oct): signed-update verification `test_update.py` 28 OK; real existing-browser attachment with Chromium 1194 `test_existing_browser.py` 7 OK (attach, act in its own tab and leave the person's tabs alone, network boundary on a switched tab, reconnect after a browser restart) — those three tests had been skipping here for lack of a browser path.
+
 ## PC-07-01 — Licensed Microsoft Excel and Word: finish, save, reopen and verify a real workbook and document
 
 - **Phase / test ID:** Phase 07 (native file and Office fidelity) · `test_sheets.RealSpreadsheetAppTest.test_finish_the_orders_sheet_in_excel`, `test_files_documents.DeckTest`, Office routes of `office-journey.mjs`.

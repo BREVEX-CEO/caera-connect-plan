@@ -134,9 +134,14 @@ try {
     if (/could not|cannot run|more local storage/i.test(panel)) break;
     await page.waitForTimeout(2_000);
   }
-  if (!ready && delivered.length === 0 && /could not|not available/i.test(last)) {
+  // No delivery ever succeeded: the release is not in the local bucket. That is a missing
+  // artifact (the cloud workflow puts it there with the owner's read-only R2 key), not a product
+  // failure, and eight FAILs after it would say the wrong thing.
+  const succeeded = delivered.filter((status) => status === 200 || status === 206).length;
+  if (!ready && succeeded === 0) {
+    const statuses = [...new Set(delivered)].join(",") || "none";
     process.stdout.write(
-      `BLOCKED  offline-real journey — no release in the local bucket (${last})\n`,
+      `BLOCKED  offline-real journey — no release in the local bucket (${last}; delivery statuses ${statuses})\n`,
     );
     process.exit(3);
   }
