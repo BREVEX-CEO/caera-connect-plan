@@ -38,7 +38,7 @@ Common safety rules for every PC entry:
 | VOI-13-01   | 13           | Real speech-recognition service                         | BLOCKED  | Reachable speech service                              |
 | PC-07-01    | 07           | Licensed Excel and Word automation                      | BLOCKED  | Owner-approved Windows PC with Office                 |
 | NOTIF-06-01 | 06           | Email delivery of task and security notifications       | BLOCKED  | Staging email provider                                |
-| WAKE-06-01  | 06           | Device wake hints and first-step latency                | UNTESTED | Cloud session (can run)                               |
+| WAKE-06-01  | 06           | Device wake hints and first-step latency                | MEASURED | Owner: faster first step vs idle requests             |
 | SCH-06-01   | 06           | Scheduler kill on the deployed Worker cron              | BLOCKED  | Staging deployment                                    |
 | WIN-07-01   | 07           | Office helpers restore alerts, quit only own instance   | BLOCKED  | Isolated Windows VM with Office                       |
 | WIN-07-02   | 07           | Native Office reopen/layout; locked and corrupt inputs  | BLOCKED  | Isolated Windows VM with Office                       |
@@ -210,7 +210,8 @@ Common safety rules for every PC entry:
 
 ## WAKE-06-01 — Device wake hints and first-step latency
 
-- **Status:** UNTESTED. The 11 Oct decision kept 1 s / 5 s device polling instead of a push channel until latency is measured. The measurement can run in the cloud session (scripted journey timing); it has not yet.
+- **Measured (17 Oct, cloud VM, jarvis journey, 41 steps):** queued → answered beyond the step's own device time p50 864 ms, p95 4 674 ms, p99 4 954 ms (`timings.mjs`, from OCADE's own `created_at`/`completed_at` and the device's `ms`). Step time itself: p50 25 ms, p95 533 ms. The tail is the idle poll: a computer with no task checks every 5 s (`DORMANT_S`), so a new task's first step waits up to 5 s; steps after it wait at most the 1 s busy poll.
+- **Decision for the owner:** keep 5 s idle polling (0.2 requests a second per idle computer), shorten it (e.g. 2 s: first step p95 about 2 s, 2.5× the idle requests), or build a wake hint (a push or long-poll channel: new infrastructure). No change made.
 
 ## SCH-06-01 — Scheduler process kill on the deployed Worker cron
 

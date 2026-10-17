@@ -11,7 +11,9 @@ export async function printTimings(supabase) {
   const read = (path) => fetch(`${supabase}${path}`).then((r) => (r.ok ? r.json() : []));
   const [tasks, steps, turns] = await Promise.all([
     read("/rest/v1/jarvis_tasks?select=id,title,status,created_at,updated_at,finished_at"),
-    read("/rest/v1/jarvis_activity?select=task_id,status,summary,action,result"),
+    read(
+      "/rest/v1/jarvis_activity?select=task_id,status,summary,action,result,created_at,completed_at",
+    ),
     read("/__fixture/jarvis-script"),
   ]);
   const ran = steps.filter((step) => step.action);
@@ -39,6 +41,22 @@ export async function printTimings(supabase) {
     const sorted = all.sort((a, b) => a - b);
     console.log(
       `TIMING  ${kind} | ${sorted.length} | ${percentile(sorted, 50)} | ${percentile(sorted, 95)} | ${percentile(sorted, 99)}`,
+    );
+  }
+  // Queued to answered, less the step's own time on the device: what polling and transport
+  // cost each step (BLOCKED_TESTS WAKE-06-01), from OCADE's own timestamps.
+  const waits = ran
+    .filter((step) => step.completed_at && typeof step.result?.detail?.ms === "number")
+    .map((step) =>
+      Math.max(
+        0,
+        Date.parse(step.completed_at) - Date.parse(step.created_at) - step.result.detail.ms,
+      ),
+    )
+    .sort((a, b) => a - b);
+  if (waits.length) {
+    console.log(
+      `TIMING  queued→answered beyond device time | ${waits.length} | ${percentile(waits, 50)} | ${percentile(waits, 95)} | ${percentile(waits, 99)}`,
     );
   }
   const slowest = ran
