@@ -378,6 +378,20 @@ try {
         (await page.getByRole("button", { name: "Not mine", exact: true }).isEnabled()),
     );
     await page.unroute("**/_serverFn/**");
+    // OCADE answered, and refused: the same, the request stays open (BLOCKED_TESTS UI-16-02).
+    await page.route("**/_serverFn/**", (route) =>
+      route.request().method() === "POST"
+        ? route.fulfill({ status: 500, body: "refused" })
+        : route.continue(),
+    );
+    await page.getByRole("button", { name: "Not mine", exact: true }).click();
+    await page.waitForTimeout(1_000);
+    check(
+      "a refusal the server did not accept leaves the request open to try again",
+      (await page.getByRole("button", { name: "Not mine", exact: true }).count()) === 1 &&
+        (await page.getByRole("button", { name: "Not mine", exact: true }).isEnabled()),
+    );
+    await page.unroute("**/_serverFn/**");
     await page.getByRole("button", { name: "Not mine", exact: true }).click();
     check(
       "a device the person does not recognise is refused and keeps nothing",

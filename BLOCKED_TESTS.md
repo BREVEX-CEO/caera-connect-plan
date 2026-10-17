@@ -57,7 +57,7 @@ Common safety rules for every PC entry:
 | AND-14-01   | 14           | Android app on an emulator or device                    | BLOCKED  | KVM emulator or device                                |
 | IOS-15-01   | 15           | Physical iPhone/iPad and macOS behaviour                | BLOCKED  | Apple hardware / macOS runner                         |
 | UI-16-01    | 16           | Pixel-baseline visual regression                        | OPEN     | Baseline images + comparison step                     |
-| UI-16-02    | 16           | Device refusal: revoked authority, STOP while saving    | UNTESTED | Cloud session (can run)                               |
+| UI-16-02    | 16           | Device refusal: revoked authority, STOP while saving    | RESOLVED | —                                                     |
 | SR-16-01    | 16           | Real screen readers (NVDA, VoiceOver, TalkBack)         | BLOCKED  | Windows/macOS/Android with screen reader              |
 | APP-17-01   | 17           | Independent reopen in LibreOffice on every CI run       | BLOCKED  | CI-00-01; LibreOffice in the Python job               |
 | ONL-17-01   | 17           | ONLYOFFICE opens and recalculates OCADE's files         | BLOCKED  | Owner: edition/licence; a VM where it starts          |
@@ -299,11 +299,9 @@ Common safety rules for every PC entry:
 - **Status:** OPEN. `visual-journey.mjs` takes every screenshot and fails on overflow, page errors and off-screen controls, and the screenshots were read by eye (17 Oct); there is no approved baseline and no pixel comparison step, so a visual drift that keeps the layout valid is not caught automatically.
 - **Remains:** owner-approved baseline images and a comparison step without a new dependency (Playwright's own `toHaveScreenshot` needs `@playwright/test`, which the journeys do not use).
 
-## UI-16-02 — Device refusal: revoked authority and STOP while saving
+## UI-16-02 — Device refusal: server error and network failure
 
-- **Test:** "Not mine" on a pairing request when the server refuses (authority revoked) and when STOP is pressed while the refusal is saving.
-- **Status:** UNTESTED. The failed-network path is proven in the browser (`jarvis-journey`: the request stays open and the button works again; a second click cannot send twice while saving). A server refusal takes the same rejected-promise path but has no browser step yet; STOP has no effect on a pairing request (no task runs).
-- **Remains:** a route that answers the refusal with a server error, checked the same way.
+- **RESOLVED (17 Oct).** `jarvis-journey`: with the refusal's request aborted (network) and with it answered 500 (server refused), "Not mine" keeps the pairing request open and enabled to try again; a second click cannot send it twice while saving. STOP does not apply to a pairing request (no task runs).
 
 ## SR-16-01 — Real screen readers
 
