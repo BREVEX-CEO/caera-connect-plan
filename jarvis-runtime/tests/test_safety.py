@@ -712,6 +712,37 @@ class IdentityRecoveryTest(unittest.TestCase):
         self.assertFalse(Identity(home).damaged)
 
 
+class ReplyShapeTest(unittest.TestCase):
+    """NET-03-01: a reply that is not OCADE's (a proxy's HTML page, a list) is no answer, never a crash."""
+
+    def test_an_html_page_or_a_list_is_reported_as_no_answer(self):
+        import urllib.error
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from ocade_identity import Identity
+
+        class Html(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html")
+                self.end_headers()
+                self.wfile.write(b"<html>Gateway</html>")
+
+            def log_message(self, *args):
+                pass
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Html)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.shutdown)
+        identity = Identity(Path(tempfile.mkdtemp()))
+        identity.meta = {"server": f"http://127.0.0.1:{server.server_address[1]}", "deviceId": "d1",
+                         "rotatedAt": time.time()}
+        identity.key = ec.generate_private_key(ec.SECP256R1())
+        with self.assertRaises(urllib.error.URLError):
+            identity.exchange({"results": []})
+        identity.post = lambda *a, **k: (200, ["not", "a", "reply"])
+        with self.assertRaises(urllib.error.URLError):
+            identity.exchange({"results": []})
+
+
 class UninstallTest(unittest.TestCase):
     """JARVIS-032: uninstall stops the running agent before removing its key."""
 

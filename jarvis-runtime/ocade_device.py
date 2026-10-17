@@ -482,7 +482,17 @@ class Agent:
                     self.cancel.set()  # stopped in OCADE (web STOP, Take Over, task ended)
             # OCADE hands out work only while nothing runs; one segment at a time
             # owns this computer, and this loop keeps listening for STOP meanwhile.
-            commands = [] if active else reply.get("commands", [])[:MAX_SEGMENT]
+            commands = [] if active else reply.get("commands", [])
+            commands = (commands if isinstance(commands, list) else [])[:MAX_SEGMENT]
+            # A step this computer cannot read never runs; one with an id is answered so OCADE
+            # is not left waiting on it (BLOCKED_TESTS NET-03-01).
+            unreadable = [c for c in commands if not (isinstance(c, dict) and isinstance(c.get("id"), str)
+                                                      and isinstance(c.get("action"), dict))]
+            results.extend({"id": c["id"], "status": "failed", "summary": "This step could not be read"}
+                           for c in unreadable if isinstance(c, dict) and isinstance(c.get("id"), str))
+            commands = [c for c in commands if c not in unreadable]
+            if unreadable:
+                self._keep_pending(results)
             # STOP or Pause pressed while this exchange was on its way: the work it
             # handed out never starts; OCADE hears the STOP on the next exchange.
             if commands and (self.stop_all.is_set() or self.pause_asked.is_set()):

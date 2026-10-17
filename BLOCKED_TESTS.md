@@ -23,7 +23,7 @@ Common safety rules for every PC entry:
 | PC-02-01    | 02           | Windows 11 tabbed Notepad target identity               | BLOCKED  | Owner-approved Windows 11 client                      |
 | WIN-02-01   | 02           | UIA barrier interleavings on real apps; 5 s lease timed | BLOCKED  | Isolated Windows VM                                   |
 | AND-02-01   | 02           | Interrupted gesture on a device/emulator                | BLOCKED  | Android emulator                                      |
-| NET-03-01   | 03           | Packet-loss / reordered / malformed ACK simulator       | UNTESTED | Cloud session (can run)                               |
+| NET-03-01   | 03           | Packet-loss / reordered / malformed ACK simulator       | RESOLVED | —                                                     |
 | AND-03-01   | 03           | Android process death at each journal transition        | BLOCKED  | Android emulator                                      |
 | GEM-04-01   | 04           | Three-key failover with real keys                       | BLOCKED  | Two more staging keys                                 |
 | GEM-04-02   | 04           | Background Mode step planned by the real model          | UNTESTED | Cloud session + staging key (can run)                 |
@@ -132,11 +132,10 @@ Common safety rules for every PC entry:
 - **Attempted:** `javac` of all Android sources (16 Oct, local, before PC testing was withdrawn).
 - **Remains:** emulator run of the Android journey.
 
-## NET-03-01 — Packet-loss / reordered / malformed acknowledgement simulator
+## NET-03-01 — Lost, repeated and malformed exchange replies
 
-- **Test:** results and receipts survive dropped, duplicated, reordered and malformed exchange replies; each result is counted once.
-- **Status:** UNTESTED — can run in the cloud session; not yet built as a harness.
-- **Remains:** a fault-injecting proxy between the Device Agent and the stub, then the Phase 03 assertions.
+- **RESOLVED (17 Oct).** Lost replies: results stay in the journal and survive a restart (`test_results_survive_a_lost_connection_and_a_restart`); a lost rotation answer is recovered; a resent result is counted once by its receipt (`device-exchange.test.ts` V04). Malformed replies were a defect, now fixed: a 200 HTML page (a proxy's error page) raised an uncaught `JSONDecodeError`, and a reply whose `commands` was not a list stopped the device's exchange loop (`TypeError: string indices must be integers`). Now `Identity` reports a reply that is not a JSON object as no answer, and the device answers an unreadable step as failed without running it (`test_a_malformed_reply_neither_stops_the_agent_nor_loses_a_result`, `ReplyShapeTest`; both fail before, pass after). Device suite 264 PASS; jarvis journey PASS (speech BLOCKED, VOI-13-01).
+- **Not built:** a packet-level fault proxy; the signed TLS exchange gives a proxy no way to reorder or forge replies that the receipts above do not already handle.
 
 ## AND-03-01 — Android process death at each journal transition
 
@@ -231,7 +230,8 @@ Common safety rules for every PC entry:
 
 ## FS-07-01 — A user edit between undo's comparison and its restore
 
-- **Status:** UNTESTED. Undo now refuses after any change inside a copied folder (V21), but the window between its fingerprint check and the trash/restore is not closed; a deterministic race test can run in the cloud session.
+- **Status:** UNTESTED, judged not worth new code (17 Oct). Every edit, addition or rename made before undo compares is refused and kept (V21 tests). What remains is the gap between that comparison and the copy or trash right after it (microseconds, with no wait in between). Closing it needs an atomic move-aside before the comparison for every undo kind, and that move has its own overwrite case if the file is recreated during the swap; the added code outweighs a race a person cannot realistically hit.
+- **Remains:** owner decision only if a real report shows a lost edit.
 
 ## SEC-08-01 — A staff proof binds the exact target
 

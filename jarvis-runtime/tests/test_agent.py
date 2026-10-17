@@ -225,6 +225,31 @@ class LifecycleTest(unittest.TestCase):
             "status": "done", "summary": "ok"}
         return agent, identity
 
+    def test_a_malformed_reply_neither_stops_the_agent_nor_loses_a_result(self):
+        """BLOCKED_TESTS NET-03-01: what a broken proxy or server could send instead of a reply."""
+        command = {"id": "a1", "taskId": "t1", "action": {"action": "file_list", "path": "."}}
+        later = {"id": "a2", "taskId": "t1", "action": {"action": "file_list", "path": "."}}
+        agent, identity = self._agent([
+            {"commands": [command], "busy": True},
+            {"commands": "nonsense", "acks": "nonsense", "busy": True},    # wrong types
+            urllib.error.URLError("the reply was not OCADE's"),            # how Identity reports HTML
+            {"commands": [{"id": "x"}, later], "busy": True},              # a command with no action
+            {"commands": [], "busy": False, "acks": [{"id": "a1", "outcome": "stored"}]},
+        ])
+        runner = threading.Thread(target=agent.run)
+        runner.start()
+        for _ in range(100):
+            if any(r.get("id") == "a2" for b in identity.bodies for r in b.get("results", [])):
+                break
+            time.sleep(0.1)
+        agent.stop.set()
+        runner.join(10)
+        self.assertFalse(runner.is_alive())
+        sent = [r for b in identity.bodies for r in b.get("results", [])]
+        self.assertIn("a1", [r["id"] for r in sent])   # sent again until a reply answers for it
+        self.assertEqual(next(r for r in sent if r["id"] == "a2")["status"], "done")
+        self.assertEqual(next(r for r in sent if r["id"] == "x")["status"], "failed")  # answered, not run
+
     def test_results_survive_a_lost_connection_and_a_restart(self):
         command = {"id": "a1", "taskId": "t1", "action": {"action": "file_list", "path": "."}}
         agent, identity = self._agent([{"commands": [command], "busy": True},

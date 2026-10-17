@@ -152,7 +152,10 @@ class Identity:
                      h["signature"]: sign(key, canonical("POST", path, device, stamp, raw))})
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
-                return response.status, json.loads(response.read().decode() or "{}")
+                try:
+                    return response.status, json.loads(response.read().decode() or "{}")
+                except ValueError as e:  # a proxy's HTML page with 200: no answer, never a crash
+                    raise urllib.error.URLError("the reply was not OCADE's") from e
         except urllib.error.HTTPError as e:
             try:
                 payload = json.loads(e.read().decode() or "{}")
@@ -202,6 +205,8 @@ class Identity:
         if due:
             self.rotate()
         status, reply = self.post(PROTOCOL["paths"]["exchange"], body)
+        if not isinstance(reply, dict):
+            raise urllib.error.URLError("the reply was not OCADE's")
         if status == 401 and reply.get("error") == "signature_invalid" and self.next_path.exists():
             # A rotation reached OCADE but its answer did not reach us: the new key is live.
             self._save(serialization.load_pem_private_key(self.next_path.read_bytes(), None))
