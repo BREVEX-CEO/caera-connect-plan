@@ -337,6 +337,9 @@ print(json.dumps({"rows": rows, "charts": sum(len(s._charts) for s in wb.workshe
   if (wanted("video")) {
     /* --- 2. a video: found, played, paused exactly, captions summarised ------ */
     const videoSteps = await ask("video → pause at 0:30 → captions → summary", VIDEO_REQUEST);
+    process.stdout.write(
+      `INFO  video steps: ${videoSteps.map((step) => `${step.action?.action ?? "?"}${step.action?.op ? `:${step.action.op}` : ""}=${step.status}`).join(" ")}\n`,
+    );
     const players = videoSteps
       .map((step) => step.result?.detail?.media)
       .filter((media) => media && typeof media.currentTime === "number");
