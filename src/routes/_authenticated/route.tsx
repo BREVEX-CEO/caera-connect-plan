@@ -137,14 +137,15 @@ function AuthedLayout() {
   return <Outlet />;
 }
 
-function AuthedError({ error, reset }: { error: Error; reset: () => void }) {
+function AuthedError({ error, reset }: { error: unknown; reset: () => void }) {
   const router = useRouter();
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center" role="alert">
         <h1 className="text-lg font-semibold text-foreground">This page didn&apos;t load</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {error.message || "Something went wrong loading this part of your workspace."}
+          {(error instanceof Error && error.message) ||
+            "Something went wrong loading this part of your workspace."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
