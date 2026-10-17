@@ -145,7 +145,13 @@
       await known;
     }
     let problem = null;
-    if (op === 'play') await el.play().catch((e) => { problem = 'It did not play: ' + e.name; });
+    if (op === 'play') {
+      // A video that cannot load never settles play(): said after a while, never a hung step.
+      problem = await Promise.race([
+        el.play().then(() => null, (e) => 'It did not play: ' + e.name),
+        new Promise((done) => setTimeout(() => done('It has not started playing: the media is still loading'), 10000)),
+      ]);
+    }
     if (op === 'pause') el.pause();
     if (op === 'seek') {
       const sought = new Promise((done) => {
@@ -161,19 +167,41 @@
       }
     }
     const tracks = [...el.textTracks].filter((t) => /captions|subtitles/.test(t.kind));
+    // The caption files the page declares, this media's own first. A player that rebuilds its
+    // video (Wikimedia Commons' does) leaves it no loaded track: the declared file is read instead.
+    const files = [...el.querySelectorAll('track[src]'), ...document.querySelectorAll('track[src]')]
+      .filter((t) => /captions|subtitles/.test(t.kind));
     let captions;
     if (op === 'captions') {
       const track = tracks.find((t) => /^en/i.test(t.language)) || tracks[0];
-      if (!track) return {error: 'This video has no captions to read'};
-      if (track.mode === 'disabled') track.mode = 'hidden';
-      for (let waited = 0; (!track.cues || !track.cues.length) && waited < 5000; waited += 200) {
-        await new Promise((done) => setTimeout(done, 200));
+      const file = files.find((t) => /^en/i.test(t.srclang)) || files[0];
+      if (!track && !file) return {error: 'This video has no captions to read'};
+      if (track) {
+        if (track.mode === 'disabled') track.mode = 'hidden';
+        for (let waited = 0; (!track.cues || !track.cues.length) && waited < 5000; waited += 200) {
+          await new Promise((done) => setTimeout(done, 200));
+        }
+        captions = [...(track.cues || [])].map((c) => c.startTime.toFixed(1) + 's ' + c.text.replace(/\s+/g, ' '))
+          .join('\n').slice(0, 8000);
       }
-      captions = [...(track.cues || [])].map((c) => c.startTime.toFixed(1) + 's ' + c.text.replace(/\s+/g, ' '))
-        .join('\n').slice(0, 8000);
+      let refused = '';
+      if (!captions && file) {
+        const text = await fetch(file.src).then((r) => {
+          if (!r.ok) refused = ' (the site answered ' + r.status + ')';
+          return r.ok ? r.text() : '';
+        }).catch(() => '');
+        const at = (stamp) => stamp.replace(',', '.').split(':').reduce((sum, part) => sum * 60 + Number(part), 0);
+        captions = text.split(/\r?\n\r?\n/).map((block) => {
+          const cue = /([\d:.,]+)\s*-->[^\n]*\n([\s\S]+)/.exec(block);
+          return cue && at(cue[1]).toFixed(1) + 's ' + cue[2].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+        }).filter(Boolean).join('\n').slice(0, 8000);
+      }
+      // Empty is not read: never "done" with nothing in it.
+      if (!captions) return {error: "This video's captions could not be read" + refused};
     }
     return {currentTime: Math.round(el.currentTime * 10) / 10, duration: Math.round(el.duration * 10) / 10 || null,
-      paused: el.paused, muted: el.muted, captionLanguages: tracks.map((t) => t.language || t.label),
+      paused: el.paused, muted: el.muted, captionLanguages: tracks.length ? tracks.map((t) => t.language || t.label)
+        : [...new Set(files.map((t) => t.srclang || t.label))],
       ...(captions === undefined ? {} : {captions}), ...(problem ? {error: problem} : {})};
   };
   window.__ocade = { snapshot, geometry, identityOf, submitOf, atPoint, byRef, findText, media };

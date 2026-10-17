@@ -222,7 +222,7 @@ try {
     );
     const steps = await table(
       "jarvis_activity",
-      `task_id=eq.${task?.id}&select=status,action,result`,
+      `task_id=eq.${task?.id}&select=status,action,result,summary`,
     );
     const after = await counts();
     process.stdout.write(
@@ -230,6 +230,15 @@ try {
         steps.filter((step) => step.action).length
       } steps | ${steps.filter((step) => ["failed", "refused"].includes(step.status)).length} failed | ${confirmations} confirmations\n`,
     );
+    process.stdout.write(
+      `INFO  steps: ${steps.map((step) => `${step.action?.action ?? "?"}${step.action?.op ? `:${step.action.op}` : ""}=${step.status}`).join(" ")}\n`,
+    );
+    // Why each failed step failed, in the device's own words: the first thing a fix needs.
+    for (const step of steps.filter((entry) => entry.status === "failed")) {
+      process.stdout.write(
+        `INFO  failed ${step.action?.op ?? step.action?.action}: ${step.summary}\n`,
+      );
+    }
     check(
       `${label}: one request is carried to the end without being asked again`,
       finished && task?.status === "completed",
@@ -337,9 +346,6 @@ print(json.dumps({"rows": rows, "charts": sum(len(s._charts) for s in wb.workshe
   if (wanted("video")) {
     /* --- 2. a video: found, played, paused exactly, captions summarised ------ */
     const videoSteps = await ask("video → pause at 0:30 → captions → summary", VIDEO_REQUEST);
-    process.stdout.write(
-      `INFO  video steps: ${videoSteps.map((step) => `${step.action?.action ?? "?"}${step.action?.op ? `:${step.action.op}` : ""}=${step.status}`).join(" ")}\n`,
-    );
     const players = videoSteps
       .map((step) => step.result?.detail?.media)
       .filter((media) => media && typeof media.currentTime === "number");

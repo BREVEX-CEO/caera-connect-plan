@@ -7,6 +7,7 @@ import functools
 import http.server
 import mimetypes
 import os
+import socket
 import sys
 import tempfile
 import threading
@@ -51,6 +52,15 @@ PAGES = {
                   "fetch('tone.wav').then(r => r.blob()).then(b => {"
                   "document.querySelector('audio').src = URL.createObjectURL(b); });</script>",
     "clip.vtt": "WEBVTT\n\n00:00.500 --> 00:02.000\nHello from the clip\n",
+    # Captions declared, but the file says nothing.
+    "silent.html": "<title>Silent</title><video preload='none'>"
+                   "<track kind='subtitles' srclang='en' src='empty.vtt'></video>",
+    "empty.vtt": "WEBVTT\n",
+    # A player that rebuilt its video: no native track, only the caption file the page declares.
+    "rebuilt.html": "<title>Rebuilt</title><audio controls></audio>"
+                    "<span hidden><track kind='subtitles' srclang='en' src='clip.vtt'></span><script>"
+                    "fetch('tone.wav').then(r => r.blob()).then(b => {"
+                    "document.querySelector('audio').src = URL.createObjectURL(b); });</script>",
     # Media that never learns its length: the page waits for it before any change.
     "nometa.html": "<title>Never loads</title><audio src='missing.wav'></audio>",
     "drag.html": """<title>Timeline</title>
@@ -189,6 +199,36 @@ class BrowserControlTest(unittest.TestCase):
         self.assertIn("0.5s Hello from the clip", out["media"]["captions"])
         self.act({"action": "open", "url": f"{self.base}/next.html"})
         self.assertEqual(self.act({"action": "media", "op": "state"})["status"], "failed")
+
+    def test_captions_with_nothing_in_them_are_not_done(self):
+        """On Commons the video's own track never loaded its cues and "captions" came back done
+        with nothing in it."""
+        self.act({"action": "open", "url": f"{self.base}/silent.html"})
+        self.assertEqual(self.act({"action": "media", "op": "captions"})["status"], "failed")
+
+    def test_play_that_never_starts_is_said_not_hung(self):
+        stall = socket.socket()
+        stall.bind(("127.0.0.1", 0))
+        stall.listen()  # accepts and never answers
+        self.addCleanup(stall.close)
+        Path(self.root, "stalled.html").write_text(
+            f"<video src='http://127.0.0.1:{stall.getsockname()[1]}/clip.webm'></video>")
+        self.act({"action": "open", "url": f"{self.base}/stalled.html"})
+        started = time.monotonic()
+        out = self.act({"action": "media", "op": "play"})
+        self.assertEqual(out["status"], "failed", out)
+        self.assertIn("still loading", out["summary"])
+        self.assertLess(time.monotonic() - started, 40)
+
+    def test_captions_a_rebuilt_player_dropped_are_read_from_the_file_the_page_names(self):
+        """Live Gemini, 17 Oct: Commons' player rebuilds its video without native tracks, so the
+        captions it declares were reported as none and the summary missed what they said."""
+        self.act({"action": "open", "url": f"{self.base}/rebuilt.html"})
+        out = self.act({"action": "media", "op": "state"})
+        self.assertEqual(out["media"]["captionLanguages"], ["en"], out)
+        out = self.act({"action": "media", "op": "captions"})
+        self.assertEqual(out["status"], "done", out)
+        self.assertEqual(out["media"]["captions"], "0.5s Hello from the clip")
 
     def test_drag_moves_what_is_under_the_point_and_gates_where_it_lands(self):
         obs = self.act({"action": "open", "url": f"{self.base}/drag.html"})["observation"]

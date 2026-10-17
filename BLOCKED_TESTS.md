@@ -15,50 +15,53 @@ Common safety rules for every PC entry:
 
 ## Summary
 
-| ID         | Phase        | Check                                                   | Status   | Needs                                                 |
-| ---------- | ------------ | ------------------------------------------------------- | -------- | ----------------------------------------------------- |
-| REL-00-01  | 00 / release | Production rollback rehearsal                           | BLOCKED  | Cloudflare credentials (GitHub environment or owner)  |
-| REL-00-02  | 00 / release | Production deploys only through the approved gate       | FAIL     | Owner: Cloudflare Git auto-deploy setting             |
-| CI-00-01   | all          | GitHub Actions cloud workflows                          | BLOCKED  | Actions allowance (renews 1 Nov 2026) or owner choice |
-| PC-02-01   | 02           | Windows 11 tabbed Notepad target identity               | BLOCKED  | Owner-approved Windows 11 client                      |
-| WIN-02-01  | 02           | UIA barrier interleavings on real apps; 5 s lease timed | BLOCKED  | Isolated Windows VM                                   |
-| AND-02-01  | 02           | Interrupted gesture on a device/emulator                | BLOCKED  | Android emulator                                      |
-| NET-03-01  | 03           | Packet-loss / reordered / malformed ACK simulator       | UNTESTED | Cloud session (can run)                               |
-| AND-03-01  | 03           | Android process death at each journal transition        | BLOCKED  | Android emulator                                      |
-| GEM-04-01  | 04           | Three-key failover with real keys                       | BLOCKED  | Two more staging keys                                 |
-| GEM-04-02  | 04           | Background Mode step planned by the real model          | UNTESTED | Cloud session + staging key (can run)                 |
-| GEM-04-03  | 04           | Durable thought signatures for Background Mode          | OPEN     | Migration + owner deployment gate                     |
-| LIVE-04-01 | 04 / 17      | Live video task: captions read on the page              | FAIL     | Fix in media capability                               |
-| LIVE-04-02 | 04 / 11 / 17 | Live photo task in a canvas editor (miniPaint)          | FAIL     | Fix in canvas/vision route                            |
-| VER-01-01  | 01           | A claim about an effect no check covers is refused      | OPEN     | Verifier contract                                     |
-| PERF-05-01 | 05           | Identical 30-step old/new timing; Windows batch timing  | BLOCKED  | Isolated Windows VM                                   |
-| AND-05-01  | 05           | Android multi-step segments                             | OPEN     | Android implementation + emulator                     |
-| BRW-00-01  | 16           | Firefox and WebKit legs of the browsers journey         | RESOLVED | —                                                     |
-| BRW-00-02  | 16           | Real push service                                       | BLOCKED  | Browser build with a push service                     |
-| VOI-13-01  | 13           | Real speech-recognition service                         | BLOCKED  | Reachable speech service                              |
-| PC-07-01   | 07           | Licensed Excel and Word automation                      | BLOCKED  | Owner-approved Windows PC with Office                 |
+| ID          | Phase        | Check                                                   | Status   | Needs                                                 |
+| ----------- | ------------ | ------------------------------------------------------- | -------- | ----------------------------------------------------- |
+| REL-00-01   | 00 / release | Production rollback rehearsal                           | BLOCKED  | Cloudflare credentials (GitHub environment or owner)  |
+| REL-00-02   | 00 / release | Production deploys only through the approved gate       | FAIL     | Owner: Cloudflare Git auto-deploy setting             |
+| CI-00-01    | all          | GitHub Actions cloud workflows                          | BLOCKED  | Actions allowance (renews 1 Nov 2026) or owner choice |
+| PC-02-01    | 02           | Windows 11 tabbed Notepad target identity               | BLOCKED  | Owner-approved Windows 11 client                      |
+| WIN-02-01   | 02           | UIA barrier interleavings on real apps; 5 s lease timed | BLOCKED  | Isolated Windows VM                                   |
+| AND-02-01   | 02           | Interrupted gesture on a device/emulator                | BLOCKED  | Android emulator                                      |
+| NET-03-01   | 03           | Packet-loss / reordered / malformed ACK simulator       | UNTESTED | Cloud session (can run)                               |
+| AND-03-01   | 03           | Android process death at each journal transition        | BLOCKED  | Android emulator                                      |
+| GEM-04-01   | 04           | Three-key failover with real keys                       | BLOCKED  | Two more staging keys                                 |
+| GEM-04-02   | 04           | Background Mode step planned by the real model          | UNTESTED | Cloud session + staging key (can run)                 |
+| GEM-04-03   | 04           | Durable thought signatures for Background Mode          | OPEN     | Migration + owner deployment gate                     |
+| LIVE-04-01  | 04 / 17      | Live video task: captions read on the page              | FAIL     | Wikimedia 429 to clear; rerun                         |
+| LIVE-04-02  | 04 / 11 / 17 | Live photo task in a canvas editor (miniPaint)          | FAIL     | Fix in canvas/vision route                            |
+| VER-01-01   | 01           | A claim about an effect no check covers is refused      | OPEN     | Verifier contract                                     |
+| PERF-05-01  | 05           | Identical 30-step old/new timing; Windows batch timing  | BLOCKED  | Isolated Windows VM                                   |
+| AND-05-01   | 05           | Android multi-step segments                             | OPEN     | Android implementation + emulator                     |
+| BRW-00-01   | 16           | Firefox and WebKit legs of the browsers journey         | RESOLVED | —                                                     |
+| BRW-00-02   | 16           | Real push service                                       | BLOCKED  | Browser build with a push service                     |
+| VOI-13-01   | 13           | Real speech-recognition service                         | BLOCKED  | Reachable speech service                              |
+| PC-07-01    | 07           | Licensed Excel and Word automation                      | BLOCKED  | Owner-approved Windows PC with Office                 |
 | NOTIF-06-01 | 06           | Email delivery of task and security notifications       | BLOCKED  | Staging email provider                                |
-| WAKE-06-01 | 06           | Device wake hints and first-step latency                | UNTESTED | Cloud session (can run)                               |
-| SCH-06-01  | 06           | Scheduler kill on the deployed Worker cron              | BLOCKED  | Staging deployment                                    |
-| WIN-07-01  | 07           | Office helpers restore alerts, quit only own instance   | BLOCKED  | Isolated Windows VM with Office                       |
-| WIN-07-02  | 07           | Native Office reopen/layout; locked and corrupt inputs  | BLOCKED  | Isolated Windows VM with Office                       |
-| FS-07-01   | 07           | A user edit between undo's comparison and restore       | UNTESTED | Cloud session (can run)                               |
-| SEC-08-01  | 08           | A staff proof binds the exact target                    | OPEN     | Proof contract                                        |
-| SEC-08-02  | 08           | Recovery against real Supabase Auth                     | BLOCKED  | Staging Supabase project                              |
-| UI-08-01   | 08           | Consent dialog: account switch and unmount while asking | UNTESTED | Cloud session (can run)                               |
-| SUP-08-01  | 08           | Support share flow on staging                           | BLOCKED  | Staging Supabase project                              |
-| DATA-09-01 | 09           | Restore must not bring back erased content              | BLOCKED  | Staging restore                                       |
-| DATA-09-02 | 09           | Storage faults during erasure; expired links            | BLOCKED  | Staging Supabase project                              |
-| DATA-09-03 | 09           | A very large export on the deployed Worker              | BLOCKED  | Staging deployment                                    |
-| OFF-10-01  | 10           | Real Offline Intelligence install and cold answer       | BLOCKED  | R2 read access (owner)                                |
-| OFF-10-02  | 10           | Offline answer quality, storage pressure, accounts      | BLOCKED  | As OFF-10-01                                          |
-| WIN-11-01  | 11           | Unfamiliar Windows app qualification                    | BLOCKED  | Isolated Windows VM                                   |
-| WIN-12-01  | 12           | Windows install, pairing, update, rollback, uninstall   | BLOCKED  | Isolated Windows VM                                   |
-| AND-14-01  | 14           | Android app on an emulator or device                    | BLOCKED  | KVM emulator or device                                |
-| IOS-15-01  | 15           | Physical iPhone/iPad and macOS behaviour                | BLOCKED  | Apple hardware / macOS runner                         |
-| UI-16-01   | 16           | Pixel-baseline visual regression                        | OPEN     | Baseline images + comparison step                     |
-| UI-16-02   | 16           | Device refusal: revoked authority, STOP while saving    | UNTESTED | Cloud session (can run)                               |
-| SR-16-01   | 16           | Real screen readers (NVDA, VoiceOver, TalkBack)         | BLOCKED  | Windows/macOS/Android with screen reader              |
+| WAKE-06-01  | 06           | Device wake hints and first-step latency                | UNTESTED | Cloud session (can run)                               |
+| SCH-06-01   | 06           | Scheduler kill on the deployed Worker cron              | BLOCKED  | Staging deployment                                    |
+| WIN-07-01   | 07           | Office helpers restore alerts, quit only own instance   | BLOCKED  | Isolated Windows VM with Office                       |
+| WIN-07-02   | 07           | Native Office reopen/layout; locked and corrupt inputs  | BLOCKED  | Isolated Windows VM with Office                       |
+| FS-07-01    | 07           | A user edit between undo's comparison and restore       | UNTESTED | Cloud session (can run)                               |
+| SEC-08-01   | 08           | A staff proof binds the exact target                    | OPEN     | Proof contract                                        |
+| SEC-08-02   | 08           | Recovery against real Supabase Auth                     | BLOCKED  | Staging Supabase project                              |
+| UI-08-01    | 08           | Consent dialog: account switch and unmount while asking | UNTESTED | Cloud session (can run)                               |
+| SUP-08-01   | 08           | Support share flow on staging                           | BLOCKED  | Staging Supabase project                              |
+| DATA-09-01  | 09           | Restore must not bring back erased content              | BLOCKED  | Staging restore                                       |
+| DATA-09-02  | 09           | Storage faults during erasure; expired links            | BLOCKED  | Staging Supabase project                              |
+| DATA-09-03  | 09           | A very large export on the deployed Worker              | BLOCKED  | Staging deployment                                    |
+| OFF-10-01   | 10           | Real Offline Intelligence install and cold answer       | BLOCKED  | R2 read access (owner)                                |
+| OFF-10-02   | 10           | Offline answer quality, storage pressure, accounts      | BLOCKED  | As OFF-10-01                                          |
+| WIN-11-01   | 11           | Unfamiliar Windows app qualification                    | BLOCKED  | Isolated Windows VM                                   |
+| WIN-12-01   | 12           | Windows install, pairing, update, rollback, uninstall   | BLOCKED  | Isolated Windows VM                                   |
+| AND-14-01   | 14           | Android app on an emulator or device                    | BLOCKED  | KVM emulator or device                                |
+| IOS-15-01   | 15           | Physical iPhone/iPad and macOS behaviour                | BLOCKED  | Apple hardware / macOS runner                         |
+| UI-16-01    | 16           | Pixel-baseline visual regression                        | OPEN     | Baseline images + comparison step                     |
+| UI-16-02    | 16           | Device refusal: revoked authority, STOP while saving    | UNTESTED | Cloud session (can run)                               |
+| SR-16-01    | 16           | Real screen readers (NVDA, VoiceOver, TalkBack)         | BLOCKED  | Windows/macOS/Android with screen reader              |
+| APP-17-01   | 17           | Independent reopen in LibreOffice on every CI run       | BLOCKED  | CI-00-01; LibreOffice in the Python job               |
+| ONL-17-01   | 17           | ONLYOFFICE opens and recalculates OCADE's files         | BLOCKED  | Owner: edition/licence; a VM where it starts          |
+| MED-17-01   | 17           | Creative/media families: editable project + 720p/1080p  | OPEN     | Owner: which family to support first                  |
 
 ---
 
@@ -145,9 +148,10 @@ Common safety rules for every PC entry:
 ## LIVE-04-01 — Live video task: captions read on the page
 
 - **Test:** `live-journey.mjs` video → "its captions were read on the page" and "the summary carries what the captions explain".
-- **Status:** FAIL (17 Oct, real Gemini). After the `pausedAt` verifier fix the pause is genuine (player record: paused at 30 s), but the player reported no caption tracks (`captionLanguages: []`), so `media captions` was never usable and the summary missed "magnetar".
-- **Attempted:** a prompt rule to use `media` instead of clicks (no effect, removed).
-- **Remains:** load Commons' timed-text track in the media capability (Phase 17), then rerun.
+- **Status:** FAIL (17 Oct, real Gemini, three runs after the fixes below). Run 1: the player now lists `captionLanguages: ["en"]`, but `media captions` failed; run 2: Wikimedia showed "prove you are human" and the task was correctly handed to the person; run 3: paused exactly at 0:30 and the summary carried the facts (read from the description), but the model never called `captions`.
+- **Root causes found and fixed (Phase 17):** Commons' player rebuilds its video, so the page's own track was not the one OCADE read: captions declared as `<track>` files were reported as none; the video's own track never loaded its cues, and `captions` then came back **done with nothing in it** (a false success); `play` on a video that cannot load never settled, hanging the step (`TimeoutError` after 90 s). Now the declared file is read when cues do not arrive, empty captions fail, and `play` says after 10 s that the media is still loading. Fixture tests fail before and pass after (`test_browser_control`).
+- **Error now:** the device browser's direct check on the real page: `This video's captions could not be read (the site answered 429)`. Wikimedia's API is rate-limiting this cloud IP (`You are making too many requests to the API`); the first probe before the limit returned the real WebVTT file.
+- **Remains:** rerun once the limit clears (or from another network); the model must still choose `captions` when the task says "read its captions".
 
 ## LIVE-04-02 — Live photo task in a canvas editor
 
@@ -290,6 +294,27 @@ Common safety rules for every PC entry:
 
 - **Reason:** the journeys drive every control by its accessible role and name (the browser's accessibility tree), which is not a screen reader. NVDA/Narrator need Windows, VoiceOver needs macOS/iOS, TalkBack needs Android; none exist here.
 - **Remains:** a run of the main task, STOP and Take Over flows with each screen reader, with the live task line (`aria-live="polite"`) announced without repeating the elapsed-time tick.
+
+## APP-17-01 — Independent reopen in LibreOffice on every run
+
+- **Test:** `jarvis-runtime/tests/test_independent_reopen.py`: OCADE's finished workbook, report and deck opened by LibreOffice 24.2; it recalculates the workbook's formulas itself and must reach the same revenue/tax totals a hand calculation does, keep the chart a chart, read the replaced report text, and render one page per slide; damaged .xlsx/.docx/.pptx are refused and left byte-identical.
+- **Result (17 Oct, cloud VM):** 4/4 PASS; a wrong total formula fails it (`['Total', '9705'] != ['Total', '10655']`).
+- **Reason open:** the test skips where LibreOffice is absent; the Python CI job does not install it and Actions cannot run (CI-00-01).
+- **Remains:** `libreoffice-calc libreoffice-writer libreoffice-impress poppler-utils` in `cloud-python-isolated.yml` once Actions runs.
+
+## ONL-17-01 — ONLYOFFICE opens and recalculates OCADE's files
+
+- **Test:** the files from APP-17-01 opened in ONLYOFFICE with the same totals, text and slides.
+- **Status:** BLOCKED. ONLYOFFICE Desktop Editors 10.0.0-169 (AGPL-3.0, free download, SHA-256 `2190edb4…b59c`) was unpacked in the cloud VM, test-only, not installed into the product.
+- **Errors:** its `x2t` converter exported formulas as text (`=C2*D2`, no values: it has no calculation engine of its own); its PDF route crashed (`TypeError … AscCommon … decode`, then `Fatal error in v8::ToLocalChecked`) without the font cache the desktop app builds on first run; the desktop app aborts under Xvfb (`Gtk-ERROR: Can't create a GtkStyleContext without a display connection` from its helper process, with and without explicit `DISPLAY`/`GDK_BACKEND=x11`).
+- **Attempted:** both conversion routes; libnotify/GTK/NSS libraries installed; two display setups.
+- **Remains:** owner decision on the ONLYOFFICE edition and licence (PLAN Phase 17 order, step 1), then a desktop VM (Windows or Linux with a full session) where the editor starts; rerun APP-17-01's checks against it.
+
+## MED-17-01 — Creative and media families
+
+- **Test:** an editable project (video, image or 3D) plus a real 720p/1080p render, reopened and inspected.
+- **Status:** OPEN. OCADE advertises no video, 3D or design-tool family and has no adapter for one; building one now would be speculative (PLAN Phase 17: add a capability only for a demonstrated requirement). Browser-based media work is covered by LIVE-04-01/02.
+- **Remains:** the owner names the first family and the customer requirement; then probe version, freeze a fixture, typed operations, reopen and render checks.
 
 ## PC-07-01 — Licensed Microsoft Excel and Word: finish, save, reopen and verify a real workbook and document
 

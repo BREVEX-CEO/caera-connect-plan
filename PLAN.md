@@ -4828,6 +4828,8 @@ Do not claim arbitrary iPhone application control. Simulator/WebKit evidence doe
 - Validate actual 720p/1080p outputs and editable source projects.
 - Use only owned, licensed or public-domain media.
 
+**Work record — Phase 17 (17 October 2026, Anthropic-managed Linux VM).** Independent reopen: OCADE's finished workbook, report and deck open in LibreOffice 24.2, which recalculates the workbook itself to the same totals as a hand calculation (10655 / 744.65), keeps the chart a chart, reads the report text and renders one page per slide; damaged files are refused untouched (`test_independent_reopen.py`, 4/4; a wrong formula fails it). Media capability: captions declared as files are read when a rebuilt player has no loaded track; empty captions are no longer reported done; `play` on media that cannot load reports so after 10 s instead of hanging. Device-runtime suite 258 PASS (30 platform skips). ONLYOFFICE could not be qualified here, and no creative/media family is advertised. Open checks: [BLOCKED_TESTS.md](BLOCKED_TESTS.md) APP-17-01, ONL-17-01, MED-17-01, LIVE-04-01, LIVE-04-02, PC-07-01, WIN-07-02.
+
 #### Phase 17 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
