@@ -147,6 +147,34 @@ try {
     (await page.locator("aside", { hasText: "Renamed by the proof" }).count()) === 1,
   );
 
+  // Share it with support, then stop sharing (PLAN Phase 08 V10): only the customer decides.
+  await page.hover("aside ul li");
+  await page.click('aside ul li button[aria-label^="More options"]');
+  await page.click('role=menuitem[name="Share with support"]');
+  check(
+    "a conversation can be shared with support, and the person is told for how long",
+    await page
+      .getByText(/Shared with OCADE support for 24 hours/)
+      .waitFor({ timeout: 10_000 })
+      .then(
+        () => true,
+        () => false,
+      ),
+  );
+  await page.hover("aside ul li");
+  await page.click('aside ul li button[aria-label^="More options"]');
+  await page.click('role=menuitem[name="Stop sharing with support"]');
+  check(
+    "and sharing can be stopped from the same menu",
+    await page
+      .getByText(/support can no longer read this conversation/)
+      .waitFor({ timeout: 10_000 })
+      .then(
+        () => true,
+        () => false,
+      ),
+  );
+
   // Highlight part of an answer, then Ask OCADE quotes it into this composer.
   await page.evaluate(() => {
     const target = [...document.querySelectorAll("[data-transcript] p")].find((node) =>

@@ -3584,6 +3584,17 @@ For transfer/revoke, lock the same owner-authority row and target membership in 
 
 Within Phase 08, give the existing consent owner an account/version-bound single-flight operation (join compatible callers or resolve/refuse the superseded request). Resolve every waiter on decline, cancellation, unmount and account change; pass caller cancellation so aborted work cannot later resend. Serialize save/decline and check the initiating account/generation before acknowledging consent. Preserve server-enforced consent and no-data-before-consent. Phase 16 only renders these completed states. Test two simultaneous requests, dismiss during save, account switch, late save resolution, unmount and server refusal; no unresolved promise, unintended resend or consent credited to another account. Customer consent cannot override incompatible provider terms.
 
+**Work record — Phase 08 (17 October 2026, Anthropic-managed Linux VM).**
+
+- *V12 — REPRODUCED, FIXED.* On real PostgreSQL a proof OCADE's server spent on "open a support case" let the same token end every staff session straight at the database. Migration `20261017100000_a_spent_proof_names_its_change`: the gate adopts a spent proof only for the action it was spent on; each staff server function now spends under the database's own name for its change (`requireAssurance(HIGH_RISK, { proves })`), and a test keeps the two spellings identical.
+- *V10 — FIXED.* Migration `20261017120000_support_reads_only_what_the_customer_shared`: the customer shares one conversation with support (24 h from the conversation menu, at most 72 h) and can stop at any time. Without a live share staff see no title, open no case and read nothing; a case never outlasts the share; withdrawing stops an open case's reads at once. RLS owner-only, no direct writes. Staff console says why the list is empty.
+- *V11 — FIXED.* Migration `20261017110000_a_recovery_finishes_what_its_code_started`: a spent recovery code records the session that spent it and the exact factors; for 15 minutes that session may finish that recovery with that code (no attempt spent); another session, a later-enrolled factor or a finished recovery gets nothing.
+- *V16 — FIXED.* Concurrent consent asks share one question (a second used to strand the first); the dialog answers "no" on unmount and account change, cannot be declined mid-save, and never credits an agreement saved while another account signed in.
+- *Evidence.* New real-PostgreSQL tests (each fails before its fix), rollback/verify/re-apply for all three migrations; chat + admin journeys 148 PASS / 0 FAIL (share → stop sharing; nothing listed before a share); `verify:full` 15/15, 1,378 tests. The repository's own gates caught four slips during the work (serial DB lane, catalogue-checking verifications, `(SELECT auth.uid())` in policy, data-rights map), all fixed.
+- *Open checks:* [BLOCKED_TESTS.md](BLOCKED_TESTS.md) SEC-08-01, SEC-08-02, UI-08-01, SUP-08-01.
+
+**Phase 08 status: PARTIAL.**
+
 #### Phase 08 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.

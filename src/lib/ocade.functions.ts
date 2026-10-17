@@ -68,6 +68,37 @@ export const deleteConversation = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/**
+ * SUPPORT READS ONLY WHAT YOU SHARE (PLAN Phase 08 V10). One conversation, for 24 hours, until
+ * you stop sharing it: without that, OCADE's support staff see not even its title.
+ */
+export const supportShareOf = createServerFn({ method: "GET" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ id: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("ocade_support_shares")
+      .select("expires_at")
+      .eq("conversation", data.id)
+      .is("revoked_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .order("expires_at", { ascending: false })
+      .limit(1);
+    if (error) throw new Error(error.message);
+    return { until: rows?.[0]?.expires_at ?? null };
+  });
+
+export const setSupportShare = createServerFn({ method: "POST" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ id: uuid, shared: z.boolean() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { error } = data.shared
+      ? await context.supabase.rpc("ocade_support_share", { p_conversation: data.id, p_hours: 24 })
+      : await context.supabase.rpc("ocade_support_unshare", { p_conversation: data.id });
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
 export const createConversation = createServerFn({ method: "POST" })
   .middleware([requireSession])
   .validator((i) =>

@@ -188,7 +188,7 @@ export const listStaff = createServerFn({ method: "GET" })
   });
 
 export const grantStaff = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([requireAssurance(HIGH_RISK, { proves: "change who operates OCADE" })])
   .validator((input) =>
     z
       .object({
@@ -209,7 +209,7 @@ export const grantStaff = createServerFn({ method: "POST" })
   });
 
 export const setStaffPermissions = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([requireAssurance(HIGH_RISK, { proves: "change who operates OCADE" })])
   .validator((input) =>
     z
       .object({
@@ -232,7 +232,7 @@ export const setStaffPermissions = createServerFn({ method: "POST" })
   });
 
 export const revokeStaff = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([requireAssurance(HIGH_RISK, { proves: "change who operates OCADE" })])
   .validator((input) => z.object({ userId: uuid, reason }).parse(input))
   .handler(async ({ data, context }): Promise<{ removed: boolean }> => {
     const { data: removed, error } = await context.supabase.rpc("ocade_staff_revoke", {
@@ -244,7 +244,7 @@ export const revokeStaff = createServerFn({ method: "POST" })
   });
 
 export const withdrawStaffInvite = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([requireAssurance(HIGH_RISK, { proves: "change who operates OCADE" })])
   .validator((input) => z.object({ inviteId: uuid, reason }).parse(input))
   .handler(async ({ data, context }): Promise<{ withdrawn: boolean }> => {
     const { data: withdrawn, error } = await context.supabase.rpc("ocade_staff_withdraw_invite", {
@@ -256,7 +256,7 @@ export const withdrawStaffInvite = createServerFn({ method: "POST" })
   });
 
 export const transferOwnership = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([requireAssurance(HIGH_RISK, { proves: "hand over ownership" })])
   .validator((input) => z.object({ userId: uuid, reason, stayOwner: z.boolean() }).parse(input))
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
     const { error } = await context.supabase.rpc("ocade_staff_transfer_ownership", {
@@ -272,7 +272,7 @@ export const transferOwnership = createServerFn({ method: "POST" })
 
 /** An owner gives an account unlimited use until a time, or until revoked. */
 export const grantUnlimited = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([requireAssurance(HIGH_RISK, { proves: "give unlimited use" })])
   .validator((input) =>
     z.object({ userId: uuid, until: z.string().datetime().nullable(), reason }).parse(input),
   )
@@ -288,7 +288,7 @@ export const grantUnlimited = createServerFn({ method: "POST" })
 
 /** Back to the account's normal limits, at once. */
 export const revokeUnlimited = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([requireAssurance(HIGH_RISK, { proves: "end unlimited use" })])
   .validator((input) => z.object({ userId: uuid, reason }).parse(input))
   .handler(async ({ data, context }): Promise<{ revoked: boolean }> => {
     const { data: revoked, error } = await context.supabase.rpc("ocade_revoke_unlimited", {
@@ -301,7 +301,7 @@ export const revokeUnlimited = createServerFn({ method: "POST" })
 
 /** Emergency: every staff session everywhere ends, except this one. */
 export const endAllStaffSessions = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([requireAssurance(HIGH_RISK, { proves: "sign every staff member out" })])
   .validator((input) => z.object({ reason }).parse(input))
   .handler(async ({ data, context }): Promise<{ ended: number }> => {
     const { data: ended, error } = await context.supabase.rpc("ocade_staff_end_all_sessions", {
@@ -429,7 +429,7 @@ export const readCustomer = createServerFn({ method: "GET" })
   });
 
 export const endCustomerSessions = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([requireAssurance(HIGH_RISK, { proves: "end a customer's sessions" })])
   .validator((input) => z.object({ userId: uuid, reason }).parse(input))
   .handler(async ({ data, context }): Promise<{ ended: number }> => {
     const { data: ended, error } = await context.supabase.rpc("ocade_staff_end_customer_sessions", {
@@ -447,7 +447,9 @@ export const endCustomerSessions = createServerFn({ method: "POST" })
  * tells the account by email.
  */
 export const resetCustomerSecondFactor = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([
+    requireAssurance(HIGH_RISK, { proves: "turn off a customer's two-step verification" }),
+  ])
   .validator((input) => z.object({ userId: uuid, reason }).parse(input))
   .handler(async ({ data, context }): Promise<{ removed: number }> => {
     const { data: allowed, error } = await context.supabase.rpc("ocade_staff_reset_second_factor", {
@@ -490,7 +492,7 @@ export const resetCustomerSecondFactor = createServerFn({ method: "POST" })
  * The database authorises it, records it where nothing can change it, and audits it.
  */
 export const adjustCustomerUsage = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([requireAssurance(HIGH_RISK, { proves: "change a customer's usage" })])
   .validator((input) =>
     z
       .object({
@@ -524,7 +526,14 @@ export const adjustCustomerUsage = createServerFn({ method: "POST" })
  * restore it, after which it signs in and connects its devices again.
  */
 export const suspendCustomer = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([
+    requireAssurance(HIGH_RISK, {
+      proves: (input) =>
+        (input as { suspend?: unknown } | null)?.suspend === true
+          ? "suspend an account"
+          : "restore an account",
+    }),
+  ])
   .validator((input) => z.object({ userId: uuid, suspend: z.boolean(), reason }).parse(input))
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
     const { error } = await context.supabase.rpc("ocade_staff_suspend_account", {
@@ -543,7 +552,7 @@ export const suspendCustomer = createServerFn({ method: "POST" })
  * no subject but the reference.
  */
 export const deleteCustomerAccount = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([requireAssurance(HIGH_RISK, { proves: "delete an account" })])
   .validator((input) =>
     z.object({ userId: uuid, email: z.string().trim().min(3).max(320), reason }).parse(input),
   )
@@ -591,7 +600,7 @@ export interface SupportCase {
 }
 
 export const openCase = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([requireAssurance(HIGH_RISK, { proves: "open a support case" })])
   .validator((input) =>
     z
       .object({
@@ -642,7 +651,7 @@ export const listCustomerConversations = createServerFn({ method: "GET" })
   });
 
 export const closeCase = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK)])
+  .middleware([requireAssurance(HIGH_RISK, { proves: "close a support case" })])
   .validator((input) => z.object({ caseId: uuid, reason }).parse(input))
   .handler(async ({ data, context }): Promise<{ closed: boolean }> => {
     const { data: closed, error } = await context.supabase.rpc("ocade_case_close", {

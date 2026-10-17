@@ -84,7 +84,14 @@ export function requireAssurance(
    * up in this very sign-in, so no older factor is being got round (the
    * recovery codes made the moment two-step is turned on).
    */
-  options: { firstSetup?: boolean } = {},
+  options: {
+    firstSetup?: boolean;
+    /**
+     * The database's own name for the staff change this proof pays for: its gate adopts a
+     * spent proof only for that change (20261017100000, PLAN Phase 08 V12).
+     */
+    proves?: string | ((data: unknown) => string);
+  } = {},
 ) {
   return createMiddleware({ type: "function" })
     .middleware([requireSession])
@@ -142,7 +149,11 @@ export function requireAssurance(
         ),
       );
       const { data: spent, error: spendError } = await supabase.rpc("ocade_spend_proof", {
-        p_action: (serverFnMeta?.name || "sensitive action").slice(0, 120),
+        p_action: (
+          (typeof options.proves === "function" ? options.proves(data) : options.proves) ||
+          serverFnMeta?.name ||
+          "sensitive action"
+        ).slice(0, 120),
         p_target_digest: Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join(""),
       });
       if (spendError) throw new Error("OCADE could not check this session just now. Try again.");

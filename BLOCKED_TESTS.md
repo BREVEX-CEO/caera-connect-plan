@@ -191,6 +191,24 @@ Common safety rules for every PC entry:
 
 - **Status:** UNTESTED. Undo now refuses after any change inside a copied folder (V21), but the window between its fingerprint check and the trash/restore is not closed; a deterministic race test can run in the cloud session.
 
+## SEC-08-01 — A staff proof binds the exact target
+
+- **Status:** OPEN. Since 20261017100000 a proof the server spent is adopted only for the database action it was spent on (V12), so a confirmation for "open a support case" cannot pay for ending every staff session. Several changes share one action name ("change who operates OCADE" covers grant, revoke, permissions and withdrawn invites), and the target is not compared: the server's digest of its input cannot be recomputed in SQL.
+- **Remains:** pass the server's target digest into each staff RPC and compare it in `private.ocade_staff_require`.
+
+## SEC-08-02 — Recovery against real Supabase Auth
+
+- **Test:** factor deletion and session sign-out failing at the provider, then the same code finishing the recovery (V11).
+- **Reason:** the provider calls are Supabase Auth admin APIs; the session has no staging project. The SQL is proven on PostgreSQL (`recovery-operation-sql.test.ts`) and the flow with a faithful mock (`recovery-functions.test.ts`).
+
+## UI-08-01 — Consent dialog: account switch and unmount while asking
+
+- **Status:** UNTESTED. Joining concurrent asks is unit-tested (fails before, passes after); the dialog's "no" on unmount and on account change has no browser step yet (no component test environment exists).
+
+## SUP-08-01 — Support share flow on staging
+
+- **Reason:** as SEC-08-02. Proven on PostgreSQL with the real migrations and in the cloud chat/admin journeys against the stub.
+
 ## PC-07-01 — Licensed Microsoft Excel and Word: finish, save, reopen and verify a real workbook and document
 
 - **Phase / test ID:** Phase 07 (native file and Office fidelity) · `test_sheets.RealSpreadsheetAppTest.test_finish_the_orders_sheet_in_excel`, `test_files_documents.DeckTest`, Office routes of `office-journey.mjs`.

@@ -576,12 +576,28 @@ try {
   // A case: reason, hours, the customer is told, the conversation is read, the case closes.
   await tab(owner, "Customers").click();
   const ownerRow = await customerRow(owner);
-  // A case names one conversation and one reader (F-014): here the owner reads it.
+  // Nothing shared yet (PLAN Phase 08 V10): not even a title is listed.
   await ownerRow.getByRole("button", { name: "Open a case…" }).click();
-  const openCase = ownerRow.getByRole("button", { name: "Open the case" });
-  await ownerRow.getByPlaceholder(/^Why \(/).fill("Customer reported export failure");
+  check(
+    "before the customer shares, support sees no conversation, not even its title",
+    (await seen(ownerRow.getByText(/has not shared a conversation with support/))) &&
+      (await ownerRow.getByText(`Export trouble ${stamp}`).count()) === 0,
+  );
+  // The customer shares that one conversation, with their own session.
+  const shared = await asCustomer(customer, "/rest/v1/rpc/ocade_support_share", {
+    method: "POST",
+    body: JSON.stringify({ p_conversation: conversation.id, p_hours: 24 }),
+  });
+  check("the customer shares one conversation with support", shared.ok, String(shared.status));
+  await owner.reload();
+  await tab(owner, "Customers").click();
+  const sharedRow = await customerRow(owner);
+  // A case names one conversation and one reader (F-014): here the owner reads it.
+  await sharedRow.getByRole("button", { name: "Open a case…" }).click();
+  const openCase = sharedRow.getByRole("button", { name: "Open the case" });
+  await sharedRow.getByPlaceholder(/^Why \(/).fill("Customer reported export failure");
   check("opening a case waits for a conversation", await openCase.isDisabled());
-  await ownerRow
+  await sharedRow
     .getByRole("combobox", { name: "Conversation" })
     .selectOption({ label: `Export trouble ${stamp}` });
   await openCase.click();

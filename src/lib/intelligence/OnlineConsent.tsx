@@ -7,38 +7,72 @@
  * request again only on "I agree". Offline Chat never asks: it sends nothing.
  */
 import { useEffect, useRef, useState } from "react";
+import { useSession } from "@/lib/session";
 import { useModalFocus } from "@/lib/use-modal-focus";
 import { setOnlineConsentAsk } from "./online-consent-ask";
 import { recordOnlineConsent } from "./online-consent.functions";
 
+/*
+ * EVERY ASKER IS ANSWERED (PLAN Phase 08 V16). Asks that arrive together share one question
+ * (online-consent-ask.ts); this dialog also answers "no" when it goes away or the account
+ * changes, so nothing waits for ever, and an agreement saved while another account signed
+ * in is never handed to that account's request.
+ */
 export function OnlineConsentDialog() {
-  const [pending, setPending] = useState<((agreed: boolean) => void) | null>(null);
+  const pending = useRef<((agreed: boolean) => void) | null>(null);
+  const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const self = useRef<HTMLDivElement>(null);
-  useModalFocus(self, pending !== null);
+  const { user } = useSession();
+  const account = user?.id ?? null;
+  const asked = useRef(account);
+  useModalFocus(self, open);
+
+  const settle = (agreed: boolean) => {
+    pending.current?.(agreed);
+    pending.current = null;
+    setOpen(false);
+    setSaving(false);
+    setProblem(null);
+  };
 
   useEffect(() => {
-    setOnlineConsentAsk(() => new Promise<boolean>((resolve) => setPending(() => resolve)));
-    return () => setOnlineConsentAsk(null);
+    const answered = pending;
+    setOnlineConsentAsk(
+      () =>
+        new Promise<boolean>((resolve) => {
+          answered.current = resolve;
+          setOpen(true);
+        }),
+    );
+    return () => {
+      setOnlineConsentAsk(null);
+      answered.current?.(false);
+      answered.current = null;
+    };
   }, []);
 
-  if (!pending) return null;
+  // Another account signed in here: what the last one was asked is not this one's to answer.
+  useEffect(() => {
+    if (asked.current !== account) settle(false);
+    asked.current = account;
+  }, [account]);
+
+  if (!open) return null;
   const answer = async (agreed: boolean) => {
-    if (agreed) {
-      setSaving(true);
-      setProblem(null);
-      try {
-        await recordOnlineConsent({ data: { given: true } });
-      } catch {
-        setSaving(false);
-        setProblem("That could not be saved. Nothing was sent; try again.");
-        return;
-      }
+    if (!agreed) return settle(false);
+    const by = asked.current;
+    setSaving(true);
+    setProblem(null);
+    try {
+      await recordOnlineConsent({ data: { given: true } });
+    } catch {
       setSaving(false);
+      setProblem("That could not be saved. Nothing was sent; try again.");
+      return;
     }
-    pending(agreed);
-    setPending(null);
+    settle(asked.current === by);
   };
 
   return (
@@ -76,6 +110,7 @@ export function OnlineConsentDialog() {
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
+            disabled={saving}
             onClick={() => void answer(false)}
             className="h-9 rounded-md px-3 text-sm text-muted-foreground hover:text-foreground"
           >

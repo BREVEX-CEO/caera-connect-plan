@@ -39,8 +39,13 @@ let factors: { id: string; status: string }[] = [];
 let listing: "ok" | "down" = "ok";
 let stored: string[] = [];
 let consume: "consumed" | "rejected" | "locked" | "error" = "consumed";
+const used = new Set<string>();
+const recoveries = new Map<string, { session: string; factors: string[]; done: boolean }>();
+let sessionId = "s1";
+let refuseDelete = false;
 const calls: string[] = [];
 const deleteFactor = vi.fn(async ({ id }: { id: string }) => {
+  if (refuseDelete) return { error: { message: "auth service unavailable" } };
   factors = factors.filter((factor) => factor.id !== id);
   return { error: null };
 });
@@ -53,15 +58,34 @@ vi.mock("@/integrations/supabase/client.server", () => ({
         stored = args.p_code_hashes as string[];
         return Promise.resolve({ data: stored.length, error: null });
       }
-      if (name === "ocade_consume_mfa_recovery_code") {
-        return Promise.resolve(
-          consume === "error"
-            ? { data: null, error: { message: "down" } }
-            : {
-                data: stored.includes(args.p_code_hash as string) ? consume : "rejected",
-                error: null,
-              },
-        );
+      if (name === "ocade_begin_mfa_recovery") {
+        // As 20261017110000: the session that spent a code may finish that recovery with it.
+        if (consume === "error") return Promise.resolve({ data: null, error: { message: "down" } });
+        const hash = args.p_code_hash as string;
+        const open = recoveries.get(hash);
+        if (open && !open.done && open.session === args.p_session) {
+          return Promise.resolve({
+            data: { status: "resume", factors: open.factors },
+            error: null,
+          });
+        }
+        if (!stored.includes(hash) || used.has(hash)) {
+          return Promise.resolve({ data: { status: "rejected" }, error: null });
+        }
+        if (consume !== "consumed")
+          return Promise.resolve({ data: { status: consume }, error: null });
+        used.add(hash);
+        const factorIds = args.p_factor_ids as string[];
+        recoveries.set(hash, {
+          session: args.p_session as string,
+          factors: factorIds,
+          done: false,
+        });
+        return Promise.resolve({ data: { status: "consumed", factors: factorIds }, error: null });
+      }
+      if (name === "ocade_finish_mfa_recovery") {
+        recoveries.get(args.p_code_hash as string)!.done = true;
+        return Promise.resolve({ data: null, error: null });
       }
       return Promise.resolve({ data: 1, error: null });
     },
@@ -82,7 +106,10 @@ vi.mock("@/integrations/supabase/client.server", () => ({
 const load = async () => {
   const module = await import("../recovery.functions");
   const call = (fn: unknown, data?: unknown) =>
-    (fn as (input: unknown) => Promise<unknown>)({ data, context: { userId: "u1" } });
+    (fn as (input: unknown) => Promise<unknown>)({
+      data,
+      context: { userId: "u1", claims: { session_id: sessionId } },
+    });
   return {
     issue: () => call(module.issueRecoveryCodes) as Promise<{ codes: string[] }>,
     redeem: (code: string) =>
@@ -99,6 +126,10 @@ beforeEach(() => {
   listing = "ok";
   stored = [];
   consume = "consumed";
+  used.clear();
+  recoveries.clear();
+  sessionId = "s1";
+  refuseDelete = false;
   calls.length = 0;
   sent.length = 0;
   deleteFactor.mockClear();
@@ -142,7 +173,7 @@ describe("using a code", () => {
     session.standing = "ended";
     try {
       await expect(redeem(codes[0]!)).rejects.toThrow(/Session ended/);
-      expect(calls).not.toContain("ocade_consume_mfa_recovery_code");
+      expect(calls).not.toContain("ocade_begin_mfa_recovery");
     } finally {
       session.standing = "factor_required";
     }
@@ -152,7 +183,7 @@ describe("using a code", () => {
     const { redeem } = await load();
     const outcome = await redeem("me@example.com");
     expect(outcome).toMatchObject({ ok: false, reason: "rejected" });
-    expect(calls).not.toContain("ocade_consume_mfa_recovery_code");
+    expect(calls).not.toContain("ocade_begin_mfa_recovery");
   });
 
   it("refuses a wrong code and a locked account without touching the factor", async () => {
@@ -175,7 +206,7 @@ describe("using a code", () => {
     listing = "down";
     sent.length = 0;
     expect(await redeem(codes[0]!)).toMatchObject({ ok: false, reason: "unavailable" });
-    expect(calls).not.toContain("ocade_consume_mfa_recovery_code");
+    expect(calls).not.toContain("ocade_begin_mfa_recovery");
     expect(calls).not.toContain("ocade_revoke_other_account_sessions");
     expect(sent).toEqual([]);
   });
@@ -198,6 +229,33 @@ describe("using a code", () => {
     } finally {
       supabaseAdmin.rpc = rpc;
     }
+  });
+
+  it("a recovery cut short is finished by the same session with the same code (V11)", async () => {
+    const { issue, redeem } = await load();
+    const { codes } = await issue();
+    refuseDelete = true;
+    const first = await redeem(codes[0]!);
+    expect(first).toMatchObject({ ok: false, reason: "unavailable" });
+    expect(first.message).toMatch(/same code again/);
+    // Before: "The code is used up; try another one." Now the same code finishes it.
+    refuseDelete = false;
+    factors.push({ id: "f-new", status: "verified" }); // enrolled since: never removed by this code
+    expect(await redeem(codes[0]!)).toEqual({ ok: true });
+    expect(factors).toEqual([{ id: "f-new", status: "verified" }]);
+    // Finished: the code continues nothing more.
+    expect(await redeem(codes[0]!)).toMatchObject({ ok: false, reason: "rejected" });
+  });
+
+  it("another session cannot use a spent code to finish someone else's recovery", async () => {
+    const { issue, redeem } = await load();
+    const { codes } = await issue();
+    refuseDelete = true;
+    await redeem(codes[0]!);
+    refuseDelete = false;
+    sessionId = "s2";
+    expect(await redeem(codes[0]!)).toMatchObject({ ok: false, reason: "rejected" });
+    expect(factors).toHaveLength(1);
   });
 
   it("uses nothing up when the database cannot be asked", async () => {

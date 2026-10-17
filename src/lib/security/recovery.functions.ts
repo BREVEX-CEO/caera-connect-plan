@@ -132,10 +132,22 @@ export const redeemRecoveryCode = createServerFn({ method: "POST" })
         message: "OCADE could not check that code just now. Nothing was used up.",
       };
     }
-    const { data: status, error } = await supabaseAdmin.rpc("ocade_consume_mfa_recovery_code", {
+    /*
+     * THE CODE FINISHES THE RECOVERY IT STARTS (PLAN Phase 08 V11). A spent code records this
+     * session and the exact factors it removes; if removing them or the sign-out fails, this
+     * session may finish that same recovery with the same code for fifteen minutes. A factor
+     * enrolled since is never touched, and no other session gets a second use of the code.
+     */
+    const codeHash = await hashRecoveryCode(context.userId, normalized);
+    const sessionId = (context.claims as Record<string, unknown>)?.session_id;
+    const { data: begun, error } = await supabaseAdmin.rpc("ocade_begin_mfa_recovery", {
       p_user_id: context.userId,
-      p_code_hash: await hashRecoveryCode(context.userId, normalized),
+      p_code_hash: codeHash,
+      p_session: typeof sessionId === "string" ? sessionId : null,
+      p_factor_ids: (factors.factors ?? []).map((factor) => factor.id),
     });
+    const recovery = (begun ?? {}) as { status?: string; factors?: string[] };
+    const status = recovery.status;
     if (error) {
       return {
         ok: false,
@@ -150,7 +162,7 @@ export const redeemRecoveryCode = createServerFn({ method: "POST" })
         message: "Too many wrong codes. Recovery is paused for fifteen minutes.",
       };
     }
-    if (status !== "consumed") {
+    if (status !== "consumed" && status !== "resume") {
       return {
         ok: false,
         reason: "rejected",
@@ -158,21 +170,24 @@ export const redeemRecoveryCode = createServerFn({ method: "POST" })
       };
     }
 
-    // The code is spent from here on, whatever follows.
+    // The code is spent from here on: only the factors it was spent on are removed, and one
+    // already gone (removed by an earlier try of this same recovery) is done.
+    const present = new Set((factors.factors ?? []).map((factor) => factor.id));
     let failed = false;
-    for (const factor of factors.factors ?? []) {
+    for (const id of recovery.factors ?? []) {
+      if (!present.has(id)) continue;
       const { error: removeError } = await supabaseAdmin.auth.admin.mfa.deleteFactor({
-        id: factor.id,
+        id,
         userId: context.userId,
       });
       if (removeError) failed = true;
     }
+    const retry = "Enter the same code again here within fifteen minutes to finish.";
     if (failed) {
       return {
         ok: false,
         reason: "unavailable",
-        message:
-          "That code was correct, but OCADE could not remove the authenticator app. The code is used up; try another one.",
+        message: `That code was correct, but OCADE could not remove the authenticator app. ${retry}`,
       };
     }
     /*
@@ -192,15 +207,19 @@ export const redeemRecoveryCode = createServerFn({ method: "POST" })
       body: revokeError
         ? "Other sessions could not all be signed out. If this was not you, change your password, sign out everywhere and turn two-step verification on again now."
         : "Every session was signed out. If this was not you, change your password and turn two-step verification on again now.",
-      idempotencyKey: `recovery-used:${await hashRecoveryCode(context.userId, normalized)}`,
+      idempotencyKey: `recovery-used:${codeHash}`,
     }).catch(() => undefined);
     if (revokeError) {
       return {
         ok: false,
         reason: "unavailable",
-        message:
-          "Your authenticator app was removed, but OCADE could not sign out your other sessions. Sign in, then use Sign out everywhere else in Settings.",
+        message: `Your authenticator app was removed, but OCADE could not sign out your other sessions. ${retry}`,
       };
     }
+    // Finished: the code can no longer continue anything.
+    await supabaseAdmin.rpc("ocade_finish_mfa_recovery", {
+      p_user_id: context.userId,
+      p_code_hash: codeHash,
+    });
     return { ok: true };
   });

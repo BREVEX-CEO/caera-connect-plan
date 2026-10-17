@@ -600,6 +600,15 @@ function CaseChoices({
   }
   const field =
     "h-7 max-w-[16rem] rounded-md border border-border bg-transparent px-2 text-foreground outline-none focus-visible:border-ring";
+  // Support reads only what the customer shared (PLAN Phase 08 V10): none shared, nothing listed.
+  if (conversations.data.length === 0) {
+    return (
+      <p className="text-muted-foreground">
+        This customer has not shared a conversation with support. Ask them to open it in OCADE and
+        choose Share with support from its menu.
+      </p>
+    );
+  }
   return (
     <>
       <label className="flex items-center gap-1 text-muted-foreground">

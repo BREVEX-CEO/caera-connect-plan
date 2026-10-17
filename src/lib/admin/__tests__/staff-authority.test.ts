@@ -388,7 +388,7 @@ describe("one proof, one staff change (C17)", () => {
     };
     const spent = await twin.asTenant<{ ok: boolean }>(
       OWNER,
-      `select public.ocade_spend_proof('endAllStaffSessions', '${"b".repeat(64)}') as ok`,
+      `select public.ocade_spend_proof('sign every staff member out', '${"b".repeat(64)}') as ok`,
       proof,
     );
     expect(spent.rows[0]!.ok).toBe(true);
@@ -400,6 +400,32 @@ describe("one proof, one staff change (C17)", () => {
       );
     expect((await end()).error).toBeUndefined();
     expect((await end()).error).toMatch(/each confirmation covers one change/);
+  });
+
+  it("never lets a proof OCADE spent on one change pay for a different one (V12)", async () => {
+    const [{ id }] = await twin.asSuperuser<{ id: string }>(
+      `insert into auth.sessions (user_id) values ('${OWNER}') returning id`,
+    );
+    const proof = {
+      aal: "aal2" as const,
+      sessionId: id,
+      provedAt: Math.floor(Date.now() / 1000) - 9,
+    };
+    // Confirmed for opening a support case...
+    const spent = await twin.asTenant<{ ok: boolean }>(
+      OWNER,
+      `select public.ocade_spend_proof('open a support case', '${"c".repeat(64)}') as ok`,
+      proof,
+    );
+    expect(spent.rows[0]!.ok).toBe(true);
+    // ...the same token straight at the database for something else: refused, nothing changed.
+    const other = await twin.asTenant(
+      OWNER,
+      `select public.ocade_staff_end_all_sessions('Not what was confirmed')`,
+      proof,
+    );
+    expect(other.errorCode).toBe("42501");
+    expect(other.error).toMatch(/each confirmation covers one change/);
   });
 
   it("lets a token with no session change nothing", async () => {
@@ -546,7 +572,13 @@ describe("conversation access through a case", () => {
          ('${CUSTOMER_A}', '${conversation}', 'user', 'my export fails'),
          ('${CUSTOMER_B}', '${other}', 'user', 'not yours')`,
     );
+    // The customer shares this one conversation with support (V10).
+    await twin.execSuperuser(`delete from public.ocade_support_shares`);
+    expect((await share(conversation)).error).toBeUndefined();
   });
+
+  const share = (conv: string, hours = 48) =>
+    twin.asTenant(CUSTOMER_A, `select public.ocade_support_share('${conv}', ${hours})`, fresh);
 
   const open = (actor: string, hours = 24, reader = SUPPORT, conv = conversation) =>
     twin.asTenant<{ id: string }>(
@@ -612,6 +644,67 @@ describe("conversation access through a case", () => {
         `select 1 from public.ocade_admin_actions where action = 'case_read' and target_user = '${CUSTOMER_A}'`,
       ),
     ).toHaveLength(1);
+  });
+
+  it("shows, opens and reads nothing the customer has not shared, and stops when they withdraw (V10)", async () => {
+    await twin.asTenant(
+      CUSTOMER_A,
+      `select public.ocade_support_unshare('${conversation}')`,
+      fresh,
+    );
+    const titles = await twin.asTenant<{ id: string }>(
+      OWNER,
+      `select id from public.ocade_case_conversations('${CUSTOMER_A}')`,
+      fresh,
+    );
+    expect(titles.rows).toEqual([]);
+    expect((await open(OWNER)).error).toMatch(/has not shared that conversation/);
+    // Shared again, a case opens and reads; withdrawn, the open case reads nothing more.
+    await share(conversation);
+    const kase = (await open(OWNER)).rows[0]!.id;
+    expect((await read(SUPPORT, kase, conversation)).rows).toHaveLength(1);
+    await twin.asTenant(
+      CUSTOMER_A,
+      `select public.ocade_support_unshare('${conversation}')`,
+      fresh,
+    );
+    expect((await read(SUPPORT, kase, conversation)).error).toMatch(/no longer shares/);
+  });
+
+  it("never outlasts the customer's share, and only the customer shares their own", async () => {
+    await twin.asTenant(
+      CUSTOMER_A,
+      `select public.ocade_support_unshare('${conversation}')`,
+      fresh,
+    );
+    await share(conversation, 2);
+    const kase = (await open(OWNER, 72)).rows[0]!.id;
+    const [{ hours }] = await twin.asServiceRole<{ hours: number }>(
+      `select extract(epoch from expires_at - now()) / 3600 as hours from public.ocade_support_cases where id = '${kase}'`,
+    );
+    expect(Number(hours)).toBeLessThanOrEqual(2);
+    // Somebody else's conversation cannot be shared by them, nor the table written directly.
+    expect(
+      (
+        await twin.asTenant(
+          CUSTOMER_B,
+          `select public.ocade_support_share('${conversation}', 24)`,
+          fresh,
+        )
+      ).error,
+    ).toBe("Not found");
+    expect(
+      (
+        await twin.asTenant(
+          CUSTOMER_B,
+          `insert into public.ocade_support_shares (customer, conversation, expires_at) values ('${CUSTOMER_A}', '${conversation}', now() + interval '1 day')`,
+          fresh,
+        )
+      ).errorCode,
+    ).toBe("42501");
+    expect(
+      (await twin.asTenant(CUSTOMER_B, `select * from public.ocade_support_shares`, fresh)).rows,
+    ).toEqual([]);
   });
 
   it("names one reader and one conversation (F-014)", async () => {
@@ -912,6 +1005,11 @@ describe("attacked from a browser", () => {
     const [{ id: conversation }] = await twin.asServiceRole<{ id: string }>(
       `insert into public.ocade_conversations (user_id, title) values ('${CUSTOMER_A}', 'Help') returning id`,
     );
+    await twin.asTenant(
+      CUSTOMER_A,
+      `select public.ocade_support_share('${conversation}', 24)`,
+      fresh,
+    );
     const opened = await twin.asTenant<{ id: string }>(
       OWNER,
       `select public.ocade_case_open('${CUSTOMER_A}', 'Customer reported export failure', 1, '${conversation}', '${SUPPORT}') as id`,
@@ -1196,5 +1294,23 @@ describe("staff reads straight at the database (C18)", () => {
       `update public.ocade_staff set denied = '{usage.read}' where user_id = '${ADMIN}'`,
     );
     expect(await read()).toBe(0);
+  });
+});
+
+describe("Phase 08 migrations verify, roll back and apply again", () => {
+  it.each([
+    "20261017100000_a_spent_proof_names_its_change",
+    "20261017120000_support_reads_only_what_the_customer_shared",
+  ])("%s", async (migration) => {
+    const verify = () => twin.runScript("supabase/verification", `${migration}_verify.sql`);
+    // An earlier test here re-applies an older migration that redefines the same functions.
+    await twin.runScript("supabase/migrations", `${migration}.sql`);
+    expect((await verify()).error).toBeUndefined();
+    expect(
+      (await twin.runScript("supabase/rollback", `${migration}_rollback.sql`)).error,
+    ).toBeUndefined();
+    expect((await verify()).error).toBeTruthy();
+    expect((await twin.runScript("supabase/migrations", `${migration}.sql`)).error).toBeUndefined();
+    expect((await verify()).error).toBeUndefined();
   });
 });

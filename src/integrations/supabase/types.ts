@@ -1029,6 +1029,9 @@ export type Database = {
           created_at: string
           generation: number
           id: string
+          recovered_at: string | null
+          recovering_factors: string[] | null
+          recovering_session: string | null
           used_at: string | null
           user_id: string
         }
@@ -1037,6 +1040,9 @@ export type Database = {
           created_at?: string
           generation?: number
           id?: string
+          recovered_at?: string | null
+          recovering_factors?: string[] | null
+          recovering_session?: string | null
           used_at?: string | null
           user_id: string
         }
@@ -1045,6 +1051,9 @@ export type Database = {
           created_at?: string
           generation?: number
           id?: string
+          recovered_at?: string | null
+          recovering_factors?: string[] | null
+          recovering_session?: string | null
           used_at?: string | null
           user_id?: string
         }
@@ -1377,6 +1386,33 @@ export type Database = {
           invited_by?: string | null
           role?: string
           withdrawn_at?: string | null
+        }
+        Relationships: []
+      }
+      ocade_support_shares: {
+        Row: {
+          conversation: string
+          created_at: string
+          customer: string
+          expires_at: string
+          id: string
+          revoked_at: string | null
+        }
+        Insert: {
+          conversation: string
+          created_at?: string
+          customer: string
+          expires_at: string
+          id?: string
+          revoked_at?: string | null
+        }
+        Update: {
+          conversation?: string
+          created_at?: string
+          customer?: string
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
         }
         Relationships: []
       }
@@ -1855,6 +1891,15 @@ export type Database = {
         }
         Returns: number
       }
+      ocade_begin_mfa_recovery: {
+        Args: {
+          p_code_hash: string
+          p_factor_ids: string[]
+          p_session: string | null
+          p_user_id: string
+        }
+        Returns: Json
+      }
       ocade_consume_mfa_recovery_code: {
         Args: {
           p_code_hash: string
@@ -1864,6 +1909,18 @@ export type Database = {
           p_window_seconds?: number
         }
         Returns: string
+      }
+      ocade_support_share: {
+        Args: { p_conversation: string; p_hours: number }
+        Returns: string
+      }
+      ocade_support_unshare: {
+        Args: { p_conversation: string }
+        Returns: undefined
+      }
+      ocade_finish_mfa_recovery: {
+        Args: { p_code_hash: string; p_user_id: string }
+        Returns: undefined
       }
       ocade_count_mfa_recovery_codes: {
         Args: { p_user_id: string }

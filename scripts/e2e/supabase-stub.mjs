@@ -207,6 +207,17 @@ function tablesFor(userId) {
   return tables.get(userId);
 }
 
+/** Until when the customer shares this conversation with support (ms), or 0. */
+function sharedWithSupport(customer, conversation, now) {
+  return Math.max(
+    0,
+    ...rows(customer, "ocade_support_shares")
+      .filter((row) => row.conversation === conversation && !row.revoked_at)
+      .map((row) => Date.parse(row.expires_at))
+      .filter((until) => until > now),
+  );
+}
+
 function rows(userId, name) {
   const owned = tablesFor(userId);
   owned[name] ??= [];
@@ -1432,6 +1443,36 @@ function handleRpc(name, args, userId) {
       return true;
     }
 
+    // As 20261017120000 (PLAN Phase 08 V10): support reads only what the customer shared.
+    case "ocade_support_share": {
+      if (!rows(userId, "ocade_conversations").some((row) => row.id === args.p_conversation)) {
+        return refuse("Not found");
+      }
+      const hours = Number(args.p_hours);
+      if (!Number.isInteger(hours) || hours < 1 || hours > 72) {
+        return refuse("Share it for between 1 and 72 hours.", "22023");
+      }
+      const id = randomUUID();
+      rows(userId, "ocade_support_shares").push({
+        id,
+        customer: userId,
+        conversation: args.p_conversation,
+        expires_at: new Date(now + hours * 3_600_000).toISOString(),
+        revoked_at: null,
+        created_at: new Date(now).toISOString(),
+      });
+      return id;
+    }
+
+    case "ocade_support_unshare": {
+      for (const row of rows(userId, "ocade_support_shares")) {
+        if (row.conversation === args.p_conversation && !row.revoked_at) {
+          row.revoked_at = new Date(now).toISOString();
+        }
+      }
+      return null;
+    }
+
     case "ocade_case_open": {
       const denied = requireStaff("cases.manage", "open a support case");
       if (denied) return denied;
@@ -1449,6 +1490,10 @@ function handleRpc(name, args, userId) {
       ) {
         return refuse("Choose one of this customer's conversations.", "22023");
       }
+      const sharedUntil = sharedWithSupport(args.p_customer, args.p_conversation, now);
+      if (!sharedUntil) {
+        return refuse("The customer has not shared that conversation with support.");
+      }
       const reader = args.p_assignee ?? userId;
       if (reader === args.p_customer || !holds(reader, "cases.read")) {
         return refuse("The person reading must be staff who may read cases.", "22023");
@@ -1462,7 +1507,7 @@ function handleRpc(name, args, userId) {
         conversation: args.p_conversation,
         reason: String(args.p_reason).trim(),
         opened_at: new Date(now).toISOString(),
-        expires_at: new Date(now + hours * 3_600_000).toISOString(),
+        expires_at: new Date(Math.min(now + hours * 3_600_000, sharedUntil)).toISOString(),
         closed_at: null,
       });
       record(userId, "case_open", String(args.p_reason).trim(), args.p_customer, id);
@@ -1472,8 +1517,14 @@ function handleRpc(name, args, userId) {
     case "ocade_case_conversations": {
       const denied = requireStaff("cases.manage", "open a support case");
       if (denied) return denied;
-      record(userId, "case_read", "Listed conversation titles to open a case.", args.p_customer);
+      record(
+        userId,
+        "case_read",
+        "Listed the conversations the customer shared, to open a case.",
+        args.p_customer,
+      );
       return rows(args.p_customer, "ocade_conversations")
+        .filter((row) => sharedWithSupport(args.p_customer, row.id, now))
         .slice(0, 50)
         .map(({ id, title }) => ({ id, title }));
     }
@@ -1501,6 +1552,9 @@ function handleRpc(name, args, userId) {
       );
       if (!open || open.assignee !== userId || open.conversation !== args.p_conversation) {
         return refuse("This case is closed, has expired or is not yours to read.");
+      }
+      if (!sharedWithSupport(open.customer, args.p_conversation, now)) {
+        return refuse("The customer no longer shares that conversation with support.");
       }
       record(
         userId,

@@ -33,6 +33,7 @@ const DATABASE_BACKED = [
   "src/lib/__tests__/closed-paths-against-postgres.test.ts",
   "src/lib/__tests__/one-account-cannot-see-another.test.ts",
   "src/lib/__tests__/security-definer.test.ts",
+  "src/lib/security/__tests__/recovery-operation-sql.test.ts",
   "src/lib/account/__tests__/a-deletion-leaves-a-record.test.ts",
   "src/lib/account/__tests__/data-rights-map.test.ts",
   "src/lib/commercial/__tests__/jarvis-task-is-one-use.test.ts",

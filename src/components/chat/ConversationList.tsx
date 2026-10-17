@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Archive, Download, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import type { OcadeConversationRow } from "@/lib/ocade.functions";
+import { toast } from "sonner";
+import { Archive, Download, LifeBuoy, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { setSupportShare, supportShareOf, type OcadeConversationRow } from "@/lib/ocade.functions";
 import { cn } from "@/lib/utils";
 
 /**
@@ -47,6 +48,18 @@ export function ConversationList({
   const [query, setQuery] = useState("");
   /** Which conversation's Delete has been pressed once and is asking. */
   const [confirming, setConfirming] = useState<string | null>(null);
+  /** Whether the open menu's conversation is shared with support now: unknown until read. */
+  const [shared, setShared] = useState<{ id: string; until: string | null } | null>(null);
+  useEffect(() => {
+    if (!menuFor) return;
+    let live = true;
+    supportShareOf({ data: { id: menuFor } })
+      .then(({ until }) => live && setShared({ id: menuFor, until }))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [menuFor]);
 
   const listed = conversations;
   /*
@@ -201,7 +214,7 @@ export function ConversationList({
                   <div
                     ref={menu}
                     role="menu"
-                    className="glass-strong absolute right-1 top-8 z-10 w-40 overflow-hidden rounded-lg p-1"
+                    className="glass-strong absolute right-1 top-8 z-10 w-56 overflow-hidden rounded-lg p-1"
                   >
                     <MenuItem
                       icon={Pencil}
@@ -228,6 +241,29 @@ export function ConversationList({
                         void onExport(row.id);
                       }}
                     />
+                    {/*
+                  SUPPORT SEES ONLY WHAT IS SHARED, AND ONLY UNTIL IT IS NOT. Without this,
+                  OCADE's staff see not even the conversation's title (PLAN Phase 08 V10).
+                */}
+                    {shared?.id === row.id ? (
+                      <MenuItem
+                        icon={LifeBuoy}
+                        label={shared.until ? "Stop sharing with support" : "Share with support"}
+                        onSelect={() => {
+                          setMenuFor(null);
+                          const share = !shared.until;
+                          void setSupportShare({ data: { id: row.id, shared: share } }).then(
+                            () =>
+                              toast(
+                                share
+                                  ? "Shared with OCADE support for 24 hours. Stop sharing here at any time."
+                                  : "OCADE support can no longer read this conversation.",
+                              ),
+                            () => toast("That could not be changed just now. Try again."),
+                          );
+                        }}
+                      />
+                    ) : null}
                     {/*
                   DELETING ASKS ONCE. A single click beside Rename and Archive,
                   on a row somebody is only hovering over, is how a conversation

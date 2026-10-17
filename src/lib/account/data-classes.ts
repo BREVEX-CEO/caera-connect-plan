@@ -222,6 +222,8 @@ export const NOT_EXPORTED: Readonly<Partial<Record<AccountTable, string>>> = {
   ocade_staff_invites: "Operator record, present only for OCADE staff.",
   ocade_admin_actions: "Operator audit trail, kept for OCADE's own accountability.",
   ocade_support_cases: "Operator audit trail of support access.",
+  ocade_support_shares:
+    "Which conversation support may read, until when; shown and withdrawn in the conversation's own menu.",
   ocade_service_controls: "Service-wide switch, not account data.",
   ocade_service_control_events: "Operator audit trail of service-wide switches.",
   compliance_audit_log: "Operator compliance record.",
