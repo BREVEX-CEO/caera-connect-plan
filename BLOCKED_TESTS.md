@@ -72,6 +72,10 @@ Common safety rules for every PC entry:
 | DEB-19-02   | 19           | Bubble and Workspace share one turn lifecycle           | OPEN     | Merge with account-switch/STOP/handoff proof          |
 | REL-20-01   | 20           | Frozen candidate SHA with an evidence manifest          | OPEN     | Phases 18 and 20 gates closed first                   |
 | SEC-20-01   | 20           | Independent adversarial review of release scope         | BLOCKED  | A reviewer independent of this session                |
+| PAY-21-01   | 21           | Approved merchant provider, legal/tax/refund terms      | BLOCKED  | Owner decision                                        |
+| PAY-21-02   | 21           | Approved price catalogue (one contract)                 | BLOCKED  | Owner: choose between the two proposals               |
+| PAY-21-03   | 21           | Sandbox webhook, replay, refund, renewal cycles         | BLOCKED  | PAY-21-01 (provider sandbox account)                  |
+| LAU-22-01   | 22           | Post-payment final matrix and controlled launch         | BLOCKED  | Phase 21, REL-20-01, owner launch approval            |
 
 ---
 
@@ -378,6 +382,15 @@ Common safety rules for every PC entry:
 ## SEC-20-01 — Independent adversarial review
 
 - **Reason:** PLAN Phase 20 requires one adversarial pass by someone other than the implementer; this session wrote the code under review. The automated security gates ran (17 Oct): `npm audit` 0 vulnerabilities (all dependencies), `pip-audit` on the runtime pins found lxml 6.0.2 / CVE-2026-41066 (XML entity resolution can read local files from untrusted XML) and it is fixed (lxml 6.1.0, 262 device tests PASS).
+
+## PAY-21-01 / 02 / 03 — Payments
+
+- **Reason:** PLAN Phase 21 allows billing schema only after an approved merchant provider and legal, tax and refund terms (owner decisions), and live payment activation is outside this session's authority. Two price proposals conflict in PLAN (₹488/week, ₹988/month, ₹9,888/month versus the Essential/Premium/Max 28/88 proposal); no catalogue change is made until one is approved. The core candidate is not qualified either (REL-20-01).
+- **Remains:** owner chooses the provider and catalogue; then sandbox webhook signature, duplicate/reordered/forged events, refund, cancel-at-period-end, renewal reconciliation in the cloud, and a low-value live transaction only with approval.
+
+## LAU-22-01 — Final matrix and launch
+
+- **Reason:** depends on Phase 21 and an owner-approved launch; no production promotion from this session.
 
 ## PC-07-01 — Licensed Microsoft Excel and Word: finish, save, reopen and verify a real workbook and document
 

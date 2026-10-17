@@ -5418,6 +5418,8 @@ No pricing hypothesis becomes a deployed bill without approval.
 
 Essential ₹488/week, Premium ₹988/month and Max ₹9,888/month with their listed allowances remain **proposals**, not approved checkout products or sustainable measured quotas. Preserve separate Chat and verified-JARVIS counters; include failed attempts, retries, support, payment fees/refunds and infrastructure in unit cost. Publish exact cadence/reset/expiry/concurrency limits and an honest comparison of monthly-equivalent cost. Phase 01 already owns one-task-one-use; payment implementation only consumes that completed contract. Qualify sandbox capture/webhook/refund/reconciliation before any authorised merchant connection; final post-payment full regression belongs to Phase 22.
 
+**Work record — Phase 21 (17 October 2026).** BLOCKED: no merchant provider, legal/tax/refund terms or price catalogue is approved, and the core candidate is not qualified; no billing code or catalogue was changed. See [BLOCKED_TESTS.md](BLOCKED_TESTS.md) PAY-21-01…03.
+
 #### Phase 21 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
@@ -5500,6 +5502,8 @@ Documentation merge does not authorise this release.
 **Evidence:** approved release record, restore results, real delivery proof and controlled-cohort observations.
 
 ---
+
+**Work record — Phase 22 (17 October 2026).** BLOCKED on Phase 21, REL-20-01 and owner launch approval. See [BLOCKED_TESTS.md](BLOCKED_TESTS.md) LAU-22-01.
 
 #### Phase 22 exclusive exit gate
 
