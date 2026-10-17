@@ -5173,6 +5173,8 @@ The following are candidates, not authorised deletions during this review: prose
 
 For each exact removal, record path/symbol, current callers, replacement owner, runtime/test/package/doc consumers, before/after bytes and timing, negative test, supported-platform parity and rollback. Keep native Office adapters, GUI/vision fallback, STOP, journals, accessibility, verifier code, legal notices, applied migrations and recovery evidence. The removed donor ZIPs/snapshots are historical provenance: never restore them to perform this audit or count their deletion as newly achieved.
 
+**Work record — Phase 19 (17 October 2026, Anthropic-managed Linux VM).** Audit, no removal: every npm and Python dependency has a live caller (`XlsxWriter` holds python-pptx chart data; `eslint-config-prettier` is loaded by `eslint-plugin-prettier/recommended`); no exported TypeScript symbol and no Python function is unreferenced (9 exports are used only in their own file). Baseline for later before/after: product TypeScript 46 063 lines, device Python 6 920, runtime JS/PowerShell 550; 15 dependencies + 22 dev; 25 Python pins; first visit 924 KiB of JavaScript; client assets 1 744 KiB of JS. Candidates measured but not changed without parity proof: nested provider retries (up to 9 upstream requests a turn), Bubble/Workspace turn lifecycle. Open checks: [BLOCKED_TESTS.md](BLOCKED_TESTS.md) DEB-19-01, DEB-19-02.
+
 #### Phase 19 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.

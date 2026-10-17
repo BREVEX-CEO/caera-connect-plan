@@ -68,6 +68,8 @@ Common safety rules for every PC entry:
 | WF-18-04    | 18 / 01      | Zero falsely verified completions                       | FAIL     | Outcome templates (VER-01-01)                         |
 | WF-18-05    | 18           | Five consenting design partners, two weeks              | BLOCKED  | Owner: recruit partners                               |
 | WIN-18-01   | 18           | PDF through Word/Excel/PowerPoint on Windows            | OPEN     | Isolated Windows VM with Office                       |
+| DEB-19-01   | 19 / 04      | One provider retry budget (no nested retries)           | UNTESTED | Live 429/503 reliability before/after (quota)         |
+| DEB-19-02   | 19           | Bubble and Workspace share one turn lifecycle           | OPEN     | Merge with account-switch/STOP/handoff proof          |
 
 ---
 
@@ -356,6 +358,16 @@ Common safety rules for every PC entry:
 ## WIN-18-01 — PDF through Office on Windows
 
 - **Status:** OPEN. `pdf_export` uses LibreOffice wherever it is installed (Linux proven, Windows/macOS install paths looked up); Word/Excel/PowerPoint's own PDF export is not built, because it cannot be tested here.
+
+## DEB-19-01 — One provider retry budget
+
+- **Measured (17 Oct, source trace):** the Worker makes up to 3 provider attempts (`MAX_PROVIDER_ATTEMPTS`, inline waits ≤ 2 s) and the browser's `askThroughBusy` asks again up to twice (15 s, 30 s) whenever the answer is busy with no longer wait: a provider failing with 503 and no stated wait costs up to 9 upstream requests per model turn.
+- **Status:** UNTESTED, unchanged on purpose. PLAN Phase 19 requires before/after 429/503 reliability on the same fixtures before merging the budgets; the Gemini daily limit was spent the same day (WF-18-02).
+- **Remains:** a controlled run (provider stub returning 503/429 with and without waits, plus a live sample), then let only one layer retry.
+
+## DEB-19-02 — Bubble and Workspace turn lifecycle
+
+- **Status:** OPEN. `JarvisBubble` `ask` and `JarvisWorkspace` `send` still run their own turn lifecycles (ToRemove.md). Merging them touches account switch, late callbacks, STOP, admission, settlement and the bubble→workspace handoff; not done without those tests written first.
 
 ## PC-07-01 — Licensed Microsoft Excel and Word: finish, save, reopen and verify a real workbook and document
 
