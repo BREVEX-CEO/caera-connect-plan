@@ -595,6 +595,17 @@ describe("segments (P08)", () => {
     for (const id of ids) expect((await status(id)).status).toBe("claimed");
   });
 
+  it("hands at most twelve steps at once: the thirteenth waits for the next exchange (Phase 05)", async () => {
+    await offer(true);
+    const t = await task();
+    await permit("files", true);
+    const ids: string[] = [];
+    for (let i = 0; i < 13; i += 1)
+      ids.push(await queue(t, { action: "file_list", path: `d${i}` }));
+    expect((await run({ results: [] })).commands.map((c) => c.id)).toEqual(ids.slice(0, 12));
+    expect((await status(ids[12]!)).status).toBe("queued");
+  });
+
   it("ends the segment before a step that still needs the person", async () => {
     await offer(true);
     const t = await task();

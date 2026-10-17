@@ -209,6 +209,68 @@ describe("which task a computer may carry on with", () => {
 });
 
 describe("carrying on", () => {
+  it("a second request while the first is still planning queues nothing of its own (Phase 05)", async () => {
+    const t = await task();
+    // The computer asks again (it polls every second) while the model is still answering the
+    // first request: that second request must not plan and queue a step of its own.
+    let asked = 0;
+    let second: Promise<{ state: string }> | null = null;
+    const model: BackgroundDeps["model"] = async () => {
+      asked += 1;
+      if (!second) {
+        second = carryOn(admin(), me(), t, { model });
+        await second;
+      }
+      return call("computer", { action: "file_write", path: "a.txt", content: "x" });
+    };
+    const first = await carryOn(admin(), me(), t, { model });
+    const writes = (await actionsOf(t)).filter((row) => row.action.action === "file_write");
+    expect({ asked, queued: writes.length, first, second: await second }).toEqual({
+      asked: 1,
+      queued: 1,
+      first: { state: "queued" },
+      second: { state: "idle" },
+    });
+  });
+
+  it("queues a sequence's known steps together and says which were not run (Phase 05 V08)", async () => {
+    const t = await task();
+    await sql(
+      `update public.jarvis_devices set capabilities = capabilities || '{"segment_v1":true}'::jsonb where id = '${device}'`,
+    );
+    const plan = scripted(
+      call("computer", {
+        sequence: [
+          { action: "file_write", path: "a.txt", content: "one" },
+          { action: "file_write", path: "b.txt", content: "two" },
+          { action: "file_read", path: "a.txt" },
+          { action: "ui_act", ref: "u1", op: "invoke", observationId: "latest" },
+          { action: "file_read", path: "b.txt" },
+        ],
+      }),
+    );
+    try {
+      expect(await carryOn(admin(), me(), t, plan)).toEqual({ state: "queued" });
+      const rows = await actionsOf(t);
+      // Before: only a.txt was written and the other four steps vanished without a word.
+      expect(rows.map((row) => `${row.action.action}:${row.status}`)).toEqual([
+        "file_write:queued",
+        "file_write:queued",
+        "file_read:queued",
+        "sequence:failed",
+      ]);
+      expect(rows[3]!.summary).toBe(
+        "Steps 4 to 5 of that sequence were not run. Plan them again from these results.",
+      );
+      // A computer that runs segments takes the three in one exchange.
+      expect((await exchange(admin(), me(), { results: [] })).commands).toHaveLength(3);
+    } finally {
+      await sql(
+        `update public.jarvis_devices set capabilities = capabilities - 'segment_v1' where id = '${device}'`,
+      );
+    }
+  });
+
   it("plans one step at a time through the same queue, and finishes the task", async () => {
     const t = await task();
     const first = scripted(call("computer", { action: "file_list", path: ".", step: 1 }));

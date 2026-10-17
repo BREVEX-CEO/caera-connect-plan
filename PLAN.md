@@ -3288,6 +3288,17 @@ Local executor loops over bounded steps, journals P03 state, checks P02 immediat
 
 [Python device execution](jarvis-runtime/ocade_device.py#L554) also captures a post-action frame; measure whether a consumer/verification step needs it before eliminating that work. Prefer structured result data, request fresh vision when needed, and retain graphical fallback. Test the same bounded sequence with tab close, handoff, duplicate request, restart and STOP between steps; the final artifact and receipt must be equivalent and each non-idempotent effect occur at most once. Resource/timing thresholds elsewhere in this phase apply to both paths, with pre/post request and screenshot counts.
 
+**Work record — Phase 05 (17 October 2026, Anthropic-managed Linux VM).**
+
+- *V08 — FIXED.* Background Mode queued only the first step of a sequence, of only the first device call, and dropped the rest without a word. It now queues the same observation-free prefix the foreground does (each step through `queueTaskAction`'s validation, permission and confirmation; a segment-capable computer takes them in one exchange and skips the rest after one that does not finish). A step that acts on `latest`, and every step after one that could not be queued or needs the person, is not run, and a visible "Steps N to M … were not run" record tells the next request to plan them from the real results. Real-Postgres test fails before (only `a.txt` queued), passes after.
+- *Concurrency hypothesis — REPRODUCED, FIXED.* On real PostgreSQL, a second exchange arriving while the first request was still waiting for the model passed the same checks, called the model again and **queued the same file write twice**. Fix inside the existing lease: while a background request plans, `jarvis_tasks.controller` is that request's own id (no new column or service); the existing queue trigger already refuses an insert from any other controller, a second request finds the task held and stays idle, and the lease returns to the computer when the request ends (unless a surface took it). Test: before, 2 model calls / 2 queued writes; after, 1 / 1.
+- *Boundaries.* 13 queued steps → one exchange hands exactly 12, the 13th waits (new test). Existing segment tests cover in-order execution, stop at the first unfinished step, intent journalled before running, STOP/cancel of a running segment (skipped ≠ done).
+- *Post-action frame — measured, kept.* The browser frame after each action feeds the person's live task view (`JarvisTask.tsx`) and the `look`/`screen` continuation: 34 ms p50 / 52 ms p95, ~91 KB (Wikipedia page, 1280×800, JPEG q45), against ~0.8 s for the action itself.
+- *Evidence.* Vitest 1,343 PASS; carry-on journey with the real Device Agent 34 PASS / 0 FAIL; JARVIS journey unaffected (foreground loop not changed).
+- *OPEN / BLOCKED.* Declared previous-step output references (optional in this package) not built; a background step planned by the real model UNTESTED (the contract script proves the rebuilt-call shape); identical 30-step old/new timing and native Windows batch timing BLOCKED (no Windows environment); Android segments remain single-step.
+
+**Phase 05 status: PARTIAL** — V08 and the planning race fixed with real-Postgres proof; native timing BLOCKED.
+
 #### Phase 05 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
