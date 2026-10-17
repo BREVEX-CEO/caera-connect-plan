@@ -808,6 +808,31 @@ describe("completion needs evidence from the device (P01)", () => {
       expect((await statusOf(t)).status).toBe("completed");
     });
 
+    it("refuses a workbook whose asked-for sheet is empty (live Gemini reconcile, 17 Oct)", async () => {
+      const t = await withChecks([{ path: "r.xlsx", sheet: "Matched" }]);
+      const book = (rows: number) => ({
+        status: "done",
+        changed: [],
+        observation: null,
+        detail: { workbook: { sheet: "Sheet1", sheets: [{ name: "Matched", rows }], cells: [] } },
+      });
+      await done(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }));
+      await done(await queue(t, { action: "file_extract", path: "r.xlsx" }), {
+        status: "done",
+        content: "Sheet Matched:",
+      });
+      // The file is there and names its sheet; only the workbook's own read says what it holds.
+      await expect(complete(t)).rejects.toThrow(/not read with sheet_inspect/);
+      await done(await queue(t, { action: "sheet_inspect", path: "r.xlsx" }), book(1));
+      await expect(complete(t)).rejects.toThrow(
+        /Matched sheet of r\.xlsx has no rows below its header/,
+      );
+      await done(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }));
+      await done(await queue(t, { action: "sheet_inspect", path: "r.xlsx" }), book(8));
+      await complete(t);
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
     it("refuses a task that has no checks, however well it was read back", async () => {
       const t = await task();
       await done(await queue(t, { action: "file_write", path: "a.txt", content: "x" }));

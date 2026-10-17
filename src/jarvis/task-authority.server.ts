@@ -278,6 +278,24 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
     }
     return null;
   }
+  const sheet = check.sheet;
+  if (sheet !== undefined) {
+    // A sheet the person asked for, as the device last read the workbook: there, and not empty.
+    const book = after
+      .filter((row) => row.action?.action === "sheet_inspect")
+      .map((row) => row.result?.detail?.workbook as { sheets?: { name?: string; rows?: number }[] })
+      .filter(Boolean)
+      .at(-1);
+    if (!book) {
+      return `${target} was not read with sheet_inspect after its last change. Read it, then finish.`;
+    }
+    const found = book.sheets?.find((s) => normal(String(s.name ?? "")) === normal(sheet));
+    if (!found) return `${target} has no sheet named ${sheet}. Add it, or finish as failed.`;
+    if ((found.rows ?? 0) < 2) {
+      return `the ${sheet} sheet of ${target} has no rows below its header. Fill it, or finish as failed and say why it is empty.`;
+    }
+    return null;
+  }
   const reads =
     path && check.contains?.length
       ? after.filter((row) => READS_FILE.has(row.action?.action ?? ""))

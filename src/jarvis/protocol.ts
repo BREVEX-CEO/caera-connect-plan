@@ -662,7 +662,11 @@ export const outcomeCheck = z.preprocess(
     )
     .refine((c) => (c.cell === undefined) === (c.equals === undefined), "cell needs equals")
     .refine((c) => c.cell === undefined || c.path !== undefined, "cell needs path")
-    .refine((c) => c.sheet === undefined || c.cell !== undefined, "sheet needs cell")
+    .refine((c) => c.sheet === undefined || c.path !== undefined, "sheet needs path")
+    .refine(
+      (c) => c.sheet === undefined || c.cell !== undefined || !c.contains?.length,
+      "a sheet check is a cell or the sheet alone",
+    )
     .refine(
       (c) => c.path !== undefined || (c.contains?.length ?? 0) > 0 || c.pausedAt !== undefined,
       "a page check needs text",
@@ -880,7 +884,7 @@ export const RESEARCH_GUIDANCE =
 
 export const JARVIS_SYSTEM_PROMPT = `You are OCADE JARVIS, a calm and capable assistant made by CARCC.
 Answer ordinary questions directly and briefly, without tools.
-Only when the person explicitly asks you to act — browse, operate a website or an app, work with files or code, or complete a workflow — call start_task with a short title, where ("browser" or "computer"), at most 8 plain steps and the checks the finished result must pass, then use the browser or computer tool. Checks are fixed once the task starts: write them from what the person asked (the exact file path, a workbook cell and its value, words the file or page must show). If start_task says the computer is busy and the person has asked to stop, cancel or replace what it is doing (now or earlier), call stop_task at once, then start_task again; never stop it otherwise, but say what it is busy with and ask.
+Only when the person explicitly asks you to act — browse, operate a website or an app, work with files or code, or complete a workflow — call start_task with a short title, where ("browser" or "computer"), at most 8 plain steps and the checks the finished result must pass, then use the browser or computer tool. Checks are fixed once the task starts: write them from what the person asked (the exact file path, a workbook cell and its value, each sheet the person asked for, words the file or page must show). If start_task says the computer is busy and the person has asked to stop, cancel or replace what it is doing (now or earlier), call stop_task at once, then start_task again; never stop it otherwise, but say what it is busy with and ask.
 Each reply you send uses some of the person's limited online capacity. Plan the whole task before you act, then finish it in as few replies as you can, without skipping a check:
 - One reply may call several tools: call start_task together with the first actions.
 - Put every action whose inputs you already know into one sequence (up to 12): for example open each page and find_text its facts, or sheet_edit, file_write and their read-backs. Check every outcome it returns, then continue.
@@ -949,10 +953,12 @@ export function jarvisTools(
           checks: {
             type: "ARRAY",
             description:
-              "1 to 10 checks the finished result must pass, fixed for the task: path + cell + equals (a workbook cell's value or formula), path + contains (words the file must show), path alone (the file exists), contains alone (words the page must show), or pausedAt alone (the page's video left paused at that second, as media state reads it).",
+              "1 to 10 checks the finished result must pass, fixed for the task: path + cell + equals (a workbook cell's value or formula), path + contains (words the file must show), path + sheet alone (that sheet exists with rows of data below its header: one for every sheet the person asked for), path alone (the file exists), contains alone (words the page must show), or pausedAt alone (the page's video left paused at that second, as media state reads it).",
             items: obj({
               path: str("The file's exact path in the work folder."),
-              sheet: str("For a cell: the sheet, when not the first."),
+              sheet: str(
+                "For a cell: the sheet, when not the first. Alone with path: that sheet must hold data.",
+              ),
               cell: str("For a workbook: the cell, like B10."),
               equals: str("For a cell: its value or formula."),
               contains: {

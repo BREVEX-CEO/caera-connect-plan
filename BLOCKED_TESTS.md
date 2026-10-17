@@ -355,7 +355,8 @@ Common safety rules for every PC entry:
 
 - **Status:** FAIL. Reconcile cases 6, 7 and 11 ended "completed" while Matched (and in case 7 Unmatched) was empty. The server checked exactly the checks the model wrote at start_task — `{"path": "reconciliation.xlsx"}`, or that path containing "Matched" and "Unmatched" — and those passed: the file existed and named its sheets.
 - **Attempted:** none that closes it: the model cannot know the expected records or total before working them out, so a prompt rule cannot make its own checks strong enough.
-- **Remains:** approved outcome templates per workflow (PLAN Phase 18 "ADD: approved outcome templates"; VER-01-01), so the checks a recurring workflow must pass are fixed by OCADE from the person's approved recipe, not authored by the model.
+- **Fix in place (17 Oct, not yet proven live):** a check `{path, sheet}` now means that sheet exists with rows below its header, judged from the device's own `sheet_inspect` read (`device-exchange.test.ts`: an empty Matched sheet is refused, a filled one completes; fails before, passes after). The model is told to write one for every sheet the person asked for. It still depends on the model writing that check.
+- **Remains:** rerun the reconcile cases live (Gemini daily quota) and count false completions; approved outcome templates per workflow (PLAN Phase 18; VER-01-01) so a recurring workflow's checks are fixed by OCADE, not authored by the model.
 
 ## WF-18-05 — Design partners
 
