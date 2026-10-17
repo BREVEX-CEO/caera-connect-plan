@@ -288,12 +288,26 @@ print(json.dumps({"rows": rows, "charts": sum(len(s._charts) for s in wb.workshe
         const row = sheet.rows.find((r) => String(r[0] ?? "").includes(city));
         const value = Number(String(row?.[1] ?? "").replace(/[^\d.]/g, ""));
         values[city] = value;
-        const source = await fetch(
-          `https://en.wikipedia.org/w/api.php?action=parse&page=${city}&prop=text&format=json&formatversion=2`,
-          { headers: { "user-agent": "OCADE-e2e/1.0 (cloud acceptance test)" } },
-        )
-          .then((r) => r.json())
-          .then((j) => String(j.parse?.text ?? "").replace(/<[^>]+>/g, " "));
+        // The check's own read of the source: once more after Wikipedia's own wait when it says
+        // "too many requests", and never a crash on its refusal page.
+        let source = "";
+        for (let tried = 0; tried < 2; tried += 1) {
+          const answer = await fetch(
+            `https://en.wikipedia.org/w/api.php?action=parse&page=${city}&prop=text&format=json&formatversion=2`,
+            { headers: { "user-agent": "OCADE-e2e/1.0 (cloud acceptance test)" } },
+          );
+          if (answer.ok) {
+            source = String((await answer.json()).parse?.text ?? "").replace(/<[^>]+>/g, " ");
+            break;
+          }
+          process.stdout.write(
+            `INFO  the check could not read ${city}'s page: HTTP ${answer.status}\n`,
+          );
+          if (answer.status !== 429) break;
+          await new Promise((r) =>
+            setTimeout(r, (Number(answer.headers.get("retry-after")) || 10) * 1000),
+          );
+        }
         const written = value.toLocaleString("en-US");
         check(
           `${city}'s population is one its own page states`,

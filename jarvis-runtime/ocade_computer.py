@@ -716,8 +716,12 @@ class Computer:
             return {"status": "failed", "summary": "That sheet does not exist in the workbook"}
         if not out.get("ok"):
             return self._unfinished(out, rel, path, "workbook")
-        kept = self._undo_dir() / str(out["backup"])
-        self._remember(f"updating {rel}", lambda: self._put_back(kept, path), path)
+        if out.get("backup"):
+            kept = self._undo_dir() / str(out["backup"])
+            self._remember(f"updating {rel}", lambda: self._put_back(kept, path), path)
+        else:  # made new: JARVIS's own file, and undo takes it away
+            self._made.add(path)
+            self._remember(f"making {rel}", lambda: self._to_trash(path), path)
         if unread := self._not_read_back(out, rel, "workbook"):
             return unread
         # What a person would see at once: a formula that counts itself, or an error value.

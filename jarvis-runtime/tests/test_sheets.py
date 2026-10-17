@@ -219,6 +219,23 @@ class FileEngineTest(unittest.TestCase):
             ocade_sheets.edit(self.book, "Orders", FINISH_ORDERS[:1], self.root / "undo", threading.Event(),
                               engine="file")
 
+    def test_a_new_workbook_is_made_and_undo_takes_it_away(self):
+        """Live Gemini, 17 Oct: asked to create cities.xlsx, JARVIS had no way to: sheet_edit said
+        the file did not exist, and an empty file it wrote first was "damaged"."""
+        from openpyxl import load_workbook
+        pc = Computer(str(self.root))
+        out = pc.run({"action": "sheet_edit", "path": "cities.xlsx", "sheet": "Cities", "ops": [
+            {"op": "set", "cell": "A1", "value": "City"}, {"op": "set", "cell": "B1", "value": "Population"},
+            {"op": "set", "cell": "A2", "value": "Tokyo"}, {"op": "set", "cell": "B2", "value": 14254039},
+            {"op": "set", "cell": "A3", "value": "Total"}, {"op": "set", "cell": "B3", "value": "=SUM(B2:B2)"},
+            {"op": "chart", "kind": "bar", "source": "B1:B2", "anchor": "D2"}]})
+        self.assertEqual(out["status"], "done", out)
+        sheet = load_workbook(self.root / "cities.xlsx")["Cities"]
+        self.assertEqual((sheet["B2"].value, sheet["B3"].value), (14254039, "=SUM(B2:B2)"))
+        self.assertEqual(len(sheet._charts), 1)
+        self.assertEqual(pc.run({"action": "undo"})["status"], "done")
+        self.assertFalse((self.root / "cities.xlsx").exists())
+
     def test_through_the_computer_stays_in_the_workspace(self):
         pc = Computer(str(self.root))
         self.assertEqual(pc.run({"action": "sheet_inspect", "path": "sales.xlsx"})["status"], "done")

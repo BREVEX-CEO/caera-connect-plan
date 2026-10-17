@@ -327,12 +327,18 @@ def edit_file(path: Path, sheet: str | None, ops: list[dict], cancel: threading.
     from openpyxl.workbook.defined_name import DefinedName
     from openpyxl.worksheet.table import Table, TableStyleInfo
 
-    held = features(path)
-    if held["lossy"]:
-        raise SheetError("This workbook has charts, pictures or pivot tables that editing the file "
-                         "directly would lose. It needs a spreadsheet app on this computer that "
-                         "OCADE can work in.")
-    book = load_workbook(str(path), keep_vba=held["macros"])
+    if path.exists():
+        held = features(path)
+        if held["lossy"]:
+            raise SheetError("This workbook has charts, pictures or pivot tables that editing the file "
+                             "directly would lose. It needs a spreadsheet app on this computer that "
+                             "OCADE can work in.")
+        book = load_workbook(str(path), keep_vba=held["macros"])
+    else:  # a new workbook, made as its own file
+        from openpyxl import Workbook
+        held = {"macros": False}
+        book = Workbook()
+        book.active.title = sheet or "Sheet1"
     ws = book[sheet] if sheet else book.worksheets[0]
     hexcolor = lambda value: str(value).lstrip("#").upper()  # noqa: E731
     applied = []
@@ -464,9 +470,12 @@ def edit(path: Path, sheet: str | None, ops: list[dict], undo_dir: Path,
         raise SheetError("JARVIS edits .xlsx and .xlsm workbooks")
     if cancel.is_set():
         return {"ok": False, "stopped": True, "error": "Stopped before it finished"}
-    kept = backup(path, undo_dir)
-    server = None if engine == "file" else automation_server(path.suffix)
+    new = not path.exists()
+    if new and path.suffix.lower() != ".xlsx":
+        raise SheetError(f"{path.name} does not exist; JARVIS makes new workbooks as .xlsx")
+    kept = None if new else backup(path, undo_dir)
+    server = None if new or engine == "file" else automation_server(path.suffix)
     out = (edit_with_automation(path, sheet, ops, cancel, close, server) if server
            else edit_file(path, sheet, ops, cancel))
-    out["backup"] = kept.name
+    out["backup"] = kept.name if kept else None
     return out
