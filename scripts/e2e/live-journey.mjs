@@ -60,8 +60,19 @@ const REQUEST =
   "smallest.";
 
 /** Which of the tasks to run (OCADE_LIVE_TASKS=research,video,photo,reconcile,pack,status); all when unset. */
+const TASKS = ["research", "video", "photo", "reconcile", "pack", "status"];
 const wanted = (name) =>
   !process.env.OCADE_LIVE_TASKS || process.env.OCADE_LIVE_TASKS.split(",").includes(name);
+// A misspelt task would run nothing and still end "passed" (PLAN V25).
+const unknown = (process.env.OCADE_LIVE_TASKS ?? "")
+  .split(",")
+  .filter((t) => t && !TASKS.includes(t));
+if (unknown.length) {
+  process.stdout.write(
+    `FAIL  unknown live tasks: ${unknown.join(", ")} (known: ${TASKS.join(", ")})\n`,
+  );
+  process.exit(1);
+}
 
 if (!process.env.OCADE_LIVE_GEMINI_KEY) {
   process.stdout.write("BLOCKED  live journey — no staging Gemini key (OCADE_LIVE_GEMINI_KEY)\n");
@@ -295,9 +306,15 @@ try {
         [
           "-c",
           `import json, openpyxl, sys
+sys.path.insert(0, "scripts/e2e")
+from workflow_cases import recalculated
 wb = openpyxl.load_workbook(sys.argv[1]); ws = wb.active
 rows = [[c.value for c in r] for r in ws.iter_rows(max_col=2)]
-print(json.dumps({"rows": rows, "charts": sum(len(s._charts) for s in wb.worksheets)}, default=str))`,
+# The totals as another engine calculates them, not as the file says (PLAN V25).
+calc = openpyxl.load_workbook(recalculated(__import__("pathlib").Path(sys.argv[1])), data_only=True).active
+values = [[c.value for c in r] for r in calc.iter_rows(max_col=2)]
+kinds = [c.tagname for s in wb.worksheets for c in s._charts]
+print(json.dumps({"rows": rows, "values": values, "charts": len(kinds), "kinds": kinds}, default=str))`,
           sheetPath,
         ],
         { encoding: "utf8" },
@@ -342,7 +359,18 @@ print(json.dumps({"rows": rows, "charts": sum(len(s._charts) for s in wb.workshe
         /^=SUM\(/i.test(String(total?.[1] ?? "")),
         String(total?.[1]),
       );
-      check("the workbook has a chart", sheet.charts >= 1, String(sheet.charts));
+      const counted = (sheet.values ?? []).find((r) => /total/i.test(String(r[0] ?? "")));
+      const expected = CITIES.reduce((sum, city) => sum + values[city], 0);
+      check(
+        "the total, recalculated by LibreOffice, is the three cities' sum",
+        Number(counted?.[1]) === expected,
+        `${counted?.[1]} vs ${expected}`,
+      );
+      check(
+        "the workbook has a bar chart",
+        (sheet.kinds ?? []).includes("barChart"),
+        String(sheet.kinds),
+      );
       const largest = CITIES.reduce((a, b) => (values[a] >= values[b] ? a : b));
       const summaryPath = path.join(workspace, "summary.md");
       const summary = existsSync(summaryPath) ? readFileSync(summaryPath, "utf8") : "";

@@ -134,8 +134,9 @@ jobs:
           disable-animations: true
           # A cold emulator on a shared VM can take longer than six minutes to boot.
           emulator-boot-timeout: 900
+          # The action runs each line in its own `sh -c` (its parseScript): a line that fails
+          # fails the step, and `exit 0` ends only its own line, so the journey line still runs.
           script: |
-            set -e
             adb install -r android/build/OCADE-test.apk
             adb shell am start -n in.ocade.app/.MainActivity --es server http://10.0.2.2:8788
             sleep 8

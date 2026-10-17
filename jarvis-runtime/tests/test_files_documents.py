@@ -137,7 +137,6 @@ class WordValidationTest(unittest.TestCase):
                 ocade_documents.validate_word(ops)
 
 
-@live
 class DeckTest(unittest.TestCase):
     """A presentation built as its own file: a title slide, bullets, a native chart with its data,
     an image from the work folder; reopened and read back; undo takes a new deck away."""
@@ -220,6 +219,8 @@ class DocxWithoutWordTest(unittest.TestCase):
         self.assertFalse((root / "report.docx").exists())
 
 
+# Drives the person's installed Word: only when live tests are asked for (PLAN V22).
+@live
 @unittest.skipUnless(__import__("ocade_sheets").automation_server(".docx"), "needs an app that automates .docx")
 class RealWordTest(unittest.TestCase):
     """A report finished in the person's Word: replaced, styled, formatted, a table, saved and reopened."""

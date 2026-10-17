@@ -70,6 +70,8 @@ Common safety rules for every PC entry:
 | WIN-18-01   | 18           | PDF through Word/Excel/PowerPoint on Windows            | OPEN     | Isolated Windows VM with Office                       |
 | DEB-19-01   | 19 / 04      | One provider retry budget (no nested retries)           | UNTESTED | Live 429/503 reliability before/after (quota)         |
 | DEB-19-02   | 19           | Bubble and Workspace share one turn lifecycle           | OPEN     | Merge with account-switch/STOP/handoff proof          |
+| REL-20-01   | 20           | Frozen candidate SHA with an evidence manifest          | OPEN     | Phases 18 and 20 gates closed first                   |
+| SEC-20-01   | 20           | Independent adversarial review of release scope         | BLOCKED  | A reviewer independent of this session                |
 
 ---
 
@@ -368,6 +370,14 @@ Common safety rules for every PC entry:
 ## DEB-19-02 — Bubble and Workspace turn lifecycle
 
 - **Status:** OPEN. `JarvisBubble` `ask` and `JarvisWorkspace` `send` still run their own turn lifecycles (ToRemove.md). Merging them touches account switch, late callbacks, STOP, admission, settlement and the bubble→workspace handoff; not done without those tests written first.
+
+## REL-20-01 — Frozen candidate and evidence manifest
+
+- **Status:** OPEN. PLAN Phase 20 freezes one SHA and binds every shipped claim to evidence from that SHA. Not frozen: Phase 18 has false completions (WF-18-04) and VER-01-01 is open, so any manifest now would describe a candidate that cannot ship.
+
+## SEC-20-01 — Independent adversarial review
+
+- **Reason:** PLAN Phase 20 requires one adversarial pass by someone other than the implementer; this session wrote the code under review. The automated security gates ran (17 Oct): `npm audit` 0 vulnerabilities (all dependencies), `pip-audit` on the runtime pins found lxml 6.0.2 / CVE-2026-41066 (XML entity resolution can read local files from untrusted XML) and it is fixed (lxml 6.1.0, 262 device tests PASS).
 
 ## PC-07-01 — Licensed Microsoft Excel and Word: finish, save, reopen and verify a real workbook and document
 
