@@ -21,13 +21,7 @@
  * Usage: node scripts/e2e/online-journey.mjs [--base=…] [--supabase=…]
  */
 import { chromium } from "playwright-core";
-
-const arg = (name, fallback) => {
-  const found = process.argv.find((entry) => entry.startsWith(`--${name}=`));
-  return found ? found.slice(name.length + 3) : fallback;
-};
-
-const BASE = arg("base", "http://127.0.0.1:8788");
+import { BASE, EXECUTABLE, SUPABASE } from "./common.mjs";
 
 /**
  * The Billing row's exact sentence.
@@ -38,8 +32,6 @@ const BASE = arg("base", "http://127.0.0.1:8788");
  * that compares them.
  */
 const EXACT_COUNT = /^\d+ of 28 left$/;
-const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 
 const results = [];
 let failures = 0;

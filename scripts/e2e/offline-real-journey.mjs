@@ -13,15 +13,8 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { chromium } from "playwright-core";
+import { BASE, EXECUTABLE, SUPABASE } from "./common.mjs";
 
-const arg = (name, fallback) => {
-  const found = process.argv.find((entry) => entry.startsWith(`--${name}=`));
-  return found ? found.slice(name.length + 3) : fallback;
-};
-
-const BASE = arg("base", "http://127.0.0.1:8788");
-const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 const INSTALL_TIMEOUT_MS = 15 * 60_000;
 const ANSWER_TIMEOUT_MS = 5 * 60_000;
 const RELEASE_BYTES = JSON.parse(

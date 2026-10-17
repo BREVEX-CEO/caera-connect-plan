@@ -839,31 +839,12 @@ export const readJarvisDocs = createServerFn({ method: "POST" })
       .eq("status", "running")
       .maybeSingle();
     if (!task) return { ok: false as const, message: "Documentation is read for a running task." };
-    const { count } = await service
-      .from("jarvis_activity")
-      .select("id", { count: "exact", head: true })
-      .eq("task_id", task.id)
-      .in("action->>action", ["docs"]);
-    if ((count ?? 0) >= DOCS_PER_TASK) {
-      return { ok: false as const, message: "This task has read enough documentation already." };
-    }
-    const { readPublicPage } = await import("./docs.server");
-    const page = await readPublicPage(data.url);
-    // Recorded either way: what JARVIS does next may follow from a page it read.
-    await service.from("jarvis_activity").insert({
-      user_id: context.userId,
-      task_id: task.id,
-      summary: (page.ok ? `Read the documentation at ${page.host}` : page.message).slice(0, 300),
-      action: { action: "docs", url: data.url.slice(0, 2000) },
-      status: page.ok ? "done" : "failed",
-      result: page.ok ? { status: "done", title: page.title } : { status: "failed" },
-      completed_at: new Date().toISOString(),
-    });
-    return page;
+    const { readDocsForTask } = await import("./docs.server");
+    const page = await readDocsForTask(service, context.userId, task.id, data.url, false);
+    return (
+      page ?? { ok: false as const, message: "This task has read enough documentation already." }
+    );
   });
-
-/** Documentation pages one task may read. */
-const DOCS_PER_TASK = 20;
 
 /**
  * A web search JARVIS made on OCADE's server for a running task, in its activity: how many

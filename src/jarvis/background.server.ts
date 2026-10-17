@@ -421,26 +421,11 @@ export async function carryOn(
       }
       if (call.name === "docs") {
         // Read here and kept on the task, so the next step sees it and a script after it is asked.
-        const { count } = await admin
-          .from("jarvis_activity")
-          .select("id", { count: "exact", head: true })
-          .eq("task_id", task.id)
-          .in("action->>action", ["docs"]);
-        if ((count ?? 0) >= 20) {
+        const { readDocsForTask } = await import("./docs.server");
+        const url = String(args.url ?? "").slice(0, 2000);
+        if (!(await readDocsForTask(admin, userId, task.id, url, true))) {
           await record({ action: "docs" }, "This task has read enough documentation already.");
-          return { state: "queued" };
         }
-        const { readPublicPage } = await import("./docs.server");
-        const page = await readPublicPage(String(args.url ?? "").slice(0, 2000));
-        await admin.from("jarvis_activity").insert({
-          user_id: userId,
-          task_id: task.id,
-          summary: page.ok ? `Read the documentation at ${page.host}` : page.message,
-          action: { action: "docs", url: String(args.url ?? "").slice(0, 2000) },
-          status: page.ok ? "done" : "failed",
-          result: page as never,
-          completed_at: new Date().toISOString(),
-        });
         return { state: "queued" };
       }
       if (call.name !== "browser" && call.name !== "computer") continue;

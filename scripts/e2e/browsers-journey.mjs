@@ -7,13 +7,8 @@
  * Usage: node scripts/e2e/browsers-journey.mjs [--base=…] [--supabase=…]
  */
 import { chromium, firefox, webkit, devices } from "playwright-core";
+import { BASE, SUPABASE } from "./common.mjs";
 
-const arg = (name, fallback) => {
-  const found = process.argv.find((entry) => entry.startsWith(`--${name}=`));
-  return found ? found.slice(name.length + 3) : fallback;
-};
-const BASE = arg("base", "http://127.0.0.1:8788");
-const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 
 let failures = 0;

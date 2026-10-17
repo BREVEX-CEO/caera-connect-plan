@@ -9,25 +9,18 @@ import {
   type OfflineUsageLeasePayload,
   type SignedOfflineUsageEvent,
   type SignedOfflineUsageLease,
+  decodeBase64,
+  encodeBase64,
 } from "./offline-lease";
 
-function decodeBase64(value: string): Uint8Array {
-  try {
-    const binary = atob(value);
-    return Uint8Array.from(binary, (character) => character.charCodeAt(0));
-  } catch {
-    throw new Error("The offline-usage signing key is not valid base64.");
-  }
-}
-
-function encodeBase64(value: Uint8Array): string {
-  let binary = "";
-  for (const byte of value) binary += String.fromCharCode(byte);
-  return btoa(binary);
+function decoded(value: string): Uint8Array {
+  const bytes = decodeBase64(value);
+  if (!bytes) throw new Error("The offline-usage signing key is not valid base64.");
+  return bytes;
 }
 
 async function importOfflineLeasePrivateKey(pkcs8Base64: string): Promise<CryptoKey> {
-  const bytes = decodeBase64(pkcs8Base64);
+  const bytes = decoded(pkcs8Base64);
   return crypto.subtle.importKey(
     "pkcs8",
     ownedArrayBuffer(bytes),
@@ -135,7 +128,7 @@ export async function loadOfflineLeaseSigningAuthority(
 }
 
 export async function importDeviceEventPublicKey(rawBase64: string): Promise<CryptoKey> {
-  const bytes = decodeBase64(rawBase64);
+  const bytes = decoded(rawBase64);
   if (bytes.byteLength !== 32)
     throw new Error("The device event key is not an Ed25519 public key.");
   return crypto.subtle.importKey(
@@ -158,7 +151,7 @@ export async function verifyOfflineClosure(input: {
     return await crypto.subtle.verify(
       { name: OFFLINE_LEASE_ALGORITHM },
       await importDeviceEventPublicKey(input.publicKeyBase64),
-      ownedArrayBuffer(decodeBase64(input.signature)),
+      ownedArrayBuffer(decoded(input.signature)),
       ownedArrayBuffer(offlineClosureSigningBytes(input.accountId, input.deviceId)),
     );
   } catch {
@@ -199,7 +192,7 @@ export async function verifyOfflineEventChain(input: {
     const bytes = offlineEventSigningBytes(payload);
     const expectedHash = await sha256Base64(bytes);
     if (event.eventHash !== expectedHash) throw new Error("The offline event hash is invalid.");
-    const signature = decodeBase64(event.deviceSignature);
+    const signature = decoded(event.deviceSignature);
     const signatureValid = await crypto.subtle.verify(
       { name: OFFLINE_LEASE_ALGORITHM },
       input.publicKey,

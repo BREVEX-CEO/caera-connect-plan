@@ -30,14 +30,8 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { chromium } from "playwright-core";
+import { BASE, EXECUTABLE, SUPABASE } from "./common.mjs";
 
-const arg = (name, fallback) => {
-  const found = process.argv.find((entry) => entry.startsWith(`--${name}=`));
-  return found ? found.slice(name.length + 3) : fallback;
-};
-const BASE = arg("base", "http://127.0.0.1:8788");
-const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 const PYTHON = process.env.PYTHON ?? (process.platform === "win32" ? "python" : "python3");
 const CITIES = ["Tokyo", "Delhi", "Shanghai"];
 const VIDEO_TITLE = "NASA's Fermi Spies a Supercharged Supernova (SVS15041)";

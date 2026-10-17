@@ -18,13 +18,8 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { chromium } from "playwright-core";
 import { printTimings } from "./timings.mjs";
+import { arg, BASE, SUPABASE } from "./common.mjs";
 
-const arg = (name, fallback) => {
-  const found = process.argv.find((entry) => entry.startsWith(`--${name}=`));
-  return found ? found.slice(name.length + 3) : fallback;
-};
-const BASE = arg("base", "http://127.0.0.1:8788");
-const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
 const PHONE_BASE = "http://10.0.2.2:8788"; // the emulator's view of this computer
 const UDID = arg("udid", "emulator-5554");
 const APPIUM = "http://127.0.0.1:4725";

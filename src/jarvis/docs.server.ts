@@ -5,6 +5,8 @@
  * Public https only, re-checked on every redirect; no cookies or credentials
  * go with it; the text that comes back is page data, never instructions.
  */
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { isPrivateHost } from "./permissions";
 
 const MAX_BYTES = 2_000_000;
@@ -127,4 +129,43 @@ export async function readPublicPage(
     };
   }
   return { ok: false, message: "Only public https pages can be read." };
+}
+
+/** Documentation pages one task may read. */
+const DOCS_PER_TASK = 20;
+
+/**
+ * One documentation read for a task, the same from a tab and from Background Mode: within the
+ * task's allowance (null past it), read, and kept in its activity either way, since what JARVIS
+ * does next may follow from it. `keepPage`: the whole page stays on the task (Background Mode
+ * plans from what the database holds); otherwise only its title.
+ */
+export async function readDocsForTask(
+  service: SupabaseClient<Database>,
+  userId: string,
+  taskId: string,
+  url: string,
+  keepPage: boolean,
+): Promise<DocsPage | null> {
+  const { count } = await service
+    .from("jarvis_activity")
+    .select("id", { count: "exact", head: true })
+    .eq("task_id", taskId)
+    .in("action->>action", ["docs"]);
+  if ((count ?? 0) >= DOCS_PER_TASK) return null;
+  const page = await readPublicPage(url);
+  await service.from("jarvis_activity").insert({
+    user_id: userId,
+    task_id: taskId,
+    summary: (page.ok ? `Read the documentation at ${page.host}` : page.message).slice(0, 300),
+    action: { action: "docs", url },
+    status: page.ok ? "done" : "failed",
+    result: keepPage
+      ? (page as never)
+      : page.ok
+        ? { status: "done", title: page.title }
+        : { status: "failed" },
+    completed_at: new Date().toISOString(),
+  });
+  return page;
 }

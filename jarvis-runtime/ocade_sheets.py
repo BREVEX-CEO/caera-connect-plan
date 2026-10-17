@@ -448,14 +448,8 @@ def edit_file(path: Path, sheet: str | None, ops: list[dict], cancel: threading.
         applied.append(kind)
     if cancel.is_set():
         return {"ok": False, "stopped": True, "error": "Stopped before it finished"}
-    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".ocade-", suffix=path.suffix)
-    os.close(fd)
-    try:
-        book.save(tmp)
-        os.replace(tmp, path)
-    finally:
-        if os.path.exists(tmp):
-            os.unlink(tmp)
+    from ocade_documents import _save_checked
+    _save_checked(book, path)
     read = {}
     again = load_workbook(str(path), keep_vba=held["macros"])[ws.title]
     for address in _read_ranges(ops):

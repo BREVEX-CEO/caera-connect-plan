@@ -26,13 +26,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { chromium } from "playwright-core";
 
-const arg = (name, fallback) => {
-  const found = process.argv.find((entry) => entry.startsWith(`--${name}=`));
-  return found ? found.slice(name.length + 3) : fallback;
-};
-const BASE = arg("base", "http://127.0.0.1:8788");
-const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 const PYTHON = process.env.PYTHON ?? (process.platform === "win32" ? "python" : "python3");
 const RUNTIME = path.resolve("jarvis-runtime");
 
@@ -349,6 +342,7 @@ print(json.dumps({
   );
   const report = python(`
 import json, ocade_documents
+import { BASE, EXECUTABLE, SUPABASE } from "./common.mjs";
 from pathlib import Path
 text, _ = ocade_documents.extract_text(Path(${JSON.stringify(path.join(workspace, "report - completed.docx"))}), 30_000)
 print(json.dumps({"text": text}))

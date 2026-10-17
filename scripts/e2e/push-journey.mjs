@@ -13,14 +13,7 @@
  */
 import { createDecipheriv, createECDH, createHash, hkdfSync } from "node:crypto";
 import { chromium } from "playwright-core";
-
-const arg = (name, fallback) => {
-  const found = process.argv.find((entry) => entry.startsWith(`--${name}=`));
-  return found ? found.slice(name.length + 3) : fallback;
-};
-const BASE = arg("base", "http://127.0.0.1:8788");
-const SUPABASE = arg("supabase", "http://127.0.0.1:54321");
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM || undefined;
+import { BASE, EXECUTABLE, SUPABASE } from "./common.mjs";
 
 let failures = 0;
 let partlyBlocked = false;

@@ -275,6 +275,22 @@ function AuthPage() {
     );
   }
 
+  // The same field in both sign-in forms.
+  const emailField = (
+    <label className="block">
+      <span className="sr-only">Email address</span>
+      <input
+        type="email"
+        autoComplete="email"
+        inputMode="email"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        placeholder="you@example.com"
+        className="h-10 w-full rounded-md border border-border bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+      />
+    </label>
+  );
+
   return (
     <AuthShell
       title="Sign in to OCADE"
@@ -307,18 +323,7 @@ function AuthPage() {
 
       {usePassword ? (
         <form onSubmit={signInWithPassword} className="space-y-3">
-          <label className="block">
-            <span className="sr-only">Email address</span>
-            <input
-              type="email"
-              autoComplete="email"
-              inputMode="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@example.com"
-              className="h-10 w-full rounded-md border border-border bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
-            />
-          </label>
+          {emailField}
           <label className="block">
             <span className="sr-only">Password</span>
             <input
@@ -334,18 +339,7 @@ function AuthPage() {
         </form>
       ) : availability.emailDelivery ? (
         <form onSubmit={sendEmailCode} className="space-y-3">
-          <label className="block">
-            <span className="sr-only">Email address</span>
-            <input
-              type="email"
-              autoComplete="email"
-              inputMode="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@example.com"
-              className="h-10 w-full rounded-md border border-border bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
-            />
-          </label>
+          {emailField}
           <SubmitButton busy={busy}>Send code</SubmitButton>
         </form>
       ) : (

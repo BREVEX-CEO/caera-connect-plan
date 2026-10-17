@@ -10,6 +10,7 @@ import {
   type SignedOfflineUsageEvent,
   type SignedOfflineUsageLease,
   type TrustedOfflineTime,
+  encodeBase64,
 } from "./offline-lease";
 
 const DB_NAME = "ocade-offline-usage";
@@ -100,12 +101,6 @@ function transactionDone(transaction: IDBTransaction): Promise<void> {
     transaction.onabort = () =>
       reject(transaction.error ?? new Error("Offline usage storage aborted."));
   });
-}
-
-function encodeBase64(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary);
 }
 
 function identityKey(accountId: string, deviceId: string): string {

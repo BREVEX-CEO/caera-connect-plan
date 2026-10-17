@@ -147,7 +147,7 @@ export function ownedArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   return Uint8Array.from(bytes).buffer;
 }
 
-function decodeBase64(value: string): Uint8Array | null {
+export function decodeBase64(value: string): Uint8Array | null {
   try {
     const binary = atob(value);
     return Uint8Array.from(binary, (character) => character.charCodeAt(0));
@@ -297,9 +297,14 @@ export function offlineClosureSigningBytes(accountId: string, deviceId: string):
   );
 }
 
-export async function sha256Base64(bytes: Uint8Array): Promise<string> {
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", ownedArrayBuffer(bytes)));
+export function encodeBase64(bytes: Uint8Array): string {
   let binary = "";
-  for (const value of digest) binary += String.fromCharCode(value);
+  for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary);
+}
+
+export async function sha256Base64(bytes: Uint8Array): Promise<string> {
+  return encodeBase64(
+    new Uint8Array(await crypto.subtle.digest("SHA-256", ownedArrayBuffer(bytes))),
+  );
 }

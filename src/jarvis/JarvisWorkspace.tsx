@@ -830,19 +830,27 @@ export function JarvisWorkspace({
     controlsHidden && "pointer-events-none opacity-0",
   );
 
-  const rail = (mobile: boolean) => (
+  const rail = (mobile: boolean, expanded = mobile || prefs.railExpanded) => (
     <nav
       aria-label="JARVIS"
       className={cn(
         "flex h-full flex-col gap-1 border-r border-border/60 bg-background/80 p-2",
-        mobile || prefs.railExpanded ? "w-56" : "w-14",
+        expanded ? "w-56" : "w-14",
       )}
     >
-      <RailLink to="/" icon={MessageSquare} label="Chat" expanded={mobile || prefs.railExpanded} />
+      <Link
+        to="/"
+        aria-label={expanded ? undefined : "Chat"}
+        title="Chat"
+        className="flex h-10 items-center gap-3 rounded-lg px-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
+      >
+        <MessageSquare className="h-[18px] w-[18px] shrink-0" aria-hidden />
+        {expanded ? <span className="truncate">Chat</span> : null}
+      </Link>
       <RailButton
         icon={PenSquare}
         label="New conversation"
-        expanded={mobile || prefs.railExpanded}
+        expanded={expanded}
         onClick={() => {
           setDrawerOpen(false);
           void navigate({ to: "/ocade-jarvis", search: {} });
@@ -854,7 +862,7 @@ export function JarvisWorkspace({
           key={id}
           icon={icon}
           label={label}
-          expanded={mobile || prefs.railExpanded}
+          expanded={expanded}
           active={section === id}
           onClick={() => setSection((current) => (current === id ? null : id))}
         />
@@ -863,13 +871,13 @@ export function JarvisWorkspace({
       <RailButton
         icon={ShieldCheck}
         label="Permissions"
-        expanded={mobile || prefs.railExpanded}
+        expanded={expanded}
         onClick={() => setPermissionsOpen(true)}
       />
       <RailButton
         icon={Settings}
         label="Settings"
-        expanded={mobile || prefs.railExpanded}
+        expanded={expanded}
         onClick={() => {
           setDrawerOpen(false);
           settings.open();
@@ -1402,29 +1410,5 @@ function RailButton({
       <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
       {expanded ? <span className="truncate">{label}</span> : null}
     </button>
-  );
-}
-
-function RailLink({
-  to,
-  icon: Icon,
-  label,
-  expanded,
-}: {
-  to: "/";
-  icon: LucideIcon;
-  label: string;
-  expanded: boolean;
-}) {
-  return (
-    <Link
-      to={to}
-      aria-label={expanded ? undefined : label}
-      title={label}
-      className="flex h-10 items-center gap-3 rounded-lg px-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
-    >
-      <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
-      {expanded ? <span className="truncate">{label}</span> : null}
-    </Link>
   );
 }
