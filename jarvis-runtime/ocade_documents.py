@@ -161,7 +161,7 @@ def edit_document(path: Path, ops: list[dict], undo_dir: Path, cancel, close: bo
         return {"ok": False, "stopped": True, "error": "Stopped before it finished"}
     if server is None:
         kept = ocade_sheets.backup(path, undo_dir) if path.exists() else None
-        result = edit_docx_file(path, ops)
+        result = edit_docx_file(path, ops, cancel)
         result.update(backup=kept.name if kept else None, app="the document itself")
         return result
     kept = ocade_sheets.backup(path, undo_dir)
@@ -175,8 +175,8 @@ _STYLE_NAMES = {number: name for name, number in WORD_STYLES.items()}
 
 
 def _set_text(paragraph, text: str, bold_part: str = "", how: str = "") -> None:
-    """The paragraph's text in plain runs, with one part formatted. ponytail: other formatting
-    inside that one paragraph is not kept; keep it run by run if a document needs it."""
+    """The paragraph's text in plain runs, with one part formatted: the fallback when the words
+    cross runs, and the only case where that paragraph's other formatting is lost."""
     for run in list(paragraph.runs):
         run._r.getparent().remove(run._r)
     if not bold_part:
@@ -198,6 +198,77 @@ def _set_text(paragraph, text: str, bold_part: str = "", how: str = "") -> None:
         paragraph.add_run(after)
 
 
+def _found(text: str, find: str, match_case: bool) -> int:
+    return text.find(find) if match_case else text.lower().find(find.lower())
+
+
+def _replace(text: str, find: str, new: str, match_case: bool) -> str:
+    import re
+    return re.sub(re.escape(find), lambda _: new, text, flags=0 if match_case else re.IGNORECASE)
+
+
+def _paragraphs(doc) -> list:
+    """Every paragraph a person reads in the body: its own and those inside its table cells."""
+    out = list(doc.paragraphs)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                out.extend(cell.paragraphs)
+    return out
+
+
+def _mark(paragraph, part: str, how: str, match_case: bool = True) -> bool:
+    """Format `part` where it lies inside one run: that run is split in three with its own
+    formatting kept on each piece. False when the words cross runs."""
+    from copy import deepcopy
+    for run in paragraph.runs:
+        at = _found(run.text, part, match_case)
+        if at < 0:
+            continue
+        before, middle, after = run.text[:at], run.text[at:at + len(part)], run.text[at + len(part):]
+        pieces = []
+        for text in (before, middle, after):
+            piece = deepcopy(run._r)
+            run._r.addprevious(piece)
+            pieces.append((piece, text))
+        run._r.getparent().remove(run._r)
+        from docx.text.run import Run
+        for index, (element, text) in enumerate(pieces):
+            if not text:
+                element.getparent().remove(element)
+                continue
+            piece = Run(element, paragraph)
+            piece.text = text
+            if index == 1:
+                if how == "bold":
+                    piece.bold = True
+                elif how == "italic":
+                    piece.italic = True
+                else:
+                    from docx.enum.text import WD_COLOR_INDEX
+                    piece.font.highlight_color = WD_COLOR_INDEX.YELLOW
+        return True
+    return False
+
+
+def _save_checked(document, path: Path) -> None:
+    """Saved beside the file, then put in its place in one step: the original is either
+    untouched or wholly replaced, never half-written."""
+    import os
+    import tempfile
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".ocade-", suffix=path.suffix)
+    os.close(fd)
+    try:
+        document.save(tmp)
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+
+STOPPED = {"ok": False, "stopped": True, "error": "Stopped before it finished"}
+
+
 def read_docx(path: Path) -> dict:
     """What a .docx holds, read back from the saved file: as the Office route reads it."""
     from docx import Document
@@ -211,28 +282,38 @@ def read_docx(path: Path) -> dict:
             "tables": len(doc.tables), "headings": headings}
 
 
-def edit_docx_file(path: Path, ops: list[dict]) -> dict:
+def edit_docx_file(path: Path, ops: list[dict], cancel) -> dict:
     """The operations applied to the .docx itself (new when it does not exist yet), saved,
-    reopened and read back."""
+    reopened and read back. A STOP before the save leaves the file exactly as it was."""
     from docx import Document
     doc = Document(str(path)) if path.exists() else Document()
-    applied = []
+    applied, rebuilt = [], 0
     for op in ops:
+        if cancel.is_set():
+            return dict(STOPPED)
         kind = op["op"]
-        matching = [p for p in doc.paragraphs if op.get("find") and op["find"] in p.text]
+        case = op.get("matchCase", True)
+        matching = [p for p in _paragraphs(doc) if op.get("find") and _found(p.text, op["find"], case) >= 0]
         if kind == "append":
             paragraph = doc.add_paragraph(op["text"])
             if "style" in op:
                 paragraph.style = doc.styles[_STYLE_NAMES[op["style"]]]
         elif kind == "replace":
             for paragraph in matching:
-                _set_text(paragraph, paragraph.text.replace(op["find"], op["with"]))
+                for run in paragraph.runs:  # inside a run: that run's formatting stays
+                    if _found(run.text, op["find"], case) >= 0:
+                        run.text = _replace(run.text, op["find"], op["with"], case)
+                if _found(paragraph.text, op["find"], case) >= 0:  # the words cross runs
+                    _set_text(paragraph, _replace(paragraph.text, op["find"], op["with"], case))
+                    rebuilt += 1
         elif kind == "style":
             for paragraph in matching:
                 paragraph.style = doc.styles[_STYLE_NAMES[op["style"]]]
         elif kind in ("bold", "italic", "highlight"):
             for paragraph in matching:
-                _set_text(paragraph, paragraph.text, op["find"], kind)
+                if not _mark(paragraph, op["find"], kind, case):
+                    _set_text(paragraph, paragraph.text, op["find"], kind)
+                    rebuilt += 1
         elif kind == "table":
             rows = op["rows"]
             table = doc.add_table(rows=len(rows), cols=len(rows[0]))
@@ -248,19 +329,29 @@ def edit_docx_file(path: Path, ops: list[dict]) -> dict:
             return {"ok": False, "engine": "file", "applied": applied,
                     "error": f"{op['find'][:60]!r} is not in the document"}
         applied.append(kind)
-    saved = read_docx_from(doc)
-    doc.save(str(path))
-    read = read_docx(path)
+    saved = read_docx_from(doc, full=True)
+    if cancel.is_set():  # the last moment a STOP keeps the file as it was
+        return dict(STOPPED)
+    _save_checked(doc, path)
+    try:
+        read = read_docx(path)
+    except Exception as e:  # saved: the change happened, and is not yet verified
+        return {"ok": False, "saved": True, "engine": "file", "applied": applied,
+                "error": f"saved, but reopening it failed ({type(e).__name__})"}
     return {"ok": True, "engine": "file", "applied": applied, "read": read,
-            "savedAndReopened": read["text"] == saved, "reopenChecked": True}
+            "savedAndReopened": read_docx_from(Document(str(path)), full=True) == saved,
+            "reopenChecked": True,
+            **({"note": f"{rebuilt} paragraph(s) lost their own formatting: the words crossed "
+                        f"differently formatted parts"} if rebuilt else {})}
 
 
-def read_docx_from(doc) -> str:
-    """The text a document object holds, in read_docx's order, before it is saved."""
+def read_docx_from(doc, full: bool = False) -> str:
+    """The text a document object holds, in read_docx's order; all of it when `full`."""
     lines = [p.text for p in doc.paragraphs]
     for table in doc.tables:
         lines.extend("\t".join(cell.text for cell in row.cells) for row in table.rows)
-    return "\n".join(lines)[:20000]
+    text = "\n".join(lines)
+    return text if full else text[:20000]
 
 
 CHART_KINDS = {"bar": "BAR_CLUSTERED", "column": "COLUMN_CLUSTERED", "line": "LINE_MARKERS", "pie": "PIE"}
@@ -324,7 +415,7 @@ def read_deck(path: Path) -> dict:
             "size": [round(deck.slide_width / 914400, 2), round(deck.slide_height / 914400, 2)]}
 
 
-def edit_deck(path: Path, ops: list[dict], root: Path) -> dict:
+def edit_deck(path: Path, ops: list[dict], root: Path, cancel) -> dict:
     """Slides added to a .pptx (new, 16:9, when it does not exist yet): titled bullet slides, native
     charts with their data, and images from the work folder; saved, reopened and read back."""
     from pptx import Presentation
@@ -340,6 +431,8 @@ def edit_deck(path: Path, ops: list[dict], root: Path) -> dict:
     area = (Inches(0.8), Inches(1.6), width - Inches(1.6), height - Inches(2.2))
     applied = []
     for op in ops:
+        if cancel.is_set():
+            return dict(STOPPED)
         if op["op"] == "slide":
             layout = deck.slide_layouts[0 if op["layout"] == "title" else (1 if op["bullets"] else 5)]
             slide = deck.slides.add_slide(layout)
@@ -377,10 +470,18 @@ def edit_deck(path: Path, ops: list[dict], root: Path) -> dict:
                 caption.text_frame.text = op["caption"]
                 caption.text_frame.paragraphs[0].runs[0].font.size = Pt(12)
         applied.append(op["op"])
-    deck.save(str(path))
-    read = read_deck(path)
+    expected = [slide.shapes.title.text if slide.shapes.title is not None else "" for slide in deck.slides]
+    if cancel.is_set():
+        return dict(STOPPED)
+    _save_checked(deck, path)
+    try:
+        read = read_deck(path)
+    except Exception as e:  # saved: the change happened, and is not yet verified
+        return {"ok": False, "saved": True, "applied": applied,
+                "error": f"saved, but reopening it failed ({type(e).__name__})"}
     return {"ok": True, "engine": "file", "applied": applied, "read": read, "new": new,
-            "savedAndReopened": True, "reopenChecked": True}
+            "savedAndReopened": [slide["title"] for slide in read["slides"]] == expected,
+            "reopenChecked": True}
 
 
 def compare(before: Path, after: Path, limit: int = 60) -> dict:

@@ -295,3 +295,123 @@ class CompareTest(unittest.TestCase):
         self.assertEqual(out["lines"], [])
         self.assertIn("partial", out)
         self.assertTrue(out["differsLater"])
+
+
+class DocxFidelityTest(unittest.TestCase):
+    """V17: the file route kept no formatting it rebuilt, ignored matchCase and tables, compared
+    only 20,000 characters, could not be stopped before its save, and saved in place."""
+
+    def setUp(self):
+        from docx import Document
+        self.root = Path(tempfile.mkdtemp())
+        doc = Document()
+        para = doc.add_paragraph()
+        para.add_run("Total: ")
+        red = para.add_run("ACME Ltd")
+        red.italic = True
+        para.add_run(" owes 400.")
+        table = doc.add_table(rows=1, cols=2)
+        table.cell(0, 0).text = "Client"
+        table.cell(0, 1).text = "acme ltd"
+        doc.add_paragraph("x" * 25_000 + " END")
+        doc.save(self.root / "invoice.docx")
+        self.pc = Computer(str(self.root))
+
+    def run_ops(self, *ops, **extra):
+        return self.pc.run({"action": "doc_edit", "path": "invoice.docx", "overwrite": True,
+                            "ops": list(ops), **extra})
+
+    def test_replace_keeps_the_formatting_of_the_words_around_it(self):
+        from docx import Document
+        out = self.run_ops({"op": "replace", "find": "ACME Ltd", "with": "Acme Limited"})
+        self.assertEqual(out["status"], "done", out)
+        runs = Document(self.root / "invoice.docx").paragraphs[0].runs
+        self.assertEqual([(r.text, bool(r.italic)) for r in runs],
+                         [("Total: ", False), ("Acme Limited", True), (" owes 400.", False)])
+
+    def test_bold_marks_only_its_words_and_keeps_the_rest(self):
+        from docx import Document
+        self.assertEqual(self.run_ops({"op": "bold", "find": "400"})["status"], "done")
+        runs = Document(self.root / "invoice.docx").paragraphs[0].runs
+        self.assertEqual("".join(r.text for r in runs), "Total: ACME Ltd owes 400.")
+        self.assertEqual([r.text for r in runs if r.bold], ["400"])
+        self.assertEqual([r.text for r in runs if r.italic], ["ACME Ltd"])
+
+    def test_case_insensitive_replace_reaches_table_cells(self):
+        from docx import Document
+        out = self.run_ops({"op": "replace", "find": "ACME LTD", "with": "Acme Limited", "matchCase": False})
+        self.assertEqual(out["status"], "done", out)
+        doc = Document(self.root / "invoice.docx")
+        self.assertIn("Acme Limited", doc.paragraphs[0].text)
+        self.assertEqual(doc.tables[0].cell(0, 1).text, "Acme Limited")
+
+    def test_text_past_twenty_thousand_characters_is_checked_too(self):
+        out = self.run_ops({"op": "replace", "find": "END", "with": "FIN"})
+        self.assertEqual(out["status"], "done", out)
+        self.assertTrue(out.get("savedAndReopened"), out)
+        from docx import Document
+        self.assertTrue(Document(self.root / "invoice.docx").paragraphs[-1].text.endswith("FIN"))
+
+    def test_stop_before_the_save_leaves_the_file_exactly_as_it_was(self):
+        import threading
+        import ocade_documents
+        before = (self.root / "invoice.docx").read_bytes()
+        cancel = threading.Event()
+        real = ocade_documents._mark
+
+        def stop_while_editing(*args, **kwargs):
+            cancel.set()
+            return real(*args, **kwargs)
+
+        ocade_documents._mark = stop_while_editing
+        try:
+            out = ocade_documents.edit_docx_file(self.root / "invoice.docx", ocade_documents.validate_word(
+                [{"op": "bold", "find": "400"}]), cancel)
+        finally:
+            ocade_documents._mark = real
+        self.assertTrue(out.get("stopped"), out)
+        self.assertEqual((self.root / "invoice.docx").read_bytes(), before)
+        self.assertEqual([p.name for p in self.root.iterdir()], ["invoice.docx"])  # no temporary left
+
+
+class DeckReopenTest(unittest.TestCase):
+    def test_a_deck_is_reported_saved_only_when_its_reopened_slides_are_the_ones_asked_for(self):
+        import threading
+        import ocade_documents
+        root = Path(tempfile.mkdtemp())
+        out = ocade_documents.edit_deck(root / "d.pptx", [
+            {"op": "slide", "title": "One", "bullets": ["a"]}, {"op": "slide", "title": "Two", "bullets": []}],
+            root, threading.Event())
+        self.assertTrue(out["savedAndReopened"], out)
+        stopped = threading.Event()
+        stopped.set()
+        before = (root / "d.pptx").read_bytes()
+        out = ocade_documents.edit_deck(root / "d.pptx", [{"op": "slide", "title": "Three", "bullets": []}],
+                                        root, stopped)
+        self.assertTrue(out.get("stopped"), out)
+        self.assertEqual((root / "d.pptx").read_bytes(), before)
+
+    def test_a_reopen_that_fails_after_the_save_is_reported_changed_with_undo(self):
+        import ocade_documents
+        root = Path(tempfile.mkdtemp())
+        pc = Computer(str(root))
+        self.assertEqual(pc.run({"action": "deck_edit", "path": "d.pptx", "ops": [
+            {"op": "slide", "title": "One", "bullets": []}]})["status"], "done")
+        before = (root / "d.pptx").read_bytes()
+        real = ocade_documents.read_deck
+
+        def broken(path):
+            raise OSError("disk went away")
+
+        ocade_documents.read_deck = broken
+        try:
+            out = pc.run({"action": "deck_edit", "path": "d.pptx", "ops": [
+                {"op": "slide", "title": "Two", "bullets": []}]})
+        finally:
+            ocade_documents.read_deck = real
+        self.assertEqual(out["status"], "failed", out)
+        self.assertTrue(out["fileChanged"], out)
+        self.assertNotEqual((root / "d.pptx").read_bytes(), before)
+        self.assertEqual(pc.run({"action": "undo"})["status"], "done")
+        self.assertEqual((root / "d.pptx").read_bytes(), before)
+

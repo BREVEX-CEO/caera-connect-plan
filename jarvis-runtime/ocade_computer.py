@@ -78,12 +78,25 @@ def _bubblewrap_works() -> bool:
 
 
 def _fingerprint(path: Path) -> str | None:
-    """A file's exact content (its SHA-256), "folder" for a folder, None when it is gone."""
-    if path.is_dir():
-        return "folder"
+    """A file's exact content (its SHA-256); for a folder, every name, link and file content
+    inside it, so a later edit, addition or rename anywhere in it changes the folder's
+    fingerprint (V21: it was the word "folder"). None when it is gone."""
+    digest = hashlib.sha256()
+    if path.is_dir() and not path.is_symlink():
+        items = []
+        for top, folders, files in os.walk(path, followlinks=False):  # a link is noted, never entered
+            items += [Path(top, name) for name in folders + files]
+        for item in sorted(items):
+            name = item.relative_to(path).as_posix()
+            if item.is_symlink():
+                digest.update(f"L{name}\0{os.readlink(item)}\0".encode())
+            elif item.is_dir():
+                digest.update(f"D{name}\0".encode())
+            else:
+                digest.update(f"F{name}\0{_fingerprint(item)}\0".encode())
+        return "folder:" + digest.hexdigest()
     if not path.is_file():
         return None
-    digest = hashlib.sha256()
     with path.open("rb") as source:
         for block in iter(lambda: source.read(1 << 20), b""):
             digest.update(block)
@@ -762,6 +775,11 @@ class Computer:
         except ocade_documents.DocumentError as e:
             return {"status": "failed", "summary": str(e)}
         if not out.get("ok"):
+            if new and out.get("saved"):  # made, then could not be reopened: undo takes it away
+                self._made.add(path)
+                self._remember(f"making {rel}", lambda: self._to_trash(path), path)
+                return {"status": "failed", "fileChanged": True,
+                        "summary": f"{rel} was made, but {out.get('error')}; undo takes it away"}
             return self._unfinished(out, rel, path, "document")
         if out.get("backup"):
             kept = self._undo_dir() / str(out["backup"])
@@ -788,16 +806,21 @@ class Computer:
             return dict(STOPPED)
         kept = ocade_sheets.backup(path, self._undo_dir()) if path.exists() else None
         try:
-            out = ocade_documents.edit_deck(path, list(action.get("ops") or []), self.root)
+            out = ocade_documents.edit_deck(path, list(action.get("ops") or []), self.root, cancel)
         except ocade_documents.DocumentError as e:
             return {"status": "failed", "summary": str(e)}
-        if not out.get("ok"):
+        if not out.get("ok") and not out.get("saved"):
             return {"status": "failed", "summary": str(out.get("error", "The presentation was not changed"))[:200]}
         if kept:
             self._remember(f"updating {rel}", lambda: self._put_back(kept, path), path)
         else:
             self._made.add(path)
             self._remember(f"making {rel}", lambda: self._to_trash(path), path)
+        if not out.get("ok"):  # saved, then could not be reopened: changed and not verified
+            return {"status": "failed", "fileChanged": True,
+                    "summary": f"{rel} was saved, but {out.get('error', 'it could not be checked')}; undo puts it back"}
+        if unread := self._not_read_back(out, rel, "presentation"):
+            return unread
         return {"status": "done", "summary": f"{'Made' if out['new'] else 'Updated'} {rel}: "
                                              f"{out['read']['count']} slides",
                 **{k: v for k, v in out.items() if k != "ok"}}

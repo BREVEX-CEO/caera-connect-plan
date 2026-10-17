@@ -176,6 +176,21 @@ Common safety rules for every PC entry:
 - **Test:** kill the Worker between claim and task creation on a real staging deployment; the next cron tick finishes the claimed occurrence once.
 - **Reason:** no staging Worker or database is available to this session (owner gate). The same kill points are proven against real PostgreSQL with the real migrations (`schedules.test.ts`).
 
+## WIN-07-01 — Office helpers restore alerts and quit only their own instance (V24)
+
+- **Test:** with Word/Excel already open on another document: run a doc/sheet job with `close` true and false, a job that throws after Save, and a cancelled job; afterwards the app's `DisplayAlerts` equals its value before, the person's documents are still open, and only an instance OCADE started was quit.
+- **Reason:** COM automation exists only on Windows with Office; the Anthropic session is Linux.
+- **Attempted (17 Oct):** both helpers changed (`finally` restores the captured `DisplayAlerts`; Word now tracks `$created` and quits only its own instance); both scripts parse under PowerShell 7.4.6 here.
+- **Remains:** the run above on a Windows VM (CI-00-01) or the owner-approved PC (PC-07-01).
+
+## WIN-07-02 — Native Office reopen/layout comparison; locked and corrupt inputs
+
+- **Reason:** as WIN-07-01. The file route (python-docx / python-pptx / openpyxl) is proven on Linux (17 Oct tests).
+
+## FS-07-01 — A user edit between undo's comparison and its restore
+
+- **Status:** UNTESTED. Undo now refuses after any change inside a copied folder (V21), but the window between its fingerprint check and the trash/restore is not closed; a deterministic race test can run in the cloud session.
+
 ## PC-07-01 — Licensed Microsoft Excel and Word: finish, save, reopen and verify a real workbook and document
 
 - **Phase / test ID:** Phase 07 (native file and Office fidelity) · `test_sheets.RealSpreadsheetAppTest.test_finish_the_orders_sheet_in_excel`, `test_files_documents.DeckTest`, Office routes of `office-journey.mjs`.

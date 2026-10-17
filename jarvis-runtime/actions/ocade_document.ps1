@@ -32,9 +32,10 @@ function Read-Doc($doc) {
 }
 
 $word = $null; $opened = $false; $doc = $null; $applied = @(); $started = $false
+$created = $false; $alerts = $null
 try {
   try { $word = [Runtime.InteropServices.Marshal]::GetActiveObject([string]$job.progId) }
-  catch { $word = New-Object -ComObject ([string]$job.progId) }
+  catch { $word = New-Object -ComObject ([string]$job.progId); $created = $true }
   # The app that opens this file type must offer the document interface these steps use; one
   # that does not is refused here, before anything is changed (audit R01).
   if (-not ($word | Get-Member -Name Documents)) {
@@ -119,15 +120,18 @@ try {
     $reopened = ($again.text -eq $read.text) -and ($again.tables -eq $read.tables)
     if ($job.close) {
       $doc.Close(0)
-      if ($word.Documents.Count -eq 0) { $word.Quit() }
+      # Only an instance OCADE started is ended: the person's own Word stays open (V24).
+      if ($created -and $word.Documents.Count -eq 0) { $word.Quit(); $word = $null }
     }
   }
-  if (-not $job.close) { $word.DisplayAlerts = $alerts }
   Out-Result @{ ok = $true; engine = "automation"; applied = $applied; read = $read; savedAndReopened = $reopened; reopenChecked = $opened }
 }
 catch {
   if ($opened -and $doc) { try { $doc.Close(0) } catch {} }
-  if ($word) { try { $word.DisplayAlerts = if ($null -ne $alerts) { $alerts } else { -1 } } catch {} }
   Out-Result @{ ok = $false; engine = "automation"; applied = $applied; error = $_.Exception.Message
     unsavedEdits = ((-not $opened) -and $null -ne $doc -and $started); maybeChanged = $started }
+}
+finally {
+  # Word's alert setting is the person's: put back on every way out, closed or not (V24).
+  if ($word -and $null -ne $alerts) { try { $word.DisplayAlerts = $alerts } catch {} }
 }

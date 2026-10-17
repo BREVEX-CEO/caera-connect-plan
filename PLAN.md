@@ -3486,6 +3486,15 @@ Repair within the existing journal/rollback owner: record the exact created path
 
 Phase 07 owns restoring borrowed application state in a `finally` path on success, failure and cooperative cancellation; track which application/document instances OCADE created and quit only those it owns. Preserve macro suppression and restore its prior value independently. Integrate Phase 02 cancellation with the helper rather than treating subprocess termination as guaranteed COM cleanup. Add strict COM-fixture cases for existing instance + another document, already-open target, newly created instance, save/reopen exception and cancellation; then independently check the real app's alert setting, open documents and process ownership in the disposable native qualification environment. Recovery must report residual app state when a forced process loss prevents cleanup.
 
+**Work record — Phase 07 (17 October 2026, Anthropic-managed Linux VM).**
+
+- *V21 — REPRODUCED, FIXED.* A folder's undo fingerprint was the constant `"folder"`, so undoing a folder copy sent the copy to the trash even after the person had edited, added or renamed something inside it (test failed: "Undone"). The fingerprint now covers every name, link target and file content in the tree (`os.walk` without following links); any later change refuses the undo and keeps everything. Untouched copies still undo.
+- *V17 — FIXED (file route).* The .docx/.pptx file route now takes the action's cancellation, checks it per operation and immediately before saving, and saves to a same-folder temporary file replaced in one step (a STOP leaves the file byte-identical, no temporary left). Replace and bold/italic/highlight work inside the run that holds the words, keeping that run's formatting; only words crossing differently formatted runs fall back to a rebuilt paragraph, and the result says so. `matchCase: false` is honoured and table cells are searched. The reopen check compares the whole text (it compared the first 20,000 characters). A deck is reported saved only when the reopened slide titles are the ones built (it was always `True`), and a deck now gets the same read-back refusal as documents. A reopen that fails after the save is reported changed with undo, never "not changed". 7 new tests, 5 failed before the fix.
+- *V24 — CHANGED, native run BLOCKED.* Word and Excel helpers restore the captured `DisplayAlerts` in `finally` on every way out; Word quits only an instance it started. Parse-checked with PowerShell 7.4.6.
+- *Evidence.* Python runtime 250 OK (33 skipped: Windows/live). Open checks: [BLOCKED_TESTS.md](BLOCKED_TESTS.md) WIN-07-01, WIN-07-02, FS-07-01, PC-07-01.
+
+**Phase 07 status: PARTIAL.**
+
 #### Phase 07 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.

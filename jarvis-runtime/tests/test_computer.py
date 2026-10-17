@@ -5,6 +5,7 @@ The screen tests need a display and skip without one.
 """
 import importlib
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -198,6 +199,27 @@ class UndoTest(unittest.TestCase):
         out = self.pc.run(action)
         self.assertEqual(out["status"], "done", out)
         return out
+
+    def test_a_copied_folder_the_person_changed_afterwards_is_never_undone_away(self):
+        """V21: a folder's fingerprint was the word "folder", so undoing a folder copy trashed
+        whatever the person had added to or edited inside it since."""
+        (self.root / "src").mkdir()
+        (self.root / "src" / "a.txt").write_text("one")
+        for change in (lambda d: (d / "a.txt").write_text("edited by the person"),
+                       lambda d: (d / "new.txt").write_text("added by the person"),
+                       lambda d: (d / "a.txt").rename(d / "renamed.txt")):
+            self.do(action="file_copy", path="src", to="copy")
+            change(self.root / "copy")
+            before = {p.name: p.read_text() for p in (self.root / "copy").iterdir()}
+            out = self.pc.run({"action": "undo"})
+            self.assertEqual(out["status"], "failed", out)
+            self.assertIn("changed after", out["summary"])
+            self.assertEqual({p.name: p.read_text() for p in (self.root / "copy").iterdir()}, before)
+            shutil.rmtree(self.root / "copy")
+        # Untouched since the copy: undo removes it as before.
+        self.do(action="file_copy", path="src", to="copy")
+        self.do(action="undo")
+        self.assertFalse((self.root / "copy").exists())
 
     def test_every_file_change_is_reversed_newest_first(self):
         self.do(action="file_write", path="notes.md", content="second")  # an overwrite

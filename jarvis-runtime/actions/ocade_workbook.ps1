@@ -41,7 +41,7 @@ function Read-Range($sheet, $address) {
   return @{ text = $text; formulas = $formulas }
 }
 
-$excel = $null; $created = $false; $opened = $false; $book = $null; $started = $false
+$excel = $null; $created = $false; $opened = $false; $book = $null; $started = $false; $alerts = $null
 try {
   try { $excel = [Runtime.InteropServices.Marshal]::GetActiveObject([string]$job.progId) }
   catch { $excel = New-Object -ComObject ([string]$job.progId); $created = $true }
@@ -187,9 +187,8 @@ try {
   $sheetName = $sheet.Name
   if ($job.close -and $opened) {
     $book.Close($false)
-    if ($created -and $excel.Workbooks.Count -eq 0) { $excel.Quit() }
+    if ($created -and $excel.Workbooks.Count -eq 0) { $excel.Quit(); $excel = $null }
   }
-  else { $excel.DisplayAlerts = $alerts }
   Out-Result @{ ok = $true; engine = "automation"; applied = $applied; read = $read; savedAndReopened = $reopened; reopenChecked = $opened; sheet = $sheetName }
 }
 catch {
@@ -197,7 +196,10 @@ catch {
   # original, because a failure after Save leaves a changed file. The person's own open
   # workbook keeps whatever was applied, unsaved: that is said, not hidden.
   if ($opened -and $book) { try { $book.Close($false) } catch {} }
-  if ($excel) { try { $excel.DisplayAlerts = if ($null -ne $alerts) { $alerts } else { $true } } catch {} }
   Out-Result @{ ok = $false; engine = "automation"; applied = $applied; error = $_.Exception.Message
     unsavedEdits = ((-not $opened) -and $null -ne $book -and $started); maybeChanged = $started }
+}
+finally {
+  # Excel's alert setting is the person's: put back on every way out, closed or not (V24).
+  if ($excel -and $null -ne $alerts) { try { $excel.DisplayAlerts = $alerts } catch {} }
 }
