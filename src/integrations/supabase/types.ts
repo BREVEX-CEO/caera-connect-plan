@@ -383,6 +383,8 @@ export type Database = {
         Row: {
           active: boolean
           checks: Json | null
+          claimed_at: string | null
+          claimed_occurrence: string | null
           conversation_id: string
           created_at: string
           device_id: string | null
@@ -398,6 +400,8 @@ export type Database = {
         Insert: {
           active?: boolean
           checks?: Json | null
+          claimed_at?: string | null
+          claimed_occurrence?: string | null
           conversation_id: string
           created_at?: string
           device_id?: string | null
@@ -413,6 +417,8 @@ export type Database = {
         Update: {
           active?: boolean
           checks?: Json | null
+          claimed_at?: string | null
+          claimed_occurrence?: string | null
           conversation_id?: string
           created_at?: string
           device_id?: string | null
@@ -444,6 +450,7 @@ export type Database = {
           outcome: Json | null
           plan: Json
           result: string | null
+          schedule_occurrence: string | null
           status: string
           title: string
           updated_at: string
@@ -466,6 +473,7 @@ export type Database = {
           outcome?: Json | null
           plan?: Json
           result?: string | null
+          schedule_occurrence?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -488,6 +496,7 @@ export type Database = {
           outcome?: Json | null
           plan?: Json
           result?: string | null
+          schedule_occurrence?: string | null
           status?: string
           title?: string
           updated_at?: string

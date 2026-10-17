@@ -137,6 +137,86 @@ describe("OCADE's clock", () => {
     expect(await said()).toEqual(["assistant: Reminder: Call the bank"]);
   });
 
+  /** The process dies at the first database call after its `after`th use of `table`. */
+  const dyingAfter = (table: string, after: number) => {
+    const real = admin() as { from(table: string): unknown };
+    let used = 0;
+    return new Proxy(real, {
+      get: (target, key) =>
+        key === "from"
+          ? (name: string) => {
+              if (used >= after) throw new Error("the process died");
+              if (name === table) used += 1;
+              return target.from(name);
+            }
+          : Reflect.get(target, key),
+    });
+  };
+
+  it("a run claimed just before the process died is done by a later tick, once (Phase 06 V09)", async () => {
+    const id = await schedule("Stretch", { repeat: "daily" });
+    // The claim (the schedule's own update) lands, then the process dies: no reminder, and
+    // the compensation in the catch never runs.
+    await expect(runDueSchedules(dyingAfter("jarvis_schedules", 2) as never, NOW)).rejects.toThrow(
+      /process died/,
+    );
+    expect(await said()).toEqual([]);
+    // Before: the occurrence was used up and nothing ever said it. Now a later tick does it.
+    const later = new Date(NOW.getTime() + 10 * 60_000);
+    expect(await runDueSchedules(admin(), later)).toBe(1);
+    expect(await runDueSchedules(admin(), later)).toBe(0);
+    expect(await said()).toEqual(["assistant: Reminder: Stretch"]);
+    expect(notified).toEqual(["Reminder: Stretch"]);
+    // The cadence is kept: tomorrow's run is still tomorrow's.
+    expect((await row(id)).next_at.toISOString()).toBe("2026-10-02T09:00:00.000Z");
+  });
+
+  it("a run that died after saying its reminder says it once, not twice", async () => {
+    await schedule("Stretch", { repeat: "daily" });
+    await expect(runDueSchedules(dyingAfter("ocade_messages", 1) as never, NOW)).rejects.toThrow(
+      /process died/,
+    );
+    expect(await runDueSchedules(admin(), new Date(NOW.getTime() + 10 * 60_000))).toBe(1);
+    expect(await said()).toEqual(["assistant: Reminder: Stretch"]);
+  });
+
+  it("two clocks at once run a due reminder once", async () => {
+    await schedule("Call the bank");
+    const runs = await Promise.all([runDueSchedules(admin(), NOW), runDueSchedules(admin(), NOW)]);
+    expect(runs.reduce((a, b) => a + b, 0)).toBe(1);
+    expect(await said()).toEqual(["assistant: Reminder: Call the bank"]);
+  });
+
+  it("the claim migration verifies, rolls back and applies again", async () => {
+    const MIGRATION = "20261017090000_schedule_occurrence_claims";
+    const verify = () => twin.runScript("supabase/verification", `${MIGRATION}_verify.sql`);
+    expect((await verify()).error).toBeUndefined();
+    expect(
+      (await twin.runScript("supabase/rollback", `${MIGRATION}_rollback.sql`)).error,
+    ).toBeUndefined();
+    expect((await verify()).error).toBeTruthy();
+    expect((await twin.runScript("supabase/migrations", `${MIGRATION}.sql`)).error).toBeUndefined();
+    expect((await verify()).error).toBeUndefined();
+  });
+
+  it("scheduled work started just before the process died is not started twice or called busy", async () => {
+    await allow("autonomous", true);
+    const id = await schedule("Tidy the reports", { device });
+    await expect(runDueSchedules(dyingAfter("jarvis_tasks", 1) as never, NOW)).rejects.toThrow(
+      /process died/,
+    );
+    const later = new Date(NOW.getTime() + 10 * 60_000);
+    await sql(
+      `update public.jarvis_devices set last_seen_at = '${later.toISOString()}' where id = '${device}'`,
+    );
+    expect(await runDueSchedules(admin(), later)).toBe(1);
+    expect(
+      await sql(`select id from public.jarvis_tasks where device_id = '${device}'`),
+    ).toHaveLength(1);
+    expect(await row(id)).toMatchObject({ last_outcome: "Started" });
+    expect(notified).toEqual([]);
+  });
+
   it("a repeating one moves to its next time and is not run again early", async () => {
     const id = await schedule("Stretch", { repeat: "daily" });
     await runDueSchedules(admin(), NOW);

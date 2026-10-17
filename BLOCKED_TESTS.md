@@ -161,6 +161,21 @@ Common safety rules for every PC entry:
 
 - **Reason:** the browser's own recognition service is not reachable from the session.
 
+## NOTIF-06-01 — Email delivery of task and security notifications
+
+- **Test:** a task outcome or security notification is emailed once, with retry and dead-letter state like push.
+- **Reason:** no email transport exists (`channels.ts` marks email unavailable and never offers it). Adding one needs a provider account (an API key and a verified sending domain), which only the owner can create; ₹0 rules out paid tiers.
+- **Remains:** owner chooses a provider with a free tier; then a sender in `send.server.ts` beside `web-push.ts`, with the same idempotency key and `DELIVERY_ATTEMPTS`.
+
+## WAKE-06-01 — Device wake hints and first-step latency
+
+- **Status:** UNTESTED. The 11 Oct decision kept 1 s / 5 s device polling instead of a push channel until latency is measured. The measurement can run in the cloud session (scripted journey timing); it has not yet.
+
+## SCH-06-01 — Scheduler process kill on the deployed Worker cron
+
+- **Test:** kill the Worker between claim and task creation on a real staging deployment; the next cron tick finishes the claimed occurrence once.
+- **Reason:** no staging Worker or database is available to this session (owner gate). The same kill points are proven against real PostgreSQL with the real migrations (`schedules.test.ts`).
+
 ## PC-07-01 — Licensed Microsoft Excel and Word: finish, save, reopen and verify a real workbook and document
 
 - **Phase / test ID:** Phase 07 (native file and Office fidelity) · `test_sheets.RealSpreadsheetAppTest.test_finish_the_orders_sheet_in_excel`, `test_files_documents.DeckTest`, Office routes of `office-journey.mjs`.

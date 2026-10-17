@@ -3381,6 +3381,15 @@ This phase also owns functional transactional/security/task notification deliver
 
 Tests kill the scheduler after claim, before task admission and after delivery; race two due workers; exercise DST, clock drift, disabled schedule and revoked scope. A durable occurrence is either queued/blocked/finished with its receipt, never silently skipped or duplicated. Failures preserve a visible retryable occurrence; rollback drains/reconciles it without replaying unknown effects.
 
+**Work record — Phase 06 (17 October 2026, Anthropic-managed Linux VM).**
+
+- *V09 — REPRODUCED, FIXED.* Against real PostgreSQL with the real migrations, a process that died right after the schedule's claim lost the occurrence: the next tick ran nothing and the reminder or task never happened (two tests, both failed before the fix). Migration `20261017090000_schedule_occurrence_claims` (+ rollback, verification): the claim that advances the schedule records `claimed_occurrence`/`claimed_at`; only a finished run clears them; a claim older than 5 minutes is re-claimed by one later tick and finished for that occurrence. A task started for an occurrence carries `schedule_occurrence` (unique), so finishing the run again never starts a second task or reports the computer busy. Cadence is kept (tomorrow's run stays tomorrow's).
+- *Tests (all real PostgreSQL).* Death after claim → later tick reminds once; death after the reminder text → said once; death after the task insert → one task, outcome "Started"; two clocks at once → one run; migration verifies, rolls back (verification then fails) and applies again. DST is covered by `schedule-time.test.ts`. `verify:full` 15/15 gates, 1,348 tests.
+- *Notifications.* Push already retries in-line (3 attempts) and dead-letters with the event-keyed record kept. Email transport does not exist: NOTIF-06-01.
+- *Open checks:* [BLOCKED_TESTS.md](BLOCKED_TESTS.md) NOTIF-06-01, WAKE-06-01, SCH-06-01.
+
+**Phase 06 status: PARTIAL.**
+
 #### Phase 06 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
