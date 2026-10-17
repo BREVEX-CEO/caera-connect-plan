@@ -236,6 +236,23 @@ class FileEngineTest(unittest.TestCase):
         self.assertEqual(pc.run({"action": "undo"})["status"], "done")
         self.assertFalse((self.root / "cities.xlsx").exists())
 
+    def test_a_missing_sheet_is_refused_with_the_way_to_make_it(self):
+        """Live Gemini, 17 Oct: told only "That sheet does not exist", JARVIS rebuilt the workbook
+        over and over and never added the Unmatched sheet the request asked for."""
+        pc = Computer(str(self.root))
+        pc.run({"action": "file_copy", "path": "sales.xlsx", "to": "recon.xlsx"})
+        refused = pc.run({"action": "sheet_edit", "path": "recon.xlsx", "sheet": "Unmatched",
+                          "ops": [{"op": "set", "cell": "A1", "value": "ID"}]})
+        self.assertEqual(refused["status"], "failed")
+        self.assertIn("it has: Orders, Rates, Notes", refused["summary"])
+        self.assertIn("sheet_add", refused["summary"])
+        added = pc.run({"action": "sheet_edit", "path": "recon.xlsx",
+                        "ops": [{"op": "sheet_add", "name": "Unmatched"}]})
+        self.assertEqual(added["status"], "done", added)
+        done = pc.run({"action": "sheet_edit", "path": "recon.xlsx", "sheet": "Unmatched",
+                       "ops": [{"op": "set", "cell": "A1", "value": "ID"}]})
+        self.assertEqual(done["status"], "done", done)
+
     def test_through_the_computer_stays_in_the_workspace(self):
         pc = Computer(str(self.root))
         self.assertEqual(pc.run({"action": "sheet_inspect", "path": "sales.xlsx"})["status"], "done")

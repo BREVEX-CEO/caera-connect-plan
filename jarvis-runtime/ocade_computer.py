@@ -728,7 +728,16 @@ class Computer:
         except ocade_sheets.SheetError as e:
             return {"status": "failed", "summary": str(e)}
         except KeyError:
-            return {"status": "failed", "summary": "That sheet does not exist in the workbook"}
+            # Said with what would work: the model otherwise retries the same edit (live, 17 Oct).
+            try:
+                from openpyxl import load_workbook
+                names = load_workbook(str(path), read_only=True).sheetnames
+            except Exception:  # noqa: BLE001 - the names only help; the refusal stands without them
+                names = []
+            return {"status": "failed", "summary": (
+                f"That sheet does not exist in the workbook (it has: {', '.join(names) or 'none read'}). "
+                f"To make it, first sheet_edit {rel} with ops [{{op:'sheet_add', name:'{sheet}'}}], "
+                "then edit it by that sheet name")[:300]}
         if not out.get("ok"):
             return self._unfinished(out, rel, path, "workbook")
         if out.get("backup"):
