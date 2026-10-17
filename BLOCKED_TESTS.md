@@ -62,6 +62,12 @@ Common safety rules for every PC entry:
 | APP-17-01   | 17           | Independent reopen in LibreOffice on every CI run       | BLOCKED  | CI-00-01; LibreOffice in the Python job               |
 | ONL-17-01   | 17           | ONLYOFFICE opens and recalculates OCADE's files         | BLOCKED  | Owner: edition/licence; a VM where it starts          |
 | MED-17-01   | 17           | Creative/media families: editable project + 720p/1080p  | OPEN     | Owner: which family to support first                  |
+| WF-18-01    | 18           | Reconcile workflow: 30 held-out real-model cases        | FAIL     | Rerun on fixed code; outcome templates                |
+| WF-18-02    | 18           | Client pack workflow: 30 held-out real-model cases      | UNTESTED | Gemini daily quota (resets daily)                     |
+| WF-18-03    | 18           | Order status workflow: 30 held-out real-model cases     | UNTESTED | Gemini daily quota (resets daily)                     |
+| WF-18-04    | 18 / 01      | Zero falsely verified completions                       | FAIL     | Outcome templates (VER-01-01)                         |
+| WF-18-05    | 18           | Five consenting design partners, two weeks              | BLOCKED  | Owner: recruit partners                               |
+| WIN-18-01   | 18           | PDF through Word/Excel/PowerPoint on Windows            | OPEN     | Isolated Windows VM with Office                       |
 
 ---
 
@@ -162,6 +168,7 @@ Common safety rules for every PC entry:
 ## VER-01-01 — A claim about an effect no check covers is refused
 
 - **Status:** OPEN (HIGH). When the model writes no check for an effect the person asked for, its completion claim about that effect is still accepted. The video case is closed by the `pausedAt` check; the general case is not.
+- **Live evidence (17 Oct):** three real-model reconcile tasks completed with empty result sheets under model-written checks that only named the file (WF-18-04).
 - **Remains:** derive mandatory checks from the request, or refuse completion text that asserts unchecked effects (Phase 01 verifier contract) — before any release.
 
 ## PERF-05-01 — Segment timing
@@ -315,6 +322,40 @@ Common safety rules for every PC entry:
 - **Test:** an editable project (video, image or 3D) plus a real 720p/1080p render, reopened and inspected.
 - **Status:** OPEN. OCADE advertises no video, 3D or design-tool family and has no adapter for one; building one now would be speculative (PLAN Phase 17: add a capability only for a demonstrated requirement). Browser-based media work is covered by LIVE-04-01/02.
 - **Remains:** the owner names the first family and the customer requirement; then probe version, freeze a fixture, typed operations, reopen and render checks.
+
+## WF-18-01 — Reconcile workflow: held-out real-model cases
+
+- **Test:** `live-journey.mjs` with `OCADE_LIVE_TASKS=reconcile`: a seeded ledger.xlsx and bank.csv (one ID missing from the bank, one extra, one amount changed); checked by `workflow_cases.py`: originals byte-identical, Matched lists exactly the agreeing IDs, its total recalculated by LibreOffice equals the true total and is a SUM formula, Unmatched lists exactly the three IDs.
+- **Results (17 Oct, real Gemini, cloud VM):** case 1 FAIL (handed back after 1 204 s; root cause fixed in `bbced1f8`: a missing sheet is refused with the sheets it has and how to add it); rerun cases 1–2 2/2 PASS (37 s / 15 requests, 80 s / 16 requests); seeds 3–12 6/10 PASS, 39–183 s, 12–41 requests a case.
+- **Error:** the 4 failures (cases 6, 7, 10, 11) all follow `That did not work (ValueError)` (11 times in the batch): a table on a second sheet was named `Table1` again. Fixed in `fe7ddb2f` (names unique in the workbook; a duplicate given name refused in words), but the batch's device had started before the fix, so it ran the old code.
+- **Remains:** rerun seeds 3–32 on the fixed code (needs the Gemini daily quota, WF-18-02), then WF-18-04.
+
+## WF-18-02 — Client pack workflow: held-out real-model cases
+
+- **Test:** template.docx + client.xlsx → pack.docx (no placeholder left, every detail present, template styles kept) + pack.pdf carrying the details (through `pdf_export`); originals byte-identical.
+- **Results (17 Oct):** case 1 and seeds 3–10: 9/9 PASS, 25–136 s, 12–20 requests, 0 confirmations, 0 failed steps.
+- **Reason open:** case 11 was cut off by Gemini's free-tier daily request limit (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, retry after 52 732 s); that is a quota stop, not a result. Per-minute request and input-token limits (429, 24–53 s) were absorbed by the shared retry budget.
+- **Remains:** seeds 11–30 once the quota resets (₹0; no paid tier without owner approval).
+
+## WF-18-03 — Order status workflow: held-out real-model cases
+
+- **Test:** status pages served on this machine (one stale, one missing) → status.xlsx with each order's status and update time as its page says, nothing invented for the missing page, a Problems sheet listing exactly the stale and missing orders.
+- **Results (17 Oct):** case 1 PASS (40 s, 15 requests, 0 confirmations); seeds 3–12 not reached (daily quota, WF-18-02).
+- **Remains:** 29 more cases once the quota resets.
+
+## WF-18-04 — Zero falsely verified completions
+
+- **Status:** FAIL. Reconcile cases 6, 7 and 11 ended "completed" while Matched (and in case 7 Unmatched) was empty. The server checked exactly the checks the model wrote at start_task — `{"path": "reconciliation.xlsx"}`, or that path containing "Matched" and "Unmatched" — and those passed: the file existed and named its sheets.
+- **Attempted:** none that closes it: the model cannot know the expected records or total before working them out, so a prompt rule cannot make its own checks strong enough.
+- **Remains:** approved outcome templates per workflow (PLAN Phase 18 "ADD: approved outcome templates"; VER-01-01), so the checks a recurring workflow must pass are fixed by OCADE from the person's approved recipe, not authored by the model.
+
+## WF-18-05 — Design partners
+
+- **Reason:** five consenting accountants or independent professionals observed for two weeks need the owner to recruit them; synthetic fixtures only so far.
+
+## WIN-18-01 — PDF through Office on Windows
+
+- **Status:** OPEN. `pdf_export` uses LibreOffice wherever it is installed (Linux proven, Windows/macOS install paths looked up); Word/Excel/PowerPoint's own PDF export is not built, because it cannot be tested here.
 
 ## PC-07-01 — Licensed Microsoft Excel and Word: finish, save, reopen and verify a real workbook and document
 

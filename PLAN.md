@@ -5018,6 +5018,8 @@ Use durable aggregate state or a verified journal frontier plus complete handlin
 
 ---
 
+**Work record — Phase 18 (17 October 2026, Anthropic-managed Linux VM, real Gemini).** Added `pdf_export` (a new PDF through the installed office app, read back against the source; no overwrite; STOP; undo) and three held-out workflow families in `live-journey.mjs`, checked by `scripts/e2e/workflow_cases.py` (validators proven on a correct and a wrong answer). Real-model results: reconcile 8/12 (failures traced to two device defects, both fixed: missing-sheet refusal `bbced1f8`, workbook-unique table names `fe7ddb2f`; the fix for the second is not yet rerun live), client pack 9/9, order status 1/1. **Three false completions** (reconcile 6, 7, 11): model-authored checks only named the file — the acceptance gate (zero) fails until approved outcome templates exist. The Gemini free-tier daily limit stopped the batch. Open checks: [BLOCKED_TESTS.md](BLOCKED_TESTS.md) WF-18-01…05, WIN-18-01, VER-01-01.
+
 #### Phase 18 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
