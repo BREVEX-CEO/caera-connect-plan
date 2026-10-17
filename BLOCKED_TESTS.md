@@ -45,7 +45,7 @@ Common safety rules for every PC entry:
 | FS-07-01    | 07           | A user edit between undo's comparison and restore       | UNTESTED | Cloud session (can run)                               |
 | SEC-08-01   | 08           | A staff proof binds the exact target                    | OPEN     | Proof contract                                        |
 | SEC-08-02   | 08           | Recovery against real Supabase Auth                     | BLOCKED  | Staging Supabase project                              |
-| UI-08-01    | 08           | Consent dialog: account switch and unmount while asking | UNTESTED | Cloud session (can run)                               |
+| UI-08-01    | 08           | Consent dialog: account switch and unmount while asking | RESOLVED | —                                                     |
 | SUP-08-01   | 08           | Support share flow on staging                           | BLOCKED  | Staging Supabase project                              |
 | DATA-09-01  | 09           | Restore must not bring back erased content              | BLOCKED  | Staging restore                                       |
 | DATA-09-02  | 09           | Storage faults during erasure; expired links            | BLOCKED  | Staging Supabase project                              |
@@ -245,7 +245,7 @@ Common safety rules for every PC entry:
 
 ## UI-08-01 — Consent dialog: account switch and unmount while asking
 
-- **Status:** UNTESTED. Joining concurrent asks is unit-tested (fails before, passes after); the dialog's "no" on unmount and on account change has no browser step yet (no component test environment exists).
+- **RESOLVED (17 Oct) for the account change.** `chat-journey`: with the consent question open in one tab, signing out in another closes it and nothing is answered online; joining concurrent asks is unit-tested. The unmount path ("no" when the dialog goes away) is code-reviewed only: the dialog is mounted at the app root for the page's whole life, so no browser step can unmount it alone.
 
 ## SUP-08-01 — Support share flow on staging
 

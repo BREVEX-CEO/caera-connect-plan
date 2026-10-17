@@ -623,6 +623,53 @@ try {
    * a clear. A reload would have hidden it, so this deliberately does not
    * reload: it signs out and looks at the same document.
    */
+  // Asked, then the account changes in another tab: the question is answered "no" and nothing
+  // is sent for anyone (BLOCKED_TESTS UI-08-01).
+  await fetch(`${SUPABASE}/rest/v1/rpc/ocade_record_online_ai_consent`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ p_version: "2026-10-13", p_given: false }),
+  });
+  const answersAsked = await page.locator("text=stubbed OCADE answer").count();
+  await page.fill("#ocade-composer", "Sent after the account changed?");
+  await page.click('button[aria-label="Send"]');
+  await consent.waitFor({ timeout: 20_000 });
+  const other = await page.context().newPage();
+  await other.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  await other.click('aside button[aria-haspopup="menu"]');
+  await other.getByRole("menuitem", { name: "Sign out" }).click();
+  check(
+    "a consent question open when the account changes is closed with nothing sent",
+    (await consent.waitFor({ state: "detached", timeout: 10_000 }).then(
+      () => true,
+      () => false,
+    )) && (await page.locator("text=stubbed OCADE answer").count()) <= answersAsked,
+  );
+  await other.close();
+  // That sign-out ended the session everywhere: the same person signs in again to go on.
+  const again = await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: EMAIL, password: "proof" }),
+  }).then((response) => response.json());
+  await page
+    .context()
+    .addInitScript(
+      ([key, value]) => window.localStorage.setItem(key, value),
+      [storageKey(SUPABASE), JSON.stringify(again)],
+    );
+  await fetch(`${SUPABASE}/rest/v1/rpc/ocade_record_online_ai_consent`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${again.access_token}`,
+    },
+    body: JSON.stringify({ p_version: "2026-10-13", p_given: true }),
+  });
+
   await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
   await page.waitForTimeout(500);
   await page.locator("aside ul li button").first().click();
