@@ -412,7 +412,12 @@ def edit_file(path: Path, sheet: str | None, ops: list[dict], cancel: threading.
                 raise SheetError(f"{op['rule']} formatting needs a spreadsheet app OCADE can work in")
             ws.conditional_formatting.add(address, rule)
         elif kind == "table":
-            table = Table(displayName=op.get("name") or f"Table{len(ws.tables) + 1}", ref=address)
+            # Table names are the workbook's, not the sheet's: a second sheet's "Table1" is refused.
+            taken = {name.lower() for sheet in book.worksheets for name in sheet.tables}
+            name = op.get("name") or next(f"Table{n}" for n in range(1, 10_000) if f"table{n}" not in taken)
+            if name.lower() in taken:
+                raise SheetError(f"This workbook already has a table named {name}; give the table another name")
+            table = Table(displayName=name, ref=address)
             table.tableStyleInfo = TableStyleInfo(name=op.get("style") or "TableStyleMedium2", showRowStripes=True)
             ws.add_table(table)
         elif kind == "filter":

@@ -253,6 +253,25 @@ class FileEngineTest(unittest.TestCase):
                        "ops": [{"op": "set", "cell": "A1", "value": "ID"}]})
         self.assertEqual(done["status"], "done", done)
 
+    def test_tables_on_two_sheets_get_names_of_their_own(self):
+        """Live Gemini, 17 Oct (reconcile case 6): a table on a second sheet was named Table1 again,
+        and the edit failed as "That did not work (ValueError)" three times."""
+        pc = Computer(str(self.root))
+        pc.run({"action": "file_copy", "path": "sales.xlsx", "to": "recon.xlsx"})
+        first = pc.run({"action": "sheet_edit", "path": "recon.xlsx", "sheet": "Orders",
+                        "ops": [{"op": "table", "range": "A1:D7"}]})
+        self.assertEqual(first["status"], "done", first)
+        second = pc.run({"action": "sheet_edit", "path": "recon.xlsx", "sheet": "Rates",
+                         "ops": [{"op": "table", "range": "A1:B5"}]})
+        self.assertEqual(second["status"], "done", second)
+        from openpyxl import load_workbook
+        book = load_workbook(self.root / "recon.xlsx")
+        self.assertEqual((list(book["Orders"].tables), list(book["Rates"].tables)), (["Table1"], ["Table2"]))
+        same = pc.run({"action": "sheet_edit", "path": "recon.xlsx", "sheet": "Notes",
+                       "ops": [{"op": "table", "range": "A1:B2", "name": "Table1"}]})
+        self.assertEqual(same["status"], "failed")
+        self.assertIn("already has a table named Table1", same["summary"])
+
     def test_through_the_computer_stays_in_the_workspace(self):
         pc = Computer(str(self.root))
         self.assertEqual(pc.run({"action": "sheet_inspect", "path": "sales.xlsx"})["status"], "done")
