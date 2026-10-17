@@ -1131,6 +1131,7 @@ export function JarvisWorkspace({
                     .filter((entry) => entry.task_id === conversationTask.id && entry.check)
                     .slice(0, 5)
                     .map((entry) => entry.summary)}
+                  latest={jarvis?.activity.find((entry) => entry.task_id === conversationTask.id)}
                   // A new task through the same planner, checks and receipts: only the inputs change.
                   onRepeat={() => {
                     setDraft(`Do "${conversationTask.title}" again, with these new inputs: `);
@@ -1234,6 +1235,9 @@ export function JarvisWorkspace({
                 }
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
+                  // Enter that confirms an input method's composition (Hindi, Japanese, …)
+                  // chooses the word; it never sends half a sentence (PLAN Phase 16 V13).
+                  if (event.nativeEvent.isComposing || event.keyCode === 229) return;
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
                     void send(draft, false);

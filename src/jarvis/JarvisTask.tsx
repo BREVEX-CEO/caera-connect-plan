@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Hand, Pause, Play, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FINISHED, TASK_STATUS } from "./protocol";
-import { readJarvisFrame, type JarvisTaskRow } from "./jarvis.functions";
+import { readJarvisFrame, type JarvisState, type JarvisTaskRow } from "./jarvis.functions";
 import type { JarvisVoice } from "./use-voice";
 
 function Controls({
@@ -60,6 +60,7 @@ export function TaskCard({
   onRetry,
   onRepeat,
   checks = [],
+  latest,
 }: {
   task: JarvisTaskRow;
   running: boolean;
@@ -72,6 +73,8 @@ export function TaskCard({
   onRepeat?: () => void;
   /** What the device read back for this task: receipts, newest first. */
   checks?: string[];
+  /** The task's newest recorded activity: the only source of the live stage below. */
+  latest?: JarvisState["activity"][number];
 }) {
   const total = Math.max(1, task.plan.length);
   const done = FINISHED.includes(task.status);
@@ -119,6 +122,7 @@ export function TaskCard({
           ))}
         </ol>
       ) : null}
+      {task.status === "running" && running ? <LiveStage task={task} latest={latest} /> : null}
       {task.blocker && !done ? <p className="mb-2 text-xs">{task.blocker}</p> : null}
       {done && task.result ? (
         <p className="mb-2 whitespace-pre-wrap text-xs" data-testid="jarvis-task-result">
@@ -165,6 +169,48 @@ export function TaskCard({
         </button>
       ) : null}
     </section>
+  );
+}
+
+/** Which stage the record shows the task in; never a guess from the clock or the model's words. */
+function stageOf(latest: JarvisState["activity"][number] | undefined) {
+  if (!latest || latest.status === "note") return "Planning";
+  if (latest.research) return "Searching websites";
+  if (latest.status === "failed" || latest.status === "blocked") return "Fixing";
+  if (latest.check) return "Verifying";
+  return "Executing";
+}
+
+function LiveStage({
+  task,
+  latest,
+}: {
+  task: JarvisTaskRow;
+  latest?: JarvisState["activity"][number];
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const seconds = Math.max(0, Math.floor((now - new Date(task.created_at).getTime()) / 1000));
+  const failed = latest?.status === "failed" || latest?.status === "blocked";
+  return (
+    <p className="mb-2 text-xs" data-testid="jarvis-task-live">
+      <span aria-live="polite">
+        <span className="font-medium">{stageOf(latest)}</span>
+        {latest ? (
+          <span className={cn(failed ? "text-destructive" : "text-muted-foreground")}>
+            {failed ? " · Did not work: " : " · "}
+            {latest.summary}
+          </span>
+        ) : null}
+      </span>
+      <span className="text-muted-foreground">
+        {" · "}
+        {Math.floor(seconds / 60)} min {seconds % 60} s
+      </span>
+    </p>
   );
 }
 

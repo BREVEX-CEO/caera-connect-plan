@@ -1014,9 +1014,22 @@ export function ConnectDevice({
               <button
                 type="button"
                 disabled={busy}
-                onClick={() =>
-                  void declineJarvisDevice({ data: { id } }).finally(() => onDone(false))
-                }
+                onClick={() => {
+                  // Closed only once the refusal is saved: a failed one stays here to try again
+                  // (PLAN Phase 16 V13), and a second click cannot send it twice.
+                  setBusy(true);
+                  void declineJarvisDevice({ data: { id } }).then(
+                    () => onDone(false),
+                    (cause: unknown) => {
+                      setBusy(false);
+                      toast.error(
+                        cause instanceof Error
+                          ? cause.message
+                          : "That could not be refused just now. Try again.",
+                      );
+                    },
+                  );
+                }}
                 className="rounded-md px-3 py-1.5 hover:bg-accent"
               >
                 Not mine

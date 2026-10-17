@@ -467,6 +467,9 @@ export function ChatWorkspace() {
                   grow();
                 }}
                 onKeyDown={(event) => {
+                  // Enter that confirms an input method's composition (Hindi, Japanese, …)
+                  // chooses the word; it never sends half a sentence (PLAN Phase 16 V13).
+                  if (event.nativeEvent.isComposing || event.keyCode === 229) return;
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
                     void send();

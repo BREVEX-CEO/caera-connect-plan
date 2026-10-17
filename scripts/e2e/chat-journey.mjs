@@ -147,6 +147,22 @@ try {
     (await page.locator("aside", { hasText: "Renamed by the proof" }).count()) === 1,
   );
 
+  // An input method's Enter chooses the word and sends nothing (PLAN Phase 16 V13).
+  await page.fill("#ocade-composer", "नमस्ते");
+  await page.locator("#ocade-composer").dispatchEvent("keydown", {
+    key: "Enter",
+    code: "Enter",
+    keyCode: 229,
+    isComposing: true,
+    bubbles: true,
+  });
+  await page.waitForTimeout(400);
+  check(
+    "Enter that confirms a composition (Hindi input) does not send the message",
+    (await page.inputValue("#ocade-composer")) === "नमस्ते",
+  );
+  await page.fill("#ocade-composer", "");
+
   // Share it with support, then stop sharing (PLAN Phase 08 V10): only the customer decides.
   await page.hover("aside ul li");
   await page.click('aside ul li button[aria-label^="More options"]');

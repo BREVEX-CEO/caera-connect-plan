@@ -91,6 +91,8 @@ export interface JarvisState {
     created_at: string;
     /** A successful read-back of the device: a receipt, not the model's word. */
     check: boolean;
+    /** A web search made on OCADE's server: its summary names the sites it read. */
+    research: boolean;
   }[];
   sites: string[];
   /** Each computer's apps, with that computer's Allowed Apps rule for each. */
@@ -256,6 +258,7 @@ export const readJarvisState = createServerFn({ method: "GET" })
         ...rest,
         check:
           rest.status === "done" && readsBack(action as { action?: unknown; op?: unknown } | null),
+        research: (action as { action?: unknown } | null)?.action === "research",
       })),
       sites: [...sites].sort().slice(0, 100),
       apps,

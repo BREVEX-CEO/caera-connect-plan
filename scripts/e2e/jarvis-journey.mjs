@@ -366,6 +366,18 @@ try {
     );
     await phished.getByRole("button", { name: "Not mine", exact: true }).click();
     await page.goto(/OCADE: (\S+)/.exec(thief.out())[1], { waitUntil: "networkidle" });
+    // A refusal that could not be saved keeps the question open (PLAN Phase 16 V13).
+    await page.route("**/_serverFn/**", (route) =>
+      route.request().method() === "POST" ? route.abort() : route.continue(),
+    );
+    await page.getByRole("button", { name: "Not mine", exact: true }).click();
+    await page.waitForTimeout(1_000);
+    check(
+      "a refusal that did not reach OCADE leaves the request open to try again",
+      (await page.getByRole("button", { name: "Not mine", exact: true }).count()) === 1 &&
+        (await page.getByRole("button", { name: "Not mine", exact: true }).isEnabled()),
+    );
+    await page.unroute("**/_serverFn/**");
     await page.getByRole("button", { name: "Not mine", exact: true }).click();
     check(
       "a device the person does not recognise is refused and keeps nothing",
@@ -1075,6 +1087,16 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
       await until(async () => (await dialog.count()) === 1, 60_000),
     );
     check("it names what it will press", (await dialog.innerText()).includes("Send message"));
+    // Live progress comes only from the record: a stage, the recorded step, time spent.
+    const live = await page
+      .locator("[data-testid=jarvis-task-live]")
+      .innerText()
+      .catch(() => "");
+    check(
+      "a running task shows its recorded stage, last step and elapsed time",
+      /^(Executing|Verifying|Fixing|Planning|Searching websites) · .+ · \d+ min \d+ s$/.test(live),
+      live,
+    );
     await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
     await until(async () => hits.includes("/sent"), 20_000);
     check("confirmed: the submission ran", hits.filter((h) => h === "/sent").length === 1);

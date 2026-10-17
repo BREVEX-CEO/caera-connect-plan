@@ -33,10 +33,32 @@ Common safety rules for every PC entry:
 | VER-01-01  | 01           | A claim about an effect no check covers is refused      | OPEN     | Verifier contract                                     |
 | PERF-05-01 | 05           | Identical 30-step old/new timing; Windows batch timing  | BLOCKED  | Isolated Windows VM                                   |
 | AND-05-01  | 05           | Android multi-step segments                             | OPEN     | Android implementation + emulator                     |
-| BRW-00-01  | 16           | Firefox and WebKit legs of the browsers journey         | BLOCKED  | Browser downloads (egress refused here)               |
+| BRW-00-01  | 16           | Firefox and WebKit legs of the browsers journey         | RESOLVED | —                                                     |
 | BRW-00-02  | 16           | Real push service                                       | BLOCKED  | Browser build with a push service                     |
 | VOI-13-01  | 13           | Real speech-recognition service                         | BLOCKED  | Reachable speech service                              |
 | PC-07-01   | 07           | Licensed Excel and Word automation                      | BLOCKED  | Owner-approved Windows PC with Office                 |
+| NOTIF-06-01 | 06           | Email delivery of task and security notifications       | BLOCKED  | Staging email provider                                |
+| WAKE-06-01 | 06           | Device wake hints and first-step latency                | UNTESTED | Cloud session (can run)                               |
+| SCH-06-01  | 06           | Scheduler kill on the deployed Worker cron              | BLOCKED  | Staging deployment                                    |
+| WIN-07-01  | 07           | Office helpers restore alerts, quit only own instance   | BLOCKED  | Isolated Windows VM with Office                       |
+| WIN-07-02  | 07           | Native Office reopen/layout; locked and corrupt inputs  | BLOCKED  | Isolated Windows VM with Office                       |
+| FS-07-01   | 07           | A user edit between undo's comparison and restore       | UNTESTED | Cloud session (can run)                               |
+| SEC-08-01  | 08           | A staff proof binds the exact target                    | OPEN     | Proof contract                                        |
+| SEC-08-02  | 08           | Recovery against real Supabase Auth                     | BLOCKED  | Staging Supabase project                              |
+| UI-08-01   | 08           | Consent dialog: account switch and unmount while asking | UNTESTED | Cloud session (can run)                               |
+| SUP-08-01  | 08           | Support share flow on staging                           | BLOCKED  | Staging Supabase project                              |
+| DATA-09-01 | 09           | Restore must not bring back erased content              | BLOCKED  | Staging restore                                       |
+| DATA-09-02 | 09           | Storage faults during erasure; expired links            | BLOCKED  | Staging Supabase project                              |
+| DATA-09-03 | 09           | A very large export on the deployed Worker              | BLOCKED  | Staging deployment                                    |
+| OFF-10-01  | 10           | Real Offline Intelligence install and cold answer       | BLOCKED  | R2 read access (owner)                                |
+| OFF-10-02  | 10           | Offline answer quality, storage pressure, accounts      | BLOCKED  | As OFF-10-01                                          |
+| WIN-11-01  | 11           | Unfamiliar Windows app qualification                    | BLOCKED  | Isolated Windows VM                                   |
+| WIN-12-01  | 12           | Windows install, pairing, update, rollback, uninstall   | BLOCKED  | Isolated Windows VM                                   |
+| AND-14-01  | 14           | Android app on an emulator or device                    | BLOCKED  | KVM emulator or device                                |
+| IOS-15-01  | 15           | Physical iPhone/iPad and macOS behaviour                | BLOCKED  | Apple hardware / macOS runner                         |
+| UI-16-01   | 16           | Pixel-baseline visual regression                        | OPEN     | Baseline images + comparison step                     |
+| UI-16-02   | 16           | Device refusal: revoked authority, STOP while saving    | UNTESTED | Cloud session (can run)                               |
+| SR-16-01   | 16           | Real screen readers (NVDA, VoiceOver, TalkBack)         | BLOCKED  | Windows/macOS/Android with screen reader              |
 
 ---
 
@@ -251,6 +273,23 @@ Common safety rules for every PC entry:
 ## IOS-15-01 — Physical iPhone/iPad and macOS behaviour
 
 - **Reason:** no Apple hardware or macOS runner. WebKit iPhone-sized browser emulation passes (BRW-00-01), which is not device evidence.
+
+## UI-16-01 — Pixel-baseline visual regression
+
+- **Test:** each screen's screenshot at desktop, tablet and phone width, dark and light, compared with an approved baseline image.
+- **Status:** OPEN. `visual-journey.mjs` takes every screenshot and fails on overflow, page errors and off-screen controls, and the screenshots were read by eye (17 Oct); there is no approved baseline and no pixel comparison step, so a visual drift that keeps the layout valid is not caught automatically.
+- **Remains:** owner-approved baseline images and a comparison step without a new dependency (Playwright's own `toHaveScreenshot` needs `@playwright/test`, which the journeys do not use).
+
+## UI-16-02 — Device refusal: revoked authority and STOP while saving
+
+- **Test:** "Not mine" on a pairing request when the server refuses (authority revoked) and when STOP is pressed while the refusal is saving.
+- **Status:** UNTESTED. The failed-network path is proven in the browser (`jarvis-journey`: the request stays open and the button works again; a second click cannot send twice while saving). A server refusal takes the same rejected-promise path but has no browser step yet; STOP has no effect on a pairing request (no task runs).
+- **Remains:** a route that answers the refusal with a server error, checked the same way.
+
+## SR-16-01 — Real screen readers
+
+- **Reason:** the journeys drive every control by its accessible role and name (the browser's accessibility tree), which is not a screen reader. NVDA/Narrator need Windows, VoiceOver needs macOS/iOS, TalkBack needs Android; none exist here.
+- **Remains:** a run of the main task, STOP and Take Over flows with each screen reader, with the live task line (`aria-live="polite"`) announced without repeating the elapsed-time tick.
 
 ## PC-07-01 — Licensed Microsoft Excel and Word: finish, save, reopen and verify a real workbook and document
 

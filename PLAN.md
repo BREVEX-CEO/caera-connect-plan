@@ -4687,6 +4687,8 @@ Private-content access requires customer approval scoped to the specific case, c
 
 This phase owns factual public help/support contacts, notification settings and operator-facing health/incident controls using Phase 06 delivery and Phase 09 data-recovery mechanisms. Phase 20 qualifies operations before payment implementation. Preserve accessible keyboard/focus and text alternatives; measure layout, contrast, reduced motion and interruption clarity rather than only visual screenshots.
 
+**Work record — Phase 16 (17 October 2026, Anthropic-managed Linux VM).** V13 fixed: Enter while an input method is composing (`isComposing`/keyCode 229) no longer sends, in chat and JARVIS; "Not mine" closes only after the refusal is saved, keeps the request open with an error otherwise, and cannot be sent twice while saving. Truthful live progress: a running task's card shows its stage (Planning, Searching websites, Executing, Fixing, Verifying), the newest recorded step (site names come from the recorded web search) and elapsed time, all from `jarvis_activity` rows; no percentage without a plan and no model text. Journeys: chat, jarvis, polish PASS; unit tests 1381 PASS. Open checks: [BLOCKED_TESTS.md](BLOCKED_TESTS.md) UI-16-01, UI-16-02, SR-16-01, UI-08-01.
+
 #### Phase 16 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
