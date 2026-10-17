@@ -24,6 +24,7 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { chromium } from "playwright-core";
+import { BASE, EXECUTABLE, SUPABASE } from "./common.mjs";
 
 const PYTHON = process.env.PYTHON ?? (process.platform === "win32" ? "python" : "python3");
 const SITE_PORT = 8799;
@@ -449,7 +450,6 @@ try {
         `import sys; sys.path.insert(0, "jarvis-runtime")
 from pathlib import Path
 import ocade_identity as i
-import { BASE, EXECUTABLE, SUPABASE } from "./common.mjs";
 me = i.Identity(Path(${JSON.stringify(deviceHome)}))
 body = {"results": []}
 real = me._timestamp

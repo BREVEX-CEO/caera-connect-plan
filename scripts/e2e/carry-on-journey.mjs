@@ -222,6 +222,9 @@ try {
     await until(async () => (await tasks())[0].status === "completed", 45_000),
     JSON.stringify((await tasks())[0]).slice(0, 300),
   );
+  // "completed" is written inside the planning step; its lease returns to the computer as that
+  // step ends, a moment later: read the settled task, not the instant between the two.
+  await until(async () => (await tasks())[0].controller === DEVICE, 10_000);
   const finished = (await tasks())[0];
   check("the loop was the computer's own", finished.controller === DEVICE, finished.controller);
   check(

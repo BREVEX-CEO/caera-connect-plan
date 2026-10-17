@@ -25,6 +25,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { chromium } from "playwright-core";
+import { BASE, EXECUTABLE, SUPABASE } from "./common.mjs";
 
 const PYTHON = process.env.PYTHON ?? (process.platform === "win32" ? "python" : "python3");
 const RUNTIME = path.resolve("jarvis-runtime");
@@ -342,7 +343,6 @@ print(json.dumps({
   );
   const report = python(`
 import json, ocade_documents
-import { BASE, EXECUTABLE, SUPABASE } from "./common.mjs";
 from pathlib import Path
 text, _ = ocade_documents.extract_text(Path(${JSON.stringify(path.join(workspace, "report - completed.docx"))}), 30_000)
 print(json.dumps({"text": text}))
