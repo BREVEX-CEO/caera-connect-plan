@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 import zipfile
 from pathlib import Path
@@ -79,6 +80,31 @@ class IndependentReopenTest(unittest.TestCase):
         self.assertEqual(text.count("\f"), 2)  # one page per slide
         self.assertIn("Three cities", text)
         self.assertIn("Population (millions)", text)
+
+    def test_a_pdf_is_made_from_the_report_checked_and_undone(self):
+        self.pc.run({"action": "doc_edit", "path": "report.docx", "ops": [
+            {"op": "append", "text": "Client pack for Acme Traders", "style": "Title"},
+            {"op": "append", "text": "Balance due on 31 October: 10,655.00"}]})
+        out = self.pc.run({"action": "pdf_export", "from": "report.docx", "path": "report.pdf"})
+        self.assertEqual(out["status"], "done", out)
+        self.assertEqual(out["pages"], 1)
+        self.assertIn("Balance due on 31 October: 10,655.00", out["text"])
+        # Never over an existing file, never outside the work folder.
+        self.assertEqual(self.pc.run({"action": "pdf_export", "from": "report.docx",
+                                      "path": "report.pdf"})["status"], "failed")
+        self.assertEqual(self.pc.run({"action": "pdf_export", "from": "report.docx",
+                                      "path": "../report.pdf"})["status"], "blocked")
+        self.assertEqual(self.pc.run({"action": "undo"})["status"], "done")
+        self.assertFalse((self.root / "report.pdf").exists())
+
+    def test_stop_while_the_pdf_is_saved_leaves_no_pdf(self):
+        workbook(self.root / "orders.xlsx")
+        cancel = threading.Event()
+        threading.Timer(0.3, cancel.set).start()
+        out = self.pc.run({"action": "pdf_export", "from": "orders.xlsx", "path": "orders.pdf"},
+                          cancel=cancel)
+        self.assertTrue(out.get("stopped"), out)
+        self.assertFalse((self.root / "orders.pdf").exists())
 
     def test_a_damaged_file_is_refused_and_left_as_it_was(self):
         for name, action in (("broken.xlsx", "sheet_edit"), ("broken.docx", "doc_edit"),

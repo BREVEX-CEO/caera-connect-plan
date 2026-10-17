@@ -435,6 +435,8 @@ class Computer:
                 return self._doc(action, cancel)
             if kind == "deck_edit":
                 return self._deck(action, cancel)
+            if kind == "pdf_export":
+                return self._pdf(action, cancel)
             if kind == "run":
                 return self._run(str(action.get("command", "")), action.get("cwd"), confirmed, cancel)
             if kind == "system":
@@ -824,6 +826,50 @@ class Computer:
         return {"status": "done", "summary": f"{'Made' if out['new'] else 'Updated'} {rel}: "
                                              f"{out['read']['count']} slides",
                 **{k: v for k, v in out.items() if k != "ok"}}
+
+    def _pdf(self, action: dict, cancel: threading.Event) -> dict:
+        """A new PDF of a document, workbook or deck, saved by the office app installed here
+        (LibreOffice) and read back: the PDF must carry the source's words."""
+        from ocade_documents import Unreadable, extract_text
+        source = self._inside(str(action.get("from", "")), change=False)
+        path = self._inside(str(action.get("path", "")), change=True)
+        rel = str(path.relative_to(self.root))
+        if source.suffix.lower() not in (".docx", ".xlsx", ".pptx") or not source.is_file():
+            return {"status": "failed", "summary": "Give an existing .docx, .xlsx or .pptx in the work folder"}
+        if path.suffix.lower() != ".pdf" or path.exists():
+            return {"status": "failed", "summary": f"{rel} must be a new .pdf name (nothing is overwritten)"}
+        program = shutil.which("soffice") or shutil.which("libreoffice") or next(
+            (p for p in (r"C:\Program Files\LibreOffice\program\soffice.exe",
+                         "/Applications/LibreOffice.app/Contents/MacOS/soffice") if Path(p).is_file()), None)
+        if not program:
+            return {"status": "failed", "summary": "No app that saves PDFs is installed here (LibreOffice)"}
+        with tempfile.TemporaryDirectory() as work:
+            extra = ({"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)} if SYSTEM == "Windows"
+                     else {"start_new_session": True})
+            process = subprocess.Popen(
+                [program, f"-env:UserInstallation={Path(work, 'profile').as_uri()}", "--headless",
+                 "--convert-to", "pdf", "--outdir", str(Path(work, "out")), str(source)],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **extra)
+            deadline = time.monotonic() + 180
+            while process.poll() is None:
+                if cancel.is_set() or time.monotonic() > deadline:
+                    self._kill(process)
+                    process.wait()
+                    return dict(STOPPED) if cancel.is_set() else {
+                        "status": "failed", "summary": "Saving the PDF took longer than 3 minutes"}
+                time.sleep(0.2)
+            made = Path(work, "out", f"{source.stem}.pdf")
+            try:
+                text, pages = extract_text(made, 50_000)
+                wanted = re.findall(r"[^\W\d_]{4,}", extract_text(source, 4000)[0])[:20]
+            except (Unreadable, OSError) as e:
+                return {"status": "failed", "summary": f"The PDF was not made: {e}"[:200]}
+            if missing := [word for word in wanted if word not in text]:
+                return {"status": "failed", "summary": f"The PDF lacks words of {source.name}: {', '.join(missing[:3])}"}
+            shutil.move(str(made), path)
+        self._made.add(path)
+        self._remember(f"making {rel}", lambda: self._to_trash(path), path)
+        return {"status": "done", "summary": f"Saved {rel}: {pages} pages", "pages": pages, "text": text[:2000]}
 
     @staticmethod
     def _not_read_back(out: dict, rel: str, what: str) -> dict | None:

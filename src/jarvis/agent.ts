@@ -76,6 +76,7 @@ const DEVICE_DEADLINE_MS: Partial<Record<string, number>> = {
   sheet_edit: 210_000,
   doc_edit: 210_000,
   deck_edit: 210_000,
+  pdf_export: 210_000,
 };
 
 export class Stopped extends Error {

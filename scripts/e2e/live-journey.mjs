@@ -17,10 +17,16 @@
  *    browser editor (miniPaint, MIT, its public demo): cropped, resized,
  *    brightened, exported. Checked from the exported file's pixels.
  *
+ * 4. Recurring workflows (PLAN Phase 18): reconcile a ledger against a bank export,
+ *    fill a client pack and save it as PDF, collect order statuses from pages
+ *    served here. OCADE_LIVE_CASES held-out cases each (seeded; OCADE_LIVE_SEED
+ *    is the first), checked by `workflow_cases.py`, never by JARVIS's words.
+ *
  * Usage: node scripts/e2e/live-journey.mjs [--base=…] [--supabase=…]
  */
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { chromium } from "playwright-core";
@@ -53,7 +59,7 @@ const REQUEST =
   "cities. Then write summary.md saying which city is largest and by how much it exceeds the " +
   "smallest.";
 
-/** Which of the tasks to run (OCADE_LIVE_TASKS=research,video,photo); all when unset. */
+/** Which of the tasks to run (OCADE_LIVE_TASKS=research,video,photo,reconcile,pack,status); all when unset. */
 const wanted = (name) =>
   !process.env.OCADE_LIVE_TASKS || process.env.OCADE_LIVE_TASKS.split(",").includes(name);
 
@@ -143,6 +149,12 @@ try {
   const files = page.getByRole("switch", { name: /Files in the workspace/ });
   await until(() => files.isEnabled(), 30_000);
   await files.click();
+  // The order-status pages are served on this machine: allowed as a person would allow them.
+  if (wanted("status")) {
+    await page.locator("#jarvis-allow-site").fill("127.0.0.1");
+    await page.getByRole("button", { name: "Allow site", exact: true }).click();
+    await until(() => page.getByRole("switch", { name: "127.0.0.1" }).isChecked());
+  }
   await page.getByRole("button", { name: "Close", exact: true }).first().click();
 
   /* --- one request, said once ---------------------------------------------- */
@@ -197,7 +209,7 @@ try {
       ).replace(/\s+/g, " ");
       check(`${label}: the request starts a task`, false, said.slice(-400));
       await dumpTurns();
-      return [];
+      return { steps: [], status: null, confirmations };
     }
     const finished = await until(async () => {
       const confirm = page.getByRole("alertdialog", { name: "Confirm this step" });
@@ -258,7 +270,7 @@ try {
         return !last || !["running", "waiting"].includes(last.status);
       }, 30_000);
     }
-    return steps;
+    return { steps, status: task?.status, confirmations };
   };
   const dumpTurns = async () => {
     process.stdout.write(`device log tail:\n${deviceLog.slice(-1500)}\n`);
@@ -345,7 +357,10 @@ print(json.dumps({"rows": rows, "charts": sum(len(s._charts) for s in wb.workshe
 
   if (wanted("video")) {
     /* --- 2. a video: found, played, paused exactly, captions summarised ------ */
-    const videoSteps = await ask("video → pause at 0:30 → captions → summary", VIDEO_REQUEST);
+    const { steps: videoSteps } = await ask(
+      "video → pause at 0:30 → captions → summary",
+      VIDEO_REQUEST,
+    );
     const players = videoSteps
       .map((step) => step.result?.detail?.media)
       .filter((media) => media && typeof media.currentTime === "number");
@@ -425,6 +440,73 @@ print(json.dumps({"file": str(pngs[-1].relative_to(root)), "size": im.size, "rgb
       check("and it is brighter than the original", luminance > 82, luminance.toFixed(1));
     }
   }
+
+  /* --- 4. recurring workflows: held-out cases, independent checks ----------- */
+  const cases = Number(process.env.OCADE_LIVE_CASES ?? 1);
+  const firstSeed = Number(process.env.OCADE_LIVE_SEED ?? 1);
+  const caseDir = mkdtempSync(path.join(tmpdir(), "ocade-live-cases-"));
+  const siteDir = path.join(caseDir, "site");
+  mkdirSync(siteDir);
+  const site = createServer((request, response) => {
+    const name = path.basename(new URL(request.url, "http://x").pathname);
+    const file = path.join(siteDir, name);
+    if (!name.endsWith(".html") || !existsSync(file))
+      return response.writeHead(404).end("Not found");
+    response.writeHead(200, { "content-type": "text/html" }).end(readFileSync(file));
+  });
+  await new Promise((resolve) => site.listen(0, "127.0.0.1", resolve));
+  const siteBase = `http://127.0.0.1:${site.address().port}`;
+  const today = new Date().toISOString().slice(0, 10);
+  const workflowCase = (command, workflow, seed) =>
+    spawnSync(
+      PYTHON,
+      [
+        "scripts/e2e/workflow_cases.py",
+        command,
+        workflow,
+        String(seed),
+        workspace,
+        siteDir,
+        today,
+        siteBase,
+      ],
+      { encoding: "utf8" },
+    );
+  for (const workflow of ["reconcile", "pack", "status"].filter(wanted)) {
+    let verified = 0;
+    let interventions = 0;
+    for (let seed = firstSeed; seed < firstSeed + cases; seed += 1) {
+      // Each case starts from its own inputs only: nothing of the last case is left to copy.
+      for (const entry of readdirSync(workspace))
+        rmSync(path.join(workspace, entry), { recursive: true });
+      const made = workflowCase("make", workflow, seed);
+      if (made.status !== 0) {
+        check(`${workflow} case ${seed}: inputs made`, false, made.stderr.slice(-300));
+        continue;
+      }
+      const { status, confirmations } = await ask(
+        `${workflow} case ${seed}`,
+        JSON.parse(made.stdout).request,
+      );
+      interventions += confirmations;
+      const checked = workflowCase("check", workflow, seed);
+      const results = JSON.parse(checked.stdout || "[]");
+      for (const result of results)
+        check(`${workflow} case ${seed}: ${result.name}`, result.ok, result.detail);
+      if (checked.status !== 0)
+        check(`${workflow} case ${seed}: checked`, false, checked.stderr.slice(-300));
+      if (status === "completed" && results.length && results.every((result) => result.ok))
+        verified += 1;
+      // A task that said completed while a check failed is a false completion: never allowed.
+      if (status === "completed" && results.some((result) => !result.ok)) {
+        check(`${workflow} case ${seed}: no false completion`, false);
+      }
+    }
+    process.stdout.write(
+      `WORKFLOW  ${workflow} | ${verified}/${cases} cases completed and independently verified | ${interventions} confirmations\n`,
+    );
+  }
+  site.close();
 } finally {
   await fetch(`${SUPABASE}/__fixture/live-model`, { method: "POST", body: '{"on":false}' }).catch(
     () => undefined,
