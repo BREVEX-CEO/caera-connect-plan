@@ -150,8 +150,7 @@ Common safety rules for every PC entry:
 
 ## BRW-00-01 — Firefox and WebKit legs of the browsers journey
 
-- **Reason:** `playwright install firefox webkit` fails (download refused by this session's egress policy). WebKit would not be iOS evidence in any case.
-- **Remains:** a session or runner that can download them.
+- **RESOLVED (17 Oct).** After the session's network policy changed, Playwright's Firefox 153 and WebKit 26.5 downloaded and their host libraries installed. Browsers journey: Firefox desktop, WebKit desktop and WebKit iPhone-sized 48/48 PASS. WebKit emulation is not iOS evidence (Phase 15 keeps the device checks BLOCKED).
 
 ## BRW-00-02 — Real push service
 
@@ -159,7 +158,9 @@ Common safety rules for every PC entry:
 
 ## VOI-13-01 — Real speech-recognition service
 
-- **Reason:** the browser's own recognition service is not reachable from the session.
+- **Test:** `jarvis-journey.mjs` with `OCADE_SPEECH_BROWSER` (Google Chrome) and `OCADE_SPEECH_WAV`: a spoken question played into the microphone becomes the person's message.
+- **Attempted (17 Oct):** installed Google Chrome 155; synthesized "What is the capital of France?" with espeak-ng at 22 kHz and 48 kHz stereo; Chrome's fake device works for `getUserMedia` ("Fake Default Audio Input"), but `webkitSpeechRecognition` fails with `audio-capture`, also with a PulseAudio null sink running.
+- **Remains:** a desktop session with a real audio stack (Windows VM or owner-approved PC). Everything else about voice runs with a scripted recogniser and passes, including Interrupt cutting speech without stopping anything else (new 17 Oct).
 
 ## NOTIF-06-01 — Email delivery of task and security notifications
 
@@ -241,6 +242,15 @@ Common safety rules for every PC entry:
 ## WIN-12-01 — Windows install, pairing, signed update, rollback and uninstall
 
 - **Reason:** the installed lifecycle (`manual_installed_lifecycle.py`, `manual_real_update.py`) needs a Windows VM and the shipped signing certificate. Proven in the cloud (17 Oct): signed-update verification `test_update.py` 28 OK; real existing-browser attachment with Chromium 1194 `test_existing_browser.py` 7 OK (attach, act in its own tab and leave the person's tabs alone, network boundary on a switched tab, reconnect after a browser restart) — those three tests had been skipping here for lack of a browser path.
+
+## AND-14-01 — Android app on an emulator or device
+
+- **Reason:** this VM has no `/dev/kvm`, so no emulator can boot; the emulator job is CI-00-01.
+- **Proven here (17 Oct):** Android SDK 35 installed in the session; `android/build.py` compiles and packages the app (`in.ocade.app` 0.1.0, min SDK 30, target 35; APK signed with a throwaway test key, `apksigner verify` OK). This also compiles the Phase 02/03 Android changes. Phone/computer wake-model parity (`test_wake.PhoneParityTest`, compiled `WakeModel.java`) PASS.
+
+## IOS-15-01 — Physical iPhone/iPad and macOS behaviour
+
+- **Reason:** no Apple hardware or macOS runner. WebKit iPhone-sized browser emulation passes (BRW-00-01), which is not device evidence.
 
 ## PC-07-01 — Licensed Microsoft Excel and Word: finish, save, reopen and verify a real workbook and document
 

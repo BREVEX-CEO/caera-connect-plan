@@ -4028,6 +4028,10 @@ Owners: `useJarvisVoice` and existing local wake authority.
 
 ---
 
+**Work record — Phase 13 (17 October 2026, Anthropic-managed Linux VM).** No source-verified defect is owned here. The barge-in/STOP distinction holds in source (Interrupt cancels speech only) and is now measured in the JARVIS journey: Interrupt while speaking cancels speech output and listens again, nothing else stops. JARVIS journey 139 PASS / 0 FAIL / 1 BLOCKED. Wake model tests 6 OK, including phone/computer parity with the compiled Android model. Open checks: [BLOCKED_TESTS.md](BLOCKED_TESTS.md) VOI-13-01.
+
+**Phase 13 status: PARTIAL.**
+
 #### Phase 13 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
@@ -4104,6 +4108,10 @@ Owners: `android/src/in/ocade/app/AgentService.java`, `Control.java`, `Identity.
 
 ---
 
+**Work record — Phase 14 (17 October 2026, Anthropic-managed Linux VM).** No emulator is possible here (no KVM). The app compiles and packages with Android SDK 35 through `android/build.py` (signature verified). Open checks: [BLOCKED_TESTS.md](BLOCKED_TESTS.md) AND-14-01, AND-02-01, AND-03-01, AND-05-01.
+
+**Phase 14 status: PARTIAL.**
+
 #### Phase 14 exclusive exit gate
 
 - Implement and test the changes owned above; recheck the repository's current names/paths before modifying any file.
@@ -4176,6 +4184,10 @@ Ship Safari/PWA Chat, files within browser permission and remote paired-PC JARVI
 **Evidence:** real Mac/simulator/device results labelled separately. Missing hardware stays UNTESTED or BLOCKED.
 
 ---
+
+**Work record — Phase 15 (17 October 2026, Anthropic-managed Linux VM).** WebKit desktop and iPhone-sized journeys 24/24 PASS within the browsers journey; this is emulation, not device evidence. Open checks: [BLOCKED_TESTS.md](BLOCKED_TESTS.md) IOS-15-01.
+
+**Phase 15 status: PARTIAL.**
 
 #### Phase 15 exclusive exit gate
 

@@ -1555,6 +1555,12 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
           window.__spoken.push(utterance.text);
           return speak(utterance);
         };
+        const cancel = synth.cancel.bind(synth);
+        window.__cancelled = 0;
+        synth.cancel = () => {
+          window.__cancelled += 1;
+          return cancel();
+        };
       }
       window.__say = (text) =>
         window.__recogniser.onresult({
@@ -1627,7 +1633,13 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
     "the answer is spoken",
     await until(async () => (await talker.evaluate(() => window.__spoken.length)) > 0),
   );
+  const cancelledBefore = await talker.evaluate(() => window.__cancelled);
   await talker.getByRole("button", { name: "Interrupt", exact: true }).click();
+  check(
+    "Interrupt while it speaks cuts the speech off and listens again, without stopping anything else",
+    (await talker.evaluate(() => window.__cancelled)) > cancelledBefore &&
+      (await until(async () => (await bar.innerText()) === "Listening")),
+  );
   await talker.evaluate(() => window.__fail("network"));
   check(
     "a recogniser that cannot work ends voice and says so",
