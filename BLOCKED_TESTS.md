@@ -237,7 +237,8 @@ Common safety rules for every PC entry:
 ## SEC-08-01 — A staff proof binds the exact target
 
 - **Status:** OPEN. Since 20261017100000 a proof the server spent is adopted only for the database action it was spent on (V12), so a confirmation for "open a support case" cannot pay for ending every staff session. Several changes share one action name ("change who operates OCADE" covers grant, revoke, permissions and withdrawn invites), and the target is not compared: the server's digest of its input cannot be recomputed in SQL.
-- **Remains:** pass the server's target digest into each staff RPC and compare it in `private.ocade_staff_require`.
+- **Risk (assessed 17 Oct):** exploiting the gap needs the staff member's own session token and a call made directly to the database inside the one minute after that person confirmed a different change of the same kind (a spent proof is adopted once, then bound to that transaction).
+- **Remains:** a forward migration giving the 7 "change who operates OCADE" RPCs their own action names and passing a canonical target into `private.ocade_staff_require`, with the server sending the same; rollback and verification SQL; DB-twin tests per RPC.
 
 ## SEC-08-02 — Recovery against real Supabase Auth
 
