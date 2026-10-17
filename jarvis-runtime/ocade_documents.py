@@ -9,7 +9,6 @@ the Online authority's job, not the device's.
 from __future__ import annotations
 
 import html
-import platform
 import re
 import zipfile
 from pathlib import Path
@@ -158,7 +157,7 @@ def edit_document(path: Path, ops: list[dict], undo_dir: Path, cancel, close: bo
     if server is None and path.suffix.lower() != ".docx":
         raise DocumentError("Editing this document needs an app on this computer that automates it")
     if cancel.is_set():
-        return {"ok": False, "stopped": True, "error": "Stopped before it finished"}
+        return dict(STOPPED)
     if server is None:
         kept = ocade_sheets.backup(path, undo_dir) if path.exists() else None
         result = edit_docx_file(path, ops, cancel)
@@ -273,12 +272,9 @@ def read_docx(path: Path) -> dict:
     """What a .docx holds, read back from the saved file: as the Office route reads it."""
     from docx import Document
     doc = Document(str(path))
-    lines = [p.text for p in doc.paragraphs]
-    for table in doc.tables:
-        lines.extend("\t".join(cell.text for cell in row.cells) for row in table.rows)
     headings = [f"{p.style.name}|{p.text.strip()}" for p in doc.paragraphs
                 if p.style.name.startswith("Heading") or p.style.name in ("Title", "Subtitle")][:50]
-    return {"text": "\n".join(lines)[:20000], "paragraphs": len(doc.paragraphs),
+    return {"text": read_docx_from(doc)[:20000], "paragraphs": len(doc.paragraphs),
             "tables": len(doc.tables), "headings": headings}
 
 
@@ -329,7 +325,7 @@ def edit_docx_file(path: Path, ops: list[dict], cancel) -> dict:
             return {"ok": False, "engine": "file", "applied": applied,
                     "error": f"{op['find'][:60]!r} is not in the document"}
         applied.append(kind)
-    saved = read_docx_from(doc, full=True)
+    saved = read_docx_from(doc)
     if cancel.is_set():  # the last moment a STOP keeps the file as it was
         return dict(STOPPED)
     _save_checked(doc, path)
@@ -339,19 +335,18 @@ def edit_docx_file(path: Path, ops: list[dict], cancel) -> dict:
         return {"ok": False, "saved": True, "engine": "file", "applied": applied,
                 "error": f"saved, but reopening it failed ({type(e).__name__})"}
     return {"ok": True, "engine": "file", "applied": applied, "read": read,
-            "savedAndReopened": read_docx_from(Document(str(path)), full=True) == saved,
+            "savedAndReopened": read_docx_from(Document(str(path))) == saved,
             "reopenChecked": True,
             **({"note": f"{rebuilt} paragraph(s) lost their own formatting: the words crossed "
                         f"differently formatted parts"} if rebuilt else {})}
 
 
-def read_docx_from(doc, full: bool = False) -> str:
-    """The text a document object holds, in read_docx's order; all of it when `full`."""
+def read_docx_from(doc) -> str:
+    """The text a document object holds: paragraphs, then each table row's cells."""
     lines = [p.text for p in doc.paragraphs]
     for table in doc.tables:
         lines.extend("\t".join(cell.text for cell in row.cells) for row in table.rows)
-    text = "\n".join(lines)
-    return text if full else text[:20000]
+    return "\n".join(lines)
 
 
 CHART_KINDS = {"bar": "BAR_CLUSTERED", "column": "COLUMN_CLUSTERED", "line": "LINE_MARKERS", "pie": "PIE"}

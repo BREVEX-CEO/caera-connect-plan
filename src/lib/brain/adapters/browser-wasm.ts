@@ -157,9 +157,6 @@ export function fitTranscript(messages: BrainMessage[], budget: number): BrainMe
 }
 
 export class BrowserWasmAdapter implements BrainAdapter {
-  readonly id = "browser_wasm" as const;
-  readonly displayName = "OCADE Browser (compatibility)";
-
   private instance: WllamaInstance | null = null;
   private loadedRelease: string | null = null;
   private cachedModel: OfflineRelease | null = null;
@@ -221,11 +218,10 @@ export class BrowserWasmAdapter implements BrainAdapter {
 
   async probe(): Promise<AdapterAvailability> {
     if (typeof window === "undefined") {
-      return unavailable("unsupported_device", "There is no browser here to run OCADE in.");
+      return unavailable("There is no browser here to run OCADE in.");
     }
     if (typeof WebAssembly === "undefined") {
       return unavailable(
-        "unsupported_device",
         "This browser cannot run WebAssembly, so OCADE has no engine it can use here.",
       );
     }
@@ -238,10 +234,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
      */
     const model = offlineRelease();
     if (!model) {
-      return unavailable(
-        "no_model",
-        "Offline Intelligence is not available in this version of OCADE yet.",
-      );
+      return unavailable("Offline Intelligence is not available in this version of OCADE yet.");
     }
     let quotaBytes: number | null = null;
     try {
@@ -256,17 +249,14 @@ export class BrowserWasmAdapter implements BrainAdapter {
     const present = quotaBytes !== null && (await this.weightsProvider?.().catch(() => null));
     if (quotaBytes !== null && !present && quotaBytes < model.totalBytes) {
       return unavailable(
-        "insufficient_storage",
         `Offline Intelligence needs about ${formatSize(
           model.totalBytes,
         )} and this browser will only allow ${formatSize(quotaBytes)}.`,
-        ["free_storage"],
       );
     }
 
     if (deviceRefused(model.releaseId)) {
       return unavailable(
-        "unsupported_device",
         "This device does not have enough memory for Offline Intelligence. OCADE answers online here.",
       );
     }

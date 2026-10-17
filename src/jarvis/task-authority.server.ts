@@ -408,7 +408,7 @@ export interface TaskChange {
    * Alone, it is the loop's heartbeat.
    */
   owner?: string;
-  checkpoint?: { step: number; lastAction: string; lastUrl: string | null; at: string };
+  checkpoint?: NonNullable<JarvisTaskRow["checkpoint"]>;
 }
 
 export async function changeTask(

@@ -5,20 +5,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const json = (status: number, body: unknown) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json", "cache-control": "no-store" },
-  });
+  Response.json(body, { status, headers: { "cache-control": "no-store" } });
 
 export const Route = createFileRoute("/api/jarvis/device")({
   server: {
     handlers: {
       // Only POST is part of the device protocol; anything else is not a page.
       GET: () =>
-        new Response(JSON.stringify({ error: "method_not_allowed" }), {
-          status: 405,
-          headers: { "content-type": "application/json", allow: "POST" },
-        }),
+        Response.json({ error: "method_not_allowed" }, { status: 405, headers: { allow: "POST" } }),
       POST: async ({ request }) => {
         const { authenticate, exchangeInput, exchange, PROTOCOL } =
           await import("@/jarvis/device.server");

@@ -8,7 +8,7 @@ import type {
   NormalizedToolDefinition,
   NormalizedUsage,
 } from "./contract.ts";
-import { SERVICE_USER_HEADER } from "./contract.ts";
+import { SERVICE_USER_HEADER, sseData } from "./contract.ts";
 import {
   DEFAULT_ONLINE_MODEL,
   isAllowedOnlineModel,
@@ -465,14 +465,6 @@ function sse(event: IntelligenceEvent): Uint8Array {
   return new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`);
 }
 
-function nextSseBoundary(buffer: string): { index: number; length: number } | null {
-  const lf = buffer.indexOf("\n\n");
-  const crlf = buffer.indexOf("\r\n\r\n");
-  if (lf < 0 && crlf < 0) return null;
-  if (crlf >= 0 && (lf < 0 || crlf < lf)) return { index: crlf, length: 4 };
-  return { index: lf, length: 2 };
-}
-
 function normalizeProviderChunk(
   value: unknown,
   backend: "online",
@@ -611,38 +603,24 @@ function normalizedProviderStream(
       try {
         if (!provider.body) throw new Error("Provider returned no stream.");
         controller.enqueue(sse({ type: "status", backend: "online", state: "generating" }));
-        const reader = provider.body.pipeThrough(new TextDecoderStream()).getReader();
-        let buffer = "";
-        while (true) {
-          if (signal.aborted) throw signal.reason;
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += value;
-          let boundary = nextSseBoundary(buffer);
-          while (boundary) {
-            const frame = buffer.slice(0, boundary.index);
-            buffer = buffer.slice(boundary.index + boundary.length);
-            for (const line of frame.split(/\r?\n/)) {
-              if (!line.startsWith("data:")) continue;
-              const raw = line.slice(5).trim();
-              if (!raw || raw === "[DONE]") continue;
-              for (const event of normalizeProviderChunk(JSON.parse(raw), "online", toolIndex)) {
-                // A call is held until the turn ends complete: a turn cut short or refused
-                // after a call must never hand that call to anything that would act on it.
-                if (event.type === "tool_call") {
-                  toolCalls.push(event.call);
-                  continue;
-                }
-                if (event.type === "token") answer += event.text;
-                if (event.type === "usage") usage = event.usage;
-                if (event.type === "refusal") refused = true;
-                controller.enqueue(sse(event));
-              }
+        for await (const raw of sseData(
+          provider.body,
+          "Provider ended with an incomplete stream event.",
+          signal,
+        )) {
+          for (const event of normalizeProviderChunk(JSON.parse(raw), "online", toolIndex)) {
+            // A call is held until the turn ends complete: a turn cut short or refused
+            // after a call must never hand that call to anything that would act on it.
+            if (event.type === "tool_call") {
+              toolCalls.push(event.call);
+              continue;
             }
-            boundary = nextSseBoundary(buffer);
+            if (event.type === "token") answer += event.text;
+            if (event.type === "usage") usage = event.usage;
+            if (event.type === "refusal") refused = true;
+            controller.enqueue(sse(event));
           }
         }
-        if (buffer.trim()) throw new Error("Provider ended with an incomplete stream event.");
         if (refused) {
           // Refused with its real reason already sent: no final answer, and no call is released.
         } else if (!answer.trim() && toolCalls.length === 0) {

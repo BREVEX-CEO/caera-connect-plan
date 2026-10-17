@@ -1,21 +1,13 @@
-import { cn } from "@/lib/utils";
-
 /** The supplied OCADE mark, optionally with its wordmark. */
 export function BrandMark({
-  className,
   showWordmark = false,
 }: {
-  className?: string;
   /** The rail shows the mark alone; public pages show the full lockup. */
   showWordmark?: boolean;
 }) {
   return (
     // An image of the name: a label on a plain span is not read (and is not allowed).
-    <span
-      role="img"
-      className={cn("inline-flex items-center gap-2.5", className)}
-      aria-label="OCADE by CARCC"
-    >
+    <span role="img" className="inline-flex items-center gap-2.5" aria-label="OCADE by CARCC">
       <img
         src="/icons/ocade-192.png"
         alt=""

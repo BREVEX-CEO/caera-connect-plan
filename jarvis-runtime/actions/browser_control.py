@@ -589,5 +589,3 @@ class _BrowserSession:
         changed = [k for k in ("url", "tab", "m", "sy") if after.get(k) != before.get(k)]
         return {"status": "done", "summary": detail[:280], "changed": changed, "observation": observation}
 
-
-# ── Tool declaration (auto-discovered by core/action_loader.py) ──────────────

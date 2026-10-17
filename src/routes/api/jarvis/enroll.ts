@@ -9,18 +9,12 @@ export const Route = createFileRoute("/api/jarvis/enroll")({
     handlers: {
       // Only POST is part of the device protocol; anything else is not a page.
       GET: () =>
-        new Response(JSON.stringify({ error: "method_not_allowed" }), {
-          status: 405,
-          headers: { "content-type": "application/json", allow: "POST" },
-        }),
+        Response.json({ error: "method_not_allowed" }, { status: 405, headers: { allow: "POST" } }),
       POST: async ({ request }) => {
         const { enroll } = await import("@/jarvis/device.server");
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { status, body } = await enroll(supabaseAdmin, request);
-        return new Response(JSON.stringify(body), {
-          status,
-          headers: { "content-type": "application/json", "cache-control": "no-store" },
-        });
+        return Response.json(body, { status, headers: { "cache-control": "no-store" } });
       },
     },
   },

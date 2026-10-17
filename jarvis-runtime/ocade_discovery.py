@@ -14,6 +14,7 @@ What this computer offers for a task, found on the computer itself (owner addend
 """
 from __future__ import annotations
 
+import glob
 import hashlib
 import json
 import os
@@ -237,16 +238,12 @@ def _program(app: dict) -> str | None:
     if folder and (base := _known_folder(folder.group(1))) and Path(base, folder.group(2)).is_file():
         return str(Path(base, folder.group(2)))
     for root in (Path(os.environ.get("ProgramData", "C:/ProgramData")), Path(os.environ.get("APPDATA", ""))):
-        for link in (root / "Microsoft/Windows/Start Menu/Programs").rglob(f"{glob_escape(app['name'])}.lnk"):
+        for link in (root / "Microsoft/Windows/Start Menu/Programs").rglob(f"{glob.escape(app['name'])}.lnk"):
             if target := _shortcut_target(str(link)):
                 return target
     if re.fullmatch(r"[\w.-]+_[a-z0-9]{13}![\w.-]+", launch):
         return _package_program(launch)
     return None
-
-
-def glob_escape(name: str) -> str:
-    return re.sub(r"([*?\[])", r"[\1]", name)
 
 
 def _cached_capabilities() -> dict:

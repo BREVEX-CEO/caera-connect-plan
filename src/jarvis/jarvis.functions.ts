@@ -240,7 +240,7 @@ export const readJarvisState = createServerFn({ method: "GET" })
             (offers.apps === true && isAllowed(permissionRows, "apps", d.id)));
         return {
           ...d,
-          capabilities: (d.capabilities ?? {}) as Record<string, boolean>,
+          capabilities: offers,
           online,
           status: !online
             ? ("offline" as const)

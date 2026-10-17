@@ -7,19 +7,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 const json = (status: number, body: unknown) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json", "cache-control": "no-store" },
-  });
+  Response.json(body, { status, headers: { "cache-control": "no-store" } });
 
 export const Route = createFileRoute("/api/jarvis/continue")({
   server: {
     handlers: {
       GET: () =>
-        new Response(JSON.stringify({ error: "method_not_allowed" }), {
-          status: 405,
-          headers: { "content-type": "application/json", allow: "POST" },
-        }),
+        Response.json({ error: "method_not_allowed" }, { status: 405, headers: { allow: "POST" } }),
       POST: async ({ request }) => {
         const { authenticate, PROTOCOL } = await import("@/jarvis/device.server");
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

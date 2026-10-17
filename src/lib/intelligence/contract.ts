@@ -242,3 +242,44 @@ export function assertIntelligencePermit(request: IntelligenceRequest): void {
 
 /** Names the person a server-to-server request is for. Meaningless without the boundary's server-key check. */
 export const SERVICE_USER_HEADER = "x-ocade-user";
+
+/**
+ * Each `data:` payload of a server-sent event stream, in order (empty and `[DONE]` skipped).
+ * A stream that ends mid-event throws `incomplete`; an aborted `signal` stops the read.
+ */
+export async function* sseData(
+  body: NonNullable<Response["body"]>,
+  incomplete: string,
+  signal?: AbortSignal,
+): AsyncIterable<string> {
+  const reader = body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = "";
+  try {
+    while (true) {
+      if (signal?.aborted) throw signal.reason;
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      for (let at = boundary(buffer); at; at = boundary(buffer)) {
+        const frame = buffer.slice(0, at.index);
+        buffer = buffer.slice(at.index + at.length);
+        for (const line of frame.split(/\r?\n/)) {
+          if (!line.startsWith("data:")) continue;
+          const payload = line.slice(5).trim();
+          if (payload && payload !== "[DONE]") yield payload;
+        }
+      }
+    }
+    if (buffer.trim()) throw new Error(incomplete);
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+function boundary(buffer: string): { index: number; length: number } | null {
+  const lf = buffer.indexOf("\n\n");
+  const crlf = buffer.indexOf("\r\n\r\n");
+  if (lf < 0 && crlf < 0) return null;
+  if (crlf >= 0 && (lf < 0 || crlf < lf)) return { index: crlf, length: 4 };
+  return { index: lf, length: 2 };
+}

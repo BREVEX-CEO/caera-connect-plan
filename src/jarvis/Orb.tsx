@@ -183,7 +183,6 @@ export function Orb({
       const shown = graph.nodes.filter(
         (n) => n.kind === "core" || n.kind === "hub" || v.zoom >= DETAIL_ZOOM,
       );
-      const ids = new Set(shown.map((n) => n.id));
       const at = new Map<string, ReturnType<typeof project>>();
       for (const node of shown) at.set(node.id, project(node.position));
       const focus = hoverId.current ?? selectedId;
@@ -191,7 +190,7 @@ export function Orb({
       for (const edge of graph.edges) {
         const a = at.get(edge.from);
         const b = at.get(edge.to);
-        if (!a || !b || !ids.has(edge.from) || !ids.has(edge.to)) continue;
+        if (!a || !b) continue;
         const lit = focus !== null && (edge.from === focus || edge.to === focus);
         context.globalAlpha = lit ? 0.7 : 0.14 + levelRef.current * 0.2;
         context.lineWidth = lit ? 1.2 : 0.8;

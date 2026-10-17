@@ -497,7 +497,7 @@ class Computer:
         try:
             app = self._app_named(name, cancel)
         except _Stopped:
-            return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+            return dict(STOPPED)
         if app is None:
             return {"status": "failed", "summary": f"{name} is not installed on this computer"}
         if cancel.is_set():  # STOP while the app was being found: it is not opened
@@ -523,7 +523,7 @@ class Computer:
 
     def _discover(self, kind: str, action: dict, confirmed: bool, cancel: threading.Event) -> dict:
         import ocade_discovery
-        stopped = {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+        stopped = dict(STOPPED)
         if kind in ("app_info", "recipe_save"):
             name = str(action.get("name" if kind == "app_info" else "app", ""))
             try:
@@ -917,7 +917,7 @@ class Computer:
         found, folders = [], 0
         for item in folder.rglob("*"):
             if cancel.is_set():
-                return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+                return dict(STOPPED)
             if item.is_dir():
                 folders += 1
                 if folders > 2000:
@@ -967,7 +967,7 @@ class Computer:
                 except _Stopped:
                     if target.exists():
                         self._to_trash(target)
-                    return {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+                    return dict(STOPPED)
             else:
                 shutil.copy2(source, target)
                 self._made.add(target)

@@ -18,8 +18,8 @@ model runs ten times a second on the last 1.6 s only when there is sound.
 """
 from __future__ import annotations
 
+import functools
 import hashlib
-import json
 import os
 import sys
 import threading
@@ -55,24 +55,19 @@ def _mel_points(count: int):
     return to_hz(np.linspace(to_mel(FMIN), to_mel(FMAX), count))
 
 
-_FILTERS = None
-
-
+@functools.cache
 def mel_filters():
     """(MELS, NFFT//2+1) triangular HTK-mel filters."""
-    global _FILTERS
-    if _FILTERS is None:
-        import numpy as np
-        edges = _mel_points(MELS + 2)
-        bins = np.arange(NFFT // 2 + 1) * SAMPLE_RATE / NFFT
-        filters = np.zeros((MELS, NFFT // 2 + 1), dtype=np.float32)
-        for m in range(MELS):
-            low, centre, high = edges[m], edges[m + 1], edges[m + 2]
-            rising = (bins - low) / (centre - low)
-            falling = (high - bins) / (high - centre)
-            filters[m] = np.maximum(0.0, np.minimum(rising, falling))
-        _FILTERS = filters
-    return _FILTERS
+    import numpy as np
+    edges = _mel_points(MELS + 2)
+    bins = np.arange(NFFT // 2 + 1) * SAMPLE_RATE / NFFT
+    filters = np.zeros((MELS, NFFT // 2 + 1), dtype=np.float32)
+    for m in range(MELS):
+        low, centre, high = edges[m], edges[m + 1], edges[m + 2]
+        rising = (bins - low) / (centre - low)
+        falling = (high - bins) / (high - centre)
+        filters[m] = np.maximum(0.0, np.minimum(rising, falling))
+    return filters
 
 
 def log_mel(samples) -> "np.ndarray":

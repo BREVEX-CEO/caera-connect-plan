@@ -364,17 +364,12 @@ export async function carryOn(
       messages,
       attachments,
     });
-    if (reply === "unavailable") {
+    if (!reply || reply === "unavailable") {
       const kept = await change({
         status: "waiting",
-        blocker: "Waiting for OCADE JARVIS to be available again.",
-      });
-      return kept ? { state: "waiting" } : idle;
-    }
-    if (!reply) {
-      const kept = await change({
-        status: "waiting",
-        blocker: "No JARVIS use was available just now. Resume to try again.",
+        blocker: reply
+          ? "Waiting for OCADE JARVIS to be available again."
+          : "No JARVIS use was available just now. Resume to try again.",
       });
       return kept ? { state: "waiting" } : idle;
     }

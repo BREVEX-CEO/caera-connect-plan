@@ -21,6 +21,7 @@ Common safety rules for every PC entry:
 | MOB-00-01    | 14 / 15      | Phone harnesses on a real emulator/simulator/device     | BLOCKED  | KVM emulator, macOS simulator or a phone (₹0)         |
 | REL-00-01    | 00 / release | Production rollback rehearsal                           | BLOCKED  | Cloudflare credentials (GitHub environment or owner)  |
 | REL-00-02    | 00 / release | Production deploys only through the approved gate       | FAIL     | Owner: Cloudflare Git auto-deploy setting             |
+| REL-00-03    | 00 / release | Security fixes still outside main (sharp, lxml pin)     | BLOCKED  | Owner approval of a security-only release             |
 | CI-00-01     | all          | GitHub Actions cloud workflows                          | BLOCKED  | Actions allowance (renews 1 Nov 2026) or owner choice |
 | PC-02-01     | 02           | Windows 11 tabbed Notepad target identity               | BLOCKED  | Owner-approved Windows 11 client                      |
 | WIN-02-01    | 02           | UIA barrier interleavings on real apps; 5 s lease timed | BLOCKED  | Isolated Windows VM                                   |
@@ -95,6 +96,12 @@ Common safety rules for every PC entry:
 - **Status:** FAIL. The workflow has never run (0 runs) and `ci.yml` on `a729878a` failed in 3 s (billing), yet production reports commit `a729878a` minutes after the merge: Cloudflare's own Git integration builds and deploys `main` on push, outside `verify:full` and the approval gate.
 - **Risk:** any future merge to `main` goes live immediately, gated only by Cloudflare's build.
 - **Remains:** owner decision — disable Workers Builds automatic production deploys for `main` (keep previews if wanted) so `deploy.mjs` is the only production path, or accept auto-deploy and gate merges to `main` instead.
+
+## REL-00-03 — Security fixes still outside `main`
+
+- **State (18 Oct):** production reports commit `a729878a` (deployment `37503f09…`), the same as `origin/main`. `npm audit` on `main`'s lockfile: 3 high, all `sharp` 0.35.4 reached through `wrangler`/`miniflare` (build and dev tooling, not the deployed Worker bundle); this branch pins `sharp` 0.35.5 (0 vulnerabilities). `main`'s `requirements-agent.txt` does not pin `lxml` at all, so a fresh Device Agent build takes the current release (fixed in 6.1.0); this branch pins 6.1.0 explicitly (CVE-2026-41066).
+- **Proposed security-only release (not executed):** a branch from `main` carrying only the lockfile `sharp` bump and the `lxml==6.1.0` pin; `npm ci`, `npm audit`, `pip-audit -r jarvis-runtime/requirements-agent.txt`, `npm run verify:full`; merge with owner approval. Because of REL-00-02 (Cloudflare deploys `main` on push), the merge itself is the deployment: rollback is `npm run deploy:rollback` to `37503f09…` or Cloudflare "Versions → Roll back".
+- **Remains:** owner approval; nothing is changed on `main` or in production from this session.
 
 ## CI-00-01 — GitHub Actions cloud workflows
 

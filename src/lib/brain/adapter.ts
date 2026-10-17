@@ -19,8 +19,6 @@
  *    stop.
  */
 
-export type AdapterId = "browser_wasm";
-
 export interface AdapterCapabilities {
   text: boolean;
   /** Genuine image understanding, not filename guessing. */
@@ -29,18 +27,10 @@ export interface AdapterCapabilities {
   tools: boolean;
 }
 
-export type UnavailableCode = "unsupported_device" | "insufficient_storage" | "no_model";
-
-/** A remedy the UI can render as a real button. */
-export type RemedyAction = "free_storage";
-
 export interface AdapterUnavailable {
   available: false;
-  code: UnavailableCode;
   /** One sentence, shown verbatim. Never a code, never a stack trace. */
   reason: string;
-  /** What the user can actually do. Empty means genuinely nothing. */
-  remedies: RemedyAction[];
 }
 
 export interface AdapterReady {
@@ -88,9 +78,6 @@ export type BrainStreamResult =
   | { ok: false; failure: "cancelled" | "unavailable" | "error"; reason: string };
 
 export interface BrainAdapter {
-  readonly id: AdapterId;
-  /** Shown in diagnostics. The capability label lives on the availability. */
-  readonly displayName: string;
   /**
    * Report readiness. Cheap and cached by the caller — this may be called on
    * every route decision, so it must not download or load weights.
@@ -109,10 +96,6 @@ export interface BrainAdapter {
 }
 
 /** Convenience for adapters that are simply not present on this platform. */
-export function unavailable(
-  code: UnavailableCode,
-  reason: string,
-  remedies: RemedyAction[] = [],
-): AdapterUnavailable {
-  return { available: false, code, reason, remedies };
+export function unavailable(reason: string): AdapterUnavailable {
+  return { available: false, reason };
 }

@@ -5,6 +5,7 @@ import type {
   IntelligenceTransport,
   IntelligenceTransportStatus,
 } from "./contract";
+import { sseData } from "./contract";
 
 export interface OnlineClientDependencies {
   fetch: typeof fetch;
@@ -91,47 +92,20 @@ function isEvent(value: unknown): value is IntelligenceEvent {
   );
 }
 
-function nextSseBoundary(buffer: string): { index: number; length: number } | null {
-  const lf = buffer.indexOf("\n\n");
-  const crlf = buffer.indexOf("\r\n\r\n");
-  if (lf < 0 && crlf < 0) return null;
-  if (crlf >= 0 && (lf < 0 || crlf < lf)) return { index: crlf, length: 4 };
-  return { index: lf, length: 2 };
-}
-
 async function* readSse(response: Response): AsyncIterable<IntelligenceEvent> {
   if (!response.body) throw new Error("Online Intelligence returned no response body.");
-  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
-  let buffer = "";
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += value;
-      let boundary = nextSseBoundary(buffer);
-      while (boundary) {
-        const frame = buffer.slice(0, boundary.index);
-        buffer = buffer.slice(boundary.index + boundary.length);
-        for (const line of frame.split(/\r?\n/)) {
-          if (!line.startsWith("data:")) continue;
-          const payload = line.slice(5).trim();
-          if (!payload || payload === "[DONE]") continue;
-          let parsed: unknown;
-          try {
-            parsed = JSON.parse(payload);
-          } catch {
-            throw new Error("Online Intelligence returned a malformed stream event.");
-          }
-          if (!isEvent(parsed)) throw new Error("Online Intelligence returned an unknown event.");
-          yield parsed;
-        }
-        boundary = nextSseBoundary(buffer);
-      }
+  for await (const payload of sseData(
+    response.body,
+    "Online Intelligence ended with an incomplete stream event.",
+  )) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(payload);
+    } catch {
+      throw new Error("Online Intelligence returned a malformed stream event.");
     }
-    if (buffer.trim())
-      throw new Error("Online Intelligence ended with an incomplete stream event.");
-  } finally {
-    reader.releaseLock();
+    if (!isEvent(parsed)) throw new Error("Online Intelligence returned an unknown event.");
+    yield parsed;
   }
 }
 

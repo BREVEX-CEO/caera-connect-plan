@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PublicPage } from "@/components/shell/PublicPage";
+import { PublicPage, PublicSection } from "@/components/shell/PublicPage";
 import { FOUNDER_STRUCTURED_DATA, PUBLIC_IDENTITY } from "@/lib/public-identity";
 
 export const Route = createFileRoute("/about")({
@@ -60,45 +60,36 @@ function AboutPage() {
         </div>
       </div>
 
-      <Section title="Role">
+      <PublicSection title="Role">
         <p>
           Haans Antoni leads {PUBLIC_IDENTITY.brand} and directs the product vision for OCADE. The
           formal founding and public launch record is {PUBLIC_IDENTITY.plannedLaunchDate}.
         </p>
-      </Section>
+      </PublicSection>
 
-      <Section title="Contribution record">
+      <PublicSection title="Contribution record">
         <ul className="list-disc space-y-1.5 pl-5">
           <li>Created and directs OCADE&apos;s product vision.</li>
           <li>Established the {PUBLIC_IDENTITY.brand} and OCADE brand concepts.</li>
           <li>Leads product, safety and launch requirements.</li>
         </ul>
-      </Section>
+      </PublicSection>
 
-      <Section title="The company">
+      <PublicSection title="The company">
         <p>
           {PUBLIC_IDENTITY.brand} is the independent technology enterprise behind OCADE. Its tagline
           is <strong className="text-foreground">“{PUBLIC_IDENTITY.tagline}”</strong>. OCADE is
           pronounced “{PUBLIC_IDENTITY.productPronunciation}”.
         </p>
-      </Section>
+      </PublicSection>
 
-      <Section title="Scope of this page">
+      <PublicSection title="Scope of this page">
         <p>
           This page publishes the founder identity and work record only. It does not expose account
           activity, personal contact details or private communications, and it does not imply a
           funding round, public listing, shareholder structure or securities offering.
         </p>
-      </Section>
+      </PublicSection>
     </PublicPage>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="mt-8">
-      <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-      <div className="mt-2 space-y-3 text-sm leading-6 text-muted-foreground">{children}</div>
-    </section>
   );
 }

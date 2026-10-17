@@ -92,13 +92,6 @@ export class Stopped extends Error {
   }
 }
 
-export interface Checkpoint {
-  step: number;
-  lastAction: string;
-  lastUrl: string | null;
-  at: string;
-}
-
 export interface ModelStep {
   text: string;
   toolCalls: NormalizedToolCall[];
@@ -148,7 +141,7 @@ export interface AgentDeps {
     controller?: string;
     /** Write only while this loop owns the task; a loop that lost it gets Stopped(true). */
     owner?: string;
-    checkpoint?: Checkpoint;
+    checkpoint?: NonNullable<JarvisTaskRow["checkpoint"]>;
   }): Promise<JarvisTaskRow>;
   readTaskStatus(id: string): Promise<TaskStatus>;
   queue(input: {
@@ -704,7 +697,7 @@ export async function runJarvisTurn(
     }
     for (const raw of steps.slice(free > 1 ? free : 0)) {
       stopIfAsked();
-      if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      if (!isStep(raw)) {
         return { error: "Each sequence step is one action object.", sequence: ran };
       }
       const step = { ...(raw as Record<string, unknown>) };

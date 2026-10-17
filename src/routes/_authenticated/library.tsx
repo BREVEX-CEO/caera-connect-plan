@@ -1,3 +1,4 @@
+import { toBase64 } from "@/lib/chat/attachments";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
@@ -63,20 +64,13 @@ function LibraryPage() {
       if (file.size > LIBRARY_MAX_BYTES) {
         throw new Error("That file is larger than OCADE can keep in your library.");
       }
-      const buffer = new Uint8Array(await file.arrayBuffer());
-      let binary = "";
-      // In chunks, because `String.fromCharCode(...bytes)` on a large file
-      // overflows the argument list and throws where the file is biggest.
-      for (let at = 0; at < buffer.length; at += 8192) {
-        binary += String.fromCharCode(...buffer.subarray(at, at + 8192));
-      }
       return addLibraryItem({
         data: {
           name: file.name,
           mime: file.type || "application/octet-stream",
           kind: file.type.startsWith("image/") ? "image" : "file",
           source: "upload",
-          contentBase64: btoa(binary),
+          contentBase64: await toBase64(file),
         },
       });
     },

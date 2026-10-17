@@ -145,21 +145,17 @@ export function authorityBackedAdapter(): BrainAdapter {
   };
 
   return {
-    id: "browser_wasm",
-    displayName: "OCADE Offline Intelligence",
     async probe() {
       const adapter = await started();
       if (adapter) return adapter.probe();
       return {
         available: false as const,
-        code: "no_model" as const,
         /*
          * Deliberately the language of preparation rather than of failure. The
          * engine is not missing; it has not finished being prepared, and the
          * setup surface is already saying so with a percentage.
          */
         reason: "OCADE is still preparing this device.",
-        remedies: [],
       };
     },
     async preload() {

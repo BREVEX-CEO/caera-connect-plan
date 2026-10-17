@@ -223,24 +223,22 @@ function SectionBody({
                 <span className="block truncate">{item.title}</span>
                 <span className="block text-xs text-muted-foreground">{item.sub}</span>
               </button>
-              {section === "conversations" ? (
-                <button
-                  type="button"
-                  aria-label={`Delete ${item.title}`}
-                  onClick={() => {
-                    if (!window.confirm("Delete this conversation and its tasks for good?")) return;
-                    void deleteConversation({ data: { id: item.id } })
-                      .then(() => {
-                        onChanged();
-                        if (item.id === activeConversation) onOpenConversation(null);
-                      })
-                      .catch(() => toast.error("That conversation could not be deleted."));
-                  }}
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden />
-                </button>
-              ) : null}
+              <button
+                type="button"
+                aria-label={`Delete ${item.title}`}
+                onClick={() => {
+                  if (!window.confirm("Delete this conversation and its tasks for good?")) return;
+                  void deleteConversation({ data: { id: item.id } })
+                    .then(() => {
+                      onChanged();
+                      if (item.id === activeConversation) onOpenConversation(null);
+                    })
+                    .catch(() => toast.error("That conversation could not be deleted."));
+                }}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" aria-hidden />
+              </button>
               {item.result ? (
                 opened === item.id ? (
                   <p className="w-full whitespace-pre-wrap px-2 pb-1 text-xs">{item.result}</p>
@@ -444,7 +442,6 @@ function SectionBody({
 
   // Devices
   const devices = state.devices.filter((d) => !d.revoked_at && d.last_seen_at);
-  const agentCount = devices.length;
   const openTasks = state.tasks.filter((t) => !FINISHED.includes(t.status) && t.device_id);
   return (
     <>
@@ -527,7 +524,7 @@ function SectionBody({
                 ? ` · last seen ${new Date(d.last_seen_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`
                 : ""}
             </p>
-            {agentCount > 1 ? (
+            {devices.length > 1 ? (
               <label className="mt-2 flex items-center gap-2 text-xs">
                 <input
                   type="radio"
