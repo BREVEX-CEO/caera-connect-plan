@@ -31,6 +31,7 @@ Common safety rules for every PC entry:
 | GEM-04-01    | 04           | Three-key failover with real keys                       | BLOCKED  | Two more staging keys                                 |
 | GEM-04-02    | 04           | Background Mode step planned by the real model          | UNTESTED | Cloud session + staging key (can run)                 |
 | GEM-04-03    | 04           | Durable thought signatures for Background Mode          | OPEN     | Migration + owner deployment gate                     |
+| CF-04-01     | 04           | Gemma 4 on Workers AI against Gemini on OCADE tasks     | BLOCKED  | Workers AI token reachable from the session (owner)   |
 | LIVE-04-01   | 04 / 17      | Live video task: captions read on the page              | FAIL     | Wikimedia 429 to clear; rerun                         |
 | LIVE-04-02   | 04 / 11 / 17 | Live photo task in a canvas editor (miniPaint)          | FAIL     | Fix in canvas/vision route                            |
 | VER-01-01    | 01           | A claim about an effect no check covers is refused      | OPEN     | Verifier contract                                     |
@@ -166,6 +167,15 @@ Common safety rules for every PC entry:
 ## GEM-04-03 — Durable thought signatures for Background Mode
 
 - **Status:** OPEN. Background Mode rebuilds calls from saved steps with Google's skip value; the original signatures are not stored. Storing them needs a migration and the owner's deployment gate.
+
+## CF-04-01 — Gemma 4 on Cloudflare Workers AI against the current Gemini model
+
+- **Test:** the same matched live cases as PROMPT-00-01 (reconcile, pack, status; same seeds, same independent checkers) with `@cf/google/gemma-4-26b-a4b-it` planning instead of `gemini-3.5-flash-lite`: verified tasks, false completions, requests, tokens, Neurons and p50/p95 time per case. A High mode is offered only if Gemma 4 verifies more tasks with no more false completions.
+- **Verified from Cloudflare's own documentation (18 Oct, docs updated 15 Oct 2026):** the model exists (added 4 Apr 2026): MoE 26B total / 4B active, 256 000-token context, function calling, reasoning, vision; REST `/ai/run`, OpenAI-compatible `/v1/chat/completions`, Worker binding `env.AI.run()`. Price $0.10 per M input tokens, $0.30 per M output (9 091 and 27 273 Neurons per M). Free allocation **10 000 Neurons a day per account**, shared by every model, reset 00:00 UTC; anything above needs Workers Paid. Gemma 4 is not on the paid-only list.
+- **What the free allocation buys:** V1's verified live cases used 85 015–483 365 prompt tokens each (PROMPT-00-01, median about 135 000). At 9 091 Neurons per M input tokens that is about 1 200–1 300 Neurons a task, so 10 000 Neurons is roughly **7 JARVIS tasks a day for the whole account, all customers together** (estimate: Gemma's tokenizer counts differently). Gemini's free tier measured about 500 requests a day, about 30 such tasks. At ₹0, a Gemma High mode could serve only a handful of tasks a day even if it wins.
+- **Why BLOCKED:** no Workers AI credential reaches this session (no session network secret for `api.cloudflare.com`, which answers here; no environment variable); the Cloudflare MCP connected to the session lists Workers, KV, R2, D1 and Hyperdrive but has no inference tool; the only Supabase project is production, whose secrets are not read from here.
+- **Not built, on purpose:** no Workers AI adapter, no High mode and no Neuron ledger. Without one measured run there is no evidence Gemma 4 is better, and the owner rule is not to force it in; an adapter nobody can run would be unverified code. The adapter also needs: request/response translation from Gemini's native turns (thought signatures cannot be carried over, so no switch inside a task), a server-side daily Neuron budget that refuses before 10 000, and a new online-consent version naming the second processor.
+- **Remains:** the owner adds a Workers AI token (the dashboard's "Create a Workers AI API Token" template: `Workers AI - Read` and `Workers AI - Edit`, nothing else) as a session network secret for `api.cloudflare.com`; then a benchmark of the matched cases through the OpenAI-compatible endpoint, and an adapter only if the numbers justify it.
 
 ## LIVE-04-01 — Live video task: captions read on the page
 
