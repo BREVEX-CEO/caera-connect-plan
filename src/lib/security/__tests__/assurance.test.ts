@@ -1,12 +1,38 @@
 import { describe, expect, it } from "vitest";
 import {
   RECENT_PROOF_MS,
+  proofAction,
   assuranceFromClaims,
   decideAssurance,
   type SessionAssurance,
 } from "@/lib/security/assurance";
 
 const NOW = Date.parse("2026-09-02T12:00:00.000Z");
+
+describe("bounded proof action identities", () => {
+  it("keeps existing short action keys unchanged, including the 120-character limit", async () => {
+    for (const action of ["end a customer's sessions: customer-id", "x".repeat(120)]) {
+      expect(await proofAction(action)).toBe(action);
+    }
+  });
+
+  it("does not alias targets that differ beyond the stored prefix", async () => {
+    const prefix = "x".repeat(130);
+    const first = await proofAction(`${prefix}first`);
+    const second = await proofAction(`${prefix}second`);
+    expect(first).toHaveLength(120);
+    expect(second).toHaveLength(120);
+    expect(first).not.toBe(second);
+  });
+
+  it("uses database character boundaries for Unicode targets", async () => {
+    const action = "😀".repeat(121);
+    const key = await proofAction(action);
+    expect(Array.from(key)).toHaveLength(120);
+    expect(key).toMatch(/^😀{55}:[0-9a-f]{64}$/u);
+    expect(await proofAction("😀".repeat(120))).toBe("😀".repeat(120));
+  });
+});
 
 function session(over: Partial<SessionAssurance> = {}): SessionAssurance {
   return {

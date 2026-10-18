@@ -441,8 +441,16 @@ export const readCustomer = createServerFn({ method: "GET" })
     return detail;
   });
 
+/** A recent confirmation names the customer, including direct database calls. */
+const customerChange = (action: string) => (input: unknown) =>
+  `${action}: ${String((input as { userId?: unknown } | null)?.userId ?? "")
+    .trim()
+    .toLowerCase()}`;
+
 export const endCustomerSessions = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK, { proves: "end a customer's sessions" })])
+  .middleware([
+    requireAssurance(HIGH_RISK, { proves: customerChange("end a customer's sessions") }),
+  ])
   .validator((input) => z.object({ userId: uuid, reason }).parse(input))
   .handler(async ({ data, context }): Promise<{ ended: number }> => {
     const { data: ended, error } = await context.supabase.rpc("ocade_staff_end_customer_sessions", {
@@ -461,7 +469,9 @@ export const endCustomerSessions = createServerFn({ method: "POST" })
  */
 export const resetCustomerSecondFactor = createServerFn({ method: "POST" })
   .middleware([
-    requireAssurance(HIGH_RISK, { proves: "turn off a customer's two-step verification" }),
+    requireAssurance(HIGH_RISK, {
+      proves: customerChange("turn off a customer's two-step verification"),
+    }),
   ])
   .validator((input) => z.object({ userId: uuid, reason }).parse(input))
   .handler(async ({ data, context }): Promise<{ removed: number }> => {
@@ -505,7 +515,9 @@ export const resetCustomerSecondFactor = createServerFn({ method: "POST" })
  * The database authorises it, records it where nothing can change it, and audits it.
  */
 export const adjustCustomerUsage = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK, { proves: "change a customer's usage" })])
+  .middleware([
+    requireAssurance(HIGH_RISK, { proves: customerChange("change a customer's usage") }),
+  ])
   .validator((input) =>
     z
       .object({
@@ -543,8 +555,8 @@ export const suspendCustomer = createServerFn({ method: "POST" })
     requireAssurance(HIGH_RISK, {
       proves: (input) =>
         (input as { suspend?: unknown } | null)?.suspend === true
-          ? "suspend an account"
-          : "restore an account",
+          ? customerChange("suspend an account")(input)
+          : customerChange("restore an account")(input),
     }),
   ])
   .validator((input) => z.object({ userId: uuid, suspend: z.boolean(), reason }).parse(input))
@@ -565,7 +577,7 @@ export const suspendCustomer = createServerFn({ method: "POST" })
  * no subject but the reference.
  */
 export const deleteCustomerAccount = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK, { proves: "delete an account" })])
+  .middleware([requireAssurance(HIGH_RISK, { proves: customerChange("delete an account") })])
   .validator((input) =>
     z.object({ userId: uuid, email: z.string().trim().min(3).max(320), reason }).parse(input),
   )

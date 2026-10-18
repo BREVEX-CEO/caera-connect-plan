@@ -43,6 +43,16 @@ export type AssuranceLevel = "aal1" | "aal2";
  */
 export const RECENT_PROOF_MS = 10 * 60 * 1000;
 
+/** The database's 120-character action key must retain the whole target, never a truncated alias. */
+export async function proofAction(action: string): Promise<string> {
+  const characters = Array.from(action);
+  if (characters.length <= 120) return action;
+  const hash = new Uint8Array(
+    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(action)),
+  );
+  return `${characters.slice(0, 55).join("")}:${Array.from(hash, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}
+
 /** What every high-risk action demands: the second factor where there is one, and a recent proof. */
 export const HIGH_RISK_REQUIREMENT: AssuranceRequirement = { level: "aal2" };
 

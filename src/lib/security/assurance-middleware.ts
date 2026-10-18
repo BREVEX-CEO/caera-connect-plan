@@ -28,6 +28,7 @@ import {
   assuranceFromClaims,
   decideAssurance,
   HIGH_RISK_REQUIREMENT,
+  proofAction,
   type AssuranceRequirement,
   type SessionAssurance,
 } from "./assurance";
@@ -149,11 +150,11 @@ export function requireAssurance(
         ),
       );
       const { data: spent, error: spendError } = await supabase.rpc("ocade_spend_proof", {
-        p_action: (
+        p_action: await proofAction(
           (typeof options.proves === "function" ? options.proves(data) : options.proves) ||
-          serverFnMeta?.name ||
-          "sensitive action"
-        ).slice(0, 120),
+            serverFnMeta?.name ||
+            "sensitive action",
+        ),
         p_target_digest: Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join(""),
       });
       if (spendError) throw new Error("OCADE could not check this session just now. Try again.");

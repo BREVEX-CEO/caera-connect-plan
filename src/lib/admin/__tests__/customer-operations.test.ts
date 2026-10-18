@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DatabaseTwin } from "../../../../scripts/db-twin.mts";
+import { proofAction } from "@/lib/security/assurance";
 
 /**
  * THE OWNER CONSOLE'S CUSTOMER OPERATIONS, AGAINST REAL POSTGRESQL.
@@ -93,6 +94,174 @@ describe("the migration", () => {
       (await twin.runScript("supabase/migrations", "20261002090000_owner_customer_operations.sql"))
         .error,
     ).toBeUndefined();
+    expect((await verify()).error).toBeUndefined();
+    // A historical rollback test must leave the current authorization contract installed.
+    expect(
+      (
+        await twin.runScript(
+          "supabase/migrations",
+          "20261018163814_customer_proofs_bind_the_account.sql",
+        )
+      ).error,
+    ).toBeUndefined();
+  });
+});
+
+describe("a confirmation belongs to one customer", () => {
+  const changes = [
+    [
+      "end a customer's sessions",
+      (id: string) =>
+        `public.ocade_staff_end_customer_sessions('${id}', 'The customer requested this')`,
+    ],
+    [
+      "turn off a customer's two-step verification",
+      (id: string) =>
+        `public.ocade_staff_reset_second_factor('${id}', 'The customer requested this')`,
+    ],
+    [
+      "change a customer's usage",
+      (id: string) =>
+        `public.ocade_staff_adjust_usage('${id}', 'chat', 'session', 100, 'The customer requested this')`,
+    ],
+    [
+      "suspend an account",
+      (id: string) =>
+        `public.ocade_staff_suspend_account('${id}', true, 'The customer requested this')`,
+    ],
+    [
+      "restore an account",
+      (id: string) =>
+        `public.ocade_staff_suspend_account('${id}', false, 'The customer requested this')`,
+    ],
+    [
+      "delete an account",
+      (id: string) =>
+        `public.ocade_staff_begin_account_deletion('${id}', '${id === CUSTOMER ? "customer" : "other"}@ocade.test', 'The customer requested this')`,
+    ],
+  ] as const;
+
+  it.each(changes)("%s cannot be redirected to another customer", async (action, operation) => {
+    const [{ id }] = await twin.asSuperuser<{ id: string }>(
+      `insert into auth.sessions (user_id) values ('${OWNER}') returning id`,
+    );
+    const proof = {
+      aal: "aal2" as const,
+      sessionId: id,
+      provedAt: Math.floor(Date.now() / 1000) - 13,
+    };
+    const legacy = { ...proof, provedAt: proof.provedAt - 1 };
+    const oldSpend = await twin.asTenant<{ ok: boolean }>(
+      OWNER,
+      `select public.ocade_spend_proof('${action.replaceAll("'", "''")}', '${"f".repeat(64)}') as ok`,
+      legacy,
+    );
+    expect(oldSpend.rows[0]?.ok).toBe(true);
+    expect((await twin.asTenant(OWNER, `select ${operation(OTHER)}`, legacy)).errorCode).toBe(
+      "42501",
+    );
+    const spent = await twin.asTenant<{ ok: boolean }>(
+      OWNER,
+      `select public.ocade_spend_proof('${action.replaceAll("'", "''")}: ${CUSTOMER}', '${"e".repeat(64)}') as ok`,
+      proof,
+    );
+    expect(spent.error).toBeUndefined();
+    expect(spent.rows[0]?.ok).toBe(true);
+    const snapshot = () =>
+      twin.asSuperuser(
+        `select banned_until, (select count(*) from public.ocade_admin_actions where target_user = '${OTHER}') as changes from auth.users where id = '${OTHER}'`,
+      );
+    const before = await snapshot();
+    const refused = await twin.asTenant(OWNER, `select ${operation(OTHER)}`, proof);
+    expect(refused.errorCode).toBe("42501");
+    expect(await snapshot()).toEqual(before);
+    const meant = await twin.asTenant(OWNER, `select ${operation(CUSTOMER)}`, proof);
+    expect(meant.error).toBeUndefined();
+    expect((await twin.asTenant(OWNER, `select ${operation(CUSTOMER)}`, proof)).errorCode).toBe(
+      "42501",
+    );
+  });
+});
+
+describe("the exact-customer proof repair", () => {
+  it("does not confuse long operator email addresses with the same first 120 action characters", async () => {
+    const prefix = "change who operates OCADE: add ";
+    const email = `${"a".repeat(64)}@${"b".repeat(63)}.example.invalid`;
+    const other = email.replace(".example.invalid", ".other.invalid");
+    const action = prefix + email;
+    expect(action.slice(0, 120)).toBe((prefix + other).slice(0, 120));
+    const [{ id }] = await twin.asSuperuser<{ id: string }>(
+      `insert into auth.sessions (user_id) values ('${OWNER}') returning id`,
+    );
+    const proof = {
+      aal: "aal2" as const,
+      sessionId: id,
+      provedAt: Math.floor(Date.now() / 1000) - 17,
+    };
+    expect(
+      (
+        await twin.asTenant<{ ok: boolean }>(
+          OWNER,
+          `select public.ocade_spend_proof('${action.slice(0, 120)}', '${"a".repeat(64)}') as ok`,
+          proof,
+        )
+      ).rows[0]?.ok,
+    ).toBe(true);
+    const redirected = await twin.asTenant(
+      OWNER,
+      `select public.ocade_staff_grant('${other}', 'read_only', 'Access was confirmed for somebody else')`,
+      proof,
+    );
+    expect(redirected.errorCode).toBe("42501");
+    const intended = { ...proof, provedAt: proof.provedAt - 1 };
+    const key = await proofAction(action);
+    expect(key).toHaveLength(120);
+    expect(key).not.toBe(await proofAction(prefix + other));
+    expect(
+      (
+        await twin.asTenant<{ ok: boolean }>(
+          OWNER,
+          `select public.ocade_spend_proof('${key}', '${"b".repeat(64)}') as ok`,
+          intended,
+        )
+      ).rows[0]?.ok,
+    ).toBe(true);
+    expect(
+      (
+        await twin.asTenant(
+          OWNER,
+          `select public.ocade_staff_grant('${other}', 'read_only', 'Not the intended operator')`,
+          intended,
+        )
+      ).errorCode,
+    ).toBe("42501");
+    expect(
+      (
+        await twin.asTenant(
+          OWNER,
+          `select public.ocade_staff_grant('${email}', 'read_only', 'The intended operator was confirmed')`,
+          intended,
+        )
+      ).error,
+    ).toBeUndefined();
+    expect(
+      (
+        await twin.asSuperuser<{ email: string }>(`select email from public.ocade_staff_invites`)
+      ).map((row) => row.email),
+    ).toEqual([email]);
+  });
+
+  it("verifies, demonstrates the rollback and restores the repair", async () => {
+    const name = "20261018163814_customer_proofs_bind_the_account";
+    const verify = () => twin.runScript("supabase/verification", `${name}_verify.sql`);
+    expect((await verify()).error).toBeUndefined();
+    expect(
+      (await twin.runScript("supabase/rollback", `${name}_rollback.sql`)).error,
+    ).toBeUndefined();
+    expect((await verify()).error).toMatch(
+      /truncates long action targets|does not bind the customer/,
+    );
+    expect((await twin.runScript("supabase/migrations", `${name}.sql`)).error).toBeUndefined();
     expect((await verify()).error).toBeUndefined();
   });
 });
