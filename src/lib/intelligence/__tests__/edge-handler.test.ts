@@ -139,7 +139,9 @@ describe("authenticated Online Intelligence Edge handler", () => {
           system_instruction: { parts: [{ text: "You are OCADE." }] },
           contents: [{ role: "user", parts: [{ text: "Hello" }] }],
         });
-        return provider([{ candidates: [{ content: { parts: [{ text: "answer" }] } }] }]);
+        return provider([
+          { candidates: [{ content: { parts: [{ text: "answer" }] }, finishReason: "STOP" }] },
+        ]);
       }),
     });
 
@@ -780,6 +782,28 @@ describe("capacity failures that must not look like each other", () => {
     // A call, then the stream breaks mid-event.
     const cut = await run(frame({ candidates: [{ content: { parts: [call] } }] }) + "data: {trunc");
     expect(cut).not.toContain('"type":"tool_call"');
+    const missingStop = await run(frame({ candidates: [{ content: { parts: [call] } }] }));
+    expect(missingStop).not.toContain('"type":"tool_call"');
+    expect(missingStop).not.toContain('"type":"final"');
+    expect(missingStop).toContain('"code":"provider_failed"');
+    const cappedCall = await run(
+      frame({
+        candidates: [
+          {
+            content: { parts: [call] },
+            finishReason: "MAX_TOKENS",
+          },
+        ],
+      }),
+    );
+    expect(cappedCall).not.toContain('"type":"tool_call"');
+    expect(cappedCall).not.toContain('"type":"final"');
+    const afterStop = await run(
+      frame({ candidates: [{ content: { parts: [] }, finishReason: "STOP" }] }) +
+        frame({ candidates: [{ content: { parts: [call] } }] }),
+    );
+    expect(afterStop).not.toContain('"type":"tool_call"');
+    expect(afterStop).not.toContain('"type":"final"');
     // Complete: the call is released, before the final answer that confirms it.
     const whole = await run(
       frame({ candidates: [{ content: { parts: [call] } }] }) +
@@ -787,6 +811,69 @@ describe("capacity failures that must not look like each other", () => {
     );
     expect(whole.indexOf('"type":"tool_call"')).toBeGreaterThan(-1);
     expect(whole.indexOf('"type":"tool_call"')).toBeLessThan(whole.indexOf('"type":"final"'));
+  });
+
+  it("releases an allowance when an incomplete turn's held calls never reached the caller", async () => {
+    for (const finishReason of [undefined, "MAX_TOKENS", "SAFETY"]) {
+      const finalize = vi.fn(async () => undefined);
+      const release = vi.fn(async () => undefined);
+      const response = await handleOnlineIntelligence(
+        request(),
+        dependencies({
+          callProvider: vi.fn(async () =>
+            provider([
+              {
+                candidates: [
+                  {
+                    content: { parts: [{ functionCall: { name: "start_task", args: {} } }] },
+                    ...(finishReason ? { finishReason } : {}),
+                  },
+                ],
+              },
+            ]),
+          ),
+          finalizePermit: finalize,
+          releasePermit: release,
+        }),
+      );
+      const stream = await response.text();
+      expect(stream).not.toContain('"type":"tool_call"');
+      expect(stream).not.toContain('"type":"final"');
+      expect(finalize).not.toHaveBeenCalled();
+      expect(release).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it("does not label partial text as a complete answer when the terminal event is lost", async () => {
+    const finalize = vi.fn(async () => undefined);
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({
+        callProvider: vi.fn(async () =>
+          provider([
+            {
+              candidates: [
+                {
+                  content: {
+                    parts: [
+                      { text: "Partial answer" },
+                      { functionCall: { name: "start_task", args: {} } },
+                    ],
+                  },
+                },
+              ],
+            },
+          ]),
+        ),
+        finalizePermit: finalize,
+      }),
+    );
+    const stream = await response.text();
+    expect(stream).toContain('"text":"Partial answer"');
+    expect(stream).toContain('"code":"provider_failed"');
+    expect(stream).not.toContain('"type":"final"');
+    expect(stream).not.toContain('"type":"tool_call"');
+    expect(finalize).toHaveBeenCalledWith(expect.objectContaining({ startsTask: false }));
   });
 
   it("gives a key that never starts answering its own deadline, then uses the next key", async () => {
@@ -927,7 +1014,9 @@ describe("capacity failures that must not look like each other", () => {
       const response = await handleOnlineIntelligence(
         request(),
         dependencies({
-          callProvider: vi.fn(async () => provider([{ candidates: [{ content: { parts } }] }])),
+          callProvider: vi.fn(async () =>
+            provider([{ candidates: [{ content: { parts }, finishReason: "STOP" }] }]),
+          ),
           finalizePermit: finalize,
         }),
       );

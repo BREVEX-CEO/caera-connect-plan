@@ -103,6 +103,8 @@ Use additive, RLS-reviewed migrations during implementation. Reuse task/activity
 
 Background planning persists its normalized model turn in a service-written `jarvis_activity` note before admitting an effect. The request's unique `controller` joins that note to its actual action receipts, including all admitted steps of one sequence and documentation reads. Rebuilding history preserves original call IDs, arguments, order and call signatures; unused calls receive explicit unrun results. A failed note write pauses the task without queueing work. A saved turn without receipts is never replayed automatically. Notes are context, never permission or completion evidence; existing queue admission, STOP and settlement remain authoritative. Legacy and foreground actions without such notes retain reconstructed history. This does not yet preserve signatures attached to non-call provider parts; real provider restart qualification remains required.
 
+The online boundary admits calls only after Gemini's explicit terminal `STOP`, not merely SSE EOF. `MAX_TOKENS` may close a text-only answer but never release a call. Content after a terminal result is refused. Withheld calls are not delivered work for allowance settlement or task-start binding; partial text retains its existing separate delivery policy.
+
 ```ts
 type StepReceipt = {
   protocol: 2;

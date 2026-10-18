@@ -584,6 +584,8 @@ function normalizedProviderStream(
     async start(controller) {
       let answer = "";
       let refused = false;
+      let finishReason: string | undefined;
+      let callsReleased = false;
       const toolCalls: NormalizedToolCall[] = [];
       let usage: NormalizedUsage | undefined;
       const toolIndex = { value: 0 };
@@ -597,8 +599,10 @@ function normalizedProviderStream(
       const settle = async () => {
         if (settled) return;
         settled = true;
-        const anything = answer.trim() !== "" || toolCalls.length > 0;
-        await (anything ? delivered(toolCalls) : undelivered()).catch(() => undefined);
+        const anything = answer.trim() !== "" || callsReleased;
+        await (anything ? delivered(callsReleased ? toolCalls : []) : undelivered()).catch(
+          () => undefined,
+        );
       };
       try {
         if (!provider.body) throw new Error("Provider returned no stream.");
@@ -608,7 +612,21 @@ function normalizedProviderStream(
           "Provider ended with an incomplete stream event.",
           signal,
         )) {
-          for (const event of normalizeProviderChunk(JSON.parse(raw), "online", toolIndex)) {
+          const chunk: unknown = JSON.parse(raw);
+          const candidate =
+            isRecord(chunk) && Array.isArray(chunk.candidates) ? chunk.candidates[0] : null;
+          if (
+            finishReason &&
+            isRecord(candidate) &&
+            isRecord(candidate.content) &&
+            Array.isArray(candidate.content.parts) &&
+            candidate.content.parts.length
+          )
+            throw new Error("Provider sent content after its terminal result.");
+          if (isRecord(candidate) && typeof candidate.finishReason === "string") {
+            finishReason = candidate.finishReason;
+          }
+          for (const event of normalizeProviderChunk(chunk, "online", toolIndex)) {
             // A call is held until the turn ends complete: a turn cut short or refused
             // after a call must never hand that call to anything that would act on it.
             if (event.type === "tool_call") {
@@ -623,6 +641,13 @@ function normalizedProviderStream(
         }
         if (refused) {
           // Refused with its real reason already sent: no final answer, and no call is released.
+        } else if (
+          finishReason !== "STOP" &&
+          !(finishReason === "MAX_TOKENS" && toolCalls.length === 0)
+        ) {
+          // EOF can land between complete SSE frames. Only the provider's terminal result
+          // closes the turn; a token-capped turn may contain unfinished tool arguments.
+          throw new Error("Provider ended before completing the turn.");
         } else if (!answer.trim() && toolCalls.length === 0) {
           controller.enqueue(
             sse({
@@ -634,6 +659,7 @@ function normalizedProviderStream(
           );
         } else {
           for (const call of toolCalls) controller.enqueue(sse({ type: "tool_call", call }));
+          callsReleased = toolCalls.length > 0;
           // Charged by the server before the person is told it is complete.
           await settle();
           controller.enqueue(
