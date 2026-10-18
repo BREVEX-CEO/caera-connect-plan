@@ -36,9 +36,14 @@ export interface NormalizedMessage {
   content: string;
   /** An assistant turn's calls, exactly as the provider returned them. */
   toolCalls?: NormalizedToolCall[];
+  /** Original assistant part order; opaque continuation stays on its own part. */
+  parts?: NormalizedAssistantPart[];
   /** A user turn answering one call; `content` is its result (untrusted data). */
   toolResult?: { callId: string; name: string };
 }
+
+export type NormalizedAssistantPart =
+  { text: string; signature?: string; thought?: boolean } | { callId: string };
 
 export interface NormalizedToolDefinition {
   name: string;
@@ -131,6 +136,7 @@ export interface NormalizedUsage {
 export interface NormalizedResponse {
   text: string;
   toolCalls: NormalizedToolCall[];
+  parts?: NormalizedAssistantPart[];
   toolResults: NormalizedToolResult[];
   backend: IntelligenceBackend;
   usage?: NormalizedUsage;

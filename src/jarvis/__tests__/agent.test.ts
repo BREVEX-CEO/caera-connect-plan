@@ -955,6 +955,32 @@ describe("web search in the rules", () => {
 });
 
 describe("a task paused by a busy model", () => {
+  it("keeps signed text parts through foreground tools and a no-call reminder", async () => {
+    const native = {
+      text: "Reading",
+      toolCalls: [call("browser", { action: "observe" })],
+      parts: [{ text: "Reading", signature: "text-sig" }, { callId: "browser" }],
+    };
+    const reminder = {
+      text: "Still working",
+      toolCalls: [],
+      parts: [{ text: "Still working", signature: "last-sig" }],
+    };
+    const h = harness([native, reminder, null]);
+    await runJarvisTurn({ ...h.input, task: { ...TASK } }, h.hooks, h.deps);
+    expect(h.seen[1]).toContainEqual({
+      role: "assistant",
+      content: native.text,
+      toolCalls: native.toolCalls,
+      parts: native.parts,
+    });
+    expect(h.seen[2]).toContainEqual({
+      role: "assistant",
+      content: reminder.text,
+      parts: reminder.parts,
+    });
+  });
+
   it("hands back its own work after each step, so the continuation reads nothing again", async () => {
     const h = harness(
       [

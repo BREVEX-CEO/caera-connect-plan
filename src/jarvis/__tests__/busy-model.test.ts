@@ -1,15 +1,67 @@
 import { describe, expect, it, vi } from "vitest";
+import type { IntelligenceEvent } from "@/lib/intelligence/contract";
+
+const online = vi.hoisted(() => ({ stream: vi.fn() }));
 
 vi.mock("@/lib/intelligence/online-client", () => ({
-  createOnlineIntelligenceTransport: () => ({}),
+  createOnlineIntelligenceTransport: () => online,
 }));
 vi.mock("@/lib/commercial/use-generation-permit", () => ({ beginBilledRequest: vi.fn() }));
 vi.mock("../jarvis.functions", () => ({}));
 vi.mock("../changes", () => ({ actionChanged: vi.fn() }));
 
-const { askThroughBusy, Unavailable, ModelRefused } = await import("../live-deps");
+const { askThroughBusy, Unavailable, ModelRefused, liveDeps } = await import("../live-deps");
+const { beginBilledRequest } = await import("@/lib/commercial/use-generation-permit");
 
 describe("a busy model answer", () => {
+  it("passes completed native parts to the agent and withholds an interrupted turn", async () => {
+    const parts = [{ text: "Reading", signature: "text-sig" }, { callId: "c" }];
+    const toolCalls = [
+      { id: "c", name: "computer", arguments: { action: "file_list" }, signature: "call-sig" },
+    ];
+    const billed = {
+      permit: {
+        id: "p",
+        generationId: "g",
+        idempotencyKey: "i",
+        surface: "jarvis" as const,
+        source: "server" as const,
+      },
+      recordDelivery: vi.fn(),
+      settle: vi.fn(async () => undefined),
+    };
+    vi.mocked(beginBilledRequest).mockResolvedValue(billed);
+    const input = {
+      messages: [],
+      memory: false,
+      attachments: [],
+      signal: new AbortController().signal,
+    };
+    const response = {
+      text: "Reading",
+      toolCalls,
+      parts,
+      toolResults: [],
+      backend: "online" as const,
+      stopReason: "tool_use" as const,
+    };
+    online.stream.mockImplementation(async function* () {
+      yield { type: "final", response } satisfies IntelligenceEvent;
+    });
+    await expect(liveDeps("c1").model(input)).resolves.toEqual({
+      text: response.text,
+      toolCalls,
+      parts,
+      permitKey: "i",
+    });
+    expect(billed.settle).toHaveBeenCalledTimes(1);
+    online.stream.mockImplementation(async function* () {
+      yield { type: "tool_call", call: toolCalls[0]! } satisfies IntelligenceEvent;
+    });
+    await expect(liveDeps("c1").model(input)).rejects.toBeInstanceOf(Unavailable);
+    expect(billed.settle).toHaveBeenCalledTimes(2);
+  });
+
   it("is waited out and asked again, the same request, before the task pauses", async () => {
     const ask = vi
       .fn<() => Promise<string>>()

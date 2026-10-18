@@ -3,6 +3,7 @@ import type {
   IntelligencePermit,
   IntelligencePrivacyPolicy,
   NormalizedAttachment,
+  NormalizedAssistantPart,
   NormalizedMessage,
   NormalizedToolCall,
   NormalizedToolDefinition,
@@ -246,6 +247,46 @@ function validCalls(message: Record<string, unknown>): boolean {
   );
 }
 
+/** Continuation is bounded context, never an arbitrary provider payload or tool authority. */
+function validParts(message: Record<string, unknown>): boolean {
+  const parts = message.parts;
+  if (
+    message.role !== "assistant" ||
+    !Array.isArray(parts) ||
+    !parts.length ||
+    parts.length > 16_384
+  )
+    return false;
+  let textSize = 0;
+  let signatureSize = 0;
+  const ids: string[] = [];
+  for (const part of parts) {
+    if (!isRecord(part)) return false;
+    if ("callId" in part) {
+      if (Object.keys(part).length !== 1 || !boundedString(part.callId, 200)) return false;
+      ids.push(part.callId);
+    } else {
+      if (
+        Object.keys(part).some((key) => !["text", "signature", "thought"].includes(key)) ||
+        typeof part.text !== "string" ||
+        (part.thought !== undefined && typeof part.thought !== "boolean") ||
+        (part.signature !== undefined && !boundedString(part.signature, 100_000))
+      )
+        return false;
+      textSize += part.text.length;
+      signatureSize += typeof part.signature === "string" ? part.signature.length : 0;
+    }
+  }
+  const calls = Array.isArray(message.toolCalls) ? message.toolCalls : [];
+  return (
+    textSize <= 200_000 &&
+    signatureSize <= 1_000_000 &&
+    ids.length === calls.length &&
+    new Set(ids).size === ids.length &&
+    ids.every((id, index) => isRecord(calls[index]) && id === calls[index].id)
+  );
+}
+
 function parseBody(value: unknown): OnlineRequestBody | null {
   if (!isRecord(value) || !isRecord(value.permit) || !isRecord(value.privacy)) return null;
   const permit = value.permit;
@@ -282,6 +323,7 @@ function parseBody(value: unknown): OnlineRequestBody | null {
         typeof message.content !== "string" ||
         message.content.length > 200_000 ||
         (message.toolCalls !== undefined && !validCalls(message)) ||
+        (message.parts !== undefined && !validParts(message)) ||
         (message.toolResult !== undefined &&
           (message.role !== "user" ||
             !isRecord(message.toolResult) ||
@@ -340,8 +382,27 @@ function providerBody(body: OnlineRequestBody): Record<string, unknown> {
   type Part = Record<string, unknown>;
   const contents: { role: string; parts: Part[] }[] = [];
   const nativeId = (id: string) => (id.startsWith(LOCAL_CALL_ID) ? {} : { id });
+  const callPart = (call: NormalizedToolCall, signature = call.signature): Part => ({
+    functionCall: { ...nativeId(call.id), name: call.name, args: call.arguments },
+    ...(signature ? { thoughtSignature: signature } : {}),
+  });
   for (const message of body.messages) {
     if (message.role === "system") continue;
+    if (message.parts) {
+      contents.push({
+        role: "model",
+        parts: message.parts.map((part) =>
+          "callId" in part
+            ? callPart(message.toolCalls!.find((call) => call.id === part.callId)!)
+            : {
+                text: part.text,
+                ...(part.signature ? { thoughtSignature: part.signature } : {}),
+                ...(part.thought !== undefined ? { thought: part.thought } : {}),
+              },
+        ),
+      });
+      continue;
+    }
     if (message.toolResult) {
       const part = {
         functionResponse: {
@@ -358,10 +419,7 @@ function providerBody(body: OnlineRequestBody): Record<string, unknown> {
     const parts: Part[] = message.toolCalls && !message.content ? [] : [{ text: message.content }];
     message.toolCalls?.forEach((call, index) => {
       const signature = call.signature ?? (index === 0 ? SKIP_SIGNATURE : undefined);
-      parts.push({
-        functionCall: { ...nativeId(call.id), name: call.name, args: call.arguments },
-        ...(signature ? { thoughtSignature: signature } : {}),
-      });
+      parts.push(callPart(call, signature));
     });
     contents.push({ role: message.role === "assistant" ? "model" : "user", parts });
   }
@@ -468,7 +526,8 @@ function sse(event: IntelligenceEvent): Uint8Array {
 function normalizeProviderChunk(
   value: unknown,
   backend: "online",
-  toolIndex: { value: number },
+  toolIndex: { value: number; textSize: number; signatureSize: number },
+  assistantParts: NormalizedAssistantPart[],
 ): IntelligenceEvent[] {
   if (!isRecord(value)) return [];
   const candidates = Array.isArray(value.candidates) ? value.candidates : [];
@@ -478,8 +537,32 @@ function normalizeProviderChunk(
   const events: IntelligenceEvent[] = [];
   for (const part of parts) {
     if (!isRecord(part)) continue;
-    if (typeof part.text === "string" && part.text.length > 0) {
-      events.push({ type: "token", text: part.text });
+    if (
+      (part.thoughtSignature !== undefined && !boundedString(part.thoughtSignature, 100_000)) ||
+      (part.thought !== undefined && typeof part.thought !== "boolean")
+    ) {
+      throw new Error("Provider returned invalid continuation metadata.");
+    }
+    toolIndex.textSize += typeof part.text === "string" ? part.text.length : 0;
+    toolIndex.signatureSize +=
+      typeof part.thoughtSignature === "string" ? part.thoughtSignature.length : 0;
+    if (
+      toolIndex.textSize > 200_000 ||
+      toolIndex.signatureSize > 1_000_000 ||
+      assistantParts.length >= 16_384
+    ) {
+      throw new Error("Provider returned excessive assistant parts.");
+    }
+    if (typeof part.text === "string") {
+      assistantParts.push({
+        text: part.text,
+        ...(part.thoughtSignature !== undefined
+          ? { signature: part.thoughtSignature as string }
+          : {}),
+        ...(part.thought !== undefined ? { thought: part.thought as boolean } : {}),
+      });
+      if (part.text.length > 0 && part.thought !== true)
+        events.push({ type: "token", text: part.text });
     }
     if (isRecord(part.functionCall) && boundedString(part.functionCall.name, 128)) {
       const call: NormalizedToolCall = {
@@ -492,6 +575,7 @@ function normalizeProviderChunk(
           ? { signature: part.thoughtSignature }
           : {}),
       };
+      assistantParts.push({ callId: call.id });
       events.push({ type: "tool_call", call });
     }
   }
@@ -587,8 +671,9 @@ function normalizedProviderStream(
       let finishReason: string | undefined;
       let callsReleased = false;
       const toolCalls: NormalizedToolCall[] = [];
+      const parts: NormalizedAssistantPart[] = [];
       let usage: NormalizedUsage | undefined;
-      const toolIndex = { value: 0 };
+      const toolIndex = { value: 0, textSize: 0, signatureSize: 0 };
       /*
        * THE CLAIMED PERMIT IS SETTLED HERE, however the stream ends: charged
        * once anything reached the person (a Stop or a dropped connection
@@ -626,7 +711,7 @@ function normalizedProviderStream(
           if (isRecord(candidate) && typeof candidate.finishReason === "string") {
             finishReason = candidate.finishReason;
           }
-          for (const event of normalizeProviderChunk(chunk, "online", toolIndex)) {
+          for (const event of normalizeProviderChunk(chunk, "online", toolIndex, parts)) {
             // A call is held until the turn ends complete: a turn cut short or refused
             // after a call must never hand that call to anything that would act on it.
             if (event.type === "tool_call") {
@@ -658,6 +743,12 @@ function normalizedProviderStream(
             }),
           );
         } else {
+          if (
+            !validParts({ role: "assistant", parts, toolCalls }) ||
+            (toolCalls.length && !validCalls({ role: "assistant", toolCalls }))
+          ) {
+            throw new Error("Provider returned invalid assistant parts.");
+          }
           for (const call of toolCalls) controller.enqueue(sse({ type: "tool_call", call }));
           callsReleased = toolCalls.length > 0;
           // Charged by the server before the person is told it is complete.
@@ -668,6 +759,7 @@ function normalizedProviderStream(
               response: {
                 text: answer,
                 toolCalls,
+                parts,
                 toolResults: [],
                 backend: "online",
                 ...(usage ? { usage } : {}),

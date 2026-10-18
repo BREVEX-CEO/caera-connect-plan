@@ -4,7 +4,7 @@
  */
 import { createOnlineIntelligenceTransport } from "@/lib/intelligence/online-client";
 import { beginBilledRequest } from "@/lib/commercial/use-generation-permit";
-import type { NormalizedToolCall } from "@/lib/intelligence/contract";
+import type { NormalizedAssistantPart, NormalizedToolCall } from "@/lib/intelligence/contract";
 import { Stopped, type AgentDeps } from "./agent";
 import { jarvisTools } from "./protocol";
 import { actionChanged } from "./changes";
@@ -212,6 +212,7 @@ async function askOnce(
   let text = "";
   let complete = false;
   const toolCalls: NormalizedToolCall[] = [];
+  let parts: NormalizedAssistantPart[] | undefined;
   let refusal: { reason: string; code: string; retryable: boolean; retryAfterMs?: number } | null =
     null;
   try {
@@ -235,6 +236,7 @@ async function askOnce(
       else if (event.type === "refusal") refusal = event;
       else if (event.type === "final") {
         complete = true;
+        parts = event.response.parts;
         text = event.response.text || text;
         if (toolCalls.length === 0) toolCalls.push(...event.response.toolCalls);
       }
@@ -251,5 +253,5 @@ async function askOnce(
     if (refusal && FINAL_REFUSALS.includes(refusal.code)) throw new ModelRefused(refusal.reason);
     throw new Unavailable(refusal?.retryAfterMs);
   }
-  return { text, toolCalls, permitKey: billed.permit.idempotencyKey };
+  return { text, toolCalls, ...(parts ? { parts } : {}), permitKey: billed.permit.idempotencyKey };
 }

@@ -345,6 +345,13 @@ describe("carrying on", () => {
         },
       ],
     };
+    const parts = [
+      { text: native.text, signature: "text-signature" },
+      { callId: "native-1" },
+      { callId: "native-2" },
+      { text: "", signature: "tail-signature" },
+    ];
+    Object.assign(native, { parts });
     await carryOn(admin(), me(), t, scripted(native));
     let pending = await exchange(admin(), me(), { results: [] });
     expect(JSON.stringify(pending.commands)).not.toContain("opaque-signature");
@@ -367,6 +374,7 @@ describe("carrying on", () => {
       role: "assistant",
       content: native.text,
       toolCalls: native.toolCalls,
+      parts,
     });
     const results = messages.filter((m) => m.toolResult?.callId.startsWith("native-"));
     expect(results.map((m) => m.toolResult?.callId)).toEqual(["native-1", "native-2"]);
@@ -374,6 +382,22 @@ describe("carrying on", () => {
     expect(results[0]!.content).toContain("q4.xlsx");
     expect(results[1]!.content).toContain("not run");
     expect(await actionsOf(t)).toHaveLength(2);
+  });
+
+  it("keeps a signed text-only background turn after the person resumes", async () => {
+    const t = await task();
+    const parts = [
+      { text: "Which report?", signature: "text-only-signature" },
+      { text: "", signature: "empty-signature" },
+    ];
+    await carryOn(admin(), me(), t, scripted({ text: "Which report?", toolCalls: [], parts }));
+    await sql(
+      `update public.jarvis_tasks set status = 'running', controller = null where id = '${t}'`,
+    );
+    await age(t, 5);
+    const next = scripted(call("computer", { action: "file_list", path: "." }));
+    await carryOn(admin(), me(), t, next);
+    expect(next.turns[0]).toContainEqual({ role: "assistant", content: "Which report?", parts });
   });
 
   it("queues nothing when the native turn cannot be persisted", async () => {

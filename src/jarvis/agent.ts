@@ -19,6 +19,7 @@
 import { promptVariant } from "@/lib/intelligence/system-prompt";
 import type {
   NormalizedAttachment,
+  NormalizedAssistantPart,
   NormalizedMessage,
   NormalizedToolCall,
 } from "@/lib/intelligence/contract";
@@ -95,6 +96,7 @@ export class Stopped extends Error {
 export interface ModelStep {
   text: string;
   toolCalls: NormalizedToolCall[];
+  parts?: NormalizedAssistantPart[];
   /** The permit this turn was asked under: a turn that starts a task becomes part of it. */
   permitKey?: string;
 }
@@ -924,7 +926,7 @@ export async function runJarvisTurn(
       attachments = [];
       const written = reply && reply.toolCalls.length === 0 ? pseudoCall(reply.text) : null;
       if (reply && written) {
-        reply = { ...reply, text: "", toolCalls: [written] };
+        reply = { text: "", toolCalls: [written], permitKey: reply.permitKey };
         hooks.onText(answer); // the streamed call text is not an answer
       }
       if (!reply) {
@@ -954,6 +956,11 @@ export async function runJarvisTurn(
         if (!nudged) {
           nudged = true;
           messages.push({
+            role: "assistant",
+            content: reply.text,
+            ...(reply.parts ? { parts: reply.parts } : {}),
+          });
+          messages.push({
             role: "user",
             content:
               "The task is still open. Continue it with a tool call, or call finish_task with the outcome.",
@@ -975,7 +982,12 @@ export async function runJarvisTurn(
       // The turn exactly as the model returned it: its words, its calls and their opaque
       // continuation. Its own notes stay with it: a page's observation is replaced when the
       // next one opens, and what the model wrote down from it was all that remained (13 Oct).
-      messages.push({ role: "assistant", content: reply.text, toolCalls: reply.toolCalls });
+      messages.push({
+        role: "assistant",
+        content: reply.text,
+        toolCalls: reply.toolCalls,
+        ...(reply.parts ? { parts: reply.parts } : {}),
+      });
       for (const call of reply.toolCalls) {
         const result = await runTool(call);
         if (call.name === "finish_task" && (result as { ok?: unknown } | null)?.ok === true) {

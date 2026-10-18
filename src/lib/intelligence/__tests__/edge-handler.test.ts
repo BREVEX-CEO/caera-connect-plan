@@ -1270,6 +1270,134 @@ describe("native tool continuity (PLAN Phase 04 V05)", () => {
     ]);
   });
 
+  it("round-trips signed text, empty text and call ordering without exposing thoughts", async () => {
+    const parts = [
+      { text: "Private summary", thought: true, thoughtSignature: "thought-sig" },
+      { text: "Before", thoughtSignature: "text-sig" },
+      {
+        functionCall: { id: "fc-a", name: "browser", args: { action: "observe" } },
+        thoughtSignature: "call-sig",
+      },
+      { text: "After" },
+      { text: "", thoughtSignature: "empty-sig" },
+    ];
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({
+        callProvider: vi.fn(async () =>
+          provider(
+            parts.map((part, index) => ({
+              candidates: [
+                {
+                  content: { parts: [part] },
+                  ...(index === parts.length - 1 ? { finishReason: "STOP" } : {}),
+                },
+              ],
+            })),
+          ),
+        ),
+      }),
+    );
+    const events = (await response.text())
+      .split("\n\n")
+      .filter(Boolean)
+      .map((frame) => JSON.parse(frame.replace(/^data: /, "")));
+    const reply = events.find((event) => event.type === "final").response;
+    expect(reply.text).toBe("BeforeAfter");
+    expect(
+      events
+        .filter((event) => event.type === "token")
+        .map((event) => event.text)
+        .join(""),
+    ).toBe("BeforeAfter");
+    expect(reply.parts).toEqual([
+      { text: "Private summary", thought: true, signature: "thought-sig" },
+      { text: "Before", signature: "text-sig" },
+      { callId: "fc-a" },
+      { text: "After" },
+      { text: "", signature: "empty-sig" },
+    ]);
+    const { status, provider: sentBody } = await sent([
+      { role: "user", content: "Read it." },
+      { role: "assistant", content: reply.text, toolCalls: reply.toolCalls, parts: reply.parts },
+      { role: "user", content: "page", toolResult: { callId: "fc-a", name: "browser" } },
+    ]);
+    expect(status).toBe(200);
+    expect((sentBody as { contents: { parts: unknown[] }[] }).contents[1]!.parts).toEqual(parts);
+  });
+
+  it("keeps an empty signed final part on a response without calls", async () => {
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({
+        callProvider: vi.fn(async () =>
+          provider([
+            { candidates: [{ content: { parts: [{ text: "Ready" }] } }] },
+            {
+              candidates: [
+                {
+                  content: { parts: [{ text: "", thoughtSignature: "last" }] },
+                  finishReason: "STOP",
+                },
+              ],
+            },
+          ]),
+        ),
+      }),
+    );
+    const events = (await response.text())
+      .split("\n\n")
+      .filter(Boolean)
+      .map((frame) => JSON.parse(frame.replace(/^data: /, "")));
+    const reply = events.find((event) => event.type === "final").response;
+    expect(reply.parts).toEqual([{ text: "Ready" }, { text: "", signature: "last" }]);
+    const { provider: sentBody } = await sent([
+      { role: "assistant", content: reply.text, parts: reply.parts },
+    ]);
+    expect((sentBody as { contents: { parts: unknown[] }[] }).contents[0]!.parts).toEqual([
+      { text: "Ready" },
+      { text: "", thoughtSignature: "last" },
+    ]);
+  });
+
+  it("withholds calls and continuation when provider part metadata exceeds its bounds", async () => {
+    for (const invalid of [
+      { text: "", thoughtSignature: "s".repeat(100_001) },
+      { text: "", thought: "true" },
+      { text: "x".repeat(200_001) },
+    ]) {
+      const response = await handleOnlineIntelligence(
+        request(),
+        dependencies({
+          callProvider: vi.fn(async () =>
+            provider([
+              {
+                candidates: [
+                  {
+                    content: {
+                      parts: [
+                        {
+                          functionCall: { id: "c", name: "computer", args: {} },
+                          thoughtSignature: "valid",
+                        },
+                        invalid,
+                      ],
+                    },
+                    finishReason: "STOP",
+                  },
+                ],
+              },
+            ]),
+          ),
+        }),
+      );
+      const stream = await response.text();
+      expect(stream).toContain('"code":"provider_failed"');
+      expect(stream).not.toContain('"type":"tool_call"');
+      expect(stream).not.toContain('"type":"final"');
+    }
+  });
+
   it("marks a rebuilt call that has no signature with the documented skip value, once per turn", async () => {
     const { provider: sentBody } = await sent([
       { role: "user", content: "Tidy it." },
@@ -1301,6 +1429,19 @@ describe("native tool continuity (PLAN Phase 04 V05)", () => {
       { role: "assistant", content: "", toolCalls: [{ ...good, signature: "s".repeat(100_001) }] },
       { role: "assistant", content: "", toolResult: { callId: "c", name: "computer" } },
       { role: "user", content: "x", toolResult: { callId: "c" } },
+      { role: "user", content: "", parts: [{ text: "x", signature: "s" }] },
+      { role: "assistant", content: "", parts: [] },
+      { role: "assistant", content: "", parts: [{ text: "x", signature: "s".repeat(100_001) }] },
+      { role: "assistant", content: "", parts: [{ text: "x", functionResponse: {} }] },
+      { role: "assistant", content: "", parts: [{ text: "x", thought: "true" }] },
+      { role: "assistant", content: "", parts: [{ callId: "missing" }] },
+      { role: "assistant", content: "", toolCalls: [good], parts: [{ text: "lost call" }] },
+      {
+        role: "assistant",
+        content: "",
+        toolCalls: [good],
+        parts: [{ callId: "c" }, { callId: "c" }],
+      },
     ]) {
       const { status, provider: sentBody } = await sent([{ role: "user", content: "Hi" }, message]);
       expect(status, JSON.stringify(message).slice(0, 120)).toBe(400);

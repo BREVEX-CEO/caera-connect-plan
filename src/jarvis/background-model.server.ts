@@ -8,7 +8,11 @@
 import { CommercialGenerationGate } from "@/lib/commercial/generation-gate";
 import { resolveTierFor } from "@/lib/commercial/entitlement-resolver";
 import { supabaseCommercialLedger } from "@/lib/commercial/supabase-ledger";
-import { SERVICE_USER_HEADER, type NormalizedToolCall } from "@/lib/intelligence/contract";
+import {
+  SERVICE_USER_HEADER,
+  type NormalizedAssistantPart,
+  type NormalizedToolCall,
+} from "@/lib/intelligence/contract";
 import { createOnlineIntelligenceTransport } from "@/lib/intelligence/online-client";
 import type { BackgroundDeps } from "./background.server";
 import { jarvisTools } from "./protocol";
@@ -66,6 +70,7 @@ export const serverModel: BackgroundDeps["model"] = async ({
   let text = "";
   let complete = false;
   const toolCalls: NormalizedToolCall[] = [];
+  let parts: NormalizedAssistantPart[] | undefined;
   let refusal: { code: string; retryable: boolean } | null = null;
   try {
     for await (const event of online.stream({
@@ -93,6 +98,7 @@ export const serverModel: BackgroundDeps["model"] = async ({
       else if (event.type === "refusal") refusal = event;
       else if (event.type === "final") {
         complete = true;
+        parts = event.response.parts;
         text = event.response.text || text;
         if (toolCalls.length === 0) toolCalls.push(...event.response.toolCalls);
       }
@@ -104,7 +110,7 @@ export const serverModel: BackgroundDeps["model"] = async ({
   const delivered = complete && Boolean(text || toolCalls.length);
   if (delivered) await gate.finalizePersisted({ userId, idempotencyKey: request });
   else await gate.releasePersisted({ userId, idempotencyKey: request, reason: "failed" });
-  if (delivered) return { text, toolCalls };
+  if (delivered) return { text, toolCalls, ...(parts ? { parts } : {}) };
   // A refusal about this request itself (blocked content) ends as words for the person.
   return refusal && !(refusal.retryable && BUSY.includes(refusal.code))
     ? { text: "I could not continue this task safely.", toolCalls: [] }
