@@ -408,6 +408,7 @@ Common safety rules for every PC entry:
 - **Measured size:** JARVIS v1 10 241 characters, v2 21 037 (+105%: the candidate adds behaviour, the tool contract stays); Chat v1 none (only the attachment citation rule), v2 5 622.
 - **Status:** UNTESTED. The A/B on matched live tasks (same seeds, same checkers: reconcile, pack, status, research, video) needs the Gemini daily quota; the live journey now reports request characters, prompt and output tokens per task from Gemini's own `usageMetadata`.
 - **Adopt only if:** no lower verified success, no more false completions, and the token cost is justified; else trim or keep v1.
+- **Attempt (18 Oct 03:08 UTC, owner-requested, one-time):** the first V1 request was refused with `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, retry after 75 062 s (about 00:01 UTC on 19 Oct): the free daily limit had not reset by 00:00 UTC as assumed. One request made, nothing completed, nothing charged; the run was stopped at once. One single run is scheduled for 19 Oct 00:20 UTC (not recurring). V1 stays the default.
 
 ## MOB-00-01 — Phone harnesses for Android and iOS
 
