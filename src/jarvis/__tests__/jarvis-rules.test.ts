@@ -83,6 +83,14 @@ describe("the action contract", () => {
     ).toBe(false);
   });
 
+  it("lists the work folder when the model names no path (live Gemini, 18 Oct)", () => {
+    expect(computerAction.parse({ action: "file_list" })).toEqual({
+      action: "file_list",
+      path: ".",
+    });
+    expect(computerAction.safeParse({ action: "file_list", path: "" }).success).toBe(false);
+  });
+
   it("reads hosts only from web addresses", () => {
     expect(hostOf("Example.com/a")).toBe("example.com");
     expect(hostOf("https://shop.example.com/x")).toBe("shop.example.com");

@@ -354,7 +354,8 @@ const COMPUTER_ACTIONS = [
     to: devicePath,
     name: z.string().min(1).max(255).optional(),
   }),
-  z.object({ action: z.literal("file_list"), path: workspacePath }),
+  // Listing needs no path: the work folder itself (live Gemini, 18 Oct, sent it without one).
+  z.object({ action: z.literal("file_list"), path: workspacePath.default(".") }),
   z.object({ action: z.literal("file_read"), path: workspacePath }),
   z.object({
     action: z.literal("file_write"),
