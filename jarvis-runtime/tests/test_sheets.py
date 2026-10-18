@@ -188,6 +188,17 @@ class FileEngineTest(unittest.TestCase):
         notes = ocade_sheets.inspect(self.book, "Notes")
         self.assertEqual(notes["cells"][1][0]["formula"], "=1+1")
 
+    def test_inspect_counts_only_rows_that_hold_something(self):
+        # Live Gemini (V2 reconcile, 18 Oct): formatted blank rows above a total looked filled.
+        out = ocade_sheets.edit(self.root / "r.xlsx", "Matched", [
+            {"op": "format", "range": "A1:C11", "bold": True},
+            {"op": "set", "cell": "A12", "value": "Total"},
+            {"op": "set", "cell": "C12", "value": "=SUM(C2:C11)"}],
+            self.root / "undo", threading.Event(), engine="file")
+        self.assertTrue(out["ok"], out)
+        [matched] = ocade_sheets.inspect(self.root / "r.xlsx")["sheets"]
+        self.assertEqual((matched["rows"], matched["filledRows"]), (12, 1))
+
     def test_edits_with_formulas_and_preserves_the_rest(self):
         out = ocade_sheets.edit(self.book, "Orders", FINISH_ORDERS, self.root / "undo", threading.Event(),
                                 engine="file")

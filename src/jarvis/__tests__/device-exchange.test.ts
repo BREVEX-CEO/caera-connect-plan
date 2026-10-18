@@ -854,6 +854,24 @@ describe("completion needs evidence from the device (P01)", () => {
       expect((await statusOf(t)).status).toBe("completed");
     });
 
+    it("refuses a sheet of blank formatted rows under a lone total (live Gemini, 18 Oct)", async () => {
+      const t = await withChecks([{ path: "r.xlsx", sheet: "Matched" }]);
+      await done(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }));
+      await done(await queue(t, { action: "sheet_inspect", path: "r.xlsx" }), {
+        status: "done",
+        changed: [],
+        observation: null,
+        detail: {
+          workbook: {
+            sheet: "Matched",
+            sheets: [{ name: "Matched", rows: 12, filledRows: 1 }],
+            cells: [],
+          },
+        },
+      });
+      await expect(complete(t)).rejects.toThrow(/Matched sheet of r\.xlsx has no rows below/);
+    });
+
     it("refuses a task that has no checks, however well it was read back", async () => {
       const t = await task();
       await done(await queue(t, { action: "file_write", path: "a.txt", content: "x" }));

@@ -186,8 +186,10 @@ def inspect(path: Path, sheet: str | None = None) -> dict:
     values = load_workbook(str(path), data_only=True, read_only=True)
     sheets = []
     for ws in book.worksheets:
+        # filledRows: rows holding a value; formatting alone reaches max_row (live Gemini, 18 Oct).
+        filled = sum(any(v not in (None, "") for v in row) for row in ws.iter_rows(values_only=True))
         sheets.append({"name": ws.title, "size": ws.dimensions, "rows": ws.max_row,
-                       "columns": ws.max_column, "tables": list(ws.tables.keys()),
+                       "filledRows": filled, "columns": ws.max_column, "tables": list(ws.tables.keys()),
                        "frozen": ws.freeze_panes, "filter": ws.auto_filter.ref,
                        "conditionalRanges": [str(r.sqref) for r in ws.conditional_formatting][:10],
                        "merged": [str(r) for r in ws.merged_cells.ranges][:10]})

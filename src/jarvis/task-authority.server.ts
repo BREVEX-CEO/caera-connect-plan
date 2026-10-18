@@ -221,13 +221,11 @@ function verificationGap(all: ActionRow[], checks?: readonly OutcomeCheck[] | nu
     if (row.action?.action !== "sheet_edit") continue;
     const book = onIt
       .filter((next) => next.action?.action === "sheet_inspect" && next.status === "done")
-      .map(
-        (next) => next.result?.detail?.workbook as { sheets?: { name?: string; rows?: number }[] },
-      )
+      .map((next) => next.result?.detail?.workbook as { sheets?: SheetRead[] })
       .filter(Boolean)
       .at(-1);
     if (!book) return `${path} was changed but not read with sheet_inspect. Read it, then finish.`;
-    const empty = (book.sheets ?? []).find((sheet) => (sheet.rows ?? 0) < 2);
+    const empty = (book.sheets ?? []).find((sheet) => filledRows(sheet) < 2);
     if (empty) {
       return `the ${empty.name} sheet of ${path} has no rows below its header. Fill it, or finish as failed and say why it is empty.`;
     }
@@ -298,7 +296,7 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
     // A sheet the person asked for, as the device last read the workbook: there, and not empty.
     const book = after
       .filter((row) => row.action?.action === "sheet_inspect")
-      .map((row) => row.result?.detail?.workbook as { sheets?: { name?: string; rows?: number }[] })
+      .map((row) => row.result?.detail?.workbook as { sheets?: SheetRead[] })
       .filter(Boolean)
       .at(-1);
     if (!book) {
@@ -306,7 +304,7 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
     }
     const found = book.sheets?.find((s) => normal(String(s.name ?? "")) === normal(sheet));
     if (!found) return `${target} has no sheet named ${sheet}. Add it, or finish as failed.`;
-    if ((found.rows ?? 0) < 2) {
+    if (filledRows(found) < 2) {
       return `the ${sheet} sheet of ${target} has no rows below its header. Fill it, or finish as failed and say why it is empty.`;
     }
     return null;
@@ -343,6 +341,9 @@ export async function completionGap(
 const EDITS_CONTENT = new Set(["file_write", "sheet_edit", "doc_edit", "deck_edit", "pdf_export"]);
 const READS_FILE = new Set(["file_read", "file_extract", "file_compare", "sheet_inspect"]);
 
+type SheetRead = { name?: string; rows?: number; filledRows?: number };
+/** Rows that hold a value; a device older than filledRows reports only its extent. */
+const filledRows = (sheet: SheetRead) => sheet.filledRows ?? sheet.rows ?? 0;
 const normal = (text: string) => text.toLowerCase().replace(/\s+/g, " ").trim();
 const normalPath = (path: string) =>
   path.trim().replace(/\\/g, "/").replace(/^\.\//, "").toLowerCase();
