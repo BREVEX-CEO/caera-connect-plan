@@ -1042,7 +1042,7 @@ export function jarvisTools(
         ops: {
           type: "ARRAY",
           description:
-            "For deck_edit: {op:'slide',title,bullets,layout:'title'|'content',notes}, then on that slide {op:'chart',kind:'bar'|'column'|'line'|'pie',title,categories,series:[{name,values}]} or {op:'image',path,caption}. For doc_edit: {op:'replace',find,with}, {op:'append',text,style}, {op:'style',find,style}, {op:'bold',find}, {op:'table',rows}. For sheet_edit: operations like {op:'fill',range:'E2:E50',formula:'=C2*D2'}, {op:'set',cell:'E51',value:'=SUM(E2:E50)'}, {op:'format',range,numberFormat,bold,fillColor,fontColor,align,border,columnWidth}, {op:'conditional',range,rule,value,fillColor}, table, filter, freeze, name, chart, sort, sheet_add, sheet_rename.",
+            "For deck_edit: {op:'slide',title,bullets,layout:'title'|'content',notes}, then on that slide {op:'chart',kind:'bar'|'column'|'line'|'pie',title,categories,series:[{name,values}]} or {op:'image',path,caption}. For doc_edit: {op:'replace',find,with}, {op:'append',text,style}, {op:'style',find,style}, {op:'bold',find}, {op:'table',rows}. For sheet_edit: operations like {op:'fill',range:'E2:E50',formula:'=C2*D2'}, {op:'set',cell:'E51',value:'=SUM(E2:E50)'}, {op:'format',range,numberFormat,bold,fillColor,fontColor,align,border,columnWidth}, {op:'conditional',range,rule,value,fillColor}, {op:'sheet_add',name}, {op:'sheet_rename',from,to}, table, filter, freeze, name, chart, sort; one set per cell.",
           items: { type: "OBJECT" },
         },
         content: str("For file_write."),

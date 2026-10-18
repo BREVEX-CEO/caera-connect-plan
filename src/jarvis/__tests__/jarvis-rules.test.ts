@@ -91,6 +91,18 @@ describe("the action contract", () => {
     expect(computerAction.safeParse({ action: "file_list", path: "" }).success).toBe(false);
   });
 
+  it("tells the model the sheet ops' fields it guessed wrong (live Gemini, 18 Oct)", () => {
+    const computer = jarvisTools(false).find((tool) => tool.name === "computer");
+    const ops = JSON.stringify(computer?.inputSchema);
+    expect(ops).toContain("{op:'sheet_add',name}");
+    expect(ops).toContain("{op:'sheet_rename',from,to}");
+    const edit = (op: object) =>
+      computerAction.safeParse({ action: "sheet_edit", path: "r.xlsx", ops: [op] }).success;
+    expect(edit({ op: "sheet_add", name: "Problems" })).toBe(true);
+    expect(edit({ op: "sheet_rename", from: "Sheet1", to: "Matched" })).toBe(true);
+    expect(edit({ op: "sheet_rename", sheet: "Sheet1", value: "Matched" })).toBe(false);
+  });
+
   it("reads hosts only from web addresses", () => {
     expect(hostOf("Example.com/a")).toBe("example.com");
     expect(hostOf("https://shop.example.com/x")).toBe("shop.example.com");
