@@ -854,6 +854,55 @@ describe("completion needs evidence from the device (P01)", () => {
       expect((await statusOf(t)).status).toBe("completed");
     });
 
+    it("refuses a figure or a made file the result states but nothing read (VER-01-01)", async () => {
+      const t = await withChecks([{ path: "r.xlsx", cell: "B10", equals: "4520.333" }]);
+      const finish = (result: string) =>
+        changeTask(rest() as never, rest() as never, A, { id: t, status: "completed", result });
+      await done(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }));
+      await done(
+        await queue(t, { action: "sheet_inspect", path: "r.xlsx" }),
+        sheet({ B10: 4520.333, C3: 0.125 }),
+      );
+      await settle(
+        await queue(t, { action: "file_copy", path: "data.csv", to: "final.xlsx" }),
+        "failed",
+      );
+      await done(await queue(t, { action: "file_info", path: "data.csv" }));
+      // The checks pass; the words the person reads still claim what the device never showed.
+      await expect(finish("Total 4,520.33 in B10; revenue was 9,705.")).rejects.toThrow(
+        /9,705 is not in anything this task read/,
+      );
+      await expect(finish("Total 4,520 in r.xlsx, copied to final.xlsx.")).rejects.toThrow(
+        /final\.xlsx was not read after this task last changed it/,
+      );
+      // Rounded figures, a share as a percent, dates and small counts are what the reads show.
+      await finish("Total ₹4,520.33 (12.5% tax) in r.xlsx on 18 Oct 2026, 3 sheets checked.");
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
+    it("accepts a figure the task's own web research answered (VER-01-01)", async () => {
+      const t = await withChecks([{ contains: ["India"] }]);
+      await done(await queue(t, { action: "find_text", text: "1.43" }), {
+        status: "done",
+        detail: { text: "India" },
+      });
+      const finish = () =>
+        changeTask(rest() as never, rest() as never, A, {
+          id: t,
+          status: "completed",
+          result: "India has 1.43 billion people.",
+        });
+      // What the model searched for is not what the page said.
+      await expect(finish()).rejects.toThrow(/1\.43 is not in anything this task read/);
+      await twin.asServiceRole(
+        `insert into public.jarvis_activity (user_id, task_id, summary, action, status, result)
+         values ('${A}', '${t}', 'Searched the web', ${lit({ action: "research", question: "q" })},
+                 'done', ${lit({ status: "done", answer: "About 1.43 billion [UN](https://un.org)" })})`,
+      );
+      await finish();
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
     it("refuses a sheet of blank formatted rows under a lone total (live Gemini, 18 Oct)", async () => {
       const t = await withChecks([{ path: "r.xlsx", sheet: "Matched" }]);
       await done(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }));

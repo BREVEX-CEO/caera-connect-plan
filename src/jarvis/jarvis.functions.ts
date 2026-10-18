@@ -859,6 +859,7 @@ export const recordJarvisResearch = createServerFn({ method: "POST" })
         question: z.string().max(500),
         hosts: z.array(z.string().max(253)).max(30),
         ok: z.boolean(),
+        answer: z.string().max(8000).optional(),
       })
       .parse(i),
   )
@@ -886,7 +887,12 @@ export const recordJarvisResearch = createServerFn({ method: "POST" })
       ).slice(0, 300),
       action: { action: "research", question: data.question.slice(0, 500) },
       status: data.ok ? "done" : "failed",
-      result: { status: data.ok ? "done" : "failed", sources: unique.length },
+      // The answer itself: a figure the task reports from it is then something it read.
+      result: {
+        status: data.ok ? "done" : "failed",
+        sources: unique.length,
+        ...(data.ok && data.answer ? { answer: data.answer } : {}),
+      },
       completed_at: new Date().toISOString(),
     });
     return { ok: true as const };

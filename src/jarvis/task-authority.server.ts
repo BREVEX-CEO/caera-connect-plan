@@ -183,13 +183,19 @@ async function taskActions(
  * outcome is unknown read back after it; and, when `checks` is given, each of the task's
  * fixed checks passed by what the device read (never by what the model says it saw).
  */
-function verificationGap(all: ActionRow[], checks?: readonly OutcomeCheck[] | null): string | null {
+function verificationGap(
+  all: ActionRow[],
+  checks?: readonly OutcomeCheck[] | null,
+  claim?: string | null,
+): string | null {
   // A refused or skipped action never ran on the device, nor did one cancelled before
   // the device reported anything (a step the person declined): none changed anything.
+  // Research and documentation are read on OCADE's server: they change nothing either.
   const rows = all.filter(
     (row) =>
       !["refused", "skipped"].includes(row.result?.status ?? "") &&
-      !(row.status === "cancelled" && row.result == null),
+      !(row.status === "cancelled" && row.result == null) &&
+      !OFF_DEVICE.has(row.action?.action ?? ""),
   );
   if (rows.some((row) => ["queued", "claimed", "needs_confirmation"].includes(row.status))) {
     return "an action has not finished. Wait for its result before finishing.";
@@ -237,6 +243,65 @@ function verificationGap(all: ActionRow[], checks?: readonly OutcomeCheck[] | nu
   for (const check of checks) {
     const failed = checkGap(rows, check);
     if (failed) return failed;
+  }
+  return claim ? claimGap(all, claim) : null;
+}
+
+const OFF_DEVICE = new Set(["research", "docs"]);
+/** Actions that leave a file behind, and the field naming it. */
+const MAKES_FILE: Record<string, "path" | "to"> = {
+  file_write: "path",
+  sheet_edit: "path",
+  doc_edit: "path",
+  deck_edit: "path",
+  pdf_export: "path",
+  file_copy: "to",
+  file_move: "to",
+  file_rename: "to",
+  file_import: "to",
+};
+const NUMBER = /\d{1,3}(?:,\d{2,3})+(?:\.\d+)?|\d+(?:\.\d+)?/g;
+
+/**
+ * A figure or a made file the result tells the person about that nothing this task read shows
+ * (VER-01-01): checks cover what the model foresaw at start_task; this covers what it says at the
+ * end. Figures count from three digits or with decimals (years 1900–2099 and small counts are
+ * left alone); a figure matches a read value at the precision written, or as a percent of it.
+ * ponytail: words, not meaning. A wrong figure that also appears somewhere in the reads passes;
+ * outcome templates per workflow close that.
+ */
+function claimGap(rows: ActionRow[], claim: string): string | null {
+  const reads = rows.filter(
+    (row) =>
+      row.status === "done" && (readsBack(row.action) || OFF_DEVICE.has(row.action?.action ?? "")),
+  );
+  const seen = reads.map((row) => textOf(row.result)).join(" ");
+  const values = (seen.match(NUMBER) ?? []).map((n) => Number(n.replace(/,/g, "")));
+  for (const written of claim.match(NUMBER) ?? []) {
+    const [whole, fraction = ""] = written.replace(/,/g, "").split(".");
+    const n = Number(written.replace(/,/g, ""));
+    if (!fraction && (whole!.length < 3 || (n >= 1900 && n <= 2099))) continue;
+    const step = 0.5 * 10 ** -fraction.length + 1e-9 * Math.abs(n);
+    if (!values.some((v) => Math.abs(v - n) <= step || Math.abs(v * 100 - n) <= step)) {
+      return `${written} is not in anything this task read. Say only what the device read, or read it first, then finish.`;
+    }
+  }
+  const said = normal(claim);
+  for (const [at, row] of rows.entries()) {
+    const field = MAKES_FILE[row.action?.action ?? ""];
+    const path = field && row.action?.[field];
+    if (typeof path !== "string") continue;
+    const name = normalPath(path).split("/").pop()!;
+    const named = new RegExp(
+      `(^|[^\\w.-])${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^\\w-])`,
+    );
+    if (!named.test(said)) continue;
+    const later = rows.slice(at + 1);
+    if (later.some((next) => MAKES_FILE[next.action?.action ?? ""] && samePath(next, path)))
+      continue;
+    if (!later.some((next) => reads.includes(next) && samePath(next, path))) {
+      return `${name} was not read after this task last changed it. Read it, or do not say it is there, then finish.`;
+    }
   }
   return null;
 }
@@ -429,7 +494,7 @@ export async function changeTask(
     const checks = outcomeChecks.safeParse(fixed?.outcome);
     const rows = await taskActions(service, userId, data.id);
     const gap = rows
-      ? verificationGap(rows, checks.success ? checks.data : null)
+      ? verificationGap(rows, checks.success ? checks.data : null, data.result)
       : "the task's actions could not be read back.";
     if (gap) throw new Error(NOT_VERIFIED + gap);
     // The database refuses completed if the task holds any other actions when it is written.

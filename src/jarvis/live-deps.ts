@@ -134,7 +134,13 @@ function research(conversationId: string): AgentDeps["research"] {
           })
         : [];
     await recordJarvisResearch({
-      data: { taskId, question, hosts: hosts.filter(Boolean), ok: "answer" in found },
+      data: {
+        taskId,
+        question,
+        hosts: hosts.filter(Boolean),
+        ok: "answer" in found,
+        ...("answer" in found ? { answer: found.answer } : {}),
+      },
     }).catch(() => undefined);
     return found;
   };
