@@ -34,7 +34,7 @@ Common safety rules for every PC entry:
 | CF-04-01     | 04           | Gemma 4 on Workers AI against Gemini on OCADE tasks     | BLOCKED  | Workers AI token reachable from the session (owner)   |
 | LIVE-04-01   | 04 / 17      | Live video task: captions read on the page              | FAIL     | Wikimedia 429 to clear; rerun                         |
 | LIVE-04-02   | 04 / 11 / 17 | Live photo task in a canvas editor (miniPaint)          | FAIL     | Fix in canvas/vision route                            |
-| VER-01-01    | 01           | A claim about an effect no check covers is refused      | OPEN     | Verifier contract                                     |
+| VER-01-01    | 01           | A claim about an effect no check covers is refused      | PARTIAL  | More live cases (Gemini daily quota)                  |
 | PERF-05-01   | 05           | Identical 30-step old/new timing; Windows batch timing  | BLOCKED  | Isolated Windows VM                                   |
 | AND-05-01    | 05           | Android multi-step segments                             | OPEN     | Android implementation + emulator                     |
 | BRW-00-01    | 16           | Firefox and WebKit legs of the browsers journey         | RESOLVED | —                                                     |
@@ -47,7 +47,7 @@ Common safety rules for every PC entry:
 | WIN-07-01    | 07           | Office helpers restore alerts, quit only own instance   | BLOCKED  | Isolated Windows VM with Office                       |
 | WIN-07-02    | 07           | Native Office reopen/layout; locked and corrupt inputs  | BLOCKED  | Isolated Windows VM with Office                       |
 | FS-07-01     | 07           | A user edit between undo's comparison and restore       | UNTESTED | Cloud session (can run)                               |
-| SEC-08-01    | 08           | A staff proof binds the exact target                    | OPEN     | Proof contract                                        |
+| SEC-08-01    | 08           | A staff proof binds the exact target                    | PARTIAL  | Owner gate: apply migration 20261018090000            |
 | SEC-08-02    | 08           | Recovery against real Supabase Auth                     | BLOCKED  | Staging Supabase project                              |
 | UI-08-01     | 08           | Consent dialog: account switch and unmount while asking | RESOLVED | —                                                     |
 | SUP-08-01    | 08           | Support share flow on staging                           | BLOCKED  | Staging Supabase project                              |
@@ -195,7 +195,11 @@ Common safety rules for every PC entry:
 
 - **Status:** OPEN (HIGH). When the model writes no check for an effect the person asked for, its completion claim about that effect is still accepted. The video case is closed by the `pausedAt` check; the general case is not.
 - **Live evidence (17 Oct):** three real-model reconcile tasks completed with empty result sheets under model-written checks that only named the file (WF-18-04).
-- **Remains:** derive mandatory checks from the request, or refuse completion text that asserts unchecked effects (Phase 01 verifier contract) — before any release.
+- **Fixed in source (18 Oct, `e38f782`):** the task authority now also reads the words `finish_task` gives the person. A figure in them (three digits or more, or with decimals; years 1900–2099 and small counts aside) must match a value this task read on the device or in its own research answer, at the precision written or as a percent of it; a file this task made (written, edited, exported, copied, moved, renamed or imported to) that the words name must have been read after its last change. Otherwise `completed` is refused in words the model can act on. Research answers are now journaled with the research step (they were only counted), and research/docs no longer count as a change to the device, so a trailing research step does not demand another read.
+- **Tests:** `device-exchange.test.ts` (real PostgreSQL twin): a figure no read showed, a failed copy named as made, a model's own search text taken as evidence — each refused, each fails before and passes after; rounded totals, a share as a percent, dates and counts accepted; a researched figure accepted once its answer is journaled. Vitest 123 files / 1 392 PASS. Jarvis journey with the change (scripted planner, real device): 140 PASS, 0 FAIL, 2 BLOCKED (speech VOI-13-01, git push) — no scripted finish was refused.
+- **Live (18 Oct, real Gemini, held-out reconcile seeds 13–14):** case 13 verified (196 s, 17 upstream requests, 140 229 prompt tokens; all six independent checks PASS); case 14 produced a fully correct workbook (all six checks PASS) but the free daily request limit (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`) stopped it before `finish_task`, so it is not counted. No completion was refused by the new rule in either case (0 false refusals, 0 false completions in 2).
+- **Ceiling (marked in code):** the match is by words, not meaning: a wrong figure that also appears somewhere in the task's reads still passes, and the shifted-rows case in WF-18-04 (correct-looking sheets, wrong rows) needs outcome templates that know the source data.
+- **Remains:** more live cases (quota resets 07:00 UTC) to count false refusals and false completions; outcome templates per recurring workflow (Phase 18).
 
 ## PERF-05-01 — Segment timing
 
@@ -257,7 +261,9 @@ Common safety rules for every PC entry:
 
 - **Status:** OPEN. Since 20261017100000 a proof the server spent is adopted only for the database action it was spent on (V12), so a confirmation for "open a support case" cannot pay for ending every staff session. Several changes share one action name ("change who operates OCADE" covers grant, revoke, permissions and withdrawn invites), and the target is not compared: the server's digest of its input cannot be recomputed in SQL.
 - **Risk (assessed 17 Oct):** exploiting the gap needs the staff member's own session token and a call made directly to the database inside the one minute after that person confirmed a different change of the same kind (a spent proof is adopted once, then bound to that transaction).
-- **Remains:** a forward migration giving the 7 "change who operates OCADE" RPCs their own action names and passing a canonical target into `private.ocade_staff_require`, with the server sending the same; rollback and verification SQL; DB-twin tests per RPC.
+- **Fixed in source (18 Oct):** there were four such RPCs, not seven. Migration `20261018090000_a_staff_proof_names_its_target` (with rollback and verification) makes each name its kind and target in the gate's action — `change who operates OCADE: add <email>`, `… permissions of <user>`, `… remove <user>`, `… withdraw invite <invite>` — and `staff.functions.ts` spends the proof under the same words (`operatorChange`), so the gate's existing action comparison now binds the target. Twin test: a proof spent on removing Support cannot remove the Admin straight at the database, and still removes Support (fails before, passes after); verification passes, the rollback brings back the shared name (verification then fails) and the migration reapplies. `proof-names.test.ts` keeps both sides spelling the four prefixes the same. Admin/security suites 20 files / 275 PASS.
+- **Not changed:** other single-name actions that take a target (ending one customer's sessions, resetting a second factor, suspending, deleting, usage) are still bound by action kind only; the same pattern applies if the owner wants them bound too.
+- **Remains:** the owner's database gate to apply the migration to production (nothing was applied from this session).
 
 ## SEC-08-02 — Recovery against real Supabase Auth
 
@@ -357,6 +363,7 @@ Common safety rules for every PC entry:
 - **Error:** the 4 failures (cases 6, 7, 10, 11) all follow `That did not work (ValueError)` (11 times in the batch): a table on a second sheet was named `Table1` again. Fixed in `fe7ddb2f` (names unique in the workbook; a duplicate given name refused in words), but the batch's device had started before the fix, so it ran the old code.
 - **Results (18 Oct, A/B build, PROMPT-00-01):** seeds 3–5: V1 2/3 verified (case 5 stalled: after a pause the model sent `file_list` without a path, refused three times), V2 1/3 (case 4 stalled on `sheet_rename` fields; case 5 a false completion, WF-18-04). Fixed: `file_list` defaults to the work folder (`d82472b6`), the sheet ops' fields are named (`d28a9e2f`) and unknown fields refused (`9988485d`).
 - **Retest (18 Oct, fixed build, V1):** case 5 PASS (41 s, 15 requests, 164 997 prompt tokens).
+- **Results (18 Oct, claim rule build, seeds 13–15):** case 13 verified (196 s, 13 planner / 17 upstream requests, 140 229 prompt tokens, 1 failed step); case 14 correct on all six checks but stopped by the daily request limit before finishing (1 219 s, 24 upstream requests, not counted); case 15 not run (the run was stopped on the quota).
 - **Remains:** more held-out cases on the fixed code toward 30 (Gemini daily quota), then WF-18-04.
 
 ## WF-18-02 — Client pack workflow: held-out real-model cases

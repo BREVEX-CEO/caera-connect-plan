@@ -554,6 +554,18 @@ Hermes publishes local dispatch latency claims, but I did not find a comparable 
 
 **No competitor in this report has been independently tested by me. No fair OCADE-versus-competitor winner is established.**
 
+### Refresh — 18 October 2026 (official pages only, read that day)
+
+| Source | Verified mechanism | OCADE decision |
+|---|---|---|
+| Google, [Computer Use docs](https://ai.google.dev/gemini-api/docs/computer-use) (updated 13 Oct 2026) and [pricing](https://ai.google.dev/gemini-api/docs/pricing) | `computer_use` tool for `gemini-4-argon`, `gemini-3.8-flash`, `gemini-3.5-flash-lite`, `gemini-3-flash-preview`; browser, desktop and mobile action sets; screenshot loop with 0–999 normalized coordinates; `safety_decision: require_confirmation`; `enable_prompt_injection_detection`; `excluded_predefined_functions` plus custom functions such as `yield_to_user`. Preview. **Computer use is not on the free tier**; Gemini 4 Argon has no free tier ($2 / $10 per M tokens until 30 Nov). | Not adopted at ₹0: it would turn every visual step into a paid call. OCADE keeps structured routes first and its own confirmations. Revisit for the canvas/photo route (LIVE-04-02) only with an approved budget. |
+| OpenAI, [ChatGPT Work and Codex](https://help.openai.com/en/articles/20001275-chatgpt-work-and-codex), [Codex computer use](https://developers.openai.com/codex/app/computer-use) | Computer Use is a desktop-app plugin (macOS, Windows). ChatGPT asks before it uses each app during a task; admins restrict which apps and whether approvals can be saved; it cannot drive terminals or approve OS security prompts. | Already equivalent: per-app Allowed Apps and confirmations; UAC/OTP/passkey prompts are never answered. No change. |
+| Microsoft, [Copilot Actions on Windows](https://blogs.windows.com/windows-insider/2025/11/17/copilot-on-windows-copilot-actions-begins-rolling-out-to-windows-insiders/) (Insider, experimental) | Agent Workspace: a separate desktop session with its own account, policy-controlled and auditable; the person can take over or check progress. 2026 status not established. | Stronger isolation than OCADE's shared desktop, where physical input wins instead. Building a separate session is new infrastructure; not adopted now. Recorded as the main isolation gap. |
+| Anthropic, [computer use in Cowork](https://support.claude.com/en/articles/14128542-let-claude-use-your-computer-in-cowork) | Beta for Pro and Max; needs the desktop app open; Team/Enterprise without it at present. | OCADE's Background Mode already continues on the computer with the page closed; no change. |
+| Perplexity Comet, Manus | Vendor pages only (not re-read here): browser agents that ask before bookings and purchases. | OCADE already refuses final purchases and payments. |
+
+None of the official pages above documents an independent, server-side check of the finished result before the agent reports success. OCADE's receipt-gated completion (Phase 01), now also refusing unverified figures and files in the result text (VER-01-01), remains the verifiable difference; it is a design difference, not a measured win.
+
 ---
 
 ## I. Strategy to outperform competitors

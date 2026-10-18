@@ -428,6 +428,52 @@ describe("one proof, one staff change (C17)", () => {
     expect(other.error).toMatch(/each confirmation covers one change/);
   });
 
+  it("never lets a proof spent on one operator pay for another (SEC-08-01)", async () => {
+    const [{ id }] = await twin.asSuperuser<{ id: string }>(
+      `insert into auth.sessions (user_id) values ('${OWNER}') returning id`,
+    );
+    const proof = {
+      aal: "aal2" as const,
+      sessionId: id,
+      provedAt: Math.floor(Date.now() / 1000) - 11,
+    };
+    // Confirmed for removing Support...
+    const spent = await twin.asTenant<{ ok: boolean }>(
+      OWNER,
+      `select public.ocade_spend_proof('change who operates OCADE: remove ${SUPPORT}', '${"d".repeat(64)}') as ok`,
+      proof,
+    );
+    expect(spent.rows[0]!.ok).toBe(true);
+    // ...the same token straight at the database against the Admin instead: refused.
+    const other = await twin.asTenant(
+      OWNER,
+      `select public.ocade_staff_revoke('${ADMIN}', 'Not who was confirmed')`,
+      proof,
+    );
+    expect(other.errorCode).toBe("42501");
+    expect(await staff(ADMIN)).toBe("admin");
+    // The change that was confirmed still goes through on it.
+    const meant = await twin.asTenant(
+      OWNER,
+      `select public.ocade_staff_revoke('${SUPPORT}', 'Left the support team')`,
+      proof,
+    );
+    expect(meant.error).toBeUndefined();
+    expect(await staff(SUPPORT)).toBeNull();
+  });
+
+  it("verifies, rolls back to the shared name and forward again (SEC-08-01)", async () => {
+    const name = "20261018090000_a_staff_proof_names_its_target";
+    const verify = () => twin.runScript("supabase/verification", `${name}_verify.sql`);
+    expect((await verify()).error).toBeUndefined();
+    expect(
+      (await twin.runScript("supabase/rollback", `${name}_rollback.sql`)).error,
+    ).toBeUndefined();
+    expect((await verify()).error).toMatch(/does not name its target/);
+    expect((await twin.runScript("supabase/migrations", `${name}.sql`)).error).toBeUndefined();
+    expect((await verify()).error).toBeUndefined();
+  });
+
   it("lets a token with no session change nothing", async () => {
     const out = await twin.asTenant(
       OWNER,

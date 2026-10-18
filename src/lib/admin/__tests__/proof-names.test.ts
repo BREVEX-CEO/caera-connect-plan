@@ -27,10 +27,25 @@ describe("staff proofs name the change the database checks", () => {
     );
 
   it("finds the names it checks", () => {
-    expect(named.length).toBeGreaterThanOrEqual(13);
+    // The four operator changes are counted below, by their kind (SEC-08-01).
+    expect(named.length).toBeGreaterThanOrEqual(12);
   });
 
   it.each(named)("%s is an action the database gate is called with", (name) => {
     expect(sql).toContain(`'${name.replace(/'/g, "''")}'`);
   });
+
+  // An operator change names whom it is for after its kind (SEC-08-01): the same prefix on both.
+  const operator = [...source.matchAll(/operatorChange\("([^"]+)"/g)].map((match) => match[1]!);
+
+  it("finds the operator changes", () => {
+    expect(operator).toEqual(["add", "permissions of", "remove", "withdraw invite"]);
+  });
+
+  it.each(operator)(
+    "change who operates OCADE: %s is what the database gate is called with",
+    (what) => {
+      expect(sql).toContain(`'change who operates OCADE: ${what} ' ||`);
+    },
+  );
 });

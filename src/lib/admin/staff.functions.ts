@@ -187,8 +187,19 @@ export const listStaff = createServerFn({ method: "GET" })
     };
   });
 
+/**
+ * The words the database's gate compares a spent proof with (20261018090000): the kind of
+ * operator change and whom it is for, so one confirmation pays for that operator only.
+ */
+const operatorChange = (what: string, field: string) => (input: unknown) =>
+  `change who operates OCADE: ${what} ${String(
+    (input as Record<string, unknown> | null)?.[field] ?? "",
+  )
+    .trim()
+    .toLowerCase()}`;
+
 export const grantStaff = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK, { proves: "change who operates OCADE" })])
+  .middleware([requireAssurance(HIGH_RISK, { proves: operatorChange("add", "email") })])
   .validator((input) =>
     z
       .object({
@@ -209,7 +220,7 @@ export const grantStaff = createServerFn({ method: "POST" })
   });
 
 export const setStaffPermissions = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK, { proves: "change who operates OCADE" })])
+  .middleware([requireAssurance(HIGH_RISK, { proves: operatorChange("permissions of", "userId") })])
   .validator((input) =>
     z
       .object({
@@ -232,7 +243,7 @@ export const setStaffPermissions = createServerFn({ method: "POST" })
   });
 
 export const revokeStaff = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK, { proves: "change who operates OCADE" })])
+  .middleware([requireAssurance(HIGH_RISK, { proves: operatorChange("remove", "userId") })])
   .validator((input) => z.object({ userId: uuid, reason }).parse(input))
   .handler(async ({ data, context }): Promise<{ removed: boolean }> => {
     const { data: removed, error } = await context.supabase.rpc("ocade_staff_revoke", {
@@ -244,7 +255,9 @@ export const revokeStaff = createServerFn({ method: "POST" })
   });
 
 export const withdrawStaffInvite = createServerFn({ method: "POST" })
-  .middleware([requireAssurance(HIGH_RISK, { proves: "change who operates OCADE" })])
+  .middleware([
+    requireAssurance(HIGH_RISK, { proves: operatorChange("withdraw invite", "inviteId") }),
+  ])
   .validator((input) => z.object({ inviteId: uuid, reason }).parse(input))
   .handler(async ({ data, context }): Promise<{ withdrawn: boolean }> => {
     const { data: withdrawn, error } = await context.supabase.rpc("ocade_staff_withdraw_invite", {
