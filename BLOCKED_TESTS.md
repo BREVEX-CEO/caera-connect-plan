@@ -17,7 +17,7 @@ Common safety rules for every PC entry:
 
 | ID           | Phase        | Check                                                   | Status   | Needs                                                 |
 | ------------ | ------------ | ------------------------------------------------------- | -------- | ----------------------------------------------------- |
-| PROMPT-00-01 | 04 / 16      | Redesigned system prompt: A/B on matched live tasks     | UNTESTED | Gemini daily quota (resets ~00:00 UTC)                |
+| PROMPT-00-01 | 04 / 16      | Redesigned system prompt: A/B on matched live tasks     | UNTESTED | Research/video arms, more cases (Gemini daily quota)  |
 | MOB-00-01    | 14 / 15      | Phone harnesses on a real emulator/simulator/device     | BLOCKED  | KVM emulator, macOS simulator or a phone (₹0)         |
 | REL-00-01    | 00 / release | Production rollback rehearsal                           | BLOCKED  | Cloudflare credentials (GitHub environment or owner)  |
 | REL-00-02    | 00 / release | Production deploys only through the approved gate       | FAIL     | Owner: Cloudflare Git auto-deploy setting             |
@@ -65,7 +65,7 @@ Common safety rules for every PC entry:
 | APP-17-01    | 17           | Independent reopen in LibreOffice on every CI run       | BLOCKED  | CI-00-01; LibreOffice in the Python job               |
 | ONL-17-01    | 17           | ONLYOFFICE opens and recalculates OCADE's files         | BLOCKED  | Owner: edition/licence; a VM where it starts          |
 | MED-17-01    | 17           | Creative/media families: editable project + 720p/1080p  | OPEN     | Owner: which family to support first                  |
-| WF-18-01     | 18           | Reconcile workflow: 30 held-out real-model cases        | FAIL     | Rerun on fixed code; outcome templates                |
+| WF-18-01     | 18           | Reconcile workflow: 30 held-out real-model cases        | UNTESTED | More cases on fixed code (Gemini daily quota)         |
 | WF-18-02     | 18           | Client pack workflow: 30 held-out real-model cases      | UNTESTED | Gemini daily quota (resets daily)                     |
 | WF-18-03     | 18           | Order status workflow: 30 held-out real-model cases     | UNTESTED | Gemini daily quota (resets daily)                     |
 | WF-18-04     | 18 / 01      | Zero falsely verified completions                       | FAIL     | Outcome templates (VER-01-01)                         |
@@ -345,20 +345,25 @@ Common safety rules for every PC entry:
 - **Test:** `live-journey.mjs` with `OCADE_LIVE_TASKS=reconcile`: a seeded ledger.xlsx and bank.csv (one ID missing from the bank, one extra, one amount changed); checked by `workflow_cases.py`: originals byte-identical, Matched lists exactly the agreeing IDs, its total recalculated by LibreOffice equals the true total and is a SUM formula, Unmatched lists exactly the three IDs.
 - **Results (17 Oct, real Gemini, cloud VM):** case 1 FAIL (handed back after 1 204 s; root cause fixed in `bbced1f8`: a missing sheet is refused with the sheets it has and how to add it); rerun cases 1–2 2/2 PASS (37 s / 15 requests, 80 s / 16 requests); seeds 3–12 6/10 PASS, 39–183 s, 12–41 requests a case.
 - **Error:** the 4 failures (cases 6, 7, 10, 11) all follow `That did not work (ValueError)` (11 times in the batch): a table on a second sheet was named `Table1` again. Fixed in `fe7ddb2f` (names unique in the workbook; a duplicate given name refused in words), but the batch's device had started before the fix, so it ran the old code.
-- **Remains:** rerun seeds 3–32 on the fixed code (needs the Gemini daily quota, WF-18-02), then WF-18-04.
+- **Results (18 Oct, A/B build, PROMPT-00-01):** seeds 3–5: V1 2/3 verified (case 5 stalled: after a pause the model sent `file_list` without a path, refused three times), V2 1/3 (case 4 stalled on `sheet_rename` fields; case 5 a false completion, WF-18-04). Fixed: `file_list` defaults to the work folder (`d82472b6`), the sheet ops' fields are named (`d28a9e2f`) and unknown fields refused (`9988485d`).
+- **Retest (18 Oct, fixed build, V1):** case 5 PASS (41 s, 15 requests, 164 997 prompt tokens).
+- **Remains:** more held-out cases on the fixed code toward 30 (Gemini daily quota), then WF-18-04.
 
 ## WF-18-02 — Client pack workflow: held-out real-model cases
 
 - **Test:** template.docx + client.xlsx → pack.docx (no placeholder left, every detail present, template styles kept) + pack.pdf carrying the details (through `pdf_export`); originals byte-identical.
 - **Results (17 Oct):** case 1 and seeds 3–10: 9/9 PASS, 25–136 s, 12–20 requests, 0 confirmations, 0 failed steps.
 - **Reason open:** case 11 was cut off by Gemini's free-tier daily request limit (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, retry after 52 732 s); that is a quota stop, not a result. Per-minute request and input-token limits (429, 24–53 s) were absorbed by the shared retry budget.
-- **Remains:** seeds 11–30 once the quota resets (₹0; no paid tier without owner approval).
+- **Results (18 Oct, A/B, PROMPT-00-01):** seeds 3–5: V1 2/3 (case 4: a per-minute 429 paused the task; on resume the model sent `file_list` without a path, fixed in `d82472b6`), V2 3/3. **Retest (fixed build, V1):** case 4 PASS (56 s, 11 requests). 0 false completions.
+- **Remains:** more seeds toward 30 once the quota resets (₹0; no paid tier without owner approval).
 
 ## WF-18-03 — Order status workflow: held-out real-model cases
 
 - **Test:** status pages served on this machine (one stale, one missing) → status.xlsx with each order's status and update time as its page says, nothing invented for the missing page, a Problems sheet listing exactly the stale and missing orders.
 - **Results (17 Oct):** case 1 PASS (40 s, 15 requests, 0 confirmations); seeds 3–12 not reached (daily quota, WF-18-02).
-- **Remains:** 29 more cases once the quota resets.
+- **Results (18 Oct, A/B, PROMPT-00-01):** V1 seeds 3–5 0/3: case 3 a false completion (WF-18-04); case 4 stalled on guessed `sheet_add` fields; case 5 looped 120 requests (2.58 M prompt tokens) on `{op:'table', rows}` and set ops carrying `sheet`, whose extra fields were silently dropped so each op "succeeded" and wrote nothing. Fixed: ops' fields named in the tool (`d28a9e2f`), unknown fields refused (`9988485d`). V2 seed 3 PASS (359 s, 52 requests); seeds 4–5 not reached.
+- **Retest (fixed build, V1):** case 4 PASS (52 s, 16 requests); case 5 PASS on its second run (200 s, 39 requests, 1 confirmation) — its first run never started, refused by the per-minute limit (429, retry 37 s) straight after case 4; the app shows that and waits for the person.
+- **Remains:** more cases once the quota resets.
 
 ## WF-18-04 — Zero falsely verified completions
 
@@ -366,7 +371,9 @@ Common safety rules for every PC entry:
 - **Attempted:** none that closes it: the model cannot know the expected records or total before working them out, so a prompt rule cannot make its own checks strong enough.
 - **Fix in place (17 Oct, not yet proven live):** a check `{path, sheet}` now means that sheet exists with rows below its header, judged from the device's own `sheet_inspect` read (`device-exchange.test.ts`: an empty Matched sheet is refused, a filled one completes; fails before, passes after). The model is told to write one for every sheet the person asked for. It still depends on the model writing that check.
 - **Server rule (18 Oct, model-independent):** every workbook a task made or changed must show rows below its header on every sheet, read by `sheet_inspect` after the last change, whatever checks the model chose (`task-authority.server.ts`; `device-exchange.test.ts`: an empty Unmatched sheet no check named is refused — fails before, passes after). All three observed false completions had an empty sheet.
-- **Remains:** rerun the reconcile cases live (Gemini daily quota) and count false completions; approved outcome templates per workflow (PLAN Phase 18; VER-01-01) so a recurring workflow's checks are fixed by OCADE, not authored by the model.
+- **Live (18 Oct, PROMPT-00-01 A/B):** two more false completions. (1) V2 reconcile 5: Matched held eleven formatted blank rows above a lone total; `sheet_inspect` reported `rows` = `max_row` (12), so the server rule passed. Fixed in `31f890b8`: `sheet_inspect` also reports `filledRows` (rows holding a value) and both sheet checks use it (device test: 12 rows, 1 filled; server test: refused — both fail before, pass after; the real workbook reads `filledRows` 1). (2) V1 status 3: a correct first save, then an edit shifted rows (A301 lost, A303 given A302's values) and the model finished; the sheets were not empty, so no generic rule can see it — only an outcome template that knows the pages can.
+- **Retest (fixed build):** 4 cases, 0 false completions.
+- **Remains:** more live cases (Gemini daily quota) and count false completions; approved outcome templates per workflow (PLAN Phase 18; VER-01-01) so a recurring workflow's checks are fixed by OCADE, not authored by the model.
 
 ## WF-18-05 — Design partners
 
@@ -408,7 +415,23 @@ Common safety rules for every PC entry:
 - **Measured size:** JARVIS v1 10 241 characters, v2 21 037 (+105%: the candidate adds behaviour, the tool contract stays); Chat v1 none (only the attachment citation rule), v2 5 622.
 - **Status:** UNTESTED. The A/B on matched live tasks (same seeds, same checkers: reconcile, pack, status, research, video) needs the Gemini daily quota; the live journey now reports request characters, prompt and output tokens per task from Gemini's own `usageMetadata`.
 - **Adopt only if:** no lower verified success, no more false completions, and the token cost is justified; else trim or keep v1.
-- **Attempt (18 Oct 03:08 UTC, owner-requested, one-time):** the first V1 request was refused with `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, retry after 75 062 s (about 00:01 UTC on 19 Oct): the free daily limit had not reset by 00:00 UTC as assumed. One request made, nothing completed, nothing charged; the run was stopped at once. One single run is scheduled for 19 Oct 00:20 UTC (not recurring). V1 stays the default.
+- **Attempt (18 Oct 03:08 UTC, owner-requested, one-time):** the first V1 request was refused with `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, retry after 75 062 s (about 00:01 UTC on 19 Oct): the free daily limit had not reset by 00:00 UTC as assumed. One request made, nothing completed, nothing charged; the run was stopped at once. V1 stays the default.
+- **Quota facts (official Google rate-limits page and provider responses, 18 Oct):** requests-per-day quotas reset at midnight Pacific time (07:00 UTC while PDT), not at midnight UTC; limits apply per project, not per API key, so a second key in the same project adds nothing; one staging key exists. The provider's `retryDelay` pointed at midnight UTC and was wrong. Measured daily limit for `gemini-3.5-flash-lite` on this project: about 500 requests. Per-minute limits (429 with 3–47 s retry) also apply between back-to-back cases.
+- **A/B run (18 Oct, one-time trigger at 07:05 UTC; real Gemini `gemini-3.5-flash-lite`, cloud VM, same build, same seeds 3–5, same independent checkers):** both arms ran reconcile 3–5, pack 3–5 and status 3 (7 matched cases); V2 status 4–5 were cut off by the runner's 2-hour limit and research and video were not reached (UNTESTED), to keep the remaining daily quota for retesting fixes.
+
+  | Case        | V1 result (s / requests / prompt tokens)                | V2 result (s / requests / prompt tokens)                 |
+  | ----------- | ------------------------------------------------------- | -------------------------------------------------------- |
+  | reconcile 3 | verified (38 / 16 / 167 927)                            | verified (81 / 23 / 291 561)                             |
+  | reconcile 4 | verified (35 / 13 / 146 286)                            | stalled: sheet_rename fields (1 203 / 10)                |
+  | reconcile 5 | stalled: file_list path (1 203 / 4)                     | **false completion**: empty Matched (108 / 24 / 329 497) |
+  | pack 3      | verified (31 / 14 / 124 476)                            | verified, 2 confirmations (106 / 28 / 306 032)           |
+  | pack 4      | stalled: 429 then file_list (1 203 / 6)                 | verified (57 / 12 / 115 662)                             |
+  | pack 5      | verified (24 / 11 / 85 015)                             | verified (62 / 15 / 160 886)                             |
+  | status 3    | **false completion**: rows shifted (114 / 29 / 483 365) | verified (359 / 52 / 1 088 149)                          |
+  | status 4–5  | stalled: sheet_add fields; 120-request loop             | UNTESTED (runner limit)                                  |
+
+- **Result:** matched cases verified V1 4/7, V2 5/7; false completions 1 each. On the two cases both verified (reconcile 3, pack 3) V2 used 2.0× the prompt tokens (597 593 vs 292 403) and 2.7× the time (187 s vs 69 s). One more verified case in seven is within noise and the cost is double, so **V1 stays the default**; V2 stays opt-in. Most failures in both arms were tool-contract defects, now fixed (WF-18-04), not prompt differences.
+- **Remains:** research and video arms and a larger matched sample on the fixed code, both arms (Gemini daily quota); trim V2 before another A/B if it is to be adopted.
 
 ## MOB-00-01 — Phone harnesses for Android and iOS
 
