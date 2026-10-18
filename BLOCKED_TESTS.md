@@ -30,7 +30,7 @@ Common safety rules for every PC entry:
 | AND-03-01    | 03           | Android process death at each journal transition        | BLOCKED  | Android emulator                                      |
 | GEM-04-01    | 04           | Three-key failover with real keys                       | BLOCKED  | Two more staging keys                                 |
 | GEM-04-02    | 04           | Background Mode step planned by the real model          | UNTESTED | Cloud session + staging key (can run)                 |
-| GEM-04-03    | 04           | Durable thought signatures for Background Mode          | OPEN     | Migration + owner deployment gate                     |
+| GEM-04-03    | 04           | Durable thought signatures for Background Mode          | PARTIAL  | Real-provider restart qualification + deployment gate |
 | CF-04-01     | 04           | Gemma 4 on Workers AI against Gemini on OCADE tasks     | BLOCKED  | Workers AI token reachable from the session (owner)   |
 | LIVE-04-01   | 04 / 17      | Live video task: captions read on the page              | FAIL     | Wikimedia 429 to clear; rerun                         |
 | LIVE-04-02   | 04 / 11 / 17 | Live photo task in a canvas editor (miniPaint)          | FAIL     | Fix in canvas/vision route                            |
@@ -96,6 +96,7 @@ Common safety rules for every PC entry:
 - **Test:** a merge to `main` does not reach production until `cloudflare-production.yml` runs with the approval phrase.
 - **Status:** FAIL. The workflow has never run (0 runs) and `ci.yml` on `a729878a` failed in 3 s (billing), yet production reports commit `a729878a` minutes after the merge: Cloudflare's own Git integration builds and deploys `main` on push, outside `verify:full` and the approval gate.
 - **Risk:** any future merge to `main` goes live immediately, gated only by Cloudflare's build.
+- **18 October Codex safety change:** read the actual Cloudflare build triggers before publishing. The nonproduction trigger also matched this implementation branch and ran `wrangler versions upload`. Added only `ocade/p00-p22-implementation` to that trigger's exclusions (which already excluded `main`) and independently read it back. This prevents automatic candidate uploads on authorized engineering pushes. The separate production trigger still includes only `main` and is unchanged; this FAIL remains open. No build/deploy was requested. Reversal, only when candidate uploads are approved: restore the nonproduction exclusions to `["main"]` on trigger `cab7a0bc-c5ff-4aee-b8fc-6d188707dd7e`.
 - **Remains:** owner decision — disable Workers Builds automatic production deploys for `main` (keep previews if wanted) so `deploy.mjs` is the only production path, or accept auto-deploy and gate merges to `main` instead.
 
 ## REL-00-03 — Security fixes still outside `main`
@@ -166,7 +167,9 @@ Common safety rules for every PC entry:
 
 ## GEM-04-03 — Durable thought signatures for Background Mode
 
-- **Status:** OPEN. Background Mode rebuilds calls from saved steps with Google's skip value; the original signatures are not stored. Storing them needs a migration and the owner's deployment gate.
+- **Status:** PARTIAL (18 October 2026; source based on `3dd7df5b`, local Windows/Node 24.16.0, disposable PostgreSQL WASM database). `background.server.ts` now journals the normalized model turn before effects in an existing service-written activity note. Its unique request controller binds actual queued/refused/documentation receipts to the original call; call IDs, arguments, ordering and call signatures survive later requests. Unused calls explicitly report not run. A journal failure pauses the task and queues nothing. Existing task/action schema and RLS suffice; the earlier migration requirement was an assumption, superseded by this implementation.
+- **Reproduction:** three new regressions failed on the previous code: native signatures were absent after restart; a failed native-turn journal did not prevent queueing; a persisted turn without actions disappeared. The five-test negative/recovery addition also proves sequences remain one call, unused parallel calls are acknowledged without execution, signatures never enter device commands, authenticated clients cannot forge notes, another tenant cannot read them, and device results cannot become native turns. Existing STOP, takeover, confirmation and accounting tests remain required. Full local suite: 123 files / 1,400 tests PASS on the final source.
+- **Remains:** real Gemini planning across a server restart, including docs, interrupted segments and foreground handoff; signatures attached to non-call provider parts and original foreground call persistence are still outside this repair. No staging Gemini key is available in the current Codex environment; no production credentials were extracted. Deployment remains separately approval-gated. Local tests do not close this live gate.
 
 ## CF-04-01 — Gemma 4 on Cloudflare Workers AI against the current Gemini model
 
@@ -176,6 +179,8 @@ Common safety rules for every PC entry:
 - **Why BLOCKED:** no Workers AI credential reaches this session (no session network secret for `api.cloudflare.com`, which answers here; no environment variable); the Cloudflare MCP connected to the session lists Workers, KV, R2, D1 and Hyperdrive but has no inference tool; the only Supabase project is production, whose secrets are not read from here.
 - **Not built, on purpose:** no Workers AI adapter, no High mode and no Neuron ledger. Without one measured run there is no evidence Gemma 4 is better, and the owner rule is not to force it in; an adapter nobody can run would be unverified code. The adapter also needs: request/response translation from Gemini's native turns (thought signatures cannot be carried over, so no switch inside a task), a server-side daily Neuron budget that refuses before 10 000, and a new online-consent version naming the second processor.
 - **Remains:** the owner adds a Workers AI token (the dashboard's "Create a Workers AI API Token" template: `Workers AI - Read` and `Workers AI - Edit`, nothing else) as a session network secret for `api.cloudflare.com`; then a benchmark of the matched cases through the OpenAI-compatible endpoint, and an adapter only if the numbers justify it.
+
+- **Current Codex connection (18 October 2026):** Cloudflare MCP account lookup and `/ai/models/search` succeed and return `@cf/google/gemma-4-26b-a4b-it` with function calling, reasoning and vision. The previous session's missing inference endpoint is no longer the blocker: this MCP exposes `/ai/run/{model_name}`. However, reading account subscriptions returns authentication error 10000, so paid/free plan and safe included headroom are not verified. No inference, token creation or account change was attempted. Verify the existing allowance/permission before benchmarking; do not request a new key merely because the historical session lacked access.
 
 ## LIVE-04-01 — Live video task: captions read on the page
 

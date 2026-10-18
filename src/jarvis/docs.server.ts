@@ -146,6 +146,7 @@ export async function readDocsForTask(
   taskId: string,
   url: string,
   keepPage: boolean,
+  controller?: string,
 ): Promise<DocsPage | null> {
   const { count } = await service
     .from("jarvis_activity")
@@ -157,6 +158,7 @@ export async function readDocsForTask(
   await service.from("jarvis_activity").insert({
     user_id: userId,
     task_id: taskId,
+    ...(controller ? { controller } : {}),
     summary: (page.ok ? `Read the documentation at ${page.host}` : page.message).slice(0, 300),
     action: { action: "docs", url },
     status: page.ok ? "done" : "failed",
