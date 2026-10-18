@@ -123,18 +123,21 @@ const formula = z
   .max(2000)
   .startsWith("=")
   .refine(insideWorkbook, "formula reaches outside the workbook");
+/** A field an op does not have is refused, never dropped: dropped, the op still "succeeded"
+ * and wrote nothing (live Gemini V1 status case 5, 18 Oct, looped on {op:'table',rows}). */
+const sheetOpOf = <T extends z.ZodRawShape>(shape: T) => z.object(shape).strict();
 /**
  * One spreadsheet operation, as a skilled spreadsheet user would do it: formulas
  * and fills, not typed results. The device checks every one again.
  */
 const sheetOp = z.discriminatedUnion("op", [
-  z.object({
+  sheetOpOf({
     op: z.literal("set"),
     cell: cellRange,
     value: z.union([cellText, z.number(), z.boolean(), z.null()]),
   }),
-  z.object({ op: z.literal("fill"), range: cellRange, formula }),
-  z.object({
+  sheetOpOf({ op: z.literal("fill"), range: cellRange, formula }),
+  sheetOpOf({
     op: z.literal("format"),
     range: cellRange,
     numberFormat: z.string().max(100).optional(),
@@ -147,7 +150,7 @@ const sheetOp = z.discriminatedUnion("op", [
     border: z.enum(["thin", "medium", "none"]).optional(),
     columnWidth: z.union([z.literal("auto"), z.number().min(1).max(255)]).optional(),
   }),
-  z.object({
+  sheetOpOf({
     op: z.literal("conditional"),
     range: cellRange,
     rule: z.enum(["greater", "less", "equal", "between", "text_contains", "duplicate", "top"]),
@@ -156,7 +159,7 @@ const sheetOp = z.discriminatedUnion("op", [
     fillColor: colour.optional(),
     fontColor: colour.optional(),
   }),
-  z.object({
+  sheetOpOf({
     op: z.literal("table"),
     range: cellRange,
     name: z
@@ -168,23 +171,23 @@ const sheetOp = z.discriminatedUnion("op", [
       .regex(/^TableStyle(Light|Medium|Dark)\d{1,2}$/)
       .optional(),
   }),
-  z.object({ op: z.literal("filter"), range: cellRange }),
-  z.object({ op: z.literal("freeze"), cell: cellRange }),
-  z.object({ op: z.literal("sheet_add"), name: sheetName }),
-  z.object({ op: z.literal("sheet_rename"), from: sheetName, to: sheetName }),
-  z.object({
+  sheetOpOf({ op: z.literal("filter"), range: cellRange }),
+  sheetOpOf({ op: z.literal("freeze"), cell: cellRange }),
+  sheetOpOf({ op: z.literal("sheet_add"), name: sheetName }),
+  sheetOpOf({ op: z.literal("sheet_rename"), from: sheetName, to: sheetName }),
+  sheetOpOf({
     op: z.literal("name"),
     name: z.string().regex(/^[A-Za-z_][A-Za-z0-9_.]{0,254}$/),
     range: cellRange,
   }),
-  z.object({
+  sheetOpOf({
     op: z.literal("chart"),
     kind: z.enum(["column", "bar", "line", "pie"]),
     source: cellRange,
     anchor: cellRange,
     title: z.string().max(200).optional(),
   }),
-  z.object({
+  sheetOpOf({
     op: z.literal("sort"),
     range: cellRange,
     by: cellRange,

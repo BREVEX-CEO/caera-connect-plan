@@ -101,6 +101,11 @@ describe("the action contract", () => {
     expect(edit({ op: "sheet_add", name: "Problems" })).toBe(true);
     expect(edit({ op: "sheet_rename", from: "Sheet1", to: "Matched" })).toBe(true);
     expect(edit({ op: "sheet_rename", sheet: "Sheet1", value: "Matched" })).toBe(false);
+    // A field the op does not have was dropped, so the op "succeeded" and wrote nothing:
+    // V1 status case 5 looped 120 requests on {op:'table',rows} (doc_edit's table).
+    expect(edit({ op: "table", range: "A1:D3", rows: [["Order"]] })).toBe(false);
+    expect(edit({ op: "set", cell: "A1", value: 1, sheet: "Problems" })).toBe(false);
+    expect(edit({ op: "table", range: "A1:D3" })).toBe(true);
   });
 
   it("reads hosts only from web addresses", () => {
