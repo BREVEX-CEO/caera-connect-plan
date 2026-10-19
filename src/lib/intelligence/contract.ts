@@ -1,3 +1,4 @@
+import type { IntelligenceQuality } from "./quality.ts";
 import type { GenerationSurface } from "../commercial/generation-gate.ts";
 
 /** The user-facing routing choice. Commercial permission is decided first. */
@@ -104,6 +105,8 @@ export interface IntelligenceRequest {
   attachments: NormalizedAttachment[];
   privacy: IntelligencePrivacyPolicy;
   conversationId?: string;
+  quality?: IntelligenceQuality;
+  highModeAcknowledged?: string;
   /**
    * Deliberate before answering.
    *
@@ -148,6 +151,7 @@ export type IntelligenceRefusalCode =
   | "invalid_permit"
   | "online_not_consented"
   | "online_unavailable"
+  | "high_unavailable"
   | "local_unavailable"
   | "provider_rate_limited"
   | "research_unavailable"
@@ -260,12 +264,19 @@ export async function* sseData(
 ): AsyncIterable<string> {
   const reader = body.pipeThrough(new TextDecoderStream()).getReader();
   let buffer = "";
+  const abort = () => {
+    void reader.cancel(signal?.reason).catch(() => {});
+  };
+  signal?.addEventListener("abort", abort, { once: true });
   try {
     while (true) {
       if (signal?.aborted) throw signal.reason;
       const { value, done } = await reader.read();
+      if (signal?.aborted) throw signal.reason;
       if (done) break;
       buffer += value;
+      if (buffer.length > 2_000_000)
+        throw new Error("Intelligence stream frame exceeded its limit.");
       for (let at = boundary(buffer); at; at = boundary(buffer)) {
         const frame = buffer.slice(0, at.index);
         buffer = buffer.slice(at.index + at.length);
@@ -278,6 +289,8 @@ export async function* sseData(
     }
     if (buffer.trim()) throw new Error(incomplete);
   } finally {
+    signal?.removeEventListener("abort", abort);
+    await reader.cancel().catch(() => {});
     reader.releaseLock();
   }
 }

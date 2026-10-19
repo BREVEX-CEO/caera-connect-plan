@@ -1,3 +1,4 @@
+import { HIGH_WARNING_VERSION } from "@/lib/intelligence/quality";
 /**
  * The planning loop's real bindings: OCADE's Online boundary, the commercial
  * gate on the `jarvis` surface, and the JARVIS server functions.
@@ -201,10 +202,19 @@ const FINAL_REFUSALS = [
   "cancelled",
   "online_not_consented",
   "research_unavailable",
+  "high_unavailable",
 ];
 
 async function askOnce(
-  { messages, memory, attachments, signal, onText, taskId }: Parameters<AgentDeps["model"]>[0],
+  {
+    messages,
+    memory,
+    attachments,
+    signal,
+    onText,
+    taskId,
+    quality = "standard",
+  }: Parameters<AgentDeps["model"]>[0],
   conversationId: string,
 ): ReturnType<AgentDeps["model"]> {
   const billed = await beginBilledRequest({ surface: "jarvis", taskId });
@@ -222,8 +232,10 @@ async function askOnce(
       idempotencyKey: billed.permit.idempotencyKey,
       surface: "jarvis",
       mode: "online",
+      quality,
+      ...(quality === "high" ? { highModeAcknowledged: HIGH_WARNING_VERSION } : {}),
       messages,
-      tools: jarvisTools(memory, true, webSearch),
+      tools: jarvisTools(memory, true, webSearch && quality !== "high"),
       attachments,
       privacy: { onlineInferenceConsented: true, sealed: false },
       conversationId,

@@ -62,6 +62,7 @@ The person closed OCADE and this computer is carrying on with the open task. Con
 export interface BackgroundDeps {
   /** One billed model step for this person. null: no use available. "unavailable": try later. */
   model(input: {
+    quality?: "standard" | "high";
     userId: string;
     conversationId: string;
     /** The task it plans for: the turn is part of that task's one use. */
@@ -259,6 +260,7 @@ export async function carryOn(
       const url = lastResult.observation?.url;
       const kept = await change({
         checkpoint: {
+          intelligenceQuality: task.checkpoint?.intelligenceQuality ?? "standard",
           step: task.current_step,
           lastAction: last.summary.slice(0, 300),
           lastUrl: typeof url === "string" ? url.slice(0, 2000) : null,
@@ -394,6 +396,7 @@ export async function carryOn(
         : [];
 
     const reply = await deps.model({
+      quality: task.checkpoint?.intelligenceQuality ?? "standard",
       userId,
       conversationId: task.conversation_id,
       taskId: task.id,

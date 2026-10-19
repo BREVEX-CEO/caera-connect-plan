@@ -502,7 +502,21 @@ export async function changeTask(
   }
   if (data.controller !== undefined) patch.controller = data.controller;
   else if (data.owner !== undefined) patch.controller = data.owner; // same value: a touch
-  if (data.checkpoint !== undefined) patch.checkpoint = data.checkpoint;
+  if (data.checkpoint !== undefined) {
+    // Old clients omit the mode; later checkpoints cannot change the task's opt-in.
+    const { data: stored, error } = await service
+      .from("jarvis_tasks")
+      .select("checkpoint")
+      .eq("id", data.id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error || !stored) return null;
+    const checkpoint = stored.checkpoint as JarvisTaskRow["checkpoint"];
+    patch.checkpoint = {
+      ...data.checkpoint,
+      intelligenceQuality: checkpoint?.intelligenceQuality ?? "standard",
+    };
+  }
   if (data.status !== undefined) patch.status = data.status;
   if (data.currentStep !== undefined) patch.current_step = data.currentStep;
   if (data.result !== undefined) patch.result = data.result;

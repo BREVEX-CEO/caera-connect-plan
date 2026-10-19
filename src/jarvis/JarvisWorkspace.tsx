@@ -1,3 +1,5 @@
+import { QualityControl } from "@/lib/intelligence/QualityControl";
+import { useIntelligenceQuality } from "@/lib/intelligence/use-intelligence-quality";
 /**
  * The OCADE JARVIS workspace: a compact rail, the orb, the conversation, and
  * the task, browser and voice controls that appear only when they apply.
@@ -156,6 +158,9 @@ export function JarvisWorkspace({
 
   const [turns, setTurns] = useState<Turn[]>([]);
   const [liveAnswer, setLiveAnswer] = useState<string | null>(null);
+  const { quality, selectQuality } = useIntelligenceQuality(
+    `${user?.id ?? ""}:${conversationId ?? ""}`,
+  );
   const [draft, setDraft] = useState("");
   // Words typed while the page was still loading become the draft.
   useEffect(() => {
@@ -450,6 +455,7 @@ export function JarvisWorkspace({
       const out = await runJarvisTurn(
         {
           conversationId: id,
+          quality,
           history,
           text,
           memories: (jarvis?.memories ?? []).map((m) => m.content),
@@ -1210,6 +1216,18 @@ export function JarvisWorkspace({
                 {voice.error}
               </p>
             ) : null}
+            <QualityControl
+              key={`${user?.id}:${conversationId}`}
+              value={
+                conversationTask && !FINISHED.includes(conversationTask.status)
+                  ? (conversationTask.checkpoint?.intelligenceQuality ?? "standard")
+                  : quality
+              }
+              onChange={selectQuality}
+              disabled={
+                running || Boolean(conversationTask && !FINISHED.includes(conversationTask.status))
+              }
+            />
             <form
               onSubmit={(event) => {
                 event.preventDefault();

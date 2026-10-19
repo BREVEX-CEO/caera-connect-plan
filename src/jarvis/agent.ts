@@ -1,3 +1,4 @@
+import type { IntelligenceQuality } from "@/lib/intelligence/quality";
 /**
  * One JARVIS turn: ask OCADE's Online authority, run the tools it calls, feed
  * the observed results back, and stop the moment the person says so.
@@ -111,6 +112,7 @@ export interface ActionState {
 /** Everything the loop touches outside itself, so it can be proved without a network. */
 export interface AgentDeps {
   model(input: {
+    quality?: IntelligenceQuality;
     messages: NormalizedMessage[];
     memory: boolean;
     attachments: NormalizedAttachment[];
@@ -121,6 +123,7 @@ export interface AgentDeps {
     taskId?: string;
   }): Promise<ModelStep | null>;
   startTask(input: {
+    quality?: IntelligenceQuality;
     deviceId?: string;
     conversationId: string;
     controller: string;
@@ -204,6 +207,7 @@ export interface AgentHooks {
 }
 
 export interface TurnInput {
+  quality?: IntelligenceQuality;
   conversationId: string;
   history: NormalizedMessage[];
   text: string;
@@ -451,8 +455,18 @@ export async function runJarvisTurn(
   hooks: AgentHooks,
   deps: AgentDeps,
 ): Promise<{ answer: string; task: JarvisTaskRow | null }> {
+  const qualityFor = (task: JarvisTaskRow | null): IntelligenceQuality =>
+    task && !FINISHED.includes(task.status)
+      ? (task.checkpoint?.intelligenceQuality ?? "standard")
+      : (input.quality ?? "standard");
   const messages: NormalizedMessage[] = [
-    { role: "system", content: systemPrompt({ ...input, research: Boolean(deps.research) }) },
+    {
+      role: "system",
+      content: systemPrompt({
+        ...input,
+        research: Boolean(deps.research) && qualityFor(input.task) !== "high",
+      }),
+    },
     ...memoryMessage(input),
     ...input.history,
     { role: "user", content: input.text },
@@ -612,6 +626,7 @@ export async function runJarvisTurn(
     await update({
       id: task.id,
       checkpoint: {
+        intelligenceQuality: qualityFor(task),
         step: task.current_step,
         lastAction: describeAction(action),
         lastUrl: typeof url === "string" ? url.slice(0, 2000) : null,
@@ -740,6 +755,7 @@ export async function runJarvisTurn(
           };
         }
         const started = await deps.startTask({
+          quality: input.quality ?? "standard",
           checks: checks.data,
           ...(permitKey ? { planningPermit: permitKey } : {}),
           conversationId: input.conversationId,
@@ -862,6 +878,8 @@ export async function runJarvisTurn(
           .catch(() => ({ ok: false, message: "That time could not be understood." }));
       }
       case "research":
+        if (qualityFor(task) === "high")
+          return { error: "Use browser tools for research in High mode." };
         if (!deps.research) return { error: "Research is available while OCADE is open." };
         if (!task) return { error: "Start the task first, then research for it." };
         // Web data from here on: memory and schedules no longer follow what is said next.
@@ -909,6 +927,7 @@ export async function runJarvisTurn(
       let reply: ModelStep | null;
       try {
         reply = await deps.model({
+          quality: qualityFor(task),
           messages,
           memory: input.memoryEnabled,
           attachments,

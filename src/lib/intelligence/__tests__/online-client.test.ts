@@ -39,6 +39,32 @@ function deps(fetchImpl: typeof fetch) {
 }
 
 describe("online intelligence client", () => {
+  it("sends explicit High acknowledgement and treats unavailable included capacity as final", async () => {
+    const fetcher = vi.fn<typeof fetch>(
+      async () => new Response(JSON.stringify({ error: "high_unavailable" }), { status: 503 }),
+    );
+    const events = [];
+    for await (const event of createOnlineIntelligenceTransport(deps(fetcher)).stream({
+      ...request(),
+      quality: "high",
+      highModeAcknowledged: "2026-10-19-v1",
+    }))
+      events.push(event);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({
+      quality: "high",
+      highModeAcknowledged: "2026-10-19-v1",
+    });
+    expect(events).toEqual([
+      {
+        type: "refusal",
+        code: "high_unavailable",
+        reason: expect.stringContaining("Select Standard"),
+        retryable: false,
+      },
+    ]);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
   it("sends the user JWT, publishable key and existing permit to the Edge boundary", async () => {
     const fetcher = vi.fn<typeof fetch>(async () => {
       const encoder = new TextEncoder();

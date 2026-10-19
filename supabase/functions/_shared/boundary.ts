@@ -1,4 +1,4 @@
-import { cloudflareProviderRequest } from "./gateway.ts";
+import { highIncluded } from "./workers-ai.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.110.7";
 import {
   isServiceKey,
@@ -9,6 +9,7 @@ import { ONLINE_CONSENT_VERSION } from "../../../src/lib/intelligence/online-con
 import { buildHealthRecord } from "../../../src/lib/telemetry/operation-health.ts";
 import {
   DEFAULT_ONLINE_MODEL,
+  HIGH_ONLINE_MODEL,
   PROVIDER_KEY_ENVIRONMENT,
   PROVIDER_KEY_SLOTS,
   type ProviderKeySlot,
@@ -41,11 +42,20 @@ const SUPABASE_SERVICE_ROLE_KEY =
   Deno.env.get("SUPABASE_SECRET_KEY") ||
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
   "";
-/** Exactly three Google credential slots, read only in this server entry point.
- * The handler receives slot names, not credentials. The server-only gateway helper
- * builds their authenticated request; neither credentials nor payloads are logged.
- * A missing slot is not invented. The legacy unprefixed alias is not accepted.
- * Gateway authentication uses its separate, narrowly scoped server token.
+/*
+ * EXACTLY THREE KEY SLOTS, AND ONLY THE ONES THAT ARE SET.
+ *
+ * `docs/TRD.md` names all three and makes the second and third OPTIONAL, so the
+ * list is built from what the deployment actually holds: a project with one key
+ * must not have failover invented for it, and a project with three must not
+ * have the third ignored. The keys stay in this module and never travel — the
+ * handler is told WHICH SLOT to use and nothing more, so the policy lives in
+ * one tested place and the secrets live in none of it.
+ *
+ * THREE NAMES, AND NO FOURTH. `PLAN.md` Phase 6 says "exactly three Supabase
+ * Edge Function secrets", so the unprefixed `GEMINI_API_KEY` alias an earlier
+ * deployment set is no longer read. A fourth accepted name is a fourth place a
+ * key can be set, and the one nobody rotates.
  */
 const PROVIDER_KEYS: Record<ProviderKeySlot, string> = {
   primary: Deno.env.get(PROVIDER_KEY_ENVIRONMENT.primary) ?? "",
@@ -53,21 +63,9 @@ const PROVIDER_KEYS: Record<ProviderKeySlot, string> = {
   tertiary: Deno.env.get(PROVIDER_KEY_ENVIRONMENT.tertiary) ?? "",
 };
 const CONFIGURED_SLOTS = PROVIDER_KEY_SLOTS.filter((slot) => PROVIDER_KEYS[slot].length > 0);
-// Legacy explicit model override remains pinned; omit it to use the owner's new route.
+const CF_ACCOUNT = Deno.env.get("CLOUDFLARE_ACCOUNT_ID") ?? "";
+const CF_TOKEN = Deno.env.get("CLOUDFLARE_WORKERS_AI_TOKEN") ?? "";
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? DEFAULT_ONLINE_MODEL;
-const GATEWAY = {
-  accountId: Deno.env.get("OCADE_AI_GATEWAY_ACCOUNT_ID") ?? "",
-  gatewayId: Deno.env.get("OCADE_AI_GATEWAY_ID") ?? "",
-  token: Deno.env.get("OCADE_AI_GATEWAY_TOKEN") ?? "",
-};
-const GATEWAY_READY =
-  cloudflareProviderRequest({
-    ...GATEWAY,
-    key: "configuration-check",
-    model: GEMINI_MODEL,
-    body: {},
-    signal: new AbortController().signal,
-  }) !== null;
 const allowedOrigins = new Set(
   (Deno.env.get("OCADE_ALLOWED_ORIGINS") ?? "")
     .split(",")
@@ -168,10 +166,10 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
     SUPABASE_URL &&
     SUPABASE_PUBLISHABLE_KEY &&
     SUPABASE_SERVICE_ROLE_KEY &&
-    CONFIGURED_SLOTS.length > 0 &&
-    GATEWAY_READY,
+    CONFIGURED_SLOTS.length > 0,
   ),
   providerSlots: CONFIGURED_SLOTS,
+  highAvailable: (signal) => highIncluded(CF_ACCOUNT, CF_TOKEN, signal),
   observe,
   model: GEMINI_MODEL,
   async consented(userId) {
@@ -251,15 +249,35 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
       p_reason: "transport_ended_without_output",
     });
   },
-  callProvider({ model, body, signal, slot }) {
-    const request = cloudflareProviderRequest({
-      ...GATEWAY,
-      model,
-      body,
-      signal,
-      key: PROVIDER_KEYS[slot],
-    });
-    if (!request) return Promise.resolve(new Response(null, { status: 503 }));
-    return fetch(request);
+  async callProvider({ model, body, signal, slot }) {
+    if (model === HIGH_ONLINE_MODEL) {
+      // Recheck immediately before every dispatch, including retries. Never trust browser flags.
+      if (!(await highIncluded(CF_ACCOUNT, CF_TOKEN, signal))) {
+        return new Response(null, { status: 412 });
+      }
+      return fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/ai/v1/chat/completions`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${CF_TOKEN}`, "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          signal,
+          redirect: "error",
+        },
+      );
+    }
+    if (model !== DEFAULT_ONLINE_MODEL) return new Response(null, { status: 400 });
+    return fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+      {
+        method: "POST",
+        // The slot the handler chose. The key itself never leaves this file,
+        // and never appears in a log line, a response or an error.
+        headers: { "Content-Type": "application/json", "x-goog-api-key": PROVIDER_KEYS[slot] },
+        body: JSON.stringify(body),
+        redirect: "error",
+        signal,
+      },
+    );
   },
 };

@@ -9,8 +9,6 @@
  *
  * A session whose network proxy injects the key: any placeholder value and NODE_USE_ENV_PROXY=1.
  * The key is sent only as Google's header and never printed.
- * OCADE_LIVE_GEMINI_MODEL pins either approved model. Gemma requires the candidate
- * OCADE_AI_GATEWAY_ACCOUNT_ID / OCADE_AI_GATEWAY_ID / OCADE_AI_GATEWAY_TOKEN settings.
  * Run only after independently confirming included/free capacity for that staging project.
  */
 const KEY = process.env.OCADE_LIVE_GEMINI_KEY;
@@ -19,58 +17,19 @@ if (!KEY) {
   process.exit(3);
 }
 const { handleOnlineIntelligence } = await import("../../src/lib/intelligence/edge-handler.ts");
-const { isAllowedOnlineModel } = await import("../../src/lib/intelligence/online-models.ts");
-const { cloudflareProviderRequest } = await import("../../supabase/functions/_shared/gateway.ts");
-const MODEL = process.env.OCADE_LIVE_GEMINI_MODEL || "gemini-3.5-flash-lite";
-if (!isAllowedOnlineModel(MODEL)) {
-  console.log("FAIL  native provider contract — unapproved model");
-  process.exit(1);
-}
-const gateway = {
-  accountId: process.env.OCADE_AI_GATEWAY_ACCOUNT_ID ?? "",
-  gatewayId: process.env.OCADE_AI_GATEWAY_ID ?? "",
-  token: process.env.OCADE_AI_GATEWAY_TOKEN ?? "",
-};
-const throughGateway = Object.values(gateway).some(Boolean);
-if (
-  (throughGateway || MODEL.startsWith("gemma-")) &&
-  !cloudflareProviderRequest({
-    ...gateway,
-    key: KEY,
-    model: MODEL,
-    body: {},
-    signal: new AbortController().signal,
-  })
-) {
-  console.log(
-    "BLOCKED  native provider contract — complete authenticated gateway configuration required",
-  );
-  process.exit(3);
-}
+const MODEL = "gemini-3.5-flash-lite";
 const URL_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 async function fetchProvider(body, signal, stream = true) {
-  const request = throughGateway
-    ? cloudflareProviderRequest({
-        ...gateway,
-        key: KEY,
-        model: MODEL,
-        body,
-        signal: signal ?? new AbortController().signal,
-      })
-    : null;
-  const url = request?.url ?? `${URL_BASE}/${MODEL}:streamGenerateContent?alt=sse`;
+  const url = `${URL_BASE}/${MODEL}:streamGenerateContent?alt=sse`;
   return fetch(stream ? url : url.replace(":streamGenerateContent?alt=sse", ":generateContent"), {
     method: "POST",
     redirect: "error",
-    headers: request?.headers ?? { "content-type": "application/json", "x-goog-api-key": KEY },
+    headers: { "content-type": "application/json", "x-goog-api-key": KEY },
     body: JSON.stringify(body),
     signal,
   });
 }
-const redact = (value) =>
-  [KEY, gateway.token]
-    .filter(Boolean)
-    .reduce((text, secret) => text.replaceAll(secret, "[redacted]"), String(value));
+const redact = (value) => String(value).replaceAll(KEY, "[redacted]");
 const times = [];
 const totals = { upstream: 0, input: 0, output: 0, requests: 0 };
 let lastSent = null;

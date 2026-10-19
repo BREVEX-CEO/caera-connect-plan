@@ -1,3 +1,4 @@
+import { HIGH_WARNING_VERSION, type IntelligenceQuality } from "@/lib/intelligence/quality";
 /**
  * EVERYTHING CHAT DOES, IN ONE HOOK.
  *
@@ -136,9 +137,15 @@ export interface ChatActions {
     thinking?: boolean,
     research?: boolean,
     prepare?: () => Promise<void>,
+    quality?: IntelligenceQuality,
   ): Promise<boolean>;
   /** Edit, Regenerate and Retry, which are the same operation. */
-  resend(userMessageId: string, choice: IntelligenceChoice, newText?: string): Promise<void>;
+  resend(
+    userMessageId: string,
+    choice: IntelligenceChoice,
+    newText?: string,
+    quality?: IntelligenceQuality,
+  ): Promise<void>;
   removeMessage(id: string): Promise<void>;
   stop(): void;
   openConversation(id: string | null): void;
@@ -248,7 +255,9 @@ export function useChat(): ChatState & ChatActions {
    * have redone. Kept beside the bytes and released on the same schedule, for
    * the same reason — a stored row has no column for either.
    */
-  const askedWith = useRef(new Map<string, { thinking: boolean; research: boolean }>());
+  const askedWith = useRef(
+    new Map<string, { thinking: boolean; research: boolean; quality: IntelligenceQuality }>(),
+  );
 
   /** Stop everything in flight and stop caring about what it returns. */
   const abandonInFlight = useCallback(() => {
@@ -429,6 +438,7 @@ export function useChat(): ChatState & ChatActions {
       thinking = false,
       research = false,
       prepare?: () => Promise<void>,
+      quality: IntelligenceQuality = "standard",
     ) => {
       const text = message.trim();
       /*
@@ -596,7 +606,8 @@ export function useChat(): ChatState & ChatActions {
         // How this question was asked, so Regenerate asks it the same way. Only
         // recorded when it differs from the default, which is what keeps the map
         // empty for the ordinary case.
-        if (thinking || research) askedWith.current.set(question.record.id, { thinking, research });
+        if (thinking || research || quality === "high")
+          askedWith.current.set(question.record.id, { thinking, research, quality });
         // The bytes stay in this tab so Regenerate can send the same file
         // again. Names and sizes are all the stored row will ever have.
         if (attachments.length > 0) {
@@ -653,7 +664,9 @@ export function useChat(): ChatState & ChatActions {
             },
             conversationId: id ?? undefined,
             thinking,
-            research,
+            research: quality !== "high" && research,
+            quality,
+            ...(quality === "high" ? { highModeAcknowledged: HIGH_WARNING_VERSION } : {}),
             signal: controller.signal,
           })) {
             if (event.type === "token") {
@@ -807,7 +820,12 @@ export function useChat(): ChatState & ChatActions {
    * asked OCADE to replace.
    */
   const resend = useCallback(
-    async (userMessageId: string, choice: IntelligenceChoice, newText?: string) => {
+    async (
+      userMessageId: string,
+      choice: IntelligenceChoice,
+      newText?: string,
+      quality?: IntelligenceQuality,
+    ) => {
       if (sending.current) return;
       const index = transcript.current.findIndex((record) => record.id === userMessageId);
       if (index < 0) return;
@@ -872,6 +890,7 @@ export function useChat(): ChatState & ChatActions {
           if (temporary || !conversationId || !from) return;
           await deleteMessagesFrom({ data: { conversationId, from } });
         },
+        quality ?? ("quality" in options ? (options.quality as IntelligenceQuality) : "standard"),
       );
       if (accepted) return;
       /*

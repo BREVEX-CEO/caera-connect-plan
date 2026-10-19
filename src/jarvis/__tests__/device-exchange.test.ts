@@ -80,6 +80,24 @@ beforeEach(async () => {
 });
 
 describe("dispatch", () => {
+  it("keeps the task's opt-in quality when an older client overwrites its checkpoint", async () => {
+    const t = await task();
+    await twin.asServiceRole(
+      `update public.jarvis_tasks set checkpoint = '{"step":0,"lastAction":"Started","lastUrl":null,"at":"","intelligenceQuality":"high"}' where id = '${t}'`,
+    );
+    const row = await changeTask(rest() as never, rest() as never, A, {
+      id: t,
+      checkpoint: {
+        step: 1,
+        lastAction: "read",
+        lastUrl: null,
+        at: "",
+        intelligenceQuality: "standard",
+      },
+    });
+    expect(row?.checkpoint).toMatchObject({ intelligenceQuality: "high", step: 1 });
+  });
+
   it("hands out one action at a time and nothing while one runs", async () => {
     const t = await task();
     await permit("files", true);

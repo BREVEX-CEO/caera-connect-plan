@@ -67,8 +67,8 @@ describe("the three key slots", () => {
 
 describe("where a key may appear", () => {
   it("is one file, and it is a Deno function no browser bundle imports", () => {
-    expect(EDGE_ENTRY).toContain("cloudflareProviderRequest");
-    expect(EDGE_ENTRY).not.toContain("generativelanguage.googleapis.com");
+    expect(EDGE_ENTRY).toContain("generativelanguage.googleapis.com");
+    expect(EDGE_ENTRY).toContain("x-goog-api-key");
   });
 
   it("is nowhere in the product's own source", () => {
@@ -111,7 +111,7 @@ describe("what the boundary accepts", () => {
   it("pins one model rather than accepting one from the caller", () => {
     // `model` comes from the deployment and is checked against the allowlist;
     // the request body has no model field to honour.
-    expect(EDGE_HANDLER).toContain("isAllowedOnlineModel(configured)");
+    expect(EDGE_HANDLER).toContain("deps.model !== DEFAULT_ONLINE_MODEL");
     expect(EDGE_HANDLER).not.toMatch(/body\.model/);
   });
 });

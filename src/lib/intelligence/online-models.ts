@@ -1,11 +1,10 @@
-/** Owner decision, 19 October 2026: Gemma primary, Gemini fallback; server-selected only.
- * Google hosts both under the same native API; Cloudflare authenticates and proxies it.
- * Exact identities are pinned; API capability is not a benchmark result.
+/** Owner correction, 19 October 2026: Standard is Gemini; High is opt-in Workers AI.
+ * Provider identities are selected only by the server, never accepted from a request.
  */
-export const ONLINE_MODEL_CATALOG = ["gemma-4-26b-a4b-it", "gemini-3.5-flash-lite"] as const;
+export const DEFAULT_ONLINE_MODEL = "gemini-3.5-flash-lite";
+export const HIGH_ONLINE_MODEL = "@cf/google/gemma-4-26b-a4b-it";
+export const ONLINE_MODEL_CATALOG = [DEFAULT_ONLINE_MODEL, HIGH_ONLINE_MODEL] as const;
 export type OnlineModelId = (typeof ONLINE_MODEL_CATALOG)[number];
-export const DEFAULT_ONLINE_MODEL = ONLINE_MODEL_CATALOG[0];
-export const FALLBACK_ONLINE_MODEL = ONLINE_MODEL_CATALOG[1];
 export function isAllowedOnlineModel(value: string): value is OnlineModelId {
   return ONLINE_MODEL_CATALOG.some((model) => model === value);
 }

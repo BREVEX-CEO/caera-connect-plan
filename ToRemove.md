@@ -27,6 +27,12 @@ Trace all callers and security roles → identify canonical replacement → reco
 | Source-string tests/unused helpers/dependencies                                                                                                  | P19/P22 stronger behaviour proof or confirmed no callers    | Never remove unique negative/security/platform evidence                                |
 | Retired checkout controls or resurrected payment schema                                                                                          | P20 authoritative new commerce implementation               | Approved provider and settlement proof; preserve required financial history            |
 
+## 19 October 2026 routing correction
+
+Retired the unpublished Google-hosted Gemma-default proxy (`supabase/functions/_shared/gateway.ts`), its automatic model-switch/continuation envelope and gateway-specific tests. Standard’s canonical replacement is the original Gemini boundary; High has a separate Workers AI protocol adapter under the same admission/settlement owner. Existing Google credential, quota, terminal, signature and STOP tests remain. Replacement tests cover explicit High selection, fragmented native calls, private-reasoning isolation, incomplete terminals, cap/safety refusals, screenshot placement and changed/unreadable billing. The screenshot regression failed before its fix. Live wire, UI warnings and paired real-task parity remain blocked, so no deployment or benchmark claim follows.
+
+Measured candidate: 902 active code files / 144,310 lines against 896 / 143,638 at `8e3f2e6` (net +6 files / +672 lines, including required new adapter, UI and tests). This is removal of obsolete wiring, not a claim of net size reduction. No dependency or schema was added. Runtime latency and real task accuracy are UNTESTED; preserve the release blocks in Testing and BLOCKED_TESTS.
+
 ## Protected material
 
 Keep immutable imports/source-original/ZIP, applied migrations, licences/notices, signing/update/wake verification, account isolation, task journals, backups, accessibility and unique historical findings. Developer MCP/test tools may remain useful even though customers never install them. Do not deep-index/upload all customer files for convenience. Sanitised recipes must not retain cookies, credentials, raw private screenshots or unrelated contents.

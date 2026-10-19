@@ -50,6 +50,22 @@ function final(backend: IntelligenceTransport["backend"], text = "answer"): Inte
 }
 
 describe("OcadeIntelligence", () => {
+  it.each(["automatic", "local_only"] as const)(
+    "refuses High in %s without probing or falling back",
+    async (mode) => {
+      const online = transport("online", [final("online")]);
+      const local = transport("on_device", [final("on_device")]);
+      expect(
+        await createOcadeIntelligence({ online, local }).generate({
+          ...request(mode),
+          quality: "high",
+        }),
+      ).toMatchObject({ ok: false, code: "high_unavailable" });
+      expect(online.probe).not.toHaveBeenCalled();
+      expect(local.probe).not.toHaveBeenCalled();
+    },
+  );
+
   it("rejects a mismatched permit before probing either backend", async () => {
     const online = transport("online", [final("online")]);
     const local = transport("on_device", [final("on_device")]);

@@ -102,6 +102,59 @@ function harness(
 }
 
 describe("a JARVIS turn", () => {
+  it("resumes with the saved High choice even when this tab selected Standard", async () => {
+    const h = harness([{ text: "done", toolCalls: [] }]);
+    await runJarvisTurn(
+      {
+        ...h.input,
+        quality: "standard",
+        task: {
+          ...TASK,
+          checkpoint: {
+            step: 0,
+            lastAction: "Started",
+            lastUrl: null,
+            at: "",
+            intelligenceQuality: "high",
+          },
+        },
+      },
+      h.hooks,
+      h.deps,
+    );
+    expect(h.deps.model).toHaveBeenCalledWith(
+      expect.objectContaining({ quality: "high", taskId: TASK.id }),
+    );
+  });
+
+  it("keeps High off the separate Google research path, including forged calls", async () => {
+    const h = harness([
+      { text: "", toolCalls: [call("research", { question: "anything" })] },
+      { text: "done", toolCalls: [] },
+    ]);
+    h.deps.research = vi.fn();
+    await runJarvisTurn(
+      {
+        ...h.input,
+        quality: "high",
+        task: {
+          ...TASK,
+          checkpoint: {
+            step: 0,
+            lastAction: "Started",
+            lastUrl: null,
+            at: "",
+            intelligenceQuality: "high",
+          },
+        },
+      },
+      h.hooks,
+      h.deps,
+    );
+    expect(h.deps.research).not.toHaveBeenCalled();
+    expect(h.seen[0][0].content).not.toContain(RESEARCH_GUIDANCE);
+  });
+
   it("a reply to a task waiting for the person resumes it when JARVIS acts", async () => {
     const h = harness([
       { text: "", toolCalls: [call("computer", { action: "run", command: "python export.py" })] },

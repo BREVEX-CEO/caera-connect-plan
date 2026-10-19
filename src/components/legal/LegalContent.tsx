@@ -416,12 +416,12 @@ export function PrivacyContent() {
         </p>
         <p>
           When you choose Online or use JARVIS, your messages, attached files and any pages or
-          screens included in the request are sent through Cloudflare to Google’s AI service.
-          Google’s free service may retain this content, use it to improve its products and have
-          people review it. OCADE asks for your agreement before sending it; you can withdraw that
-          agreement in Settings, Privacy &amp; Security. Do not send confidential work, passwords or
-          payment details. OCADE requests no prompt or response logging or caching at its AI
-          gateway.
+          screens included in the request are sent to Google’s AI service in Standard mode, or to
+          Cloudflare Workers AI when you explicitly choose High mode. Google’s free service may
+          retain this content, use it to improve its products and have people review it. OCADE asks
+          for your agreement before sending it; you can withdraw that agreement in Settings, Privacy
+          &amp; Security. Do not send confidential work, passwords or payment details. Cloudflare
+          processes High-mode content under its Workers AI data policy.
         </p>
       </PublicSection>
 

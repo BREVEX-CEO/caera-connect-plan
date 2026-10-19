@@ -180,6 +180,8 @@ export function createOnlineIntelligenceTransport(
         privacy: request.privacy,
         conversationId: request.conversationId,
         research: request.research === true,
+        quality: request.quality,
+        highModeAcknowledged: request.highModeAcknowledged,
       });
       let response = await send(token);
       if (response.status === 401 && deps.refreshAccessToken) {
@@ -233,7 +235,17 @@ export function createOnlineIntelligenceTransport(
         const said = (await response
           .clone()
           .json()
-          .catch(() => null)) as { retryAfterSeconds?: number } | null;
+          .catch(() => null)) as { retryAfterSeconds?: number; error?: string } | null;
+        if (said?.error === "high_unavailable") {
+          yield {
+            type: "refusal",
+            code: "high_unavailable",
+            reason:
+              "High mode is unavailable because its included capacity could not be verified. Nothing was sent. Select Standard to continue.",
+            retryable: false,
+          };
+          return;
+        }
         const later =
           typeof said?.retryAfterSeconds === "number" ? said.retryAfterSeconds * 1000 : undefined;
         yield {

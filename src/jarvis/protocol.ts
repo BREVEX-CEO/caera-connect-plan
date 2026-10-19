@@ -686,7 +686,11 @@ export const NOT_VERIFIED = "Not verified: ";
 /** The task change finish_task asks for; the task authority decides whether it stands. */
 export function finishChange(
   args: { outcome?: unknown; result?: unknown },
-  task: { plan: unknown[]; current_step: number },
+  task: {
+    plan: unknown[];
+    current_step: number;
+    checkpoint?: { intelligenceQuality?: "standard" | "high" } | null;
+  },
 ) {
   const status: TaskStatus =
     args.outcome === "completed" ? "completed" : args.outcome === "blocked" ? "blocked" : "failed";
@@ -697,6 +701,7 @@ export function finishChange(
     result: String(args.result ?? "").slice(0, 8000) || null,
     currentStep: step,
     checkpoint: {
+      intelligenceQuality: task.checkpoint?.intelligenceQuality ?? "standard",
       step,
       lastAction: status === "completed" ? "Finished" : `Ended: ${status}`,
       lastUrl: null,

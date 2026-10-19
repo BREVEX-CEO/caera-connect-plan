@@ -1,10 +1,12 @@
 # OCADE decisions and historical provenance
 
-Current decisions are implemented through [PLAN](../PLAN.md), not a second work queue. Research baseline: `f521e23529542d709a9627181341b0e904a8b0c3`; redesign dated 9 October 2026. The owner authorised documentation changes and publication only; implementation/deployment remains future work.
+Current decisions are implemented through [PLAN](../PLAN.md), not a second work queue. Research baseline: `f521e23529542d709a9627181341b0e904a8b0c3`; redesign dated 9 October 2026. The current owner authorises implementation and scoped tests on the implementation branch; deployment and spending require separate approval.
 
-## Owner decision — 19 October 2026 (current)
+## Owner correction — 19 October 2026 (current)
 
-The owner explicitly replaces the 13 October Gemini-only model rule: **Gemma 4 primary, Gemini 3.5 Flash-Lite fallback, all three authorized key slots, Cloudflare AI routing, quota-aware failover and measured qualification**. The candidate pins `gemma-4-26b-a4b-it` for latency-oriented qualification and `gemini-3.5-flash-lite` as fallback. Both are hosted on Google's native API through authenticated Cloudflare AI Gateway, avoiding a second protocol and Workers AI Neuron billing in this candidate. This is an engineering choice within the owner's model selection, not evidence that Gemma wins. Paired real-task benchmarking and project-specific limits must pass before activation. No main merge, deployment or spending is authorized. Existing privacy, permission, independent verification and release gates still apply.
+**Standard defaults to `gemini-3.5-flash-lite`, using the three authorized Supabase Edge Google key slots. Gemma 4 is explicitly opt-in High mode on Cloudflare Workers AI (`@cf/google/gemma-4-26b-a4b-it`), never the default or an automatic fallback.** Initial acknowledgement and recurring faster-consumption warnings are required. Keys are credential redundancy, never permission to evade shared project quota. Independently verify actual limits, included capacity and real task outcomes. Keep progressing on `ocade/p00-p22-implementation`; never merge main, deploy or spend without owner approval. Report production readiness with a disclosed evidence denominator and blockers. No secret values in source, browser, logs or reports.
+
+This supersedes the previous 19 October Gemma-default/Google-proxy candidate at `8e3f2e6`. That candidate was source-tested but never deployed or benchmark-qualified. Its route and model-switch logic are removed; the same existing permit, consent, task and verification owners remain. High is included-only and unavailable on unreadable/ambiguous billing or a paid plan. Its live account eligibility and actual protocol still require qualification. No benchmark superiority is established by implementing the owner’s selection.
 
 ## Owner decisions — 13 October 2026 (model rule superseded above; other rules retained)
 

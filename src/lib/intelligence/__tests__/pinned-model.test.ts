@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ONLINE_MODEL,
-  FALLBACK_ONLINE_MODEL,
+  HIGH_ONLINE_MODEL,
   ONLINE_MODEL_CATALOG,
   isAllowedOnlineModel,
 } from "../online-models";
@@ -16,21 +16,21 @@ import {
 const EDGE_FUNCTION = readFileSync("supabase/functions/_shared/boundary.ts", "utf8");
 
 describe("the pinned online model", () => {
-  it("pins the exact owner-selected primary and fallback", () => {
-    expect(DEFAULT_ONLINE_MODEL).toBe("gemma-4-26b-a4b-it");
-    expect(FALLBACK_ONLINE_MODEL).toBe("gemini-3.5-flash-lite");
+  it("pins the exact owner-selected default and opt-in High", () => {
+    expect(DEFAULT_ONLINE_MODEL).toBe("gemini-3.5-flash-lite");
+    expect(HIGH_ONLINE_MODEL).toBe("@cf/google/gemma-4-26b-a4b-it");
   });
 
   it("accepts exactly the two selected identifiers", () => {
-    expect(ONLINE_MODEL_CATALOG).toEqual([DEFAULT_ONLINE_MODEL, FALLBACK_ONLINE_MODEL]);
-    expect(isAllowedOnlineModel(FALLBACK_ONLINE_MODEL)).toBe(true);
+    expect(ONLINE_MODEL_CATALOG).toEqual([DEFAULT_ONLINE_MODEL, HIGH_ONLINE_MODEL]);
+    expect(isAllowedOnlineModel(HIGH_ONLINE_MODEL)).toBe(true);
     expect(isAllowedOnlineModel(DEFAULT_ONLINE_MODEL)).toBe(true);
     // A client-chosen model, a provider alias and the identifier this replaced
     // are all refused, so a mistyped override fails closed rather than reaching
     // something nobody chose.
     expect(isAllowedOnlineModel("latest")).toBe(false);
     expect(isAllowedOnlineModel("gemini-3.7-flash")).toBe(false);
-    // No unapproved fallback or older lite (owner, 19 Oct 2026),
+    // No unapproved default or older lite (owner, 19 Oct 2026),
     // and no paid Pro by accident.
     expect(isAllowedOnlineModel("gemini-3.8-flash")).toBe(false);
     expect(isAllowedOnlineModel("gemini-3.1-flash-lite")).toBe(false);

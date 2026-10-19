@@ -328,6 +328,7 @@ export const startJarvisTask = createServerFn({ method: "POST" })
     z
       .object({
         conversationId: uuid,
+        quality: z.enum(["standard", "high"]).default("standard"),
         controller: uuid,
         /** Where the work happens: a browser, or the computer itself. */
         where: z.enum(["browser", "computer"]).default("browser"),
@@ -403,6 +404,13 @@ export const startJarvisTask = createServerFn({ method: "POST" })
         outcome: data.checks,
         browser_mode: real ? "real" : "isolated",
         controller: data.controller,
+        checkpoint: {
+          step: 0,
+          lastAction: "Started",
+          lastUrl: null,
+          at: new Date().toISOString(),
+          intelligenceQuality: data.quality,
+        },
       })
       .select(TASK_COLUMNS)
       .single();
@@ -474,6 +482,7 @@ export const updateJarvisTask = createServerFn({ method: "POST" })
         owner: uuid.optional(),
         checkpoint: z
           .object({
+            intelligenceQuality: z.enum(["standard", "high"]).optional(),
             step: z.number().int().min(0).max(12),
             lastAction: z.string().max(300),
             lastUrl: z.string().max(2000).nullable(),

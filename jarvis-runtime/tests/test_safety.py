@@ -731,6 +731,7 @@ class ReplyShapeTest(unittest.TestCase):
                 pass
         server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Html)
         threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
         self.addCleanup(server.shutdown)
         identity = Identity(Path(tempfile.mkdtemp()))
         identity.meta = {"server": f"http://127.0.0.1:{server.server_address[1]}", "deviceId": "d1",

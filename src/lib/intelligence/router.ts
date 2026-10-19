@@ -168,6 +168,15 @@ export function createOcadeIntelligence(options: IntelligenceRouterOptions): Oca
         return;
       }
 
+      if (request.quality === "high" && request.mode !== "online") {
+        yield {
+          type: "refusal",
+          code: "high_unavailable",
+          reason: "High mode requires an explicit Online selection.",
+          retryable: false,
+        };
+        return;
+      }
       const onlineEligible =
         request.permit.source === "server" &&
         request.privacy.onlineInferenceConsented &&

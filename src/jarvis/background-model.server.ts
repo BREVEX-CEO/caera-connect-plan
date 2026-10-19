@@ -1,3 +1,4 @@
+import { HIGH_WARNING_VERSION } from "@/lib/intelligence/quality";
 /**
  * One billed JARVIS model step, asked by OCADE's own server for a person who
  * is not there (see `background.server.ts`). The same gate as a browser: a
@@ -22,6 +23,7 @@ const STEP_TIMEOUT_MS = 120_000;
 const BUSY = ["provider_rate_limited", "online_unavailable", "empty_response", "provider_failed"];
 
 export const serverModel: BackgroundDeps["model"] = async ({
+  quality = "standard",
   userId,
   conversationId,
   taskId,
@@ -85,6 +87,8 @@ export const serverModel: BackgroundDeps["model"] = async ({
       idempotencyKey: request,
       surface: "jarvis",
       mode: "online",
+      quality,
+      ...(quality === "high" ? { highModeAcknowledged: HIGH_WARNING_VERSION } : {}),
       messages,
       // Nothing is saved to memory, and nothing is scheduled, while the person is away.
       tools: jarvisTools(false, false),

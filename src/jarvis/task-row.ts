@@ -16,6 +16,7 @@ export interface JarvisTaskRow {
   result: string | null;
   browser_mode: "isolated" | "real";
   checkpoint: {
+    intelligenceQuality?: "standard" | "high";
     step: number;
     lastAction: string;
     lastUrl: string | null;

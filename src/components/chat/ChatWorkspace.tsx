@@ -1,3 +1,5 @@
+import { QualityControl } from "@/lib/intelligence/QualityControl";
+import { useIntelligenceQuality } from "@/lib/intelligence/use-intelligence-quality";
 /**
  * THE PRODUCT HOME.
  *
@@ -92,6 +94,7 @@ export function ChatWorkspace() {
   }, []);
   const [choice, setChoice] = useState<IntelligenceChoice>("auto");
   const online = useOnline();
+  const { quality, selectQuality } = useIntelligenceQuality(`${user?.id ?? ""}:${choice}`);
   const [thinking, setThinking] = useState(false);
   /*
    * OFFERED ONLY WHERE IT CAN BE KEPT.
@@ -108,7 +111,7 @@ export function ChatWorkspace() {
    * where a request can actually reach it: not on manual Offline, which sends
    * no provider traffic at all, and not without a network.
    */
-  const canResearch = choice !== "offline" && online;
+  const canResearch = choice !== "offline" && online && quality !== "high";
   const textarea = useRef<HTMLTextAreaElement>(null);
   const picker = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<PendingAttachment[]>([]);
@@ -336,7 +339,17 @@ export function ChatWorkspace() {
      * the person watched a toast fade and had nothing left to press Send on.
      * Nothing was sent, written or charged, so the work is still theirs.
      */
-    if (await chat.send(message, choice, carried, canThink && thinking, canResearch && research))
+    if (
+      await chat.send(
+        message,
+        choice,
+        carried,
+        canThink && thinking,
+        canResearch && research,
+        undefined,
+        quality,
+      )
+    )
       return;
     setDraft((current) => (current.length > 0 ? current : message));
     setPending((current) => (current.length > 0 ? current : held));
@@ -404,7 +417,7 @@ export function ChatWorkspace() {
             failed={chat.messagesFailed}
             onRetryLoad={() => void chat.reloadMessages()}
             busy={chat.busy}
-            onResend={(id, text) => void chat.resend(id, choice, text)}
+            onResend={(id, text) => void chat.resend(id, choice, text, quality)}
             onRemove={(id) => void chat.removeMessage(id)}
           />
         )}
@@ -551,6 +564,15 @@ export function ChatWorkspace() {
                       );
                     })}
                   </div>
+
+                  {choice === "online" ? (
+                    <QualityControl
+                      key={`${user?.id}:${chat.conversationId}`}
+                      value={quality}
+                      onChange={selectQuality}
+                      disabled={chat.busy}
+                    />
+                  ) : null}
 
                   {/* Each option that is on shows as a chip; its x turns it off. */}
                   {[
@@ -724,7 +746,7 @@ export function ChatWorkspace() {
                   <button
                     type="button"
                     disabled={chat.busy}
-                    onClick={() => void chat.resend(lastQuestionId, choice)}
+                    onClick={() => void chat.resend(lastQuestionId, choice, undefined, quality)}
                     className="text-foreground underline underline-offset-2 disabled:opacity-40"
                   >
                     Try again
