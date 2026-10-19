@@ -1,6 +1,6 @@
 # OCADE product and interface requirements
 
-This is the product authority: customers, boundaries, journeys, pages and options. [PLAN](../PLAN.md) alone orders implementation. [Design](JARVIS_DESIGN_SYSTEM.md), [architecture](ARCHITECTURE.md), [security](SUPPORT_LEGAL_SECURITY.md) and [testing](TESTING.md) own their respective contracts. Requirements below are targets, not claims they have shipped. Inspected source baseline: `f521e23529542d709a9627181341b0e904a8b0c3`.
+This is the product authority: customers, boundaries, journeys, pages and options. [Open work](../BLOCKED_TESTS.md) orders unresolved implementation and verification under the current owner scope. [Design](JARVIS_DESIGN_SYSTEM.md), [architecture](ARCHITECTURE.md), [security](SUPPORT_LEGAL_SECURITY.md) and [testing](TESTING.md) own their respective contracts. Requirements below are targets, not claims they have shipped. Inspected source baseline: `f521e23529542d709a9627181341b0e904a8b0c3`.
 
 ## Product decision
 
@@ -186,4 +186,4 @@ The owner's commercial ambition is a **scale target, not a credible launch-time 
 
 **Customer-success loop:** Measure what the user actually achieved: first-task verified success, error correction, seconds-to-first-value, stage abandonments, voluntarily repeated task in 7/30 days, perceived trust, refund/support frequency, spend per verified result, conversion only after value, and churn reasons. Observe five consented partners over the already approved first two-week discovery window; do not confuse that with a statistical reliability certification. Trust repair must safely preserve/repair work and honour older disclosure/refund/support rules. Privacy isolation, staff authorisation, safe STOP and true billing remain non-negotiable.
 
-**Source of owner-choice truth:** Exact B01–B50 multi-select answers reside only in [DECISIONS](DECISIONS.md). Implementation package ownership stays in [PLAN](../PLAN.md) P15/P18/P19/P20/P21; rendered visual specifications belong to [Design](JARVIS_DESIGN_SYSTEM.md), tests to [Testing](TESTING.md), and permissions/payments to [Security](SUPPORT_LEGAL_SECURITY.md). None of these designs is marked shipped by this documentation change.
+**Source of owner-choice truth:** Exact B01–B50 multi-select answers reside only in [DECISIONS](DECISIONS.md). Implementation status stays in [open work](../BLOCKED_TESTS.md), retaining historical P15/P18/P19/P20/P21 identifiers; rendered visual specifications belong to [Design](JARVIS_DESIGN_SYSTEM.md), tests to [Testing](TESTING.md), and permissions/payments to [Security](SUPPORT_LEGAL_SECURITY.md). None of these designs is marked shipped by this documentation change.

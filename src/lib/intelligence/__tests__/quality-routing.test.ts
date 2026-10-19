@@ -93,6 +93,39 @@ describe("Standard is the default; High requires explicit opt-in", () => {
     expect(call).toHaveBeenCalledTimes(1);
     expect(call.mock.calls[0]![0].model).toBe("@cf/google/gemma-4-26b-a4b-it");
   });
+  it.each([undefined, "length", "content_filter"])(
+    "does not settle or release executable High text from an incomplete turn (%s)",
+    async (finishReason) => {
+      const finalize = vi.fn(async () => undefined);
+      const release = vi.fn(async () => undefined);
+      const upstream = {
+        choices: [
+          {
+            index: 0,
+            delta: { content: 'Called start_task {"title":"Report"}' },
+            ...(finishReason ? { finish_reason: finishReason } : {}),
+          },
+        ],
+      };
+      const response = await handleOnlineIntelligence(
+        request({ quality: "high", highModeAcknowledged: "2026-10-19-v1" }),
+        dependencies({
+          highAvailable: async () => true,
+          callProvider: vi.fn(
+            async () => new Response(`data: ${JSON.stringify(upstream)}\n\ndata: [DONE]\n\n`),
+          ),
+          finalizePermit: finalize,
+          releasePermit: release,
+        }),
+      );
+      const stream = await response.text();
+      expect(stream).toContain('"type":"refusal"');
+      expect(stream).not.toContain('"type":"final"');
+      expect(stream).not.toContain('"type":"tool_call"');
+      expect(finalize).not.toHaveBeenCalled();
+      expect(release).toHaveBeenCalledTimes(1);
+    },
+  );
   it("releases the permit if billing eligibility changes after admission", async () => {
     const release = vi.fn(async () => {});
     const call = vi.fn<OnlineHandlerDependencies["callProvider"]>(

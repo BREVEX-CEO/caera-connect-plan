@@ -1,6 +1,6 @@
 # OCADE global AI competition and master redesign
 
-Research baseline: **8–9 October 2026**, with dated 10 October deltas below. Final PR #74 documentation consistency review: **10 October 2026**. Source baseline: `f521e23529542d709a9627181341b0e904a8b0c3`, BREVEX-CEO/caera-connect-plan. This is dated analysis and evidence, not a competing implementation authority. [PLAN](PLAN.md) is the sole work queue. Application source, migrations, dependencies, infrastructure and deployed applications were not changed by this mission.
+Research baseline: **8–9 October 2026**, with dated 10 October deltas below. Final PR #74 documentation consistency review: **10 October 2026**. Source baseline: `f521e23529542d709a9627181341b0e904a8b0c3`, BREVEX-CEO/caera-connect-plan. This is dated analysis and evidence, not a competing implementation authority. [Archived plan](https://github.com/BREVEX-CEO/caera-connect-plan/blob/babd3318/PLAN.md) is the sole work queue. Application source, migrations, dependencies, infrastructure and deployed applications were not changed by this mission.
 
 ## Executive verdict
 

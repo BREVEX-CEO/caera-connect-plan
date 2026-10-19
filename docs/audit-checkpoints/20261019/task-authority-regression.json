@@ -1,0 +1,301 @@
+{
+  "date": "2026-10-19",
+  "base_sha": "4ba70185ce1e19f41370639a085d1001898dfccc",
+  "classification": "ISOLATED_CLOUD_LOGIC_REGRESSION; actual compiled source with synthetic dependencies, not PostgreSQL, hosted Edge, real provider, browser, native or customer-workflow qualification",
+  "suites": [
+    {
+      "name": "task-authority",
+      "source": "src/jarvis/task-authority.server.ts",
+      "script_hashes": {
+        "baseline": "648f5b84491e079a4779a8c540af2e5586b2f74e69d81e298300142e47edaf00",
+        "patched": "033a5c8dba600c280a19b516d7de1f388d2054e6ba12b191637ca94ccd8984e2"
+      },
+      "baseline": {
+        "environment": "Remote Cloudflare MCP JavaScript sandbox; actual compiled task authority, synthetic PostgREST rows/query adapter and notification sink; NOT PostgreSQL or hosted-RLS evidence",
+        "cases": 14,
+        "passed": 3,
+        "failed": 11,
+        "results": [
+          {
+            "name": "comparison reference text is not target content",
+            "pass": false,
+            "result": null
+          },
+          {
+            "name": "file metadata cannot satisfy done",
+            "pass": false,
+            "result": null
+          },
+          {
+            "name": "file metadata cannot satisfy 123",
+            "pass": false,
+            "result": null
+          },
+          {
+            "name": "inactive browser tab is not page content",
+            "pass": false,
+            "result": null
+          },
+          {
+            "name": "latest contradictory file read wins",
+            "pass": false,
+            "result": null
+          },
+          {
+            "name": "latest contradictory page read wins",
+            "pass": false,
+            "result": null
+          },
+          {
+            "name": "real file content still satisfies",
+            "pass": true,
+            "result": null
+          },
+          {
+            "name": "real workbook value still satisfies",
+            "pass": true,
+            "result": null
+          },
+          {
+            "name": "active page semantic text still satisfies",
+            "pass": true,
+            "result": null
+          },
+          {
+            "name": "STOP interposed after verification blocks stale application completion",
+            "pass": false,
+            "returned": {
+              "id": "t",
+              "conversation_id": "c",
+              "title": "Fixture",
+              "status": "completed",
+              "updates": 1,
+              "verified_actions": 1
+            },
+            "status": "completed",
+            "updates": 1
+          },
+          {
+            "name": "elapsed milliseconds cannot substantiate a final numeric claim",
+            "pass": false
+          },
+          {
+            "name": "invalidate stale numeric reads after run",
+            "pass": false
+          },
+          {
+            "name": "invalidate stale numeric reads after file_trash",
+            "pass": false
+          },
+          {
+            "name": "stale waiting resume cannot overwrite STOP",
+            "pass": false,
+            "returned": {
+              "id": "t",
+              "conversation_id": "c",
+              "title": "Fixture",
+              "status": "running",
+              "updates": 1,
+              "controller": "fixture"
+            },
+            "status": "running"
+          }
+        ]
+      },
+      "patched": {
+        "environment": "Remote Cloudflare MCP JavaScript sandbox; actual compiled task authority, synthetic PostgREST rows/query adapter and notification sink; NOT PostgreSQL or hosted-RLS evidence",
+        "cases": 14,
+        "passed": 14,
+        "failed": 0,
+        "results": [
+          {
+            "name": "comparison reference text is not target content",
+            "pass": true,
+            "result": "final.txt was changed but its content was never read back. Read it (file_read, file_extract or sheet_inspect), then finish."
+          },
+          {
+            "name": "file metadata cannot satisfy done",
+            "pass": true,
+            "result": "\"done\" is not in a.txt as the device read it after its last change. Fix it, or finish as failed and say what differs."
+          },
+          {
+            "name": "file metadata cannot satisfy 123",
+            "pass": true,
+            "result": "\"123\" is not in a.txt as the device read it after its last change. Fix it, or finish as failed and say what differs."
+          },
+          {
+            "name": "inactive browser tab is not page content",
+            "pass": true,
+            "result": "\"Order approved\" is not in the screen or page as the device read it after its last change. Fix it, or finish as failed and say what differs."
+          },
+          {
+            "name": "latest contradictory file read wins",
+            "pass": true,
+            "result": "\"approved\" is not in a.txt as the device read it after its last change. Fix it, or finish as failed and say what differs."
+          },
+          {
+            "name": "latest contradictory page read wins",
+            "pass": true,
+            "result": "\"approved\" is not in the screen or page as the device read it after its last change. Fix it, or finish as failed and say what differs."
+          },
+          {
+            "name": "real file content still satisfies",
+            "pass": true,
+            "result": null
+          },
+          {
+            "name": "real workbook value still satisfies",
+            "pass": true,
+            "result": null
+          },
+          {
+            "name": "active page semantic text still satisfies",
+            "pass": true,
+            "result": null
+          },
+          {
+            "name": "STOP interposed after verification blocks stale application completion",
+            "pass": true,
+            "returned": null,
+            "status": "stopped",
+            "updates": 0
+          },
+          {
+            "name": "elapsed milliseconds cannot substantiate a final numeric claim",
+            "pass": true,
+            "error": "Error: Not verified: 123 is not in anything this task read. Say only what the device read, or read it first, then finish."
+          },
+          {
+            "name": "invalidate stale numeric reads after run",
+            "pass": true,
+            "error": "Error: Not verified: 123 is not in anything this task read. Say only what the device read, or read it first, then finish."
+          },
+          {
+            "name": "invalidate stale numeric reads after file_trash",
+            "pass": true,
+            "error": "Error: Not verified: 123 is not in anything this task read. Say only what the device read, or read it first, then finish."
+          },
+          {
+            "name": "stale waiting resume cannot overwrite STOP",
+            "pass": true,
+            "returned": null,
+            "status": "stopped"
+          }
+        ]
+      }
+    },
+    {
+      "name": "waiting-task-resume",
+      "source": "src/jarvis/agent.ts",
+      "script_hashes": {
+        "baseline": "00dfae73cdc2b532284bad84b16557c76e3c84a0f58d355da871543a15d35031",
+        "patched": "48eb937951b0c8d81bb40c411f96a15b5aa4fec303c981e8aca3f10c31598878"
+      },
+      "baseline": {
+        "environment": "Remote Cloudflare MCP JavaScript sandbox; actual compiled planning loop with synthetic model/task dependencies, not native/provider/database evidence",
+        "cases": 2,
+        "passed": 0,
+        "failed": 2,
+        "results": [
+          {
+            "name": "waiting task can finish without an extra device action",
+            "pass": false,
+            "status": "waiting",
+            "queued": 0,
+            "changes": [
+              {
+                "id": "t",
+                "status": "completed",
+                "result": "Checked",
+                "currentStep": 0,
+                "checkpoint": {
+                  "intelligenceQuality": "standard",
+                  "step": 0,
+                  "lastAction": "Finished",
+                  "lastUrl": null,
+                  "at": "2026-10-19T10:55:30.315Z"
+                }
+              }
+            ],
+            "error": "Error: Another device took control of this task."
+          },
+          {
+            "name": "stale resume preserves STOP",
+            "pass": false,
+            "status": "stopped",
+            "queued": 0,
+            "changes": [
+              {
+                "id": "t",
+                "status": "completed",
+                "result": "Checked",
+                "currentStep": 0,
+                "checkpoint": {
+                  "intelligenceQuality": "standard",
+                  "step": 0,
+                  "lastAction": "Finished",
+                  "lastUrl": null,
+                  "at": "2026-10-19T10:55:30.315Z"
+                }
+              }
+            ],
+            "error": "Error: Another device took control of this task."
+          }
+        ]
+      },
+      "patched": {
+        "environment": "Remote Cloudflare MCP JavaScript sandbox; actual compiled planning loop with synthetic model/task dependencies, not native/provider/database evidence",
+        "cases": 2,
+        "passed": 2,
+        "failed": 0,
+        "results": [
+          {
+            "name": "waiting task can finish without an extra device action",
+            "pass": true,
+            "status": "completed",
+            "queued": 0,
+            "changes": [
+              {
+                "id": "t",
+                "controller": "d98caf06-ef7e-4f4d-bf50-8e840260f8a7",
+                "expectedStatus": "waiting",
+                "status": "running",
+                "blocker": null
+              },
+              {
+                "id": "t",
+                "status": "completed",
+                "result": "Checked",
+                "currentStep": 0,
+                "checkpoint": {
+                  "intelligenceQuality": "standard",
+                  "step": 0,
+                  "lastAction": "Finished",
+                  "lastUrl": null,
+                  "at": "2026-10-19T10:55:30.726Z"
+                },
+                "owner": "d98caf06-ef7e-4f4d-bf50-8e840260f8a7"
+              }
+            ]
+          },
+          {
+            "name": "stale resume preserves STOP",
+            "pass": true,
+            "status": "stopped",
+            "queued": 0,
+            "changes": [
+              {
+                "id": "t",
+                "controller": "66312fbf-6281-4209-850d-8034cd9811ff",
+                "expectedStatus": "waiting",
+                "status": "running",
+                "blocker": null
+              }
+            ],
+            "error": "Error: Another device took control of this task."
+          }
+        ]
+      }
+    }
+  ]
+}

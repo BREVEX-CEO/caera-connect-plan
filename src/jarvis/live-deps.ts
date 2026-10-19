@@ -157,6 +157,7 @@ async function researchOnce(
   const billed = await beginBilledRequest({ surface: "jarvis", taskId });
   if (!billed) return { error: "Research is not available right now." };
   let text = "";
+  let complete = false;
   let refusal: { reason: string; code: string; retryable: boolean; retryAfterMs?: number } | null =
     null;
   try {
@@ -176,14 +177,18 @@ async function researchOnce(
     })) {
       if (event.type === "token") text += event.text;
       else if (event.type === "refusal") refusal = event;
-      else if (event.type === "final") text = event.response.text || text;
+      else if (event.type === "final") {
+        complete = true;
+        text = event.response.text || text;
+      }
     }
-    billed.recordDelivery({ answer: text });
+    if (complete && text.trim() && !refusal) billed.recordDelivery({ answer: text });
   } finally {
     await billed.settle();
   }
-  if (!text && refusal) {
-    if (refusal.retryable) throw new Unavailable(refusal.retryAfterMs);
+  // Partial research is neither a delivered answer nor evidence for task completion.
+  if (!complete || !text.trim() || refusal) {
+    if (!refusal || refusal.retryable) throw new Unavailable(refusal?.retryAfterMs);
     if (refusal.code === "research_unavailable") {
       webSearch = false; // not on this plan: not offered again in this tab
       return {
@@ -253,9 +258,11 @@ async function askOnce(
         if (toolCalls.length === 0) toolCalls.push(...event.response.toolCalls);
       }
     }
-    billed.recordDelivery({
-      answer: text || (toolCalls.length ? JSON.stringify(toolCalls) : ""),
-    });
+    if (complete) {
+      billed.recordDelivery({
+        answer: text || (toolCalls.length ? JSON.stringify(toolCalls) : ""),
+      });
+    }
   } finally {
     await billed.settle();
   }

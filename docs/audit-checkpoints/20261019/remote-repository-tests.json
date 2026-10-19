@@ -1,0 +1,754 @@
+{
+  "date": "2026-10-19",
+  "base_sha": "4ba70185ce1e19f41370639a085d1001898dfccc",
+  "bundle_sha256": "2dbbd77d1dc40426d04ad73563049748ff6ea7eee2a77d1a4c33d75403619eff",
+  "bundle_bytes": 391914,
+  "runner_limitations": [
+    "This is an adapted discovery/execution collector, not Vitest's Node runner.",
+    "Only the eight listed compatible files were bundled; database, fake-timer, FS/process/browser and mock-transform suites are excluded, not passed.",
+    "The collector self-checks a deliberately failing assertion and rejects zero discovered cases.",
+    "Sandbox performance timing is zero-resolution here and does not establish task latency.",
+    "Cases overlap the scoped regression scenarios; do not sum these counts as unique workflow attempts."
+  ],
+  "test_files": [
+    "src/lib/intelligence/__tests__/workers-ai.test.ts",
+    "src/lib/intelligence/__tests__/quality-routing.test.ts",
+    "src/jarvis/__tests__/graph.test.ts",
+    "src/jarvis/__tests__/schedule-time.test.ts",
+    "src/jarvis/__tests__/agent.test.ts",
+    "src/jarvis/__tests__/jarvis-rules.test.ts",
+    "src/lib/intelligence/__tests__/router.test.ts",
+    "src/lib/intelligence/__tests__/sse-data.test.ts"
+  ],
+  "environment": "Cloudflare remote JavaScript sandbox; unchanged repository test bodies, actual @vitest/expect and @vitest/spy 4.1.11; adapted test collector, not the Vitest Node runner; no provider/cloud API calls",
+  "cases": 143,
+  "passed": 143,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Workers AI protocol, independently shaped OpenAI fixtures / carries a JARVIS screenshot after a tool result as a new user observation",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Workers AI protocol, independently shaped OpenAI fixtures / keeps native history, image input and tools while discarding Google signatures and private thoughts",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Workers AI protocol, independently shaped OpenAI fixtures / joins fragmented arguments only after a terminal and maps usage, without emitting reasoning",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Workers AI protocol, independently shaped OpenAI fixtures / withholds calls when finished with %s [0]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Workers AI protocol, independently shaped OpenAI fixtures / withholds calls when finished with %s [1]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Workers AI protocol, independently shaped OpenAI fixtures / rejects incomplete or malformed actions without releasing a function call: %j [0]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Workers AI protocol, independently shaped OpenAI fixtures / rejects incomplete or malformed actions without releasing a function call: %j [1]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Workers AI protocol, independently shaped OpenAI fixtures / rejects incomplete or malformed actions without releasing a function call: %j [2]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Workers AI protocol, independently shaped OpenAI fixtures / rejects incomplete or malformed actions without releasing a function call: %j [3]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Workers AI protocol, independently shaped OpenAI fixtures / rejects incomplete or malformed actions without releasing a function call: %j [4]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Workers AI protocol, independently shaped OpenAI fixtures / rejects incomplete or malformed actions without releasing a function call: %j [5]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Workers AI protocol, independently shaped OpenAI fixtures / rejects incomplete or malformed actions without releasing a function call: %j [6]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Workers AI protocol, independently shaped OpenAI fixtures / cancels a stalled provider when the caller stops",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "included-only eligibility: synthetic billing records, live account unqualified / accepts only an unambiguous provisioned zero-priced account subscription",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "included-only eligibility: synthetic billing records, live account unqualified / fails closed for %j [0]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "included-only eligibility: synthetic billing records, live account unqualified / fails closed for %j [1]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "included-only eligibility: synthetic billing records, live account unqualified / fails closed for %j [2]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "included-only eligibility: synthetic billing records, live account unqualified / fails closed for %j [3]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "included-only eligibility: synthetic billing records, live account unqualified / fails closed for %j [4]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "included-only eligibility: synthetic billing records, live account unqualified / fails closed for %j [5]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "included-only eligibility: synthetic billing records, live account unqualified / fails closed for %j [6]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "included-only eligibility: synthetic billing records, live account unqualified / fails closed for %j [7]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "included-only eligibility: synthetic billing records, live account unqualified / fails closed for %j [8]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "included-only eligibility: synthetic billing records, live account unqualified / fails closed for %j [9]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "included-only eligibility: synthetic billing records, live account unqualified / performs no inference and refuses unreadable billing",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "included-only eligibility: synthetic billing records, live account unqualified / does not make a request with invalid configuration",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Standard is the default; High requires explicit opt-in / uses all three configured Google slots for credential-local failures",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Standard is the default; High requires explicit opt-in / routes acknowledged High independently of Google readiness, with no credential or model fallback",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Standard is the default; High requires explicit opt-in / never rotates Google keys or switches to Standard when High is exhausted",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Standard is the default; High requires explicit opt-in / does not settle or release executable High text from an incomplete turn (%s) [0]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Standard is the default; High requires explicit opt-in / does not settle or release executable High text from an incomplete turn (%s) [1]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Standard is the default; High requires explicit opt-in / does not settle or release executable High text from an incomplete turn (%s) [2]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Standard is the default; High requires explicit opt-in / releases the permit if billing eligibility changes after admission",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Standard is the default; High requires explicit opt-in / defaults to Gemini with its qualified thinking setting",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Standard is the default; High requires explicit opt-in / never changes model when Standard is overloaded",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Standard is the default; High requires explicit opt-in / refuses unavailable High before claiming a use or calling a provider",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Standard is the default; High requires explicit opt-in / requires current High acknowledgement and a valid level: %j [0]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Standard is the default; High requires explicit opt-in / requires current High acknowledgement and a valid level: %j [1]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Standard is the default; High requires explicit opt-in / requires current High acknowledgement and a valid level: %j [2]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the orb graph / starts as a single core for a new account",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the orb graph / grows only from real records, with threads between related ones",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the orb graph / never puts private content in a node",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the orb graph / draws at most 60 nodes in all and says how many more are in the lists (C26)",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the orb graph / draws the same shape for the same data",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "when a schedule runs next / keeps the same wall-clock time across a clock change",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "when a schedule runs next / skips weekends for weekdays, and a week for weekly",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "when a schedule runs next / skips runs missed while OCADE was unreachable, never replaying them",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "when a schedule runs next / a one-off has no next run, and an unknown zone is read as UTC",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / resumes with the saved High choice even when this tab selected Standard",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / keeps High off the separate Google research path, including forged calls",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / a reply to a task waiting for the person resumes it when JARVIS acts",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / claims a waiting task before a direct finish that needs no new device action",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / hands an unverified completed back to the model, which must check or fail honestly",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / keeps only the newest observation in the history; older ones become an id (P16)",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / runs a tool call the model wrote as text, through the same checks, and never shows it",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / refuses the same step a fourth time in a task, but not a scroll (live Gemini loop, 13 Oct)",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / researches on the server inside a task, and treats what it found as web data",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / keeps the model's own notes beside its calls when the page it read is replaced",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / tells a model that starts its task twice to continue it, not to stop it (live Gemini, 13 Oct)",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / stops the task the computer is busy with only after start_task found it, then starts",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / answers an ordinary question without starting a task",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / runs a task: plan, act, observe, finish",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / fixes the checks at start, binds the starting turn and every later turn to the task (Phase 01)",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / reads a model's empty optional check fields as absent, and refuses a check that cannot be judged",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / waits for a step's change event rather than a fixed poll (PLAN.md section E)",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / records a durable checkpoint after each action",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / stops without touching the task when another device takes control",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / claims an existing task for this loop before queueing on it",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / never runs a sensitive step the person declined",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / hands a CAPTCHA to the person and resumes from a fresh observation",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / gives an open task one reminder, then waits for the person (JARVIS-018)",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / turns an abort thrown from the answer stream into a Stop (JARVIS-011)",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / passes memories as quoted data, never inside the system policy (JARVIS-056)",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / stops when the person stops after taking over",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / refuses tools that do not exist and actions that do not parse",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / stops and asks after three calls in a row that are invalid or refused",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / never writes page content into memory",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / schedules only what the person asked, never what a page said, in their own time zone",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / is told the person's devices as OCADE sees them, and that it runs in OCADE",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / stops at once when the person presses Stop",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / stops quietly when usage is refused before any model call",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a JARVIS turn / blocks a plan that never converges instead of spinning",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the task's computer / tells the planner its system and that commands are unavailable there (JARVIS-019)",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the task's computer / starts work on the computer the person chose (JARVIS-043)",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the task's computer / finishing writes a checkpoint that agrees with progress (JARVIS-020)",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "work with no computer online (JARVIS-012) / tells the screen so it can offer Connect and Try again",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "no JARVIS use available mid-task / parks the open task as waiting instead of leaving it running unattended",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a sequence: several known actions, one model step / runs every action in order without asking the model between them",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a sequence: several known actions, one model step / stops at the first action that does not succeed and runs nothing after it",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a sequence: several known actions, one model step / acts on what the previous step left only for the same element, never on coordinates",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a sequence: several known actions, one model step / refuses a later step when its element changed since the model saw it",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "STOP between the calls of one reply / runs no later call and writes nothing after STOP",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "STOP between the calls of one reply / a decision nobody will make ends with the turn when it is stopped or left",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "web search in the rules / is described only while it is offered",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a task paused by a busy model / keeps signed text parts through foreground tools and a no-call reminder",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a task paused by a busy model / hands back its own work after each step, so the continuation reads nothing again",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the action contract / accepts semantic actions and refuses anything else",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the action contract / lists the work folder when the model names no path (live Gemini, 18 Oct)",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the action contract / tells the model the sheet ops' fields it guessed wrong (live Gemini, 18 Oct)",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the action contract / reads hosts only from web addresses",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the action contract / describes actions without echoing what the model typed",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the action contract / offers no tool that changes permissions, and memory only when enabled",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "permissions / has safe defaults",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "permissions / lets a device decision override the account default for that device only",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "permissions / refuses everything when the master switch is off",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "permissions / refuses the real browser unless allowed",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "permissions / honours a turned-off site and its subdomains",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "computer actions / need their own permission and a device that offers them",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "computer actions / use the app rules (Devices, Apps and websites) as Always, Ask or Never",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "computer actions / run a task's own builds, tests and git reads at once, and ask before anything else",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "computer actions / only accept a screen click tied to a screen observation",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the wake phrase / passes everything through when the wake phrase is off",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the wake phrase / sends only what follows Hey OCADE when it is on",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the wake phrase / wakes for OCADE on its own too, and not for words that only sound close",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "the wake phrase / treats a bare Stop, Pause, Continue or Cancel as a control, never a message",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "private networks / recognises loopback, private and local names",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "private networks / refuses a private address until the person allows it",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "screen input carries the observation it was planned against / keeps observationId on typing, keys and scrolling, and refuses them without it",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "spreadsheet and file actions / accepts structured workbook edits and refuses formulas that leave the workbook",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "spreadsheet and file actions / file moves need both ends and count as file work",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "files through the browser / needs both the browser and the work folder",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "settings, status and undo / are typed, need the right permission and never wait for a confirmation",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "windows and richer screen input / switching needs mouse and keyboard control, closing waits for the person",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "app controls through accessibility / reading an app is seeing the screen, using a control is computer control",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "Word documents / accepts structured edits and refuses unknown styles or ragged tables",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "which computer does the work / works on a phone only when the person chose it, or when it is the only device",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "which computer does the work / works where the person is, unless they name their computer",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "which computer does the work / asks when several computers could do it, and never guesses",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "which computer does the work / uses the one computer allowed to use the person's own browser",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "which computer does the work / says plainly when the chosen computer is offline or none is connected",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "app names (audit C07) / accepts an app named in any script and refuses control or direction characters",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "a phone without app control (P13) / is told how to turn it on, where a computer is only told it is unavailable",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "OcadeIntelligence / refuses High in %s without probing or falling back [0]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "OcadeIntelligence / refuses High in %s without probing or falling back [1]",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "OcadeIntelligence / rejects a mismatched permit before probing either backend",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "OcadeIntelligence / makes Local only a zero-online-call path",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "OcadeIntelligence / uses Online only when consent and a server permit are present",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "OcadeIntelligence / falls back automatically with the same permit after a pre-output provider failure",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "OcadeIntelligence / never duplicates partial online output by falling back",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "OcadeIntelligence / does not turn an explicit Online failure into a Local request",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "OcadeIntelligence / propagates cancellation to the active transport",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "one SSE reader for the browser client and the boundary / reads the same payloads however the bytes are split",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "name": "one SSE reader for the browser client and the boundary / refuses a stream cut off mid-event, and stops when aborted",
+      "pass": true,
+      "ms": 0
+    }
+  ],
+  "source_sha256": {
+    "src/lib/intelligence/__tests__/workers-ai.test.ts": "70e6adf6343b59755545c2dabe30fc7573caa3c0321bc3ab6cbfe15a52d5122a",
+    "src/lib/intelligence/__tests__/quality-routing.test.ts": "40828f7434195e3265fd579dff5db48282e328e2a6c6130fa1fd9524488eec7f",
+    "src/jarvis/__tests__/graph.test.ts": "3db4f1cba872748a3a68269f23fe4036189beaad279aaafcc9e93ac6cc4de7dd",
+    "src/jarvis/__tests__/schedule-time.test.ts": "5bd76ad6914c3d61086efa4c7eb119c920562f81459b6e3ed56a283a8cdbe5da",
+    "src/jarvis/__tests__/agent.test.ts": "41ccec4a85e84d5460ac7777283391c3aaddb9bbcab6ecf657ce3db04549b451",
+    "src/jarvis/__tests__/jarvis-rules.test.ts": "44b15bbffe0ea6d4695614a18c96dde29450a107f677924e4f04a5e0cdf97535",
+    "src/lib/intelligence/__tests__/router.test.ts": "5883befe66d4b2fe6024f4b1bab581894b6ee880188232993588f769a0935442",
+    "src/lib/intelligence/__tests__/sse-data.test.ts": "dff03af6961d1e2940befc869705270c66c1204e0a1dd17648f4d6a3fb7d0f02"
+  }
+}

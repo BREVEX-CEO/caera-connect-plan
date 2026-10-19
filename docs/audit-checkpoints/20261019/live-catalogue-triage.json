@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-19",
+  "project": "sazhgaisyhkdbrooycdv",
+  "routines": 67,
+  "publicAnonymous": [],
+  "publicAuthenticated": 36,
+  "unscoped": [],
+  "limitations": "Read-only production catalogue, heuristic caller-reference triage only; does not prove target/payload authorization or hosted customer isolation."
+}

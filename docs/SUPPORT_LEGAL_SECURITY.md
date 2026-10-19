@@ -1,6 +1,6 @@
 # OCADE security, privacy, support and commerce contracts
 
-This document owns security, privacy, privileged operations, support access and commercial integrity. [PLAN.md](../PLAN.md) owns implementation order; [ARCHITECTURE.md](ARCHITECTURE.md) owns execution design; [TESTING.md](TESTING.md) owns proof and release procedures. These are requirements, not claims that every requirement is implemented.
+This document owns security, privacy, privileged operations, support access and commercial integrity. [Open work](../BLOCKED_TESTS.md) owns unresolved implementation and verification; [ARCHITECTURE.md](ARCHITECTURE.md) owns execution design; [TESTING.md](TESTING.md) owns proof and release procedures. These are requirements, not claims that every requirement is implemented.
 
 The documentation mission changes no application source, schema, infrastructure, customer data, credentials or deployments. Source findings below were inspected against `f521e23529542d709a9627181341b0e904a8b0c3`; deployed enforcement requires separate evidence. Reproduce on the implementation baseline before fixing. Historical reports of failed TOTP enrolment are reproduction leads, not proof of a current failure.
 

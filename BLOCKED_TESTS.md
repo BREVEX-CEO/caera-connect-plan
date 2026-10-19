@@ -1,6 +1,6 @@
 # Blocked, failed and untested checks
 
-Every check that has not passed lives here, in every testing environment: the owner's PC (held until the owner approves PC testing again), native Windows/macOS/Android/iOS, real providers, the release path and the cloud session's own limits. [PLAN.md](PLAN.md) is the roadmap only; its phase records point here. A phase with any open entry is **PARTIAL**, and every PARTIAL phase is revisited before a production release.
+Every check that has not passed lives here, in every testing environment: the owner's PC (held until the owner approves PC testing again), native Windows/macOS/Android/iOS, real providers, the release path and the cloud session's own limits. This is the single queue for unresolved implementation and verification. [Decisions](docs/DECISIONS.md) owns requirements; the deleted plan is retained there as historical evidence. A phase with any open entry is **PARTIAL**, and every PARTIAL phase is revisited before a production release.
 
 Status words: **BLOCKED** (cannot run in any available environment), **FAIL** (ran and failed; a fix is owed), **UNTESTED** (could run but has not yet), **OPEN** (implementation owed before the test can pass).
 
@@ -13,75 +13,100 @@ Common safety rules for every PC entry:
 - Use disposable test folders only; never a personal file, account or open document.
 - Before the run, list the open windows. Stop at once if any app the test uses is already open.
 
+## Current continuation — 19 October 2026
+
+- **Source:** clean checkout resumed at `889f9e30a74cc07a3314574ce67681b9c0a16d97`, then fast-forwarded to `4ba70185ce1e19f41370639a085d1001898dfccc` on `ocade/p00-p22-implementation`. Fetched main is `e53725a25a48508b990135b93c0a6bfa555bb87e`. The baseline branch/main comparison has 349 changed paths. Current implementation changes are uncommitted; do not reset them or call the remote branch fixed. No main merge, deployment, production data/secret change or PC product test occurred.
+- **Authority repair:** the deleted plan's last full specification is pinned in Decisions. This file is the unresolved-work/continuation queue. Live pointers and retained audit banners now reach the existing authorities; historical bodies, applied migrations and the old hash-bound coverage remain provenance.
+- **Implemented, narrowly verified:** incomplete JARVIS provider turns release their permit; capped tool-shaped text cannot become an executable final reply; foreground billing records delivery only for complete turns. Task checks use actual content rather than result status/timing/inactive tabs/comparison reference values, prefer fresh reads and invalidate numeric evidence after mutations (including directory descendants). Completion uses a running-state predicate. Explicit waiting-task completion claims/resumes through the same owner, with `expectedStatus` protecting a newer STOP. The new source migration `20261019104555_completion_cannot_revive_a_stopped_task.sql` adds the database transition guard; its rollback removes only that guard. It has **not** been applied to a hosted database.
+- **PASS, isolated remote logic only:** Cloudflare MCP's remote JavaScript sandbox executed actual bundled production code with synthetic provider/permit/query/model dependencies, no API calls or inference. Provider boundary: original **3/10**, patched **10/10**. Task authority: original **3/14**, patched **14/14**. Waiting-task resume contracts under the running-state guard: original **0/2**, patched **2/2**. Total patched **26/26**; these are regression cases, never real-user task-success statistics. Results and bundle hashes are in [provider evidence](docs/audit-checkpoints/20261019/provider-boundary-regression.json) and [task/resume evidence](docs/audit-checkpoints/20261019/task-authority-regression.json). Source compilation and formatting ran on the PC; product/test execution ran only in the remote sandbox. Existing Vitest/PostgreSQL regressions were extended but are **UNTESTED** on this candidate.
+- **Independent review:** a separate reviewer reproduced the failure paths statically, reviewed the corrections, found and helped repair the direct-resume regression, and found no further concrete patch regression in its final diff review. This is scoped source review, not release-wide adversarial clearance. Latest-snapshot verification can conservatively require a fresh full-content read for multi-sheet reports. Existing lexical checks are not complete semantic workflow predicates; VER-01-01 / WF-18-04 remain open.
+- **Current cloud blocker:** [Actions run 39234534440](https://github.com/BREVEX-CEO/caera-connect-plan/actions/runs/39234534440), job `118000295247`, executed zero steps. Its annotation says recent account payments failed or the spending limit needs increasing. No limit was changed and no job was repeatedly dispatched. Owner selected C: continue all independent work and free cloud alternatives. The remote JavaScript sandbox is one such limited alternative; it does not replace full Node/build/browser/PostgreSQL/native CI.
+- **Provider/security reads:** Supabase project metadata is ACTIVE_HEALTHY. Security advisors report 16 INFO tables with RLS/no policies, 36 WARN authenticated security-definer executable functions, and one WARN leaked-password-protection setting. These require privilege/intent review; do not create broad policies merely to remove an advisory. Cloudflare account lookup succeeds, but billing reads still fail with authentication error `10000`; High stays unavailable until safe included-only eligibility is verified. No provider inference was attempted. See [database advisory guidance](https://supabase.com/docs/guides/database/database-linter) and [password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+- **Readiness:** **0/100 current release-evidence gates (0/10 qualified, 10 open)** under Testing's rubric; the previous R1 result is stale for the changed source. Eligible real-task attempts on this candidate: **0, UNTESTED** for every major family. Do not translate the 26 regression passes into a workflow accuracy claim. The latest owner target is at least **95% per family**, a free public pilot with five consenting testers, deferred payments and explicit final release approval.
+- **Audit coverage:** the baseline inventory has 992 main paths (976 exact historical hash matches, 16 initially pending) and 1,011 implementation paths (726 matches, 285 initially pending). [Coverage](docs/audit-checkpoints/20261019/coverage.json) records subsequent full/partial reviewer ranges and working changes. Hash reuse is historical evidence, not fresh semantic review; pending paths and binary/licensing qualification remain explicit. Exhaustive current source coverage is **NOT COMPLETE**.
+- **Next actions:** (1) finish source review and static diagnostics for the dirty patch; execute full Vitest/type/build gates and the new PostgreSQL transition/STOP/rollback regressions in a free disposable runner when available; (2) continue current completion/permission/recovery source audit from uncovered paths without re-reading hash-identical history; (3) qualify actual provider streams, all three Gemini slots, free billing and independent workflow predicates when staging credentials/eligibility permit; (4) continue browser/native/mobile, matched competitor, rights, pilot and operational gates. PC testing requires passing coding/cloud gates and new owner approval. Preserve all unresolved entries below.
+- **Manual continuation only (latest owner instruction):** no scheduled tasks, recurring automations, cron jobs or timed continuation may be created, enabled, resumed or modified without explicit permission. The earlier heartbeat statement is superseded; its live state was not inspected or changed in this manually initiated session. A usage reset does not itself trigger authorized work.
+
+### Manually resumed source repair — 19 October 2026
+
+- **Identity and preservation:** implementation and its remote head remain based on `4ba70185ce1e19f41370639a085d1001898dfccc`; fetched main remains `e53725a25a48508b990135b93c0a6bfa555bb87e`. All incoming dirty work was preserved before editing in a binary diff plus untracked-file recovery snapshot. This record accompanies the engineering commit; no production write, merge, deployment, paid operation or PC product test occurred.
+- **Additional reproduced defects and fixes:** the shared completion owner now invalidates descendant file checks after an ancestor-directory change, and requires an edited file's content read after a later path-free command, including recipe proof. An edited workbook must report sheets and safe nonnegative integer `filledRows` counts; formatted extent, missing/invalid counts and an empty sheet report cannot establish data. Older companions without these counts need updating and rereading. Research now requires a complete nonempty provider turn without refusal before recording delivery or successful evidence; stream loss, cancellation and empty answers cannot become completion proof.
+- **PASS, remote logic only:** actual compiled source, synthetic dependencies, no inference or account API calls. Task authority **33/33**, provider boundary **10/10**, waiting-task resume **2/2**, Research **6/6**: **51/51** distinct cases. On the preserved incoming dirty source, six freshness cases failed; after those repairs seven additional count/sheet-report cases failed; Research had five failing interruption/empty cases. Valid fresh reads and completed answers remain accepted. [Freshness/count evidence](docs/audit-checkpoints/20261019/freshness-regression.json), [Research evidence](docs/audit-checkpoints/20261019/research-regression.json). These are not full Vitest, PostgreSQL, hosted-provider, browser or real-workflow passes. New Vitest regressions are source-added and remain UNTESTED in a full runner.
+- **Static/build checks:** typecheck, lint, stable routes/build and the ten existing static policy/bundle gates passed. Formatting initially failed solely on the inherited coverage JSON and was corrected; final formatting/diff/link checks are recorded with the saved checkpoint evidence. A compiler error from using an ES2023 array method was corrected using the existing target library; no target/dependency change. Full `verify:full` remains BLOCKED because its runtime suite is not permitted on this PC and no suitable free isolated runner is connected.
+- **Additional free repository-test execution:** **143/143** existing cases in eight compatible test files passed in the remote sandbox using installed `@vitest/expect` and `@vitest/spy` 4.1.11 with an adapted collector. Test bodies and assertions were not weakened; an intentional failed-assertion self-check and nonzero-discovery guard prevent a silent empty pass. [Results, file list and limits](docs/audit-checkpoints/20261019/remote-repository-tests.json), [collector](docs/audit-checkpoints/20261019/remote-repository-tests.adapter.txt), [compiler recipe](docs/audit-checkpoints/20261019/remote-repository-tests.compile.txt). This is not the Node Vitest runner and does not pass its database, fake-timer, filesystem/process, browser or mock-transform suites. Counts overlap focused cases and are never real-task success rates. Sandbox timing was zero-resolution, not a latency measurement. GitHub Codespaces discovery returned 403 for missing `codespace` scope; no scope, subscription or spending setting was changed.
+- **Provider/environment reads:** the connected Supabase account still exposes one healthy production project and no development branches. [Read-only catalogue triage](docs/audit-checkpoints/20261019/live-catalogue-triage.json) found 67 relevant routines, no anonymous EXECUTE on public security-definer functions, and caller references for all 36 authenticated public definers. This is heuristic privilege triage, not proof of target/payload enforcement. No secrets or customer rows were read. Cloudflare subscription access still returns authentication error `10000`; High remains unavailable. Its remote sandbox rejects WASM compilation (`Wasm code generation disallowed by embedder`), so it cannot run the existing PostgreSQL twin; a public dependency fetch also returned 403. No paid branch/runner was provisioned.
+- **Unchanged release result:** **0/100 (0/10 mandatory gates qualified)** on this changed candidate; **0 eligible real-task attempts in every family**. Semantic workflow predicates, exhaustive source audit, full database/rollback/adversarial/provider/browser/native/mobile gates, matched competitor benchmarks and the consenting pilot remain open. Continue the dependency-ready source queue and seek a free disposable Node/PostgreSQL/browser runner; do not repeat completed checks without a changed source or new failure.
+- **Last discovered source blocker before the owner-requested snapshot commit:** `20261019104555_completion_cannot_revive_a_stopped_task.sql` has its rollback but no matching file in `supabase/verification/`. The existing migration-pairing suite requires that file, so it cannot pass as written. Add the verification and exercise forward/rollback/reapplication in an isolated PostgreSQL runner next. The snapshot commit preserves this incomplete migration without claiming it verified or deployable.
+
 ## Summary
 
-| ID           | Phase        | Check                                                     | Status   | Needs                                                 |
-| ------------ | ------------ | --------------------------------------------------------- | -------- | ----------------------------------------------------- |
-| ENV-00-01    | 08 / browser | Current Codex cloud browser qualification                 | BLOCKED  | Full Chromium; staging/native test matrix             |
-| PROMPT-00-01 | 04 / 16      | Redesigned system prompt: A/B on matched live tasks       | UNTESTED | Research/video arms, more cases (Gemini daily quota)  |
-| MOB-00-01    | 14 / 15      | Phone harnesses on a real emulator/simulator/device       | BLOCKED  | KVM emulator, macOS simulator or a phone (₹0)         |
-| REL-00-01    | 00 / release | Production rollback rehearsal                             | BLOCKED  | Cloudflare credentials (GitHub environment or owner)  |
-| REL-00-02    | 00 / release | Production deploys only through the approved gate         | FAIL     | Owner: Cloudflare Git auto-deploy setting             |
-| REL-00-03    | 00 / release | Security fixes still outside main (sharp, lxml pin)       | BLOCKED  | Owner approval of a security-only release             |
-| CI-00-01     | all          | GitHub Actions cloud workflows                            | BLOCKED  | Actions allowance (renews 1 Nov 2026) or owner choice |
-| PC-02-01     | 02           | Windows 11 tabbed Notepad target identity                 | BLOCKED  | Owner-approved Windows 11 client                      |
-| WIN-02-01    | 02           | UIA barrier interleavings on real apps; 5 s lease timed   | BLOCKED  | Isolated Windows VM                                   |
-| AND-02-01    | 02           | Interrupted gesture on a device/emulator                  | BLOCKED  | Android emulator                                      |
-| NET-03-01    | 03           | Packet-loss / reordered / malformed ACK simulator         | RESOLVED | —                                                     |
-| AND-03-01    | 03           | Android process death at each journal transition          | BLOCKED  | Android emulator                                      |
-| GEM-04-01    | 04           | Three-key failover with real keys                         | BLOCKED  | Two more staging keys                                 |
-| GEM-04-02    | 04           | Background Mode step planned by the real model            | UNTESTED | Cloud session + staging key (can run)                 |
-| GEM-04-03    | 04           | Durable thought signatures for Background Mode            | PARTIAL  | Real-provider restart qualification + deployment gate |
-| GEM-04-04    | 04           | No tool admission without a complete provider turn        | PARTIAL  | Real-provider stream-loss qualification               |
-| CF-04-01     | 04           | Standard/High routing and matched real-task qualification | PARTIAL  | Verified free limits, billing read and staging keys   |
-| LIVE-04-01   | 04 / 17      | Live video task: captions read on the page                | FAIL     | Wikimedia 429 to clear; rerun                         |
-| LIVE-04-02   | 04 / 11 / 17 | Live photo task in a canvas editor (miniPaint)            | FAIL     | Fix in canvas/vision route                            |
-| VER-01-01    | 01           | A claim about an effect no check covers is refused        | PARTIAL  | More live cases (Gemini daily quota)                  |
-| PERF-05-01   | 05           | Identical 30-step old/new timing; Windows batch timing    | BLOCKED  | Isolated Windows VM                                   |
-| AND-05-01    | 05           | Android multi-step segments                               | OPEN     | Android implementation + emulator                     |
-| BRW-00-01    | 16           | Firefox and WebKit legs of the browsers journey           | RESOLVED | —                                                     |
-| BRW-00-02    | 16           | Real push service                                         | BLOCKED  | Browser build with a push service                     |
-| VOI-13-01    | 13           | Real speech-recognition service                           | BLOCKED  | Reachable speech service                              |
-| PC-07-01     | 07           | Licensed Excel and Word automation                        | BLOCKED  | Owner-approved Windows PC with Office                 |
-| NOTIF-06-01  | 06           | Email delivery of task and security notifications         | BLOCKED  | Staging email provider                                |
-| WAKE-06-01   | 06           | Device wake hints and first-step latency                  | MEASURED | Owner: faster first step vs idle requests             |
-| SCH-06-01    | 06           | Scheduler kill on the deployed Worker cron                | BLOCKED  | Staging deployment                                    |
-| WIN-07-01    | 07           | Office helpers restore alerts, quit only own instance     | BLOCKED  | Isolated Windows VM with Office                       |
-| WIN-07-02    | 07           | Native Office reopen/layout; locked and corrupt inputs    | BLOCKED  | Isolated Windows VM with Office                       |
-| FS-07-01     | 07           | A user edit between undo's comparison and restore         | UNTESTED | Cloud session (can run)                               |
-| SEC-08-01    | 08           | A staff proof binds the exact target                      | PARTIAL  | Owner gate: apply migration 20261018090000            |
-| SEC-08-02    | 08           | Recovery against real Supabase Auth                       | BLOCKED  | Staging Supabase project                              |
-| UI-08-01     | 08           | Consent dialog: account switch and unmount while asking   | RESOLVED | —                                                     |
-| SUP-08-01    | 08           | Support share flow on staging                             | BLOCKED  | Staging Supabase project                              |
-| DATA-09-01   | 09           | Restore must not bring back erased content                | BLOCKED  | Staging restore                                       |
-| DATA-09-02   | 09           | Storage faults during erasure; expired links              | BLOCKED  | Staging Supabase project                              |
-| DATA-09-03   | 09           | A very large export on the deployed Worker                | BLOCKED  | Staging deployment                                    |
-| OFF-10-01    | 10           | Real Offline Intelligence install and cold answer         | BLOCKED  | R2 read access (owner)                                |
-| OFF-10-02    | 10           | Offline answer quality, storage pressure, accounts        | BLOCKED  | As OFF-10-01                                          |
-| WIN-11-01    | 11           | Unfamiliar Windows app qualification                      | BLOCKED  | Isolated Windows VM                                   |
-| WIN-12-01    | 12           | Windows install, pairing, update, rollback, uninstall     | BLOCKED  | Isolated Windows VM                                   |
-| AND-14-01    | 14           | Android app on an emulator or device                      | BLOCKED  | KVM emulator or device                                |
-| IOS-15-01    | 15           | Physical iPhone/iPad and macOS behaviour                  | BLOCKED  | Apple hardware / macOS runner                         |
-| UI-16-01     | 16           | Pixel-baseline visual regression                          | OPEN     | Baseline images + comparison step                     |
-| UI-16-02     | 16           | Device refusal: revoked authority, STOP while saving      | RESOLVED | —                                                     |
-| SR-16-01     | 16           | Real screen readers (NVDA, VoiceOver, TalkBack)           | BLOCKED  | Windows/macOS/Android with screen reader              |
-| APP-17-01    | 17           | Independent reopen in LibreOffice on every CI run         | BLOCKED  | CI-00-01; LibreOffice in the Python job               |
-| ONL-17-01    | 17           | ONLYOFFICE opens and recalculates OCADE's files           | BLOCKED  | Owner: edition/licence; a VM where it starts          |
-| MED-17-01    | 17           | Creative/media families: editable project + 720p/1080p    | OPEN     | Owner: which family to support first                  |
-| WF-18-01     | 18           | Reconcile workflow: 30 held-out real-model cases          | UNTESTED | More cases on fixed code (Gemini daily quota)         |
-| WF-18-02     | 18           | Client pack workflow: 30 held-out real-model cases        | UNTESTED | Gemini daily quota (resets daily)                     |
-| WF-18-03     | 18           | Order status workflow: 30 held-out real-model cases       | UNTESTED | Gemini daily quota (resets daily)                     |
-| WF-18-04     | 18 / 01      | Zero falsely verified completions                         | FAIL     | Outcome templates (VER-01-01)                         |
-| WF-18-05     | 18           | Five consenting design partners, two weeks                | BLOCKED  | Owner: recruit partners                               |
-| WIN-18-01    | 18           | PDF through Word/Excel/PowerPoint on Windows              | OPEN     | Isolated Windows VM with Office                       |
-| DEB-19-01    | 19 / 04      | One provider retry budget (no nested retries)             | PARTIAL  | Live 429/503 reliability check (quota)                |
-| DEB-19-02    | 19           | Bubble and Workspace share one turn lifecycle             | OPEN     | Merge with account-switch/STOP/handoff proof          |
-| REL-20-01    | 20           | Frozen candidate SHA with an evidence manifest            | OPEN     | Phases 18 and 20 gates closed first                   |
-| SEC-20-01    | 20           | Independent adversarial review of release scope           | BLOCKED  | A reviewer independent of this session                |
-| PAY-21-01    | 21           | Approved merchant provider, legal/tax/refund terms        | BLOCKED  | Owner decision                                        |
-| PAY-21-02    | 21           | Approved price catalogue (one contract)                   | BLOCKED  | Owner: choose between the two proposals               |
-| PAY-21-03    | 21           | Sandbox webhook, replay, refund, renewal cycles           | BLOCKED  | PAY-21-01 (provider sandbox account)                  |
-| LAU-22-01    | 22           | Post-payment final matrix and controlled launch           | BLOCKED  | Phase 21, REL-20-01, owner launch approval            |
+| ID           | Phase        | Check                                                     | Status   | Needs                                                  |
+| ------------ | ------------ | --------------------------------------------------------- | -------- | ------------------------------------------------------ |
+| ENV-00-01    | 08 / browser | Current Codex cloud browser qualification                 | BLOCKED  | Full Chromium; staging/native test matrix              |
+| PROMPT-00-01 | 04 / 16      | Redesigned system prompt: A/B on matched live tasks       | UNTESTED | Research/video arms, more cases (Gemini daily quota)   |
+| MOB-00-01    | 14 / 15      | Phone harnesses on a real emulator/simulator/device       | BLOCKED  | KVM emulator, macOS simulator or a phone (₹0)          |
+| REL-00-01    | 00 / release | Production rollback rehearsal                             | BLOCKED  | Cloudflare credentials (GitHub environment or owner)   |
+| REL-00-02    | 00 / release | Production deploys only through the approved gate         | FAIL     | Owner: Cloudflare Git auto-deploy setting              |
+| REL-00-03    | 00 / release | Security fixes still outside main (sharp, lxml pin)       | BLOCKED  | Owner approval of a security-only release              |
+| CI-00-01     | all          | GitHub Actions cloud workflows                            | BLOCKED  | Actions allowance (renews 1 Nov 2026) or owner choice  |
+| PC-02-01     | 02           | Windows 11 tabbed Notepad target identity                 | BLOCKED  | Owner-approved Windows 11 client                       |
+| WIN-02-01    | 02           | UIA barrier interleavings on real apps; 5 s lease timed   | BLOCKED  | Isolated Windows VM                                    |
+| AND-02-01    | 02           | Interrupted gesture on a device/emulator                  | BLOCKED  | Android emulator                                       |
+| NET-03-01    | 03           | Packet-loss / reordered / malformed ACK simulator         | RESOLVED | —                                                      |
+| AND-03-01    | 03           | Android process death at each journal transition          | BLOCKED  | Android emulator                                       |
+| GEM-04-01    | 04           | Three-key failover with real keys                         | BLOCKED  | Two more staging keys                                  |
+| GEM-04-02    | 04           | Background Mode step planned by the real model            | UNTESTED | Cloud session + staging key (can run)                  |
+| GEM-04-03    | 04           | Durable thought signatures for Background Mode            | PARTIAL  | Real-provider restart qualification + deployment gate  |
+| GEM-04-04    | 04           | No tool admission without a complete provider turn        | PARTIAL  | Real-provider stream-loss qualification                |
+| CF-04-01     | 04           | Standard/High routing and matched real-task qualification | PARTIAL  | Verified free limits, billing read and staging keys    |
+| LIVE-04-01   | 04 / 17      | Live video task: captions read on the page                | FAIL     | Wikimedia 429 to clear; rerun                          |
+| LIVE-04-02   | 04 / 11 / 17 | Live photo task in a canvas editor (miniPaint)            | FAIL     | Fix in canvas/vision route                             |
+| VER-01-01    | 01           | A claim about an effect no check covers is refused        | PARTIAL  | More live cases (Gemini daily quota)                   |
+| PERF-05-01   | 05           | Identical 30-step old/new timing; Windows batch timing    | BLOCKED  | Isolated Windows VM                                    |
+| AND-05-01    | 05           | Android multi-step segments                               | OPEN     | Android implementation + emulator                      |
+| BRW-00-01    | 16           | Firefox and WebKit legs of the browsers journey           | RESOLVED | —                                                      |
+| BRW-00-02    | 16           | Real push service                                         | BLOCKED  | Browser build with a push service                      |
+| VOI-13-01    | 13           | Real speech-recognition service                           | BLOCKED  | Reachable speech service                               |
+| PC-07-01     | 07           | Licensed Excel and Word automation                        | BLOCKED  | Owner-approved Windows PC with Office                  |
+| NOTIF-06-01  | 06           | Email delivery of task and security notifications         | BLOCKED  | Staging email provider                                 |
+| WAKE-06-01   | 06           | Device wake hints and first-step latency                  | MEASURED | Owner: faster first step vs idle requests              |
+| SCH-06-01    | 06           | Scheduler kill on the deployed Worker cron                | BLOCKED  | Staging deployment                                     |
+| WIN-07-01    | 07           | Office helpers restore alerts, quit only own instance     | BLOCKED  | Isolated Windows VM with Office                        |
+| WIN-07-02    | 07           | Native Office reopen/layout; locked and corrupt inputs    | BLOCKED  | Isolated Windows VM with Office                        |
+| FS-07-01     | 07           | A user edit between undo's comparison and restore         | UNTESTED | Cloud session (can run)                                |
+| SEC-08-01    | 08           | A staff proof binds the exact target                      | PARTIAL  | Owner gate: apply migration 20261018090000             |
+| SEC-08-02    | 08           | Recovery against real Supabase Auth                       | BLOCKED  | Staging Supabase project                               |
+| UI-08-01     | 08           | Consent dialog: account switch and unmount while asking   | RESOLVED | —                                                      |
+| SUP-08-01    | 08           | Support share flow on staging                             | BLOCKED  | Staging Supabase project                               |
+| DATA-09-01   | 09           | Restore must not bring back erased content                | BLOCKED  | Staging restore                                        |
+| DATA-09-02   | 09           | Storage faults during erasure; expired links              | BLOCKED  | Staging Supabase project                               |
+| DATA-09-03   | 09           | A very large export on the deployed Worker                | BLOCKED  | Staging deployment                                     |
+| OFF-10-01    | 10           | Real Offline Intelligence install and cold answer         | BLOCKED  | R2 read access (owner)                                 |
+| OFF-10-02    | 10           | Offline answer quality, storage pressure, accounts        | BLOCKED  | As OFF-10-01                                           |
+| WIN-11-01    | 11           | Unfamiliar Windows app qualification                      | BLOCKED  | Isolated Windows VM                                    |
+| WIN-12-01    | 12           | Windows install, pairing, update, rollback, uninstall     | BLOCKED  | Isolated Windows VM                                    |
+| AND-14-01    | 14           | Android app on an emulator or device                      | BLOCKED  | KVM emulator or device                                 |
+| IOS-15-01    | 15           | Physical iPhone/iPad and macOS behaviour                  | BLOCKED  | Apple hardware / macOS runner                          |
+| UI-16-01     | 16           | Pixel-baseline visual regression                          | OPEN     | Baseline images + comparison step                      |
+| UI-16-02     | 16           | Device refusal: revoked authority, STOP while saving      | RESOLVED | —                                                      |
+| SR-16-01     | 16           | Real screen readers (NVDA, VoiceOver, TalkBack)           | BLOCKED  | Windows/macOS/Android with screen reader               |
+| APP-17-01    | 17           | Independent reopen in LibreOffice on every CI run         | BLOCKED  | CI-00-01; LibreOffice in the Python job                |
+| ONL-17-01    | 17           | ONLYOFFICE opens and recalculates OCADE's files           | BLOCKED  | Owner: edition/licence; a VM where it starts           |
+| MED-17-01    | 17           | Creative/media families: editable project + 720p/1080p    | OPEN     | Owner: which family to support first                   |
+| WF-18-01     | 18           | Reconcile workflow: 30 held-out real-model cases          | UNTESTED | More cases on fixed code (Gemini daily quota)          |
+| WF-18-02     | 18           | Client pack workflow: 30 held-out real-model cases        | UNTESTED | Gemini daily quota (resets daily)                      |
+| WF-18-03     | 18           | Order status workflow: 30 held-out real-model cases       | UNTESTED | Gemini daily quota (resets daily)                      |
+| WF-18-04     | 18 / 01      | Zero falsely verified completions                         | FAIL     | Outcome templates (VER-01-01)                          |
+| WF-18-05     | 18           | Five consenting design partners, two weeks                | BLOCKED  | Owner: recruit partners                                |
+| WIN-18-01    | 18           | PDF through Word/Excel/PowerPoint on Windows              | OPEN     | Isolated Windows VM with Office                        |
+| DEB-19-01    | 19 / 04      | One provider retry budget (no nested retries)             | PARTIAL  | Live 429/503 reliability check (quota)                 |
+| DEB-19-02    | 19           | Bubble and Workspace share one turn lifecycle             | OPEN     | Merge with account-switch/STOP/handoff proof           |
+| REL-20-01    | 20           | Frozen candidate SHA with an evidence manifest            | OPEN     | Phases 18 and 20 gates closed first                    |
+| SEC-20-01    | 20           | Independent adversarial review of release scope           | BLOCKED  | A reviewer independent of this session                 |
+| PAY-21-01    | 21           | Approved merchant provider, legal/tax/refund terms        | BLOCKED  | Owner decision                                         |
+| PAY-21-02    | 21           | Approved price catalogue (one contract)                   | BLOCKED  | Owner: choose between the two proposals                |
+| PAY-21-03    | 21           | Sandbox webhook, replay, refund, renewal cycles           | BLOCKED  | PAY-21-01 (provider sandbox account)                   |
+| LAU-22-01    | 22           | Free pilot final matrix and controlled launch             | BLOCKED  | Applicable release gates, five testers, owner approval |
 
 ---
 
@@ -210,7 +235,7 @@ Synthetic fixtures cover Standard default, all three credential slots, same-proj
 
 Final local gate: 15/15 PASS, 125 files / 1,462 tests PASS; production dependency audit 0 vulnerabilities. Portable native fixtures: 24/24 in 1.017 s with resource warnings promoted to errors; a missing existing test dependency was installed in the disposable runtime, and a test-server socket leak was fixed. Neither is real-model or native-app qualification. Current readiness evidence score is **10/100 (1/10 launch gates, 9 open)**. Workflow acceptance remains 0/5 qualified families; time/accuracy for the corrected candidate are unavailable, not zero. The source adds 672 active lines net while removing obsolete proxy/model-switch wiring; no dependency or schema additions.
 
-Prerequisites for live qualification: safe disposable staging credentials/endpoint with verified free entitlement and project limits, readable Cloudflare billing metadata and confirmation that the provider’s hard Free cap applies. Keep main unchanged. The current native Gemini probe exits BLOCKED before networking without its staging key. Standard/High request latency, task accuracy and Neuron consumption remain UNTESTED; no claim that Gemma is better or that the 90% target is reached. See Testing’s frozen ten-gate readiness evidence score.
+Prerequisites for live qualification: safe disposable staging credentials/endpoint with verified free entitlement and project limits, readable Cloudflare billing metadata and confirmation that the provider’s hard Free cap applies. Keep main unchanged. The current native Gemini probe exits BLOCKED before networking without its staging key. Standard/High request latency, task accuracy and Neuron consumption remain UNTESTED; no claim that Gemma is better or that the current 95%-per-family target is reached. See Testing’s frozen ten-gate readiness evidence score.
 
 ## LIVE-04-01 — Live video task: captions read on the page
 

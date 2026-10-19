@@ -669,6 +669,7 @@ function normalizeProviderChunk(
 
 function normalizedProviderStream(
   provider: Response,
+  surface: IntelligencePermit["surface"],
   signal: AbortSignal,
   cleanup: () => void,
   cancelProvider: (reason: unknown) => void,
@@ -680,23 +681,23 @@ function normalizedProviderStream(
       let answer = "";
       let refused = false;
       let finishReason: string | undefined;
-      let callsReleased = false;
+      let completed = false;
       const toolCalls: NormalizedToolCall[] = [];
       const parts: NormalizedAssistantPart[] = [];
       let usage: NormalizedUsage | undefined;
       const toolIndex = { value: 0, textSize: 0, signatureSize: 0 };
       /*
-       * THE CLAIMED PERMIT IS SETTLED HERE, however the stream ends: charged
-       * once anything reached the person (a Stop or a dropped connection
-       * mid-answer included, as the browser's own settle does), released when
-       * nothing did. The browser can no longer release a permit once claimed.
+       * THE CLAIMED PERMIT IS SETTLED HERE, however the stream ends.
+       * Chat retains its partial-answer policy. JARVIS must complete the provider
+       * turn before settling: partial planning text is not a completed task or answer.
+       * The browser can no longer release a permit once claimed.
        */
       let settled = false;
       const settle = async () => {
         if (settled) return;
         settled = true;
-        const anything = answer.trim() !== "" || callsReleased;
-        await (anything ? delivered(callsReleased ? toolCalls : []) : undelivered()).catch(
+        const anything = completed || (surface === "chat" && answer.trim() !== "");
+        await (anything ? delivered(completed ? toolCalls : []) : undelivered()).catch(
           () => undefined,
         );
       };
@@ -739,10 +740,11 @@ function normalizedProviderStream(
           // Refused with its real reason already sent: no final answer, and no call is released.
         } else if (
           finishReason !== "STOP" &&
-          !(finishReason === "MAX_TOKENS" && toolCalls.length === 0)
+          !(surface === "chat" && finishReason === "MAX_TOKENS" && toolCalls.length === 0)
         ) {
           // EOF can land between complete SSE frames. Only the provider's terminal result
-          // closes the turn; a token-capped turn may contain unfinished tool arguments.
+          // closes the turn. JARVIS can also interpret exact tool text, so even a
+          // text-only token-capped turn must never be released as a completed reply.
           throw new Error("Provider ended before completing the turn.");
         } else if (!answer.trim() && toolCalls.length === 0) {
           controller.enqueue(
@@ -760,8 +762,9 @@ function normalizedProviderStream(
           ) {
             throw new Error("Provider returned invalid assistant parts.");
           }
+          signal.throwIfAborted();
           for (const call of toolCalls) controller.enqueue(sse({ type: "tool_call", call }));
-          callsReleased = toolCalls.length > 0;
+          completed = true;
           // Charged by the server before the person is told it is complete.
           await settle();
           controller.enqueue(
@@ -1128,6 +1131,7 @@ async function runOnlineIntelligence(
     return new Response(
       normalizedProviderStream(
         provider,
+        body.surface,
         controller.signal,
         cleanup,
         (reason) => {

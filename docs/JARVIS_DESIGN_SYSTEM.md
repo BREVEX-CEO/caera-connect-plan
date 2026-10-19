@@ -1,6 +1,6 @@
 # OCADE visual and interaction system
 
-One visual authority for Chat, JARVIS, Library, settings, public pages and console. [PRD](PRD.md) owns pages/options; [PLAN](../PLAN.md) owns implementation order; [TESTING](TESTING.md) owns evidence. These are targets, not claims that current source implements them. Preserve CARCC/OCADE identity without copying another product's protected branding.
+One visual authority for Chat, JARVIS, Library, settings, public pages and console. [PRD](PRD.md) owns pages/options; [Open work](../BLOCKED_TESTS.md) owns unresolved implementation and verification; [TESTING](TESTING.md) owns evidence. These are targets, not claims that current source implements them. Preserve CARCC/OCADE identity without copying another product's protected branding.
 
 ## Chosen direction and code ownership
 

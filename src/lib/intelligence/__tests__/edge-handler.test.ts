@@ -877,6 +877,78 @@ describe("capacity failures that must not look like each other", () => {
     expect(finalize).toHaveBeenCalledWith(expect.objectContaining({ startsTask: false }));
   });
 
+  it.each([undefined, "MAX_TOKENS", "SAFETY"])(
+    "releases an incomplete JARVIS turn with text and held calls (%s)",
+    async (finishReason) => {
+      const finalize = vi.fn(async () => undefined);
+      const release = vi.fn(async () => undefined);
+      const value = body();
+      value.surface = value.permit.surface = "jarvis";
+      const response = await handleOnlineIntelligence(
+        request(value),
+        dependencies({
+          callProvider: vi.fn(async () =>
+            provider([
+              {
+                candidates: [
+                  {
+                    content: {
+                      parts: [
+                        { text: "Starting the report" },
+                        { functionCall: { name: "start_task", args: { title: "Report" } } },
+                      ],
+                    },
+                    ...(finishReason ? { finishReason } : {}),
+                  },
+                ],
+              },
+            ]),
+          ),
+          finalizePermit: finalize,
+          releasePermit: release,
+        }),
+      );
+      const stream = await response.text();
+      expect(stream).toContain('"type":"token"');
+      expect(stream).toContain('"type":"refusal"');
+      expect(stream).not.toContain('"type":"final"');
+      expect(stream).not.toContain('"type":"tool_call"');
+      expect(finalize).not.toHaveBeenCalled();
+      expect(release).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("never releases capped JARVIS tool text to the text-to-tool fallback", async () => {
+    const value = body();
+    value.surface = value.permit.surface = "jarvis";
+    const finalize = vi.fn(async () => undefined);
+    const release = vi.fn(async () => undefined);
+    const response = await handleOnlineIntelligence(
+      request(value),
+      dependencies({
+        callProvider: vi.fn(async () =>
+          provider([
+            {
+              candidates: [
+                {
+                  content: { parts: [{ text: 'Called start_task {"title":"Report"}' }] },
+                  finishReason: "MAX_TOKENS",
+                },
+              ],
+            },
+          ]),
+        ),
+        finalizePermit: finalize,
+        releasePermit: release,
+      }),
+    );
+    const stream = await response.text();
+    expect(stream).toContain('"code":"provider_failed"');
+    expect(stream).not.toContain('"type":"final"');
+    expect(finalize).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+
   it("gives a key that never starts answering its own deadline, then uses the next key", async () => {
     vi.useFakeTimers();
     try {
@@ -1053,39 +1125,46 @@ describe("capacity failures that must not look like each other", () => {
     }
   });
 
-  it("charges an answer stopped part-way: once words arrived it is not given back", async () => {
-    const leaving = new AbortController();
-    const finalize = vi.fn(async () => undefined);
-    const release = vi.fn(async () => undefined);
-    const words = `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: "Half an" }] } }] })}\n\n`;
-    const response = await handleOnlineIntelligence(
-      new Request(request(), { signal: leaving.signal }),
-      dependencies({
-        finalizePermit: finalize,
-        releasePermit: release,
-        callProvider: vi.fn(
-          async ({ signal }) =>
-            new Response(
-              new ReadableStream({
-                start(stream) {
-                  stream.enqueue(new TextEncoder().encode(words));
-                  signal.addEventListener("abort", () => stream.error(signal.reason));
-                },
-              }),
-            ),
-        ),
-      }),
-    );
-    const reader = response.body!.getReader();
-    let seen = "";
-    while (!seen.includes("Half an")) {
-      seen += new TextDecoder().decode((await reader.read()).value);
-    }
-    leaving.abort(new DOMException("gone", "AbortError"));
-    await reader.cancel().catch(() => undefined);
-    await vi.waitFor(() => expect(finalize).toHaveBeenCalledTimes(1));
-    expect(release).not.toHaveBeenCalled();
-  });
+  it.each(["chat", "jarvis"])(
+    "settles stopped %s text according to its surface policy",
+    async (surface) => {
+      const leaving = new AbortController();
+      const finalize = vi.fn(async () => undefined);
+      const release = vi.fn(async () => undefined);
+      const words = `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: "Half an" }] } }] })}\n\n`;
+      const value = body();
+      value.surface = value.permit.surface = surface;
+      const response = await handleOnlineIntelligence(
+        new Request(request(value), { signal: leaving.signal }),
+        dependencies({
+          finalizePermit: finalize,
+          releasePermit: release,
+          callProvider: vi.fn(
+            async ({ signal }) =>
+              new Response(
+                new ReadableStream({
+                  start(stream) {
+                    stream.enqueue(new TextEncoder().encode(words));
+                    signal.addEventListener("abort", () => stream.error(signal.reason));
+                  },
+                }),
+              ),
+          ),
+        }),
+      );
+      const reader = response.body!.getReader();
+      let seen = "";
+      while (!seen.includes("Half an")) {
+        seen += new TextDecoder().decode((await reader.read()).value);
+      }
+      leaving.abort(new DOMException("gone", "AbortError"));
+      await reader.cancel().catch(() => undefined);
+      await vi.waitFor(() =>
+        expect(surface === "chat" ? finalize : release).toHaveBeenCalledTimes(1),
+      );
+      expect(surface === "chat" ? release : finalize).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("the door for OCADE's own server", () => {

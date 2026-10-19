@@ -70,7 +70,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - **First in Claude Code, if both plugins are installed:** activate `/caveman ultra`, then `/ponytail full`. These are **Claude Code chat commands**, not terminal commands. Reading this file cannot execute slash commands; do not claim either mode is active unless confirmed. If unavailable, follow the principles below without blocking work or installing anything unapproved.
 - Caveman Ultra shortens **chat replies**, never code, identifiers, commands, evidence, security warnings or persistent documentation. Use complete sentences whenever compression could be ambiguous.
 - Ponytail Full means **the smallest complete, readable implementation**; not code golf, skipped requirements or reduced verification.
-- **OCADE authority:** read [`AGENTS.md`](AGENTS.md), the *relevant* current [`PLAN.md`](PLAN.md) P00–P22 package, and only its owning domain document. Recheck `main` and the exact SHA; continue the first unfinished dependency-ready package. Never create competing plans or reread unchanged files without need.
+- **OCADE authority:** read [`AGENTS.md`](AGENTS.md), the *relevant* current [open-work entry](BLOCKED_TESTS.md) and [owner decisions](docs/DECISIONS.md), and only its owning domain document. Recheck `main` and the exact SHA; continue the first unfinished dependency-ready package. Never create competing plans or reread unchanged files without need.
 
 ## 6. Extreme Debloat: Smallest Complete Change
 

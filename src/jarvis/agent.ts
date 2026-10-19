@@ -140,6 +140,7 @@ export interface AgentDeps {
   updateTask(input: {
     id: string;
     status?: TaskStatus;
+    expectedStatus?: TaskStatus;
     currentStep?: number;
     result?: string | null;
     blocker?: string | null;
@@ -512,6 +513,16 @@ export async function runJarvisTurn(
     hooks.onActivity();
   };
 
+  async function claimTask(): Promise<void> {
+    if (!task || claimed) return;
+    stopIfAsked();
+    const resume = task.status === "waiting" ? { status: "running" as const, blocker: null } : {};
+    setTask(
+      await deps.updateTask({ id: task.id, controller, expectedStatus: task.status, ...resume }),
+    );
+    claimed = true;
+  }
+
   async function waitFor(id: string, kind: string): Promise<ActionState> {
     const deadline = Date.now() + (DEVICE_DEADLINE_MS[kind] ?? ACTION_TIMEOUT_MS);
     while (Date.now() < deadline) {
@@ -576,13 +587,7 @@ export async function runJarvisTurn(
     await hooks.live?.waitIfPaused(hooks.signal);
     stopIfAsked();
     untrustedSeen = true;
-    if (!claimed) {
-      // A task waiting for the person's answer got it: this message. Acting on it resumes it;
-      // left "waiting", its first step was refused and the turn ended "Stopped." (F27).
-      const resume = task.status === "waiting" ? { status: "running" as const, blocker: null } : {};
-      setTask(await deps.updateTask({ id: task.id, controller, ...resume }));
-      claimed = true;
-    }
+    await claimTask();
     const queued = await deps.queue({ taskId: task.id, controller, action: parsed.data });
     if (!queued.ok) {
       if (queued.lost) throw new Stopped(true, queued.message);
@@ -836,7 +841,11 @@ export async function runJarvisTurn(
         if (!task) return { error: "There is no task to finish." };
         let done: JarvisTaskRow;
         try {
-          done = await update({ id: task.id, ...finishChange(args, task) });
+          const change = finishChange(args, task);
+          // An explicit resumed turn may already have every result checked and need
+          // no new device action. Claim it through the same owner before completion.
+          if (change.status === "completed") await claimTask();
+          done = await update({ id: task.id, ...change });
         } catch (error) {
           if (error instanceof Error && error.message.startsWith(NOT_VERIFIED)) {
             return { error: error.message };

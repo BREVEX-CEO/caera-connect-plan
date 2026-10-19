@@ -632,6 +632,7 @@ export function readsBack(action: { action?: unknown; op?: unknown } | null | un
  *   file's last change, holds that value (or formula);
  * - `path` + `contains`: a content read of that file after its last change shows each text;
  * - `path` alone: that file was read successfully after its last change;
+ *   a change to an ancestor directory or a path-free command invalidates older file reads;
  * - `contains` alone: the page, read after the last change made to it, shows each text;
  * - `pausedAt` alone: the page's video or audio, read by media state after the last change made
  *   to the page, is paused within half a second of that time (the player's own record).

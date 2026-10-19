@@ -146,7 +146,14 @@ type ActionRow = {
   /** As the exchange stores it: what the device returned beyond its status is under `detail`. */
   result: {
     status?: string;
-    detail?: { workbook?: unknown; media?: { paused?: unknown; currentTime?: unknown } } | null;
+    observation?: unknown;
+    answer?: unknown;
+    text?: unknown;
+    detail?: {
+      workbook?: unknown;
+      media?: { paused?: unknown; currentTime?: unknown };
+      [key: string]: unknown;
+    } | null;
   } | null;
 };
 
@@ -217,8 +224,14 @@ function verificationGap(
     }
     // Each file whose content changed is itself read back after its last change, not another one.
     if (!EDITS_CONTENT.has(row.action?.action ?? "") || !path) continue;
-    const onIt = later.filter((next) => samePath(next, path));
-    if (onIt.some((next) => EDITS_CONTENT.has(next.action?.action ?? ""))) continue;
+    if (later.some((next) => samePath(next, path) && EDITS_CONTENT.has(next.action?.action ?? "")))
+      continue;
+    // A later command or directory change can invalidate an earlier content read too.
+    const lastChange = later.reduce(
+      (last, next, index) => (!readsBack(next.action) && affectsPath(next, path) ? index : last),
+      -1,
+    );
+    const onIt = later.slice(lastChange + 1).filter((next) => samePath(next, path));
     if (!onIt.some((next) => READS_FILE.has(next.action?.action ?? "") && next.status === "done")) {
       return `${path} was changed but its content was never read back. Read it (file_read, file_extract or sheet_inspect), then finish.`;
     }
@@ -230,10 +243,11 @@ function verificationGap(
       .map((next) => next.result?.detail?.workbook as { sheets?: SheetRead[] })
       .filter(Boolean)
       .at(-1);
-    if (!book) return `${path} was changed but not read with sheet_inspect. Read it, then finish.`;
-    const empty = (book.sheets ?? []).find((sheet) => filledRows(sheet) < 2);
-    if (empty) {
-      return `the ${empty.name} sheet of ${path} has no rows below its header. Fill it, or finish as failed and say why it is empty.`;
+    if (!book?.sheets?.length)
+      return `${path} was changed but not read with sheet_inspect. Read its sheets, then finish.`;
+    for (const sheet of book.sheets) {
+      const gap = sheetDataGap(sheet, path);
+      if (gap) return gap;
     }
   }
   if (checks === undefined) return null;
@@ -275,7 +289,39 @@ function claimGap(rows: ActionRow[], claim: string): string | null {
     (row) =>
       row.status === "done" && (readsBack(row.action) || OFF_DEVICE.has(row.action?.action ?? "")),
   );
-  const seen = reads.map((row) => textOf(row.result)).join(" ");
+  const latest = new Map<string, ActionRow>();
+  rows.forEach((row, at) => {
+    if (
+      ["refused", "skipped"].includes(row.result?.status ?? "") ||
+      (row.status === "cancelled" && row.result == null)
+    )
+      return;
+    const path = row.action?.path;
+    if (OFF_DEVICE.has(row.action?.action ?? "")) {
+      if (row.status === "done") latest.set(`source:${at}`, row);
+    } else if (!readsBack(row.action)) {
+      if (pathless(row)) {
+        for (const key of latest.keys()) if (!key.startsWith("source:")) latest.delete(key);
+      } else {
+        for (const target of [path, row.action?.to]) {
+          if (typeof target !== "string") continue;
+          const name = normalPath(target).replace(/\/+$/, "");
+          for (const key of latest.keys()) {
+            if (
+              key === `file:${name}` ||
+              key.startsWith(`file:${name}/`) ||
+              ((!name || name === ".") && key.startsWith("file:"))
+            )
+              latest.delete(key);
+          }
+        }
+        latest.delete("screen");
+      }
+    } else if (row.status === "done") {
+      latest.set(typeof path === "string" ? `file:${normalPath(path)}` : "screen", row);
+    }
+  });
+  const seen = [...latest.values()].map((row) => contentOf(row, true)).join(" ");
   const values = (seen.match(NUMBER) ?? []).map((n) => Number(n.replace(/,/g, "")));
   for (const written of claim.match(NUMBER) ?? []) {
     const [whole, fraction = ""] = written.replace(/,/g, "").split(".");
@@ -315,7 +361,7 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
   rows.forEach((row, at) => {
     if (readsBack(row.action) || (path && BROWSER_ACTION_NAMES.has(row.action?.action ?? "")))
       return;
-    if (path ? samePath(row, path) || pathless(row) : pathless(row)) last = at;
+    if (path ? affectsPath(row, path) : pathless(row)) last = at;
   });
   const after = rows
     .slice(last + 1)
@@ -369,10 +415,7 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
     }
     const found = book.sheets?.find((s) => normal(String(s.name ?? "")) === normal(sheet));
     if (!found) return `${target} has no sheet named ${sheet}. Add it, or finish as failed.`;
-    if (filledRows(found) < 2) {
-      return `the ${sheet} sheet of ${target} has no rows below its header. Fill it, or finish as failed and say why it is empty.`;
-    }
-    return null;
+    return sheetDataGap(found, target);
   }
   const reads =
     path && check.contains?.length
@@ -381,7 +424,9 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
   if (!reads.length) {
     return `${target} was not read${path && check.contains?.length ? " for its content" : ""} after its last change. Read it again, then finish.`;
   }
-  const seen = normal(reads.map((row) => textOf(row.result)).join(" "));
+  // The latest read can contradict an earlier one even without a task mutation
+  // (the person may have edited the file, or the page may have refreshed).
+  const seen = normal(contentOf(reads[reads.length - 1]!));
   const missing = check.contains?.find((text) => !seen.includes(normal(text)));
   return missing === undefined
     ? null
@@ -404,11 +449,20 @@ export async function completionGap(
 
 /** Actions that change a file's content in place, and the reads that check that content. */
 const EDITS_CONTENT = new Set(["file_write", "sheet_edit", "doc_edit", "deck_edit", "pdf_export"]);
-const READS_FILE = new Set(["file_read", "file_extract", "file_compare", "sheet_inspect"]);
+// A comparison contains removed/reference values too; it cannot prove the target's content.
+const READS_FILE = new Set(["file_read", "file_extract", "sheet_inspect"]);
 
 type SheetRead = { name?: string; rows?: number; filledRows?: number };
-/** Rows that hold a value; a device older than filledRows reports only its extent. */
-const filledRows = (sheet: SheetRead) => sheet.filledRows ?? sheet.rows ?? 0;
+/** Extent includes formatted blanks; only a measured populated-row count can prove data. */
+function sheetDataGap(sheet: SheetRead, path: string): string | null {
+  const count = sheet.filledRows;
+  if (!Number.isSafeInteger(count) || count! < 0) {
+    return `the ${sheet.name} sheet of ${path} did not report a valid filledRows count. Update the connected device and read it with sheet_inspect, then finish.`;
+  }
+  return count! < 2
+    ? `the ${sheet.name} sheet of ${path} has no rows below its header. Fill it, or finish as failed and say why it is empty.`
+    : null;
+}
 const normal = (text: string) => text.toLowerCase().replace(/\s+/g, " ").trim();
 const normalPath = (path: string) =>
   path.trim().replace(/\\/g, "/").replace(/^\.\//, "").toLowerCase();
@@ -418,6 +472,16 @@ const samePath = (row: ActionRow, path: string) =>
   [row.action?.path, row.action?.to].some(
     (value) => typeof value === "string" && normalPath(value) === normalPath(path),
   );
+
+/** Commands can touch any file; a directory mutation also affects its descendants. */
+const affectsPath = (row: ActionRow, path: string) =>
+  pathless(row) ||
+  [row.action?.path, row.action?.to].some((value) => {
+    if (typeof value !== "string") return false;
+    const changed = normalPath(value).replace(/\/+$/, "");
+    const target = normalPath(path);
+    return !changed || changed === "." || target === changed || target.startsWith(`${changed}/`);
+  });
 
 /** A cell as sheet_inspect read it: of the named sheet, or the first when none is named. */
 function cellIn(
@@ -460,9 +524,70 @@ function textOf(value: unknown): string {
   return "";
 }
 
+/** Semantic device data only: status, timing, tabs and geometry are never content. */
+function contentOf(row: ActionRow, numericProperties = false): string {
+  const object = (value: unknown): Record<string, unknown> =>
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  const result = row.result;
+  const detail = result?.detail;
+  const action = row.action?.action;
+  if (action === "file_read" || action === "file_extract") return textOf(detail?.content);
+  if (action === "sheet_inspect") {
+    const cells = object(detail?.workbook).cells;
+    return Array.isArray(cells)
+      ? textOf(
+          cells.flatMap((line) =>
+            Array.isArray(line)
+              ? line.map((cell) => {
+                  const value = object(cell);
+                  return [value.value, value.formula];
+                })
+              : [],
+          ),
+        )
+      : "";
+  }
+  if (action === "research") return textOf(result?.answer);
+  if (action === "docs") return textOf(result?.text);
+  if (action === "find_text") return textOf(detail?.found);
+  if (action === "media") {
+    const media = object(detail?.media);
+    return textOf([
+      media.captions,
+      ...(numericProperties ? [media.currentTime, media.duration] : []),
+    ]);
+  }
+  if (action === "file_info" && numericProperties) {
+    const info = object(detail?.info);
+    const properties = object(info.properties);
+    return textOf([
+      info.size,
+      ...["seconds", "width", "height", "fps", "audioChannels", "pages"].map(
+        (key) => properties[key],
+      ),
+    ]);
+  }
+  const observation = object(result?.observation);
+  const elements = observation.elements;
+  return textOf([
+    observation.text,
+    observation.facts,
+    ...(Array.isArray(elements)
+      ? elements.map((element) => {
+          const value = object(element);
+          return [value.name, value.value];
+        })
+      : []),
+  ]);
+}
+
 export interface TaskChange {
   id: string;
   status?: TaskStatus;
+  /** Compare-and-set admission: a stale resume cannot overwrite STOP or a newer state. */
+  expectedStatus?: TaskStatus;
   currentStep?: number;
   result?: string | null;
   blocker?: string | null;
@@ -529,6 +654,9 @@ export async function changeTask(
     .eq("id", data.id)
     .eq("user_id", userId);
   if (data.owner !== undefined) write = write.eq("controller", data.owner);
+  if (data.expectedStatus !== undefined) write = write.eq("status", data.expectedStatus);
+  // STOP or a pause may land after verification. Only a still-running task can complete.
+  if (data.status === "completed") write = write.eq("status", "running");
   const { data: task, error } = await write.select(TASK_COLUMNS).maybeSingle();
   // The database found an action added between the check above and this write.
   if (error?.message.includes("changed after its result was checked")) {
@@ -537,7 +665,11 @@ export async function changeTask(
     );
   }
   if (error) throw new Error(error.message);
-  if (!task && data.owner !== undefined) return null; // control moved elsewhere
+  if (
+    !task &&
+    (data.owner !== undefined || data.expectedStatus !== undefined || data.status === "completed")
+  )
+    return null;
   if (!task) throw new Error("That task no longer exists.");
   if (data.controller !== undefined) {
     // A new loop took over: steps the old one queued or left for confirmation never run.

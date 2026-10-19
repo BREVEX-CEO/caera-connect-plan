@@ -174,6 +174,30 @@ describe("a JARVIS turn", () => {
     expect(out.answer).toBeDefined();
   });
 
+  it("claims a waiting task before a direct finish that needs no new device action", async () => {
+    const h = harness([
+      { text: "", toolCalls: [call("finish_task", { outcome: "completed", result: "Checked" })] },
+    ]);
+    let status: JarvisTaskRow["status"] = "waiting";
+    const changes: Parameters<AgentDeps["updateTask"]>[0][] = [];
+    h.deps.updateTask = async (change) => {
+      changes.push(change);
+      if (change.expectedStatus && change.expectedStatus !== status) throw new Stopped(true);
+      if (change.status === "completed" && status !== "running") throw new Stopped(true);
+      if (change.status) status = change.status;
+      return { ...TASK, status };
+    };
+    await runJarvisTurn({ ...h.input, task: { ...TASK, status } }, h.hooks, h.deps);
+    expect(changes[0]).toMatchObject({
+      status: "running",
+      expectedStatus: "waiting",
+      blocker: null,
+    });
+    expect(changes[1]).toMatchObject({ status: "completed", owner: changes[0].controller });
+    expect(status).toBe("completed");
+    expect(h.queued).toEqual([]);
+  });
+
   it("hands an unverified completed back to the model, which must check or fail honestly", async () => {
     const h = harness([
       { text: "", toolCalls: [call("computer", { action: "file_write", path: "a.txt" })] },

@@ -1,0 +1,22 @@
+import { createRequire } from 'node:module';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+const root = 'C:/Users/haans/Desktop/caera-connect-plan';
+const work = fileURLToPath(new URL('.',import.meta.url));
+const { build } = createRequire(root+'/package.json')('esbuild');
+const tests = [
+ 'src/lib/intelligence/__tests__/workers-ai.test.ts',
+ 'src/lib/intelligence/__tests__/quality-routing.test.ts',
+ 'src/jarvis/__tests__/graph.test.ts',
+ 'src/jarvis/__tests__/schedule-time.test.ts',
+ 'src/jarvis/__tests__/agent.test.ts',
+ 'src/jarvis/__tests__/jarvis-rules.test.ts',
+ 'src/lib/intelligence/__tests__/router.test.ts',
+ 'src/lib/intelligence/__tests__/sse-data.test.ts',
+];
+const source = tests.map(path=>'import '+JSON.stringify(root+'/'+path)+';').join('\n')+'\nexport {runCollected} from '+JSON.stringify(work+'remote-test-adapter.mjs')+';';
+const output = (await build({stdin:{contents:source,resolveDir:root,loader:'ts'},absWorkingDir:root,tsconfig:root+'/tsconfig.json',bundle:true,format:'iife',globalName:'Tests',platform:'browser',minify:true,write:false,plugins:[{name:'remote-vitest-entry',setup(b){b.onResolve({filter:/\.test\.ts$/},args=>({path:args.path,sideEffects:true}));b.onResolve({filter:/^vitest$/},()=>({path:work+'remote-test-adapter.mjs'}));b.onResolve({filter:/^@vitest\//},args=>({path:createRequire(root+'/package.json').resolve(args.path)}));}}]})).outputFiles[0].text;
+const script='async () => {\n'+output+'\nreturn await Tests.runCollected();\n}';
+writeFileSync(new URL('existing-tests.js',import.meta.url),script);
+console.log(JSON.stringify({tests,bytes:Buffer.byteLength(script),sha256:createHash('sha256').update(script).digest('hex')}));

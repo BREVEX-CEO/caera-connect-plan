@@ -8,7 +8,6 @@ routeTree.gen.ts
 src/integrations/supabase/types.ts
 
 # Authority documents, held exactly as authored.
-PLAN.md
 CLAUDE.md
 
 # Written by scripts in their own layout.

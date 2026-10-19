@@ -1,0 +1,32 @@
+// Existing Vitest assertion/spy libraries; only test discovery/execution is adapted.
+import { chai, JestExtend, JestChaiExpect, ChaiStyleAssertions, JestAsymmetricMatchers, GLOBAL_EXPECT, ASYMMETRIC_MATCHERS_OBJECT, getState, setState } from '@vitest/expect';
+import { fn } from '@vitest/spy';
+chai.use(JestExtend);
+chai.use(JestChaiExpect);
+chai.use(ChaiStyleAssertions);
+chai.use(JestAsymmetricMatchers);
+export const expect = (value, message) => chai.expect(value, message);
+Object.assign(expect, chai.expect, globalThis[ASYMMETRIC_MATCHERS_OBJECT]);
+expect.getState = () => getState(expect);
+expect.setState = state => setState(state, expect);
+setState({ assertionCalls: 0, isExpectingAssertions: false }, expect);
+globalThis[GLOBAL_EXPECT] = expect;
+export const vi = { fn, mocked: value => value };
+const groups = [];
+const tests = [];
+export function describe(name, run) { groups.push(name); try { run(); } finally { groups.pop(); } }
+export function it(name, run) { tests.push({ name: [...groups, name].join(' / '), run }); }
+it.each = cases => (name, run) => cases.forEach((item, index) => it(name + ' [' + index + ']', () => run(...(Array.isArray(item) ? item : [item]))));
+export async function runCollected() {
+  // A broken assertion library cannot make every case pass silently.
+  let caught = false;
+  try { expect(1).toBe(2); } catch { caught = true; }
+  if (!caught || tests.length === 0) throw new Error('Assertion/discovery self-check failed');
+  const results = [];
+  for (const test of tests) {
+    const started = performance.now();
+    try { await test.run(); results.push({name:test.name,pass:true,ms:performance.now()-started}); }
+    catch(e) { results.push({name:test.name,pass:false,error:String(e),stack:e.stack?.slice(0,1000),ms:performance.now()-started}); }
+  }
+  return {environment:'Cloudflare remote JavaScript sandbox; unchanged repository test bodies, actual @vitest/expect and @vitest/spy 4.1.11; adapted test collector, not the Vitest Node runner; no provider/cloud API calls', cases:results.length,passed:results.filter(r=>r.pass).length,failed:results.filter(r=>!r.pass).length,results};
+}

@@ -1,6 +1,6 @@
 # OCADE active device runtime
 
-This directory is the active trusted companion. [Architecture](../docs/ARCHITECTURE.md) owns protocol/platform contracts, [PLAN](../PLAN.md) owns implementation, and [Testing](../docs/TESTING.md) owns development and installed-release evidence.
+This directory is the active trusted companion. [Architecture](../docs/ARCHITECTURE.md) owns protocol/platform contracts, [Archived plan](https://github.com/BREVEX-CEO/caera-connect-plan/blob/babd3318/PLAN.md) owns implementation, and [Testing](../docs/TESTING.md) owns development and installed-release evidence.
 
 The donor ZIPs and snapshot were removed from the repository on 11 October 2026 (manifest in [ToRemove](../ToRemove.md)); never reimport donor code. Code adapted from them earlier still needs its rights cleared before commercial distribution (PLAN P00-B). Preserve bundled signed wake assets, tray presence, scoped files, cancellation, durable outcomes, native Office fidelity and signed update/rollback.
 

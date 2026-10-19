@@ -1,6 +1,6 @@
 # OCADE retirement manifest
 
-This is a proof-gated retirement list, not another implementation plan or deployment runbook. [PLAN](PLAN.md) orders work; [Testing](docs/TESTING.md) owns release operations. Baseline: f521e23529542d709a9627181341b0e904a8b0c3. No product code was removed during the documentation mission.
+This is a proof-gated retirement list, not another implementation plan or deployment runbook. [Open work](BLOCKED_TESTS.md) orders unresolved implementation and verification; [Testing](docs/TESTING.md) owns release operations. Baseline: f521e23529542d709a9627181341b0e904a8b0c3. No product code was removed during the documentation mission.
 
 ## Required proof before every removal
 
@@ -73,7 +73,7 @@ Do not claim savings until measuring request count, timers/listeners, retained o
 
 ## Donor removal manifest — 11 October 2026
 
-Owner PLAN Section 0.4. Removed from the tracked tree after `a41983bd` (64 files, 7,732,547 bytes); the bytes remain in Git history (no rewrite). Both donor LICENSE files were the owner's own proprietary licence, still carried by `jarvis-runtime/LICENSE`; no third-party notice files were inside either ZIP. Rights for code adapted earlier remain a P00-B question.
+Historical owner removal decision; see the [archived plan](https://github.com/BREVEX-CEO/caera-connect-plan/blob/babd3318/PLAN.md). Removed from the tracked tree after `a41983bd` (64 files, 7,732,547 bytes); the bytes remain in Git history (no rewrite). Both donor LICENSE files were the owner's own proprietary licence, still carried by `jarvis-runtime/LICENSE`; no third-party notice files were inside either ZIP. Rights for code adapted earlier remain a P00-B question.
 
 ```text
 100644 blob 96269e867ab4b01ddd462b0c075b85eb358843ff	imports/UI OCADE JARVIS.zip

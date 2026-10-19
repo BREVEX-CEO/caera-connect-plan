@@ -1,6 +1,6 @@
 # OCADE Architecture
 
-Architecture authority, revised 9 October 2026. [PLAN.md](../PLAN.md) owns implementation order and release gates. This document owns runtime boundaries, execution contracts, platform behaviour and failure semantics. Requirements below are targets unless labelled current; documentation does not implement or verify them.
+Architecture authority, revised 9 October 2026. [Open work](../BLOCKED_TESTS.md) owns unresolved implementation and verification; [Testing](TESTING.md) owns release gates. This document owns runtime boundaries, execution contracts, platform behaviour and failure semantics. Requirements below are targets unless labelled current; documentation does not implement or verify them.
 
 ## 1. Protected boundaries and existing owners
 
@@ -170,6 +170,8 @@ Verification independently reads the target using immutable expected predicates 
 - Messaging proof distinguishes prepared, submitted, provider-accepted and delivered. Delivery requires target evidence; a sent-tool call alone is insufficient.
 
 Wire checks into foreground `agent.ts` and background `background.server.ts` before finish, enforce final transition in `task-authority.server.ts`, and preserve sanitisation/acks in `device.server.ts`. Forged/direct server calls cannot bypass settlement policy. Old completed rows remain historical outcomes, not retroactively independently verified results.
+
+The current completion owner invalidates file evidence after a later command or ancestor-directory mutation; edited-file content and workbook sheets must be reread after that change. Populated workbook rows require measured nonnegative integer `filledRows` counts, never formatted extent or a missing count from an older companion. Research is successful evidence only after a complete, nonempty provider turn without refusal; partial text cannot be billed as delivered research or journaled as a successful source. These source guards have isolated remote regression proof; semantic workflow predicates and full cloud/database/provider qualification remain open in [the continuation queue](../BLOCKED_TESTS.md).
 
 ## 6. STOP, takeover, partial effects and recovery
 

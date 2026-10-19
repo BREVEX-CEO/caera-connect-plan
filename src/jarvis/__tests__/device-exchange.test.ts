@@ -791,8 +791,8 @@ describe("completion needs evidence from the device (P01)", () => {
         workbook: {
           sheet: name,
           sheets: [
-            { name: "Sheet1", rows: 12 },
-            { name: "Summary", rows: 3 },
+            { name: "Sheet1", rows: 12, filledRows: 12 },
+            { name: "Summary", rows: 3, filledRows: 3 },
           ],
           cells: [Object.entries(cells).map(([cell, value]) => ({ cell, value }))],
         },
@@ -835,7 +835,13 @@ describe("completion needs evidence from the device (P01)", () => {
         status: "done",
         changed: [],
         observation: null,
-        detail: { workbook: { sheet: "Sheet1", sheets: [{ name: "Matched", rows }], cells: [] } },
+        detail: {
+          workbook: {
+            sheet: "Sheet1",
+            sheets: [{ name: "Matched", rows, filledRows: rows }],
+            cells: [],
+          },
+        },
       });
       await done(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }));
       await done(await queue(t, { action: "file_extract", path: "r.xlsx" }), {
@@ -858,8 +864,8 @@ describe("completion needs evidence from the device (P01)", () => {
           workbook: {
             sheet: "Matched",
             sheets: [
-              { name: "Matched", rows: 8 },
-              { name: "Unmatched", rows: 1 },
+              { name: "Matched", rows: 8, filledRows: 8 },
+              { name: "Unmatched", rows: 1, filledRows: 1 },
             ],
             cells: [],
           },
@@ -902,7 +908,7 @@ describe("completion needs evidence from the device (P01)", () => {
       const t = await withChecks([{ contains: ["India"] }]);
       await done(await queue(t, { action: "find_text", text: "1.43" }), {
         status: "done",
-        detail: { text: "India" },
+        detail: { found: ["India"] },
       });
       const finish = () =>
         changeTask(rest() as never, rest() as never, A, {
@@ -939,16 +945,253 @@ describe("completion needs evidence from the device (P01)", () => {
       await expect(complete(t)).rejects.toThrow(/Matched sheet of r\.xlsx has no rows below/);
     });
 
+    it.each([undefined, "many", 2.5, -2])(
+      "refuses missing or malformed populated-row counts (%s), then accepts a measured count",
+      async (count) => {
+        for (const changed of [false, true]) {
+          const t = await withChecks([{ path: "r.xlsx", sheet: "Matched" }]);
+          const inspect = (sheets: object[]) =>
+            queue(t, { action: "sheet_inspect", path: "r.xlsx" }).then((id) =>
+              done(id, { status: "done", detail: { workbook: { sheets, cells: [] } } }),
+            );
+          if (changed)
+            await done(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }));
+          await inspect([
+            { name: "Matched", rows: 12, ...(count === undefined ? {} : { filledRows: count }) },
+          ]);
+          await expect(complete(t)).rejects.toThrow(/did not report a valid filledRows count/);
+          await inspect([{ name: "Matched", rows: 12, filledRows: 3 }]);
+          await complete(t);
+        }
+      },
+    );
+
+    it("refuses an edited workbook whose inspection reports no sheets", async () => {
+      const t = await withChecks([{ path: "r.xlsx" }]);
+      await done(await queue(t, { action: "sheet_edit", path: "r.xlsx", ops: [] }));
+      await done(await queue(t, { action: "sheet_inspect", path: "r.xlsx" }), {
+        status: "done",
+        detail: { workbook: { sheets: [], cells: [] } },
+      });
+      await expect(complete(t)).rejects.toThrow(/not read with sheet_inspect/);
+    });
+
     it("refuses a task that has no checks, however well it was read back", async () => {
       const t = await task();
       await done(await queue(t, { action: "file_write", path: "a.txt", content: "x" }));
       await done(await queue(t, { action: "file_read", path: "a.txt" }), {
         status: "done",
-        text: "x",
+        detail: { content: "x" },
       });
       expect(await completionGap(rest() as never, A, t)).toBeNull(); // structure alone
       await expect(complete(t)).rejects.toThrow(/no checks for its result/);
     });
+
+    it("does not prove target content using removed text or the other file's comparison values", async () => {
+      const t = await withChecks([{ path: "final.txt", contains: ["approved"] }]);
+      await done(await queue(t, { action: "file_write", path: "final.txt", content: "rejected" }));
+      await done(
+        await queue(t, { action: "file_compare", path: "final.txt", to: "baseline.txt" }),
+        {
+          status: "done",
+          detail: { changes: { kind: "lines", lines: ["-rejected", "+approved"], more: 0 } },
+        },
+      );
+      await expect(complete(t)).rejects.toThrow(/content was never read back/);
+      await done(await queue(t, { action: "file_read", path: "final.txt" }), {
+        status: "done",
+        detail: { content: "rejected" },
+      });
+      await expect(complete(t)).rejects.toThrow(/"approved" is not in final.txt/);
+      await done(await queue(t, { action: "file_write", path: "final.txt", content: "approved" }));
+      await done(await queue(t, { action: "file_read", path: "final.txt" }), {
+        status: "done",
+        detail: { content: "approved" },
+      });
+      await complete(t);
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
+    it.each(["done", "123"])(
+      "does not count result metadata as file content (%s)",
+      async (wanted) => {
+        const t = await withChecks([{ path: "a.txt", contains: [wanted] }]);
+        await done(await queue(t, { action: "file_read", path: "a.txt" }), {
+          status: "done",
+          changed: [],
+          observation: null,
+          detail: { content: "unfinished", ms: 123 },
+        });
+        await expect(complete(t)).rejects.toThrow(/is not in a.txt/);
+      },
+    );
+
+    it("does not count an inactive tab's title as active page content", async () => {
+      const t = await withChecks([{ contains: ["Order approved"] }]);
+      await done(await queue(t, { action: "observe" }), {
+        status: "done",
+        observation: { text: "Order rejected", tabs: [{ title: "Order approved", active: false }] },
+      });
+      await expect(complete(t)).rejects.toThrow(/is not in the screen or page/);
+    });
+
+    it("uses the latest content read when a file or page changes outside the task", async () => {
+      for (const path of ["a.txt", null]) {
+        const t = await withChecks([{ ...(path ? { path } : {}), contains: ["approved"] }]);
+        for (const text of ["approved", "rejected"]) {
+          await done(await queue(t, path ? { action: "file_read", path } : { action: "observe" }), {
+            status: "done",
+            ...(path ? { detail: { content: text } } : { observation: { text } }),
+          });
+        }
+        await expect(complete(t)).rejects.toThrow(/"approved" is not in/);
+      }
+    });
+
+    it.each([
+      { action: "file_trash", path: "folder" },
+      { action: "file_move", path: "folder", to: "archive" },
+      { action: "file_copy", path: "replacement", to: "folder" },
+      { action: "file_delete", path: "FOLDER\\" },
+      { action: "file_trash", path: "." },
+    ])("invalidates descendant checks after $action on $path", async (action) => {
+      const t = await withChecks([{ path: "folder/a.txt", contains: ["approved"] }]);
+      const read = () =>
+        queue(t, { action: "file_read", path: "folder/a.txt" }).then((id) =>
+          done(id, { status: "done", detail: { content: "approved" } }),
+        );
+      await read();
+      await done(await queue(t, action));
+      await done(await queue(t, { action: "file_info", path: "other.txt" }));
+      await expect(complete(t)).rejects.toThrow(/folder\/a.txt was not read/);
+      await read();
+      await complete(t);
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
+    it("requires fresh edited-file content after a command, including for recipe proof", async () => {
+      const t = await withChecks([{ path: "a.txt", contains: ["approved"] }]);
+      const read = () =>
+        queue(t, { action: "file_read", path: "a.txt" }).then((id) =>
+          done(id, { status: "done", detail: { content: "approved" } }),
+        );
+      await done(await queue(t, { action: "file_write", path: "a.txt", content: "approved" }));
+      await read();
+      await done(await queue(t, { action: "run", command: "python update.py" }));
+      await done(await queue(t, { action: "observe" }));
+      expect(await completionGap(rest() as never, A, t)).toMatch(/content was never read back/);
+      await expect(complete(t)).rejects.toThrow(/content was never read back/);
+      await read();
+      expect(await completionGap(rest() as never, A, t)).toBeNull();
+      await complete(t);
+    });
+
+    it("does not invalidate a file check for a directory with only a shared prefix", async () => {
+      const t = await withChecks([{ path: "folder/a.txt", contains: ["approved"] }]);
+      await done(await queue(t, { action: "file_read", path: "folder/a.txt" }), {
+        status: "done",
+        detail: { content: "approved" },
+      });
+      await done(await queue(t, { action: "file_trash", path: "folder-other" }));
+      await done(await queue(t, { action: "file_info", path: "other.txt" }));
+      await complete(t);
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
+    it("does not substantiate a final numeric claim from elapsed milliseconds", async () => {
+      const t = await withChecks([{ path: "a.txt", contains: ["unfinished"] }]);
+      await done(await queue(t, { action: "file_read", path: "a.txt" }), {
+        status: "done",
+        detail: { content: "unfinished", ms: 123 },
+      });
+      await expect(
+        changeTask(rest() as never, rest() as never, A, {
+          id: t,
+          status: "completed",
+          result: "Processed 123 items.",
+        }),
+      ).rejects.toThrow(/123 is not in anything this task read/);
+    });
+
+    it("invalidates numeric evidence when a later command could have changed its file", async () => {
+      const t = await withChecks([{ path: "b.txt" }]);
+      await done(await queue(t, { action: "file_read", path: "a.txt" }), {
+        status: "done",
+        detail: { content: "123" },
+      });
+      await done(await queue(t, { action: "run", command: "python update.py" }));
+      await done(await queue(t, { action: "file_info", path: "b.txt" }));
+      await expect(
+        changeTask(rest() as never, rest() as never, A, {
+          id: t,
+          status: "completed",
+          result: "The total is 123.",
+        }),
+      ).rejects.toThrow(/123 is not in anything this task read/);
+    });
+
+    it("keeps STOP when it lands between verification and the completion write", async () => {
+      const t = await withChecks([{ path: "a.txt" }]);
+      await done(await queue(t, { action: "file_info", path: "a.txt" }));
+      let intercepted = false;
+      const concurrent = restOver({
+        async asServiceRole(sql: string) {
+          if (/^update public\.jarvis_tasks set .*status = 'completed'/.test(sql)) {
+            intercepted = true;
+            await twin.asServiceRole(
+              `update public.jarvis_tasks set status = 'stopped' where id = '${t}'`,
+            );
+          }
+          return twin.asServiceRole(sql);
+        },
+      } as DatabaseTwin);
+      expect(
+        await changeTask(rest() as never, concurrent as never, A, { id: t, status: "completed" }),
+      ).toBeNull();
+      expect(intercepted).toBe(true);
+      expect((await statusOf(t)).status).toBe("stopped");
+      const charges = await twin.asServiceRole(
+        `select * from public.ocade_jarvis_task_charges where task_id = '${t}'`,
+      );
+      expect(charges).toHaveLength(0);
+    });
+
+    it("does not let a stale waiting-task resume overwrite a newer STOP", async () => {
+      const t = await withChecks([{ path: "a.txt" }]);
+      await twin.asServiceRole(
+        `update public.jarvis_tasks set status = 'stopped' where id = '${t}'`,
+      );
+      expect(
+        await changeTask(rest() as never, rest() as never, A, {
+          id: t,
+          status: "running",
+          expectedStatus: "waiting",
+          controller: A,
+        }),
+      ).toBeNull();
+      expect((await statusOf(t)).status).toBe("stopped");
+    });
+
+    it.each(["stopped", "waiting", "taken_over", "failed", "blocked"])(
+      "refuses direct service completion from %s in the database without charging",
+      async (state) => {
+        const t = await withChecks([{ path: "a.txt" }]);
+        await done(await queue(t, { action: "file_info", path: "a.txt" }));
+        await twin.asServiceRole(
+          `update public.jarvis_tasks set status = '${state}' where id = '${t}'`,
+        );
+        await expect(
+          twin.asServiceRole(
+            `update public.jarvis_tasks set status = 'completed', verified_actions = 1 where id = '${t}'`,
+          ),
+        ).rejects.toThrow(/Only a running task can complete/);
+        expect((await statusOf(t)).status).toBe(state);
+        const charges = await twin.asServiceRole(
+          `select * from public.ocade_jarvis_task_charges where task_id = '${t}'`,
+        );
+        expect(charges).toHaveLength(0);
+      },
+    );
 
     it("refuses the right words with the wrong total, then completes once the cell is right", async () => {
       const t = await withChecks([{ path: "r.xlsx", cell: "B10", equals: "4520" }]);
@@ -991,16 +1234,23 @@ describe("completion needs evidence from the device (P01)", () => {
       // A command could have changed any file: what was read before it no longer counts.
       await done(await queue(t, { action: "run", command: "python tidy.py" }));
       await done(await queue(t, { action: "file_info", path: "r.xlsx" }));
-      await expect(complete(t)).rejects.toThrow(/r\.xlsx was not read for its content/);
+      await expect(complete(t)).rejects.toThrow(/content was never read back/);
       await done(await queue(t, { action: "file_read", path: "R.XLSX" }), {
         status: "done",
-        text: "Total",
+        detail: { content: "Total" },
       });
-      await expect(complete(t)).rejects.toThrow(/A1 of r\.xlsx \(Summary\) was not read/);
+      await expect(complete(t)).rejects.toThrow(/not read with sheet_inspect/);
       await done(
         await queue(t, { action: "sheet_inspect", path: "r.xlsx", sheet: "Summary" }),
         sheet({ A1: "Done" }, "Summary"),
       );
+      // A fresh full-file read must substantiate the content check; an older
+      // sheet preview cannot mask a later snapshot that no longer shows Total.
+      await expect(complete(t)).rejects.toThrow(/"Total" is not in r.xlsx/);
+      await done(await queue(t, { action: "file_extract", path: "r.xlsx" }), {
+        status: "done",
+        detail: { content: "Total\nSummary\nDone" },
+      });
       await complete(t);
       expect((await statusOf(t)).status).toBe("completed");
     });
@@ -1009,7 +1259,7 @@ describe("completion needs evidence from the device (P01)", () => {
       const t = await withChecks([{ contains: ["Order 1234 placed"] }]);
       await done(await queue(t, { action: "observe" }), {
         status: "done",
-        text: "Order 1234 placed",
+        observation: { text: "Order 1234 placed" },
       });
       await done(await queue(t, { action: "click", ref: "e1", observationId: "o1" }));
       // Playing a video is a change, not a read.
@@ -1017,12 +1267,12 @@ describe("completion needs evidence from the device (P01)", () => {
       await expect(complete(t)).rejects.toThrow(/nothing has read the result back/);
       await done(await queue(t, { action: "media", op: "state" }), {
         status: "done",
-        text: "playing",
+        detail: { media: { paused: false, currentTime: 0, duration: 120 } },
       });
       await expect(complete(t)).rejects.toThrow(/"Order 1234 placed" is not in the screen or page/);
       await done(await queue(t, { action: "find_text", text: "Order" }), {
         status: "done",
-        text: "Order 1234 placed",
+        detail: { found: ["Order 1234 placed"] },
       });
       await complete(t);
       expect((await statusOf(t)).status).toBe("completed");
@@ -1038,7 +1288,7 @@ describe("completion needs evidence from the device (P01)", () => {
       await expect(complete(t)).rejects.toThrow(/outcome is unknown.*Read a\.txt again/);
       await done(await queue(t, { action: "file_read", path: "a.txt" }), {
         status: "done",
-        text: "x",
+        detail: { content: "x" },
       });
       await complete(t);
       expect((await statusOf(t)).status).toBe("completed");
@@ -1057,7 +1307,7 @@ describe("completion needs evidence from the device (P01)", () => {
       await done(last);
       await done(await queue(t, { action: "file_read", path: "a.txt" }), {
         status: "done",
-        text: "x",
+        detail: { content: "x" },
       });
       await complete(t);
       expect(await statusOf(t)).toEqual({ status: "completed", verified_actions: 1102 });

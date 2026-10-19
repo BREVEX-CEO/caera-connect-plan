@@ -469,6 +469,7 @@ export const updateJarvisTask = createServerFn({ method: "POST" })
       .object({
         id: uuid,
         status: z.enum(TASK_STATUSES).optional(),
+        expectedStatus: z.enum(TASK_STATUSES).optional(),
         currentStep: z.number().int().min(0).max(12).optional(),
         result: z.string().max(8000).nullable().optional(),
         blocker: z.string().max(300).nullable().optional(),

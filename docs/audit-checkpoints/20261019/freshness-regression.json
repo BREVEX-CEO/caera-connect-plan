@@ -1,0 +1,541 @@
+{
+  "date": "2026-10-19",
+  "base_sha": "4ba70185ce1e19f41370639a085d1001898dfccc",
+  "before_candidate": "preserved incoming dirty task-authority source at manually initiated continuation, not the clean base",
+  "classification": "ISOLATED_CLOUD_LOGIC_REGRESSION; actual compiled task authority, synthetic database/query dependencies; not a full Vitest, PostgreSQL, real-provider, native-device or workflow gate",
+  "before": {
+    "environment": "Remote Cloudflare MCP JavaScript sandbox; actual compiled task authority, synthetic PostgREST rows/query adapter and notification sink; NOT PostgreSQL or hosted-RLS evidence",
+    "cases": 33,
+    "passed": 20,
+    "failed": 13,
+    "results": [
+      {
+        "name": "comparison reference text is not target content",
+        "pass": true,
+        "result": "final.txt was changed but its content was never read back. Read it (file_read, file_extract or sheet_inspect), then finish."
+      },
+      {
+        "name": "file metadata cannot satisfy done",
+        "pass": true,
+        "result": "\"done\" is not in a.txt as the device read it after its last change. Fix it, or finish as failed and say what differs."
+      },
+      {
+        "name": "file metadata cannot satisfy 123",
+        "pass": true,
+        "result": "\"123\" is not in a.txt as the device read it after its last change. Fix it, or finish as failed and say what differs."
+      },
+      {
+        "name": "inactive browser tab is not page content",
+        "pass": true,
+        "result": "\"Order approved\" is not in the screen or page as the device read it after its last change. Fix it, or finish as failed and say what differs."
+      },
+      {
+        "name": "latest contradictory file read wins",
+        "pass": true,
+        "result": "\"approved\" is not in a.txt as the device read it after its last change. Fix it, or finish as failed and say what differs."
+      },
+      {
+        "name": "latest contradictory page read wins",
+        "pass": true,
+        "result": "\"approved\" is not in the screen or page as the device read it after its last change. Fix it, or finish as failed and say what differs."
+      },
+      {
+        "name": "real file content still satisfies",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "real workbook value still satisfies",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "active page semantic text still satisfies",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "STOP interposed after verification blocks stale application completion",
+        "pass": true,
+        "returned": null,
+        "status": "stopped",
+        "updates": 0
+      },
+      {
+        "name": "elapsed milliseconds cannot substantiate a final numeric claim",
+        "pass": true,
+        "error": "Error: Not verified: 123 is not in anything this task read. Say only what the device read, or read it first, then finish."
+      },
+      {
+        "name": "invalidate stale numeric reads after run",
+        "pass": true,
+        "error": "Error: Not verified: 123 is not in anything this task read. Say only what the device read, or read it first, then finish."
+      },
+      {
+        "name": "invalidate stale numeric reads after file_trash",
+        "pass": true,
+        "error": "Error: Not verified: 123 is not in anything this task read. Say only what the device read, or read it first, then finish."
+      },
+      {
+        "name": "stale waiting resume cannot overwrite STOP",
+        "pass": true,
+        "returned": null,
+        "status": "stopped"
+      },
+      {
+        "name": "directory {\"action\":\"file_trash\",\"path\":\"folder\"} invalidates descendant check",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "directory {\"action\":\"file_move\",\"path\":\"folder\",\"to\":\"archive\"} invalidates descendant check",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "directory {\"action\":\"file_copy\",\"path\":\"replacement\",\"to\":\"folder\"} invalidates descendant check",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "directory {\"action\":\"file_delete\",\"path\":\"FOLDER\\\\\"} invalidates descendant check",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "directory {\"action\":\"file_trash\",\"path\":\".\"} invalidates descendant check",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "command after content read invalidates recipe proof",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "fresh content after command restores proof",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "fresh descendant read after replacement restores check",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "directory prefix sibling does not invalidate check",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "unverified workbook data count undefined cannot complete",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "asked-for sheet also requires verified data count undefined",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "unverified workbook data count many cannot complete",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "asked-for sheet also requires verified data count many",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "unverified workbook data count 2.5 cannot complete",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "asked-for sheet also requires verified data count 2.5",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "unverified workbook data count -2 cannot complete",
+        "pass": true,
+        "result": "the Matched sheet of r.xlsx has no rows below its header. Fill it, or finish as failed and say why it is empty."
+      },
+      {
+        "name": "asked-for sheet also requires verified data count -2",
+        "pass": true,
+        "result": "the Matched sheet of r.xlsx has no rows below its header. Fill it, or finish as failed and say why it is empty."
+      },
+      {
+        "name": "empty workbook sheet metadata cannot complete",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "valid measured workbook data count completes",
+        "pass": true,
+        "result": null
+      }
+    ]
+  },
+  "after_freshness_before_count_fix": {
+    "environment": "Remote Cloudflare MCP JavaScript sandbox; actual compiled task authority, synthetic PostgREST rows/query adapter and notification sink; NOT PostgreSQL or hosted-RLS evidence",
+    "cases": 33,
+    "passed": 26,
+    "failed": 7,
+    "results": [
+      {
+        "name": "comparison reference text is not target content",
+        "pass": true,
+        "result": "final.txt was changed but its content was never read back. Read it (file_read, file_extract or sheet_inspect), then finish."
+      },
+      {
+        "name": "file metadata cannot satisfy done",
+        "pass": true,
+        "result": "\"done\" is not in a.txt as the device read it after its last change. Fix it, or finish as failed and say what differs."
+      },
+      {
+        "name": "file metadata cannot satisfy 123",
+        "pass": true,
+        "result": "\"123\" is not in a.txt as the device read it after its last change. Fix it, or finish as failed and say what differs."
+      },
+      {
+        "name": "inactive browser tab is not page content",
+        "pass": true,
+        "result": "\"Order approved\" is not in the screen or page as the device read it after its last change. Fix it, or finish as failed and say what differs."
+      },
+      {
+        "name": "latest contradictory file read wins",
+        "pass": true,
+        "result": "\"approved\" is not in a.txt as the device read it after its last change. Fix it, or finish as failed and say what differs."
+      },
+      {
+        "name": "latest contradictory page read wins",
+        "pass": true,
+        "result": "\"approved\" is not in the screen or page as the device read it after its last change. Fix it, or finish as failed and say what differs."
+      },
+      {
+        "name": "real file content still satisfies",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "real workbook value still satisfies",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "active page semantic text still satisfies",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "STOP interposed after verification blocks stale application completion",
+        "pass": true,
+        "returned": null,
+        "status": "stopped",
+        "updates": 0
+      },
+      {
+        "name": "elapsed milliseconds cannot substantiate a final numeric claim",
+        "pass": true,
+        "error": "Error: Not verified: 123 is not in anything this task read. Say only what the device read, or read it first, then finish."
+      },
+      {
+        "name": "invalidate stale numeric reads after run",
+        "pass": true,
+        "error": "Error: Not verified: 123 is not in anything this task read. Say only what the device read, or read it first, then finish."
+      },
+      {
+        "name": "invalidate stale numeric reads after file_trash",
+        "pass": true,
+        "error": "Error: Not verified: 123 is not in anything this task read. Say only what the device read, or read it first, then finish."
+      },
+      {
+        "name": "stale waiting resume cannot overwrite STOP",
+        "pass": true,
+        "returned": null,
+        "status": "stopped"
+      },
+      {
+        "name": "directory {\"action\":\"file_trash\",\"path\":\"folder\"} invalidates descendant check",
+        "pass": true,
+        "result": "folder/a.txt was not read for its content after its last change. Read it again, then finish."
+      },
+      {
+        "name": "directory {\"action\":\"file_move\",\"path\":\"folder\",\"to\":\"archive\"} invalidates descendant check",
+        "pass": true,
+        "result": "folder/a.txt was not read for its content after its last change. Read it again, then finish."
+      },
+      {
+        "name": "directory {\"action\":\"file_copy\",\"path\":\"replacement\",\"to\":\"folder\"} invalidates descendant check",
+        "pass": true,
+        "result": "folder/a.txt was not read for its content after its last change. Read it again, then finish."
+      },
+      {
+        "name": "directory {\"action\":\"file_delete\",\"path\":\"FOLDER\\\\\"} invalidates descendant check",
+        "pass": true,
+        "result": "folder/a.txt was not read for its content after its last change. Read it again, then finish."
+      },
+      {
+        "name": "directory {\"action\":\"file_trash\",\"path\":\".\"} invalidates descendant check",
+        "pass": true,
+        "result": "folder/a.txt was not read for its content after its last change. Read it again, then finish."
+      },
+      {
+        "name": "command after content read invalidates recipe proof",
+        "pass": true,
+        "result": "folder/a.txt was changed but its content was never read back. Read it (file_read, file_extract or sheet_inspect), then finish."
+      },
+      {
+        "name": "fresh content after command restores proof",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "fresh descendant read after replacement restores check",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "directory prefix sibling does not invalidate check",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "unverified workbook data count undefined cannot complete",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "asked-for sheet also requires verified data count undefined",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "unverified workbook data count many cannot complete",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "asked-for sheet also requires verified data count many",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "unverified workbook data count 2.5 cannot complete",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "asked-for sheet also requires verified data count 2.5",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "unverified workbook data count -2 cannot complete",
+        "pass": true,
+        "result": "the Matched sheet of r.xlsx has no rows below its header. Fill it, or finish as failed and say why it is empty."
+      },
+      {
+        "name": "asked-for sheet also requires verified data count -2",
+        "pass": true,
+        "result": "the Matched sheet of r.xlsx has no rows below its header. Fill it, or finish as failed and say why it is empty."
+      },
+      {
+        "name": "empty workbook sheet metadata cannot complete",
+        "pass": false,
+        "result": null
+      },
+      {
+        "name": "valid measured workbook data count completes",
+        "pass": true,
+        "result": null
+      }
+    ]
+  },
+  "after": {
+    "environment": "Remote Cloudflare MCP JavaScript sandbox; actual compiled task authority, synthetic PostgREST rows/query adapter and notification sink; NOT PostgreSQL or hosted-RLS evidence",
+    "cases": 33,
+    "passed": 33,
+    "failed": 0,
+    "results": [
+      {
+        "name": "comparison reference text is not target content",
+        "pass": true,
+        "result": "final.txt was changed but its content was never read back. Read it (file_read, file_extract or sheet_inspect), then finish."
+      },
+      {
+        "name": "file metadata cannot satisfy done",
+        "pass": true,
+        "result": "\"done\" is not in a.txt as the device read it after its last change. Fix it, or finish as failed and say what differs."
+      },
+      {
+        "name": "file metadata cannot satisfy 123",
+        "pass": true,
+        "result": "\"123\" is not in a.txt as the device read it after its last change. Fix it, or finish as failed and say what differs."
+      },
+      {
+        "name": "inactive browser tab is not page content",
+        "pass": true,
+        "result": "\"Order approved\" is not in the screen or page as the device read it after its last change. Fix it, or finish as failed and say what differs."
+      },
+      {
+        "name": "latest contradictory file read wins",
+        "pass": true,
+        "result": "\"approved\" is not in a.txt as the device read it after its last change. Fix it, or finish as failed and say what differs."
+      },
+      {
+        "name": "latest contradictory page read wins",
+        "pass": true,
+        "result": "\"approved\" is not in the screen or page as the device read it after its last change. Fix it, or finish as failed and say what differs."
+      },
+      {
+        "name": "real file content still satisfies",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "real workbook value still satisfies",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "active page semantic text still satisfies",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "STOP interposed after verification blocks stale application completion",
+        "pass": true,
+        "returned": null,
+        "status": "stopped",
+        "updates": 0
+      },
+      {
+        "name": "elapsed milliseconds cannot substantiate a final numeric claim",
+        "pass": true,
+        "error": "Error: Not verified: 123 is not in anything this task read. Say only what the device read, or read it first, then finish."
+      },
+      {
+        "name": "invalidate stale numeric reads after run",
+        "pass": true,
+        "error": "Error: Not verified: 123 is not in anything this task read. Say only what the device read, or read it first, then finish."
+      },
+      {
+        "name": "invalidate stale numeric reads after file_trash",
+        "pass": true,
+        "error": "Error: Not verified: 123 is not in anything this task read. Say only what the device read, or read it first, then finish."
+      },
+      {
+        "name": "stale waiting resume cannot overwrite STOP",
+        "pass": true,
+        "returned": null,
+        "status": "stopped"
+      },
+      {
+        "name": "directory {\"action\":\"file_trash\",\"path\":\"folder\"} invalidates descendant check",
+        "pass": true,
+        "result": "folder/a.txt was not read for its content after its last change. Read it again, then finish."
+      },
+      {
+        "name": "directory {\"action\":\"file_move\",\"path\":\"folder\",\"to\":\"archive\"} invalidates descendant check",
+        "pass": true,
+        "result": "folder/a.txt was not read for its content after its last change. Read it again, then finish."
+      },
+      {
+        "name": "directory {\"action\":\"file_copy\",\"path\":\"replacement\",\"to\":\"folder\"} invalidates descendant check",
+        "pass": true,
+        "result": "folder/a.txt was not read for its content after its last change. Read it again, then finish."
+      },
+      {
+        "name": "directory {\"action\":\"file_delete\",\"path\":\"FOLDER\\\\\"} invalidates descendant check",
+        "pass": true,
+        "result": "folder/a.txt was not read for its content after its last change. Read it again, then finish."
+      },
+      {
+        "name": "directory {\"action\":\"file_trash\",\"path\":\".\"} invalidates descendant check",
+        "pass": true,
+        "result": "folder/a.txt was not read for its content after its last change. Read it again, then finish."
+      },
+      {
+        "name": "command after content read invalidates recipe proof",
+        "pass": true,
+        "result": "folder/a.txt was changed but its content was never read back. Read it (file_read, file_extract or sheet_inspect), then finish."
+      },
+      {
+        "name": "fresh content after command restores proof",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "fresh descendant read after replacement restores check",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "directory prefix sibling does not invalidate check",
+        "pass": true,
+        "result": null
+      },
+      {
+        "name": "unverified workbook data count undefined cannot complete",
+        "pass": true,
+        "result": "the Matched sheet of r.xlsx did not report a valid filledRows count. Update the connected device and read it with sheet_inspect, then finish."
+      },
+      {
+        "name": "asked-for sheet also requires verified data count undefined",
+        "pass": true,
+        "result": "the Matched sheet of r.xlsx did not report a valid filledRows count. Update the connected device and read it with sheet_inspect, then finish."
+      },
+      {
+        "name": "unverified workbook data count many cannot complete",
+        "pass": true,
+        "result": "the Matched sheet of r.xlsx did not report a valid filledRows count. Update the connected device and read it with sheet_inspect, then finish."
+      },
+      {
+        "name": "asked-for sheet also requires verified data count many",
+        "pass": true,
+        "result": "the Matched sheet of r.xlsx did not report a valid filledRows count. Update the connected device and read it with sheet_inspect, then finish."
+      },
+      {
+        "name": "unverified workbook data count 2.5 cannot complete",
+        "pass": true,
+        "result": "the Matched sheet of r.xlsx did not report a valid filledRows count. Update the connected device and read it with sheet_inspect, then finish."
+      },
+      {
+        "name": "asked-for sheet also requires verified data count 2.5",
+        "pass": true,
+        "result": "the Matched sheet of r.xlsx did not report a valid filledRows count. Update the connected device and read it with sheet_inspect, then finish."
+      },
+      {
+        "name": "unverified workbook data count -2 cannot complete",
+        "pass": true,
+        "result": "the Matched sheet of r.xlsx did not report a valid filledRows count. Update the connected device and read it with sheet_inspect, then finish."
+      },
+      {
+        "name": "asked-for sheet also requires verified data count -2",
+        "pass": true,
+        "result": "the Matched sheet of r.xlsx did not report a valid filledRows count. Update the connected device and read it with sheet_inspect, then finish."
+      },
+      {
+        "name": "empty workbook sheet metadata cannot complete",
+        "pass": true,
+        "result": "r.xlsx was changed but not read with sheet_inspect. Read its sheets, then finish."
+      },
+      {
+        "name": "valid measured workbook data count completes",
+        "pass": true,
+        "result": null
+      }
+    ]
+  },
+  "sha256": {
+    "before_source": "79754cd9a19d659ea2019c1ab9b8c5c5f4b0899c80b85dd126f55c3d2b95b607",
+    "patched_source": "c2e0e74ad4640f078248f5d515088e52b18fdef18038b407fbbb5a8ca6440ae2",
+    "before_bundle": "df375db77ef9ce48d206b55958ee8e15708544ad83c5b5eba6c07971f4dac236",
+    "patched_bundle": "8e327d48bd81d6336f02c316d7129d6b999b218d4670dadca5b6e68c5ed60283",
+    "checks": "41f305c7061e7b81691f5be2100e2c4b807ee29eacc435c2040d92788cf8cea5"
+  }
+}

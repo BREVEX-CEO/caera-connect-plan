@@ -7,13 +7,75 @@ vi.mock("@/lib/intelligence/online-client", () => ({
   createOnlineIntelligenceTransport: () => online,
 }));
 vi.mock("@/lib/commercial/use-generation-permit", () => ({ beginBilledRequest: vi.fn() }));
-vi.mock("../jarvis.functions", () => ({}));
+vi.mock("../jarvis.functions", () => ({ recordJarvisResearch: vi.fn(async () => undefined) }));
 vi.mock("../changes", () => ({ actionChanged: vi.fn() }));
 
 const { askThroughBusy, Unavailable, ModelRefused, liveDeps } = await import("../live-deps");
 const { beginBilledRequest } = await import("@/lib/commercial/use-generation-permit");
+const { recordJarvisResearch } = await import("../jarvis.functions");
 
 describe("a busy model answer", () => {
+  it.each(["provider_failed", "retryable", "cancelled", "eof", "empty", "complete"])(
+    "uses only complete research as delivered evidence (%s)",
+    async (ending) => {
+      const billed = {
+        permit: {
+          id: "p",
+          generationId: "g",
+          idempotencyKey: "i",
+          surface: "jarvis" as const,
+          source: "server" as const,
+        },
+        recordDelivery: vi.fn(),
+        settle: vi.fn(async () => undefined),
+      };
+      vi.mocked(beginBilledRequest).mockResolvedValue(billed);
+      vi.mocked(recordJarvisResearch).mockClear();
+      const text = "Revenue is 12345.";
+      online.stream.mockImplementation(async function* () {
+        if (ending !== "empty") yield { type: "token", text } satisfies IntelligenceEvent;
+        if (ending === "complete") {
+          yield {
+            type: "final",
+            response: {
+              text,
+              toolCalls: [],
+              toolResults: [],
+              backend: "online",
+              stopReason: "end_turn",
+            },
+          } satisfies IntelligenceEvent;
+        } else if (ending !== "eof" && ending !== "empty") {
+          yield {
+            type: "refusal",
+            code: ending === "cancelled" ? "cancelled" : "provider_failed",
+            reason: ending,
+            retryable: ending === "retryable",
+          } satisfies IntelligenceEvent;
+        }
+      });
+      const result = liveDeps("c1").research!({ question: "Revenue?", taskId: "t" });
+      if (ending === "complete") {
+        await expect(result).resolves.toEqual({ answer: text });
+        expect(billed.recordDelivery).toHaveBeenCalledOnce();
+        expect(recordJarvisResearch).toHaveBeenCalledWith({
+          data: { taskId: "t", question: "Revenue?", hosts: [], ok: true, answer: text },
+        });
+      } else if (ending === "cancelled" || ending === "provider_failed") {
+        await expect(result).resolves.toEqual({ error: ending });
+        expect(billed.recordDelivery).not.toHaveBeenCalled();
+        expect(recordJarvisResearch).toHaveBeenCalledWith({
+          data: { taskId: "t", question: "Revenue?", hosts: [], ok: false },
+        });
+      } else {
+        await expect(result).rejects.toBeInstanceOf(Unavailable);
+        expect(billed.recordDelivery).not.toHaveBeenCalled();
+        expect(recordJarvisResearch).not.toHaveBeenCalled();
+      }
+      expect(billed.settle).toHaveBeenCalledOnce();
+    },
+  );
+
   it("passes completed native parts to the agent and withholds an interrupted turn", async () => {
     const parts = [{ text: "Reading", signature: "text-sig" }, { callId: "c" }];
     const toolCalls = [
