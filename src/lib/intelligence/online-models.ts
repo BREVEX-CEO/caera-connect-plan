@@ -1,40 +1,13 @@
-/**
- * THE ONE ONLINE MODEL, NAMED ONCE.
- *
- * A checked-in allowlist rather than configuration: a client-selected model is
- * never accepted, and a server that could be pointed at "latest" would change
- * what OCADE says without anybody deciding to.
- *
- * `docs/TRD.md` names the exact stable API identifier and `docs/DECISIONS.md`
- * records why: a pinned identity makes behaviour and tests reproducible, and
- * changing it "requires an explicit owner decision and corresponding tests and
- * docs". This file held `gemini-3.7-flash`, dated the day before that decision
- * was taken — implementation drift rather than an owner change, and the kind
- * that is invisible because everything still works, just not with the model the
- * product documents.
- *
- * Owner decision, 13 October 2026 (second, replacing `gemini-3.8-flash` the same day):
- * `gemini-3.5-flash-lite` for Chat and JARVIS on every key slot, with no fallback and
- * no switch after a 429/503. Checked that day against Google's model, pricing and
- * thinking pages: stable, free of charge on the free tier, function calling and
- * thinking minimal/low/medium/high. Google Search grounding is "Not available" on the
- * free tier for this model (and for 3.8 Flash), so a grounded request is refused,
- * never billed, on a free-tier project.
+/** Owner decision, 19 October 2026: Gemma primary, Gemini fallback; server-selected only.
+ * Google hosts both under the same native API; Cloudflare authenticates and proxies it.
+ * Exact identities are pinned; API capability is not a benchmark result.
  */
-export const ONLINE_MODEL_CATALOG = [
-  {
-    id: "gemini-3.5-flash-lite",
-    status: "stable",
-    provider: "google",
-    checkedAt: "2026-10-13",
-  },
-] as const;
-
-export type OnlineModelId = (typeof ONLINE_MODEL_CATALOG)[number]["id"];
-export const DEFAULT_ONLINE_MODEL: OnlineModelId = "gemini-3.5-flash-lite";
-
+export const ONLINE_MODEL_CATALOG = ["gemma-4-26b-a4b-it", "gemini-3.5-flash-lite"] as const;
+export type OnlineModelId = (typeof ONLINE_MODEL_CATALOG)[number];
+export const DEFAULT_ONLINE_MODEL = ONLINE_MODEL_CATALOG[0];
+export const FALLBACK_ONLINE_MODEL = ONLINE_MODEL_CATALOG[1];
 export function isAllowedOnlineModel(value: string): value is OnlineModelId {
-  return ONLINE_MODEL_CATALOG.some((model) => model.id === value);
+  return ONLINE_MODEL_CATALOG.some((model) => model === value);
 }
 
 /**

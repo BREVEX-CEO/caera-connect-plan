@@ -93,9 +93,10 @@ export function OnlineConsentDialog() {
           className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground"
         >
           <p>
-            Online answers and JARVIS come from a third-party AI service on its free terms. That
-            service may keep what you send — your messages, files you attach, and pages or screens
-            JARVIS reads — use it to improve its own products, and have people review it.
+            Online answers and JARVIS send your messages through Cloudflare to Google’s AI service
+            on its free terms. Google may keep what you send — your messages, files you attach, and
+            pages or screens JARVIS reads — use it to improve its own products, and have people
+            review it.
           </p>
           <p>
             Do not send passwords, payment details or confidential work. Offline Chat sends nothing

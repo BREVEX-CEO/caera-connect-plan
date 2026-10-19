@@ -2,7 +2,11 @@
 
 Current decisions are implemented through [PLAN](../PLAN.md), not a second work queue. Research baseline: `f521e23529542d709a9627181341b0e904a8b0c3`; redesign dated 9 October 2026. The owner authorised documentation changes and publication only; implementation/deployment remains future work.
 
-## Owner decisions — 13 October 2026 (current; supersede anything older that conflicts)
+## Owner decision — 19 October 2026 (current)
+
+The owner explicitly replaces the 13 October Gemini-only model rule: **Gemma 4 primary, Gemini 3.5 Flash-Lite fallback, all three authorized key slots, Cloudflare AI routing, quota-aware failover and measured qualification**. The candidate pins `gemma-4-26b-a4b-it` for latency-oriented qualification and `gemini-3.5-flash-lite` as fallback. Both are hosted on Google's native API through authenticated Cloudflare AI Gateway, avoiding a second protocol and Workers AI Neuron billing in this candidate. This is an engineering choice within the owner's model selection, not evidence that Gemma wins. Paired real-task benchmarking and project-specific limits must pass before activation. No main merge, deployment or spending is authorized. Existing privacy, permission, independent verification and release gates still apply.
+
+## Owner decisions — 13 October 2026 (model rule superseded above; other rules retained)
 
 Status of each lives in [PLAN](../PLAN.md) Section 0.8; this is the register.
 

@@ -415,9 +415,13 @@ export function PrivacyContent() {
           specifically described as not being saved.
         </p>
         <p>
-          When you choose Online, your request is processed through OCADE's protected connected
-          intelligence service. OCADE keeps underlying model/provider implementation details out of
-          the normal product interface, but Online processing necessarily uses network services.
+          When you choose Online or use JARVIS, your messages, attached files and any pages or
+          screens included in the request are sent through Cloudflare to Google’s AI service.
+          Google’s free service may retain this content, use it to improve its products and have
+          people review it. OCADE asks for your agreement before sending it; you can withdraw that
+          agreement in Settings, Privacy &amp; Security. Do not send confidential work, passwords or
+          payment details. OCADE requests no prompt or response logging or caching at its AI
+          gateway.
         </p>
       </PublicSection>
 

@@ -66,6 +66,16 @@ Prefer the first supported route that preserves the actual request:
 
 Do not replace an explicitly requested in-app outcome with something superficially similar. Opening a composer is not sending a message; opening Settings is not changing a setting; exporting a preview is not saving an editable project. Capability records distinguish `read`, `prepare`, `mutate` and `verify` effects.
 
+### Online model routing — candidate, 19 October 2026
+
+`online-models.ts` pins Gemma 4 26B A4B as primary and Gemini 3.5 Flash-Lite as fallback. The existing Supabase Edge boundary remains the sole inference, consent and usage owner. Both models use Google's native streaming API through authenticated Cloudflare AI Gateway. Gemma uses its documented `high` thinking level; Gemini retains `medium`, with both bounded by the existing output-token cap. Missing/partial gateway configuration disables inference; no direct-provider bypass or arbitrary base URL is accepted. The gateway request disallows redirects, caching and request/response logs, and limits upstream attempts to one so the existing boundary owns the whole three-attempt budget.
+
+All configured primary/secondary/tertiary credentials remain server-only and are tried in order for credential-local failures. A model failure before output may select Gemini within the same budget. A provider `Retry-After` is honored. A 429 may change model only when every structured QuotaFailure violation explicitly names the current model; unknown or project-wide quota never changes keys or models. This is request-local admission, not a global quota ledger or a verified project limit. There is no retry/model switch after successful response headers or a safety refusal, even when a later stream fails.
+
+Gemma signatures and unsigned private parts carry an opaque routing envelope while saved and are unwrapped byte-for-byte only for that model. Legacy unwrapped signatures belong to Gemini. On another model, foreign opaque signatures and private reasoning are omitted; call IDs, arguments, visible text and actual tool-result context remain. Gemini's existing documented reconstructed-history marker is used for unsigned first calls. This preserves originals and never reruns a tool. The envelope is context, never trusted provenance or execution authority. Real cross-model continuation is still a qualification gate; fixture tests alone cannot establish provider acceptance or task accuracy.
+
+The new processor path requires online-consent version `2026-10-19`. Gateway configuration, free-tier entitlement, each project's active RPM/TPM/RPD limits, all three key slots and paired real-task outcomes remain unverified for this candidate. It is not deployed or described as benchmarked.
+
 ### Discovery and reusable recipes
 
 Extend `ocade_discovery.py`, the discovery actions in `ocade_computer.py` and schemas in `protocol.ts`. Keep installed app/version/automation discovery and local recipe storage. Record app identity, installed version, platform, supported interface, scope, parameter schema, verification method and last-success evidence. Discovery reads lightweight metadata, not continuous private file content.
@@ -105,7 +115,7 @@ Background planning persists its normalized model turn in a service-written `jar
 
 The normalized assistant turn also retains the original order of supported text and function-call parts. A text part keeps its own opaque signature and thought flag, including an empty signed final text part; call parts reference the existing normalized calls rather than duplicating arguments. The boundary validates part shape, role, bounds and exact call order before accepting history; arbitrary provider payloads are refused. Continuation is released only with a complete provider turn. Thought text is excluded from visible answer tokens. Both JARVIS model transports and foreground continuation carry these parts, and background notes preserve them across requests, including text-only turns. The existing 64 KiB activity-result limit still applies: a refused journal write pauses without effects rather than truncating signatures. Synthesized calls parsed from model prose retain the legacy reconstructed history, because they have no original native call part. Durable original foreground history and cross-surface handoff remain open; this does not claim native image/code-part or live-provider qualification.
 
-The online boundary admits calls only after Gemini's explicit terminal `STOP`, not merely SSE EOF. `MAX_TOKENS` may close a text-only answer but never release a call. Content after a terminal result is refused. Withheld calls are not delivered work for allowance settlement or task-start binding; partial text retains its existing separate delivery policy.
+The online boundary admits calls only after the provider's explicit terminal `STOP`, not merely SSE EOF. `MAX_TOKENS` may close a text-only answer but never release a call. Content after a terminal result is refused. Withheld calls are not delivered work for allowance settlement or task-start binding; partial text retains its existing separate delivery policy.
 
 ```ts
 type StepReceipt = {

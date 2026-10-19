@@ -67,8 +67,8 @@ describe("the three key slots", () => {
 
 describe("where a key may appear", () => {
   it("is one file, and it is a Deno function no browser bundle imports", () => {
-    expect(EDGE_ENTRY).toContain("generativelanguage.googleapis.com");
-    expect(EDGE_ENTRY).toContain("x-goog-api-key");
+    expect(EDGE_ENTRY).toContain("cloudflareProviderRequest");
+    expect(EDGE_ENTRY).not.toContain("generativelanguage.googleapis.com");
   });
 
   it("is nowhere in the product's own source", () => {

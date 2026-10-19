@@ -1,3 +1,4 @@
+import { cloudflareProviderRequest } from "./gateway.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.110.7";
 import {
   isServiceKey,
@@ -40,20 +41,11 @@ const SUPABASE_SERVICE_ROLE_KEY =
   Deno.env.get("SUPABASE_SECRET_KEY") ||
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
   "";
-/*
- * EXACTLY THREE KEY SLOTS, AND ONLY THE ONES THAT ARE SET.
- *
- * `docs/TRD.md` names all three and makes the second and third OPTIONAL, so the
- * list is built from what the deployment actually holds: a project with one key
- * must not have failover invented for it, and a project with three must not
- * have the third ignored. The keys stay in this module and never travel — the
- * handler is told WHICH SLOT to use and nothing more, so the policy lives in
- * one tested place and the secrets live in none of it.
- *
- * THREE NAMES, AND NO FOURTH. `PLAN.md` Phase 6 says "exactly three Supabase
- * Edge Function secrets", so the unprefixed `GEMINI_API_KEY` alias an earlier
- * deployment set is no longer read. A fourth accepted name is a fourth place a
- * key can be set, and the one nobody rotates.
+/** Exactly three Google credential slots, read only in this server entry point.
+ * The handler receives slot names, not credentials. The server-only gateway helper
+ * builds their authenticated request; neither credentials nor payloads are logged.
+ * A missing slot is not invented. The legacy unprefixed alias is not accepted.
+ * Gateway authentication uses its separate, narrowly scoped server token.
  */
 const PROVIDER_KEYS: Record<ProviderKeySlot, string> = {
   primary: Deno.env.get(PROVIDER_KEY_ENVIRONMENT.primary) ?? "",
@@ -61,7 +53,21 @@ const PROVIDER_KEYS: Record<ProviderKeySlot, string> = {
   tertiary: Deno.env.get(PROVIDER_KEY_ENVIRONMENT.tertiary) ?? "",
 };
 const CONFIGURED_SLOTS = PROVIDER_KEY_SLOTS.filter((slot) => PROVIDER_KEYS[slot].length > 0);
+// Legacy explicit model override remains pinned; omit it to use the owner's new route.
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? DEFAULT_ONLINE_MODEL;
+const GATEWAY = {
+  accountId: Deno.env.get("OCADE_AI_GATEWAY_ACCOUNT_ID") ?? "",
+  gatewayId: Deno.env.get("OCADE_AI_GATEWAY_ID") ?? "",
+  token: Deno.env.get("OCADE_AI_GATEWAY_TOKEN") ?? "",
+};
+const GATEWAY_READY =
+  cloudflareProviderRequest({
+    ...GATEWAY,
+    key: "configuration-check",
+    model: GEMINI_MODEL,
+    body: {},
+    signal: new AbortController().signal,
+  }) !== null;
 const allowedOrigins = new Set(
   (Deno.env.get("OCADE_ALLOWED_ORIGINS") ?? "")
     .split(",")
@@ -162,7 +168,8 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
     SUPABASE_URL &&
     SUPABASE_PUBLISHABLE_KEY &&
     SUPABASE_SERVICE_ROLE_KEY &&
-    CONFIGURED_SLOTS.length > 0,
+    CONFIGURED_SLOTS.length > 0 &&
+    GATEWAY_READY,
   ),
   providerSlots: CONFIGURED_SLOTS,
   observe,
@@ -245,16 +252,14 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
     });
   },
   callProvider({ model, body, signal, slot }) {
-    return fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-      {
-        method: "POST",
-        // The slot the handler chose. The key itself never leaves this file,
-        // and never appears in a log line, a response or an error.
-        headers: { "Content-Type": "application/json", "x-goog-api-key": PROVIDER_KEYS[slot] },
-        body: JSON.stringify(body),
-        signal,
-      },
-    );
+    const request = cloudflareProviderRequest({
+      ...GATEWAY,
+      model,
+      body,
+      signal,
+      key: PROVIDER_KEYS[slot],
+    });
+    if (!request) return Promise.resolve(new Response(null, { status: 503 }));
+    return fetch(request);
   },
 };

@@ -30,6 +30,7 @@
  *
  * Usage: node scripts/e2e/supabase-stub.mjs [port]
  */
+import { ONLINE_CONSENT_VERSION } from "../../src/lib/intelligence/online-consent-version.ts";
 import { createServer } from "node:http";
 import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
 
@@ -550,7 +551,7 @@ function consentOf(id) {
   if (!consents.has(id)) {
     consents.set(id, {
       online_ai_consent_at: "2026-10-13T00:00:00.000Z",
-      online_ai_consent_version: "2026-10-13",
+      online_ai_consent_version: ONLINE_CONSENT_VERSION,
     });
   }
   return consents.get(id);
@@ -2864,7 +2865,7 @@ const server = createServer((request, response) => {
       if (
         !agreed ||
         !agreed.online_ai_consent_at ||
-        agreed.online_ai_consent_version !== "2026-10-13"
+        agreed.online_ai_consent_version !== ONLINE_CONSENT_VERSION
       ) {
         return send(403, { error: "online_not_consented" });
       }

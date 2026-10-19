@@ -15,73 +15,73 @@ Common safety rules for every PC entry:
 
 ## Summary
 
-| ID           | Phase        | Check                                                   | Status   | Needs                                                 |
-| ------------ | ------------ | ------------------------------------------------------- | -------- | ----------------------------------------------------- |
-| ENV-00-01    | 08 / browser | Current Codex cloud browser qualification               | BLOCKED  | Full Chromium; staging/native test matrix             |
-| PROMPT-00-01 | 04 / 16      | Redesigned system prompt: A/B on matched live tasks     | UNTESTED | Research/video arms, more cases (Gemini daily quota)  |
-| MOB-00-01    | 14 / 15      | Phone harnesses on a real emulator/simulator/device     | BLOCKED  | KVM emulator, macOS simulator or a phone (₹0)         |
-| REL-00-01    | 00 / release | Production rollback rehearsal                           | BLOCKED  | Cloudflare credentials (GitHub environment or owner)  |
-| REL-00-02    | 00 / release | Production deploys only through the approved gate       | FAIL     | Owner: Cloudflare Git auto-deploy setting             |
-| REL-00-03    | 00 / release | Security fixes still outside main (sharp, lxml pin)     | BLOCKED  | Owner approval of a security-only release             |
-| CI-00-01     | all          | GitHub Actions cloud workflows                          | BLOCKED  | Actions allowance (renews 1 Nov 2026) or owner choice |
-| PC-02-01     | 02           | Windows 11 tabbed Notepad target identity               | BLOCKED  | Owner-approved Windows 11 client                      |
-| WIN-02-01    | 02           | UIA barrier interleavings on real apps; 5 s lease timed | BLOCKED  | Isolated Windows VM                                   |
-| AND-02-01    | 02           | Interrupted gesture on a device/emulator                | BLOCKED  | Android emulator                                      |
-| NET-03-01    | 03           | Packet-loss / reordered / malformed ACK simulator       | RESOLVED | —                                                     |
-| AND-03-01    | 03           | Android process death at each journal transition        | BLOCKED  | Android emulator                                      |
-| GEM-04-01    | 04           | Three-key failover with real keys                       | BLOCKED  | Two more staging keys                                 |
-| GEM-04-02    | 04           | Background Mode step planned by the real model          | UNTESTED | Cloud session + staging key (can run)                 |
-| GEM-04-03    | 04           | Durable thought signatures for Background Mode          | PARTIAL  | Real-provider restart qualification + deployment gate |
-| GEM-04-04    | 04           | No tool admission without a complete provider turn      | PARTIAL  | Real-provider stream-loss qualification               |
-| CF-04-01     | 04           | Gemma 4 on Workers AI against Gemini on OCADE tasks     | BLOCKED  | Workers AI token reachable from the session (owner)   |
-| LIVE-04-01   | 04 / 17      | Live video task: captions read on the page              | FAIL     | Wikimedia 429 to clear; rerun                         |
-| LIVE-04-02   | 04 / 11 / 17 | Live photo task in a canvas editor (miniPaint)          | FAIL     | Fix in canvas/vision route                            |
-| VER-01-01    | 01           | A claim about an effect no check covers is refused      | PARTIAL  | More live cases (Gemini daily quota)                  |
-| PERF-05-01   | 05           | Identical 30-step old/new timing; Windows batch timing  | BLOCKED  | Isolated Windows VM                                   |
-| AND-05-01    | 05           | Android multi-step segments                             | OPEN     | Android implementation + emulator                     |
-| BRW-00-01    | 16           | Firefox and WebKit legs of the browsers journey         | RESOLVED | —                                                     |
-| BRW-00-02    | 16           | Real push service                                       | BLOCKED  | Browser build with a push service                     |
-| VOI-13-01    | 13           | Real speech-recognition service                         | BLOCKED  | Reachable speech service                              |
-| PC-07-01     | 07           | Licensed Excel and Word automation                      | BLOCKED  | Owner-approved Windows PC with Office                 |
-| NOTIF-06-01  | 06           | Email delivery of task and security notifications       | BLOCKED  | Staging email provider                                |
-| WAKE-06-01   | 06           | Device wake hints and first-step latency                | MEASURED | Owner: faster first step vs idle requests             |
-| SCH-06-01    | 06           | Scheduler kill on the deployed Worker cron              | BLOCKED  | Staging deployment                                    |
-| WIN-07-01    | 07           | Office helpers restore alerts, quit only own instance   | BLOCKED  | Isolated Windows VM with Office                       |
-| WIN-07-02    | 07           | Native Office reopen/layout; locked and corrupt inputs  | BLOCKED  | Isolated Windows VM with Office                       |
-| FS-07-01     | 07           | A user edit between undo's comparison and restore       | UNTESTED | Cloud session (can run)                               |
-| SEC-08-01    | 08           | A staff proof binds the exact target                    | PARTIAL  | Owner gate: apply migration 20261018090000            |
-| SEC-08-02    | 08           | Recovery against real Supabase Auth                     | BLOCKED  | Staging Supabase project                              |
-| UI-08-01     | 08           | Consent dialog: account switch and unmount while asking | RESOLVED | —                                                     |
-| SUP-08-01    | 08           | Support share flow on staging                           | BLOCKED  | Staging Supabase project                              |
-| DATA-09-01   | 09           | Restore must not bring back erased content              | BLOCKED  | Staging restore                                       |
-| DATA-09-02   | 09           | Storage faults during erasure; expired links            | BLOCKED  | Staging Supabase project                              |
-| DATA-09-03   | 09           | A very large export on the deployed Worker              | BLOCKED  | Staging deployment                                    |
-| OFF-10-01    | 10           | Real Offline Intelligence install and cold answer       | BLOCKED  | R2 read access (owner)                                |
-| OFF-10-02    | 10           | Offline answer quality, storage pressure, accounts      | BLOCKED  | As OFF-10-01                                          |
-| WIN-11-01    | 11           | Unfamiliar Windows app qualification                    | BLOCKED  | Isolated Windows VM                                   |
-| WIN-12-01    | 12           | Windows install, pairing, update, rollback, uninstall   | BLOCKED  | Isolated Windows VM                                   |
-| AND-14-01    | 14           | Android app on an emulator or device                    | BLOCKED  | KVM emulator or device                                |
-| IOS-15-01    | 15           | Physical iPhone/iPad and macOS behaviour                | BLOCKED  | Apple hardware / macOS runner                         |
-| UI-16-01     | 16           | Pixel-baseline visual regression                        | OPEN     | Baseline images + comparison step                     |
-| UI-16-02     | 16           | Device refusal: revoked authority, STOP while saving    | RESOLVED | —                                                     |
-| SR-16-01     | 16           | Real screen readers (NVDA, VoiceOver, TalkBack)         | BLOCKED  | Windows/macOS/Android with screen reader              |
-| APP-17-01    | 17           | Independent reopen in LibreOffice on every CI run       | BLOCKED  | CI-00-01; LibreOffice in the Python job               |
-| ONL-17-01    | 17           | ONLYOFFICE opens and recalculates OCADE's files         | BLOCKED  | Owner: edition/licence; a VM where it starts          |
-| MED-17-01    | 17           | Creative/media families: editable project + 720p/1080p  | OPEN     | Owner: which family to support first                  |
-| WF-18-01     | 18           | Reconcile workflow: 30 held-out real-model cases        | UNTESTED | More cases on fixed code (Gemini daily quota)         |
-| WF-18-02     | 18           | Client pack workflow: 30 held-out real-model cases      | UNTESTED | Gemini daily quota (resets daily)                     |
-| WF-18-03     | 18           | Order status workflow: 30 held-out real-model cases     | UNTESTED | Gemini daily quota (resets daily)                     |
-| WF-18-04     | 18 / 01      | Zero falsely verified completions                       | FAIL     | Outcome templates (VER-01-01)                         |
-| WF-18-05     | 18           | Five consenting design partners, two weeks              | BLOCKED  | Owner: recruit partners                               |
-| WIN-18-01    | 18           | PDF through Word/Excel/PowerPoint on Windows            | OPEN     | Isolated Windows VM with Office                       |
-| DEB-19-01    | 19 / 04      | One provider retry budget (no nested retries)           | PARTIAL  | Live 429/503 reliability check (quota)                |
-| DEB-19-02    | 19           | Bubble and Workspace share one turn lifecycle           | OPEN     | Merge with account-switch/STOP/handoff proof          |
-| REL-20-01    | 20           | Frozen candidate SHA with an evidence manifest          | OPEN     | Phases 18 and 20 gates closed first                   |
-| SEC-20-01    | 20           | Independent adversarial review of release scope         | BLOCKED  | A reviewer independent of this session                |
-| PAY-21-01    | 21           | Approved merchant provider, legal/tax/refund terms      | BLOCKED  | Owner decision                                        |
-| PAY-21-02    | 21           | Approved price catalogue (one contract)                 | BLOCKED  | Owner: choose between the two proposals               |
-| PAY-21-03    | 21           | Sandbox webhook, replay, refund, renewal cycles         | BLOCKED  | PAY-21-01 (provider sandbox account)                  |
-| LAU-22-01    | 22           | Post-payment final matrix and controlled launch         | BLOCKED  | Phase 21, REL-20-01, owner launch approval            |
+| ID           | Phase        | Check                                                    | Status   | Needs                                                 |
+| ------------ | ------------ | -------------------------------------------------------- | -------- | ----------------------------------------------------- |
+| ENV-00-01    | 08 / browser | Current Codex cloud browser qualification                | BLOCKED  | Full Chromium; staging/native test matrix             |
+| PROMPT-00-01 | 04 / 16      | Redesigned system prompt: A/B on matched live tasks      | UNTESTED | Research/video arms, more cases (Gemini daily quota)  |
+| MOB-00-01    | 14 / 15      | Phone harnesses on a real emulator/simulator/device      | BLOCKED  | KVM emulator, macOS simulator or a phone (₹0)         |
+| REL-00-01    | 00 / release | Production rollback rehearsal                            | BLOCKED  | Cloudflare credentials (GitHub environment or owner)  |
+| REL-00-02    | 00 / release | Production deploys only through the approved gate        | FAIL     | Owner: Cloudflare Git auto-deploy setting             |
+| REL-00-03    | 00 / release | Security fixes still outside main (sharp, lxml pin)      | BLOCKED  | Owner approval of a security-only release             |
+| CI-00-01     | all          | GitHub Actions cloud workflows                           | BLOCKED  | Actions allowance (renews 1 Nov 2026) or owner choice |
+| PC-02-01     | 02           | Windows 11 tabbed Notepad target identity                | BLOCKED  | Owner-approved Windows 11 client                      |
+| WIN-02-01    | 02           | UIA barrier interleavings on real apps; 5 s lease timed  | BLOCKED  | Isolated Windows VM                                   |
+| AND-02-01    | 02           | Interrupted gesture on a device/emulator                 | BLOCKED  | Android emulator                                      |
+| NET-03-01    | 03           | Packet-loss / reordered / malformed ACK simulator        | RESOLVED | —                                                     |
+| AND-03-01    | 03           | Android process death at each journal transition         | BLOCKED  | Android emulator                                      |
+| GEM-04-01    | 04           | Three-key failover with real keys                        | BLOCKED  | Two more staging keys                                 |
+| GEM-04-02    | 04           | Background Mode step planned by the real model           | UNTESTED | Cloud session + staging key (can run)                 |
+| GEM-04-03    | 04           | Durable thought signatures for Background Mode           | PARTIAL  | Real-provider restart qualification + deployment gate |
+| GEM-04-04    | 04           | No tool admission without a complete provider turn       | PARTIAL  | Real-provider stream-loss qualification               |
+| CF-04-01     | 04           | Gemma/Gemini gateway and matched real-task qualification | PARTIAL  | Gateway, verified free limits and staging keys        |
+| LIVE-04-01   | 04 / 17      | Live video task: captions read on the page               | FAIL     | Wikimedia 429 to clear; rerun                         |
+| LIVE-04-02   | 04 / 11 / 17 | Live photo task in a canvas editor (miniPaint)           | FAIL     | Fix in canvas/vision route                            |
+| VER-01-01    | 01           | A claim about an effect no check covers is refused       | PARTIAL  | More live cases (Gemini daily quota)                  |
+| PERF-05-01   | 05           | Identical 30-step old/new timing; Windows batch timing   | BLOCKED  | Isolated Windows VM                                   |
+| AND-05-01    | 05           | Android multi-step segments                              | OPEN     | Android implementation + emulator                     |
+| BRW-00-01    | 16           | Firefox and WebKit legs of the browsers journey          | RESOLVED | —                                                     |
+| BRW-00-02    | 16           | Real push service                                        | BLOCKED  | Browser build with a push service                     |
+| VOI-13-01    | 13           | Real speech-recognition service                          | BLOCKED  | Reachable speech service                              |
+| PC-07-01     | 07           | Licensed Excel and Word automation                       | BLOCKED  | Owner-approved Windows PC with Office                 |
+| NOTIF-06-01  | 06           | Email delivery of task and security notifications        | BLOCKED  | Staging email provider                                |
+| WAKE-06-01   | 06           | Device wake hints and first-step latency                 | MEASURED | Owner: faster first step vs idle requests             |
+| SCH-06-01    | 06           | Scheduler kill on the deployed Worker cron               | BLOCKED  | Staging deployment                                    |
+| WIN-07-01    | 07           | Office helpers restore alerts, quit only own instance    | BLOCKED  | Isolated Windows VM with Office                       |
+| WIN-07-02    | 07           | Native Office reopen/layout; locked and corrupt inputs   | BLOCKED  | Isolated Windows VM with Office                       |
+| FS-07-01     | 07           | A user edit between undo's comparison and restore        | UNTESTED | Cloud session (can run)                               |
+| SEC-08-01    | 08           | A staff proof binds the exact target                     | PARTIAL  | Owner gate: apply migration 20261018090000            |
+| SEC-08-02    | 08           | Recovery against real Supabase Auth                      | BLOCKED  | Staging Supabase project                              |
+| UI-08-01     | 08           | Consent dialog: account switch and unmount while asking  | RESOLVED | —                                                     |
+| SUP-08-01    | 08           | Support share flow on staging                            | BLOCKED  | Staging Supabase project                              |
+| DATA-09-01   | 09           | Restore must not bring back erased content               | BLOCKED  | Staging restore                                       |
+| DATA-09-02   | 09           | Storage faults during erasure; expired links             | BLOCKED  | Staging Supabase project                              |
+| DATA-09-03   | 09           | A very large export on the deployed Worker               | BLOCKED  | Staging deployment                                    |
+| OFF-10-01    | 10           | Real Offline Intelligence install and cold answer        | BLOCKED  | R2 read access (owner)                                |
+| OFF-10-02    | 10           | Offline answer quality, storage pressure, accounts       | BLOCKED  | As OFF-10-01                                          |
+| WIN-11-01    | 11           | Unfamiliar Windows app qualification                     | BLOCKED  | Isolated Windows VM                                   |
+| WIN-12-01    | 12           | Windows install, pairing, update, rollback, uninstall    | BLOCKED  | Isolated Windows VM                                   |
+| AND-14-01    | 14           | Android app on an emulator or device                     | BLOCKED  | KVM emulator or device                                |
+| IOS-15-01    | 15           | Physical iPhone/iPad and macOS behaviour                 | BLOCKED  | Apple hardware / macOS runner                         |
+| UI-16-01     | 16           | Pixel-baseline visual regression                         | OPEN     | Baseline images + comparison step                     |
+| UI-16-02     | 16           | Device refusal: revoked authority, STOP while saving     | RESOLVED | —                                                     |
+| SR-16-01     | 16           | Real screen readers (NVDA, VoiceOver, TalkBack)          | BLOCKED  | Windows/macOS/Android with screen reader              |
+| APP-17-01    | 17           | Independent reopen in LibreOffice on every CI run        | BLOCKED  | CI-00-01; LibreOffice in the Python job               |
+| ONL-17-01    | 17           | ONLYOFFICE opens and recalculates OCADE's files          | BLOCKED  | Owner: edition/licence; a VM where it starts          |
+| MED-17-01    | 17           | Creative/media families: editable project + 720p/1080p   | OPEN     | Owner: which family to support first                  |
+| WF-18-01     | 18           | Reconcile workflow: 30 held-out real-model cases         | UNTESTED | More cases on fixed code (Gemini daily quota)         |
+| WF-18-02     | 18           | Client pack workflow: 30 held-out real-model cases       | UNTESTED | Gemini daily quota (resets daily)                     |
+| WF-18-03     | 18           | Order status workflow: 30 held-out real-model cases      | UNTESTED | Gemini daily quota (resets daily)                     |
+| WF-18-04     | 18 / 01      | Zero falsely verified completions                        | FAIL     | Outcome templates (VER-01-01)                         |
+| WF-18-05     | 18           | Five consenting design partners, two weeks               | BLOCKED  | Owner: recruit partners                               |
+| WIN-18-01    | 18           | PDF through Word/Excel/PowerPoint on Windows             | OPEN     | Isolated Windows VM with Office                       |
+| DEB-19-01    | 19 / 04      | One provider retry budget (no nested retries)            | PARTIAL  | Live 429/503 reliability check (quota)                |
+| DEB-19-02    | 19           | Bubble and Workspace share one turn lifecycle            | OPEN     | Merge with account-switch/STOP/handoff proof          |
+| REL-20-01    | 20           | Frozen candidate SHA with an evidence manifest           | OPEN     | Phases 18 and 20 gates closed first                   |
+| SEC-20-01    | 20           | Independent adversarial review of release scope          | BLOCKED  | A reviewer independent of this session                |
+| PAY-21-01    | 21           | Approved merchant provider, legal/tax/refund terms       | BLOCKED  | Owner decision                                        |
+| PAY-21-02    | 21           | Approved price catalogue (one contract)                  | BLOCKED  | Owner: choose between the two proposals               |
+| PAY-21-03    | 21           | Sandbox webhook, replay, refund, renewal cycles          | BLOCKED  | PAY-21-01 (provider sandbox account)                  |
+| LAU-22-01    | 22           | Post-payment final matrix and controlled launch          | BLOCKED  | Phase 21, REL-20-01, owner launch approval            |
 
 ---
 
@@ -90,6 +90,9 @@ Common safety rules for every PC entry:
 - **Source/environment:** branch based on `889f9e30`; disposable Linux cloud checkout, Node 24.19.0/npm 11.9.0. All 1,001 upstream blobs and complete tree matched before editing. No customer PC, live account data or production write.
 - **PASS:** `npm run verify:full` **15/15 gates**, **123 files / 1,420 tests**; stable generated routes/build, typecheck, lint, formatting, secret/type/storage/read/control/accessibility/identity/reachability gates. Production dependency audit: **0 vulnerabilities**. Separate unit/database lanes also passed (96/1,032 and 27/388). Regression evidence: six customer-target cases and the long-email collision fail before repair and pass after. SQL verification, ACLs, rollback/reapplication and valid/replayed proofs are tested against disposable PostgreSQL WASM, not hosted Supabase Auth or multi-session PostgreSQL.
 - **Browser qualification BLOCKED:** the standard Playwright Chromium 151 download yielded corrupt/empty archives. A temporary external Chromium 153.0.8010.0 headless-shell package ran a genuine isolated smoke check. Local Wrangler initially failed to enumerate sandbox interfaces (`uv_interface_addresses`); a scratch-only loopback adapter allowed the stub-backed harness to start. Admin journey observed 28 successful checks, including customer denial, AAL2, device removal and second-factor reset, then `Page crashed` on JARVIS navigation. JARVIS failed at navigation and bubble had renderer crashes. The harness returned failure for all three journeys. These are **not PASS**, and renderer compatibility versus a product defect is not resolved. No project dependency/configuration was changed to obtain a browser pass.
+- **19 October web candidate PASS (based on `8aa53fd`):** final `npm run verify:full` **15/15**, **124 files / 1,448 tests**; targeted intelligence **10 files / 122 tests**, production dependency audit **0 vulnerabilities**. Native/browser/environment exclusions below still apply. The native contract's no-key, unapproved-model and missing-gateway guards return their expected BLOCKED/FAIL statuses before inference. No online model key was injected into a read-only model-metadata probe; no inference was attempted. Removed unused catalog metadata and duplicate model literals; no dependency, schema, permission or execution authority was removed.
+- **19 October browser retry (candidate based on `8aa53fd`):** a full Chrome for Testing 153.0.8010.0 archive downloaded successfully; byte length, upstream MD5 and ZIP integrity matched, and `--version` worked. A fresh stub-compiled build then attempted admin, JARVIS and bubble separately. All three browser processes aborted before page creation: `process_singleton_posix.cc:297`, `socket() failed: Operation not permitted (1)`; crashpad also reported denied ptrace. Harness: **3/3 failed to launch**, so application journeys remain **BLOCKED**, not product passes or evidence of an application regression. The earlier headless-shell crash is not reclassified as fixed. No denied socket or ptrace operation was bypassed.
+- **Supplemental native Python discovery (19 October):** the first run found missing Playwright; a scratch-only installation of the already-pinned Python Playwright 1.62.0 enabled a second attempt. Both broad runs were cancelled (exit 130) after errors/failures and stalled native browser/LibreOffice processes; neither produced a completed test summary. These attempts are **INCOMPLETE / UNTRIAGED**, not a native-suite pass and not grounds to attribute every failure to the environment. Disposable test isolation was used, no installed customer agent or personal files were touched, and the session's test processes were stopped. Native qualification remains open independently of the web gate.
 - **Remaining prerequisites:** no staging Gemini key, no separate staging Supabase project, no connected native Windows/macOS/Android/iOS executor or KVM device in this environment. Provider restart, actual JARVIS outcomes, GUI/STOP/native/mobile/Apple and independent-release review remain open; source/unit evidence does not substitute for them.
 - **CLI review block:** automatic approval review stopped Supabase CLI after an attempted PostHog telemetry contact. The empty migration had already been created locally. No further Supabase CLI invocation was used; tests and migration replay used the disposable database twin. No production SQL was executed.
 
@@ -198,6 +201,13 @@ Common safety rules for every PC entry:
 - **Remains:** the owner adds a Workers AI token (the dashboard's "Create a Workers AI API Token" template: `Workers AI - Read` and `Workers AI - Edit`, nothing else) as a session network secret for `api.cloudflare.com`; then a benchmark of the matched cases through the OpenAI-compatible endpoint, and an adapter only if the numbers justify it.
 
 - **Current Codex connection (18 October 2026):** Cloudflare MCP account lookup and `/ai/models/search` succeed and return `@cf/google/gemma-4-26b-a4b-it` with function calling, reasoning and vision. The previous session's missing inference endpoint is no longer the blocker: this MCP exposes `/ai/run/{model_name}`. However, reading account subscriptions returns authentication error 10000, so paid/free plan and safe included headroom are not verified. No inference, token creation or account change was attempted. Verify the existing allowance/permission before benchmarking; do not request a new key merely because the historical session lacked access.
+
+### Current route candidate — 19 October 2026 (supersedes the earlier no-adapter decision)
+
+- **Owner change / implementation:** Gemma primary and Gemini fallback are now explicitly requested. The candidate uses Google-hosted `gemma-4-26b-a4b-it` through Cloudflare's authenticated Google proxy, preserving the existing API and all three server key slots. This path does not consume Workers AI Neurons; the historical Workers AI allowance estimate above is not its capacity estimate. No High mode or second planner is introduced. See Architecture and Testing for the exact failover, privacy and qualification contract.
+- **Local PASS:** 122 intelligence checks across 10 files. Eight new route checks failed against the old implementation; fixes cover model selection, one three-attempt budget, credential-local failover, structured model-only quota, unknown/mixed quota refusal and no post-output/safety fallback. Additional tests cover Gemma high/Gemini medium thinking compatibility (a new assertion failed before the correction), unsigned private-part isolation, native continuation round trips, legacy Gemini history, foreign-signature isolation, Retry-After and gateway credentials/redirect/cache/log controls. All are fixtures, not real-model or real-device success.
+- **Read-only account evidence:** Cloudflare MCP lists zero AI Gateways; the Gemma Workers AI model is available, credit balance is zero and a payment method exists. Worker secret names contain no model keys or AI gateway token (Edge secrets are a separate store, whose presence is not inferred). Local environment has no model/gateway/staging keys. GitHub connector refuses the secrets-list endpoint; no secret values were retrieved. No inference, gateway creation, token creation, deployment or spend occurred.
+- **BLOCKED / next prerequisite:** a disposable authenticated gateway and authorized staging keys with independently verified included/free capacity, actual model limits and project quota grouping. Current Google docs say active project limits are in AI Studio, not guaranteed by a public table. The three production Edge key values must not be extracted. After prerequisites, run the paired real-task matrix and native continuation/restart probes through the gateway; publish measured time, tokens, accuracy, failures and all false completions. The native contract probe now accepts either pinned model, requires complete gateway settings for Gemma, preserves original parts and reports request p50/p95. Its current invocation exits BLOCKED (3) before networking because the staging key is absent. No benchmark win, 90% success or commercial readiness is established by this source change. The earlier request for a new Workers AI token is no longer mandatory for this Google-hosted candidate.
 
 ## LIVE-04-01 — Live video task: captions read on the page
 

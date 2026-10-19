@@ -12,6 +12,7 @@ import type {
 import { SERVICE_USER_HEADER, sseData } from "./contract.ts";
 import {
   DEFAULT_ONLINE_MODEL,
+  FALLBACK_ONLINE_MODEL,
   isAllowedOnlineModel,
   PROVIDER_KEY_SLOTS,
   type OnlineModelId,
@@ -72,12 +73,6 @@ const MAX_ATTACHMENT_IMAGE = 7 * 1_048_576;
  * with code is a few thousand tokens — and low enough that a runaway one stops.
  */
 const MAX_OUTPUT_TOKENS = 16_384;
-/**
- * How hard the model thinks before answering. Thinking counts against the output cap
- * above, which is why the cap is twice an ordinary answer. "medium": JARVIS turns are
- * planning steps that need it; "minimal" is refused by the pinned model.
- */
-const THINKING_LEVEL = "medium";
 /** A call id OCADE made because the provider gave none: never sent back as the provider's. */
 const LOCAL_CALL_ID = "provider-tool-";
 /** Google's documented value for a call whose real signature does not exist (thought-signatures docs). */
@@ -88,7 +83,7 @@ const ATTEMPT_TIMEOUT_MS = 25_000;
 /** Finish reasons that mean the content itself was refused: never a capacity problem. */
 const BLOCKED_FINISH = new Set(["SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII"]);
 /**
- * Upstream requests for ONE boundary request, across every key: the keys are credential
+ * Upstream requests for ONE boundary request, across every model and key: the keys are credential
  * redundancy, not more quota, so a failover spends from the same three.
  */
 const MAX_PROVIDER_ATTEMPTS = 3;
@@ -363,7 +358,17 @@ function parseBody(value: unknown): OnlineRequestBody | null {
   return value as unknown as OnlineRequestBody;
 }
 
-function providerBody(body: OnlineRequestBody): Record<string, unknown> {
+// Raw signatures predate routing and belong to the original Gemini model. A tagged
+// signature retains Gemma's exact opaque bytes without exposing model identity in the UI.
+const GEMMA_CONTINUATION = "ocade-continuation:1:";
+function signatureFor(signature: string | undefined, model: OnlineModelId): string | undefined {
+  if (!signature) return undefined;
+  const gemma = signature.startsWith(GEMMA_CONTINUATION);
+  if (gemma !== (model === DEFAULT_ONLINE_MODEL)) return undefined;
+  return gemma ? signature.slice(GEMMA_CONTINUATION.length) : signature;
+}
+
+function providerBody(body: OnlineRequestBody, model: OnlineModelId): Record<string, unknown> {
   const system = body.messages
     .filter((message) => message.role === "system")
     .map((message) => message.content)
@@ -382,24 +387,44 @@ function providerBody(body: OnlineRequestBody): Record<string, unknown> {
   type Part = Record<string, unknown>;
   const contents: { role: string; parts: Part[] }[] = [];
   const nativeId = (id: string) => (id.startsWith(LOCAL_CALL_ID) ? {} : { id });
-  const callPart = (call: NormalizedToolCall, signature = call.signature): Part => ({
+  const callPart = (call: NormalizedToolCall, signature: string | undefined): Part => ({
     functionCall: { ...nativeId(call.id), name: call.name, args: call.arguments },
     ...(signature ? { thoughtSignature: signature } : {}),
   });
   for (const message of body.messages) {
     if (message.role === "system") continue;
     if (message.parts) {
+      const foreignTurn = [...message.parts, ...(message.toolCalls ?? [])].some(
+        (part) =>
+          "signature" in part &&
+          part.signature &&
+          signatureFor(part.signature, model) === undefined,
+      );
       contents.push({
         role: "model",
-        parts: message.parts.map((part) =>
-          "callId" in part
-            ? callPart(message.toolCalls!.find((call) => call.id === part.callId)!)
-            : {
-                text: part.text,
-                ...(part.signature ? { thoughtSignature: part.signature } : {}),
-                ...(part.thought !== undefined ? { thought: part.thought } : {}),
-              },
-        ),
+        parts: message.parts.flatMap((part) => {
+          if ("callId" in part) {
+            const call = message.toolCalls!.find((call) => call.id === part.callId)!;
+            const signature =
+              signatureFor(call.signature, model) ??
+              (model === FALLBACK_ONLINE_MODEL && message.toolCalls![0] === call
+                ? SKIP_SIGNATURE
+                : undefined);
+            return [callPart(call, signature)];
+          }
+          const signature = signatureFor(part.signature, model);
+          // Private reasoning from another model is not portable continuation.
+          if (foreignTurn && !signature && (part.thought || !part.text)) return [];
+          return [
+            {
+              text: part.text,
+              ...(signature ? { thoughtSignature: signature } : {}),
+              ...((signature || !foreignTurn) && part.thought !== undefined
+                ? { thought: part.thought }
+                : {}),
+            },
+          ];
+        }),
       });
       continue;
     }
@@ -418,7 +443,9 @@ function providerBody(body: OnlineRequestBody): Record<string, unknown> {
     }
     const parts: Part[] = message.toolCalls && !message.content ? [] : [{ text: message.content }];
     message.toolCalls?.forEach((call, index) => {
-      const signature = call.signature ?? (index === 0 ? SKIP_SIGNATURE : undefined);
+      const signature =
+        signatureFor(call.signature, model) ??
+        (index === 0 && model === FALLBACK_ONLINE_MODEL ? SKIP_SIGNATURE : undefined);
       parts.push(callPart(call, signature));
     });
     contents.push({ role: message.role === "assistant" ? "model" : "user", parts });
@@ -446,10 +473,11 @@ function providerBody(body: OnlineRequestBody): Record<string, unknown> {
     }
   }
   return {
-    contents,
+    contents: contents.filter((content) => content.parts.length > 0),
     generationConfig: {
       maxOutputTokens: MAX_OUTPUT_TOKENS,
-      thinkingConfig: { thinkingLevel: THINKING_LEVEL },
+      // Gemma supports only high/minimal; retain Gemini’s qualified medium setting.
+      thinkingConfig: { thinkingLevel: model === DEFAULT_ONLINE_MODEL ? "high" : "medium" },
     },
     /*
      * RESEARCH IS THE PROVIDER'S OWN GROUNDED SEARCH.
@@ -500,6 +528,35 @@ export function providerWait(
   }
   const body = /"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/.exec(detail)?.[1];
   return body === undefined ? undefined : Number(body) * 1_000;
+}
+
+/** Unknown/project-wide quota is never evidence that another model has capacity. */
+function quotaOnlyForModel(detail: string, model: OnlineModelId): boolean {
+  try {
+    const value: unknown = JSON.parse(detail);
+    if (!isRecord(value) || !isRecord(value.error) || !Array.isArray(value.error.details))
+      return false;
+    const failures = value.error.details.filter(
+      (item: unknown) =>
+        isRecord(item) && item["@type"] === "type.googleapis.com/google.rpc.QuotaFailure",
+    );
+    return (
+      failures.length > 0 &&
+      failures.every(
+        (failure: Record<string, unknown>) =>
+          Array.isArray(failure.violations) &&
+          failure.violations.length > 0 &&
+          failure.violations.every(
+            (violation: unknown) =>
+              isRecord(violation) &&
+              isRecord(violation.quotaDimensions) &&
+              violation.quotaDimensions.model === model,
+          ),
+      )
+    );
+  } catch {
+    return false;
+  }
 }
 
 /** Without a provider instruction: 250 ms, then 500, never more than 2 s. */
@@ -663,6 +720,7 @@ function normalizedProviderStream(
   cancelProvider: (reason: unknown) => void,
   delivered: (toolCalls: NormalizedToolCall[]) => Promise<void> = async () => undefined,
   undelivered: () => Promise<void> = async () => undefined,
+  model: OnlineModelId = FALLBACK_ONLINE_MODEL,
 ): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -748,6 +806,22 @@ function normalizedProviderStream(
             (toolCalls.length && !validCalls({ role: "assistant", toolCalls }))
           ) {
             throw new Error("Provider returned invalid assistant parts.");
+          }
+          if (model === DEFAULT_ONLINE_MODEL) {
+            for (const part of [...parts, ...toolCalls]) {
+              if ("signature" in part && part.signature)
+                part.signature = GEMMA_CONTINUATION + part.signature;
+              else if ("text" in part && part.thought) {
+                // A route-only envelope preserves ownership even without an opaque signature.
+                part.signature = GEMMA_CONTINUATION;
+              }
+            }
+            if (
+              !validParts({ role: "assistant", parts, toolCalls }) ||
+              (toolCalls.length && !validCalls({ role: "assistant", toolCalls }))
+            ) {
+              throw new Error("Provider continuation exceeds the transport limit.");
+            }
           }
           for (const call of toolCalls) controller.enqueue(sse({ type: "tool_call", call }));
           callsReleased = toolCalls.length > 0;
@@ -947,33 +1021,9 @@ async function runOnlineIntelligence(
     request.signal.removeEventListener("abort", abort);
   };
   try {
-    /*
-     * PRIMARY FIRST, AND ONLY FOR THE RIGHT REASONS.
-     *
-     * `docs/TRD.md` allows failover for "key-local authentication/health or
-     * pre-output provider/transport failure" and forbids it for quota:
-     * "Project/provider-wide quota must not trigger key rotation to evade
-     * quota." Those are different failures that look similar from here, so
-     * they are separated by status rather than lumped into "the call did not
-     * work":
-     *
-     *   401 / 403  — THIS KEY is refused. Nothing about the next one is
-     *                implied, so move on immediately; retrying a revoked key
-     *                is only a delay.
-     *   5xx, throw — the provider or the transport failed. The next key may
-     *                reach a healthier path, so retry this slot and then move
-     *                on.
-     *   429        — quota, and quota belongs to the PROJECT. Every key would
-     *                meet the same wall, and trying them anyway is exactly the
-     *                evasion the plan names. Retry this slot, then answer 429
-     *                honestly.
-     *   anything   — a real refusal about this request. Reported as-is.
-     *   else
-     *
-     * ALL OF THIS IS PRE-OUTPUT BY CONSTRUCTION. The loop ends the moment a
-     * response is ok; the stream is handed off after it, and nothing here runs
-     * again once a single token has reached the person.
-     */
+    // One budget across keys and models, all before output. Credential failures advance
+    // the key; model failures may advance Gemma to Gemini. Unknown/project-wide quota
+    // never rotates credentials or models. A provider's explicit wait is not cut short.
     const slots: readonly ProviderKeySlot[] =
       deps.providerSlots && deps.providerSlots.length > 0
         ? deps.providerSlots
@@ -984,6 +1034,12 @@ async function runOnlineIntelligence(
     controller.signal.throwIfAborted(); // stopped during the claim: no provider is called
 
     let slotIndex = 0;
+    let model: OnlineModelId = configured;
+    const advanceModel = () => {
+      if (model !== DEFAULT_ONLINE_MODEL) return false;
+      model = FALLBACK_ONLINE_MODEL;
+      return true;
+    };
     while (attempted.attempts < MAX_PROVIDER_ATTEMPTS && slotIndex < slots.length) {
       const slot = slots[slotIndex]!;
       const attempt = attempted.attempts;
@@ -1003,8 +1059,8 @@ async function runOnlineIntelligence(
         attempted.slot = slot;
         attempted.attempts += 1; // counted before the request, so a failed transport counts too
         response = await deps.callProvider({
-          model: configured,
-          body: providerBody(body),
+          model,
+          body: providerBody(body, model),
           signal: AbortSignal.any([controller.signal, hung.signal]),
           slot,
         });
@@ -1034,6 +1090,10 @@ async function runOnlineIntelligence(
         quotaExhausted = true;
         const detail = await response.text().catch(() => "");
         const wait = providerWait(response, detail);
+        if (!last && !body.research && quotaOnlyForModel(detail, model) && advanceModel()) {
+          quotaExhausted = false;
+          continue;
+        }
         /*
          * A WEB SEARCH THE PLAN DOES NOT INCLUDE IS NOT A BUSY PROVIDER.
          *
@@ -1078,6 +1138,7 @@ async function runOnlineIntelligence(
       // The provider is overloaded or failing. Every key reaches the same provider, so the same
       // key is retried, as long as the budget lasts and the provider allows it.
       if (response.status >= 500) {
+        if (!last && wait === undefined && !body.research && advanceModel()) continue;
         if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
           capacityReturnsIn = Math.ceil(wait / 1_000);
           break;
@@ -1126,6 +1187,7 @@ async function runOnlineIntelligence(
             Promise.resolve()
           );
         },
+        model,
       ),
       {
         status: 200,

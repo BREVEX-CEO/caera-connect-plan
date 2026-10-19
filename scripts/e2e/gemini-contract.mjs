@@ -9,6 +9,9 @@
  *
  * A session whose network proxy injects the key: any placeholder value and NODE_USE_ENV_PROXY=1.
  * The key is sent only as Google's header and never printed.
+ * OCADE_LIVE_GEMINI_MODEL pins either approved model. Gemma requires the candidate
+ * OCADE_AI_GATEWAY_ACCOUNT_ID / OCADE_AI_GATEWAY_ID / OCADE_AI_GATEWAY_TOKEN settings.
+ * Run only after independently confirming included/free capacity for that staging project.
  */
 const KEY = process.env.OCADE_LIVE_GEMINI_KEY;
 if (!KEY) {
@@ -16,8 +19,59 @@ if (!KEY) {
   process.exit(3);
 }
 const { handleOnlineIntelligence } = await import("../../src/lib/intelligence/edge-handler.ts");
-const MODEL = "gemini-3.5-flash-lite";
+const { isAllowedOnlineModel } = await import("../../src/lib/intelligence/online-models.ts");
+const { cloudflareProviderRequest } = await import("../../supabase/functions/_shared/gateway.ts");
+const MODEL = process.env.OCADE_LIVE_GEMINI_MODEL || "gemini-3.5-flash-lite";
+if (!isAllowedOnlineModel(MODEL)) {
+  console.log("FAIL  native provider contract — unapproved model");
+  process.exit(1);
+}
+const gateway = {
+  accountId: process.env.OCADE_AI_GATEWAY_ACCOUNT_ID ?? "",
+  gatewayId: process.env.OCADE_AI_GATEWAY_ID ?? "",
+  token: process.env.OCADE_AI_GATEWAY_TOKEN ?? "",
+};
+const throughGateway = Object.values(gateway).some(Boolean);
+if (
+  (throughGateway || MODEL.startsWith("gemma-")) &&
+  !cloudflareProviderRequest({
+    ...gateway,
+    key: KEY,
+    model: MODEL,
+    body: {},
+    signal: new AbortController().signal,
+  })
+) {
+  console.log(
+    "BLOCKED  native provider contract — complete authenticated gateway configuration required",
+  );
+  process.exit(3);
+}
 const URL_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+async function fetchProvider(body, signal, stream = true) {
+  const request = throughGateway
+    ? cloudflareProviderRequest({
+        ...gateway,
+        key: KEY,
+        model: MODEL,
+        body,
+        signal: signal ?? new AbortController().signal,
+      })
+    : null;
+  const url = request?.url ?? `${URL_BASE}/${MODEL}:streamGenerateContent?alt=sse`;
+  return fetch(stream ? url : url.replace(":streamGenerateContent?alt=sse", ":generateContent"), {
+    method: "POST",
+    redirect: "error",
+    headers: request?.headers ?? { "content-type": "application/json", "x-goog-api-key": KEY },
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+const redact = (value) =>
+  [KEY, gateway.token]
+    .filter(Boolean)
+    .reduce((text, secret) => text.replaceAll(secret, "[redacted]"), String(value));
+const times = [];
 const totals = { upstream: 0, input: 0, output: 0, requests: 0 };
 let lastSent = null;
 let results = [];
@@ -90,21 +144,18 @@ async function ask(messages, { tools = TOOLS, attachments = [], abortAfter } = {
     {
       allowedOrigins: new Set(["https://ocade.test"]),
       providerReady: true,
+      model: MODEL,
       providerSlots: ["primary"],
       verifyJwt: async () => ({ userId: "probe" }),
       claimPermit: async () => ({ ok: true }),
       finalizePermit: async () => undefined,
       releasePermit: async () => undefined,
       callProvider: ({ model, body, signal }) => {
+        if (model !== MODEL) throw new Error("Contract probe changed its pinned model");
         upstream += 1;
         totals.upstream += 1;
         lastSent = body;
-        return fetch(`${URL_BASE}/${model}:streamGenerateContent?alt=sse`, {
-          method: "POST",
-          headers: { "content-type": "application/json", "x-goog-api-key": KEY },
-          body: JSON.stringify(body),
-          signal,
-        });
+        return fetchProvider(body, signal);
       },
     },
   );
@@ -119,8 +170,9 @@ async function ask(messages, { tools = TOOLS, attachments = [], abortAfter } = {
     events: [],
   };
   if (response.status !== 200) {
-    out.body = await response.text();
+    out.body = redact(await response.text());
     out.ms = performance.now() - started;
+    times.push(out.ms);
     return out;
   }
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -148,12 +200,14 @@ async function ask(messages, { tools = TOOLS, attachments = [], abortAfter } = {
         await reader.cancel("STOP");
         out.upstream = upstream;
         out.ms = performance.now() - started;
+        times.push(out.ms);
         return out;
       }
     }
   }
   out.upstream = upstream;
   out.ms = performance.now() - started;
+  times.push(out.ms);
   return out;
 }
 
@@ -170,6 +224,7 @@ const turn = (r) => ({
   role: "assistant",
   content: r.final?.text ?? r.text,
   toolCalls: r.final?.toolCalls ?? r.calls,
+  ...(r.final?.parts ? { parts: r.final.parts } : {}),
 });
 
 // --- V05: parallel calls, signatures, correlated results --------------------------------------
@@ -183,7 +238,7 @@ console.log(
   `INFO  turn 1: ${a.status} ${a.ms.toFixed(0)} ms, calls ${JSON.stringify(a.calls.map((c) => ({ id: c.id, name: c.name, args: c.arguments, signed: Boolean(c.signature), sigLen: c.signature?.length ?? 0 })))}`,
 );
 check(
-  "real Gemini returns parallel calls in one turn",
+  "real provider returns parallel calls in one turn",
   a.final?.toolCalls?.length >= 2,
   a.final?.toolCalls?.length,
 );
@@ -215,7 +270,7 @@ const sentParts = lastSent.contents.map(
 );
 console.log(`INFO  turn 2 sent as: ${sentParts.join(" | ")}`);
 check(
-  "real Gemini accepts native functionCall + functionResponse continuation",
+  "real provider accepts native functionCall + functionResponse continuation",
   b.status === 200 && Boolean(b.final),
   b.body ?? b.refusal?.reason,
 );
@@ -287,15 +342,14 @@ const raw = {
       })),
     },
   ],
-  generationConfig: { maxOutputTokens: 2048, thinkingConfig: { thinkingLevel: "medium" } },
+  generationConfig: {
+    maxOutputTokens: 2048,
+    thinkingConfig: { thinkingLevel: MODEL.startsWith("gemma-") ? "high" : "medium" },
+  },
 };
 totals.upstream += 1;
-const noSig = await fetch(`${URL_BASE}/${MODEL}:generateContent`, {
-  method: "POST",
-  headers: { "content-type": "application/json", "x-goog-api-key": KEY },
-  body: JSON.stringify(raw),
-});
-const noSigBody = await noSig.text();
+const noSig = await fetchProvider(raw, undefined, false);
+const noSigBody = redact(await noSig.text());
 console.log(
   `INFO  current-turn call without any signature, sent raw: HTTP ${noSig.status} ${noSigBody.slice(0, 200).replace(/\s+/g, " ")}`,
 );
@@ -326,7 +380,9 @@ check(
 
 // --- V06: a request the provider rejects is answered 400 once, never retried -------------------
 const forged = structuredClone(history.slice(0, 3));
-forged[2].toolCalls[0].signature = "Zm9yZ2Vk";
+forged[2].toolCalls[0].signature = MODEL.startsWith("gemma-")
+  ? "ocade-continuation:1:Zm9yZ2Vk"
+  : "Zm9yZ2Vk";
 const fr = await ask([...forged, ...forged[2].toolCalls.map((c) => result(c, '{"result":42}'))]);
 console.log(
   `INFO  forged signature: boundary ${fr.status} ${fr.body ?? fr.refusal?.code ?? "accepted"}, upstream attempts ${fr.upstream}`,
@@ -404,7 +460,12 @@ check(
 );
 
 console.log(
-  `TOTALS boundary requests ${totals.requests} · upstream Gemini requests ${totals.upstream} · input tokens ${totals.input} · output tokens ${totals.output}`,
+  `TOTALS boundary requests ${totals.requests} · upstream requests ${totals.upstream} · input tokens ${totals.input} · output tokens ${totals.output}`,
+);
+const orderedTimes = [...times].sort((a, b) => a - b);
+const percentile = (p) => orderedTimes[Math.max(0, Math.ceil(orderedTimes.length * p) - 1)] ?? 0;
+console.log(
+  `CONTRACT ONLY model ${MODEL} · gateway ${throughGateway} · requests ${times.length} · p50 ${percentile(0.5).toFixed(0)} ms · p95 ${percentile(0.95).toFixed(0)} ms; not a real-task success rate`,
 );
 console.log(`${results.filter(Boolean).length} PASS, ${results.filter((x) => !x).length} FAIL`);
 process.exit(results.every(Boolean) ? 0 : 1);

@@ -4,7 +4,7 @@ import {
   isServiceKey,
   type OnlineHandlerDependencies,
 } from "../edge-handler";
-import { SERVICE_USER_HEADER } from "../contract";
+import { SERVICE_USER_HEADER, type NormalizedResponse } from "../contract";
 
 const ORIGIN = "https://ocade.example";
 
@@ -58,6 +58,7 @@ function dependencies(patch: Partial<OnlineHandlerDependencies> = {}): OnlineHan
   return {
     allowedOrigins: new Set([ORIGIN]),
     providerReady: true,
+    model: "gemini-3.5-flash-lite",
     // All three configured, so a test that expects NO failover is proving the
     // rule rather than the absence of somewhere to fail over to.
     providerSlots: ["primary", "secondary", "tertiary"],
@@ -1447,5 +1448,346 @@ describe("native tool continuity (PLAN Phase 04 V05)", () => {
       expect(status, JSON.stringify(message).slice(0, 120)).toBe(400);
       expect(sentBody).toBeUndefined();
     }
+  });
+});
+
+describe("owner-selected Gemma route", () => {
+  const gemma = "gemma-4-26b-a4b-it";
+  const gemini = "gemini-3.5-flash-lite";
+  const finished = () =>
+    provider([{ candidates: [{ content: { parts: [{ text: "ok" }] }, finishReason: "STOP" }] }]);
+  const quota = (violations: unknown[]) =>
+    new Response(
+      JSON.stringify({
+        error: {
+          details: [{ "@type": "type.googleapis.com/google.rpc.QuotaFailure", violations }],
+        },
+      }),
+      { status: 429, headers: { "retry-after": "60" } },
+    );
+
+  it("defaults to Gemma and fails over before output within the same three-attempt budget", async () => {
+    const call = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(finished());
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ model: undefined, callProvider: call }),
+    );
+    expect(response.status).toBe(200);
+    await response.text();
+    expect(call.mock.calls.map(([v]) => [v.model, v.slot])).toEqual([
+      [gemma, "primary"],
+      [gemini, "primary"],
+      [gemini, "primary"],
+    ]);
+    expect(call.mock.calls.map(([v]) => v.body.generationConfig)).toEqual([
+      { maxOutputTokens: 16_384, thinkingConfig: { thinkingLevel: "high" } },
+      { maxOutputTokens: 16_384, thinkingConfig: { thinkingLevel: "medium" } },
+      { maxOutputTokens: 16_384, thinkingConfig: { thinkingLevel: "medium" } },
+    ]);
+  });
+
+  it("uses all three keys for credential failures without changing quota identity", async () => {
+    const call = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 403 }))
+      .mockResolvedValueOnce(finished());
+    await (
+      await handleOnlineIntelligence(request(), dependencies({ model: gemma, callProvider: call }))
+    ).text();
+    expect(call.mock.calls.map(([v]) => [v.model, v.slot])).toEqual([
+      [gemma, "primary"],
+      [gemma, "secondary"],
+      [gemma, "tertiary"],
+    ]);
+  });
+
+  it("changes model only when every reported quota violation is scoped to that model", async () => {
+    const call = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockResolvedValueOnce(quota([{ quotaDimensions: { model: gemma } }]))
+      .mockResolvedValueOnce(finished());
+    const sleep = vi.fn(async () => undefined);
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ model: gemma, callProvider: call, sleep }),
+    );
+    expect(response.status).toBe(200);
+    await response.text();
+    expect(call.mock.calls.map(([v]) => [v.model, v.slot])).toEqual([
+      [gemma, "primary"],
+      [gemini, "primary"],
+    ]);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [[]],
+    [[{}]],
+    [[{ quotaDimensions: { model: gemma } }, {}]],
+    [[{ quotaDimensions: { model: gemini } }]],
+  ])(
+    "honours unknown/project-wide quota without probing other models or keys: %j",
+    async (violations) => {
+      const call = vi.fn(async () => quota(violations as unknown[]));
+      const response = await handleOnlineIntelligence(
+        request(),
+        dependencies({ model: gemma, callProvider: call }),
+      );
+      expect(response.status).toBe(429);
+      expect(await response.json()).toMatchObject({ retryAfterSeconds: 60 });
+      expect(call).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("never falls back after a partial stream or a safety refusal", async () => {
+    for (const response of [
+      new Response("data: {broken\n\n"),
+      provider([{ promptFeedback: { blockReason: "SAFETY" } }]),
+    ]) {
+      const call = vi.fn(async () => response);
+      const stream = await (
+        await handleOnlineIntelligence(
+          request(),
+          dependencies({ model: gemma, callProvider: call }),
+        )
+      ).text();
+      expect(stream).toContain('"type":"refusal"');
+      expect(call).toHaveBeenCalledTimes(1);
+    }
+  });
+});
+
+describe("native history across model routing", () => {
+  const gemma = "gemma-4-26b-a4b-it";
+  const gemini = "gemini-3.5-flash-lite";
+  const finished = () =>
+    provider([{ candidates: [{ content: { parts: [{ text: "done" }] }, finishReason: "STOP" }] }]);
+  async function originalTurn() {
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({
+        model: gemma,
+        callProvider: async () =>
+          provider([
+            {
+              candidates: [
+                {
+                  content: {
+                    parts: [
+                      { text: "private", thought: true, thoughtSignature: "reasoning-original" },
+                      { text: "unsigned thought", thought: true },
+                      { text: "visible", thoughtSignature: "text-original" },
+                      {
+                        functionCall: {
+                          id: "fc-original",
+                          name: "browser",
+                          args: { action: "observe" },
+                        },
+                        thoughtSignature: "call-original",
+                      },
+                      { text: "", thoughtSignature: "empty-original" },
+                    ],
+                  },
+                  finishReason: "STOP",
+                },
+              ],
+            },
+          ]),
+      }),
+    );
+    const events = (await response.text())
+      .split("\n\n")
+      .filter(Boolean)
+      .map((frame) => JSON.parse(frame.slice(6)));
+    expect(
+      events
+        .filter((v) => v.type === "token")
+        .map((v) => v.text)
+        .join(""),
+    ).toBe("visible");
+    return events.find((v) => v.type === "final").response as NormalizedResponse;
+  }
+  function history(reply: NormalizedResponse) {
+    const value = body();
+    return {
+      ...value,
+      messages: [
+        ...value.messages,
+        { role: "assistant", content: reply.text, toolCalls: reply.toolCalls, parts: reply.parts },
+        {
+          role: "user",
+          content: "actual observation",
+          toolResult: { callId: "fc-original", name: "browser" },
+        },
+      ],
+    };
+  }
+  it("preserves exact native bytes and order on the same model after serialization/restart", async () => {
+    const reply = JSON.parse(JSON.stringify(await originalTurn())) as NormalizedResponse;
+    const call = vi.fn<OnlineHandlerDependencies["callProvider"]>(async () => finished());
+    await (
+      await handleOnlineIntelligence(
+        request(history(reply)),
+        dependencies({ model: gemma, callProvider: call }),
+      )
+    ).text();
+    const sent = JSON.stringify(call.mock.calls[0]![0]);
+    expect(sent).not.toContain("ocade-continuation");
+    expect(sent).toContain("call-original");
+    expect(sent).toContain("unsigned thought");
+    expect(call.mock.calls[0]![0].body).toMatchObject({
+      contents: [
+        { role: "user" },
+        {
+          role: "model",
+          parts: [
+            { text: "private", thought: true, thoughtSignature: "reasoning-original" },
+            { text: "unsigned thought", thought: true },
+            { text: "visible", thoughtSignature: "text-original" },
+            {
+              functionCall: { id: "fc-original", name: "browser", args: { action: "observe" } },
+              thoughtSignature: "call-original",
+            },
+            { text: "", thoughtSignature: "empty-original" },
+          ],
+        },
+        {
+          role: "user",
+          parts: [
+            {
+              functionResponse: {
+                id: "fc-original",
+                name: "browser",
+                response: { result: "actual observation" },
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+  it("withholds foreign opaque bytes/reasoning while preserving call/result semantics on fallback", async () => {
+    const reply = await originalTurn();
+    const call = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(finished());
+    await (
+      await handleOnlineIntelligence(
+        request(history(reply)),
+        dependencies({ model: gemma, callProvider: call }),
+      )
+    ).text();
+    expect(call.mock.calls.map(([v]) => v.model)).toEqual([gemma, gemini]);
+    const fallback = JSON.stringify(call.mock.calls[1]![0].body);
+    expect(fallback).not.toMatch(
+      /reasoning-original|text-original|call-original|empty-original|private|unsigned thought|ocade-continuation/,
+    );
+    expect(fallback).toContain("skip_thought_signature_validator");
+    expect(fallback).toContain("actual observation");
+    expect(fallback).toContain("fc-original");
+    expect(fallback).toContain("visible");
+    expect(JSON.stringify(reply)).toContain("call-original"); // the stored original was not mutated
+  });
+  it("keeps unsigned private parts on their own model and omits them from another", async () => {
+    const first = await handleOnlineIntelligence(
+      request(),
+      dependencies({
+        model: gemma,
+        callProvider: async () =>
+          provider([
+            {
+              candidates: [
+                {
+                  content: {
+                    parts: [{ text: "unsigned private only", thought: true }, { text: "visible" }],
+                  },
+                  finishReason: "STOP",
+                },
+              ],
+            },
+          ]),
+      }),
+    );
+    const events = (await first.text())
+      .split("\n\n")
+      .filter(Boolean)
+      .map((frame) => JSON.parse(frame.slice(6)));
+    const reply = events.find((v) => v.type === "final").response as NormalizedResponse;
+    const value = {
+      ...body(),
+      messages: [
+        ...body().messages,
+        { role: "assistant", content: reply.text, parts: reply.parts },
+        { role: "user", content: "continue" },
+      ],
+    };
+    const call = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(finished());
+    await (
+      await handleOnlineIntelligence(
+        request(value),
+        dependencies({ model: gemma, callProvider: call }),
+      )
+    ).text();
+    expect(JSON.stringify(call.mock.calls[0]![0].body)).toContain("unsigned private only");
+    expect(JSON.stringify(call.mock.calls[1]![0].body)).not.toContain("unsigned private only");
+    expect(JSON.stringify(call.mock.calls[0]![0].body)).not.toContain("ocade-continuation");
+  });
+
+  it("restores legacy Gemini continuation only on its own route", async () => {
+    const value = body();
+    const input = {
+      ...value,
+      messages: [
+        ...value.messages,
+        {
+          role: "assistant",
+          content: "",
+          parts: [
+            { text: "old private", thought: true, signature: "legacy-sig" },
+            { callId: "legacy" },
+          ],
+          toolCalls: [
+            { id: "legacy", name: "browser", arguments: {}, signature: "legacy-call-sig" },
+          ],
+        },
+        { role: "user", content: "receipt", toolResult: { callId: "legacy", name: "browser" } },
+      ],
+    };
+    const call = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(finished());
+    await (
+      await handleOnlineIntelligence(
+        request(input),
+        dependencies({ model: gemma, callProvider: call }),
+      )
+    ).text();
+    expect(JSON.stringify(call.mock.calls[0]![0].body)).not.toMatch(
+      /legacy-sig|legacy-call-sig|old private/,
+    );
+    expect(JSON.stringify(call.mock.calls[1]![0].body)).toMatch(/legacy-call-sig/);
+    expect(JSON.stringify(call.mock.calls[1]![0].body)).toContain("old private");
+  });
+  it("honours a provider-wide Retry-After instead of trying another model early", async () => {
+    const call = vi.fn(
+      async () => new Response(null, { status: 503, headers: { "retry-after": "45" } }),
+    );
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ model: gemma, callProvider: call }),
+    );
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ retryAfterSeconds: 45 });
+    expect(call).toHaveBeenCalledTimes(1);
   });
 });
