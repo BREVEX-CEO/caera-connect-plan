@@ -1,0 +1,26 @@
+{
+  "buildCountInResponse": 50,
+  "latest": [
+    {
+      "branch": "dependabot/npm_and_yarn/routine-fd6946014a",
+      "build_uuid": "7e5eac75-ba87-40cb-bfca-77a39a5a96d1",
+      "commit": "f726b088270c894d7f43bd9be67dfdb159c72b46",
+      "status": "stopped"
+    },
+    {
+      "branch": "main",
+      "build_uuid": "b9addb53-e189-4ad5-adc5-13c114ca7d7c",
+      "commit": "e53725a25a48508b990135b93c0a6bfa555bb87e",
+      "status": "stopped"
+    },
+    {
+      "branch": "ocade/p00-p22-implementation",
+      "build_uuid": "f670c5db-df77-498a-bc71-103481aa45d1",
+      "commit": "3dd7df5ba8276c33da9b8e3d0dab4920dd68f526",
+      "status": "stopped"
+    }
+  ],
+  "matchesCheckpoint": [],
+  "observedAt": "2026-10-20T02:48:11.262Z",
+  "source": "Authenticated Chrome documented read-only build-list endpoint"
+}

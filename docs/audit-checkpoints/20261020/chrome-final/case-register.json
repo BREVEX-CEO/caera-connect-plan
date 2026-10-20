@@ -569,7 +569,7 @@
       "feature": "Cloudflare branch exclusion",
       "reproduction": "Read Worker settings and the documented read-only trigger endpoint through the authenticated Chrome session.",
       "evidence": "cloudflare-branch-isolation.json",
-      "source": "BLOCKED_TESTS.md:176",
+      "source": "BLOCKED_TESTS.md:193",
       "root_cause": "No additional root cause needed for this narrowly passing UI observation; full release gate remains separate.",
       "expected_actual": "Non-production trigger excludes main and ocade/p00-p22-implementation; production trigger includes only main. No configuration changed or build invoked.",
       "timing": "Not individually instrumented",
