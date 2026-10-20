@@ -1,0 +1,27 @@
+{
+  "title": "JARVIS: The Assistant That Finishes the Work",
+  "sections": [
+    {
+      "heading": "From Fiction to a Working Tool",
+      "paragraphs": [
+        "In the films, JARVIS is the calm voice that runs a workshop, answers questions and quietly takes care of a hundred small jobs. The idea has lasted because it describes something people genuinely want: an assistant that does not merely talk about a task but completes it, safely, on the devices they already own. Turning that idea into a dependable product is much harder than writing a clever reply.",
+        "Recent progress in language models, browser automation and operating system interfaces has made this practical for the first time, provided the engineering stays honest about what each platform allows."
+      ]
+    },
+    {
+      "heading": "What Makes an Assistant Trustworthy",
+      "paragraphs": [
+        "A useful assistant must understand the request, choose the most direct capability that can satisfy it and then prove the result. Opening a document, writing three hundred words and saving the file are only valuable when the saved file actually contains those words in the right place. Every claim of success should rest on evidence read back from the real artifact, not on the confidence of the system that produced it.",
+        "Trust also depends on control. The person must be able to stop the assistant instantly, take over at any moment and see exactly what changed. Permissions should be narrow, explicit and easy to revoke, and nothing irreversible should happen twice because a network message arrived late."
+      ]
+    },
+    {
+      "heading": "Speed Without Shortcuts",
+      "paragraphs": [
+        "Speed matters, but it should come from removing waste rather than from skipping checks. Asking a remote model how to press every single button wastes minutes. A better design describes the desired outcome once, lets the device apply known operations locally and asks for help only when something unexpected appears. Verification then confirms the outcome directly.",
+        "The goal is simple to state and demanding to deliver: an assistant that is fast because it is precise, and reliable because every finished task can be checked. That is the standard a modern JARVIS should meet before anyone calls it complete."
+      ]
+    }
+  ],
+  "bold": "every finished task can be checked"
+}

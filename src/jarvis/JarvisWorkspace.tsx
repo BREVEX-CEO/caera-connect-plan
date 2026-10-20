@@ -215,6 +215,9 @@ export function JarvisWorkspace({
   const [selected, setSelected] = useState<GraphNode | null>(null);
   const [focusOrb, setFocusOrb] = useState(false);
   const [controlsHidden, setControlsHidden] = useState(false);
+  // A decision only the person can make is never hidden behind the orb (HX-04): while one
+  // waits, the conversation holding it is shown and takes the pointer.
+  const focused = focusOrb && !confirmAsk && !takeover;
   const [drawerOpen, setDrawerOpen] = useState(false);
   // The computer the person chose for new tasks (Remote PC), when several are online.
   const [chosenTarget, setTarget] = useState<string | null>(null);
@@ -838,7 +841,7 @@ export function JarvisWorkspace({
   // Orb Focus stays until the person leaves it; the controls around it fade after
   // eight quiet seconds and come back on any movement or key. Stop never fades.
   useEffect(() => {
-    if (!focusOrb) {
+    if (!focused) {
       setControlsHidden(false);
       return;
     }
@@ -877,7 +880,7 @@ export function JarvisWorkspace({
       window.clearTimeout(timer);
       events.forEach((name) => window.removeEventListener(name, wake));
     };
-  }, [focusOrb, section, permissionsOpen, drawerOpen, confirmAsk, takeover]);
+  }, [focused, section, permissionsOpen, drawerOpen, confirmAsk, takeover]);
   const fade = cn(
     "transition-opacity duration-500",
     controlsHidden && "opacity-0 hover:opacity-100 focus-within:opacity-100",
@@ -1001,14 +1004,14 @@ export function JarvisWorkspace({
       <main className="relative flex min-w-0 flex-1 flex-col">
         <Orb
           graph={graph}
-          dimmed={hasText && !focusOrb}
+          dimmed={hasText && !focused}
           level={voice.level}
           accent={prefs.accent}
           reducedMotion={motionReduced}
           selectedId={selected?.id ?? null}
           onSelect={setSelected}
           onFocus={() => setFocusOrb((value) => !value)}
-          focused={focusOrb}
+          focused={focused}
           controlsHidden={controlsHidden}
         />
 
@@ -1039,11 +1042,11 @@ export function JarvisWorkspace({
           ) : null}
           <button
             type="button"
-            aria-pressed={focusOrb}
+            aria-pressed={focused}
             onClick={() => setFocusOrb((value) => !value)}
             className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
           >
-            {focusOrb ? "Leave focus" : "Focus orb"}
+            {focused ? "Leave focus" : "Focus orb"}
           </button>
         </header>
 
@@ -1053,8 +1056,8 @@ export function JarvisWorkspace({
             aria-label="Conversation"
             className={cn(
               "ocade-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-4 transition-opacity",
-              focusOrb ? "opacity-0" : "opacity-100",
-              !focusOrb && (hasText || conversationTask) && "pointer-events-auto",
+              focused ? "opacity-0" : "opacity-100",
+              !focused && (hasText || conversationTask) && "pointer-events-auto",
             )}
             // Empty space around the conversation belongs to the orb behind it.
             onDoubleClick={(event) => {

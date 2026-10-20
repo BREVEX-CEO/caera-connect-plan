@@ -78,6 +78,15 @@
     + '[title],canvas';
   const acts = (el) => el.tagName === 'CANVAS' || roleOf(el) !== 'generic'
     || el.onclick || getComputedStyle(el).cursor === 'pointer';
+  // Behind an open dialog or overlay: pressing it now would press what covers it instead.
+  // Its own label in front of it (a styled checkbox) is not a cover.
+  const covered = (el) => {
+    const r = el.getBoundingClientRect();
+    const top = document.elementFromPoint(Math.min(Math.max(r.left + r.width / 2, 0), innerWidth - 1),
+      Math.min(Math.max(r.top + r.height / 2, 0), innerHeight - 1));
+    return !!top && !el.contains(top) && !top.contains(el)
+      && !(el.labels && [...el.labels].some((l) => l.contains(top)));
+  };
   // How many controls the page has: an app that builds itself after load is ready when this settles.
   const controls = () => document.querySelectorAll(SELECTOR).length;
   const snapshot = () => {
@@ -101,12 +110,7 @@
       if (el.type) item.type = el.type;
     }
     if (el.disabled) item.disabled = true;
-    // Behind an open dialog or overlay: pressing it now would press what covers it instead.
-    const r = el.getBoundingClientRect();
-    const cx = Math.min(Math.max(r.left + r.width / 2, 0), innerWidth - 1);
-    const cy = Math.min(Math.max(r.top + r.height / 2, 0), innerHeight - 1);
-    const top = document.elementFromPoint(cx, cy);
-    if (top && !el.contains(top) && !top.contains(el)) item.covered = true;
+    if (covered(el)) item.covered = true;
     if (el.checked) item.checked = true;
     if (el.getAttribute('aria-pressed') === 'true') item.pressed = true;
     elements.push(item);
@@ -248,5 +252,5 @@
         : [...new Set(files.map((t) => t.srclang || t.label))],
       ...(captions === undefined ? {} : {captions}), ...(problem ? {error: problem} : {})};
   };
-  window.__ocade = { snapshot, controls, geometry, identityOf, submitOf, atPoint, byRef, findText, media };
+  window.__ocade = { snapshot, controls, covered, geometry, identityOf, submitOf, atPoint, byRef, findText, media };
 })();

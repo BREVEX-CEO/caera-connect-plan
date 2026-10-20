@@ -1,0 +1,22 @@
+{
+  "title": "Flagship comparison: iPhone 18 Pro vs Galaxy S26 Ultra (US, read 20 Oct 2026)",
+  "products": ["iPhone 18 Pro", "Galaxy S26 Ultra"],
+  "pages": [
+    {"url": "https://www.apple.com/iphone-18-pro/specs/", "find": ["Weight:", "inch (diagonal)", "Video playback", "48MP Fusion Main"],
+     "supports": "iPhone 18 Pro display, weight, camera, video playback"},
+    {"url": "https://www.apple.com/shop/buy-iphone/iphone-18-pro", "find": ["Buy from $"],
+     "supports": "iPhone 18 Pro 256GB price"},
+    {"url": "https://www.samsung.com/us/smartphones/galaxy-s26-ultra/", "find": ["Key specs at a glance", "hrs of video playback"],
+     "supports": "Galaxy S26 Ultra display, weight, camera, video playback"},
+    {"url": "https://www.samsung.com/us/smartphones/galaxy-s26-ultra/buy/", "find": ["256GB $"],
+     "supports": "Galaxy S26 Ultra 256GB price (the overview page shows a lower promotional from-price)"}
+  ],
+  "rows": [
+    ["Price, 256GB (USD)", 1199, 1399.99],
+    ["Display (inches)", 6.3, 6.9],
+    ["Main camera (MP)", 48, 200],
+    ["Weight (g)", 211, 214],
+    ["Video playback (hours)", 36, 31]
+  ],
+  "recommendation": "Choose the iPhone 18 Pro for value and endurance: at 256GB it costs $200.99 less and is rated for 36 versus 31 hours of video playback. Choose the Galaxy S26 Ultra for its larger 6.9-inch display and 200 MP main camera. Samsung's overview page advertised a lower promotional from-price; this workbook uses the 256GB price on its buy page."
+}

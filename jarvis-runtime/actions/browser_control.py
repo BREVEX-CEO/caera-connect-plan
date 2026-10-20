@@ -36,9 +36,6 @@ def _normalize_url(url: str) -> str:
 # The page semantics live in one file, the same for JARVIS's own browser and the person's.
 _OCADE_PAGE = (Path(__file__).resolve().parent / "ocade_page.js").read_text(encoding="utf-8")
 _OCADE_INIT = _OCADE_PAGE
-_OCADE_COVERED = """el => { const r = el.getBoundingClientRect();
-  const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-  return !!top && !el.contains(top) && !top.contains(el) && !(el.labels && [...el.labels].some(l => l.contains(top))); }"""
 
 
 def _page_fn(args: str, body: str) -> str:
@@ -56,6 +53,7 @@ _OCADE_FOCUSED = _page_fn("()", "const el = document.activeElement; "
 _OCADE_AT_POINT = _page_fn("[x, y]", "return window.__ocade.atPoint(x, y);")
 _OCADE_FIND = _page_fn("q", "return window.__ocade.findText(q);")
 _OCADE_MEDIA = _page_fn("[op, s, ref]", "return window.__ocade.media(op, s, ref);")
+_OCADE_COVERED = _page_fn("el", "return window.__ocade.covered(el);")
 
 _KEYS = {"Enter", "Tab", "Escape", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
          "PageUp", "PageDown", "Home", "End", "Backspace", "Space"}

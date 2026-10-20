@@ -817,10 +817,8 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
       liveTurns.includes('While you were working, the person said: [\\"use the other file\\"]') ||
         liveTurns.includes('While you were working, the person said: ["use the other file"]'),
     );
-    check(
-      "and the task still finishes",
-      (await page.locator("[data-testid=jarvis-task-status]").innerText()) === "Completed",
-    );
+    const finished = await page.locator("[data-testid=jarvis-task-status]").innerText();
+    check("and the task still finishes", finished === "Completed", finished);
     await page.reload({ waitUntil: "networkidle" });
 
     /* --- Online capacity unavailable: a calm OCADE state, the task saved -------- */
@@ -1102,6 +1100,17 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
       await until(async () => (await dialog.count()) === 1, 60_000),
     );
     check("it names what it will press", (await dialog.innerText()).includes("Send message"));
+    // Orb Focus chosen while it waits never hides it or takes its pointer (HX-04).
+    await page.getByRole("button", { name: "Focus orb", exact: true }).click();
+    check(
+      "a decision waiting is never hidden behind Orb Focus",
+      await page
+        .getByRole("region", { name: "Conversation" })
+        .evaluate(
+          (el) =>
+            getComputedStyle(el).opacity === "1" && getComputedStyle(el).pointerEvents !== "none",
+        ),
+    );
     // Live progress comes only from the record: a stage, the recorded step, time spent.
     const live = await page
       .locator("[data-testid=jarvis-task-live]")
@@ -1122,6 +1131,7 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
     await dialog.getByRole("button", { name: "Decline", exact: true }).click();
     await idle();
     check("declined: the submission never ran", hits.filter((h) => h === "/sent").length === 1);
+    await page.getByRole("button", { name: "Leave focus", exact: true }).click();
     check("a purchase is never performed", !hits.includes("/order"));
     const buyTurns = (await boundary()).turns.map((t) => t.content).join("\n");
     check(
