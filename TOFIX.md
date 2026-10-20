@@ -49,6 +49,36 @@ Six recovery cases: 2 PASS, 2 FAIL, 2 BLOCKED. Three actual JARVIS submissions: 
 
 AI token usage, Standard/High full-completion p50/p95, native step accuracy and >=95% family success remain N/A. The historical 0/100 qualification score still means zero complete mandatory release gates, not zero implemented functionality.
 
+### AUTH-20-03 implementation checkpoint — not a delivery PASS
+
+Source commit 33d08779363df3be16272ec11fb075658cac7aa2 modifies only src/components/security/ConfirmIdentity.tsx. Lines29,69–81 and118–142 bind the requested email proof to the verified account ID, refuse a changed/missing identity and require the returned user/session to match before retrying the action. Line173 and the verification error explain link-only email. The supported signInWithOtp plus verifyOtp(type email), shouldCreateUser false, TOTP and server assurance are preserved. The complete edited file was copied back through Chrome and matched the intended source; the published GitHub diff was read. This is source verification only: no compiler/test-runner result or local runtime acceptance is claimed. The owner was asked to fast-forward the local staging checkout while preserving local changes, because browser-only access cannot edit that checkout.
+
+The owner approved Gmail SMTP for staging. Non-secret fields were prepared: sender is the owner's approved account, display name OCADE Staging, host smtp.gmail.com, port465. Credential creation, entry and submission were handed to the owner under browser security rules; no app password was read or placed in a transcript/repository. The owner reported saving, but settled authenticated staging readback still showed custom SMTP disabled and template source/Save locked. The enabled form was prepared again and the owner asked to inspect the save success/error. Do not infer an incorrect password, SMTP transport error or completed connection from this state. No production mail settings were touched. Gmail SMTP is a staging delivery dependency; it is not a qualified commercial transactional-email transport.
+
+Current staging Email provider readback: OTP length8 digits and expiration3600 seconds; Google/email enabled and secure email change enabled. No length, expiry, MFA or security setting was changed. The UI currently accepts up to8 digits, so the real Token is used as configured; a six-digit placeholder is not proof that the server issues six digits. Preserve the stronger configured length unless an authorized security change is deliberately approved.
+
+After custom SMTP is genuinely enabled, update only staging Magic link or OTP:
+
+Subject: Your OCADE verification code
+
+```html
+<h2>Confirm it is you</h2>
+<p>Enter this one-time verification code in OCADE:</p>
+<p style="font-size:28px;letter-spacing:0.2em;font-family:monospace">{{ .Token }}</p>
+<p>This code is for your OCADE sign-in or confirmation. Do not share it. If you did not request it, ignore this email.</p>
+```
+
+This exact supported Token-template approach is documented at https://supabase.com/docs/guides/auth/auth-email-templates (Email prefetching / Option1), paired with verifyOtp(type email). No live code belongs in saved evidence. Native reauthenticate is documented for the updateUser password-change nonce and was deliberately not substituted.
+
+### Additional observed presentation defects
+
+| ID | Priority | Problem / reproduction | Evidence | Exact source / cause certainty | Expected / actual | Timing | Status | Required coding and Opus steps | Verification |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| UI-20-06 | P2 | High failure loses an actionable durable explanation. Submit the High arithmetic request; inspect after transient notifications and then send another turn | RC20-04, actual503 high_unavailable; inspected Chrome screenshot shows only Retry, then later conversation contains unanswered High user turn | src/jarvis/JarvisWorkspace.tsx:559–563 handles errors as transient toasts; :811–817 derives retry only from last turn; :1138–1145 renders Retry without persisted error. CONFIRMED presentation structure; exact initial thrown error class not captured | Expected stable readable failure/reason and intentional retry or mode choice; actual no durable error text | Observation after request, toast lifetime not measured | FAIL | Persist a safe typed turn failure with reason and request/mode association; render useful inline feedback and preserve it after later turns/reload. Keep explicit mode selection and duplicate prevention. No provider-secret diagnostics in UI | high_unavailable, network and capacity failures show durable accessible reason and correct retry; successful later turn does not erase earlier failure |
+| UI-20-07 | P2 | Assistant Markdown displays literally. Submit Standard arithmetic and inspect reply | RC20-03 screenshot shows literal asterisks around Final Sum and star-prefixed subtotals | src/jarvis/JarvisWorkspace.tsx:1105–1116 renders turn.content inside p. CONFIRMED plain-text rendering; Markdown presentation contract is a UX decision | Expected consistently readable reply formatting; actual provider formatting syntax remains visible | Not instrumented | PARTIAL | Choose and document the intended reply format. Reuse a safe existing Markdown renderer if rich text is intended, or normalize provider output to deliberate plain text. Never enable raw HTML execution | Arithmetic remains correct/readable; code/links/lists format intentionally; adversarial raw HTML remains inert |
+
+STOP timing attempt: an actual scoped native request was submitted while no Agent was connected. The working state and Stop button were observed, but the request completed before the click resolved. The click found no Stop control. This is INCONCLUSIVE, not a STOP pass or product failure; no native execution or cancellation receipt was observed.
+
 ### Recovery implementation order and acceptance
 
 1. Restore and keep live server hydration; record fresh account/bootstrap failures separately from cached-shell startup. Verify ignored local server bindings without printing values.
