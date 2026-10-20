@@ -110,6 +110,8 @@ class _BrowserSession:
         self.egress = egress
         self._private_hit: str | None = None
         self._observations: dict[str, dict] = {}
+        # Tabs JARVIS opened or was switched into: only these are read in the person's own browser.
+        self._mine: set = set()
         self._observation_seq = 0
         self._boundary: str | None = None
 
@@ -221,6 +223,7 @@ class _BrowserSession:
 
     async def _new_page(self) -> Page:
         page = await self._context.new_page()
+        self._mine.add(page)
         if self.mode == "real":
             await self._guard(page)
         return page
@@ -346,11 +349,18 @@ class _BrowserSession:
                                         "refs": {e["ref"]: (e["role"], e["name"]) for e in snap["elements"]}}}
         tabs = []
         for i, p in enumerate(self._context.pages):
+            if self.mode == "real" and p not in self._mine and p is not page:
+                # The person's own tab: its place is kept for switch_tab, its title and address
+                # are theirs (HX-10), never read into a task or shown to the planner.
+                tabs.append({"index": i, "title": "", "url": "", "active": False, "persons": True})
+                continue
             try:
                 title = await p.title()
             except Exception:
                 title = ""
-            tabs.append({"index": i, "title": title[:80], "url": p.url[:300], "active": p is page})
+            # A query or fragment can carry a session token; the active page's own url stays whole.
+            tabs.append({"index": i, "title": title[:80], "url": re.split(r"[?#]", p.url, 1)[0][:300],
+                         "active": p is page})
         out = {"observationId": obs_id, "url": page.url, "title": (await page.title())[:120],
                "tabs": tabs, "viewport": {k: geo.get(k) for k in ("w", "h", "dpr", "zoom", "sx", "sy")},
                "elements": snap["elements"], "text": snap["text"], "humanBoundary": snap["boundary"]}
@@ -503,6 +513,7 @@ class _BrowserSession:
             if not 0 <= index < len(pages):
                 return {"status": "failed", "summary": "That tab does not exist"}
             self._page = page = pages[index]
+            self._mine.add(page)
             if self.mode == "real":
                 await self._guard(page)
             await page.bring_to_front()
@@ -544,6 +555,7 @@ class _BrowserSession:
                     async with self._context.expect_page(timeout=10_000) as opened:
                         await loc.click(timeout=8_000)
                     self._page = page = await opened.value
+                    self._mine.add(page)
                     if self.mode == "real":
                         await self._guard(page)
                 else:

@@ -150,8 +150,12 @@ class AttachTest(unittest.TestCase):
         self.assertEqual(opened["status"], "done", opened)
         observation = opened["observation"]
         self.assertEqual(observation["title"], "Mine")
-        # The person's own tab is still there, and JARVIS's is a separate one.
+        # The person's own tab is still there, and JARVIS's is a separate one; the person's is
+        # never read: no title, no address (HX-10).
         self.assertGreaterEqual(len(observation["tabs"]), 2)
+        theirs = [t for t in observation["tabs"] if t.get("persons")]
+        self.assertTrue(theirs)
+        self.assertTrue(all(t["title"] == "" and t["url"] == "" for t in theirs))
         button = next(e for e in observation["elements"] if e["name"] == "Hello")
         clicked = session.run(session.act({"action": "click", "ref": button["ref"],
                                            "observationId": observation["observationId"]}), timeout=60)
