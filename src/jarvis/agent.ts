@@ -407,7 +407,11 @@ export function continuity(
   base: Seen | null,
   now: Seen | null,
 ): string | null {
-  if (COORDINATES.has(String(step.action))) {
+  // Points inside an element's own box follow that element, as a ref does.
+  if (
+    COORDINATES.has(String(step.action)) &&
+    !(family === "browser" && typeof step.ref === "string")
+  ) {
     return "Coordinates need the observation they were read from: look again first.";
   }
   if (!base || !now) return "There is no earlier observation for this step to act on.";

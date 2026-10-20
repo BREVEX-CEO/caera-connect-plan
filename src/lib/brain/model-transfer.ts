@@ -546,7 +546,8 @@ export async function transferModel(
     const attempts = request.maxAttemptsPerChunk ?? DEFAULT_ATTEMPTS;
     let lastStatus: number | null = null;
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
-      if (request.signal?.aborted) return null;
+      // Another worker already failed the transfer: no more requests against it (HX-19).
+      if (request.signal?.aborted || failure) return null;
       const stalled = new AbortController();
       let timer = setTimeout(() => stalled.abort(), deps.stallMs ?? STALL_MS);
       const alive = () => {
@@ -614,6 +615,27 @@ export async function transferModel(
           continue;
         }
 
+        /*
+         * A DELIVERY SERVICE THAT IS NOT SET UP HERE WILL NOT BECOME SET UP BY ASKING AGAIN.
+         * (A local server has no artifact store: every retry, chunk and install attempt hit
+         * the same 503 — a hundred requests in 98 s, EV-OFFLINE.) Said once, not retried.
+         */
+        if (
+          response.status === 503 &&
+          response.headers.get("x-ocade-delivery") === "unconfigured"
+        ) {
+          try {
+            await response.body?.cancel();
+          } catch {
+            /* Nothing to release. */
+          }
+          failure = {
+            failure: "network",
+            reason: "Offline downloads are not available from this OCADE server.",
+            retriable: false,
+          };
+          return null;
+        }
         metrics.retries += 1;
         /*
          * AN EXPIRED LINK IS NOT A REFUSAL. Authorised delivery hands out URLs

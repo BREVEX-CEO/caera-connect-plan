@@ -36,6 +36,9 @@ def _normalize_url(url: str) -> str:
 # The page semantics live in one file, the same for JARVIS's own browser and the person's.
 _OCADE_PAGE = (Path(__file__).resolve().parent / "ocade_page.js").read_text(encoding="utf-8")
 _OCADE_INIT = _OCADE_PAGE
+_OCADE_COVERED = """el => { const r = el.getBoundingClientRect();
+  const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+  return !!top && !el.contains(top) && !top.contains(el) && !(el.labels && [...el.labels].some(l => l.contains(top))); }"""
 
 
 def _page_fn(args: str, body: str) -> str:
@@ -296,6 +299,25 @@ class _BrowserSession:
         await self._context.add_init_script(_OCADE_INIT)
         self._page = self._context.pages[0] if self._context.pages else await self._context.new_page()
 
+    async def _settle(self, page: Page, quiet: float = 0.4, limit: float = 3.0) -> None:
+        """Until the page's controls stop appearing (an app that builds itself after load), at
+        most `limit` seconds: what is observed next is the page the person would see, not its
+        first frame. A ticking clock or animation does not hold it up; new controls do."""
+        try:
+            deadline = time.monotonic() + limit
+            await page.wait_for_load_state("load", timeout=limit * 1000)
+            await page.evaluate(_OCADE_INIT)
+            last, since = None, time.monotonic()
+            while time.monotonic() < deadline:
+                count = await page.evaluate("() => window.__ocade.controls()")
+                if count != last:
+                    last, since = count, time.monotonic()
+                elif time.monotonic() - since >= quiet:
+                    return
+                await asyncio.sleep(0.05)
+        except Exception:
+            pass
+
     async def _geometry(self, page: Page) -> dict:
         try:
             geo = await page.evaluate(_OCADE_GEOMETRY)
@@ -445,6 +467,7 @@ class _BrowserSession:
             except Exception as e:
                 return {"status": "failed", "summary": f"Could not open that page ({str(e).split(chr(10))[0][:120]})",
                         "observation": await self.observe()}
+            await self._settle(page)
             detail = f"Opened {page.url[:120]}"
         elif kind == "switch_tab":
             pages = self._context.pages
@@ -481,8 +504,22 @@ class _BrowserSession:
             gate = _gate(kind, info, confirmed)
             if gate:
                 return gate
+            # Something covers it (an open dialog): said at once, with the page as it is, rather
+            # than an 8-second wait that ends in an error.
+            if kind == "click" and await loc.evaluate(_OCADE_COVERED):
+                return {"status": "failed", "summary": "Something on the page covers that element; "
+                        "deal with what is in front first", "observation": await self.observe()}
             if kind == "click":
-                await loc.click(timeout=8_000)
+                # A link that opens its own tab: JARVIS follows it there, as a person would, instead of
+                # reporting the old tab and failing the next step on a tab that did not exist yet.
+                if await loc.evaluate("el => el.closest('a[target]')?.target === '_blank'"):
+                    async with self._context.expect_page(timeout=10_000) as opened:
+                        await loc.click(timeout=8_000)
+                    self._page = page = await opened.value
+                    if self.mode == "real":
+                        await self._guard(page)
+                else:
+                    await loc.click(timeout=8_000)
                 detail = f"Clicked “{info.get('name') or info.get('role')}”"
             elif kind == "type":
                 text = str(action.get("text", ""))[:2000]
@@ -551,12 +588,23 @@ class _BrowserSession:
             await page.keyboard.press(key)
             detail = f"Pressed {key}"
         elif kind in ("click_at", "drag_at"):
-            why = await self._stale(page, action.get("observationId"))
-            if why:
-                return {"status": "stale", "summary": why, "observation": await self.observe()}
             points = [(float(action.get("x", -1)), float(action.get("y", -1)))]
             if kind == "drag_at":  # a timeline clip, a crop handle, a slider: pressed, moved, let go
                 points.append((float(action.get("toX", -1)), float(action.get("toY", -1))))
+            if action.get("ref"):
+                # Fractions of the named element's live box: that element is checked, so a change
+                # elsewhere on the page (an animation, a status line) does not make it stale.
+                loc, why = await self._target(page, str(action["ref"]), action.get("observationId"))
+                if loc is None:
+                    return {"status": "stale", "summary": why, "observation": await self.observe()}
+                box = await loc.bounding_box()
+                if not box or not all(0 <= v <= 1 for point in points for v in point):
+                    return {"status": "failed", "summary": "With a ref, points are fractions 0 to 1 of a visible element"}
+                points = [(box["x"] + fx * box["width"], box["y"] + fy * box["height"]) for fx, fy in points]
+            else:
+                why = await self._stale(page, action.get("observationId"))
+                if why:
+                    return {"status": "stale", "summary": why, "observation": await self.observe()}
             for x, y in points:  # letting go is a press where it lands, so both points are gated
                 if not (0 <= x <= before.get("w", 0) and 0 <= y <= before.get("h", 0)):
                     return {"status": "failed", "summary": "That point is outside the page"}

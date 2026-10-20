@@ -972,6 +972,48 @@ describe("a sequence: several known actions, one model step", () => {
     expect(JSON.stringify(h.seen[3])).toContain("Coordinates need the observation");
   });
 
+  it("lets points inside the same element follow it, as a ref does (drawing on a canvas)", async () => {
+    const canvas = {
+      observationId: "o1",
+      elements: [{ ref: "e9", role: "canvas", name: "canvas 800x600" }],
+    };
+    const drag = (x: number) => ({
+      action: "drag_at",
+      ref: "e9",
+      x,
+      y: 0.2,
+      toX: 0.5,
+      toY: 0.5,
+      observationId: "latest",
+    });
+    const h = harness(
+      [
+        {
+          text: "",
+          toolCalls: [call("start_task", { title: "Draw", where: "browser", steps: ["s"] })],
+        },
+        { text: "", toolCalls: [call("browser", { action: "observe" })] },
+        {
+          text: "",
+          toolCalls: [
+            call("browser", {
+              sequence: [{ ...drag(0.1), observationId: "o1" }, drag(0.2), drag(0.3)],
+            }),
+          ],
+        },
+      ],
+      {
+        a: [1, 2, 3, 4].map((n) => ({
+          status: "done",
+          result: { observation: { ...canvas, observationId: `o${n}` } },
+        })),
+      },
+    );
+    await runJarvisTurn(h.input, h.hooks, h.deps);
+    expect(h.queued).toHaveLength(4);
+    expect(h.queued.at(-1)).toMatchObject({ action: "drag_at", ref: "e9", observationId: "o3" });
+  });
+
   it("refuses a later step when its element changed since the model saw it", async () => {
     const before = { observationId: "o1", elements: [{ ref: "e1", role: "button", name: "Save" }] };
     const after = {

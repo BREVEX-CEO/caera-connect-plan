@@ -874,7 +874,9 @@ class Computer:
             made = Path(work, "out", f"{source.stem}.pdf")
             try:
                 text, pages = extract_text(made, 50_000)
-                wanted = re.findall(r"[^\W\d_]{4,}", extract_text(source, 4000)[0])[:20]
+                # The reader's own "Sheet …:" / "Slide n:" labels are not the source's words.
+                own = re.sub(r"(?m)^(Sheet .*|Slide \d+):$", "", extract_text(source, 4000)[0])
+                wanted = re.findall(r"[^\W\d_]{4,}", own)[:20]
             except (Unreadable, OSError) as e:
                 return {"status": "failed", "summary": f"The PDF was not made: {e}"[:200]}
             if missing := [word for word in wanted if word not in text]:

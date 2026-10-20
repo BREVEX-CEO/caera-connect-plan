@@ -86,7 +86,14 @@ export const Route = createFileRoute("/api/offline/bytes/$release")({
         if (!verdict.ok) return new Response(null, { status: verdict.status });
 
         const store = bucket();
-        if (!store) return new Response(null, { status: 503 });
+        // Said as what it is, so the installer stops at once instead of retrying a store that
+        // this server (a local build, a test server) will never have.
+        if (!store) {
+          return new Response(null, {
+            status: 503,
+            headers: { "x-ocade-delivery": "unconfigured" },
+          });
+        }
 
         const key = `r/${releaseId}/a`;
         const head = await store.head(key);

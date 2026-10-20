@@ -32,6 +32,24 @@ PAGES = {
       <button id="del">Delete account</button>
       <button id="grow" onclick="this.textContent='Grown';">Grow</button>""",
     "next.html": "<title>Next</title><p>Arrived</p>",
+    "dialog.html": """<title>Dialog</title><button>Behind</button>
+      <div style='position:fixed;inset:0;background:#0003'><div role='dialog' style='background:#fff;width:200px'>
+      <div><canvas width='50' height='40'></canvas><div>Arrow</div></div></div></div>""",
+    "opener.html": "<title>Opener</title><a href='/next.html' target='_blank'>Open form</a>",
+    # An editor that builds its toolbar after load, then draws where it is dragged; a ticking
+    # status line changes the page all the time, as editors' do.
+    "paint.html": """<title>Paint</title><div id='bar'></div><p id='tick'></p>
+      <canvas id='c' width='200' height='100' style='margin:30px;border:1px solid'></canvas>
+      <script>
+      setTimeout(() => { bar.innerHTML = "<span title='Rectangle' style='cursor:pointer'"
+        + " onclick='window.tool=1'>&#9634;</span><span title='Decoration'>~</span>"; }, 250);
+      setInterval(() => { tick.textContent = Date.now(); }, 50);
+      const g = c.getContext('2d');
+      let from = null;
+      c.onmousedown = (e) => { from = [e.offsetX, e.offsetY]; };
+      c.onmouseup = (e) => { if (window.tool && from) { g.fillRect(from[0], from[1],
+        e.offsetX - from[0], e.offsetY - from[1]); } from = null; };
+      </script>""",
     "keys.html": "<title>Keys</title><button id='pay'>Pay now</button>"
                  "<div id='rm' role='button' tabindex='0'>Delete account</div>",
     "captcha.html": "<title>Check</title><div class='g-recaptcha'></div><p>Verify you are human</p>",
@@ -242,6 +260,39 @@ class BrowserControlTest(unittest.TestCase):
         self.assertEqual(out["status"], "blocked")
         self.assertEqual(self.s.run(self.s._page.evaluate("clip.offsetLeft")), 220)
 
+    def test_an_app_toolbar_and_canvas_are_used_by_name_while_the_page_keeps_changing(self):
+        obs = self.act({"action": "open", "url": f"{self.base}/paint.html"})["observation"]
+        # Built after load, and seen: the open waited for the page to settle (up to its limit).
+        names = {e["name"]: e for e in obs["elements"]}
+        self.assertIn("Rectangle", names)
+        self.assertNotIn("Decoration", names)  # titled, but nothing to press
+        canvas = names["canvas 200x100"]
+        self.assertEqual(canvas["role"], "canvas")
+        out = self.act({"action": "click", "ref": names["Rectangle"]["ref"],
+                        "observationId": obs["observationId"]})
+        self.assertEqual(out["status"], "done", out)
+        time.sleep(0.2)  # the status line changed: whole-page coordinates would be stale now
+        out = self.act({"action": "drag_at", "ref": canvas["ref"], "x": 0.25, "y": 0.2, "toX": 0.75,
+                        "toY": 0.8, "observationId": out["observation"]["observationId"]})
+        self.assertEqual(out["status"], "done", out)
+        drawn = self.s.run(self.s._page.evaluate(
+            "[[100, 50], [10, 5]].map(([x, y]) => c.getContext('2d').getImageData(x, y, 1, 1).data[3])"))
+        self.assertEqual(drawn, [255, 0])
+        bad = self.act({"action": "drag_at", "ref": canvas["ref"], "x": 20, "y": 0.2, "toX": 0.5, "toY": 0.5,
+                        "observationId": out["observation"]["observationId"]})
+        self.assertEqual(bad["status"], "failed")
+
+    def test_a_control_behind_an_open_dialog_is_said_covered_at_once(self):
+        obs = self.act({"action": "open", "url": f"{self.base}/dialog.html"})["observation"]
+        behind = next(e for e in obs["elements"] if e["name"] == "Behind")
+        self.assertTrue(behind.get("covered"))
+        self.assertTrue(any(e["name"] == "Arrow" and e["role"] == "canvas" for e in obs["elements"]))
+        started = time.monotonic()
+        out = self.act({"action": "click", "ref": behind["ref"], "observationId": obs["observationId"]})
+        self.assertEqual(out["status"], "failed")
+        self.assertIn("covers", out["summary"])
+        self.assertLess(time.monotonic() - started, 3)
+
     def test_stop_while_media_loads_sends_no_change_to_the_page(self):
         """STOP during the page's wait for media must not let the page seek once the wait ends."""
         self.act({"action": "open", "url": f"{self.base}/nometa.html"})
@@ -347,6 +398,15 @@ class BrowserControlTest(unittest.TestCase):
         back = self.act({"action": "switch_tab", "index": 0})
         self.assertTrue(back["observation"]["tabs"][0]["active"])
         self.act({"action": "switch_tab", "index": len(tabs) - 1})
+        self.assertEqual(self.act({"action": "close_tab"})["status"], "done")
+
+    def test_a_link_that_opens_its_own_tab_is_followed_there(self):
+        obs = self.act({"action": "open", "url": f"{self.base}/opener.html"})["observation"]
+        out = self.act({"action": "click", "ref": self.ref(obs, "Open form"),
+                        "observationId": obs["observationId"]})
+        self.assertEqual(out["status"], "done", out)
+        self.assertEqual(out["observation"]["title"], "Next")
+        self.assertTrue(out["observation"]["tabs"][-1]["active"])
         self.assertEqual(self.act({"action": "close_tab"})["status"], "done")
 
     def test_only_web_addresses_open(self):

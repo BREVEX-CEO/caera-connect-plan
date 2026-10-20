@@ -355,6 +355,34 @@ describe("an interruption", () => {
     expect(result.reason).toMatch(/unavailable/);
   });
 
+  it("asks a delivery service that is not set up once, never again (HX-19)", async () => {
+    let requests = 0;
+    const result = await transferModel(
+      {
+        sources: [{ url: "https://example.test/model", kind: "ocade" }],
+        totalBytes: SIZE,
+        plan: PLAN,
+      },
+      {
+        fetchImpl: (async () => {
+          requests += 1;
+          return new Response(null, {
+            status: 503,
+            headers: { "x-ocade-delivery": "unconfigured" },
+          });
+        }) as unknown as typeof fetch,
+        writer: arrayWriter(SIZE),
+        sleep: async () => {},
+      },
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.retriable).toBe(false);
+    expect(result.reason).toMatch(/not available from this OCADE server/);
+    // Only the requests already in flight when the first answer came back.
+    expect(requests).toBeLessThanOrEqual(PLAN.concurrency);
+  });
+
   it("starts over rather than trusting a checkpoint taken against another size", async () => {
     const bytes = artifact(SIZE);
     const server = rangedServer(bytes);

@@ -97,6 +97,12 @@ class IndependentReopenTest(unittest.TestCase):
         self.assertEqual(self.pc.run({"action": "undo"})["status"], "done")
         self.assertFalse((self.root / "report.pdf").exists())
 
+    def test_a_pdf_is_made_from_a_workbook(self):
+        workbook(self.root / "orders.xlsx")
+        out = self.pc.run({"action": "pdf_export", "from": "orders.xlsx", "path": "orders.pdf"})
+        self.assertEqual(out["status"], "done", out)
+        self.assertGreaterEqual(out["pages"], 1)
+
     def test_stop_while_the_pdf_is_saved_leaves_no_pdf(self):
         workbook(self.root / "orders.xlsx")
         cancel = threading.Event()

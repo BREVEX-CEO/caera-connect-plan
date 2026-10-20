@@ -50,10 +50,14 @@ const BROWSER_ACTIONS = [
   z.object({ action: z.literal("back") }),
   z.object({ action: z.literal("forward") }),
   z.object({ action: z.literal("wait"), seconds: z.number().min(0.2).max(5) }),
+  // With a ref, the points are fractions (0 to 1) of that element's own box as it is when the
+  // step runs (a canvas, a timeline): the element is checked, not the whole page's geometry.
+  // The device refuses a fraction outside 0 to 1.
   z.object({
     action: z.literal("click_at"),
     x: z.number().min(0).max(10_000),
     y: z.number().min(0).max(10_000),
+    ref: ref.optional(),
     observationId,
   }),
   // Pressed at one point, let go at another: timelines, crop handles, sliders, canvases.
@@ -63,6 +67,7 @@ const BROWSER_ACTIONS = [
     y: z.number().min(0).max(10_000),
     toX: z.number().min(0).max(10_000),
     toY: z.number().min(0).max(10_000),
+    ref: ref.optional(),
     observationId,
   }),
   // A file from the work folder into a page's file field, and a page's download into it.
@@ -933,7 +938,7 @@ Each reply you send uses some of the person's limited online capacity. Plan the 
 - Send another reply only to decide something that depends on results you have not seen yet.
 - finish_task ends your work and its result is what the person reads: make it the complete answer. Give only figures and files this task read; OCADE refuses completed when the result states a figure or a made file nothing read showed.
 Browser rules:
-- Begin with observe. Opening another page replaces what you saw on this one: before you leave a page, write the facts you need from it in your reply, or read them with find_text, which stays. To gather facts from several pages, open each page once and read each fact from its observation's facts (the page's labelled values) or with find_text; never reopen a page you have already read. If a step is refused because a permission is off, do not try it again: reach the goal another allowed way — sheet_edit and doc_edit write workbooks and documents directly, with no app or command. Target elements by their ref from the latest observation and pass that observationId. Use click_at and drag_at only with the current observationId, and only when no ref fits.
+- Begin with observe. Opening another page replaces what you saw on this one: before you leave a page, write the facts you need from it in your reply, or read them with find_text, which stays. To gather facts from several pages, open each page once and read each fact from its observation's facts (the page's labelled values) or with find_text; never reopen a page you have already read. If a step is refused because a permission is off, do not try it again: reach the goal another allowed way — sheet_edit and doc_edit write workbooks and documents directly, with no app or command. Target elements by their ref from the latest observation and pass that observationId. Use click_at and drag_at only with the current observationId, and only when no ref fits; on a canvas or timeline element, give its ref and fractions of its box instead of screen points.
 - Check every result you get back (an action's observation, or each outcome of a sequence) before continuing. Never claim success without that evidence.
 - Every fact you write into a file or answer comes from a page or file read in this task. If a page could not be opened, say so and ask; never fill in a figure from memory.
 - If an action says "stale", the page changed: use the fresh observation it returns.
@@ -1041,7 +1046,7 @@ export function jarvisTools(
     {
       name: "browser",
       description:
-        "Operate the task's browser. Actions: observe, look, find_text (text: words to find anywhere on the page, with the text around each place; use it to read facts on long pages), media (op: state, play, pause, seek with seconds, or captions — the page's video or audio, exactly, by its own controls), open, new_tab, click, type, select, press, scroll, switch_tab, close_tab, back, forward, wait, click_at, drag_at (x, y to toX, toY), upload (a work-folder file into a file field), download (saves into the work folder's Downloads).",
+        "Operate the task's browser. Actions: observe, look, find_text (text: words to find anywhere on the page, with the text around each place; use it to read facts on long pages), media (op: state, play, pause, seek with seconds, or captions — the page's video or audio, exactly, by its own controls), open, new_tab, click, type, select, press, scroll, switch_tab, close_tab, back, forward, wait, click_at, drag_at (x, y to toX, toY; with a ref, fractions 0 to 1 of that element's box, such as a canvas: no look needed), upload (a work-folder file into a file field), download (saves into the work folder's Downloads).",
       inputSchema: obj({
         action: str("The browser action."),
         url: str("For open and new_tab."),

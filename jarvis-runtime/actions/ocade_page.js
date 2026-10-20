@@ -15,16 +15,39 @@
     }).observe(document.documentElement, {subtree: true, childList: true, attributes: true, characterData: true});
     if (document.documentElement) start(); else document.addEventListener('DOMContentLoaded', start);
   const roleOf = (el) => el.getAttribute('role') || ({A: 'link', BUTTON: 'button', SELECT: 'combobox',
-    TEXTAREA: 'textbox', SUMMARY: 'button'})[el.tagName] || (el.tagName === 'INPUT'
+    TEXTAREA: 'textbox', SUMMARY: 'button', CANVAS: 'canvas'})[el.tagName] || (el.tagName === 'INPUT'
     ? (({checkbox: 'checkbox', radio: 'radio', submit: 'button', button: 'button', reset: 'button',
         search: 'searchbox', range: 'slider'})[el.type] || 'textbox') : (el.isContentEditable ? 'textbox' : 'generic'));
+  // A picker's preview (a canvas above its caption) is named by that caption.
+  const captionOf = (el) => {
+    const box = el.parentElement;
+    if (!box || box === document.body || box.children.length > 2) return '';
+    const text = (box.innerText || '').trim();
+    return /[\p{L}\p{N}]/u.test(text) && text.length <= 40 ? text : '';
+  };
+  // A control whose visible label sits just before it, unassociated ("Fill color: [swatch]").
+  const nearLabel = (el) => {
+    for (let node = el, depth = 0; node && depth < 3; node = node.parentElement, depth++) {
+      const before = node.previousElementSibling;
+      if (before && before.tagName === 'LABEL' && !before.htmlFor) return before.innerText;
+      // A form laid out as a table: the label is the cell before.
+      if (before && ['TH', 'TD'].includes(before.tagName) && before.innerText.trim().length <= 40) {
+        return before.innerText;
+      }
+    }
+    return '';
+  };
   const nameOf = (el) => {
     const by = el.getAttribute('aria-labelledby');
     const labelled = by ? by.split(/\s+/).map((id) => document.getElementById(id)?.innerText || '').join(' ') : '';
-    const label = el.labels && el.labels[0] ? el.labels[0].innerText : '';
+    const label = el.labels && el.labels[0] ? el.labels[0].innerText
+      : ['INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName) ? nearLabel(el) : '';
     const own = el.tagName === 'INPUT' && ['submit', 'button', 'reset'].includes(el.type) ? el.value : '';
-    return (el.getAttribute('aria-label') || labelled || label || own || el.innerText
-      || el.getAttribute('placeholder') || el.getAttribute('title') || el.getAttribute('alt') || '')
+    // An icon glyph is not a name: a toolbar button's title says what it does.
+    const text = /[\p{L}\p{N}]/u.test(el.innerText || '') ? el.innerText : '';
+    return (el.getAttribute('aria-label') || labelled || label || own || text
+      || el.getAttribute('placeholder') || el.getAttribute('title') || el.getAttribute('alt')
+      || (el.tagName === 'CANVAS' ? captionOf(el) || `canvas ${el.width}x${el.height}` : '') || '')
       .trim().replace(/\s+/g, ' ').slice(0, 80);
   };
   const identityOf = (el) => {
@@ -40,10 +63,16 @@
     const button = form.querySelector('button[type=submit],button:not([type]),input[type=submit]');
     return {name: button ? nameOf(button) : (form.getAttribute('aria-label') || '')};
   };
-  const snapshot = () => {
   const SELECTOR = 'a[href],button,input:not([type=hidden]),select,textarea,summary,[role=button],'
     + '[role=link],[role=checkbox],[role=radio],[role=tab],[role=menuitem],[role=option],[role=switch],'
-    + '[role=combobox],[role=searchbox],[role=textbox],[contenteditable=""],[contenteditable=true]';
+    + '[role=combobox],[role=searchbox],[role=textbox],[contenteditable=""],[contenteditable=true],'
+    // An app's own toolbar (a titled icon that acts when pressed) and its drawing surfaces.
+    + '[title],canvas';
+  const acts = (el) => el.tagName === 'CANVAS' || roleOf(el) !== 'generic'
+    || el.onclick || getComputedStyle(el).cursor === 'pointer';
+  // How many controls the page has: an app that builds itself after load is ready when this settles.
+  const controls = () => document.querySelectorAll(SELECTOR).length;
+  const snapshot = () => {
   const visible = (el) => {
     const r = el.getBoundingClientRect();
     const s = getComputedStyle(el);
@@ -54,7 +83,7 @@
   const elements = [];
   for (const el of document.querySelectorAll(SELECTOR)) {
     if (elements.length >= 150) break;
-    if (!visible(el)) continue;
+    if (!visible(el) || !acts(el)) continue;
     let ref = el.getAttribute('data-ocade-ref');
     if (!ref) { ref = 'e' + (++seq); el.setAttribute('data-ocade-ref', ref); }
     const id = identityOf(el);
@@ -64,7 +93,14 @@
       if (el.type) item.type = el.type;
     }
     if (el.disabled) item.disabled = true;
+    // Behind an open dialog or overlay: pressing it now would press what covers it instead.
+    const r = el.getBoundingClientRect();
+    const cx = Math.min(Math.max(r.left + r.width / 2, 0), innerWidth - 1);
+    const cy = Math.min(Math.max(r.top + r.height / 2, 0), innerHeight - 1);
+    const top = document.elementFromPoint(cx, cy);
+    if (top && !el.contains(top) && !top.contains(el)) item.covered = true;
     if (el.checked) item.checked = true;
+    if (el.getAttribute('aria-pressed') === 'true') item.pressed = true;
     elements.push(item);
   }
   window.__ocadeRefSeq = seq;
@@ -204,5 +240,5 @@
         : [...new Set(files.map((t) => t.srclang || t.label))],
       ...(captions === undefined ? {} : {captions}), ...(problem ? {error: problem} : {})};
   };
-  window.__ocade = { snapshot, geometry, identityOf, submitOf, atPoint, byRef, findText, media };
+  window.__ocade = { snapshot, controls, geometry, identityOf, submitOf, atPoint, byRef, findText, media };
 })();
