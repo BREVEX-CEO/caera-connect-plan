@@ -26,7 +26,7 @@ type Step =
   | { kind: "idle" }
   | { kind: "loading" }
   | { kind: "totp"; factorId: string }
-  | { kind: "email"; email: string };
+  | { kind: "email"; email: string; userId: string };
 
 export function useConfirmIdentity(): {
   /** Runs `action`; if the server asks for a fresh proof, asks the person and runs it once more. */
@@ -65,9 +65,12 @@ export function useConfirmIdentity(): {
         setStep({ kind: "totp", factorId: factor.id });
       } else {
         const supabase = await loadSupabaseClient();
-        const { data } = await supabase.auth.getUser();
+        const { data, error: userError } = await supabase.auth.getUser();
+        if (userError) throw new Error("OCADE could not verify your account. Sign in again.");
         const email = data.user?.email;
-        if (!email) throw new Error("This account has no email address to send a code to.");
+        const userId = data.user?.id;
+        if (!email || !userId)
+          throw new Error("This account has no email address to send a code to.");
         if (cancelled()) return proved;
         const { error } = await supabase.auth.signInWithOtp({
           email,
@@ -75,14 +78,14 @@ export function useConfirmIdentity(): {
         });
         if (cancelled()) return proved;
         if (error) throw error;
-        setStep({ kind: "email", email });
+        setStep({ kind: "email", email, userId });
       }
     } catch (error) {
       if (cancelled()) return proved;
       setProblem(
         error instanceof Error ? error.message : "OCADE could not ask for a code just now.",
       );
-      setStep({ kind: "email", email: "" });
+      setStep({ kind: "email", email: "", userId: "" });
     }
     return proved;
   }, []);
@@ -111,20 +114,30 @@ export function useConfirmIdentity(): {
         await answerChallenge(step.factorId, code);
       } else if (step.kind === "email" && step.email) {
         const supabase = await loadSupabaseClient();
+        const { data: account, error: accountError } = await supabase.auth.getUser();
+        if (accountError || account.user?.id !== step.userId)
+          throw new Error("Your account changed. Cancel and start this confirmation again.");
+        if (!current()) return;
         const replaced = (await supabase.auth.getSession()).data.session?.access_token;
-        const { error } = await supabase.auth.verifyOtp({
+        const { data: verified, error } = await supabase.auth.verifyOtp({
           email: step.email,
           token: code.replace(/\D/g, ""),
           type: "email",
         });
         if (error)
-          throw new Error("That code was not accepted. Check the latest email and try again.");
+          throw new Error(
+            "That code was not accepted. Enter the numeric code from the latest email. A sign-in link cannot be used as a code.",
+          );
+        if (verified.user?.id !== step.userId || verified.session?.user.id !== step.userId)
+          throw new Error("OCADE could not confirm the same account. Sign in again.");
         // The code opened a new session: the one it replaces ends, so it never
         // lingers as "another sign-in". `admin.signOut` only needs that session's own token.
         if (replaced) {
           await movePushToThisSession().catch(() => undefined);
           await supabase.auth.admin.signOut(replaced, "local").catch(() => undefined);
         }
+      } else {
+        throw new Error("No verification is ready. Cancel and try again.");
       }
       if (current()) finish(true);
     } catch (error) {
@@ -157,7 +170,7 @@ export function useConfirmIdentity(): {
               : step.kind === "totp"
                 ? "Enter the code your authenticator app shows now."
                 : step.email
-                  ? `We sent a code to ${step.email}. Enter it here.`
+                  ? `Enter the numeric verification code from the latest email to ${step.email}. If it contains only a sign-in link, cancel: code email delivery must be configured first.`
                   : "OCADE could not send a code."}
           </p>
           {step.kind === "totp" || (step.kind === "email" && step.email) ? (
