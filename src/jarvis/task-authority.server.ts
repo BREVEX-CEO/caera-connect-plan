@@ -141,7 +141,14 @@ const CHANGES_FILES = [
 ];
 
 type ActionRow = {
-  action: { action?: string; path?: unknown; to?: unknown; op?: unknown } | null;
+  action: {
+    action?: string;
+    path?: unknown;
+    to?: unknown;
+    from?: unknown;
+    op?: unknown;
+    content?: unknown;
+  } | null;
   status: string;
   /** As the exchange stores it: what the device returned beyond its status is under `detail`. */
   result: {
@@ -323,7 +330,18 @@ function claimGap(rows: ActionRow[], claim: string): string | null {
   });
   const seen = [...latest.values()].map((row) => contentOf(row, true)).join(" ");
   const values = (seen.match(NUMBER) ?? []).map((n) => Number(n.replace(/,/g, "")));
-  for (const written of claim.match(NUMBER) ?? []) {
+  // A file's name is what the task worked on, not a figure it states ("report-20261020.txt").
+  const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const named = rows
+    .flatMap((row) => [row.action?.path, row.action?.to, row.action?.from])
+    .filter((path): path is string => typeof path === "string" && path.trim() !== "")
+    .flatMap((path) => [path, path.split(/[\\/]/).pop()!])
+    .sort((a, b) => b.length - a.length);
+  const figures = named.reduce(
+    (text, name) => text.replace(new RegExp(escape(name), "gi"), " "),
+    claim,
+  );
+  for (const written of figures.match(NUMBER) ?? []) {
     const [whole, fraction = ""] = written.replace(/,/g, "").split(".");
     const n = Number(written.replace(/,/g, ""));
     if (!fraction && (whole!.length < 3 || (n >= 1900 && n <= 2099))) continue;
@@ -416,6 +434,24 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
     const found = book.sheets?.find((s) => normal(String(s.name ?? "")) === normal(sheet));
     if (!found) return `${target} has no sheet named ${sheet}. Add it, or finish as failed.`;
     return sheetDataGap(found, target);
+  }
+  if (path && (check.minWords ?? check.maxWords) !== undefined) {
+    // The device's own count of the saved file, never the model's or its generator's.
+    const read = after.filter((row) => READS_FILE.has(row.action?.action ?? "")).at(-1);
+    const detail = read?.result?.detail;
+    const counted =
+      typeof detail?.bodyWords === "number"
+        ? detail.bodyWords
+        : detail?.truncated || /\.(docx|docm|dotx|odt)$/i.test(path)
+          ? undefined
+          : textOf(detail?.content).split(/\s+/).filter(Boolean).length;
+    if (!read || counted === undefined) {
+      return `${target} was not read for its word count after its last change. Read it with file_extract (on an up-to-date connected device), then finish.`;
+    }
+    if (counted < (check.minWords ?? 0) || counted > (check.maxWords ?? Infinity)) {
+      return `${target} holds ${counted} body words, not ${check.maxWords === undefined ? `at least ${check.minWords}` : check.minWords === undefined ? `at most ${check.maxWords}` : `${check.minWords} to ${check.maxWords}`}. Fix it, or finish as failed and say what differs.`;
+    }
+    if (!check.contains?.length) return null;
   }
   const reads =
     path && check.contains?.length
@@ -781,10 +817,37 @@ export async function queueTaskAction(
     if (gap)
       return { ok: false, message: `Save a recipe only after the result is checked: ${gap}` };
   }
+  // One output per intent: the same content already written under another name is that output
+  // (HX-02: a replan wrote a second copy with a changed spelling). Copies are file_copy.
+  if (data.action.action === "file_write") {
+    const { path, content } = data.action;
+    const twin = (await taskActions(service, userId, task.id))?.find(
+      (row) =>
+        row.action?.action === "file_write" &&
+        row.status === "done" &&
+        row.action.content === content &&
+        row.action.path !== path,
+    );
+    if (twin) {
+      return {
+        ok: false,
+        message: `This task already wrote exactly this content to ${twin.action!.path}. Use that file; to make a copy on purpose, use file_copy.`,
+      };
+    }
+  }
   if (data.action.action === "open_app") {
     const installed = (device.installed_apps ?? []) as string[];
     const wanted = data.action.name.toLowerCase();
-    const exact = installed.find((name) => name.toLowerCase() === wanted);
+    // "Microsoft Word" for an app listed as "Word", or the other way round, when only one fits.
+    const words = (name: string) => new Set(name.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []);
+    const within = (a: Set<string>, b: Set<string>) => a.size > 0 && [...a].every((w) => b.has(w));
+    const asked = words(wanted);
+    const fits = installed.filter(
+      (name) => within(asked, words(name)) || within(words(name), asked),
+    );
+    const exact =
+      installed.find((name) => name.toLowerCase() === wanted) ??
+      (fits.length === 1 ? fits[0] : undefined);
     if (!exact) {
       const near = installed.filter((name) => name.toLowerCase().includes(wanted)).slice(0, 5);
       return {

@@ -95,6 +95,17 @@ class FileOperationsTest(unittest.TestCase):
         self.assertEqual(self.act(action="file_extract", path="broken.docx")["status"], "failed")
         self.assertEqual(self.act(action="file_extract", path="../outside.pdf")["status"], "blocked")
 
+    def test_a_document_body_is_counted_without_its_title_and_headings(self):
+        from docx import Document
+        doc = Document()
+        doc.add_heading("An essay title of six words", 0)
+        doc.add_heading("A heading", 1)
+        doc.add_paragraph(" ".join(["word"] * 30))
+        doc.save(self.root / "essay.docx")
+        read = self.act(action="file_extract", path="essay.docx")
+        self.assertEqual(read["bodyWords"], 30)
+        self.assertIn("An essay title", read["content"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -692,8 +692,12 @@ class Computer:
                 text, pages = extract_text(path, MAX_READ)
             except Unreadable as e:
                 return {"status": "failed", "summary": str(e)}
+            words = {}
+            if path.suffix.lower() in (".docx", ".docm", ".dotx"):
+                from ocade_documents import body_words
+                words = {"bodyWords": body_words(path)}
             return {"status": "done", "summary": f"Read the text of {rel}", "content": text,
-                    "truncated": len(text) >= MAX_READ, **({"pages": pages} if pages else {})}
+                    "truncated": len(text) >= MAX_READ, **({"pages": pages} if pages else {}), **words}
         if path == self.root:
             raise ScopeError("The workspace itself cannot be removed")
         if kind in ("file_move", "file_copy", "file_rename"):

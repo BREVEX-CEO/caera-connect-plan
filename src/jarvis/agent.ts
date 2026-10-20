@@ -39,6 +39,7 @@ import {
   type DeviceAction,
   type TaskStatus,
   invalidReason,
+  wordsGap,
 } from "./protocol";
 import type { JarvisTaskRow, StartTaskResult } from "./jarvis.functions";
 import { interjectionMessage, type LiveControl } from "./live-control";
@@ -759,6 +760,8 @@ export async function runJarvisTurn(
             error: `start_task needs 1 to 10 valid checks the finished result must pass (${checks.error.issues[0]?.message ?? "invalid"}). Write them from what the person asked, then call start_task again.`,
           };
         }
+        const missing = wordsGap(checks.data, input.text);
+        if (missing) return { error: missing };
         const started = await deps.startTask({
           quality: input.quality ?? "standard",
           checks: checks.data,

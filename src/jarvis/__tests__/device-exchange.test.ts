@@ -759,6 +759,52 @@ describe("completion needs evidence from the device (P01)", () => {
     expect(await save()).toMatchObject({ ok: true });
   });
 
+  it("refuses a second copy of an output written under another name (HX-02)", async () => {
+    const t = await task();
+    await permit("files", true);
+    await permit("apps", true);
+    await twin.asServiceRole(
+      `update public.jarvis_tasks set controller = '${A}' where id = '${t}'`,
+    );
+    const write = (path: string, content = "OCADE JARVIS TEST OK") =>
+      queueTaskAction(rest() as never, rest() as never, A, {
+        taskId: t,
+        controller: A,
+        action: { action: "file_write", path, content } as never,
+      });
+    const first = await write("jarvis-smoke-20261020-01.txt");
+    await settle((first as { id: string }).id, "done");
+    const again = await write("jarvissmoke-20261020-01.txt");
+    expect(again).toMatchObject({ ok: false });
+    expect((again as { message: string }).message).toMatch(/already wrote exactly this content/);
+    // Rewriting the same file, or other content, is not a copy.
+    expect(await write("jarvis-smoke-20261020-01.txt")).toMatchObject({ ok: true });
+    expect(await write("notes.txt", "other")).toMatchObject({ ok: true });
+  });
+
+  it("opens an app named by fewer or more words than its listing, when only one fits (HX-08)", async () => {
+    const t = await task();
+    await permit("apps", true);
+    await twin.asServiceRole(
+      `update public.jarvis_tasks set controller = '${A}' where id = '${t}'`,
+    );
+    await twin.asServiceRole(
+      `update public.jarvis_devices set installed_apps = '["Word", "WordPad", "Excel"]'::jsonb where id = '${device}'`,
+    );
+    const open = (name: string) =>
+      queueTaskAction(rest() as never, rest() as never, A, {
+        taskId: t,
+        controller: A,
+        action: { action: "open_app", name } as never,
+      });
+    expect(await open("Microsoft Word")).toMatchObject({ ok: true });
+    const queued = await twin.asServiceRole<{ action: { name: string } }>(
+      `select action from public.jarvis_activity where task_id = '${t}' order by created_at desc limit 1`,
+    );
+    expect(queued[0]!.action.name).toBe("Word");
+    expect(await open("Paint")).toMatchObject({ ok: false });
+  });
+
   it("refuses when a different file was read than the one changed", async () => {
     const t = await task();
     await settle(await queue(t, { action: "file_write", path: "a.txt", content: "x" }), "done");
@@ -918,6 +964,25 @@ describe("completion needs evidence from the device (P01)", () => {
       expect((await statusOf(t)).status).toBe("completed");
     });
 
+    it("reads a dated file name as the file it names, not a figure it claims (HX-03)", async () => {
+      const t = await withChecks([{ path: "out/smoke-20261020-01.txt", contains: ["OK"] }]);
+      const finish = (result: string) =>
+        changeTask(rest() as never, rest() as never, A, { id: t, status: "completed", result });
+      await done(
+        await queue(t, { action: "file_write", path: "out/smoke-20261020-01.txt", content: "OK" }),
+      );
+      await done(await queue(t, { action: "file_read", path: "out/smoke-20261020-01.txt" }), {
+        status: "done",
+        detail: { content: "OK" },
+      });
+      // The same digits outside the name are still a figure nothing read.
+      await expect(finish("Wrote smoke-20261020-01.txt with 20261020 rows.")).rejects.toThrow(
+        /20261020 is not in anything this task read/,
+      );
+      await finish("Wrote smoke-20261020-01.txt (out/smoke-20261020-01.txt) and read it back.");
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
     it("accepts a figure the task's own web research answered (VER-01-01)", async () => {
       const t = await withChecks([{ contains: ["India"] }]);
       await done(await queue(t, { action: "find_text", text: "1.43" }), {
@@ -1049,6 +1114,26 @@ describe("completion needs evidence from the device (P01)", () => {
       await expect(complete(t)).rejects.toThrow(/is not in the screen or page/);
     });
 
+    it("counts a document's body words as the device read them, never the model's count (HX-01)", async () => {
+      const t = await withChecks([{ path: "essay.docx", minWords: 300 }]);
+      await done(await queue(t, { action: "doc_edit", path: "essay.docx", ops: [] }));
+      const extract = (bodyWords?: number) =>
+        queue(t, { action: "file_extract", path: "essay.docx" }).then((id) =>
+          done(id, {
+            status: "done",
+            detail: { content: "word ".repeat(400), ...(bodyWords ? { bodyWords } : {}) },
+          }),
+        );
+      // Without the device's body count a document's headings could pad its text: not counted.
+      await extract();
+      await expect(complete(t)).rejects.toThrow(/not read for its word count/);
+      await extract(30);
+      await expect(complete(t)).rejects.toThrow(/holds 30 body words, not at least 300/);
+      await extract(301);
+      await complete(t);
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
     it("uses the latest content read when a file or page changes outside the task", async () => {
       for (const path of ["a.txt", null]) {
         const t = await withChecks([{ ...(path ? { path } : {}), contains: ["approved"] }]);
@@ -1059,6 +1144,9 @@ describe("completion needs evidence from the device (P01)", () => {
           });
         }
         await expect(complete(t)).rejects.toThrow(/"approved" is not in/);
+        await twin.asServiceRole(
+          `update public.jarvis_tasks set status = 'stopped' where id = '${t}'`,
+        );
       }
     });
 
@@ -1290,7 +1378,13 @@ describe("completion needs evidence from the device (P01)", () => {
       await done(await queue(t, { action: "run", command: "python tidy.py" }));
       await done(await queue(t, { action: "file_info", path: "r.xlsx" }));
       await expect(complete(t)).rejects.toThrow(/content was never read back/);
+      // Another spelling is another file: only the submitted path proves it.
       await done(await queue(t, { action: "file_read", path: "R.XLSX" }), {
+        status: "done",
+        detail: { content: "Total" },
+      });
+      await expect(complete(t)).rejects.toThrow(/content was never read back/);
+      await done(await queue(t, { action: "file_read", path: "r.xlsx" }), {
         status: "done",
         detail: { content: "Total" },
       });

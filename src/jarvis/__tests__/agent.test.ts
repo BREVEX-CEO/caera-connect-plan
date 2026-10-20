@@ -10,7 +10,7 @@ import {
   type ModelStep,
 } from "../agent";
 import type { JarvisTaskRow } from "../jarvis.functions";
-import { NOT_VERIFIED, outcomeChecks, readsBack, RESEARCH_GUIDANCE } from "../protocol";
+import { NOT_VERIFIED, outcomeChecks, readsBack, RESEARCH_GUIDANCE, wordsAsked } from "../protocol";
 import type { NormalizedMessage } from "@/lib/intelligence/contract";
 
 const TASK: JarvisTaskRow = {
@@ -438,6 +438,29 @@ describe("a JARVIS turn", () => {
     expect(asked).toEqual([undefined, undefined, TASK.id, TASK.id]);
   });
 
+  it("keeps the word count the person asked for in a document's checks (HX-01)", async () => {
+    const essay = [{ path: "essay.docx", contains: ["JARVIS"] }];
+    const h = harness([
+      { text: "", toolCalls: [call("start_task", { title: "Essay", checks: essay })] },
+      {
+        text: "",
+        toolCalls: [
+          call("start_task", { title: "Essay", checks: [{ ...essay[0], minWords: 300 }] }),
+        ],
+      },
+      { text: "done", toolCalls: [] },
+    ]);
+    await runJarvisTurn(
+      { ...h.input, text: "Write a 300-word essay about JARVIS" },
+      h.hooks,
+      h.deps,
+    );
+    expect(h.seen[1]!.map((m) => m.content).join("\n")).toMatch(/asked for 300 words/);
+    expect(h.deps.startTask).toHaveBeenCalledTimes(1);
+    expect(wordsAsked("about 1,200 words, and a 20 word title")).toBe(1200);
+    expect(wordsAsked("open my 2026 notes")).toBeNull();
+  });
+
   it("reads a model's empty optional check fields as absent, and refuses a check that cannot be judged", () => {
     expect(
       outcomeChecks.parse([{ path: "a.xlsx", sheet: "", contains: [], cell: "b2", equals: "4" }]),
@@ -448,6 +471,8 @@ describe("a JARVIS turn", () => {
       [{ cell: "B2", equals: "1" }],
       [{ path: "a", cell: "B2" }],
       [{ path: "a", unknown: 1 }],
+      [{ minWords: 300 }],
+      [{ path: "a.xlsx", cell: "B2", equals: "1", minWords: 3 }],
     ])
       expect(outcomeChecks.safeParse(bad).success).toBe(false);
     // A media operation reads only when it reads; play, pause and seek change the page.

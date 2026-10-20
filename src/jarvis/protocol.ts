@@ -635,7 +635,9 @@ export function readsBack(action: { action?: unknown; op?: unknown } | null | un
  *   a change to an ancestor directory or a path-free command invalidates older file reads;
  * - `contains` alone: the page, read after the last change made to it, shows each text;
  * - `pausedAt` alone: the page's video or audio, read by media state after the last change made
- *   to the page, is paused within half a second of that time (the player's own record).
+ *   to the page, is paused within half a second of that time (the player's own record);
+ * - `path` + `minWords`/`maxWords`: a content read of that file after its last change counts that
+ *   many body words (a document's title and headings excluded, as the device counts them).
  */
 export const outcomeCheck = z.preprocess(
   // A model may send an unused field as "" or []: absent, not invalid.
@@ -660,6 +662,8 @@ export const outcomeCheck = z.preprocess(
       equals: z.string().max(500).optional(),
       contains: z.array(z.string().trim().min(1).max(200)).max(10).optional(),
       pausedAt: z.number().min(0).max(86_400).optional(),
+      minWords: z.number().int().min(1).max(100_000).optional(),
+      maxWords: z.number().int().min(1).max(100_000).optional(),
     })
     .strict()
     .refine(
@@ -667,6 +671,12 @@ export const outcomeCheck = z.preprocess(
       "pausedAt stands alone",
     )
     .refine((c) => (c.cell === undefined) === (c.equals === undefined), "cell needs equals")
+    .refine(
+      (c) =>
+        (c.minWords ?? c.maxWords) === undefined ||
+        (c.path !== undefined && c.cell === undefined && c.sheet === undefined),
+      "a word count is of a file's content",
+    )
     .refine((c) => c.cell === undefined || c.path !== undefined, "cell needs path")
     .refine((c) => c.sheet === undefined || c.path !== undefined, "sheet needs path")
     .refine(
@@ -680,6 +690,27 @@ export const outcomeCheck = z.preprocess(
 );
 export type OutcomeCheck = z.infer<typeof outcomeCheck>;
 export const outcomeChecks = z.array(outcomeCheck).min(1).max(10);
+
+/**
+ * A word count the person's own request names ("a 300-word essay", "1,200 words"), the largest
+ * when several: fixed by what they asked, so a planner's weaker checks cannot drop it (HX-01).
+ */
+export function wordsAsked(request: string): number | null {
+  const counts = [...request.matchAll(/\b(\d{1,3}(?:,\d{3})+|\d+)[\s-]*words?\b/gi)].map((m) =>
+    Number(m[1]!.replace(/,/g, "")),
+  );
+  return counts.length ? Math.max(...counts) : null;
+}
+
+/** Why checks for a document deliverable leave out the word count asked for, or null. */
+export function wordsGap(checks: readonly OutcomeCheck[], request: string): string | null {
+  const asked = wordsAsked(request);
+  const documents = checks.filter(
+    (c) => c.path && /\.(docx|docm|dotx|odt|rtf|txt|md)$/i.test(c.path),
+  );
+  if (!asked || !documents.length || documents.some((c) => (c.minWords ?? 0) >= asked)) return null;
+  return `The person asked for ${asked} words: add a check with the document's path and minWords ${asked}, then call start_task again.`;
+}
 
 /** Starts the task authority's refusal of a "completed" that nothing on the device confirmed. */
 export const NOT_VERIFIED = "Not verified: ";
@@ -985,7 +1016,7 @@ export function jarvisTools(
           checks: {
             type: "ARRAY",
             description:
-              "1 to 10 checks the finished result must pass, fixed for the task: path + cell + equals (a workbook cell's value or formula), path + contains (words the file must show), path + sheet alone (that sheet exists with rows of data below its header: one for every sheet the person asked for), path alone (the file exists), contains alone (words the page must show), or pausedAt alone (the page's video left paused at that second, as media state reads it).",
+              "1 to 10 checks the finished result must pass, fixed for the task: path + cell + equals (a workbook cell's value or formula), path + contains (words the file must show), path + sheet alone (that sheet exists with rows of data below its header: one for every sheet the person asked for), path alone (the file exists), path + minWords/maxWords (the document's body word count, title and headings excluded: required when the person names a word count), contains alone (words the page must show), or pausedAt alone (the page's video left paused at that second, as media state reads it).",
             items: obj({
               path: str("The file's exact path in the work folder."),
               sheet: str(
@@ -999,6 +1030,8 @@ export function jarvisTools(
                 description: "Words that must appear.",
               },
               pausedAt: num("For a page's video or audio: the second it must be left paused at."),
+              minWords: num("For a document: the fewest body words it must hold."),
+              maxWords: num("For a document: the most body words it may hold."),
             }),
           },
         },

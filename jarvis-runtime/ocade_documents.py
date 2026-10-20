@@ -49,6 +49,23 @@ def _zip_parts(path: Path, pattern: str, budget: int) -> tuple[list[str], int]:
     return parts, len(names)
 
 
+def body_words(path: Path) -> int:
+    """Words in a .docx body as Word counts them (whitespace-separated), the title, subtitle
+    and headings left out: read from the saved XML, not from whatever wrote the file."""
+    styles = "".join(_zip_parts(path, r"word/styles\.xml", 16 << 20)[0])
+    body = "".join(_zip_parts(path, r"word/document\.xml", 64 << 20)[0])
+    headings = {m.group(1) for style in re.findall(r"<w:style\b.*?</w:style>", styles, re.S)
+                if re.search(r'<w:name w:val="(?:Title|Subtitle|heading \d)"|<w:outlineLvl\b', style, re.I)
+                for m in [re.search(r'w:styleId="([^"]+)"', style)] if m}
+    words = 0
+    for paragraph in re.findall(r"<w:p(?:\s[^>]*[^/>])?>.*?</w:p>", body, re.S):
+        style = re.search(r'<w:pStyle w:val="([^"]+)"', paragraph)
+        if (style and style.group(1) in headings) or "<w:outlineLvl" in paragraph:
+            continue
+        words += len(_xml_text(paragraph, "w:p").split())
+    return words
+
+
 def extract_text(path: Path, limit: int) -> tuple[str, int | None]:
     """(text up to `limit` characters, page or slide count where there is one)."""
     suffix = path.suffix.lower()
