@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { canonical, PROTOCOL, readSigned, verifySignature } from "../device.server";
 
 /**
@@ -74,6 +74,73 @@ async function check(request: Request, publicKey: string) {
 }
 
 describe("the device protocol", () => {
+  it.each([undefined, "1"])(
+    "bounds unsigned request streams with Content-Length %s",
+    async (declaredLength) => {
+      let pulls = 0;
+      const cancel = vi.fn();
+      const headers = new Headers({
+        [PROTOCOL.headers.protocol]: String(PROTOCOL.version),
+        [PROTOCOL.headers.timestamp]: String(Date.now()),
+      });
+      if (declaredLength) headers.set("Content-Length", declaredLength);
+      const request = new Request(`${BASE}${PROTOCOL.paths.enroll}`, {
+        method: "POST",
+        headers,
+        body: new ReadableStream<Uint8Array>(
+          {
+            pull(controller) {
+              pulls += 1;
+              controller.enqueue(new Uint8Array(100_000));
+            },
+            cancel,
+          },
+          { highWaterMark: 0 },
+        ),
+        duplex: "half",
+      } as RequestInit);
+      expect(await readSigned(request)).toEqual({ ok: false, status: 413, error: "too_large" });
+      expect(pulls).toBe(19);
+      expect(cancel).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("keeps the existing text limit for multi-byte device messages", async () => {
+    const headers = {
+      [PROTOCOL.headers.protocol]: String(PROTOCOL.version),
+      [PROTOCOL.headers.timestamp]: String(Date.now()),
+    };
+    const body = "€".repeat(600_000);
+    const signed = await readSigned(
+      new Request(`${BASE}${PATH}`, { method: "POST", headers, body: "\uFEFF" + body }),
+    );
+    expect(signed.ok && signed.body).toBe(body);
+    expect(
+      await readSigned(
+        new Request(`${BASE}${PATH}`, { method: "POST", headers, body: "a".repeat(600_001) }),
+      ),
+    ).toEqual({ ok: false, status: 413, error: "too_large" });
+  });
+
+  it("cancels a pending body read when the device disconnects", async () => {
+    const controller = new AbortController();
+    const cancel = vi.fn();
+    const request = new Request(`${BASE}${PATH}`, {
+      method: "POST",
+      headers: {
+        [PROTOCOL.headers.protocol]: String(PROTOCOL.version),
+        [PROTOCOL.headers.timestamp]: String(Date.now()),
+      },
+      signal: controller.signal,
+      body: new ReadableStream<Uint8Array>({ cancel }),
+      duplex: "half",
+    } as RequestInit);
+    const reading = readSigned(request);
+    controller.abort(new DOMException("Device disconnected", "AbortError"));
+    await expect(reading).rejects.toThrow("Device disconnected");
+    expect(cancel).toHaveBeenCalledTimes(1);
+  });
+
   it("verifies a raw r||s signature, as WebCrypto and the Android app send it", async () => {
     const device = await webcryptoDevice();
     expect(await check(await device.request('{"results":[]}'), device.publicKey)).toBe("ok");

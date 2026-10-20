@@ -294,7 +294,11 @@ function AuthPage() {
   return (
     <AuthShell
       title="Sign in to OCADE"
-      subtitle="Continue with Google, or have a six-digit code sent to your email."
+      subtitle={
+        availability.google
+          ? "Continue with Google, or sign in with your email."
+          : "Sign in with your email address."
+      }
       footer={
         <>
           By continuing you accept the <Link to="/terms">Terms &amp; Conditions</Link> and the{" "}

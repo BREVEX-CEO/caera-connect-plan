@@ -120,6 +120,63 @@ describe("STOP and retries around the provider call", () => {
 });
 
 describe("authenticated Online Intelligence Edge handler", () => {
+  it.each([undefined, "1"])(
+    "stops reading an oversized stream with Content-Length %s before identity, permits or inference",
+    async (declaredLength) => {
+      const cancel = vi.fn();
+      let pulls = 0;
+      const input = request();
+      if (declaredLength) input.headers.set("Content-Length", declaredLength);
+      const streamed = new Request(input, {
+        body: new ReadableStream<Uint8Array>(
+          {
+            pull(controller) {
+              pulls += 1;
+              if (pulls <= 30) controller.enqueue(new Uint8Array(1_048_576));
+              else controller.close();
+            },
+            cancel,
+          },
+          { highWaterMark: 0 },
+        ),
+        duplex: "half",
+      } as RequestInit);
+      const deps = dependencies();
+      const response = await handleOnlineIntelligence(streamed, deps);
+      expect(response.status).toBe(413);
+      expect(pulls).toBe(25);
+      expect(cancel).toHaveBeenCalledTimes(1);
+      expect(deps.verifyJwt).not.toHaveBeenCalled();
+      expect(deps.claimPermit).not.toHaveBeenCalled();
+      expect(deps.callProvider).not.toHaveBeenCalled();
+    },
+  );
+
+  it("preserves UTF-8 characters split between request chunks", async () => {
+    const value = body();
+    value.messages[1]!.content = "£ € 😀";
+    const encoded = new TextEncoder().encode(JSON.stringify(value));
+    let offset = 0;
+    const streamed = new Request(request(), {
+      body: new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (offset < encoded.length) {
+            controller.enqueue(encoded.subarray(offset, offset + 1));
+            offset += 1;
+          } else controller.close();
+        },
+      }),
+      duplex: "half",
+    } as RequestInit);
+    const deps = dependencies();
+    const response = await handleOnlineIntelligence(streamed, deps);
+    await response.text();
+    expect(response.status).toBe(200);
+    expect(deps.callProvider).toHaveBeenCalledTimes(1);
+    const call = vi.mocked(deps.callProvider).mock.calls[0]![0];
+    expect(JSON.stringify(call.body)).toContain("£ € 😀");
+  });
+
   it("validates identity and atomically claims the existing permit before provider I/O", async () => {
     const order: string[] = [];
     const deps = dependencies({

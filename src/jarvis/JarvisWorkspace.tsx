@@ -344,6 +344,18 @@ export function JarvisWorkspace({
     retryOf?: string,
     task: JarvisTaskRow | null = conversationTask,
   ) => {
+    if (!signedIn) {
+      void navigate({ to: "/auth", search: { next: "/ocade-jarvis" } });
+      return;
+    }
+    if (state.isPending || state.isError) {
+      toast.error("Your JARVIS account is not ready.", {
+        description: state.isError
+          ? "Reload account data and try again."
+          : "Account data is loading.",
+      });
+      return;
+    }
     const text = raw.trim();
     if (!text) return;
     if (running && live.current && !retryOf) {
@@ -376,10 +388,6 @@ export function JarvisWorkspace({
     if (running || busyRef.current || transcript !== "ready" || spent) {
       // Said while JARVIS cannot answer yet: kept in the composer, never lost.
       if (fromVoice && !running) setDraft(text);
-      return;
-    }
-    if (!signedIn) {
-      void navigate({ to: "/auth", search: { next: "/ocade-jarvis" } });
       return;
     }
     if (!jarvisOn) {
@@ -809,6 +817,23 @@ export function JarvisWorkspace({
           : undefined
       : undefined;
   const usage = jarvis?.usage;
+  const sendBlockedReason = !signedIn
+    ? null
+    : state.isError
+      ? "Your JARVIS account could not be loaded. Reload account data to try again."
+      : loading || state.isPending
+        ? "Loading your JARVIS account…"
+        : spent
+          ? "No JARVIS uses left right now. Check Billing & Usage for your reset."
+          : transcript !== "ready"
+            ? "Open a conversation or start a new one before sending."
+            : !jarvisOn
+              ? "JARVIS is turned off. Turn it on in Permissions."
+              : !running && busyUntil
+                ? "JARVIS is busy. Your draft is kept until it is available."
+                : !draft.trim()
+                  ? "Write a message to enable Send."
+                  : null;
 
   // Orb Focus stays until the person leaves it; the controls around it fade after
   // eight quiet seconds and come back on any movement or key. Stop never fades.
@@ -817,23 +842,45 @@ export function JarvisWorkspace({
       setControlsHidden(false);
       return;
     }
-    let timer = window.setTimeout(() => setControlsHidden(true), 8000);
+    const hide = () => {
+      // Never fade the control somebody is typing in, or an open panel/dialog.
+      const active = document.activeElement;
+      if (
+        active?.closest("button, a, input, textarea, select, [role='dialog']") ||
+        section ||
+        permissionsOpen ||
+        drawerOpen ||
+        confirmAsk ||
+        takeover
+      )
+        return;
+      setControlsHidden(true);
+    };
+    setControlsHidden(false);
+    let timer = window.setTimeout(hide, 8000);
     const wake = (event: Event) => {
       if (event instanceof KeyboardEvent && event.key === "Escape") setFocusOrb(false);
       setControlsHidden(false);
       window.clearTimeout(timer);
-      timer = window.setTimeout(() => setControlsHidden(true), 8000);
+      timer = window.setTimeout(hide, 8000);
     };
-    const events = ["pointermove", "pointerdown", "keydown"] as const;
+    const events = [
+      "pointermove",
+      "pointerdown",
+      "keydown",
+      "focusin",
+      "focusout",
+      "wheel",
+    ] as const;
     events.forEach((name) => window.addEventListener(name, wake));
     return () => {
       window.clearTimeout(timer);
       events.forEach((name) => window.removeEventListener(name, wake));
     };
-  }, [focusOrb]);
+  }, [focusOrb, section, permissionsOpen, drawerOpen, confirmAsk, takeover]);
   const fade = cn(
     "transition-opacity duration-500",
-    controlsHidden && "pointer-events-none opacity-0",
+    controlsHidden && "opacity-0 hover:opacity-100 focus-within:opacity-100",
   );
 
   const rail = (mobile: boolean, expanded = mobile || prefs.railExpanded) => (
@@ -961,6 +1008,7 @@ export function JarvisWorkspace({
           selectedId={selected?.id ?? null}
           onSelect={setSelected}
           onFocus={() => setFocusOrb((value) => !value)}
+          focused={focusOrb}
           controlsHidden={controlsHidden}
         />
 
@@ -1313,13 +1361,29 @@ export function JarvisWorkspace({
                 <button
                   type="submit"
                   aria-label={signedIn ? "Send" : "Sign in to send"}
-                  disabled={signedIn && (!draft.trim() || transcript !== "ready")}
+                  disabled={Boolean(sendBlockedReason)}
+                  aria-describedby={sendBlockedReason ? "jarvis-send-status" : undefined}
+                  title={sendBlockedReason ?? undefined}
                   className="grid h-10 w-10 place-items-center rounded-full bg-foreground text-background disabled:opacity-40"
                 >
                   <ArrowUp className="h-4 w-4" aria-hidden />
                 </button>
               )}
             </form>
+            {sendBlockedReason ? (
+              <p
+                id="jarvis-send-status"
+                role="status"
+                className="mt-2 text-xs text-muted-foreground"
+              >
+                {sendBlockedReason}{" "}
+                {state.isError ? (
+                  <button type="button" onClick={refresh} className="underline">
+                    Reload account data
+                  </button>
+                ) : null}
+              </p>
+            ) : null}
           </div>
         </div>
 

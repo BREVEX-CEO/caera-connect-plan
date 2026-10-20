@@ -11,10 +11,15 @@ export interface ResolvedEntitlement {
 
 export async function resolveTierFor(userId: string): Promise<ResolvedEntitlement> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  // Resolve the lazy client before starting another async read. If configuration
+  // is missing, a synchronous RPC accessor throw must not orphan that read.
+  const grantRequest = supabaseAdmin.rpc("ocade_active_entitlement_grant", {
+    target_user: userId,
+  });
   const [anchoredAt, grant] = await Promise.all([
     accountAnchorFor(userId),
     // "Which grant counts" is decided once, in the database.
-    supabaseAdmin.rpc("ocade_active_entitlement_grant", { target_user: userId }),
+    grantRequest,
   ]);
 
   // Fail closed: an unreadable grant is Free, never ten times the allowance.

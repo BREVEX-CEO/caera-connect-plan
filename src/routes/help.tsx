@@ -152,11 +152,14 @@ const QUESTIONS: {
     words: "stop take over pause resume continue",
     answer: (
       <p>
-        <strong className="text-foreground">Stop</strong> ends the task and the step that is running
-        on your computer; JARVIS says “Stopped” once the computer confirms it.{" "}
-        <strong className="text-foreground">Take Over</strong> pauses JARVIS and hands the screen to
-        you; press Resume when you are done and it continues from a fresh look at the page. Using
-        your own mouse or keyboard also pauses it, unless you turned on Co-work for that computer.
+        <strong className="text-foreground">Stop</strong> requests cancellation. Once OCADE records
+        the stop, it sends no further steps. A disconnected computer may not receive it immediately.
+        JARVIS says “Stopped” once the running step is confirmed stopped; changes already made may
+        remain. If the computer is offline, use STOP JARVIS in its tray and check the result before
+        retrying. <strong className="text-foreground">Take Over</strong> pauses JARVIS and hands the
+        screen to you; press Resume when you are done and it continues from a fresh look at the
+        page. Using your own mouse or keyboard also pauses it, unless you turned on Co-work for that
+        computer.
       </p>
     ),
   },
@@ -355,9 +358,10 @@ const QUESTIONS: {
     words: "stop confirm computer offline",
     answer: (
       <p>
-        The task is stopped in OCADE, but the computer did not answer within a few seconds — usually
-        because it went to sleep or lost its connection. Nothing more is sent to it, and it ends the
-        running step the moment it reconnects. Use STOP JARVIS in its tray icon to end it locally.
+        OCADE recorded the stop, but could not confirm that the running step ended on your computer.
+        It may be asleep or disconnected. No further steps are sent; use STOP JARVIS in the OCADE
+        tray on that computer. A change already made may remain, so check the app or file before
+        retrying. Reconnecting alone does not prove that the earlier step stopped or was undone.
       </p>
     ),
   },

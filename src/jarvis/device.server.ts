@@ -14,6 +14,7 @@
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { readBoundedRequestText } from "@/lib/read-bounded-request";
 import contract from "../../jarvis-runtime/ocade_protocol.json";
 import { appDecision, needsConfirmation, refuseAction } from "./permissions";
 import type { DeviceAction } from "./protocol";
@@ -221,8 +222,13 @@ export async function readSigned(request: Request): Promise<SignedRequest> {
     // 409, not 401: a wrong clock is fixable and must never read as "removed".
     return { ok: false, status: 409, error: "clock_skew" };
   }
-  const body = await request.text();
-  if (body.length > 600_000) return { ok: false, status: 413, error: "too_large" };
+  // Preserve the existing UTF-16 text budget. UTF-8 needs at most three bytes
+  // per code unit (plus an optional BOM), so even unsigned input is bounded
+  // before it is materialized.
+  const body = await readBoundedRequestText(request, 3 * 600_000 + 3);
+  if (body === null || body.length > 600_000) {
+    return { ok: false, status: 413, error: "too_large" };
+  }
   return {
     ok: true,
     body,

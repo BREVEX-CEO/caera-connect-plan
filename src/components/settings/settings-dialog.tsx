@@ -1,5 +1,6 @@
 /** The Settings panel's contents, loaded when it first opens (see settings-panel.tsx). */
 import { useEffect, useRef, useState } from "react";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Bell, CreditCard, Monitor, Moon, ShieldCheck, User, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useModalFocus } from "@/lib/use-modal-focus";
@@ -47,6 +48,8 @@ export default function SettingsDialog({
   onCategoryChange: (next: SettingsCategory) => void;
   onClose: () => void;
 }) {
+  const { user } = useSession();
+  const location = useLocation();
   const groups = [...new Set(CATEGORIES.map((entry) => entry.group))];
   const self = useRef<HTMLDivElement>(null);
   useModalFocus(self, true);
@@ -123,21 +126,36 @@ export default function SettingsDialog({
             </button>
           </div>
 
-          {category === "account" ? <AccountSettings /> : null}
-          {category === "appearance" ? <AppearanceSettings /> : null}
-          {category === "notifications" ? <NotificationsSection /> : null}
-          {category === "privacy" ? (
+          {!user && category !== "appearance" ? (
+            <div className="space-y-3 text-sm">
+              <p className="text-muted-foreground">Sign in to manage your account settings.</p>
+              <Link
+                to="/auth"
+                search={{ next: location.pathname + location.searchStr }}
+                className="inline-flex h-9 items-center rounded-md border border-border px-3 text-foreground hover:bg-accent"
+              >
+                Sign in
+              </Link>
+            </div>
+          ) : (
             <>
-              <DataControlsSection />
-              <AdvancedSection />
+              {category === "account" ? <AccountSettings /> : null}
+              {category === "appearance" ? <AppearanceSettings /> : null}
+              {category === "notifications" ? <NotificationsSection /> : null}
+              {category === "privacy" ? (
+                <>
+                  <DataControlsSection />
+                  <AdvancedSection />
+                </>
+              ) : null}
+              {category === "billing" ? (
+                <>
+                  <UsageSection />
+                  <BillingSection />
+                </>
+              ) : null}
             </>
-          ) : null}
-          {category === "billing" ? (
-            <>
-              <UsageSection />
-              <BillingSection />
-            </>
-          ) : null}
+          )}
         </div>
       </div>
     </div>

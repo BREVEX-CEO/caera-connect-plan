@@ -470,7 +470,11 @@ const pathless = (row: ActionRow) =>
   typeof row.action?.path !== "string" && typeof row.action?.to !== "string";
 const samePath = (row: ActionRow, path: string) =>
   [row.action?.path, row.action?.to].some(
-    (value) => typeof value === "string" && normalPath(value) === normalPath(path),
+    // A proof must name the same submitted path. Case, whitespace and even
+    // backslashes can distinguish files on a supported filesystem; without a
+    // device-canonical identity the server must not equate those names.
+    // Invalidation below remains broader, so aliases cannot preserve stale proof.
+    (value) => typeof value === "string" && value === path,
   );
 
 /** Commands can touch any file; a directory mutation also affects its descendants. */

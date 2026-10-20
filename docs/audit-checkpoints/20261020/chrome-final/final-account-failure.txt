@@ -1,0 +1,41 @@
+- region "Notifications alt+T"
+- link "Skip to the message box":
+  - /url: "#jarvis-composer"
+- navigation "JARVIS":
+  - link "Chat":
+    - /url: /
+    - generic: Chat
+  - button "New conversation":
+    - generic: New conversation
+  - button "Conversations":
+    - generic: Conversations
+  - button "Activity":
+    - generic: Activity
+  - button "Devices":
+    - generic: Devices
+  - button "Permissions":
+    - generic: Permissions
+  - button "Settings":
+    - generic: Settings
+  - button "Collapse":
+    - generic: Collapse
+- main:
+  - img "JARVIS graph with 0 items"
+  - button "Enter orb focus":
+    - generic: Focus the orb
+  - button "Zoom in":
+  - button "Zoom out":
+  - generic: Showing categories
+  - list "Graph items"
+  - heading "OCADE JARVIS" [level=1]
+  - button "Focus orb"
+  - region "Conversation"
+  - group "Answer quality":
+    - button "Standard" [pressed]
+    - button "High"
+  - generic: Message JARVIS
+  - textbox "Message JARVIS" [active]:
+    - /placeholder: Ask or tell JARVIS anything
+  - button "Start voice":
+  - button "Send" [disabled]:
+  - status: Loading your JARVIS account…

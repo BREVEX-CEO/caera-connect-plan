@@ -1,0 +1,45 @@
+- region "Notifications alt+T":
+  - list:
+    - button "Close toast":
+    - generic: OCADE could not verify your usage allowance.
+    - generic: Nothing was sent and nothing was charged. Try again when the connection is stable.
+- link "Skip to content":
+  - /url: "#workspace"
+- complementary:
+  - link "OCADE home":
+    - /url: /
+    - img "OCADE by CARCC"
+  - navigation "Primary":
+    - link "New chat":
+      - /url: /?new=true
+      - text: New chat
+    - link "Chat":
+      - /url: /
+      - text: Chat
+    - link "OCADE JARVIS":
+      - /url: /ocade-jarvis
+      - text: OCADE JARVIS
+    - link "Library":
+      - /url: /library
+      - text: Library
+  - button "C [authorized account]":
+    - generic: C
+    - generic: [authorized account]
+- main:
+  - heading "Ask OCADE" [level=1]
+  - generic: Message OCADE
+  - textbox "Message OCADE":
+    - /placeholder: Ask anything
+    - text: "Disposable QA arithmetic check: calculate 3 × 12.50 + 2 × 45 + 4 × 5. Show each subtotal and the exact sum. No tools or file access."
+  - button "Attach a file":
+  - group "Intelligence mode":
+    - button "Auto"
+    - button "Online" [pressed]
+    - button "Offline"
+  - group "Answer quality":
+    - button "Standard"
+    - button "High" [pressed]
+  - status: High mode can consume the small shared daily allowance faster. Complex tasks can use it up quickly. Return to Standard to conserve it; work pauses when High capacity runs out.
+  - generic "More"
+  - button "Dictate":
+  - button "Send":

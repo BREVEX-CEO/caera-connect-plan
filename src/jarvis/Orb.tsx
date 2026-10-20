@@ -8,7 +8,7 @@
  * Categories differ by shape, not colour: conversations are circles, tasks
  * squares, memory diamonds, devices triangles, apps rings.
  *
- * Double-click toggles Orb Focus.
+ * The central button toggles Orb Focus without starting a task or microphone.
  *
  * Drag pans, the wheel or a pinch zooms, the pointer tilts the view, hover
  * names a node and a click selects it. Zooming in reveals individual records
@@ -86,6 +86,7 @@ export function Orb({
   selectedId,
   onSelect,
   onFocus,
+  focused = false,
   controlsHidden = false,
 }: {
   graph: Graph;
@@ -97,9 +98,11 @@ export function Orb({
   selectedId: string | null;
   onSelect(node: GraphNode): void;
   onFocus?(): void;
+  focused?: boolean;
   controlsHidden?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const coreButtonRef = useRef<HTMLButtonElement>(null);
   const view = useRef<View>({ yaw: 0.6, pitch: -0.25, zoom: 1, panX: 0, panY: 0 });
   const pointer = useRef({ x: 0, y: 0, inside: false });
   const projected = useRef<{ node: GraphNode; x: number; y: number; r: number }[]>([]);
@@ -138,6 +141,16 @@ export function Orb({
       const radius = Math.min(w, h) * 0.28 * v.zoom * pulse;
       const cx = w / 2 + v.panX + (pointer.current.inside ? (pointer.current.x - w / 2) * 0.02 : 0);
       const cy = h / 2 + v.panY + (pointer.current.inside ? (pointer.current.y - h / 2) * 0.02 : 0);
+      const coreButton = coreButtonRef.current;
+      if (coreButton) {
+        const size = Math.max(44, radius * 0.48 * (1 + levelRef.current * 0.12));
+        Object.assign(coreButton.style, {
+          left: `${cx}px`,
+          top: `${cy}px`,
+          width: `${size}px`,
+          height: `${size}px`,
+        });
+      }
       const tiltY = v.yaw + (pointer.current.inside ? (pointer.current.x / w - 0.5) * 0.35 : 0);
       const tiltX = v.pitch + (pointer.current.inside ? (pointer.current.y / h - 0.5) * 0.25 : 0);
       const cosY = Math.cos(tiltY);
@@ -429,6 +442,23 @@ export function Orb({
         onWheel={(event) => setZoom(view.current.zoom * (event.deltaY < 0 ? 1.1 : 0.9))}
         onDoubleClick={() => onFocus?.()}
       />
+      {onFocus ? (
+        <button
+          ref={coreButtonRef}
+          type="button"
+          aria-label={focused ? "Leave orb focus" : "Enter orb focus"}
+          aria-pressed={focused}
+          title={focused ? "Return to the conversation" : "Focus the orb"}
+          onClick={(event) => {
+            if (event.detail < 2) onFocus();
+          }}
+          className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-full outline-none hover:ring-2 hover:ring-foreground/30 focus-visible:ring-2 focus-visible:ring-foreground"
+        >
+          <span className="sr-only">
+            {focused ? "Return to the conversation" : "Focus the orb"}
+          </span>
+        </button>
+      ) : null}
       {hover ? (
         <div
           className="pointer-events-none absolute rounded-md border border-border/60 bg-popover px-2 py-1 text-xs text-popover-foreground"
@@ -439,8 +469,8 @@ export function Orb({
       ) : null}
       <div
         className={cn(
-          "absolute bottom-24 right-3 flex flex-col gap-1 transition-opacity duration-500 md:bottom-4",
-          controlsHidden && "pointer-events-none opacity-0",
+          "absolute bottom-24 right-3 z-20 flex flex-col gap-1 transition-opacity duration-500 md:bottom-4",
+          controlsHidden && "opacity-0 hover:opacity-100 focus-within:opacity-100",
         )}
       >
         <button

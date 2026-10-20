@@ -1,4 +1,5 @@
 import { workersAiBody, workersAiResponse } from "./workers-ai.ts";
+import { readBoundedRequestText } from "../read-bounded-request.ts";
 import { HIGH_WARNING_VERSION, type IntelligenceQuality } from "./quality.ts";
 import type {
   IntelligenceEvent,
@@ -42,7 +43,7 @@ const ALLOWED_SURFACES: readonly string[] = ["chat", "jarvis"];
  * It was one mebibyte, which was right while a request was only text and wrong
  * the moment an attachment could ride in one: a single photograph is several
  * times that. Twenty-four is generous enough for the attachment budget below
- * and small enough that an isolate cannot be exhausted by a flood of them.
+ * and enforced while reading, including when Content-Length is absent or false.
  */
 const MAX_BODY_BYTES = 24 * 1_048_576;
 const MAX_MESSAGES = 256;
@@ -64,7 +65,7 @@ const MAX_ATTACHMENT_IMAGE = 7 * 1_048_576;
 /**
  * THE CEILING ON WHAT ONE USE CAN COST.
  *
- * Everything going IN is already bounded — a megabyte of body, 256 messages,
+ * Everything going IN is already bounded — 24 mebibytes of body, 256 messages,
  * 128 tools — but nothing bounded what came back. One successful request costs
  * the customer exactly one use whatever its length, so without a cap the price
  * of that one use to OCADE is whatever the provider feels like generating, and
@@ -903,8 +904,8 @@ async function runOnlineIntelligence(
   const token = service ? null : bearer(request);
   if (!service && !token) return json(401, { error: "authentication_required" }, origin);
 
-  const text = await request.text();
-  if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) {
+  const text = await readBoundedRequestText(request, MAX_BODY_BYTES);
+  if (text === null) {
     return json(413, { error: "request_too_large" }, origin);
   }
   let parsed: unknown;

@@ -46,15 +46,13 @@ export const DEFAULT_NEXT = "/";
 export function safeNext(value: string | undefined | null, origin?: string): string | null {
   if (!value) return null;
 
-  const base = origin ?? (typeof window === "undefined" ? undefined : window.location.origin);
-  if (!base) {
-    /*
-     * SERVER-SIDE, WITH NO ORIGIN TO COMPARE AGAINST. Only a plain path is
-     * accepted, and the backslash case is refused explicitly rather than
-     * relying on a prefix test that a browser would disagree with.
-     */
-    return /^\/[^/\\]/.test(value) || value === "/" ? value : null;
-  }
+  const knownOrigin =
+    origin ?? (typeof window === "undefined" ? undefined : window.location.origin);
+  // Server rendering accepts paths only, but still needs the URL parser: a
+  // prefix check misses removed control characters and /..// host-like paths.
+  // The reserved origin is only a parsing base; nothing is fetched from it.
+  if (!knownOrigin && (!value.startsWith("/") || value.startsWith("//"))) return null;
+  const base = knownOrigin ?? "https://ocade.invalid";
 
   let resolved: URL;
   try {

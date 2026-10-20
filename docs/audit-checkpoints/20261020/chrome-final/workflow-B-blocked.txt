@@ -1,0 +1,48 @@
+- region "Notifications alt+T":
+  - list:
+    - button "Close toast":
+    - generic: Your JARVIS account is not ready.
+    - generic: Reload account data and try again.
+- link "Skip to the message box":
+  - /url: "#jarvis-composer"
+- navigation "JARVIS":
+  - link "Chat":
+    - /url: /
+    - generic: Chat
+  - button "New conversation":
+    - generic: New conversation
+  - button "Conversations":
+    - generic: Conversations
+  - button "Activity":
+    - generic: Activity
+  - button "Devices":
+    - generic: Devices
+  - button "Permissions":
+    - generic: Permissions
+  - button "Settings":
+    - generic: Settings
+  - button "Collapse":
+    - generic: Collapse
+- main:
+  - img "JARVIS graph with 0 items"
+  - button "Enter orb focus":
+    - generic: Focus the orb
+  - button "Zoom in":
+  - button "Zoom out":
+  - generic: Showing categories
+  - list "Graph items"
+  - heading "OCADE JARVIS" [level=1]
+  - button "Focus orb"
+  - region "Conversation"
+  - group "Answer quality":
+    - button "Standard" [pressed]
+    - button "High"
+  - generic: Message JARVIS
+  - textbox "Message JARVIS" [active]:
+    - /placeholder: Ask or tell JARVIS anything
+    - text: OCADE QA 20261020-B. Use only a new disposable OCADE-QA-20261020-B folder and newly created browser tabs; preserve existing tabs and documents. 1 Identify the paired device. 2 Discover Chrome and PowerPoint. 3 Create the test folder. 4 Open a new Chrome tab. 5 Navigate to example.com. 6 Read its title. 7 Read the visible heading. 8 Record the canonical URL. 9 Navigate to its information link. 10 Report the destination before proceeding. 11 Return to the test tab. 12 Open a second disposable tab. 13 Switch between both test tabs. 14 Capture evidence without personal tabs. 15 Create a native presentation. 16 Add a title slide. 17 Add a slide with the observed page title and URL. 18 Add a third slide explaining the navigation. 19 Save browser-review.pptx. 20 Export browser-review.pdf. 21 Close only the test presentation. 22 Reopen the editable PPTX. 23 Verify all three slides. 24 Reopen and count PDF pages. 25 Report verified paths and failures. No sign-ins, uploads, purchases or external form submissions.
+  - button "Start voice":
+  - button "Send" [disabled]:
+  - status:
+    - text: Your JARVIS account could not be loaded. Reload account data to try again.
+    - button "Reload account data"

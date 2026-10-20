@@ -2,7 +2,9 @@
 
 [Open work](../BLOCKED_TESTS.md) is the single unresolved implementation and verification queue. This document owns test methods, evidence, release acceptance and recovery. [SUPPORT_LEGAL_SECURITY.md](SUPPORT_LEGAL_SECURITY.md) owns security/commercial contracts; [ARCHITECTURE.md](ARCHITECTURE.md) owns subsystem design. Historical audit matrices describe their own snapshots, not current readiness.
 
-The October documentation mission runs documentation checks only. It does not authorise product fixes, builds that alter product artefacts, test-account writes, physical automation, production database changes, provider charges or deployments. The procedures below are for separately authorised implementation/release work.
+**Current execution authority — 19 October 2026:** the owner authorizes implementation and testing exclusively through their existing Google Chrome on their PC, operating OCADE as a customer. This supersedes the historical documentation-only mission, cloud-first procedures and PC-test holds below. Do not execute Actions, cloud runners, remote browsers, separate emulators, external test environments or CLI/unit/database/native suites. Source editing, formatting and local candidate serving are engineering work, not workflow passes. Use real authorized staging accounts, disposable data and OCADE's approved scoped companion for supported PC work. Production data, production deployment, merging main, payments and spending still require explicit approval. Gates that cannot be proved through this setup remain BLOCKED; historical results remain historical.
+
+**20 October clarification:** Computer Use may independently inspect the companion's resulting files and native application state. The assistant must not perform an OCADE task itself and count that output as an AI/JARVIS completion. Native APIs, scoped scripts, formats, structured browser/accessibility and vision are execution choices inside the existing approved pipeline. Permitted staging setup is autonomous; mandatory personal security actions stay BLOCKED without repeated setup questions. The requested `TOFIX.md` is a repair handoff linked to the existing evidence queue, not a waiver of a blocked first complete pass.
 
 ## 1. Evidence standard and completion
 
@@ -26,6 +28,12 @@ DONE for a release capability requires its implementation, security boundary, fa
 Report phase status Complete/Partial/Blocked, work completed, findings/fixes, tests, blocked evidence and source/deploy identity. If a readiness percentage is reported, disclose the frozen release-checklist numerator/denominator and blocked count. Do not infer a commercial-readiness percentage from line coverage, number of tests, health or documentation completion. Deferred payment collection cannot be counted as a working paid launch.
 
 ## 2. Per-change proof and final waves
+
+Current Chrome regression recipes (19 October): on an unconfigured loopback candidate, enter an unsent disposable draft, press Send, observe the account-service-unavailable sign-in page, return to Chat and verify the exact draft. Open Library and `/admin?module=usage`; both must reach the same clear page with their full destination preserved in `next`, without an internal environment-variable error or protected content. These checks do not qualify hosted authentication or tenant isolation. On Help, search `stop`, expand both STOP answers and verify that recorded stop, device confirmation, delayed delivery and already-made effects are distinguished. Native cancellation/recovery needs a separate real OCADE task with independent device/output evidence.
+
+20 October Settings regression: as a signed-out visitor, open Settings from JARVIS and visit Account, Notifications, Privacy & Security and Billing & Usage. Each must ask for sign-in without account mutation controls or account-data queries. Appearance remains available on this device. The sign-in link preserves `/ocade-jarvis` and its query. Repeat after actual sign-in, sign-out and account switch; the limited anonymous check cannot establish those paths. On staging sign-in, the subtitle must agree with actual available providers.
+
+20 October file-proof regression: create disposable distinct names differing in case, whitespace or separator interpretation where the actual filesystem supports them. Reading another name cannot verify the changed target. A fresh read using the exact submitted target can provide structural proof, but still needs the workflow's semantic postconditions. Alias/canonical-identity compatibility remains a real-device gate; broad mutation invalidation must not be weakened to make aliases pass.
 
 For each implementation change: read current authority; establish baseline; reproduce; identify owning function and root cause; add meaningful regression; make the smallest fix; run targeted proof; exercise integration and applicable real workflow; attempt to break it; regress nearby paths; record evidence. Do not add sleeps/retries to conceal ownership or timing errors.
 
@@ -182,18 +190,18 @@ Primary references checked 19 October: [Gemini model capabilities](https://ai.go
 
 Each gate below is binary and worth 10 points; **score = 100 × fully qualified gates / 10**. A blocked, partial, failed, stale or untested gate scores zero. This is release-evidence coverage, not a software-completion estimate. All gates must pass for launch; a known critical defect blocks it regardless of score. This checklist does not replace the detailed release matrix in this document or [open work](../BLOCKED_TESTS.md). Earlier candidate results below remain dated evidence, not automatic qualification of a changed working tree.
 
-| Gate | Required evidence                                                                      | Current status                                             |
-| ---- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| R1   | Exact candidate full web verification, reproducible build, production dependency audit | PASS: 15/15 gates; 1,462 tests; audit 0                    |
-| R2   | Real staged auth/account/tenant/commercial browser journeys                            | BLOCKED: browser environment                               |
-| R3   | Both provider protocols, all three key slots, actual free quotas and cost guard        | BLOCKED: staging credentials and billing read              |
-| R4   | At least 95% independent real-task success in every major workflow family              | BLOCKED/FAIL: current complete family matrix not qualified |
-| R5   | Native cross-surface history, restart, ownership, STOP and unknown-effect recovery     | PARTIAL: fixture evidence only                             |
-| R6   | Signed Windows/macOS installation, update and rollback on real executors               | BLOCKED: executors/signing                                 |
-| R7   | Android and iOS permission, lifecycle and execution matrix                             | BLOCKED: devices/simulators                                |
-| R8   | Completed security triage with zero known critical findings on release candidate       | PARTIAL: broader triage/release matrix open                |
-| R9   | Approved release gate, auto-deploy isolation and rollback rehearsal                    | FAIL/BLOCKED: REL-00-02 and rehearsal                      |
-| R10  | Operational capacity, privacy/rights, support and commercial acceptance                | BLOCKED: outstanding launch matrix                         |
+| Gate | Required evidence                                                                      | Current status                                                 |
+| ---- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| R1   | Exact candidate full web verification, reproducible build, production dependency audit | BLOCKED: full suites cannot run under Chrome-only authority    |
+| R2   | Real staged auth/account/tenant/commercial browser journeys                            | BLOCKED: staging exists; server credentials/account setup open |
+| R3   | Both provider protocols, all three key slots, actual free quotas and cost guard        | BLOCKED: staging credentials and billing read                  |
+| R4   | At least 95% independent real-task success in every major workflow family              | BLOCKED/FAIL: current complete family matrix not qualified     |
+| R5   | Native cross-surface history, restart, ownership, STOP and unknown-effect recovery     | PARTIAL: fixture evidence only                                 |
+| R6   | Signed Windows/macOS installation, update and rollback on real executors               | BLOCKED: executors/signing                                     |
+| R7   | Android and iOS permission, lifecycle and execution matrix                             | BLOCKED: devices/simulators                                    |
+| R8   | Completed security triage with zero known critical findings on release candidate       | PARTIAL: broader triage/release matrix open                    |
+| R9   | Approved release gate, auto-deploy isolation and rollback rehearsal                    | FAIL/BLOCKED: REL-00-02 and rehearsal                          |
+| R10  | Operational capacity, privacy/rights, support and commercial acceptance                | BLOCKED: outstanding launch matrix                             |
 
 Historical pre-resume corrected-candidate score: **10/100 (R1 only; 1/10 fully qualified gates, 9 open)**. Full web verification passed all 15 gates with 125 files / 1,462 tests; production dependency audit reports zero vulnerabilities. Native portable fixtures passed 24/24 in 1.017 s. These results do not qualify live workflow families.
 

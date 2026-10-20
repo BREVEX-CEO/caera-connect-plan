@@ -68,6 +68,17 @@ describe("with no origin to compare against, it fails closed", () => {
   it("refuses anything absolute", () => {
     expect(safeNext("https://evil.com", undefined)).toBeNull();
   });
+
+  it.each(["/..//evil.com", "/\t/evil.com", "/\n/evil.com", "/\r\\evil.com"])(
+    "also parses and refuses server-rendered normalization payload %j",
+    (payload) => {
+      expect(safeNext(payload, undefined)).toBeNull();
+    },
+  );
+
+  it("normalizes a safe server-rendered path and keeps its state", () => {
+    expect(safeNext("/a/../library?view=files#top", undefined)).toBe("/library?view=files#top");
+  });
 });
 
 describe("both auth screens use the same rule", () => {

@@ -18,6 +18,7 @@ import {
  * navigates into the signed-in product.
  */
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
+import { getSupabaseBrowserConfiguration } from "@/integrations/supabase/configuration";
 import { mayUseCachedSession, cachedSessionIsCurrent } from "@/lib/auth/session-failure";
 
 /**
@@ -45,6 +46,15 @@ export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
     if (typeof window === "undefined") return { user: null };
     await whenHydrated();
+
+    // Let the sign-in page explain missing account service bindings before
+    // importing the client, which throws an operator-facing configuration error.
+    if (!getSupabaseBrowserConfiguration().configured) {
+      throw redirect({
+        to: "/auth",
+        search: { next: location.pathname + location.searchStr },
+      });
+    }
 
     /*
      * OFFLINE MUST NOT MEAN SIGNED OUT.

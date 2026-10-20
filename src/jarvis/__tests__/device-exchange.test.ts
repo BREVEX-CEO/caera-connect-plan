@@ -766,6 +766,20 @@ describe("completion needs evidence from the device (P01)", () => {
     expect(await gap(t)).toMatch(/a\.txt was changed but its content was never read back/);
   });
 
+  it.each([
+    ["Report.txt", "report.txt"],
+    [" report.txt", "report.txt"],
+    ["folder\\report.txt", "folder/report.txt"],
+  ])("does not equate distinct submitted file names %s and %s", async (changed, other) => {
+    const t = await task();
+    await settle(await queue(t, { action: "file_write", path: changed, content: "x" }), "done");
+    await settle(await queue(t, { action: "file_read", path: other }), "done");
+    expect(await gap(t)).toContain("content was never read back");
+    // A fresh read of the original path still provides structural proof.
+    await settle(await queue(t, { action: "file_read", path: changed }), "done");
+    expect(await gap(t)).toBeNull();
+  });
+
   it("refuses a content change checked only by the file's size and date", async () => {
     const t = await task();
     await settle(await queue(t, { action: "file_write", path: "a.txt", content: "x" }), "done");
@@ -1192,6 +1206,47 @@ describe("completion needs evidence from the device (P01)", () => {
         expect(charges).toHaveLength(0);
       },
     );
+
+    it("verifies the completion guard, detects disabling it and survives rollback/reapplication", async () => {
+      const migration = "20261019104555_completion_cannot_revive_a_stopped_task";
+      const verify = () => twin.runScript("supabase/verification", `${migration}_verify.sql`);
+      const t = await withChecks([{ path: "a.txt" }]);
+      await done(await queue(t, { action: "file_info", path: "a.txt" }));
+      await twin.asServiceRole(
+        `update public.jarvis_tasks set status = 'stopped' where id = '${t}'`,
+      );
+      try {
+        expect(await verify()).toEqual({ ok: true });
+        await twin.execSuperuser(
+          "alter table public.jarvis_tasks disable trigger jarvis_completion_requires_running",
+        );
+        expect((await verify()).ok).toBe(false);
+        for (let i = 0; i < 2; i++) {
+          expect(await twin.runScript("supabase/rollback", `${migration}_rollback.sql`)).toEqual({
+            ok: true,
+          });
+        }
+        expect((await verify()).ok).toBe(false);
+      } finally {
+        // Restore the shared twin even if an assertion fails with the guard disabled.
+        await twin.runScript("supabase/rollback", `${migration}_rollback.sql`);
+        expect(await twin.runScript("supabase/migrations", `${migration}.sql`)).toEqual({
+          ok: true,
+        });
+      }
+      expect(await verify()).toEqual({ ok: true });
+      expect((await statusOf(t)).status).toBe("stopped");
+      await expect(
+        twin.asServiceRole(
+          `update public.jarvis_tasks set status = 'completed', verified_actions = 1 where id = '${t}'`,
+        ),
+      ).rejects.toThrow(/Only a running task can complete/);
+      expect(
+        await twin.asServiceRole(
+          `select * from public.ocade_jarvis_task_charges where task_id = '${t}'`,
+        ),
+      ).toHaveLength(0);
+    });
 
     it("refuses the right words with the wrong total, then completes once the cell is right", async () => {
       const t = await withChecks([{ path: "r.xlsx", cell: "B10", equals: "4520" }]);
