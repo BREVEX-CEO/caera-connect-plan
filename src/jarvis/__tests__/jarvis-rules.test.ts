@@ -6,6 +6,7 @@ import {
   deviceAction,
   hostOf,
   jarvisTools,
+  pointGap,
 } from "../protocol";
 import {
   isAllowed,
@@ -36,7 +37,10 @@ describe("the action contract", () => {
     expect(
       browserAction.safeParse({ action: "click", ref: "button", observationId: "o2" }).success,
     ).toBe(false);
-    expect(browserAction.safeParse({ action: "click_at", x: 1, y: 2 }).success).toBe(false);
+    // A point needs the observation it came from, or an element to be inside.
+    expect(pointGap({ action: "click_at", x: 1, y: 2 })).toMatch(/observationId/);
+    expect(pointGap({ action: "click", target: { name: "Send" }, ref: "e1" })).toMatch(/not both/);
+    expect(pointGap({ action: "click", target: { name: "Send" } })).toBeNull();
     // A deck's chart needs one series of numbers; its image comes from the work folder.
     expect(
       computerAction.safeParse({

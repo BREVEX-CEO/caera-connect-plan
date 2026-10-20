@@ -37,10 +37,18 @@
     }
     return '';
   };
+  // A label that wraps its control names it by the label's own words, not the control's
+  // (a select's options, a field's value).
+  const ownText = (label, el) => {
+    if (!label.contains(el)) return label.innerText;
+    const copy = label.cloneNode(true);
+    copy.querySelectorAll('select, textarea, input, button').forEach((c) => c.remove());
+    return copy.textContent;
+  };
   const nameOf = (el) => {
     const by = el.getAttribute('aria-labelledby');
     const labelled = by ? by.split(/\s+/).map((id) => document.getElementById(id)?.innerText || '').join(' ') : '';
-    const label = el.labels && el.labels[0] ? el.labels[0].innerText
+    const label = el.labels && el.labels[0] ? ownText(el.labels[0], el)
       : ['INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName) ? nearLabel(el) : '';
     const own = el.tagName === 'INPUT' && ['submit', 'button', 'reset'].includes(el.type) ? el.value : '';
     // An icon glyph is not a name: a toolbar button's title says what it does.

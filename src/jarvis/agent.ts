@@ -39,6 +39,7 @@ import {
   type DeviceAction,
   type TaskStatus,
   invalidReason,
+  pointGap,
   wordsGap,
 } from "./protocol";
 import type { JarvisTaskRow, StartTaskResult } from "./jarvis.functions";
@@ -584,6 +585,9 @@ export async function runJarvisTurn(
         result: { error: `That ${family} action is not valid (${invalidReason(parsed.error)}).` },
       };
     }
+    const unpointed = pointGap(parsed.data);
+    if (unpointed)
+      return { result: { error: `That ${family} action is not valid (${unpointed}).` } };
     lastFamily = family;
     if (typeof step === "number" && step >= 1 && step - 1 !== task.current_step) {
       setTask(await update({ id: task.id, currentStep: Math.min(12, step - 1) }));

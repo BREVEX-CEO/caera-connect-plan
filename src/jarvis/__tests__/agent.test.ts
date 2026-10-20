@@ -1014,6 +1014,34 @@ describe("a sequence: several known actions, one model step", () => {
     expect(h.queued.at(-1)).toMatchObject({ action: "drag_at", ref: "e9", observationId: "o3" });
   });
 
+  it("runs a form on a page not seen yet as one sequence, its elements named by target", async () => {
+    const page = { observationId: "o1", elements: [] };
+    const form = [
+      { action: "click", target: { name: "Open order form", role: "link" } },
+      { action: "type", target: { name: "Customer" }, text: "Ada Lovelace" },
+      { action: "select", target: { name: "Plan" }, option: "Express" },
+      { action: "click", target: { name: "Send order", role: "button" } },
+    ];
+    const h = harness(
+      [
+        {
+          text: "",
+          toolCalls: [call("start_task", { title: "Order", where: "browser", steps: ["s"] })],
+        },
+        { text: "", toolCalls: [call("browser", { action: "click" })] },
+        { text: "", toolCalls: [call("browser", { sequence: form })] },
+      ],
+      {
+        a: form.map(() => ({ status: "done", result: { observation: page } })),
+      },
+    );
+    await runJarvisTurn(h.input, h.hooks, h.deps);
+    // An element step with neither ref nor target is refused before it is queued.
+    expect(JSON.stringify(h.seen[2])).toContain("it needs its observationId, or a target");
+    // Every step queued, none refused for lacking an observation the model never had.
+    expect(h.queued).toEqual(form);
+  });
+
   it("refuses a later step when its element changed since the model saw it", async () => {
     const before = { observationId: "o1", elements: [{ ref: "e1", role: "button", name: "Save" }] };
     const after = {

@@ -35,6 +35,10 @@ PAGES = {
     "dialog.html": """<title>Dialog</title><button>Behind</button>
       <div style='position:fixed;inset:0;background:#0003'><div role='dialog' style='background:#fff;width:200px'>
       <div><canvas width='50' height='40'></canvas><div>Arrow</div></div></div></div>""",
+    "lateform.html": """<title>Late</title><label>Plan <select id='plan'><option>Choose</option>
+      <option>Express</option></select></label><button>Go</button><button>Go</button>
+      <script>plan.onchange = () => setTimeout(() => { document.body.insertAdjacentHTML('beforeend',
+        "<label>Order total <input id='total'></label>"); }, 600);</script>""",
     "opener.html": "<title>Opener</title><a href='/next.html' target='_blank'>Open form</a>",
     # An editor that builds its toolbar after load, then draws where it is dragged; a ticking
     # status line changes the page all the time, as editors' do.
@@ -292,6 +296,22 @@ class BrowserControlTest(unittest.TestCase):
         self.assertEqual(out["status"], "failed")
         self.assertIn("covers", out["summary"])
         self.assertLess(time.monotonic() - started, 3)
+
+    def test_a_step_names_its_element_by_target_and_the_device_waits_for_it(self):
+        self.act({"action": "open", "url": f"{self.base}/lateform.html"})
+        chose = self.act({"action": "select", "target": {"name": "Plan"}, "option": "Express"})
+        self.assertEqual(chose["status"], "done", chose)  # the label's own word, not its options
+        # Shown 600 ms after the choice: found when it appears, not refused at once.
+        typed = self.act({"action": "type", "target": {"name": "Order total", "role": "textbox"},
+                          "text": "1144.00"})
+        self.assertEqual(typed["status"], "done", typed)
+        self.assertEqual(self.s.run(self.s._page.evaluate("total.value")), "1144.00")
+        # Two buttons with one name: never a guess between them.
+        both = self.act({"action": "click", "target": {"name": "Go"}})
+        self.assertNotEqual(both["status"], "done")
+        self.assertIn("2 elements", both["summary"])
+        missing = self.act({"action": "click", "target": {"name": "Nowhere"}})
+        self.assertIn("Nothing on the page", missing["summary"])
 
     def test_stop_while_media_loads_sends_no_change_to_the_page(self):
         """STOP during the page's wait for media must not let the page seek once the wait ends."""

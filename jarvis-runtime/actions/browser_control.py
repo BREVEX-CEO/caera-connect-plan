@@ -399,6 +399,34 @@ class _BrowserSession:
             return None, "That element changed since it was observed."
         return loc, None
 
+    async def _element(self, page: Page, action: dict):
+        """The element a step names: by ref from an observation, or by target, found now."""
+        if action.get("target") is not None:
+            return await self._find(page, action["target"])
+        return await self._target(page, str(action.get("ref", "")), action.get("observationId"))
+
+    async def _find(self, page: Page, target: dict):
+        """The one visible, uncovered element the page names `target` now, waiting up to 5 s for
+        it to appear (a form a click opened). Several matches are never guessed between."""
+        want = " ".join(str(target.get("name", "")).split()).lower()
+        role = target.get("role")
+        if not want:
+            return None, "A target needs a name."
+        deadline = time.monotonic() + 5
+        while True:
+            obs = await self.observe()
+            live = [e for e in obs["elements"] if not e.get("covered") and not e.get("disabled")
+                    and (not role or e["role"] == role)]
+            name = lambda e: " ".join(e["name"].split()).lower()  # noqa: E731
+            hits = [e for e in live if name(e) == want] or [e for e in live if name(e).startswith(want + " ")]
+            if len(hits) == 1:
+                return await self._target(page, hits[0]["ref"], obs["observationId"])
+            if len(hits) > 1:
+                return None, f"{len(hits)} elements are named \u201c{target['name']}\u201d: name it by ref."
+            if time.monotonic() > deadline:
+                return None, f"Nothing on the page is named \u201c{target['name']}\u201d."
+            await asyncio.sleep(0.15)
+
     async def act(self, action: dict, confirmed: bool = False) -> dict:
         """Run one action, then verify it by observing the resulting state."""
         policy = self.egress.policy if self.egress else None
@@ -497,7 +525,7 @@ class _BrowserSession:
             await asyncio.sleep(min(5.0, max(0.2, float(action.get("seconds", 1)))))
             detail = "Waited"
         elif kind in ("click", "type", "select"):
-            loc, why = await self._target(page, str(action.get("ref", "")), action.get("observationId"))
+            loc, why = await self._element(page, action)
             if loc is None:
                 return {"status": "stale", "summary": why, "observation": await self.observe()}
             info = await loc.evaluate(_OCADE_IDENTITY)
@@ -550,7 +578,7 @@ class _BrowserSession:
         elif kind in ("upload", "download"):
             # `_file` and `_folder` are set by the device from the person's work
             # folder; the model only names the element and the workspace path.
-            loc, why = await self._target(page, str(action.get("ref", "")), action.get("observationId"))
+            loc, why = await self._element(page, action)
             if loc is None:
                 return {"status": "stale", "summary": why, "observation": await self.observe()}
             if kind == "upload":
@@ -591,10 +619,10 @@ class _BrowserSession:
             points = [(float(action.get("x", -1)), float(action.get("y", -1)))]
             if kind == "drag_at":  # a timeline clip, a crop handle, a slider: pressed, moved, let go
                 points.append((float(action.get("toX", -1)), float(action.get("toY", -1))))
-            if action.get("ref"):
+            if action.get("ref") or action.get("target") is not None:
                 # Fractions of the named element's live box: that element is checked, so a change
                 # elsewhere on the page (an animation, a status line) does not make it stale.
-                loc, why = await self._target(page, str(action["ref"]), action.get("observationId"))
+                loc, why = await self._element(page, action)
                 if loc is None:
                     return {"status": "stale", "summary": why, "observation": await self.observe()}
                 box = await loc.bounding_box()

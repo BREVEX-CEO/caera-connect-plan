@@ -14,6 +14,20 @@ import contract from "../../jarvis-runtime/ocade_protocol.json";
 
 const ref = z.string().regex(/^e\d{1,6}$/);
 const observationId = z.string().regex(/^o\d{1,9}$/);
+/**
+ * A page element named as the page names it, found on the device when the step runs (waiting
+ * briefly for it to appear): for a step on a page the model has not seen yet, such as the form
+ * a click opens. Exactly one visible, uncovered element must match, or the step stops.
+ */
+const target = z
+  .object({ name: z.string().trim().min(1).max(80), role: z.string().trim().max(20).optional() })
+  .strict();
+/** An element step names its element by ref (with its observation) or by target. */
+const pointed = {
+  ref: ref.optional(),
+  observationId: observationId.optional(),
+  target: target.optional(),
+};
 
 const BROWSER_ACTIONS = [
   z.object({ action: z.literal("observe") }),
@@ -34,15 +48,14 @@ const BROWSER_ACTIONS = [
     newTab: z.boolean().optional(),
   }),
   z.object({ action: z.literal("new_tab"), url: z.string().min(1).max(2000) }),
-  z.object({ action: z.literal("click"), ref, observationId }),
+  z.object({ action: z.literal("click"), ...pointed }),
   z.object({
     action: z.literal("type"),
-    ref,
-    observationId,
+    ...pointed,
     text: z.string().max(2000),
     submit: z.boolean().optional(),
   }),
-  z.object({ action: z.literal("select"), ref, observationId, option: z.string().max(200) }),
+  z.object({ action: z.literal("select"), ...pointed, option: z.string().max(200) }),
   z.object({ action: z.literal("press"), key: z.string().max(20) }),
   z.object({ action: z.literal("scroll"), direction: z.enum(["up", "down"]) }),
   z.object({ action: z.literal("switch_tab"), index: z.number().int().min(0).max(20) }),
@@ -57,8 +70,7 @@ const BROWSER_ACTIONS = [
     action: z.literal("click_at"),
     x: z.number().min(0).max(10_000),
     y: z.number().min(0).max(10_000),
-    ref: ref.optional(),
-    observationId,
+    ...pointed,
   }),
   // Pressed at one point, let go at another: timelines, crop handles, sliders, canvases.
   z.object({
@@ -67,21 +79,19 @@ const BROWSER_ACTIONS = [
     y: z.number().min(0).max(10_000),
     toX: z.number().min(0).max(10_000),
     toY: z.number().min(0).max(10_000),
-    ref: ref.optional(),
-    observationId,
+    ...pointed,
   }),
   // A file from the work folder into a page's file field, and a page's download into it.
   z.object({
     action: z.literal("upload"),
-    ref,
-    observationId,
+    ...pointed,
     path: z
       .string()
       .min(1)
       .max(500)
       .refine((p) => !p.includes("\0")),
   }),
-  z.object({ action: z.literal("download"), ref, observationId }),
+  z.object({ action: z.literal("download"), ...pointed }),
 ] as const;
 /** What the browser does; it never changes a file on the computer except by download. */
 export const BROWSER_ACTION_NAMES: ReadonlySet<string> = new Set(
@@ -451,6 +461,19 @@ export const deviceAction = z.discriminatedUnion("action", [
 export type DeviceAction = z.infer<typeof deviceAction>;
 export const browserAction = z.discriminatedUnion("action", [...BROWSER_ACTIONS]);
 /** Why an action failed validation, short enough to hand back to the model so it can fix it. */
+const POINTED = new Set(["click", "type", "select", "upload", "download", "click_at", "drag_at"]);
+
+/** Why an element step names no element it can act on, or null. */
+export function pointGap(action: Record<string, unknown>): string | null {
+  if (!POINTED.has(String(action.action))) return null;
+  if (action.target !== undefined) {
+    return action.ref === undefined ? null : "give a ref or a target, not both";
+  }
+  if (action.observationId === undefined) return "it needs its observationId, or a target";
+  const coordinates = action.action === "click_at" || action.action === "drag_at";
+  return coordinates || action.ref !== undefined ? null : "it needs a ref, or a target";
+}
+
 export function invalidReason(error: z.ZodError): string {
   return error.issues
     .slice(0, 4)
@@ -997,7 +1020,7 @@ const num = (description: string) => ({ type: "NUMBER", description });
 const sequence = (family: string) => ({
   type: "ARRAY",
   items: { type: "OBJECT" },
-  description: `Instead of one action: up to 12 ${family} actions (each an object like a single call) run in order without asking you between them; it stops at the first that does not succeed and returns each step's outcome and the last result. A step may give observationId "latest" to act on what the previous step left, when you already know its ref; coordinates always need a real observationId.`,
+  description: `Instead of one action: up to 12 ${family} actions (each an object like a single call) run in order without asking you between them; it stops at the first that does not succeed and returns each step's outcome and the last result. A step may give observationId "latest" to act on what the previous step left, when you already know its ref; coordinates always need a real observationId, except inside an element's box by ref or target. A step on a page you have not seen yet (the form or dialog a click opens) names its element by target {name, role} instead of a ref: the computer finds that one element when the step runs, waiting briefly for it; if none or several match, the sequence stops there and you see the page. So a whole form can be one sequence.`,
 });
 
 export function jarvisTools(
@@ -1052,6 +1075,13 @@ export function jarvisTools(
         url: str("For open and new_tab."),
         path: str("For upload: the file's path inside the work folder."),
         ref: str("Element ref from the latest observation."),
+        target: obj(
+          {
+            name: str("The element's name, as the page shows it."),
+            role: str("Optional: button, link, textbox, combobox, checkbox, radio, canvas…"),
+          },
+          ["name"],
+        ),
         observationId: str("The observationId the ref or point came from."),
         text: str("For type, and the words to look for with find_text."),
         submit: { type: "BOOLEAN", description: "Press Enter after typing." },
