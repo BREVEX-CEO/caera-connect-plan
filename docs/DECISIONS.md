@@ -1,5 +1,11 @@
 # OCADE decisions and historical provenance
 
+## Final owner STOP and research handoff — 20 October 2026 (supersedes session scope below)
+
+Stop all OCADE tests, fixes and implementation immediately. Finish an architecture-wide static diagnosis and global primary-source research in [TOFIX.md](../TOFIX.md#claude-execution-contract--20-october-2026-final-stop-and-research-handoff), independently review that execution contract, then commit and push documentation only to `ocade/p00-p22-implementation`. Compare four distinct PC-control architectures and require Claude Opus 5.5, or the latest actually available Opus, to devise and fairly benchmark an independent fifth design. Do not assume a model alias exists or a design wins.
+
+The previous own-browser-only rule is lifted for research and **future isolated cloud benchmarking**. It is not permission for this Codex session to implement prototypes or run any more tests. Future Claude work must use disposable environments/accounts, lawful Windows Office/macOS licensing, actual mobile permission and distribution limits, scoped authorization, independent verification and a declared no-spend budget unless separately approved. No owner PC/Chrome testing resumes under this handoff. Keep the generated Word document in staging; the owner declined a Desktop copy. Preserve files, permissions, concurrent work and production. No main merge, deployment or costs. Manual sessions only: never create, enable, resume or modify scheduled tasks/cron/recurring automations/timed continuation without explicit owner permission. Historical scope statements below are superseded where inconsistent.
+
 Current decisions govern the [open implementation and verification queue](../BLOCKED_TESTS.md). This register is not a second work queue. Research baseline: `f521e23529542d709a9627181341b0e904a8b0c3`; redesign dated 9 October 2026. The current owner authorises implementation, staging configuration and scoped tests on the implementation branch; production deployment and spending require separate approval.
 
 ## Owner clarification — 20 October 2026 (current)
