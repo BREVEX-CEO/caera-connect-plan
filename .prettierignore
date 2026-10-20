@@ -12,6 +12,7 @@ CLAUDE.md
 
 # Written by scripts in their own layout.
 release/**/*.json
+docs/audit-checkpoints/architecture-benchmark/**/*.json
 
 # The Python runtime: never reformatted by Prettier.
 jarvis-runtime/
