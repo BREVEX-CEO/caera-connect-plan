@@ -40,6 +40,7 @@ import {
   type TaskStatus,
   invalidReason,
   pointGap,
+  readsBack,
   wordsGap,
 } from "./protocol";
 import type { JarvisTaskRow, StartTaskResult } from "./jarvis.functions";
@@ -53,6 +54,8 @@ export const MAX_SEQUENCE = 12;
 export const MAX_FAILED_CALLS = 3;
 /** The same step, exactly, this often in one turn is a loop, not progress (live Gemini, 13 Oct). */
 export const MAX_SAME_CALL = 3;
+/** Page actions in a row that changed nothing before the model must look again (HX-12). */
+export const MAX_UNCHANGED = 4;
 /** Steps that rightly repeat unchanged: moving through a page or list, waiting, looking again. */
 const REPEATS = new Set([
   "scroll",
@@ -494,6 +497,8 @@ export async function runJarvisTurn(
   /** The history entry holding the newest observation; older ones are superseded. */
   const observed: { at: number; call: NormalizedToolCall; result: unknown }[] = [];
   const made = new Map<string, number>();
+  /** Page actions in a row that changed nothing: progress is the page changing, not new arguments. */
+  let unchanged = 0;
   // Once page content has been read this turn, nothing may be written to memory.
   let untrustedSeen = false;
   // Which kind of observation hands control back after the person takes over.
@@ -844,9 +849,26 @@ export async function runJarvisTurn(
             error: `This exact step already ran ${times - 1} times in this task and will not give anything new. Do something different: read the facts with find_text, use another action, or call finish_task.`,
           };
         }
-        return Array.isArray(args.sequence)
+        const reading = REPEATS.has(String(args.action)) || readsBack(args as DeviceAction);
+        if (call.name === "browser" && !reading && unchanged >= MAX_UNCHANGED) {
+          return {
+            error: `The last ${unchanged} page actions changed nothing on the page. Look at it (look), then try a different way, or finish as blocked and say what stops you.`,
+          };
+        }
+        const result = await (Array.isArray(args.sequence)
           ? runSequence(call.name, args.sequence)
-          : runDevice(call.name, args);
+          : runDevice(call.name, args));
+        if (call.name === "browser") {
+          const latest = ((result as { last?: unknown })?.last ?? result) as {
+            status?: unknown;
+            changed?: unknown;
+          };
+          if (reading) unchanged = 0;
+          else if (latest?.status === "done" && Array.isArray(latest.changed)) {
+            unchanged = latest.changed.length ? 0 : unchanged + 1;
+          }
+        }
+        return result;
       }
       case "finish_task": {
         if (!task) return { error: "There is no task to finish." };

@@ -1042,6 +1042,30 @@ describe("a sequence: several known actions, one model step", () => {
     expect(h.queued).toEqual(form);
   });
 
+  it("stops a run of page actions that change nothing until the model looks again (HX-12)", async () => {
+    const click = (ref: string) => call("browser", { action: "click", ref, observationId: "o1" });
+    const h = harness(
+      [
+        {
+          text: "",
+          toolCalls: [call("start_task", { title: "Edit", where: "browser", steps: ["s"] })],
+        },
+        ...["e1", "e2", "e3", "e4", "e5"].map((ref) => ({ text: "", toolCalls: [click(ref)] })),
+        { text: "", toolCalls: [call("browser", { action: "look" })] },
+        { text: "", toolCalls: [click("e6")] },
+      ],
+      {
+        a: [1, 2, 3, 4, 5, 6].map(() => ({ status: "done", result: { changed: [] } })),
+      },
+    );
+    await runJarvisTurn(h.input, h.hooks, h.deps);
+    // Four clicks that changed nothing ran; the fifth was refused; after a look, work resumes.
+    expect(JSON.stringify(h.seen[6])).toContain("changed nothing on the page");
+    expect(
+      h.queued.map((a) => (a as { ref?: string }).ref ?? (a as { action: string }).action),
+    ).toEqual(["e1", "e2", "e3", "e4", "look", "e6"]);
+  });
+
   it("refuses a later step when its element changed since the model saw it", async () => {
     const before = { observationId: "o1", elements: [{ ref: "e1", role: "button", name: "Save" }] };
     const after = {
