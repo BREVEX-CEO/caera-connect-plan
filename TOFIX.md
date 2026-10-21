@@ -20,6 +20,13 @@ Staging: **OCADE staging 20261019**, `auyapercxxptziyngycx`. All 156 forward mig
 
 Exact file/line means a confirmed source location for new findings, or the exact canonical evidence line for inherited items. **An inherited item's fault site/root cause is UNLOCALIZED unless its linked evidence proves it; do not invent code changes from a blocker label.** Priorities are triage recommendations, not new claims of reproduced critical defects. No issue is closed solely by a source fix, compilation or staging deployment.
 
+## Claude real-model continuation — 21 October 2026
+
+- **Commits:** `476c5a7` (today's human checks recognised: "confirm you're not a bot", "performing security verification"; a passkey *offer* beside a username field no longer stops a task), `d7132cd` (real-model harness; `app_info` finds command-line programs on PATH by exact name and never runs them; `file_info` reports media seconds/size/fps off Windows via ffprobe, which the prompt already promised).
+- **Measured, real model:** [record](docs/audit-checkpoints/architecture-benchmark/20261021-real-model/README.md). A remains the architecture; F not adopted (faster when right, not more reliable; one false completion).
+- **Owed fixes found:** RATE-21-01 (calls per minute exceed free-tier limits), MEDIA-21-01 (true-peak limiting, captions, editor project), FOLDER-21-01 (helper files left in the person's folder), SHEET-21-01 (dates split across cells). See [open work](BLOCKED_TESTS.md).
+- **Not verified:** ≥95% success for any workflow family (n is 1–3), native platforms, STOP/crash with the real model, TEST 1 and TEST 3, Offline install, High mode. Readiness gates closed this session: 0 of 10.
+
 ## Claude implementation continuation — 20 October 2026
 
 Environment for every result here: Anthropic-managed Linux cloud session (Python 3.13, Node 22.22, Chromium 1194 under Xvfb, LibreOffice headless, live internet through the session proxy). Cloud results qualify logic, the real Device Agent on Linux, real Chromium and real public sites; they do not qualify native Windows/macOS Office, mobile or the owner's PC.

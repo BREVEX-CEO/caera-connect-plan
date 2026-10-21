@@ -27,9 +27,11 @@ import { programs, runEngineF } from "./engine-f";
 const [, , arch, taskFile, permitsFile, outFile, port] = process.argv;
 const task = JSON.parse(readFileSync(taskFile!, "utf8")) as { id: string; text: string };
 const permits = JSON.parse(readFileSync(permitsFile!, "utf8")) as { id: string; key: string }[];
-const token = (JSON.parse(readFileSync(process.env.OCADE_TOKEN_FILE!, "utf8")) as {
-  access_token: string;
-}).access_token;
+const token = (
+  JSON.parse(readFileSync(process.env.OCADE_TOKEN_FILE!, "utf8")) as {
+    access_token: string;
+  }
+).access_token;
 
 export const transport = createOnlineIntelligenceTransport({
   configuration: () =>
@@ -59,8 +61,38 @@ export const calls: {
   why?: string;
 }[] = [];
 
+/**
+ * One model turn, waited through a busy provider as the product's live loop does
+ * (src/jarvis/live-deps.ts askThroughBusy, BUSY_WAITS_MS; that module cannot be bundled
+ * outside the app, so its rule is mirrored here: wait 15 s, then 30 s, only for a busy answer
+ * whose named wait fits; each try spends a fresh permit, as each product try is a new request).
+ */
+class Busy extends Error {
+  constructor(readonly retryAfterMs?: number) {
+    super("busy");
+  }
+}
+export const busyWaits: number[] = [];
+export async function ask(...args: Parameters<typeof askOnce>) {
+  for (const pause of [15_000, 30_000]) {
+    try {
+      return await askOnce(...args);
+    } catch (error) {
+      if (
+        !(error instanceof Busy) ||
+        error.retryAfterMs === undefined ||
+        error.retryAfterMs > pause
+      )
+        throw error;
+      busyWaits.push(pause);
+      await new Promise((resolve) => setTimeout(resolve, pause));
+    }
+  }
+  return askOnce(...args);
+}
+
 /** One complete model turn through the boundary, as the product's askOnce asks it. */
-export async function ask(
+async function askOnce(
   messages: NormalizedMessage[],
   tools: ReturnType<typeof jarvisTools>,
   signal?: AbortSignal,
@@ -72,7 +104,8 @@ export async function ask(
   const toolCalls: NormalizedToolCall[] = [];
   let parts: NormalizedAssistantPart[] | undefined;
   let usage: { inputTokens?: number; outputTokens?: number } = {};
-  let refusal: string | undefined;
+  let refusal:
+    { code: string; reason: string; retryable?: boolean; retryAfterMs?: number } | undefined;
   let complete = false;
   for await (const event of transport.stream({
     permit: {
@@ -97,7 +130,7 @@ export async function ask(
     if (event.type === "token") text += event.text;
     else if (event.type === "tool_call") toolCalls.push(event.call);
     else if (event.type === "usage") usage = event.usage as typeof usage;
-    else if (event.type === "refusal") refusal = `${event.code}: ${event.reason}`;
+    else if (event.type === "refusal") refusal = event as typeof refusal;
     else if (event.type === "final") {
       complete = true;
       parts = event.response.parts;
@@ -110,9 +143,12 @@ export async function ask(
     ...usage,
     promptChars: JSON.stringify(messages).length + JSON.stringify(tools).length,
     ok: complete,
-    ...(refusal ? { why: refusal } : {}),
+    ...(refusal ? { why: `${refusal.code}: ${refusal.reason}` } : {}),
   });
-  if (!complete) throw new Error(refusal ?? "incomplete model turn");
+  if (!complete) {
+    if (!refusal || refusal.retryable) throw new Busy(refusal?.retryAfterMs);
+    throw new Error(`${refusal.code}: ${refusal.reason}`);
+  }
   return { text, toolCalls, ...(parts ? { parts } : {}) };
 }
 
@@ -162,7 +198,11 @@ function deps(): AgentDeps {
       return {
         ok: true,
         task: row,
-        device: { name: "Cloud test computer", platform: "Linux", can: ["files", "apps", "terminal"] },
+        device: {
+          name: "Cloud test computer",
+          platform: "Linux",
+          can: ["files", "apps", "terminal"],
+        },
       };
     },
     updateTask: async (change) => {
@@ -257,6 +297,7 @@ writeFileSync(
       modelMs: calls.reduce((sum, c) => sum + c.ms, 0),
       calls,
       approvals: approvals + (stats as { approvals: number }).approvals,
+      busyWaitMs: busyWaits.reduce((sum, ms) => sum + ms, 0),
       takeOvers,
       device: stats,
       outcome,
@@ -267,5 +308,7 @@ writeFileSync(
     1,
   ),
 );
-console.log(JSON.stringify({ arch, task: task.id, wallMs, calls: calls.length, outcome }).slice(0, 600));
+console.log(
+  JSON.stringify({ arch, task: task.id, wallMs, calls: calls.length, outcome }).slice(0, 600),
+);
 process.exit(0);

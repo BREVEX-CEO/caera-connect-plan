@@ -1,0 +1,217 @@
+{
+ "arch": "A",
+ "task": "sheet-compare",
+ "wallMs": 72453,
+ "modelMs": 60962,
+ "calls": [
+  {
+   "ms": 4361,
+   "inputTokens": 6187,
+   "outputTokens": 140,
+   "promptChars": 24529,
+   "ok": true
+  },
+  {
+   "ms": 2483,
+   "inputTokens": 10363,
+   "outputTokens": 22,
+   "promptChars": 39236,
+   "ok": true
+  },
+  {
+   "ms": 2621,
+   "inputTokens": 11398,
+   "outputTokens": 34,
+   "promptChars": 43303,
+   "ok": true
+  },
+  {
+   "ms": 5007,
+   "inputTokens": 12434,
+   "outputTokens": 25,
+   "promptChars": 46000,
+   "ok": true
+  },
+  {
+   "ms": 1749,
+   "inputTokens": 11090,
+   "outputTokens": 21,
+   "promptChars": 43295,
+   "ok": true
+  },
+  {
+   "ms": 2498,
+   "inputTokens": 11181,
+   "outputTokens": 29,
+   "promptChars": 43981,
+   "ok": true
+  },
+  {
+   "ms": 2222,
+   "inputTokens": 11224,
+   "outputTokens": 14,
+   "promptChars": 44404,
+   "ok": true
+  },
+  {
+   "ms": 1986,
+   "inputTokens": 11495,
+   "outputTokens": 23,
+   "promptChars": 46019,
+   "ok": true
+  },
+  {
+   "ms": 1763,
+   "inputTokens": 11643,
+   "outputTokens": 22,
+   "promptChars": 47026,
+   "ok": true
+  },
+  {
+   "ms": 2652,
+   "inputTokens": 11733,
+   "outputTokens": 36,
+   "promptChars": 47711,
+   "ok": true
+  },
+  {
+   "ms": 2121,
+   "inputTokens": 12018,
+   "outputTokens": 22,
+   "promptChars": 49297,
+   "ok": true
+  },
+  {
+   "ms": 2305,
+   "inputTokens": 12133,
+   "outputTokens": 36,
+   "promptChars": 50152,
+   "ok": true
+  },
+  {
+   "ms": 1917,
+   "inputTokens": 12372,
+   "outputTokens": 55,
+   "promptChars": 51518,
+   "ok": true
+  },
+  {
+   "ms": 2309,
+   "inputTokens": 12616,
+   "outputTokens": 62,
+   "promptChars": 52817,
+   "ok": true
+  },
+  {
+   "ms": 2076,
+   "inputTokens": 12868,
+   "outputTokens": 62,
+   "promptChars": 54220,
+   "ok": true
+  },
+  {
+   "ms": 2358,
+   "inputTokens": 13121,
+   "outputTokens": 14,
+   "promptChars": 55629,
+   "ok": true
+  },
+  {
+   "ms": 2732,
+   "inputTokens": 13440,
+   "outputTokens": 30,
+   "promptChars": 57566,
+   "ok": true
+  },
+  {
+   "ms": 1691,
+   "inputTokens": 13906,
+   "outputTokens": 22,
+   "promptChars": 60011,
+   "ok": true
+  },
+  {
+   "ms": 1970,
+   "inputTokens": 14001,
+   "outputTokens": 25,
+   "promptChars": 60754,
+   "ok": true
+  },
+  {
+   "ms": 6132,
+   "inputTokens": 14327,
+   "outputTokens": 144,
+   "promptChars": 62377,
+   "ok": true
+  },
+  {
+   "ms": 2795,
+   "inputTokens": 15153,
+   "outputTokens": 38,
+   "promptChars": 66336,
+   "ok": true
+  },
+  {
+   "ms": 2598,
+   "inputTokens": 15479,
+   "outputTokens": 18,
+   "promptChars": 67944,
+   "ok": true
+  },
+  {
+   "ms": 2616,
+   "inputTokens": 19156,
+   "outputTokens": 71,
+   "promptChars": 73854,
+   "ok": true
+  }
+ ],
+ "approvals": 0,
+ "busyWaitMs": 0,
+ "takeOvers": 0,
+ "device": {
+  "actions": 21,
+  "approvals": 0,
+  "device_ms": 11395.541998998851,
+  "by_action": {
+   "open": [
+    4,
+    7086.62017899951
+   ],
+   "find_text": [
+    5,
+    39.109133999318146
+   ],
+   "click": [
+    2,
+    1055.4640799996378
+   ],
+   "observe": [
+    2,
+    22.564089999832504
+   ],
+   "click_at": [
+    5,
+    103.64098599984573
+   ],
+   "file_write": [
+    1,
+    5.534514000373747
+   ],
+   "upload": [
+    1,
+    58.92074900020816
+   ],
+   "wait": [
+    1,
+    3023.688267000125
+   ]
+  }
+ },
+ "outcome": {
+  "answer": "Created online spreadsheet at https://ethercalc.net/hg9hmwnn3n comparing Samsung Galaxy S25 and iPhone 16 across release date, display size, weight, battery, and base storage, with formulas for numeric differences.",
+  "status": "completed"
+ },
+ "permitsLeft": 110,
+ "programs": []
+}

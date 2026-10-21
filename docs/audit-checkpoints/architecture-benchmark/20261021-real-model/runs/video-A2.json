@@ -1,0 +1,224 @@
+{
+ "arch": "A",
+ "task": "video-edit",
+ "wallMs": 109805,
+ "modelMs": 79071,
+ "calls": [
+  {
+   "ms": 3927,
+   "inputTokens": 6190,
+   "outputTokens": 99,
+   "promptChars": 24606,
+   "ok": true
+  },
+  {
+   "ms": 2099,
+   "inputTokens": 6779,
+   "outputTokens": 16,
+   "promptChars": 28172,
+   "ok": true
+  },
+  {
+   "ms": 2483,
+   "inputTokens": 6858,
+   "outputTokens": 22,
+   "promptChars": 28849,
+   "ok": true
+  },
+  {
+   "ms": 2461,
+   "inputTokens": 7457,
+   "outputTokens": 156,
+   "promptChars": 30582,
+   "ok": true
+  },
+  {
+   "ms": 2644,
+   "inputTokens": 7740,
+   "outputTokens": 153,
+   "promptChars": 32083,
+   "ok": true
+  },
+  {
+   "ms": 1833,
+   "inputTokens": 7958,
+   "outputTokens": 26,
+   "promptChars": 33176,
+   "ok": true
+  },
+  {
+   "ms": 2581,
+   "inputTokens": 8232,
+   "outputTokens": 143,
+   "promptChars": 34112,
+   "ok": true
+  },
+  {
+   "ms": 3365,
+   "inputTokens": 8423,
+   "outputTokens": 26,
+   "promptChars": 35084,
+   "ok": true
+  },
+  {
+   "ms": 2685,
+   "inputTokens": 8699,
+   "outputTokens": 172,
+   "promptChars": 36052,
+   "ok": true
+  },
+  {
+   "ms": 2075,
+   "inputTokens": 8916,
+   "outputTokens": 26,
+   "promptChars": 37149,
+   "ok": true
+  },
+  {
+   "ms": 2583,
+   "inputTokens": 9787,
+   "outputTokens": 36,
+   "promptChars": 39243,
+   "ok": true
+  },
+  {
+   "ms": 2708,
+   "inputTokens": 10130,
+   "outputTokens": 21,
+   "promptChars": 41260,
+   "ok": true
+  },
+  {
+   "ms": 3304,
+   "inputTokens": 11276,
+   "outputTokens": 97,
+   "promptChars": 45360,
+   "ok": true
+  },
+  {
+   "ms": 2021,
+   "inputTokens": 11916,
+   "outputTokens": 27,
+   "promptChars": 49301,
+   "ok": true
+  },
+  {
+   "ms": 2755,
+   "inputTokens": 13342,
+   "outputTokens": 25,
+   "promptChars": 52395,
+   "ok": true
+  },
+  {
+   "ms": 5081,
+   "inputTokens": 13874,
+   "outputTokens": 315,
+   "promptChars": 53944,
+   "ok": true
+  },
+  {
+   "ms": 2410,
+   "inputTokens": 15145,
+   "outputTokens": 26,
+   "promptChars": 60349,
+   "ok": true
+  },
+  {
+   "ms": 5295,
+   "inputTokens": 15242,
+   "outputTokens": 891,
+   "promptChars": 61007,
+   "ok": true
+  },
+  {
+   "ms": 1971,
+   "inputTokens": 16922,
+   "outputTokens": 26,
+   "promptChars": 67249,
+   "ok": true
+  },
+  {
+   "ms": 5375,
+   "inputTokens": 23013,
+   "outputTokens": 584,
+   "promptChars": 79195,
+   "ok": true
+  },
+  {
+   "ms": 2533,
+   "inputTokens": 24546,
+   "outputTokens": 28,
+   "promptChars": 85202,
+   "ok": true
+  },
+  {
+   "ms": 3278,
+   "inputTokens": 31481,
+   "outputTokens": 199,
+   "promptChars": 98251,
+   "ok": true
+  },
+  {
+   "ms": 1775,
+   "inputTokens": 32040,
+   "outputTokens": 26,
+   "promptChars": 100632,
+   "ok": true
+  },
+  {
+   "ms": 2635,
+   "inputTokens": 34327,
+   "outputTokens": 38,
+   "promptChars": 106187,
+   "ok": true
+  },
+  {
+   "ms": 3896,
+   "inputTokens": 35821,
+   "outputTokens": 999,
+   "promptChars": 110277,
+   "ok": true
+  },
+  {
+   "ms": 2882,
+   "inputTokens": 37045,
+   "outputTokens": 16,
+   "promptChars": 114341,
+   "ok": true
+  },
+  {
+   "ms": 2416,
+   "inputTokens": 37472,
+   "outputTokens": 82,
+   "promptChars": 116084,
+   "ok": true
+  }
+ ],
+ "approvals": 0,
+ "takeOvers": 0,
+ "device": {
+  "actions": 24,
+  "approvals": 0,
+  "device_ms": 30631.047284000942,
+  "by_action": {
+   "file_list": [
+    3,
+    1.1863170002470724
+   ],
+   "file_write": [
+    9,
+    28.969685999982175
+   ],
+   "run": [
+    12,
+    30600.891281000713
+   ]
+  }
+ },
+ "outcome": {
+  "answer": "Successfully created the professionally edited 2-minute video about AI Technology, exported as AI_Technology.mp4 (1280x720, 30 fps, H.264 video, AAC audio), along with the editable project file AI_Technology_project.json.",
+  "status": "completed"
+ },
+ "permitsLeft": 37,
+ "programs": []
+}
