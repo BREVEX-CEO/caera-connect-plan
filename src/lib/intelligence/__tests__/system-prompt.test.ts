@@ -20,6 +20,9 @@ describe("the redesigned instructions, as an opt-in candidate", () => {
     // The tool contract stays as written; what the candidate says itself is not said twice.
     expect(JARVIS_SYSTEM_PROMPT_V2).toContain("- PDFs: pdf_export");
     expect(JARVIS_SYSTEM_PROMPT_V2).toContain("If humanBoundary is captcha");
+    // Helper files stay out of the person's folder (FOLDER-21-01): both prompts say where they go.
+    for (const prompt of [JARVIS_SYSTEM_PROMPT, JARVIS_SYSTEM_PROMPT_V2])
+      expect(prompt).toContain("go in a folder named .jarvis inside the work folder");
     expect(JARVIS_SYSTEM_PROMPT_V2).not.toContain("- Never complete a purchase or payment.");
     // Developer-only notes in the owner's file are never sent to the model.
     for (const prompt of [JARVIS_SYSTEM_PROMPT_V2, `${CORE}\n\n${CHAT_MODE}`]) {
