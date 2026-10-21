@@ -2,34 +2,34 @@ import { useEffect, useState } from "react";
 
 /** Per-device JARVIS choices. Losing them is an inconvenience, never data loss. */
 export interface JarvisPreferences {
-  accent: string | null;
   railExpanded: boolean;
   wake: boolean;
   /** Read answers aloud while voice is on. Off keeps answers text-only. */
   speak: boolean;
   /** The device voice answers are read in (its voiceURI); null is the browser's own default. */
   voice: string | null;
+  /** The computer new tasks go to when several are connected; null lets OCADE choose. */
+  target: string | null;
 }
 
 const KEY = "ocade:jarvis:v1";
 export const JARVIS_DEFAULTS: JarvisPreferences = {
-  accent: null,
   railExpanded: false,
   wake: false,
   speak: true,
   voice: null,
+  target: null,
 };
 
 export function readPreferences(): JarvisPreferences {
   try {
     const raw = JSON.parse(window.localStorage.getItem(KEY) ?? "{}") as Partial<JarvisPreferences>;
     return {
-      accent:
-        typeof raw.accent === "string" && /^#[0-9a-f]{6}$/i.test(raw.accent) ? raw.accent : null,
       railExpanded: raw.railExpanded === true,
       wake: raw.wake === true,
       speak: raw.speak !== false,
       voice: typeof raw.voice === "string" && raw.voice.length <= 300 ? raw.voice : null,
+      target: typeof raw.target === "string" && raw.target.length <= 64 ? raw.target : null,
     };
   } catch {
     return JARVIS_DEFAULTS;

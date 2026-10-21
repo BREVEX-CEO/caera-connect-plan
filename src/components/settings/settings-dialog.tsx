@@ -1,7 +1,18 @@
 /** The Settings panel's contents, loaded when it first opens (see settings-panel.tsx). */
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { Bell, CreditCard, Monitor, Moon, ShieldCheck, User, X } from "lucide-react";
+import {
+  Bell,
+  CreditCard,
+  Mic,
+  Monitor,
+  MonitorSmartphone,
+  Moon,
+  ShieldCheck,
+  User,
+  X,
+} from "lucide-react";
+import { JarvisAccess } from "@/jarvis/JarvisPanels";
 import { cn } from "@/lib/utils";
 import { useModalFocus } from "@/lib/use-modal-focus";
 import { useAppearance } from "@/lib/appearance";
@@ -26,15 +37,16 @@ import { DELETE_CONFIRMATION, deleteMyAccount } from "@/lib/account.functions";
 import type { SettingsCategory } from "./settings-panel";
 
 /*
- * FIVE CATEGORIES (docs/JARVIS_DESIGN_SYSTEM.md, Settings). Data controls and
- * signed-in sessions are both privacy and security; the allowance and the plan
- * are both billing and usage. JARVIS's own permissions stay in JARVIS, where
- * they are used.
+ * SEVEN CATEGORIES (owner, 21 Oct). Data controls and signed-in sessions are both privacy and
+ * security; the allowance and the plan are both billing and usage. What JARVIS may do and the
+ * computers it works on are Devices & Access, so the JARVIS sidebar holds only the work.
  */
 const CATEGORIES: { id: SettingsCategory; label: string; group: string; icon: typeof User }[] = [
   { id: "account", label: "Account", group: "General", icon: User },
   { id: "appearance", label: "Appearance", group: "General", icon: Monitor },
+  { id: "voice", label: "Voice", group: "General", icon: Mic },
   { id: "notifications", label: "Notifications", group: "General", icon: Bell },
+  { id: "devices", label: "Devices & Access", group: "JARVIS", icon: MonitorSmartphone },
   { id: "privacy", label: "Privacy & Security", group: "Your data", icon: ShieldCheck },
   { id: "billing", label: "Billing & Usage", group: "Your data", icon: CreditCard },
 ];
@@ -141,7 +153,14 @@ export default function SettingsDialog({
             <>
               {category === "account" ? <AccountSettings /> : null}
               {category === "appearance" ? <AppearanceSettings /> : null}
+              {category === "voice" ? (
+                <>
+                  <JarvisVoiceSetting />
+                  <ResetJarvis />
+                </>
+              ) : null}
               {category === "notifications" ? <NotificationsSection /> : null}
+              {category === "devices" ? <JarvisAccess /> : null}
               {category === "privacy" ? (
                 <>
                   <DataControlsSection />
@@ -275,32 +294,6 @@ function BubbleSetting() {
   );
 }
 
-/** The JARVIS Orb's accent, kept on this device; Monochrome puts it back. */
-function OrbColour() {
-  const { accent } = useJarvisPreferences();
-  const choose = (next: string | null) => writePreferences({ ...readPreferences(), accent: next });
-  return (
-    <Row label="Orb colour" description="The JARVIS Orb's accent on this device.">
-      <div className="flex items-center gap-2">
-        <input
-          type="color"
-          aria-label="Orb colour"
-          value={accent ?? "#ffffff"}
-          onChange={(event) => choose(event.target.value)}
-          className="h-8 w-12 rounded border border-border/60 bg-transparent"
-        />
-        <button
-          type="button"
-          onClick={() => choose(null)}
-          className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent"
-        >
-          Monochrome
-        </button>
-      </div>
-    </Row>
-  );
-}
-
 /**
  * The voice JARVIS answers in, from the voices this device has: browsers do not say which voice
  * is female or male, so each is listed by its own name (natural/online voices first) to hear
@@ -365,7 +358,7 @@ function ResetJarvis() {
   return (
     <Row
       label="Reset JARVIS settings"
-      description="Voice, wake phrase, spoken answers, Orb colour and layout go back to their defaults on this device."
+      description="Voice, wake phrase, spoken answers and layout go back to their defaults on this device."
     >
       <Action label="Reset" onClick={() => writePreferences(JARVIS_DEFAULTS)} />
     </Row>
@@ -414,9 +407,6 @@ function AppearanceSettings() {
         />
       </Row>
       <BubbleSetting />
-      <OrbColour />
-      <JarvisVoiceSetting />
-      <ResetJarvis />
       {saveError ? (
         <p className="pt-3 text-[13px] text-muted-foreground" role="status">
           {saveError}

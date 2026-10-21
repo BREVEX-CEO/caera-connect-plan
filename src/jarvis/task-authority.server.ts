@@ -23,7 +23,7 @@ import {
   type OutcomeCheck,
   type TaskStatus,
 } from "./protocol";
-import { needsConfirmation, refuseAction, type PermissionRow } from "./permissions";
+import { appDecision, needsConfirmation, refuseAction, type PermissionRow } from "./permissions";
 import { TASK_COLUMNS, type JarvisTaskRow } from "./task-row";
 
 type Db = SupabaseClient<Database>;
@@ -865,6 +865,14 @@ export async function queueTaskAction(
   const kind = data.action.action === "run" ? commandClass(data.action.command) : null;
   // A script or build after the task read a web page could be the page's: asked once.
   if (kind === "routine" && (await taskReadTheWeb(service, userId, task.id))) ask = true;
+  // So could an app it opens then (apps open unasked otherwise), unless the person set Always.
+  if (
+    data.action.action === "open_app" &&
+    !ask &&
+    appDecision(rows, data.action.name, device.id) !== true &&
+    (await taskReadTheWeb(service, userId, task.id))
+  )
+    ask = true;
   // Where nothing confines a command, code the task itself changed runs only once the person
   // has seen it: nothing else keeps that code inside the work folder.
   const confined = (device.capabilities as Record<string, boolean> | null)?.terminal_sandbox;

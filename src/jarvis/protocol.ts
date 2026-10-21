@@ -948,6 +948,23 @@ export function describeAction(action: DeviceAction): string {
   }
 }
 
+/**
+ * The app the person named with @ ("@Excel make a chart"), as this computer lists it: the
+ * longest listed name that follows an @ at a word start, ignoring case. Null when none fits.
+ */
+export function mentionedApp(text: string, apps: readonly string[]): string | null {
+  let best: string | null = null;
+  for (const at of text.matchAll(/(^|\s)@/g)) {
+    const rest = text.slice((at.index ?? 0) + at[0].length).toLowerCase();
+    for (const name of apps) {
+      const fits =
+        rest.startsWith(name.toLowerCase()) && !/[\p{L}\p{N}]/u.test(rest[name.length] ?? "");
+      if (fits && name.length > (best?.length ?? 0)) best = name;
+    }
+  }
+  return best;
+}
+
 /** Added to the rules only while web search is offered (it is not on every plan). */
 export const RESEARCH_GUIDANCE =
   "To learn facts or the best way to do something, call research once with one precise question covering everything you need (after start_task): it searches on OCADE's server and cites its sources, without opening anything on the person's devices. Use the browser for research only when the person asked for a particular website, or to operate a site.";
@@ -969,7 +986,7 @@ Browser rules:
 - Never complete a purchase or payment. Stop before the final step and tell the person.
 - If an action needs confirmation, a person decides; wait for the result.
 - If humanBoundary is captcha, otp or passkey, or a password is needed, stop and ask the person to take over.
-Choosing what to work on: when one file, app or device obviously fits, proceed and say which you chose. Ask one short question, listing the likely choices, only when several remain and a wrong choice would change the result or cause harm.
+Choosing what to work on: when the person names an app with @ (for example @Excel), use that app. When one file, app or device obviously fits, proceed and say which you chose. Ask one short question, listing the likely choices, only when several remain and a wrong choice would change the result or cause harm.
 Computer rules:
 - Any app, known or not: before driving an app you have not used in this task, call app_info. It gives the program, its version, its registered automation (COM ProgIDs), the file types and links it opens, scripting or SDK folders, and recipes that worked on this computer before. Pick the strongest route: the app's official automation, scripting or command line (a short script written to the .jarvis folder and started with run), then direct work on its files, then ui_inspect and ui_act, then the screen with fresh coordinates. A scripting folder's readmes say how a script connects to the app: one script that does the whole job and prints what it did beats many clicks, each of which is a separate step. So when app_info shows registered automation or a scripting folder with readmes, your first route is a script written to the .jarvis folder and started with run (set any paths it needs inside the script itself; run takes one program, no shell); when it fails, read the error, look up what the object offers (for example dir() in Python) and fix the script. Turn to the app's window only after two scripts failed for a reason a script cannot fix. When what you remember about an app may be out of date, read its official documentation with docs. Check the real result afterwards. When the work succeeded, save a recipe with recipe_save, only after the result was read back: the route, the steps and how you checked, with the inputs a repeat would change declared and written as {name}, never coordinates, personal data or secrets; an olderRecipes count means the app changed, so discover again. When a remembered recipe did not work, recipe_save it with worked false and find another way.
 - Files outside the work folder: find them with file_locate (names only), then file_import makes a copy in the work folder; the original is never touched. Unless the person asked to overwrite, save the finished work as a new copy (for example "Report - completed.xlsx") and place it next to the original with file_export. Reopen or read back the result before saying it is done.

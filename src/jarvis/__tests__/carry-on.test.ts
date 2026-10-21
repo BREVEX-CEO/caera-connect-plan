@@ -591,6 +591,27 @@ describe("carrying on", () => {
     expect(await carryOn(admin(), me(), t, push)).toEqual({ state: "waiting" });
   });
 
+  it("an ordinary app opens at once; after the task read a web page it asks first", async () => {
+    await permit("apps", true);
+    await sql(
+      `update public.jarvis_devices set installed_apps = '["Notepad"]'::jsonb,
+         capabilities = capabilities || '{"apps": true}'::jsonb where id = '${device}'`,
+    );
+    const t = await task();
+    const open = scripted(call("computer", { action: "open_app", name: "Notepad" }));
+    expect(await carryOn(admin(), me(), t, open)).toEqual({ state: "queued" });
+    await sql(
+      `update public.jarvis_activity set status = 'done' where task_id = '${t}' and action is not null`,
+    );
+    await sql(
+      `insert into public.jarvis_activity (user_id, task_id, device_id, summary, action, status)
+       values ('${A}', '${t}', '${device}', 'Reading the page', '{"action":"observe"}'::jsonb, 'done')`,
+    );
+    const again = scripted(call("computer", { action: "open_app", name: "Notepad" }));
+    expect(await carryOn(admin(), me(), t, again)).toEqual({ state: "waiting" });
+    expect((await taskRow(t)).blocker).toContain("JARVIS needs you to confirm");
+  });
+
   it("an action that is not one of OCADE's is refused and recorded, never sent", async () => {
     const t = await task();
     const { model } = scripted(call("computer", { action: "format_disk", drive: "C" }));

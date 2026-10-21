@@ -1,26 +1,24 @@
 import { QualityControl } from "@/lib/intelligence/QualityControl";
 import { useIntelligenceQuality } from "@/lib/intelligence/use-intelligence-quality";
 /**
- * The OCADE JARVIS workspace: a compact rail, the orb, the conversation, and
- * the task, browser and voice controls that appear only when they apply.
+ * The OCADE JARVIS workspace: a compact rail, the conversation, and the task,
+ * browser and voice controls that appear only when they apply.
  */
 import type { NormalizedMessage } from "@/lib/intelligence/contract";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Activity,
   ArrowUp,
   Menu,
   MessageSquare,
   MessagesSquare,
   Mic,
-  MonitorSmartphone,
+  LibraryBig,
   PanelLeftClose,
   PanelLeftOpen,
   PenSquare,
   Settings,
-  ShieldCheck,
   Square,
   type LucideIcon,
 } from "lucide-react";
@@ -28,18 +26,15 @@ import { toast } from "sonner";
 import { useSession } from "@/lib/session";
 import { useModalFocus } from "@/lib/use-modal-focus";
 import { useActionChanges } from "./changes";
-import { useAppearance } from "@/lib/appearance";
 import { useSettingsPanel } from "@/components/settings/settings-panel";
 import { loadChatMessages, persistChatMessage } from "@/lib/ocade-chat-store";
 import { describeReset } from "@/lib/commercial/use-commercial-usage";
 import { cn, typedBeforeHydration } from "@/lib/utils";
-import { Orb } from "./Orb";
-import { buildGraph, type GraphNode } from "./graph";
 import { runJarvisTurn, Stopped } from "./agent";
 import { LiveControl, statusReply, workIntent } from "./live-control";
 import { liveDeps, ModelRefused, Unavailable } from "./live-deps";
 import { isAllowed } from "./permissions";
-import { FINISHED } from "./protocol";
+import { FINISHED, mentionedApp } from "./protocol";
 import {
   JARVIS_DEFAULTS,
   PREFERENCES_CHANGED,
@@ -56,13 +51,7 @@ import {
   updateJarvisTask,
   type JarvisTaskRow,
 } from "./jarvis.functions";
-import {
-  ConnectDevice,
-  NodePanel,
-  PermissionsDrawer,
-  SectionPanel,
-  type Section,
-} from "./JarvisPanels";
+import { ConnectDevice, ScopeToggle, SectionPanel, type Section } from "./JarvisPanels";
 import { BrowserPanel, ConfirmBanner, TaskCard, TakeOverBanner, VoiceBar } from "./JarvisTask";
 import { takeHandOff } from "./bubble-state";
 
@@ -76,8 +65,6 @@ interface Turn {
 
 const SECTIONS: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: "conversations", label: "Conversations", icon: MessagesSquare },
-  { id: "activity", label: "Activity", icon: Activity },
-  { id: "devices", label: "Devices", icon: MonitorSmartphone },
 ];
 
 export function JarvisWorkspace({
@@ -100,7 +87,6 @@ export function JarvisWorkspace({
   const signedIn = Boolean(user);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { motionReduced } = useAppearance();
   const settings = useSettingsPanel();
   const [prefs, setPrefs] = useState<JarvisPreferences>(JARVIS_DEFAULTS);
   useEffect(() => {
@@ -152,7 +138,6 @@ export function JarvisWorkspace({
   const jarvis = signedIn ? state.data : undefined;
   const permissions = jarvis?.permissions ?? [];
   const jarvisOn = isAllowed(permissions, "master");
-  const graph = useMemo(() => buildGraph(jarvis), [jarvis]);
   const signInPrompt = useRef<HTMLElement>(null);
   useModalFocus(signInPrompt, Boolean(connectId && !signedIn && !loading));
 
@@ -210,17 +195,10 @@ export function JarvisWorkspace({
     resolve: (choice: "resume" | "stop") => void;
   } | null>(null);
   const [section, setSection] = useState<Section | null>(null);
-  const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [browserOpen, setBrowserOpen] = useState(true);
-  const [selected, setSelected] = useState<GraphNode | null>(null);
-  const [focusOrb, setFocusOrb] = useState(false);
-  const [controlsHidden, setControlsHidden] = useState(false);
-  // A decision only the person can make is never hidden behind the orb (HX-04): while one
-  // waits, the conversation holding it is shown and takes the pointer.
-  const focused = focusOrb && !confirmAsk && !takeover;
   const [drawerOpen, setDrawerOpen] = useState(false);
   // The computer the person chose for new tasks (Remote PC), when several are online.
-  const [chosenTarget, setTarget] = useState<string | null>(null);
+  const chosenTarget = prefs.target;
   // A chosen computer that was removed, or belongs to the account signed in
   // before, is no choice at all: every task would start against it and fail.
   const target =
@@ -234,13 +212,13 @@ export function JarvisWorkspace({
     setHere(from && /Android/i.test(navigator.userAgent) ? from : null);
   }, [from]);
 
-  // The conversation's open task: the one this tab is running, else the newest unfinished one.
+  // The conversation's task: the one this tab is running, else the newest unfinished one, else
+  // its latest, so a stopped or finished task still shows how it ended and what it made.
+  const ofConversation = (jarvis?.tasks ?? []).filter((t) => t.conversation_id === conversationId);
   const conversationTask =
     activeTask && activeTask.conversation_id === conversationId
       ? activeTask
-      : (jarvis?.tasks.find(
-          (t) => t.conversation_id === conversationId && !FINISHED.includes(t.status),
-        ) ?? null);
+      : (ofConversation.find((t) => !FINISHED.includes(t.status)) ?? ofConversation[0] ?? null);
   useEffect(() => {
     if (!activeTask) return;
     const fresh = jarvis?.tasks.find((t) => t.id === activeTask.id);
@@ -394,7 +372,9 @@ export function JarvisWorkspace({
       return;
     }
     if (!jarvisOn) {
-      toast.error("OCADE JARVIS is turned off.", { description: "Turn it on in Permissions." });
+      toast.error("OCADE JARVIS is turned off.", {
+        description: "Turn it on in Settings, under Devices & Access.",
+      });
       return;
     }
     // One turn at a time, decided before the first await: a second Send or Enter while the
@@ -761,27 +741,6 @@ export function JarvisWorkspace({
     return command !== null;
   };
 
-  const openNode = (node: GraphNode) => {
-    if (node.kind === "conversation" && node.recordId) {
-      void navigate({ to: "/ocade-jarvis", search: { c: node.recordId } });
-      setSelected(null);
-    } else if (node.kind === "task") {
-      const task = jarvis?.tasks.find((t) => t.id === node.recordId);
-      if (task) void navigate({ to: "/ocade-jarvis", search: { c: task.conversation_id } });
-      setSelected(null);
-    } else if (node.category) {
-      const map = {
-        conversation: "conversations",
-        task: "conversations",
-        memory: null,
-        device: "devices",
-        app: "devices",
-      } as const;
-      const target = map[node.category];
-      if (target) setSection(target);
-    }
-  };
-
   // The phone drawer closes with Escape, whatever section is open inside it.
   useEffect(() => {
     if (!drawerOpen) return;
@@ -793,6 +752,11 @@ export function JarvisWorkspace({
   }, [drawerOpen]);
 
   const hasText = turns.length > 0 || liveAnswer !== null;
+  // An app named with @ is the one JARVIS uses; the person sees which, as it starts.
+  const appNames = (jarvis?.apps ?? []).flatMap((group) => group.apps.map((app) => app.name));
+  const lastAsk = [...turns].reverse().find((turn) => turn.role === "user")?.content ?? "";
+  const workingWith = mentionedApp(lastAsk, appNames);
+  const draftApp = mentionedApp(draft, appNames);
   // No JARVIS uses left: the composer locks with the reset time, nothing else.
   const spent = Boolean(jarvis?.usage && jarvis.usage.remaining <= 0);
 
@@ -831,60 +795,12 @@ export function JarvisWorkspace({
           : transcript !== "ready"
             ? "Open a conversation or start a new one before sending."
             : !jarvisOn
-              ? "JARVIS is turned off. Turn it on in Permissions."
+              ? "JARVIS is turned off. Turn it on in Settings, under Devices & Access."
               : !running && busyUntil
                 ? "JARVIS is busy. Your draft is kept until it is available."
                 : !draft.trim()
                   ? "Write a message to enable Send."
                   : null;
-
-  // Orb Focus stays until the person leaves it; the controls around it fade after
-  // eight quiet seconds and come back on any movement or key. Stop never fades.
-  useEffect(() => {
-    if (!focused) {
-      setControlsHidden(false);
-      return;
-    }
-    const hide = () => {
-      // Never fade the control somebody is typing in, or an open panel/dialog.
-      const active = document.activeElement;
-      if (
-        active?.closest("button, a, input, textarea, select, [role='dialog']") ||
-        section ||
-        permissionsOpen ||
-        drawerOpen ||
-        confirmAsk ||
-        takeover
-      )
-        return;
-      setControlsHidden(true);
-    };
-    setControlsHidden(false);
-    let timer = window.setTimeout(hide, 8000);
-    const wake = (event: Event) => {
-      if (event instanceof KeyboardEvent && event.key === "Escape") setFocusOrb(false);
-      setControlsHidden(false);
-      window.clearTimeout(timer);
-      timer = window.setTimeout(hide, 8000);
-    };
-    const events = [
-      "pointermove",
-      "pointerdown",
-      "keydown",
-      "focusin",
-      "focusout",
-      "wheel",
-    ] as const;
-    events.forEach((name) => window.addEventListener(name, wake));
-    return () => {
-      window.clearTimeout(timer);
-      events.forEach((name) => window.removeEventListener(name, wake));
-    };
-  }, [focused, section, permissionsOpen, drawerOpen, confirmAsk, takeover]);
-  const fade = cn(
-    "transition-opacity duration-500",
-    controlsHidden && "opacity-0 hover:opacity-100 focus-within:opacity-100",
-  );
 
   const rail = (mobile: boolean, expanded = mobile || prefs.railExpanded) => (
     <nav
@@ -923,13 +839,16 @@ export function JarvisWorkspace({
           onClick={() => setSection((current) => (current === id ? null : id))}
         />
       ))}
+      <Link
+        to="/library"
+        aria-label={expanded ? undefined : "Files"}
+        title="Files"
+        className="flex h-10 items-center gap-3 rounded-lg px-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
+      >
+        <LibraryBig className="h-[18px] w-[18px] shrink-0" aria-hidden />
+        {expanded ? <span className="truncate">Files</span> : null}
+      </Link>
       <div className="flex-1" />
-      <RailButton
-        icon={ShieldCheck}
-        label="Permissions"
-        expanded={expanded}
-        onClick={() => setPermissionsOpen(true)}
-      />
       <RailButton
         icon={Settings}
         label="Settings"
@@ -966,7 +885,7 @@ export function JarvisWorkspace({
       signedIn={signedIn}
       activeConversation={conversationId}
       target={target}
-      onTarget={setTarget}
+      onTarget={(next) => updatePrefs({ target: next })}
       onClose={() => setSection(null)}
       onOpenConversation={(id) => {
         setDrawerOpen(false);
@@ -981,7 +900,7 @@ export function JarvisWorkspace({
       <a href="#jarvis-composer" className="skip-link">
         Skip to the message box
       </a>
-      <div className={cn("hidden h-full md:flex", fade)}>
+      <div className="hidden h-full md:flex">
         {rail(false)}
         {sectionPanel}
       </div>
@@ -1002,20 +921,7 @@ export function JarvisWorkspace({
       ) : null}
 
       <main className="relative flex min-w-0 flex-1 flex-col">
-        <Orb
-          graph={graph}
-          dimmed={hasText && !focused}
-          level={voice.level}
-          accent={prefs.accent}
-          reducedMotion={motionReduced}
-          selectedId={selected?.id ?? null}
-          onSelect={setSelected}
-          onFocus={() => setFocusOrb((value) => !value)}
-          focused={focused}
-          controlsHidden={controlsHidden}
-        />
-
-        <header className={cn("relative z-10 flex h-12 items-center gap-2 px-3", fade)}>
+        <header className="flex h-12 items-center gap-2 px-3">
           <button
             type="button"
             aria-label="Open navigation"
@@ -1040,33 +946,12 @@ export function JarvisWorkspace({
           ) : jarvis?.unlimited ? (
             <p className="text-xs text-muted-foreground">Unlimited JARVIS use</p>
           ) : null}
-          <button
-            type="button"
-            aria-pressed={focused}
-            onClick={() => setFocusOrb((value) => !value)}
-            className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
-          >
-            {focused ? "Leave focus" : "Focus orb"}
-          </button>
         </header>
 
-        {/* The orb lies behind this layer; only what is on it takes the pointer. */}
-        <div className="pointer-events-none relative z-10 flex min-h-0 flex-1 flex-col lg:flex-row">
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
           <section
             aria-label="Conversation"
-            className={cn(
-              "ocade-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-4 transition-opacity",
-              focused ? "opacity-0" : "opacity-100",
-              !focused && (hasText || conversationTask) && "pointer-events-auto",
-            )}
-            // Empty space around the conversation belongs to the orb behind it.
-            onDoubleClick={(event) => {
-              if (
-                event.target === event.currentTarget ||
-                event.target === event.currentTarget.firstChild
-              )
-                setFocusOrb(true);
-            }}
+            className="ocade-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-4"
           >
             <div className="mx-auto flex max-w-2xl flex-col gap-4 pt-4">
               {transcript === "loading" ? (
@@ -1105,6 +990,14 @@ export function JarvisWorkspace({
                   </div>
                 </div>
               ) : null}
+              {transcript === "ready" && !hasText && !conversationTask ? (
+                <div className="mt-[22vh] text-center">
+                  <h2 className="text-2xl font-semibold tracking-tight">What should JARVIS do?</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Ask for something to be done in your browser or on your computer.
+                  </p>
+                </div>
+              ) : null}
               {turns.map((turn) => (
                 <p
                   key={turn.id}
@@ -1136,7 +1029,9 @@ export function JarvisWorkspace({
                 </div>
               ) : running ? (
                 <p role="status" className="self-start text-xs text-muted-foreground">
-                  JARVIS is working. You can keep talking.
+                  {workingWith
+                    ? `Continuing with ${workingWith}…`
+                    : "JARVIS is working. You can keep talking."}
                 </p>
               ) : retryTurn ? (
                 <button
@@ -1156,10 +1051,7 @@ export function JarvisWorkspace({
                   <div className="mt-2 flex gap-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        setDrawerOpen(true);
-                        setSection("devices");
-                      }}
+                      onClick={() => settings.open("devices")}
                       className="rounded-full bg-foreground px-3 py-1 text-xs text-background"
                     >
                       Connect a computer
@@ -1183,6 +1075,14 @@ export function JarvisWorkspace({
                 <TaskCard
                   task={conversationTask}
                   running={running}
+                  using={
+                    [
+                      jarvis?.devices.find((d) => d.id === conversationTask.device_id)?.name,
+                      workingWith,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ") || null
+                  }
                   onStop={() => void stop()}
                   onTakeOver={() => void takeOverNow()}
                   onResume={() => void resume()}
@@ -1235,7 +1135,7 @@ export function JarvisWorkspace({
           ) : null}
         </div>
 
-        <div className={cn("relative z-10 px-3 pb-3", !running && !taskLive && fade)}>
+        <div className="px-3 pb-3">
           <div className="mx-auto max-w-2xl">
             {voice.state !== "off" ? (
               <VoiceBar
@@ -1267,18 +1167,26 @@ export function JarvisWorkspace({
                 {voice.error}
               </p>
             ) : null}
-            <QualityControl
-              key={`${user?.id}:${conversationId}`}
-              value={
-                conversationTask && !FINISHED.includes(conversationTask.status)
-                  ? (conversationTask.checkpoint?.intelligenceQuality ?? "standard")
-                  : quality
-              }
-              onChange={selectQuality}
-              disabled={
-                running || Boolean(conversationTask && !FINISHED.includes(conversationTask.status))
-              }
-            />
+            <div className="flex flex-wrap items-start justify-between gap-x-3">
+              <QualityControl
+                key={`${user?.id}:${conversationId}`}
+                value={
+                  conversationTask && !FINISHED.includes(conversationTask.status)
+                    ? (conversationTask.checkpoint?.intelligenceQuality ?? "standard")
+                    : quality
+                }
+                onChange={selectQuality}
+                disabled={
+                  running ||
+                  Boolean(conversationTask && !FINISHED.includes(conversationTask.status))
+                }
+              />
+              {signedIn ? (
+                <div className="my-2">
+                  <ScopeToggle state={jarvis} onChanged={refresh} />
+                </div>
+              ) : null}
+            </div>
             <form
               onSubmit={(event) => {
                 event.preventDefault();
@@ -1308,7 +1216,7 @@ export function JarvisWorkspace({
                           ? "OCADE JARVIS is busy. It will be back shortly."
                           : jarvisOn
                             ? "Ask or tell JARVIS anything"
-                            : "JARVIS is turned off in Permissions"
+                            : "JARVIS is turned off in Settings"
                 }
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
@@ -1373,6 +1281,9 @@ export function JarvisWorkspace({
                 </button>
               )}
             </form>
+            {draftApp && !sendBlockedReason ? (
+              <p className="mt-2 text-xs text-muted-foreground">JARVIS will use {draftApp}.</p>
+            ) : null}
             {sendBlockedReason ? (
               <p
                 id="jarvis-send-status"
@@ -1389,16 +1300,6 @@ export function JarvisWorkspace({
             ) : null}
           </div>
         </div>
-
-        {selected ? (
-          <NodePanel
-            node={selected}
-            state={jarvis}
-            onOpen={() => openNode(selected)}
-            onClose={() => setSelected(null)}
-            onChanged={refresh}
-          />
-        ) : null}
       </main>
 
       {signedIn && (jarvis?.tasks ?? []).some((t) => !FINISHED.includes(t.status)) ? (
@@ -1451,14 +1352,6 @@ export function JarvisWorkspace({
               replace: true,
             });
           }}
-        />
-      ) : null}
-      {permissionsOpen ? (
-        <PermissionsDrawer
-          state={jarvis}
-          signedIn={signedIn}
-          onClose={() => setPermissionsOpen(false)}
-          onChanged={refresh}
         />
       ) : null}
     </div>

@@ -19,11 +19,11 @@ function Controls({
 }) {
   if (FINISHED.includes(task.status)) return null;
   return (
-    <div className="flex flex-wrap gap-2">
+    <>
       <button
         type="button"
         onClick={onStop}
-        className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background"
+        className="inline-flex h-9 items-center gap-1.5 rounded-full bg-foreground px-3 text-xs font-semibold uppercase tracking-wide text-background"
       >
         <Square className="h-3.5 w-3.5" aria-hidden />
         Stop
@@ -32,7 +32,7 @@ function Controls({
         <button
           type="button"
           onClick={onTakeOver}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-xs hover:bg-accent"
         >
           <Hand className="h-3.5 w-3.5" aria-hidden />
           Take Over
@@ -41,19 +41,20 @@ function Controls({
         <button
           type="button"
           onClick={onResume}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-xs hover:bg-accent"
         >
           <Play className="h-3.5 w-3.5" aria-hidden />
           Resume
         </button>
       )}
-    </div>
+    </>
   );
 }
 
 export function TaskCard({
   task,
   running,
+  using,
   onStop,
   onTakeOver,
   onResume,
@@ -64,6 +65,8 @@ export function TaskCard({
 }: {
   task: JarvisTaskRow;
   running: boolean;
+  /** Where the work runs: the computer's name, and the app named with @ if any. */
+  using?: string | null;
   onStop: () => void;
   onTakeOver: () => void;
   onResume: () => void;
@@ -76,98 +79,122 @@ export function TaskCard({
   /** The task's newest recorded activity: the only source of the live stage below. */
   latest?: JarvisState["activity"][number];
 }) {
-  const total = Math.max(1, task.plan.length);
+  const [details, setDetails] = useState(false);
+  const total = task.plan.length;
   const done = FINISHED.includes(task.status);
-  // A percentage only where there is a real plan to measure against.
-  const measurable = task.plan.length > 0 && task.status !== "completed";
-  const progress = Math.round((Math.min(task.current_step, total) / total) * 100);
+  // A step count and bar only where there is a real plan to measure against.
+  const step = Math.min(task.current_step + 1, total);
+  const progress = total ? Math.round((Math.min(task.current_step, total) / total) * 100) : 0;
+  const button =
+    "inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-xs transition-colors duration-150 hover:bg-accent";
   return (
     <section
       aria-label="Task"
-      className="glass-strong ocade-pop rounded-xl p-3"
+      className="ocade-pop rounded-2xl border border-border/70 bg-card p-4"
       data-testid="jarvis-task"
     >
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <h2 className="truncate text-sm font-medium">{task.title}</h2>
-        <span className="shrink-0 text-xs text-muted-foreground" data-testid="jarvis-task-status">
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="min-w-0 text-sm font-medium">{task.title}</h2>
+        <span
+          className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+          data-testid="jarvis-task-status"
+        >
           {TASK_STATUS[task.status]}
         </span>
       </div>
-      {measurable && !done ? (
-        <div
-          role="progressbar"
-          aria-label="Task progress"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={progress}
-          className="mb-2 h-1 overflow-hidden rounded-full bg-border/70"
-        >
+      {using ? <p className="mt-1 text-xs text-muted-foreground">Using: {using}</p> : null}
+      {!done && total ? (
+        <>
+          <p className="mt-2 text-xs">
+            {task.status === "running" ? "Working" : TASK_STATUS[task.status]} · Step {step} of{" "}
+            {total}
+          </p>
           <div
-            className="h-full bg-info transition-[width] duration-300"
-            style={{ width: `${progress}%` }}
-          />
+            role="progressbar"
+            aria-label="Task progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progress}
+            className="mt-1.5 h-1 overflow-hidden rounded-full bg-border/70"
+          >
+            <div
+              className="h-full bg-info transition-[width] duration-200"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </>
+      ) : null}
+      {task.status === "running" && running ? (
+        <div className="mt-2">
+          <LiveStage task={task} latest={latest} />
         </div>
       ) : null}
-      {/* A finished task shows its outcome, not its plan. */}
-      {task.plan.length && !done ? (
-        <ol className="mb-2 list-decimal pl-5 text-xs text-muted-foreground">
-          {task.plan.map((step, index) => (
-            <li
-              key={`${index}-${step}`}
-              aria-current={!done && index === task.current_step ? "step" : undefined}
-              className={cn(!done && index === task.current_step && "font-medium text-foreground")}
-            >
-              {step}
-            </li>
-          ))}
-        </ol>
-      ) : null}
-      {task.status === "running" && running ? <LiveStage task={task} latest={latest} /> : null}
-      {task.blocker && !done ? <p className="mb-2 text-xs">{task.blocker}</p> : null}
+      {task.blocker && !done ? <p className="mt-2 text-xs">{task.blocker}</p> : null}
       {done && task.result ? (
-        <p className="mb-2 whitespace-pre-wrap text-xs" data-testid="jarvis-task-result">
+        <p className="mt-2 whitespace-pre-wrap text-sm" data-testid="jarvis-task-result">
           {task.result}
         </p>
       ) : null}
-      {/* JARVIS's own words above; what the device itself read back below. */}
-      {done && checks.length ? (
-        <div className="mb-2 text-xs" data-testid="jarvis-task-checks">
-          <p className="font-medium">Checked on the device</p>
-          <ul className="list-disc pl-5 text-muted-foreground">
-            {checks.map((check, index) => (
-              <li key={`${index}-${check}`}>{check}</li>
-            ))}
-          </ul>
-        </div>
-      ) : done && task.status === "completed" ? (
-        <p className="mb-2 text-xs text-muted-foreground">
-          No device check is recorded for this result.
-        </p>
-      ) : null}
       {!running && task.status === "running" ? (
-        <p className="mb-2 text-xs text-muted-foreground">
+        <p className="mt-2 text-xs text-muted-foreground">
           This task is not being worked on in this tab.
         </p>
       ) : null}
-      <Controls task={task} onStop={onStop} onTakeOver={onTakeOver} onResume={onResume} />
-      {onRetry && (task.status === "failed" || task.status === "blocked") && !running ? (
+      {details ? (
+        <div className="mt-3 border-t border-border/60 pt-2 text-xs">
+          {task.plan.length ? (
+            <ol className="list-decimal pl-5 text-muted-foreground">
+              {task.plan.map((item, index) => (
+                <li
+                  key={`${index}-${item}`}
+                  aria-current={!done && index === task.current_step ? "step" : undefined}
+                  className={cn(
+                    !done && index === task.current_step && "font-medium text-foreground",
+                  )}
+                >
+                  {item}
+                </li>
+              ))}
+            </ol>
+          ) : null}
+          {/* JARVIS's own words above; what the device itself read back here. */}
+          {done && checks.length ? (
+            <div className="mt-2" data-testid="jarvis-task-checks">
+              <p className="font-medium">Checked on the device</p>
+              <ul className="list-disc pl-5 text-muted-foreground">
+                {checks.map((check, index) => (
+                  <li key={`${index}-${check}`}>{check}</li>
+                ))}
+              </ul>
+            </div>
+          ) : done && task.status === "completed" ? (
+            <p className="mt-2 text-muted-foreground">
+              No device check is recorded for this result.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={onRetry}
-          className="rounded-full border border-border px-3 py-1 text-xs hover:bg-accent"
+          aria-expanded={details}
+          onClick={() => setDetails((open) => !open)}
+          className={button}
         >
-          Try again
+          {done ? "Details" : "View progress"}
         </button>
-      ) : null}
-      {onRepeat && task.status === "completed" && !running ? (
-        <button
-          type="button"
-          onClick={onRepeat}
-          className="rounded-full border border-border px-3 py-1 text-xs hover:bg-accent"
-        >
-          Repeat with new inputs
-        </button>
-      ) : null}
+        {onRetry && (task.status === "failed" || task.status === "blocked") && !running ? (
+          <button type="button" onClick={onRetry} className={button}>
+            Try again
+          </button>
+        ) : null}
+        {onRepeat && task.status === "completed" && !running ? (
+          <button type="button" onClick={onRepeat} className={button}>
+            Repeat with new inputs
+          </button>
+        ) : null}
+        <Controls task={task} onStop={onStop} onTakeOver={onTakeOver} onResume={onResume} />
+      </div>
     </section>
   );
 }
@@ -307,7 +334,7 @@ export function BrowserPanel({
           )}
         </div>
       ) : null}
-      <div className="p-3">
+      <div className="flex flex-wrap gap-2 p-3">
         <Controls task={task} onStop={onStop} onTakeOver={onTakeOver} onResume={onResume} />
       </div>
     </aside>

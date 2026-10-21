@@ -176,9 +176,20 @@ export function refuseAction(
   )
     return {
       capability: "app",
-      message: `${input.action.name} is set to Never in Devices, under Apps and websites.`,
+      message: `${input.action.name} is set to Never for this computer.`,
     };
   return null;
+}
+
+/**
+ * Apps that are themselves a way to run anything or change the system: opening one is never
+ * routine, whatever the app is called on this computer.
+ */
+const POWERFUL_APP =
+  /terminal|powershell|command prompt|\bcmd\b|\bbash\b|\bzsh\b|shell|console|\bwsl\b|regedit|registry|task manager|activity monitor|control panel|system (settings|preferences)|disk (utility|management)|keychain|script editor|automator|group policy|services\b/i;
+
+export function powerfulApp(name: string): boolean {
+  return POWERFUL_APP.test(name);
 }
 
 /** Whether the person must confirm this action before the device runs it. */
@@ -188,8 +199,12 @@ export function needsConfirmation(
   deviceId: string | null = null,
 ): boolean {
   switch (action.action) {
-    case "open_app":
-      return appDecision(rows, action.name, deviceId) !== true;
+    case "open_app": {
+      // Opening an ordinary app is routine (owner, 21 Oct): the person's own Always/Never still
+      // stands, and an app that is a way into the whole system asks every time it is not Always.
+      const decided = appDecision(rows, action.name, deviceId);
+      return decided === null ? powerfulApp(action.name) : decided !== true;
+    }
     // An upload is a work-folder file leaving for a website: the page cannot be trusted to ask.
     // The work folder is the boundary: reaching past it, in or out, is the person's to allow.
     case "file_delete":

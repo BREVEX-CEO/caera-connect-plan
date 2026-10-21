@@ -58,7 +58,11 @@ const SCREENS = [
       await page
         .getByRole("navigation", { name: "JARVIS" })
         .last()
-        .getByRole("button", { name: "Devices" })
+        .getByRole("button", { name: "Settings" })
+        .click();
+      await page
+        .getByRole("navigation", { name: "Settings categories" })
+        .getByRole("button", { name: "Devices & Access" })
         .click();
     },
   },

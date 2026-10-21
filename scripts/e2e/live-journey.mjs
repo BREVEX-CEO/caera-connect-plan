@@ -151,9 +151,14 @@ try {
   device.stdout.on("data", (d) => (deviceLog += d));
   device.stderr.on("data", (d) => (deviceLog += d));
   await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
+  // Devices & Access lives in Settings (owner, 21 Oct).
   await page
     .getByRole("navigation", { name: "JARVIS" })
-    .getByRole("button", { name: "Devices" })
+    .getByRole("button", { name: "Settings" })
+    .click();
+  await page
+    .getByRole("navigation", { name: "Settings categories" })
+    .getByRole("button", { name: "Devices & Access" })
     .click();
   const files = page.getByRole("switch", { name: /Files in the workspace/ });
   await until(() => files.isEnabled(), 30_000);
@@ -164,7 +169,7 @@ try {
     await page.getByRole("button", { name: "Allow site", exact: true }).click();
     await until(() => page.getByRole("switch", { name: "127.0.0.1" }).isChecked());
   }
-  await page.getByRole("button", { name: "Close", exact: true }).first().click();
+  await page.keyboard.press("Escape");
 
   /* --- one request, said once ---------------------------------------------- */
   await fetch(`${SUPABASE}/__fixture/live-model`, { method: "POST", body: '{"on":true}' });

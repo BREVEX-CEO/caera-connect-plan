@@ -81,7 +81,7 @@ try {
 
   await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
 
-  /* --- the six categories PLAN.md names ----------------------------------- */
+  /* --- the categories Settings offers ------------------------------------- */
 
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Settings" }).click();
@@ -89,8 +89,9 @@ try {
   await dialog.waitFor();
   const categories = await dialog.locator("nav button").allInnerTexts();
   check(
-    "Settings offers exactly the five categories the design system names",
-    categories.join("|") === "Account|Appearance|Notifications|Privacy & Security|Billing & Usage",
+    "Settings offers exactly its seven categories",
+    categories.join("|") ===
+      "Account|Appearance|Voice|Notifications|Devices & Access|Privacy & Security|Billing & Usage",
     categories.join("|"),
   );
 
@@ -207,7 +208,7 @@ try {
 
   /* --- JARVIS voice and Reset, kept on this device ------------------------- */
 
-  await page.getByRole("button", { name: "Appearance", exact: true }).click();
+  await page.getByRole("button", { name: "Voice", exact: true }).click();
   const stored = () =>
     page.evaluate(() => JSON.parse(localStorage.getItem("ocade:jarvis:v1") ?? "{}"));
   const voicePicker = page.getByRole("combobox", { name: "JARVIS voice" });
@@ -223,18 +224,16 @@ try {
       /no voices/.test(await dialog.innerText()),
     );
   }
-  await page.getByLabel("Orb colour").fill("#33aa88");
-  check("an Orb colour is kept", (await stored()).accent === "#33aa88");
+  check(
+    "there is no Orb colour: the orb is gone",
+    (await page.getByLabel("Orb colour").count()) === 0,
+  );
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   const reset = await stored();
   check(
     "Reset puts every JARVIS choice back to its default",
-    reset.accent === null && reset.voice === null && reset.speak === true && reset.wake === false,
+    reset.voice === null && reset.speak === true && reset.wake === false,
     JSON.stringify(reset),
-  );
-  check(
-    "and the Orb colour on screen follows the reset",
-    (await page.getByLabel("Orb colour").inputValue()) === "#ffffff",
   );
 
   /* --- every category is reachable on a phone and a tablet ---------------- */

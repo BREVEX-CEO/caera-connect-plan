@@ -239,7 +239,11 @@ describe("computer actions", () => {
   it("use the app rules (Devices, Apps and websites) as Always, Ask or Never", () => {
     const rows = [row("apps", true), row("app:notepad", true), row("app:terminal", false)];
     expect(needsConfirmation(rows, open("Notepad"))).toBe(false);
-    expect(needsConfirmation(rows, open("Calculator"))).toBe(true);
+    // No rule set: an ordinary app opens without asking; a way into the whole system asks.
+    expect(needsConfirmation(rows, open("Calculator"))).toBe(false);
+    for (const name of ["Windows PowerShell", "Command Prompt", "Registry Editor", "Terminal"])
+      expect(needsConfirmation([row("apps", true)], open(name)), name).toBe(true);
+    expect(needsConfirmation([row("app:terminal", true)], open("Terminal"))).toBe(false);
     expect(
       refuseAction(rows, { deviceId: "d", mode: "isolated", action: open("Terminal") })?.capability,
     ).toBe("app");
@@ -632,5 +636,18 @@ describe("a phone without app control (P13)", () => {
     expect(phone?.message).toMatch(/Android's Accessibility settings/);
     const computer = refuseAction(rows, { deviceId: "d", mode: "isolated", action, offered });
     expect(computer?.message).toMatch(/not available on this device/);
+  });
+});
+
+describe("an app named with @", () => {
+  it("is the longest listed name after an @, ignoring case, and only a whole name", async () => {
+    const { mentionedApp } = await import("../protocol");
+    const apps = ["Word", "Microsoft Word", "Excel", "DaVinci Resolve"];
+    expect(mentionedApp("@excel make a chart", apps)).toBe("Excel");
+    expect(mentionedApp("write it in @Microsoft Word please", apps)).toBe("Microsoft Word");
+    expect(mentionedApp("cut the clips with @DaVinci Resolve.", apps)).toBe("DaVinci Resolve");
+    expect(mentionedApp("mail me@excel.com", apps)).toBeNull();
+    expect(mentionedApp("@Excelsior", apps)).toBeNull();
+    expect(mentionedApp("no mention here", apps)).toBeNull();
   });
 });

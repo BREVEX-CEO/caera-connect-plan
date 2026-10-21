@@ -139,9 +139,14 @@ try {
   device.stderr.on("data", (d) => (deviceLog += d));
 
   await desk.page.reload({ waitUntil: "networkidle" });
+  // Devices & Access lives in Settings (owner, 21 Oct).
   await desk.page
     .getByRole("navigation", { name: "JARVIS" })
-    .getByRole("button", { name: "Devices" })
+    .getByRole("button", { name: "Settings" })
+    .click();
+  await desk.page
+    .getByRole("navigation", { name: "Settings categories" })
+    .getByRole("button", { name: "Devices & Access" })
     .click();
   const files = desk.page.getByRole("switch", { name: /Files in the workspace/ });
   await until(() => files.isEnabled(), 30_000);
@@ -157,7 +162,7 @@ try {
   );
   await backgroundSwitch.click();
   await until(async () => (await backgroundSwitch.getAttribute("aria-checked")) === "true");
-  await desk.page.getByRole("button", { name: "Close", exact: true }).first().click();
+  await desk.page.keyboard.press("Escape");
   if (!terminal) {
     process.stdout.write("BLOCKED  carry-on journey — this computer offers no confined commands\n");
     // Thrown, not exited, so the runtime and browser below are still cleaned up (F-134).
@@ -180,6 +185,8 @@ try {
     // Every file it changes is read back before it may finish.
     { tool: "computer", args: { action: "file_read", path: "wait.py", step: 1 } },
     { tool: "computer", args: { action: "run", command: `${PYTHON} wait.py`, step: 2 } },
+    // A command may change any file, so what it ran is read again too.
+    { tool: "computer", args: { action: "file_read", path: "wait.py", step: 2 } },
     {
       tool: "computer",
       args: { action: "file_write", path: "report.txt", content: "done away", step: 3 },
@@ -255,15 +262,18 @@ try {
     `user_id=eq.${USER}&select=summary,status,action&order=created_at.asc`,
   );
   check(
-    "every step it took is in Activity, none of them twice",
+    "every step it took is recorded, none of them twice",
     uses
       .filter((row) => row.action)
       .map((row) => row.action.action)
-      .join(",") === "file_write,file_read,run,file_write,file_read" &&
+      .join(",") === "file_write,file_read,run,file_read,file_write,file_read" &&
       readFileSync(path.join(workspace, "slept.txt"), "utf8") === "x",
     uses
       .filter((row) => row.action)
-      .map((row) => `${row.action.action}:${row.status}`)
+      .map(
+        (row) =>
+          `${row.action.action}:${row.status}${row.status === "failed" ? ` (${row.summary})` : ""}`,
+      )
       .join(","),
   );
 
@@ -280,9 +290,10 @@ try {
     ),
   );
   check(
-    "and nothing on screen says it is still working: no open task, no STOP",
-    (await phone.page.getByTestId("jarvis-task").count()) === 0 &&
-      (await phone.page.getByRole("button", { name: /^STOP/ }).count()) === 0,
+    "and nothing on screen says it is still working: the task shows Completed, no STOP",
+    (await phone.page.getByTestId("jarvis-task-status").allInnerTexts()).every(
+      (status) => status === "Completed",
+    ) && (await phone.page.getByRole("button", { name: /^STOP/ }).count()) === 0,
   );
 
   /* --- 2. a step that needs the person waits for the person ------------------ */
@@ -459,7 +470,7 @@ try {
   );
   const rail = (name) =>
     plan.getByRole("navigation", { name: "JARVIS" }).getByRole("button", { name });
-  await rail("Activity").click();
+  await rail("Conversations").click();
   const scheduled = plan.getByRole("region", { name: "Scheduled" });
   check(
     "the reminder is listed under Scheduled, as a reminder",
@@ -515,7 +526,11 @@ try {
     )) && !existsSync(path.join(workspace, "later.txt")),
   );
 
-  await rail("Devices").click();
+  await rail("Settings").click();
+  await plan
+    .getByRole("navigation", { name: "Settings categories" })
+    .getByRole("button", { name: "Devices & Access" })
+    .click();
   const scheduledWork = plan.getByRole("switch", { name: /Scheduled work/ });
   await until(() => scheduledWork.isEnabled(), 20_000);
   await scheduledWork.click();
@@ -524,7 +539,7 @@ try {
       (await scheduledWork.getAttribute("aria-checked")) === "true" ||
       (await scheduledWork.isChecked()),
   );
-  await plan.getByRole("button", { name: "Close", exact: true }).first().click();
+  await plan.keyboard.press("Escape");
   await script("later-check", [
     {
       tool: "schedule",
@@ -583,7 +598,7 @@ try {
   await lister.page.getByRole("button", { name: "Open navigation" }).click();
   await lister.page
     .getByRole("navigation", { name: "JARVIS" })
-    .getByRole("button", { name: "Activity" })
+    .getByRole("button", { name: "Conversations" })
     .click();
   await lister.page.getByRole("button", { name: "Remove Water the plants" }).click();
   check(

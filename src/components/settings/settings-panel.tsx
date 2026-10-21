@@ -29,7 +29,9 @@ const SettingsDialog = lazy(loadDialog);
 const SETTINGS_CATEGORIES = [
   "account",
   "appearance",
+  "voice",
   "notifications",
+  "devices",
   "privacy",
   "billing",
 ] as const;

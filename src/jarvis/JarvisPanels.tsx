@@ -1,6 +1,6 @@
-/** The rail's sections, the Permissions drawer and the graph node panel. */
-import { Fragment, useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+/** The rail's Conversations, and Devices & Access in Settings. */
+import { useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2, X } from "lucide-react";
 import { useModalFocus } from "@/lib/use-modal-focus";
 import { deleteConversation } from "@/lib/ocade.functions";
@@ -10,12 +10,14 @@ import { readAgentRelease } from "@/lib/agent/release.functions";
 import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { FINISHED, hostOf, type Capability, TASK_STATUS } from "./protocol";
 import { isAllowed } from "./permissions";
-import type { GraphNode } from "./graph";
+import { readPreferences, useJarvisPreferences, writePreferences } from "./preferences";
+import { useSession } from "@/lib/session";
 import {
   approveJarvisDevice,
   declineJarvisDevice,
   forgetJarvis,
   readJarvisEnrollment,
+  readJarvisState,
   removeJarvisSchedule,
   revokeJarvisDevice,
   setJarvisBackground,
@@ -24,11 +26,10 @@ import {
   type JarvisState,
 } from "./jarvis.functions";
 
-export type Section = "conversations" | "activity" | "devices";
+export type Section = "conversations" | "devices";
 
 const TITLES: Record<Section, string> = {
   conversations: "Conversations",
-  activity: "Activity",
   devices: "Devices",
 };
 
@@ -169,8 +170,53 @@ function SectionBody({
 }) {
   const [opened, setOpened] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
-  const [appFilter, setAppFilter] = useState("");
   const [find, setFind] = useState("");
+
+  // Reminders and scheduled work, removable here: their record lives on the server.
+  const REPEATS: Record<string, string> = {
+    none: "once",
+    daily: "every day",
+    weekdays: "every weekday",
+    weekly: "every week",
+  };
+  const scheduled = state.schedules.length ? (
+    <section aria-label="Scheduled" className="mb-3">
+      <h3 className="mb-1 text-xs font-medium text-muted-foreground">Scheduled</h3>
+      <ul className="flex flex-col gap-1">
+        {state.schedules.map((s) => (
+          <li key={s.id} className="flex items-start gap-2 border-b border-border/40 py-1">
+            <div className="min-w-0 flex-1">
+              <p className="break-words">{s.what}</p>
+              <p className="text-xs text-muted-foreground">
+                {s.device_id
+                  ? `On ${state.devices.find((d) => d.id === s.device_id)?.name ?? "a computer"}`
+                  : "Reminder"}
+                {` · ${when(s.next_at)} · ${REPEATS[s.repeat] ?? s.repeat}`}
+              </p>
+              {s.last_outcome && s.last_outcome !== "Started" && s.last_outcome !== "Reminded" ? (
+                <p className="text-xs text-muted-foreground">Last time: {s.last_outcome}</p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              aria-label={`Remove ${s.what}`}
+              disabled={removing === s.id}
+              onClick={() => {
+                setRemoving(s.id);
+                void removeJarvisSchedule({ data: { id: s.id } })
+                  .then(onChanged)
+                  .catch(() => toast.error("That could not be removed. Try again."))
+                  .finally(() => setRemoving(null));
+              }}
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ) : null;
 
   if (section === "conversations") {
     // Tasks live in their conversations: each row names its latest task and
@@ -192,7 +238,12 @@ function SectionBody({
         };
       });
     if (list.length === 0) {
-      return <p className="text-muted-foreground">Nothing here yet.</p>;
+      return (
+        <>
+          {scheduled}
+          <p className="text-muted-foreground">Nothing here yet.</p>
+        </>
+      );
     }
     const wanted = find.trim().toLowerCase();
     const shown = wanted
@@ -200,6 +251,7 @@ function SectionBody({
       : list;
     return (
       <>
+        {scheduled}
         <input
           type="search"
           value={find}
@@ -259,76 +311,6 @@ function SectionBody({
     );
   }
 
-  if (section === "activity") {
-    const REPEATS: Record<string, string> = {
-      none: "once",
-      daily: "every day",
-      weekdays: "every weekday",
-      weekly: "every week",
-    };
-    return (
-      <>
-        {state.schedules.length ? (
-          <section aria-label="Scheduled" className="mb-3">
-            <h3 className="mb-1 text-xs font-medium text-muted-foreground">Scheduled</h3>
-            <ul className="flex flex-col gap-1">
-              {state.schedules.map((s) => (
-                <li key={s.id} className="flex items-start gap-2 border-b border-border/40 py-1">
-                  <div className="min-w-0 flex-1">
-                    <p className="break-words">{s.what}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {s.device_id
-                        ? `On ${state.devices.find((d) => d.id === s.device_id)?.name ?? "a computer"}`
-                        : "Reminder"}
-                      {` · ${when(s.next_at)} · ${REPEATS[s.repeat] ?? s.repeat}`}
-                    </p>
-                    {s.last_outcome &&
-                    s.last_outcome !== "Started" &&
-                    s.last_outcome !== "Reminded" ? (
-                      <p className="text-xs text-muted-foreground">Last time: {s.last_outcome}</p>
-                    ) : null}
-                  </div>
-                  <button
-                    type="button"
-                    aria-label={`Remove ${s.what}`}
-                    disabled={removing === s.id}
-                    onClick={() => {
-                      setRemoving(s.id);
-                      void removeJarvisSchedule({ data: { id: s.id } })
-                        .then(onChanged)
-                        .catch(() => toast.error("That could not be removed. Try again."))
-                        .finally(() => setRemoving(null));
-                    }}
-                    className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive disabled:opacity-50"
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-        <p className="mb-2 text-xs text-muted-foreground">
-          Detailed activity is kept for 90 days. Task results stay.
-        </p>
-        {state.activity.length === 0 ? (
-          <p className="text-muted-foreground">No activity yet.</p>
-        ) : null}
-        <ul className="flex flex-col gap-1">
-          {state.activity.map((a) => (
-            <li key={a.id} className="border-b border-border/40 py-1">
-              <p>{a.summary}</p>
-              <p className="text-xs text-muted-foreground">
-                {a.status === "note" ? "" : `${a.status.replace("_", " ")} · `}
-                {when(a.created_at)}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </>
-    );
-  }
-
   // Apps and websites live under Devices (PLAN.md section M): rarely changed, so
   // not a rail entry of their own. The same rules, the same controls.
   const appsAndSites = (
@@ -378,65 +360,6 @@ function SectionBody({
       <p className="mt-1 text-xs text-muted-foreground">
         Addresses on your own network need your permission first.
       </p>
-      <h3 className="mt-4 text-sm font-medium">Apps on your computers</h3>
-      <p className="mb-2 text-xs text-muted-foreground">
-        Always opens without asking. Ask waits for you. Never is refused.
-      </p>
-      {state.apps.every((group) => group.apps.length === 0) ? (
-        <p className="text-muted-foreground">No computer has reported its apps yet.</p>
-      ) : (
-        // A computer reports every app it has (190 here): find one by name.
-        <input
-          type="search"
-          value={appFilter}
-          onChange={(event) => setAppFilter(event.target.value)}
-          aria-label="Find an app"
-          placeholder="Find an app"
-          className="mb-2 h-8 w-full rounded-md border border-border/60 bg-background px-2 text-sm outline-none focus-visible:border-ring"
-        />
-      )}
-      {state.apps
-        .filter((group) => group.apps.length > 0)
-        .map((group) => (
-          <section key={group.deviceId} aria-label={group.deviceName} className="mb-3">
-            <p className="mb-1 text-xs font-medium text-muted-foreground">{group.deviceName}</p>
-            <ul className="flex flex-col gap-1">
-              {group.apps
-                .filter((app) => app.name.toLowerCase().includes(appFilter.trim().toLowerCase()))
-                .map((app) => {
-                  const id = `app-${group.deviceId}-${app.name}`;
-                  return (
-                    <li key={app.name} className="flex items-center gap-2">
-                      <label htmlFor={id} className="min-w-0 flex-1 truncate">
-                        {app.name}
-                      </label>
-                      <select
-                        id={id}
-                        value={app.rule}
-                        onChange={(event) =>
-                          void decide(
-                            `app:${app.name.toLowerCase()}`,
-                            event.target.value === "always"
-                              ? true
-                              : event.target.value === "never"
-                                ? false
-                                : null,
-                            group.deviceId,
-                            onChanged,
-                          )
-                        }
-                        className="rounded-md border border-border/60 bg-background px-1 py-0.5 text-xs"
-                      >
-                        <option value="always">Always</option>
-                        <option value="ask">Ask</option>
-                        <option value="never">Never</option>
-                      </select>
-                    </li>
-                  );
-                })}
-            </ul>
-          </section>
-        ))}
     </>
   );
 
@@ -699,7 +622,7 @@ function AgentDownload() {
 
 /** Per-computer capabilities, each off until the person turns it on for that computer. */
 const COMPUTER_TOGGLES: [Capability, string, string][] = [
-  ["apps", "Open apps", "Only apps this computer found; Apps and websites decides which."],
+  ["apps", "Open apps", "Apps this computer found. Terminals and system tools ask first."],
   ["files", "Files in the workspace", "Only inside the folder chosen on the computer."],
   [
     "terminal",
@@ -710,176 +633,167 @@ const COMPUTER_TOGGLES: [Capability, string, string][] = [
   ["computer_control", "Mouse and keyboard", "Your own input pauses JARVIS until you continue."],
 ];
 
-export function PermissionsDrawer({
+/**
+ * Browser only, or the whole PC: one choice over each computer's own permissions above
+ * (apps, files, commands, screen, mouse and keyboard), which the server still enforces per
+ * step. High-impact steps (deleting, installing, publishing, paying) ask either way.
+ */
+export function ScopeToggle({
   state,
-  signedIn,
-  onClose,
   onChanged,
 }: {
   state: JarvisState | undefined;
-  signedIn: boolean;
-  onClose: () => void;
   onChanged: () => void;
 }) {
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-  const self = useRef<HTMLDivElement>(null);
-  useModalFocus(self, true);
-  const rows = state?.permissions ?? [];
-  const set = (capability: Capability, allowed: boolean) =>
-    void decide(capability, allowed, null, onChanged);
+  const [saving, setSaving] = useState(false);
+  const computers = (state?.devices ?? []).filter((d) => d.kind !== "android");
+  const usable = (d: (typeof computers)[number]) =>
+    COMPUTER_TOGGLES.filter(([capability]) => d.capabilities[capability]).map(([c]) => c);
+  if (!state || !computers.some((d) => usable(d).length)) return null;
+  const whole = computers.every((d) =>
+    usable(d).every((capability) => isAllowed(state.permissions, capability, d.id)),
+  );
+  const choose = async (next: boolean) => {
+    if (next === whole || saving) return;
+    setSaving(true);
+    try {
+      for (const d of computers)
+        for (const capability of usable(d))
+          await setJarvisPermission({ data: { capability, allowed: next, deviceId: d.id } });
+    } catch {
+      toast.error("That could not be saved. Try again.");
+    } finally {
+      setSaving(false);
+      onChanged();
+    }
+  };
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <button
-        type="button"
-        aria-label="Close permissions"
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-      />
-      <div
-        ref={self}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Permissions"
-        className="relative flex h-full w-full max-w-sm flex-col overflow-y-auto bg-background p-4"
-      >
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-base font-medium">What JARVIS may do</h2>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-accent"
-          >
-            <X className="h-4 w-4" aria-hidden />
-          </button>
-        </div>
-        {signedIn && state ? (
-          <>
-            <Toggle
-              label="OCADE JARVIS"
-              hint="Turn off to stop every JARVIS task and action."
-              checked={isAllowed(rows, "master")}
-              onChange={(v) => set("master", v)}
-            />
-            <Toggle
-              label="Browser control"
-              checked={isAllowed(rows, "browser")}
-              onChange={(v) => set("browser", v)}
-            />
-            <Toggle
-              label="Use my own browser"
-              hint="Only on devices where you started your browser for JARVIS."
-              checked={isAllowed(rows, "browser_real")}
-              onChange={(v) => set("browser_real", v)}
-            />
-            <Toggle
-              label="Memory"
-              hint="Let JARVIS remember preferences you tell it. Separate from Chat."
-              checked={isAllowed(rows, "memory")}
-              onChange={(v) => set("memory", v)}
-            />
-            <p className="mt-2 text-xs text-muted-foreground">
-              JARVIS never makes purchases and asks before anything sensitive.
-            </p>
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground">Sign in to manage what JARVIS may do.</p>
-        )}
-      </div>
+    <div
+      role="radiogroup"
+      aria-label="Where JARVIS may work"
+      className="inline-flex rounded-full border border-border p-0.5 text-xs"
+    >
+      {[
+        { label: "Browser only", value: false },
+        { label: "Whole PC", value: true },
+      ].map((option) => (
+        <button
+          key={option.label}
+          type="button"
+          role="radio"
+          aria-checked={whole === option.value}
+          disabled={saving}
+          onClick={() => void choose(option.value)}
+          className={cn(
+            "h-7 rounded-full px-3 transition-colors duration-150 disabled:opacity-50",
+            whole === option.value
+              ? "bg-foreground text-background"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   );
 }
 
-export function NodePanel({
-  node,
-  state,
-  onOpen,
-  onClose,
-  onChanged,
-}: {
-  node: GraphNode;
-  state: JarvisState | undefined;
-  onOpen: () => void;
-  onClose: () => void;
-  onChanged: () => void;
-}) {
-  const [revealed, setRevealed] = useState(false);
-  useEffect(() => setRevealed(false), [node.id]);
-  const memory =
-    node.kind === "memory" ? state?.memories.find((m) => m.id === node.recordId) : undefined;
-  const openable = node.kind !== "memory";
+/**
+ * Devices & Access, in Settings: what JARVIS may do, its memories, and each computer and its
+ * own permissions. Read from the same JARVIS record the workspace shows.
+ */
+export function JarvisAccess() {
+  const { user } = useSession();
+  const queryClient = useQueryClient();
+  const prefs = useJarvisPreferences();
+  const access = useQuery({
+    queryKey: ["jarvis", "state", user?.id ?? ""],
+    queryFn: () => readJarvisState({ data: { maintain: false } }),
+    enabled: Boolean(user),
+  });
+  const state = access.data;
+  const onChanged = () => void queryClient.invalidateQueries({ queryKey: ["jarvis", "state"] });
+  if (!state) {
+    return access.isError ? (
+      <p className="text-sm text-muted-foreground">Devices and access could not be loaded.</p>
+    ) : null;
+  }
+  const rows = state.permissions;
+  const set = (capability: Capability, allowed: boolean) =>
+    void decide(capability, allowed, null, onChanged);
   return (
-    <section
-      aria-label={node.label}
-      className="glass-strong absolute bottom-28 left-3 right-3 z-20 rounded-xl p-3 sm:left-auto sm:w-72"
-    >
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="truncate text-sm font-medium">{node.label}</h2>
-        <button
-          type="button"
-          aria-label="Close"
-          onClick={onClose}
-          className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-accent"
-        >
-          <X className="h-4 w-4" aria-hidden />
-        </button>
-      </div>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-        {node.meta.map(([key, value]) => (
-          <Fragment key={key}>
-            <dt className="text-muted-foreground">{key}</dt>
-            <dd>{value}</dd>
-          </Fragment>
-        ))}
-      </dl>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {openable ? (
-          <button
-            type="button"
-            onClick={onOpen}
-            className="rounded-md bg-primary px-3 py-1 text-xs text-primary-foreground"
-          >
-            Open
-          </button>
+    <div className="text-sm">
+      <section aria-label="What JARVIS may do" className="mb-4">
+        <h3 className="mb-1 text-sm font-medium">What JARVIS may do</h3>
+
+        <Toggle
+          label="OCADE JARVIS"
+          hint="Turn off to stop every JARVIS task and action."
+          checked={isAllowed(rows, "master")}
+          onChange={(v) => set("master", v)}
+        />
+        <Toggle
+          label="Browser control"
+          checked={isAllowed(rows, "browser")}
+          onChange={(v) => set("browser", v)}
+        />
+        <Toggle
+          label="Use my own browser"
+          hint="Only on devices where you started your browser for JARVIS."
+          checked={isAllowed(rows, "browser_real")}
+          onChange={(v) => set("browser_real", v)}
+        />
+        <Toggle
+          label="Memory"
+          hint="Let JARVIS remember preferences you tell it. Separate from Chat."
+          checked={isAllowed(rows, "memory")}
+          onChange={(v) => set("memory", v)}
+        />
+        {state.memories.length ? (
+          <section aria-label="Saved memories" className="mt-1">
+            <h3 className="mb-1 text-xs font-medium text-muted-foreground">Saved memories</h3>
+            <ul className="flex flex-col gap-1">
+              {state.memories.map((memory) => (
+                <li
+                  key={memory.id}
+                  className="flex items-start gap-2 border-b border-border/40 py-1"
+                >
+                  <p className="min-w-0 flex-1 whitespace-pre-wrap break-words text-xs">
+                    {memory.content}
+                  </p>
+                  <button
+                    type="button"
+                    aria-label={`Forget ${memory.content.slice(0, 40)}`}
+                    onClick={() =>
+                      void forgetJarvis({ data: { id: memory.id } })
+                        .then(onChanged)
+                        .catch(() => toast.error("That memory could not be removed."))
+                    }
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
         ) : null}
-        {memory ? (
-          revealed ? null : (
-            <button
-              type="button"
-              onClick={() => setRevealed(true)}
-              className="rounded-md px-3 py-1 text-xs hover:bg-accent"
-            >
-              Show saved text
-            </button>
-          )
-        ) : null}
-        {memory ? (
-          <button
-            type="button"
-            onClick={() =>
-              void forgetJarvis({ data: { id: memory.id } })
-                .then(() => {
-                  onChanged();
-                  onClose();
-                })
-                .catch(() => toast.error("That memory could not be removed."))
-            }
-            className="rounded-md px-3 py-1 text-xs text-destructive hover:bg-accent"
-          >
-            Forget
-          </button>
-        ) : null}
-      </div>
-      {memory && revealed ? (
-        <p className="mt-2 whitespace-pre-wrap text-xs">{memory.content}</p>
-      ) : null}
-    </section>
+        <p className="mt-2 text-xs text-muted-foreground">
+          JARVIS never makes purchases and asks before anything sensitive.
+        </p>
+      </section>
+      <section aria-label="Devices">
+        <SectionBody
+          section="devices"
+          state={state}
+          activeConversation={null}
+          target={prefs.target}
+          onTarget={(target) => writePreferences({ ...readPreferences(), target })}
+          onOpenConversation={() => undefined}
+          onChanged={onChanged}
+        />
+      </section>
+    </div>
   );
 }
 

@@ -158,7 +158,11 @@ try {
   guest.on("pageerror", (error) => guestErrors.push(String(error)));
   const first = await guest.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
   check("signed out: /ocade-jarvis answers", first?.status() === 200, String(first?.status()));
-  check("signed out: the orb renders", (await guest.locator("canvas[role=img]").count()) === 1);
+  check(
+    "signed out: no orb, the page asks what JARVIS should do",
+    (await guest.locator("canvas").count()) === 0 &&
+      (await guest.getByRole("heading", { name: "What should JARVIS do?" }).count()) === 1,
+  );
   check(
     "signed out: the composer asks for an account",
     (await guest.locator("#jarvis-composer").getAttribute("placeholder")) ===
@@ -192,6 +196,15 @@ try {
   page.on("pageerror", (error) => errors.push(String(error)));
   const rail = (name) =>
     page.getByRole("navigation", { name: "JARVIS" }).getByRole("button", { name });
+  // Devices & Access lives in Settings (owner, 21 Oct): open it there, close Settings again.
+  const openAccess = async () => {
+    await rail("Settings").click();
+    await page
+      .getByRole("navigation", { name: "Settings categories" })
+      .getByRole("button", { name: "Devices & Access" })
+      .click();
+  };
+  const closeAccess = () => page.keyboard.press("Escape");
   const say = async (text) => {
     await page.locator("#jarvis-composer").fill(text);
     await page.getByRole("button", { name: "Send", exact: true }).click();
@@ -502,7 +515,7 @@ except i.UpdateRequired:
     device.stdout.on("data", (d) => (deviceLog += d));
     device.stderr.on("data", (d) => (deviceLog += d));
     await page.reload({ waitUntil: "networkidle" });
-    await rail("Devices").click();
+    await openAccess();
     check(
       "the device shows online, with one readiness state",
       await until(
@@ -535,7 +548,7 @@ except i.UpdateRequired:
     } else {
       check("with no installer published, the panel says so instead of linking to nothing", true);
     }
-    await page.getByRole("button", { name: "Close", exact: true }).first().click();
+    await closeAccess();
 
     /* --- computer work: off until allowed, inside the workspace, risky asks --- */
     await script("computer-off", [
@@ -560,7 +573,7 @@ except i.UpdateRequired:
         t.content.includes("Files is turned off for this device"),
       ) && !existsSync(path.join(workspace, "notes.md")),
     );
-    await rail("Devices").click();
+    await openAccess();
     const files = page.getByRole("switch", { name: /Files in the workspace/ });
     // The computer reports what it offers on its first exchange; wait for it.
     check(
@@ -580,7 +593,7 @@ except i.UpdateRequired:
         spawnSync("bwrap", ["--ro-bind", "/", "/", "--unshare-pid", "true"]).status === 0;
       check("running commands is shown unavailable where it cannot be confined", !confinable);
     }
-    await page.getByRole("button", { name: "Close", exact: true }).first().click();
+    await closeAccess();
     // Try again continues the same task: one record, one history, not a copy.
     await script("Continue the task from where it stopped", [
       { tool: "computer", args: { action: "file_write", path: "retried.md", content: "retried" } },
@@ -818,7 +831,18 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
         liveTurns.includes('While you were working, the person said: ["use the other file"]'),
     );
     const finished = await page.locator("[data-testid=jarvis-task-status]").innerText();
-    check("and the task still finishes", finished === "Completed", finished);
+    // Why it did not finish, from the record, when it did not.
+    const refused =
+      finished === "Completed"
+        ? []
+        : await fetch(
+            `${SUPABASE}/rest/v1/jarvis_activity?status=eq.failed&select=summary&order=created_at.desc&limit=3`,
+          ).then((r) => r.json());
+    check(
+      "and the task still finishes",
+      finished === "Completed",
+      [finished, ...refused.map((row) => row.summary)].join(" | "),
+    );
     await page.reload({ waitUntil: "networkidle" });
 
     /* --- Online capacity unavailable: a calm OCADE state, the task saved -------- */
@@ -941,8 +965,8 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
     await until(async () => (await page.getByText("Long build").count()) >= 1, 30_000);
     await page.setViewportSize({ width: 375, height: 800 });
     await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-    await rail("Devices").click();
-    const remote = page.getByRole("complementary", { name: "Devices" }).last();
+    await openAccess();
+    const remote = page.getByRole("region", { name: "Devices" });
     check(
       "a phone sees what the computer is doing under Remote PC",
       await until(async () => (await remote.getByText("Long build").count()) >= 1, 20_000),
@@ -971,11 +995,7 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
       }, 30_000),
     );
     await page.setViewportSize({ width: 1280, height: 800 });
-    await page
-      .getByRole("button", { name: "Close", exact: true })
-      .first()
-      .click()
-      .catch(() => undefined);
+    await closeAccess();
 
     /* --- a private address needs the person's permission first ------------- */
     await script("private-task", [
@@ -995,37 +1015,20 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
       "and the refusal says how to allow it",
       (await boundary()).turns.some((t) => t.content.includes("is on a private network")),
     );
-    await rail("Devices").click();
+    await openAccess();
     await page.locator("#jarvis-allow-site").fill("127.0.0.1");
     await page.getByRole("button", { name: "Allow site", exact: true }).click();
     check(
       "the person can allow it in Devices, under Apps and websites",
       await until(async () => await page.getByRole("switch", { name: "127.0.0.1" }).isChecked()),
     );
-    // A computer reports every app it has; one is found by name, not by scrolling. Which one
-    // is drawn from what this computer reported, never a name chosen in advance.
-    const reported = (
-      await fetch(`${SUPABASE}/rest/v1/jarvis_devices?select=installed_apps`).then((r) => r.json())
-    ).flatMap((row) => row.installed_apps ?? []);
-    const search = page.getByRole("searchbox", { name: "Find an app" });
-    if (reported.length === 0) {
-      blocked("Apps and websites finds an app by name", "this computer reported no apps");
-    } else {
-      const pick = reported[Date.now() % reported.length];
-      await search.fill(pick.slice(0, Math.max(3, Math.ceil(pick.length / 2))));
-      const found = await page.locator('select[id^="app-"]').count();
-      check(
-        "Apps and websites finds an app by name among all the computer's apps",
-        found >= 1 && found < reported.length + 1,
-        `${pick}: ${found} of ${reported.length}`,
-      );
-    }
-    await search.fill("zz-no-such-app-zz");
+    // Apps are found and chosen by JARVIS: there is no per-app list to keep (owner, 21 Oct).
     check(
-      "and finds nothing for a name no app has",
-      (await page.locator('select[id^="app-"]').count()) === 0,
+      "Devices lists no installed-software permissions",
+      (await page.getByRole("searchbox", { name: "Find an app" }).count()) === 0 &&
+        (await page.locator('select[id^="app-"]').count()) === 0,
     );
-    await page.getByRole("button", { name: "Close", exact: true }).first().click();
+    await closeAccess();
 
     /* --- a real browser task across two tabs -------------------------------- */
     await script("shop-task", [
@@ -1061,11 +1064,18 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
       60_000,
     );
     check("the live browser panel shows what the device sees", sawFrame);
+    // For a person to look at: the task card while it works, and when it is done.
+    const shot = (name) =>
+      process.env.OCADE_VISUAL_DIR
+        ? page.screenshot({ path: path.join(process.env.OCADE_VISUAL_DIR, `${name}.png`) })
+        : undefined;
+    await shot("jarvis-task-working");
     await idle();
     check(
       "the task completed",
       (await page.locator("[data-testid=jarvis-task-status]").innerText()) === "Completed",
     );
+    await shot("jarvis-task-completed");
     check(
       "its durable result is shown",
       (await page.locator("[data-testid=jarvis-task-result]").innerText()) ===
@@ -1100,10 +1110,9 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
       await until(async () => (await dialog.count()) === 1, 60_000),
     );
     check("it names what it will press", (await dialog.innerText()).includes("Send message"));
-    // Orb Focus chosen while it waits never hides it or takes its pointer (HX-04).
-    await page.getByRole("button", { name: "Focus orb", exact: true }).click();
+    // A decision waiting is shown and takes the pointer (HX-04).
     check(
-      "a decision waiting is never hidden behind Orb Focus",
+      "a decision waiting is never hidden",
       await page
         .getByRole("region", { name: "Conversation" })
         .evaluate(
@@ -1131,7 +1140,6 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
     await dialog.getByRole("button", { name: "Decline", exact: true }).click();
     await idle();
     check("declined: the submission never ran", hits.filter((h) => h === "/sent").length === 1);
-    await page.getByRole("button", { name: "Leave focus", exact: true }).click();
     check("a purchase is never performed", !hits.includes("/order"));
     const buyTurns = (await boundary()).turns.map((t) => t.content).join("\n");
     check(
@@ -1227,7 +1235,7 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
       "an injected permission change is refused",
       injectTurns.includes("Only the person can change permissions"),
     );
-    await rail("Permissions").click();
+    await openAccess();
     const real = page.getByRole("switch", { name: /Use my own browser/ });
     check("the real-browser permission is still off", !(await real.isChecked()));
 
@@ -1236,9 +1244,7 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
     await until(
       async () => !(await page.getByRole("switch", { name: /OCADE JARVIS/ }).isChecked()),
     );
-    await page
-      .getByRole("button", { name: "Close permissions", exact: true })
-      .click({ position: { x: 5, y: 5 } });
+    await closeAccess();
     await page.locator("#jarvis-composer").fill("hello");
     await page.getByRole("button", { name: "Send", exact: true }).click();
     check(
@@ -1248,14 +1254,12 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
         10_000,
       ),
     );
-    await rail("Permissions").click();
+    await openAccess();
     await page.getByRole("switch", { name: /OCADE JARVIS/ }).click();
     await until(async () => await page.getByRole("switch", { name: /OCADE JARVIS/ }).isChecked());
-    await page
-      .getByRole("button", { name: "Close permissions", exact: true })
-      .click({ position: { x: 5, y: 5 } });
+    await closeAccess();
 
-    await rail("Devices").click();
+    await openAccess();
     const siteSwitch = page.getByRole("switch", { name: "127.0.0.1" });
     check(
       "Apps and websites lists the site JARVIS used",
@@ -1288,27 +1292,7 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
       (await boundary()).turns.some((t) => t.content.includes("turned off in Devices")),
     );
     await siteSwitch.click();
-    await page.getByRole("button", { name: "Close", exact: true }).first().click();
-
-    /* --- the orb grew from real data, and a node shows only safe metadata -- */
-    const itemButtons = page.getByRole("list", { name: "Graph items" }).getByRole("button");
-    check(
-      "the graph grew from real records",
-      (await itemButtons.count()) >= 5,
-      String(await itemButtons.count()),
-    );
-    await page
-      .getByRole("list", { name: "Graph items" })
-      .getByRole("button", { name: "Find the lamp", exact: true })
-      .focus();
-    await page.keyboard.press("Enter");
-    const panel = page.getByRole("region", { name: "Find the lamp" });
-    check("selecting a task node shows its metadata", (await panel.innerText()).includes("Task"));
-    check(
-      "but not its private result",
-      !(await panel.innerText()).includes("The lamp page is open."),
-    );
-    await panel.getByRole("button", { name: "Close", exact: true }).click();
+    await closeAccess();
 
     /* --- usage ------------------------------------------------------------- */
     // One completed task is one use (20261013090000), charged once; failed and stopped ones
@@ -1481,7 +1465,7 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
     device.stdout.on("data", (d) => (deviceLog += d));
     device.stderr.on("data", (d) => (deviceLog += d));
     await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
-    await rail("Devices").click();
+    await openAccess();
     const ownBrowser = page.getByRole("switch", { name: /Use my own browser/ });
     check(
       "the device reports the authorized real browser",
@@ -1489,7 +1473,7 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
     );
     await ownBrowser.click();
     await until(async () => await ownBrowser.isChecked());
-    await page.getByRole("button", { name: "Close", exact: true }).first().click();
+    await closeAccess();
     await script("real-task", [
       {
         tool: "start_task",
@@ -1533,7 +1517,7 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
 
     /* --- removing the device ends its access --------------------------------- */
     await page.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
-    await rail("Devices").click();
+    await openAccess();
     await page.getByRole("button", { name: "Remove device", exact: true }).click();
     const confirmRemove = page.getByRole("alertdialog", { name: /^Remove / });
     check(
@@ -1549,7 +1533,7 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
         !existsSync(path.join(deviceHome, "device.key")),
       deviceLog.slice(-160),
     );
-    await page.getByRole("button", { name: "Close", exact: true }).first().click();
+    await closeAccess();
   }
 
   /* --- the browser's own recogniser, where it cannot reach its service -------- */
@@ -1755,11 +1739,18 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
   );
   await speech.close();
 
-  /* --- navigation, Settings, Orb Focus and layouts ------------------------------ */
+  /* --- navigation, Settings and layouts ----------------------------------------- */
   check(
-    "the rail has exactly Conversations, Activity and Devices: Apps and websites live under Devices",
+    "the rail holds only the work: Conversations, Files and Settings; Devices & Access is in Settings",
     (await rail("Allowed Apps").count()) === 0 &&
-      (await rail("Devices").count()) === 1 &&
+      (await rail("Activity").count()) === 0 &&
+      (await rail("Devices").count()) === 0 &&
+      (await rail("Permissions").count()) === 0 &&
+      (await rail("Conversations").count()) === 1 &&
+      (await page
+        .getByRole("navigation", { name: "JARVIS" })
+        .getByRole("link", { name: "Files" })
+        .count()) === 1 &&
       (await page.getByRole("button", { name: "History", exact: true }).count()) === 0 &&
       (await page.getByRole("button", { name: "Plugins", exact: true }).count()) === 0 &&
       (await page.getByRole("button", { name: /theme/i }).count()) === 0,
@@ -1770,34 +1761,6 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
     await until(async () => (await page.getByRole("dialog").count()) >= 1),
   );
   await page.keyboard.press("Escape");
-  // Double-click the empty space beside the conversation: the orb's space.
-  const box = await page.getByRole("region", { name: "Conversation" }).boundingBox();
-  await page.mouse.dblclick(box.x + 6, box.y + box.height / 2);
-  const header = page.locator("main header");
-  check(
-    "double-click enters Orb Focus",
-    (await page.getByRole("button", { name: "Leave focus", exact: true }).count()) === 1,
-    await page.evaluate(
-      ([x, y]) => document.elementFromPoint(x, y)?.outerHTML.slice(0, 200),
-      [box.x + 6, box.y + box.height / 2],
-    ),
-  );
-  await page.waitForTimeout(8600);
-  check(
-    "in Orb Focus the controls fade after eight quiet seconds",
-    (await header.evaluate((el) => getComputedStyle(el).opacity)) === "0",
-  );
-  await page.mouse.move(300, 300);
-  await page.waitForTimeout(700);
-  check(
-    "and come back on movement",
-    (await header.evaluate((el) => getComputedStyle(el).opacity)) === "1",
-  );
-  await page.keyboard.press("Escape");
-  check(
-    "Escape leaves Orb Focus",
-    (await page.getByRole("button", { name: "Focus orb", exact: true }).count()) === 1,
-  );
   for (const width of [375, 360, 820]) {
     await page.setViewportSize({ width, height: 800 });
     await page.waitForTimeout(300);
@@ -1810,7 +1773,7 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
   await page.getByRole("button", { name: "Open navigation", exact: true }).click();
   check(
     "the phone drawer opens the JARVIS sections",
-    (await page.getByRole("button", { name: "Devices", exact: true }).count()) >= 1,
+    (await page.getByRole("button", { name: "Conversations", exact: true }).count()) >= 1,
   );
   await page
     .getByRole("button", { name: "Close navigation", exact: true })

@@ -155,9 +155,14 @@ try {
   device.stderr.on("data", (d) => (deviceLog += d));
 
   await page.reload({ waitUntil: "networkidle" });
+  // Devices & Access lives in Settings (owner, 21 Oct).
   await page
     .getByRole("navigation", { name: "JARVIS" })
-    .getByRole("button", { name: "Devices" })
+    .getByRole("button", { name: "Settings" })
+    .click();
+  await page
+    .getByRole("navigation", { name: "Settings categories" })
+    .getByRole("button", { name: "Devices & Access" })
     .click();
   const files = page.getByRole("switch", { name: /Files in the workspace/ });
   await until(() => files.isEnabled(), 30_000);
@@ -169,7 +174,7 @@ try {
     await commands.click();
     await until(async () => (await commands.getAttribute("aria-checked")) === "true");
   }
-  await page.getByRole("button", { name: "Close", exact: true }).first().click();
+  await page.keyboard.press("Escape");
 
   /* --- the request: structure first, then one edit each, then the result --- */
   await script("office-check", [

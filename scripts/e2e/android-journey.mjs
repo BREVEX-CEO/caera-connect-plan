@@ -369,9 +369,14 @@ try {
 
   /* --- JARVIS works on the phone, only with what the person allowed -------- */
   await web.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
+  // Devices & Access lives in Settings (owner, 21 Oct).
   await web
     .getByRole("navigation", { name: "JARVIS" })
-    .getByRole("button", { name: "Devices" })
+    .getByRole("button", { name: "Settings" })
+    .click();
+  await web
+    .getByRole("navigation", { name: "Settings categories" })
+    .getByRole("button", { name: "Devices & Access" })
     .click();
   await until(
     async () =>
@@ -815,9 +820,14 @@ try {
 
   /* --- removal in OCADE ---------------------------------------------------- */
   await web.goto(`${BASE}/ocade-jarvis`, { waitUntil: "networkidle" });
+  // Devices & Access lives in Settings (owner, 21 Oct).
   await web
     .getByRole("navigation", { name: "JARVIS" })
-    .getByRole("button", { name: "Devices" })
+    .getByRole("button", { name: "Settings" })
+    .click();
+  await web
+    .getByRole("navigation", { name: "Settings categories" })
+    .getByRole("button", { name: "Devices & Access" })
     .click();
   await web.getByRole("button", { name: "Remove device" }).first().click();
   await web.getByRole("button", { name: "Remove", exact: true }).click();
