@@ -23,14 +23,22 @@ export function QualityControl({
   }, [value]);
   return (
     <div className="my-2 text-xs text-muted-foreground">
-      <div className="flex items-center gap-2" role="group" aria-label="Answer quality">
+      <div
+        className="inline-flex rounded-full border border-border p-0.5"
+        role="group"
+        aria-label="Answer quality"
+      >
         {(["standard", "high"] as const).map((level) => (
           <button
             key={level}
             type="button"
             aria-pressed={value === level}
             disabled={disabled}
-            className="rounded border border-border px-2 py-1 disabled:opacity-40"
+            className={
+              value === level
+                ? "h-7 rounded-full bg-foreground px-3 text-background transition-colors duration-150 disabled:opacity-40"
+                : "h-7 rounded-full px-3 transition-colors duration-150 hover:text-foreground disabled:opacity-40"
+            }
             onClick={() => {
               if (level === "high" && value !== "high") setAsking(true);
               else {
@@ -48,7 +56,7 @@ export function QualityControl({
           <p>{HIGH_USAGE_WARNING} Availability must be verified before anything is sent.</p>
           <button
             type="button"
-            className="rounded border border-border px-2 py-1"
+            className="h-7 rounded-full border border-border px-3"
             onClick={() => {
               setAsking(false);
               onChange("high");

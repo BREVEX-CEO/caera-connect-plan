@@ -23,6 +23,9 @@ describe("the redesigned instructions, as an opt-in candidate", () => {
     // Helper files stay out of the person's folder (FOLDER-21-01): both prompts say where they go.
     for (const prompt of [JARVIS_SYSTEM_PROMPT, JARVIS_SYSTEM_PROMPT_V2])
       expect(prompt).toContain("go in a folder named .jarvis inside the work folder");
+    // A named app or site is where the work happens, or the person is told (ROUTE-21-01).
+    for (const prompt of [JARVIS_SYSTEM_PROMPT, JARVIS_SYSTEM_PROMPT_V2])
+      expect(prompt).toContain("never switch silently");
     expect(JARVIS_SYSTEM_PROMPT_V2).not.toContain("- Never complete a purchase or payment.");
     // Developer-only notes in the owner's file are never sent to the model.
     for (const prompt of [JARVIS_SYSTEM_PROMPT_V2, `${CORE}\n\n${CHAT_MODE}`]) {
