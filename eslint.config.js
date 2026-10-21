@@ -1,5 +1,5 @@
 import js from "@eslint/js";
-import eslintPluginPrettier from "eslint-plugin-prettier/recommended";
+import eslintConfigPrettier from "eslint-config-prettier";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
@@ -78,13 +78,7 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "warn",
     },
   },
-  eslintPluginPrettier,
-  {
-    // Prettier plugin is registered by eslintPluginPrettier above; downgrade
-    // pre-existing Lovable formatting deviations to warnings (run `npm run
-    // format` to normalize) so the lint gate reflects real code errors.
-    rules: {
-      "prettier/prettier": "warn",
-    },
-  },
+  // Formatting is Prettier's own check (`npm run format:check`); ESLint only turns off the
+  // style rules that would fight it.
+  eslintConfigPrettier,
 );
