@@ -123,12 +123,14 @@
   const q = (s) => !!document.querySelector(s);
   let boundary = null;
   if (q('iframe[src*="recaptcha"],iframe[src*="hcaptcha"],iframe[src*="challenges.cloudflare.com"],'
-      + '.g-recaptcha,.h-captcha,.cf-turnstile') || /verify (that )?you are (a )?human|i.?m not a robot/i.test(text)) {
+      + '.g-recaptcha,.h-captcha,.cf-turnstile') || /verify (that )?you are (a )?human|i.?m not a robot|confirm you.{0,3}re not a bot|verif(y|ies) you are not a bot|performing security verification/i.test(text)) {
     boundary = 'captcha';
   } else if (q('input[autocomplete="one-time-code"],input[name*="otp" i],input[id*="otp" i],'
       + 'input[name*="totp" i],input[name*="2fa" i],input[name*="mfa" i]')) {
     boundary = 'otp';
-  } else if (/\bpasskey\b|use your security key|use your (phone|device) to sign in/i.test(text)) {
+  // Asked for, not merely offered: a "Use a passkey" sign-in option on a page that needs no
+  // sign-in is not a boundary.
+  } else if (/(sign in|log in|continue|verify) with (a |your )?passkey|use your (passkey|security key)|use your (phone|device) to sign in/i.test(text)) {
     boundary = 'passkey';
   } else if (q('input[type=password]')) {
     boundary = 'password';

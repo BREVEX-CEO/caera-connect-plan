@@ -58,6 +58,12 @@ PAGES = {
                  "<div id='rm' role='button' tabindex='0'>Delete account</div>",
     "captcha.html": "<title>Check</title><div class='g-recaptcha'></div><p>Verify you are human</p>",
     "otp.html": "<title>Code</title><input autocomplete='one-time-code'>",
+    # As a video site and a bot-protection service word their checks (seen 21 Oct 2026).
+    "botcheck.html": "<title>Video</title><p>Sign in to confirm you\u2019re not a bot</p>",
+    "shield.html": "<title>Just a moment...</title><p>Performing security verification</p>",
+    # A passkey offered as one way in is not a passkey asked for.
+    "offer.html": "<title>Sheet</title><button>Create spreadsheet</button><button>Use a passkey</button>",
+    "asked.html": "<title>Sign in</title><p>Sign in with your passkey</p>",
     # A rich editor: its own Bold button makes what is typed next bold, as editors do.
     "rich.html": """<title>Rich</title><div id='ed' contenteditable aria-label='Body'>Draft:</div>
       <button onmousedown="event.preventDefault()" onclick="document.execCommand('bold')">Bold</button>""",
@@ -402,6 +408,10 @@ class BrowserControlTest(unittest.TestCase):
         self.assertEqual(out["observation"]["humanBoundary"], "captcha")
         out = self.act({"action": "open", "url": f"{self.base}/otp.html"})
         self.assertEqual(out["observation"]["humanBoundary"], "otp")
+        for page, boundary in (("botcheck", "captcha"), ("shield", "captcha"), ("offer", None),
+                               ("asked", "passkey")):
+            out = self.act({"action": "open", "url": f"{self.base}/{page}.html"})
+            self.assertEqual(out["observation"]["humanBoundary"], boundary, page)
 
     def test_verification_pages_cannot_be_operated(self):
         obs = self.act({"action": "open", "url": f"{self.base}/captcha.html"})["observation"]
