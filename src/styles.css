@@ -394,10 +394,6 @@
   }
 }
 
-/* Low-performance — collapse continuous blur & motion. */
-.low-perf {
-  --blur-glass: 0px;
-}
 @layer base {
   * {
     border-color: var(--color-border);

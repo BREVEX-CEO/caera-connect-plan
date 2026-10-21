@@ -757,6 +757,12 @@ export function JarvisWorkspace({
   const lastAsk = [...turns].reverse().find((turn) => turn.role === "user")?.content ?? "";
   const workingWith = mentionedApp(lastAsk, appNames);
   const draftApp = mentionedApp(draft, appNames);
+  // The newest turn, answer, task or question is always in view, as in Chat.
+  const bottom = useRef<HTMLDivElement>(null);
+  const newest = `${turns.length}:${liveAnswer?.length ?? 0}:${conversationTask?.id}:${conversationTask?.status}:${Boolean(confirmAsk)}:${Boolean(takeover)}`;
+  useEffect(() => {
+    bottom.current?.scrollIntoView({ block: "end" });
+  }, [newest]);
   // No JARVIS uses left: the composer locks with the reset time, nothing else.
   const spent = Boolean(jarvis?.usage && jarvis.usage.remaining <= 0);
 
@@ -946,6 +952,25 @@ export function JarvisWorkspace({
           ) : jarvis?.unlimited ? (
             <p className="text-xs text-muted-foreground">Unlimited JARVIS use</p>
           ) : null}
+          {signedIn && (jarvis?.tasks ?? []).some((t) => !FINISHED.includes(t.status)) ? (
+            // STOP for every task on every device, in reach whatever panel is closed (the task's
+            // own STOP is on its card).
+            <button
+              type="button"
+              aria-label="STOP JARVIS on every device"
+              onClick={() => {
+                abort.current?.abort();
+                resumeAfterBusy.current = null;
+                void stopEverywhere(() => {
+                  setActiveTask(null);
+                  refresh();
+                });
+              }}
+              className="h-8 rounded-full bg-foreground px-3 text-xs font-semibold uppercase tracking-wide text-background"
+            >
+              Stop all
+            </button>
+          ) : null}
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
@@ -1097,6 +1122,13 @@ export function JarvisWorkspace({
                     .slice(0, 5)
                     .map((entry) => entry.summary)}
                   latest={jarvis?.activity.find((entry) => entry.task_id === conversationTask.id)}
+                  steps={(jarvis?.activity ?? [])
+                    .filter(
+                      (entry) => entry.task_id === conversationTask.id && entry.status !== "note",
+                    )
+                    .slice(0, 12)
+                    .map((entry) => entry.summary)
+                    .reverse()}
                   // A new task through the same planner, checks and receipts: only the inputs change.
                   onRepeat={() => {
                     setDraft(`Do "${conversationTask.title}" again, with these new inputs: `);
@@ -1120,6 +1152,7 @@ export function JarvisWorkspace({
                   onStop={() => void stop()}
                 />
               ) : null}
+              <div ref={bottom} />
             </div>
           </section>
 
@@ -1128,9 +1161,6 @@ export function JarvisWorkspace({
               task={conversationTask}
               open={browserOpen}
               onToggle={() => setBrowserOpen((value) => !value)}
-              onStop={() => void stop()}
-              onTakeOver={() => void takeOverNow()}
-              onResume={() => void resume()}
             />
           ) : null}
         </div>
@@ -1302,24 +1332,6 @@ export function JarvisWorkspace({
         </div>
       </main>
 
-      {signedIn && (jarvis?.tasks ?? []).some((t) => !FINISHED.includes(t.status)) ? (
-        // The one global STOP JARVIS: round, always within reach, on every device.
-        <button
-          type="button"
-          onClick={() => {
-            abort.current?.abort();
-            resumeAfterBusy.current = null;
-            void stopEverywhere(() => {
-              setActiveTask(null);
-              refresh();
-            });
-          }}
-          className="fixed bottom-24 left-1/2 z-40 grid h-14 w-14 -translate-x-1/2 place-items-center rounded-full bg-foreground text-[10px] font-semibold tracking-wide text-background shadow-lg ring-4 ring-foreground/20 md:bottom-6 md:left-auto md:right-16 md:translate-x-0"
-        >
-          STOP
-          <span className="sr-only"> JARVIS on every device</span>
-        </button>
-      ) : null}
       {connectId && !signedIn && !loading ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
           <section

@@ -25,6 +25,7 @@ Exact file/line means a confirmed source location for new findings, or the exact
 - **Commits:** `476c5a7` (today's human checks recognised: "confirm you're not a bot", "performing security verification"; a passkey *offer* beside a username field no longer stops a task), `d7132cd` (real-model harness; `app_info` finds command-line programs on PATH by exact name and never runs them; `file_info` reports media seconds/size/fps off Windows via ffprobe, which the prompt already promised).
 - **Measured, real model:** [record](docs/audit-checkpoints/architecture-benchmark/20261021-real-model/README.md). A remains the architecture; F not adopted (faster when right, not more reliable; one false completion).
 - **Owed fixes found:** RATE-21-01 (calls per minute exceed free-tier limits), MEDIA-21-01 (true-peak limiting, captions, editor project), FOLDER-21-01 (helper files left in the person's folder), SHEET-21-01 (dates split across cells). See [open work](BLOCKED_TESTS.md).
+- **UI (owner redesign, first slice):** `a8bef28` and its follow-up; see [UI record](docs/audit-checkpoints/ui-redesign-20261021/README.md) and UI-21-01 in [open work](BLOCKED_TESTS.md). JOURNEY-20-01 and the carry-on journey were fixture faults against `fbdcad2`'s stricter completion; both pass now.
 - **Not verified:** ≥95% success for any workflow family (n is 1–3), native platforms, STOP/crash with the real model, TEST 1 and TEST 3, Offline install, High mode. Readiness gates closed this session: 0 of 10.
 
 ## Claude implementation continuation — 20 October 2026

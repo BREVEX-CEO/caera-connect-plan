@@ -62,7 +62,7 @@ const SCREENS = [
         .click();
       await page
         .getByRole("navigation", { name: "Settings categories" })
-        .getByRole("button", { name: "Devices & Access" })
+        .getByRole("button", { name: "Devices", exact: true })
         .click();
     },
   },
@@ -80,6 +80,11 @@ const SCREENS = [
         .getByRole("button", { name: "Settings" })
         .click();
     },
+  },
+  {
+    name: "settings-preferences",
+    path: "/?settings=preferences",
+    signedIn: true,
   },
 ];
 

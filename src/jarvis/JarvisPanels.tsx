@@ -11,6 +11,7 @@ import { useConfirmIdentity } from "@/components/security/ConfirmIdentity";
 import { FINISHED, hostOf, type Capability, TASK_STATUS } from "./protocol";
 import { isAllowed } from "./permissions";
 import { readPreferences, useJarvisPreferences, writePreferences } from "./preferences";
+import { Toggle as Switch } from "@/components/settings/rows";
 import { useSession } from "@/lib/session";
 import {
   approveJarvisDevice,
@@ -54,6 +55,7 @@ async function decide(
   }
 }
 
+/** One setting: its name (and a short note only when needed) left, a pill switch right. */
 function Toggle({
   label,
   checked,
@@ -68,25 +70,18 @@ function Toggle({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <label className={cn("flex items-start gap-3 py-2 text-sm", disabled && "opacity-50")}>
-      <input
-        type="checkbox"
-        role="switch"
-        checked={checked}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.checked)}
-        className="mt-0.5 h-4 w-4 accent-info"
-      />
-      <span className="flex-1">
-        {label}
-        {hint ? <span className="block text-xs text-muted-foreground">{hint}</span> : null}
-      </span>
-    </label>
+    <div className={cn("flex items-center justify-between gap-4 py-2", disabled && "opacity-50")}>
+      <div className="min-w-0">
+        <p className="text-sm">{label}</p>
+        {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+      </div>
+      <Switch checked={checked} onChange={onChange} label={label} disabled={disabled} />
+    </div>
   );
 }
 
 const DEVICE_STATUS = {
-  ready: { label: "Ready", tone: "bg-success/15 text-success" },
+  ready: { label: "Connected", tone: "bg-success/15 text-success" },
   busy: { label: "Working", tone: "bg-info/15 text-info" },
   needs_permission: { label: "Needs permission", tone: "bg-muted text-foreground" },
   offline: { label: "Offline", tone: "bg-muted text-muted-foreground" },
@@ -171,6 +166,7 @@ function SectionBody({
   const [opened, setOpened] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
   const [find, setFind] = useState("");
+  const [addingSite, setAddingSite] = useState(false);
 
   // Reminders and scheduled work, removable here: their record lives on the server.
   const REPEATS: Record<string, string> = {
@@ -315,10 +311,6 @@ function SectionBody({
   // not a rail entry of their own. The same rules, the same controls.
   const appsAndSites = (
     <>
-      <p className="mb-2 text-xs text-muted-foreground">
-        Websites JARVIS has used or you have set. Turning one off stops JARVIS from opening it.
-      </p>
-      {state.sites.length === 0 ? <p className="text-muted-foreground">No websites yet.</p> : null}
       {state.sites.map((site) => (
         <Toggle
           key={site}
@@ -330,69 +322,112 @@ function SectionBody({
           onChange={(allowed) => void decide(`site:${site}`, allowed, null, onChanged)}
         />
       ))}
-      <form
-        className="mt-3 flex gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const input = event.currentTarget.elements.namedItem("site") as HTMLInputElement;
-          const host = hostOf(input.value);
-          if (!host || !/^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/.test(host)) {
-            toast.error("Enter a website address, such as example.com.");
-            return;
-          }
-          void decide(`site:${host}`, true, null, onChanged);
-          input.value = "";
-        }}
-      >
-        <label htmlFor="jarvis-allow-site" className="sr-only">
-          Website to allow
-        </label>
-        <input
-          id="jarvis-allow-site"
-          name="site"
-          placeholder="example.com"
-          className="min-w-0 flex-1 rounded-md border border-border/60 bg-transparent px-2 py-1"
-        />
-        <button type="submit" className="rounded-md border border-border px-2 py-1 text-xs">
-          Allow site
+      {addingSite ? null : (
+        <button
+          type="button"
+          onClick={() => setAddingSite(true)}
+          className="mt-1 h-8 rounded-full border border-border px-3 text-xs hover:bg-accent"
+        >
+          Allow a website
         </button>
-      </form>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Addresses on your own network need your permission first.
-      </p>
+      )}
+      {addingSite ? (
+        <form
+          className="mt-2 flex gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const input = event.currentTarget.elements.namedItem("site") as HTMLInputElement;
+            const host = hostOf(input.value);
+            if (!host || !/^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/.test(host)) {
+              toast.error("Enter a website address, such as example.com.");
+              return;
+            }
+            void decide(`site:${host}`, true, null, onChanged);
+            input.value = "";
+          }}
+        >
+          <label htmlFor="jarvis-allow-site" className="sr-only">
+            Website to allow
+          </label>
+          <input
+            id="jarvis-allow-site"
+            name="site"
+            autoFocus
+            className="h-8 min-w-0 flex-1 rounded-full border border-border/60 bg-transparent px-3 text-sm"
+          />
+          <button type="submit" className="h-8 rounded-full border border-border px-3 text-xs">
+            Allow site
+          </button>
+        </form>
+      ) : null}
     </>
   );
 
-  // Devices
+  // Devices: each paired computer or phone, what it is doing, and what it may do.
   const devices = state.devices.filter((d) => !d.revoked_at && d.last_seen_at);
   const openTasks = state.tasks.filter((t) => !FINISHED.includes(t.status) && t.device_id);
+  const sites = state.sites.length ? (
+    <section aria-label="Websites" className="mt-4">
+      <h3 className="mb-1 text-sm font-medium">Websites</h3>
+      {appsAndSites}
+    </section>
+  ) : (
+    <div className="mt-4">{appsAndSites}</div>
+  );
   return (
     <>
-      <h3 className="mb-1 text-sm font-medium">Remote PC</h3>
-      <p className="mb-2 text-xs text-muted-foreground">
-        What JARVIS is doing on your computers, from any device. Each computer does one task at a
-        time.
-      </p>
-      {openTasks.length === 0 ? (
-        <p className="mb-3 text-muted-foreground">No computer is working on a task.</p>
-      ) : (
-        <ul className="mb-3 flex flex-col gap-2">
-          {openTasks.map((t) => {
-            const on = devices.find((d) => d.id === t.device_id);
-            return (
-              <li key={t.id} className="rounded-md border border-border/60 p-2">
-                <p className="truncate font-medium">{t.title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {on ? `${on.name} · ${on.online ? "Online" : "Offline"} · ` : ""}
-                  {t.status.replace("_", " ")} · step{" "}
-                  {Math.min(t.current_step + 1, Math.max(1, t.plan.length))} of{" "}
-                  {Math.max(1, t.plan.length)}
+      <h3 className="mb-1 text-sm font-medium">My devices</h3>
+      {devices.length === 0 ? (
+        <div className="rounded-2xl border border-border/60 p-4">
+          <p className="text-sm font-medium">Connect a computer</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Start the OCADE Device Agent on it, then confirm here with one click.
+          </p>
+          <div className="text-xs text-muted-foreground">
+            <AgentDownload />
+          </div>
+        </div>
+      ) : null}
+      <ul className="flex flex-col gap-3">
+        {devices.map((d) => {
+          const working = openTasks.filter((t) => t.device_id === d.id);
+          return (
+            <li key={d.id} className="rounded-2xl border border-border/60 px-4 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="min-w-0 truncate text-sm font-medium">
+                  {d.name}
+                  {d.platform ? (
+                    <span className="font-normal text-muted-foreground"> · {d.platform}</span>
+                  ) : null}
                 </p>
-                <div className="mt-2 flex gap-2">
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full px-2 py-0.5 text-[11px]",
+                    DEVICE_STATUS[d.status].tone,
+                  )}
+                >
+                  {DEVICE_STATUS[d.status].label}
+                </span>
+              </div>
+              {d.status === "offline" ? (
+                <p className="text-xs text-muted-foreground">
+                  {d.kind === "android" ? "Open OCADE on the phone" : "Open the OCADE Device Agent"}
+                  {/* Two computers with one name (a reinstall) are told apart by when each was last here. */}
+                  {d.last_seen_at
+                    ? ` · last seen ${new Date(d.last_seen_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`
+                    : ""}
+                </p>
+              ) : null}
+              {working.map((t) => (
+                <div key={t.id} className="mt-2 flex items-center gap-2 text-xs">
+                  <p className="min-w-0 flex-1 truncate">
+                    {t.title} · step {Math.min(t.current_step + 1, Math.max(1, t.plan.length))} of{" "}
+                    {Math.max(1, t.plan.length)}
+                  </p>
                   <button
                     type="button"
                     onClick={() => onOpenConversation(t.conversation_id)}
-                    className="rounded-md border border-border px-2 py-1 text-xs"
+                    className="h-7 rounded-full border border-border px-3"
                   >
                     Open
                   </button>
@@ -403,170 +438,117 @@ function SectionBody({
                         .then(onChanged)
                         .catch(() => toast.error("That task could not be stopped."))
                     }
-                    className="rounded-md bg-foreground px-2 py-1 text-xs text-background"
+                    className="h-7 rounded-full bg-foreground px-3 text-background"
                   >
                     Stop
                   </button>
                 </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      <h3 className="mb-1 text-sm font-medium">Connected</h3>
-      {devices.length === 0 ? (
-        <p className="text-muted-foreground">
-          No device is connected. Browser tasks run on a connected computer.
-        </p>
-      ) : null}
-      <ul className="flex flex-col gap-2">
-        {devices.map((d) => (
-          <li key={d.id} className="rounded-md border border-border/60 p-2">
-            <div className="flex items-center justify-between gap-2">
-              <p className="min-w-0 truncate font-medium">{d.name}</p>
-              <span
-                className={cn(
-                  "shrink-0 rounded-full px-2 py-0.5 text-[11px]",
-                  DEVICE_STATUS[d.status].tone,
+              ))}
+              {devices.length > 1 ? (
+                <label className="mt-2 flex items-center gap-2 text-xs">
+                  <input
+                    type="radio"
+                    name="jarvis-target"
+                    checked={target === d.id}
+                    onChange={() => onTarget(d.id)}
+                  />
+                  Use for new tasks
+                </label>
+              ) : null}
+              <div className="mt-1 divide-y divide-border/40">
+                {d.kind === "android" ? null : (
+                  <>
+                    <Toggle
+                      label="Browser control"
+                      checked={isAllowed(state.permissions, "browser", d.id)}
+                      onChange={(allowed) => void decide("browser", allowed, d.id, onChanged)}
+                    />
+                    <Toggle
+                      label="Use my own browser"
+                      hint={d.capabilities.browser_real ? undefined : "Not set up on this device"}
+                      disabled={!d.capabilities.browser_real}
+                      checked={isAllowed(state.permissions, "browser_real", d.id)}
+                      onChange={(allowed) => void decide("browser_real", allowed, d.id, onChanged)}
+                    />
+                  </>
                 )}
-              >
-                {DEVICE_STATUS[d.status].label}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {d.status === "needs_permission"
-                ? "Turn on what JARVIS may do below"
-                : d.status === "offline"
-                  ? d.kind === "android"
-                    ? "Open OCADE on the phone"
-                    : "Open the OCADE Device Agent on it"
-                  : "Can work now"}
-              {d.platform ? ` · ${d.platform}` : ""}
-              {/* Two computers with one name (a reinstall) are told apart by when each was last here. */}
-              {d.status === "offline" && d.last_seen_at
-                ? ` · last seen ${new Date(d.last_seen_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`
-                : ""}
-            </p>
-            {devices.length > 1 ? (
-              <label className="mt-2 flex items-center gap-2 text-xs">
-                <input
-                  type="radio"
-                  name="jarvis-target"
-                  checked={target === d.id}
-                  onChange={() => onTarget(d.id)}
-                />
-                New tasks run on this {d.kind === "android" ? "phone" : "computer"}
-              </label>
-            ) : null}
-            {d.kind === "android" ? null : (
-              <>
-                <Toggle
-                  label="Browser control"
-                  checked={isAllowed(state.permissions, "browser", d.id)}
-                  onChange={(allowed) => void decide("browser", allowed, d.id, onChanged)}
-                />
-                <Toggle
-                  label="Use my own browser"
-                  hint={d.capabilities.browser_real ? undefined : "Not authorized on this device"}
-                  disabled={!d.capabilities.browser_real}
-                  checked={isAllowed(state.permissions, "browser_real", d.id)}
-                  onChange={(allowed) => void decide("browser_real", allowed, d.id, onChanged)}
-                />
-              </>
-            )}
-            {COMPUTER_TOGGLES.map(([capability, label, hint]) => (
-              <Toggle
-                key={capability}
-                label={label}
-                hint={
-                  d.capabilities[capability]
-                    ? hint
-                    : d.kind === "android"
-                      ? "Not available on this phone"
-                      : "Not available on this computer"
-                }
-                disabled={!d.capabilities[capability]}
-                checked={isAllowed(state.permissions, capability, d.id)}
-                onChange={(allowed) => void decide(capability, allowed, d.id, onChanged)}
-              />
-            ))}
-            {d.kind === "agent" ? (
-              <Toggle
-                label="Background Mode"
-                hint="This computer keeps working on its task after you close OCADE here. You can watch or stop it from any device, and anything that needs you waits for you."
-                checked={d.background_enabled}
-                onChange={(enabled) =>
-                  void setJarvisBackground({ data: { id: d.id, enabled } })
-                    .then(onChanged)
-                    .catch(() => toast.error("That could not be saved."))
-                }
-              />
-            ) : null}
-            {d.kind === "agent" ? (
-              <Toggle
-                label="Scheduled work"
-                hint={
-                  d.background_enabled
-                    ? "JARVIS may start work you scheduled, on its own, at the time you chose. Anything that needs you still waits for you."
-                    : "Needs Background Mode on this computer."
-                }
-                disabled={!d.background_enabled}
-                checked={d.background_enabled && isAllowed(state.permissions, "autonomous", d.id)}
-                onChange={(allowed) => void decide("autonomous", allowed, d.id, onChanged)}
-              />
-            ) : null}
-            {removing === d.id ? (
-              <div role="alertdialog" aria-label={`Remove ${d.name}`} className="mt-2 text-xs">
-                <p>
-                  Remove {d.name}? It stops working with OCADE at once
-                  {openTasks.some((t) => t.device_id === d.id) ? " and its task stops" : ""}.
-                </p>
-                <div className="mt-1 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRemoving(null);
-                      if (target === d.id) onTarget(null);
-                      void revokeJarvisDevice({ data: { id: d.id } })
+                {COMPUTER_TOGGLES.map(([capability, label]) => (
+                  <Toggle
+                    key={capability}
+                    label={label}
+                    hint={d.capabilities[capability] ? undefined : "Not available on this device"}
+                    disabled={!d.capabilities[capability]}
+                    checked={isAllowed(state.permissions, capability, d.id)}
+                    onChange={(allowed) => void decide(capability, allowed, d.id, onChanged)}
+                  />
+                ))}
+                {d.kind === "agent" ? (
+                  <Toggle
+                    label="Background Mode"
+                    hint="It keeps working on its task after you close OCADE here."
+                    checked={d.background_enabled}
+                    onChange={(enabled) =>
+                      void setJarvisBackground({ data: { id: d.id, enabled } })
                         .then(onChanged)
-                        .catch(() => toast.error("That device could not be removed."));
-                    }}
-                    className="rounded-md bg-destructive px-2 py-1 text-destructive-foreground"
-                  >
-                    Remove
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRemoving(null)}
-                    className="rounded-md border border-border px-2 py-1"
-                  >
-                    Cancel
-                  </button>
-                </div>
+                        .catch(() => toast.error("That could not be saved."))
+                    }
+                  />
+                ) : null}
+                {d.kind === "agent" ? (
+                  <Toggle
+                    label="Scheduled work"
+                    hint={d.background_enabled ? undefined : "Needs Background Mode"}
+                    disabled={!d.background_enabled}
+                    checked={
+                      d.background_enabled && isAllowed(state.permissions, "autonomous", d.id)
+                    }
+                    onChange={(allowed) => void decide("autonomous", allowed, d.id, onChanged)}
+                  />
+                ) : null}
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setRemoving(d.id)}
-                className="mt-2 text-xs text-destructive underline underline-offset-2"
-              >
-                Remove device
-              </button>
-            )}
-          </li>
-        ))}
+              {removing === d.id ? (
+                <div role="alertdialog" aria-label={`Remove ${d.name}`} className="mt-2 text-xs">
+                  <p>
+                    Remove {d.name}? It stops working with OCADE at once
+                    {working.length ? " and its task stops" : ""}.
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRemoving(null);
+                        if (target === d.id) onTarget(null);
+                        void revokeJarvisDevice({ data: { id: d.id } })
+                          .then(onChanged)
+                          .catch(() => toast.error("That device could not be removed."));
+                      }}
+                      className="h-8 rounded-full bg-destructive px-3 text-destructive-foreground"
+                    >
+                      Remove
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRemoving(null)}
+                      className="h-8 rounded-full border border-border px-3"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setRemoving(d.id)}
+                  className="mt-2 text-xs text-destructive"
+                >
+                  Remove device
+                </button>
+              )}
+            </li>
+          );
+        })}
       </ul>
-      <div className="mt-3 rounded-md border border-border/60 p-2 text-xs text-muted-foreground">
-        <p className="font-medium text-foreground">Connect a computer</p>
-        <p className="mt-1">
-          Start the OCADE Device Agent on the computer. It opens OCADE here so you can confirm it
-          with one click — no codes or passwords. Each computer gets its own key, and you can remove
-          it at any time.
-        </p>
-        <AgentDownload />
-      </div>
-      <h3 className="mb-1 mt-4 text-sm font-medium">Apps and websites</h3>
-      {appsAndSites}
+      {sites}
     </>
   );
 }
@@ -621,16 +603,12 @@ function AgentDownload() {
 }
 
 /** Per-computer capabilities, each off until the person turns it on for that computer. */
-const COMPUTER_TOGGLES: [Capability, string, string][] = [
-  ["apps", "Open apps", "Apps this computer found. Terminals and system tools ask first."],
-  ["files", "Files in the workspace", "Only inside the folder chosen on the computer."],
-  [
-    "terminal",
-    "Run commands in the work folder",
-    "Commands run with your access to that folder. Publishing, deleting or installing asks first.",
-  ],
-  ["screen", "See the screen", "Used when nothing more direct works."],
-  ["computer_control", "Mouse and keyboard", "Your own input pauses JARVIS until you continue."],
+const COMPUTER_TOGGLES: [Capability, string][] = [
+  ["apps", "Open apps"],
+  ["files", "Files in the workspace"],
+  ["terminal", "Run commands in the work folder"],
+  ["screen", "See the screen"],
+  ["computer_control", "Mouse and keyboard"],
 ];
 
 /**
@@ -698,89 +676,38 @@ export function ScopeToggle({
   );
 }
 
-/**
- * Devices & Access, in Settings: what JARVIS may do, its memories, and each computer and its
- * own permissions. Read from the same JARVIS record the workspace shows.
- */
-export function JarvisAccess() {
+/** The account's JARVIS record, as Settings reads it (the same cache the workspace uses). */
+function useJarvisRecord() {
   const { user } = useSession();
   const queryClient = useQueryClient();
-  const prefs = useJarvisPreferences();
-  const access = useQuery({
+  const record = useQuery({
     queryKey: ["jarvis", "state", user?.id ?? ""],
     queryFn: () => readJarvisState({ data: { maintain: false } }),
     enabled: Boolean(user),
   });
-  const state = access.data;
   const onChanged = () => void queryClient.invalidateQueries({ queryKey: ["jarvis", "state"] });
+  return { record, onChanged };
+}
+
+/** Settings > Devices: JARVIS on or off, then each device and what it may do. */
+export function JarvisAccess() {
+  const prefs = useJarvisPreferences();
+  const { record, onChanged } = useJarvisRecord();
+  const state = record.data;
   if (!state) {
-    return access.isError ? (
-      <p className="text-sm text-muted-foreground">Devices and access could not be loaded.</p>
+    return record.isError ? (
+      <p className="text-sm text-muted-foreground">Your devices could not be loaded.</p>
     ) : null;
   }
-  const rows = state.permissions;
-  const set = (capability: Capability, allowed: boolean) =>
-    void decide(capability, allowed, null, onChanged);
   return (
     <div className="text-sm">
       <section aria-label="What JARVIS may do" className="mb-4">
-        <h3 className="mb-1 text-sm font-medium">What JARVIS may do</h3>
-
         <Toggle
           label="OCADE JARVIS"
-          hint="Turn off to stop every JARVIS task and action."
-          checked={isAllowed(rows, "master")}
-          onChange={(v) => set("master", v)}
+          hint="Off stops every task and action."
+          checked={isAllowed(state.permissions, "master")}
+          onChange={(v) => void decide("master", v, null, onChanged)}
         />
-        <Toggle
-          label="Browser control"
-          checked={isAllowed(rows, "browser")}
-          onChange={(v) => set("browser", v)}
-        />
-        <Toggle
-          label="Use my own browser"
-          hint="Only on devices where you started your browser for JARVIS."
-          checked={isAllowed(rows, "browser_real")}
-          onChange={(v) => set("browser_real", v)}
-        />
-        <Toggle
-          label="Memory"
-          hint="Let JARVIS remember preferences you tell it. Separate from Chat."
-          checked={isAllowed(rows, "memory")}
-          onChange={(v) => set("memory", v)}
-        />
-        {state.memories.length ? (
-          <section aria-label="Saved memories" className="mt-1">
-            <h3 className="mb-1 text-xs font-medium text-muted-foreground">Saved memories</h3>
-            <ul className="flex flex-col gap-1">
-              {state.memories.map((memory) => (
-                <li
-                  key={memory.id}
-                  className="flex items-start gap-2 border-b border-border/40 py-1"
-                >
-                  <p className="min-w-0 flex-1 whitespace-pre-wrap break-words text-xs">
-                    {memory.content}
-                  </p>
-                  <button
-                    type="button"
-                    aria-label={`Forget ${memory.content.slice(0, 40)}`}
-                    onClick={() =>
-                      void forgetJarvis({ data: { id: memory.id } })
-                        .then(onChanged)
-                        .catch(() => toast.error("That memory could not be removed."))
-                    }
-                    className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-        <p className="mt-2 text-xs text-muted-foreground">
-          JARVIS never makes purchases and asks before anything sensitive.
-        </p>
       </section>
       <section aria-label="Devices">
         <SectionBody
@@ -794,6 +721,46 @@ export function JarvisAccess() {
         />
       </section>
     </div>
+  );
+}
+
+/** Settings > Preferences: whether JARVIS remembers, and what it remembered, each forgettable. */
+export function JarvisMemory() {
+  const { record, onChanged } = useJarvisRecord();
+  const state = record.data;
+  if (!state) return null;
+  return (
+    <section aria-label="JARVIS memory">
+      <Toggle
+        label="JARVIS memory"
+        hint="Preferences you tell JARVIS. Separate from Chat."
+        checked={isAllowed(state.permissions, "memory")}
+        onChange={(v) => void decide("memory", v, null, onChanged)}
+      />
+      {state.memories.length ? (
+        <ul aria-label="Saved memories" className="flex flex-col">
+          {state.memories.map((memory) => (
+            <li key={memory.id} className="flex items-start gap-2 border-t border-border/40 py-1.5">
+              <p className="min-w-0 flex-1 whitespace-pre-wrap break-words text-xs">
+                {memory.content}
+              </p>
+              <button
+                type="button"
+                aria-label={`Forget ${memory.content.slice(0, 40)}`}
+                onClick={() =>
+                  void forgetJarvis({ data: { id: memory.id } })
+                    .then(onChanged)
+                    .catch(() => toast.error("That memory could not be removed."))
+                }
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   );
 }
 

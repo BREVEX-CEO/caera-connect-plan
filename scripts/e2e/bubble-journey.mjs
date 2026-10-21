@@ -255,7 +255,7 @@ try {
   await page.getByRole("button", { name: /bubble-a-.*@ocade.test/ }).click();
   await page.getByRole("menuitem", { name: /Settings/ }).click();
   const settings = page.getByRole("dialog", { name: "Settings" });
-  await settings.getByRole("button", { name: "Appearance" }).click();
+  await settings.getByRole("button", { name: "Preferences" }).click();
   await settings.getByRole("switch", { name: "JARVIS bubble" }).click();
   await page.keyboard.press("Escape");
   check("Settings › Appearance brings it back", await visible(bubble, 5000));

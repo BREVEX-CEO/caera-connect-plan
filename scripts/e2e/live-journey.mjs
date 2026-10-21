@@ -158,13 +158,14 @@ try {
     .click();
   await page
     .getByRole("navigation", { name: "Settings categories" })
-    .getByRole("button", { name: "Devices & Access" })
+    .getByRole("button", { name: "Devices", exact: true })
     .click();
   const files = page.getByRole("switch", { name: /Files in the workspace/ });
   await until(() => files.isEnabled(), 30_000);
   await files.click();
   // The order-status pages are served on this machine: allowed as a person would allow them.
   if (wanted("status")) {
+    await page.getByRole("button", { name: "Allow a website", exact: true }).click();
     await page.locator("#jarvis-allow-site").fill("127.0.0.1");
     await page.getByRole("button", { name: "Allow site", exact: true }).click();
     await until(() => page.getByRole("switch", { name: "127.0.0.1" }).isChecked());

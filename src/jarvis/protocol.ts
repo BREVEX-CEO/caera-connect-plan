@@ -948,6 +948,11 @@ export function describeAction(action: DeviceAction): string {
   }
 }
 
+/** A step as a person reads it: a page by its site name, never its full address. */
+export function plainStep(summary: string): string {
+  return summary.replace(/https?:\/\/[^\s"'<>]+/g, (url) => hostOf(url) ?? "a page");
+}
+
 /**
  * The app the person named with @ ("@Excel make a chart"), as this computer lists it: the
  * longest listed name that follows an @ at a word start, ignoring case. Null when none fits.

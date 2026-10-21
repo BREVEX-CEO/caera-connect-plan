@@ -162,7 +162,7 @@ try {
     .click();
   await page
     .getByRole("navigation", { name: "Settings categories" })
-    .getByRole("button", { name: "Devices & Access" })
+    .getByRole("button", { name: "Devices", exact: true })
     .click();
   const files = page.getByRole("switch", { name: /Files in the workspace/ });
   await until(() => files.isEnabled(), 30_000);

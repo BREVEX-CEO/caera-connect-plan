@@ -146,7 +146,7 @@ try {
     .click();
   await desk.page
     .getByRole("navigation", { name: "Settings categories" })
-    .getByRole("button", { name: "Devices & Access" })
+    .getByRole("button", { name: "Devices", exact: true })
     .click();
   const files = desk.page.getByRole("switch", { name: /Files in the workspace/ });
   await until(() => files.isEnabled(), 30_000);
@@ -529,7 +529,7 @@ try {
   await rail("Settings").click();
   await plan
     .getByRole("navigation", { name: "Settings categories" })
-    .getByRole("button", { name: "Devices & Access" })
+    .getByRole("button", { name: "Devices", exact: true })
     .click();
   const scheduledWork = plan.getByRole("switch", { name: /Scheduled work/ });
   await until(() => scheduledWork.isEnabled(), 20_000);

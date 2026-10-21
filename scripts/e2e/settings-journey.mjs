@@ -22,8 +22,8 @@ import { BASE, EXECUTABLE, SUPABASE } from "./common.mjs";
 
 const CATEGORY_NAMES = [
   "Account",
-  "Appearance",
-  "Notifications",
+  "Preferences",
+  "Devices",
   "Privacy & Security",
   "Billing & Usage",
 ];
@@ -89,9 +89,8 @@ try {
   await dialog.waitFor();
   const categories = await dialog.locator("nav button").allInnerTexts();
   check(
-    "Settings offers exactly its seven categories",
-    categories.join("|") ===
-      "Account|Appearance|Voice|Notifications|Devices & Access|Privacy & Security|Billing & Usage",
+    "Settings offers exactly its five categories",
+    categories.join("|") === "Account|Preferences|Devices|Privacy & Security|Billing & Usage",
     categories.join("|"),
   );
 
@@ -117,7 +116,7 @@ try {
 
   /* --- Notifications: a choice that reaches the account -------------------- */
 
-  await page.getByRole("button", { name: "Notifications", exact: true }).click();
+  await page.getByRole("button", { name: "Preferences", exact: true }).click();
   await page.waitForSelector("text=Optional notifications", { timeout: 15_000 });
   check(
     "security and account recovery are shown as always on",
@@ -132,7 +131,7 @@ try {
 
   await page.keyboard.press("Escape");
   await page.reload({ waitUntil: "networkidle" });
-  await openSettings(page, "Notifications");
+  await openSettings(page, "Preferences");
   await page.waitForSelector("text=Held between", { timeout: 15_000 });
   check("the setting is still there after a refresh", true);
   await page.keyboard.press("Escape");
@@ -140,7 +139,7 @@ try {
   const second = await signedInContext();
   const otherDevice = await second.newPage();
   await otherDevice.goto(`${BASE}/`, { waitUntil: "networkidle" });
-  await openSettings(otherDevice, "Notifications");
+  await openSettings(otherDevice, "Preferences");
   await otherDevice.waitForSelector("text=Held between", { timeout: 15_000 });
   check("and on another device, because it is the account's rather than the browser's", true);
   await second.close();
@@ -189,13 +188,7 @@ try {
 
   /* --- and nothing anywhere in Settings names one -------------------------- */
 
-  for (const category of [
-    "Account",
-    "Appearance",
-    "Notifications",
-    "Privacy & Security",
-    "Billing & Usage",
-  ]) {
+  for (const category of CATEGORY_NAMES) {
     await page.getByRole("button", { name: category, exact: true }).click();
     await page.waitForTimeout(400);
     const text = await dialog.innerText();
@@ -208,7 +201,7 @@ try {
 
   /* --- JARVIS voice and Reset, kept on this device ------------------------- */
 
-  await page.getByRole("button", { name: "Voice", exact: true }).click();
+  await page.getByRole("button", { name: "Preferences", exact: true }).click();
   const stored = () =>
     page.evaluate(() => JSON.parse(localStorage.getItem("ocade:jarvis:v1") ?? "{}"));
   const voicePicker = page.getByRole("combobox", { name: "JARVIS voice" });

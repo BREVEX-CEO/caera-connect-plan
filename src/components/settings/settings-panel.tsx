@@ -26,15 +26,13 @@ import {
 const loadDialog = () => import("./settings-dialog");
 const SettingsDialog = lazy(loadDialog);
 
-const SETTINGS_CATEGORIES = [
-  "account",
-  "appearance",
-  "voice",
-  "notifications",
-  "devices",
-  "privacy",
-  "billing",
-] as const;
+const SETTINGS_CATEGORIES = ["account", "preferences", "devices", "privacy", "billing"] as const;
+/** Older links name the parts Preferences now holds. */
+const MERGED: Record<string, SettingsCategory> = {
+  appearance: "preferences",
+  voice: "preferences",
+  notifications: "preferences",
+};
 export type SettingsCategory = (typeof SETTINGS_CATEGORIES)[number];
 
 interface SettingsPanelValue {
@@ -75,6 +73,7 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     if (!asked) return;
     if (SETTINGS_CATEGORIES.includes(asked as SettingsCategory))
       setCategory(asked as SettingsCategory);
+    else if (MERGED[asked]) setCategory(MERGED[asked]);
     url.searchParams.delete("settings");
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
   }, []);

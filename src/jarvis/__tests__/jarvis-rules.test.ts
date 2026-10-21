@@ -651,3 +651,29 @@ describe("an app named with @", () => {
     expect(mentionedApp("no mention here", apps)).toBeNull();
   });
 });
+
+describe("a step as the person reads it", () => {
+  it("names a page by its site, never its full address", async () => {
+    const { plainStep } = await import("../protocol");
+    expect(plainStep("Opened https://shop.example.com/cart?token=abc123")).toBe(
+      "Opened shop.example.com",
+    );
+    expect(plainStep("Typing into a field")).toBe("Typing into a field");
+  });
+});
+
+describe("JARVIS's own voice", () => {
+  const voice = (name: string, lang = "en-US") =>
+    ({ name, lang, voiceURI: name }) as SpeechSynthesisVoice;
+  it("is a natural female-presenting voice of the page's language, unless the person chose one", async () => {
+    const { pickVoice } = await import("../use-voice");
+    const voices = [
+      voice("Microsoft David - English (United States)"),
+      voice("Microsoft Aria Online (Natural) - English (United States)"),
+      voice("Microsoft Hedda - German", "de-DE"),
+    ];
+    expect(pickVoice(voices, null, "en-GB")?.name).toContain("Aria");
+    expect(pickVoice(voices, "Microsoft Hedda - German", "en-GB")?.name).toContain("Hedda");
+    expect(pickVoice([voice("Microsoft David - English (United States)")], null, "en")).toBeNull();
+  });
+});

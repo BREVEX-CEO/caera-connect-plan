@@ -119,7 +119,7 @@ for (const run of RUNS) {
     check(
       label("Settings shows the five categories"),
       (await dialog.locator("nav button").allInnerTexts()).join("|") ===
-        "Account|Appearance|Notifications|Privacy & Security|Billing & Usage",
+        "Account|Preferences|Devices|Privacy & Security|Billing & Usage",
     );
     check(label("Settings does not overflow"), (await overflow()) <= 1);
     await page.keyboard.press("Escape");

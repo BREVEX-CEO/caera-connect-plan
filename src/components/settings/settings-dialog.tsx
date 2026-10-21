@@ -2,17 +2,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
-  Bell,
   CreditCard,
-  Mic,
-  Monitor,
   MonitorSmartphone,
   Moon,
   ShieldCheck,
+  SlidersHorizontal,
   User,
   X,
 } from "lucide-react";
-import { JarvisAccess } from "@/jarvis/JarvisPanels";
+import { JarvisAccess, JarvisMemory } from "@/jarvis/JarvisPanels";
 import { cn } from "@/lib/utils";
 import { useModalFocus } from "@/lib/use-modal-focus";
 import { useAppearance } from "@/lib/appearance";
@@ -23,6 +21,7 @@ import {
   useJarvisPreferences,
   writePreferences,
 } from "@/jarvis/preferences";
+import { pickVoice } from "@/jarvis/use-voice";
 import { useSession } from "@/lib/session";
 import { AdvancedSection } from "./AdvancedSection";
 import { SignInMethods } from "./SignInMethods";
@@ -37,18 +36,16 @@ import { DELETE_CONFIRMATION, deleteMyAccount } from "@/lib/account.functions";
 import type { SettingsCategory } from "./settings-panel";
 
 /*
- * SEVEN CATEGORIES (owner, 21 Oct). Data controls and signed-in sessions are both privacy and
- * security; the allowance and the plan are both billing and usage. What JARVIS may do and the
- * computers it works on are Devices & Access, so the JARVIS sidebar holds only the work.
+ * FIVE CATEGORIES (owner, 21 Oct). Preferences holds appearance, voice, memory and
+ * notifications; Devices holds the computers JARVIS works on and what each may do; data
+ * controls and sessions are privacy and security; the allowance and the plan are billing.
  */
-const CATEGORIES: { id: SettingsCategory; label: string; group: string; icon: typeof User }[] = [
-  { id: "account", label: "Account", group: "General", icon: User },
-  { id: "appearance", label: "Appearance", group: "General", icon: Monitor },
-  { id: "voice", label: "Voice", group: "General", icon: Mic },
-  { id: "notifications", label: "Notifications", group: "General", icon: Bell },
-  { id: "devices", label: "Devices & Access", group: "JARVIS", icon: MonitorSmartphone },
-  { id: "privacy", label: "Privacy & Security", group: "Your data", icon: ShieldCheck },
-  { id: "billing", label: "Billing & Usage", group: "Your data", icon: CreditCard },
+const CATEGORIES: { id: SettingsCategory; label: string; icon: typeof User }[] = [
+  { id: "account", label: "Account", icon: User },
+  { id: "preferences", label: "Preferences", icon: SlidersHorizontal },
+  { id: "devices", label: "Devices", icon: MonitorSmartphone },
+  { id: "privacy", label: "Privacy & Security", icon: ShieldCheck },
+  { id: "billing", label: "Billing & Usage", icon: CreditCard },
 ];
 
 export default function SettingsDialog({
@@ -62,7 +59,6 @@ export default function SettingsDialog({
 }) {
   const { user } = useSession();
   const location = useLocation();
-  const groups = [...new Set(CATEGORIES.map((entry) => entry.group))];
   const self = useRef<HTMLDivElement>(null);
   useModalFocus(self, true);
 
@@ -82,44 +78,27 @@ export default function SettingsDialog({
       />
 
       <div className="glass-strong relative flex h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl sm:h-[min(40rem,88vh)] sm:flex-row sm:rounded-2xl">
-        {/*
-          ON A PHONE THE CATEGORIES ARE A STRIP, NOT A COLUMN.
-          Seven stacked rows of categories with their group headings took most of
-          the sheet's height and left the settings themselves in a band at the
-          bottom. The same list becomes one scrollable row of chips below `sm` —
-          the pattern a phone already uses for tabs — and the desktop sidebar is
-          untouched. Group headings are a desktop affordance and are hidden
-          rather than shortened.
-        */}
+        {/* On a phone the categories are one scrollable row of chips above the settings. */}
         <nav
           className="ocade-scroll flex shrink-0 gap-1 overflow-x-auto border-b border-border/60 p-2 sm:block sm:w-[12.5rem] sm:overflow-x-visible sm:overflow-y-auto sm:border-b-0 sm:border-r sm:p-3"
           aria-label="Settings categories"
         >
-          {groups.map((group) => (
-            <div key={group} className="flex gap-1 sm:mb-2 sm:block">
-              <p className="hidden px-2.5 pb-1 pt-2 text-[13px] text-muted-foreground sm:block">
-                {group}
-              </p>
-              {CATEGORIES.filter((entry) => entry.group === group).map(
-                ({ id, label, icon: Icon }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => onCategoryChange(id)}
-                    aria-current={category === id ? "true" : undefined}
-                    className={cn(
-                      "flex h-9 shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 text-[15px] transition-colors sm:w-full",
-                      category === id
-                        ? "bg-accent text-foreground"
-                        : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
-                    )}
-                  >
-                    <Icon className="h-4 w-4" aria-hidden />
-                    {label}
-                  </button>
-                ),
+          {CATEGORIES.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onCategoryChange(id)}
+              aria-current={category === id ? "true" : undefined}
+              className={cn(
+                "flex h-9 shrink-0 items-center gap-2.5 whitespace-nowrap rounded-full px-3 text-[15px] transition-colors duration-150 sm:mb-0.5 sm:w-full",
+                category === id
+                  ? "bg-accent text-foreground"
+                  : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
               )}
-            </div>
+            >
+              <Icon className="h-4 w-4" aria-hidden />
+              {label}
+            </button>
           ))}
         </nav>
 
@@ -138,7 +117,7 @@ export default function SettingsDialog({
             </button>
           </div>
 
-          {!user && category !== "appearance" ? (
+          {!user && category !== "preferences" ? (
             <div className="space-y-3 text-sm">
               <p className="text-muted-foreground">Sign in to manage your account settings.</p>
               <Link
@@ -152,14 +131,19 @@ export default function SettingsDialog({
           ) : (
             <>
               {category === "account" ? <AccountSettings /> : null}
-              {category === "appearance" ? <AppearanceSettings /> : null}
-              {category === "voice" ? (
+              {category === "preferences" ? (
                 <>
+                  <AppearanceSettings />
                   <JarvisVoiceSetting />
+                  {user ? (
+                    <>
+                      <JarvisMemory />
+                      <NotificationsSection />
+                    </>
+                  ) : null}
                   <ResetJarvis />
                 </>
               ) : null}
-              {category === "notifications" ? <NotificationsSection /> : null}
               {category === "devices" ? <JarvisAccess /> : null}
               {category === "privacy" ? (
                 <>
@@ -323,7 +307,7 @@ function JarvisVoiceSetting() {
   const preview = () => {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance("Hello, I'm JARVIS.");
-    utterance.voice = voices.find((each) => each.voiceURI === voice) ?? null;
+    utterance.voice = pickVoice(voices, voice, navigator.language);
     window.speechSynthesis.speak(utterance);
   };
   if (!voices.length) {
@@ -332,7 +316,7 @@ function JarvisVoiceSetting() {
     );
   }
   return (
-    <Row label="JARVIS voice" description="The voice answers are read in on this device.">
+    <Row label="JARVIS voice">
       <div className="flex items-center gap-2">
         <select
           aria-label="JARVIS voice"
@@ -340,7 +324,7 @@ function JarvisVoiceSetting() {
           onChange={(event) => choose(event.target.value || null)}
           className="h-8 max-w-56 rounded-md border border-border bg-background px-2 text-sm text-foreground"
         >
-          <option value="">Browser default</option>
+          <option value="">JARVIS (natural voice when this device has one)</option>
           {voices.map((each) => (
             <option key={each.voiceURI} value={each.voiceURI}>
               {each.name} ({each.lang})

@@ -376,7 +376,7 @@ try {
     .click();
   await web
     .getByRole("navigation", { name: "Settings categories" })
-    .getByRole("button", { name: "Devices & Access" })
+    .getByRole("button", { name: "Devices", exact: true })
     .click();
   await until(
     async () =>
@@ -392,10 +392,10 @@ try {
   }
   check(
     "OCADE shows the phone with the phone's own switches, and no browser switches",
-    (await web.getByText("Browser control").count()) === 0 &&
-      (await web.getByRole("switch").count()) >= 3,
+    (await web.getByRole("region", { name: "Devices" }).getByText("Browser control").count()) ===
+      0 && (await web.getByRole("region", { name: "Devices" }).getByRole("switch").count()) >= 3,
   );
-  await web.getByRole("button", { name: "Close", exact: true }).first().click();
+  await web.keyboard.press("Escape");
   await fetch(`${SUPABASE}/__fixture/jarvis-script`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -827,7 +827,7 @@ try {
     .click();
   await web
     .getByRole("navigation", { name: "Settings categories" })
-    .getByRole("button", { name: "Devices & Access" })
+    .getByRole("button", { name: "Devices", exact: true })
     .click();
   await web.getByRole("button", { name: "Remove device" }).first().click();
   await web.getByRole("button", { name: "Remove", exact: true }).click();

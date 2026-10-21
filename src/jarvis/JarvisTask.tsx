@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Hand, Pause, Play, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FINISHED, TASK_STATUS } from "./protocol";
+import { FINISHED, plainStep, TASK_STATUS } from "./protocol";
 import { readJarvisFrame, type JarvisState, type JarvisTaskRow } from "./jarvis.functions";
 import type { JarvisVoice } from "./use-voice";
 
@@ -61,10 +61,13 @@ export function TaskCard({
   onRetry,
   onRepeat,
   checks = [],
+  steps = [],
   latest,
 }: {
   task: JarvisTaskRow;
   running: boolean;
+  /** What the record says each step did, oldest first: the progress timeline. */
+  steps?: string[];
   /** Where the work runs: the computer's name, and the app named with @ if any. */
   using?: string | null;
   onStop: () => void;
@@ -142,6 +145,15 @@ export function TaskCard({
       ) : null}
       {details ? (
         <div className="mt-3 border-t border-border/60 pt-2 text-xs">
+          {steps.length ? (
+            <ol aria-label="Progress" className="mb-2 space-y-1 border-l border-border/60 pl-3">
+              {steps.map((step, index) => (
+                <li key={`${index}-${step}`} className="text-muted-foreground">
+                  {plainStep(step)}
+                </li>
+              ))}
+            </ol>
+          ) : null}
           {task.plan.length ? (
             <ol className="list-decimal pl-5 text-muted-foreground">
               {task.plan.map((item, index) => (
@@ -201,11 +213,11 @@ export function TaskCard({
 
 /** Which stage the record shows the task in; never a guess from the clock or the model's words. */
 function stageOf(latest: JarvisState["activity"][number] | undefined) {
-  if (!latest || latest.status === "note") return "Planning";
-  if (latest.research) return "Searching websites";
+  if (!latest || latest.status === "note") return "Thinking";
+  if (latest.research) return "Searching the web";
   if (latest.status === "failed" || latest.status === "blocked") return "Fixing";
-  if (latest.check) return "Verifying";
-  return "Executing";
+  if (latest.check) return "Checking";
+  return "Working";
 }
 
 function LiveStage({
@@ -229,7 +241,7 @@ function LiveStage({
         {latest ? (
           <span className={cn(failed ? "text-destructive" : "text-muted-foreground")}>
             {failed ? " · Did not work: " : " · "}
-            {latest.summary}
+            {plainStep(latest.summary)}
           </span>
         ) : null}
       </span>
@@ -245,16 +257,10 @@ export function BrowserPanel({
   task,
   open,
   onToggle,
-  onStop,
-  onTakeOver,
-  onResume,
 }: {
   task: JarvisTaskRow;
   open: boolean;
   onToggle: () => void;
-  onStop: () => void;
-  onTakeOver: () => void;
-  onResume: () => void;
 }) {
   // Held with the task it shows: another task's picture is never shown under this one.
   const [shown, setShown] = useState<{
@@ -334,9 +340,6 @@ export function BrowserPanel({
           )}
         </div>
       ) : null}
-      <div className="flex flex-wrap gap-2 p-3">
-        <Controls task={task} onStop={onStop} onTakeOver={onTakeOver} onResume={onResume} />
-      </div>
     </aside>
   );
 }

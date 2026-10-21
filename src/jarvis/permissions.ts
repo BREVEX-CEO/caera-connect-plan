@@ -166,8 +166,8 @@ export function refuseAction(
       capability: "site",
       message:
         siteDecision(rows, host) === null && isPrivateHost(host)
-          ? `${host} is on a private network. Allow it in Devices, under Apps and websites, first.`
-          : "That site is turned off in Devices, under Apps and websites.",
+          ? `${host} is on a private network. Allow it in Settings, under Devices, first.`
+          : "That site is turned off in Devices, in Settings.",
     };
   }
   if (
