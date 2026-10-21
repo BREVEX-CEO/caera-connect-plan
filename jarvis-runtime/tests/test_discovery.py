@@ -1,6 +1,8 @@
 """Discovery for the universal engine: any app's official surfaces, drives, files by name,
 copies past the work folder, and sanitized local recipes."""
 import os
+import shutil
+import subprocess
 import sys
 import tempfile
 import threading
@@ -265,3 +267,28 @@ class NoAppNameShortcutTest(unittest.TestCase):
                 if self.APPS.search(code) and not code.lstrip().startswith(('"""', "'''")):
                     found.append(f"{source.name}:{number}: {line.strip()[:120]}")
         self.assertEqual(found, [], "\n".join(found))
+
+
+class CommandLineProgramTest(unittest.TestCase):
+    def test_a_command_on_path_is_found_by_name_and_never_run(self):
+        pc = Computer(tempfile.mkdtemp())
+        found = pc.run({"action": "app_info", "name": "python3"})
+        self.assertEqual(found["status"], "done", found)
+        self.assertTrue(found["app"]["commandLine"])
+        self.assertTrue(Path(found["app"]["program"]).is_file())
+        for name in ("no-such-program-ocade", "../bin/sh", "sh; rm -rf /"):
+            self.assertEqual(pc.run({"action": "app_info", "name": name})["status"], "failed", name)
+
+
+@unittest.skipUnless(shutil.which("ffmpeg") and sys.platform != "win32", "needs ffmpeg off Windows")
+class MediaPropertiesTest(unittest.TestCase):
+    def test_a_video_reports_its_length_and_size(self):
+        root = Path(tempfile.mkdtemp())
+        subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "color=black:s=320x240:r=25:d=2",
+                        str(root / "clip.mp4")], check=True)
+        (root / "notes.txt").write_text("not media")
+        pc = Computer(str(root))
+        props = pc.run({"action": "file_info", "path": "clip.mp4"})["info"]["properties"]
+        self.assertEqual((props["width"], props["height"], props["fps"]), (320, 240, 25))
+        self.assertAlmostEqual(props["seconds"], 2, delta=0.1)
+        self.assertNotIn("properties", pc.run({"action": "file_info", "path": "notes.txt"})["info"])

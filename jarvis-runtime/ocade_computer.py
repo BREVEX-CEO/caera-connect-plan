@@ -170,9 +170,39 @@ _PROPERTIES = (
 )
 
 
-def file_properties(path: Path) -> dict:
-    if SYSTEM != "Windows" or not path.is_file():
+MEDIA_SUFFIXES = frozenset(".mp4 .mov .mkv .webm .avi .m4v .mp3 .wav .m4a .aac .flac .ogg".split())
+
+
+def _media_properties(path: Path) -> dict:
+    """Elsewhere a media file's length and size come from ffprobe, when it is installed."""
+    program = shutil.which("ffprobe")
+    if not program or path.suffix.lower() not in MEDIA_SUFFIXES:
         return {}
+    try:
+        raw = subprocess.run([program, "-v", "error", "-show_entries",
+                              "format=duration:stream=codec_type,width,height,r_frame_rate,channels",
+                              "-of", "json", str(path)], capture_output=True, text=True, timeout=10).stdout
+        info = json.loads(raw or "{}")
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return {}
+    found: dict = {}
+    if (seconds := info.get("format", {}).get("duration")) is not None:
+        found["seconds"] = round(float(seconds), 2)
+    for stream in info.get("streams", []):
+        if stream.get("codec_type") == "video" and "width" not in found:
+            num, _, den = str(stream.get("r_frame_rate", "0/1")).partition("/")
+            found.update(width=stream.get("width"), height=stream.get("height"),
+                         fps=round(int(num) / int(den or 1), 3) if num.isdigit() and int(den or 1) else None)
+        if stream.get("codec_type") == "audio" and "audioChannels" not in found:
+            found["audioChannels"] = stream.get("channels")
+    return {k: v for k, v in found.items() if v is not None}
+
+
+def file_properties(path: Path) -> dict:
+    if not path.is_file():
+        return {}
+    if SYSTEM != "Windows":
+        return _media_properties(path)
     try:
         import comtypes
         import comtypes.client
@@ -531,6 +561,12 @@ class Computer:
             except _Stopped:
                 return stopped
             if app is None:
+                # A command-line program (no app entry) is a capability too: found on PATH, named
+                # only, never run here; `run` uses it under the usual command rules.
+                program = shutil.which(name) if kind == "app_info" and re.fullmatch(r"[\w.+-]{1,64}", name) else None
+                if program:
+                    return {"status": "done", "summary": f"{name} is a command on this computer",
+                            "app": {"name": name, "program": program, "commandLine": True}}
                 return {"status": "failed", "summary": f"{name} is not installed on this computer"}
             if kind == "recipe_save":
                 return ocade_discovery.save_recipe(action, ocade_discovery.version_of(app))
