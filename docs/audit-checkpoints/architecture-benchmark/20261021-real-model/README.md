@@ -73,3 +73,21 @@ Excel) were available, so every edit was ffmpeg via Python. n = 1–3 per cell; 
 meaningful. Shared free-tier quota across back-to-back runs biases later runs toward rate limits.
 TEST 1 (image), TEST 3 (YouTube understanding) and the interruption/STOP/crash families were not
 run in this record; see BLOCKED_TESTS.md.
+
+## Later the same day: rocket artwork in miniPaint (Browser task), Architecture A
+
+Request: open miniPaint (`https://viliusle.github.io/miniPaint/`) and draw a rocket launching into
+a night sky, then save `rocket.png` in the work folder.
+
+- 809 s wall, 761 s model, 28 calls (6–17k input tokens each). The provider was slow this
+  afternoon: 15–72 s per call (edge latency buckets `under_30s`/`over_30s`), against 2–5 s in the
+  morning. One call failed over from the primary to the secondary key slot (`providerSlot:
+  secondary`, `attempts: 2`): the first live failover seen on staging.
+- Outcome: JARVIS clicked and dragged in miniPaint (10 clicks, 3 drags, 1 click_at), then gave up
+  on the editor and drew the picture with a Python script in `.jarvis/`
+  ([script](runs/paint-A-make_rocket.py), [image](previews/paint-A-rocket.png): 800×600, night
+  sky with stars, rocket body, red nose cone, flame). Its answer did not say it left the editor.
+- Verdict: the file is real and matches the picture asked for, but **the request named an editor
+  and JARVIS did not finish the work in it: FAIL** for the editor workflow; the change of route
+  was not disclosed. Owed: when the person names an app or site, finish there or say plainly
+  why not (recorded as ROUTE-21-01).
