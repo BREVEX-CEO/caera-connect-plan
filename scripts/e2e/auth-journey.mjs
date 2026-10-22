@@ -75,6 +75,15 @@ try {
   await page.getByRole("button", { name: "Use a password instead" }).click();
   await page.fill('input[type="email"]', "proof@ocade.test");
   await page.fill('input[type="password"]', "wrong-password");
+  // The password can be checked by eye before it is sent, and hidden again.
+  await page.getByRole("button", { name: "Show password" }).click();
+  const shown = await page.getByPlaceholder("Password").getAttribute("type");
+  await page.getByRole("button", { name: "Hide password" }).click();
+  check(
+    "the password can be shown and hidden again",
+    shown === "text" &&
+      (await page.getByPlaceholder("Password").getAttribute("type")) === "password",
+  );
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await page.waitForSelector("text=That email and password did not match.", { timeout: 10_000 });
   check("a wrong password is refused without saying whether the account exists", true);

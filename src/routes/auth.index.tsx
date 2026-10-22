@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 /*
  * The CONFIGURATION check comes from the cheap module; the CLIENT is loaded on
  * demand. This route is statically reachable, so importing the client here puts
@@ -107,6 +107,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [usePassword, setUsePassword] = useState(false);
+  const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(inboundFriendly?.message ?? null);
   const [hint, setHint] = useState<string | null>(inboundFriendly?.hint ?? null);
@@ -330,14 +331,28 @@ function AuthPage() {
           {emailField}
           <label className="block">
             <span className="sr-only">Password</span>
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Password"
-              className="h-10 w-full rounded-md border border-border bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
-            />
+            <span className="relative block">
+              <input
+                type={visible ? "text" : "password"}
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Password"
+                className="h-10 w-full rounded-md border border-border bg-transparent pl-3 pr-10 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+              />
+              <button
+                type="button"
+                onClick={() => setVisible((value) => !value)}
+                aria-label={visible ? "Hide password" : "Show password"}
+                className="absolute right-1 top-1 grid h-8 w-8 place-items-center rounded text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {visible ? (
+                  <EyeOff className="h-4 w-4" aria-hidden />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden />
+                )}
+              </button>
+            </span>
           </label>
           <SubmitButton busy={busy}>Sign in</SubmitButton>
         </form>

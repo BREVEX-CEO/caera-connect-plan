@@ -128,6 +128,7 @@ export const calls: {
   promptChars: number;
   ok: boolean;
   why?: string;
+  retryAfterMs?: number;
 }[] = [];
 
 /**
@@ -230,7 +231,9 @@ async function askOnce(
     ...usage,
     promptChars: JSON.stringify(messages).length + JSON.stringify(tools).length,
     ok: complete,
-    ...(refusal ? { why: `${refusal.code}: ${refusal.reason}` } : {}),
+    ...(refusal
+      ? { why: `${refusal.code}: ${refusal.reason}`, retryAfterMs: refusal.retryAfterMs }
+      : {}),
   });
   if (!complete) {
     if (!refusal || refusal.retryable) throw new Busy(refusal?.retryAfterMs);
