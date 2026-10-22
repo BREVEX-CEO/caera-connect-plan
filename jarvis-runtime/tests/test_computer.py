@@ -960,7 +960,7 @@ class VideoEditTest(unittest.TestCase):
         edit = {"action": "video_edit", "path": "edit.mp4", "frame": "1280x720", "fps": 30, "length": 12,
                 "opening": "AI: Robots", "closing": "Thanks", "cardSeconds": 2,
                 "clips": [{"path": "a.mp4", "from": 1, "to": 5, "captions": "a.srt"},
-                          {"path": "b.mp4", "from": 0, "to": 3}], "burnCaptions": True}
+                          {"path": "b.mp4", "from": 0, "to": 3}], "burnCaptions": True, "project": True}
         out = pc.run(edit)
         self.assertEqual(out["status"], "done", out)
         props = out["properties"]
@@ -970,7 +970,10 @@ class VideoEditTest(unittest.TestCase):
         self.assertAlmostEqual(props["loudnessLUFS"], -14, delta=2)
         # The one cue inside the cut, moved to where it plays: after the 2 s title, 1 s into a.
         self.assertEqual(out["captions"], 1)
-        self.assertEqual(out["wrote"], ["edit.mp4", "edit.srt"])  # both are the edit's files
+        if shutil.which("melt"):  # the same cuts as a project MLT (Shotcut, Kdenlive) loads
+            self.assertEqual(out["projectFile"], "edit.mlt")
+            self.assertIn('resource">a.mp4<', (root / "edit.mlt").read_text())
+        self.assertEqual(out["wrote"], [f for f in ("edit.mp4", "edit.srt", "edit.mlt") if (root / f).exists()])
         self.assertIn("00:00:03,000 --> 00:00:05,000\nRobots help people",
                       (root / "edit.srt").read_text())
         streams = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type",

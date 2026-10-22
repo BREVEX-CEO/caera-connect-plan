@@ -11,6 +11,7 @@ with its true peak below -1 dBTP. What it returns is measured from the saved fil
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -86,6 +87,56 @@ def _text_filter(text: str, size: str) -> str:
     height = int(size.split("x")[1])
     return (f"drawtext=text='{safe}':fontcolor=white:fontsize={height // 12}:"
             "x=(w-text_w)/2:y=(h-text_h)/2")
+
+
+def _project(plan: list, out: Path, size: str, fps: int, grade: dict, cancel: threading.Event) -> str | None:
+    """The same cuts and cards as an MLT project (what Shotcut and Kdenlive open), kept only when
+    MLT itself loads it at the edit's length; None when it cannot be checked here."""
+    from xml.sax.saxutils import escape, quoteattr
+    if not shutil.which("melt"):
+        return None
+    width, height = size.split("x")
+    producers, entries = [], []
+    for n, (kind, what, seconds) in enumerate(plan):
+        frames = max(1, round(seconds * fps))
+        if kind == "card":
+            producers.append(
+                f'<producer id="p{n}" in="0" out="{frames - 1}"><property name="length">{frames}</property>'
+                '<property name="mlt_service">color</property><property name="resource">#ff101418</property>'
+                f'<filter><property name="mlt_service">dynamictext</property><property name="argument">{escape(what)}'
+                '</property><property name="halign">center</property><property name="valign">middle</property>'
+                f'<property name="size">{int(height) // 12}</property></filter></producer>')
+            entries.append(f'<entry producer="p{n}" in="0" out="{frames - 1}"/>')
+        else:
+            source, start = what[0], what[1]
+            relative = Path(os.path.relpath(source, out.parent)).as_posix()
+            producers.append(f'<producer id="p{n}"><property name="mlt_service">avformat</property>'
+                             f'<property name="resource">{escape(relative)}</property></producer>')
+            first = round(start * fps)
+            entries.append(f'<entry producer="p{n}" in="{first}" out="{first + frames - 1}"/>')
+    look = "".join(f'<property name="av.{k}">{grade[k]}</property>' for k in ("contrast", "saturation", "brightness")
+                   if k in grade)
+    xml = ('<?xml version="1.0" encoding="utf-8"?>\n<mlt LC_NUMERIC="C" version="7.0.0">'
+           f'<profile description={quoteattr(f"{size} {fps} fps")} width="{width}" height="{height}" progressive="1" '
+           'sample_aspect_num="1" sample_aspect_den="1" display_aspect_num="16" display_aspect_den="9" '
+           f'frame_rate_num="{fps}" frame_rate_den="1" colorspace="709"/>{"".join(producers)}'
+           f'<playlist id="edit">{"".join(entries)}</playlist><tractor id="tractor0"><track producer="edit"/>'
+           + (f'<filter><property name="mlt_service">avfilter.eq</property>{look}</filter>' if look else "")
+           + "</tractor></mlt>\n")
+    out.write_text(xml, encoding="utf-8")
+    expected = sum(max(1, round(seconds * fps)) for _, _, seconds in plan)
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            subprocess.run(["melt", str(out), "-consumer", f"xml:{tmp}/check.mlt"], capture_output=True,
+                           timeout=60, cwd=out.parent)
+            frames = max((int(v) + 1 for v in re.findall(r'<tractor[^>]* out="(\d+)"',
+                                                          Path(tmp, "check.mlt").read_text())), default=0)
+        except (OSError, subprocess.TimeoutExpired):
+            frames = 0
+    if cancel.is_set() or abs(frames - expected) > 2:
+        out.unlink(missing_ok=True)
+        return None
+    return out.name
 
 
 def _true_peak(path: Path, cancel: threading.Event, timeout: float) -> float:
@@ -201,5 +252,8 @@ def render(root: Path, spec: dict, out: Path, cancel: threading.Event, timeout: 
                      "-af", f"volume={-(peak + 1.5):.2f}dB", "-movflags", "+faststart", str(fixed)],
                     cancel, timeout)
             shutil.move(fixed, out)
+    project = _project(plan, out.with_suffix(".mlt"), size, fps, grade, cancel) if spec.get("project") else None
     return {"seconds": round(seconds_of(out), 2), "parts": len(plan), "captions": len(cues),
+            **({"projectFile": project} if project else {"projectSkipped": "MLT is not here to check it"}
+               if spec.get("project") else {}),
             **({"captionsFile": srt.name} if cues else {})}

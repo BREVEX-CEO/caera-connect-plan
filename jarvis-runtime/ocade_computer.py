@@ -963,8 +963,9 @@ class Computer:
         if path.suffix.lower() != ".mp4":
             return {"status": "failed", "summary": "video_edit makes a new .mp4"}
         # Its own earlier render is redone in place; anything else there is never written over.
-        if any(p.exists() and p not in self._made for p in (path, path.with_suffix(".srt"))):
-            return {"status": "failed", "summary": f"{rel} (or its .srt) already exists: give the edit a new name"}
+        beside = (path, path.with_suffix(".srt"), path.with_suffix(".mlt"))
+        if any(p.exists() and p not in self._made for p in beside):
+            return {"status": "failed", "summary": f"{rel} (or its .srt or .mlt) already exists: give the edit a new name"}
         clips = []
         for clip in action.get("clips") or []:
             source = self._inside(str(clip.get("path", "")))
@@ -975,10 +976,10 @@ class Computer:
         try:
             out = ocade_media.render(self.root, {**action, "clips": clips}, path, cancel)
         except ocade_media.MediaError as e:
-            for made in (path, path.with_suffix(".srt")):
+            for made in beside:
                 made.unlink(missing_ok=True)
             return {"status": "failed", "summary": str(e)[:280]}
-        made = [p for p in (path, path.with_suffix(".srt")) if p.exists()]
+        made = [p for p in beside if p.exists()]
         self._made.update(made)
         self._remember(f"making {rel}", lambda: [self._to_trash(p) for p in made], path)
         found = _media_properties(path, audio=True)

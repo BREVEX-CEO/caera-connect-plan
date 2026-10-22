@@ -459,6 +459,7 @@ const COMPUTER_ACTIONS = [
       .optional(),
     loudness: z.number().min(-24).max(-9).optional(),
     burnCaptions: z.boolean().optional(),
+    project: z.boolean().optional(),
   }),
   // A new PDF of a document, workbook or deck, saved by the computer's office app; never over a file.
   z.object({ action: z.literal("pdf_export"), from: workspacePath, path: workspacePath }),
@@ -1248,7 +1249,7 @@ export function jarvisTools(
     {
       name: "computer",
       description:
-        "Work on the task's computer. Actions: apps, open_app, app_info (program, version, automation, file types, scripting folders, recipes), recipe_save (app, route, steps, verify, recovery), drives, file_locate (name and/or extension, outside the work folder too), file_import (from: a full path, copied into the work folder), file_export (path in the work folder, to: a full folder path, name), ui_inspect (an app's buttons, fields and menus by ref), ui_act (invoke, set_value, toggle, select, expand, collapse, focus a ref), window_list, window (focus/minimize/maximize/restore/close an open window by title), file_list, file_read, file_write, file_extract (text of .pdf, .docx, .pptx, .xlsx), sheet_inspect, sheet_edit, doc_edit (documents: replace, append with style, style, bold/italic/highlight, table), deck_edit (a .pptx made or extended: slides with title and bullets, native charts with their data, images from the work folder, notes), video_edit (a new .mp4 rendered here from clips: parts in order with from/to seconds and each clip's .srt as captions, opening and closing cards, length, frame, fps, grade, loudness, burnCaptions; its .srt is saved beside it), pdf_export (from: a .docx, .xlsx or .pptx in the work folder, path: the new .pdf), file_find, file_info, file_compare (path: the original, to: the result; what changed, cell by cell or line by line), file_mkdir, file_move, file_copy, file_rename, file_trash, file_delete, run, screen, screen_click (button, double), screen_drag, screen_type, screen_keys, screen_scroll, system, setting (volume, mute, brightness, dark_mode: read, or change with level or on), system_status (processor, memory, disk, battery), undo (reverse the newest file change JARVIS made).",
+        "Work on the task's computer. Actions: apps, open_app, app_info (program, version, automation, file types, scripting folders, recipes), recipe_save (app, route, steps, verify, recovery), drives, file_locate (name and/or extension, outside the work folder too), file_import (from: a full path, copied into the work folder), file_export (path in the work folder, to: a full folder path, name), ui_inspect (an app's buttons, fields and menus by ref), ui_act (invoke, set_value, toggle, select, expand, collapse, focus a ref), window_list, window (focus/minimize/maximize/restore/close an open window by title), file_list, file_read, file_write, file_extract (text of .pdf, .docx, .pptx, .xlsx), sheet_inspect, sheet_edit, doc_edit (documents: replace, append with style, style, bold/italic/highlight, table), deck_edit (a .pptx made or extended: slides with title and bullets, native charts with their data, images from the work folder, notes), video_edit (a new .mp4 rendered here from clips: parts in order with from/to seconds and each clip's .srt as captions, opening and closing cards, length, frame, fps, grade, loudness, burnCaptions, project; its .srt, and its .mlt project when asked, are saved beside it), pdf_export (from: a .docx, .xlsx or .pptx in the work folder, path: the new .pdf), file_find, file_info, file_compare (path: the original, to: the result; what changed, cell by cell or line by line), file_mkdir, file_move, file_copy, file_rename, file_trash, file_delete, run, screen, screen_click (button, double), screen_drag, screen_type, screen_keys, screen_scroll, system, setting (volume, mute, brightness, dark_mode: read, or change with level or on), system_status (processor, memory, disk, battery), undo (reverse the newest file change JARVIS made).",
       inputSchema: obj({
         action: str("The computer action."),
         name: str(
@@ -1300,6 +1301,11 @@ export function jarvisTools(
         burnCaptions: {
           type: "BOOLEAN",
           description: "For video_edit: also draw the captions in the picture.",
+        },
+        project: {
+          type: "BOOLEAN",
+          description:
+            "For video_edit: also save the cuts and cards as an editable .mlt project (Shotcut, Kdenlive), kept only when it loads.",
         },
         content: str("For file_write."),
         command: str(
