@@ -234,7 +234,7 @@ def render(root: Path, spec: dict, out: Path, cancel: threading.Event, timeout: 
             if spec.get("burnCaptions"):
                 shown = work / "captions.srt"
                 shown.write_text(_srt(cues), encoding="utf-8")
-                video_filter = ["-vf", f"subtitles={shown.as_posix()}:force_style='FontSize=20,Outline=2,MarginV=36'"]
+                video_filter = ["-vf", f"subtitles={shown.as_posix()}:force_style='FontSize=18,BorderStyle=3,Outline=1,Shadow=0,BackColour=&H80000000,MarginV=28'"]
         subtitle_in = ["-i", str(srt)] if cues else []
         _ffmpeg(["-i", str(joined), *subtitle_in, "-map", "0:v", "-map", "0:a",
                  *(["-map", "1:s", "-c:s", "mov_text"] if cues else []), *video_filter,

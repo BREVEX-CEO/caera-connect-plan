@@ -15,6 +15,35 @@ device's own step log, never the model's answer:
 
 Small samples: these are measured behaviours, not success rates.
 
+## TASK 1 — 2-minute AI video from raw clips (evening, after the outage)
+
+Six NASA public-domain clips with their own `.srt`; the request asks for exactly 2 minutes,
+title and closing card, captions that match the speech, balanced audio, 1280x720/30 fps
+H.264/AAC and an editable project. Oracle
+([`oracle_video.py`](../../../experiments/architectures/oracle_video.py)) reads only the files.
+
+| Run    | What JARVIS had                                | Status                                                                   |  Wall s |  Calls | Oracle                                                                                                                                      |
+| ------ | ---------------------------------------------- | ------------------------------------------------------------------------ | ------: | -----: | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| v2     | hand-written ffmpeg scripts                    | completed                                                                |     458 |     23 | **FAIL** — no title or closing card, true peak +0.6 dBFS, the claimed `.mlt` never existed: a false completion                              |
+| v3     | same, after the wasted-read fixes              | blocked: step limit                                                      |    1020 |     34 | FAIL — output had no video stream                                                                                                           |
+| v4     | `video_edit` (new)                             | blocked: step limit (re-rendered 4× chasing 120.00 s)                    |    1124 |     33 | FAIL — true peak −0.2 dBTP; its own stream-copy trim dropped the subtitle track                                                             |
+| v5     | + exact length, limiter                        | waiting: completion refused 3× by a verifier bug                         |     244 |     20 | FAIL — true peak −0.8 dBTP                                                                                                                  |
+| **v6** | + peak measured after encoding, verifier fixed | **completed**                                                            | **173** | **19** | **PASS** — 120.0 s, 1280x720/30, subtitle track and `.srt`, title and closing cards, 75 caption words from the clips, −14.3 LUFS, −1.7 dBTP |
+| v7     | + `.mlt` project (MLT-checked)                 | provider quota (429, primary slot; not rotated by design) after 13 calls |     153 |     13 | output PASS incl. editor project (`.mlt` loads in MLT); task not finished                                                                   |
+
+![v6 frames every 10 s](video-v6-contact-sheet.jpg)
+
+v6 delivered `AI_Technology.mp4` to the account's Library (private, expiring signed link). Seen
+in the frames: two clips already carry their own burned-in text, so the added captions overlap
+it in places; captions now sit on a translucent box (after v6). No GUI editor was used: the
+edit is rendered by OCADE's device from an edit list, and the `.mlt` project opens in
+Shotcut/Kdenlive (checked by loading it in MLT, not by opening a GUI here).
+
+What changed in the product because of these runs (generic, no app names): `video_edit` (one
+action renders the whole edit; the model no longer writes filter graphs), `measures` checks,
+the claimed-file rule, Library hand-overs no longer hide measured values, exact length, true
+peak corrected after encoding, its own render redone in place, and the `.mlt` project.
+
 ## TASK 3 — an existing scenery photo made cinematic (no generation)
 
 Source: _Moraine Lake 17092005.jpg_, Wikimedia Commons, **public domain** (Canon PowerShot A70,

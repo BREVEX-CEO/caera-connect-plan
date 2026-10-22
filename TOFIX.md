@@ -20,6 +20,12 @@ Staging: **OCADE staging 20261019**, `auyapercxxptziyngycx`. All 156 forward mig
 
 Exact file/line means a confirmed source location for new findings, or the exact canonical evidence line for inherited items. **An inherited item's fault site/root cause is UNLOCALIZED unless its linked evidence proves it; do not invent code changes from a blocker label.** Priorities are triage recommendations, not new claims of reproduced critical defects. No issue is closed solely by a source fix, compilation or staging deployment.
 
+## Claude continuation, evening — 22 October 2026 (phases.md mission 5)
+
+- **Shipped:** finished files reach the Library in the product (the planner read device results flat); `measures` checks; claimed-file rule; `wroteAll` and `.jarvis` read rules (fewer wasted calls); `video_edit` with exact length, true-peak correction and an MLT-checked `.mlt` project; unified prompt candidate (off by default); [phases status ledger](docs/PHASES_STATUS.md); [competitive research](docs/audit-checkpoints/competitive-research-20261022.md).
+- **Measured:** [video runs v2–v7](docs/audit-checkpoints/real-tasks-20261022/README.md#task-1--2-minute-ai-video-from-raw-clips-evening-after-the-outage) — 1 completed oracle PASS of 6; `jarvis` journey 138 PASS / 0 FAIL / 1 BLOCKED; Vitest 1,535 PASS; runtime suite failures only the 4 container-environment ones known before.
+- **Owed:** RATE-21-01 (free-tier quota), CAD-22-01, SHEET-21-01, unified-prompt A/B, real editor GUI for Benchmark 1, native platforms.
+
 ## Claude continuation (phases.md) — 22 October 2026
 
 - **Owner roadmap:** `phases.md` (200 items plus checklists) pulled from the branch. Session-start skills ran (caveman ultra, ponytail ultra/audit/review/debt; debt ledger: 6 markers, 2 without a trigger: `src/jarvis/changes.ts:79`, `src/jarvis/device.server.ts:136`).
