@@ -82,7 +82,7 @@ a night sky, then save `rocket.png` in the work folder.
 - 809 s wall, 761 s model, 28 calls (6–17k input tokens each). The provider was slow this
   afternoon: 15–72 s per call (edge latency buckets `under_30s`/`over_30s`), against 2–5 s in the
   morning. One call failed over from the primary to the secondary key slot (`providerSlot:
-  secondary`, `attempts: 2`): the first live failover seen on staging.
+secondary`, `attempts: 2`): the first live failover seen on staging.
 - Outcome: JARVIS clicked and dragged in miniPaint (10 clicks, 3 drags, 1 click_at), then gave up
   on the editor and drew the picture with a Python script in `.jarvis/`
   ([script](runs/paint-A-make_rocket.py), [image](previews/paint-A-rocket.png): 800×600, night
