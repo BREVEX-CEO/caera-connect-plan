@@ -999,6 +999,42 @@ describe("completion needs evidence from the device (P01)", () => {
       expect((await statusOf(t)).status).toBe("completed");
     });
 
+    it("checks each measured property the person asked for in the saved file (MEDIA-22-01)", async () => {
+      const t = await withChecks([
+        {
+          path: "cut.mp4",
+          measures: [
+            { name: "seconds", min: 119.5, max: 120.5 },
+            { name: "truePeakDBTP", max: -1 },
+          ],
+        },
+      ]);
+      await done(await queue(t, { action: "run", command: "ffmpeg -i a.mp4 cut.mp4" }));
+      const info = (properties: object) => ({
+        status: "done",
+        detail: { info: { name: "cut.mp4", size: 900, properties } },
+      });
+      const finish = (result?: string) =>
+        changeTask(rest() as never, rest() as never, A, { id: t, status: "completed", result });
+      await done(await queue(t, { action: "file_info", path: "cut.mp4" }), info({ seconds: 120 }));
+      await expect(finish()).rejects.toThrow(/not measured for truePeakDBTP.*audio: true/);
+      await done(
+        await queue(t, { action: "file_info", path: "cut.mp4", audio: true }),
+        info({ seconds: 120, truePeakDBTP: 0.6 }),
+      );
+      await expect(finish()).rejects.toThrow(/measures truePeakDBTP 0.6, not … to -1/);
+      await done(
+        await queue(t, { action: "file_info", path: "cut.mp4", audio: true }),
+        info({ seconds: 120.02, truePeakDBTP: -1.2 }),
+      );
+      // A file the result names that no step made, saw or listed is not said to exist.
+      await expect(finish("Saved cut.mp4 and its project cut.mlt.")).rejects.toThrow(
+        /cut\.mlt is named in the result, but nothing this task did shows it/,
+      );
+      await finish("Saved cut.mp4 (see https://example.com/help.pdf).");
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
     it("keeps each delivered file as a Library item named on the completed task", async () => {
       const t = await withChecks([{ path: "car.stl" }]);
       await done(await queue(t, { action: "file_write", path: "car.stl", content: "solid" }));
@@ -1232,6 +1268,39 @@ describe("completion needs evidence from the device (P01)", () => {
       await expect(complete(t)).rejects.toThrow(/content was never read back/);
       await read();
       expect(await completionGap(rest() as never, A, t)).toBeNull();
+      await complete(t);
+    });
+
+    it("keeps a read valid across a command whose complete list of touched files leaves it out (RATE-21-01)", async () => {
+      const t = await withChecks([{ path: "a.txt", contains: ["approved"] }]);
+      await done(await queue(t, { action: "file_write", path: "a.txt", content: "approved" }));
+      await done(await queue(t, { action: "file_read", path: "a.txt" }), {
+        status: "done",
+        detail: { content: "approved" },
+      });
+      // A helper script is judged by what it made: it is not read back itself.
+      await done(
+        await queue(t, { action: "file_write", path: ".jarvis/tidy.py", content: "print(1)" }),
+      );
+      // The command, then a look at what it made (any read after the last change is needed).
+      const run = async (detail: object) => {
+        await done(await queue(t, { action: "run", command: "python .jarvis/tidy.py" }), {
+          status: "done",
+          detail,
+        });
+        await done(await queue(t, { action: "file_info", path: "other.txt" }));
+      };
+      await run({ wrote: ["other.txt"], wroteAll: true });
+      expect(await completionGap(rest() as never, A, t)).toBeNull();
+      // A list that may be incomplete, or one naming the file in any case: read it again.
+      for (const detail of [{ wrote: ["other.txt"] }, { wrote: ["A.TXT"], wroteAll: true }]) {
+        await run(detail);
+        expect(await completionGap(rest() as never, A, t)).toMatch(/a\.txt/);
+        await done(await queue(t, { action: "file_read", path: "a.txt" }), {
+          status: "done",
+          detail: { content: "approved" },
+        });
+      }
       await complete(t);
     });
 

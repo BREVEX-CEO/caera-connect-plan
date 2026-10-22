@@ -1,5 +1,12 @@
 import { getSupabaseBrowserConfiguration } from "@/integrations/supabase/configuration";
-import { CHAT_MODE, CORE, ELITE_WORK_STANDARD, promptVariant } from "./system-prompt";
+import {
+  CHAT_MODE,
+  CORE,
+  ELITE_WORK_STANDARD,
+  UNIFIED_CHAT,
+  UNIFIED_CORE,
+  promptVariant,
+} from "./system-prompt";
 import type {
   IntelligenceEvent,
   IntelligenceTransport,
@@ -177,8 +184,11 @@ export function createOnlineIntelligenceTransport(
             : [
                 {
                   role: "system",
-                  content:
-                    promptVariant() === "v2" ? `${CORE}\n\n${CHAT_MODE}` : ELITE_WORK_STANDARD,
+                  content: {
+                    v2: `${CORE}\n\n${CHAT_MODE}`,
+                    elite: ELITE_WORK_STANDARD,
+                    unified: `${UNIFIED_CORE}\n\n${UNIFIED_CHAT}`,
+                  }[promptVariant() as "v2" | "elite" | "unified"],
                 },
                 ...request.messages,
               ],

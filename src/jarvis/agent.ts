@@ -17,7 +17,12 @@ import type { IntelligenceQuality } from "@/lib/intelligence/quality";
  * the computer busy with) and (when memory is on) remember. Confirmation and
  * take-over are decisions only the person's own clicks resolve.
  */
-import { ELITE_WORK_STANDARD, promptVariant } from "@/lib/intelligence/system-prompt";
+import {
+  ELITE_WORK_STANDARD,
+  UNIFIED_CORE,
+  UNIFIED_JARVIS,
+  promptVariant,
+} from "@/lib/intelligence/system-prompt";
 import type {
   NormalizedAttachment,
   NormalizedAssistantPart,
@@ -286,7 +291,9 @@ export function systemPrompt(input: {
       ? JARVIS_SYSTEM_PROMPT_V2
       : variant === "elite"
         ? `${JARVIS_SYSTEM_PROMPT}\n\n${ELITE_WORK_STANDARD}`
-        : JARVIS_SYSTEM_PROMPT;
+        : variant === "unified"
+          ? `${JARVIS_SYSTEM_PROMPT}\n\n${UNIFIED_CORE}\n\n${UNIFIED_JARVIS}`
+          : JARVIS_SYSTEM_PROMPT;
   const base = where
     ? `${rules}\n\nThe open task "${input.task!.title}" was last at step ${where.step + 1}, after: ${where.lastAction}${where.lastUrl ? ` (${where.lastUrl})` : ""}. Observe first; never repeat a step the observation shows is done.`
     : rules;
@@ -640,8 +647,13 @@ export async function runJarvisTurn(
       state = await waitFor(id, action.action);
     }
     hooks.onActivity();
+    // What the device returned beyond status and observation, as the exchange stores it.
+    const detail = ((state.result as { detail?: unknown } | null)?.detail ?? {}) as {
+      wrote?: unknown;
+      saved?: unknown;
+    };
     if (action.action === "run") {
-      const wrote = (state.result as { wrote?: unknown } | undefined)?.wrote;
+      const wrote = detail.wrote;
       for (const file of Array.isArray(wrote) ? wrote : []) {
         byScript.set(String(file), action.command);
         delivered.delete(String(file));
@@ -658,7 +670,7 @@ export async function runJarvisTurn(
         }
     }
     // A page that handed over a file (an Export button, a download) changed the work folder too.
-    const saved = (state.result as { saved?: unknown } | undefined)?.saved;
+    const saved = detail.saved;
     for (const file of Array.isArray(saved) ? saved : []) changed.add(String(file));
     if (state.taskStatus === "taken_over") return handOver("You took over.");
     if (state.taskStatus !== "running") throw new Stopped();
@@ -702,11 +714,11 @@ export async function runJarvisTurn(
       if (!changed.has(path) || delivered.has(path)) continue;
       const read = (await runDevice("computer", { action: "file_info", path })) as {
         status?: unknown;
-        info?: { size?: unknown; folder?: unknown };
+        detail?: { info?: { size?: unknown; folder?: unknown } };
       };
-      const size = read?.info?.size;
-      if (read?.status !== "done" || read.info?.folder || typeof size !== "number" || size < 1)
-        continue;
+      const info = read?.detail?.info;
+      const size = info?.size;
+      if (read?.status !== "done" || info?.folder || typeof size !== "number" || size < 1) continue;
       const sent = (await runDevice("computer", { action: "file_deliver", path, size })) as {
         status?: unknown;
       };

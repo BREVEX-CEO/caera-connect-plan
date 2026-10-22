@@ -98,11 +98,20 @@ class WorkspaceTest(unittest.TestCase):
             return
         if self.pc.sandbox == "workspace":
             self.skipTest("direct runner: see DirectCommandTest")
+        (self.root / "link").unlink()  # a link makes the list incomplete; checked below
         out = self.pc.run({"action": "run", "command": "pwd && echo built > out.txt"})
         self.assertEqual(out["status"], "done", out)
         self.assertEqual(out["stdout"].strip().splitlines()[0], str(self.root))
         self.assertEqual((self.root / "out.txt").read_text().strip(), "built")
         self.assertEqual(out["wrote"], ["out.txt"])  # what the command made is said (CAD-22-01)
+        self.assertIs(out["wroteAll"], True)
+        # A removed file counts as touched; a file the command never touched is not listed.
+        (self.root / "keep.txt").write_text("k")
+        gone = self.pc.run({"action": "run", "command": "rm out.txt"})
+        self.assertEqual((gone["wrote"], gone["wroteAll"]), (["out.txt"], True))
+        # A link could reach what the list cannot see: then the list is never called complete.
+        (self.root / "alias").symlink_to(self.root / "keep.txt")
+        self.assertNotIn("wroteAll", self.pc.run({"action": "run", "command": "true"}))
         probe = Path(__file__).resolve().parent / "escaped-probe.txt"
         escape = self.pc.run({"action": "run", "command": f"echo x > {probe}"})
         self.assertEqual(escape["status"], "failed")
@@ -907,12 +916,12 @@ class DeliverTest(unittest.TestCase):
 
     def test_uploads_the_checked_file_as_what_its_bytes_are(self):
         url = f"http://127.0.0.1:{self.server.server_port}/up"
-        # Only an https address OCADE gave: a plain or missing one is refused before any byte moves.
-        self.assertEqual(self.deliver(upload=url)["status"], "failed")
+        # Only an https address, or this computer's own: plain http elsewhere or none is refused.
+        for elsewhere in ("http://example.com/up", "http://127.0.0.1:1@example.com/up"):
+            self.assertEqual(self.deliver(upload=elsewhere)["status"], "failed")
         self.assertEqual(self.deliver()["status"], "failed")
-        with unittest.mock.patch.object(ocade_computer, "_DELIVER_SCHEME", "http://"):
-            self.assertEqual(self.deliver(upload=url, size=5)["status"], "failed")  # not the size checked
-            out = self.deliver(upload=url)
+        self.assertEqual(self.deliver(upload=url, size=5)["status"], "failed")  # not the size checked
+        out = self.deliver(upload=url)
         self.assertEqual(out["status"], "done", out)
         self.assertEqual(self.got["type"], "image/png")
         self.assertEqual(self.got["body"], (self.root / "car.png").read_bytes())

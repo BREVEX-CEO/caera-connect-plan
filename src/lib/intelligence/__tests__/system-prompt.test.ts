@@ -1,7 +1,15 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { JARVIS_SYSTEM_PROMPT, JARVIS_SYSTEM_PROMPT_V2 } from "@/jarvis/protocol";
 import { systemPrompt } from "@/jarvis/agent";
-import { CHAT_MODE, CORE, ELITE_WORK_STANDARD, JARVIS_MODE, promptVariant } from "../system-prompt";
+import {
+  CHAT_MODE,
+  CORE,
+  ELITE_WORK_STANDARD,
+  JARVIS_MODE,
+  UNIFIED_CORE,
+  UNIFIED_JARVIS,
+  promptVariant,
+} from "../system-prompt";
 
 describe("the redesigned instructions, as an opt-in candidate", () => {
   afterEach(() => globalThis.localStorage?.removeItem("ocade.prompt"));
@@ -45,5 +53,18 @@ describe("the redesigned instructions, as an opt-in candidate", () => {
     expect(prompt.startsWith(`${JARVIS_SYSTEM_PROMPT}\n\n${ELITE_WORK_STANDARD}`)).toBe(true);
     globalThis.localStorage.setItem("ocade.prompt", "something else");
     expect(promptVariant()).toBe("v1");
+  });
+
+  it("puts the unified standard after the current JARVIS rules only when chosen (PROMPT-22-02)", () => {
+    expect(systemPrompt({ task: null })).not.toContain(UNIFIED_JARVIS);
+    if (!globalThis.localStorage) return;
+    globalThis.localStorage.setItem("ocade.prompt", "unified");
+    const prompt = systemPrompt({ task: null });
+    // The tool contract stays first and whole; the standard is short and names no app.
+    expect(
+      prompt.startsWith(`${JARVIS_SYSTEM_PROMPT}\n\n${UNIFIED_CORE}\n\n${UNIFIED_JARVIS}`),
+    ).toBe(true);
+    expect((UNIFIED_CORE + UNIFIED_JARVIS).split(/\s+/).length).toBeLessThan(450);
+    globalThis.localStorage.removeItem("ocade.prompt");
   });
 });

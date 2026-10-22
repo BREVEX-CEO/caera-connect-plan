@@ -233,7 +233,13 @@ export function verificationGap(
       }
     }
     // Each file whose content changed is itself read back after its last change, not another one.
-    if (!EDITS_CONTENT.has(row.action?.action ?? "") || !path) continue;
+    // A helper in .jarvis is judged by what it made, not read back itself.
+    if (
+      !EDITS_CONTENT.has(row.action?.action ?? "") ||
+      !path ||
+      normalPath(path).startsWith(".jarvis/")
+    )
+      continue;
     if (later.some((next) => samePath(next, path) && EDITS_CONTENT.has(next.action?.action ?? "")))
       continue;
     // A later command or directory change can invalidate an earlier content read too.
@@ -370,8 +376,33 @@ function claimGap(rows: ActionRow[], claim: string): string | null {
       return `${name} was not read after this task last changed it. Read it, or do not say it is there, then finish.`;
     }
   }
+  // A file the result names is one the device saw: acted on, made by a command or a page,
+  // or listed (MEDIA-22-01: an editor project was reported that no step ever made).
+  const shown: string[] = [];
+  for (const row of rows) {
+    if (row.status !== "done") continue;
+    const detail = row.result?.detail ?? {};
+    const entries = Array.isArray(detail.entries) ? detail.entries : [];
+    for (const value of [
+      row.action?.path,
+      row.action?.to,
+      ...(Array.isArray(detail.wrote) ? detail.wrote : []),
+      ...(Array.isArray(detail.saved) ? detail.saved : []),
+      ...entries.flatMap((entry: { name?: unknown; path?: unknown }) => [entry?.name, entry?.path]),
+    ])
+      if (typeof value === "string") shown.push(normalPath(value));
+  }
+  for (const [file] of said.matchAll(FILE_NAME)) {
+    // "costs - completed.xlsx" is matched by its last word: the name the device saw ends with it.
+    const ends = (seen: string) => seen === file || /[/ (-]$/.test(seen.slice(0, -file.length));
+    if (!shown.some((seen) => seen.endsWith(file) && ends(seen)))
+      return `${file} is named in the result, but nothing this task did shows it. Check it with file_info, or leave it out, then finish.`;
+  }
   return null;
 }
+/** A file name as a result states it: a deliverable's extension, not part of a web address. */
+const FILE_NAME =
+  /(?<![\w./:-])[\w-]+(?:\.[\w-]+)*\.(?:mp4|mov|mkv|webm|avi|mlt|kdenlive|osp|json|xml|png|jpe?g|gif|webp|tiff?|svg|psd|kra|xcf|ora|pdf|docx?|odt|rtf|xlsx?|ods|csv|pptx?|odp|txt|md|html?|stl|step|stp|obj|3mf|scad|wav|mp3|m4a|flac|ogg|srt|vtt|zip)(?![\w-]|\.\w)/g;
 
 /** Why one fixed check is not met by the device's own reads, or null. */
 function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
@@ -461,12 +492,27 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
   const shape = after
     .filter((row) => row.action?.action === "file_info")
     .map(
-      (row) => row.result?.detail?.info as { size?: unknown; properties?: { triangles?: unknown } },
+      (row) =>
+        row.result?.detail?.info as {
+          size?: unknown;
+          properties?: { triangles?: unknown; [name: string]: unknown };
+        },
     )
     .filter(Boolean)
     .at(-1);
   if (path && shape && (shape.size === 0 || shape.properties?.triangles === 0)) {
     return `${target} is empty. Make it again, or finish as failed and say why.`;
+  }
+  // What the device measured in the saved file (length, frame size, loudness, true peak):
+  // a requested property is checked in the result, never taken from the model's word.
+  for (const { name, ...range } of check.measures ?? []) {
+    const value = (shape?.properties as Record<string, unknown> | undefined)?.[name];
+    if (typeof value !== "number") {
+      return `${target} was not measured for ${name} after its last change. Read it with file_info${/loudness|peak/i.test(name) ? " (audio: true)" : ""}, then finish.`;
+    }
+    if (value < (range.min ?? -Infinity) || value > (range.max ?? Infinity)) {
+      return `${target} measures ${name} ${value}, not ${range.min ?? "…"} to ${range.max ?? "…"}. Fix it, or finish as failed and say what differs.`;
+    }
   }
   const reads =
     path && check.contains?.length
@@ -583,15 +629,32 @@ const samePath = (row: ActionRow, path: string) =>
     (value) => typeof value === "string" && value === path,
   );
 
-/** Commands can touch any file; a directory mutation also affects its descendants. */
+/**
+ * Commands can touch any file, unless the device listed every file a finished command touched
+ * (`wroteAll`, RATE-21-01); a directory mutation also affects its descendants.
+ */
 const affectsPath = (row: ActionRow, path: string) =>
-  pathless(row) ||
+  (pathless(row) && !untouchedBy(row, path)) ||
   [row.action?.path, row.action?.to].some((value) => {
     if (typeof value !== "string") return false;
     const changed = normalPath(value).replace(/\/+$/, "");
     const target = normalPath(path);
     return !changed || changed === "." || target === changed || target.startsWith(`${changed}/`);
   });
+
+/**
+ * A command that finished and whose complete list of touched work-folder files leaves path out.
+ * Only a plain relative path is compared: anything an alias could hide behind counts as touched.
+ */
+function untouchedBy(row: ActionRow, path: string): boolean {
+  const detail = row.result?.detail;
+  if (row.action?.action !== "run" || row.status !== "done" || detail?.wroteAll !== true)
+    return false;
+  const wrote = detail.wrote ?? [];
+  const target = normalPath(path);
+  if (!Array.isArray(wrote) || /^([a-z]:)?\/|(^|\/)\.{1,2}(\/|$)|\/\//.test(target)) return false;
+  return !wrote.some((name) => typeof name !== "string" || normalPath(name) === target);
+}
 
 /** A cell as sheet_inspect read it: of the named sheet, or the first when none is named. */
 function cellIn(

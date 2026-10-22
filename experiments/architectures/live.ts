@@ -328,19 +328,21 @@ function deps(): AgentDeps {
     readAction: async (id) => {
       const result = await execute(id);
       const status = String(result.status);
+      // Stored and read back as the product's exchange does: beyond these, under `detail`.
+      const { status: _s, summary: _m, changed, observation, ...detail } = result;
+      const stored = { status, changed, observation, detail };
       if (!rows.some((r) => (r as { id?: string }).id === id)) {
-        const { status: _s, summary: _m, changed, observation, ...detail } = result;
         rows.push({
           id,
           action: queued.get(id)?.action ?? null,
           status: status === "done" ? "done" : "failed",
-          result: { status, changed, observation, detail },
+          result: stored,
         } as ActionRow);
       }
       return {
         status: status === "done" || status === "human_required" ? status : "failed",
         summary: String(result.summary ?? ""),
-        result,
+        result: stored,
         taskStatus: row!.status,
       };
     },

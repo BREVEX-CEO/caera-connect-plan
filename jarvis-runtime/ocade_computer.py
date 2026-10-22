@@ -35,7 +35,6 @@ import filecmp
 import functools
 import hashlib
 import io
-import itertools
 import json
 import os
 import platform
@@ -65,7 +64,6 @@ RESERVED = re.compile(r"(?i)con|prn|aux|nul|com[0-9]|lpt[0-9]|conin\$|conout\$")
 _APPS: dict = {"at": float("-inf"), "list": []}
 STOPPED = {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
 DELIVER_MAX = 100 * 1024 * 1024  # the Library bucket's own ceiling
-_DELIVER_SCHEME = "https://"  # a test serves plain http on loopback
 # Served for viewing only when the bytes are one of these; anything else is a download.
 _VIEWABLE = ((b"\x89PNG", "image/png"), (b"\xff\xd8\xff", "image/jpeg"), (b"GIF8", "image/gif"))
 
@@ -73,9 +71,13 @@ _VIEWABLE = ((b"\x89PNG", "image/png"), (b"\xff\xd8\xff", "image/jpeg"), (b"GIF8
 def _deliver(path: Path, rel: str, action: dict) -> dict:
     """A finished file into the person's OCADE Library: only to the address OCADE's server
     minted for it (a model or a page never writes `upload`), only the size OCADE was told."""
+    import urllib.parse
     import urllib.request
     upload = str(action.get("upload", ""))
-    if not upload.startswith(_DELIVER_SCHEME) or not path.is_file():
+    # Encrypted, or plain only to this computer itself (a local OCADE server never leaves it).
+    to = urllib.parse.urlsplit(upload)
+    if not (to.scheme == "https" or (to.scheme == "http" and to.hostname in ("127.0.0.1", "localhost"))) \
+            or not path.is_file():
         return {"status": "failed", "summary": f"{rel} could not be added to the Library"}
     size = path.stat().st_size
     if size != action.get("size") or size > DELIVER_MAX:
@@ -1199,23 +1201,34 @@ class Computer:
             tails = {name: _tail(f) for name, f in (("stdout", out), ("stderr", err))}
         # Which work-folder files the command made or changed: what a script produced is said, so
         # it is never reported as made somewhere else (CAD-22-01).
+        # With wroteAll, that list is every file it touched (removed ones too), so a read of any
+        # other file stays valid and need not be repeated (RATE-21-01).
         after = self._files_now()
-        wrote = sorted(name for name, stat in after.items() if before.get(name) != stat)[:20]
-        made = {"wrote": wrote} if wrote else {}
+        touched = sorted(name for name in before.keys() | after.keys() if before.get(name) != after.get(name))
+        complete = "\0more" not in before and "\0more" not in after and len(touched) <= 20
+        made = {**({"wrote": touched[:20]} if touched else {}), **({"wroteAll": True} if complete else {})}
         if summary:
             return {"status": "failed", "stopped": True, "summary": summary, **tails, **made}
         return {"status": "done" if process.returncode == 0 else "failed",
                 "summary": f"Exited with {process.returncode} after {time.monotonic() - started:.1f}s",
                 "exitCode": process.returncode, "isolation": self.sandbox, **tails, **made}
 
-    def _files_now(self) -> dict[str, tuple[int, int]]:
-        """The work folder's files by modification time and size, the first 5,000 found."""
-        found: dict[str, tuple[int, int]] = {}
-        for path in itertools.islice(self.root.rglob("*"), 5000):
+    def _files_now(self) -> dict[str, tuple[int, int, int]]:
+        """The work folder's files by modification time and size, the first 5,000 entries found.
+        A folder holding more, or a link, is seen only in part: never reported as wholly seen."""
+        found: dict[str, tuple[int, int, int]] = {}
+        for at, path in enumerate(self.root.rglob("*")):
+            if at >= 5000:
+                found["\0more"] = (0, 0, 0)  # a name no file has: the snapshot is incomplete
+                break
             try:
-                if path.is_file() and not path.is_symlink():
+                # Another name for something (a link, a Windows junction): what it reaches is not seen.
+                if path.is_symlink() or getattr(path, "is_junction", bool)():
+                    found["\0more"] = (0, 0, 0)
+                elif path.is_file():
                     stat = path.stat()
-                    found[path.relative_to(self.root).as_posix()] = (stat.st_mtime_ns, stat.st_size)
+                    # A same-size rewrite within one tick of a coarse clock still moves ctime on POSIX.
+                    found[path.relative_to(self.root).as_posix()] = (stat.st_mtime_ns, stat.st_size, stat.st_ctime_ns)
             except OSError:
                 continue
         return found

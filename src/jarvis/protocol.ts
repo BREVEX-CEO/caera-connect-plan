@@ -684,7 +684,9 @@ export function readsBack(action: { action?: unknown; op?: unknown } | null | un
  * - `pausedAt` alone: the page's video or audio, read by media state after the last change made
  *   to the page, is paused within half a second of that time (the player's own record);
  * - `path` + `minWords`/`maxWords`: a content read of that file after its last change counts that
- *   many body words (a document's title and headings excluded, as the device counts them).
+ *   many body words (a document's title and headings excluded, as the device counts them);
+ * - `path` + `measures`: file_info after the file's last change measures each named property
+ *   (seconds, width, height, fps, pages, triangles, loudnessLUFS, truePeakDBTP …) within range.
  */
 export const outcomeCheck = z.preprocess(
   // A model may send an unused field as "" or []: absent, not invalid.
@@ -711,6 +713,22 @@ export const outcomeCheck = z.preprocess(
       pausedAt: z.number().min(0).max(86_400).optional(),
       minWords: z.number().int().min(1).max(100_000).optional(),
       maxWords: z.number().int().min(1).max(100_000).optional(),
+      measures: z
+        .array(
+          z
+            .object({
+              name: z.string().regex(/^[A-Za-z]{1,40}$/),
+              min: z.number().optional(),
+              max: z.number().optional(),
+            })
+            .strict()
+            .refine(
+              (m) => m.min !== undefined || m.max !== undefined,
+              "a measure needs min or max",
+            ),
+        )
+        .max(8)
+        .optional(),
     })
     .strict()
     .refine(
@@ -725,6 +743,7 @@ export const outcomeCheck = z.preprocess(
       "a word count is of a file's content",
     )
     .refine((c) => c.cell === undefined || c.path !== undefined, "cell needs path")
+    .refine((c) => c.measures === undefined || c.path !== undefined, "measures need path")
     .refine((c) => c.sheet === undefined || c.path !== undefined, "sheet needs path")
     .refine(
       (c) => c.sheet === undefined || c.cell !== undefined || !c.contains?.length,
@@ -1109,7 +1128,7 @@ export function jarvisTools(
           checks: {
             type: "ARRAY",
             description:
-              "1 to 10 checks the finished result must pass, fixed for the task: path + cell + equals (a workbook cell's value or formula), path + contains (words the file must show), path + sheet alone (that sheet exists with rows of data below its header: one for every sheet the person asked for), path alone (the file exists), path + minWords/maxWords (the document's body word count, title and headings excluded: required when the person names a word count), contains alone (words the page must show), or pausedAt alone (the page's video left paused at that second, as media state reads it).",
+              "1 to 10 checks the finished result must pass, fixed for the task: path + cell + equals (a workbook cell's value or formula), path + contains (words the file must show), path + sheet alone (that sheet exists with rows of data below its header: one for every sheet the person asked for), path alone (the file exists), path + minWords/maxWords (the document's body word count, title and headings excluded: required when the person names a word count), path + measures (a length, frame size, page count or sound level file_info measures), contains alone (words the page must show), or pausedAt alone (the page's video left paused at that second, as media state reads it).",
             items: obj({
               path: str("The file's exact path in the work folder."),
               sheet: str(
@@ -1125,6 +1144,19 @@ export function jarvisTools(
               pausedAt: num("For a page's video or audio: the second it must be left paused at."),
               minWords: num("For a document: the fewest body words it must hold."),
               maxWords: num("For a document: the most body words it may hold."),
+              measures: {
+                type: "ARRAY",
+                description:
+                  "With path: properties file_info must measure in the saved file, each within min and/or max — seconds, width, height, fps, pages, triangles, and with audio: loudnessLUFS, truePeakDBTP. Use one for every length, size or sound level the person asked for.",
+                items: obj(
+                  {
+                    name: str("The property, as file_info names it."),
+                    min: num("The lowest allowed value."),
+                    max: num("The highest allowed value."),
+                  },
+                  ["name"],
+                ),
+              },
             }),
           },
         },

@@ -422,8 +422,9 @@ describe("a JARVIS turn", () => {
         },
       ],
       {
-        run: [{ status: "done", result: { wrote: ["car.stl", ".jarvis/make.py"] } }],
-        info: [{ status: "done", result: { info: { size: 42 } } }],
+        // As the exchange stores a device's result: beyond status, under `detail`.
+        run: [{ status: "done", result: { detail: { wrote: ["car.stl", ".jarvis/make.py"] } } }],
+        info: [{ status: "done", result: { detail: { info: { size: 42 } } } }],
         sent: [{ status: "done" }],
       },
     );

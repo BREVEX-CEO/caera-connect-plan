@@ -2467,14 +2467,32 @@ const server = createServer((request, response) => {
       });
     }
 
+    // A finished file the device sends into the Library: a one-time address, then its bytes.
+    const upload = /^\/storage\/v1\/object\/upload\/sign\/library\/(.+)$/.exec(url.pathname);
+    if (upload && request.method === "POST") {
+      return send(200, {
+        url: `/object/upload/sign/library/${upload[1]}?token=stub-${Date.now()}`,
+      });
+    }
+    if (upload && request.method === "PUT") {
+      if (!url.searchParams.get("token")) return send(400, { message: "Missing token" });
+      objects.set(decodeURIComponent(upload[1]), rawBody);
+      return send(200, { Key: `library/${decodeURIComponent(upload[1])}` });
+    }
+
     const download = /^\/storage\/v1\/object\/library\/(.+)$/.exec(url.pathname);
     if (download && request.method === "GET") {
       const path = decodeURIComponent(download[1]);
       const held = objects.get(path);
       if (held === undefined) return send(404, { message: "Object not found" });
+      // As Storage serves `download=<name>`: an attachment under that name.
+      const name = url.searchParams.get("download");
       response.writeHead(200, {
         "content-type": "application/octet-stream",
         "access-control-allow-origin": "*",
+        ...(name
+          ? { "content-disposition": `attachment; filename="${name.replace(/"/g, "")}"` }
+          : {}),
       });
       response.end(held);
       return;

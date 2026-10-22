@@ -764,6 +764,44 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
       reopened.formula === "=SUM(B2:B3)" && reopened.sum === 100 && reopened.original === 90,
       JSON.stringify(reopened),
     );
+    // The finished file, not the input, is handed over: Download gives its exact bytes back.
+    const handed = page.getByRole("list", { name: "Files" }).last();
+    check(
+      "the completed card lists the finished file only (DELIV-22-01)",
+      (await until(
+        async () => (await handed.getByText(fixed, { exact: true }).count()) === 1,
+        20_000,
+      )) && (await handed.getByText("costs.xlsx", { exact: true }).count()) === 0,
+    );
+    const [got] = await Promise.all([
+      page.waitForEvent("download", { timeout: 20_000 }).catch(() => null),
+      handed.getByRole("button", { name: "Download", exact: true }).first().click(),
+    ]);
+    const gotPath = got && (await got.path().catch(() => null));
+    check(
+      "Download returns the same bytes, under the file's own name",
+      !!gotPath &&
+        readFileSync(gotPath).equals(readFileSync(path.join(workspace, fixed))) &&
+        got.suggestedFilename() === fixed,
+      got ? got.suggestedFilename() : "no download",
+    );
+    // A workbook is not something a browser shows: Open's new tab receives it as a file.
+    const [tab] = await Promise.all([
+      page
+        .context()
+        .waitForEvent("page", { timeout: 20_000 })
+        .catch(() => null),
+      handed.getByRole("button", { name: "Open", exact: true }).first().click(),
+    ]);
+    const opened =
+      tab && (await tab.waitForEvent("download", { timeout: 20_000 }).catch(() => null));
+    const openedPath = opened && (await opened.path().catch(() => null));
+    check(
+      "Open hands the same file over through a fresh link in a new tab",
+      !!openedPath && readFileSync(openedPath).equals(readFileSync(path.join(workspace, fixed))),
+      opened ? opened.url().replace(/token=[^&]+/, "token=…") : "nothing opened",
+    );
+    await tab?.close();
 
     /* --- Talking to JARVIS while it works ------------------------------------ */
 
