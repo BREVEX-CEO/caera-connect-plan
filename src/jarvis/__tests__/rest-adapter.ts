@@ -58,7 +58,9 @@ export function restOver(twin: DatabaseTwin) {
   return {
     from(table: string) {
       const where: string[] = [];
-      let verb: "select" | "update" | "delete" | "insert" = "select";
+      let verb: "select" | "update" | "delete" | "insert" | "upsert" = "select";
+      let rows: Record<string, unknown>[] = [];
+      let conflict = "";
       let columns = "*";
       let patch: Record<string, unknown> = {};
       let tail = "";
@@ -87,6 +89,13 @@ export function restOver(twin: DatabaseTwin) {
         insert(p: Record<string, unknown>) {
           verb = "insert";
           patch = p;
+          return q;
+        },
+        // Only the form the server builds: several rows, an existing one left as it is.
+        upsert(r: Record<string, unknown>[], o: { onConflict: string; ignoreDuplicates: true }) {
+          verb = "upsert";
+          rows = r;
+          conflict = o.onConflict;
           return q;
         },
         eq: (c: string, v: unknown) => (where.push(`${col(c)} = ${lit(v)}`), q),
@@ -139,11 +148,15 @@ export function restOver(twin: DatabaseTwin) {
                     .join(", ")}${w}${returning ? ` returning ${columns}` : ""}`
                 : verb === "delete"
                   ? `delete from ${t}${w}`
-                  : `insert into ${t} (${Object.keys(patch).join(",")}) values (${Object.values(
-                      patch,
-                    )
-                      .map(lit)
-                      .join(",")}) returning ${columns}`;
+                  : verb === "upsert"
+                    ? `insert into ${t} (${Object.keys(rows[0]!).join(",")}) values ${rows
+                        .map((r) => `(${Object.values(r).map(lit).join(",")})`)
+                        .join(",")} on conflict (${conflict}) do nothing returning ${columns}`
+                    : `insert into ${t} (${Object.keys(patch).join(",")}) values (${Object.values(
+                        patch,
+                      )
+                        .map(lit)
+                        .join(",")}) returning ${columns}`;
           if (counting) {
             twin.asServiceRole<{ n: number }>(`select count(*)::int as n from ${t}${w}`).then(
               (rows) => resolve({ count: rows[0]!.n, error: null }),

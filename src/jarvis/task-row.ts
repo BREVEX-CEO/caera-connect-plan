@@ -21,6 +21,8 @@ export interface JarvisTaskRow {
     lastAction: string;
     lastUrl: string | null;
     at: string;
+    /** A completed task's finished files, kept in the Library (server-written). */
+    deliverables?: { id: string; name: string }[];
   } | null;
   created_at: string;
   updated_at: string;

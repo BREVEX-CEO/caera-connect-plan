@@ -102,6 +102,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(out["status"], "done", out)
         self.assertEqual(out["stdout"].strip().splitlines()[0], str(self.root))
         self.assertEqual((self.root / "out.txt").read_text().strip(), "built")
+        self.assertEqual(out["wrote"], ["out.txt"])  # what the command made is said (CAD-22-01)
         probe = Path(__file__).resolve().parent / "escaped-probe.txt"
         escape = self.pc.run({"action": "run", "command": f"echo x > {probe}"})
         self.assertEqual(escape["status"], "failed")
@@ -875,3 +876,59 @@ class NativeAppTest(unittest.TestCase):
             closed = pc.run({"action": "window", "title": target.stem, "state": "close"}, confirmed=True)
             if closed["status"] != "done" and mine != "Notepad":
                 pc.run({"action": "window", "title": mine, "state": "close"}, confirmed=True)
+
+
+class DeliverTest(unittest.TestCase):
+    """A finished file goes only to the address given, only at the size that was checked."""
+
+    def setUp(self):
+        import http.server
+        self.root = Path(tempfile.mkdtemp())
+        (self.root / "car.png").write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * 100)
+        self.pc = Computer(str(self.root))
+        got = self.got = {}
+
+        class Door(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *_):
+                pass
+
+            def do_PUT(self):
+                got["type"] = self.headers["Content-Type"]
+                got["body"] = self.rfile.read(int(self.headers["Content-Length"]))
+                self.send_response(200)
+                self.end_headers()
+
+        self.server = http.server.HTTPServer(("127.0.0.1", 0), Door)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        self.addCleanup(self.server.shutdown)
+
+    def deliver(self, **extra):
+        return self.pc.run({"action": "file_deliver", "path": "car.png", "size": 108, **extra})
+
+    def test_uploads_the_checked_file_as_what_its_bytes_are(self):
+        url = f"http://127.0.0.1:{self.server.server_port}/up"
+        # Only an https address OCADE gave: a plain or missing one is refused before any byte moves.
+        self.assertEqual(self.deliver(upload=url)["status"], "failed")
+        self.assertEqual(self.deliver()["status"], "failed")
+        with unittest.mock.patch.object(ocade_computer, "_DELIVER_SCHEME", "http://"):
+            self.assertEqual(self.deliver(upload=url, size=5)["status"], "failed")  # not the size checked
+            out = self.deliver(upload=url)
+        self.assertEqual(out["status"], "done", out)
+        self.assertEqual(self.got["type"], "image/png")
+        self.assertEqual(self.got["body"], (self.root / "car.png").read_bytes())
+
+
+class ModelPropertiesTest(unittest.TestCase):
+    """An STL says how many triangles it holds; an empty export says 0 (CAD-22-01)."""
+
+    def test_binary_and_text_models_and_an_empty_one(self):
+        import struct
+        root = Path(tempfile.mkdtemp())
+        tri = struct.pack("<12fH", *([0.0] * 12), 0)
+        (root / "two.stl").write_bytes(b"solid but binary".ljust(80, b" ") + struct.pack("<I", 2) + tri * 2)
+        (root / "empty.stl").write_bytes(bytes(84))
+        facet = "facet normal 0 0 1\n outer loop\n vertex 0 0 0\n endloop\nendfacet\n"
+        (root / "text.stl").write_text("solid t\n" + facet * 3 + "endsolid t\n")
+        props = {name: ocade_computer.file_properties(root / name) for name in ("two.stl", "empty.stl", "text.stl")}
+        self.assertEqual(props, {"two.stl": {"triangles": 2}, "empty.stl": {"triangles": 0},
+                                 "text.stl": {"triangles": 3}})

@@ -82,7 +82,7 @@ describe("the action contract", () => {
         action: "type",
         ref: "e1",
         observationId: "o1",
-        text: "x".repeat(2001),
+        text: "x".repeat(20_001),
       }).success,
     ).toBe(false);
   });
@@ -659,6 +659,23 @@ describe("a step as the person reads it", () => {
       "Opened shop.example.com",
     );
     expect(plainStep("Typing into a field")).toBe("Typing into a field");
+  });
+});
+
+describe("a site the person named for the work (CAD-22-01)", () => {
+  const asked = "Open https://cadfaber.com/editor and build a car, export car.stl";
+  const made = new Map([["car.stl", "python3 .jarvis/make_car.py"]]);
+  it("says which finished files a script made instead", async () => {
+    const { scriptNote } = await import("../protocol");
+    expect(scriptNote(asked, made, ["car.stl", "car-bom.csv"])).toBe(
+      "Made by a script on the computer, not on cadfaber.com: car.stl (python3 .jarvis/make_car.py).",
+    );
+  });
+  it("says nothing for work done there or when no site was named", async () => {
+    const { scriptNote } = await import("../protocol");
+    expect(scriptNote(asked, new Map(), ["car.stl"])).toBeNull();
+    expect(scriptNote(asked, made, ["car-bom.csv"])).toBeNull();
+    expect(scriptNote("Make a car model as car.stl", made, ["car.stl"])).toBeNull();
   });
 });
 

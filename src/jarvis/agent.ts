@@ -17,7 +17,7 @@ import type { IntelligenceQuality } from "@/lib/intelligence/quality";
  * the computer busy with) and (when memory is on) remember. Confirmation and
  * take-over are decisions only the person's own clicks resolve.
  */
-import { promptVariant } from "@/lib/intelligence/system-prompt";
+import { ELITE_WORK_STANDARD, promptVariant } from "@/lib/intelligence/system-prompt";
 import type {
   NormalizedAttachment,
   NormalizedAssistantPart,
@@ -41,6 +41,7 @@ import {
   invalidReason,
   pointGap,
   readsBack,
+  scriptNote,
   wordsGap,
 } from "./protocol";
 import type { JarvisTaskRow, StartTaskResult } from "./jarvis.functions";
@@ -279,7 +280,13 @@ export function systemPrompt(input: {
   const zone = safeZone(input.timeZone);
   const clock = `\n\nThe time now is ${localIso(input.now ?? new Date(), zone)} (${zone}).`;
   const where = input.task?.checkpoint;
-  const rules = promptVariant() === "v2" ? JARVIS_SYSTEM_PROMPT_V2 : JARVIS_SYSTEM_PROMPT;
+  const variant = promptVariant();
+  const rules =
+    variant === "v2"
+      ? JARVIS_SYSTEM_PROMPT_V2
+      : variant === "elite"
+        ? `${JARVIS_SYSTEM_PROMPT}\n\n${ELITE_WORK_STANDARD}`
+        : JARVIS_SYSTEM_PROMPT;
   const base = where
     ? `${rules}\n\nThe open task "${input.task!.title}" was last at step ${where.step + 1}, after: ${where.lastAction}${where.lastUrl ? ` (${where.lastUrl})` : ""}. Observe first; never repeat a step the observation shows is done.`
     : rules;
@@ -499,6 +506,13 @@ export async function runJarvisTurn(
   const made = new Map<string, number>();
   /** Page actions in a row that changed nothing: progress is the page changing, not new arguments. */
   let unchanged = 0;
+  /** Work-folder files a command last wrote, with that command (the device reports them). */
+  const byScript = new Map<string, string>();
+  /** The files the task's checks name, outside .jarvis: what a completed task hands over. */
+  let finished: string[] = [];
+  const delivered = new Set<string>();
+  /** Work-folder files this task made or changed: only these are handed over, never an input. */
+  const changed = new Set<string>();
   // Once page content has been read this turn, nothing may be written to memory.
   let untrustedSeen = false;
   // Which kind of observation hands control back after the person takes over.
@@ -626,6 +640,26 @@ export async function runJarvisTurn(
       state = await waitFor(id, action.action);
     }
     hooks.onActivity();
+    if (action.action === "run") {
+      const wrote = (state.result as { wrote?: unknown } | undefined)?.wrote;
+      for (const file of Array.isArray(wrote) ? wrote : []) {
+        byScript.set(String(file), action.command);
+        delivered.delete(String(file));
+        changed.add(String(file));
+      }
+    } else if (!readsBack(action)) {
+      // Changed through JARVIS's own file actions since: not the script's file, nor the copy sent.
+      for (const file of [(action as { path?: unknown }).path, (action as { to?: unknown }).to])
+        if (typeof file === "string") {
+          const name = file.replace(/\\/g, "/").replace(/^\.\//, "");
+          byScript.delete(name);
+          delivered.delete(name);
+          changed.add(name);
+        }
+    }
+    // A page that handed over a file (an Export button, a download) changed the work folder too.
+    const saved = (state.result as { saved?: unknown } | undefined)?.saved;
+    for (const file of Array.isArray(saved) ? saved : []) changed.add(String(file));
     if (state.taskStatus === "taken_over") return handOver("You took over.");
     if (state.taskStatus !== "running") throw new Stopped();
     const result = (state.result ?? {}) as { observation?: { humanBoundary?: string } };
@@ -655,6 +689,29 @@ export async function runJarvisTurn(
     // The device's own status (e.g. "stale") wins; status and summary lead the record.
     const { status: deviceStatus, ...outcome } = (state.result ?? {}) as { status?: string };
     return compact({ status: deviceStatus ?? state.status, summary: state.summary, ...outcome });
+  }
+
+  /**
+   * Each finished file into the person's Library, so the completed card offers Open and Download.
+   * Its size is read first and the device sends only that; a file that cannot go stays on the
+   * computer and the task still completes (a phone or an older Device Agent has no Library step).
+   */
+  async function deliver() {
+    for (const path of finished) {
+      // An input the task only read stays where it is; a refused finish is not a second copy.
+      if (!changed.has(path) || delivered.has(path)) continue;
+      const read = (await runDevice("computer", { action: "file_info", path })) as {
+        status?: unknown;
+        info?: { size?: unknown; folder?: unknown };
+      };
+      const size = read?.info?.size;
+      if (read?.status !== "done" || read.info?.folder || typeof size !== "number" || size < 1)
+        continue;
+      const sent = (await runDevice("computer", { action: "file_deliver", path, size })) as {
+        status?: unknown;
+      };
+      if (sent?.status === "done") delivered.add(path);
+    }
   }
 
   /** `afterHandover`: the person just resumed, so their page is reported, not handed back again. */
@@ -775,6 +832,14 @@ export async function runJarvisTurn(
         }
         const missing = wordsGap(checks.data, input.text);
         if (missing) return { error: missing };
+        finished = [
+          ...new Set(
+            checks.data
+              .map((check) => check.path)
+              .map((path) => path?.replace(/\\/g, "/").replace(/^\.\//, ""))
+              .filter((path): path is string => !!path && !path.startsWith(".jarvis/")),
+          ),
+        ];
         const started = await deps.startTask({
           quality: input.quality ?? "standard",
           checks: checks.data,
@@ -875,9 +940,15 @@ export async function runJarvisTurn(
         let done: JarvisTaskRow;
         try {
           const change = finishChange(args, task);
+          const note =
+            change.status === "completed" ? scriptNote(input.text, byScript, finished) : null;
+          if (note) change.result = `${change.result ?? ""}\n\n${note}`.trim();
           // An explicit resumed turn may already have every result checked and need
           // no new device action. Claim it through the same owner before completion.
-          if (change.status === "completed") await claimTask();
+          if (change.status === "completed") {
+            await claimTask();
+            await deliver();
+          }
           done = await update({ id: task.id, ...change });
         } catch (error) {
           if (error instanceof Error && error.message.startsWith(NOT_VERIFIED)) {
@@ -887,7 +958,8 @@ export async function runJarvisTurn(
         }
         setTask(done);
         task = null;
-        return { ok: true };
+        // As recorded: what the person is told, the script note included.
+        return { ok: true, result: done.result };
       }
       case "schedule": {
         // Like memory: nothing a page, a file or a result said can set up future work.
@@ -1052,7 +1124,9 @@ export async function runJarvisTurn(
       for (const call of reply.toolCalls) {
         const result = await runTool(call);
         if (call.name === "finish_task" && (result as { ok?: unknown } | null)?.ok === true) {
-          finishedWith = String(call.arguments?.result ?? "");
+          finishedWith = String(
+            (result as { result?: unknown }).result ?? call.arguments?.result ?? "",
+          );
         }
         const shown = observationOf(result) ?? observationOf((result as { last?: unknown })?.last);
         const said = (answered: NormalizedToolCall, value: unknown): NormalizedMessage => ({

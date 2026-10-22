@@ -15,7 +15,13 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { runJarvisTurn, type AgentDeps } from "../../src/jarvis/agent";
 import type { JarvisTaskRow } from "../../src/jarvis/jarvis.functions";
-import { BROWSER_ACTION_NAMES, jarvisTools } from "../../src/jarvis/protocol";
+import {
+  BROWSER_ACTION_NAMES,
+  jarvisTools,
+  NOT_VERIFIED,
+  type OutcomeCheck,
+} from "../../src/jarvis/protocol";
+import { verificationGap, type ActionRow } from "../../src/jarvis/task-authority.server";
 import { createOnlineIntelligenceTransport } from "../../src/lib/intelligence/online-client";
 import type {
   NormalizedAssistantPart,
@@ -32,6 +38,69 @@ const token = (
     access_token: string;
   }
 ).access_token;
+
+// The instructions variant under test, as a browser's "ocade.prompt" choice (v1 unless set).
+const variant = process.env.OCADE_PROMPT ?? "v1";
+(globalThis as { localStorage?: unknown }).localStorage = {
+  getItem: (key: string) => (key === "ocade.prompt" ? variant : null),
+};
+
+const SUPABASE = process.env.OCADE_SUPABASE_URL!;
+const asUser = { apikey: process.env.OCADE_SUPABASE_KEY!, authorization: `Bearer ${token}` };
+const userId = (
+  JSON.parse(Buffer.from(token.split(".")[1]!, "base64url").toString()) as { sub: string }
+).sub;
+
+/** As the server's queueTaskAction does: a fresh object in the person's own Library folder. */
+async function mintUpload(item: string): Promise<string> {
+  const answer = await fetch(
+    `${SUPABASE}/storage/v1/object/upload/sign/library/${userId}/${item}`,
+    {
+      method: "POST",
+      headers: asUser,
+    },
+  );
+  return `${SUPABASE}/storage/v1${((await answer.json()) as { url: string }).url}`;
+}
+
+/** As the server's keepDelivered does, as the person; then expiring links to each, for the record. */
+export const delivered: { name: string; size: number; open: string; download: string }[] = [];
+async function keepDelivered(rows: ActionRow[]) {
+  for (const row of rows) {
+    const action = row.action as { action?: string; path?: string; item?: string; size?: number };
+    if (action?.action !== "file_deliver" || row.status !== "done" || !action.item) continue;
+    const name = action.path!.split(/[\\/]/).pop()!;
+    const path = `${userId}/${action.item}`;
+    await fetch(`${SUPABASE}/rest/v1/ocade_library_items`, {
+      method: "POST",
+      headers: { ...asUser, "content-type": "application/json", prefer: "return=minimal" },
+      body: JSON.stringify({
+        id: action.item,
+        user_id: userId,
+        kind: /\.(png|jpe?g|gif|webp)$/i.test(name) ? "image" : "file",
+        source: "generated",
+        name,
+        mime: "application/octet-stream",
+        size_bytes: action.size,
+        storage_path: path,
+      }),
+    });
+    const link = async (extra: object) => {
+      const answer = await fetch(`${SUPABASE}/storage/v1/object/sign/library/${path}`, {
+        method: "POST",
+        headers: { ...asUser, "content-type": "application/json" },
+        body: JSON.stringify({ expiresIn: 7 * 86_400, ...extra }),
+      });
+      return `${SUPABASE}/storage/v1${((await answer.json()) as { signedURL: string }).signedURL}`;
+    };
+    delivered.push({
+      name,
+      size: action.size!,
+      open: await link({}),
+      download: `${await link({})}&download=${encodeURIComponent(name)}`,
+    });
+  }
+}
 
 export const transport = createOnlineIntelligenceTransport({
   configuration: () =>
@@ -78,17 +147,33 @@ export async function ask(...args: Parameters<typeof askOnce>) {
     try {
       return await askOnce(...args);
     } catch (error) {
-      if (
-        !(error instanceof Busy) ||
-        error.retryAfterMs === undefined ||
-        error.retryAfterMs > pause
-      )
-        throw error;
+      if (!(error instanceof Busy)) throw error;
+      if ((error.retryAfterMs ?? Infinity) > pause)
+        return resumeAfterBusy(args, error.retryAfterMs);
       busyWaits.push(pause);
       await new Promise((resolve) => setTimeout(resolve, pause));
     }
   }
   return askOnce(...args);
+}
+
+/**
+ * Busy past the short waits: the product pauses the task and continues it by itself after the
+ * named wait or 30 s, doubling per strike up to 5 min (JarvisWorkspace busyUntil).
+ */
+async function resumeAfterBusy(args: Parameters<typeof askOnce>, named?: number) {
+  for (const base of [30_000, 60_000, 120_000]) {
+    const pause = Math.max(named ?? 0, base);
+    if (pause > 300_000) break;
+    busyWaits.push(pause);
+    await new Promise((resolve) => setTimeout(resolve, pause));
+    try {
+      return await askOnce(...args);
+    } catch (error) {
+      if (!(error instanceof Busy)) throw error;
+    }
+  }
+  throw new Busy();
 }
 
 /** One complete model turn through the boundary, as the product's askOnce asks it. */
@@ -163,6 +248,8 @@ export async function device(family: "browser" | "computer", action: object) {
 }
 
 let row: JarvisTaskRow | null = null;
+/** What the model was last shown: its tail goes in the record, so a stop can be explained. */
+let transcript: unknown[] = [];
 let approvals = 0;
 let takeOvers = 0;
 
@@ -177,9 +264,17 @@ function deps(): AgentDeps {
     return item.run;
   };
   let n = 0;
+  // Every settled action as the exchange stores it, so completion is judged by the server's own rule.
+  const rows: ActionRow[] = [];
+  let checks: readonly OutcomeCheck[] | null = null;
   return {
-    model: async ({ messages, signal }) => ask(messages, jarvisTools(false, false, false), signal),
+    model: async ({ messages, signal }) => {
+      const reply = await ask(messages, jarvisTools(false, false, false), signal);
+      transcript = [...messages, { role: "model", text: reply.text, toolCalls: reply.toolCalls }];
+      return reply;
+    },
     startTask: async (input) => {
+      checks = input.checks ?? null;
       row = {
         id: "task-1",
         conversation_id: input.conversationId,
@@ -206,6 +301,11 @@ function deps(): AgentDeps {
       };
     },
     updateTask: async (change) => {
+      if (change.status === "completed") {
+        const gap = verificationGap(rows, checks, change.result);
+        if (gap) throw new Error(NOT_VERIFIED + gap);
+        await keepDelivered(rows);
+      }
       row = {
         ...row!,
         ...(change.status ? { status: change.status } : {}),
@@ -218,12 +318,25 @@ function deps(): AgentDeps {
     readTaskStatus: async () => row!.status,
     queue: async ({ action }) => {
       const id = `a${++n}`;
+      if ((action as { action: string }).action === "file_deliver") {
+        const item = crypto.randomUUID();
+        action = { ...action, upload: await mintUpload(item), item } as typeof action;
+      }
       queued.set(id, { action });
       return { ok: true, id };
     },
     readAction: async (id) => {
       const result = await execute(id);
       const status = String(result.status);
+      if (!rows.some((r) => (r as { id?: string }).id === id)) {
+        const { status: _s, summary: _m, changed, observation, ...detail } = result;
+        rows.push({
+          id,
+          action: queued.get(id)?.action ?? null,
+          status: status === "done" ? "done" : "failed",
+          result: { status, changed, observation, detail },
+        } as ActionRow);
+      }
       return {
         status: status === "done" || status === "human_required" ? status : "failed",
         summary: String(result.summary ?? ""),
@@ -292,6 +405,7 @@ writeFileSync(
   JSON.stringify(
     {
       arch,
+      variant,
       task: task.id,
       wallMs,
       modelMs: calls.reduce((sum, c) => sum + c.ms, 0),
@@ -303,6 +417,8 @@ writeFileSync(
       outcome,
       permitsLeft: permits.length,
       programs,
+      delivered,
+      transcriptTail: transcript.slice(-8).map((m) => JSON.stringify(m).slice(0, 700)),
     },
     null,
     1,

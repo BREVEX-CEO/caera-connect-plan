@@ -983,6 +983,53 @@ describe("completion needs evidence from the device (P01)", () => {
       expect((await statusOf(t)).status).toBe("completed");
     });
 
+    it("refuses a checked file that is there but empty, such as a model with no triangles", async () => {
+      const t = await withChecks([{ path: "car.stl" }]);
+      await done(await queue(t, { action: "download", ref: "e1" }));
+      const info = (properties: object) => ({
+        status: "done",
+        detail: { info: { name: "car.stl", size: 84, properties } },
+      });
+      await done(await queue(t, { action: "file_info", path: "car.stl" }), info({ triangles: 0 }));
+      const finish = () =>
+        changeTask(rest() as never, rest() as never, A, { id: t, status: "completed" });
+      await expect(finish()).rejects.toThrow(/car\.stl is empty/);
+      await done(await queue(t, { action: "file_info", path: "car.stl" }), info({ triangles: 12 }));
+      await finish();
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
+    it("keeps each delivered file as a Library item named on the completed task", async () => {
+      const t = await withChecks([{ path: "car.stl" }]);
+      await done(await queue(t, { action: "file_write", path: "car.stl", content: "solid" }));
+      await done(await queue(t, { action: "file_read", path: "car.stl" }), {
+        status: "done",
+        detail: { content: "solid" },
+      });
+      const item = "cccccccc-2222-4ccc-8ccc-cccccccccccc";
+      const sent = { action: "file_deliver", path: "car.stl", size: 5, upload: "https://u", item };
+      await done(await queue(t, sent));
+      const at = new Date().toISOString();
+      const row = await changeTask(rest() as never, rest() as never, A, {
+        id: t,
+        status: "completed",
+        result: "Made car.stl.",
+        checkpoint: { step: 1, lastAction: "Finished", lastUrl: null, at },
+      });
+      expect(row?.checkpoint?.deliverables).toEqual([{ id: item, name: "car.stl" }]);
+      const kept = await twin.asServiceRole(
+        `select name, source, size_bytes, storage_path, conversation_id from public.ocade_library_items where id = '${item}'`,
+      );
+      expect(kept).toHaveLength(1);
+      expect(kept[0]).toMatchObject({
+        name: "car.stl",
+        source: "generated",
+        storage_path: `${A}/${item}`,
+        conversation_id: conversation,
+      });
+      expect(Number((kept[0] as { size_bytes: unknown }).size_bytes)).toBe(5);
+    });
+
     it("accepts a figure the task's own web research answered (VER-01-01)", async () => {
       const t = await withChecks([{ contains: ["India"] }]);
       await done(await queue(t, { action: "find_text", text: "1.43" }), {

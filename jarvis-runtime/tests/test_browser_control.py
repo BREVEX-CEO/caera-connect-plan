@@ -300,7 +300,7 @@ class BrowserControlTest(unittest.TestCase):
         started = time.monotonic()
         out = self.act({"action": "click", "ref": behind["ref"], "observationId": obs["observationId"]})
         self.assertEqual(out["status"], "failed")
-        self.assertIn("covers", out["summary"])
+        self.assertIn("“Arrow” is in front", out["summary"])  # named by what it says
         self.assertLess(time.monotonic() - started, 3)
 
     def test_a_step_names_its_element_by_target_and_the_device_waits_for_it(self):
@@ -550,6 +550,16 @@ class UploadDownloadTest(unittest.TestCase):
         saved = sorted(p.name for p in (self.root / "Downloads").iterdir())
         self.assertEqual(saved, ["report (2).csv", "report.csv"])  # never overwritten
         self.assertEqual((self.root / "Downloads/report.csv").read_text(), "a,b\n1,2\n")
+
+    def test_a_plain_click_that_saves_a_file_keeps_it(self):
+        # An editor's Export button is clicked, not "downloaded": the file is kept all the same.
+        obs = self.run_({"action": "open", "url": self.url})["observation"]
+        link = next(e["ref"] for e in obs["elements"] if e["name"] == "Get report")
+        root = Path(tempfile.mkdtemp()).resolve()
+        out = self.run_({"action": "click", "ref": link, "observationId": obs["observationId"]}, root)
+        self.assertEqual(out["status"], "done", out)
+        self.assertEqual(out["saved"], ["Downloads/report.csv"], out)
+        self.assertEqual((root / "Downloads/report.csv").read_text(), "a,b\n1,2\n")
 
     def test_nothing_outside_the_work_folder(self):
         outside = Path(tempfile.mkdtemp()) / "secret.txt"

@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, Hand, Pause, Play, Square } from "lucide-react"
 import { cn } from "@/lib/utils";
 import { FINISHED, plainStep, TASK_STATUS } from "./protocol";
 import { readJarvisFrame, type JarvisState, type JarvisTaskRow } from "./jarvis.functions";
+import { signLibraryItem } from "@/lib/library/library.functions";
 import type { JarvisVoice } from "./use-voice";
 
 function Controls({
@@ -88,8 +89,6 @@ export function TaskCard({
   // A step count and bar only where there is a real plan to measure against.
   const step = Math.min(task.current_step + 1, total);
   const progress = total ? Math.round((Math.min(task.current_step, total) / total) * 100) : 0;
-  const button =
-    "inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-xs transition-colors duration-150 hover:bg-accent";
   return (
     <section
       aria-label="Task"
@@ -137,6 +136,13 @@ export function TaskCard({
         <p className="mt-2 whitespace-pre-wrap text-sm" data-testid="jarvis-task-result">
           {task.result}
         </p>
+      ) : null}
+      {task.status === "completed" && task.checkpoint?.deliverables?.length ? (
+        <ul className="mt-2 space-y-1" aria-label="Files">
+          {task.checkpoint.deliverables.map((file) => (
+            <Deliverable key={file.id} file={file} />
+          ))}
+        </ul>
       ) : null}
       {!running && task.status === "running" ? (
         <p className="mt-2 text-xs text-muted-foreground">
@@ -208,6 +214,46 @@ export function TaskCard({
         <Controls task={task} onStop={onStop} onTakeOver={onTakeOver} onResume={onResume} />
       </div>
     </section>
+  );
+}
+
+const button =
+  "inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-xs transition-colors duration-150 hover:bg-accent";
+
+/**
+ * A finished file kept in the Library: Open in a new tab (opened in the click itself, which is
+ * the only time a browser allows it) or Download, each through a fresh short-lived link.
+ */
+function Deliverable({ file }: { file: { id: string; name: string } }) {
+  const [problem, setProblem] = useState<string | null>(null);
+  async function get(download: boolean) {
+    const tab = download ? null : window.open("", "_blank");
+    if (tab) tab.opener = null;
+    try {
+      const { url } = await signLibraryItem({ data: { id: file.id, download } });
+      if (tab) tab.location.href = url;
+      else {
+        const link = document.createElement("a");
+        link.href = url;
+        link.rel = "noopener noreferrer";
+        link.click();
+      }
+    } catch (error) {
+      tab?.close();
+      setProblem(error instanceof Error ? error.message : "That file could not be opened.");
+    }
+  }
+  return (
+    <li className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 px-3 py-2 text-sm">
+      <span className="min-w-0 flex-1 truncate">{file.name}</span>
+      <button type="button" onClick={() => void get(false)} className={button}>
+        Open
+      </button>
+      <button type="button" onClick={() => void get(true)} className={button}>
+        Download
+      </button>
+      {problem ? <span className="w-full text-xs text-destructive">{problem}</span> : null}
+    </li>
   );
 }
 

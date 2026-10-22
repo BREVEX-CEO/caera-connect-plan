@@ -140,7 +140,7 @@ const CHANGES_FILES = [
   "download",
 ];
 
-type ActionRow = {
+export type ActionRow = {
   action: {
     action?: string;
     path?: unknown;
@@ -148,6 +148,9 @@ type ActionRow = {
     from?: unknown;
     op?: unknown;
     content?: unknown;
+    size?: unknown;
+    /** file_deliver: the Library item OCADE's server named for it when it was queued. */
+    item?: unknown;
   } | null;
   status: string;
   /** As the exchange stores it: what the device returned beyond its status is under `detail`. */
@@ -197,7 +200,7 @@ async function taskActions(
  * outcome is unknown read back after it; and, when `checks` is given, each of the task's
  * fixed checks passed by what the device read (never by what the model says it saw).
  */
-function verificationGap(
+export function verificationGap(
   all: ActionRow[],
   checks?: readonly OutcomeCheck[] | null,
   claim?: string | null,
@@ -453,6 +456,18 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
     }
     if (!check.contains?.length) return null;
   }
+  // There but holding nothing (no bytes, a model with no triangles) is not a finished result,
+  // whatever else is checked (CAD-22-01: an empty export was reported done).
+  const shape = after
+    .filter((row) => row.action?.action === "file_info")
+    .map(
+      (row) => row.result?.detail?.info as { size?: unknown; properties?: { triangles?: unknown } },
+    )
+    .filter(Boolean)
+    .at(-1);
+  if (path && shape && (shape.size === 0 || shape.properties?.triangles === 0)) {
+    return `${target} is empty. Make it again, or finish as failed and say why.`;
+  }
   const reads =
     path && check.contains?.length
       ? after.filter((row) => READS_FILE.has(row.action?.action ?? ""))
@@ -481,6 +496,61 @@ export async function completionGap(
 ): Promise<string | null> {
   const rows = await taskActions(service, userId, taskId);
   return rows ? verificationGap(rows, checks) : "the task's actions could not be read back.";
+}
+
+/**
+ * Library items for the files this task delivered (the device confirmed each upload), written
+ * once the result is verified: a failed or stopped task offers nothing. Their bytes are already
+ * in the person's own folder of the private bucket, under the name the server gave them.
+ * ponytail: an upload whose task never completes stays in storage with no item; a sweep of
+ * item-less objects closes that.
+ */
+async function keepDelivered(
+  service: Db,
+  userId: string,
+  taskId: string,
+  rows: ActionRow[],
+): Promise<{ id: string; name: string }[]> {
+  const sent = rows.filter(
+    (row) =>
+      row.action?.action === "file_deliver" &&
+      row.status === "done" &&
+      typeof row.action.item === "string" &&
+      typeof row.action.path === "string",
+  );
+  if (!sent.length) return [];
+  const { data: task } = await service
+    .from("jarvis_tasks")
+    .select("conversation_id")
+    .eq("id", taskId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const items = [
+    ...new Map(
+      sent.map((row) => {
+        const name = String(row.action!.path).split(/[\\/]/).pop()!.slice(0, 300);
+        const image = /\.(png|jpe?g|gif|webp)$/i.test(name);
+        return [
+          name,
+          {
+            id: String(row.action!.item),
+            user_id: userId,
+            kind: image ? "image" : "file",
+            source: "generated",
+            name,
+            mime: "application/octet-stream",
+            size_bytes: Number(row.action!.size) || 0,
+            storage_path: `${userId}/${String(row.action!.item)}`,
+            conversation_id: task?.conversation_id ?? null,
+          },
+        ] as const;
+      }),
+    ).values(),
+  ];
+  const { error } = await service
+    .from("ocade_library_items")
+    .upsert(items as never, { onConflict: "id", ignoreDuplicates: true });
+  return error ? [] : items.map(({ id, name }) => ({ id, name }));
 }
 
 /** Actions that change a file's content in place, and the reads that check that content. */
@@ -649,6 +719,7 @@ export async function changeTask(
   data: TaskChange,
 ): Promise<JarvisTaskRow | null> {
   const patch: Record<string, unknown> = {};
+  let deliverables: { id: string; name: string }[] = [];
   if (data.status === "completed") {
     const { data: fixed } = await service
       .from("jarvis_tasks")
@@ -664,6 +735,7 @@ export async function changeTask(
     if (gap) throw new Error(NOT_VERIFIED + gap);
     // The database refuses completed if the task holds any other actions when it is written.
     patch.verified_actions = rows!.length;
+    deliverables = await keepDelivered(service, userId, data.id, rows!);
   }
   if (data.controller !== undefined) patch.controller = data.controller;
   else if (data.owner !== undefined) patch.controller = data.owner; // same value: a touch
@@ -681,6 +753,10 @@ export async function changeTask(
       ...data.checkpoint,
       intelligenceQuality: checkpoint?.intelligenceQuality ?? "standard",
     };
+  }
+  // The finished files, as Library items the card opens and downloads.
+  if (deliverables.length && patch.checkpoint) {
+    patch.checkpoint = { ...(patch.checkpoint as object), deliverables };
   }
   if (data.status !== undefined) patch.status = data.status;
   if (data.currentStep !== undefined) patch.current_step = data.currentStep;
@@ -834,6 +910,17 @@ export async function queueTaskAction(
         message: `This task already wrote exactly this content to ${twin.action!.path}. Use that file; to make a copy on purpose, use file_copy.`,
       };
     }
+  }
+  // Where a finished file goes is OCADE's to say: one new object in the person's own folder of
+  // the private Library bucket, writable once, so no model or page can send it anywhere else.
+  if (data.action.action === "file_deliver") {
+    const item = crypto.randomUUID();
+    const { data: signed, error: signError } = await service.storage
+      .from("library")
+      .createSignedUploadUrl(`${userId}/${item}`);
+    if (signError || !signed)
+      return { ok: false, message: "The Library could not take a file now." };
+    data.action = { ...data.action, upload: signed.signedUrl, item } as DeviceAction;
   }
   if (data.action.action === "open_app") {
     const installed = (device.installed_apps ?? []) as string[];

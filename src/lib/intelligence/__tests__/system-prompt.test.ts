@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { JARVIS_SYSTEM_PROMPT, JARVIS_SYSTEM_PROMPT_V2 } from "@/jarvis/protocol";
 import { systemPrompt } from "@/jarvis/agent";
-import { CHAT_MODE, CORE, JARVIS_MODE, promptVariant } from "../system-prompt";
+import { CHAT_MODE, CORE, ELITE_WORK_STANDARD, JARVIS_MODE, promptVariant } from "../system-prompt";
 
 describe("the redesigned instructions, as an opt-in candidate", () => {
   afterEach(() => globalThis.localStorage?.removeItem("ocade.prompt"));
@@ -31,5 +31,16 @@ describe("the redesigned instructions, as an opt-in candidate", () => {
     for (const prompt of [JARVIS_SYSTEM_PROMPT_V2, `${CORE}\n\n${CHAT_MODE}`]) {
       expect(prompt).not.toMatch(/Integration contract|NON-NEGOTIABLE|TRUSTED RUNTIME INPUTS/);
     }
+  });
+
+  it("adds the Elite Work Standard after the current JARVIS rules only when chosen (PROMPT-22-01)", () => {
+    expect(systemPrompt({ task: null })).not.toContain(ELITE_WORK_STANDARD);
+    if (!globalThis.localStorage) return; // no storage: always the current rules
+    globalThis.localStorage.setItem("ocade.prompt", "elite");
+    expect(promptVariant()).toBe("elite");
+    const prompt = systemPrompt({ task: null });
+    expect(prompt.startsWith(`${JARVIS_SYSTEM_PROMPT}\n\n${ELITE_WORK_STANDARD}`)).toBe(true);
+    globalThis.localStorage.setItem("ocade.prompt", "something else");
+    expect(promptVariant()).toBe("v1");
   });
 });

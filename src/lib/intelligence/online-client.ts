@@ -1,5 +1,5 @@
 import { getSupabaseBrowserConfiguration } from "@/integrations/supabase/configuration";
-import { CHAT_MODE, CORE, promptVariant } from "./system-prompt";
+import { CHAT_MODE, CORE, ELITE_WORK_STANDARD, promptVariant } from "./system-prompt";
 import type {
   IntelligenceEvent,
   IntelligenceTransport,
@@ -172,9 +172,16 @@ export function createOnlineIntelligenceTransport(
         surface: request.surface,
         // The candidate Chat instructions go only online: Offline Chat never receives them.
         messages:
-          request.surface === "chat" && promptVariant() === "v2"
-            ? [{ role: "system", content: `${CORE}\n\n${CHAT_MODE}` }, ...request.messages]
-            : request.messages,
+          request.surface !== "chat" || promptVariant() === "v1"
+            ? request.messages
+            : [
+                {
+                  role: "system",
+                  content:
+                    promptVariant() === "v2" ? `${CORE}\n\n${CHAT_MODE}` : ELITE_WORK_STANDARD,
+                },
+                ...request.messages,
+              ],
         tools: request.tools,
         attachments: request.attachments,
         privacy: request.privacy,

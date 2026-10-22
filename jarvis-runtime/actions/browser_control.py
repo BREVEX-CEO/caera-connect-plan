@@ -66,6 +66,19 @@ _PURCHASE = re.compile(_GATES["purchase"], re.I)
 _SENSITIVE = re.compile(_GATES["sensitive"], re.I)
 
 
+async def _save_download(download, folder: Path) -> str:
+    """A file the page handed over, kept in the work folder's Downloads under its own name, never
+    over one already there. Answers its path from the work folder (Downloads/name)."""
+    folder.mkdir(parents=True, exist_ok=True)
+    target = folder / (Path(download.suggested_filename).name or "download")
+    stem, suffix, n = target.stem, target.suffix, 1
+    while target.exists():
+        n += 1
+        target = folder / f"{stem} ({n}){suffix}"
+    await download.save_as(str(target))
+    return f"{folder.name}/{target.name}"
+
+
 def _gate(kind: str, info: dict, confirmed: bool) -> dict | None:
     """A hard rule the model cannot argue with. `confirmed` is set by a person."""
     name = str(info.get("name", ""))
@@ -458,6 +471,7 @@ class _BrowserSession:
         if self.mode == "real":
             await self._guard(page)  # whichever of the person's tabs JARVIS is in now
         before = await self._geometry(page)
+        saved: list[str] = []  # files this step saved into the work folder's Downloads
         detail = ""
 
         if kind == "observe":
@@ -543,9 +557,10 @@ class _BrowserSession:
                 return gate
             # Something covers it (an open dialog): said at once, with the page as it is, rather
             # than an 8-second wait that ends in an error.
-            if kind == "click" and await loc.evaluate(_OCADE_COVERED):
-                return {"status": "failed", "summary": "Something on the page covers that element; "
-                        "deal with what is in front first", "observation": await self.observe()}
+            if kind == "click" and (cover := await loc.evaluate(_OCADE_COVERED)):
+                front = f"“{cover}”" if isinstance(cover, str) else "Something on the page"
+                return {"status": "failed", "summary": f"{front} is in front of that element; "
+                        "answer or close it first", "observation": await self.observe()}
             if kind == "click":
                 # A link that opens its own tab: JARVIS follows it there, as a person would, instead of
                 # reporting the old tab and failing the next step on a tab that did not exist yet.
@@ -557,27 +572,61 @@ class _BrowserSession:
                     if self.mode == "real":
                         await self._guard(page)
                 else:
-                    await loc.click(timeout=8_000)
+                    # A button that makes a file (an editor's Export) is kept, not lost with the click.
+                    caught: list = []
+
+                    def keep(download):
+                        caught.append(download)
+                    page.on("download", keep)
+                    try:
+                        await loc.click(timeout=8_000)
+                        await asyncio.sleep(0.3)  # a file made in the page starts at once
+                    finally:
+                        page.remove_listener("download", keep)
+                    if caught and action.get("_folder"):
+                        saved = [await _save_download(d, Path(action["_folder"])) for d in caught[:5]]
                 detail = f"Clicked “{info.get('name') or info.get('role')}”"
             elif kind == "type":
-                text = str(action.get("text", ""))[:2000]
+                text = str(action.get("text", ""))[:20_000]
+                filled = False
                 if info.get("editable"):
-                    await loc.fill(text, timeout=8_000)
-                else:
-                    # A rich editor (contenteditable): typed as keys at its caret, at the end when
-                    # it was not in use yet. Filling it replaced what was there and bypassed the
-                    # editor, so its toolbar formatting and earlier words were lost.
+                    # A field an editor keeps out of sight (a code editor's own input) cannot be
+                    # filled: its text goes in at the caret instead, as below.
+                    try:
+                        await loc.fill(text, timeout=3_000)
+                        filled = True
+                    except PlaywrightTimeout:
+                        pass
+                if not filled:
+                    # A rich or code editor: entered at its caret, at the end when it was not in
+                    # use yet, or over everything with replace. Filling it bypassed the editor, so
+                    # its formatting and earlier words were lost; key by key, a code editor added
+                    # its own closing brackets to every one typed (CAD-22-01). Inserted as one
+                    # input, the editor takes the text as written.
+                    mac = sys.platform == "darwin"
+                    # Focused, not clicked: a code editor draws its text over its own input, so a
+                    # click lands on the drawing and never reaches the field.
                     if not await loc.evaluate("el => el.contains(document.activeElement)"):
-                        await loc.click(timeout=8_000)
-                        await page.keyboard.press("Meta+ArrowDown" if sys.platform == "darwin"
-                                                  else "Control+End")
-                    await page.keyboard.type(text)
+                        await loc.focus(timeout=8_000)
+                        if not action.get("replace"):
+                            await page.keyboard.press("Meta+ArrowDown" if mac else "Control+End")
+                    if action.get("replace"):
+                        await page.keyboard.press("Meta+A" if mac else "Control+A")
+                    await page.keyboard.insert_text(text)
                 if action.get("submit"):
                     submit_gate = _gate("submit", await loc.evaluate(_OCADE_FORM_SUBMIT), confirmed)
                     if submit_gate:
                         return submit_gate
                     await loc.press("Enter")
-                typed = (await loc.input_value() == text) if info.get("editable") else                     " ".join(text.split()) in " ".join((await loc.inner_text()).split())
+                # An editor that shows only the lines in view (code editors) still shows the end,
+                # where the caret is, and may wrap or indent lines its own way: a long text is
+                # judged by its last 200 characters, spacing aside.
+                # The editor's own input may hold none of it: the nearest box showing text is read.
+                shown = "" if filled else await loc.evaluate(
+                    "el => { let n = el; while (n && !(n.innerText || '').trim()) n = n.parentElement;"
+                    " return n ? n.innerText : ''; }")
+                typed = (await loc.input_value() == text) if filled else \
+                    "".join(text.split())[-200:] in "".join(shown.split())
                 if not typed:
                     return {"status": "failed", "summary": "The field did not take the text",
                             "observation": await self.observe()}
@@ -601,17 +650,8 @@ class _BrowserSession:
                     return gate
                 async with page.expect_download(timeout=60_000) as waiting:
                     await loc.click(timeout=8_000)
-                download = await waiting.value
-                folder = Path(action["_folder"])
-                folder.mkdir(parents=True, exist_ok=True)
-                name = Path(download.suggested_filename).name or "download"
-                target = folder / name
-                stem, suffix, n = target.stem, target.suffix, 1
-                while target.exists():  # never overwrite what is already there
-                    n += 1
-                    target = folder / f"{stem} ({n}){suffix}"
-                await download.save_as(str(target))
-                detail = f"Downloaded {target.name} to {folder.name}"
+                saved = [await _save_download(await waiting.value, Path(action["_folder"]))]
+                detail = f"Downloaded {saved[0]}"
         elif kind == "press":
             key = str(action.get("key", "Enter"))
             if key not in _KEYS:
@@ -673,5 +713,8 @@ class _BrowserSession:
         observation = await self.observe()
         after = await self._geometry(after_page)
         changed = [k for k in ("url", "tab", "m", "sy") if after.get(k) != before.get(k)]
-        return {"status": "done", "summary": detail[:280], "changed": changed, "observation": observation}
+        if saved and kind == "click":
+            detail += f"; saved {', '.join(saved)}"
+        return {"status": "done", "summary": detail[:280], "changed": changed, "observation": observation,
+                **({"saved": saved} if saved else {})}
 

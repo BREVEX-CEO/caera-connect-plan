@@ -410,6 +410,33 @@ describe("a JARVIS turn", () => {
     expect(fed.some((m) => m.content.startsWith("Called "))).toBe(false);
   });
 
+  it("hands over the checked files and says which a script made instead of the named site", async () => {
+    const checks = [{ path: "car.stl" }, { path: ".jarvis/make.py" }];
+    const h = harness(
+      [
+        { text: "", toolCalls: [call("start_task", { title: "Car", steps: ["make"], checks })] },
+        { text: "", toolCalls: [call("computer", { action: "run", command: "python3 make.py" })] },
+        {
+          text: "",
+          toolCalls: [call("finish_task", { outcome: "completed", result: "Built it." })],
+        },
+      ],
+      {
+        run: [{ status: "done", result: { wrote: ["car.stl", ".jarvis/make.py"] } }],
+        info: [{ status: "done", result: { info: { size: 42 } } }],
+        sent: [{ status: "done" }],
+      },
+    );
+    h.input.text = "Open https://cadfaber.com/editor and build a car as car.stl";
+    const out = await runJarvisTurn(h.input, h.hooks, h.deps);
+    // Only the deliverable outside .jarvis, at the size the device read.
+    expect(h.queued.slice(1)).toEqual([
+      { action: "file_info", path: "car.stl" },
+      { action: "file_deliver", path: "car.stl", size: 42 },
+    ]);
+    expect(out.answer).toContain("Made by a script on the computer, not on cadfaber.com: car.stl");
+  });
+
   it("fixes the checks at start, binds the starting turn and every later turn to the task (Phase 01)", async () => {
     const h = harness([
       {

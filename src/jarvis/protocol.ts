@@ -52,7 +52,10 @@ const BROWSER_ACTIONS = [
   z.object({
     action: z.literal("type"),
     ...pointed,
-    text: z.string().max(2000),
+    // Room for a code editor's whole program (CAD-22-01), not only a form field.
+    text: z.string().max(20_000),
+    /** Replace what the field or editor holds, rather than adding at its end. */
+    replace: z.boolean().optional(),
     submit: z.boolean().optional(),
   }),
   z.object({ action: z.literal("select"), ...pointed, option: z.string().max(200) }),
@@ -375,6 +378,19 @@ const COMPUTER_ACTIONS = [
   // Listing needs no path: the work folder itself (live Gemini, 18 Oct, sent it without one).
   z.object({ action: z.literal("file_list"), path: workspacePath.default(".") }),
   z.object({ action: z.literal("file_read"), path: workspacePath }),
+  /*
+   * A finished file sent to the person's own OCADE Library, so the task can offer Open and
+   * Download. Only the size is said here; the upload address is OCADE's server's to add.
+   */
+  z.object({
+    action: z.literal("file_deliver"),
+    path: workspacePath,
+    size: z
+      .number()
+      .int()
+      .min(1)
+      .max(100 * 1024 * 1024),
+  }),
   z.object({
     action: z.literal("file_write"),
     path: workspacePath,
@@ -514,6 +530,7 @@ export function capabilityFor(action: DeviceAction): Capability {
       return "files";
     case "file_list":
     case "file_read":
+    case "file_deliver":
     case "file_write":
     case "file_trash":
     case "file_delete":
@@ -627,6 +644,7 @@ export const FINISHED: readonly TaskStatus[] = ["stopped", "blocked", "failed", 
 /** Actions that only read the device's state: the only independent evidence of a result. */
 export const READS_BACK = new Set([
   "file_info",
+  "file_deliver",
   "file_compare",
   "file_read",
   "file_list",
@@ -846,6 +864,8 @@ export function describeAction(action: DeviceAction): string {
       return `Listing ${action.path.slice(0, 120)}`;
     case "file_read":
       return `Reading ${action.path.slice(0, 120)}`;
+    case "file_deliver":
+      return `Adding ${action.path.split(/[\\/]/).pop()} to your Library`;
     case "file_write":
       return `Writing ${action.path.slice(0, 120)}`;
     case "file_trash":
@@ -951,6 +971,27 @@ export function describeAction(action: DeviceAction): string {
 /** A step as a person reads it: a page by its site name, never its full address. */
 export function plainStep(summary: string): string {
   return summary.replace(/https?:\/\/[^\s"'<>]+/g, (url) => hostOf(url) ?? "a page");
+}
+
+/**
+ * What the person is told, whatever the answer says, when they named a site for the work and a
+ * finished file was made by a command on the computer instead (ROUTE-21-01, CAD-22-01: live
+ * runs made the picture and the "CADFaber" car with scripts and reported both as done on the
+ * site, even after being told). `made` holds each work-folder file a command last wrote, from
+ * the device's own report of what the command changed. Null when nothing needs saying.
+ */
+export function scriptNote(
+  request: string,
+  made: ReadonlyMap<string, string>,
+  files: readonly string[],
+): string | null {
+  const sites = [
+    ...new Set((request.match(/https?:\/\/[^\s"'<>)]+/g) ?? []).map(hostOf).filter(Boolean)),
+  ];
+  const scripted = files.filter((file) => made.has(file));
+  if (!sites.length || !scripted.length) return null;
+  const how = scripted.map((file) => `${file} (${made.get(file)!.slice(0, 80)})`).join(", ");
+  return `Made by a script on the computer, not on ${sites.join(", ")}: ${how}.`;
 }
 
 /**
@@ -1108,6 +1149,11 @@ export function jarvisTools(
         observationId: str("The observationId the ref or point came from."),
         text: str("For type, and the words to look for with find_text."),
         submit: { type: "BOOLEAN", description: "Press Enter after typing." },
+        replace: {
+          type: "BOOLEAN",
+          description:
+            "For type: replace what the field or editor holds (a whole program, a draft).",
+        },
         option: str("For select."),
         key: str("For press, e.g. Enter, Tab, Escape."),
         direction: str("up or down, for scroll."),

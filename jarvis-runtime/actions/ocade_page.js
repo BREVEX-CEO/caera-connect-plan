@@ -84,8 +84,14 @@
     const r = el.getBoundingClientRect();
     const top = document.elementFromPoint(Math.min(Math.max(r.left + r.width / 2, 0), innerWidth - 1),
       Math.min(Math.max(r.top + r.height / 2, 0), innerHeight - 1));
-    return !!top && !el.contains(top) && !top.contains(el)
-      && !(el.labels && [...el.labels].some((l) => l.contains(top)));
+    if (!top || el.contains(top) || top.contains(el)
+      || (el.labels && [...el.labels].some((l) => l.contains(top)))) return false;
+    // What is in front, by its own words (a consent banner, a dialog), so it can be answered.
+    let cover = top;
+    while (cover.parentElement && cover.parentElement !== document.body && !cover.parentElement.contains(el)) {
+      cover = cover.parentElement;
+    }
+    return (cover.innerText || cover.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim().slice(0, 80) || true;
   };
   // How many controls the page has: an app that builds itself after load is ready when this settles.
   const controls = () => document.querySelectorAll(SELECTOR).length;

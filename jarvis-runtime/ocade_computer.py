@@ -35,6 +35,7 @@ import filecmp
 import functools
 import hashlib
 import io
+import itertools
 import json
 import os
 import platform
@@ -42,6 +43,7 @@ import re
 import shlex
 import shutil
 import signal
+import struct
 import subprocess
 import sys
 import tempfile
@@ -62,6 +64,36 @@ IMPORT_LIMIT = 1 << 30  # a copy into the work folder
 RESERVED = re.compile(r"(?i)con|prn|aux|nul|com[0-9]|lpt[0-9]|conin\$|conout\$")
 _APPS: dict = {"at": float("-inf"), "list": []}
 STOPPED = {"status": "failed", "summary": "Stopped before it finished", "stopped": True}
+DELIVER_MAX = 100 * 1024 * 1024  # the Library bucket's own ceiling
+_DELIVER_SCHEME = "https://"  # a test serves plain http on loopback
+# Served for viewing only when the bytes are one of these; anything else is a download.
+_VIEWABLE = ((b"\x89PNG", "image/png"), (b"\xff\xd8\xff", "image/jpeg"), (b"GIF8", "image/gif"))
+
+
+def _deliver(path: Path, rel: str, action: dict) -> dict:
+    """A finished file into the person's OCADE Library: only to the address OCADE's server
+    minted for it (a model or a page never writes `upload`), only the size OCADE was told."""
+    import urllib.request
+    upload = str(action.get("upload", ""))
+    if not upload.startswith(_DELIVER_SCHEME) or not path.is_file():
+        return {"status": "failed", "summary": f"{rel} could not be added to the Library"}
+    size = path.stat().st_size
+    if size != action.get("size") or size > DELIVER_MAX:
+        return {"status": "failed", "summary": f"{rel} changed size since it was checked; check it again"}
+    with path.open("rb") as body:
+        head = body.read(16)
+        body.seek(0)
+        media = next((kind for magic, kind in _VIEWABLE if head.startswith(magic)), None) or \
+            ("image/webp" if head[:4] == b"RIFF" and head[8:12] == b"WEBP" else
+             "video/mp4" if head[4:8] == b"ftyp" else "application/octet-stream")
+        request = urllib.request.Request(upload, data=body, method="PUT", headers={
+            "Content-Type": media, "Content-Length": str(size), "x-upsert": "false"})
+        try:
+            with urllib.request.urlopen(request, timeout=600) as reply:
+                reply.read()
+        except OSError as e:  # HTTPError and URLError included: said, never raised
+            return {"status": "failed", "summary": f"{rel} could not be added to the Library ({str(e)[:120]})"}
+    return {"status": "done", "summary": f"Added {rel} to the Library", "size": size}
 
 
 @functools.cache
@@ -198,9 +230,30 @@ def _media_properties(path: Path) -> dict:
     return {k: v for k, v in found.items() if v is not None}
 
 
+def _model_properties(path: Path) -> dict:
+    """An STL model's triangle count: 0 is an empty model, whatever its size (CAD-22-01)."""
+    if path.suffix.lower() != ".stl":
+        return {}
+    size = path.stat().st_size
+    with path.open("rb") as source:
+        head = source.read(84)
+        if len(head) == 84 and 84 + 50 * struct.unpack("<I", head[80:84])[0] == size:
+            return {"triangles": struct.unpack("<I", head[80:84])[0]}
+        if not head.lower().startswith(b"solid"):
+            return {}
+        source.seek(0)
+        count, tail = 0, b""
+        while chunk := source.read(1 << 20):  # text STL: one facet per "facet normal"
+            count += (tail + chunk).count(b"facet normal") - tail.count(b"facet normal")
+            tail = chunk[-16:]
+        return {"triangles": count}
+
+
 def file_properties(path: Path) -> dict:
     if not path.is_file():
         return {}
+    if model := _model_properties(path):
+        return model
     if SYSTEM != "Windows":
         return _media_properties(path)
     try:
@@ -654,7 +707,7 @@ class Computer:
     def _file(self, kind: str, action: dict, confirmed: bool, cancel: threading.Event) -> dict:
         path = self._inside(str(action.get("path", "")),
                             change=kind not in ("file_list", "file_read", "file_info", "file_find", "file_extract",
-                                                "file_compare"))
+                                                "file_compare", "file_deliver"))
         rel = str(path.relative_to(self.root)) or "."
         if kind == "file_list":
             if not path.is_dir():
@@ -715,6 +768,8 @@ class Computer:
         if kind == "file_find":
             return self._find(path, rel, str(action.get("name", "")), str(action.get("extension", "")),
                               cancel)
+        if kind == "file_deliver":
+            return _deliver(path, rel, action)
         if kind == "file_compare":
             import ocade_documents
             other = self._inside(str(action.get("to", "")), change=False)
@@ -1103,6 +1158,7 @@ class Computer:
             if isinstance(direct, dict):
                 return direct
             argv, extra = direct
+        before = self._files_now()
         started = time.monotonic()
         # Output goes to files, not memory: a chatty build cannot grow the agent, and only its tail returns.
         with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
@@ -1122,11 +1178,28 @@ class Computer:
                     summary = (f"The command ran over {RUN_TIMEOUT_S} seconds and was stopped"
                                if over else "Stopped before it finished")
             tails = {name: _tail(f) for name, f in (("stdout", out), ("stderr", err))}
+        # Which work-folder files the command made or changed: what a script produced is said, so
+        # it is never reported as made somewhere else (CAD-22-01).
+        after = self._files_now()
+        wrote = sorted(name for name, stat in after.items() if before.get(name) != stat)[:20]
+        made = {"wrote": wrote} if wrote else {}
         if summary:
-            return {"status": "failed", "stopped": True, "summary": summary, **tails}
+            return {"status": "failed", "stopped": True, "summary": summary, **tails, **made}
         return {"status": "done" if process.returncode == 0 else "failed",
                 "summary": f"Exited with {process.returncode} after {time.monotonic() - started:.1f}s",
-                "exitCode": process.returncode, "isolation": self.sandbox, **tails}
+                "exitCode": process.returncode, "isolation": self.sandbox, **tails, **made}
+
+    def _files_now(self) -> dict[str, tuple[int, int]]:
+        """The work folder's files by modification time and size, the first 5,000 found."""
+        found: dict[str, tuple[int, int]] = {}
+        for path in itertools.islice(self.root.rglob("*"), 5000):
+            try:
+                if path.is_file() and not path.is_symlink():
+                    stat = path.stat()
+                    found[path.relative_to(self.root).as_posix()] = (stat.st_mtime_ns, stat.st_size)
+            except OSError:
+                continue
+        return found
 
     def _sandboxed(self, command: str, folder: Path, network: bool) -> tuple[list[str], dict]:
         # The system read-only, the workspace and a private /tmp writable, the

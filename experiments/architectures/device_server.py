@@ -42,7 +42,7 @@ def act(family: str, action: dict) -> dict:
     step = dict(action)
     if step.get("action") == "upload":
         step["_file"] = str(pc._inside(str(step.get("path", "")), change=False))
-    if step.get("action") == "download":
+    if step.get("action") in ("download", "click"):
         step["_folder"] = str(root / "Downloads")
     result = browser.run(browser.act(step), timeout=120)
     if result.get("status") == "needs_confirmation":
@@ -83,6 +83,10 @@ class Handler(BaseHTTPRequestHandler):
             entry = stats["by_action"].setdefault(name, [0, 0.0])
             entry[0] += 1
             entry[1] += ms
+            # One line per step on stdout (the run's server log): what ran and what it answered.
+            shown = {k: (v[:6000] if isinstance(v, str) else v) for k, v in body["action"].items()}
+            print(json.dumps({"family": body["family"], "action": shown, "saved": result.get("saved"),
+                              "result": json.dumps(result)[:1500], "ms": round(ms)}), flush=True)
         self._send({"result": result, "ms": round(ms, 2)})
 
 

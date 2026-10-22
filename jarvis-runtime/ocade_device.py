@@ -135,6 +135,11 @@ class Browsers:
                 if folder != root and root not in folder.parents:
                     return {"status": "blocked", "summary": "Downloads must stay inside the work folder"}
                 action["_folder"] = str(folder)
+        elif action.get("action") == "click" and root is not None:
+            # A button that saves a file (an editor's Export) lands it in the work folder too.
+            folder = (root / "Downloads").resolve()
+            if folder == root or root in folder.parents:
+                action = {**action, "_folder": str(folder)}
         if mode == "real":
             endpoint = self.endpoint()
             if not endpoint and not self.explicit:
