@@ -26,6 +26,9 @@ describe("the redesigned instructions, as an opt-in candidate", () => {
     // A named app or site is where the work happens, or the person is told (ROUTE-21-01).
     for (const prompt of [JARVIS_SYSTEM_PROMPT, JARVIS_SYSTEM_PROMPT_V2])
       expect(prompt).toContain("never switch silently");
+    // Every listed part is in the result itself, not only in a side list (CAD-22-01).
+    for (const prompt of [JARVIS_SYSTEM_PROMPT, JARVIS_SYSTEM_PROMPT_V2])
+      expect(prompt).toContain("in the result itself (a model, a document, a sheet)");
     expect(JARVIS_SYSTEM_PROMPT_V2).not.toContain("- Never complete a purchase or payment.");
     // Developer-only notes in the owner's file are never sent to the model.
     for (const prompt of [JARVIS_SYSTEM_PROMPT_V2, `${CORE}\n\n${CHAT_MODE}`]) {

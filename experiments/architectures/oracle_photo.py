@@ -76,8 +76,11 @@ def check(ws: Path, original_sha: str) -> dict:
         # Each half's middle 80%, so labels, borders and margins around the pictures do not count.
         def middle(x0: int) -> Image.Image:
             return both.crop((x0 + half // 10, both.height // 10, x0 + half - half // 10, both.height - both.height // 10))
+        # The "before" may show the whole original or the same crop as the edit.
+        same_crop = Image.fromarray(aligned.astype(np.uint8))
         out["beforeAfter"] = {
-            "left~original": round(best_crop(original, middle(0))[0], 3),
+            "left~original": round(max(best_crop(original, middle(0))[0],
+                                       best_crop(same_crop, middle(0))[0]), 3),
             "right~edit": round(best_crop(edit, middle(half))[0], 3),
         }
     ba = out.get("beforeAfter", {})
