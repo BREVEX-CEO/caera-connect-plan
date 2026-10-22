@@ -48,8 +48,15 @@ const RUNS = [
   },
 ];
 
+let blocked = 0;
 for (const run of RUNS) {
-  const browser = await run.engine.launch(run.launch);
+  // An engine this computer does not have is reported as not tested, never as passed.
+  const browser = await run.engine.launch(run.launch).catch((error) => {
+    blocked += 1;
+    process.stdout.write(`BLOCKED  ${run.name} — ${String(error.message).split("\n")[0]}\n`);
+    return null;
+  });
+  if (!browser) continue;
   try {
     const session = await fetch(`${SUPABASE}/auth/v1/token?grant_type=password`, {
       method: "POST",
@@ -159,4 +166,4 @@ for (const run of RUNS) {
   }
 }
 
-process.exit(failures === 0 ? 0 : 1);
+process.exit(failures ? 1 : blocked ? 3 : 0);
