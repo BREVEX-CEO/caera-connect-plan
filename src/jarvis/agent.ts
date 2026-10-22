@@ -661,8 +661,14 @@ export async function runJarvisTurn(
         changed.add(String(file));
       }
     } else if (!readsBack(action)) {
-      // Changed through JARVIS's own file actions since: not the script's file, nor the copy sent.
-      for (const file of [(action as { path?: unknown }).path, (action as { to?: unknown }).to])
+      // Changed through JARVIS's own file actions since: not the script's file, nor the copy sent
+      // (with any file the action made beside its target, such as a video's captions).
+      const wrote = Array.isArray(detail.wrote) ? detail.wrote : [];
+      for (const file of [
+        (action as { path?: unknown }).path,
+        (action as { to?: unknown }).to,
+        ...wrote,
+      ])
         if (typeof file === "string") {
           const name = file.replace(/\\/g, "/").replace(/^\.\//, "");
           byScript.delete(name);

@@ -302,7 +302,9 @@ const NUMBER = /\d{1,3}(?:,\d{2,3})+(?:\.\d+)?|\d+(?:\.\d+)?/g;
  * ponytail: words, not meaning. A wrong figure that also appears somewhere in the reads passes;
  * outcome templates per workflow close that.
  */
-function claimGap(rows: ActionRow[], claim: string): string | null {
+function claimGap(all: ActionRow[], claim: string): string | null {
+  // Handing a file to the Library reads nothing and changes nothing: it is not evidence.
+  const rows = all.filter((row) => row.action?.action !== "file_deliver");
   const reads = rows.filter(
     (row) =>
       row.status === "done" && (readsBack(row.action) || OFF_DEVICE.has(row.action?.action ?? "")),

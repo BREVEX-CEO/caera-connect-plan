@@ -970,6 +970,7 @@ class VideoEditTest(unittest.TestCase):
         self.assertAlmostEqual(props["loudnessLUFS"], -14, delta=2)
         # The one cue inside the cut, moved to where it plays: after the 2 s title, 1 s into a.
         self.assertEqual(out["captions"], 1)
+        self.assertEqual(out["wrote"], ["edit.mp4", "edit.srt"])  # both are the edit's files
         self.assertIn("00:00:03,000 --> 00:00:05,000\nRobots help people",
                       (root / "edit.srt").read_text())
         streams = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type",

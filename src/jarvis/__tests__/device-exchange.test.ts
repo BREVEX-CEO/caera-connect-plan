@@ -1025,13 +1025,15 @@ describe("completion needs evidence from the device (P01)", () => {
       await expect(finish()).rejects.toThrow(/measures truePeakDBTP 0.6, not … to -1/);
       await done(
         await queue(t, { action: "file_info", path: "cut.mp4", audio: true }),
-        info({ seconds: 120.02, truePeakDBTP: -1.2 }),
+        info({ seconds: 120.02, width: 1280, truePeakDBTP: -1.2 }),
       );
+      // Handing the file to the Library afterwards hides none of what was measured.
+      await done(await queue(t, { action: "file_deliver", path: "cut.mp4", size: 900 }));
       // A file the result names that no step made, saw or listed is not said to exist.
       await expect(finish("Saved cut.mp4 and its project cut.mlt.")).rejects.toThrow(
         /cut\.mlt is named in the result, but nothing this task did shows it/,
       );
-      await finish("Saved cut.mp4 (see https://example.com/help.pdf).");
+      await finish("Saved cut.mp4, 1280 wide (see https://example.com/help.pdf).");
       expect((await statusOf(t)).status).toBe("completed");
     });
 

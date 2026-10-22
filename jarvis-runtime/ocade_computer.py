@@ -984,7 +984,7 @@ class Computer:
         found = _media_properties(path, audio=True)
         return {"status": "done", "summary": f"Made {rel}: {found.get('seconds')} s, {found.get('width')}x"
                                              f"{found.get('height')}, {out['captions']} captions",
-                **out, "properties": found}
+                **out, "properties": found, "wrote": [str(p.relative_to(self.root)) for p in made]}
 
     def _pdf(self, action: dict, cancel: threading.Event) -> dict:
         """A new PDF of a document, workbook or deck, saved by the office app installed here

@@ -88,6 +88,13 @@ def _text_filter(text: str, size: str) -> str:
             "x=(w-text_w)/2:y=(h-text_h)/2")
 
 
+def _true_peak(path: Path, cancel: threading.Event, timeout: float) -> float:
+    log = _ffmpeg(["-nostats", "-i", str(path), "-vn", "-af", "ebur128=peak=true", "-f", "null", "-"],
+                  cancel, timeout)
+    found = re.search(r"Peak:\s+(-?[\d.]+|-inf) dBFS", log.rpartition("Summary:")[2])
+    return float(found.group(1).replace("-inf", "-200")) if found else 0.0
+
+
 def render(root: Path, spec: dict, out: Path, cancel: threading.Event, timeout: float = 300) -> dict:
     """The edit `spec` rendered to `out` (an .mp4 that does not exist yet) with its .srt beside it."""
     if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
@@ -185,5 +192,14 @@ def render(root: Path, spec: dict, out: Path, cancel: threading.Event, timeout: 
                  *(["-t", f"{float(spec['length']):.3f}"] if spec.get("length") else []),
                  "-movflags", "+faststart", str(out)],
                 cancel, timeout)
+        # Measured after encoding, where overshoot shows: still above -1 dBTP, the sound alone
+        # is lowered by the excess (one pass), never left clipping.
+        peak = _true_peak(out, cancel, timeout)
+        if peak > -1.0:
+            fixed = work / "fixed.mp4"
+            _ffmpeg(["-i", str(out), "-map", "0", "-c", "copy", "-c:a", "aac", "-b:a", "160k",
+                     "-af", f"volume={-(peak + 1.5):.2f}dB", "-movflags", "+faststart", str(fixed)],
+                    cancel, timeout)
+            shutil.move(fixed, out)
     return {"seconds": round(seconds_of(out), 2), "parts": len(plan), "captions": len(cues),
             **({"captionsFile": srt.name} if cues else {})}
