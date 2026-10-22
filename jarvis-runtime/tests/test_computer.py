@@ -964,7 +964,7 @@ class VideoEditTest(unittest.TestCase):
         out = pc.run(edit)
         self.assertEqual(out["status"], "done", out)
         props = out["properties"]
-        self.assertAlmostEqual(props["seconds"], 12, delta=0.15)  # the last part was set to fit
+        self.assertAlmostEqual(props["seconds"], 12, delta=0.05)  # the last part was set to fit
         self.assertEqual((props["width"], props["height"], props["fps"]), (1280, 720, 30))
         self.assertLessEqual(props["truePeakDBTP"], -1)
         self.assertAlmostEqual(props["loudnessLUFS"], -14, delta=2)
@@ -976,8 +976,12 @@ class VideoEditTest(unittest.TestCase):
                                   "-of", "csv=p=0", str(root / "edit.mp4")], capture_output=True,
                                  text=True).stdout.split()
         self.assertEqual(sorted(streams), ["audio", "subtitle", "video"])
-        # Never over a file that is there; never a clip from outside the work folder.
-        self.assertEqual(pc.run(edit)["status"], "failed")
+        # Its own render is redone in place; never over a file it did not make, or a clip from
+        # outside the work folder.
+        self.assertEqual(pc.run({**edit, "length": 11})["properties"]["seconds"], 11)
+        (root / "mine.mp4").write_bytes(b"the person's")
+        self.assertEqual(pc.run({**edit, "path": "mine.mp4"})["status"], "failed")
+        self.assertEqual((root / "mine.mp4").read_bytes(), b"the person's")
         outside = pc.run({**edit, "path": "x.mp4", "clips": [{"path": "../a.mp4", "from": 0, "to": 2}]})
         self.assertEqual(outside["status"], "blocked")
         self.assertFalse((root / "x.mp4").exists())

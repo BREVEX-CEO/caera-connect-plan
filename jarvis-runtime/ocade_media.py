@@ -166,7 +166,9 @@ def render(root: Path, spec: dict, out: Path, cancel: threading.Event, timeout: 
         measured = json.loads(log[log.rindex("{"):log.rindex("}") + 1])
         second = (f"{norm}:measured_I={measured['input_i']}:measured_TP={measured['input_tp']}:"
                   f"measured_LRA={measured['input_lra']}:measured_thresh={measured['input_thresh']}:"
-                  f"offset={measured['target_offset']}:linear=true,aresample=48000")
+                  f"offset={measured['target_offset']}:linear=true,aresample=48000,"
+                  # AAC overshoots what loudnorm limits: a -3 dBFS sample limit keeps true peak under -1.
+                  "alimiter=limit=0.708:level=false:attack=1:release=50")
         srt = out.with_suffix(".srt")
         video_filter = []
         if cues:
@@ -179,7 +181,9 @@ def render(root: Path, spec: dict, out: Path, cancel: threading.Event, timeout: 
         _ffmpeg(["-i", str(joined), *subtitle_in, "-map", "0:v", "-map", "0:a",
                  *(["-map", "1:s", "-c:s", "mov_text"] if cues else []), *video_filter,
                  *(["-c:v", "libx264", "-preset", "veryfast", "-crf", "20"] if video_filter else ["-c:v", "copy"]),
-                 "-af", second, "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(out)],
+                 "-af", second, "-c:a", "aac", "-b:a", "160k",
+                 *(["-t", f"{float(spec['length']):.3f}"] if spec.get("length") else []),
+                 "-movflags", "+faststart", str(out)],
                 cancel, timeout)
     return {"seconds": round(seconds_of(out), 2), "parts": len(plan), "captions": len(cues),
             **({"captionsFile": srt.name} if cues else {})}

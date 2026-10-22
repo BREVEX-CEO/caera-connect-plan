@@ -962,7 +962,8 @@ class Computer:
         rel = str(path.relative_to(self.root))
         if path.suffix.lower() != ".mp4":
             return {"status": "failed", "summary": "video_edit makes a new .mp4"}
-        if path.exists() or path.with_suffix(".srt").exists():
+        # Its own earlier render is redone in place; anything else there is never written over.
+        if any(p.exists() and p not in self._made for p in (path, path.with_suffix(".srt"))):
             return {"status": "failed", "summary": f"{rel} (or its .srt) already exists: give the edit a new name"}
         clips = []
         for clip in action.get("clips") or []:
