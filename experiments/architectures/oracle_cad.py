@@ -5,9 +5,11 @@ step log, never from what JARVIS said.
     python3 oracle_cad.py <workspace> <device step log>
 
 Pass needs all of: car.stl came out of a CADFaber page (a browser step on cadfaber.com saved a
-.stl whose bytes are car.stl's), the mesh holds at least 10 separate parts, the bill of materials
-names at least 12 of the 14 required parts with millimetre sizes, and the wiring list holds
-battery-to-motor and battery-to-lights runs with a purpose each.
+.stl whose bytes are car.stl's) and is not empty; the last program typed into CADFaber before
+that export models at least 12 of the 14 required parts (a union is one mesh, so parts are
+read from the program the page ran, not counted as separate pieces); the bill of materials
+names at least 12 of them with millimetre sizes; and the wiring list covers the motor and
+the lights.
 """
 import hashlib
 import json
@@ -58,16 +60,20 @@ def check(ws: Path, log: Path) -> dict:
     stl = ws / "car.stl"
     data = stl.read_bytes() if stl.is_file() else b""
     steps = []
-    for line in log.read_text().splitlines():
+    for line in log.read_text(errors="replace").splitlines():
         try:
             steps.append(json.loads(line))
         except ValueError:  # an older log cut its lines short: that step is not evidence
             continue
     page = ""
     from_site = False
+    program = ""  # the last program typed into a CADFaber page before its export
     for s in steps:
         if s["family"] == "browser" and s["action"].get("action") == "open":
             page = str(s["action"].get("url", ""))
+        if "cadfaber.com" in page and s["action"].get("action") == "type" and \
+                len(str(s["action"].get("text", ""))) > 200:
+            program = str(s["action"]["text"])
         for saved in (s.get("saved") or []) if "cadfaber.com" in page else []:
             file = ws / saved
             if saved.endswith(".stl") and file.is_file() and data and \
@@ -81,13 +87,16 @@ def check(ws: Path, log: Path) -> dict:
     runs = re.findall(r"battery[^\n]{0,120}?(motor|light|lamp)", wiring, re.I | re.S)
     out = {
         "stlFromCadfaber": from_site, "stlBytes": len(data), "triangles": len(tris),
-        "separateParts": parts(tris) if tris else 0, "bomParts": named,
+        "separateParts": parts(tris) if tris else 0,
+        "modelParts": [k for k, rx in REQUIRED.items() if re.search(rx, program, re.I)],
+        "bomParts": named,
         "bomMissing": [k for k in REQUIRED if k not in named], "bomSizes": sized,
         "wiringRuns": len(runs),
         "wiringMotorAndLights": bool(re.search(r"motor", wiring, re.I) and re.search(r"light|lamp", wiring, re.I)),
     }
-    out["pass"] = (from_site and out["separateParts"] >= 10 and len(named) >= 12 and sized >= 10
-                   and out["wiringMotorAndLights"])
+    out["modelMissing"] = [k for k in REQUIRED if k not in out["modelParts"]]
+    out["pass"] = (from_site and len(tris) > 0 and len(out["modelParts"]) >= 12 and len(named) >= 12
+                   and sized >= 10 and out["wiringMotorAndLights"])
     return out
 
 
