@@ -20,6 +20,13 @@ Staging: **OCADE staging 20261019**, `auyapercxxptziyngycx`. All 156 forward mig
 
 Exact file/line means a confirmed source location for new findings, or the exact canonical evidence line for inherited items. **An inherited item's fault site/root cause is UNLOCALIZED unless its linked evidence proves it; do not invent code changes from a blocker label.** Priorities are triage recommendations, not new claims of reproduced critical defects. No issue is closed solely by a source fix, compilation or staging deployment.
 
+## Claude continuation (phases.md) — 22 October 2026
+
+- **Owner roadmap:** `phases.md` (200 items plus checklists) pulled from the branch. Session-start skills ran (caveman ultra, ponytail ultra/audit/review/debt; debt ledger: 6 markers, 2 without a trigger: `src/jarvis/changes.ts:79`, `src/jarvis/device.server.ts:136`).
+- **Commits:** `76e3e31c` (finished files reach the Library and open/download from the task card; script-made results disclosed per file; code editors typable; click downloads kept; covered controls named; empty checked files refused; Elite Work Standard flag; harness fidelity), `9abcaca5` (measured loudness and true peak on request), `84a9b95a` and the photo-oracle fix (oracles), `219d7902` (listed parts checked in the result itself), `f7ac0afe` (vite 8.1.6: `npm audit --omit=dev` 1 high → 0).
+- **Measured, real model:** [record](docs/audit-checkpoints/real-tasks-20261022/README.md). TASK 3 photo: current prompt 2/2 oracle PASS. TASK 4 CADFaber: 0 PASS (four early false completions now prevented or disclosed; the model's geometry stays crude). Elite Work Standard: no measured gain, off by default. TASK 2 BoldChess and all competitor/model benchmarks BLOCKED.
+- **Not verified:** ≥95% for any family, STOP/crash with the real model, native platforms, Offline real release, High mode, deliverables in a browser journey (UNTESTED; unit, real-Postgres and live staging PASS). Readiness gates closed: 0 of 10.
+
 ## Claude real-model continuation — 21 October 2026
 
 - **Commits:** `476c5a7` (today's human checks recognised: "confirm you're not a bot", "performing security verification"; a passkey *offer* beside a username field no longer stops a task), `d7132cd` (real-model harness; `app_info` finds command-line programs on PATH by exact name and never runs them; `file_info` reports media seconds/size/fps off Windows via ffprobe, which the prompt already promised).
