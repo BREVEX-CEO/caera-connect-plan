@@ -941,3 +941,43 @@ class ModelPropertiesTest(unittest.TestCase):
         props = {name: ocade_computer.file_properties(root / name) for name in ("two.stl", "empty.stl", "text.stl")}
         self.assertEqual(props, {"two.stl": {"triangles": 2}, "empty.stl": {"triangles": 0},
                                  "text.stl": {"triangles": 3}})
+
+
+@unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "needs ffmpeg")
+class VideoEditTest(unittest.TestCase):
+    """An edit list becomes one finished video: the length, frame and loudness asked for,
+    captions from the clips' own .srt where each part lands (item 2 / MEDIA-21-01)."""
+
+    def test_renders_the_edit_with_cards_captions_and_measured_loudness(self):
+        root = Path(tempfile.mkdtemp())
+        for name, tone in (("a", 440), ("b", 660)):
+            subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc=s=640x360:r=25:d=8",
+                            "-f", "lavfi", "-i", f"sine=f={tone}:d=8", "-shortest", str(root / f"{name}.mp4")],
+                           check=True)
+        (root / "a.srt").write_text("1\n00:00:02,000 --> 00:00:04,000\nRobots help people\n\n"
+                                    "2\n00:00:06,000 --> 00:00:07,500\nNot in the cut\n")
+        pc = Computer(str(root))
+        edit = {"action": "video_edit", "path": "edit.mp4", "frame": "1280x720", "fps": 30, "length": 12,
+                "opening": "AI: Robots", "closing": "Thanks", "cardSeconds": 2,
+                "clips": [{"path": "a.mp4", "from": 1, "to": 5, "captions": "a.srt"},
+                          {"path": "b.mp4", "from": 0, "to": 3}], "burnCaptions": True}
+        out = pc.run(edit)
+        self.assertEqual(out["status"], "done", out)
+        props = out["properties"]
+        self.assertAlmostEqual(props["seconds"], 12, delta=0.15)  # the last part was set to fit
+        self.assertEqual((props["width"], props["height"], props["fps"]), (1280, 720, 30))
+        self.assertLessEqual(props["truePeakDBTP"], -1)
+        self.assertAlmostEqual(props["loudnessLUFS"], -14, delta=2)
+        # The one cue inside the cut, moved to where it plays: after the 2 s title, 1 s into a.
+        self.assertEqual(out["captions"], 1)
+        self.assertIn("00:00:03,000 --> 00:00:05,000\nRobots help people",
+                      (root / "edit.srt").read_text())
+        streams = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type",
+                                  "-of", "csv=p=0", str(root / "edit.mp4")], capture_output=True,
+                                 text=True).stdout.split()
+        self.assertEqual(sorted(streams), ["audio", "subtitle", "video"])
+        # Never over a file that is there; never a clip from outside the work folder.
+        self.assertEqual(pc.run(edit)["status"], "failed")
+        outside = pc.run({**edit, "path": "x.mp4", "clips": [{"path": "../a.mp4", "from": 0, "to": 2}]})
+        self.assertEqual(outside["status"], "blocked")
+        self.assertFalse((root / "x.mp4").exists())

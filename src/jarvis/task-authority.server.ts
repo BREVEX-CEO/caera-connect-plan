@@ -136,6 +136,7 @@ const CHANGES_FILES = [
   "sheet_edit",
   "doc_edit",
   "deck_edit",
+  "video_edit",
   "pdf_export",
   "download",
 ];
@@ -284,6 +285,7 @@ const MAKES_FILE: Record<string, "path" | "to"> = {
   sheet_edit: "path",
   doc_edit: "path",
   deck_edit: "path",
+  video_edit: "path",
   pdf_export: "path",
   file_copy: "to",
   file_move: "to",

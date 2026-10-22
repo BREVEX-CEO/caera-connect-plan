@@ -420,6 +420,46 @@ const COMPUTER_ACTIONS = [
     // Only when the person asked to change this file itself; otherwise the work goes into a copy.
     overwrite: z.boolean().optional(),
   }),
+  // A new video rendered on the computer from an edit list: parts of clips in order, cards,
+  // grade, captions from each clip's .srt, loudness; measured from the saved file.
+  z.object({
+    action: z.literal("video_edit"),
+    path: workspacePath,
+    clips: z
+      .array(
+        z
+          .object({
+            path: workspacePath,
+            from: z.number().min(0),
+            to: z.number().positive(),
+            captions: workspacePath.optional(),
+          })
+          .refine((c) => c.to > c.from, "a part ends after it starts"),
+      )
+      .min(1)
+      .max(40),
+    opening: z.string().min(1).max(120).optional(),
+    closing: z.string().min(1).max(120).optional(),
+    cardSeconds: z.number().min(1).max(10).optional(),
+    length: z.number().min(1).max(3600).optional(),
+    frame: z
+      .string()
+      .regex(/^\d{3,4}x\d{3,4}$/)
+      .optional(),
+    fps: z.number().int().min(12).max(60).optional(),
+    grade: z
+      .object({
+        contrast: z.number().min(0.5).max(2),
+        saturation: z.number().min(0).max(3),
+        brightness: z.number().min(-0.5).max(0.5),
+        warmth: z.number().min(-0.3).max(0.3),
+      })
+      .partial()
+      .strict()
+      .optional(),
+    loudness: z.number().min(-24).max(-9).optional(),
+    burnCaptions: z.boolean().optional(),
+  }),
   // A new PDF of a document, workbook or deck, saved by the computer's office app; never over a file.
   z.object({ action: z.literal("pdf_export"), from: workspacePath, path: workspacePath }),
   // A presentation made or extended as its own file: slides, native charts, images.
@@ -547,6 +587,7 @@ export function capabilityFor(action: DeviceAction): Capability {
     case "sheet_edit":
     case "doc_edit":
     case "deck_edit":
+    case "video_edit":
     case "pdf_export":
     case "undo":
       return "files";
@@ -910,6 +951,8 @@ export function describeAction(action: DeviceAction): string {
       return `Updating the document ${action.path.slice(0, 100)} (${action.ops.length} changes)`;
     case "deck_edit":
       return `Building the presentation ${action.path.slice(0, 100)} (${action.ops.length} changes)`;
+    case "video_edit":
+      return `Rendering the video ${action.path.slice(0, 100)} (${action.clips.length} parts)`;
     case "pdf_export":
       return `Saving ${action.from.slice(0, 100)} as the PDF ${action.path.slice(0, 100)}`;
     case "sheet_inspect":
@@ -1059,6 +1102,7 @@ Computer rules:
 - A workbook or document the person already has is their original: file_copy it to a new name first (for example "Sales - completed.xlsx") and edit the copy. Set overwrite: true on sheet_edit or doc_edit only when the person asked to change that file itself. A result line "Check: ..." names cells that refer to themselves or show an error: fix them before finishing. drives lists connected drives, external ones included.
 - Prefer the most direct way: open_app, file actions and run inside the workspace before anything visual. Before opening an app, call window_list and switch to its open window with window (state focus) if there is one. For an app's own buttons, fields and menus use ui_inspect then ui_act with the ref and observationId it returned. Use screen, then screen_click with the current screen observationId, only when nothing more direct works, and look again after the screen changes.
 - Spreadsheets: a new .xlsx is made by sheet_edit on a path that does not exist yet (never file_write a workbook). For an existing one, call sheet_inspect first to learn the sheets, headers, existing formulas and formats. Then one sheet_edit with formulas and fills (a relative formula filled down a range), lookups, totals and formatting, never values you calculated yourself and typed in. Check the read-back values it returns before saying it is done.
+- Videos from clips: one video_edit renders the whole edit (parts with from/to seconds chosen from what each clip shows and says, opening and closing cards, length, frame, grade, each clip's .srt as captions); check it with file_info audio: true against measures checks, and name only the files it reports.
 - Presentations: one deck_edit builds the whole .pptx (a title slide, content slides, native charts from real numbers, images already in the work folder); read it back with file_extract before saying it is done.
 - PDFs: pdf_export saves a finished document, workbook or deck as a new PDF; read it back with file_extract.
 - Documents (.docx, .doc, .rtf): read them with file_extract, then one doc_edit with the changes; check the read-back text before saying it is done. Where no app on the computer automates Word documents, doc_edit on a .docx path that does not exist yet makes a new document (title, headings, paragraphs, tables, bold).
@@ -1204,7 +1248,7 @@ export function jarvisTools(
     {
       name: "computer",
       description:
-        "Work on the task's computer. Actions: apps, open_app, app_info (program, version, automation, file types, scripting folders, recipes), recipe_save (app, route, steps, verify, recovery), drives, file_locate (name and/or extension, outside the work folder too), file_import (from: a full path, copied into the work folder), file_export (path in the work folder, to: a full folder path, name), ui_inspect (an app's buttons, fields and menus by ref), ui_act (invoke, set_value, toggle, select, expand, collapse, focus a ref), window_list, window (focus/minimize/maximize/restore/close an open window by title), file_list, file_read, file_write, file_extract (text of .pdf, .docx, .pptx, .xlsx), sheet_inspect, sheet_edit, doc_edit (documents: replace, append with style, style, bold/italic/highlight, table), deck_edit (a .pptx made or extended: slides with title and bullets, native charts with their data, images from the work folder, notes), pdf_export (from: a .docx, .xlsx or .pptx in the work folder, path: the new .pdf), file_find, file_info, file_compare (path: the original, to: the result; what changed, cell by cell or line by line), file_mkdir, file_move, file_copy, file_rename, file_trash, file_delete, run, screen, screen_click (button, double), screen_drag, screen_type, screen_keys, screen_scroll, system, setting (volume, mute, brightness, dark_mode: read, or change with level or on), system_status (processor, memory, disk, battery), undo (reverse the newest file change JARVIS made).",
+        "Work on the task's computer. Actions: apps, open_app, app_info (program, version, automation, file types, scripting folders, recipes), recipe_save (app, route, steps, verify, recovery), drives, file_locate (name and/or extension, outside the work folder too), file_import (from: a full path, copied into the work folder), file_export (path in the work folder, to: a full folder path, name), ui_inspect (an app's buttons, fields and menus by ref), ui_act (invoke, set_value, toggle, select, expand, collapse, focus a ref), window_list, window (focus/minimize/maximize/restore/close an open window by title), file_list, file_read, file_write, file_extract (text of .pdf, .docx, .pptx, .xlsx), sheet_inspect, sheet_edit, doc_edit (documents: replace, append with style, style, bold/italic/highlight, table), deck_edit (a .pptx made or extended: slides with title and bullets, native charts with their data, images from the work folder, notes), video_edit (a new .mp4 rendered here from clips: parts in order with from/to seconds and each clip's .srt as captions, opening and closing cards, length, frame, fps, grade, loudness, burnCaptions; its .srt is saved beside it), pdf_export (from: a .docx, .xlsx or .pptx in the work folder, path: the new .pdf), file_find, file_info, file_compare (path: the original, to: the result; what changed, cell by cell or line by line), file_mkdir, file_move, file_copy, file_rename, file_trash, file_delete, run, screen, screen_click (button, double), screen_drag, screen_type, screen_keys, screen_scroll, system, setting (volume, mute, brightness, dark_mode: read, or change with level or on), system_status (processor, memory, disk, battery), undo (reverse the newest file change JARVIS made).",
       inputSchema: obj({
         action: str("The computer action."),
         name: str(
@@ -1223,6 +1267,39 @@ export function jarvisTools(
           description:
             "For deck_edit: {op:'slide',title,bullets,layout:'title'|'content',notes}, then on that slide {op:'chart',kind:'bar'|'column'|'line'|'pie',title,categories,series:[{name,values}]} or {op:'image',path,caption}. For doc_edit: {op:'replace',find,with}, {op:'append',text,style}, {op:'style',find,style}, {op:'bold',find}, {op:'table',rows}. For sheet_edit: operations like {op:'fill',range:'E2:E50',formula:'=C2*D2'}, {op:'set',cell:'E51',value:'=SUM(E2:E50)'}, {op:'format',range,numberFormat,bold,fillColor,fontColor,align,border,columnWidth}, {op:'conditional',range,rule,value,fillColor}, {op:'sheet_add',name}, {op:'sheet_rename',from,to}, table, filter, freeze, name, chart, sort; one set per cell.",
           items: { type: "OBJECT" },
+        },
+        clips: {
+          type: "ARRAY",
+          description:
+            "For video_edit: the parts in playing order, each {path, from, to (seconds in that clip), captions (that clip's .srt)}.",
+          items: obj(
+            {
+              path: str("The clip in the work folder."),
+              from: num("Start, in seconds of that clip."),
+              to: num("End, in seconds of that clip."),
+              captions: str("That clip's .srt, when it has one."),
+            },
+            ["path", "from", "to"],
+          ),
+        },
+        opening: str("For video_edit: the opening card's words."),
+        closing: str("For video_edit: the closing card's words."),
+        cardSeconds: num("For video_edit: how long each card shows (default 3)."),
+        length: num(
+          "For video_edit: the exact running time in seconds; the last part is trimmed to fit.",
+        ),
+        frame: str("For video_edit: WIDTHxHEIGHT, like 1280x720."),
+        fps: num("For video_edit: frames per second."),
+        grade: obj({
+          contrast: num("1 is unchanged; 1.05 to 1.2 is punchier."),
+          saturation: num("1 is unchanged."),
+          brightness: num("0 is unchanged; -0.1 to 0.1."),
+          warmth: num("0 is neutral; positive is warmer, up to 0.3."),
+        }),
+        loudness: num("For video_edit: target loudness in LUFS (default -14)."),
+        burnCaptions: {
+          type: "BOOLEAN",
+          description: "For video_edit: also draw the captions in the picture.",
         },
         content: str("For file_write."),
         command: str(

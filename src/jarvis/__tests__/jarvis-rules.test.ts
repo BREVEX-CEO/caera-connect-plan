@@ -87,6 +87,24 @@ describe("the action contract", () => {
     ).toBe(false);
   });
 
+  it("takes a video edit list, and refuses a part that ends before it starts or a bad frame", () => {
+    const edit = {
+      action: "video_edit",
+      path: "cut.mp4",
+      clips: [{ path: "clips/a.mp4", from: 2, to: 9, captions: "clips/a.srt" }],
+      opening: "AI",
+      length: 120,
+      frame: "1280x720",
+      grade: { contrast: 1.1 },
+    };
+    expect(computerAction.safeParse(edit).success).toBe(true);
+    expect(
+      computerAction.safeParse({ ...edit, clips: [{ path: "a.mp4", from: 9, to: 2 }] }).success,
+    ).toBe(false);
+    expect(computerAction.safeParse({ ...edit, frame: "big" }).success).toBe(false);
+    expect(computerAction.safeParse({ ...edit, grade: { shine: 1 } }).success).toBe(false);
+  });
+
   it("lists the work folder when the model names no path (live Gemini, 18 Oct)", () => {
     expect(computerAction.parse({ action: "file_list" })).toEqual({
       action: "file_list",

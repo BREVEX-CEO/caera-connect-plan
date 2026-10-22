@@ -538,6 +538,8 @@ class Computer:
                 return self._doc(action, cancel)
             if kind == "deck_edit":
                 return self._deck(action, cancel)
+            if kind == "video_edit":
+                return self._video(action, cancel)
             if kind == "pdf_export":
                 return self._pdf(action, cancel)
             if kind == "run":
@@ -951,6 +953,37 @@ class Computer:
         return {"status": "done", "summary": f"{'Made' if out['new'] else 'Updated'} {rel}: "
                                              f"{out['read']['count']} slides",
                 **{k: v for k, v in out.items() if k != "ok"}}
+
+    def _video(self, action: dict, cancel: threading.Event) -> dict:
+        """A new video rendered here from an edit list (ocade_media), with its captions beside it;
+        what it reports is measured from the saved file."""
+        import ocade_media
+        path = self._inside(str(action.get("path", "")), change=True)
+        rel = str(path.relative_to(self.root))
+        if path.suffix.lower() != ".mp4":
+            return {"status": "failed", "summary": "video_edit makes a new .mp4"}
+        if path.exists() or path.with_suffix(".srt").exists():
+            return {"status": "failed", "summary": f"{rel} (or its .srt) already exists: give the edit a new name"}
+        clips = []
+        for clip in action.get("clips") or []:
+            source = self._inside(str(clip.get("path", "")))
+            captions = self._inside(str(clip["captions"])) if clip.get("captions") else None
+            if not source.is_file() or (captions and not captions.is_file()):
+                return {"status": "failed", "summary": f"{clip.get('path')} or its captions are not in the work folder"}
+            clips.append({**clip, "path": str(source), "captions": str(captions) if captions else None})
+        try:
+            out = ocade_media.render(self.root, {**action, "clips": clips}, path, cancel)
+        except ocade_media.MediaError as e:
+            for made in (path, path.with_suffix(".srt")):
+                made.unlink(missing_ok=True)
+            return {"status": "failed", "summary": str(e)[:280]}
+        made = [p for p in (path, path.with_suffix(".srt")) if p.exists()]
+        self._made.update(made)
+        self._remember(f"making {rel}", lambda: [self._to_trash(p) for p in made], path)
+        found = _media_properties(path, audio=True)
+        return {"status": "done", "summary": f"Made {rel}: {found.get('seconds')} s, {found.get('width')}x"
+                                             f"{found.get('height')}, {out['captions']} captions",
+                **out, "properties": found}
 
     def _pdf(self, action: dict, cancel: threading.Event) -> dict:
         """A new PDF of a document, workbook or deck, saved by the office app installed here
