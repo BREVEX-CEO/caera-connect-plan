@@ -158,19 +158,21 @@ export async function ask(...args: Parameters<typeof askOnce>) {
 }
 
 /**
- * Busy past the short waits: the product pauses the task and continues it by itself after the
- * named wait or 30 s, doubling per strike up to 5 min (JarvisWorkspace busyUntil).
+ * Busy past the short waits: the product pauses the task and continues it by itself after
+ * max(named wait, 30 s doubling per strike up to 5 min) — a named long wait is waited whole
+ * (JarvisWorkspace busyUntil). The runner stops only past 15 minutes, a limit of its own.
  */
 async function resumeAfterBusy(args: Parameters<typeof askOnce>, named?: number) {
-  for (const base of [30_000, 60_000, 120_000]) {
-    const pause = Math.max(named ?? 0, base);
-    if (pause > 300_000) break;
+  for (const strike of [1, 2, 3]) {
+    const pause = Math.max(named ?? 0, Math.min(300_000, 30_000 * 2 ** (strike - 1)));
+    if (pause > 900_000) break;
     busyWaits.push(pause);
     await new Promise((resolve) => setTimeout(resolve, pause));
     try {
       return await askOnce(...args);
     } catch (error) {
       if (!(error instanceof Busy)) throw error;
+      named = error.retryAfterMs;
     }
   }
   throw new Busy();
