@@ -972,8 +972,13 @@ class VideoEditTest(unittest.TestCase):
         self.assertEqual(out["captions"], 1)
         if shutil.which("melt"):  # the same cuts as a project MLT (Shotcut, Kdenlive) loads
             self.assertEqual(out["projectFile"], "edit.mlt")
-            self.assertIn('resource">a.mp4<', (root / "edit.mlt").read_text())
-        self.assertEqual(out["wrote"], [f for f in ("edit.mp4", "edit.srt", "edit.mlt") if (root / f).exists()])
+            project = (root / "edit.mlt").read_text()
+            # The real clips at their cut points, and the cards as their own files beside it.
+            self.assertIn('resource">a.mp4<', project)
+            self.assertIn('<entry producer="p1" in="30" out="149"/>', project)
+            self.assertIn('resource">edit cards/card0.mp4<', project)
+        self.assertEqual(out["wrote"], [f for f in ("edit.mp4", "edit.srt", "edit.mlt", "edit cards/card0.mp4",
+                                                    "edit cards/card3.mp4") if (root / f).exists()])
         self.assertIn("00:00:03,000 --> 00:00:05,000\nRobots help people",
                       (root / "edit.srt").read_text())
         streams = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type",

@@ -979,7 +979,8 @@ class Computer:
             for made in beside:
                 made.unlink(missing_ok=True)
             return {"status": "failed", "summary": str(e)[:280]}
-        made = [p for p in beside if p.exists()]
+        cards = path.with_name(f"{path.stem} cards")
+        made = [p for p in beside if p.exists()] + [cards / name for name in out.get("cards", [])]
         self._made.update(made)
         self._remember(f"making {rel}", lambda: [self._to_trash(p) for p in made], path)
         found = _media_properties(path, audio=True)

@@ -89,42 +89,47 @@ def _text_filter(text: str, size: str) -> str:
             "x=(w-text_w)/2:y=(h-text_h)/2")
 
 
-def _project(plan: list, out: Path, size: str, fps: int, grade: dict, cancel: threading.Event) -> str | None:
-    """The same cuts and cards as an MLT project (what Shotcut and Kdenlive open), kept only when
-    MLT itself loads it at the edit's length; None when it cannot be checked here."""
+def _project(media: list[tuple[Path, float, float]], out: Path, size: str, fps: int, grade: dict,
+             cancel: threading.Event) -> str | None:
+    """The same cuts (cards as their own short files) as an MLT project, the format Shotcut and
+    Kdenlive open, kept only when MLT itself loads it at the edit's length; None when it cannot be
+    checked here."""
     from xml.sax.saxutils import escape, quoteattr
     if not shutil.which("melt"):
         return None
     width, height = size.split("x")
-    producers, entries = [], []
-    for n, (kind, what, seconds) in enumerate(plan):
-        frames = max(1, round(seconds * fps))
-        if kind == "card":
-            producers.append(
-                f'<producer id="p{n}" in="0" out="{frames - 1}"><property name="length">{frames}</property>'
-                '<property name="mlt_service">color</property><property name="resource">#ff101418</property>'
-                f'<filter><property name="mlt_service">dynamictext</property><property name="argument">{escape(what)}'
-                '</property><property name="halign">center</property><property name="valign">middle</property>'
-                f'<property name="size">{int(height) // 12}</property></filter></producer>')
-            entries.append(f'<entry producer="p{n}" in="0" out="{frames - 1}"/>')
-        else:
-            source, start = what[0], what[1]
-            relative = Path(os.path.relpath(source, out.parent)).as_posix()
-            producers.append(f'<producer id="p{n}"><property name="mlt_service">avformat</property>'
-                             f'<property name="resource">{escape(relative)}</property></producer>')
-            first = round(start * fps)
-            entries.append(f'<entry producer="p{n}" in="{first}" out="{first + frames - 1}"/>')
+    producers, entries, expected = [], [], 0
+    for n, (source, start, seconds) in enumerate(media):
+        frames, first = max(1, round(seconds * fps)), round(start * fps)
+        expected += frames
+        relative = Path(os.path.relpath(source, out.parent)).as_posix()
+        producers.append(f'<producer id="p{n}"><property name="mlt_service">avformat</property>'
+                         f'<property name="resource">{escape(relative)}</property></producer>')
+        entries.append(f'<entry producer="p{n}" in="{first}" out="{first + frames - 1}"/>')
     look = "".join(f'<property name="av.{k}">{grade[k]}</property>' for k in ("contrast", "saturation", "brightness")
                    if k in grade)
-    xml = ('<?xml version="1.0" encoding="utf-8"?>\n<mlt LC_NUMERIC="C" version="7.0.0">'
+    # Shaped as an editor's own project (a bin, a named video track, a marked timeline), so an
+    # editor opens it as a timeline to work on, not as one long clip.
+    xml = ('<?xml version="1.0" encoding="utf-8"?>\n<mlt LC_NUMERIC="C" version="7.0.0" producer="main_bin">'
            f'<profile description={quoteattr(f"{size} {fps} fps")} width="{width}" height="{height}" progressive="1" '
            'sample_aspect_num="1" sample_aspect_den="1" display_aspect_num="16" display_aspect_den="9" '
-           f'frame_rate_num="{fps}" frame_rate_den="1" colorspace="709"/>{"".join(producers)}'
-           f'<playlist id="edit">{"".join(entries)}</playlist><tractor id="tractor0"><track producer="edit"/>'
+           f'frame_rate_num="{fps}" frame_rate_den="1" colorspace="709"/>'
+           '<playlist id="main_bin"><property name="xml_retain">1</property></playlist>'
+           # A black background track under the edit, as editors lay out their own timelines;
+           # without it an editor stretched the first part (Shotcut showed 24 s for a 2 s card).
+           f'<producer id="black" in="0" out="{expected - 1}"><property name="length">{expected}</property>'
+           '<property name="eof">pause</property><property name="resource">0</property>'
+           '<property name="mlt_service">color</property><property name="set.test_audio">0</property></producer>'
+           f'<playlist id="background"><entry producer="black" in="0" out="{expected - 1}"/></playlist>'
+           f'{"".join(producers)}<playlist id="edit"><property name="shotcut:video">1</property>'
+           f'<property name="shotcut:name">V1</property>{"".join(entries)}</playlist>'
+           '<tractor id="tractor0"><property name="shotcut">1</property><track producer="background"/>'
+           '<track producer="edit"/><transition><property name="a_track">0</property>'
+           '<property name="b_track">1</property><property name="mlt_service">mix</property>'
+           '<property name="always_active">1</property><property name="sum">1</property></transition>'
            + (f'<filter><property name="mlt_service">avfilter.eq</property>{look}</filter>' if look else "")
            + "</tractor></mlt>\n")
     out.write_text(xml, encoding="utf-8")
-    expected = sum(max(1, round(seconds * fps)) for _, _, seconds in plan)
     with tempfile.TemporaryDirectory() as tmp:
         try:
             subprocess.run(["melt", str(out), "-consumer", f"xml:{tmp}/check.mlt"], capture_output=True,
@@ -184,6 +189,8 @@ def render(root: Path, spec: dict, out: Path, cancel: threading.Event, timeout: 
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
         parts, cues, at = [], [], 0.0
+        media: list[tuple[Path, float, float]] = []  # what the project places, in order
+        cards_dir = out.with_name(f"{out.stem} cards")
         plan = ([("card", spec["opening"], card_s)] if spec.get("opening") else []) + \
             [("clip", c, c[2] - c[1]) for c in clips] + \
             ([("card", spec["closing"], card_s)] if spec.get("closing") else [])
@@ -212,6 +219,12 @@ def render(root: Path, spec: dict, out: Path, cancel: threading.Event, timeout: 
                          "-vf", f"{frame},{look},{fades}", "-af", f"{audio},{afades}", "-t", f"{seconds:.3f}",
                          *encode, str(part)], cancel, timeout)
             parts.append(part)
+            if spec.get("project"):  # a card stays as its own short file the project can use
+                kept = cards_dir / f"card{n}.mp4" if kind == "card" else what[0]
+                if kind == "card":
+                    cards_dir.mkdir(exist_ok=True)
+                    shutil.copy(part, kept)
+                media.append((kept, 0.0 if kind == "card" else what[1], seconds))
             at += seconds
         listing = work / "parts.txt"
         listing.write_text("".join(f"file '{p.as_posix()}'\n" for p in parts))
@@ -252,8 +265,11 @@ def render(root: Path, spec: dict, out: Path, cancel: threading.Event, timeout: 
                      "-af", f"volume={-(peak + 1.5):.2f}dB", "-movflags", "+faststart", str(fixed)],
                     cancel, timeout)
             shutil.move(fixed, out)
-    project = _project(plan, out.with_suffix(".mlt"), size, fps, grade, cancel) if spec.get("project") else None
+    project = _project(media, out.with_suffix(".mlt"), size, fps, grade, cancel) if spec.get("project") else None
+    if spec.get("project") and not project:
+        shutil.rmtree(cards_dir, ignore_errors=True)
     return {"seconds": round(seconds_of(out), 2), "parts": len(plan), "captions": len(cues),
             **({"projectFile": project} if project else {"projectSkipped": "MLT is not here to check it"}
                if spec.get("project") else {}),
-            **({"captionsFile": srt.name} if cues else {})}
+            **({"captionsFile": srt.name} if cues else {}),
+            **({"cards": sorted(p.name for p in cards_dir.glob("*.mp4"))} if project else {})}

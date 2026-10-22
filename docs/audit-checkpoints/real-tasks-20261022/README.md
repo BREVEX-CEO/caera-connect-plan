@@ -39,6 +39,14 @@ it in places; captions now sit on a translucent box (after v6). No GUI editor wa
 edit is rendered by OCADE's device from an edit list, and the `.mlt` project opens in
 Shotcut/Kdenlive (checked by loading it in MLT, not by opening a GUI here).
 
+The project format was then checked in a real editor (Shotcut 24.02, installed in this
+disposable container, opened under Xvfb): a 20-second check edit made by calling the device's
+`video_edit` directly (not a JARVIS run) opens as a timeline with the cards and the real clips
+at their cut points, 00:00:20:00 long. A first version without a background track made Shotcut
+stretch the first part; fixed before this screenshot.
+
+![the .mlt project open in Shotcut](video-project-in-shotcut.png)
+
 What changed in the product because of these runs (generic, no app names): `video_edit` (one
 action renders the whole edit; the model no longer writes filter graphs), `measures` checks,
 the claimed-file rule, Library hand-overs no longer hide measured values, exact length, true
