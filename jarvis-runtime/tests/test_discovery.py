@@ -292,3 +292,14 @@ class MediaPropertiesTest(unittest.TestCase):
         self.assertEqual((props["width"], props["height"], props["fps"]), (320, 240, 25))
         self.assertAlmostEqual(props["seconds"], 2, delta=0.1)
         self.assertNotIn("properties", pc.run({"action": "file_info", "path": "notes.txt"})["info"])
+
+    def test_audio_loudness_and_true_peak_are_measured_when_asked(self):
+        root = Path(tempfile.mkdtemp())
+        subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:duration=3",
+                        "-af", "volume=-12dB", str(root / "tone.m4a")], check=True)
+        pc = Computer(str(root))
+        plain = pc.run({"action": "file_info", "path": "tone.m4a"})["info"]["properties"]
+        self.assertNotIn("truePeakDBTP", plain)  # seconds of work: only when asked
+        props = pc.run({"action": "file_info", "path": "tone.m4a", "audio": True})["info"]["properties"]
+        self.assertLess(props["truePeakDBTP"], -10)
+        self.assertLess(props["loudnessLUFS"], -10)

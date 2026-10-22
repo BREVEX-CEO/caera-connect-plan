@@ -205,7 +205,7 @@ _PROPERTIES = (
 MEDIA_SUFFIXES = frozenset(".mp4 .mov .mkv .webm .avi .m4v .mp3 .wav .m4a .aac .flac .ogg".split())
 
 
-def _media_properties(path: Path) -> dict:
+def _media_properties(path: Path, audio: bool = False) -> dict:
     """Elsewhere a media file's length and size come from ffprobe, when it is installed."""
     program = shutil.which("ffprobe")
     if not program or path.suffix.lower() not in MEDIA_SUFFIXES:
@@ -227,6 +227,19 @@ def _media_properties(path: Path) -> dict:
                          fps=round(int(num) / int(den or 1), 3) if num.isdigit() and int(den or 1) else None)
         if stream.get("codec_type") == "audio" and "audioChannels" not in found:
             found["audioChannels"] = stream.get("channels")
+    if audio and found.get("audioChannels") and (ffmpeg := shutil.which("ffmpeg")):
+        # How loud it plays and how close it comes to clipping, measured (EBU R128), so
+        # "balanced audio" is checked, not assumed.
+        try:
+            meter = subprocess.run([ffmpeg, "-nostats", "-i", str(path), "-vn", "-af", "ebur128=peak=true",
+                                    "-f", "null", "-"], capture_output=True, text=True, timeout=60).stderr
+            summary = meter.rpartition("Summary:")[2]
+            if (lufs := re.search(r"I:\s+(-?[\d.]+) LUFS", summary)) and \
+                    (peak := re.search(r"Peak:\s+(-?[\d.]+|-inf) dBFS", summary)):
+                found["loudnessLUFS"] = float(lufs.group(1))
+                found["truePeakDBTP"] = float(peak.group(1).replace("-inf", "-200"))
+        except (OSError, subprocess.TimeoutExpired):
+            pass
     return {k: v for k, v in found.items() if v is not None}
 
 
@@ -249,13 +262,18 @@ def _model_properties(path: Path) -> dict:
         return {"triangles": count}
 
 
-def file_properties(path: Path) -> dict:
+def file_properties(path: Path, audio: bool = False) -> dict:
     if not path.is_file():
         return {}
     if model := _model_properties(path):
         return model
     if SYSTEM != "Windows":
-        return _media_properties(path)
+        return _media_properties(path, audio)
+    # Windows: the shell's own properties, and the measured audio when asked (with ffmpeg).
+    return {**_shell_properties(path), **(_media_properties(path, True) if audio else {})}
+
+
+def _shell_properties(path: Path) -> dict:
     try:
         import comtypes
         import comtypes.client
@@ -764,7 +782,8 @@ class Computer:
                     "info": {"name": path.name, "folder": path.is_dir(), "size": info.st_size,
                              "modified": time.strftime("%Y-%m-%d %H:%M", time.localtime(info.st_mtime)),
                              "extension": path.suffix or None,
-                             **({"properties": found} if (found := file_properties(path)) else {})}}
+                             **({"properties": found} if (found := file_properties(path, bool(action.get("audio"))))
+                                else {})}}
         if kind == "file_find":
             return self._find(path, rel, str(action.get("name", "")), str(action.get("extension", "")),
                               cancel)
