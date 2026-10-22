@@ -75,6 +75,16 @@ Result: **0 PASS**. What changed in the product because of these runs (all gener
 - The prompt asks that each listed part be checked in the result itself, not only in a list
   beside it.
 
+## Provider outage, 12:39 UTC onward
+
+The next three runs (CAD c5 and c6 with the "listed parts in the result itself" rule, and the
+2-minute video edit with measured loudness) ended on `online_unavailable`: the staging edge
+function logged upstream failures with three attempts each, failing over across the
+**primary, secondary and tertiary** key slots (first live evidence that all three slots are
+configured and used). The video run reached 20 model calls before waiting out 11 minutes of
+outage. These are not product results; TASK 1 and the new CAD rule stay UNTESTED with the real
+model.
+
 ## Elite Work Standard A/B (PROMPT-22-01)
 
 The owner's Elite Work Standard is implemented word for word as an opt-in variant
