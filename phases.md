@@ -270,223 +270,223 @@
 
 ## Phase 9 — A. Secure API keys and credentials (16 actions)
 
-- [ ] 1. **ADDStore secret keys only in approved server-side environment variables or secret managers, never browser bundles.**
-- [ ] 2. **ADD / VERIFYIgnore local .env files, remove any already tracked copies, and remember Git history needs separate remediation.**
-- [ ] 3. **REMOVEEliminate privileged provider keys, secret tokens and direct authenticated calls from frontend code.**
-- [ ] 4. **AUDIT / FIXCheck every publicly exposed build or environment variable; remove any private value.**
-- [ ] 5. **PROTECTKeep Supabase service-role and other privileged keys exclusively server-side with least-privilege access.**
-- [ ] 6. **AUDITScan all reachable branches, Git history, artifacts and releases for secret leaks.**
-- [ ] 7. **ROTATE / REVOKEReplace confirmed leaked credentials safely and revoke the exposed originals.**
-- [ ] 8. **ENABLEActivate secret scanning and push protection where available, or equivalent checks within the free budget.**
-- [ ] 9. **MOVE / VERIFYStore credentials in the appropriate staging/production hosting secret dashboards, not plaintext config.**
-- [ ] 10. **RESTRICTScope every key to minimum operations, buckets, environments, lifetimes and origins where supported.**
-- [ ] 11. **ADDProxy sensitive AI, database and storage calls through authenticated and rate-limited server routes.**
-- [ ] 12. **REMOVEScrub credentials and personal information from screenshots, demos, recordings and shared diagnostics.**
-- [ ] 13. **REMOVE / TESTNever log secrets in server/client errors, observability events or analytics, including failure paths.**
-- [ ] 14. **SEPARATEUse different development, staging and production credentials with no cross-environment privilege.**
-- [ ] 15. **ADD / VERIFYEnforce model request, token, quota and spending guards; stop before unapproved paid usage.**
-- [ ] 16. **ENFORCENever paste key values into chats, prompts, issues, comments or commits; use secure entry mechanisms.**
+- [ ] 1. **ADD:** Store secret keys only in approved server-side environment variables or secret managers, never browser bundles.
+- [ ] 2. **ADD / VERIFY:** Ignore local .env files, remove any already tracked copies, and remember Git history needs separate remediation.
+- [ ] 3. **REMOVE:** Eliminate privileged provider keys, secret tokens and direct authenticated calls from frontend code.
+- [ ] 4. **AUDIT / FIX:** Check every publicly exposed build or environment variable; remove any private value.
+- [ ] 5. **PROTECT:** Keep Supabase service-role and other privileged keys exclusively server-side with least-privilege access.
+- [ ] 6. **AUDIT:** Scan all reachable branches, Git history, artifacts and releases for secret leaks.
+- [ ] 7. **ROTATE / REVOKE:** Replace confirmed leaked credentials safely and revoke the exposed originals.
+- [ ] 8. **ENABLE:** Activate secret scanning and push protection where available, or equivalent checks within the free budget.
+- [ ] 9. **MOVE / VERIFY:** Store credentials in the appropriate staging/production hosting secret dashboards, not plaintext config.
+- [ ] 10. **RESTRICT:** Scope every key to minimum operations, buckets, environments, lifetimes and origins where supported.
+- [ ] 11. **ADD:** Proxy sensitive AI, database and storage calls through authenticated and rate-limited server routes.
+- [ ] 12. **REMOVE:** Scrub credentials and personal information from screenshots, demos, recordings and shared diagnostics.
+- [ ] 13. **REMOVE / TEST:** Never log secrets in server/client errors, observability events or analytics, including failure paths.
+- [ ] 14. **SEPARATE:** Use different development, staging and production credentials with no cross-environment privilege.
+- [ ] 15. **ADD / VERIFY:** Enforce model request, token, quota and spending guards; stop before unapproved paid usage.
+- [ ] 16. **ENFORCE:** Never paste key values into chats, prompts, issues, comments or commits; use secure entry mechanisms.
 
 ## Phase 9 — B. Close application security gaps (19 actions)
 
-- [ ] 1. **ADD / TESTEnable Row Level Security on all exposed Supabase tables, with correct per-user and per-tenant policies.**
-- [ ] 2. **FIX / TESTRequire authentication and scoped authorization on each sensitive route, server action and device command.**
-- [ ] 3. **FIXTreat frontend state as untrusted; validate permissions, identities and requested changes on the server.**
-- [ ] 4. **ADDApply risk-based per-user/device/IP rate limits and bounded retries.**
-- [ ] 5. **ADD / TESTValidate input and safely encode output to prevent injection without damaging legitimate data.**
-- [ ] 6. **FIXUse parameterized queries rather than interpolating untrusted SQL.**
-- [ ] 7. **RESTRICT / VERIFYApply only necessary CORS origins and forbid unrestricted credentialed CORS.**
-- [ ] 8. **ENFORCERequire HTTPS/TLS for deployed services, cookies and redirects.**
-- [ ] 9. **TEST / FIXBlock IDOR by checking ownership for every conversation, task, download, file and device.**
-- [ ] 10. **REMOVEDisable production debug endpoints, test identities, sensitive traces and verbose stack traces.**
-- [ ] 11. **ADD WHEN NEEDEDProtect abuse-prone public forms with accessible CAPTCHA or equivalent controls.**
-- [ ] 12. **ADDKeep tamper-resistant, minimized audit logs of privileged actions.**
-- [ ] 13. **PROTECTDefault to private buckets and narrowly scoped time-limited authorized file access.**
-- [ ] 14. **FIXEnforce admin roles and MFA server-side, not only hidden admin navigation.**
-- [ ] 15. **UPDATE / VERIFYPatch affected dependencies and retest compatibility and vulnerability reports.**
-- [ ] 16. **ADD / TESTValidate uploaded file types by content and check size, parser safety and malicious payloads.**
-- [ ] 17. **REVIEW / FIXConduct Claude-assisted and independent adversarial security reviews, then remediate findings.**
-- [ ] 18. **ADD / VERIFYSet appropriate CSP, HSTS, anti-framing, MIME and other security headers.**
-- [ ] 19. **VERIFYCheck webhook signatures, event IDs, replay protection and idempotency before enabling payments.**
+- [ ] 1. **ADD / TEST:** Enable Row Level Security on all exposed Supabase tables, with correct per-user and per-tenant policies.
+- [ ] 2. **FIX / TEST:** Require authentication and scoped authorization on each sensitive route, server action and device command.
+- [ ] 3. **FIX:** Treat frontend state as untrusted; validate permissions, identities and requested changes on the server.
+- [ ] 4. **ADD:** Apply risk-based per-user/device/IP rate limits and bounded retries.
+- [ ] 5. **ADD / TEST:** Validate input and safely encode output to prevent injection without damaging legitimate data.
+- [ ] 6. **FIX:** Use parameterized queries rather than interpolating untrusted SQL.
+- [ ] 7. **RESTRICT / VERIFY:** Apply only necessary CORS origins and forbid unrestricted credentialed CORS.
+- [ ] 8. **ENFORCE:** Require HTTPS/TLS for deployed services, cookies and redirects.
+- [ ] 9. **TEST / FIX:** Block IDOR by checking ownership for every conversation, task, download, file and device.
+- [ ] 10. **REMOVE:** Disable production debug endpoints, test identities, sensitive traces and verbose stack traces.
+- [ ] 11. **ADD WHEN NEEDED:** Protect abuse-prone public forms with accessible CAPTCHA or equivalent controls.
+- [ ] 12. **ADD:** Keep tamper-resistant, minimized audit logs of privileged actions.
+- [ ] 13. **PROTECT:** Default to private buckets and narrowly scoped time-limited authorized file access.
+- [ ] 14. **FIX:** Enforce admin roles and MFA server-side, not only hidden admin navigation.
+- [ ] 15. **UPDATE / VERIFY:** Patch affected dependencies and retest compatibility and vulnerability reports.
+- [ ] 16. **ADD / TEST:** Validate uploaded file types by content and check size, parser safety and malicious payloads.
+- [ ] 17. **REVIEW / FIX:** Conduct Claude-assisted and independent adversarial security reviews, then remediate findings.
+- [ ] 18. **ADD / VERIFY:** Set appropriate CSP, HSTS, anti-framing, MIME and other security headers.
+- [ ] 19. **VERIFY:** Check webhook signatures, event IDs, replay protection and idempotency before enabling payments.
 
 ## Phase 8 — C. Remove generic marketing-template patterns (original audit items)
 
-- [ ] 1. **REMOVE / SOFTENReplace harsh gradients with restrained OCADE-branded surfaces.**
-- [ ] 2. **REFINEUse a coherent icon system; remove gratuitous Lucide decorations but keep functional accessible icons.**
-- [ ] 3. **REVIEWAvoid harsh pure-white backgrounds when they impair the selected accessible theme.**
-- [ ] 4. **REMOVEEliminate unnecessary rainbow coloring and use intentional semantic colors.**
-- [ ] 5. **REFINEReduce heavy drop shadows and retain purposeful depth cues.**
-- [ ] 6. **REPLACERemove repetitive three-feature-card layouts that add no useful product information.**
-- [ ] 7. **REMOVE WHERE DECORATIVEKeep emojis out of premium headings unless they communicate real meaning.**
-- [ ] 8. **REMOVE / LIMITRemove distracting liquid-glass styling and preserve legible, efficient surfaces.**
-- [ ] 9. **EDITReduce overused em dashes and formulaic punctuation without banning correct punctuation.**
-- [ ] 10. **REFINEEstablish deliberate typography rather than relying on untouched template defaults.**
-- [ ] 11. **REMOVEEliminate generic colored-left-stripe cards except true semantic status.**
-- [ ] 12. **REMOVE / REPLACEDelete fake testimonials; display only real consented verified reviews.**
-- [ ] 13. **REPLACERemove decorative bento grids unless they actually clarify complex content.**
-- [ ] 14. **REMOVE WHERE FAKEReplace decorative terminal mockups with genuine verified product demos.**
-- [ ] 15. **EDITRemove cliché “it's not x, it's y” copy and replace it with concrete customer outcomes.**
-- [ ] 16. **REFINERemove repetitive checkmark marketing lists; preserve functional task checklists.**
-- [ ] 17. **REVIEWDo not force three pricing tiers just for visual symmetry; honor the approved catalogue.**
-- [ ] 18. **ADDPresent real OCADE demos with measurable results, failures and limitations.**
-- [ ] 21. **ADD / KEEPImplement useful skeleton/loading states; skeleton loaders are required where appropriate.**
-- [ ] 22. **REMOVEDelete radial orbs and decorative starfields from the task workspace.**
-- [ ] 23. **REMOVEDelete distracting decorative dot-grid backgrounds.**
-- [ ] 24. **REMOVE / LIMITRemove excessive sparkle icons and misleading AI visual signals.**
-- [ ] 25. **REMOVE / LIMITRemove attention-seeking animated arrows; keep meaningful navigation feedback.**
-- [ ] 26. **ADDPublish the required Terms of Service.**
-- [ ] 27. **ADDPublish a complete Privacy Policy.**
-- [ ] 28. **KEEP / FIXKeep accessible hover and focus feedback; remove only excessive animation.**
-- [ ] 29. **REFINEReduce neon colors and ensure good contrast.**
-- [ ] 30. **REFINEReplace generic pastel styling with deliberate accessible OCADE brand colors.**
+- [ ] 1. **REMOVE / SOFTEN:** Replace harsh gradients with restrained OCADE-branded surfaces.
+- [ ] 2. **REFINE:** Use a coherent icon system; remove gratuitous Lucide decorations but keep functional accessible icons.
+- [ ] 3. **REVIEW:** Avoid harsh pure-white backgrounds when they impair the selected accessible theme.
+- [ ] 4. **REMOVE:** Eliminate unnecessary rainbow coloring and use intentional semantic colors.
+- [ ] 5. **REFINE:** Reduce heavy drop shadows and retain purposeful depth cues.
+- [ ] 6. **REPLACE:** Remove repetitive three-feature-card layouts that add no useful product information.
+- [ ] 7. **REMOVE WHERE DECORATIVE:** Keep emojis out of premium headings unless they communicate real meaning.
+- [ ] 8. **REMOVE / LIMIT:** Remove distracting liquid-glass styling and preserve legible, efficient surfaces.
+- [ ] 9. **EDIT:** Reduce overused em dashes and formulaic punctuation without banning correct punctuation.
+- [ ] 10. **REFINE:** Establish deliberate typography rather than relying on untouched template defaults.
+- [ ] 11. **REMOVE:** Eliminate generic colored-left-stripe cards except true semantic status.
+- [ ] 12. **REMOVE / REPLACE:** Delete fake testimonials; display only real consented verified reviews.
+- [ ] 13. **REPLACE:** Remove decorative bento grids unless they actually clarify complex content.
+- [ ] 14. **REMOVE WHERE FAKE:** Replace decorative terminal mockups with genuine verified product demos.
+- [ ] 15. **EDIT:** Remove cliché “it's not x, it's y” copy and replace it with concrete customer outcomes.
+- [ ] 16. **REFINE:** Remove repetitive checkmark marketing lists; preserve functional task checklists.
+- [ ] 17. **REVIEW:** Do not force three pricing tiers just for visual symmetry; honor the approved catalogue.
+- [ ] 18. **ADD:** Present real OCADE demos with measurable results, failures and limitations.
+- [ ] 21. **ADD / KEEP:** Implement useful skeleton/loading states; skeleton loaders are required where appropriate.
+- [ ] 22. **REMOVE:** Delete radial orbs and decorative starfields from the task workspace.
+- [ ] 23. **REMOVE:** Delete distracting decorative dot-grid backgrounds.
+- [ ] 24. **REMOVE / LIMIT:** Remove excessive sparkle icons and misleading AI visual signals.
+- [ ] 25. **REMOVE / LIMIT:** Remove attention-seeking animated arrows; keep meaningful navigation feedback.
+- [ ] 26. **ADD:** Publish the required Terms of Service.
+- [ ] 27. **ADD:** Publish a complete Privacy Policy.
+- [ ] 28. **KEEP / FIX:** Keep accessible hover and focus feedback; remove only excessive animation.
+- [ ] 29. **REFINE:** Reduce neon colors and ensure good contrast.
+- [ ] 30. **REFINE:** Replace generic pastel styling with deliberate accessible OCADE brand colors.
 
 ## Phase 8 — D. Refine the app's visual identity (original audit items)
 
-- [ ] 1. **REMOVERemove generic purple-to-blue gradients lacking explicit brand purpose.**
-- [ ] 2. **REPLACEReplace gradient hero text with strong readable hierarchy.**
-- [ ] 3. **REMOVE WHERE DECORATIVERemove generic badges above every headline, keeping real status badges.**
-- [ ] 4. **REPLACERemove cookie-cutter three-icon feature rows.**
-- [ ] 5. **REMOVERemove decorative emojis from high-trust product headings.**
-- [ ] 6. **REFINEReplace generic colored-border cards with consistent semantic surfaces.**
-- [ ] 8. **CUSTOMIZEReplace untouched component-library defaults with OCADE-specific accessible styling.**
-- [ ] 9. **REDUCERemove redundant Lucide icons while preserving clear functional controls.**
-- [ ] 10. **REFINEUse coherent type sizes and weights instead of an unexamined single default font.**
-- [ ] 11. **REVIEWAvoid trendy decorative font pairs when a simpler purposeful font system works.**
-- [ ] 12. **REMOVE / LIMITRemove gratuitous italic-serif accent words.**
-- [ ] 13. **EDITReduce repetitive em dashes.**
-- [ ] 14. **REWRITEReplace buzzwords with measurable product claims.**
-- [ ] 16. **REMOVERemove cursor-following trails and animated lines.**
-- [ ] 18. **FIXRestore accessible contrast in dark mode.**
-- [ ] 19. **FIXMake spacing and visual density consistent at all breakpoints.**
-- [ ] 20. **REMOVE / LIMITRemove grain effects that impair legibility or speed.**
+- [ ] 1. **REMOVE:** Remove generic purple-to-blue gradients lacking explicit brand purpose.
+- [ ] 2. **REPLACE:** Replace gradient hero text with strong readable hierarchy.
+- [ ] 3. **REMOVE WHERE DECORATIVE:** Remove generic badges above every headline, keeping real status badges.
+- [ ] 4. **REPLACE:** Remove cookie-cutter three-icon feature rows.
+- [ ] 5. **REMOVE:** Remove decorative emojis from high-trust product headings.
+- [ ] 6. **REFINE:** Replace generic colored-border cards with consistent semantic surfaces.
+- [ ] 8. **CUSTOMIZE:** Replace untouched component-library defaults with OCADE-specific accessible styling.
+- [ ] 9. **REDUCE:** Remove redundant Lucide icons while preserving clear functional controls.
+- [ ] 10. **REFINE:** Use coherent type sizes and weights instead of an unexamined single default font.
+- [ ] 11. **REVIEW:** Avoid trendy decorative font pairs when a simpler purposeful font system works.
+- [ ] 12. **REMOVE / LIMIT:** Remove gratuitous italic-serif accent words.
+- [ ] 13. **EDIT:** Reduce repetitive em dashes.
+- [ ] 14. **REWRITE:** Replace buzzwords with measurable product claims.
+- [ ] 16. **REMOVE:** Remove cursor-following trails and animated lines.
+- [ ] 18. **FIX:** Restore accessible contrast in dark mode.
+- [ ] 19. **FIX:** Make spacing and visual density consistent at all breakpoints.
+- [ ] 20. **REMOVE / LIMIT:** Remove grain effects that impair legibility or speed.
 
 ## Phase 8 — E. Add useful website interactions and accessibility (20 actions)
 
-- [ ] 1. **ADD / TESTProvide a persistent dark/light appearance toggle.**
-- [ ] 2. **ADD IF REQUIREDOffer a simple consent banner only for actual consent-requiring cookies or tracking.**
-- [ ] 3. **ADDInclude useful site, conversation or file search with correct empty states.**
-- [ ] 4. **ADD WHERE USEFULPlace a back-to-top control on long public pages only.**
-- [ ] 5. **ADD / TESTProvide an accessible compact mobile menu.**
-- [ ] 6. **ADDShow loading states, skeletons and safe cancellation for long operations.**
-- [ ] 7. **ADD / TESTGive controls usable hover, focus, pressed and disabled states.**
-- [ ] 8. **ADD WHERE USEFULShow reading progress on long articles, not in short task panes.**
-- [ ] 9. **ADDProvide working Copy actions for relevant results, links and code.**
-- [ ] 10. **ADD IF NEEDEDOffer clean printing of legal, help or generated report pages.**
-- [ ] 11. **ADD WHERE USEFULUse sticky navigation when it preserves working space.**
-- [ ] 12. **ADDSupport skip-to-content and logical keyboard navigation.**
-- [ ] 13. **ADDProvide show/hide controls on password fields.**
-- [ ] 14. **ADD WITH CONSENTCollect marketing UTM attribution only if disclosed and lawful.**
-- [ ] 15. **ADDDisplay accurate form-submission success states.**
-- [ ] 16. **ADDDisplay actionable validation and network-error states.**
-- [ ] 17. **ADDRequire clear confirmation of destructive/consequential actions.**
-- [ ] 18. **ADDDisplay accurate last-updated dates on legal/help pages.**
-- [ ] 19. **ADDBuild concise expandable FAQs where users need them.**
-- [ ] 20. **ASSESS / ADD IF USEFULProvide contact access without intrusive floating controls over JARVIS.**
+- [ ] 1. **ADD / TEST:** Provide a persistent dark/light appearance toggle.
+- [ ] 2. **ADD IF REQUIRED:** Offer a simple consent banner only for actual consent-requiring cookies or tracking.
+- [ ] 3. **ADD:** Include useful site, conversation or file search with correct empty states.
+- [ ] 4. **ADD WHERE USEFUL:** Place a back-to-top control on long public pages only.
+- [ ] 5. **ADD / TEST:** Provide an accessible compact mobile menu.
+- [ ] 6. **ADD:** Show loading states, skeletons and safe cancellation for long operations.
+- [ ] 7. **ADD / TEST:** Give controls usable hover, focus, pressed and disabled states.
+- [ ] 8. **ADD WHERE USEFUL:** Show reading progress on long articles, not in short task panes.
+- [ ] 9. **ADD:** Provide working Copy actions for relevant results, links and code.
+- [ ] 10. **ADD IF NEEDED:** Offer clean printing of legal, help or generated report pages.
+- [ ] 11. **ADD WHERE USEFUL:** Use sticky navigation when it preserves working space.
+- [ ] 12. **ADD:** Support skip-to-content and logical keyboard navigation.
+- [ ] 13. **ADD:** Provide show/hide controls on password fields.
+- [ ] 14. **ADD WITH CONSENT:** Collect marketing UTM attribution only if disclosed and lawful.
+- [ ] 15. **ADD:** Display accurate form-submission success states.
+- [ ] 16. **ADD:** Display actionable validation and network-error states.
+- [ ] 17. **ADD:** Require clear confirmation of destructive/consequential actions.
+- [ ] 18. **ADD:** Display accurate last-updated dates on legal/help pages.
+- [ ] 19. **ADD:** Build concise expandable FAQs where users need them.
+- [ ] 20. **ASSESS / ADD IF USEFUL:** Provide contact access without intrusive floating controls over JARVIS.
 
 ## Phase 8 — F. Repair broken pages, navigation and mobile layouts (original audit items)
 
-- [ ] 1. **FIXRemove unintended horizontal scrolling while keeping required wide-data controls available.**
-- [ ] 2. **FIX / TESTAudit all links and repair invalid destinations.**
-- [ ] 3. **ADD / TESTBuild reliable accessible mobile navigation.**
-- [ ] 4. **ADDInstall OCADE favicon and app icons.**
-- [ ] 5. **FIXGive public indexable pages accurate unique titles.**
-- [ ] 6. **ADD / FIXWrite relevant public-page meta descriptions.**
-- [ ] 7. **FIXMake all footer destinations and legal links functional.**
-- [ ] 8. **ADD / TESTBuild a useful custom 404 with recovery navigation.**
-- [ ] 9. **FIXShow the correct current copyright year.**
-- [ ] 10. **OPTIMIZECompress and responsively size images without degrading customer output files.**
-- [ ] 11. **FIX / TESTRepair dead buttons and confirm every button does what its label says.**
-- [ ] 12. **ADDProvide real success messages with output links.**
-- [ ] 13. **ADDProvide actionable error states and retry guidance.**
-- [ ] 14. **REMOVEDelete lorem ipsum, demo URLs and unshipped placeholders.**
-- [ ] 15. **REMOVEDelete unused or duplicate navigation items.**
-- [ ] 16. **FIXEliminate mobile overflow in dialogs, forms and task controls.**
-- [ ] 17. **FIXLink the logo to the intended safe home page.**
-- [ ] 19. **FIXMake approved public contact email addresses clickable.**
-- [ ] 20. **TEST / FIXMake each supported page usable on mobile, including critical task controls.**
+- [ ] 1. **FIX:** Remove unintended horizontal scrolling while keeping required wide-data controls available.
+- [ ] 2. **FIX / TEST:** Audit all links and repair invalid destinations.
+- [ ] 3. **ADD / TEST:** Build reliable accessible mobile navigation.
+- [ ] 4. **ADD:** Install OCADE favicon and app icons.
+- [ ] 5. **FIX:** Give public indexable pages accurate unique titles.
+- [ ] 6. **ADD / FIX:** Write relevant public-page meta descriptions.
+- [ ] 7. **FIX:** Make all footer destinations and legal links functional.
+- [ ] 8. **ADD / TEST:** Build a useful custom 404 with recovery navigation.
+- [ ] 9. **FIX:** Show the correct current copyright year.
+- [ ] 10. **OPTIMIZE:** Compress and responsively size images without degrading customer output files.
+- [ ] 11. **FIX / TEST:** Repair dead buttons and confirm every button does what its label says.
+- [ ] 12. **ADD:** Provide real success messages with output links.
+- [ ] 13. **ADD:** Provide actionable error states and retry guidance.
+- [ ] 14. **REMOVE:** Delete lorem ipsum, demo URLs and unshipped placeholders.
+- [ ] 15. **REMOVE:** Delete unused or duplicate navigation items.
+- [ ] 16. **FIX:** Eliminate mobile overflow in dialogs, forms and task controls.
+- [ ] 17. **FIX:** Link the logo to the intended safe home page.
+- [ ] 19. **FIX:** Make approved public contact email addresses clickable.
+- [ ] 20. **TEST / FIX:** Make each supported page usable on mobile, including critical task controls.
 
 ## Phase 8 — G. Polish a premium, consistent brand experience (16 actions)
 
-- [ ] 1. **STANDARDIZEDefine an intentional typography system with at most one supporting type family.**
-- [ ] 2. **STANDARDIZEUse restrained OCADE brand colors and accessible semantic status colors.**
-- [ ] 3. **REFINEGive pages adequate whitespace without wasting productive workspace.**
-- [ ] 4. **REFINEUse a strong marketing hierarchy without oversized working-area headings.**
-- [ ] 5. **ADD / VERIFYUse real licensed photos and truthful screenshots.**
-- [ ] 6. **FIXStandardize spacing tokens throughout the app.**
-- [ ] 7. **FIXAlign content with clear responsive grids.**
-- [ ] 8. **REFINEUse one main action per marketing section while preserving necessary secondary actions.**
-- [ ] 9. **STANDARDIZEMake button shapes, sizes, labels and behavior consistent.**
-- [ ] 10. **STANDARDIZEUse a restrained coherent icon set.**
-- [ ] 11. **ADD ONLY WHEN REALPublish testimonials only with real proof and consent.**
-- [ ] 12. **EDITShorten repetitive paragraphs without cutting necessary guidance.**
-- [ ] 13. **REFINEKeep public navigation concise without hiding critical workspace routes.**
-- [ ] 14. **FIXImprove text and control contrast in every theme.**
-- [ ] 15. **TEST / FIXComplete responsive mobile layouts.**
-- [ ] 16. **VERIFYValidate premium quality through real usability, accessibility and trust evidence.**
+- [ ] 1. **STANDARDIZE:** Define an intentional typography system with at most one supporting type family.
+- [ ] 2. **STANDARDIZE:** Use restrained OCADE brand colors and accessible semantic status colors.
+- [ ] 3. **REFINE:** Give pages adequate whitespace without wasting productive workspace.
+- [ ] 4. **REFINE:** Use a strong marketing hierarchy without oversized working-area headings.
+- [ ] 5. **ADD / VERIFY:** Use real licensed photos and truthful screenshots.
+- [ ] 6. **FIX:** Standardize spacing tokens throughout the app.
+- [ ] 7. **FIX:** Align content with clear responsive grids.
+- [ ] 8. **REFINE:** Use one main action per marketing section while preserving necessary secondary actions.
+- [ ] 9. **STANDARDIZE:** Make button shapes, sizes, labels and behavior consistent.
+- [ ] 10. **STANDARDIZE:** Use a restrained coherent icon set.
+- [ ] 11. **ADD ONLY WHEN REAL:** Publish testimonials only with real proof and consent.
+- [ ] 12. **EDIT:** Shorten repetitive paragraphs without cutting necessary guidance.
+- [ ] 13. **REFINE:** Keep public navigation concise without hiding critical workspace routes.
+- [ ] 14. **FIX:** Improve text and control contrast in every theme.
+- [ ] 15. **TEST / FIX:** Complete responsive mobile layouts.
+- [ ] 16. **VERIFY:** Validate premium quality through real usability, accessibility and trust evidence.
 
 ## Phase 12 / Phase 14 — H. Verify website and launch operations (15 actions)
 
-- [ ] 1. **TESTQualify supported mobile browsers and layouts with real evidence.**
-- [ ] 2. **TEST / FIXCheck links across public and authenticated routes.**
-- [ ] 3. **ADD / TESTProvide a reliable support contact form or other approved channel.**
-- [ ] 4. **MEASURE / IMPROVEAim below 3 seconds for key public pages under a stated device and network.**
-- [ ] 5. **VERIFYCheck images for size, availability, presentation and rights.**
-- [ ] 6. **VERIFYEnforce HTTPS and safe redirects.**
-- [ ] 7. **TESTQualify Chrome and Safari workflows with documented platform limitations.**
-- [ ] 8. **EDIT / REVIEWRemove user-facing typos and inconsistent terminology.**
-- [ ] 9. **ADD ONLY IF APPROVEDLink WhatsApp support only to an approved business contact.**
-- [ ] 10. **ADD / VERIFYConfigure approved domain email and sender authentication.**
-- [ ] 11. **ADD WITH PRIVACYCapture operational analytics without collecting secrets or task content.**
-- [ ] 12. **VERIFYIndex intended public Google pages but never private app content.**
-- [ ] 13. **ADD / TESTSet real social sharing previews.**
-- [ ] 14. **TESTRehearse backup restoration and recovery safely.**
-- [ ] 15. **PREPARE / TEST, DO NOT ENABLE — Qualify payment sandbox; require explicit approval for live checkout.**
+- [ ] 1. **TEST:** Qualify supported mobile browsers and layouts with real evidence.
+- [ ] 2. **TEST / FIX:** Check links across public and authenticated routes.
+- [ ] 3. **ADD / TEST:** Provide a reliable support contact form or other approved channel.
+- [ ] 4. **MEASURE / IMPROVE:** Aim below 3 seconds for key public pages under a stated device and network.
+- [ ] 5. **VERIFY:** Check images for size, availability, presentation and rights.
+- [ ] 6. **VERIFY:** Enforce HTTPS and safe redirects.
+- [ ] 7. **TEST:** Qualify Chrome and Safari workflows with documented platform limitations.
+- [ ] 8. **EDIT / REVIEW:** Remove user-facing typos and inconsistent terminology.
+- [ ] 9. **ADD ONLY IF APPROVED:** Link WhatsApp support only to an approved business contact.
+- [ ] 10. **ADD / VERIFY:** Configure approved domain email and sender authentication.
+- [ ] 11. **ADD WITH PRIVACY:** Capture operational analytics without collecting secrets or task content.
+- [ ] 12. **VERIFY:** Index intended public Google pages but never private app content.
+- [ ] 13. **ADD / TEST:** Set real social sharing previews.
+- [ ] 14. **TEST:** Rehearse backup restoration and recovery safely.
+- [ ] 15. **PREPARE / TEST, DO NOT ENABLE:** Qualify payment sandbox; require explicit approval for live checkout.
 
 ## Phase 13 — I. Complete legal, consent and customer rights (20 actions)
 
-- [ ] 1. **ADD / REVIEWPublish accurate Privacy Policy covering provider data handling, desktop permissions and retention.**
-- [ ] 2. **ADD / REVIEWPublish clear Terms of Service.**
-- [ ] 3. **ADD / REVIEWCreate a transparent refund and cancellation policy before accepting payments.**
-- [ ] 4. **ADD IF APPLICABLEPublish a cookie policy describing actual cookies and their purpose.**
-- [ ] 5. **ADD IF REQUIREDObtain valid cookie consent and respect refusal.**
-- [ ] 6. **FIX / TESTExplain form consent and make withdrawal practical where required.**
-- [ ] 7. **REMOVEEliminate unnecessary personal-data collection.**
-- [ ] 8. **AUDITReview all third-party SDKs for privacy, security, licensing and disclosures.**
-- [ ] 9. **REMOVERemove dark patterns and deceptive permission requests.**
-- [ ] 10. **REMOVERemove hidden charges and misleading billing disclosures.**
-- [ ] 11. **REMOVERemove fake reviews.**
-- [ ] 12. **REMOVE / FIXRemove unsupported claims, guarantees and misleading comparisons.**
-- [ ] 13. **ADD / VERIFYProvide meaningful image alt text and mark decorative imagery correctly.**
-- [ ] 14. **FIX / TESTMeet applicable accessible contrast requirements.**
-- [ ] 15. **ADD / TESTSupport keyboard navigation and visible focus.**
-- [ ] 16. **ADDDisclose accurate business details and support contacts.**
-- [ ] 17. **ADD IF APPLICABLEVerify legally required age or guardian permissions for minors.**
-- [ ] 18. **ADDInclude functioning unsubscribe links in marketing emails.**
-- [ ] 19. **VERIFYConfirm licensing of commercial fonts, images, models, packages and other assets.**
-- [ ] 20. **ADD / TESTProvide a customer data-deletion request path with tracking and confirmation.**
+- [ ] 1. **ADD / REVIEW:** Publish accurate Privacy Policy covering provider data handling, desktop permissions and retention.
+- [ ] 2. **ADD / REVIEW:** Publish clear Terms of Service.
+- [ ] 3. **ADD / REVIEW:** Create a transparent refund and cancellation policy before accepting payments.
+- [ ] 4. **ADD IF APPLICABLE:** Publish a cookie policy describing actual cookies and their purpose.
+- [ ] 5. **ADD IF REQUIRED:** Obtain valid cookie consent and respect refusal.
+- [ ] 6. **FIX / TEST:** Explain form consent and make withdrawal practical where required.
+- [ ] 7. **REMOVE:** Eliminate unnecessary personal-data collection.
+- [ ] 8. **AUDIT:** Review all third-party SDKs for privacy, security, licensing and disclosures.
+- [ ] 9. **REMOVE:** Remove dark patterns and deceptive permission requests.
+- [ ] 10. **REMOVE:** Remove hidden charges and misleading billing disclosures.
+- [ ] 11. **REMOVE:** Remove fake reviews.
+- [ ] 12. **REMOVE / FIX:** Remove unsupported claims, guarantees and misleading comparisons.
+- [ ] 13. **ADD / VERIFY:** Provide meaningful image alt text and mark decorative imagery correctly.
+- [ ] 14. **FIX / TEST:** Meet applicable accessible contrast requirements.
+- [ ] 15. **ADD / TEST:** Support keyboard navigation and visible focus.
+- [ ] 16. **ADD:** Disclose accurate business details and support contacts.
+- [ ] 17. **ADD IF APPLICABLE:** Verify legally required age or guardian permissions for minors.
+- [ ] 18. **ADD:** Include functioning unsubscribe links in marketing emails.
+- [ ] 19. **VERIFY:** Confirm licensing of commercial fonts, images, models, packages and other assets.
+- [ ] 20. **ADD / TEST:** Provide a customer data-deletion request path with tracking and confirmation.
 
 ## Phase 14 — J. Finish public-site launch readiness (20 actions)
 
-- [ ] 1. **ADD / VERIFYPublish and link the final Privacy Policy.**
-- [ ] 2. **ADD / VERIFYPublish and link the final Terms.**
-- [ ] 3. **REMOVE / TESTKeep all secrets out of bundles, scripts and page HTML.**
-- [ ] 4. **ENFORCE / TESTRedirect HTTP to HTTPS in all supported production routes.**
-- [ ] 5. **ADD IF REQUIREDPresent genuine cookie-consent options.**
-- [ ] 6. **ADD / TESTVerify page titles and descriptions on all public routes.**
-- [ ] 7. **ADD / TESTShip accurate branded social previews.**
-- [ ] 8. **ADD / TESTShip correct favicons, app icons and PWA manifest assets.**
-- [ ] 9. **ADD / VERIFYGenerate sitemap and robots.txt for public pages and exclude private routes.**
-- [ ] 10. **ADD / REVIEWWrite useful image alt text.**
-- [ ] 11. **OPTIMIZE / TESTCompress site images while preserving actual user output quality.**
-- [ ] 12. **MEASURE / IMPROVERecord public site loading and interaction performance.**
-- [ ] 13. **FIX / TESTConfirm accessible text and control contrast.**
-- [ ] 14. **TEST / FIXVerify supported mobile viewports and task journeys.**
-- [ ] 15. **ADD / TESTProvide a useful branded 404 page.**
-- [ ] 16. **TEST / FIXRepair broken public links.**
-- [ ] 17. **ADD / TESTValidate forms on both client and server.**
-- [ ] 18. **ADD / TESTApply proportional spam/bot protection to public inputs.**
-- [ ] 19. **ADD WITH CONSENTImplement privacy-safe analytics without task-content capture.**
-- [ ] 20. **ADD / VERIFYPresent a clear public-site signup/try-it action with functioning onboarding.**
+- [ ] 1. **ADD / VERIFY:** Publish and link the final Privacy Policy.
+- [ ] 2. **ADD / VERIFY:** Publish and link the final Terms.
+- [ ] 3. **REMOVE / TEST:** Keep all secrets out of bundles, scripts and page HTML.
+- [ ] 4. **ENFORCE / TEST:** Redirect HTTP to HTTPS in all supported production routes.
+- [ ] 5. **ADD IF REQUIRED:** Present genuine cookie-consent options.
+- [ ] 6. **ADD / TEST:** Verify page titles and descriptions on all public routes.
+- [ ] 7. **ADD / TEST:** Ship accurate branded social previews.
+- [ ] 8. **ADD / TEST:** Ship correct favicons, app icons and PWA manifest assets.
+- [ ] 9. **ADD / VERIFY:** Generate sitemap and robots.txt for public pages and exclude private routes.
+- [ ] 10. **ADD / REVIEW:** Write useful image alt text.
+- [ ] 11. **OPTIMIZE / TEST:** Compress site images while preserving actual user output quality.
+- [ ] 12. **MEASURE / IMPROVE:** Record public site loading and interaction performance.
+- [ ] 13. **FIX / TEST:** Confirm accessible text and control contrast.
+- [ ] 14. **TEST / FIX:** Verify supported mobile viewports and task journeys.
+- [ ] 15. **ADD / TEST:** Provide a useful branded 404 page.
+- [ ] 16. **TEST / FIX:** Repair broken public links.
+- [ ] 17. **ADD / TEST:** Validate forms on both client and server.
+- [ ] 18. **ADD / TEST:** Apply proportional spam/bot protection to public inputs.
+- [ ] 19. **ADD WITH CONSENT:** Implement privacy-safe analytics without task-content capture.
+- [ ] 20. **ADD / VERIFY:** Present a clear public-site signup/try-it action with functioning onboarding.
 ---
 
 # Phase 2 / Phase 3 — Elite-first thinking policy and architecture benchmark
