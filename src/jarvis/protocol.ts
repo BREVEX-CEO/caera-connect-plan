@@ -868,6 +868,33 @@ export const CAPABILITIES = [
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 
+/**
+ * True when a sentence to remember holds a credential: a password, code or key with its
+ * value, a long opaque token, or a payment card number. Memory keeps preferences, never
+ * secrets (plan.md §13.4), whoever asked.
+ */
+export function holdsSecret(text: string): boolean {
+  if (
+    /\b(password|passcode|passphrase|pin|otp|one[- ]time code|api[- ]?key|secret|token|cvv)\b\s*(is|:|=)\s*\S/i.test(
+      text,
+    )
+  )
+    return true;
+  if (/\b(sk-|ghp_|github_pat_|AIza|xox[abp]-|AKIA)[A-Za-z0-9_-]{8,}/.test(text)) return true;
+  if (/[A-Za-z0-9+/_-]{32,}/.test(text) && /\d/.test(text) && /[A-Za-z]/.test(text)) return true;
+  for (const found of text.matchAll(/\b(?:\d[ -]?){13,19}\b/g)) {
+    const digits = found[0].replace(/\D/g, "");
+    let sum = 0;
+    for (let i = 0; i < digits.length; i += 1) {
+      let d = Number(digits[digits.length - 1 - i]);
+      if (i % 2 === 1) d = d * 2 > 9 ? d * 2 - 9 : d * 2;
+      sum += d;
+    }
+    if (sum % 10 === 0) return true;
+  }
+  return false;
+}
+
 /** A host an action may reach, or null when it is not a web address. */
 export function hostOf(raw: string): string | null {
   const value = raw.trim();

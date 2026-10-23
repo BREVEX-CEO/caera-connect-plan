@@ -595,6 +595,44 @@ except i.UpdateRequired:
       check("running commands is shown unavailable where it cannot be confined", !confinable);
     }
     await closeAccess();
+
+    /* --- @ lists the apps this computer really found, with their own icons --- */
+    {
+      const composer = page.locator("#jarvis-composer");
+      const menu = page.getByRole("listbox", { name: "Apps on your computers" });
+      const listed = await until(async () => {
+        await composer.fill("");
+        await composer.pressSequentially("@");
+        return (await menu.getByRole("option").count()) > 0;
+      }, 60_000);
+      if (!listed) blocked("the @ app picker", "this computer reported no apps");
+      else {
+        const names = await menu.getByRole("option").allInnerTexts();
+        const icons = await menu.locator("img").count();
+        check(
+          "@ lists the computer's own apps, keyboard first",
+          (await composer.getAttribute("aria-expanded")) === "true" &&
+            (await menu.getByRole("option", { selected: true }).count()) === 1,
+          names.slice(0, 5).join(", "),
+        );
+        const libre = names.some((name) => /LibreOffice/.test(name));
+        if (libre) check("with each app's own icon", icons > 0, `${icons} icons`);
+        else blocked("app icons", "no app with an icon theme entry on this computer");
+        await composer.press("ArrowDown");
+        const chosen = (await menu.getByRole("option", { selected: true }).innerText()).trim();
+        await composer.press("Enter");
+        check(
+          "Enter puts the chosen app in the message and shows it will be used",
+          (await composer.inputValue()) === `@${chosen} ` &&
+            (await menu.count()) === 0 &&
+            (await page.getByText("JARVIS will use").count()) === 1,
+          await composer.inputValue(),
+        );
+        await composer.fill("mail me at a@b.example");
+        check("an e-mail address never opens the picker", (await menu.count()) === 0);
+        await composer.fill("");
+      }
+    }
     // Try again continues the same task: one record, one history, not a copy.
     await script("Continue the task from where it stopped", [
       { tool: "computer", args: { action: "file_write", path: "retried.md", content: "retried" } },

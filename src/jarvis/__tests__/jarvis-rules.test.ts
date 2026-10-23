@@ -4,6 +4,7 @@ import {
   computerAction,
   describeAction,
   deviceAction,
+  holdsSecret,
   hostOf,
   jarvisTools,
   pointGap,
@@ -710,5 +711,33 @@ describe("JARVIS's own voice", () => {
     expect(pickVoice(voices, null, "en-GB")?.name).toContain("Aria");
     expect(pickVoice(voices, "Microsoft Hedda - German", "en-GB")?.name).toContain("Hedda");
     expect(pickVoice([voice("Microsoft David - English (United States)")], null, "en")).toBeNull();
+  });
+});
+
+describe("memory keeps preferences, never secrets", () => {
+  it("refuses credentials, tokens and card numbers", () => {
+    for (const secret of [
+      "My password is hunter2",
+      "the wifi passcode: 12345678",
+      "API key = abc",
+      "use token sk-proj-abcdefghij1234",
+      "github ghp_abcdefghijklmnop1234",
+      "my card 4111 1111 1111 1111",
+      "session eyJhbGciOiJIUzI1NiJ9abcdefghijklmnop12",
+    ]) {
+      expect(holdsSecret(secret), secret).toBe(true);
+    }
+  });
+
+  it("keeps ordinary preferences and numbers", () => {
+    for (const preference of [
+      "I prefer dark mode",
+      "Send reports to Priya on Fridays",
+      "My phone number is +91 98765 43210",
+      "Use British spelling; my password manager is Bitwarden",
+      "Invoice 1234567890123 is paid",
+    ]) {
+      expect(holdsSecret(preference), preference).toBe(false);
+    }
   });
 });

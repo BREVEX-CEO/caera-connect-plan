@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/session";
+import { useFollowBottom } from "@/lib/use-follow-bottom";
 import { useModalFocus } from "@/lib/use-modal-focus";
 import { useActionChanges } from "./changes";
 import { useSettingsPanel } from "@/components/settings/settings-panel";
@@ -34,6 +35,7 @@ import { runJarvisTurn, Stopped } from "./agent";
 import { LiveControl, statusReply, workIntent } from "./live-control";
 import { liveDeps, ModelRefused, Unavailable } from "./live-deps";
 import { isAllowed } from "./permissions";
+import { useAppMention } from "./mention";
 import { FINISHED, mentionedApp } from "./protocol";
 import {
   JARVIS_DEFAULTS,
@@ -205,6 +207,19 @@ export function JarvisWorkspace({
     chosenTarget && jarvis?.devices.some((device) => device.id === chosenTarget)
       ? chosenTarget
       : null;
+  // Typing @ lists the apps each computer found; a Never app is not offered.
+  const composer = useRef<HTMLTextAreaElement>(null);
+  const mention = useAppMention({
+    draft,
+    setDraft,
+    textarea: composer,
+    apps: (jarvis?.apps ?? []).flatMap((group) =>
+      group.apps
+        .filter((app) => app.rule !== "never")
+        .map((app) => ({ deviceId: group.deviceId, deviceName: group.deviceName, name: app.name })),
+    ),
+    multipleDevices: (jarvis?.apps.length ?? 0) > 1,
+  });
   // The phone this tab is on, as the OCADE app said when it opened it. A link carrying it
   // opened on a computer is not the phone, so it is believed only on an Android phone.
   const [here, setHere] = useState<string | null>(null);
@@ -394,7 +409,12 @@ export function JarvisWorkspace({
           turns.findIndex((t) => t.id === retryOf),
         )
       : turns;
-    if (!retryOf) setDraft("");
+    // The app chosen with @ decides which computer this message's work is for.
+    const workOn = mention.deviceFor(text) ?? target;
+    if (!retryOf) {
+      setDraft("");
+      mention.reset();
+    }
     let id = conversationId;
     try {
       if (!id) {
@@ -452,7 +472,7 @@ export function JarvisWorkspace({
           memories: (jarvis?.memories ?? []).map((m) => m.content),
           memoryEnabled: isAllowed(permissions, "memory"),
           task,
-          deviceId: target,
+          deviceId: workOn,
           hereDeviceId: here,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           devices: jarvis?.devices,
@@ -757,12 +777,15 @@ export function JarvisWorkspace({
   const lastAsk = [...turns].reverse().find((turn) => turn.role === "user")?.content ?? "";
   const workingWith = mentionedApp(lastAsk, appNames);
   const draftApp = mentionedApp(draft, appNames);
-  // The newest turn, answer, task or question is always in view, as in Chat.
+  // The newest turn, answer and task stay in view while the person is at the end; scrolled up
+  // to read, they stay put. Their own new message, or a decision waiting, always comes into view.
   const bottom = useRef<HTMLDivElement>(null);
-  const newest = `${turns.length}:${liveAnswer?.length ?? 0}:${conversationTask?.id}:${conversationTask?.status}:${Boolean(confirmAsk)}:${Boolean(takeover)}`;
-  useEffect(() => {
-    bottom.current?.scrollIntoView({ block: "end" });
-  }, [newest]);
+  const newest = `${turns.length}:${liveAnswer?.length ?? 0}:${conversationTask?.id}:${conversationTask?.status}`;
+  const followScroll = useFollowBottom(
+    bottom,
+    newest,
+    `${conversationId}:${turns.filter((t) => t.role === "user").length}:${Boolean(confirmAsk)}:${Boolean(takeover)}`,
+  );
   // No JARVIS uses left: the composer locks with the reset time, nothing else.
   const spent = Boolean(jarvis?.usage && jarvis.usage.remaining <= 0);
 
@@ -976,6 +999,7 @@ export function JarvisWorkspace({
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
           <section
             aria-label="Conversation"
+            onScroll={followScroll}
             className="ocade-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-4"
           >
             <div className="mx-auto flex max-w-2xl flex-col gap-4 pt-4">
@@ -1222,13 +1246,16 @@ export function JarvisWorkspace({
                 event.preventDefault();
                 void send(draft, false);
               }}
-              className="glass-strong flex items-end gap-2 rounded-2xl p-2"
+              className="glass-strong relative flex items-end gap-2 rounded-[28px] p-2 pl-3 shadow-sm transition-shadow focus-within:shadow-md"
             >
+              {mention.menu}
               <label htmlFor="jarvis-composer" className="sr-only">
                 Message JARVIS
               </label>
               <textarea
                 id="jarvis-composer"
+                ref={composer}
+                {...mention.comboboxProps}
                 value={draft}
                 disabled={signedIn && spent}
                 rows={1}
@@ -1249,10 +1276,13 @@ export function JarvisWorkspace({
                             : "JARVIS is turned off in Settings"
                 }
                 onChange={(event) => setDraft(event.target.value)}
+                onSelect={mention.look}
+                onBlur={mention.close}
                 onKeyDown={(event) => {
                   // Enter that confirms an input method's composition (Hindi, Japanese, …)
                   // chooses the word; it never sends half a sentence (PLAN Phase 16 V13).
                   if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+                  if (mention.onKeyDown(event)) return;
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
                     void send(draft, false);
@@ -1311,9 +1341,12 @@ export function JarvisWorkspace({
                 </button>
               )}
             </form>
-            {draftApp && !sendBlockedReason ? (
-              <p className="mt-2 text-xs text-muted-foreground">JARVIS will use {draftApp}.</p>
-            ) : null}
+            {sendBlockedReason
+              ? null
+              : (mention.chosenLine ??
+                (draftApp ? (
+                  <p className="mt-2 text-xs text-muted-foreground">JARVIS will use {draftApp}.</p>
+                ) : null))}
             {sendBlockedReason ? (
               <p
                 id="jarvis-send-status"

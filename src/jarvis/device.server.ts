@@ -429,6 +429,31 @@ type Ack = {
   outcome: "accepted" | "stopped" | "unknown" | "retry";
 };
 
+/**
+ * The icons a device sent that are what they claim: at most 500, each a PNG no larger than
+ * 64×64 pixels and 4 KB. Anything else is dropped, so the picker never renders an SVG, a
+ * script or a tracking URL from a device (plan.md §15.5).
+ */
+export function appIconsOf(icons: Record<string, string>): Record<string, string> {
+  const kept: Record<string, string> = {};
+  for (const [name, data] of Object.entries(icons).slice(0, 500)) {
+    let bytes: Uint8Array;
+    try {
+      bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+    } catch {
+      continue;
+    }
+    const signature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+    if (bytes.length < 24 || bytes.length > 4096) continue;
+    if (signature.some((byte, i) => bytes[i] !== byte)) continue;
+    const view = new DataView(bytes.buffer);
+    const [width, height] = [view.getUint32(16), view.getUint32(20)];
+    if (width < 1 || height < 1 || width > 64 || height > 64) continue;
+    kept[name] = data;
+  }
+  return kept;
+}
+
 export const exchangeInput = z.object({
   results: z
     .array(
@@ -463,6 +488,8 @@ export const exchangeInput = z.object({
   capabilities: z.record(z.string().max(40), z.boolean()).optional(),
   softwareVersion: z.string().trim().max(40).optional(),
   apps: z.array(z.string().max(80)).max(500).optional(),
+  /** Each app's own icon, as a small base64 PNG by app name; only real small PNGs are kept. */
+  appIcons: z.record(z.string().max(80), z.string().max(6000)).optional(),
   /** The action the device is executing now and the segment steps still to come; the reply says which to cancel. */
   running: z.array(z.string().uuid()).max(MAX_SEGMENT).optional(),
   /** STOP JARVIS from the computer's own tray. */
@@ -617,13 +644,14 @@ export async function exchange(
   };
   const now = new Date().toISOString();
 
-  if (input.capabilities || input.softwareVersion || input.apps) {
+  if (input.capabilities || input.softwareVersion || input.apps || input.appIcons) {
     await admin
       .from("jarvis_devices")
       .update({
         ...(input.capabilities ? { capabilities: input.capabilities } : {}),
         ...(input.softwareVersion ? { software_version: input.softwareVersion } : {}),
         ...(input.apps ? { installed_apps: input.apps } : {}),
+        ...(input.appIcons ? { app_icons: appIconsOf(input.appIcons) } : {}),
       })
       .eq("id", device.id);
   }

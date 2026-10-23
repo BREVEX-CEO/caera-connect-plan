@@ -387,6 +387,125 @@ def _desktop_fields(entry: Path) -> dict:
     return fields
 
 
+ICON_PX = 32
+ICON_MAX_BYTES = 4096
+ICON_SIZES = ("32x32", "48x48", "64x64", "24x24", "128x128", "256x256", "scalable")
+# Windows known-folder ids Get-StartApps uses in desktop-app AppIDs.
+_KNOWN_FOLDERS = {
+    "{6D809377-6AF0-444B-8957-A3773F02200E}": "ProgramW6432",
+    "{7C5A40EF-A0FB-4BFC-874A-C0F2E0B9FA8E}": "ProgramFiles(x86)",
+    "{905E63B6-C1BF-494E-B29C-65B732D3D21A}": "ProgramFiles",
+    "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}": "SYSTEM32",
+    "{F38BF404-1D43-42F2-9305-67DE0B28FC23}": "SystemRoot",
+}
+
+
+def _icon_png(raw: bytes) -> bytes | None:
+    """Any image Pillow reads (PNG, ICO, ICNS, XPM), as a small PNG, or None. Untrusted bytes:
+    only decoded by Pillow, never by a renderer that runs scripts (SVG is not accepted)."""
+    from PIL import Image
+    try:
+        with Image.open(io.BytesIO(raw)) as image:
+            image.load()
+            image = image.convert("RGBA")
+            image.thumbnail((ICON_PX, ICON_PX))
+            out = io.BytesIO()
+            image.save(out, "PNG", optimize=True)
+    except Exception:  # a broken or unsupported icon is no icon, never a failed app list
+        return None
+    data = out.getvalue()
+    return data if len(data) <= ICON_MAX_BYTES else None
+
+
+def _icon_file(app: dict) -> Path | None:
+    """Where this app's own icon is, from what launches it (Linux and macOS)."""
+    launch = Path(app["launch"])
+    if SYSTEM == "Darwin":
+        import plistlib
+        try:
+            info = plistlib.loads((launch / "Contents/Info.plist").read_bytes())
+        except (OSError, ValueError, plistlib.InvalidFileException):
+            return None
+        name = str(info.get("CFBundleIconFile") or "")
+        if not name:
+            return None
+        icon = launch / "Contents/Resources" / name
+        return icon if icon.suffix else icon.with_suffix(".icns")
+    if launch.suffix != ".desktop":
+        return None
+    name = _desktop_fields(launch).get("Icon", "")
+    if not name or "/" in name.replace("\\", "/") and not Path(name).is_absolute():
+        return None
+    if Path(name).is_absolute():
+        return Path(name)
+    roots = [Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share"))] + [
+        Path(p) for p in os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share").split(":")]
+    for root in roots:
+        for size in ICON_SIZES:
+            for ext in (".png", ".xpm"):
+                candidate = root / "icons/hicolor" / size / "apps" / f"{name}{ext}"
+                if candidate.is_file():
+                    return candidate
+        for ext in (".png", ".xpm"):
+            candidate = root / "pixmaps" / f"{name}{ext}"
+            if candidate.is_file():
+                return candidate
+    return None
+
+
+def _windows_target(app: dict) -> str | None:
+    """A file Windows can give an icon for: a shortcut, or a desktop app's exe in Start."""
+    launch = app["launch"]
+    if not app.get("aumid"):
+        return launch
+    head, sep, rest = launch.partition("\\")
+    folder = _KNOWN_FOLDERS.get(head.upper())
+    if sep and folder and os.environ.get(folder):
+        return str(Path(os.environ[folder]) / rest)
+    return None  # a Store app: its icon lives in its package; the website shows a neutral glyph
+
+
+def app_icons(apps: list[dict]) -> dict[str, str]:
+    """Each app's own icon as a small base64 PNG, by name. Apps without one are left out."""
+    icons: dict[str, str] = {}
+    if SYSTEM == "Windows":
+        targets = {a["name"]: t for a in apps if (t := _windows_target(a)) and Path(t).exists()}
+        if not targets:
+            return {}
+        script = (
+            "Add-Type -AssemblyName System.Drawing;"
+            "$in = [Console]::In.ReadToEnd() | ConvertFrom-Json; $out = @{};"
+            "foreach ($p in $in.PSObject.Properties) { try {"
+            " $i = [System.Drawing.Icon]::ExtractAssociatedIcon($p.Value);"
+            " $m = New-Object System.IO.MemoryStream; $i.ToBitmap().Save($m, 'Png');"
+            " $out[$p.Name] = [Convert]::ToBase64String($m.ToArray()) } catch {} };"
+            "$out | ConvertTo-Json -Compress")
+        try:
+            out = subprocess.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+                input=json.dumps(targets).encode("utf-8"), capture_output=True, timeout=120,
+                check=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
+            raw = json.loads(out.decode("utf-8", errors="replace") or "{}")
+        except (OSError, subprocess.SubprocessError, ValueError):
+            return {}
+        found = {name: base64.b64decode(value) for name, value in (raw or {}).items()
+                 if name in targets and isinstance(value, str)}
+    else:
+        found = {}
+        for app in apps:
+            path = _icon_file(app)
+            try:
+                if path and path.is_file() and path.stat().st_size <= 2_000_000:
+                    found[app["name"]] = path.read_bytes()
+            except OSError:
+                continue
+    for name, raw in found.items():
+        png = _icon_png(raw)
+        if png:
+            icons[name] = base64.b64encode(png).decode("ascii")
+    return icons
+
+
 def _launch(app: dict) -> None:
     target = app["launch"]
     if SYSTEM == "Windows" and app.get("aumid"):

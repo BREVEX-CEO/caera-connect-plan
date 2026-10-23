@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import Markdown from "react-markdown";
 import { Check, Copy, Paperclip, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { ChatMessageRecord } from "@/lib/ocade-chat-store";
+import { useFollowBottom } from "@/lib/use-follow-bottom";
 import { cn } from "@/lib/utils";
 
 /**
@@ -41,14 +42,20 @@ export function MessageList({
 }) {
   const bottom = useRef<HTMLDivElement>(null);
 
-  // Follows the answer as it arrives, and lands on the last turn when a
-  // conversation is opened.
-  useEffect(() => {
-    bottom.current?.scrollIntoView({ block: "end" });
-  }, [messages.length, streaming]);
+  // Follows the answer as it arrives while the person is at the end, and lands on the last
+  // turn when a conversation opens or they ask something; scrolled up, they stay put.
+  const followScroll = useFollowBottom(
+    bottom,
+    `${messages.length}:${streaming.length}`,
+    messages.filter((message) => message.role === "user").length,
+  );
 
   return (
-    <div data-transcript className="ocade-scroll flex-1 overflow-y-auto px-5 pt-8">
+    <div
+      data-transcript
+      onScroll={followScroll}
+      className="ocade-scroll flex-1 overflow-y-auto px-5 pt-8"
+    >
       <div className="mx-auto w-full max-w-3xl space-y-6">
         {loading ? (
           <p className="text-sm text-muted-foreground" role="status">

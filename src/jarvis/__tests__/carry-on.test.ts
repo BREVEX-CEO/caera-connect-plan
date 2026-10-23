@@ -1,13 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { DatabaseTwin } from "../../../scripts/db-twin.mts";
 import type { ModelStep } from "../agent";
+import { TURN_BUDGET } from "../engine";
 import type { NormalizedMessage } from "@/lib/intelligence/contract";
-import {
-  BACKGROUND_MAX_ACTIONS,
-  carryOn,
-  taskToCarryOn,
-  type BackgroundDeps,
-} from "../background.server";
+import { carryOn, taskToCarryOn, type BackgroundDeps } from "../background.server";
 import { exchange } from "../device.server";
 import { lit, restOver } from "./rest-adapter";
 
@@ -691,7 +687,7 @@ describe("carrying on", () => {
     await sql(
       `insert into public.jarvis_activity (user_id, task_id, device_id, summary, action, status, result)
        select '${A}', '${t}', '${device}', 'Listed .', '{"action":"file_list","path":"."}'::jsonb, 'done', '{"status":"done"}'::jsonb
-       from generate_series(1, ${BACKGROUND_MAX_ACTIONS})`,
+       from generate_series(1, ${TURN_BUDGET.backgroundActions})`,
     );
     const { model, seen } = scripted();
     expect(await carryOn(admin(), me(), t, { model })).toEqual({ state: "finished" });

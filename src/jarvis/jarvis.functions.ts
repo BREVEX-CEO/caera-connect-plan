@@ -20,6 +20,7 @@ import {
   CAPABILITIES,
   deviceAction,
   FINISHED,
+  holdsSecret,
   hostOf,
   outcomeChecks,
   readsBack,
@@ -506,6 +507,15 @@ export const queueJarvisAction = createServerFn({ method: "POST" })
     return queueTaskAction(context.supabase, await admin(), context.userId, data);
   });
 
+/** The checked files a task changed and has not yet handed to the Library, from its record. */
+export const readJarvisDeliveries = createServerFn({ method: "GET" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ taskId: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { taskDeliveriesDue } = await import("./task-authority.server");
+    return taskDeliveriesDue(await admin(), context.userId, data.taskId);
+  });
+
 export const readJarvisTask = createServerFn({ method: "GET" })
   .middleware([requireSession])
   .validator((i) => z.object({ id: uuid }).parse(i))
@@ -915,6 +925,12 @@ export const rememberJarvis = createServerFn({ method: "POST" })
     if (!isAllowed(await permissionsOf(context.supabase, context.userId), "memory")) {
       return { ok: false as const, message: "JARVIS memory is turned off." };
     }
+    if (holdsSecret(data.content)) {
+      return {
+        ok: false as const,
+        message: "Passwords, codes, keys and card numbers are never kept in memory.",
+      };
+    }
     const { error } = await context.supabase
       .from("jarvis_memories")
       .insert({ user_id: context.userId, content: data.content });
@@ -1060,4 +1076,23 @@ export const readJarvisFrame = createServerFn({ method: "GET" })
       frame: live ? (row.live_frame as string | null) : null,
       at: live ? (row.live_frame_at as string | null) : null,
     };
+  });
+
+/**
+ * The icons each of the person's connected computers found for its apps, for the @ picker:
+ * read once when the picker opens, not with every state refresh. Base64 PNGs by app name,
+ * already checked by the device exchange; RLS keeps each person to their own devices.
+ */
+export const readJarvisAppIcons = createServerFn({ method: "GET" })
+  .middleware([requireSession])
+  .handler(async ({ context }): Promise<Record<string, Record<string, string>>> => {
+    const { data, error } = await context.supabase
+      .from("jarvis_devices")
+      .select("id, app_icons")
+      .is("revoked_at", null)
+      .limit(50);
+    if (error) throw new Error(error.message);
+    return Object.fromEntries(
+      (data ?? []).map((row) => [row.id, (row.app_icons ?? {}) as Record<string, string>]),
+    );
   });

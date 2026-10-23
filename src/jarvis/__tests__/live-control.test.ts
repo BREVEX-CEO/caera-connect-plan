@@ -97,6 +97,7 @@ function deps(
     })),
     decide: vi.fn(async () => ({})),
     frame: vi.fn(async () => null),
+    deliveries: vi.fn(async () => []),
     remember: vi.fn(async () => ({ ok: true })),
     sleep: async () => undefined,
   };

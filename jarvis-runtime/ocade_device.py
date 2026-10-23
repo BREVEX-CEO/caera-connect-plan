@@ -23,6 +23,7 @@ automation browser exists.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import platform
@@ -36,7 +37,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from ocade_computer import _APPS, Computer, installed_apps  # noqa: E402
+from ocade_computer import _APPS, Computer, app_icons, installed_apps  # noqa: E402
 from ocade_identity import (PROTOCOL, SOFTWARE_VERSION, ClockSkew, Identity, NotEnrolled,  # noqa: E402
                             UpdateRequired)
 
@@ -382,6 +383,7 @@ class Agent:
         apps_sent = 0.0
         found: dict = {}  # the app inventory, found off this loop (it can take seconds)
         finder: threading.Thread | None = None
+        icons_sent = ""  # digest of the app icons OCADE last accepted: unchanged icons are not resent
         active: dict | None = None  # the segment running now: {"id", "left", "done", "skip", "thread"}
         while not self.stop.is_set():
             if active:
@@ -419,10 +421,16 @@ class Agent:
             elif due and "apps" in found:
                 body["apps"] = found.pop("apps")
             elif due and (finder is None or not finder.is_alive()):
-                finder = threading.Thread(
-                    target=lambda: found.update(apps=[a["name"] for a in installed_apps()]),
-                    daemon=True, name="ocade-apps")
+                def look() -> None:
+                    apps = installed_apps()
+                    found.update(apps=[a["name"] for a in apps], icons=app_icons(apps))
+                finder = threading.Thread(target=look, daemon=True, name="ocade-apps")
                 finder.start()
+            icons = found.get("icons")
+            digest = hashlib.sha256(json.dumps(icons, sort_keys=True).encode()).hexdigest() \
+                if icons is not None else icons_sent
+            if digest != icons_sent:
+                body["appIcons"] = icons
             # The control-loss bound holds while the exchange itself is blocked, not only after it
             # fails: past it, the running action is cancelled whatever the network is doing.
             watch = threading.Timer(max(0.0, CONTROL_LOSS_S - (time.monotonic() - reached)),
@@ -470,6 +478,8 @@ class Agent:
             reached = time.monotonic()
             if "apps" in body:
                 apps_sent = time.monotonic()
+            if "appIcons" in body:
+                icons_sent = digest
             if body.get("stop"):
                 self.stop_all.clear()
             if body.get("pause"):

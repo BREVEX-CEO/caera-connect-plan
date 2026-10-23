@@ -18,6 +18,7 @@ import {
   readJarvisFrame,
   readJarvisTask,
   recordJarvisResearch,
+  readJarvisDeliveries,
   rememberJarvis,
   scheduleJarvis,
   startJarvisTask,
@@ -87,11 +88,13 @@ export async function askThroughBusy<T>(
 }
 
 /**
- * Whether web search is offered. A plan without it (the free tier: grounding is "Not
- * available") refuses the first search; from then on, in this tab, JARVIS is not offered it,
- * so no later task spends a turn on a tool that cannot answer.
+ * Until when web search is not offered. A plan without it (the free tier: grounding is "Not
+ * available") refuses the first search; for a while after, this tab does not offer it, so no
+ * later task spends a turn on a tool that cannot answer. It expires, so an upgraded plan or a
+ * passing provider limit is not remembered as a permanent lack (plan.md §4.5).
  */
-let webSearch = true;
+let noWebSearchUntil = 0;
+export const RESEARCH_RECHECK_MS = 30 * 60_000;
 
 export function liveDeps(conversationId: string): AgentDeps {
   return {
@@ -108,9 +111,10 @@ export function liveDeps(conversationId: string): AgentDeps {
     readAction: (id) => readJarvisAction({ data: { id } }),
     decide: (data) => decideJarvisAction({ data }),
     frame: async (taskId) => (await readJarvisFrame({ data: { taskId } })).frame,
+    deliveries: (taskId) => readJarvisDeliveries({ data: { taskId } }),
     remember: (content) => rememberJarvis({ data: { content } }),
     readDocs: (data) => readJarvisDocs({ data }),
-    research: webSearch ? research(conversationId) : undefined,
+    research: Date.now() >= noWebSearchUntil ? research(conversationId) : undefined,
     schedule: (data) => scheduleJarvis({ data }),
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     changed: actionChanged,
@@ -190,7 +194,7 @@ async function researchOnce(
   if (!complete || !text.trim() || refusal) {
     if (!refusal || refusal.retryable) throw new Unavailable(refusal?.retryAfterMs);
     if (refusal.code === "research_unavailable") {
-      webSearch = false; // not on this plan: not offered again in this tab
+      noWebSearchUntil = Date.now() + RESEARCH_RECHECK_MS; // not on this plan right now
       return {
         error:
           "Web search is not available. Open the pages you need with the browser and read them with find_text; do not call research again in this task.",
@@ -240,7 +244,7 @@ async function askOnce(
       quality,
       ...(quality === "high" ? { highModeAcknowledged: HIGH_WARNING_VERSION } : {}),
       messages,
-      tools: jarvisTools(memory, true, webSearch && quality !== "high"),
+      tools: jarvisTools(memory, true, Date.now() >= noWebSearchUntil && quality !== "high"),
       attachments,
       privacy: { onlineInferenceConsented: true, sealed: false },
       conversationId,

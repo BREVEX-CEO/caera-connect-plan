@@ -262,6 +262,7 @@ export type Database = {
       }
       jarvis_devices: {
         Row: {
+          app_icons: Json
           background_enabled: boolean
           capabilities: Json
           created_at: string
@@ -282,6 +283,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          app_icons?: Json
           background_enabled?: boolean
           capabilities?: Json
           created_at?: string
@@ -302,6 +304,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          app_icons?: Json
           background_enabled?: boolean
           capabilities?: Json
           created_at?: string

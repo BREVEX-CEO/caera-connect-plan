@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  MAX_MODEL_STEPS,
   pseudoCall,
   runJarvisTurn,
   Stopped,
@@ -9,6 +8,7 @@ import {
   type AgentHooks,
   type ModelStep,
 } from "../agent";
+import { TURN_BUDGET } from "../engine";
 import type { JarvisTaskRow } from "../jarvis.functions";
 import { NOT_VERIFIED, outcomeChecks, readsBack, RESEARCH_GUIDANCE, wordsAsked } from "../protocol";
 import type { NormalizedMessage } from "@/lib/intelligence/contract";
@@ -78,6 +78,7 @@ function harness(
     }),
     decide: vi.fn(async () => ({})),
     frame: vi.fn(async () => null),
+    deliveries: vi.fn(async () => []),
     remember: vi.fn(async () => ({ ok: true })),
     sleep: async () => undefined,
   };
@@ -309,6 +310,39 @@ describe("a JARVIS turn", () => {
     expect(h.deps.remember).not.toHaveBeenCalled();
   });
 
+  it("runs a reply's research calls at once, keeps their order, and still finishes alone", async () => {
+    const h = harness([
+      {
+        text: "",
+        toolCalls: [
+          { ...call("research", { question: "Tokyo?" }), id: "r1" },
+          { ...call("research", { question: "Osaka?" }), id: "r2" },
+          call("finish_task", { outcome: "failed", result: "x" }),
+        ],
+      },
+    ]);
+    let running = 0;
+    let most = 0;
+    h.deps.research = vi.fn(async ({ question }) => {
+      running += 1;
+      most = Math.max(most, running);
+      await new Promise((resolve) => setTimeout(resolve, question === "Tokyo?" ? 20 : 1));
+      running -= 1;
+      return { answer: `About ${question}` };
+    });
+    const progress = vi.fn();
+    await runJarvisTurn(
+      { ...h.input, task: { ...TASK } },
+      { ...h.hooks, onProgress: progress },
+      h.deps,
+    );
+    expect(most).toBe(2);
+    // The slower first call still answers first: results keep the model's order.
+    const work = JSON.stringify(progress.mock.calls.at(-1)?.[0]);
+    expect(work.indexOf("About Tokyo?")).toBeGreaterThan(-1);
+    expect(work.indexOf("About Tokyo?")).toBeLessThan(work.indexOf("About Osaka?"));
+  });
+
   it("keeps the model's own notes beside its calls when the page it read is replaced", async () => {
     const h = harness([
       {
@@ -429,13 +463,34 @@ describe("a JARVIS turn", () => {
       },
     );
     h.input.text = "Open https://cadfaber.com/editor and build a car as car.stl";
+    // The server's record of what the task changed decides what is handed over.
+    vi.mocked(h.deps.deliveries).mockResolvedValue(["car.stl"]);
     const out = await runJarvisTurn(h.input, h.hooks, h.deps);
+    expect(h.deps.deliveries).toHaveBeenCalledWith(TASK.id);
     // Only the deliverable outside .jarvis, at the size the device read.
     expect(h.queued.slice(1)).toEqual([
       { action: "file_info", path: "car.stl" },
       { action: "file_deliver", path: "car.stl", size: 42 },
     ]);
     expect(out.answer).toContain("Made by a script on the computer, not on cadfaber.com: car.stl");
+  });
+
+  it("a resumed task hands over the files its record says it made, not only this turn's", async () => {
+    const h = harness(
+      [
+        {
+          text: "",
+          toolCalls: [call("finish_task", { outcome: "completed", result: "Built it." })],
+        },
+      ],
+      { info: [{ status: "done", result: { detail: { info: { size: 7 } } } }] },
+    );
+    vi.mocked(h.deps.deliveries).mockResolvedValue(["report.docx"]);
+    await runJarvisTurn({ ...h.input, task: { ...TASK } }, h.hooks, h.deps);
+    expect(h.queued).toEqual([
+      { action: "file_info", path: "report.docx" },
+      { action: "file_deliver", path: "report.docx", size: 7 },
+    ]);
   });
 
   it("fixes the checks at start, binds the starting turn and every later turn to the task (Phase 01)", async () => {
@@ -823,7 +878,7 @@ describe("a JARVIS turn", () => {
     const loop: ModelStep[] = [
       { text: "", toolCalls: [call("start_task", { title: "x", steps: [] })] },
     ];
-    for (let i = 0; i < MAX_MODEL_STEPS; i += 1) {
+    for (let i = 0; i < TURN_BUDGET.modelSteps; i += 1) {
       loop.push({ text: "", toolCalls: [call("browser", { action: "observe" })] });
     }
     const h = harness(loop);

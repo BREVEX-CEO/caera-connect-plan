@@ -528,6 +528,64 @@ class AppsTest(unittest.TestCase):
         self.assertEqual(pc.run({"action": "open_app", "name": "Hidden"})["status"], "failed")
 
 
+class AppIconsTest(unittest.TestCase):
+    """Each app's own icon for the @ picker: small real PNGs only, never a failed app list."""
+
+    @staticmethod
+    def _png(size: int, color=(200, 30, 30, 255)) -> bytes:
+        import io
+        from PIL import Image
+        out = io.BytesIO()
+        Image.new("RGBA", (size, size), color).save(out, "PNG")
+        return out.getvalue()
+
+    @unittest.skipUnless(sys.platform.startswith("linux"), "Linux .desktop entries")
+    def test_theme_and_absolute_icons_become_small_pngs_and_junk_is_left_out(self):
+        import base64
+        import io
+        from PIL import Image
+        data = Path(tempfile.mkdtemp())
+        (data / "applications").mkdir()
+        icons = data / "icons/hicolor/256x256/apps"
+        icons.mkdir(parents=True)
+        (icons / "proof.png").write_bytes(self._png(256))
+        (data / "logo.png").write_bytes(self._png(48))
+        (data / "bad.png").write_bytes(b"<svg><script>alert(1)</script></svg>")
+        entries = {"Proof": "proof", "Logo": str(data / "logo.png"), "Bad": str(data / "bad.png"),
+                   "Escape": "../../etc/passwd", "None": "no-such-icon"}
+        for name, icon in entries.items():
+            (data / f"applications/{name}.desktop").write_text(
+                f"[Desktop Entry]\nType=Application\nName={name}\nExec=true\nIcon={icon}\n")
+        os.environ["XDG_DATA_HOME"] = str(data)
+        os.environ["XDG_DATA_DIRS"] = str(data / "none")
+        found = ocade_computer.app_icons(ocade_computer.installed_apps())
+        self.assertEqual(sorted(found), ["Logo", "Proof"])
+        for value in found.values():
+            raw = base64.b64decode(value)
+            self.assertLessEqual(len(raw), ocade_computer.ICON_MAX_BYTES)
+            with Image.open(io.BytesIO(raw)) as image:
+                self.assertEqual(image.format, "PNG")
+                self.assertLessEqual(max(image.size), ocade_computer.ICON_PX)
+
+    def test_unreadable_or_oversized_images_give_no_icon(self):
+        self.assertIsNone(ocade_computer._icon_png(b"not an image"))
+        # Past the byte bound an icon is left out, never truncated.
+        with unittest.mock.patch.object(ocade_computer, "ICON_MAX_BYTES", 40):
+            self.assertIsNone(ocade_computer._icon_png(self._png(64)))
+        self.assertIsNotNone(ocade_computer._icon_png(self._png(64)))
+
+    def test_windows_start_ids_resolve_to_files_and_store_apps_fall_back(self):
+        with unittest.mock.patch.dict(os.environ, {"ProgramW6432": "C:\\Program Files"}):
+            target = ocade_computer._windows_target(
+                {"name": "Word", "aumid": True,
+                 "launch": "{6D809377-6AF0-444B-8957-A3773F02200E}\\Microsoft Office\\WINWORD.EXE"})
+        self.assertEqual(Path(target), Path("C:\\Program Files") / "Microsoft Office\\WINWORD.EXE")
+        self.assertIsNone(ocade_computer._windows_target(
+            {"name": "Photos", "aumid": True, "launch": "Microsoft.Windows.Photos_8wekyb!App"}))
+        self.assertEqual(ocade_computer._windows_target(
+            {"name": "Paint", "launch": "C:/Start Menu/Paint.lnk"}), "C:/Start Menu/Paint.lnk")
+
+
 def _other_hand(x: int, y: int) -> None:
     """Mouse movement JARVIS did not make: the person's own hand."""
     if sys.platform.startswith("linux"):

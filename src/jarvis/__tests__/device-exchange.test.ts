@@ -1,8 +1,19 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DatabaseTwin } from "../../../scripts/db-twin.mts";
-import { enrollmentRoom, exchange, exchangeInput, MAX_PENDING_PER_SOURCE } from "../device.server";
+import {
+  appIconsOf,
+  enrollmentRoom,
+  exchange,
+  exchangeInput,
+  MAX_PENDING_PER_SOURCE,
+} from "../device.server";
 import { NOT_VERIFIED } from "../protocol";
-import { changeTask, completionGap, queueTaskAction } from "../task-authority.server";
+import {
+  changeTask,
+  completionGap,
+  queueTaskAction,
+  taskDeliveriesDue,
+} from "../task-authority.server";
 import { lit, restOver } from "./rest-adapter";
 
 /**
@@ -77,6 +88,48 @@ beforeEach(async () => {
   for (const table of ["jarvis_activity", "jarvis_tasks", "jarvis_permissions"]) {
     await twin.asServiceRole(`delete from public.${table}`);
   }
+});
+
+/** A real 1×1 PNG, and the same header claiming a size OCADE refuses. */
+const PNG_1PX =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+const huge = (() => {
+  const bytes = Uint8Array.from(atob(PNG_1PX), (c) => c.charCodeAt(0));
+  new DataView(bytes.buffer).setUint32(16, 4096);
+  return btoa(String.fromCharCode(...bytes));
+})();
+
+describe("app icons from a device", () => {
+  it("keeps only small real PNGs", () => {
+    expect(
+      appIconsOf({
+        Word: PNG_1PX,
+        Svg: btoa('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'),
+        Big: huge,
+        Junk: "%%%not base64",
+        Url: btoa("https://tracker.example/icon.png"),
+      }),
+    ).toEqual({ Word: PNG_1PX });
+  });
+
+  it("stores them through the exchange and leaves them when a later exchange sends none", async () => {
+    await run({ results: [], apps: ["Word"], appIcons: { Word: PNG_1PX, Bad: "AAAA" } });
+    const read = async () =>
+      (
+        await twin.asServiceRole<{ app_icons: Record<string, string> }>(
+          `select app_icons from public.jarvis_devices where id = '${device}'`,
+        )
+      )[0]!.app_icons;
+    expect(await read()).toEqual({ Word: PNG_1PX });
+    await run({ results: [], apps: ["Word", "Excel"] });
+    expect(await read()).toEqual({ Word: PNG_1PX });
+  });
+
+  it("refuses an icon map over the size the exchange allows", () => {
+    expect(
+      exchangeInput.safeParse({ results: [], appIcons: { Word: "A".repeat(6001) } }).success,
+    ).toBe(false);
+  });
 });
 
 describe("dispatch", () => {
@@ -1035,6 +1088,40 @@ describe("completion needs evidence from the device (P01)", () => {
       );
       await finish("Saved cut.mp4, 1280 wide (see https://example.com/help.pdf).");
       expect((await statusOf(t)).status).toBe("completed");
+    });
+
+    it("rebuilds what a resumed task still has to hand over from its own record (plan §4.2)", async () => {
+      const t = await withChecks([
+        { path: "car.stl" },
+        { path: "input.csv", contains: ["x"] },
+        { path: ".jarvis/make.py" },
+        { path: "notes.md" },
+      ]);
+      // A script made car.stl (and its helper); the task only read input.csv; notes.md failed.
+      await done(await queue(t, { action: "run", command: "python3 .jarvis/make.py" }), {
+        status: "done",
+        detail: { wrote: ["car.stl", ".jarvis/make.py"] },
+      });
+      await done(await queue(t, { action: "file_read", path: "input.csv" }), {
+        status: "done",
+        detail: { content: "x" },
+      });
+      await settle(
+        await queue(t, { action: "file_write", path: "notes.md", content: "n" }),
+        "failed",
+        { status: "failed" },
+      );
+      expect(await taskDeliveriesDue(rest() as never, A, t)).toEqual(["car.stl"]);
+      // Once delivered it is not due again, until the task changes it once more.
+      const item = "dddddddd-2222-4ddd-8ddd-dddddddddddd";
+      await done(await queue(t, { action: "file_deliver", path: "car.stl", size: 5, item }));
+      expect(await taskDeliveriesDue(rest() as never, A, t)).toEqual([]);
+      await done(await queue(t, { action: "file_write", path: "./car.stl", content: "v2" }));
+      expect(await taskDeliveriesDue(rest() as never, A, t)).toEqual(["car.stl"]);
+      // Another person's task is never read.
+      expect(
+        await taskDeliveriesDue(rest() as never, "bbbbbbbb-1111-4bbb-8bbb-bbbbbbbbbbbb", t),
+      ).toEqual([]);
     });
 
     it("keeps each delivered file as a Library item named on the completed task", async () => {
