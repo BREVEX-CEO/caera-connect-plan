@@ -56,6 +56,15 @@ function logic(list: string, joiner: string): string {
 
 export function restOver(twin: DatabaseTwin) {
   return {
+    /** The Library bucket's signed upload, as Supabase Storage names it (nothing is stored). */
+    storage: {
+      from: () => ({
+        createSignedUploadUrl: async (path: string) => ({
+          data: { signedUrl: `https://storage.test/${path}` },
+          error: null,
+        }),
+      }),
+    },
     from(table: string) {
       const where: string[] = [];
       let verb: "select" | "update" | "delete" | "insert" | "upsert" = "select";

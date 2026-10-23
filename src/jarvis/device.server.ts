@@ -644,15 +644,21 @@ export async function exchange(
   };
   const now = new Date().toISOString();
 
-  if (input.capabilities || input.softwareVersion || input.apps || input.appIcons) {
+  if (input.capabilities || input.softwareVersion || input.apps) {
     await admin
       .from("jarvis_devices")
       .update({
         ...(input.capabilities ? { capabilities: input.capabilities } : {}),
         ...(input.softwareVersion ? { software_version: input.softwareVersion } : {}),
         ...(input.apps ? { installed_apps: input.apps } : {}),
-        ...(input.appIcons ? { app_icons: appIconsOf(input.appIcons) } : {}),
       })
+      .eq("id", device.id);
+  }
+  // On their own: icons that cannot be kept never cost the device its apps or capabilities.
+  if (input.appIcons) {
+    await admin
+      .from("jarvis_devices")
+      .update({ app_icons: appIconsOf(input.appIcons) })
       .eq("id", device.id);
   }
   const rotated = input.rotate

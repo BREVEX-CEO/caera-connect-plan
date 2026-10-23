@@ -20,6 +20,11 @@ Staging: **OCADE staging 20261019**, `auyapercxxptziyngycx`. All 156 forward mig
 
 Exact file/line means a confirmed source location for new findings, or the exact canonical evidence line for inherited items. **An inherited item's fault site/root cause is UNLOCALIZED unless its linked evidence proves it; do not invent code changes from a blocker label.** Priorities are triage recommendations, not new claims of reproduced critical defects. No issue is closed solely by a source fix, compilation or staging deployment.
 
+## Claude DeepSeek-OCADE integration — 23 October 2026 (plan.md)
+
+- **Shipped on `ocade/p00-p22-implementation`:** shared turn engine (`src/jarvis/engine.ts`: one budget, human-boundary rule, checkpoint and result wording for foreground and background; DeepSeek-derived ordered scheduling with parallel read-only research/docs and model-free result pruning); durable delivery of finished files (resumed and background-completed tasks now reach the Library); memory secret refusal; expiring web-search unavailability; dynamic `@` app picker with each device's real icons; Markdown JARVIS answers; Chat → JARVIS hand-over; non-forcing transcript scroll. Contract: [DeepSeek integration](docs/integrations/deepseek-harness.md). Evidence and open items: [BLOCKED_TESTS](BLOCKED_TESTS.md) (DELIV-23-01, JOURNEY-23-01, SHELL-23-01, APPS-23-01, MIG-23-01).
+- **Kept on purpose:** `permissions.ts` powerful-app name heuristic (no verified executable identity yet), `mentionedApp` text fallback, typed media/document/sheet adapters, OCADE planner/permission/STOP/settlement authority. No deploy, merge, payment or spend.
+
 ## Claude continuation, evening — 22 October 2026 (phases.md mission 5)
 
 - **Shipped:** finished files reach the Library in the product (the planner read device results flat); `measures` checks; claimed-file rule; `wroteAll` and `.jarvis` read rules (fewer wasted calls); `video_edit` with exact length, true-peak correction and an MLT-checked `.mlt` project; unified prompt candidate (off by default); [phases status ledger](docs/PHASES_STATUS.md); [competitive research](docs/audit-checkpoints/competitive-research-20261022.md).

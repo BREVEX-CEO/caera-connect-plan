@@ -193,6 +193,12 @@ try {
         () => true,
         () => false,
       ),
+    `${await small.title()} | ${(
+      await small
+        .locator("body")
+        .innerText()
+        .catch(() => "")
+    ).slice(0, 160)}`,
   );
   await phone.setOffline(false);
 

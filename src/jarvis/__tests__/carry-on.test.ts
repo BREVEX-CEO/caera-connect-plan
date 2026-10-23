@@ -32,11 +32,15 @@ const me = () => ({ id: device, userId: A, kind: "agent" });
 const sql = <T = Record<string, unknown>>(text: string) => twin.asServiceRole<T>(text);
 
 /** A running task the tab that started it has not touched for `silentMinutes`. */
-async function task(silentMinutes = 5, controller: string | null = TAB): Promise<string> {
+async function task(
+  silentMinutes = 5,
+  controller: string | null = TAB,
+  outcome: object[] = [{ path: "." }],
+): Promise<string> {
   const [row] = await sql<{ id: string }>(
     `insert into public.jarvis_tasks (user_id, conversation_id, device_id, title, plan, controller, outcome)
      values ('${A}', '${conversation}', '${device}', 'Tidy the reports', '["List","Finish"]'::jsonb, ${lit(controller)},
-             '[{"path":"."}]'::jsonb)
+             ${lit(outcome)})
      returning id`,
   );
   await age(row!.id, silentMinutes);
@@ -312,6 +316,66 @@ describe("carrying on", () => {
     expect(said.map((row) => row.content)).toEqual(["The reports are tidy."]);
     expect(notified.map((n) => n.title)).toEqual(["JARVIS finished: Tidy the reports"]);
     expect((await exchange(admin(), me(), { results: [] })).continue).toBeUndefined();
+  });
+
+  it("hands a completed task's files to the Library before finishing, with no extra model step", async () => {
+    const t = await task(5, TAB, [{ path: "report.txt", contains: ["done"] }]);
+    const write = scripted(
+      call("computer", { action: "file_write", path: "report.txt", content: "done" }),
+    );
+    expect(await carryOn(admin(), me(), t, write)).toEqual({ state: "queued" });
+    await computerRuns({ summary: "Wrote report.txt" });
+    const read = scripted(call("computer", { action: "file_read", path: "report.txt" }));
+    expect(await carryOn(admin(), me(), t, read)).toEqual({ state: "queued" });
+    await computerRuns({ detail: { content: "done" } });
+
+    const finish = scripted(call("finish_task", { outcome: "completed", result: "Wrote it." }));
+    expect(await carryOn(admin(), me(), t, finish)).toEqual({ state: "queued" });
+    expect((await computerRuns({ detail: { info: { size: 4 } } })).action).toEqual({
+      action: "file_info",
+      path: "report.txt",
+    });
+    // The size it read is what it sends; the model is not asked again.
+    const none = scripted();
+    expect(await carryOn(admin(), me(), t, none)).toEqual({ state: "queued" });
+    const sent = (await computerRuns()).action as { action: string; size: number; item: string };
+    expect(sent).toMatchObject({ action: "file_deliver", path: "report.txt", size: 4 });
+    expect(await carryOn(admin(), me(), t, none)).toEqual({ state: "finished" });
+    expect(none.seen).toHaveLength(0);
+
+    const [done] = await sql<{
+      status: string;
+      result: string;
+      checkpoint: { deliverables?: unknown };
+    }>(`select status, result, checkpoint from public.jarvis_tasks where id = '${t}'`);
+    expect(done).toMatchObject({ status: "completed", result: "Wrote it." });
+    expect(done!.checkpoint.deliverables).toEqual([{ id: sent.item, name: "report.txt" }]);
+  });
+
+  it("a file that cannot go stays on the computer, and the task still completes", async () => {
+    const t = await task(5, TAB, [{ path: "report.txt", contains: ["done"] }]);
+    for (const [step, result] of [
+      [call("computer", { action: "file_write", path: "report.txt", content: "done" }), {}],
+      [
+        call("computer", { action: "file_read", path: "report.txt" }),
+        { detail: { content: "done" } },
+      ],
+    ] as const) {
+      expect(await carryOn(admin(), me(), t, scripted(step))).toEqual({ state: "queued" });
+      await computerRuns(result);
+    }
+    const finish = scripted(call("finish_task", { outcome: "completed", result: "Wrote it." }));
+    expect(await carryOn(admin(), me(), t, finish)).toEqual({ state: "queued" });
+    // The computer could not read the file to send it (moved, locked): it stays there.
+    const info = (await exchange(admin(), me(), { results: [] })).commands[0]!;
+    expect(info.action).toEqual({ action: "file_info", path: "report.txt" });
+    await exchange(admin(), me(), {
+      results: [{ id: info.id, status: "failed", summary: "The file could not be read." }],
+    });
+    expect(await carryOn(admin(), me(), t, scripted())).toEqual({ state: "finished" });
+    const deliveries = (await actionsOf(t)).filter((row) => row.action.action === "file_deliver");
+    expect(deliveries).toEqual([]);
+    expect((await taskRow(t)).status).toBe("completed");
   });
 
   it("keeps native call ids, signatures and a sequence together across background requests", async () => {

@@ -253,6 +253,105 @@ export async function carryOn(
       if (!kept) return idle;
     }
 
+    /** Saved (or already saved for this step): true. A refused write is not a said line. */
+    const say = async (content: string): Promise<boolean> => {
+      if (!content.trim()) return true;
+      const { error } = await admin.from("ocade_messages").insert({
+        conversation_id: task.conversation_id,
+        user_id: userId,
+        role: "assistant",
+        content: content.slice(0, 200_000),
+        // One line per step of this task, however often the step is asked for.
+        client_key: `jarvis-step-${task.id}-${actions.length}`,
+      });
+      return !error || error.code === "23505";
+    };
+    /** What the model asked for could not run: recorded, so the next step sees why. */
+    const record = (action: unknown, summary: string) =>
+      admin.from("jarvis_activity").insert({
+        user_id: userId,
+        task_id: task.id,
+        device_id: device.id,
+        controller: loop,
+        summary: summary.slice(0, 300),
+        action: action as never,
+        status: "failed",
+        result: { status: "refused" },
+        completed_at: new Date().toISOString(),
+      });
+
+    /** The model's finish, recorded as the task's outcome and said in the conversation. */
+    const finishWith = async (
+      args: Record<string, unknown>,
+      text: string,
+    ): Promise<{ state: StepState }> => {
+      const finish = finishChange(args, task);
+      let done;
+      try {
+        done = await change(finish);
+      } catch (error) {
+        if (!(error instanceof Error && error.message.startsWith(NOT_VERIFIED))) throw error;
+        await record({ action: "finish_task" }, error.message);
+        return { state: "queued" };
+      }
+      if (!done) return idle;
+      await say(text || finish.result || "");
+      return { state: "finished" };
+    };
+
+    /*
+     * A COMPLETED FINISH HANDS ITS FILES TO THE LIBRARY FIRST, as a tab does (plan.md §4.3). Its
+     * outcome waits in a note while each due file is read for its size and sent, one step per
+     * request and with no model step; a file that cannot go stays on the computer and the task
+     * still completes. Anything else after the note (the person, a refusal) returns to the model.
+     */
+    const handOverThenFinish = async (
+      args: Record<string, unknown>,
+      text: string,
+      since: ActionRow[],
+    ): Promise<{ state: StepState }> => {
+      const { taskDeliveriesDue } = await import("./task-authority.server");
+      for (const path of await taskDeliveriesDue(admin, userId, task.id)) {
+        const tried = since.filter((row) => (row.action as { path?: unknown }).path === path);
+        if (tried.some((row) => row.status !== "done")) continue;
+        const read = [...tried]
+          .reverse()
+          .find((row) => (row.action as { action?: unknown }).action === "file_info");
+        const info = (read?.result as { detail?: { info?: { size?: unknown; folder?: unknown } } })
+          ?.detail?.info;
+        if (read && (info?.folder || typeof info?.size !== "number" || info.size < 1)) continue;
+        const action = computerAction.parse(
+          read ? { action: "file_deliver", path, size: info!.size } : { action: "file_info", path },
+        );
+        const queued = await queueTaskAction(admin, admin, userId, {
+          taskId: task.id,
+          controller: loop,
+          action,
+        });
+        if (queued.ok) return { state: "queued" };
+        if (queued.lost || queued.message === "The task is not running.") return idle;
+        await record(action, queued.message);
+      }
+      return finishWith(args, text);
+    };
+    const marker = [...(activity as ActionRow[])]
+      .reverse()
+      .find((row) => row.status === "note" && (row.result as { finishing?: unknown })?.finishing);
+    // In the record's own order (microseconds apart; a millisecond clock would tie them).
+    const since = marker
+      ? (activity as ActionRow[])
+          .slice((activity as ActionRow[]).indexOf(marker) + 1)
+          .filter((row) => row.action)
+      : [];
+    const delivering = (row: ActionRow) =>
+      ["file_info", "file_deliver"].includes(String((row.action as { action?: unknown }).action));
+    if (marker && since.every(delivering)) {
+      const { finishing } = marker.result as {
+        finishing: { args: Record<string, unknown>; text: string };
+      };
+      return handOverThenFinish(finishing.args, finishing.text, since);
+    }
+
     const family = (action: unknown) =>
       (action as { action?: string } | null)?.action === "docs"
         ? "docs"
@@ -416,51 +515,24 @@ export async function carryOn(
       }
     }
 
-    /** Saved (or already saved for this step): true. A refused write is not a said line. */
-    const say = async (content: string): Promise<boolean> => {
-      if (!content.trim()) return true;
-      const { error } = await admin.from("ocade_messages").insert({
-        conversation_id: task.conversation_id,
-        user_id: userId,
-        role: "assistant",
-        content: content.slice(0, 200_000),
-        // One line per step of this task, however often the step is asked for.
-        client_key: `jarvis-step-${task.id}-${actions.length}`,
-      });
-      return !error || error.code === "23505";
-    };
-    /** What the model asked for could not run: recorded, so the next step sees why. */
-    const record = (action: unknown, summary: string) =>
-      admin.from("jarvis_activity").insert({
-        user_id: userId,
-        task_id: task.id,
-        device_id: device.id,
-        controller: loop,
-        summary: summary.slice(0, 300),
-        action: action as never,
-        status: "failed",
-        result: { status: "refused" },
-        completed_at: new Date().toISOString(),
-      });
-
     for (const call of reply.toolCalls) {
       const given = (call.arguments ?? {}) as Record<string, unknown>;
       // finish_task and docs take the first action of a sequence; a device call takes them all (below).
       const first = Array.isArray(given.sequence) ? given.sequence[0] : null;
       const args = (first && typeof first === "object" ? first : given) as Record<string, unknown>;
       if (call.name === "finish_task") {
-        const finish = finishChange(args, task);
-        let done;
-        try {
-          done = await change(finish);
-        } catch (error) {
-          if (!(error instanceof Error && error.message.startsWith(NOT_VERIFIED))) throw error;
-          await record({ action: "finish_task" }, error.message);
-          return { state: "queued" };
-        }
-        if (!done) return idle;
-        await say(reply.text || finish.result || "");
-        return { state: "finished" };
+        if (finishChange(args, task).status !== "completed") return finishWith(args, reply.text);
+        const { error } = await admin.from("jarvis_activity").insert({
+          user_id: userId,
+          task_id: task.id,
+          device_id: device.id,
+          controller: loop,
+          status: "note",
+          summary: "Handing the finished files to the Library",
+          result: { finishing: { args, text: reply.text } } as never,
+        });
+        if (error) return finishWith(args, reply.text);
+        return handOverThenFinish(args, reply.text, []);
       }
       if (call.name === "docs") {
         // Read here and kept on the task, so the next step sees it and a script after it is asked.

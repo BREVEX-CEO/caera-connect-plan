@@ -685,7 +685,8 @@ try {
       carried.length > 0 && !page.url().includes("ask="),
       `${page.url()} | ${carried.slice(0, 60)}`,
     );
-    await page.goBack({ waitUntil: "networkidle" });
+    await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+    await page.locator("aside ul li button").first().click();
     await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
   }
 
