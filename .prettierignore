@@ -9,6 +9,7 @@ src/integrations/supabase/types.ts
 
 # Authority documents, held exactly as authored.
 CLAUDE.md
+plan.md
 
 # Written by scripts in their own layout.
 release/**/*.json
@@ -26,3 +27,6 @@ OCADE_UNIVERSAL_CONTROL_COMPETITOR_AUDIT_2026-10-11.md
 
 .playwright-mcp/
 OCADE_SYSTEM_PROMPT_REDESIGNED.md
+
+# Pinned upstream source (DeepSeek Harness), kept byte-for-byte.
+external/deepseek-harness/upstream/

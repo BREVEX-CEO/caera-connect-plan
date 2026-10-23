@@ -22,6 +22,8 @@ export default tseslint.config(
      */
     ignores: [
       ".playwright-mcp/**",
+      // The pinned DeepSeek Harness source is an immutable upstream reference, linted upstream.
+      "external/**",
       "dist",
       // The E2E harnesses build the product with the node preset so they can
       // serve it here, and move it aside so it cannot clobber the shipping

@@ -81,7 +81,9 @@ describe("the ways in", () => {
     // Google, email code and password are the three target methods.
     expect(SIGN_IN).toContain("signInWithPassword");
     expect(SIGN_IN).toContain("Use a password instead");
-    expect(SIGN_IN.indexOf('type="password"')).toBeGreaterThan(SIGN_IN.indexOf("usePassword ? ("));
+    expect(SIGN_IN.indexOf('type={visible ? "text" : "password"}')).toBeGreaterThan(
+      SIGN_IN.indexOf("usePassword ? ("),
+    );
     // The same sentence whether or not the account exists.
     expect(SIGN_IN).toContain("That email and password did not match.");
     expect(SIGN_IN).toContain('loadThrottle("password_signin"');
