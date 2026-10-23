@@ -11,6 +11,8 @@ import { useSyncExternalStore } from "react";
 export interface HandedQuestion {
   text: string;
   savedId?: string;
+  /** Put in JARVIS's box unsent (from Chat): the person still presses Send. */
+  draftOnly?: boolean;
 }
 let pending: HandedQuestion | null = null;
 

@@ -1,9 +1,10 @@
 import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import Markdown from "react-markdown";
-import { Check, Copy, Paperclip, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Check, Copy, Orbit, Paperclip, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { ChatMessageRecord } from "@/lib/ocade-chat-store";
+import { handOff } from "@/jarvis/bubble-state";
 import { useFollowBottom } from "@/lib/use-follow-bottom";
 import { cn } from "@/lib/utils";
 
@@ -223,6 +224,17 @@ function Turn({
             }}
           />
           <Action label="Delete" icon={Trash2} onClick={() => onRemove(message.id)} />
+          {/* The same request, carried in this tab's memory (never in a link, so an Offline
+              conversation's words never reach a server log) to JARVIS's box, unsent: the
+              person still presses Send there, where work is online only. */}
+          <Link
+            to="/ocade-jarvis"
+            onClick={() => handOff({ text: message.content.slice(0, 8000), draftOnly: true })}
+            className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <Orbit className="h-3.5 w-3.5" aria-hidden />
+            Do it with JARVIS
+          </Link>
         </Controls>
       </div>
     );
@@ -317,7 +329,7 @@ function ImageAsWords({ alt }: { alt?: string }) {
   return <>{alt ?? ""}</>;
 }
 
-function Prose({ text }: { text: string }) {
+export function Prose({ text }: { text: string }) {
   return (
     <div className="[&_a]:text-foreground [&_a]:underline [&_code]:rounded [&_code]:bg-secondary [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px] [&_h1]:mt-5 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mt-5 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-sm [&_h3]:font-medium [&_li]:mt-1 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_p:first-child]:mt-0 [&_pre]:ocade-scroll [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-secondary [&_pre]:p-3 [&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_table]:text-[13px] [&_td]:border [&_td]:border-border/60 [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-border/60 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-medium [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5">
       <Markdown components={{ pre: CodeBlock, img: ImageAsWords }}>{text}</Markdown>

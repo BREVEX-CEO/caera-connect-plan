@@ -608,6 +608,8 @@ except i.UpdateRequired:
       if (!listed) blocked("the @ app picker", "this computer reported no apps");
       else {
         const names = await menu.getByRole("option").allInnerTexts();
+        // Icons arrive with the app list; the picker reads them once it opens.
+        await until(async () => (await menu.locator("img").count()) > 0, 15_000);
         const icons = await menu.locator("img").count();
         check(
           "@ lists the computer's own apps, keyboard first",

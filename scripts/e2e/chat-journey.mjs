@@ -668,6 +668,27 @@ try {
   await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
   check("a signed-in tab is showing a transcript", true);
 
+  // A question asked in Chat can be handed to JARVIS: in its box, unsent, never in the link.
+  {
+    const handTo = page.getByRole("link", { name: "Do it with JARVIS" }).first();
+    await handTo.focus(); // keyboard reachable: the row shows on focus as on hover
+    await handTo.click();
+    await page.waitForURL(/\/ocade-jarvis/, { timeout: 20_000 });
+    const box = page.locator("#jarvis-composer");
+    let carried = "";
+    for (let i = 0; i < 80 && !carried; i += 1) {
+      carried = await box.inputValue();
+      if (!carried) await page.waitForTimeout(250);
+    }
+    check(
+      "Chat hands a question to JARVIS unsent, never through the address",
+      carried.length > 0 && !page.url().includes("ask="),
+      `${page.url()} | ${carried.slice(0, 60)}`,
+    );
+    await page.goBack({ waitUntil: "networkidle" });
+    await page.waitForSelector("text=stubbed OCADE answer", { timeout: 20_000 });
+  }
+
   await page.click('aside button[aria-haspopup="menu"]');
   await page.getByRole("menuitem", { name: "Sign out" }).click();
   await page.waitForTimeout(1500);

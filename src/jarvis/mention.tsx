@@ -72,7 +72,9 @@ export function useAppMention(input: {
   const [highlight, setHighlight] = useState(0);
   const [chosen, setChosen] = useState<AppChoice[]>([]);
   const icons = useQuery({
-    queryKey: ["jarvis", "app-icons"],
+    // Keyed by the app list: a computer that reports new apps brings their icons with them,
+    // and a read made before it reported anything is not kept as "no icons".
+    queryKey: ["jarvis", "app-icons", input.apps.length, input.apps[0]?.deviceId],
     queryFn: () => readJarvisAppIcons(),
     enabled: hit !== null || chosen.length > 0,
     staleTime: 10 * 60_000,

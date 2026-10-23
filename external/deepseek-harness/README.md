@@ -1,4 +1,6 @@
-# DeepSeek Harness import inbox — NOT connected to OCADE yet
+# DeepSeek Harness import inbox and pinned reference
+
+> **23 October 2026:** the pinned upstream is now the `upstream/` submodule. Selected logic is re-expressed in OCADE with attribution; nothing here is installed or executed. See [the integration contract](../../docs/integrations/deepseek-harness.md).
 
 This is a **source intake area**, not a deployed agent, executable or production dependency. This import is expressly authorized as **new MIT-licensed upstream code**; it is **not** the retired donor content removed in October.
 

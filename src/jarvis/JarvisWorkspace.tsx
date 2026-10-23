@@ -27,6 +27,7 @@ import { useSession } from "@/lib/session";
 import { useFollowBottom } from "@/lib/use-follow-bottom";
 import { useModalFocus } from "@/lib/use-modal-focus";
 import { useActionChanges } from "./changes";
+import { Prose } from "@/components/chat/MessageList";
 import { useSettingsPanel } from "@/components/settings/settings-panel";
 import { loadChatMessages, persistChatMessage } from "@/lib/ocade-chat-store";
 import { describeReset } from "@/lib/commercial/use-commercial-usage";
@@ -794,8 +795,8 @@ export function JarvisWorkspace({
     if (!signedIn || !jarvis || transcript !== "ready" || running) return;
     const handed = takeHandOff();
     if (!handed) return;
-    // Out of uses or turned off: the question waits in the composer, not lost.
-    if (spent || !jarvisOn) setDraft(handed.text);
+    // Out of uses, turned off, or carried from Chat: the words wait in the composer, not lost.
+    if (spent || !jarvisOn || handed.draftOnly) setDraft(handed.text);
     else {
       // Already saved by the bubble: answered again, never saved twice.
       const saved = handed.savedId && turns.some((t) => t.id === handed.savedId);
@@ -1047,23 +1048,25 @@ export function JarvisWorkspace({
                   </p>
                 </div>
               ) : null}
-              {turns.map((turn) => (
-                <p
-                  key={turn.id}
-                  className={cn(
-                    "whitespace-pre-wrap rounded-lg px-3 py-2 text-[15px] leading-relaxed",
-                    turn.role === "user"
-                      ? "self-end bg-secondary text-secondary-foreground"
-                      : "self-start bg-background/70 backdrop-blur",
-                  )}
-                >
-                  {turn.content}
-                </p>
-              ))}
+              {/* A question is a compact bubble; an answer is prose to read, as in Chat. */}
+              {turns.map((turn) =>
+                turn.role === "user" ? (
+                  <p
+                    key={turn.id}
+                    className="max-w-[85%] self-end whitespace-pre-wrap rounded-3xl bg-secondary px-4 py-2.5 text-[15px] leading-relaxed text-secondary-foreground"
+                  >
+                    {turn.content}
+                  </p>
+                ) : (
+                  <div key={turn.id} className="self-stretch text-[15px] leading-relaxed">
+                    <Prose text={turn.content} />
+                  </div>
+                ),
+              )}
               {liveAnswer ? (
-                <p className="self-start whitespace-pre-wrap rounded-lg bg-background/70 px-3 py-2 text-[15px] backdrop-blur">
-                  {liveAnswer}
-                </p>
+                <div aria-live="polite" className="self-stretch text-[15px] leading-relaxed">
+                  <Prose text={liveAnswer} />
+                </div>
               ) : null}
               {running && paused ? (
                 <div role="status" className="flex items-center gap-2 self-start text-xs">
