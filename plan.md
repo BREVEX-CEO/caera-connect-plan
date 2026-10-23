@@ -1,3 +1,41 @@
+# OCADE — MASTER IMPLEMENTATION PLAN
+
+**Implementation priority — owner direction, 23 October 2026**
+**Repository:** `BREVEX-CEO/caera-connect-plan` · **Exclusive branch:** `ocade/p00-p22-implementation`
+**Pinned DeepSeek Harness source:** `external/deepseek-harness/upstream` at `687f282e8625c6b8d11ff58211a90524be2e4317`
+**Audit baseline:** OCADE `5a476453c885610e6f7a7eb5a07cf7fd4b77bb4f`; historical source snapshots below remain evidence, not current runtime certification.
+
+## ABSOLUTE FIRST PRIORITY — MAXIMUM PRACTICAL DEEPSEEK HARNESS INTEGRATION
+
+**OCADE MUST use DeepSeek Harness at the highest practical, compatible and independently verified level, as a real, connected part of ONE OCADE work-completion agent.** Treat the pinned DeepSeek source as implementation material—not merely inspiration, documentation, a Gitlink, or a collection of rewritten demos. Study and selectively **import, incorporate, build, adapt, connect and execute actual useful DeepSeek source files and their required dependencies** within OCADE's supported runtime boundaries. Prioritize DeepSeek's core agent loop, session events/projections, checkpointing, context compaction, tool scheduling/registry, structured plans, durable question/approval presentation, skill/tool discovery, useful MCP integration, and eligible browser/computer interfaces. Assess advanced capabilities (PTC, workflows, LSP, subagents, additional providers) systematically and implement those that deliver measured benefits without bypassing device authority, sandboxing, permissions, cost limits, or user control.
+
+The implementation must **not stop at a reference-only submodule or a few DeepSeek-inspired helper functions**. For each useful upstream capability, record: the upstream path and pinned revision; whether actual upstream source is incorporated, a compatible dependency is reused, or a narrowly adapted implementation is required; its OCADE entry points; feature wiring; tests; performance/accuracy evidence; reason for any exclusion; and shipped/maintained dependencies. Choose **direct source reuse by default where lawful and technically sound**. If direct reuse cannot work safely because of Cordis lifecycle, pnpm, Zod 4, Node-only internals or Cloudflare Workers constraints, demonstrate the incompatibility and use a bounded, tested adaptation instead. Do not force the full upstream executable, unsafe default SDK/sandbox, duplicate Electron UI, standalone credential store, second autonomous task authority or unreviewed local shell execution into OCADE. Preserve required MIT/third-party notices, provenance, and applicable license obligations.
+
+**Maximum capability, minimum duplicated code:** Remove or replace weaker, app-name-hardcoded or duplicate OCADE execution logic only **after** stronger integrated behavior passes matching feature/security/recovery/output tests. Keep OCADE's authenticated customer/device identities, one canonical permission and task-admission authority, verified result and delivery checks, STOP/Take Over/cancellation fencing, budget/payment authority, and local-first PC/device control. Do not reintroduce an inflexible hardcoded supported-app list. Provide a dynamic `@` app picker showing each user's real installed applications, real icons when safely available, and stable device-specific references. Present a simple premium Gemini-quality chat interface using **OCADE's current branding, colors and light/dark theme**. Use Gemini 3.5 Flash-Lite as the existing DEFAULT online model and Gemma 4 via Cloudflare Workers AI only as the explicitly selected HIGH mode, with real availability/capacity and safe routing verified before claims. Offline Chat remains separate; JARVIS planning does not silently fall back to offline or another paid model.
+
+**Success means independently verified completed customer work**—not importing a percentage of the 16,297 upstream files, passing only unit tests, or claiming competitors have been beaten. Benchmark quality, verified completion, task latency, model calls, false successes, recovery, file integrity, resource use, and approved cost on matched real tasks. Identify areas where Muse, Dots, Grok Bot, ChatGPT Agent/Work, Claude, Gemini, Manus, OpenClaw, Cursor and Devin outperform OCADE; use those comparisons as measurable targets, never unsupported victory claims.
+
+## CURRENT AUDIT — IMPLEMENTATION-ORDER OVERRIDES
+
+The full 1,018-line Codex audit is reproduced **verbatim in Appendix B** and must be used as the current defect and release-backlog baseline; Appendix A preserves the preceding original DeepSeek integration analysis in full. The audit found genuine progress but only a partial DeepSeek-derived implementation: the pinned packages are **not yet imported as a running upstream engine**; the shared engine remains partially duplicated between foreground and background. There are confirmed defects in icon payload size/acknowledgement, exact-path delivery, delivery failure handling, final-answer truthfulness and `@` mention identity/retry. The candidate's release gates remain **0/10 qualified** (which does not mean 0% of code exists).
+
+Implement in dependency order, with this emphasis:
+
+1. **P0 release safety and truthfulness:** First reconcile security and database schema differences in an isolated candidate, STOP/completion protections, privileged functions, deployment access and tenant isolation. Never mutate production or apply migrations without separate owner approval. Fix wrong-file/false-completion hazards and verified-delivery truthfulness.
+2. **Finish the DeepSeek-powered agent core:** Audit and import the largest useful compatible upstream source set, with exact dependency/test inventories and a reversible integration boundary. Unify foreground/background/bubble execution and recovery; persist versioned tasks, context, tool receipts, app references, checkpoints, cancellation and delivery. No second authority or unapproved background recurrence.
+3. **Repair the existing integration:** Fix icon aggregate budgets, persistence acknowledgements, native icon readiness, stable app identity and `@` retry/navigation persistence. Make native/browser controls cooperate through one resource owner; replace hardcoded app-name routing with capability discovery.
+4. **Verify real work and model routing:** Close spreadsheet/formula, video/project, CAD, browser, document, artifact, interruption and offline defects. Verify the configured Gemini/Gemma paths, quotas, STOP, concurrency and no unintended charges. Retain independent semantic verification, not model self-reporting.
+5. **Complete customer and commercial product:** Finish premium OCADE UI, voice, mobile, auth/MFA, staff/owner controls, customer data, deployment/distribution, support, payment/subscription contracts, privacy/licensing/operations and rollout gates. Payments, production deployment, spending and merging into `main` require explicit approval.
+6. **Evidence-driven gates:** Test each implemented phase and fix regressions before progressing. Record exact file paths, added/retired code, test failures, blocked environments, cross-device/native checks and comparable real-task results. Finish coding and automated qualification first; real-world customer benchmark tasks may be supplied separately. Do not claim bug-free or 100% launch-ready without independently qualified evidence.
+
+**Plan ownership:** The specific audit checklist (A01–I06) in Appendix B is mandatory tracking, with source paths, priorities and acceptance criteria. Audit findings labeled risks require reproduction before being asserted as bugs. Resolve status contradictions using new evidence; preserve existing test ledgers rather than inventing a second competing status tracker. The report's old time estimates and baseline SHAs are planning snapshots, not promises.
+
+**Owner safety constraints:** Work only on `ocade/p00-p22-implementation`; preserve concurrent changes. No merges to `main`, production deployments, unapproved spending, enabled payments, secret exposure, or unattended scheduled continuations. Staging schema changes and real external actions require appropriate authorization and proof. All work must be reproducible and reversible.
+
+---
+
+## Appendix A — Original Codex DeepSeek/OCADE master analysis (preserved in full)
+
 # OCADE_DEEPSEEK_MASTER_PLAN.md
 
 **Read-only analysis · 23 October 2026**
@@ -1669,3 +1707,1029 @@ This addendum records the owner's implementation preferences while preserving th
 - **Branch/release boundary:** Work exclusively on `ocade/p00-p22-implementation`; preserve concurrent changes and pinned upstream attribution. Never merge `main`, deploy or spend without explicit owner approval.
 
 **Implementation sequence:** Verify the dependency/runtime compatibility of the selected components, integrate behind a reversible boundary, unify execution paths, wire discovery and the interface, independently benchmark matched customer tasks, and retire redundant code only after verified improvements. Treat untested performance and competitor superiority as goals, not facts.
+
+
+---
+
+## Appendix B — Complete Codex engineering audit and production-readiness checklist (verbatim)
+
+**Audit dated 23 October 2026, scoped to OCADE commit `5a476453`. Historical findings and status require re-verification after code changes.**
+
+# OCADE_DEEPSEEK_MASTER_PLAN.md
+
+**Read-only engineering audit — 23 October 2026**
+
+**Assessment: OCADE has substantial working implementation, but it is not qualified for a paid production launch. Claude implemented a useful first slice of the DeepSeek plan—not the complete integration or the complete product.**
+
+The most urgent work is to reconcile production security/schema drift, fix delivery and application-targeting defects, unify execution and recovery behavior, and prove real customer workflows. Importing more of DeepSeek before those foundations work would increase complexity without establishing reliability.
+
+No repository files, database records, deployments, installations, subscriptions, or automations were changed during this audit.
+
+## 1. Audited versions and evidence boundaries
+
+| Item | Audited identity |
+|---|---|
+| Repository | `BREVEX-CEO/caera-connect-plan` |
+| Branch | `ocade/p00-p22-implementation` only |
+| Current head | [`5a476453c885610e6f7a7eb5a07cf7fd4b77bb4f`](https://github.com/BREVEX-CEO/caera-connect-plan/commit/5a476453c885610e6f7a7eb5a07cf7fd4b77bb4f) |
+| Original master-plan source baseline | `df7c136361744bc73f401a7043634e521378d220` |
+| Change since that baseline | Five commits; 40 changed files, including 10 added files; no deleted files |
+| DeepSeek gitlink | `external/deepseek-harness/upstream` |
+| Pinned upstream commit | [`687f282e8625c6b8d11ff58211a90524be2e4317`](https://github.com/deepseek-ai/deepseek-harness/tree/687f282e8625c6b8d11ff58211a90524be2e4317) |
+| OCADE inventory | 1,250 Git-tree entries: 1,136 blobs and one submodule gitlink |
+| Readable OCADE source/document cache | 1,084 text files, combining unchanged verified blobs with the current changes |
+| DeepSeek inventory | 16,297 file entries: 16,283 regular files and 14 symlinks |
+| Requirements reviewed | `plan.md`, `TOFIX.md`, `BLOCKED_TESTS.md`, `docs/PHASES_STATUS.md`, product, architecture, design, security, testing, device, mobile, owner/staff and decision documents |
+
+The branch head was checked again at the end of inspection and remained `5a476453…`.
+
+This was a repository-wide inventory and cross-subsystem source audit, with deeper examination of execution, permissions, completion, delivery, providers, discovery, persistence and the new changes. It was **not** a runtime execution of every application path or a formal proof that all defects have been found.
+
+All paths below are relative to the named remote repository snapshot. DeepSeek paths are relative to its pinned upstream root unless otherwise stated.
+
+### Evidence labels
+
+- **Confirmed source:** directly established by implementation.
+- **Independent isolated check:** actual source logic exercised in memory, without repository writes or live product actions.
+- **Recorded test:** Claude’s committed evidence; not independently rerun here.
+- **Live metadata:** read-only GitHub, Supabase or Cloudflare observations.
+- **Risk:** plausible failure requiring a targeted reproducer.
+- **Missing:** requested capability or qualification not established.
+
+The authoritative current source and evidence are available in the [audited tree](https://github.com/BREVEX-CEO/caera-connect-plan/tree/5a476453c885610e6f7a7eb5a07cf7fd4b77bb4f), [complete plan](https://github.com/BREVEX-CEO/caera-connect-plan/blob/5a476453c885610e6f7a7eb5a07cf7fd4b77bb4f/plan.md), [open-test ledger](https://github.com/BREVEX-CEO/caera-connect-plan/blob/5a476453c885610e6f7a7eb5a07cf7fd4b77bb4f/BLOCKED_TESTS.md), and [200-item requirement ledger](https://github.com/BREVEX-CEO/caera-connect-plan/blob/5a476453c885610e6f7a7eb5a07cf7fd4b77bb4f/docs/PHASES_STATUS.md).
+
+## 2. What Claude actually implemented
+
+### 2.1 Commit-level progress
+
+| Commit | Actual contribution |
+|---|---|
+| `d5a3df66…` | Added the complete master plan and owner implementation requirements. |
+| `1b8cff2e…` | Baseline gate/configuration/test maintenance. |
+| `db354109…` | DeepSeek-derived execution helpers, durable-delivery work, application mentions and icons. |
+| `f1ccc034…` | JARVIS Markdown rendering, Chat-to-JARVIS draft handover, icon-cache adjustment and related UX fixes. |
+| `5a476453…` | Persistent background finishing marker and file handover, separate icon database write, updated evidence ledgers. |
+
+These changes are real. Their scope is narrower than the latest ledger’s phrase **“one turn engine for foreground and background.”**
+
+### 2.2 File-by-file disposition of the new work
+
+| Files | Implemented behavior | Assessment |
+|---|---|---|
+| `src/jarvis/engine.ts` | Shared limits, human-boundary helper, small checkpoint, tool-result formatting, bounded read concurrency, exclusive effect barriers and text pruning. | **KEEP; PARTIAL integration.** It is a shared policy/helper module, not the complete common execution state machine. |
+| `src/jarvis/agent.ts` | Uses the scheduler and pruning; foreground delivery reads durable task records. | **KEEP/ADAPT.** Foreground loop still owns substantial execution policy independently. |
+| `src/jarvis/background.server.ts` | Uses shared helpers; records a finishing marker; advances file inspection/delivery without another model call. | **KEEP/REPAIR.** Background still has a separate loop, reconstruction path and termination policy. |
+| `src/jarvis/task-authority.server.ts` | Computes files needing delivery from recorded actions and outcome checks. | **KEEP/REPAIR.** Incorrect cross-platform path normalization and failure-as-empty behavior remain. |
+| `src/jarvis/jarvis.functions.ts` | Authenticated delivery/icon reads; secret-pattern rejection before storing memory. | **KEEP/ADAPT.** Memory provenance and reliable icon persistence remain incomplete. |
+| `src/jarvis/live-deps.ts` | Delivery API wiring; research unavailability expires after 30 minutes. | **KEEP/REPLACE scoped state.** Expiry improves the old permanent flag, but the state remains module-global. |
+| `src/jarvis/mention.tsx` | Dynamic device/app picker, keyboard behavior, selected-app display and icons. | **KEEP/REPAIR.** Mentions remain name-based, ephemeral and vulnerable to parsing/target-loss cases. |
+| `src/jarvis/JarvisWorkspace.tsx` | Mention routing, Markdown answers, handover, scrolling and delivery presentation. | **KEEP/ADAPT.** Do not rewrite the whole workspace; extract only duplicated lifecycle ownership. |
+| `src/jarvis/bubble-state.ts` | In-memory Chat/JARVIS handover behavior. | **KEEP/ADAPT.** Draft handover is not durable, structured cross-surface task context. |
+| `src/components/chat/MessageList.tsx` | Chat-to-JARVIS handover and follow-bottom integration. | **KEEP.** Add account-switch, attachment and reload qualification. |
+| `src/lib/use-follow-bottom.ts` | Shared bottom-follow intent; avoids forcibly scrolling a reader upward in history. | **KEEP.** Complete accessibility and long-transcript tests. |
+| `jarvis-runtime/ocade_computer.py` | Native app icon extraction with bounded PNG output and fallback. | **KEEP/REPAIR.** Windows/macOS execution remains unqualified; aggregate transport budget is missing. |
+| `jarvis-runtime/ocade_device.py` | Discovers icons off the exchange loop and sends changed icon dictionaries. | **REPAIR.** Whole-batch size and persistence acknowledgement are defective. |
+| `src/jarvis/device.server.ts` | Validates icon metadata and stores it separately from ordinary device state. | **REPAIR.** Separate writes preserve the core exchange, but unsuccessful icon storage is not acknowledged distinctly. |
+| `src/jarvis/protocol.ts` | Added `holdsSecret` checks. | **KEEP/ADAPT.** Useful filtering, not a complete “secrets can never enter memory” guarantee. |
+| `src/integrations/supabase/types.ts` | Added icon-column typing. | **KEEP.** Generated/source types are ahead of both inspected database schemas. |
+| `supabase/migrations/20261023120000_a_device_shows_its_apps_own_icons.sql` | Additive `app_icons` column and shape constraint. | **KEEP; NOT DEPLOYED** in either inspected project. |
+| Matching `supabase/rollback/…_rollback.sql` and `supabase/verification/…_verify.sql` | Migration companions. | **KEEP.** Presence is not migration/rollback proof. |
+| `src/jarvis/THIRD_PARTY_NOTICES.md` | Upstream pin, adapted-source map and MIT notice. | **KEEP.** Verify inclusion in distributed notices. |
+| `docs/integrations/deepseek-harness.md`, `external/deepseek-harness/README.md` | Explain reference-only upstream and derived integration. | **KEEP; correct overbroad completion wording.** |
+| `src/jarvis/__tests__/engine.test.ts`, `mention.test.ts` | New behavior tests. | **RETAIN; extend with failures identified below.** |
+| `src/jarvis/__tests__/{agent,carry-on,device-exchange,jarvis-rules,live-control}.test.ts` | Updated regression coverage. | **RETAIN.** Database and stub results must remain separately labeled. |
+| `src/jarvis/__tests__/rest-adapter.ts` | Test support. | **RETAIN AS TEST SUPPORT.** |
+| `jarvis-runtime/tests/test_computer.py` | Icon/unit coverage. | **RETAIN.** Mocks do not qualify platform extraction. |
+| `scripts/e2e/{chat,jarvis,shell}-journey.mjs` | Updated customer-flow tests. | **RETAIN/REPAIR flaky or sequence-dependent failures.** |
+| `src/lib/auth/__tests__/auth-surfaces.test.ts` | Adjusted assertion for password visibility control. | **Test maintenance**, not newly implemented authentication. |
+| `.prettierignore`, `eslint.config.js` | Exclude pinned upstream from ordinary application lint/format. | **KEEP.** Audit admitted upstream code separately. |
+| `plan.md`, `TOFIX.md`, `BLOCKED_TESTS.md` | Planning and evidence updates. | **KEEP.** Resolve contradictions in place; do not create another competing backlog. |
+
+### 2.3 Original master plan versus current implementation
+
+| Original objective | Current result |
+|---|---|
+| One authoritative execution lifecycle | **Partial:** shared helpers; foreground/background and Bubble/Workspace lifecycle duplication remains. |
+| Durable, resumable sessions | **Partial:** action history and finishing marker; no complete versioned run/checkpoint projection. |
+| Correct delivery after reload/background completion | **Implemented first slice; defects remain.** |
+| Final answer derived from verified outcome | **Incomplete:** model prose still takes precedence in terminal paths. |
+| Provider capability state scoped to identity/configuration | **Partial:** 30-minute expiry added; scoping remains missing. |
+| Dynamic application identities | **Partial:** real discovery exists; names remain the public execution reference. |
+| `@` application icons | **Implemented in source; database absent; native qualification incomplete.** |
+| Controlled memory with provenance | **Partial:** permission gate and pattern filtering; provenance and injection boundaries incomplete. |
+| Context compaction/offload/retrieval | **Partial:** head/tail truncation only. |
+| Tool registry and capability admission | **Existing typed protocol retained; upstream registry not integrated.** |
+| MCP, skills, LSP, programmatic tool calling | **Not integrated.** |
+| Subagents | **Not integrated.** |
+| Gemini-style polished conversation UX | **Useful incremental improvements; not complete.** |
+| Measured faster/better agent | **Not established.** |
+| Complete release qualification | **Not established.** |
+
+## 3. What was independently checked
+
+### 3.1 Isolated source checks performed during this audit
+
+These checks exercised actual extracted logic in memory. They did not run the product, write files or operate devices.
+
+| Check | Observed result | Meaning |
+|---|---|---|
+| `stillMentioned("@Wordpress and @Word", selected Word)` | Returned no selected app. | First substring match masks a later valid mention. |
+| `stillMentioned("mail@Word", selected Word)` | Retained selected Word. | Mention retention does not enforce the preceding boundary used by trigger detection. |
+| Delivery path `a\b.txt` on a POSIX-compatible interpretation | Became `a/b.txt`. | Delivery changes filename identity rather than preserving the exact target. |
+| 200 valid 32×32 PNG icon entries, each 3,172 bytes | Icon validator accepted all 200; JSON body was **848,904 characters**, above the **600,000-character** exchange limit. | Individually valid discovery data can make the whole control exchange fail. |
+
+The icon check establishes a contract defect. It does not claim that a particular customer’s installed applications already produced that exact batch.
+
+### 3.2 Live infrastructure observations
+
+| Surface | Read-only observation | Release implication |
+|---|---|---|
+| Production Supabase | Latest recorded migration was `20261003090000_owner_and_staff_consoles_on_ocade_in`. | Twenty-one branch migration files postdate the latest production history entry. Reconcile actual objects; do not blindly replay SQL. |
+| Production Supabase | `jarvis_task_completion_is_the_servers` and `jarvis_activity_stopped_while_running` were absent from inspected function metadata. Expected completion-related task triggers were absent. | Branch completion/STOP protections cannot be assumed deployed. **P0 release blocker.** |
+| Production Supabase | `ocade_case_open` still had the older three-argument signature. | Confirmed backend contract drift relative to staging/current source. |
+| Staging Supabase | Migration listing was empty, although later functions and completion triggers exist. | Schema may contain changes, but reproducible migration provenance is missing. |
+| Both Supabase projects | No public `app_icons` column. | The new icon feature is not schema-ready in either inspected environment. |
+| Both projects’ security advisors | Leaked-password protection disabled. | Resolve for the supported password sign-in path before launch. |
+| Security advisors | Authenticated-executable SECURITY DEFINER warnings: staging 41, production 36. | Review each function’s grants, ownership, search path and authorization. A warning is not proof of exploitation. |
+| Security advisors | RLS-enabled/no-policy informational findings. | Do not “fix” by adding broad policies. Some service-only tables should deny direct clients. |
+| Cloudflare | `ocade-web` exists; latest listed deployment dated **19 October 2026**, version `da643c55-05be-408f-8c46-bc33388a20bd`. | No deployment of the 23 October integration was established. Exact deployed Git SHA still needs release provenance. |
+| GitHub | Zero Actions runs returned for audited head SHA. | No GitHub Actions qualification of this exact head was established. Other recorded manual tests remain separate evidence. |
+
+### 3.3 Claude’s recorded tests—not independently rerun
+
+The latest committed ledger reports:
+
+- Vitest: **1,560 passed across 126 files**.
+- Python runtime: **251 passed, 30 skipped, zero failed**.
+- Static/type/lint/format/policy checks: passed.
+- Production npm dependency audit: zero findings.
+- Final stub journeys: JARVIS 140, Chat 52, Bubble 26 passed.
+- Application picker: four checks passed using LibreOffice icons.
+- Background delivery: real-PostgreSQL test evidence.
+- No real model or native Windows/macOS/Android qualification for this integration slice.
+
+Important qualifications:
+
+1. The Python result used Playwright **1.63**, while `jarvis-runtime/requirements-agent.txt` pins **1.62.0**. Final qualification must use the exact shipped dependency/browser combination.
+2. `JOURNEY-23-01` remains flaky: capacity message, exhausted-allowance composer state and Settings→Devices navigation each failed in a recorded run.
+3. `SHELL-23-01` remains a recorded failure: previously opened Chat sometimes returns the offline fallback in the full journey.
+4. Windows/macOS icon extraction remains untested on the actual platforms.
+5. The production-only npm audit does not close the recorded Vitest development-tool advisory work.
+6. None of these counts establishes real-task accuracy, production security or release readiness.
+
+## 4. Confirmed defects and high-priority risks
+
+### F01 — Production database lacks important current security contracts
+
+**Priority: P0 · Evidence: live metadata**
+
+Relevant files:
+
+- `supabase/migrations/20261012090000_completion_is_the_servers.sql`
+- `supabase/migrations/20261016090000_task_bound_turns_and_checked_outcomes.sql`
+- `supabase/migrations/20261016100000_queue_admission_holds_the_task.sql`
+- `supabase/migrations/20261019104555_completion_cannot_revive_a_stopped_task.sql`
+- `supabase/migrations/20261006090000_cases_name_their_reader_and_conversation.sql`
+- Their existing verification and rollback companions.
+
+**Required change:** reconcile current production objects, grants and dependencies against the release candidate; prepare an ordered migration path and rollback. Staging must first reproduce the same path from a known baseline.
+
+**Acceptance:** direct authenticated attempts to forge completion, revive stopped work, queue against an invalid task, reuse proof or read unshared support content are refused in the candidate environment.
+
+This is a deployment/configuration blocker, not an instruction to change production during this audit.
+
+### F02 — Icon inventories can break the device control exchange
+
+**Priority: P1 · Evidence: independent isolated check plus source**
+
+- `src/jarvis/device.server.ts:228–230`
+- `src/jarvis/device.server.ts:437` — `appIconsOf`
+- `jarvis-runtime/ocade_device.py:429–433`
+
+The device sends a complete changed icon dictionary through an exchange capped at 600,000 characters. Per-icon and per-app limits permit a larger aggregate.
+
+**Required change:** enforce a serialized aggregate budget before transmission; send icons in bounded, independently acknowledged batches or a separate optional metadata operation. Core receipts, STOP and lease traffic must remain deliverable.
+
+**Acceptance:** a 500-app catalog cannot prevent heartbeat, result receipt, cancellation or revocation exchange.
+
+### F03 — Failed icon persistence can be permanently acknowledged
+
+**Priority: P1 · Evidence: confirmed source**
+
+- `src/jarvis/device.server.ts:658–662`
+- `jarvis-runtime/ocade_device.py:481–482`
+
+The server ignores the icon update result; the device treats overall exchange success as icon acceptance. Missing schema or a transient database failure can suppress retransmission of unchanged icons.
+
+**Required change:** acknowledge the stored icon revision explicitly; update `icons_sent` only after that acknowledgement. Retain bounded retry/backoff.
+
+**Acceptance:** fail the first icon write, recover storage, keep the same inventory, and observe eventual icon persistence without restarting the companion.
+
+### F04 — Delivery rewrites valid filename identities
+
+**Priority: P1 · Evidence: independent isolated check**
+
+- `src/jarvis/task-authority.server.ts:203–232`, especially `norm` at line 207.
+
+Global backslash replacement is invalid for POSIX filenames. It can also collapse distinct references into the same delivery key.
+
+**Required change:** preserve submitted execution paths. If canonical identity is necessary, obtain platform-aware identity from the executor and retain the exact display/action path separately.
+
+**Acceptance:** distinguish case, Unicode, whitespace, literal backslashes, separators and aliases according to the actual filesystem. Never deliver or verify a neighboring file.
+
+### F05 — Delivery enumeration treats database failure as “nothing to deliver”
+
+**Priority: P1 · Evidence: confirmed source**
+
+- `src/jarvis/task-authority.server.ts:236–250`
+- `src/jarvis/background.server.ts:308–335`
+- `src/jarvis/background.server.ts:525–535`
+
+`taskDeliveriesDue` returns `[]` when it cannot establish the outcome/action data. Failure to persist the background finishing marker can fall straight through to finishing.
+
+**Required change:** represent `ready`, `none`, `unavailable` and `invalid` distinctly. Preserve a recoverable delivery state. Do not silently equate unreadable history with no output.
+
+**Acceptance:** inject each database failure; the UI reports pending/partial delivery and recovery succeeds without duplicate uploads or another model-generated finish.
+
+### F06 — Final prose can override the verified result
+
+**Priority: P1 · Evidence: confirmed source; misleading customer outcome remains a targeted test**
+
+- `src/jarvis/agent.ts:1143–1145`
+- `src/jarvis/background.server.ts:283–299`
+
+Foreground returns `answer || finishedWith`; background says `text || finish.result`. Existing model prose can remain more optimistic than the verified/delivered outcome.
+
+**Required change:** project terminal status, delivered artifacts and unresolved work from the authoritative task result. Model prose may explain that result, but cannot override it.
+
+**Acceptance:** deliberately supply “Everything is complete” alongside a partial delivery/refused verification. The final card and message must accurately show the unresolved portion.
+
+### F07 — Application mentions have parsing and persistence defects
+
+**Priority: P1 for target preservation; P2 for matching details**
+
+- `src/jarvis/mention.tsx:56–59`
+- `src/jarvis/mention.tsx:142`
+- `src/jarvis/JarvisWorkspace.tsx:413–440`
+
+Confirmed behavior:
+
+- First-substring matching misses a later valid mention.
+- Email-like text can retain a selected app.
+- The first chosen device wins; multiple-device mentions are not a complete routing contract.
+- The selected app/device is cleared before message persistence succeeds.
+- On persistence failure only the text is restored, so retry may use the default device.
+- Saved messages do not preserve structured application references.
+
+**Required change:** persist structured `{deviceId, appId, catalogRevision}` references with the turn; preserve them through admission failure, retry, handover and reload. Use the same boundary/parser rules for trigger detection and retained mentions.
+
+**Acceptance:** select Word on PC B while PC A is default; fail saving; retry; execution must still target PC B—or require explicit reselection.
+
+### F08 — Icon cache identity is insufficient
+
+**Priority: P2 · Evidence: confirmed source**
+
+- `src/jarvis/mention.tsx:74–80`
+
+The query key uses app count and first device ID. Same-count inventory changes, icon updates and changes on other devices do not change that identity.
+
+**Required change:** key/invalidate using the actual account/device catalog revision. Keep existing account-switch cache clearing.
+
+**Acceptance:** replace an app with another while preserving count; update an icon; revoke a second device. Picker state must converge without a ten-minute stale window.
+
+### F09 — Shared engine claims exceed the implementation
+
+**Priority: P1 architectural completion · Evidence: confirmed source**
+
+- `src/jarvis/engine.ts`
+- `src/jarvis/agent.ts`
+- `src/jarvis/background.server.ts`
+- `src/jarvis/JarvisWorkspace.tsx`
+- `src/jarvis/JarvisBubble.tsx`
+
+The common file is 174 lines of policy/helpers. Foreground still has a 1,173-line planner implementation; background has a separate 618-line driver. Bubble and Workspace continue to own separate UI turn lifecycles.
+
+**Required change:** consolidate shared state transitions and ownership incrementally inside existing modules. Keep distinct presentation and transport adapters.
+
+**Acceptance:** identical recorded model/tool events produce the same status, delivery obligations, usage settlement and resume decision across foreground/background/bubble/workspace.
+
+### F10 — Memory filtering does not establish memory trust
+
+**Priority: P1 security hardening · Evidence: confirmed limitation; exploit not demonstrated**
+
+- `src/jarvis/protocol.ts` — `holdsSecret`
+- `src/jarvis/jarvis.functions.ts:921–938`
+- `src/jarvis/agent.ts` — `untrustedSeen`
+
+The new filter catches useful credential patterns. It does not prove that every secret representation is detected. The per-turn untrusted-content flag also does not establish provenance across saved history or resumed tasks.
+
+**Required change:** bind memory writes to authenticated user-origin content/explicit intent; retain source, scope, deletion and expiry semantics. Keep pattern filtering as defense in depth. Do not promise perfect secret detection.
+
+**Acceptance:** malicious instructions in prior tool results, retrieved files and resumed history cannot create memory; explicit user preferences can be stored and completely deleted.
+
+### F11 — Research capability suppression is still shared across contexts
+
+**Priority: P2 · Evidence: confirmed source**
+
+- `src/jarvis/live-deps.ts:96–97,197`
+
+The permanent boolean became an expiring timestamp, but remains module-global.
+
+**Required change:** scope capability observations to the relevant account, provider/model, deployment and configuration revision; invalidate on change.
+
+**Acceptance:** an unavailable research capability in one account/configuration does not suppress an available one after account/model/configuration changes.
+
+### F12 — Several recovery paths need focused fault tests
+
+**Priority: P1 · Evidence: risks, not confirmed end-to-end defects**
+
+- `engine.ts`: if one parallel call throws, preserve results from calls already completed rather than losing the whole group’s returned result set.
+- `background.server.ts`: the 60-action limit may interrupt deterministic delivery near the budget boundary.
+- `device.server.ts`: upload-before-task-settlement can leave an orphan object.
+- `agent.ts`/`background.server.ts`: in-memory provenance must survive restart so script-produced files are not later described as produced in the requested editor.
+- `JarvisWorkspace.tsx`/`live-deps.ts`: automatic busy continuation must respect explicit manual-continuation settings and STOP.
+
+**Acceptance:** fault injection at every transition produces either a correct resumable state or an honest terminal state, with no duplicate external effect.
+
+## 5. DeepSeek: genuine integration and remaining practical value
+
+### 5.1 What “integrated” currently means
+
+OCADE does **not** install or execute the pinned Harness packages.
+
+There are no newly admitted Cordis, pnpm-workspace or Zod 4 runtime dependencies. The current contract explicitly says portable logic was **re-expressed in OCADE**.
+
+That is a valid integration strategy, provided it is described accurately:
+
+| Capability | Current integration class |
+|---|---|
+| Ordered bounded tool scheduling | **Derived implementation**, based on upstream `tool-calls.ts`. |
+| Tool-result pruning | **Derived implementation** using upstream-style budgets. |
+| `@` trigger/menu behavior | **Derived implementation**. |
+| App icon extraction | **Approach adapted**, Python implementation using existing dependencies. |
+| Durable delivery | **OCADE implementation inspired by event reconstruction**, not upstream session-runtime adoption. |
+| Follow-bottom behavior | **Intent adapted**, not wholesale UI adoption. |
+| Agent loop/session engine | **Not directly integrated.** |
+| Tool registry, compaction engine, skills, MCP, LSP, PTC, subagents | **Not integrated.** |
+| Browser/computer drivers | **Existing OCADE drivers retained.** |
+| DeepSeek model inference or weights | **Not introduced by Harness integration.** |
+
+The current [integration contract](https://github.com/BREVEX-CEO/caera-connect-plan/blob/5a476453c885610e6f7a7eb5a07cf7fd4b77bb4f/docs/integrations/deepseek-harness.md) is explicit about these boundaries.
+
+### 5.2 Recommended maximum practical integration
+
+“Maximum practical” should mean **the largest proven benefit under one security and execution authority**, not the largest number of upstream packages.
+
+Keep the present OCADE broker and device agent. Complete the portable core improvements first. Add optional ecosystems only when a real task needs them and their benefit is measured.
+
+The following counts are observed regular files/source files within the named upstream directories. They are **not** proposed copy counts or complete transitive dependency totals.
+
+| DeepSeek directory / exact useful files | Files total / `src` | Decision and OCADE wiring |
+|---|---:|---|
+| `packages/core/agent-loop/src/{agent,assistant-stream,inbox,runtime-context,tool-calls}.ts` | 43 / 7 | **ADAPT further.** Use cancellation, ordering, turn lifecycle and reconstruction behavior to finish `engine.ts`, `agent.ts`, `background.server.ts`. |
+| `packages/core/tools/src/{schema,json-schema,presentation,ptc-calls}.ts` and remaining `src` | 30 / 10 | **ADAPT selectively.** Consolidate schema/presentation/effect classification around `protocol.ts`; do not create a second permission authority. |
+| `packages/core/session/src/{known-event-types,preparation,repair,seq-ranges}.ts` and remaining `src` | 37 / 10 | **High-priority ADAPT.** Versioned durable events, repair and deterministic reconstruction using existing Supabase task/activity storage. |
+| `packages/session/session-checkpoint-policy/src/index.ts` | 11 / 1 | **ADAPT.** Persist recoverable checkpoints at meaningful boundaries. |
+| `packages/session/session-projection/src/{index,types}.ts` | 10 / 2 | **ADAPT.** One projection for UI status, resume, verification, delivery and terminal summary. |
+| `packages/session/session-format/src/{catalog,chain,context,error,json}.ts` | 18 / 8 | **ADAPT concepts/contracts.** Version persisted run data; retain old-client compatibility. |
+| `packages/plan/plan-mode/src/{client,index,types}.ts` | 13 / 3 | **ADAPT narrowly.** Represent goal/constraints/plan revision; planning mode must not execute effects. |
+| `packages/todo/tool-todo/src/{client,index,types}.ts` | 14 / 3 | **ADAPT if it improves task visibility.** Use a compact task plan, not a second project-management subsystem. |
+| `packages/compaction/compaction-tool-result-pruner/src/{config,index,types}.ts` | 12 / 3 | **KEEP derived implementation; strengthen tests.** |
+| `packages/compaction/compaction-basic/src/{region,summarizer,index}.ts` | 17 / 5 | **ADAPT after durable sessions.** Summarization must preserve constraints, permissions, unresolved effects and verification references. |
+| `packages/compaction/compaction-image-offload/src/{image-offload,project-message,projection}.ts` | 13 / 4 | **ADAPT when image/context measurements justify it.** Retain references and access checks; do not silently discard evidence. |
+| `packages/llm/llm/src/{adapter-failure,assembler,assistant-stream,attribution,call-config}.ts` | 32 / 13 | **ADAPT contracts/tests.** Preserve Gemini and Workers AI adapters and their terminal guarantees. |
+| `packages/llm/token-meter/src/{estimate,projection,route-pricing,surface-fold}.ts` | 23 / 11 | **ADAPT accounting concepts.** Actual provider usage remains authoritative; estimates must be labeled. |
+| `packages/llm/llm-retry/src/{index,types}.ts` | 15 / 3 | **ADAPT only into the single existing retry owner.** No nested retry stack. |
+| `packages/host/open-in-app/src/{catalog,resolver,icons,internals,shared}.ts` | 18 / 6 | **ADAPT identity/resolution more fully.** Current icon approach alone does not solve stable app identity. |
+| `packages/client/ui-input-trigger/src/core/{detect,menu}.ts`, `src/client/controller.ts` | 27 / 14 | **KEEP/ADAPT.** Fix parser parity, structured mentions, IME, accessibility and lifecycle. |
+| `packages/client/ui-chat/src/client/chat/use-scroll-follow.ts` | Not separately recounted | **RETAIN reference.** Keep OCADE’s shared hook and design tokens. |
+| `packages/interaction/user-approval/src/{index,types}.ts` | 11 / 2 | **ADAPT presentation/state patterns only.** OCADE owns authorization and recent-proof requirements. |
+| `packages/interaction/user-questions/src/{projection,timed-wait,types}.ts` | 14 / 4 | **ADAPT selectively.** Persist pending questions and safe cancellation; no implicit timed authorization. |
+| `packages/sandbox/sandbox-policy/src/{index,session-mode}.ts` | 11 / 2 | **RETAIN as design/test input.** Replace upstream authority with OCADE’s enforced broker/runtime boundary. |
+| `packages/fs/fs-observation-policy/src/{index,types}.ts` | 10 / 2 | **ADAPT useful invalidation behavior.** Preserve exact-path and post-mutation verification rules. |
+| `packages/mcp/mcp-client/src/{connection,server-context,tools,transport}.ts` | 26 / 5 | **Later gated INTEGRATION.** One useful authenticated connector first; cancellation, schema validation and permissions mandatory. |
+| `packages/mcp/mcp-resources/src/{index,render,tools}.ts` | 11 / 3 | **With MCP only.** External resource contents remain untrusted. |
+| `packages/skill/{skill,skill-filesystem,tool-skill}/src/index.ts` | 28 / 3 combined | **Later ADAPT/INTEGRATE.** Pinned, reviewed skill discovery with explicit provenance and bounded loading. |
+| `packages/skill/skill-office/src/index.ts` and bundled skill material | 23 / 1 | **RETAIN useful guidance; admit selectively.** Preserve deterministic OCADE Office implementations. |
+| `packages/lsp/lsp/src/{brand,index,types}.ts`, `packages/lsp/tool-lsp/src/{index,render}.ts` | 20 / 5 combined | **Optional coding capability.** Add only if coding workflows become a shipped commitment. |
+| `packages/ptc-runtime/ptc-runtime/src/{index,types}.ts` | 9 / 2 | **Optional ADAPT.** Capability handles into the broker, not unrestricted execution. |
+| `packages/ptc-runtime/ptc-runtime-node/src/*` | 47 / 18 | **AVOID in the Worker.** Evaluate only in a separately isolated executor after a demonstrated need. |
+| `packages/subagent/subagent/src/*`, `packages/subagent/subagent-fork-in-process/src/index.ts` | 72 / 23 combined | **DEFER.** Read-only research first; parent-owned budget, cancellation and evidence. Never two GUI controllers. |
+| `packages/browser-use/browser-use/src/{brand,index}.ts` | 8 / 2 | **RETAIN interface reference.** These files are not a replacement browser driver. |
+| `packages/computer-use/computer-use/src/{brand,index}.ts` | 8 / 2 | **RETAIN interface reference.** Do not replace the companion with a package-name abstraction. |
+| `packages/test-support/agent-loop-testkit/src/*` | 9 / 3 | **RETAIN AS TEST SOURCE.** Adapt scenarios into existing tests. |
+| `packages/test-support/llm-replay/src/index.ts` | 9 / 1 | **RETAIN/ADAPT for deterministic regression replay.** Keep fixtures sanitized. |
+
+### 5.3 Dependencies: what to keep, replace or avoid
+
+**KEEP OCADE’s current runtime foundation**
+
+- React, TanStack Query/Router/Start and existing Tailwind design tokens.
+- Supabase client and existing server/database authorization.
+- Existing Zod 3 schemas until an independently justified migration.
+- Existing Python companion dependencies and deterministic document/media tooling.
+- Existing `react-markdown`.
+- Existing `@wllama/wllama` offline runtime, subject to actual model qualification.
+
+**DO NOT add merely to claim integration**
+
+- Cordis lifecycle and workspace packages.
+- Upstream Zod 4 beside OCADE Zod 3 across the entire application.
+- Upstream application bundles, CLI, Electron host and web frontend.
+- Upstream local credential, SQLite/JSONL storage and telemetry systems.
+- Multiple browser-control providers that target the same session.
+- New scheduling/goal-loop packages.
+- A second provider retry or user-approval engine.
+
+**Conditional dependencies**
+
+- The pinned MCP client package uses `@modelcontextprotocol/client` `2.2.0`; admit it only with an actual connector and reviewed transport/authentication boundary.
+- PTC, LSP and subprocess packages bring executor/lifecycle dependencies. They belong behind a separately controlled runtime, not automatically in the Cloudflare request path.
+- Direct adoption of the selected upstream core entails workspace peer dependencies such as Cordis, Schemastery, session projection, scope, tools and persistence. A small-looking entry package is not a small deployment closure.
+
+The earlier core inventory estimated a **33-package closure containing 491 files, 145 under `src`**. A broader candidate inventory covered **56 packages, 833 files, 246 under `src`**. These remain evaluation envelopes—not instructions to import those counts.
+
+**Recommended near-term footprint:** improve approximately **8–15 existing OCADE production modules**, plus their existing tests and only genuinely required migration changes. Add **zero to three small shared modules** only where a clear ownership boundary cannot fit an existing file. Do not pursue a file-count target.
+
+### 5.4 Upstream tests worth preserving
+
+Particularly valuable exact paths include:
+
+- `packages/core/agent-loop/tests/cancel.spec.ts`
+- `packages/core/agent-loop/tests/tool-order.spec.ts`
+- `packages/core/agent-loop/tests/tool-calls.spec.ts`
+- `packages/core/agent-loop/tests/request-error.spec.ts`
+- `packages/core/agent-loop/tests/request-reconstruction.spec.ts`
+- `packages/core/agent-loop/tests/resume.spec.ts`
+- `packages/core/agent-loop/tests/resource-lifecycle.spec.ts`
+- `packages/core/agent-loop/tests/shutdown-drain.spec.ts`
+- `packages/core/session/tests/canonical-envelopes.spec.ts`
+- `packages/core/session/tests/message-projections.spec.ts`
+- `packages/core/session/tests/repair.spec.ts`
+- `packages/core/session/tests/seq-ranges.spec.ts`
+- `packages/compaction/compaction-tool-result-pruner/tests/tool-result-pruner.spec.ts`
+- `packages/client/ui-input-trigger/tests/core-detect.client.spec.ts`
+- `packages/client/ui-input-trigger/tests/core-menu.client.spec.ts`
+- `packages/client/ui-input-trigger/tests/apply.client.spec.ts`
+
+Port meaningful behavior and adversarial scenarios into OCADE’s test owners. Do not import the entire upstream test harness merely to run a handful of cases.
+
+## 6. Architecture and exact wiring
+
+The target remains one OCADE agent with one authority for each responsibility.
+
+```mermaid
+flowchart TD
+    UI["Chat / JARVIS / Bubble / Mobile"]
+    Run["Shared run lifecycle and durable task projection"]
+    Model["Gemini / explicit High / permitted Chat Offline route"]
+    Tools["Typed capability broker"]
+    Auth["Identity, permissions, proof, quota, STOP"]
+    Device["Paired Device Agent"]
+    Drivers["Files / native APIs / browser / accessibility / vision"]
+    Verify["Independent outcome verification"]
+    Deliver["Artifact delivery and Library"]
+    DB["Supabase task, action and receipt records"]
+
+    UI --> Run
+    Run --> Model
+    Model --> Tools
+    Tools --> Auth
+    Auth --> Device
+    Device --> Drivers
+    Drivers --> DB
+    Run <--> DB
+    DB --> Verify
+    Verify --> Deliver
+    Deliver --> DB
+    DB --> UI
+    Auth -. cancellation and revocation .-> Run
+    Auth -. cancellation and revocation .-> Device
+```
+
+### Required ownership
+
+| Responsibility | Existing wiring point | Required result |
+|---|---|---|
+| UI turn admission and lifecycle | `JarvisWorkspace.tsx`, `JarvisBubble.tsx`, `bubble-state.ts` | One account/conversation-owned lifecycle; separate presentation remains. |
+| Foreground/background progression | `engine.ts`, `agent.ts`, `background.server.ts` | Shared transition policy and persisted run interpretation. |
+| Model selection and terminal validity | `src/lib/intelligence/{router,edge-handler,workers-ai,online-models}.ts` | Explicit model identity, no hidden substitution, no tools from incomplete turns. |
+| Tool schema and effect classification | `src/jarvis/protocol.ts` | One canonical typed contract; generated/presented descriptions match validators. |
+| Permission and recent proof | `permissions.ts`, `task-authority.server.ts`, security middleware, database predicates | Rechecked at admission and execution; model/page content cannot grant permission. |
+| Device identity and cancellation | `device.server.ts`, `ocade_identity.py`, `ocade_device.py`, `ocade_agent.py` | Signed, replay-safe, revocable, bounded control-loss behavior. |
+| App identity and discovery | `ocade_computer.py`, `ocade_discovery.py`, `mention.tsx` | Stable scoped references, revisioned metadata and bounded icons. |
+| Verification | `task-authority.server.ts`, device read-back operations, workflow oracles | Structural and semantic evidence after the final mutation. |
+| Delivery | `task-authority.server.ts`, `device.server.ts`, `background.server.ts`, Library functions | Recoverable transfer, exact identity, deduplication and truthful delivery status. |
+| Memory | `jarvis.functions.ts`, `agent.ts`, existing memory storage | User-origin provenance, scope, retention and deletion. |
+| Product presentation | `ChatWorkspace.tsx`, `MessageList.tsx`, `JarvisWorkspace.tsx`, `src/styles.css` | Existing OCADE colors, coherent interaction, evidence-backed status. |
+
+### Durable run state that is still needed
+
+Persist enough to reconstruct work without inventing or replaying effects:
+
+- Task/run ID and schema/engine version.
+- Account, conversation and selected device.
+- Original goal and immutable authorization constraints.
+- Structured app references.
+- Actual provider/model/prompt variant.
+- Plan revision and completed/unresolved steps.
+- Model call IDs, tool call IDs and their terminal outcomes.
+- Action IDs, receipts and unknown-effect state.
+- Cancellation/revocation generation.
+- Verification obligations and artifact identities.
+- Delivery state and usage-settlement identity.
+
+Extend existing records where possible. A new generic event platform is unnecessary if existing task/activity storage can satisfy these contracts.
+
+## 7. Master coding and release checklist
+
+**Priority meanings:** P0 blocks safe release; P1 blocks reliable promised functionality; P2 improves completeness/performance; P3 is optional expansion.
+
+“Acceptance” below is future proof required before closing the item. Nothing here authorizes implementation or test execution.
+
+### A. Security, schema and release identity
+
+| ID | Priority / state | Exact owners | Remaining work and acceptance |
+|---|---|---|---|
+| ☐ A01 | P0 · confirmed drift | `supabase/migrations/202610*.sql`; matching verification/rollback files | Reconcile the 21 post-3-October migration files with actual production objects. Prove completion/STOP/proof/support protections on a disposable candidate first. |
+| ☐ A02 | P1 · confirmed provenance gap | `supabase/migrations/`, `scripts/check-supabase-types.mjs`, `src/integrations/supabase/types.ts` | Establish staging migration provenance without blindly marking everything applied. Fresh replay and inspected schema must agree. |
+| ☐ A03 | P0 · recorded unresolved exposure | `.github/workflows/cloudflare-production.yml`, `scripts/deploy.mjs`; `ENV-20-03` | Resolve the recorded exposed deployment-hook issue through the authorized owner process; prove old access cannot deploy. Do not expose the credential in evidence. |
+| ☐ A04 | P0 · unqualified | `src/lib/security/{assurance-middleware,session-middleware,caller-scoped-functions}.ts`; privileged SQL functions | Review every authenticated-executable SECURITY DEFINER finding. Test direct RPC access, target-bound proof, replay, search paths, concurrent ownership changes and granular rights. |
+| ☐ A05 | P1 · live configuration issue | Password auth configuration; `src/routes/auth.index.tsx`, `reset-password.tsx` | Resolve disabled leaked-password protection for supported password flows; verify recovery, throttling and safe error behavior. |
+| ☐ A06 | P1 · unqualified | `src/lib/security/{sessions.functions,recovery.functions,recovery-codes,mfa}.ts` | Prove expiry, revocation, factor changes, recovery-code single use and account switches. Document and test the existing bounded session-cache behavior. |
+| ☐ A07 | P0 · release prerequisite | `scripts/deploy.mjs`, `.github/workflows/cloudflare-production.yml`, `wrangler.json` | Bind deployed Worker, assets, schema and companion version to a frozen SHA. Prove approval isolation and rollback; inspect external build/deploy settings separately. |
+| ☐ A08 | P1 · open | `package.json`, `package-lock.json`, `jarvis-runtime/requirements-agent.txt`, packaging files | Resolve recorded dev advisories without corrupting lockfiles. Reproduce installation/build with exact pins; audit production and build chains separately. |
+
+### B. Agent lifecycle, recovery and STOP
+
+| ID | Priority / state | Exact owners | Remaining work and acceptance |
+|---|---|---|---|
+| ☐ B01 | P1 · partial | `engine.ts`, `agent.ts`, `background.server.ts` | Share execution transitions, budgets and recovery decisions. Same event trace must produce equivalent results on both paths. Depends on A01–A02. |
+| ☐ B02 | P1 · confirmed duplication | `JarvisBubble.tsx`, `JarvisWorkspace.tsx`, `bubble-state.ts`, `live-control.ts` | Consolidate turn ownership/admission/settlement; preserve distinct views. Test late callbacks, account changes, navigation, double-send and handover. |
+| ☐ B03 | P1 · partial | `engine.ts` checkpoint helpers; `background.server.ts`; task/activity persistence | Persist complete resumable state with versioning and tool-call pairing. Kill/restart at every meaningful boundary without repeating effects. |
+| ☐ B04 | P0 qualification | `live-control.ts`, `task-authority.server.ts`, `device.server.ts`, `ocade_device.py`, `ocade_agent.py` | Measure STOP from Workspace, Bubble, tray and mobile during queued, running and blocked calls. No new action admission after authoritative STOP; in-flight effects accurately reconciled. |
+| ☐ B05 | P1 · risk | `engine.ts`, `agent.ts` | Preserve completed parallel read results when a sibling fails; record every call’s final state. Test abort before admission and during execution. |
+| ☐ B06 | P1 · partial | `task-authority.server.ts`, `ocade_device.py`, Android `AgentService.java` | Ensure action IDs/receipts survive lost replies, process death and reconnect. Unknown external effects require observation/reconciliation, not blind retry. |
+| ☐ B07 | P1 · partial | `live-deps.ts`, `JarvisWorkspace.tsx`, existing scheduling functions | Separate short retries within an active authorized run from future automatic continuation. Manual-only settings must survive restart and account switch. No schedule may be created implicitly. |
+| ☐ B08 | P1 · risk | `background.server.ts` action limits and finishing marker | Reserve deterministic settlement/delivery capacity or distinguish its budget from planner actions. A nearly exhausted task must not strand verified outputs silently. |
+| ☐ B09 | P1 · partial | `protocol.ts`, `permissions.ts`, `ocade_protocol.json` | Keep schema, descriptions and Python/Android decoding aligned. Unknown fields must fail explicitly rather than be silently dropped into a no-op success. |
+| ☐ B10 | P2 · partial | `engine.ts`, provider message construction, task projections | Add evidence-preserving context budgets/offload only after measurement. Long sessions retain constraints, pending questions, exact tool IDs and artifact references. |
+
+### C. Verification, files and delivery
+
+| ID | Priority / state | Exact owners | Remaining work and acceptance |
+|---|---|---|---|
+| ☐ C01 | P1 · confirmed | `task-authority.server.ts` — `deliveriesDue` | Fix F04 exact-path identity. Distinct valid filesystem names remain distinct throughout mutation, verification and delivery. |
+| ☐ C02 | P1 · confirmed | `task-authority.server.ts`, `background.server.ts` | Fix F05 failure-as-empty and finishing-marker failure. Delivery becomes resumable and explicitly partial on failure. |
+| ☐ C03 | P1 · confirmed precedence problem | `agent.ts`, `background.server.ts`, task cards | Fix F06. Terminal wording derives from verified results and actual delivered artifacts. |
+| ☐ C04 | P1 · recorded orphan risk | `device.server.ts`; `src/lib/library/{library.functions,tombstones.server}.ts` | Reconcile uploads whose task never settles. Use existing storage cleanup machinery where suitable; test retry, abort, erasure and duplicate delivery. |
+| ☐ C05 | P0/P1 · semantic gap | `task-authority.server.ts`; `experiments/architectures/oracle_{sheet,doc,video,photo,cad}.py` | Add fixed independent checks for supported workflows. Existence, sheet names and nonempty rows are insufficient for correct calculations or reconciliations. |
+| ☐ C06 | P1 · partial | `ocade_sheets.py`, `actions/ocade_workbook.ps1`, `ocade_documents.py`, `actions/ocade_document.ps1` | Validate formulas, recalculation, values, styles, charts, layout and reopened files in actual supported applications. Preserve originals byte-for-byte where required. |
+| ☐ C07 | P1 · missing native path | `ocade_documents.py`, `actions/ocade_document.ps1`, `actions/ocade_workbook.ps1` | Implement/qualify native Microsoft Office PDF export where promised; retain LibreOffice fallback with truthful provenance. |
+| ☐ C08 | P1 · partial | `ocade_computer.py`, file actions and verification | Complete overwrite, external-change, symlink, ancestor-mutation, undo/trash and time-of-check/time-of-use tests. Never claim untouched after a partial mutation. |
+| ☐ C09 | P1 · recorded failures | `ocade_media.py`, `ocade_documents.py`, media oracles | Finish video captions/audio/duration/project reliability; repair spreadsheet output errors and CAD semantic quality. Reopen final and editable project files independently. |
+| ☐ C10 | P1 · partial | `agent.ts`, `background.server.ts`, file result display | Persist per-artifact production method. Named-app requests must use that app or clearly disclose the actual substitute before claiming fulfillment. |
+| ☐ C11 | P1 · unqualified | `src/lib/library/library.functions.ts`, `src/routes/_authenticated/library.tsx` | Prove private preview/Open/Download, exact bytes/names, expired access, pagination, deleted objects and storage outages. No other-account artifact access. |
+
+### D. Models, intelligence, capacity and offline operation
+
+| ID | Priority / state | Exact owners | Remaining work and acceptance |
+|---|---|---|---|
+| ☐ D01 | P1 · partial | `src/lib/intelligence/{edge-handler,online-models,online-client,contract}.ts` | Qualify the exact configured Gemini model and all key-slot failure modes. No key rotation to evade shared quota; no tool execution from incomplete/empty/refused responses. |
+| ☐ D02 | P1 · blocked | `workers-ai.ts`, `quality.ts`, `QualityControl.tsx`, `router.ts` | Establish actual Gemma High availability and included capacity. Test fragmented calls, terminal handling, screenshots, reasoning isolation and accounting. Fail closed when capacity cannot be verified. |
+| ☐ D03 | P1 · confirmed partial fix | `src/jarvis/live-deps.ts` | Scope research capability observations correctly; clear on relevant changes. Test both provider and account transitions. |
+| ☐ D04 | P1 · capacity blocker | `edge-handler.ts`, `live-deps.ts`, commercial usage policy | One overall retry deadline/budget; distinguish temporary overload from daily exhaustion. Verify no retry storms, hidden model switching or duplicate charging. |
+| ☐ D05 | P1 · unqualified | `src/lib/commercial/{generation-gate,supabase-ledger,entitlement-resolver,usage-policy}.ts` | Measure actual cost per verified task and sustainable concurrency. Free-project quota is not a paying-customer capacity plan. |
+| ☐ D06 | P2 · experimental | `src/lib/intelligence/system-prompt.ts`, `online-client.ts`, `agent.ts`, `background.server.ts` | Compare default, V2 and unified prompts on fixed code and identical tasks. Select by verified success, false completion and total cost; align foreground/background prompt identity. |
+| ☐ D07 | P1 · blocked | `release/OCADE_OFFLINE_RELEASE.json`, `offline-release.functions.ts`, `src/routes/api/offline/bytes.$release.ts`, `wrangler.json` | Qualify the actual signed OCADE model through the private R2 binding. A stand-in model only validates the transport pipeline. |
+| ☐ D08 | P1 · partial | `src/lib/brain/{model-transfer,model-store,model-vault,installation-authority,runtime-activation}.ts`; `adapters/browser-wasm.ts` | Test interrupted/resumed download, signatures/hash, insufficient disk/RAM, concurrent tabs, corruption quarantine, upgrade and complete removal. |
+| ☐ D09 | P1 · recorded failure | `public/sw.js`, `public/offline.html`, `scripts/e2e/{shell,offline-real}-journey.mjs` | Localize `SHELL-23-01` using the complete failing sequence. Previously prepared Chat must reopen and run the real model offline without stale private data. |
+| ☐ D10 | P1 · unqualified | `src/lib/chat/use-chat.ts`, `src/lib/intelligence/{router,offline-transport}.ts` | Qualify Auto/Online/Offline separately; preserve meaningful partial output rules and explicit consent. Test real answer quality and Indian-language cases, not merely emitted text. |
+
+### E. Browser, PC and application discovery
+
+| ID | Priority / state | Exact owners | Remaining work and acceptance |
+|---|---|---|---|
+| ☐ E01 | P1 · confirmed | `ocade_device.py`, `device.server.ts`, `ocade_computer.py` | Fix icon aggregate budget and persistence acknowledgement, F02–F03. Core control exchange remains independent of optional metadata. |
+| ☐ E02 | P1 · partial | `ocade_computer.py`, `ocade_discovery.py`, device schema | Introduce stable, scoped app identities and inventory revisions; retain names for display. Handle duplicate names, version changes, moved executables and stale catalogs. |
+| ☐ E03 | P1 · confirmed | `mention.tsx`, `JarvisWorkspace.tsx`, `bubble-state.ts`, persisted turn contract | Fix F07; retain app/device choices through failure, retry, history and handover. Explicitly handle multiple devices. |
+| ☐ E04 | P2 · confirmed | `mention.tsx`, `jarvis.functions.ts` | Fix F08 catalog caching; display offline/revoked/stale states honestly. |
+| ☐ E05 | P1 · unqualified | `ocade_computer.py` icon extraction; native packaging | Qualify Windows shortcuts/UWP, macOS ICNS and Linux desktop icons, including missing/corrupt/oversized data. A generic fallback is acceptable and must not prevent operation. |
+| ☐ E06 | P1 · partial | `ocade_existing_browser.py`, `actions/ocade_page.js`, `ocade_device.py` | Prove tab/window identity, redirects, popups, file upload/download, existing-session access and account isolation. Never copy cookies or bypass CAPTCHA/human verification. |
+| ☐ E07 | P1 · partial | `ocade_accessibility.py`, `ocade_computer.py` | Qualify Windows UI Automation and supported macOS accessibility behavior; stale observations and wrong-window actions must refuse safely. |
+| ☐ E08 | P0/P1 · platform boundary | `ocade_computer.py` command execution; `ocade_egress.py` | Preserve current disclosures and confirmation rules. Windows/macOS workspace argument checks are not an OS sandbox. Either implement/prove confinement for general generated code or restrict the shipped claim/capability. |
+| ☐ E09 | P1 · partial | `ocade_discovery.py` learned recipes; execution selection | Prove unfamiliar-app operation using actual discovered APIs/docs/accessibility. Recipes must expire on incompatible changes and never retain secrets, private content or reusable coordinates. |
+| ☐ E10 | P1 · unqualified | `ocade_update.py`, `ocade_identity.py`, `packaging/release.py`, Windows `.iss`, macOS `build.sh`/entitlements | Produce and qualify signed install/update/rollback/uninstall flows on real supported platforms. Verify signature failure, interrupted update, old-client compatibility and preservation of customer work. |
+
+The existing discovery implementation already enumerates Windows Start applications/shortcuts, macOS application bundles and Linux desktop entries. It should not be described as merely a hardcoded app list.
+
+What remains weak is **identity, freshness, capability quality and qualification**, not the complete absence of dynamic discovery.
+
+### F. Chat, UI/UX, voice and mobile
+
+| ID | Priority / state | Exact owners | Remaining work and acceptance |
+|---|---|---|---|
+| ☐ F01 | P1 · partial | `ChatWorkspace.tsx`, `MessageList.tsx`, `JarvisWorkspace.tsx`, conversation lists/panels | Finish one coherent conversation/navigation experience while preserving Chat/JARVIS capability differences. Handover must preserve intended context and attachments without accidental execution. |
+| ☐ F02 | P1 · recorded flakiness | `JarvisWorkspace.tsx`, settings dialog, `scripts/e2e/jarvis-journey.mjs` | Localize capacity-message, exhausted-allowance and Settings→Devices failures. Do not close on a passing rerun or add sleeps as the fix. |
+| ☐ F03 | P2 · partial | `src/styles.css`, `src/lib/appearance.tsx`, `use-follow-bottom.ts`, existing Chat/JARVIS components | Complete typography, spacing, mobile layout, long messages, tables/code, reduced motion and light/dark consistency using existing OCADE colors. No new design system dependency. |
+| ☐ F04 | P1 · unqualified | Existing dialogs, menus, mention combobox and task controls; visual/polish/control journeys | Keyboard-only and screen-reader flows; focus restoration; live announcements; accessible STOP and error recovery; 200% zoom and narrow layouts. |
+| ☐ F05 | P1 · partial | `src/jarvis/use-voice.ts`, `src/lib/chat/use-dictation.ts`, Voice settings | Prove recognition, TTS, interruption, mute/end, permission denial, late callbacks and text continuity on supported browsers. One microphone/session owner. |
+| ☐ F06 | P2/P1 if advertised | `use-voice.ts`, `ocade_wake.py`, `android/.../WakeService.java`, `WakeModel.java` | Qualify wake false accepts/rejects, battery/privacy and real accents/languages. A licensed natural voice is additional provider/licensing work, not delivered by browser TTS alone. |
+| ☐ F07 | P1 · partial | `android/src/in/ocade/app/{AgentService,Control,Identity,OcadeAccessibility,MainActivity,Bubble}.java` | Complete Android install, permissions, real gestures, process death, reboot, reconnect, durable receipts and STOP. Emulator and physical-device evidence must remain distinct. |
+| ☐ F08 | P1 · unqualified | PWA routes, `public/sw.js`, manifest, `docs/MOBILE_DEVICE_CONTROL.md` | Qualify Safari/iOS PWA and remote-PC flows. Do not promise arbitrary local iPhone control or a system-wide overlay. |
+| ☐ F09 | P1 · unqualified | `src/lib/notifications/{send.server,web-push,delivery,preference-sync}.ts` | Real push/email provider tests, revocation, expiry, retries and notification preferences. No messages after permission/account revocation; delivery failures visible. |
+| ☐ F10 | P1 · unqualified | Shared account/task state; device routes and Android lifecycle | Cross-device history, mobile-to-PC control, sleep/disconnect/reconnect and concurrent user interference. Exactly one controller owns a shared interactive resource. |
+
+### G. Memory, authentication, administration and customer data
+
+| ID | Priority / state | Exact owners | Remaining work and acceptance |
+|---|---|---|---|
+| ☐ G01 | P1 · partial | `jarvis.functions.ts`, `protocol.ts`, `agent.ts`, memory UI/storage | Fix memory provenance and lifecycle, F10. Verify inspect/delete/disable behavior and no cross-account leakage. |
+| ☐ G02 | P1 · recorded configuration mismatch | `auth.index.tsx`, `auth.verify.tsx`, `auth.callback.tsx`, `src/lib/auth/{otp,provider-availability,recovery-link}.ts` | Align numeric-code UX with actual email templates; qualify Google callbacks, expired codes, resend, recovery and safe redirect handling. |
+| ☐ G03 | P0 qualification | Supabase RLS/policies; `session-middleware.ts`; account-scoped functions | Cross-account conversation, file, device, memory, support and subscription access tests through both UI and direct APIs. |
+| ☐ G04 | P1 · partial | `src/lib/admin/{access.functions,staff.functions,route-gate}.ts`, `ConsoleModules.tsx`, admin route | Prove each role’s read/write reach, proof target, owner transfer, support consent expiry, revocation and audit record. Localize recorded ownership-journey flakiness. |
+| ☐ G05 | P1 · unqualified | `src/lib/account/erase.server.ts`, Library tombstones, account export/settings | Complete large export, interrupted deletion, storage failure, identity-last removal and retention reconciliation. “Pending” must never become “erased” without proof. |
+| ☐ G06 | P1 · operational | Existing database/storage backup and recovery configuration; testing/security contracts | Rehearse restore and verify tenant isolation, retention and erasure obligations after restoration. Define and measure recovery objectives. |
+| ☐ G07 | P1 · unqualified | `device.server.ts`, task/frame storage, logs and notifications | Prove screenshot/frame expiry, secret redaction, log access control and deletion. Installed-app inventory is also customer data. |
+
+### H. Commercial launch, infrastructure and operations
+
+| ID | Priority / state | Exact owners | Remaining work and acceptance |
+|---|---|---|---|
+| ☐ H01 | P0 for paid launch | `src/lib/payments/pricing.ts`, `BillingSection.tsx`, `src/routes/pricing.tsx`, commercial policies | Resolve conflicting historical plan names/prices with one approved catalog. Keep current code behavior until authorized. Marketing, entitlement and billing must agree. |
+| ☐ H02 | P0 for paid launch · missing | Existing commercial/ledger boundaries; future chosen provider integration | Implement sandbox checkout and verified webhook processing only after merchant/provider approval. Test duplicate, reordered, forged, delayed and missing events. |
+| ☐ H03 | P0 for paid launch · missing | Entitlement resolver, subscription ledger and billing UI | Complete upgrades, downgrades, renewal, cancellation, refund, failed payment, expiry and reconciliation. An admin grant is not a purchased subscription. |
+| ☐ H04 | P0 qualification | `generation-gate.ts`, usage/lease functions and SQL | Prove one charge per server-verified task; no charge for stopped/failed/unverified/duplicate work. Test concurrency across tabs/devices and crash recovery. |
+| ☐ H05 | P1 · capacity requirement | Cloudflare Worker/R2, Supabase connections/storage, provider routing | Load-test intended concurrency, request sizes, query bounds and failure recovery. Alert on exhaustion; keep spend ceilings enforceable. |
+| ☐ H06 | P1 · unqualified | `wrangler.json`, observability/error paths, existing operations surfaces | Correlate task/model/action/delivery failures without storing sensitive payloads. Establish owner-visible outage and incident signals. |
+| ☐ H07 | P0 for launch | Privacy/terms routes, `LegalContent.tsx`, `legal-document-meta.ts`, `docs/SUPPORT_LEGAL_SECURITY.md` | Qualified review of privacy, consumer, payment, tax, cancellation/refund, remote-control consent, subprocessors and applicable jurisdictions. Confirm operational behavior matches published terms. |
+| ☐ H08 | P0 for distribution | Upstream/root notices, `THIRD_PARTY_NOTICES.md`, package locks, runtime pins, model release | Complete a distribution-specific license/SBOM review: code, models, browser binaries, fonts, media, codecs, native utilities and signing assets. |
+| ☐ H09 | P1 · operational | Help/support routes, console cases, notifications | Prove customer contact, support-case lifecycle, consented access, security reporting, deletion/refund handling and response ownership. |
+| ☐ H10 | P0 release gate | `scripts/verify-full.mjs`, existing journeys/oracles, `docs/TESTING.md` | Freeze one candidate, run authorized exact-environment qualification, resolve unexplained failures, conduct independent review, pilot, rollback rehearsal and final approval. |
+
+### I. Optional DeepSeek expansion—after the core product works
+
+| ID | Priority | Existing integration boundary | Admission condition |
+|---|---|---|---|
+| ☐ I01 | P2 | Durable sessions/context in `engine.ts` and existing persistence | Adopt more session/projection/compaction behavior after B01–B03 and C01–C05. |
+| ☐ I02 | P2 | Typed tools, user questions and approval presentation | Use upstream schema/presentation patterns only if they remove duplication and preserve broker authority. |
+| ☐ I03 | P3 | MCP/skills behind the existing capability broker | One connector/skill must demonstrably complete a required task better; pin, review, scope and revoke it. |
+| ☐ I04 | P3 | Isolated programmatic executor | PTC must reduce measured model round trips without broadening filesystem/network authority. |
+| ☐ I05 | P3 | Coding-specific tooling | LSP only for a real coding-product commitment; preserve language-server sandboxing and cancellation. |
+| ☐ I06 | P3 | Parent-owned read-only delegation | Subagents only after cost, cancellation, isolation and evidence merging are proven. No concurrent control of the same desktop. |
+
+These optional items are not excuses to postpone correcting the existing product.
+
+### Coverage of the existing 200-item ledger
+
+The checklist above groups rather than duplicates the 200 requirements:
+
+| Existing requirement range | Covered principally by |
+|---|---|
+| 1–25: reliability, models, capacity, architecture | B, C, D |
+| 26–44: task intelligence, control, recovery, verification | B, C, E |
+| 45–57: Chat, research, files, memory, voice | D, F, G |
+| 58–74: documents, media, unfamiliar apps, deliverables | C, E |
+| 75–85: actual offline model | D07–D10 |
+| 86–100: desktop/mobile installation and lifecycle | E10, F07–F10 |
+| 101–113: UI and accessibility | F01–F04 |
+| 114–130: authentication and security | A, B04–B06, G |
+| 131–144: entitlements, cost and payments | D05, H01–H04 |
+| 145–157: performance, infrastructure and recovery | B, D, E, G06, H05–H06 |
+| 158–174: complete qualification | All acceptance conditions, H10 |
+| 175–189: legal, support and pilot | H07–H10 |
+| 190–200: comparisons, cleanup, independent review and launch | I, Sections 8–11, H10 |
+
+References to `phases.md` and “200 + 190” requirements remain in repository documents, but the current tree does not contain the referenced `phases.md`. The 200-item ledger is present and reviewed. Missing source text for any additional requirement set must be recovered from its existing provenance before claiming complete traceability; it must not be reconstructed from guesswork.
+
+## 8. What to keep, consolidate, remove or avoid
+
+### KEEP
+
+- `task-authority.server.ts` as the final task-settlement authority.
+- Server and device permission checks, recent proof, replay protection and STOP enforcement.
+- Exact `filledRows`, fresh read-back and mutation-invalidation safeguards.
+- Existing provider terminal validation and explicit Gemini/High routing.
+- Dynamic app discovery and platform launch resolution.
+- Typed Office, spreadsheet, PDF and media adapters with useful deterministic behavior.
+- Existing signed-release/update/identity machinery.
+- Existing account isolation, RLS, audit and deletion mechanisms.
+- Existing React/Tailwind components and OCADE color tokens.
+- Regression tests, migration history, license notices and meaningful incident evidence.
+
+### CONSOLIDATE after parity tests
+
+| Current duplication | Canonical replacement | Proof before retirement |
+|---|---|---|
+| Foreground/background execution decisions | Shared run transition policy in existing engine/task owners | Equivalent traces, STOP, restart, delivery and charging. |
+| Bubble/Workspace admission and cleanup | One account-owned run lifecycle | Navigation, late callbacks, handover, double-send and account switch. |
+| Final model prose versus task/delivery status | One terminal result projection | Contradictory model output cannot mislabel completion. |
+| Tool descriptions versus validator behavior | Shared schema-driven presentation where practical | Unknown fields refused; correct provider schemas; no capability expansion. |
+| App-name matching scattered through UI | Structured app references and one parser | Duplicate names, Unicode, multiple devices and reload. |
+| Retry layers | One overall retry budget/deadline | No multiplied requests; correct Retry-After; STOP interrupts waits. |
+| Redundant observations/context | Bounded event projection and retrieval | Equivalent task quality and preserved evidence. |
+
+### REMOVE only when callers and replacement proof exist
+
+- Superseded lifecycle branches after the canonical lifecycle passes.
+- Unused experimental planner/prompt code after a measured decision and reference check.
+- Repeated summaries that no longer feed model context, history or customer evidence.
+- Dead UI/control paths after reachability and accessibility proof.
+- Unused dependencies established by build/caller evidence.
+
+**No whole OCADE subsystem is presently proven safe to delete simply because DeepSeek has a similarly named package.**
+
+### AVOID
+
+- Replacing the companion with Harness browser/computer interface packages.
+- Deleting `ocade_media.py`, `ocade_sheets.py` or `ocade_documents.py` before a better replacement proves fidelity and safety.
+- A simultaneous React/TanStack/Zod/Cordis migration.
+- A new event bus, workflow platform or plugin marketplace before the core workflows are reliable.
+- Hardcoded app permission decisions based solely on brand-name regexes.
+- Raising sequence limits merely to reduce model calls without local cancellation and resource-control proof.
+- Silent paid inference or new provider accounts.
+- Automatic schedules, background wakeups or continuation policies not explicitly authorized.
+- Treating more tests, more files or more upstream packages as higher product completion.
+
+## 9. Dependency-ordered implementation roadmap
+
+### Phase 0 — Establish the exact candidate and safe database baseline
+
+**Work:** A01–A08; requirement/provenance reconciliation.
+
+**Completion conditions:**
+
+- Candidate SHA, schema version, Worker/asset identity and companion protocol are recorded together.
+- Fresh database replay succeeds.
+- Staging matches the intended candidate.
+- Critical completion, STOP, proof and support predicates pass direct negative tests.
+- Deployment access exposure and approval isolation are resolved through the authorized process.
+- No implementation permission is inferred from this audit.
+
+**Planning effort:** 1–2 engineer-weeks, excluding owner-controlled access/remediation lead time.
+
+### Phase 1 — Repair the newly introduced integration defects
+
+**Work:** F02–F08 findings; C01–C04; E01–E04.
+
+**Completion conditions:**
+
+- Large app catalogs cannot break control traffic.
+- Failed icon writes retry correctly.
+- App/device selection survives message-save failure and reload.
+- Exact filesystem identity survives delivery.
+- Database outages produce pending/partial delivery, not empty success.
+- Final status and prose agree with server verification and actual artifacts.
+
+**Planning effort:** 1–2 engineer-weeks.
+
+### Phase 2 — Finish one execution and recovery lifecycle
+
+**Work:** B01–B10; G01; DeepSeek session/projection adaptation.
+
+**Completion conditions:**
+
+- Foreground/background/bubble/workspace consume equivalent persisted state.
+- Restart tests cover every model/action/receipt/delivery boundary.
+- Unknown effects are reconciled.
+- STOP, permission revocation and account switches cannot revive old work.
+- Context reduction preserves goal, constraints, evidence and pending work.
+- No new optional ecosystem dependency is required for this phase.
+
+**Planning effort:** 2–4 engineer-weeks.
+
+### Phase 3 — Make the core customer workflows genuinely reliable
+
+**Work:** C05–C11; E06–E09; D01–D06.
+
+Prioritize:
+
+1. Spreadsheet reconciliation and correct formulas.
+2. Spreadsheet → editable document → PDF.
+3. Browser research → structured report/spreadsheet with citations.
+4. Correct output delivery and reopening.
+5. Image/video tasks within the advertised scope.
+6. Unfamiliar application tasks and CAD only with honest capability boundaries.
+
+**Completion conditions:**
+
+- Independent semantic oracles pass.
+- Originals and user edits are preserved.
+- Named-editor requirements are satisfied or substitutions disclosed accurately.
+- No false completion in the frozen qualification corpus.
+- Required workflow families meet the repository’s ≥95% success gate.
+- Quota interruptions are reported and recovered without duplicate work.
+
+**Planning effort:** 3–5 engineer-weeks; model availability may dominate calendar time.
+
+### Phase 4 — Qualify model capacity, High and actual Offline
+
+**Work:** D02, D04–D10, H04–H06.
+
+**Completion conditions:**
+
+- Standard, High and Offline each pass their own tests.
+- Actual offline artifact installs, survives restart and answers with the network disabled.
+- Provider quotas/costs support the proposed customer load.
+- Retry and outage behavior is bounded.
+- Measured p50/p95 latency and cost per verified task exist.
+- The sequence-dependent offline-shell failure is resolved.
+
+**Planning effort:** 2–4 engineer-weeks.
+
+### Phase 5 — Complete desktop/browser distribution and control
+
+**Work:** E05–E10; native STOP and Office tests.
+
+**Completion conditions:**
+
+- Signed Windows/macOS packages install, pair, update, roll back and uninstall.
+- Native Office and browser tasks pass on supported versions.
+- Wrong-window, stale-observation, user-input and disconnection cases are safe.
+- Any generated-code confinement claim is independently proven.
+- Unsupported platform behavior is disabled or explicitly excluded from claims.
+
+**Planning effort:** 4–7 engineer-weeks plus signing and hardware lead time.
+
+### Phase 6 — Finish UI, voice, mobile and customer account operations
+
+**Work:** F01–F10; G02–G07.
+
+**Completion conditions:**
+
+- Complete keyboard/screen-reader/mobile customer journeys.
+- No unexplained journey flakiness.
+- Voice end/pause/interrupt never revives the microphone unexpectedly.
+- Android lifecycle and physical-device qualification complete.
+- iOS claims match Apple-permitted functionality.
+- Export, erasure, recovery, staff access and notifications work under failure.
+
+**Planning effort:** 4–7 engineer-weeks.
+
+### Phase 7 — Complete commerce and launch operations
+
+**Work:** H01–H09.
+
+**Completion conditions:**
+
+- Approved catalog and merchant.
+- Sandbox payment lifecycle and webhook reconciliation pass.
+- Entitlements and usage remain correct under concurrency and retries.
+- Legal, license, privacy, support and incident requirements are operational.
+- Capacity and economics support paying customers.
+- Any live transaction or production change remains separately authorized.
+
+**Planning effort:** 3–5 engineer-weeks plus commercial/legal lead time.
+
+### Phase 8 — Independent qualification and controlled launch decision
+
+**Work:** H10; complete frozen release gates.
+
+**Completion conditions:**
+
+- Exact candidate passes required suites and real workflows.
+- No unresolved critical/major defect or unexplained required-test failure.
+- Independent adversarial review complete.
+- At least five consenting pilot users complete the required pilot.
+- Rollback and restore rehearsals pass.
+- Public claims match the qualified scope.
+- Owner explicitly approves launch.
+
+**Planning effort:** 3–5 engineer-weeks, including qualification work; pilot elapsed time remains additional where required.
+
+**Overall planning range:** approximately **23–41 engineer-weeks** for the broad currently promised product, with substantial uncertainty around native platforms, semantic task quality, commerce and access. Some work can proceed in parallel after Phases 0–2. This is an effort estimate, not a completion percentage or delivery promise.
+
+Optional MCP/PTC/LSP/subagent expansion is additional work and should not delay fixing the existing product.
+
+## 10. Performance and competitor benchmarks
+
+### 10.1 Changes likely to improve speed
+
+These are hypotheses to measure, not achieved results.
+
+| Change | Expected mechanism | Measure |
+|---|---|---|
+| Bounded parallel independent reads | Overlap research/document latency | Wall time versus the same serialized calls; preserved result order. |
+| Deterministic delivery | Avoid a model turn merely to transfer finished files | Model calls and time between verified result and downloadable artifact. |
+| Shared durable session projection | Avoid reconstructing large histories repeatedly | Resume latency, database reads and prompt tokens. |
+| Better tool schemas | Reduce invalid calls and no-op “successes” | Validation failures and model calls per verified task. |
+| Native API/file operations before GUI | Reduce interaction count and visual ambiguity | Total task time, fidelity and human interventions. |
+| Revisioned app catalogs/icons | Avoid repeated scans and large exchange payloads | Exchange bytes, catalog freshness and control latency. |
+| Evidence-preserving compaction | Reduce repeated prompt/context cost | Input tokens and success on long tasks. |
+| One retry budget | Prevent multiplicative upstream attempts | Requests per failure, delay, cancellation latency and cost. |
+| Targeted state refresh | Reduce unnecessary polling/screenshots | Requests, CPU, transfer volume and freshness under reconnect. |
+
+Do not raise the 12-action segment limit, introduce PTC or parallelize device actions until measured bottlenecks justify it.
+
+### 10.2 Competitive context
+
+Official documentation shows that competitors already offer substantial combinations of computer access, tools, files, permissions and ongoing work. OCADE’s opportunity is to demonstrate superior outcomes on a defined customer workload.
+
+| Comparator | Relevant reference point | OCADE benchmark to pursue |
+|---|---|---|
+| **ChatGPT Agent / Work** | Tool-mediated work and controlled computer access. OpenAI’s integration guidance emphasizes actual observations, execution controls and evaluation of success/time/recovery. [Official integration guidance](https://developers.openai.com/api/docs/guides/tools-computer-use-integration#use-your-own-ui-tools) | Better verified completion, fewer interventions and lower cost on the same local Office/browser task suite. Do not infer product limitations from API examples. |
+| **Claude / Code / Cowork** | Official guidance describes connectors, browser and screen interaction, including local applications. [Claude computer-use documentation](https://support.claude.com/en/articles/14128542-let-claude-use-your-computer-in-cowork) | Native file fidelity, exact application targeting, reliable STOP and restart without duplicate changes. |
+| **Gemini** | Google documents computer use in Gemini 3.5 Flash across browser/mobile/desktop agent scenarios. [Google announcement](https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-computer-use-gemini-3-5-flash/) | Compare complete products and orchestration separately from model capability. Test output quality, latency, quotas and UI recovery. |
+| **Manus** | Browser Operator supports an authorized local-browser workflow and user intervention. [Manus Browser Operator](https://manus.im/blog/manus-browser-operator) | Cross-app local document fidelity, browser-to-PC continuity and independently verified artifacts. |
+| **Muse** | Meta describes a persistent isolated computer/browser and goal-oriented work. [Muse](https://ai.meta.com/muse) | Explicitly scoped local-PC workflows, portable artifacts, reliable resume and measurable privacy/control behavior. |
+| **Dots** | Official documentation distinguishes a cloud computer, connected local computer and app/plugin permissions. [Dots computers and apps](https://learn.chatgpt.com/docs/dots#its-computer-and-yours) | Manual-continuation compliance, task-state transparency, device identity and safe multi-device workflows. Always-on operation is not an OCADE default under current owner policy. |
+| **Grok Bot** | Official announcement describes agents with computers, memory and cross-app work. [Grok Bot](https://x.ai/news/introducing-grok-bot) | Artifact correctness, permission adherence, cost predictability and recovery on matched tasks. No comparative result is established. |
+| **OpenClaw** | Its documentation emphasizes pairing, tool scope, sandboxing and plugin trust. [Security and access control](https://docs.openclaw.ai/help/faq/security-and-access-control) | Easier safe onboarding, stronger tenant isolation, bounded plugin authority and verifiable result delivery. |
+| **Codex, Cursor, Devin** | Include when OCADE claims coding-agent competitiveness. | Repository tasks with tests, reviewable diffs, dependency safety and accurate validation reports. LSP/subagents alone do not establish parity. |
+| **Perplexity Comet** | Include for browser/research competition. | Citation quality, authenticated browser workflow correctness, action provenance and safe takeover. |
+
+No head-to-head results were produced in this audit. Product tiers, versions, available capabilities and account restrictions must be recorded when benchmark runs are authorized.
+
+### 10.3 Benchmark design
+
+Run two distinct experiments:
+
+1. **OCADE architecture A/B:** same actual model, tools, tasks, devices, quotas and oracles; change only the orchestration/integration.
+2. **Product comparison:** actual available competitor products, with their normal capabilities and disclosed constraints.
+
+Use held-out cases across:
+
+- Research and citation verification.
+- Spreadsheet reconciliation and formula correctness.
+- Editable documents, presentations and PDF layout.
+- Browser forms/downloads with account boundaries.
+- Unfamiliar local applications.
+- Image/video editing and editable project output.
+- Long-running/restarted tasks.
+- STOP, revocation, prompt injection and unknown-effect recovery.
+- Offline installation and actual offline answers.
+- Accessibility, onboarding and mobile handover.
+
+Report:
+
+- Verified success and denominator by family.
+- False-completion rate.
+- Wrong-target or unauthorized effects.
+- p50/p95 end-to-end completion time.
+- Model calls and input/output tokens.
+- Total cost per verified successful task.
+- Human interventions and confirmations.
+- Duplicate side effects after retries.
+- Recovery success after injected failures.
+- Artifact fidelity and original-file preservation.
+- BLOCKED/unsupported cases separately.
+
+### Proposed measurable superiority criteria
+
+These are proposed targets, not current results:
+
+- Meet the existing **≥95% independently verified success per major workflow family**.
+- Observe **zero false completions and zero unauthorized effects** in the frozen release corpus; report sample size and statistical uncertainty.
+- For architecture promotion, demonstrate at least a meaningful measured latency/cost improvement—such as **20% lower median time or cost**—with no material loss in success, safety or p95 behavior.
+- Measure STOP acknowledgement separately from the time an already-running external operation actually ceases.
+- Demonstrate restart recovery without duplicate irreversible effects across a predefined fault-injection matrix.
+- Require at least 30 varied tasks per major family for an initial estimate; larger samples and confidence intervals are necessary for strong comparative claims.
+
+The current few successful photo/video/Office cases are useful engineering evidence, not a competitive success rate.
+
+## 11. Release gates and final assessment
+
+### Current qualified release status
+
+| Gate | Requirement | Audit assessment |
+|---|---|---|
+| R1 | Exact-candidate full verification and reproducible build | **Not qualified.** Recorded suites exist; exact dependency/environment and complete release proof remain. |
+| R2 | Real staged account/auth/tenant/commercial journeys | **Not qualified.** Schema provenance, authentication and commercial work remain. |
+| R3 | Both provider protocols, all slots, quotas and cost guard | **Partial / not qualified.** Some real slot evidence exists; High/capacity qualification remains. |
+| R4 | ≥95% real-task success per major family | **Not qualified.** Current semantic failures and insufficient samples prevent passage. |
+| R5 | Native history/restart/ownership/STOP/unknown-effect recovery | **Partial / not qualified.** New delivery work does not close the complete matrix. |
+| R6 | Signed Windows/macOS install/update/rollback | **Blocked / unqualified.** |
+| R7 | Android and supported iOS lifecycle/control | **Blocked / unqualified.** |
+| R8 | Completed independent security triage | **Not qualified.** Production schema drift, exposure/configuration work and independent review remain. |
+| R9 | Approved deployment isolation and rollback rehearsal | **Not qualified.** |
+| R10 | Capacity, privacy, support and commercial acceptance | **Not qualified.** Paid launch functionality and operational evidence remain. |
+
+The repository’s latest requirement ledger records **0 of 10 release gates qualified**. This audit provides no basis to promote any complete gate to PASS.
+
+### Verified progress
+
+- Five additional commits implement a coherent first integration slice.
+- DeepSeek-derived scheduling, pruning and mention behavior exist.
+- Durable file handover has materially improved.
+- Markdown, draft handover and scrolling improve the customer experience.
+- Native discovery, typed tool execution, permissions, STOP, verification and commercial accounting already have substantial implementation worth preserving.
+- The new integration adds no upstream runtime dependency stack.
+- Licensing attribution for the admitted derived code exists.
+- The source and ledgers honestly preserve many unresolved tests.
+
+### What prevents a 100% production-ready claim
+
+1. **Production does not match important current security contracts.**
+2. **Staging lacks reproducible migration history.**
+3. **New icon transport and acknowledgement defects affect device reliability.**
+4. **Delivery identity, failure handling and final-result presentation remain incomplete.**
+5. **Execution and resume ownership remain duplicated.**
+6. **Independent semantic verification is insufficient for several promised workflows.**
+7. **Real-task reliability has not met the frozen family-level gate.**
+8. **High mode, actual Offline and sustainable paid capacity remain unqualified.**
+9. **Signed native distribution, platform lifecycle and real STOP testing remain incomplete.**
+10. **Payments, subscriptions, legal/commercial acceptance and operational rehearsal remain unfinished.**
+11. **Known flakiness and the offline-shell failure remain unexplained.**
+12. **No authorized head-to-head benchmark establishes competitive superiority.**
+
+**Recommended next authorized coding milestone:** complete Phases 0–2 and demonstrate one end-to-end workflow—real input, correct multi-app execution, independent verification, reliable delivery, interruption/restart and STOP—on a reproducible candidate. Expand proven capability from that foundation while preserving the complete backlog above.
