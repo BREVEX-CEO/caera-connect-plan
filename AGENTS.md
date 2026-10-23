@@ -2,6 +2,12 @@
 
 CARCC is the company; OCADE is the product. The owner's latest explicit instruction controls scope. [Open work and continuation](BLOCKED_TESTS.md) owns the unresolved implementation/check queue. [Decisions](docs/DECISIONS.md) records current requirements and the deleted plan archive; historical records and imports are evidence, not competing work lists.
 
+## New authorized upstream intake — 23 October 2026 (DeepSeek Harness)
+
+The owner explicitly authorizes preparing an intake for the MIT-licensed **deepseek-ai/deepseek-harness** source ZIP, and subsequent **conditional integration and proof-gated debloating** on `ocade/p00-p22-implementation`. This is a **new named upstream**, **not** the removed October donor ZIPs. The earlier ban on resurrecting those deleted donor sources remains. Intake is **not runtime approval**: the ZIP is not connected simply because it appears, and no unsandboxed code, scripts, third-party plugins or computer commands run automatically.
+
+When the user-supplied ZIP is available, first read [the upload instructions](external/deepseek-harness/README.md) and [integration contract](docs/integrations/deepseek-harness.md), then inspect source identity, path safety, licensing, dependencies and security before introducing a narrow reversible adapter. If the ZIP exceeds GitHub's browser upload limit, a local checkout/download of the same pinned upstream commit is acceptable; do not bloat Git history or buy LFS storage. Preserve **one OCADE-owned authority for identity, task, permissions, STOP, model quotas, device access and independently verified completion**; avoid uncontrolled second agent planners, duplicate executors and app-name hardcoding. Do not turn on DeepSeek inference or spend money without authorized model access and explicit spending approval. Remove existing code only after verifying that its replacement works as well or better. Update existing work ledgers rather than inventing another master list. Public deployment, main merge, payments and scheduled continuation remain prohibited without separate owner authorization.
+
 ## Start and resume
 
 Continue only in manually initiated sessions. Never create, enable, resume or modify scheduled tasks, recurring automations, cron jobs or timed continuation without the owner's explicit permission. A usage reset alone does not authorize an automatic continuation.
