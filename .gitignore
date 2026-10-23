@@ -39,3 +39,8 @@ wrangler.e2e.json
 # Python bytecode is generated, never source.
 __pycache__/
 *.pyc
+
+# Optional DeepSeek Harness source intake: extracted archives are local only.
+# The incoming ZIP path is intentionally NOT ignored: browser upload is optional.
+external/deepseek-harness/unpacked/
+external/deepseek-harness/.extract-*/
