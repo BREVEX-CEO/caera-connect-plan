@@ -15,6 +15,149 @@ The implementation must **not stop at a reference-only submodule or a few DeepSe
 
 **Success means independently verified completed customer work**—not importing a percentage of the 16,297 upstream files, passing only unit tests, or claiming competitors have been beaten. Benchmark quality, verified completion, task latency, model calls, false successes, recovery, file integrity, resource use, and approved cost on matched real tasks. Identify areas where Muse, Dots, Grok Bot, ChatGPT Agent/Work, Claude, Gemini, Manus, OpenClaw, Cursor and Devin outperform OCADE; use those comparisons as measurable targets, never unsupported victory claims.
 
+
+## VERIFIED DEEPSEEK SOURCE-FILE ADOPTION BLUEPRINT — FIRST-PRIORITY IMPLEMENTATION CONTRACT
+
+**Owner instruction:** Go deeper than adapting ideas. Inspect the pinned DeepSeek Harness implementation file-by-file and maximize useful *actual source reuse* in the single OCADE agent. Import selected files/dependency-complete packages into a clearly identifiable, maintainable integration boundary and **make the code execute in real tasks**. Do not claim "integrated" merely because source exists under the submodule, a pattern was rewritten, or documentation mentions it. Prefer lawful, safe upstream source reuse where technically possible; explain tested incompatibility wherever adaptation is necessary.
+
+### 1. Exact inventory, number of files, and scope of the import
+
+The pinned upstream source contains **16,297 tracked files**. The original Codex dependency inventory (Appendix A `6) identified a *candidate evaluation envelope*: **33 core packages / 491 files / 145 source files**, plus **23 additional packages / 342 files / 101 source files**, totaling **56 packages / 833 files / 246 source files**. This is NOT an instruction to copy all 833 files or a tested production dependency graph. Its other 587 files include package configuration, tests, fixtures and documentation. The remaining **15,464 repository files** are outside this candidate evaluation envelope; they are not a default product import. External transitive dependencies and selected vendors must still be resolved and reviewed.
+
+Below is a **second, exact-path shortlist** independently cross-checked against the pinned upstream Git tree: **58 paths for the essential foundation, 49 for expanded capabilities, and 6 for strictly gated advanced capabilities**. These are reviewed source *candidates*, not a fabricated already-integrated count. They do not override the dependency closure (an upstream file may require additional sources). Preserve upstream tests and mandatory licences/notices in the engineering repository, not unnecessarily in the shipped client.
+
+**Numerical decision:** Audit the complete 56-package/246-source-file candidate envelope. Evaluate the verified shortlist first, then add any missing transitive source dependencies and other justified source files up to the compatible, useful subset of that 246-file envelope. **There is no compulsory minimum or percentage to copy.** If direct integration of all shortlisted paths fails compatibility/security/performance gates, retain only the tested, dependency-complete subset and document why. Conversely, do not artificially cap the implementation at a tiny wrapper count if real upstream functionality demonstrably helps. Physical file-copy counts, runtime-import counts, transitive package counts and deployed bundle size must be reported separately, based on actual builds.
+
+### 2. Mandatory source-adoption standards
+
+1. **Find and verify the precise pinned upstream file and its imports/exports.** Identify its `package.json`, workspace dependencies, generated files, patches, licences, tests, environmental APIs and side effects.
+2. **Choose one explicit disposition per source file:** (D) DIRECT/REAL IMPORT from a compatible package, (V) VENDOR selected source with attribution and dependency closure, (A) ADAPT with an annotated map of retained logic and changed OCADE interface, (R) REFERENCE/TEST ONLY, or (X) EXCLUDE with reason. Direct import is the preferred first *evaluation*, not a license to bypass OCADE boundaries.
+3. **Use exactly one task authority.** OCADE Supabase-backed admission, authenticated device identity, permission checks, STOP epoch, payment/model permits, verification and customer data isolation remain binding. No upstream plugin, child agent, tool or generated script may bypass these checks.
+4. **Measure before replacing.** Write the upstream/OCADE functional equivalence tests and adversarial cases; introduce a flag-gated reversible implementation; compare the same real task and errors; then remove only the superseded OCADE logic. Keep rollback and an authoritative action receipt path.
+5. **Keep runtimes honest.** Cloudflare Workers Node compatibility is incomplete. Never claim that a direct-import path is functional just because its TypeScript compiles. Test actual Worker execution or use a narrow portable adaptation; keep native browser/PC work in the paired OCADE Device Agent. No unapproved new cloud runners or account permissions.
+6. **Produce a traceable evidence table for EVERY admitted source file or complete dependency package:** Upstream path+pin → disposition → imported OCADE path/import statement → transitive dependencies and licences → feature it drives → removed OCADE symbol → tests → cost/latency/accuracy delta → rollback. No unsupported “100% DeepSeek integrated” claim.
+7. **No accidental product bloat.** Production builds must exclude unused test fixtures, docs, example apps, duplicate UI shells, unused binaries, telemetry, arbitrary plugin installers and local autonomous schedulers. Retain relevant tests in the dev suite; do not delete meaningful historical tests to make the codebase look smaller.
+
+### 3. Source files specifically selected for close evaluation
+
+### Wave A — essential agent/runtime sources (highest priority)
+
+All paths are rooted at the pinned DeepSeek revision; use the `src/` entries beneath each exact package directory.
+
+| Exact upstream package | Verified `src/` files to examine for direct reuse or bounded adaptation | Count | Desired OCADE behavior |
+|---|---|---:|---|
+| `packages/core/agent-loop` | `agent.ts`, `assistant-stream.ts`, `inbox.ts`, `runtime-context.ts`, `tool-calls.ts`, `index.ts` | 6 | Shared run loop, ordered tool work, cancellation, one foreground/background lifecycle |
+| `packages/core/agent` | `types.ts`, `dispatch.ts`, `runtime-types.ts`, `projection.ts` | 4 | Agent state, dispatch and trace projection |
+| `packages/core/session` | `types.ts`, `known-event-types.ts`, `repair.ts`, `tool-history.ts`, `seq-ranges.ts`, `preparation.ts` | 6 | Durable event log, correct tool-result matching and recovery |
+| `packages/core/scope` | `index.ts`, `store.ts` | 2 | Run-scoped registrations and teardown |
+| `packages/core/tools` | `schema.ts`, `json-schema.ts`, `presentation.ts`, `types.ts`, `index.ts` | 5 | Unified typed tool registry, classification and broker metadata |
+| `packages/session/session-persistence` | `storage-contract.ts`, `handle.ts`, `revision.ts`, `index.ts` | 4 | Canonical storage contract over OCADE Supabase, not new JSONL/SQLite authority |
+| `packages/session/session-projection` | `index.ts`, `types.ts` | 2 | One trustworthy task/UI/delivery projection |
+| `packages/session/session-checkpoint-policy` | `index.ts` | 1 | Checkpoint before irreversible actions and safe continuation |
+| `packages/compaction/compaction` | `checkpoint.ts`, `tool-pairing.ts`, `types.ts`, `index.ts` | 4 | Context compaction preserving tool/evidence pairs |
+| `packages/compaction/compaction-tool-result-pruner` | `config.ts`, `index.ts`, `types.ts` | 3 | Token-efficient pruning with traceable references |
+| `packages/llm/llm` | `adapter-failure.ts`, `assembler.ts`, `assistant-stream.ts`, `content.ts`, `message.ts`, `retry-policy.ts`, `types.ts` | 7 | Model output normalization; keep OCADE actual Gemini/Gemma routing and billing |
+| `packages/llm/llm-retry` | `index.ts`, `types.ts` | 2 | One typed retry controller, not nested retry loops |
+| `packages/plan/plan-mode` | `index.ts`, `types.ts` | 2 | Structured plans without unauthorized effect execution |
+| `packages/todo/tool-todo` | `client.ts`, `index.ts`, `types.ts` | 3 | Task progress and unfinished obligations |
+| `packages/guard/timeout-policy` | `index.ts` | 1 | Bounded calls with device-level cancellation |
+| `packages/guard/repeat-tool-reminder` | `index.ts` | 1 | Loop warnings and repetitive-work detection |
+| `packages/context/agent-instructions` | `config.ts`, `digest.ts`, `files.ts`, `render.ts`, `state.ts` | 5 | Scoped instructions with untrusted-content provenance |
+
+### Wave B — enhanced context, connectors, apps and customer interaction
+
+All paths are rooted at the pinned DeepSeek revision; use the `src/` entries beneath each exact package directory.
+
+| Exact upstream package | Verified `src/` files to examine for direct reuse or bounded adaptation | Count | Desired OCADE behavior |
+|---|---|---:|---|
+| `packages/compaction/compaction-basic` | `region.ts`, `summarizer.ts`, `index.ts`, `config.ts` | 4 | Safe longer-turn summaries after cheaper pruning |
+| `packages/compaction/compaction-image-offload` | `image-offload.ts`, `index.ts`, `project-message.ts`, `projection.ts` | 4 | Model-context reduction while keeping original evidence |
+| `packages/context/session-reference` | `projection.ts`, `serialization.ts`, `spill.ts`, `uri.ts`, `types.ts` | 5 | References to permitted prior sessions and work |
+| `packages/interaction/user-approval` | `index.ts`, `types.ts` | 2 | Approval display only: OCADE alone grants permission |
+| `packages/interaction/user-questions` | `projection.ts`, `timed-wait.ts`, `types.ts`, `index.ts` | 4 | Durable questions and cancellation; no implicit timed consent |
+| `packages/interaction/tool-ask-user` | `index.ts`, `timed.ts` | 2 | Structured clarification without unsafe default approval |
+| `packages/host/open-in-app` | `resolver.ts`, `icons.ts`, `internals.ts`, `shared.ts` | 4 | Real app resolution/icon patterns; explicitly DO NOT import catalog.ts as the inventory |
+| `packages/client/ui-input-trigger` | `contract.ts`, `detect.ts`, `menu.ts`, `controller.ts` | 4 | Typed @ mention detection, selection, accessibility, keyboard handling |
+| `packages/client/ui-chat` | `use-scroll-follow.ts`, `use-chat-scroll.ts` | 2 | Scroll/user-intent behavior; retain OCADE branding and UI architecture |
+| `packages/client/ui-reference` | `user-text-rules.ts` | 1 | Persisted reference render and text escaping |
+| `packages/fs/fs-observation-policy` | `index.ts`, `types.ts` | 2 | Read-before-write and post-mutation invalidation |
+| `packages/mcp/mcp-client` | `connection.ts`, `server-context.ts`, `tools.ts`, `transport.ts`, `index.ts` | 5 | Approved MCP connectors through one OCADE tool/permission broker |
+| `packages/mcp/mcp-resources` | `index.ts`, `render.ts`, `tools.ts` | 3 | Scoped bounded external-resource reads |
+| `packages/skill/skill` | `index.ts` | 1 | Reviewed skill registry, not auto-install |
+| `packages/skill/skill-filesystem` | `index.ts` | 1 | Bounded authorized skill files |
+| `packages/skill/tool-skill` | `index.ts` | 1 | Select and load only the relevant reviewed skills |
+| `packages/llm/token-meter` | `estimate.ts`, `projection.ts`, `turn-usage.ts`, `types.ts` | 4 | AI context diagnostics, not OCADE commercial charging authority |
+
+### Wave C — advanced capabilities (gated, not unrestricted)
+
+All paths are rooted at the pinned DeepSeek revision; use the `src/` entries beneath each exact package directory.
+
+| Exact upstream package | Verified `src/` files to examine for direct reuse or bounded adaptation | Count | Desired OCADE behavior |
+|---|---|---:|---|
+| `packages/ptc-runtime/ptc-runtime` | `index.ts`, `types.ts` | 2 | Typed programmatic-tool interface, never unrestricted shell/code execution |
+| `packages/subagent/subagent` | `manager.ts`, `control-types.ts`, `projection.ts`, `archive-admission.ts` | 4 | Parent-owned scoped read-only subtasks; never competing PC controllers |
+
+
+### 4. Required OCADE replacement map (existing implementation → improved connected implementation)
+
+| Priority | OCADE files / existing responsibility | Source to evaluate | REQUIRED wire-up / replacement and regression proof |
+|---|---|---|---|
+| P0/P1 | `src/jarvis/engine.ts`; `src/jarvis/agent.ts`; `src/jarvis/background.server.ts` | Core agent-loop (`agent.ts`, `tool-calls.ts`, `inbox.ts`), agent dispatch, session projection | Convert duplicated foreground/background control into a single persisted run transition engine. Keep distinct request/transport surfaces; each authorized call passes OCADE task authority; same event trace gives same status, cost settlement, STOP and delivered output. Retire old independent planners only after parity. |
+| P1 | `src/jarvis/JarvisWorkspace.tsx`; `src/jarvis/JarvisBubble.tsx`; `src/jarvis/bubble-state.ts` | Session projection, inbox, interaction events | One account-owned task lifecycle across Chat handoff, Workspace, Bubble and device carry-on; safe navigation, switching users, concurrent work, retry and takeover. Retain OCADE UI rather than importing DeepSeek's web client. |
+| P0/P1 | `src/jarvis/task-authority.server.ts`; `src/jarvis/device.server.ts`; Supabase task/activity records | Session event/repair, checkpoint and delivery projections | One durable task/event record and accurate reconstructed delivery. Fix exact file-path identity, DB-unavailable≠no-deliveries, orphan uploads, false-complete terminal prose and replay/STOP races before relying on upstream state. |
+| P1 | `src/jarvis/protocol.ts`; `src/jarvis/permissions.ts` | Core tools schema/presentation, scoped tool registry, fs observation | Derive model-facing tools and validation from canonical typed OCADE actions. Dynamically discover capabilities and enforce strict permissions at admission/device execution. Remove app-name-specific routing/prompt heuristics only when the capability-based method fully covers the old feature and unknown apps. Do NOT remove legitimate document/media/format verifiers. |
+| P1 | `src/jarvis/live-deps.ts`; `src/jarvis/background-model.server.ts`; `src/lib/intelligence/{router,edge-handler,online-models,workers-ai}.ts` | DeepSeek LLM message/stream assembly, typed retry, token-meter concepts | Preserve Gemini 3.5 Flash-Lite as the configured DEFAULT and opt-in Cloudflare Gemma 4 HIGH. Verify exact available model IDs, quotas, all permitted Gemini key slots, endpoint failures and cost settlement. Reuse upstream streaming/error contracts without new credential stores, quota evasion, silent fallback or a second retry system. |
+| P1 | `src/jarvis/engine.ts`; prompt/context assembly; saved task events | Tool-result pruning, compaction, agent instructions, session references | Token-efficient long tasks without discarding permission conditions, provenance, action results, unfinished steps, image references or verification evidence. Benchmark total tokens, turns, speed and errors vs existing. |
+| P1 | `jarvis-runtime/ocade_computer.py`; `jarvis-runtime/ocade_discovery.py` | `host/open-in-app` resolver/icons (NOT static catalogue), OCADE capability discovery | Inventory truly installed apps, verified executables, running windows, real icons, APIs/automation surfaces and freshness by stable per-device ID. Do not hardcode app brands; app detection must not falsely assert automation works. |
+| P1 | `src/jarvis/mention.tsx`; `src/jarvis/JarvisWorkspace.tsx`; `src/jarvis/jarvis.functions.ts` | `ui-input-trigger` detect/menu/controller; app icon patterns | Structured `@` app+device IDs (not substring matching) with real icons, keyboard menu, duplicates, app revisions, persistence through retry/failure/reload/handover; selecting an app must NOT grant permission. |
+| P1 | `jarvis-runtime/ocade_device.py`; `src/jarvis/device.server.ts`; icon migration | Upstream bounded interaction/transport ideas; OCADE native icon code | Keep icon batches out of critical heartbeat/STOP delivery; budget aggregate payload, acknowledge persisted revisions, retry transient failures. Reconcile/apply new schema ONLY in an authorized disposable staging candidate before production approval. |
+| P1 | `jarvis-runtime/actions/browser_control.py`; `jarvis-runtime/actions/ocade_page.js`; `jarvis-runtime/ocade_existing_browser.py` | Browser-use interface, optional Playwright/DevTools/Stagehand providers | Prefer OCADE's existing authenticated browser session and semantic DOM execution; benchmark alternative providers on popups, tabs, downloads, ownership and fast reliable actions. No duplicate controller for one browser/tab. |
+| P1 | `jarvis-runtime/ocade_computer.py`; `jarvis-runtime/ocade_accessibility.py` | Computer-use interface, optional CUA drivers | Preserve real OS/browser controls and signed paired-device authority. Compare safe native APIs/accessibility/vision; adopt upstream driver components only if actual Windows/macOS tests show better control and STOP, without hidden direct desktop execution. |
+| P1 | `src/jarvis/jarvis.functions.ts`; memory storage | Scoped instructions/session references, provenance rules | User-origin authenticated memory only; retrieved pages/files and skills cannot grant instructions or write persistent memory; inspect/delete, cross-account and restart tests. |
+| P1 | `jarvis-runtime/ocade_documents.py`; `jarvis-runtime/ocade_sheets.py`; `jarvis-runtime/ocade_media.py`; file action adapters | DeepSeek skills, workflows, bounded tool broker where beneficial | Keep generic actual file-format capabilities and semantic output checks. Remove obsolete hardcoded app-name branches—not working editors/parsers—after verified replacement. Test document, spreadsheet, CAD, photo/video edits, editable projects, render and Open/Download on actual supported apps. |
+| P1/P2 | `src/components/chat/MessageList.tsx`; `src/jarvis/JarvisWorkspace.tsx`; `src/styles.css`; `src/shared/ui/tokens/monochrome.css` | `ui-input-trigger`, `ui-chat` scroll behavior, `ui-reference`, deliverable patterns | Premium simple Gemini-quality conversation, single task composer, streamed readable replies, progress, pause/STOP, native file previews, accessibility and real app icons. Preserve OCADE's current color/theme/identity and don't import a second chat framework. |
+| P2 with measured need | Existing OCADE approved connector/tool broker | `mcp-client`, `mcp-resources` and `skill` modules | Actually connect a reviewed tool/skill through OCADE permissions, revoke access, audit untrusted output, respect budgets and show verified improvement. Do not enable arbitrary marketplace/plugin installation. |
+| P2/P3 with measured need | OCADE workflow/coding capabilities and task history | PTC typed interface, optional LSP, bounded workflow builder, parent-owned read-only subagents | Evaluate faster compiled multi-step execution and parallel independent research; each inner side effect still runs through OCADE broker; never permit a second desktop authority, unrestricted shell or unapproved costs. |
+
+**Do not delete wholesale:** `task-authority.server.ts`, existing device security files, identity/signature checks, STOP fences, `supabase/migrations/`, security verification, real file manipulation libraries, user data controls and tests. Replace the *weaker behavior inside those modules* only when verified. Historical audit F01–F12 and backlog A01–I06 (Appendix B) remain mandatory.
+
+### 5. Entire DeepSeek package families to exclude from the customer build by default
+
+| Source family / exact path | Reason / conditional treatment |
+|---|---|
+| `.agents/`, `snapshots/`, `website/`, broad `docs/`, `scripts/`, `benchmarks/`, `.github/` | Developer notes, archived evidence, marketing, automation and fixtures. Retain required reference/test data for maintainers; not runtime. |
+| `apps/cli/`, `apps/web/`, `apps/desktop/`, `apps/desktop-host/` | Would transplant another product shell/desktop host; keep OCADE React/PWA and Device Agent instead. |
+| `packages/bundle/`, `packages/boot/plugin-manager/`, `packages/boot/plugin-market/`, `packages/extensions/` | Broad default executable bundles, plugin markets or uncontrolled dynamic loading. Use explicit reviewed composition, not upstream unsafe defaults. |
+| `packages/session/session-persistence-jsonl/`, `packages/storage/storage-json/`, `packages/storage/storage-sqlite/` | Parallel authoritative data stores; OCADE owns canonical Supabase task data. A dev-only export can be retained if justified. |
+| `packages/credentials/credentials-local/`, `packages/credentials/deepseek-account/`, `packages/credentials/deepseek-account-platform/` | Avoid duplicate account/key stores and inadvertent new provider spending. |
+| `packages/telemetry/`, `packages/session/session-telemetry/`, `packages/session/session-telemetry-otel/` | No new collection or outbound transfer of customer interactions without reviewed privacy design/consent. |
+| `packages/schedule/`, autonomous `packages/goal/` drivers, automatic self-resume | No creation of new unattended recurring tasks or quota-reset continuations without explicit owner/customer authorization. Internal active-run progress tracking is distinct. |
+| `packages/shell/*-local/`, `packages/terminal/`, `packages/ssh/`, unrestricted `packages/ptc-runtime/ptc-runtime-node/` | Excess shell/network/host authority unless independently isolated, permitted and benchmarked. |
+| `packages/subagent/subagent-claude-code/`, `packages/subagent/subagent-codex/` and arbitrary external child-runner adapters | Extra identities, spending and agent authorities; scoped internal read-only subtask evaluation is separate. |
+| `packages/host/open-in-app/src/catalog.ts` | Contains a static named-app catalogue; **NEVER use it as OCADE's supported-app list**. Resolver/icon mechanics are different and may be reused. |
+| Most `packages/client/` (especially the whole upstream UI shell) | Avoid duplicate design system, app state, navigation and client bundle. Reuse only selected accessible interaction primitives. |
+| Broad `native/`, `python/`, Electron/FFI/PTY/browser binaries and patches | Admit only if a chosen, approved capability actually requires them, platform distribution/licence tests pass and size is justified. |
+| Upstream test fixtures, mock servers and snapshots | Keep relevant test cases for automated development, but don't package them into the customer runtime. |
+
+**Do not confuse EXCLUDE with deleting the Git submodule:** Keep the complete pinned source accessible for attribution, regression comparison and future justified capabilities. Apply package/source-file exclusion only to what OCADE imports and ships.
+
+### 6. Integration-proof, release and code-size gates
+
+- **Gate 1 — Source truth:** Confirm every proposed path exists at upstream pin and matches the expected license/manifest. Record exact packages, files, entrypoints and dependent APIs.
+- **Gate 2 — Runtime compatibility:** Build the candidate in OCADE's real supported TypeScript/Node/Cloudflare and Python/native environments. Any Worker-only Node APIs, pnpm/Zod 4/Cordis mismatch must be addressed without silently creating a shadow service or bypass.
+- **Gate 3 — Authoritative policy:** Verify permission, STOP, user/account/device identity, payment quota, action admission, and completion checks for every upstream-origin tool action, including nested or parallel actions.
+- **Gate 4 — Product wiring:** Prove each imported capability is reachable from the actual OCADE chat/JARVIS task flow; no dead import, unused library or isolated demo counts as integration. Preserve one active controller per mouse, tab or document.
+- **Gate 5 — Task parity and debloat:** On identical inputs and quality checks, new components must be at least as safe and accurate as the existing engine and ideally faster/cheaper; prove fallback/rollback. Only then delete superseded symbols, with updated tests and references.
+- **Gate 6 — Native/model/full-system evidence:** Verify real Gemini/Gemma paths, real device/browser work, real file outcomes, interruption/recovery, speech/UI/mobile where promised, native-app icons and exact environment pins; report gaps without guessing success rates.
+- **Gate 7 — Public commercial launch:** Close the complete P0/P1 audit backlog, qualify independently verified task-success targets by workflow family, protect personal data/permissions, prove payments and subscriptions only after authorized enablement, licence notices, rollback and owner release approval.
+
+**Must report after each milestone:** Number of actual upstream files/packages incorporated, number excluded with reason, transitive dependency size, code replaced/deleted, live execution path proven, test counts with skipped/blocked details, real task success and false-completion rate, p50/p95 where samples permit, cost/model calls, resource usage and all unresolved blockers. No file-count vanity or invented superiority metrics.
+
+**Final instruction:** Extensive source reuse is a core owner goal. But the winner is OCADE completing actual work correctly, quickly, securely and reproducibly—not maximizing line count. Maintain full original reports in Appendices A and B; update the main actionable plan rather than rewriting or deleting their historical evidence.
+
+
+---
+
 ## CURRENT AUDIT — IMPLEMENTATION-ORDER OVERRIDES
 
 The full 1,018-line Codex audit is reproduced **verbatim in Appendix B** and must be used as the current defect and release-backlog baseline; Appendix A preserves the preceding original DeepSeek integration analysis in full. The audit found genuine progress but only a partial DeepSeek-derived implementation: the pinned packages are **not yet imported as a running upstream engine**; the shared engine remains partially duplicated between foreground and background. There are confirmed defects in icon payload size/acknowledgement, exact-path delivery, delivery failure handling, final-answer truthfulness and `@` mention identity/retry. The candidate's release gates remain **0/10 qualified** (which does not mean 0% of code exists).
