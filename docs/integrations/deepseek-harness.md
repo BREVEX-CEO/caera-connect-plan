@@ -1,0 +1,52 @@
+# DeepSeek Harness → OCADE integration contract (source intake; implementation pending)
+
+**State (23 October 2026):** The GitHub branch has an upload inbox and a safe ZIP inspector. **Neither DeepSeek source nor an executable integration has been imported. No benchmarks or release gates are passed by this preparation.**
+
+## Sources, licensing and version authority
+
+- OCADE implementation branch: `BREVEX-CEO/caera-connect-plan` → `ocade/p00-p22-implementation`.
+- Official upstream: https://github.com/deepseek-ai/deepseek-harness at **`687f282e8625c6b8d11ff58211a90524be2e4317`**.
+- Intake instructions: [external/deepseek-harness/README.md](../../external/deepseek-harness/README.md).
+- Upstream architecture: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md.
+- Source license: MIT; upstream `LICENSE` and `THIRD_PARTY_NOTICES.md` must remain attributable. Some dependencies have other licenses; vet each component and its distribution obligations independently.
+- Upstream warning: https://github.com/deepseek-ai/deepseek-harness/blob/master/SAFETY.md — developer preview, unaudited, can execute generated commands and plugins. Do not treat it as product security proof.
+- No long-lived tracking of a downloaded archive is required when size exceeds GitHub's browser upload limit. A pinned local download/checkout is valid for a source review.
+
+## Objective and non-goals
+
+The owner's objective is **agent-first OCADE**: let a person specify an outcome; the agent plans, discovers real capabilities, executes authorized tasks across applications, recovers from failures, checks real files/screen state and delivers outputs. Reuse DeepSeek Harness's plugin-oriented architecture when it improves actual task quality, speed, reliability, extensibility or maintenance.
+
+The goal is **not** to bolt a second branded chatbot onto OCADE, paste 16,000 files into the shipped app, blindly replace OCADE's successful generic capabilities or silently turn its website into a remote uncontrolled shell. OCADE retains the public UI and product identity.
+
+The Harness code does **not** contain DeepSeek model intelligence/weights. A future DeepSeek model integration is a separately configured, authenticated and quota-limited model route; do not silently replace Standard Gemini, opt-in High, or offline model selection, or incur unapproved cost.
+
+## Exact sequence when an upstream ZIP becomes available
+
+1. **Identify and quarantine:** Use only the pinned source ZIP or verified matching upstream checkout. If archive uploaded at `external/deepseek-harness/incoming/deepseek-harness.zip`, run `python scripts/deepseek_import.py` from repository root to print path-safety, package-identity, notices, entry counts, size and SHA-256 evidence. For a local ZIP elsewhere use `python scripts/deepseek_import.py --archive PATH`. Do not assume naming/ZIP SHA-256 alone proves publisher authenticity. Confirm upstream source and license.
+2. **Explicit inspection-only extraction:** If the pinned root, source provenance and license checks are acceptable, use `python scripts/deepseek_import.py --extract` or its `--archive` option. This writes only to ignored `external/deepseek-harness/unpacked/`; it never installs dependencies, executes an upstream build, starts an agent, reads customer data or deploys.
+3. **Inventory before reuse:** Inspect plugin architecture and runtime dependency closure for `core/agent-loop`, `core/tools`, `browser-use`, `computer-use`, `mcp`, `session`, `guard`, `sdk`, model adapter and sandbox packages. Record genuinely needed components, transitive dependencies, third-party licenses, runtime sizes, Node/pnpm compatibility, platform support, upstream change risk, permission behavior and documented limitations. Do not assume all experimental providers are production suitable.
+4. **Compare existing owners:** Read OCADE's actual `src/jarvis/agent.ts`, `src/jarvis/protocol.ts`, `src/jarvis/task-authority.server.ts`, `jarvis-runtime/ocade_device.py`, `jarvis-runtime/ocade_computer.py`, browser automation and route/credential code. Map **exactly one authoritative owner** for each step: model, planning, tool schema, browser execution, device execution, consent, STOP, durable state, file delivery and verification. Do not create an unsupervised second agent loop or dual device-controller authority.
+5. **Build a narrow reversible evaluation adapter:** Start with a locally isolated Harness runtime/SDK, with its process given **zero access to owner browser profiles, secrets, production Supabase/Cloudflare, unrestricted network or customer files**. Expose only OCADE-brokered, strictly allowlisted task capabilities with its existing identity, consent, ownership, STOP and read-back checks. Never let Harness tools publish arbitrary unvetted operations to the customer's device. Consider provider plugins like Playwright/Chrome DevTools or Cua Driver only if their real platform and session semantics measurably improve authorized control.
+6. **Evaluate on matched tasks:** Compare current OCADE agent against the candidate Harness-assisted agent on identical disposable tasks with the **same actual model**, tools, device, time/quota budget, independent outcome oracle and original-file protections. Inspect meaningful task families: browser, document/spreadsheet, native app window, CAD, photo/video, interruption/STOP, wrong-target refusal, permissions, offline constraints and long sequences. Track passed/failed/blocked and p50/p95 latency, provider calls, expense, output fidelity, false completions, crashes and tool registration overhead. Do not mistake a plugin catalog for verified model execution superiority.
+7. **Promote only proven improvements:** Move a capability into OCADE only after repeated positive evidence and a security/rollback review. Keep the original production behavior or feature flag until evidence is adequate. Once equivalent behavior is verified, delete redundant implementation, obsolete helpers, unnecessary build assets and duplicate dependencies. Keep required notice files, applicable tests, audit trails and recovery controls. Deleting an entire adapter solely because a repository is larger is not debloating.
+8. **Recheck commercial qualification last:** Complete all existing 200 + 190 roadmap requirements, then the unified prompt and full final qualification in `phases.md`; no item, integration or partial test qualifies any frozen release gate by documentation alone. Preserve independent testing and owner's explicit launch/spend/merge approval gates.
+
+## Suggested architecture boundary (not implemented)
+
+`OCADE UI → OCADE authoritative task/consent/identity broker → one selected planner runtime (existing OR experimental Harness) → OCADE-controlled capability broker → paired authorized Device Agent → independent server-side task verification → OCADE Library`.
+
+The optional selected planner may use Cordis plugins, but **must not** directly own customer-device credentials, authenticated privileged operations, STOP/Take Over, quota enforcement or final task settlement. Record the model identity and prompt variant actually used.
+
+## Dependency and debloat boundaries
+
+- Do not add upstream `node_modules`, built application bundles, mobile/desktop installers, screenshots, giant tests, archived agent notes, docs copies or snapshots to the **production bundle** merely because they exist in the source ZIP. Build the smallest audited closure needed for the chosen integration. Retain upstream's relevant build/test infrastructure in isolated development as needed.
+- Do not edit the upstream source during initial intake. If later forking a component is unavoidable, record exact commit, patches, licenses and security support obligations; favor supported plugin extension points over invasive changes.
+- Keep OCADE's root npm installation separate from any pnpm/Node requirements of the inspected upstream until compatibility and supply-chain risks are assessed.
+- Never bypass existing browser human verification, MFA, consent or device pairing for benchmarks.
+- Do not install model keys or enable DeepSeek paid inference because a source ZIP was uploaded.
+- Do not delete `ocade_media.py` or other typed deterministic format adapters just because they look app-specific; first establish a better generic discoverable adapter, satisfy named-editor requirements, and prove task parity, performance and correct outputs.
+- Preserve OCADE's ability to fall back to its proven architecture through a reversible flag until full independent evidence exists.
+
+## Checkpoint reporting
+
+Record (a) source ZIP presence and SHA-256, upstream commit and notices, (b) which components are actually installed versus merely in quarantine, (c) new runtime/controller ownership boundaries, (d) line/file/dependency impact before and after debloat, (e) tests with accurate PASS/FAIL/BLOCKED and false-completion outcomes, (f) prompt/model actually used, (g) release gate status. Existing ledgers are authoritative: `TOFIX.md`, `BLOCKED_TESTS.md` and `docs/TESTING.md`. No fabricated readiness percentage.
