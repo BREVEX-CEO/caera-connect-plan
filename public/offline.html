@@ -92,7 +92,11 @@
         <button type="button" onclick="location.reload()">Reconnect</button>
       </div>
       <script>
-        addEventListener("online", () => location.reload(), { once: true });
+        // Reconnected: reload, unless the person is already leaving. A reload then would cancel
+        // the page they asked for (Chat, opened offline) and show this one again.
+        let leaving = false;
+        addEventListener("beforeunload", () => (leaving = true));
+        addEventListener("online", () => leaving || location.reload(), { once: true });
       </script>
     </main>
   </body>

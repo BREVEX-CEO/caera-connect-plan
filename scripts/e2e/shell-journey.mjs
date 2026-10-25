@@ -202,6 +202,21 @@ try {
   );
   await phone.setOffline(false);
 
+  // Reconnected, the offline page reloads itself into the page that was asked for.
+  await phone.setOffline(true);
+  await small.goto(`${BASE}/terms`).catch(() => {});
+  await phone.setOffline(false);
+  check(
+    "reconnected, the offline page becomes the page asked for",
+    await small
+      .waitForFunction(() => document.title.startsWith("Terms"), null, { timeout: 15_000 })
+      .then(
+        () => true,
+        () => false,
+      ),
+    await small.title(),
+  );
+
   check("no uncaught page errors", consoleErrors.length === 0, consoleErrors.join("; "));
 } finally {
   await browser.close();
