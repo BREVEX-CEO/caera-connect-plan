@@ -31,6 +31,7 @@ import { executionDisabled, ORPHAN_MS } from "./device.server";
 import {
   checkpointOf,
   humanBoundary,
+  pairToolHistory,
   pruneOlderResults,
   toolResultMessage,
   TURN_BUDGET,
@@ -481,7 +482,7 @@ export async function carryOn(
     const messages: NormalizedMessage[] = [
       { role: "system", content: systemPrompt({ task }) + CARRYING_ON },
       ...memoryMessage({ memoryEnabled, memories }),
-      ...timeline.flatMap((entry) => entry.messages),
+      ...pairToolHistory(timeline.flatMap((entry) => entry.messages)),
     ];
     // As in the foreground: only the newest result is read whole.
     pruneOlderResults(messages, messages.map((message) => !!message.toolResult).lastIndexOf(true));

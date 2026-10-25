@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { NormalizedMessage, NormalizedToolCall } from "@/lib/intelligence/contract";
 import {
   humanBoundary,
+  OUTCOME_UNKNOWN,
+  pairToolHistory,
   PRUNE,
   PRUNE_MARKER,
   pruneOlderResults,
@@ -164,5 +166,36 @@ describe("one human-boundary rule for both planners", () => {
       }),
     ).toBeNull();
     expect(humanBoundary({ status: "done", summary: "", result: null })).toBeNull();
+  });
+});
+
+describe("tool history pairing (adapted from DeepSeek session repair)", () => {
+  const ask = (...ids: string[]): NormalizedMessage => ({
+    role: "assistant",
+    content: "",
+    toolCalls: ids.map((id) => call("computer", id)),
+  });
+  const answer = (id: string) => toolResultMessage(call("computer", id), { status: "done" });
+
+  it("answers a call whose result was lost with an honest 'outcome unknown'", () => {
+    const repaired = pairToolHistory([ask("a", "b"), answer("a"), { role: "user", content: "go" }]);
+    expect(repaired.map((m) => m.toolResult?.callId ?? m.role)).toEqual([
+      "assistant",
+      "a",
+      "b",
+      "user",
+    ]);
+    expect(repaired[2]!.content).toContain(OUTCOME_UNKNOWN);
+  });
+
+  it("drops an answer whose call was cut away, and keeps paired history unchanged", () => {
+    const paired = [ask("a"), answer("a")];
+    expect(pairToolHistory([answer("x"), ...paired])).toEqual(paired);
+    expect(pairToolHistory(paired)).toEqual(paired);
+  });
+
+  it("closes a trailing call left open by a crash", () => {
+    const repaired = pairToolHistory([{ role: "user", content: "hi" }, ask("z")]);
+    expect(repaired.at(-1)?.toolResult?.callId).toBe("z");
   });
 });

@@ -52,6 +52,7 @@ import {
 import {
   checkpointOf,
   humanBoundary,
+  pairToolHistory,
   pruneOlderResults,
   ScheduleFailure,
   scheduleCalls,
@@ -492,7 +493,8 @@ export async function runJarvisTurn(
       }),
     },
     ...memoryMessage(input),
-    ...input.history,
+    // A carried or cut history can hold a call without its answer, or the reverse.
+    ...pairToolHistory(input.history),
     { role: "user", content: input.text },
   ];
   /** Where this turn's own work starts in the conversation sent to the model. */

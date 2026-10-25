@@ -188,3 +188,43 @@ export function pruneOlderResults(messages: NormalizedMessage[], keepFrom: numbe
   }
   return removed;
 }
+
+/**
+ * Upstream's model-visible wording for a call whose outcome was never recorded
+ * (`packages/core/session/src/repair.ts`, CLOSER_TEXT.interrupted.started, verbatim).
+ */
+export const OUTCOME_UNKNOWN =
+  "The tool call was interrupted after it was recorded, but no result was durably recorded. Its outcome is unknown. Decide whether to retry from the tool semantics: retry only if the operation is read-only or idempotent; if it may have side effects, first verify external state or ask the user. Do not retry blindly.";
+
+/**
+ * A history every provider accepts and no model misreads, adapted from DeepSeek's pending
+ * tool-result recovery (`core/session/src/repair.ts`) and tool-pair integrity
+ * (`compaction/compaction/src/tool-pairing.ts`): each assistant call is answered before the
+ * next turn, with OUTCOME_UNKNOWN where its answer was lost (a crash, a cut history, a
+ * resumed task), and an answer whose call is not in the history is dropped. Returns a new
+ * array; messages already paired are kept as they are.
+ */
+export function pairToolHistory(messages: readonly NormalizedMessage[]): NormalizedMessage[] {
+  const out: NormalizedMessage[] = [];
+  let open: NormalizedToolCall[] = [];
+  const close = () => {
+    for (const call of open) {
+      out.push(toolResultMessage(call, { status: "unknown", summary: OUTCOME_UNKNOWN }, "tool"));
+    }
+    open = [];
+  };
+  for (const message of messages) {
+    if (message.toolResult) {
+      const at = open.findIndex((call) => call.id === message.toolResult!.callId);
+      if (at < 0) continue; // an answer to no call in this history
+      open.splice(at, 1);
+      out.push(message);
+      continue;
+    }
+    close();
+    out.push(message);
+    if (message.role === "assistant" && message.toolCalls?.length) open = [...message.toolCalls];
+  }
+  close();
+  return out;
+}
