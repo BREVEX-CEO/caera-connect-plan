@@ -1055,7 +1055,8 @@ async function releaseOrphanUploads(service: Db, userId: string, taskId: string)
     .from("ocade_library_items")
     .select("id")
     .eq("user_id", userId)
-    .in("id", items);
+    .in("id", items)
+    .limit(items.length);
   if (error) return;
   const held = new Set((kept ?? []).map((row) => row.id));
   const orphans = items.filter((item) => !held.has(item));
