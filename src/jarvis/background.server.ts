@@ -44,6 +44,7 @@ import {
   finishChange,
   invalidReason,
   NOT_VERIFIED,
+  undeclaredFields,
   type TaskStatus,
 } from "./protocol";
 import { changeTask, permissionsOf, queueTaskAction } from "./task-authority.server";
@@ -605,11 +606,14 @@ export async function carryOn(
           await notRun(index);
           return { state: "queued" };
         }
+        const undeclared = undeclaredFields(call.name, rest);
         const parsed = (call.name === "browser" ? browserAction : computerAction).safeParse(rest);
-        if (!parsed.success) {
+        if (!parsed.success || undeclared.length) {
           await record(
             { action: String(rest.action ?? "").slice(0, 40) },
-            `That ${call.name} action is not valid (${invalidReason(parsed.error)}).`,
+            !parsed.success
+              ? `That ${call.name} action is not valid (${invalidReason(parsed.error)}).`
+              : `That ${call.name} action has fields the tool does not have (${undeclared.join(", ")}). Use only its listed fields.`,
           );
           await notRun(index + 1);
           return { state: "queued" };

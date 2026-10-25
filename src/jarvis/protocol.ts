@@ -1179,6 +1179,25 @@ const sequence = (family: string) => ({
   description: `Instead of one action: up to 12 ${family} actions (each an object like a single call) run in order without asking you between them; it stops at the first that does not succeed and returns each step's outcome and the last result. A step may give observationId "latest" to act on what the previous step left, when you already know its ref; coordinates always need a real observationId, except inside an element's box by ref or target. A step on a page you have not seen yet (the form or dialog a click opens) names its element by target {name, role} instead of a ref: the computer finds that one element when the step runs, waiting briefly for it; if none or several match, the sequence stops there and you see the page. So a whole form can be one sequence.`,
 });
 
+let declared: Map<string, Set<string>> | null = null;
+
+/**
+ * Fields a browser or computer call carries that its tool never declared (a misspelled
+ * "content" for "text", an invented option): refused by name, never silently dropped so the
+ * step runs as a different, often empty, action (audit B09). Declared fields that do not
+ * apply to the chosen action are still ignored, as the shared tool schema invites them.
+ */
+export function undeclaredFields(tool: "browser" | "computer", args: object): string[] {
+  declared ??= new Map(
+    jarvisTools(true).map((definition) => [
+      definition.name,
+      new Set(Object.keys((definition.inputSchema.properties ?? {}) as object)),
+    ]),
+  );
+  const known = declared.get(tool)!;
+  return Object.keys(args).filter((key) => key !== "step" && !known.has(key));
+}
+
 export function jarvisTools(
   memory: boolean,
   schedule = true,

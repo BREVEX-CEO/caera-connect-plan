@@ -20,6 +20,7 @@ import {
   NOT_VERIFIED,
   outcomeChecks,
   readsBack,
+  scriptNote,
   type DeviceAction,
   type OutcomeCheck,
   type TaskStatus,
@@ -236,6 +237,61 @@ export function deliveriesDue(
     }
   }
   return [...due].map((file) => wanted.get(file)!);
+}
+
+/**
+ * The checked files a command on the computer last wrote, with that command: their own file
+ * actions since make a file the task's again (ROUTE-21-01, CAD-22-01). From the durable record,
+ * matched exactly as the checks name them.
+ */
+export function scriptMade(
+  rows: readonly ActionRow[],
+  checks: readonly OutcomeCheck[],
+): Map<string, string> {
+  const key = (file: string) => file.replace(/^\.\//, "");
+  const wanted = new Map(
+    checks.flatMap((check) => (check.path ? [[key(check.path), check.path] as const] : [])),
+  );
+  const made = new Map<string, string>();
+  for (const row of rows) {
+    if (row.status !== "done" || !row.action) continue;
+    const wrote = row.result?.detail?.wrote;
+    const files = Array.isArray(wrote)
+      ? wrote.filter((f): f is string => typeof f === "string")
+      : [];
+    if (row.action.action === "run") {
+      const command = String((row.action as { command?: unknown }).command ?? "");
+      for (const file of files)
+        if (wanted.has(key(file))) made.set(wanted.get(key(file))!, command);
+    } else if (!readsBack(row.action)) {
+      for (const file of [row.action.path, row.action.to, ...files]) {
+        if (typeof file === "string" && wanted.has(key(file))) made.delete(wanted.get(key(file))!);
+      }
+    }
+  }
+  return made;
+}
+
+/** What the person asked when the task began: their last message before it started. */
+async function requestOf(service: Db, userId: string, taskId: string): Promise<string> {
+  const { data: task } = await service
+    .from("jarvis_tasks")
+    .select("conversation_id, created_at")
+    .eq("id", taskId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!task) return "";
+  const { data: said } = await service
+    .from("ocade_messages")
+    .select("content")
+    .eq("conversation_id", task.conversation_id)
+    .eq("user_id", userId)
+    .eq("role", "user")
+    .lte("created_at", task.created_at)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return said?.content ?? "";
 }
 
 /**
@@ -870,6 +926,12 @@ export async function changeTask(
     if (gap) throw new Error(NOT_VERIFIED + gap);
     // The database refuses completed if the task holds any other actions when it is written.
     patch.verified_actions = rows!.length;
+    // Disclosed from the record, so a resumed or carried-on task says it too (audit C10).
+    const made = checks.success ? scriptMade(rows!, checks.data) : new Map<string, string>();
+    const note = made.size
+      ? scriptNote(await requestOf(service, userId, data.id), made, [...made.keys()])
+      : null;
+    if (note) data = { ...data, result: `${data.result ?? ""}\n\n${note}`.trim() };
     deliverables = await keepDelivered(service, userId, data.id, rows!);
   }
   if (data.controller !== undefined) patch.controller = data.controller;

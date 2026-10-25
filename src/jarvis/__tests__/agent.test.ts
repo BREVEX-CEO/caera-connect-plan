@@ -444,7 +444,7 @@ describe("a JARVIS turn", () => {
     expect(fed.some((m) => m.content.startsWith("Called "))).toBe(false);
   });
 
-  it("hands over the checked files and says which a script made instead of the named site", async () => {
+  it("hands over the checked files the task's record names", async () => {
     const checks = [{ path: "car.stl" }, { path: ".jarvis/make.py" }];
     const h = harness(
       [
@@ -472,7 +472,8 @@ describe("a JARVIS turn", () => {
       { action: "file_info", path: "car.stl" },
       { action: "file_deliver", path: "car.stl", size: 42 },
     ]);
-    expect(out.answer).toContain("Made by a script on the computer, not on cadfaber.com: car.stl");
+    // Which file a script made is said by the server from the task's record (device-exchange).
+    expect(out.answer).toBe("Built it.");
   });
 
   it("a resumed task hands over the files its record says it made, not only this turn's", async () => {
@@ -510,6 +511,19 @@ describe("a JARVIS turn", () => {
     const out = await runJarvisTurn({ ...h.input, task: { ...TASK } }, h.hooks, h.deps);
     expect(out.answer).toBe("Wrote r.docx.\n\nKept on the computer, not in your Library: r.docx.");
     expect(vi.mocked(h.hooks.onText).mock.calls.at(-1)?.[0]).toBe(out.answer);
+  });
+
+  it("refuses a field the tool never declared instead of dropping it (B09)", async () => {
+    const h = harness([
+      {
+        text: "",
+        toolCalls: [call("computer", { action: "file_list", path: ".", recursive: true })],
+      },
+      { text: "", toolCalls: [call("finish_task", { outcome: "failed", result: "x" })] },
+    ]);
+    await runJarvisTurn({ ...h.input, task: { ...TASK } }, h.hooks, h.deps);
+    expect(h.queued).toEqual([]);
+    expect(JSON.stringify(h.seen.at(-1))).toContain("fields the tool does not have (recursive)");
   });
 
   it("never writes memory from a carried task's earlier page or tool data (F10)", async () => {

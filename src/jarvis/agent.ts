@@ -46,7 +46,7 @@ import {
   invalidReason,
   pointGap,
   readsBack,
-  scriptNote,
+  undeclaredFields,
   wordsGap,
 } from "./protocol";
 import {
@@ -515,10 +515,6 @@ export async function runJarvisTurn(
   const made = new Map<string, number>();
   /** Page actions in a row that changed nothing: progress is the page changing, not new arguments. */
   let unchanged = 0;
-  /** Work-folder files a command last wrote, with that command (the device reports them). */
-  const byScript = new Map<string, string>();
-  /** The files the task's checks name, outside .jarvis (for the script note). */
-  let finished: string[] = [];
   // Once page content has been read this turn, nothing may be written to memory.
   // A carried task's own earlier results (page, file and tool data) count too (audit F10).
   let untrustedSeen = input.history.some((message) => message.toolResult);
@@ -647,26 +643,6 @@ export async function runJarvisTurn(
       state = await waitFor(id, action.action);
     }
     hooks.onActivity();
-    // What the device returned beyond status and observation, as the exchange stores it.
-    const detail = ((state.result as { detail?: unknown } | null)?.detail ?? {}) as {
-      wrote?: unknown;
-    };
-    if (action.action === "run") {
-      const wrote = detail.wrote;
-      for (const file of Array.isArray(wrote) ? wrote : [])
-        byScript.set(String(file), action.command);
-    } else if (!readsBack(action)) {
-      // Changed through JARVIS's own file actions since: not the script's file any more
-      // (with any file the action made beside its target, such as a video's captions).
-      const wrote = Array.isArray(detail.wrote) ? detail.wrote : [];
-      for (const file of [
-        (action as { path?: unknown }).path,
-        (action as { to?: unknown }).to,
-        ...wrote,
-      ])
-        if (typeof file === "string")
-          byScript.delete(file.replace(/\\/g, "/").replace(/^\.\//, ""));
-    }
     if (state.taskStatus === "taken_over") return handOver("You took over.");
     if (state.taskStatus !== "running") throw new Stopped();
     // A device's human_required always hands over; a page's own check not right after a hand-back.
@@ -837,14 +813,6 @@ export async function runJarvisTurn(
         }
         const missing = wordsGap(checks.data, input.text);
         if (missing) return { error: missing };
-        finished = [
-          ...new Set(
-            checks.data
-              .map((check) => check.path)
-              .map((path) => path?.replace(/\\/g, "/").replace(/^\.\//, ""))
-              .filter((path): path is string => !!path && !path.startsWith(".jarvis/")),
-          ),
-        ];
         const started = await deps.startTask({
           quality: input.quality ?? "standard",
           checks: checks.data,
@@ -925,6 +893,24 @@ export async function runJarvisTurn(
             error: `The last ${unchanged} page actions changed nothing on the page. Look at it (look), then try a different way, or finish as blocked and say what stops you.`,
           };
         }
+        // Fields the tool never declared are refused by name, not dropped (audit B09); a step that
+        // is not a valid action at all is left to the validation that says why.
+        const steps = Array.isArray(args.sequence) ? (args.sequence as unknown[]) : [args];
+        const family = call.name === "browser" ? browserAction : computerAction;
+        const undeclared = [
+          ...new Set(
+            steps.flatMap((step) =>
+              step && typeof step === "object" && family.safeParse(step).success
+                ? undeclaredFields(call.name as "browser" | "computer", step)
+                : [],
+            ),
+          ),
+        ];
+        if (undeclared.length) {
+          return {
+            error: `That ${call.name} action has fields the tool does not have (${undeclared.join(", ")}). Use only its listed fields.`,
+          };
+        }
         const result = await (Array.isArray(args.sequence)
           ? runSequence(call.name, args.sequence)
           : runDevice(call.name, args));
@@ -945,9 +931,6 @@ export async function runJarvisTurn(
         let done: JarvisTaskRow;
         try {
           const change = finishChange(args, task);
-          const note =
-            change.status === "completed" ? scriptNote(input.text, byScript, finished) : null;
-          if (note) change.result = `${change.result ?? ""}\n\n${note}`.trim();
           // An explicit resumed turn may already have every result checked and need
           // no new device action. Claim it through the same owner before completion.
           if (change.status === "completed") {

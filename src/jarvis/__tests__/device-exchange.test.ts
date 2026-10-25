@@ -1195,6 +1195,34 @@ describe("completion needs evidence from the device (P01)", () => {
       ]);
     });
 
+    it("says which result a script made instead of the named site, from the record (C10)", async () => {
+      await twin.asServiceRole(
+        `insert into public.ocade_messages (conversation_id, user_id, role, content, created_at)
+         values ('${conversation}', '${A}', 'user', 'Open https://cadfaber.com/editor and build car.stl', now() - interval '1 minute')`,
+      );
+      const t = await withChecks([{ path: "car.stl" }, { path: "notes.md" }]);
+      await done(await queue(t, { action: "run", command: "python3 .jarvis/make.py" }), {
+        status: "done",
+        detail: { wrote: ["car.stl", "notes.md"] },
+      });
+      // Rewritten by its own file action afterwards: notes.md is the task's again.
+      await done(await queue(t, { action: "file_write", path: "notes.md", content: "n" }));
+      for (const path of ["car.stl", "notes.md"]) {
+        await done(await queue(t, { action: "file_read", path }), {
+          status: "done",
+          detail: { content: path === "notes.md" ? "n" : "solid" },
+        });
+      }
+      const row = await changeTask(rest() as never, rest() as never, A, {
+        id: t,
+        status: "completed",
+        result: "Built the car.",
+      });
+      expect(row?.result).toBe(
+        "Built the car.\n\nMade by a script on the computer, not on cadfaber.com: car.stl (python3 .jarvis/make.py).",
+      );
+    });
+
     it("hands uploads no Library item holds to the deletion sweep (audit C04)", async () => {
       const tombstones = () =>
         twin.asServiceRole<{ storage_path: string; source: string }>(

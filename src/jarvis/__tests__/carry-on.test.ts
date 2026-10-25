@@ -712,6 +712,18 @@ describe("carrying on", () => {
     expect((await exchange(admin(), me(), { results: [] })).commands).toEqual([]);
   });
 
+  it("a field the tool never declared is refused by name, never dropped (B09)", async () => {
+    const t = await task();
+    const { model } = scripted(
+      call("computer", { action: "file_list", path: ".", recursive: true }),
+    );
+    expect(await carryOn(admin(), me(), t, { model })).toEqual({ state: "queued" });
+    expect((await actionsOf(t)).map((a) => [a.status, a.summary])).toEqual([
+      ["failed", expect.stringContaining("fields the tool does not have (recursive)")],
+    ]);
+    expect((await exchange(admin(), me(), { results: [] })).commands).toEqual([]);
+  });
+
   it("after three failed steps in a row it waits for the person instead of spending more uses", async () => {
     const t = await task();
     const bad = () => scripted(call("computer", { action: "format_disk", drive: "C" }));
