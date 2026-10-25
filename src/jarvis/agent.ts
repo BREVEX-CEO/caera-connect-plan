@@ -54,6 +54,7 @@ import {
   loopRefusal,
   pairToolHistory,
   pruneOlderResults,
+  refused,
   ScheduleFailure,
   scheduleCalls,
   toolResultMessage,
@@ -1126,8 +1127,7 @@ export async function runJarvisTurn(
           observed.push({ at: messages.length, call, result });
         }
         messages.push(toolResultMessage(call, result));
-        const outcome = (result ?? {}) as { error?: unknown; status?: unknown };
-        failing = outcome.error || outcome.status === "refused" ? failing + 1 : 0;
+        failing = refused(result) ? failing + 1 : 0;
       }
       hooks.onProgress?.(messages.slice(begun));
       // The task's recorded result is the answer: words the model wrote beside its finish can

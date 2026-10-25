@@ -297,3 +297,13 @@ export function loopRefusal(
     ? `The last ${unchanged} page actions changed nothing on the page. Look at it (look), then try a different way, or finish as blocked and say what stops you.`
     : null;
 }
+
+/**
+ * A call OCADE refused before it reached the device (invalid, not allowed, a loop): what both
+ * planners count toward TURN_BUDGET.failedCalls before asking the person how to continue. A
+ * step the device ran and reported failed is a result the model can act on, not a refusal.
+ */
+export function refused(result: unknown): boolean {
+  const outcome = (result ?? {}) as { error?: unknown; status?: unknown };
+  return Boolean(outcome.error) || outcome.status === "refused";
+}

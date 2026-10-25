@@ -34,6 +34,7 @@ import {
   loopRefusal,
   pairToolHistory,
   pruneOlderResults,
+  refused,
   toolResultMessage,
   TURN_BUDGET,
   type TraceStep,
@@ -250,12 +251,12 @@ export async function carryOn(
       return done ? { state: "finished" } : idle;
     }
 
-    // Steps that keep failing only spend the person's uses while nobody is watching.
+    // Calls OCADE keeps refusing only spend the person's uses: the foreground's rule (B01).
     const recent = actions.slice(-TURN_BUDGET.failedCalls);
     if (
       !finishing &&
       recent.length === TURN_BUDGET.failedCalls &&
-      recent.every((row) => row.status === "failed")
+      recent.every((row) => refused(row.result))
     ) {
       const kept = await change({
         status: "waiting",

@@ -728,6 +728,19 @@ describe("carrying on", () => {
     expect((await exchange(admin(), me(), { results: [] })).commands).toEqual([]);
   });
 
+  it("counts only OCADE's refusals toward asking the person, as the foreground does (B01)", async () => {
+    const t = await task();
+    // Three steps the device ran and reported failed: results the model can act on.
+    await sql(
+      `insert into public.jarvis_activity (user_id, task_id, device_id, summary, action, status, result, completed_at)
+       select '${A}', '${t}', '${device}', 'Not found', jsonb_build_object('action','file_read','path','x' || g), 'failed', '{"status":"failed"}'::jsonb, now()
+       from generate_series(1, 3) g`,
+    );
+    const next = scripted(call("computer", { action: "file_list", path: "." }));
+    expect(await carryOn(admin(), me(), t, next)).toEqual({ state: "queued" });
+    expect(next.seen).toHaveLength(1);
+  });
+
   it("a field the tool never declared is refused by name, never dropped (B09)", async () => {
     const t = await task();
     const { model } = scripted(
