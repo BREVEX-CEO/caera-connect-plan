@@ -1,5 +1,27 @@
 # Blocked, failed and untested checks
 
+> **Current — 25 October 2026 (night), real-model customer benchmarks.** Cloud Linux container. Real model: staging Online boundary (`ocade-intelligence` on staging Supabase, `gemini-3.5-flash-lite`) with a disposable staging account; journeys still on the stub. No production change, no deploy, no migration applied, no payments. **Shipped:**
+>
+> - **DEP-25-01 FIXED** (`f014238`): zod 4.6.7 across the app, upstream's zod/v4 redirect removed. Vitest `4.1.12` (`67a308c`) clears the `@vitest/mocker` advisories. `npm audit --omit=dev`: 0.
+> - **VIDEO-25-01 FIXED** (`0fe72de`): `video_edit` cut parts at fractional frames, so 29.97 fps sources drifted the length and the model re-rendered 8 times. Parts are now whole frames, length is `nb_frames / fps`; unit test added.
+> - **CARRY-25-01 FIXED** (`a917d4d`): the carry-on journey named its interpreter by absolute path, which OCADE's command rule rightly asks about once; it failed identically on `2e84b7e`. The fixture now names `python3`/`python`; 34/34 PASS.
+>
+> **Measured:**
+>
+> - **Customer benchmarks** ([evidence](experiments/benchmarks/20261025/README.md)), judged by independent oracles from the files alone: Excel, Word, images, video (after VIDEO-25-01), browser research, order form, STOP-then-continue order (exactly one submission), refusal — each PASS on its final run. 7 of the 8 real-model runs that reached an end passed (88 %, below the 90 % bar); 3 more were cut short by the runner's own permit pool and are not counted.
+> - **Offline (B7)**: `offline-real-journey` 10/10 with a **stand-in** GGUF (install, resume 20 %→22 %, two answers offline, reopen offline, Remove). The real release model is **UNTESTED**.
+> - **Unit:** Vitest 1,586 PASS (127 files). `deepseek:specs` unchanged at core/agent-loop 339/344. Typecheck, `deepseek:check`, build PASS.
+> - **Journeys (zod 4 build):** 23 journeys, 792 checks PASS. Admin passed on rerun after one contention failure; jarvis "the second one asks again" failed once under the same contention (passed in 7 other runs).
+>
+> **Open:**
+>
+> - **DEP-25-02 OPEN (dev-only):** wrangler → miniflare → undici 7.28 (high, EventSource DoS / SRI). The newest wrangler still pins it; no patched release exists. Not in the shipped app.
+> - **JOURNEY-25-01 FLAKY** and **SHELL-23-01**: as below, not reproduced this sweep, root cause still not found.
+> - **DS-25-01 NOT DONE**: as below.
+> - **BLOCKED:** real Offline release model (needs the owner's R2 key); Firefox and WebKit (not installed in this container); Windows, macOS, Android, iOS devices; real push service; `live-journey` (no `OCADE_LIVE_GEMINI_KEY`).
+>
+> Release gates qualified: still 0 of 10.
+
 > **Current — 25 October 2026 (later), DeepSeek Harness agent loop runs OCADE's turns.** Cloud Linux container, stub Supabase for journeys, no real model, no native platforms, no deploy, no migration applied. **Shipped:**
 >
 > - **What now runs:** DeepSeek Harness's own `AgentLoop` drives every foreground JARVIS turn: `src/jarvis/upstream-turn.ts` over 121 upstream source files from 27 packages, vendored verbatim in `src/deepseek/upstream/`.

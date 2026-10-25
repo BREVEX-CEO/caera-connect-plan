@@ -20,6 +20,12 @@ Staging: **OCADE staging 20261019**, `auyapercxxptziyngycx`. All 156 forward mig
 
 Exact file/line means a confirmed source location for new findings, or the exact canonical evidence line for inherited items. **An inherited item's fault site/root cause is UNLOCALIZED unless its linked evidence proves it; do not invent code changes from a blocker label.** Priorities are triage recommendations, not new claims of reproduced critical defects. No issue is closed solely by a source fix, compilation or staging deployment.
 
+## Claude real-model customer benchmarks — 25 October 2026 (night)
+
+- **Fixed:** DEP-25-01 (zod 4.6.7; vitest 4.1.12), VIDEO-25-01 (`video_edit` frame-exact parts and length), CARRY-25-01 (journey fixture).
+- **Measured:** eight customer tasks on the real staging model, each PASS on its final run; 7 of 8 runs that reached an end passed. [Evidence](experiments/benchmarks/20261025/README.md).
+- **Open:** DEP-25-02 (dev-only undici, no upstream fix), JOURNEY-25-01, SHELL-23-01, DS-25-01, the real Offline release model and the BLOCKED platforms: see [BLOCKED_TESTS](BLOCKED_TESTS.md).
+
 ## Claude DeepSeek agent-loop integration — 25 October 2026 (later)
 
 - **What changed:**
