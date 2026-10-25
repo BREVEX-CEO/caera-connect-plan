@@ -1484,11 +1484,19 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
           /reset/.test((await composer.getAttribute("placeholder")) ?? ""),
         15_000,
       ),
-      // What the composer showed instead, to localize JOURNEY-23-01 when it fails.
+      // What the composer showed instead, to localize JOURNEY-23-01 when it fails: whether the
+      // page hydrated, whether the stored session is there, and whether it signs in later.
       `disabled=${await composer.isDisabled()} placeholder=${await composer.getAttribute("placeholder")} status=${await page
         .locator("#jarvis-send-status")
         .innerText()
-        .catch(() => "-")}`,
+        .catch(() => "-")} ${await page.evaluate(() => {
+        const box = document.querySelector("#jarvis-composer");
+        const stored = Object.keys(localStorage).filter((key) => key.endsWith("-auth-token"));
+        return `hydrated=${!!box && Object.keys(box).some((key) => key.startsWith("__react"))} stored=${stored.length}`;
+      })} later=${await until(
+        async () => /reset/.test((await composer.getAttribute("placeholder")) ?? ""),
+        15_000,
+      )}`,
     );
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
     await page.waitForSelector("text=of 28 left", { timeout: 15_000 });
