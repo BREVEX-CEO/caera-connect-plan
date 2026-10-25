@@ -16,15 +16,15 @@
 > - **Static gates:** `deepseek:check` (153 files verbatim at the pin: 121 sources plus package manifests and licence notices), `deepseek:types` (0 errors), typecheck, lint, format, reachability 335/335, content storage, reads, controls, a11y, monochrome, identity, Supabase types and secrets scan all PASS.
 > - **Bundle:** the lazily loaded JARVIS chunk grew from 29.3 KB to 301.2 KB (11.7 KB to 92.5 KB gzip); first paint is unchanged.
 > - **Journeys:**
->   - jarvis, 4 runs on the rebuilt app (served by wrangler/workerd): 140 PASS, 0 FAIL in 3 runs;
+>   - jarvis, 7 runs on the rebuilt app (served by wrangler/workerd): 140 PASS, 0 FAIL in 6 runs;
 >   - chat and bubble PASS;
 >   - BLOCKED as before (no bubblewrap terminal, no speech service).
 >
 > **Open:**
 >
 > - **JOURNEY-25-01 FLAKY:**
->   - In 1 of 4 jarvis runs, the editor task's and the own-browser task's first browser action got a non-device answer, so 5 checks failed.
->   - Not reproduced in 3 reruns of the same build, and not localized.
+>   - In 1 of 7 jarvis runs (the first), the editor task's and the own-browser task's first browser action got a non-device answer, so 5 checks failed.
+>   - Not reproduced in 6 later runs (3 of them with the wider diagnostic), and not localized.
 >   - The editor check now prints every call and result of the task, so a recurrence shows what answered.
 > - **DEP-25-01 OPEN:**
 >   - `npm audit --omit=dev` now reports GHSA-mrhx-c7xc-m3w5 (high): zod < 4.6.6 can exhaust memory validating oversized constrained collections.

@@ -39,8 +39,8 @@ The 23 October finding that direct reuse needs `node:async_hooks` and therefore 
 - **Tests:**
   - Vitest 1,586 PASS (127 files), including 10 new upstream-turn tests;
   - reachability 335/335 modules, so every vendored file is reached from a route and none is a dead import;
-  - the jarvis journey on the rebuilt app, with turns on the upstream loop: 140 PASS in 3 of 4 runs;
-  - one run failed 5 checks: the editor task, and the person's-own-browser task, whose first browser action got a non-device answer. It did not recur in the other 3 runs and is not localized (JOURNEY-25-01).
+  - the jarvis journey on the rebuilt app, with turns on the upstream loop: 140 PASS in 6 of 7 runs;
+  - one run failed 5 checks: the editor task, and the person's-own-browser task, whose first browser action got a non-device answer. It did not recur in the other 6 runs and is not localized (JOURNEY-25-01).
 - **Not measured:** real-model latency, accuracy or cost. No real model was available, and the model call itself is unchanged.
 
 ### Per-package disposition (pin `687f282`)

@@ -27,7 +27,7 @@ Exact file/line means a confirmed source location for new findings, or the exact
   - OCADE's earlier loop and its scheduler are deleted.
 - **What stays OCADE's:** authority (model routing, tools, permissions, STOP, verification, task record).
 - **Evidence and open items:**
-  - JOURNEY-25-01 (flaky, 1 of 4 runs), DEP-25-01 (zod advisory) and DS-25-01 (background path and the non-adopted packages): see [BLOCKED_TESTS](BLOCKED_TESTS.md).
+  - JOURNEY-25-01 (flaky, 1 of 7 runs), DEP-25-01 (zod advisory) and DS-25-01 (background path and the non-adopted packages): see [BLOCKED_TESTS](BLOCKED_TESTS.md).
   - Contract: [docs/integrations/deepseek-harness.md](docs/integrations/deepseek-harness.md).
 
 ## Claude audit repairs — 25 October 2026 (plan.md Appendix B)
