@@ -167,21 +167,26 @@ def render(root: Path, spec: dict, out: Path, cancel: threading.Event, timeout: 
     audio = "aresample=48000,aformat=channel_layouts=stereo"
     encode = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-c:a", "aac", "-b:a", "160k"]
 
+    # Every part is a whole number of frames, so the parts join on frame boundaries: the edit then
+    # runs exactly the length asked for and its frame rate reads as the one asked for.
+    def frames(seconds: float) -> float:
+        return round(seconds * fps) / fps
+
     clips = []
     for clip in spec["clips"]:
         source = root / clip["path"]
         length = seconds_of(source)
         start = max(0.0, float(clip["from"]))
-        end = min(float(clip["to"]), length)
+        end = start + frames(min(float(clip["to"]), length) - start)
         if end - start < 0.5:
             raise MediaError(f"{clip['path']} has no part from {clip['from']} to {clip['to']} s (it is {length:.1f} s long)")
         clips.append((source, start, end, clip.get("captions")))
-    card_s = float(spec.get("cardSeconds") or 3)
+    card_s = frames(float(spec.get("cardSeconds") or 3))
     cards = [(spec[k], card_s) for k in ("opening", "closing") if spec.get(k)]
     if spec.get("length"):  # the exact running time asked for: the last part ends where it must
         source, start, end, captions = clips[-1]
         other = sum(e - s for _, s, e, _ in clips[:-1]) + sum(s for _, s in cards)
-        end = start + float(spec["length"]) - other
+        end = start + frames(float(spec["length"]) - other)
         if end <= start + 0.5 or end > seconds_of(source) + 0.01:
             raise MediaError(f"{spec['length']} s cannot be reached by trimming the last part; choose other parts")
         clips[-1] = (source, start, end, captions)

@@ -214,7 +214,7 @@ def _media_properties(path: Path, audio: bool = False) -> dict:
         return {}
     try:
         raw = subprocess.run([program, "-v", "error", "-show_entries",
-                              "format=duration:stream=codec_type,width,height,r_frame_rate,channels",
+                              "format=duration:stream=codec_type,width,height,r_frame_rate,nb_frames,channels",
                               "-of", "json", str(path)], capture_output=True, text=True, timeout=10).stdout
         info = json.loads(raw or "{}")
     except (OSError, subprocess.TimeoutExpired, ValueError):
@@ -227,6 +227,10 @@ def _media_properties(path: Path, audio: bool = False) -> dict:
             num, _, den = str(stream.get("r_frame_rate", "0/1")).partition("/")
             found.update(width=stream.get("width"), height=stream.get("height"),
                          fps=round(int(num) / int(den or 1), 3) if num.isdigit() and int(den or 1) else None)
+            # A video runs as long as its pictures: the container can be a few ms longer on audio
+            # padding or a stream offset, which no player shows and an edit cannot remove.
+            if str(stream.get("nb_frames", "")).isdigit() and found["fps"]:
+                found["seconds"] = round(int(stream["nb_frames"]) / found["fps"], 2)
         if stream.get("codec_type") == "audio" and "audioChannels" not in found:
             found["audioChannels"] = stream.get("channels")
     if audio and found.get("audioChannels") and (ffmpeg := shutil.which("ffmpeg")):

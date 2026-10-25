@@ -1022,7 +1022,7 @@ class VideoEditTest(unittest.TestCase):
         out = pc.run(edit)
         self.assertEqual(out["status"], "done", out)
         props = out["properties"]
-        self.assertAlmostEqual(props["seconds"], 12, delta=0.05)  # the last part was set to fit
+        self.assertEqual(props["seconds"], 12)  # the last part was set to fit, to the frame
         self.assertEqual((props["width"], props["height"], props["fps"]), (1280, 720, 30))
         self.assertLessEqual(props["truePeakDBTP"], -1)
         self.assertAlmostEqual(props["loudnessLUFS"], -14, delta=2)
@@ -1043,6 +1043,11 @@ class VideoEditTest(unittest.TestCase):
                                   "-of", "csv=p=0", str(root / "edit.mp4")], capture_output=True,
                                  text=True).stdout.split()
         self.assertEqual(sorted(streams), ["audio", "subtitle", "video"])
+        # A card of no whole number of frames still joins on a frame: the asked length and rate
+        # (a 1.97 s card once gave 29.97 fps and a length off by frames, and the model re-rendered
+        # eight times chasing it).
+        odd = pc.run({**edit, "path": "odd.mp4", "cardSeconds": 1.97, "project": False})["properties"]
+        self.assertEqual((odd["seconds"], odd["fps"]), (12, 30))
         # Its own render is redone in place; never over a file it did not make, or a clip from
         # outside the work folder.
         self.assertEqual(pc.run({**edit, "length": 11})["properties"]["seconds"], 11)
