@@ -3,7 +3,7 @@ import { DatabaseTwin } from "../../../scripts/db-twin.mts";
 import type { ModelStep } from "../agent";
 import { TURN_BUDGET } from "../engine";
 import type { NormalizedMessage } from "@/lib/intelligence/contract";
-import { carryOn, taskToCarryOn, type BackgroundDeps } from "../background.server";
+import { carryOn, taskTimeline, taskToCarryOn, type BackgroundDeps } from "../background.server";
 import { exchange } from "../device.server";
 import { lit, restOver } from "./rest-adapter";
 
@@ -710,6 +710,31 @@ describe("carrying on", () => {
       ["failed", expect.stringMatching(/^That computer action is not valid \(action: /)],
     ]);
     expect((await exchange(admin(), me(), { results: [] })).commands).toEqual([]);
+  });
+
+  it("rebuilds a task's own history from its record for any surface that resumes it (B03)", () => {
+    const at = (s: number) => new Date(Date.UTC(2026, 9, 25, 10, 0, s)).toISOString();
+    const row = (id: string, s: number, action: object | null, extra: object = {}) => ({
+      id,
+      controller: "tab",
+      action,
+      status: "done",
+      summary: `step ${id}`,
+      result: { status: "done" },
+      created_at: at(s),
+      ...extra,
+    });
+    const timeline = taskTimeline({ id: "t", title: "Tidy", plan: ["List"], created_at: at(0) }, [
+      row("a1", 1, { action: "file_list", path: "." }),
+      row("n1", 2, null, { status: "note" }),
+    ]).flatMap((entry) => entry.messages);
+    expect(timeline.map((m) => m.toolCalls?.[0]?.name ?? m.toolResult?.name)).toEqual([
+      "start_task",
+      "start_task",
+      "computer",
+      "computer",
+    ]);
+    expect(timeline.at(-1)!.content).toContain("step a1");
   });
 
   it("refuses a step it has already run three times, as the foreground does (B01)", async () => {

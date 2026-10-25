@@ -1,3 +1,4 @@
+import type { NormalizedMessage } from "@/lib/intelligence/contract";
 /**
  * JARVIS server functions. Identity comes only from verified Supabase claims.
  *
@@ -514,6 +515,43 @@ export const readJarvisDeliveries = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { taskDeliveriesDue } = await import("./task-authority.server");
     return taskDeliveriesDue(await admin(), context.userId, data.taskId);
+  });
+
+/**
+ * An open task's own history, rebuilt from its record exactly as the computer carrying on reads
+ * it, for a tab that resumes a task it did not drive (a reload, another device): the model then
+ * continues from what was done, not only from the checkpoint line (audit B03).
+ */
+export const readJarvisTaskHistory = createServerFn({ method: "GET" })
+  .middleware([requireSession])
+  .validator((i) => z.object({ taskId: uuid }).parse(i))
+  // As JSON text: a call's arguments are free-form objects the server-function types cannot vouch for.
+  .handler(async ({ data, context }): Promise<string> => {
+    const service = await admin();
+    const [{ data: task }, { data: activity, error }] = await Promise.all([
+      service
+        .from("jarvis_tasks")
+        .select("id, title, plan, created_at")
+        .eq("id", data.taskId)
+        .eq("user_id", context.userId)
+        .maybeSingle(),
+      service
+        .from("jarvis_activity")
+        .select("id, controller, action, status, summary, result, created_at")
+        .eq("task_id", data.taskId)
+        .eq("user_id", context.userId)
+        .order("created_at", { ascending: true })
+        .limit(300),
+    ]);
+    if (!task || error || !activity) return "[]";
+    const { taskTimeline } = await import("./background.server");
+    const { pairToolHistory } = await import("./engine");
+    const messages: NormalizedMessage[] = pairToolHistory(
+      taskTimeline(task as never, activity as never)
+        .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+        .flatMap((entry) => entry.messages),
+    );
+    return JSON.stringify(messages);
   });
 
 export const readJarvisTask = createServerFn({ method: "GET" })

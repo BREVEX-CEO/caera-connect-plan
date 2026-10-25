@@ -381,95 +381,12 @@ export async function carryOn(
     };
     if (finishing) return handOverThenFinish(finishing, since);
 
-    const family = (action: unknown) =>
-      (action as { action?: string } | null)?.action === "docs"
-        ? "docs"
-        : browserAction.safeParse(action).success
-          ? "browser"
-          : "computer";
-    // Legacy/foreground steps have no saved native turn; keep their rebuilt history readable.
-    const turn = (
-      id: string,
-      name: string,
-      args: Record<string, unknown>,
-      result: unknown,
-    ): NormalizedMessage[] => [
-      {
-        role: "assistant",
-        content: "",
-        toolCalls: [{ id: `provider-tool-${id}`, name, arguments: args }],
-      },
-      toolResultMessage({ id: `provider-tool-${id}`, name }, result),
-    ];
-    const outcome = (row: ActionRow) => {
-      const { status, ...detail } = (row.result ?? {}) as { status?: string };
-      return actions.indexOf(row) >= actions.length - FULL_RESULTS
-        ? compact({ status: status ?? row.status, summary: row.summary, ...detail })
-        : { status: status ?? row.status, summary: row.summary };
-    };
-    // Notes and actions share the request's controller. This joins an original call to its
-    // actual receipts, including a sequence, without inferring identity from time or arguments.
-    const native = (activity as ActionRow[]).flatMap((row) => {
-      const saved = (row.result as { modelTurn?: ModelStep } | null)?.modelTurn;
-      return row.status === "note" && row.controller && Array.isArray(saved?.toolCalls)
-        ? [{ row, saved }]
-        : [];
-    });
-    const nativeOwners = new Set(native.map(({ row }) => row.controller));
-    const timeline: { at: string; messages: NormalizedMessage[] }[] = [
+    const timeline = [
       ...said.map((message) => ({
         at: message.created_at,
         messages: [{ role: message.role as "user" | "assistant", content: message.content }],
       })),
-      // The task's own beginning, as the surface that started it saw it.
-      {
-        at: task.created_at,
-        messages: turn(
-          `${task.id}-start`,
-          "start_task",
-          {
-            title: task.title,
-            where: actions[0] && family(actions[0].action) === "browser" ? "browser" : "computer",
-            steps: task.plan,
-          },
-          { ok: true, message: "Task started." },
-        ),
-      },
-      ...native.map(({ row, saved }) => {
-        const selected = saved.toolCalls.find((call) =>
-          ["computer", "browser", "docs", "finish_task"].includes(call.name),
-        );
-        const receipts = actions.filter((action) => action.controller === row.controller);
-        return {
-          at: row.created_at,
-          messages: [
-            {
-              role: "assistant" as const,
-              content: saved.text,
-              ...(saved.toolCalls.length ? { toolCalls: saved.toolCalls } : {}),
-              ...(saved.parts ? { parts: saved.parts } : {}),
-            },
-            ...saved.toolCalls.map((call) =>
-              toolResultMessage(
-                call,
-                call === selected && receipts.length
-                  ? { steps: receipts.map(outcome) }
-                  : { status: "not_run", summary: "This call was not run. No effect is recorded." },
-                "tool",
-              ),
-            ),
-          ],
-        };
-      }),
-      ...actions
-        .filter((row) => !nativeOwners.has(row.controller))
-        .map((row) => {
-          const tool = family(row.action);
-          return {
-            at: row.created_at,
-            messages: turn(row.id, tool, row.action as Record<string, unknown>, outcome(row)),
-          };
-        }),
+      ...taskTimeline(task, activity as ActionRow[]),
     ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
     let memories: string[] = [];
@@ -545,7 +462,7 @@ export async function carryOn(
     }
 
     const trace: TraceStep[] = actions.flatMap((row) => {
-      const kind = family(row.action);
+      const kind = familyOf(row.action);
       return kind === "docs"
         ? []
         : [{ family: kind, args: row.action as Record<string, unknown>, result: row.result }];
@@ -666,4 +583,105 @@ export async function carryOn(
     if (!(await say(reply.text))) return idle;
     return needsPerson("waiting", "JARVIS needs your answer to continue.", `say-${actions.length}`);
   }
+}
+
+/** Which tool family a recorded action belongs to. */
+const familyOf = (action: unknown) =>
+  (action as { action?: string } | null)?.action === "docs"
+    ? "docs"
+    : browserAction.safeParse(action).success
+      ? "browser"
+      : "computer";
+
+/**
+ * A task's own history as the model reads it, rebuilt from the durable record alone: its start,
+ * each saved model turn with its receipts, and every other recorded action as a call and its
+ * result (the newest few in full). The computer carrying on and a tab resuming a task it did
+ * not carry (a reload, another device) read the same history (audit B01, B03).
+ */
+export function taskTimeline(
+  task: Pick<JarvisTaskRow, "id" | "title" | "plan" | "created_at">,
+  activity: readonly ActionRow[],
+): { at: string; messages: NormalizedMessage[] }[] {
+  const actions = activity.filter((row) => row.action);
+  // Legacy/foreground steps have no saved native turn; keep their rebuilt history readable.
+  const turn = (
+    id: string,
+    name: string,
+    args: Record<string, unknown>,
+    result: unknown,
+  ): NormalizedMessage[] => [
+    {
+      role: "assistant",
+      content: "",
+      toolCalls: [{ id: `provider-tool-${id}`, name, arguments: args }],
+    },
+    toolResultMessage({ id: `provider-tool-${id}`, name }, result),
+  ];
+  const outcome = (row: ActionRow) => {
+    const { status, ...detail } = (row.result ?? {}) as { status?: string };
+    return actions.indexOf(row) >= actions.length - FULL_RESULTS
+      ? compact({ status: status ?? row.status, summary: row.summary, ...detail })
+      : { status: status ?? row.status, summary: row.summary };
+  };
+  // Notes and actions share the request's controller. This joins an original call to its
+  // actual receipts, including a sequence, without inferring identity from time or arguments.
+  const native = activity.flatMap((row) => {
+    const saved = (row.result as { modelTurn?: ModelStep } | null)?.modelTurn;
+    return row.status === "note" && row.controller && Array.isArray(saved?.toolCalls)
+      ? [{ row, saved }]
+      : [];
+  });
+  const nativeOwners = new Set(native.map(({ row }) => row.controller));
+  return [
+    // The task's own beginning, as the surface that started it saw it.
+    {
+      at: task.created_at,
+      messages: turn(
+        `${task.id}-start`,
+        "start_task",
+        {
+          title: task.title,
+          where: actions[0] && familyOf(actions[0].action) === "browser" ? "browser" : "computer",
+          steps: task.plan,
+        },
+        { ok: true, message: "Task started." },
+      ),
+    },
+    ...native.map(({ row, saved }) => {
+      const selected = saved.toolCalls.find((call) =>
+        ["computer", "browser", "docs", "finish_task"].includes(call.name),
+      );
+      const receipts = actions.filter((action) => action.controller === row.controller);
+      return {
+        at: row.created_at,
+        messages: [
+          {
+            role: "assistant" as const,
+            content: saved.text,
+            ...(saved.toolCalls.length ? { toolCalls: saved.toolCalls } : {}),
+            ...(saved.parts ? { parts: saved.parts } : {}),
+          },
+          ...saved.toolCalls.map((call) =>
+            toolResultMessage(
+              call,
+              call === selected && receipts.length
+                ? { steps: receipts.map(outcome) }
+                : { status: "not_run", summary: "This call was not run. No effect is recorded." },
+              "tool",
+            ),
+          ),
+        ],
+      };
+    }),
+    ...actions
+      .filter((row) => !nativeOwners.has(row.controller))
+      .map((row) => {
+        const tool = familyOf(row.action);
+        return {
+          at: row.created_at,
+          messages: turn(row.id, tool, row.action as Record<string, unknown>, outcome(row)),
+        };
+      }),
+  ];
 }

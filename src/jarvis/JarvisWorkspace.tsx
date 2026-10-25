@@ -51,6 +51,7 @@ import {
   createJarvisConversation,
   jarvisConversationExists,
   readJarvisState,
+  readJarvisTaskHistory,
   updateJarvisTask,
   type JarvisTaskRow,
 } from "./jarvis.functions";
@@ -470,7 +471,16 @@ export function JarvisWorkspace({
      * dropped at the pause, so each automatic continue read every page again and spent the
      * person's online capacity on what it had already seen (live Gemini, 13 Oct 2026).
      */
-    const prior = task && carried.current?.taskId === task.id ? carried.current.work : [];
+    // Not carried in this tab (a reload, another device, a turn that ended waiting for the
+    // person): the task's own history from its record, as the computer would read it (B03).
+    const prior =
+      task && carried.current?.taskId === task.id
+        ? carried.current.work
+        : task && !FINISHED.includes(task.status)
+          ? await readJarvisTaskHistory({ data: { taskId: task.id } })
+              .then((text) => JSON.parse(text) as NormalizedMessage[])
+              .catch((): NormalizedMessage[] => [])
+          : [];
     const history = [
       ...before.slice(-20).map((t) => ({ role: t.role, content: t.content })),
       ...prior,
