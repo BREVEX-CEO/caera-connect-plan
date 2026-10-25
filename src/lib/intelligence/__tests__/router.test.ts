@@ -92,6 +92,23 @@ describe("OcadeIntelligence", () => {
     expect(local.stream).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    ["is not installed", transport("on_device", [], false)],
+    [
+      "fails",
+      transport("on_device", [
+        { type: "refusal", code: "provider_failed", reason: "lost", retryable: true },
+      ]),
+    ],
+  ])("never answers Local only from Online when the device model %s", async (_, local) => {
+    const online = transport("online", [final("online")]);
+    const result = await createOcadeIntelligence({ online, local }).generate(request("local_only"));
+
+    expect(result).toMatchObject({ ok: false });
+    expect(online.probe).not.toHaveBeenCalled();
+    expect(online.stream).not.toHaveBeenCalled();
+  });
+
   it("uses Online only when consent and a server permit are present", async () => {
     const online = transport("online", [final("online", "online")]);
     const local = transport("on_device", [final("on_device", "local")]);
