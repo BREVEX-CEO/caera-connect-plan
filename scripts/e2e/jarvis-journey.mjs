@@ -1683,9 +1683,11 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
       10_000,
     );
     check("the real recogniser either listens or says it cannot", outcome);
-    if ((await page.getByRole("button", { name: "End", exact: true }).count()) === 1) {
-      await page.getByRole("button", { name: "End", exact: true }).click();
-    }
+    // The recogniser may end itself (no service) between the look and the press.
+    await page
+      .getByRole("button", { name: "End", exact: true })
+      .click({ timeout: 2_000 })
+      .catch(() => {});
   }
 
   /* --- speech-to-text, through a recogniser the page cannot tell from real ------ */
