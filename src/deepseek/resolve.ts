@@ -49,8 +49,7 @@ export async function lowerVendored(
 
 /**
  * Runs the vendored DeepSeek Harness source (scripts/deepseek-vendor.mjs) in Vite and Vitest:
- * its package names resolve to the vendored files, and inside them `zod` is zod 4 (OCADE's
- * zod 3.25 ships it at zod/v4). `browser` gives every environment the browser's stand-ins, so
+ * its package names resolve to the vendored files. `browser` gives every environment the browser's stand-ins, so
  * Vitest can prove the source under the browser's semantics; otherwise only Vite's client does.
  */
 export function deepseekUpstream(options: { browser?: boolean } = {}): Plugin {
@@ -58,12 +57,8 @@ export function deepseekUpstream(options: { browser?: boolean } = {}): Plugin {
   return {
     name: "ocade-deepseek-upstream",
     enforce: "pre",
-    async resolveId(source, importer) {
-      if (source in entries) return resolve(ROOT, entries[source]!);
-      if (source === "zod" && importer?.startsWith(UPSTREAM)) {
-        return this.resolve("zod/v4", importer, { skipSelf: true });
-      }
-      return null;
+    resolveId(source) {
+      return source in entries ? resolve(ROOT, entries[source]!) : null;
     },
     transform(code, id) {
       if (!id.startsWith(UPSTREAM) || !id.endsWith(".ts")) return null;

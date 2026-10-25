@@ -138,14 +138,12 @@ fs.writeFileSync(
   path.join(DEEPSEEK, "aliases.json"),
   `${JSON.stringify(Object.fromEntries(sorted.map(([s, f]) => [s, `src/deepseek/upstream/${f}`])), null, 2)}\n`,
 );
-// Upstream pins zod 4; OCADE's zod 3.25 ships the same v4 API at zod/v4.
 fs.writeFileSync(
   path.join(DEEPSEEK, "tsconfig.paths.json"),
   `${JSON.stringify(
     {
       compilerOptions: {
         paths: {
-          zod: ["../../node_modules/zod/v4/index.d.ts"],
           ...Object.fromEntries(sorted.map(([s, f]) => [s, [`./upstream/${f}`]])),
         },
       },

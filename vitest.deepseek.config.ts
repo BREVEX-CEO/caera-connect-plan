@@ -42,8 +42,6 @@ function upstreamSpecs(): Plugin {
 
 export default defineConfig({
   plugins: [upstreamSpecs()],
-  // Upstream pins zod 4; OCADE's zod 3.25 ships the same v4 API at zod/v4.
-  resolve: { alias: { zod: "zod/v4" } },
 
   test: {
     root: UPSTREAM,

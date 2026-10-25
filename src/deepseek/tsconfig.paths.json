@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "paths": {
-      "zod": ["../../node_modules/zod/v4/index.d.ts"],
       "@deepseek-ai/cordis": ["./upstream/vendor/cordis/src/index.ts"],
       "@deepseek-ai/cosmokit": ["./upstream/vendor/cosmokit/src/index.ts"],
       "@deepseek-ai/dsh-agent": ["./upstream/packages/core/agent/src/index.ts"],
