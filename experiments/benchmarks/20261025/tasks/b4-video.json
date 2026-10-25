@@ -1,0 +1,4 @@
+{
+  "id": "b4-video",
+  "text": "Edit clip1.mp4, clip2.mp4 and clip3.mp4 from my work folder into one video named launches.mp4: start with a 2-second title card that reads Launch Day, then about 6 seconds from each clip in that order, 20 seconds in total. 1280x720 at 30 fps, with sound. Also save an editable project file named launches.mlt that Shotcut or Kdenlive can open."
+}

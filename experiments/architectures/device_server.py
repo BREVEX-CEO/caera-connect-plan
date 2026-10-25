@@ -3,12 +3,14 @@ The product's real device executor behind a loopback HTTP door, for real-model r
 
 POST /act {"family": "browser"|"computer", "action": {...}} runs one action exactly as the
 Device Agent would (jarvis-runtime Computer, Playwright browser session) and answers its result.
-A step that needs the person's confirmation is confirmed, as the person would, and counted.
+A step that needs the person's confirmation is confirmed, as the person would, and counted;
+with OCADE_DECLINE=1 the person declines it instead.
 GET /frame answers the latest screenshot (base64 JPEG); GET /stats the counters.
 
 Run: xvfb-run -a python3 experiments/architectures/device_server.py <workspace> <port>
 """
 import json
+import os
 import sys
 import threading
 import time
@@ -28,13 +30,17 @@ stats = {"actions": 0, "approvals": 0, "device_ms": 0.0, "by_action": {}}
 last_frame: str | None = None
 
 
+DECLINE = os.environ.get("OCADE_DECLINE") == "1"
+DECLINED = {"status": "declined", "summary": "The person declined this step."}
+
+
 def act(family: str, action: dict) -> dict:
     global browser, last_frame
     if family == "computer":
         result = pc.run(action)
         if result.get("status") == "needs_confirmation":
             stats["approvals"] += 1
-            result = pc.run(action, confirmed=True)
+            result = DECLINED if DECLINE else pc.run(action, confirmed=True)
         return result
     if browser is None:
         browser = _BrowserSession("chromium", mode="isolated", headless=True)
@@ -47,9 +53,9 @@ def act(family: str, action: dict) -> dict:
     result = browser.run(browser.act(step), timeout=120)
     if result.get("status") == "needs_confirmation":
         stats["approvals"] += 1
-        result = browser.run(browser.act(step, True), timeout=120)
-    if step.get("action") == "look":
-        last_frame = browser.run(browser.frame(), timeout=30)
+        result = DECLINED if DECLINE else browser.run(browser.act(step, True), timeout=120)
+    # Every browser step leaves its screen, for the run's record (and `look` for the model).
+    last_frame = browser.run(browser.frame(), timeout=30)
     return result
 
 

@@ -20,7 +20,7 @@ import {
   pointGap,
   wordsAsked,
 } from "../../src/jarvis/protocol";
-import { MAX_MODEL_STEPS } from "../../src/jarvis/agent";
+import { TURN_BUDGET } from "../../src/jarvis/engine";
 import type { NormalizedMessage } from "../../src/lib/intelligence/contract";
 import { ask, device } from "./live";
 
@@ -255,7 +255,7 @@ export async function runEngineF(text: string): Promise<{ answer: string; status
   ];
   const ran: string[] = [];
   // The same model-call budget as the product loop: a fair race, not a shorter leash.
-  for (let round = 0; round < MAX_MODEL_STEPS; round += 1) {
+  for (let round = 0; round < TURN_BUDGET.modelSteps; round += 1) {
     const reply = await ask(messages, programTools);
     if (!reply.toolCalls.length) return { answer: reply.text, status: "answered" };
     programs.push(reply.toolCalls.map((c) => ({ [c.name]: c.arguments })));

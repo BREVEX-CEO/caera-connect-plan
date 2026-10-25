@@ -191,7 +191,7 @@ try {
     const answer = text
       .replace(question, "")
       .replace("Waiting to be saved to your account.", "")
-      .replace(/^(Copy|Retry|Regenerate|Edit|Remove|Delete)$/gm, "")
+      .replace(/^(Copy|Retry|Regenerate|Edit|Remove|Delete|Do it with JARVIS)$/gm, "")
       .trim();
     // Always: a few words of the screen and console say more than a failed comparison.
     {

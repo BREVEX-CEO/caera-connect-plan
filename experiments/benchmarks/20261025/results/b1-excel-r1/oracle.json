@@ -1,0 +1,20 @@
+{
+  "task": "b1-excel",
+  "files": [
+    ".jarvis/add_chart.py",
+    "Q4_Budget.xlsx",
+    "clip1.mp4",
+    "clip2.mp4",
+    "clip3.mp4",
+    "earth.jpg"
+  ],
+  "exists": true,
+  "sheet": true,
+  "formulas": 10,
+  "sumFormulas": 3,
+  "charts": 1,
+  "percentFormat": true,
+  "monthsRight": { "October": true, "November": true, "December": true },
+  "totalRight": true,
+  "pass": true
+}

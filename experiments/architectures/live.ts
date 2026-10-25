@@ -9,10 +9,14 @@
  * Not the product's server: there is no task authority here, so a finish is recorded as the
  * model said it and judged afterwards by the task's independent oracle, never by the model.
  *
- * Usage (bundled by esbuild): node live.mjs <arch A|F> <task.json> <permits.json> <out.json> <port>
+ * Usage (bundled by build-live.mjs): node live.mjs <arch A|F> <task.json> <permits.json> <out.json> <port>
  * Env: OCADE_SUPABASE_URL, OCADE_SUPABASE_KEY, OCADE_TOKEN_FILE, OCADE_ORIGIN.
+ * Optional: OCADE_FRAMES_DIR saves the device's screen after each browser step;
+ * OCADE_STOP_AFTER=n presses STOP once n device steps have answered, and then
+ * OCADE_RESUME_TEXT is said in a second turn that carries the first turn's work, as the
+ * workspace's Continue does.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { runJarvisTurn, type AgentDeps } from "../../src/jarvis/agent";
 import type { JarvisTaskRow } from "../../src/jarvis/jarvis.functions";
 import {
@@ -21,7 +25,11 @@ import {
   NOT_VERIFIED,
   type OutcomeCheck,
 } from "../../src/jarvis/protocol";
-import { verificationGap, type ActionRow } from "../../src/jarvis/task-authority.server";
+import {
+  deliveriesDue,
+  verificationGap,
+  type ActionRow,
+} from "../../src/jarvis/task-authority.server";
 import { createOnlineIntelligenceTransport } from "../../src/lib/intelligence/online-client";
 import type {
   NormalizedAssistantPart,
@@ -253,6 +261,27 @@ export async function device(family: "browser" | "computer", action: object) {
 }
 
 let row: JarvisTaskRow | null = null;
+const FRAMES = process.env.OCADE_FRAMES_DIR;
+const STOP_AFTER = Number(process.env.OCADE_STOP_AFTER) || 0;
+/** The person's STOP, pressed by the runner when OCADE_STOP_AFTER is reached. */
+const stop = new AbortController();
+const answered = new Set<string>();
+/** The work the turn reported, which a later turn carries, as the workspace keeps it. */
+let progress: NormalizedMessage[] = [];
+
+/** The device's latest screen, saved as step N (browser and screen steps leave one). */
+async function keepFrame(step: number) {
+  if (!FRAMES) return;
+  const { frame } = (await (await fetch(`http://127.0.0.1:${port}/frame`)).json()) as {
+    frame: string | null;
+  };
+  if (!frame) return;
+  mkdirSync(FRAMES, { recursive: true });
+  writeFileSync(
+    `${FRAMES}/step-${String(step).padStart(2, "0")}.jpg`,
+    Buffer.from(frame, "base64"),
+  );
+}
 /** What the model was last shown: its tail goes in the record, so a stop can be explained. */
 let transcript: unknown[] = [];
 let approvals = 0;
@@ -332,6 +361,11 @@ function deps(): AgentDeps {
     },
     readAction: async (id) => {
       const result = await execute(id);
+      if (!answered.has(id)) {
+        answered.add(id);
+        await keepFrame(answered.size);
+        if (answered.size === STOP_AFTER) stop.abort();
+      }
       const status = String(result.status);
       // Stored and read back as the product's exchange does: beyond these, under `detail`.
       const { status: _s, summary: _m, changed, observation, ...detail } = result;
@@ -356,6 +390,8 @@ function deps(): AgentDeps {
     frame: async () =>
       ((await (await fetch(`http://127.0.0.1:${port}/frame`)).json()) as { frame: string | null })
         .frame,
+    // From the run's own action record, as the server's taskDeliveriesDue reads it.
+    deliveries: async () => deliveriesDue(rows, checks ?? []),
     remember: async () => ({ ok: false, message: "Memory is off in this run." }),
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     changed: async (id, ms) => {
@@ -365,12 +401,29 @@ function deps(): AgentDeps {
 }
 
 async function runA() {
-  const controller = new AbortController();
+  const first = await turn(task.text, [], stop.signal).catch((error: unknown) => ({
+    answer: String(error),
+    status: row?.status ?? null,
+  }));
+  const resume = process.env.OCADE_RESUME_TEXT;
+  if (!STOP_AFTER || !resume || !stop.signal.aborted) return first;
+  // STOP ended the task; Continue is a new turn that carries what the stopped one did.
+  const carried = [
+    { role: "user" as const, content: task.text },
+    ...progress,
+    { role: "assistant" as const, content: "Stopped by the person." },
+  ];
+  row = null;
+  const second = await turn(resume, carried, new AbortController().signal);
+  return { ...second, stoppedFirst: first };
+}
+
+async function turn(text: string, history: NormalizedMessage[], signal: AbortSignal) {
   const out = await runJarvisTurn(
     {
       conversationId: task.id,
-      history: [],
-      text: task.text,
+      history,
+      text,
       memories: [],
       memoryEnabled: false,
       task: null,
@@ -378,7 +431,10 @@ async function runA() {
       now: new Date(),
     },
     {
-      signal: controller.signal,
+      signal,
+      onProgress: (work) => {
+        progress = work;
+      },
       onText: () => undefined,
       onTask: () => undefined,
       onActivity: () => undefined,
