@@ -59,6 +59,8 @@ import { BrowserPanel, ConfirmBanner, TaskCard, TakeOverBanner, VoiceBar } from 
 import { takeHandOff } from "./bubble-state";
 
 const JARVIS_STATE_KEY = ["jarvis", "state"] as const;
+/** The longest provider wait a running task sits out by itself (B07); a longer one is the person's call. */
+const SHORT_WAIT_MS = 300_000;
 
 interface Turn {
   id: string;
@@ -555,15 +557,17 @@ export function JarvisWorkspace({
         setBusyUntil(Date.now() + wait);
         const open = activeTaskRef.current;
         if (open && !FINISHED.includes(open.status)) {
-          resumeAfterBusy.current = open.id;
+          // A short wait is part of the run the person started; a long one (the day's capacity)
+          // is not, so the task waits for their Resume instead of continuing unattended (B07).
+          resumeAfterBusy.current = wait <= SHORT_WAIT_MS ? open.id : null;
           setActiveTask(
             await updateJarvisTask({
               data: {
                 id: open.id,
                 status: "waiting",
                 blocker:
-                  wait > 300_000
-                    ? `OCADE JARVIS has reached its online capacity for now. It continues by itself at ${new Date(Date.now() + wait).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`
+                  wait > SHORT_WAIT_MS
+                    ? `OCADE JARVIS has reached its online capacity for now. It can continue at ${new Date(Date.now() + wait).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}: press Resume then.`
                     : "Waiting for OCADE JARVIS to be available again.",
               },
             }),
@@ -1219,13 +1223,16 @@ export function JarvisWorkspace({
               >
                 OCADE JARVIS is busy right now. Nothing was charged
                 {resumeAfterBusy.current
-                  ? ", and your task is saved: it continues by itself"
-                  : ""}{" "}
-                at{" "}
+                  ? ", and your task is saved: it continues by itself at "
+                  : conversationTask?.status === "waiting"
+                    ? ", and your task is saved. It can continue at "
+                    : ". It is available again at "}
                 {new Intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(
                   new Date(busyUntil),
                 )}
-                .
+                {!resumeAfterBusy.current && conversationTask?.status === "waiting"
+                  ? ": press Resume then."
+                  : "."}
               </p>
             ) : null}
             {voice.error ? (

@@ -16,6 +16,7 @@ import {
   commandClass,
   describeAction,
   BROWSER_ACTION_NAMES,
+  FINISHED,
   NOT_VERIFIED,
   outcomeChecks,
   readsBack,
@@ -966,8 +967,46 @@ export async function changeTask(
         idempotencyKey: `jarvis-task-${data.status}:${task.id}`,
       });
     }
+    if (FINISHED.includes(data.status)) await releaseOrphanUploads(service, userId, data.id);
   }
   return task as JarvisTaskRow;
+}
+
+/**
+ * Files the task sent to the Library that no Library item holds — the task ended without
+ * completing, or a file sent again left its earlier copy behind — go to the existing deletion
+ * sweep instead of staying in storage unseen (audit C04). Only this person's own folder is
+ * named, and a failure here never changes the task's outcome; the sweep retries what is owed.
+ */
+async function releaseOrphanUploads(service: Db, userId: string, taskId: string): Promise<void> {
+  const rows = await taskActions(service, userId, taskId);
+  const items = [
+    ...new Set(
+      (rows ?? [])
+        .filter((row) => row.action?.action === "file_deliver" && row.status === "done")
+        .map((row) => row.action!.item)
+        .filter((item): item is string => typeof item === "string"),
+    ),
+  ];
+  if (!items.length) return;
+  const { data: kept, error } = await service
+    .from("ocade_library_items")
+    .select("id")
+    .eq("user_id", userId)
+    .in("id", items);
+  if (error) return;
+  const held = new Set((kept ?? []).map((row) => row.id));
+  const orphans = items.filter((item) => !held.has(item));
+  if (!orphans.length) return;
+  await service.from("storage_tombstones").upsert(
+    orphans.map((item) => ({
+      bucket: "library",
+      storage_path: `${userId}/${item}`,
+      owner_id: userId,
+      source: "jarvis_delivery",
+    })),
+    { onConflict: "bucket,storage_path", ignoreDuplicates: true },
+  );
 }
 
 export type QueueResult =

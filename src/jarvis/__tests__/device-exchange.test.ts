@@ -1195,6 +1195,50 @@ describe("completion needs evidence from the device (P01)", () => {
       ]);
     });
 
+    it("hands uploads no Library item holds to the deletion sweep (audit C04)", async () => {
+      const tombstones = () =>
+        twin.asServiceRole<{ storage_path: string; source: string }>(
+          `select storage_path, source from public.storage_tombstones where owner_id = '${A}' order by storage_path`,
+        );
+      // A task that ends without completing: its sent file belongs to no Library item.
+      const failed = await withChecks([{ path: "draft.txt" }]);
+      const lost = "eeeeeeee-1111-4eee-8eee-eeeeeeeeeeee";
+      await done(
+        await queue(failed, { action: "file_deliver", path: "draft.txt", size: 3, item: lost }),
+      );
+      await changeTask(rest() as never, rest() as never, A, { id: failed, status: "failed" });
+      expect(await tombstones()).toEqual([
+        { storage_path: `${A}/${lost}`, source: "jarvis_delivery" },
+      ]);
+
+      // A completed task that sent the same file twice keeps one item; the first copy goes.
+      const t = await withChecks([{ path: "car.stl" }]);
+      await done(await queue(t, { action: "file_write", path: "car.stl", content: "solid" }));
+      const first = "ffffffff-1111-4fff-8fff-ffffffffffff";
+      const second = "ffffffff-2222-4fff-8fff-ffffffffffff";
+      for (const item of [first, second]) {
+        await done(await queue(t, { action: "file_deliver", path: "car.stl", size: 5, item }));
+      }
+      await done(await queue(t, { action: "file_read", path: "car.stl" }), {
+        status: "done",
+        detail: { content: "solid" },
+      });
+      await changeTask(rest() as never, rest() as never, A, {
+        id: t,
+        status: "completed",
+        result: "Made car.stl.",
+        checkpoint: {
+          step: 1,
+          lastAction: "Finished",
+          lastUrl: null,
+          at: new Date().toISOString(),
+        },
+      });
+      expect((await tombstones()).map((row) => row.storage_path)).toEqual(
+        [`${A}/${lost}`, `${A}/${first}`].sort(),
+      );
+    });
+
     it("keeps each delivered file as a Library item named on the completed task", async () => {
       const t = await withChecks([{ path: "car.stl" }]);
       await done(await queue(t, { action: "file_write", path: "car.stl", content: "solid" }));

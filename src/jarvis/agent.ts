@@ -520,7 +520,8 @@ export async function runJarvisTurn(
   /** The files the task's checks name, outside .jarvis (for the script note). */
   let finished: string[] = [];
   // Once page content has been read this turn, nothing may be written to memory.
-  let untrustedSeen = false;
+  // A carried task's own earlier results (page, file and tool data) count too (audit F10).
+  let untrustedSeen = input.history.some((message) => message.toolResult);
   // Which kind of observation hands control back after the person takes over.
   let lastFamily: "browser" | "computer" = "browser";
   const stopIfAsked = () => {
