@@ -31,10 +31,12 @@ import { executionDisabled, ORPHAN_MS } from "./device.server";
 import {
   checkpointOf,
   humanBoundary,
+  loopRefusal,
   pairToolHistory,
   pruneOlderResults,
   toolResultMessage,
   TURN_BUDGET,
+  type TraceStep,
 } from "./engine";
 import { isAllowed } from "./permissions";
 import {
@@ -541,6 +543,12 @@ export async function carryOn(
       }
     }
 
+    const trace: TraceStep[] = actions.flatMap((row) => {
+      const kind = family(row.action);
+      return kind === "docs"
+        ? []
+        : [{ family: kind, args: row.action as Record<string, unknown>, result: row.result }];
+    });
     for (const call of reply.toolCalls) {
       const given = (call.arguments ?? {}) as Record<string, unknown>;
       // finish_task and docs take the first action of a sequence; a device call takes them all (below).
@@ -615,6 +623,13 @@ export async function carryOn(
               ? `That ${call.name} action is not valid (${invalidReason(parsed.error)}).`
               : `That ${call.name} action has fields the tool does not have (${undeclared.join(", ")}). Use only its listed fields.`,
           );
+          await notRun(index + 1);
+          return { state: "queued" };
+        }
+        // The same loop guards as the foreground, read from the task's recorded steps (B01).
+        const repeated = loopRefusal(trace, call.name, parsed.data as Record<string, unknown>);
+        if (repeated) {
+          await record(parsed.data, repeated);
           await notRun(index + 1);
           return { state: "queued" };
         }

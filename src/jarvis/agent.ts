@@ -45,40 +45,27 @@ import {
   type TaskStatus,
   invalidReason,
   pointGap,
-  readsBack,
   undeclaredFields,
   wordsGap,
 } from "./protocol";
 import {
   checkpointOf,
   humanBoundary,
+  loopRefusal,
   pairToolHistory,
   pruneOlderResults,
   ScheduleFailure,
   scheduleCalls,
   toolResultMessage,
   TURN_BUDGET,
+  type TraceStep,
 } from "./engine";
 import type { JarvisTaskRow, StartTaskResult } from "./jarvis.functions";
 import { interjectionMessage, type LiveControl } from "./live-control";
 import { localIso, safeZone } from "./schedule-time";
 
 const { modelSteps: MAX_MODEL_STEPS, sequence: MAX_SEQUENCE } = TURN_BUDGET;
-const { failedCalls: MAX_FAILED_CALLS, sameCall: MAX_SAME_CALL } = TURN_BUDGET;
-const MAX_UNCHANGED = TURN_BUDGET.unchanged;
-/** Steps that rightly repeat unchanged: moving through a page or list, waiting, looking again. */
-const REPEATS = new Set([
-  "scroll",
-  "press",
-  "wait",
-  "observe",
-  "look",
-  "screen",
-  "ui_inspect",
-  "window_list",
-  "screen_scroll",
-  "screen_keys",
-]);
+const MAX_FAILED_CALLS = TURN_BUDGET.failedCalls;
 /** The loop touches its task this often, so a closed surface is told apart from a slow step. */
 export const HEARTBEAT_MS = 60_000;
 const POLL_MS = 400;
@@ -512,9 +499,8 @@ export async function runJarvisTurn(
   let seen: Seen | null = null;
   /** The history entry holding the newest observation; older ones are superseded. */
   const observed: { at: number; call: NormalizedToolCall; result: unknown }[] = [];
-  const made = new Map<string, number>();
-  /** Page actions in a row that changed nothing: progress is the page changing, not new arguments. */
-  let unchanged = 0;
+  /** This turn's device calls and their results: what the loop guards read (loopRefusal). */
+  const trace: TraceStep[] = [];
   // Once page content has been read this turn, nothing may be written to memory.
   // A carried task's own earlier results (page, file and tool data) count too (audit F10).
   let untrustedSeen = input.history.some((message) => message.toolResult);
@@ -874,25 +860,10 @@ export async function runJarvisTurn(
       }
       case "browser":
       case "computer": {
-        // Keys in a fixed order: a model writes the same step with its keys in any order.
-        const same = JSON.stringify([call.name, args], (_, value) =>
-          value && typeof value === "object" && !Array.isArray(value)
-            ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)))
-            : value,
-        );
-        const times = (made.get(same) ?? 0) + 1;
-        made.set(same, times);
-        if (times > MAX_SAME_CALL && !REPEATS.has(String(args.action))) {
-          return {
-            error: `This exact step already ran ${times - 1} times in this task and will not give anything new. Do something different: read the facts with find_text, use another action, or call finish_task.`,
-          };
-        }
-        const reading = REPEATS.has(String(args.action)) || readsBack(args as DeviceAction);
-        if (call.name === "browser" && !reading && unchanged >= MAX_UNCHANGED) {
-          return {
-            error: `The last ${unchanged} page actions changed nothing on the page. Look at it (look), then try a different way, or finish as blocked and say what stops you.`,
-          };
-        }
+        const entry: TraceStep = { family: call.name, args };
+        const loop = loopRefusal(trace, call.name, args);
+        trace.push(entry);
+        if (loop) return { error: loop };
         // Fields the tool never declared are refused by name, not dropped (audit B09); a step that
         // is not a valid action at all is left to the validation that says why.
         const steps = Array.isArray(args.sequence) ? (args.sequence as unknown[]) : [args];
@@ -914,16 +885,7 @@ export async function runJarvisTurn(
         const result = await (Array.isArray(args.sequence)
           ? runSequence(call.name, args.sequence)
           : runDevice(call.name, args));
-        if (call.name === "browser") {
-          const latest = ((result as { last?: unknown })?.last ?? result) as {
-            status?: unknown;
-            changed?: unknown;
-          };
-          if (reading) unchanged = 0;
-          else if (latest?.status === "done" && Array.isArray(latest.changed)) {
-            unchanged = latest.changed.length ? 0 : unchanged + 1;
-          }
-        }
+        entry.result = result;
         return result;
       }
       case "finish_task": {

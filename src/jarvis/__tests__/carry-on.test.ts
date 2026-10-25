@@ -712,6 +712,22 @@ describe("carrying on", () => {
     expect((await exchange(admin(), me(), { results: [] })).commands).toEqual([]);
   });
 
+  it("refuses a step it has already run three times, as the foreground does (B01)", async () => {
+    const t = await task();
+    await sql(
+      `insert into public.jarvis_activity (user_id, task_id, device_id, summary, action, status, result, completed_at)
+       select '${A}', '${t}', '${device}', 'Listed .', '{"action":"file_list","path":"."}'::jsonb, 'done', '{"status":"done"}'::jsonb, now()
+       from generate_series(1, 3)`,
+    );
+    const { model } = scripted(call("computer", { path: ".", action: "file_list" }));
+    expect(await carryOn(admin(), me(), t, { model })).toEqual({ state: "queued" });
+    expect((await actionsOf(t)).at(-1)).toMatchObject({
+      status: "failed",
+      summary: expect.stringContaining("already ran 3 times"),
+    });
+    expect((await exchange(admin(), me(), { results: [] })).commands).toEqual([]);
+  });
+
   it("a field the tool never declared is refused by name, never dropped (B09)", async () => {
     const t = await task();
     const { model } = scripted(

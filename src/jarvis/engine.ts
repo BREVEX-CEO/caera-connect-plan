@@ -14,6 +14,7 @@
  * Adapted to OCADE: no Cordis/session service; OCADE's broker stays the only effect gate.
  */
 import type { NormalizedMessage, NormalizedToolCall } from "@/lib/intelligence/contract";
+import { readsBack } from "./protocol";
 import type { JarvisTaskRow } from "./task-row";
 
 /** One typed budget; the units differ on purpose (model steps vs device actions). */
@@ -227,4 +228,72 @@ export function pairToolHistory(messages: readonly NormalizedMessage[]): Normali
   }
   close();
   return out;
+}
+
+/** Steps that rightly repeat unchanged: moving through a page or list, waiting, looking again. */
+export const REPEATS = new Set([
+  "scroll",
+  "press",
+  "wait",
+  "observe",
+  "look",
+  "screen",
+  "ui_inspect",
+  "window_list",
+  "screen_scroll",
+  "screen_keys",
+]);
+
+/** One device call a task has made (single or sequence), with its result once it has one. */
+export interface TraceStep {
+  family: "browser" | "computer";
+  args: Record<string, unknown>;
+  result?: unknown;
+}
+
+const reading = (args: Record<string, unknown>) =>
+  REPEATS.has(String(args.action)) || readsBack(args as { action?: unknown; op?: unknown });
+// Keys in a fixed order: a model writes the same step with its keys in any order.
+const canonical = (step: Pick<TraceStep, "family" | "args">) =>
+  JSON.stringify([step.family, step.args], (_, value) =>
+    value && typeof value === "object" && !Array.isArray(value)
+      ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)))
+      : value,
+  );
+
+/**
+ * Why the next device call would be a loop, not progress, read from the task's own trace so
+ * the foreground and the computer carrying on decide it the same way (audit B01): the exact
+ * same step after TURN_BUDGET.sameCall tries, or a page action after TURN_BUDGET.unchanged
+ * page actions in a row that changed nothing. Null when the call may run.
+ */
+export function loopRefusal(
+  trace: readonly TraceStep[],
+  family: TraceStep["family"],
+  args: Record<string, unknown>,
+): string | null {
+  if (!REPEATS.has(String(args.action))) {
+    const key = canonical({ family, args });
+    const times = trace.filter((step) => canonical(step) === key).length;
+    if (times >= TURN_BUDGET.sameCall) {
+      return `This exact step already ran ${times} times in this task and will not give anything new. Do something different: read the facts with find_text, use another action, or call finish_task.`;
+    }
+  }
+  if (family !== "browser" || reading(args)) return null;
+  let unchanged = 0;
+  for (const step of trace) {
+    if (step.family !== "browser") continue;
+    if (reading(step.args)) {
+      unchanged = 0;
+      continue;
+    }
+    const latest = ((step.result as { last?: unknown } | undefined)?.last ?? step.result) as
+      { status?: unknown; changed?: unknown } | undefined;
+    if (latest?.status === "done" && Array.isArray(latest.changed)) {
+      unchanged = latest.changed.length ? 0 : unchanged + 1;
+    }
+  }
+  return unchanged >= TURN_BUDGET.unchanged
+    ? `The last ${unchanged} page actions changed nothing on the page. Look at it (look), then try a different way, or finish as blocked and say what stops you.`
+    : null;
 }

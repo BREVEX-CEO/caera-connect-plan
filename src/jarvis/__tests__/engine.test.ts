@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { NormalizedMessage, NormalizedToolCall } from "@/lib/intelligence/contract";
 import {
   humanBoundary,
+  loopRefusal,
   OUTCOME_UNKNOWN,
   pairToolHistory,
   PRUNE,
@@ -11,6 +12,7 @@ import {
   ScheduleFailure,
   scheduleCalls,
   toolResultMessage,
+  type TraceStep,
 } from "../engine";
 
 const call = (name: string, id = name): NormalizedToolCall => ({ id, name, arguments: {} });
@@ -197,5 +199,44 @@ describe("tool history pairing (adapted from DeepSeek session repair)", () => {
   it("closes a trailing call left open by a crash", () => {
     const repaired = pairToolHistory([{ role: "user", content: "hi" }, ask("z")]);
     expect(repaired.at(-1)?.toolResult?.callId).toBe("z");
+  });
+});
+
+describe("one loop rule for both planners, read from the task's trace (B01)", () => {
+  const open = { action: "open", url: "https://a.example" };
+  const click = (ref: string) => ({ action: "click", ref, observationId: "o1" });
+  const done = (changed: string[]) => ({ status: "done", changed });
+
+  it("refuses the same step after three tries, whatever order its keys came in", () => {
+    const trace: TraceStep[] = [];
+    for (let i = 0; i < 3; i += 1) {
+      expect(loopRefusal(trace, "browser", open)).toBeNull();
+      trace.push({ family: "browser", args: open, result: done(["x"]) });
+    }
+    expect(loopRefusal(trace, "browser", { url: open.url, action: "open" })).toMatch(
+      /already ran 3 times/,
+    );
+    // Moving through a page is not a loop.
+    const scroll = { action: "scroll", direction: "down" };
+    const scrolled = Array.from({ length: 5 }, () => ({
+      family: "browser" as const,
+      args: scroll,
+    }));
+    expect(loopRefusal(scrolled, "browser", scroll)).toBeNull();
+  });
+
+  it("asks for a fresh look after four page actions that changed nothing", () => {
+    const trace: TraceStep[] = ["e1", "e2", "e3", "e4"].map((ref) => ({
+      family: "browser",
+      args: click(ref),
+      result: done([]),
+    }));
+    expect(loopRefusal(trace, "browser", click("e5"))).toMatch(/changed nothing/);
+    expect(loopRefusal(trace, "browser", { action: "look" })).toBeNull();
+    const looked: TraceStep[] = [...trace, { family: "browser", args: { action: "look" } }];
+    expect(loopRefusal(looked, "browser", click("e5"))).toBeNull();
+    // A sequence's last step counts as the call's result.
+    const sequence: TraceStep[] = trace.map((step) => ({ ...step, result: { last: step.result } }));
+    expect(loopRefusal(sequence, "browser", click("e5"))).toMatch(/changed nothing/);
   });
 });
