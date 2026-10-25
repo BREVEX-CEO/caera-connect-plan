@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "upstream",
+    "outDir": ".types",
+    "tsBuildInfoFile": ".types/vendor.tsbuildinfo",
+    "noImplicitAny": false,
+    "noImplicitThis": false,
+    "strictFunctionTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitOverride": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["upstream/vendor"]
+}

@@ -2,16 +2,15 @@
  * THE ONE TURN POLICY both planners share: the foreground loop (`agent.ts`, used by the
  * workspace and the bubble) and the computer carrying on (`background.server.ts`).
  *
- * Budgets, the human-boundary decision, the tool-result wording, the checkpoint, the order
- * a reply's calls run in, and how old results shrink live here once, so the two paths
- * cannot drift apart again (plan.md §4.1, §18).
+ * Budgets, the human-boundary decision, the tool-result wording, the checkpoint, which calls
+ * may run together, and how old results shrink live here once, so the two paths cannot drift
+ * apart again (plan.md §4.1, §18). The foreground's calls are scheduled by DeepSeek Harness's
+ * own agent loop (upstream-turn.ts, vendored source).
  *
- * `scheduleCalls` and `pruneText` are derived from DeepSeek Harness
+ * `pruneText` is derived from DeepSeek Harness
  * (https://github.com/deepseek-ai/deepseek-harness at 687f282e8625c6b8d11ff58211a90524be2e4317):
- * `packages/core/agent-loop/src/tool-calls.ts` and
  * `packages/compaction/compaction-tool-result-pruner/src/{index,config}.ts`,
  * MIT License, Copyright (c) 2026 DeepSeek. See `src/jarvis/THIRD_PARTY_NOTICES.md`.
- * Adapted to OCADE: no Cordis/session service; OCADE's broker stays the only effect gate.
  */
 import type { NormalizedMessage, NormalizedToolCall } from "@/lib/intelligence/contract";
 import { readsBack } from "./protocol";
@@ -87,75 +86,11 @@ export function toolResultMessage(
 }
 
 /**
- * Server-side tools that only read and change nothing the others depend on. Everything
- * else (device actions, task changes, memory, schedules) is an exclusive barrier.
+ * Server-side tools that only read and change nothing the others depend on: the upstream
+ * scheduler (upstream-turn.ts) may run these together. Everything else (device actions, task
+ * changes, memory, schedules) runs alone, after everything before it settled.
  */
-const READ_ONLY = new Set(["research", "docs"]);
-
-/**
- * Run one reply's calls. Consecutive read-only calls run together in a bounded pool;
- * every other call runs alone, after everything before it settled. Results come back in
- * the model's order. Once `signal` aborts, nothing new starts: started calls settle and
- * each unstarted call gets `skipped(call)`. A call that throws stops new starts, lets the
- * started ones settle, and a `ScheduleFailure` is thrown carrying the first error and every
- * result already in hand, so the caller records what did happen (audit B05).
- */
-/** A reply's calls stopped by one that threw: `results[i]` is the result of call i, if it ran. */
-export class ScheduleFailure<T = unknown> extends Error {
-  constructor(
-    readonly cause: unknown,
-    readonly results: (T | undefined)[],
-  ) {
-    super(cause instanceof Error ? cause.message : "A tool call failed.");
-  }
-}
-
-export async function scheduleCalls<T>(
-  calls: readonly NormalizedToolCall[],
-  run: (call: NormalizedToolCall) => Promise<T>,
-  options: { signal: AbortSignal; skipped: (call: NormalizedToolCall) => T; parallel?: number },
-): Promise<T[]> {
-  const limit = Math.max(1, options.parallel ?? TURN_BUDGET.parallelReads);
-  const results: T[] = [];
-  let next = 0;
-  while (next < calls.length) {
-    if (options.signal.aborted) break;
-    let end = next + 1;
-    if (READ_ONLY.has(calls[next]!.name)) {
-      while (end < calls.length && READ_ONLY.has(calls[end]!.name)) end += 1;
-    }
-    const group = calls.slice(next, end);
-    const settled: PromiseSettledResult<T>[] = [];
-    let started = 0;
-    let failed = false;
-    const worker = async () => {
-      while (!failed && !options.signal.aborted && started < group.length) {
-        const index = started++;
-        try {
-          settled[index] = { status: "fulfilled", value: await run(group[index]!) };
-        } catch (reason) {
-          failed = true;
-          settled[index] = { status: "rejected", reason };
-        }
-      }
-    };
-    await Promise.all(Array.from({ length: Math.min(limit, group.length) }, worker));
-    const error = settled.find((outcome) => outcome?.status === "rejected");
-    if (error) {
-      const done = [
-        ...results,
-        ...settled.map((outcome) => (outcome?.status === "fulfilled" ? outcome.value : undefined)),
-      ];
-      throw new ScheduleFailure((error as PromiseRejectedResult).reason, done);
-    }
-    for (const outcome of settled.slice(0, started)) {
-      results.push((outcome as PromiseFulfilledResult<T>).value);
-    }
-    next += started;
-    if (started < group.length) break;
-  }
-  return [...results, ...calls.slice(results.length).map(options.skipped)];
-}
+export const READ_ONLY: ReadonlySet<string> = new Set(["research", "docs"]);
 
 /** DeepSeek's defaults for tool output; OCADE observations are already far smaller. */
 export const PRUNE = { thresholdChars: 8192, headChars: 4096, tailChars: 1024 } as const;

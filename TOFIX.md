@@ -20,6 +20,16 @@ Staging: **OCADE staging 20261019**, `auyapercxxptziyngycx`. All 156 forward mig
 
 Exact file/line means a confirmed source location for new findings, or the exact canonical evidence line for inherited items. **An inherited item's fault site/root cause is UNLOCALIZED unless its linked evidence proves it; do not invent code changes from a blocker label.** Priorities are triage recommendations, not new claims of reproduced critical defects. No issue is closed solely by a source fix, compilation or staging deployment.
 
+## Claude DeepSeek agent-loop integration — 25 October 2026 (later)
+
+- **What changed:**
+  - Every foreground JARVIS turn now runs on DeepSeek Harness's own agent loop: `src/jarvis/upstream-turn.ts`, driving the verbatim vendored source in `src/deepseek/upstream/`, which `deepseek:check` keeps byte-identical to the pin.
+  - OCADE's earlier loop and its scheduler are deleted.
+- **What stays OCADE's:** authority (model routing, tools, permissions, STOP, verification, task record).
+- **Evidence and open items:**
+  - JOURNEY-25-01 (flaky, 1 of 4 runs), DEP-25-01 (zod advisory) and DS-25-01 (background path and the non-adopted packages): see [BLOCKED_TESTS](BLOCKED_TESTS.md).
+  - Contract: [docs/integrations/deepseek-harness.md](docs/integrations/deepseek-harness.md).
+
 ## Claude audit repairs — 25 October 2026 (plan.md Appendix B)
 
 - **Commits on `ocade/p00-p22-implementation`:** `2c940a5` (F02–F08, F11, B05, B08), `2b1f8ad` (DeepSeek tool-history repair, Gate 1–2 evidence), `91a5b00` (F10, B07, C04), `d0c42a4` (B09, C10), `6cd2aac` and `c39561b` (one loop and refusal rule for both planners, B01), `0ef50f4` (resume reads the recorded task history, B03). Evidence and the remaining A–I backlog: [BLOCKED_TESTS](BLOCKED_TESTS.md). Release gates qualified: still 0 of 10.

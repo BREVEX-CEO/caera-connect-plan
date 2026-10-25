@@ -1,5 +1,6 @@
 {
   "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "eslint.config.js"],
+  "exclude": ["src/deepseek/upstream", "src/deepseek/.types"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",
@@ -21,7 +22,70 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@deepseek-ai/cordis": ["./src/deepseek/.types/vendor/cordis/src/index.d.ts"],
+      "@deepseek-ai/cosmokit": ["./src/deepseek/.types/vendor/cosmokit/src/index.d.ts"],
+      "@deepseek-ai/dsh-agent": ["./src/deepseek/.types/packages/core/agent/src/index.d.ts"],
+      "@deepseek-ai/dsh-agent-loop": [
+        "./src/deepseek/.types/packages/core/agent-loop/src/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent/types": ["./src/deepseek/.types/packages/core/agent/src/types.d.ts"],
+      "@deepseek-ai/dsh-attachment": [
+        "./src/deepseek/.types/packages/attachment/attachment/src/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-brand": ["./src/deepseek/.types/packages/util/brand/src/index.d.ts"],
+      "@deepseek-ai/dsh-fs": ["./src/deepseek/.types/packages/fs/fs/src/index.d.ts"],
+      "@deepseek-ai/dsh-llm": ["./src/deepseek/.types/packages/llm/llm/src/index.d.ts"],
+      "@deepseek-ai/dsh-llm/brand": ["./src/deepseek/.types/packages/llm/llm/src/brand.d.ts"],
+      "@deepseek-ai/dsh-llm/types": ["./src/deepseek/.types/packages/llm/llm/src/types.d.ts"],
+      "@deepseek-ai/dsh-ptc-runtime": [
+        "./src/deepseek/.types/packages/ptc-runtime/ptc-runtime/src/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-sandbox": ["./src/deepseek/.types/packages/sandbox/sandbox/src/index.d.ts"],
+      "@deepseek-ai/dsh-sandbox-policy": [
+        "./src/deepseek/.types/packages/sandbox/sandbox-policy/src/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-scope": ["./src/deepseek/.types/packages/core/scope/src/index.d.ts"],
+      "@deepseek-ai/dsh-session": ["./src/deepseek/.types/packages/core/session/src/index.d.ts"],
+      "@deepseek-ai/dsh-session-persistence": [
+        "./src/deepseek/.types/packages/session/session-persistence/src/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-projection": [
+        "./src/deepseek/.types/packages/session/session-projection/src/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-projection/types": [
+        "./src/deepseek/.types/packages/session/session-projection/src/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-session/types": [
+        "./src/deepseek/.types/packages/core/session/src/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-storage": ["./src/deepseek/.types/packages/storage/storage/src/index.d.ts"],
+      "@deepseek-ai/dsh-storage-domain": [
+        "./src/deepseek/.types/packages/storage/storage-domain/src/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-system-prompt": [
+        "./src/deepseek/.types/packages/core/system-prompt/src/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-timeout": ["./src/deepseek/.types/packages/util/timeout/src/index.d.ts"],
+      "@deepseek-ai/dsh-tools": ["./src/deepseek/.types/packages/core/tools/src/index.d.ts"],
+      "@deepseek-ai/dsh-typert-protocol": [
+        "./src/deepseek/.types/packages/typert/protocol/src/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-user-approval": [
+        "./src/deepseek/.types/packages/interaction/user-approval/src/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-util-crypto": ["./src/deepseek/.types/packages/util/crypto/src/index.d.ts"],
+      "@deepseek-ai/dsh-util-values": ["./src/deepseek/.types/packages/util/values/src/index.d.ts"],
+      "@deepseek-ai/dsh-working-directory": [
+        "./src/deepseek/.types/packages/session/working-directory/src/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-workspace": [
+        "./src/deepseek/.types/packages/workspace/workspace/src/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-workspace/types": [
+        "./src/deepseek/.types/packages/workspace/workspace/src/types.d.ts"
+      ],
+      "@deepseek-ai/schemastery": ["./src/deepseek/.types/vendor/schemastery/src/index.d.ts"]
     }
   }
 }

@@ -1,6 +1,6 @@
 # DeepSeek Harness import inbox and pinned reference
 
-> **23 October 2026:** the pinned upstream is now the `upstream/` submodule. Selected logic is re-expressed in OCADE with attribution; nothing here is installed or executed. See [the integration contract](../../docs/integrations/deepseek-harness.md).
+> **25 October 2026:** the pinned upstream is the `upstream/` submodule. The agent loop's closure (121 source files, 27 packages) is vendored byte-for-byte into `src/deepseek/upstream/` by `scripts/deepseek-vendor.mjs` and runs every foreground JARVIS turn. The submodule itself is never installed, built or executed: it is the source of that copy, of the `deepseek:check` comparison and of the dev-only upstream spec run (`npm run deepseek:specs`). See [the integration contract](../../docs/integrations/deepseek-harness.md).
 
 This is a **source intake area**, not a deployed agent, executable or production dependency. This import is expressly authorized as **new MIT-licensed upstream code**; it is **not** the retired donor content removed in October.
 

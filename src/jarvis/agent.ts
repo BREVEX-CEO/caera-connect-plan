@@ -50,20 +50,18 @@ import {
 } from "./protocol";
 import {
   checkpointOf,
+  READ_ONLY,
   humanBoundary,
   loopRefusal,
   pairToolHistory,
-  pruneOlderResults,
   refused,
-  ScheduleFailure,
-  scheduleCalls,
-  toolResultMessage,
   TURN_BUDGET,
   type TraceStep,
 } from "./engine";
 import type { JarvisTaskRow, StartTaskResult } from "./jarvis.functions";
 import { interjectionMessage, type LiveControl } from "./live-control";
 import { localIso, safeZone } from "./schedule-time";
+import { UpstreamTurn } from "./upstream-turn";
 
 const { modelSteps: MAX_MODEL_STEPS, sequence: MAX_SEQUENCE } = TURN_BUDGET;
 const MAX_FAILED_CALLS = TURN_BUDGET.failedCalls;
@@ -324,6 +322,13 @@ const TOOL_NAMES = new Set([
   "remember",
 ]);
 
+/** Every tool `runTool` answers; the upstream registry runs exactly these. */
+const OCADE_TOOLS = [...TOOL_NAMES, "research"];
+
+/** One reminder when an open task's turn ends without a call; then it waits for the person. */
+const NUDGE =
+  "The task is still open. Continue it with a tool call, or call finish_task with the outcome.";
+
 /**
  * A tool call the model wrote as text. Earlier calls were echoed back to it as
  * "Called computer {...}" (a resumed task's history may still hold that), and
@@ -472,7 +477,8 @@ export async function runJarvisTurn(
     task && !FINISHED.includes(task.status)
       ? (task.checkpoint?.intelligenceQuality ?? "standard")
       : (input.quality ?? "standard");
-  const messages: NormalizedMessage[] = [
+  /** What the model reads before this turn: OCADE's rules, saved preferences, the conversation. */
+  const prefix: NormalizedMessage[] = [
     {
       role: "system",
       content: systemPrompt({
@@ -483,10 +489,7 @@ export async function runJarvisTurn(
     ...memoryMessage(input),
     // A carried or cut history can hold a call without its answer, or the reverse.
     ...pairToolHistory(input.history),
-    { role: "user", content: input.text },
   ];
-  /** Where this turn's own work starts in the conversation sent to the model. */
-  const begun = messages.length;
   let task = input.task && !FINISHED.includes(input.task.status) ? input.task : null;
   // This turn's planning loop. Only the loop named on the task may queue actions.
   const controller = crypto.randomUUID();
@@ -498,8 +501,6 @@ export async function runJarvisTurn(
   let attachments: NormalizedAttachment[] = [];
   /** The last page or screen the model was shown: what a sequence's later steps were planned on. */
   let seen: Seen | null = null;
-  /** The history entry holding the newest observation; older ones are superseded. */
-  const observed: { at: number; call: NormalizedToolCall; result: unknown }[] = [];
   /** This turn's device calls and their results: what the loop guards read (loopRefusal). */
   const trace: TraceStep[] = [];
   // Once page content has been read this turn, nothing may be written to memory.
@@ -509,13 +510,6 @@ export async function runJarvisTurn(
   let lastFamily: "browser" | "computer" = "browser";
   const stopIfAsked = () => {
     if (hooks.signal.aborted) throw new Stopped();
-  };
-  /** The safe point between steps: honour a Pause, then hear what the person said. */
-  const listen = async () => {
-    await hooks.live?.waitIfPaused(hooks.signal);
-    stopIfAsked();
-    const said = hooks.live?.drain() ?? [];
-    if (said.length) messages.push({ role: "user", content: interjectionMessage(said) });
   };
 
   /** Every task write after the claim is made as this loop's owner. */
@@ -988,78 +982,160 @@ export async function runJarvisTurn(
     }
   }, HEARTBEAT_MS);
   try {
-    return await drive();
+    return await driveUpstream();
   } finally {
     clearInterval(heartbeat);
   }
 
-  async function drive(): Promise<{ answer: string; task: JarvisTaskRow | null }> {
+  /** One model step: OCADE's own call, with a call written as text read as that call. */
+  async function askModel(sent: NormalizedMessage[], answer: string): Promise<ModelStep | null> {
+    let reply: ModelStep | null;
+    try {
+      reply = await deps.model({
+        quality: qualityFor(task),
+        messages: sent,
+        memory: input.memoryEnabled,
+        attachments,
+        signal: hooks.signal,
+        onText: hooks.onText,
+        ...(task && !FINISHED.includes(task.status) ? { taskId: task.id } : {}),
+      });
+      permitKey = reply?.permitKey;
+    } catch (error) {
+      // Stop mid-answer surfaces from the stream as an abort error: it is a Stop.
+      if (hooks.signal.aborted) throw new Stopped();
+      throw error;
+    }
+    stopIfAsked();
+    attachments = [];
+    const written = reply && reply.toolCalls.length === 0 ? pseudoCall(reply.text) : null;
+    if (reply && written) {
+      reply = { text: "", toolCalls: [written], permitKey: reply.permitKey };
+      hooks.onText(answer); // the streamed call text is not an answer
+    }
+    return reply;
+  }
+
+  /**
+   * The turn driven by DeepSeek Harness's agent loop (upstream-turn.ts). OCADE's rules sit on
+   * its hooks: the step budget, the refusal streak, Pause and what the person says between
+   * steps, a recorded finish ending the turn, and the reminder for an open task.
+   */
+  async function driveUpstream(): Promise<{ answer: string; task: JarvisTaskRow | null }> {
     let answer = "";
-    let nudged = false;
-    let failing = 0;
-    for (let step = 0; step < MAX_MODEL_STEPS; step += 1) {
-      stopIfAsked();
-      await listen();
-      let reply: ModelStep | null;
-      try {
-        reply = await deps.model({
-          quality: qualityFor(task),
-          messages,
-          memory: input.memoryEnabled,
-          attachments,
-          signal: hooks.signal,
-          onText: hooks.onText,
-          ...(task && !FINISHED.includes(task.status) ? { taskId: task.id } : {}),
-        });
-        permitKey = reply?.permitKey;
-      } catch (error) {
-        // Stop mid-answer surfaces from the stream as an abort error: it is a Stop.
-        if (hooks.signal.aborted) throw new Stopped();
-        throw error;
-      }
-      stopIfAsked();
-      attachments = [];
-      const written = reply && reply.toolCalls.length === 0 ? pseudoCall(reply.text) : null;
-      if (reply && written) {
-        reply = { text: "", toolCalls: [written], permitKey: reply.permitKey };
-        hooks.onText(answer); // the streamed call text is not an answer
-      }
-      if (!reply) {
-        // No use was available (the allowance ran out, or the gate refused): an
-        // open task waits to be resumed rather than staying "running" unattended.
-        if (task && !FINISHED.includes(task.status)) {
+    let finishedWith: string | null = null;
+    let modelCalls = 0;
+    let endedBy: "steps" | "refusals" | null = null;
+    const turn = await UpstreamTurn.open(
+      prefix,
+      {
+        tools: OCADE_TOOLS,
+        readOnly: (name) => READ_ONLY.has(name),
+        async model(sent) {
+          modelCalls += 1;
+          const reply = await askModel(sent, answer);
+          if (reply?.text) {
+            answer = reply.text;
+            hooks.onText(answer);
+          }
+          return reply;
+        },
+        runTool,
+        concludes(call, result) {
+          // A task finished in this reply ends the turn with its own result: one more model
+          // call only to say "done" spends the person's online capacity on nothing (13 Oct).
+          const done = result as { ok?: unknown; result?: unknown } | null;
+          if (call.name !== "finish_task" || done?.ok !== true) return false;
+          finishedWith = String(done.result ?? call.arguments?.result ?? "");
+          return true;
+        },
+        async beforeStep(_step, results) {
+          let failing = 0;
+          for (const result of results) {
+            // The newest page or screen shown: what a sequence's later steps act on.
+            seen =
+              observationOf(result) ?? observationOf((result as { last?: unknown })?.last) ?? seen;
+            // Calls that keep failing validation or being refused only spend the person's uses.
+            failing = refused(result) ? failing + 1 : 0;
+          }
+          if (failing >= MAX_FAILED_CALLS && task && !FINISHED.includes(task.status)) {
+            endedBy = "refusals";
+            return "end";
+          }
+          if (modelCalls >= MAX_MODEL_STEPS) {
+            endedBy = "steps";
+            return "end";
+          }
+          await hooks.live?.waitIfPaused(hooks.signal);
+          stopIfAsked();
+          const said = hooks.live?.drain() ?? [];
+          return said.length ? interjectionMessage(said) : null;
+        },
+        afterTools: (work) => hooks.onProgress?.(work),
+        supersede: superseded,
+        observes: (result) =>
+          Boolean(observationOf(result) ?? observationOf((result as { last?: unknown })?.last)),
+      },
+      hooks.signal,
+    );
+    try {
+      let end = await turn.run(input.text);
+      let nudged = false;
+      while (true) {
+        stopIfAsked();
+        if (end === "no_model_use") {
+          // No use was available (the allowance ran out, or the gate refused): an
+          // open task waits to be resumed rather than staying "running" unattended.
+          if (task && !FINISHED.includes(task.status)) {
+            setTask(
+              await update({
+                id: task.id,
+                status: "waiting",
+                blocker: "No JARVIS use was available just now. Resume to try again.",
+              }),
+            );
+          }
+          return { answer, task };
+        }
+        // The task's recorded result is the answer: words the model wrote beside its finish can
+        // explain it, never replace it with a rosier one (audit F06).
+        if (finishedWith !== null) {
+          hooks.onText(finishedWith);
+          return { answer: finishedWith, task };
+        }
+        if (endedBy === "refusals" && task) {
           setTask(
             await update({
               id: task.id,
               status: "waiting",
-              // Out of uses, or the allowance could not be checked: the toast
-              // already said which. This line must be true in both cases.
-              blocker: "No JARVIS use was available just now. Resume to try again.",
+              blocker:
+                "JARVIS could not find an allowed way to do the next step. Say how to continue.",
             }),
           );
+          return { answer, task };
         }
-        return { answer, task };
-      }
-      if (reply.text) {
-        answer = reply.text;
-        hooks.onText(answer);
-      }
-      if (reply.toolCalls.length === 0) {
+        if (endedBy === "steps") {
+          // A plan that will not converge stops honestly rather than spinning.
+          if (task) {
+            setTask(
+              await update({
+                id: task.id,
+                status: "blocked",
+                result: "Stopped after too many steps without finishing.",
+              }),
+            );
+          }
+          return {
+            answer: answer || "I stopped because the task was taking too many steps.",
+            task,
+          };
+        }
         if (!task || FINISHED.includes(task.status)) return { answer, task };
         // An open task never stays "running" with nobody driving it: one
         // reminder, then it waits for the person honestly.
         if (!nudged) {
           nudged = true;
-          messages.push({
-            role: "assistant",
-            content: reply.text,
-            ...(reply.parts ? { parts: reply.parts } : {}),
-          });
-          messages.push({
-            role: "user",
-            content:
-              "The task is still open. Continue it with a tool call, or call finish_task with the outcome.",
-          });
+          end = await turn.run(NUDGE);
           continue;
         }
         setTask(
@@ -1071,94 +1147,8 @@ export async function runJarvisTurn(
         );
         return { answer, task };
       }
-      // A task finished in this reply ends the turn with its own result: one more model
-      // call only to say "done" spends the person's online capacity on nothing (13 Oct).
-      let finishedWith: string | null = null;
-      // The turn exactly as the model returned it: its words, its calls and their opaque
-      // continuation. Its own notes stay with it: a page's observation is replaced when the
-      // next one opens, and what the model wrote down from it was all that remained (13 Oct).
-      messages.push({
-        role: "assistant",
-        content: reply.text,
-        toolCalls: reply.toolCalls,
-        ...(reply.parts ? { parts: reply.parts } : {}),
-      });
-      // Results from earlier steps shrink to head and tail; this step's stay whole.
-      pruneOlderResults(messages, messages.length);
-      // Read-only research and docs of one reply run together; every effect runs alone, in order.
-      let results: unknown[];
-      try {
-        results = await scheduleCalls(reply.toolCalls, runTool, {
-          signal: hooks.signal,
-          skipped: () => ({ status: "not_run", summary: "Stopped before this call ran." }),
-        });
-      } catch (error) {
-        if (!(error instanceof ScheduleFailure)) throw error;
-        // What did run is kept with its call, the rest said not to have run, so a resumed task
-        // neither repeats a finished read nor sees a call without its answer (audit B05).
-        for (const [index, call] of reply.toolCalls.entries()) {
-          messages.push(
-            toolResultMessage(
-              call,
-              error.results[index] ?? {
-                status: "not_run",
-                summary: "This call did not finish. No result is recorded.",
-              },
-            ),
-          );
-        }
-        hooks.onProgress?.(messages.slice(begun));
-        throw error.cause;
-      }
-      for (const [index, call] of reply.toolCalls.entries()) {
-        const result = results[index];
-        if (call.name === "finish_task" && (result as { ok?: unknown } | null)?.ok === true) {
-          finishedWith = String(
-            (result as { result?: unknown }).result ?? call.arguments?.result ?? "",
-          );
-        }
-        const shown = observationOf(result) ?? observationOf((result as { last?: unknown })?.last);
-        if (shown) {
-          seen = shown;
-          for (const old of observed) {
-            messages[old.at] = toolResultMessage(old.call, superseded(old.result));
-          }
-          observed.length = 0;
-          observed.push({ at: messages.length, call, result });
-        }
-        messages.push(toolResultMessage(call, result));
-        failing = refused(result) ? failing + 1 : 0;
-      }
-      hooks.onProgress?.(messages.slice(begun));
-      // The task's recorded result is the answer: words the model wrote beside its finish can
-      // explain it, never replace it with a rosier one (audit F06).
-      if (finishedWith !== null) {
-        hooks.onText(finishedWith);
-        return { answer: finishedWith, task };
-      }
-      // Calls that keep failing validation or being refused only spend the person's uses.
-      if (failing >= MAX_FAILED_CALLS && task && !FINISHED.includes(task.status)) {
-        setTask(
-          await update({
-            id: task.id,
-            status: "waiting",
-            blocker:
-              "JARVIS could not find an allowed way to do the next step. Say how to continue.",
-          }),
-        );
-        return { answer, task };
-      }
+    } finally {
+      await turn.close();
     }
-    // A plan that will not converge stops honestly rather than spinning.
-    if (task) {
-      setTask(
-        await update({
-          id: task.id,
-          status: "blocked",
-          result: "Stopped after too many steps without finishing.",
-        }),
-      );
-    }
-    return { answer: answer || "I stopped because the task was taking too many steps.", task };
   }
 }

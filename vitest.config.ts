@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
+import { deepseekUpstream } from "./src/deepseek/resolve";
 
 /**
  * Standalone Vitest config — intentionally does NOT extend vite.config.ts so
@@ -64,11 +65,18 @@ const alias = {
   "@": fileURLToPath(new URL("./src", import.meta.url)),
 };
 
+const plugins = [deepseekUpstream()];
+/** Node 22 cannot parse `using` declarations, which the vendored DeepSeek source has. */
+const oxc = { target: "es2022" };
+
 export default defineConfig({
+  plugins,
   resolve: { alias },
   test: {
     projects: [
       {
+        plugins,
+        oxc,
         resolve: { alias },
         test: {
           name: "unit",
@@ -79,6 +87,8 @@ export default defineConfig({
         },
       },
       {
+        plugins,
+        oxc,
         resolve: { alias },
         test: {
           name: "database",

@@ -63,6 +63,14 @@ const ENTERED_ELSEWHERE = {
     "An ambient type declaration for the OPFS sync access handle the model store uses.",
   "src/lib/intelligence/edge-handler.ts":
     "The Supabase Edge Function body. Deno runs it from `supabase/functions`; the Worker and the browser never import it.",
+  "src/deepseek/resolve.ts":
+    "The Vite and Vitest plugin that runs the vendored DeepSeek source. vite.config.ts and vitest.config.ts load it.",
+  ...Object.fromEntries(
+    ["async_hooks", "buffer", "crypto", "fs", "module", "os", "path", "util-types"].map((name) => [
+      `src/deepseek/shims/${name}.ts`,
+      "A browser stand-in for a Node built-in. src/deepseek/resolve.ts rewrites the vendored DeepSeek source's import to it.",
+    ]),
+  ),
   "src/lib/security/caller-scoped-functions.ts":
     "Shared by two security gates that read `SECURITY DEFINER` bodies. It exists in `src/lib` precisely so there is not a second copy.",
 };
@@ -82,8 +90,12 @@ const files = globSync("src/**/*.{ts,tsx}").map((file) => file.replace(/\\/g, "/
 const product = files.filter((file) => !TEST_FILE.test(file));
 const known = new Set(files);
 
+/** The vendored DeepSeek Harness packages, as Vite resolves them (src/deepseek/resolve.ts). */
+const DEEPSEEK = JSON.parse(readFileSync("src/deepseek/aliases.json", "utf8"));
+
 function resolveSpecifier(fromFile, specifier) {
   let base;
+  if (specifier in DEEPSEEK) return DEEPSEEK[specifier];
   if (specifier.startsWith("@/")) base = join("src", specifier.slice(2));
   else if (specifier.startsWith(".")) base = relative(ROOT, resolve(dirname(fromFile), specifier));
   else return null;

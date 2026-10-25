@@ -15,6 +15,7 @@ import { spawnSync } from "node:child_process";
 
 const commands = [
   "routes:stable",
+  "deepseek:check",
   "typecheck",
   "lint",
   "format:check",

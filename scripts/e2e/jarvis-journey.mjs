@@ -1548,8 +1548,9 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
     );
     const editorTurns = (await boundary()).turns
       .map((t) => t.content)
-      .filter((c) => c.startsWith("Result of"))
-      .slice(-8)
+      // Calls and results: if a step never reaches the device, what answered it shows here.
+      .filter((c) => c.startsWith("Result of") || c.startsWith("Called "))
+      .slice(-24)
       .map((c) => c.slice(0, 200))
       .join(" | ");
     // A download lands in the work folder's Downloads.

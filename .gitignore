@@ -44,3 +44,6 @@ __pycache__/
 # The incoming ZIP path is intentionally NOT ignored: browser upload is optional.
 external/deepseek-harness/unpacked/
 external/deepseek-harness/.extract-*/
+
+# Declarations emitted from the vendored DeepSeek source (npm run deepseek:types)
+src/deepseek/.types/
