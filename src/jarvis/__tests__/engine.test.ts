@@ -6,6 +6,7 @@ import {
   PRUNE_MARKER,
   pruneOlderResults,
   pruneText,
+  ScheduleFailure,
   scheduleCalls,
   toolResultMessage,
 } from "../engine";
@@ -92,19 +93,21 @@ describe("one reply's calls (DeepSeek-derived scheduler)", () => {
   it("a failing call lets started calls settle, starts nothing more and rethrows", async () => {
     const settled: string[] = [];
     const ran: string[] = [];
-    await expect(
-      scheduleCalls(
-        [call("research", "slow"), call("research", "bad"), call("computer", "later")],
-        async (c) => {
-          ran.push(c.id);
-          if (c.id === "bad") throw new Error("boom");
-          await tick(10);
-          settled.push(c.id);
-          return c.id;
-        },
-        { signal: new AbortController().signal, skipped: () => "skipped" },
-      ),
-    ).rejects.toThrow("boom");
+    const failure = await scheduleCalls(
+      [call("research", "slow"), call("research", "bad"), call("computer", "later")],
+      async (c) => {
+        ran.push(c.id);
+        if (c.id === "bad") throw new Error("boom");
+        await tick(10);
+        settled.push(c.id);
+        return c.id;
+      },
+      { signal: new AbortController().signal, skipped: () => "skipped" },
+    ).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(ScheduleFailure);
+    expect((failure as ScheduleFailure).cause).toEqual(new Error("boom"));
+    // The sibling that finished keeps its result (audit B05); the rest never ran.
+    expect((failure as ScheduleFailure).results).toEqual(["slow", undefined]);
     expect(settled).toEqual(["slow"]);
     expect(ran).not.toContain("later");
   });

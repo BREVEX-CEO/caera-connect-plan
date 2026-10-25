@@ -10,7 +10,8 @@ vi.mock("@/lib/commercial/use-generation-permit", () => ({ beginBilledRequest: v
 vi.mock("../jarvis.functions", () => ({ recordJarvisResearch: vi.fn(async () => undefined) }));
 vi.mock("../changes", () => ({ actionChanged: vi.fn() }));
 
-const { askThroughBusy, Unavailable, ModelRefused, liveDeps } = await import("../live-deps");
+const { askThroughBusy, Unavailable, ModelRefused, liveDeps, webSearchOffered } =
+  await import("../live-deps");
 const { beginBilledRequest } = await import("@/lib/commercial/use-generation-permit");
 const { recordJarvisResearch } = await import("../jarvis.functions");
 
@@ -54,7 +55,7 @@ describe("a busy model answer", () => {
           } satisfies IntelligenceEvent;
         }
       });
-      const result = liveDeps("c1").research!({ question: "Revenue?", taskId: "t" });
+      const result = liveDeps("c1", "acct-a").research!({ question: "Revenue?", taskId: "t" });
       if (ending === "complete") {
         await expect(result).resolves.toEqual({ answer: text });
         expect(billed.recordDelivery).toHaveBeenCalledOnce();
@@ -110,7 +111,7 @@ describe("a busy model answer", () => {
     online.stream.mockImplementation(async function* () {
       yield { type: "final", response } satisfies IntelligenceEvent;
     });
-    await expect(liveDeps("c1").model(input)).resolves.toEqual({
+    await expect(liveDeps("c1", "acct-a").model(input)).resolves.toEqual({
       text: response.text,
       toolCalls,
       parts,
@@ -120,7 +121,7 @@ describe("a busy model answer", () => {
     online.stream.mockImplementation(async function* () {
       yield { type: "tool_call", call: toolCalls[0]! } satisfies IntelligenceEvent;
     });
-    await expect(liveDeps("c1").model(input)).rejects.toBeInstanceOf(Unavailable);
+    await expect(liveDeps("c1", "acct-a").model(input)).rejects.toBeInstanceOf(Unavailable);
     expect(billed.settle).toHaveBeenCalledTimes(2);
   });
 
@@ -177,5 +178,36 @@ describe("a busy model answer", () => {
     stop.abort(new Error("stopped"));
     await expect(asked).rejects.toThrow("stopped");
     expect(busy).toHaveBeenCalledTimes(1);
+  });
+
+  it("forgets web search only for the account whose plan lacks it, and only for a while (F11)", async () => {
+    vi.mocked(beginBilledRequest).mockResolvedValue({
+      permit: {
+        id: "p",
+        generationId: "g",
+        idempotencyKey: "i",
+        surface: "jarvis",
+        source: "server",
+      },
+      recordDelivery: vi.fn(),
+      settle: vi.fn(async () => undefined),
+    } as never);
+    online.stream.mockImplementation(async function* () {
+      yield {
+        type: "refusal",
+        code: "research_unavailable",
+        reason: "Not on this plan",
+        retryable: false,
+      } satisfies IntelligenceEvent;
+    });
+    await liveDeps("c1", "acct-free").research!({ question: "q", taskId: "t" });
+    expect(webSearchOffered("acct-free")).toBe(false);
+    expect(liveDeps("c1", "acct-free").research).toBeUndefined();
+    // Another account in the same tab is still offered it.
+    expect(webSearchOffered("acct-paid")).toBe(true);
+    expect(liveDeps("c1", "acct-paid").research).toBeTypeOf("function");
+    vi.useFakeTimers({ now: Date.now() + 31 * 60_000 });
+    expect(webSearchOffered("acct-free")).toBe(true);
+    vi.useRealTimers();
   });
 });

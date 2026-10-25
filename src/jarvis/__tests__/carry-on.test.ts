@@ -375,6 +375,36 @@ describe("carrying on", () => {
     expect(await carryOn(admin(), me(), t, scripted())).toEqual({ state: "finished" });
     const deliveries = (await actionsOf(t)).filter((row) => row.action.action === "file_deliver");
     expect(deliveries).toEqual([]);
+    expect(await taskRow(t)).toMatchObject({
+      status: "completed",
+      result: "Wrote it.\n\nKept on the computer, not in your Library: report.txt.",
+    });
+  });
+
+  it("hands verified files over even when the planner's step budget is reached (B08)", async () => {
+    const t = await task(5, TAB, [{ path: "report.txt", contains: ["done"] }]);
+    await sql(
+      `insert into public.jarvis_activity (user_id, task_id, device_id, summary, action, status, result, completed_at)
+       select '${A}', '${t}', '${device}', 'Listed .', '{"action":"file_list","path":"."}'::jsonb, 'done', '{"status":"done"}'::jsonb, now()
+       from generate_series(1, ${TURN_BUDGET.backgroundActions - 3})`,
+    );
+    for (const [step, result] of [
+      [call("computer", { action: "file_write", path: "report.txt", content: "done" }), {}],
+      [
+        call("computer", { action: "file_read", path: "report.txt" }),
+        { detail: { content: "done" } },
+      ],
+    ] as const) {
+      expect(await carryOn(admin(), me(), t, scripted(step))).toEqual({ state: "queued" });
+      await computerRuns(result);
+    }
+    const finish = scripted(call("finish_task", { outcome: "completed", result: "Wrote it." }));
+    expect(await carryOn(admin(), me(), t, finish)).toEqual({ state: "queued" });
+    await computerRuns({ detail: { info: { size: 4 } } });
+    // At the budget now, but the remaining steps hand over a verified file, not plan new work.
+    expect(await carryOn(admin(), me(), t, scripted())).toEqual({ state: "queued" });
+    await computerRuns();
+    expect(await carryOn(admin(), me(), t, scripted())).toEqual({ state: "finished" });
     expect((await taskRow(t)).status).toBe("completed");
   });
 

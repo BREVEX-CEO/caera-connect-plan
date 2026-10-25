@@ -493,6 +493,37 @@ describe("a JARVIS turn", () => {
     ]);
   });
 
+  it("tells the recorded result, not rosier words beside it, and names files not handed over (F05, F06)", async () => {
+    const h = harness(
+      [
+        {
+          text: "Everything is complete and in your Library!",
+          toolCalls: [call("finish_task", { outcome: "completed", result: "Wrote r.docx." })],
+        },
+      ],
+      {
+        info: [{ status: "done", result: { detail: { info: { size: 5 } } } }],
+        sent: [{ status: "failed", summary: "Upload refused" }],
+      },
+    );
+    vi.mocked(h.deps.deliveries).mockResolvedValue(["r.docx"]);
+    const out = await runJarvisTurn({ ...h.input, task: { ...TASK } }, h.hooks, h.deps);
+    expect(out.answer).toBe("Wrote r.docx.\n\nKept on the computer, not in your Library: r.docx.");
+    expect(vi.mocked(h.hooks.onText).mock.calls.at(-1)?.[0]).toBe(out.answer);
+  });
+
+  it("does not complete when the task's record cannot be read to hand files over (F05)", async () => {
+    const h = harness([
+      { text: "", toolCalls: [call("finish_task", { outcome: "completed", result: "Done." })] },
+      { text: "", toolCalls: [call("finish_task", { outcome: "blocked", result: "Later." })] },
+    ]);
+    vi.mocked(h.deps.deliveries).mockResolvedValue(null);
+    await runJarvisTurn({ ...h.input, task: { ...TASK } }, h.hooks, h.deps);
+    expect(JSON.stringify(h.seen.at(-1))).toContain("could not read this task's record");
+    const statuses = vi.mocked(h.deps.updateTask).mock.calls.map(([change]) => change.status);
+    expect(statuses).not.toContain("completed");
+  });
+
   it("fixes the checks at start, binds the starting turn and every later turn to the task (Phase 01)", async () => {
     const h = harness([
       {

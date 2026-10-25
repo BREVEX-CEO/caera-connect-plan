@@ -221,7 +221,24 @@ export async function carryOn(
     // A transcript that could not be read is not a shorter transcript.
     if (activityError || saidError || !activity || !said || activity.length >= 300) return idle;
     const actions = (activity as ActionRow[]).filter((row) => row.action);
-    if (actions.length >= TURN_BUDGET.backgroundActions) {
+    // A completed finish still handing its files over (see handOverThenFinish), and its steps.
+    const marker = [...(activity as ActionRow[])]
+      .reverse()
+      .find((row) => row.status === "note" && (row.result as { finishing?: unknown })?.finishing);
+    // In the record's own order (microseconds apart; a millisecond clock would tie them).
+    const since = marker
+      ? (activity as ActionRow[])
+          .slice((activity as ActionRow[]).indexOf(marker) + 1)
+          .filter((row) => row.action)
+      : [];
+    const delivering = (row: ActionRow) =>
+      ["file_info", "file_deliver"].includes(String((row.action as { action?: unknown }).action));
+    const finishing =
+      marker && since.every(delivering)
+        ? (marker.result as { finishing: { args: Record<string, unknown> } }).finishing.args
+        : null;
+    // The step budget is the planner's: handing verified files over never runs it out (B08).
+    if (!finishing && actions.length >= TURN_BUDGET.backgroundActions) {
       const done = await change({
         status: "blocked",
         result: "Stopped after too many steps without finishing.",
@@ -232,6 +249,7 @@ export async function carryOn(
     // Steps that keep failing only spend the person's uses while nobody is watching.
     const recent = actions.slice(-TURN_BUDGET.failedCalls);
     if (
+      !finishing &&
       recent.length === TURN_BUDGET.failedCalls &&
       recent.every((row) => row.status === "failed")
     ) {
@@ -283,9 +301,14 @@ export async function carryOn(
     /** The model's finish, recorded as the task's outcome and said in the conversation. */
     const finishWith = async (
       args: Record<string, unknown>,
-      text: string,
+      kept: string[] = [],
     ): Promise<{ state: StepState }> => {
       const finish = finishChange(args, task);
+      // Said with the result, so nobody is told a file is in their Library when it is not.
+      if (kept.length) {
+        finish.result =
+          `${finish.result ?? ""}\n\nKept on the computer, not in your Library: ${kept.join(", ")}.`.trim();
+      }
       let done;
       try {
         done = await change(finish);
@@ -295,7 +318,8 @@ export async function carryOn(
         return { state: "queued" };
       }
       if (!done) return idle;
-      await say(text || finish.result || "");
+      // The recorded result is what the person is told, never rosier words beside it (F06).
+      await say(done.result ?? "");
       return { state: "finished" };
     };
 
@@ -307,19 +331,34 @@ export async function carryOn(
      */
     const handOverThenFinish = async (
       args: Record<string, unknown>,
-      text: string,
       since: ActionRow[],
     ): Promise<{ state: StepState }> => {
       const { taskDeliveriesDue } = await import("./task-authority.server");
-      for (const path of await taskDeliveriesDue(admin, userId, task.id)) {
+      const due = await taskDeliveriesDue(admin, userId, task.id);
+      // An unreadable record is not "nothing to hand over": the finish waits, resumable (F05).
+      if (!due) {
+        const kept = await change({
+          status: "waiting",
+          blocker:
+            "OCADE could not read this task's record to hand over its files. Resume to try again.",
+        });
+        return kept ? { state: "waiting" } : idle;
+      }
+      const kept: string[] = [];
+      for (const path of due) {
         const tried = since.filter((row) => (row.action as { path?: unknown }).path === path);
-        if (tried.some((row) => row.status !== "done")) continue;
         const read = [...tried]
           .reverse()
           .find((row) => (row.action as { action?: unknown }).action === "file_info");
         const info = (read?.result as { detail?: { info?: { size?: unknown; folder?: unknown } } })
           ?.detail?.info;
-        if (read && (info?.folder || typeof info?.size !== "number" || info.size < 1)) continue;
+        if (
+          tried.some((row) => row.status !== "done") ||
+          (read && (info?.folder || typeof info?.size !== "number" || info.size < 1))
+        ) {
+          kept.push(path);
+          continue;
+        }
         const action = computerAction.parse(
           read ? { action: "file_deliver", path, size: info!.size } : { action: "file_info", path },
         );
@@ -331,26 +370,11 @@ export async function carryOn(
         if (queued.ok) return { state: "queued" };
         if (queued.lost || queued.message === "The task is not running.") return idle;
         await record(action, queued.message);
+        kept.push(path);
       }
-      return finishWith(args, text);
+      return finishWith(args, kept);
     };
-    const marker = [...(activity as ActionRow[])]
-      .reverse()
-      .find((row) => row.status === "note" && (row.result as { finishing?: unknown })?.finishing);
-    // In the record's own order (microseconds apart; a millisecond clock would tie them).
-    const since = marker
-      ? (activity as ActionRow[])
-          .slice((activity as ActionRow[]).indexOf(marker) + 1)
-          .filter((row) => row.action)
-      : [];
-    const delivering = (row: ActionRow) =>
-      ["file_info", "file_deliver"].includes(String((row.action as { action?: unknown }).action));
-    if (marker && since.every(delivering)) {
-      const { finishing } = marker.result as {
-        finishing: { args: Record<string, unknown>; text: string };
-      };
-      return handOverThenFinish(finishing.args, finishing.text, since);
-    }
+    if (finishing) return handOverThenFinish(finishing, since);
 
     const family = (action: unknown) =>
       (action as { action?: string } | null)?.action === "docs"
@@ -521,7 +545,7 @@ export async function carryOn(
       const first = Array.isArray(given.sequence) ? given.sequence[0] : null;
       const args = (first && typeof first === "object" ? first : given) as Record<string, unknown>;
       if (call.name === "finish_task") {
-        if (finishChange(args, task).status !== "completed") return finishWith(args, reply.text);
+        if (finishChange(args, task).status !== "completed") return finishWith(args);
         const { error } = await admin.from("jarvis_activity").insert({
           user_id: userId,
           task_id: task.id,
@@ -529,10 +553,17 @@ export async function carryOn(
           controller: loop,
           status: "note",
           summary: "Handing the finished files to the Library",
-          result: { finishing: { args, text: reply.text } } as never,
+          result: { finishing: { args } } as never,
         });
-        if (error) return finishWith(args, reply.text);
-        return handOverThenFinish(args, reply.text, []);
+        // Without the note the files could not be handed over safely: wait, resumable (F05).
+        if (error) {
+          const kept = await change({
+            status: "waiting",
+            blocker: "OCADE could not save the finished result. Resume to try again.",
+          });
+          return kept ? { state: "waiting" } : idle;
+        }
+        return handOverThenFinish(args, []);
       }
       if (call.name === "docs") {
         // Read here and kept on the task, so the next step sees it and a script after it is asked.

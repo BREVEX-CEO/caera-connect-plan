@@ -454,6 +454,36 @@ export function appIconsOf(icons: Record<string, string>): Record<string, string
   return kept;
 }
 
+/**
+ * Keep one batch of a device's icon set: the first batch of a set replaces what was kept, later
+ * ones add to it. Returns the batch's acknowledgement, or null when it was not stored (the
+ * device sends it again; audit F03).
+ */
+async function storeAppIcons(
+  admin: Admin,
+  deviceId: string,
+  icons: Record<string, string>,
+  batch: { revision: string; index: number; count: number } | undefined,
+): Promise<string | null> {
+  const kept = appIconsOf(icons);
+  const index = batch?.index ?? 0;
+  let merged = kept;
+  if (index > 0) {
+    const { data, error } = await admin
+      .from("jarvis_devices")
+      .select("app_icons")
+      .eq("id", deviceId)
+      .maybeSingle();
+    if (error || !data) return null;
+    merged = { ...((data.app_icons ?? {}) as Record<string, string>), ...kept };
+  }
+  const { error } = await admin
+    .from("jarvis_devices")
+    .update({ app_icons: merged })
+    .eq("id", deviceId);
+  return error ? null : batch ? `${batch.revision}:${index}` : "stored";
+}
+
 export const exchangeInput = z.object({
   results: z
     .array(
@@ -490,6 +520,14 @@ export const exchangeInput = z.object({
   apps: z.array(z.string().max(80)).max(500).optional(),
   /** Each app's own icon, as a small base64 PNG by app name; only real small PNGs are kept. */
   appIcons: z.record(z.string().max(80), z.string().max(6000)).optional(),
+  /** Which batch of which icon set this is: the reply acknowledges it only once it is stored. */
+  appIconsBatch: z
+    .object({
+      revision: z.string().regex(/^[0-9a-f]{8,64}$/),
+      index: z.number().int().min(0).max(99),
+      count: z.number().int().min(1).max(100),
+    })
+    .optional(),
   /** The action the device is executing now and the segment steps still to come; the reply says which to cancel. */
   running: z.array(z.string().uuid()).max(MAX_SEGMENT).optional(),
   /** STOP JARVIS from the computer's own tray. */
@@ -539,6 +577,8 @@ export async function exchange(
   /** Background Mode: the running task this computer should ask OCADE to continue now. */
   continue?: string;
   rotated?: boolean;
+  /** The icon batch this exchange stored ("revision:index"); absent when none was stored. */
+  appIconsStored?: string;
 }> {
   if (input.forget) {
     const at = new Date().toISOString();
@@ -626,9 +666,14 @@ export async function exchange(
   // Every reply names the protocol and the device it is for, so a device can
   // refuse work that was not addressed to it; `busy` and `background` decide
   // whether it stays active or goes dormant.
+  // On their own: icons that cannot be kept never cost the device its apps or capabilities.
+  const iconsStored = input.appIcons
+    ? await storeAppIcons(admin, device.id, input.appIcons, input.appIconsBatch)
+    : null;
   const acks: Ack[] = [];
   const envelope = {
     acks,
+    ...(iconsStored ? { appIconsStored: iconsStored } : {}),
     protocol: PROTOCOL.version,
     deviceId: device.id,
     busy: Boolean(open?.length),
@@ -652,13 +697,6 @@ export async function exchange(
         ...(input.softwareVersion ? { software_version: input.softwareVersion } : {}),
         ...(input.apps ? { installed_apps: input.apps } : {}),
       })
-      .eq("id", device.id);
-  }
-  // On their own: icons that cannot be kept never cost the device its apps or capabilities.
-  if (input.appIcons) {
-    await admin
-      .from("jarvis_devices")
-      .update({ app_icons: appIconsOf(input.appIcons) })
       .eq("id", device.id);
   }
   const rotated = input.rotate

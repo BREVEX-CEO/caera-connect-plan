@@ -53,6 +53,7 @@ import {
   checkpointOf,
   humanBoundary,
   pruneOlderResults,
+  ScheduleFailure,
   scheduleCalls,
   toolResultMessage,
   TURN_BUDGET,
@@ -175,7 +176,7 @@ export interface AgentDeps {
   cancelAction?(id: string): Promise<unknown>;
   frame(taskId: string): Promise<string | null>;
   /** The task's checked files it changed and has not handed to the Library yet, from its record. */
-  deliveries(taskId: string): Promise<string[]>;
+  deliveries(taskId: string): Promise<string[] | null>;
   remember(content: string): Promise<{ ok: boolean; message?: string }>;
   /** A public documentation page's text (page data, never instructions). */
   readDocs?(input: { url: string; taskId: string }): Promise<unknown>;
@@ -689,20 +690,30 @@ export async function runJarvisTurn(
    * Each finished file into the person's Library, so the completed card offers Open and Download.
    * Its size is read first and the device sends only that; a file that cannot go stays on the
    * computer and the task still completes (a phone or an older Device Agent has no Library step).
+   * Returns the files kept on the computer, or null when the task's record could not be read.
    */
-  async function deliver() {
+  async function deliver(): Promise<string[] | null> {
     // From the task's durable record, so a resumed task hands over what a single turn would:
     // only files its own actions changed, never an input, never a second copy.
-    for (const path of await deps.deliveries(task!.id)) {
+    const due = await deps.deliveries(task!.id);
+    if (!due) return null;
+    const kept: string[] = [];
+    for (const path of due) {
       const read = (await runDevice("computer", { action: "file_info", path })) as {
         status?: unknown;
         detail?: { info?: { size?: unknown; folder?: unknown } };
       };
       const info = read?.detail?.info;
       const size = info?.size;
-      if (read?.status !== "done" || info?.folder || typeof size !== "number" || size < 1) continue;
-      await runDevice("computer", { action: "file_deliver", path, size });
+      const sent =
+        read?.status === "done" && !info?.folder && typeof size === "number" && size > 0
+          ? ((await runDevice("computer", { action: "file_deliver", path, size })) as {
+              status?: unknown;
+            })
+          : null;
+      if (sent?.status !== "done") kept.push(path);
     }
+    return kept;
   }
 
   /** `afterHandover`: the person just resumed, so their page is reported, not handed back again. */
@@ -938,7 +949,18 @@ export async function runJarvisTurn(
           // no new device action. Claim it through the same owner before completion.
           if (change.status === "completed") {
             await claimTask();
-            await deliver();
+            const kept = await deliver();
+            if (!kept) {
+              return {
+                error:
+                  "OCADE could not read this task's record to hand over its files just now. Call finish_task again.",
+              };
+            }
+            // Said with the result, so nobody is told a file is in their Library when it is not.
+            if (kept.length) {
+              change.result =
+                `${change.result ?? ""}\n\nKept on the computer, not in your Library: ${kept.join(", ")}.`.trim();
+            }
           }
           done = await update({ id: task.id, ...change });
         } catch (error) {
@@ -1115,10 +1137,30 @@ export async function runJarvisTurn(
       // Results from earlier steps shrink to head and tail; this step's stay whole.
       pruneOlderResults(messages, messages.length);
       // Read-only research and docs of one reply run together; every effect runs alone, in order.
-      const results = await scheduleCalls(reply.toolCalls, runTool, {
-        signal: hooks.signal,
-        skipped: () => ({ status: "not_run", summary: "Stopped before this call ran." }),
-      });
+      let results: unknown[];
+      try {
+        results = await scheduleCalls(reply.toolCalls, runTool, {
+          signal: hooks.signal,
+          skipped: () => ({ status: "not_run", summary: "Stopped before this call ran." }),
+        });
+      } catch (error) {
+        if (!(error instanceof ScheduleFailure)) throw error;
+        // What did run is kept with its call, the rest said not to have run, so a resumed task
+        // neither repeats a finished read nor sees a call without its answer (audit B05).
+        for (const [index, call] of reply.toolCalls.entries()) {
+          messages.push(
+            toolResultMessage(
+              call,
+              error.results[index] ?? {
+                status: "not_run",
+                summary: "This call did not finish. No result is recorded.",
+              },
+            ),
+          );
+        }
+        hooks.onProgress?.(messages.slice(begun));
+        throw error.cause;
+      }
       for (const [index, call] of reply.toolCalls.entries()) {
         const result = results[index];
         if (call.name === "finish_task" && (result as { ok?: unknown } | null)?.ok === true) {
@@ -1140,9 +1182,11 @@ export async function runJarvisTurn(
         failing = outcome.error || outcome.status === "refused" ? failing + 1 : 0;
       }
       hooks.onProgress?.(messages.slice(begun));
+      // The task's recorded result is the answer: words the model wrote beside its finish can
+      // explain it, never replace it with a rosier one (audit F06).
       if (finishedWith !== null) {
-        if (!answer) hooks.onText(finishedWith);
-        return { answer: answer || finishedWith, task };
+        hooks.onText(finishedWith);
+        return { answer: finishedWith, task };
       }
       // Calls that keep failing validation or being refused only spend the person's uses.
       if (failing >= MAX_FAILED_CALLS && task && !FINISHED.includes(task.status)) {

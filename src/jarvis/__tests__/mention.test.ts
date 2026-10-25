@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { appMatches, atQuery, stillMentioned, type AppChoice } from "../mention";
+import {
+  appMatches,
+  atQuery,
+  mentions,
+  stillMentioned,
+  workTarget,
+  type AppChoice,
+} from "../mention";
 
 const app = (name: string, deviceId = "pc"): AppChoice => ({
   deviceId,
@@ -35,5 +42,28 @@ describe("the @ app picker", () => {
     expect(stillMentioned("make a chart in @Excel please", chosen)).toEqual(chosen);
     expect(stillMentioned("make a chart in @Excellent", chosen)).toEqual([]);
     expect(stillMentioned("make a chart", chosen)).toEqual([]);
+  });
+
+  it("finds a later mention behind an earlier longer one, and never inside an e-mail (audit F07)", () => {
+    const word = [app("Word")];
+    expect(stillMentioned("@Wordpress and @Word", word)).toEqual(word);
+    expect(stillMentioned("mail@Word.example", word)).toEqual([]);
+    expect(stillMentioned("x@Word", word)).toEqual([]);
+    expect(mentions("(@word) please", "Word")).toBe(true);
+  });
+
+  it("aims the work at the chosen app's computer, and asks rather than guess", () => {
+    const catalog = [app("Word", "pc-a"), app("Word", "pc-b"), app("Paint", "pc-a")];
+    // Chosen on PC B in the picker: PC B, whatever the default computer is.
+    expect(workTarget("open @Word", [app("Word", "pc-b")], catalog)).toEqual({ deviceId: "pc-b" });
+    // Typed by hand, on one computer only: that one.
+    expect(workTarget("draw in @Paint", [], catalog)).toEqual({ deviceId: "pc-a" });
+    // Typed by hand, on two computers: the person chooses.
+    expect(workTarget("open @Word", [], catalog)).toHaveProperty("ambiguous");
+    // Apps on two different computers in one message: the person chooses.
+    expect(workTarget("@Word then @Paint", [app("Word", "pc-b")], catalog)).toHaveProperty(
+      "ambiguous",
+    );
+    expect(workTarget("no app here", [], catalog)).toBeNull();
   });
 });

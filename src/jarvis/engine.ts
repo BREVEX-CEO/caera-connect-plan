@@ -96,8 +96,19 @@ const READ_ONLY = new Set(["research", "docs"]);
  * every other call runs alone, after everything before it settled. Results come back in
  * the model's order. Once `signal` aborts, nothing new starts: started calls settle and
  * each unstarted call gets `skipped(call)`. A call that throws stops new starts, lets the
- * started ones settle, and the first error is thrown.
+ * started ones settle, and a `ScheduleFailure` is thrown carrying the first error and every
+ * result already in hand, so the caller records what did happen (audit B05).
  */
+/** A reply's calls stopped by one that threw: `results[i]` is the result of call i, if it ran. */
+export class ScheduleFailure<T = unknown> extends Error {
+  constructor(
+    readonly cause: unknown,
+    readonly results: (T | undefined)[],
+  ) {
+    super(cause instanceof Error ? cause.message : "A tool call failed.");
+  }
+}
+
 export async function scheduleCalls<T>(
   calls: readonly NormalizedToolCall[],
   run: (call: NormalizedToolCall) => Promise<T>,
@@ -129,7 +140,13 @@ export async function scheduleCalls<T>(
     };
     await Promise.all(Array.from({ length: Math.min(limit, group.length) }, worker));
     const error = settled.find((outcome) => outcome?.status === "rejected");
-    if (error) throw (error as PromiseRejectedResult).reason;
+    if (error) {
+      const done = [
+        ...results,
+        ...settled.map((outcome) => (outcome?.status === "fulfilled" ? outcome.value : undefined)),
+      ];
+      throw new ScheduleFailure((error as PromiseRejectedResult).reason, done);
+    }
     for (const outcome of settled.slice(0, started)) {
       results.push((outcome as PromiseFulfilledResult<T>).value);
     }

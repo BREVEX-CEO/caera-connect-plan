@@ -52,12 +52,54 @@ export function appMatches(apps: readonly AppChoice[], query: string): AppChoice
     .map(({ app }) => app);
 }
 
-/** The chosen apps still written in the text, as @Name followed by a non-word character. */
+/**
+ * Whether the text names this app with @: at the text's start or after a non-word character
+ * (the rule that opens the picker, so an e-mail address never counts) and followed by a
+ * non-word character. Every occurrence is checked, not only the first ("@WordPad and @Word").
+ */
+export function mentions(text: string, name: string): boolean {
+  const haystack = text.toLowerCase();
+  const needle = `@${name.toLowerCase()}`;
+  for (let at = haystack.indexOf(needle); at >= 0; at = haystack.indexOf(needle, at + 1)) {
+    const before = at > 0 ? text[at - 1]! : "";
+    const after = text[at + needle.length] ?? "";
+    if (!WORD.test(before) && !WORD.test(after)) return true;
+  }
+  return false;
+}
+
+/** The chosen apps still written in the text. */
 export function stillMentioned(text: string, chosen: readonly AppChoice[]): AppChoice[] {
-  return chosen.filter((app) => {
-    const at = text.indexOf(`@${app.name}`);
-    return at >= 0 && !WORD.test(text[at + app.name.length + 1] ?? "");
-  });
+  return chosen.filter((app) => mentions(text, app.name));
+}
+
+/**
+ * Which computer a message's work is for, from the apps it names: the device of each app chosen
+ * in the picker, or, for an app typed by hand, the one computer that has it. Null when no app
+ * is named; `ambiguous` when the apps point at several computers, or a typed name is on more
+ * than one, so the person chooses instead of the default computer being guessed (audit F07).
+ */
+export function workTarget(
+  text: string,
+  chosen: readonly AppChoice[],
+  catalog: readonly AppChoice[],
+): { deviceId: string } | { ambiguous: string } | null {
+  const picked = stillMentioned(text, chosen);
+  const typed = catalog.filter(
+    (app) => mentions(text, app.name) && !picked.some((p) => p.name === app.name),
+  );
+  const devices = new Set(picked.map((app) => app.deviceId));
+  for (const name of new Set(typed.map((app) => app.name))) {
+    const on = new Set(typed.filter((app) => app.name === name).map((app) => app.deviceId));
+    if (on.size > 1) {
+      return { ambiguous: `@${name} is on more than one computer. Type @ and choose which.` };
+    }
+    devices.add([...on][0]!);
+  }
+  if (devices.size > 1) {
+    return { ambiguous: "The apps you named are on different computers. Choose apps on one." };
+  }
+  return devices.size ? { deviceId: [...devices][0]! } : null;
 }
 
 /** One structured reference per draft: its app, device and live picker state. */
@@ -72,12 +114,16 @@ export function useAppMention(input: {
   const [highlight, setHighlight] = useState(0);
   const [chosen, setChosen] = useState<AppChoice[]>([]);
   const icons = useQuery({
-    // Keyed by the app list: a computer that reports new apps brings their icons with them,
-    // and a read made before it reported anything is not kept as "no icons".
-    queryKey: ["jarvis", "app-icons", input.apps.length, input.apps[0]?.deviceId],
+    // Keyed by every computer's whole app list: an app replaced, a computer removed or a new one
+    // reporting reads icons again; an icon redrawn under the same name shows within a minute.
+    queryKey: [
+      "jarvis",
+      "app-icons",
+      input.apps.map((app) => `${app.deviceId}:${app.name}`).join("|"),
+    ],
     queryFn: () => readJarvisAppIcons(),
     enabled: hit !== null || chosen.length > 0,
-    staleTime: 10 * 60_000,
+    staleTime: 60_000,
   });
   const matches = hit ? appMatches(input.apps, hit.query) : [];
   const open = matches.length > 0;
@@ -138,8 +184,11 @@ export function useAppMention(input: {
 
   return {
     open,
-    /** The device the chosen app is on, for this message's work; null when none was chosen. */
-    deviceFor: (text: string) => stillMentioned(text, chosen)[0]?.deviceId ?? null,
+    /** Which computer this message's work is for, from the apps it names (see workTarget). */
+    target: (text: string, kept: readonly AppChoice[] = []) =>
+      workTarget(text, [...chosen, ...kept], input.apps),
+    /** The picker's choices still named in this text, to keep with the saved message. */
+    chosenIn: (text: string) => stillMentioned(text, chosen),
     reset: () => {
       setChosen([]);
       setHit(null);

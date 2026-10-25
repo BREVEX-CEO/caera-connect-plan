@@ -632,3 +632,54 @@ class RotationTest(unittest.TestCase):
         self.assertEqual(identity.exchange({"results": []})["deviceId"], "d1")
         self.assertEqual(ocade_identity.public_text(identity.key), server["key"])
         self.assertFalse(identity.next_path.exists())
+
+
+class IconUploadTest(unittest.TestCase):
+    """App icons never crowd out the control exchange, and count as sent only once stored
+    (audit F02, F03)."""
+
+    def test_a_large_catalog_rides_in_bounded_batches_and_a_bounded_whole(self):
+        icons = {f"App {i:03}": "A" * 3172 for i in range(500)}
+        batches = ocade_device.icon_batches(icons)
+        self.assertTrue(all(len(json.dumps(b)) <= 61_000 for b in batches))
+        self.assertLessEqual(sum(len(json.dumps(b)) for b in batches), 1_510_000)
+        names = [name for batch in batches for name in batch]
+        self.assertEqual(names, sorted(icons)[:len(names)])  # past the bound, left out in order
+        self.assertEqual(ocade_device.icon_batches({}), [{}])
+
+    def test_icons_wait_for_a_quiet_exchange_and_advance_only_when_acknowledged(self):
+        upload = ocade_device.IconUpload()
+        icons = {f"App {i:03}": "A" * 3172 for i in range(40)}
+        busy = {"results": [{"id": "x"}], "frame": None}
+        upload.attach(busy, icons)
+        self.assertNotIn("appIcons", busy)  # a result is never delayed by icons
+        sent = []
+        for _ in range(10):
+            body = {"results": [], "frame": None}
+            upload.attach(body, icons)
+            if "appIcons" not in body:
+                break
+            batch = body["appIconsBatch"]
+            sent.append(batch["index"])
+            upload.settled(body, {"appIconsStored": f"{batch['revision']}:{batch['index']}"})
+        self.assertEqual(sent, list(range(len(ocade_device.icon_batches(icons)))))
+        self.assertTrue(upload.sent)
+
+    def test_a_batch_that_was_not_stored_is_sent_again(self):
+        upload = ocade_device.IconUpload()
+        icons = {"Word": "A" * 100}
+        body = {"results": [], "frame": None}
+        upload.attach(body, icons)
+        upload.settled(body, {})  # stored nothing: no acknowledgement
+        self.assertFalse(upload.sent)
+        retry = {"results": [], "frame": None}
+        upload.attach(retry, icons)
+        self.assertNotIn("appIcons", retry)  # paused, not hammered
+        upload.wait_until = 0
+        upload.attach(retry, icons)
+        self.assertEqual(retry["appIcons"], icons)
+        upload.settled(retry, {"appIconsStored": f"{retry['appIconsBatch']['revision']}:0"})
+        self.assertTrue(upload.sent)
+        again = {"results": [], "frame": None}
+        upload.attach(again, icons)
+        self.assertNotIn("appIcons", again)  # unchanged icons are not resent

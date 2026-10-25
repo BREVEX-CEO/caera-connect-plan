@@ -199,22 +199,27 @@ async function taskActions(
  * in another tab, after a reload or after a busy pause delivers the same files as one finished
  * in a single turn. An input the task only read, a helper under `.jarvis/`, and a file already
  * delivered after its last change are left out.
+ *
+ * Paths are compared exactly as submitted, like proofs (`samePath`): case, spaces and
+ * backslashes can name different files on a supported filesystem, so only a leading "./",
+ * which names the same file everywhere, is set aside (audit F04). Each due path is returned as
+ * the check names it.
  */
 export function deliveriesDue(
   rows: readonly ActionRow[],
   checks: readonly OutcomeCheck[],
 ): string[] {
-  const norm = (file: string) => file.replace(/\\/g, "/").replace(/^\.\//, "");
-  const wanted = new Set(
-    checks
-      .map((check) => (check.path ? norm(check.path) : ""))
-      .filter((path) => path && !path.startsWith(".jarvis/")),
-  );
+  const key = (file: string) => file.replace(/^\.\//, "");
+  const wanted = new Map<string, string>();
+  for (const check of checks) {
+    if (check.path && !key(check.path).startsWith(".jarvis/"))
+      wanted.set(key(check.path), check.path);
+  }
   const due = new Set<string>();
   for (const row of rows) {
     if (row.status !== "done" || !row.action) continue;
     if (row.action.action === "file_deliver") {
-      if (typeof row.action.path === "string") due.delete(norm(row.action.path));
+      if (typeof row.action.path === "string") due.delete(key(row.action.path));
       continue;
     }
     const detail = row.result?.detail ?? {};
@@ -226,28 +231,33 @@ export function deliveriesDue(
         : []),
     ];
     for (const file of touched) {
-      if (typeof file === "string" && wanted.has(norm(file))) due.add(norm(file));
+      if (typeof file === "string" && wanted.has(key(file))) due.add(key(file));
     }
   }
-  return [...due];
+  return [...due].map((file) => wanted.get(file)!);
 }
 
-/** The deliveries due for one of this person's tasks (empty when it cannot be read). */
+/**
+ * The deliveries due for one of this person's tasks, or null when its record could not be read:
+ * an unreadable history is never "nothing to hand over" (audit F05).
+ */
 export async function taskDeliveriesDue(
   service: Db,
   userId: string,
   taskId: string,
-): Promise<string[]> {
-  const { data: fixed } = await service
+): Promise<string[] | null> {
+  const { data: fixed, error } = await service
     .from("jarvis_tasks")
     .select("outcome")
     .eq("id", taskId)
     .eq("user_id", userId)
     .maybeSingle();
-  const checks = outcomeChecks.safeParse(fixed?.outcome);
+  if (error || !fixed) return null;
+  // No valid checks: nothing is named to hand over, and completion is refused anyway.
+  const checks = outcomeChecks.safeParse(fixed.outcome);
   if (!checks.success) return [];
   const rows = await taskActions(service, userId, taskId);
-  return rows ? deliveriesDue(rows, checks.data) : [];
+  return rows ? deliveriesDue(rows, checks.data) : null;
 }
 
 /**

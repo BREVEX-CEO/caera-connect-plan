@@ -36,7 +36,7 @@ import { runJarvisTurn, Stopped } from "./agent";
 import { LiveControl, statusReply, workIntent } from "./live-control";
 import { liveDeps, ModelRefused, Unavailable } from "./live-deps";
 import { isAllowed } from "./permissions";
-import { useAppMention } from "./mention";
+import { useAppMention, type AppChoice } from "./mention";
 import { FINISHED, mentionedApp } from "./protocol";
 import {
   JARVIS_DEFAULTS,
@@ -210,6 +210,7 @@ export function JarvisWorkspace({
       : null;
   // Typing @ lists the apps each computer found; a Never app is not offered.
   const composer = useRef<HTMLTextAreaElement>(null);
+  const keptApps = useRef(new Map<string, AppChoice[]>());
   const mention = useAppMention({
     draft,
     setDraft,
@@ -393,6 +394,15 @@ export function JarvisWorkspace({
       });
       return;
     }
+    // The apps named with @ decide which computer this message's work is for (audit F07). A
+    // choice from the picker is kept with the saved message, so Retry still aims at it; a name
+    // that could mean two computers is asked about, never sent to the default one.
+    const aimed = mention.target(text, retryOf ? (keptApps.current.get(retryOf) ?? []) : []);
+    if (aimed && "ambiguous" in aimed) {
+      toast.error(aimed.ambiguous);
+      if (fromVoice) setDraft(text);
+      return;
+    }
     // One turn at a time, decided before the first await: a second Send or Enter while the
     // first message is still being saved waits in the composer instead of starting a second loop.
     if (admitting.current) {
@@ -410,12 +420,9 @@ export function JarvisWorkspace({
           turns.findIndex((t) => t.id === retryOf),
         )
       : turns;
-    // The app chosen with @ decides which computer this message's work is for.
-    const workOn = mention.deviceFor(text) ?? target;
-    if (!retryOf) {
-      setDraft("");
-      mention.reset();
-    }
+    const workOn = aimed?.deviceId ?? target;
+    const picked = mention.chosenIn(text);
+    if (!retryOf) setDraft("");
     let id = conversationId;
     try {
       if (!id) {
@@ -427,6 +434,9 @@ export function JarvisWorkspace({
       }
       if (!retryOf) {
         const saved = await persistChatMessage({ conversationId: id, role: "user", content: text });
+        // Saved: the choices go with the message; a save that failed keeps them in the composer.
+        keptApps.current.set(saved.record.id, picked);
+        mention.reset();
         if (mine()) {
           setTurns((list) => [...list, { id: saved.record.id, role: "user", content: text }]);
         }
@@ -507,7 +517,7 @@ export function JarvisWorkspace({
               ? new Promise((resolve) => setTakeover({ reason, resolve }))
               : Promise.resolve("stop" as const),
         },
-        liveDeps(id),
+        liveDeps(id, user?.id ?? ""),
       );
       busyStrikes.current = 0;
       carried.current = null; // the turn ended on its own: nothing is left to carry

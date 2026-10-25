@@ -11,6 +11,7 @@ import { NOT_VERIFIED } from "../protocol";
 import {
   changeTask,
   completionGap,
+  deliveriesDue,
   queueTaskAction,
   taskDeliveriesDue,
 } from "../task-authority.server";
@@ -123,6 +124,62 @@ describe("app icons from a device", () => {
     expect(await read()).toEqual({ Word: PNG_1PX });
     await run({ results: [], apps: ["Word", "Excel"] });
     expect(await read()).toEqual({ Word: PNG_1PX });
+  });
+
+  it("keeps a set sent in batches, acknowledging each only once it is stored (F02, F03)", async () => {
+    const read = async () =>
+      (
+        await twin.asServiceRole<{ app_icons: Record<string, string> }>(
+          `select app_icons from public.jarvis_devices where id = '${device}'`,
+        )
+      )[0]!.app_icons;
+    const batch = (index: number) => ({ revision: "abcdef0123456789", index, count: 2 });
+    const first = await run({ results: [], appIcons: { Word: PNG_1PX }, appIconsBatch: batch(0) });
+    expect(first.appIconsStored).toBe("abcdef0123456789:0");
+    const second = await run({
+      results: [],
+      appIcons: { Paint: PNG_1PX },
+      appIconsBatch: batch(1),
+    });
+    expect(second.appIconsStored).toBe("abcdef0123456789:1");
+    expect(await read()).toEqual({ Word: PNG_1PX, Paint: PNG_1PX });
+    // A new set replaces the old one from its first batch.
+    await run({
+      results: [],
+      appIcons: { Excel: PNG_1PX },
+      appIconsBatch: { revision: "0123456789abcdef", index: 0, count: 1 },
+    });
+    expect(await read()).toEqual({ Excel: PNG_1PX });
+
+    // Storage refuses the write: no acknowledgement, so the device sends the batch again.
+    const base = rest();
+    const failing = {
+      ...base,
+      from: (table: string) => {
+        const query = base.from(table);
+        if (table !== "jarvis_devices") return query;
+        return new Proxy(query, {
+          get: (target, key) =>
+            key === "update"
+              ? (patch: Record<string, unknown>) =>
+                  "app_icons" in patch
+                    ? { eq: async () => ({ error: { message: "storage is down" } }) }
+                    : target.update(patch)
+              : Reflect.get(target, key),
+        });
+      },
+    };
+    const refused = await exchange(
+      failing as never,
+      { id: device, userId: A },
+      {
+        results: [],
+        appIcons: { Paint: PNG_1PX },
+        appIconsBatch: { revision: "fedcba9876543210", index: 0, count: 1 },
+      },
+    );
+    expect(refused.appIconsStored).toBeUndefined();
+    expect(refused.commands).toEqual([]); // the rest of the exchange still answered
   });
 
   it("refuses an icon map over the size the exchange allows", () => {
@@ -1118,10 +1175,24 @@ describe("completion needs evidence from the device (P01)", () => {
       expect(await taskDeliveriesDue(rest() as never, A, t)).toEqual([]);
       await done(await queue(t, { action: "file_write", path: "./car.stl", content: "v2" }));
       expect(await taskDeliveriesDue(rest() as never, A, t)).toEqual(["car.stl"]);
-      // Another person's task is never read.
+      // Another person's task is never read: it is not theirs to hand over.
       expect(
         await taskDeliveriesDue(rest() as never, "bbbbbbbb-1111-4bbb-8bbb-bbbbbbbbbbbb", t),
-      ).toEqual([]);
+      ).toBeNull();
+    });
+
+    it("hands over exactly the file the check names, never a neighbour (audit F04)", () => {
+      const wrote = (...files: string[]) => [
+        { action: { action: "run" }, status: "done", result: { detail: { wrote: files } } },
+      ];
+      const checks = [{ path: "a\\b.txt" }, { path: "Report.docx" }, { path: "./out.csv" }];
+      // A POSIX name with a backslash is not the file "a/b.txt"; case names another file too.
+      expect(deliveriesDue(wrote("a/b.txt", "report.docx"), checks)).toEqual([]);
+      expect(deliveriesDue(wrote("a\\b.txt", "Report.docx", "out.csv"), checks)).toEqual([
+        "a\\b.txt",
+        "Report.docx",
+        "./out.csv",
+      ]);
     });
 
     it("keeps each delivered file as a Library item named on the completed task", async () => {

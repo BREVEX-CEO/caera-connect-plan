@@ -1,3 +1,4 @@
+import { DEFAULT_ONLINE_MODEL } from "@/lib/intelligence/online-models";
 import { HIGH_WARNING_VERSION } from "@/lib/intelligence/quality";
 /**
  * The planning loop's real bindings: OCADE's Online boundary, the commercial
@@ -88,17 +89,21 @@ export async function askThroughBusy<T>(
 }
 
 /**
- * Until when web search is not offered. A plan without it (the free tier: grounding is "Not
- * available") refuses the first search; for a while after, this tab does not offer it, so no
- * later task spends a turn on a tool that cannot answer. It expires, so an upgraded plan or a
- * passing provider limit is not remembered as a permanent lack (plan.md §4.5).
+ * Until when web search is not offered, per account and Standard model. A plan without it (the
+ * free tier: grounding is "Not available") refuses the first search; for a while after, that
+ * account is not offered it here, so no later task spends a turn on a tool that cannot answer.
+ * It expires, so an upgraded plan or a passing provider limit is not remembered as a permanent
+ * lack, and another account or a new Standard model starts afresh (plan.md §4.5, audit F11).
  */
-let noWebSearchUntil = 0;
+const noWebSearchUntil = new Map<string, number>();
 export const RESEARCH_RECHECK_MS = 30 * 60_000;
+const searchKey = (accountId: string) => `${accountId}:${DEFAULT_ONLINE_MODEL}`;
+export const webSearchOffered = (accountId: string) =>
+  Date.now() >= (noWebSearchUntil.get(searchKey(accountId)) ?? 0);
 
-export function liveDeps(conversationId: string): AgentDeps {
+export function liveDeps(conversationId: string, accountId: string): AgentDeps {
   return {
-    model: (input) => askThroughBusy(() => askOnce(input, conversationId), input.signal),
+    model: (input) => askThroughBusy(() => askOnce(input, conversationId, accountId), input.signal),
     startTask: (data) => startJarvisTask({ data }),
     updateTask: async (data) => {
       const task = await updateJarvisTask({ data });
@@ -114,17 +119,17 @@ export function liveDeps(conversationId: string): AgentDeps {
     deliveries: (taskId) => readJarvisDeliveries({ data: { taskId } }),
     remember: (content) => rememberJarvis({ data: { content } }),
     readDocs: (data) => readJarvisDocs({ data }),
-    research: Date.now() >= noWebSearchUntil ? research(conversationId) : undefined,
+    research: webSearchOffered(accountId) ? research(conversationId, accountId) : undefined,
     schedule: (data) => scheduleJarvis({ data }),
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     changed: actionChanged,
   };
 }
 
-function research(conversationId: string): AgentDeps["research"] {
+function research(conversationId: string, accountId: string): AgentDeps["research"] {
   return async ({ question, signal, taskId }) => {
     const found = await askThroughBusy(
-      () => researchOnce(question, conversationId, taskId, signal),
+      () => researchOnce(question, conversationId, accountId, taskId, signal),
       signal,
     );
     // The sources the answer cited, counted from its own list: progress says only what happened.
@@ -155,6 +160,7 @@ function research(conversationId: string): AgentDeps["research"] {
 async function researchOnce(
   question: string,
   conversationId: string,
+  accountId: string,
   taskId: string,
   signal?: AbortSignal,
 ): Promise<{ answer: string } | { error: string }> {
@@ -194,7 +200,7 @@ async function researchOnce(
   if (!complete || !text.trim() || refusal) {
     if (!refusal || refusal.retryable) throw new Unavailable(refusal?.retryAfterMs);
     if (refusal.code === "research_unavailable") {
-      noWebSearchUntil = Date.now() + RESEARCH_RECHECK_MS; // not on this plan right now
+      noWebSearchUntil.set(searchKey(accountId), Date.now() + RESEARCH_RECHECK_MS);
       return {
         error:
           "Web search is not available. Open the pages you need with the browser and read them with find_text; do not call research again in this task.",
@@ -225,6 +231,7 @@ async function askOnce(
     quality = "standard",
   }: Parameters<AgentDeps["model"]>[0],
   conversationId: string,
+  accountId: string,
 ): ReturnType<AgentDeps["model"]> {
   const billed = await beginBilledRequest({ surface: "jarvis", taskId });
   if (!billed) return null;
@@ -244,7 +251,7 @@ async function askOnce(
       quality,
       ...(quality === "high" ? { highModeAcknowledged: HIGH_WARNING_VERSION } : {}),
       messages,
-      tools: jarvisTools(memory, true, Date.now() >= noWebSearchUntil && quality !== "high"),
+      tools: jarvisTools(memory, true, webSearchOffered(accountId) && quality !== "high"),
       attachments,
       privacy: { onlineInferenceConsented: true, sealed: false },
       conversationId,

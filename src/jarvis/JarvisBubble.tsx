@@ -293,7 +293,7 @@ export function Bubble({ userId, placement }: { userId: string; placement: Place
           takeOver: async () => "stop" as const,
         },
         {
-          ...liveDeps(id),
+          ...liveDeps(id, userId),
           startTask: async () => {
             throw new HandOff();
           },

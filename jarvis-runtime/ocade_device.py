@@ -45,6 +45,64 @@ BROWSER_ACTIONS = {"observe", "look", "open", "new_tab", "click", "type", "selec
                    "scroll", "switch_tab", "close_tab", "back", "forward", "wait", "click_at",
                    "drag_at", "find_text", "media", "upload", "download"}
 APPS_EVERY_S = 3600
+
+
+def icon_batches(icons: dict[str, str], batch_chars: int = 60_000,
+                 total_chars: int = 1_500_000) -> list[dict[str, str]]:
+    """The icons in batches small enough to ride an exchange beside its other traffic, the
+    whole set bounded (OCADE keeps at most 2 MB); icons past the bound are left out."""
+    batches: list[dict[str, str]] = [{}]
+    size = total = 0
+    for name in sorted(icons):
+        cost = len(name) + len(icons[name]) + 8  # quotes, colon, comma: as JSON carries it
+        if total + cost > total_chars:
+            break
+        if batches[-1] and size + cost > batch_chars:
+            batches.append({})
+            size = 0
+        batches[-1][name] = icons[name]
+        size += cost
+        total += cost
+    return batches
+
+
+class IconUpload:
+    """App icons go to OCADE in small batches, only on an exchange that carries no results or
+    live frame, so receipts, STOP and leases are never crowded out; a batch counts as sent only
+    when OCADE says it stored it, and a refused one is tried again after a pause (audit F02,
+    F03)."""
+
+    RETRY_S = 60
+
+    def __init__(self) -> None:
+        self.sent = ""  # digest of the whole set OCADE has stored
+        self.plan: dict | None = None
+        self.wait_until = 0.0
+
+    def attach(self, body: dict, icons: dict[str, str] | None) -> None:
+        if icons is None or body.get("results") or body.get("frame") \
+                or time.monotonic() < self.wait_until:
+            return
+        digest = hashlib.sha256(json.dumps(icons, sort_keys=True).encode()).hexdigest()
+        if digest == self.sent:
+            return
+        if not self.plan or self.plan["digest"] != digest:
+            self.plan = {"digest": digest, "batches": icon_batches(icons), "next": 0}
+        index = self.plan["next"]
+        body["appIcons"] = self.plan["batches"][index]
+        body["appIconsBatch"] = {"revision": digest[:32], "index": index,
+                                 "count": len(self.plan["batches"])}
+
+    def settled(self, body: dict, reply: dict) -> None:
+        batch = body.get("appIconsBatch")
+        if not batch or not self.plan:
+            return
+        if reply.get("appIconsStored") != f"{batch['revision']}:{batch['index']}":
+            self.wait_until = time.monotonic() + self.RETRY_S
+            return
+        self.plan["next"] += 1
+        if self.plan["next"] == len(self.plan["batches"]):
+            self.sent, self.plan = self.plan["digest"], None
 # With OCADE out of reach this long, a running action is stopped: nobody could STOP it remotely.
 # The Architecture's native lease: at most 5 s from the last exchange (time.monotonic, so a clock
 # change cannot extend it), renewed by every exchange, about once a second while a step runs.
@@ -383,7 +441,7 @@ class Agent:
         apps_sent = 0.0
         found: dict = {}  # the app inventory, found off this loop (it can take seconds)
         finder: threading.Thread | None = None
-        icons_sent = ""  # digest of the app icons OCADE last accepted: unchanged icons are not resent
+        icons = IconUpload()
         active: dict | None = None  # the segment running now: {"id", "left", "done", "skip", "thread"}
         while not self.stop.is_set():
             if active:
@@ -426,11 +484,7 @@ class Agent:
                     found.update(apps=[a["name"] for a in apps], icons=app_icons(apps))
                 finder = threading.Thread(target=look, daemon=True, name="ocade-apps")
                 finder.start()
-            icons = found.get("icons")
-            digest = hashlib.sha256(json.dumps(icons, sort_keys=True).encode()).hexdigest() \
-                if icons is not None else icons_sent
-            if digest != icons_sent:
-                body["appIcons"] = icons
+            icons.attach(body, found.get("icons"))
             # The control-loss bound holds while the exchange itself is blocked, not only after it
             # fails: past it, the running action is cancelled whatever the network is doing.
             watch = threading.Timer(max(0.0, CONTROL_LOSS_S - (time.monotonic() - reached)),
@@ -478,8 +532,7 @@ class Agent:
             reached = time.monotonic()
             if "apps" in body:
                 apps_sent = time.monotonic()
-            if "appIcons" in body:
-                icons_sent = digest
+            icons.settled(body, reply)
             if body.get("stop"):
                 self.stop_all.clear()
             if body.get("pause"):
