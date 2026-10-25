@@ -22,7 +22,7 @@ Exact file/line means a confirmed source location for new findings, or the exact
 
 ## Claude audit repairs — 25 October 2026 (plan.md Appendix B)
 
-- **Commits on `ocade/p00-p22-implementation`:** `2c940a5` (F02–F08, F11, B05, B08), `2b1f8ad` (DeepSeek tool-history repair, Gate 1–2 evidence), `91a5b00` (F10, B07, C04), `d0c42a4` (B09, C10). Evidence and the remaining A–I backlog: [BLOCKED_TESTS](BLOCKED_TESTS.md). Release gates qualified: still 0 of 10.
+- **Commits on `ocade/p00-p22-implementation`:** `2c940a5` (F02–F08, F11, B05, B08), `2b1f8ad` (DeepSeek tool-history repair, Gate 1–2 evidence), `91a5b00` (F10, B07, C04), `d0c42a4` (B09, C10), `6cd2aac` and `c39561b` (one loop and refusal rule for both planners, B01), `0ef50f4` (resume reads the recorded task history, B03). Evidence and the remaining A–I backlog: [BLOCKED_TESTS](BLOCKED_TESTS.md). Release gates qualified: still 0 of 10.
 
 ## Claude DeepSeek-OCADE integration — 23 October 2026 (plan.md)
 
