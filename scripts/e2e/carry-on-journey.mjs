@@ -21,6 +21,12 @@ import { chromium } from "playwright-core";
 import { BASE, EXECUTABLE, SUPABASE } from "./common.mjs";
 
 const PYTHON = process.env.PYTHON ?? (process.platform === "win32" ? "python" : "python3");
+/*
+ * The interpreter the scripted model names, as a model writes it: by name. PYTHON (above) runs the
+ * Device Agent and may be a path; a command naming a program by its path is "other" and is
+ * rightly asked once (protocol.ts commandClass), which is not what these steps are about.
+ */
+const SCRIPT_PYTHON = process.platform === "win32" ? "python" : "python3";
 
 let failures = 0;
 function check(name, ok, detail = "") {
@@ -184,7 +190,7 @@ try {
     { tool: "computer", args: { action: "file_write", path: "wait.py", content: WAIT, step: 1 } },
     // Every file it changes is read back before it may finish.
     { tool: "computer", args: { action: "file_read", path: "wait.py", step: 1 } },
-    { tool: "computer", args: { action: "run", command: `${PYTHON} wait.py`, step: 2 } },
+    { tool: "computer", args: { action: "run", command: `${SCRIPT_PYTHON} wait.py`, step: 2 } },
     // A command may change any file, so what it ran is read again too.
     { tool: "computer", args: { action: "file_read", path: "wait.py", step: 2 } },
     {
@@ -266,7 +272,9 @@ try {
     uses
       .filter((row) => row.action)
       .map((row) => row.action.action)
-      .join(",") === "file_write,file_read,run,file_read,file_write,file_read" &&
+      // Then its checked file goes to the Library: sized, then sent (durable delivery).
+      .join(",") ===
+      "file_write,file_read,run,file_read,file_write,file_read,file_info,file_deliver" &&
       readFileSync(path.join(workspace, "slept.txt"), "utf8") === "x",
     uses
       .filter((row) => row.action)
@@ -307,7 +315,7 @@ try {
         steps: ["Wait", "Delete"],
       },
     },
-    { tool: "computer", args: { action: "run", command: `${PYTHON} wait.py`, step: 1 } },
+    { tool: "computer", args: { action: "run", command: `${SCRIPT_PYTHON} wait.py`, step: 1 } },
     { tool: "computer", args: { action: "file_delete", path: "report.txt", step: 2 } },
     { tool: "finish_task", args: { outcome: "completed", result: "Deleted." } },
   ]);
@@ -362,8 +370,8 @@ try {
         steps: ["One", "Two", "Three"],
       },
     },
-    { tool: "computer", args: { action: "run", command: `${PYTHON} wait.py`, step: 1 } },
-    { tool: "computer", args: { action: "run", command: `${PYTHON} wait.py`, step: 2 } },
+    { tool: "computer", args: { action: "run", command: `${SCRIPT_PYTHON} wait.py`, step: 1 } },
+    { tool: "computer", args: { action: "run", command: `${SCRIPT_PYTHON} wait.py`, step: 2 } },
     { tool: "computer", args: { action: "file_write", path: "never.txt", content: "no", step: 3 } },
     { tool: "finish_task", args: { outcome: "completed", result: "Done." } },
   ]);
