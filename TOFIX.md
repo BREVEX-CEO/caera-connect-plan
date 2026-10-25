@@ -20,6 +20,10 @@ Staging: **OCADE staging 20261019**, `auyapercxxptziyngycx`. All 156 forward mig
 
 Exact file/line means a confirmed source location for new findings, or the exact canonical evidence line for inherited items. **An inherited item's fault site/root cause is UNLOCALIZED unless its linked evidence proves it; do not invent code changes from a blocker label.** Priorities are triage recommendations, not new claims of reproduced critical defects. No issue is closed solely by a source fix, compilation or staging deployment.
 
+## Claude audit repairs — 25 October 2026 (plan.md Appendix B)
+
+- **Commits on `ocade/p00-p22-implementation`:** `2c940a5` (F02–F08, F11, B05, B08), `2b1f8ad` (DeepSeek tool-history repair, Gate 1–2 evidence), `91a5b00` (F10, B07, C04), `d0c42a4` (B09, C10). Evidence and the remaining A–I backlog: [BLOCKED_TESTS](BLOCKED_TESTS.md). Release gates qualified: still 0 of 10.
+
 ## Claude DeepSeek-OCADE integration — 23 October 2026 (plan.md)
 
 - **Shipped on `ocade/p00-p22-implementation`:** shared turn engine (`src/jarvis/engine.ts`: one budget, human-boundary rule, checkpoint and result wording for foreground and background; DeepSeek-derived ordered scheduling with parallel read-only research/docs and model-free result pruning); durable delivery of finished files (resumed and background-completed tasks now reach the Library); memory secret refusal; expiring web-search unavailability; dynamic `@` app picker with each device's real icons; Markdown JARVIS answers; Chat → JARVIS hand-over; non-forcing transcript scroll. Contract: [DeepSeek integration](docs/integrations/deepseek-harness.md). Evidence and open items: [BLOCKED_TESTS](BLOCKED_TESTS.md) (DELIV-23-01, JOURNEY-23-01, SHELL-23-01, APPS-23-01, MIG-23-01).

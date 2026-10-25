@@ -979,6 +979,13 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
     check(
       "when OCADE's capacity is used up, JARVIS says so in OCADE's words",
       await until(async () => (await busy.count()) === 1, 60_000),
+      // The turn's own record and the page's toasts, to localize JOURNEY-23-01 when it fails.
+      `${((await boundary()).turns ?? [])
+        .slice(-4)
+        .map((t) => `${t.role}: ${String(t.content).slice(0, 80)}`)
+        .join(
+          " | ",
+        )} || toasts: ${(await page.locator("[data-sonner-toast]").allInnerTexts()).join(" | ")}`,
     );
     const busyText = await busy.innerText().catch(() => "");
     check(
@@ -1477,6 +1484,11 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
           /reset/.test((await composer.getAttribute("placeholder")) ?? ""),
         15_000,
       ),
+      // What the composer showed instead, to localize JOURNEY-23-01 when it fails.
+      `disabled=${await composer.isDisabled()} placeholder=${await composer.getAttribute("placeholder")} status=${await page
+        .locator("#jarvis-send-status")
+        .innerText()
+        .catch(() => "-")}`,
     );
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
     await page.waitForSelector("text=of 28 left", { timeout: 15_000 });
