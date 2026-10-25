@@ -16,7 +16,7 @@
 > **Open:**
 >
 > - **DEP-25-02 OPEN (dev-only):** wrangler → miniflare → undici 7.28 (high, EventSource DoS / SRI). The newest wrangler still pins it; no patched release exists. Not in the shipped app.
-> - **SHELL-23-01 FIXED** (`28f7437`, `3a11f49`): the offline page reloads itself on `online`; when that event landed while the person was already leaving for Chat, the reload cancelled their navigation. Reproduced 3/3 (journey) and 3/6 (probe); after the fix 0/6 and 8/8 journey runs, and reconnecting on the offline page still reloads it (new check). Shell cache version 17 ships the fixed page to installed apps.
+> - **SHELL-23-01 FIXED** (`28f7437`, `3a11f49`): the offline page reloads itself on `online`; when that event landed while the person was already leaving for Chat, the reload cancelled their navigation. Reproduced 3/3 (journey) and 3/6 (probe); after the fix 0/6 and 9/9 journey runs, and reconnecting on the offline page still reloads it (new check). Shell cache version 17 ships the fixed page to installed apps.
 > - **JOURNEY-25-01**: a jarvis journey crash (the End button vanishing between look and press) is fixed in the test (`0b3b4cb`). Jarvis on an idle machine: 142/142, 141/142, 142/142.
 > - **JOURNEY-23-01 FLAKY, narrowed**: the one failure is "a spent JARVIS allowance locks the composer": the page read signed-out ("Sign in to talk to JARVIS") for 15 s, with no page error and no app data request after load. The check now records hydration, the stored session and whether it signs in later (`2591621`). Root cause not found.
 > - **DS-25-01 NOT DONE**: as below.
