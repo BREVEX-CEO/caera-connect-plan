@@ -1503,6 +1503,32 @@ describe("completion needs evidence from the device (P01)", () => {
       await complete(t);
     });
 
+    it("keeps file reads valid across browser steps, which never change a file already there", async () => {
+      const t = await withChecks([{ path: "order.txt", contains: ["Rocket fuel"] }]);
+      await done(await queue(t, { action: "file_write", path: "order.txt", content: "x" }));
+      await done(await queue(t, { action: "file_read", path: "order.txt" }), {
+        status: "done",
+        detail: { content: "Rocket fuel - 3 x 120.00" },
+      });
+      await done(await queue(t, { action: "file_read", path: "Downloads/receipt-0.txt" }), {
+        status: "done",
+        detail: { content: "total=1562.00" },
+      });
+      // As in the b6-order run of 26 Oct: an upload, then the order page opened again.
+      await done(
+        await queue(t, { action: "upload", ref: "e5", observationId: "o1", path: "order.txt" }),
+      );
+      await done(await queue(t, { action: "open", url: "https://example.com/" }));
+      await done(await queue(t, { action: "find_text", text: "7731" }));
+      expect(await completionGap(rest() as never, A, t)).toBeNull();
+      await changeTask(rest() as never, rest() as never, A, {
+        id: t,
+        status: "completed",
+        result: "Sent the order for 1562.00 with order.txt attached.",
+      });
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
     it("keeps a read valid across a command whose complete list of touched files leaves it out (RATE-21-01)", async () => {
       const t = await withChecks([{ path: "a.txt", contains: ["approved"] }]);
       await done(await queue(t, { action: "file_write", path: "a.txt", content: "approved" }));

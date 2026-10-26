@@ -444,7 +444,9 @@ function claimGap(all: ActionRow[], claim: string): string | null {
     if (OFF_DEVICE.has(row.action?.action ?? "")) {
       if (row.status === "done") latest.set(`source:${at}`, row);
     } else if (!readsBack(row.action)) {
-      if (pathless(row)) {
+      if (BROWSER_ACTION_NAMES.has(row.action?.action ?? "")) {
+        latest.delete("screen");
+      } else if (pathless(row)) {
         for (const key of latest.keys()) if (!key.startsWith("source:")) latest.delete(key);
       } else {
         for (const target of [path, row.action?.to]) {
@@ -539,8 +541,7 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
   // without a path (a command, an app's window); for the screen or page, anything without a path.
   let last = -1;
   rows.forEach((row, at) => {
-    if (readsBack(row.action) || (path && BROWSER_ACTION_NAMES.has(row.action?.action ?? "")))
-      return;
+    if (readsBack(row.action)) return;
     if (path ? affectsPath(row, path) : pathless(row)) last = at;
   });
   const after = rows
@@ -759,16 +760,18 @@ const samePath = (row: ActionRow, path: string) =>
 
 /**
  * Commands can touch any file, unless the device listed every file a finished command touched
- * (`wroteAll`, RATE-21-01); a directory mutation also affects its descendants.
+ * (`wroteAll`, RATE-21-01); a directory mutation also affects its descendants. The browser never
+ * changes a file already there: an upload reads one, a download is saved under a new name.
  */
 const affectsPath = (row: ActionRow, path: string) =>
-  (pathless(row) && !untouchedBy(row, path)) ||
-  [row.action?.path, row.action?.to].some((value) => {
-    if (typeof value !== "string") return false;
-    const changed = normalPath(value).replace(/\/+$/, "");
-    const target = normalPath(path);
-    return !changed || changed === "." || target === changed || target.startsWith(`${changed}/`);
-  });
+  !BROWSER_ACTION_NAMES.has(row.action?.action ?? "") &&
+  ((pathless(row) && !untouchedBy(row, path)) ||
+    [row.action?.path, row.action?.to].some((value) => {
+      if (typeof value !== "string") return false;
+      const changed = normalPath(value).replace(/\/+$/, "");
+      const target = normalPath(path);
+      return !changed || changed === "." || target === changed || target.startsWith(`${changed}/`);
+    }));
 
 /**
  * A command that finished and whose complete list of touched work-folder files leaves path out.
