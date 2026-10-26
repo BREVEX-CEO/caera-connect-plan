@@ -230,6 +230,29 @@ class DocxWithoutWordTest(unittest.TestCase):
         self.assertFalse((root / "report.docx").exists())
 
 
+    def test_typed_bullets_become_word_list_paragraphs(self):
+        """A model that types "•" lines meant a list: Word's own List Bullet paragraphs, not
+        bullet characters in Normal text (25 Oct real-model Word benchmark failed on this)."""
+        root = Path(tempfile.mkdtemp())
+        pc = Computer(str(root))
+        made = pc.run({"action": "doc_edit", "path": "memo.docx", "ops": [
+            {"op": "append", "text": "Risks", "style": "Heading 1"},
+            {"op": "append", "text": "• Staff availability"},
+            {"op": "append", "text": "- Vendor delays\n* Legacy integration"},
+            {"op": "append", "text": "-5 degrees is a normal line"},
+        ]})
+        self.assertEqual(made["status"], "done", made)
+        from docx import Document
+        paragraphs = [(p.style.name, p.text) for p in Document(str(root / "memo.docx")).paragraphs]
+        self.assertEqual(paragraphs, [
+            ("Heading 1", "Risks"),
+            ("List Bullet", "Staff availability"),
+            ("List Bullet", "Vendor delays"),
+            ("List Bullet", "Legacy integration"),
+            ("Normal", "-5 degrees is a normal line"),
+        ])
+
+
 # Drives the person's installed Word: only when live tests are asked for (PLAN V22).
 @live
 @unittest.skipUnless(__import__("ocade_sheets").automation_server(".docx"), "needs an app that automates .docx")

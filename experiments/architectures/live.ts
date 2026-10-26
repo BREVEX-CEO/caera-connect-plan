@@ -302,8 +302,9 @@ function deps(): AgentDeps {
   const rows: ActionRow[] = [];
   let checks: readonly OutcomeCheck[] | null = null;
   return {
-    model: async ({ messages, signal }) => {
-      const reply = await ask(messages, jarvisTools(false, false, false), signal);
+    model: async ({ messages, tools = [], signal }) => {
+      // OCADE's tools, and upstream's own the turn offers (todo_write), as the product sends them.
+      const reply = await ask(messages, [...jarvisTools(false, false, false), ...tools], signal);
       transcript = [...messages, { role: "model", text: reply.text, toolCalls: reply.toolCalls }];
       return reply;
     },

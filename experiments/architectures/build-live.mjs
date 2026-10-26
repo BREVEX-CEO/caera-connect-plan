@@ -2,7 +2,7 @@
 /**
  * Bundle live.ts for Node: node experiments/architectures/build-live.mjs <out.mjs>
  *
- * The product loop runs on the vendored DeepSeek Harness source, resolved here as Vite resolves
+ * The product loop runs on the pinned DeepSeek Harness submodule, resolved here as Vite resolves
  * it (src/deepseek/aliases.json). esbuild lowers its decorators and `using` itself. Its one
  * `node:module` use reads upstream's own version, which a bundle cannot read, so it gets the
  * same stand-in the app ships.
@@ -13,7 +13,7 @@ import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
 const aliases = JSON.parse(readFileSync(path.join(ROOT, "src/deepseek/aliases.json"), "utf8"));
-const UPSTREAM = path.join(ROOT, "src/deepseek/upstream");
+const UPSTREAM = path.join(ROOT, "external/deepseek-harness/upstream");
 
 await build({
   entryPoints: [path.join(import.meta.dirname, "live.ts")],

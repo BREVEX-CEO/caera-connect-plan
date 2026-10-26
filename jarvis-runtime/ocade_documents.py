@@ -123,6 +123,10 @@ class DocumentError(Exception):
     pass
 
 
+# A line typed with a bullet character: a list the person wants, not "•" text in a paragraph.
+TYPED_BULLET = re.compile(r"^\s*[•◦▪‣*-]\s+")
+
+
 def validate_word(ops: list[dict]) -> list[dict]:
     """The document operations, checked and normalised before Word sees them."""
     if not isinstance(ops, list) or not 1 <= len(ops) <= 50:
@@ -142,6 +146,11 @@ def validate_word(ops: list[dict]) -> list[dict]:
             style = op.get("style")
             if style is not None and style not in WORD_STYLES:
                 raise DocumentError(f"Styles: {', '.join(WORD_STYLES)}")
+            lines = text.split("\n")
+            if style is None and all(TYPED_BULLET.match(line) for line in lines):
+                out.extend({"op": kind, "text": TYPED_BULLET.sub("", line), "style": WORD_STYLES["List Bullet"]}
+                           for line in lines)
+                continue
             out.append({"op": kind, "text": text, **({"style": WORD_STYLES[style]} if style else {})})
         elif kind == "style":
             if op.get("style") not in WORD_STYLES or not 1 <= len(str(op.get("find", ""))) <= 255:
