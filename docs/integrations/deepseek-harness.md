@@ -45,6 +45,8 @@ The 23 October finding that direct reuse needs `node:async_hooks` and therefore 
 
 ### Per-package disposition (pin `687f282`)
 
+The complete review of all 344 upstream packages is [deepseek-inventory.md](deepseek-inventory.md). The table below is the earlier family-level summary.
+
 | Upstream package                                                                                                                                                                                                                       | Disposition                        | OCADE status                                                                                                                                                               |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `core/agent-loop`, `core/agent`, `core/session`, `core/scope`, `core/tools`, `core/system-prompt`, `llm/llm`, `session/session-projection`, `session/session-persistence` (types)                                                      | **V (verbatim), runs**             | The foreground JARVIS turn (`upstream-turn.ts`)                                                                                                                            |
