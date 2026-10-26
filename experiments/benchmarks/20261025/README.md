@@ -83,3 +83,16 @@ download size, speed and answer quality are **UNTESTED**.
   exercised by the JARVIS journeys, not here.
 - Crash-and-restart recovery is not exercised here; see the journey sweep.
 - Only Linux was used. Windows, macOS, Android and iOS devices are **BLOCKED** (none available).
+
+## 26 October reruns (direct-source build, upstream todo_write and ask_user_question offered)
+
+Same tasks, oracles and staging model, on the build that compiles DeepSeek Harness from the submodule and offers upstream's `todo_write` (the runner has no person, so `ask_user_question` is not offered).
+
+| Task      | Run                                                | Wall s | Calls | Oracle                                                                                                                                                                   |
+| --------- | -------------------------------------------------- | -----: | ----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| B2 Word   | [b2-word-d26](results/b2-word-d26)                 |   18.9 |     3 | FAIL — risks written as "•" text in Normal paragraphs via `doc_edit`, not a Word list. Fixed on the device (`13008ca`: typed bullet lines become List Bullet paragraphs) |
+| B2 Word   | [b2-word-d26b](results/b2-word-d26b) after the fix |   47.1 |     5 | **PASS** — 3 list paragraphs, headings, bold, table, opens in LibreOffice                                                                                                |
+| B1 Excel  | [b1-excel-d26](results/b1-excel-d26)               |   31.4 |     7 | **PASS** (the model kept a todo_write checklist; 61 s / 13 calls on 25 Oct)                                                                                              |
+| B3 images | [b3-images-d26](results/b3-images-d26)             |  141.7 |    19 | **PASS** (61 s / 18 calls on 25 Oct)                                                                                                                                     |
+
+One run per task: evidence of behaviour, not a rate.

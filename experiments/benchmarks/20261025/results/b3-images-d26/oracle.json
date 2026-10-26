@@ -1,0 +1,1 @@
+{"task": "b3-images", "files": [".jarvis/process.py", "clip1.mp4", "clip2.mp4", "clip3.mp4", "earth.jpg", "earth_1200.jpg", "earth_border.png", "earth_gray.jpg"], "originalUntouched": true, "checks": {"resized": true, "gray": true, "border": true}, "pass": true}
