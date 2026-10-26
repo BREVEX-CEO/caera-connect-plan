@@ -39,6 +39,9 @@ PAGES = {
       <option>Express</option></select></label><button>Go</button><button>Go</button>
       <script>plan.onchange = () => setTimeout(() => { document.body.insertAdjacentHTML('beforeend',
         "<label>Order total <input id='total'></label>"); }, 600);</script>""",
+    "hiddenform.html": """<title>Hidden</title><label>Plan <select id='plan'><option>Choose</option>
+      <option>Express</option></select></label><div id='more' hidden><label>Order total <input></label></div>
+      <script>plan.onchange = () => setTimeout(() => { more.hidden = false; }, 600);</script>""",
     "opener.html": "<title>Opener</title><a href='/next.html' target='_blank'>Open form</a>",
     # An editor that builds its toolbar after load, then draws where it is dragged; a ticking
     # status line changes the page all the time, as editors' do.
@@ -302,6 +305,13 @@ class BrowserControlTest(unittest.TestCase):
         self.assertEqual(out["status"], "failed")
         self.assertIn("“Arrow” is in front", out["summary"])  # named by what it says
         self.assertLess(time.monotonic() - started, 3)
+
+    def test_controls_a_choice_reveals_shortly_after_are_in_what_the_step_returns(self):
+        for page in ("lateform.html", "hiddenform.html"):  # added to the page, or shown
+            obs = self.act({"action": "open", "url": f"{self.base}/{page}"})["observation"]
+            chose = self.act({"action": "select", "ref": self.ref(obs, "Plan"), "option": "Express",
+                              "observationId": obs["observationId"]})
+            self.assertIn("Order total", [e["name"] for e in chose["observation"]["elements"]], page)
 
     def test_a_step_names_its_element_by_target_and_the_device_waits_for_it(self):
         self.act({"action": "open", "url": f"{self.base}/lateform.html"})

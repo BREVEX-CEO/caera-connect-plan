@@ -1529,6 +1529,35 @@ describe("completion needs evidence from the device (P01)", () => {
       expect((await statusOf(t)).status).toBe("completed");
     });
 
+    it("keeps what each page showed until that page changes, not until another page opens", async () => {
+      const t = await withChecks([{ contains: ["Sent"] }]);
+      const shown = (url: string, text: string) => ({
+        status: "done",
+        observation: { observationId: "o1", url, text, elements: [] },
+      });
+      // As b6-order showed it: the order page read, then the form opened and used.
+      await done(await queue(t, { action: "open", url: "https://shop.test/" }), {
+        ...shown("https://shop.test/", "Order 7731 total 1562.00"),
+      });
+      await done(await queue(t, { action: "open", url: "https://shop.test/form" }), {
+        ...shown("https://shop.test/form", "Plan draft 4410"),
+      });
+      await done(await queue(t, { action: "type", ref: "e1", observationId: "o1", text: "x" }), {
+        ...shown("https://shop.test/form", "Sent 9905"),
+      });
+      await done(await queue(t, { action: "observe" }), {
+        ...shown("https://shop.test/form", "Sent 9905"),
+      });
+      const finish = (result: string) =>
+        changeTask(rest() as never, rest() as never, A, { id: t, status: "completed", result });
+      // What the form showed before the step changed it is not what it shows now.
+      await expect(finish("Order 7731 sent for 1562.00, code 4410.")).rejects.toThrow(
+        /4410 is not in anything this task read/,
+      );
+      await finish("Order 7731 sent for 1562.00, code 9905.");
+      expect((await statusOf(t)).status).toBe("completed");
+    });
+
     it("keeps a read valid across a command whose complete list of touched files leaves it out (RATE-21-01)", async () => {
       const t = await withChecks([{ path: "a.txt", contains: ["approved"] }]);
       await done(await queue(t, { action: "file_write", path: "a.txt", content: "approved" }));

@@ -709,6 +709,9 @@ class _BrowserSession:
             await page.wait_for_load_state("domcontentloaded", timeout=8_000)
         except Exception:
             pass
+        if kind in ("click", "type", "select", "press", "click_at", "drag_at"):
+            # Fields a choice reveals a moment later are part of what the step did.
+            await self._settle(await self._get_page(), quiet=0.8)
         after_page = await self._get_page()
         observation = await self.observe()
         after = await self._geometry(after_page)

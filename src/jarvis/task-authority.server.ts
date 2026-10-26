@@ -403,6 +403,7 @@ export function verificationGap(
 }
 
 const OFF_DEVICE = new Set(["research", "docs"]);
+const NAVIGATES = new Set(["open", "new_tab", "back", "forward", "switch_tab", "close_tab"]);
 /** Actions that leave a file behind, and the field naming it. */
 const MAKES_FILE: Record<string, "path" | "to"> = {
   file_write: "path",
@@ -434,6 +435,10 @@ function claimGap(all: ActionRow[], claim: string): string | null {
       row.status === "done" && (readsBack(row.action) || OFF_DEVICE.has(row.action?.action ?? "")),
   );
   const latest = new Map<string, ActionRow>();
+  // Each web page by its address: opening another page does not unread the last one, and what a
+  // browser step returns is what the device read of its page then (b6-order, 26 Oct).
+  let page = "";
+  const onPage = (key: string) => key.startsWith(`screen:${page}\n`);
   rows.forEach((row, at) => {
     if (
       ["refused", "skipped"].includes(row.result?.status ?? "") ||
@@ -441,12 +446,20 @@ function claimGap(all: ActionRow[], claim: string): string | null {
     )
       return;
     const path = row.action?.path;
-    if (OFF_DEVICE.has(row.action?.action ?? "")) {
+    if (BROWSER_ACTION_NAMES.has(row.action?.action ?? "")) {
+      // Going to another page or tab changes which page is in front, not what one says.
+      if (!readsBack(row.action) && !NAVIGATES.has(row.action?.action ?? "")) {
+        for (const key of latest.keys()) if (onPage(key)) latest.delete(key);
+      }
+      const url = (row.result?.observation as { url?: unknown } | null | undefined)?.url;
+      if (typeof url === "string") page = url;
+      if (row.status === "done" && (typeof url === "string" || readsBack(row.action))) {
+        latest.set(`screen:${page}\n${typeof url === "string" ? "view" : at}`, row);
+      }
+    } else if (OFF_DEVICE.has(row.action?.action ?? "")) {
       if (row.status === "done") latest.set(`source:${at}`, row);
     } else if (!readsBack(row.action)) {
-      if (BROWSER_ACTION_NAMES.has(row.action?.action ?? "")) {
-        latest.delete("screen");
-      } else if (pathless(row)) {
+      if (pathless(row)) {
         for (const key of latest.keys()) if (!key.startsWith("source:")) latest.delete(key);
       } else {
         for (const target of [path, row.action?.to]) {
@@ -461,7 +474,7 @@ function claimGap(all: ActionRow[], claim: string): string | null {
               latest.delete(key);
           }
         }
-        latest.delete("screen");
+        for (const key of latest.keys()) if (key.startsWith("screen")) latest.delete(key);
       }
     } else if (row.status === "done") {
       latest.set(typeof path === "string" ? `file:${normalPath(path)}` : "screen", row);

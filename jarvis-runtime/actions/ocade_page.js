@@ -93,8 +93,9 @@
     }
     return (cover.innerText || cover.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim().slice(0, 80) || true;
   };
-  // How many controls the page has: an app that builds itself after load is ready when this settles.
-  const controls = () => document.querySelectorAll(SELECTOR).length;
+  // How many controls the page shows: an app that builds itself after load, or a form that shows
+  // more fields after a choice, is ready when this settles.
+  const controls = () => [...document.querySelectorAll(SELECTOR)].filter((el) => el.getClientRects().length).length;
   const snapshot = () => {
   const visible = (el) => {
     const r = el.getBoundingClientRect();
