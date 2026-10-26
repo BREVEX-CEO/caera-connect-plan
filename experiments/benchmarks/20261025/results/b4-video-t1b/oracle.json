@@ -1,0 +1,1 @@
+{"task": "b4-video", "files": ["clip1.mp4", "clip2.mp4", "clip3.mp4", "earth.jpg", "launches cards/card0.mp4", "launches.mlt", "launches.mp4"], "exists": true, "duration": 20.021029, "size": [1280, 720], "fps": "30/1", "audio": true, "titleText": "Launch Day", "titleCard": true, "project": true, "pass": true}
