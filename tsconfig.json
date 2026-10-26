@@ -67,6 +67,9 @@
         "./src/deepseek/.types/packages/core/system-prompt/src/index.d.ts"
       ],
       "@deepseek-ai/dsh-timeout": ["./src/deepseek/.types/packages/util/timeout/src/index.d.ts"],
+      "@deepseek-ai/dsh-tool-todo": [
+        "./src/deepseek/.types/packages/todo/tool-todo/src/index.d.ts"
+      ],
       "@deepseek-ai/dsh-tools": ["./src/deepseek/.types/packages/core/tools/src/index.d.ts"],
       "@deepseek-ai/dsh-typert-protocol": [
         "./src/deepseek/.types/packages/typert/protocol/src/index.d.ts"
