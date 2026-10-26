@@ -123,7 +123,10 @@ What the b6-order runs found, each fixed with a regression test and rerun:
 | t1f1, t1f-sr1, t1f3, t1f-sr2       | `f9510c4`                                    | 3 / 4    | a command (making an unrequested receipt.pdf) unread the order page, and the model set a check for that file itself (`f6841d1`)                                |
 | t1f5                               | `f9510c4`                                    | —        | not counted: the provider answered "busy" naming a wait of 18.5 h (its daily quota); the runner, like the product, waits rather than retries                   |
 
-Complete b6-order runs took 21–31 calls before `f9510c4` and 13–27 after it. `f6841d1` has not
+Complete b6-order runs took 21–31 calls before `f9510c4` and 13–27 after it. The device now settles after a
+click, type or select: measured per action, click 410 → 1,230–1,290 ms, type 130 → 970 ms,
+select 95 → 1,540–1,590 ms (it waits for the revealed fields); about 5 s more device time per
+b6-order run, against 70–99 s wall time for the complete t1f runs (110–191 s for t1e). `f6841d1` has not
 had a real-model run yet: the staging provider's daily quota ran out on 26 Oct (every request
 from about 12:25 UTC was refused with a wait ending near 07:00 UTC), so the regression round on
 the final build is **UNTESTED** until it resets.
