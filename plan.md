@@ -55,6 +55,18 @@
 **Audit baseline:** OCADE `5a476453c885610e6f7a7eb5a07cf7fd4b77bb4f`; historical source snapshots below remain evidence, not current runtime certification.
 
 
+## NEW OWNER SECURITY / PRODUCT / WEBSITE CHECKLIST CONTRACT — 13 SOURCE LISTS (26 OCTOBER 2026)
+
+**Current owner instruction:** Appendix D preserves **all 13 current owner-supplied lists, 266 numbered lines in full**, and fills missing gaps in the earlier recovered Appendix C. This replaces reliance on the incomplete original partial transcriptions. Check for each checklist entry whether OCADE has already implemented it; **unmarked items are not automatically unfinished defects**. Track each item by stable `D1.1` through `D13.20` notation and map to existing Appendix C supplements A–J, the 200 requirements, and audit A01–I06. Do not silently omit missing item numbers. Lists 3/4 duplicate each other and 7/13 duplicate each other: preserve both for source fidelity, **implement shared functionality only once**. The 13 categories add **266 source entries, not 266 unique fixes**.
+
+**Execution order:** First perform the ongoing **DeepSeek direct-source maximum-usefulness integration and debloat D0–D4** in the overriding directive above, with safety/regression checks. **Then finish all outstanding non-payment coding** (including these 13 checklists, §C0-A through §C0-I§ and original 200 items) before final full-system testing **T1** using securely configured staging Gemini/Gemma and Cloudflare services. **However, critical security repairs are never postponed** when encountered: block unsafe behavior and write immediate focused regression checks at each implementation phase. After coding-completeness reconciliation, run the final comprehensive staging/customer-device/website/browser/offline/security campaign and fix every actual regression found. "Do not stop" means continue autonomously from one safe, actionable task to the next within the current authorized session; do not misrepresent blocked or asynchronous work as completed.
+
+**Applicability and quality rules:** The "vibecoded" style entries are warning signs, **not blanket bans**: Lucide icons, fonts, white backgrounds, em dashes, shadows, cards or rounded corners are acceptable when cohesive and functional. Preserve OCADE's existing restrained near-black/graphite/white/blue identity; prioritize genuine clarity, hierarchy, accessibility, proof, mobile usability and performance. The website and app must not acquire irrelevant contact forms, WhatsApp buttons, guarantees, trust badges, pricing tiers, cookie banners, analytics, floating widgets or countdown features just to check a marketing list. Implement only where customer-relevant, lawful and consented; document `NOT APPLICABLE` with a reason. No fake testimonials/reviews, manufactured urgency, invented product demos, unsupported security claims or dark patterns. Real privacy/terms copy requires owner/legal review; do not claim legal immunity. Evaluate regulatory age/cookie/consent requirements for applicable target audiences. Keep user data private; avoid unnecessary trackers. Treat payment-specific checklist lines (e.g. D10.15, D11.3 and live pricing/checkouts) as `PAYMENTS DEFERRED` per the owner, not completed.
+
+**Security standards:** For D1/D2/ D11/D12, inspect actual effective Supabase/Cloudflare/GitHub/build/deployment settings and reachable routes. Secrets are already configured in staging by name; never display, export, paste, reuse leaked keys, read provider values merely for inspection, or assume presence proves validity. Check RLS, IDOR, token boundaries, least privilege, vulnerable dependencies, uploads, private bucket access, webhooks **only when webhook integrations exist**, CORS, rate limits, session auth, admin logging, secret redaction, historical exposures and independent review. Rotate **confirmed compromised keys** using separately authorized secure procedures; never rotate legitimate production secrets automatically. Use actual security controls rather than hiding admin links or trusting client code. Work on implementation branch; no production changes, deployment, spending, or payment activation.
+
+**Required evidence:** For each `D<group>.<item>`, record `ALREADY VERIFIED`, `CODE OPEN`, `CODE DONE — TEST PENDING`, `VERIFIED PASS`, `EXTERNAL BLOCKED`, `PAYMENTS DEFERRED` or `NOT APPLICABLE`, with source path, commit, tests and rationale. Do not inflate completion counts by counting repeated lists twice. The original Appendix C and audits A/B remain unchanged historical source evidence.
+
 ## CURRENT CODING-FIRST OWNER DIRECTIVE — PHASES.MD RECOVERY AND FINAL IMPLEMENTATION ORDER (26 OCTOBER 2026)
 
 **This is the newest owner instruction and overrides outdated implementation-order or payments-first language elsewhere.** Work only on `ocade/p00-p22-implementation`; check its current HEAD, dirty/concurrent work, `AGENTS.md`, this plan, `TOFIX.md`, `BLOCKED_TESTS.md`, `docs/PHASES_STATUS.md` and `docs/integrations/deepseek-harness.md` at the start of each new coding continuation. Never use historical snapshots as proof of the current deployed product. Never merge `main`, deploy or promote to production, modify production secrets/data, enable payments, spend, bypass authenticated permissions, or interact with the owner's personal devices without the specific approval required.
@@ -3612,3 +3624,315 @@ For each numbered task and supplement: `OPEN / IN PROGRESS / VERIFIED PASS / FAI
 - **No manual new API key or R2 bucket creation is presently required.** Ask the owner only for real unavoidable authorizations/access such as the existing private release-model artifact, an approved browser/cloud-device/test-service entitlement or a specific production promotion. Do not obtain bypass credentials or expose stored values. If an external access problem persists, finish code independently and log the blocked verification.
 
 **Owner sequencing is explicit:** **Finish all remaining non-payment coding and integration first** (with focused code-level regression tests along the way). **Only after the C1 coding-completeness gate**, start the **final exhaustive** full-website, cross-browser, native/mobile, real-model/offline-model, independent-output, security and pilot campaign. Fix any discovered failures before claiming a qualified candidate. Leave payments/checkout/subscriptions/refunds and production deployment disabled until later distinct owner approvals. **Never present these preconfigured staging secrets as missing placeholders or ask to recreate them.**
+
+
+---
+
+## Appendix D — Complete 13 owner-provided security, UI, website and launch checklists (26 October 2026)
+
+These checklists reproduce the user's items without dropping any numbering. They are **requirements to evaluate**, not automatically accepted implementation instructions; see the applicability and safety rules above. Category 4 repeats category 3 and category 13 repeats category 7, deliberately preserved as provided.
+
+### 1. 16 API Key Leaks to Fix on Your Vibe-Coded AI Chatbot
+
+- [ ] **1.1** Keys in env variables
+- [ ] **1.2** .env in gitignore
+- [ ] **1.3** Secret keys off frontend
+- [ ] **1.4** Check public env vars
+- [ ] **1.5** Hide service role key
+- [ ] **1.6** Scan your git history
+- [ ] **1.7** Rotate leaked keys
+- [ ] **1.8** Secret scanning on
+- [ ] **1.9** Secrets in host dashboard
+- [ ] **1.10** Restrict key permissions
+- [ ] **1.11** Proxy calls via server
+- [ ] **1.12** Check screenshots, demos
+- [ ] **1.13** Don't log secrets
+- [ ] **1.14** Separate dev, prod keys
+- [ ] **1.15** Spending limits on keys
+- [ ] **1.16** Never paste keys in chat
+
+### 2. 19 Security Holes to Close on Your Vibe-Coded SaaS App
+
+- [ ] **2.1** Row level security
+- [ ] **2.2** Auth on every API route
+- [ ] **2.3** Never trust the frontend
+- [ ] **2.4** Rate limiting
+- [ ] **2.5** Sanitize user input
+- [ ] **2.6** Parameterized queries
+- [ ] **2.7** Lock down CORS
+- [ ] **2.8** HTTPS everywhere
+- [ ] **2.9** Stop IDOR bugs
+- [ ] **2.10** Debug mode off in prod
+- [ ] **2.11** CAPTCHA on public forms
+- [ ] **2.12** Log admin actions
+- [ ] **2.13** Private storage buckets
+- [ ] **2.14** Hide admin pages properly
+- [ ] **2.15** Update vulnerable packages
+- [ ] **2.16** Check file upload types
+- [ ] **2.17** Claude security review
+- [ ] **2.18** Security headers
+- [ ] **2.19** Verify webhook signatures
+
+### 3. 30 Reasons Your Site Looks Vibecoded (Part 1)
+
+- [ ] **3.1** Harsh gradients
+- [ ] **3.2** Lucide icons
+- [ ] **3.3** Pure white background
+- [ ] **3.4** Rainbow coloring
+- [ ] **3.5** Drop shadows
+- [ ] **3.6** 3 feature cards in a row
+- [ ] **3.7** Emojis
+- [ ] **3.8** Liquid glass
+- [ ] **3.9** Em dashes
+- [ ] **3.10** Inter/geist/space grotesk
+- [ ] **3.11** Colored left stripe
+- [ ] **3.12** Fake testimonials
+- [ ] **3.13** Bento grids
+- [ ] **3.14** Terminal window
+- [ ] **3.15** "It's not x, it's y"
+- [ ] **3.16** Checkmark bullets
+- [ ] **3.17** 3 pricing tiers
+- [ ] **3.18** No real product demos
+- [ ] **3.19** Soft corner radius
+- [ ] **3.20** Purple and black
+- [ ] **3.21** No skeleton loaders
+- [ ] **3.22** Radial orbs
+- [ ] **3.23** Dot grids
+- [ ] **3.24** Sparkle icons
+- [ ] **3.25** Animated arrows
+- [ ] **3.26** No TOS
+- [ ] **3.27** No privacy policy
+- [ ] **3.28** Hover animations
+- [ ] **3.29** Neon colors
+- [ ] **3.30** Basic pastel colors
+
+### 4. 30 Reasons Your Site Looks Vibecoded (Part 2)
+
+- [ ] **4.1** Harsh gradients
+- [ ] **4.2** Lucide icons
+- [ ] **4.3** Pure white background
+- [ ] **4.4** Rainbow coloring
+- [ ] **4.5** Drop shadows
+- [ ] **4.6** 3 feature cards in a row
+- [ ] **4.7** Emojis
+- [ ] **4.8** Liquid glass
+- [ ] **4.9** Em dashes
+- [ ] **4.10** Inter/geist/space grotesk
+- [ ] **4.11** Colored left stripe
+- [ ] **4.12** Fake testimonials
+- [ ] **4.13** Bento grids
+- [ ] **4.14** Terminal window
+- [ ] **4.15** "It's not x, it's y"
+- [ ] **4.16** Checkmark bullets
+- [ ] **4.17** 3 pricing tiers
+- [ ] **4.18** No real product demos
+- [ ] **4.19** Soft corner radius
+- [ ] **4.20** Purple and black
+- [ ] **4.21** No skeleton loaders
+- [ ] **4.22** Radial orbs
+- [ ] **4.23** Dot grids
+- [ ] **4.24** Sparkle icons
+- [ ] **4.25** Animated arrows
+- [ ] **4.26** No TOS
+- [ ] **4.27** No privacy policy
+- [ ] **4.28** Hover animations
+- [ ] **4.29** Neon colors
+- [ ] **4.30** Basic pastel colors
+
+### 5. 20 Reasons Why Your App Looks Vibecoded
+
+- [ ] **5.1** Purple to blue gradient
+- [ ] **5.2** Gradient hero text
+- [ ] **5.3** A badge above the headline
+- [ ] **5.4** Three icon boxes in a row
+- [ ] **5.5** Emojis in your headings
+- [ ] **5.6** Color left border cards
+- [ ] **5.7** Glassmorphism cards
+- [ ] **5.8** Untouched shadcn components
+- [ ] **5.9** Lucide icons everywhere
+- [ ] **5.10** Inter font everywhere
+- [ ] **5.11** Space Grotesk plus Instrumental Serif
+- [ ] **5.12** Serif italics for accent words
+- [ ] **5.13** Em dashes everywhere
+- [ ] **5.14** Generic buzzwords
+- [ ] **5.15** Sections fading in as you scroll
+- [ ] **5.16** Cursor following line
+- [ ] **5.17** Buttons fade on hover
+- [ ] **5.18** Low contrast dark mode
+- [ ] **5.19** Inconsistent spacing
+- [ ] **5.20** Grain texture
+
+### 6. 20 Things You Can Tell Claude to Add to Your Website Right Now Pt.3
+
+- [ ] **6.1** Dark mode toggle
+- [ ] **6.2** Simple cookie banner
+- [ ] **6.3** Site search
+- [ ] **6.4** Back to top button
+- [ ] **6.5** Mobile menu
+- [ ] **6.6** Loading animations
+- [ ] **6.7** Hover states
+- [ ] **6.8** Scroll progress bar
+- [ ] **6.9** Copy button
+- [ ] **6.10** Print stylesheet
+- [ ] **6.11** Sticky headers
+- [ ] **6.12** Skip to content
+- [ ] **6.13** Password visibility toggle
+- [ ] **6.14** UTM tracking
+- [ ] **6.15** Form success state
+- [ ] **6.16** Form error state
+- [ ] **6.17** Confirmation modals
+- [ ] **6.18** Last updated date
+- [ ] **6.19** Expandable FAQ
+- [ ] **6.20** Floating contact button
+
+### 7. 20 Things to Tell Claude to Fix on Your Vibecoded Website (Image 1)
+
+- [ ] **7.1** Remove horizontal scrolling
+- [ ] **7.2** Find broken links
+- [ ] **7.3** Add a mobile menu
+- [ ] **7.4** Add a favicon
+- [ ] **7.5** Fix page titles
+- [ ] **7.6** Add meta descriptions
+- [ ] **7.7** Fix footer links
+- [ ] **7.8** Add a custom 404 page
+- [ ] **7.9** Fix the copyright year
+- [ ] **7.10** Compress images
+- [ ] **7.11** Fix broken buttons
+- [ ] **7.12** Add success messages
+- [ ] **7.13** Add error messages
+- [ ] **7.14** Remove placeholder text
+- [ ] **7.15** Remove unused navigation
+- [ ] **7.16** Fix mobile overflow
+- [ ] **7.17** Make the logo clickable
+- [ ] **7.18** Make the phone number clickable
+- [ ] **7.19** Make the email clickable
+- [ ] **7.20** Make every page mobile optimized
+
+### 8. 20 Reasons Your Website Isn't Getting You Clients
+
+- [ ] **8.1** Vague headline
+- [ ] **8.2** No clear audience
+- [ ] **8.3** About you, not them
+- [ ] **8.4** Generic service pages
+- [ ] **8.5** Five competing buttons
+- [ ] **8.6** Button says "Submit"
+- [ ] **8.7** Long contact form
+- [ ] **8.8** No proof up top
+- [ ] **8.9** Testimonials without names
+- [ ] **8.10** No case studies
+- [ ] **8.11** No reviews visible
+- [ ] **8.12** No real photos
+- [ ] **8.13** Hidden contact details
+- [ ] **8.14** No guarantee
+- [ ] **8.15** Fake urgency timers
+- [ ] **8.16** No price range
+- [ ] **8.17** Objections never answered
+- [ ] **8.18** No free first step
+- [ ] **8.19** Tiny buttons on mobile
+- [ ] **8.20** Slow replies to leads
+
+### 9. Website Redesign Checklist (Feels Expensive)
+
+- [ ] **9.1** One font pair
+- [ ] **9.2** Two brand colours
+- [ ] **9.3** More white space
+- [ ] **9.4** Bigger headlines
+- [ ] **9.5** Real photos
+- [ ] **9.6** Consistent spacing
+- [ ] **9.7** Grid alignment
+- [ ] **9.8** One CTA per section
+- [ ] **9.9** Consistent buttons
+- [ ] **9.10** One icon set
+- [ ] **9.11** Real testimonials
+- [ ] **9.12** Shorter paragraphs
+- [ ] **9.13** 5-link menu
+- [ ] **9.14** Darker text
+- [ ] **9.15** Mobile layout fixed
+- [ ] **9.16** Feels expensive
+
+### 10. Systems Check / Launch Poll (03/15 Systems Check)
+
+- [ ] **10.1** Mobile tested
+- [ ] **10.2** All links
+- [ ] **10.3** Contact form
+- [ ] **10.4** Loads < 3s
+- [ ] **10.5** Images
+- [ ] **10.6** HTTPS
+- [ ] **10.7** Chrome + Safari check
+- [ ] **10.8** No typos
+- [ ] **10.9** WhatsApp button
+- [ ] **10.10** Domain email
+- [ ] **10.11** Analytics
+- [ ] **10.12** Google index
+- [ ] **10.13** Link preview
+- [ ] **10.14** Backups
+- [ ] **10.15** Payments
+
+### 11. 20 Things to Have Claude Do So Your App Doesn't Get Sued
+
+- [ ] **11.1** Add a privacy policy
+- [ ] **11.2** Add terms of service
+- [ ] **11.3** Add a refund policy
+- [ ] **11.4** Add a cookie policy
+- [ ] **11.5** Add a cookie consent banner
+- [ ] **11.6** Check your form consents
+- [ ] **11.7** Don't collect unnecessary data
+- [ ] **11.8** Audit your third-party SDKs
+- [ ] **11.9** Remove dark patterns
+- [ ] **11.10** Remove hidden fees
+- [ ] **11.11** Remove fake reviews
+- [ ] **11.12** Remove unsupported claims
+- [ ] **11.13** Add accessibility alt text
+- [ ] **11.14** Fix your color contrast ratio
+- [ ] **11.15** Add keyboard navigation
+- [ ] **11.16** Add your business details
+- [ ] **11.17** Get age consent if you collect kids' data
+- [ ] **11.18** Add an unsubscribe link to your emails
+- [ ] **11.19** License any fonts and images you use
+- [ ] **11.20** Add a data deletion request option
+
+### 12. 20 Things to Have Claude Do Before Launching Your Website
+
+- [ ] **12.1** Add a privacy policy page
+- [ ] **12.2** Add a terms and conditions page
+- [ ] **12.3** Get your secrets off the front end
+- [ ] **12.4** Force HTTPS
+- [ ] **12.5** Add a cookie consent banner
+- [ ] **12.6** Add meta titles and descriptions
+- [ ] **12.7** Add a social preview image
+- [ ] **12.8** Add a favicon
+- [ ] **12.9** Generate a sitemap and robots.txt
+- [ ] **12.10** Add alt text to your images
+- [ ] **12.11** Compress your images
+- [ ] **12.12** Check your page load speed
+- [ ] **12.13** Fix your color contrast
+- [ ] **12.14** Make it mobile friendly
+- [ ] **12.15** Add a custom 404 page
+- [ ] **12.16** Fix any broken links
+- [ ] **12.17** Add form validation
+- [ ] **12.18** Add spam/bot protection
+- [ ] **12.19** Set up analytics
+- [ ] **12.20** Add one clear call to action
+
+### 13. 20 Things to Tell Claude to Fix on Your Vibecoded Website (Image 2)
+
+- [ ] **13.1** Remove horizontal scrolling
+- [ ] **13.2** Find broken links
+- [ ] **13.3** Add a mobile menu
+- [ ] **13.4** Add a favicon
+- [ ] **13.5** Fix page titles
+- [ ] **13.6** Add meta descriptions
+- [ ] **13.7** Fix footer links
+- [ ] **13.8** Add a custom 404 page
+- [ ] **13.9** Fix the copyright year
+- [ ] **13.10** Compress images
+- [ ] **13.11** Fix broken buttons
+- [ ] **13.12** Add success messages
+- [ ] **13.13** Add error messages
+- [ ] **13.14** Remove placeholder text
+- [ ] **13.15** Remove unused navigation
+- [ ] **13.16** Fix mobile overflow
+- [ ] **13.17** Make the logo clickable
+- [ ] **13.18** Make the phone number clickable
+- [ ] **13.19** Make the email clickable
+- [ ] **13.20** Make every page mobile optimized
