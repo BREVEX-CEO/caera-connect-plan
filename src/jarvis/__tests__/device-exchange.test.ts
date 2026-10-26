@@ -1530,7 +1530,7 @@ describe("completion needs evidence from the device (P01)", () => {
     });
 
     it("keeps what each page showed until that page changes, not until another page opens", async () => {
-      const t = await withChecks([{ contains: ["Sent"] }]);
+      const t = await withChecks([{ path: "notes.txt" }]);
       const shown = (url: string, text: string) => ({
         status: "done",
         observation: { observationId: "o1", url, text, elements: [] },
@@ -1547,6 +1547,12 @@ describe("completion needs evidence from the device (P01)", () => {
       });
       await done(await queue(t, { action: "observe" }), {
         ...shown("https://shop.test/form", "Sent 9905"),
+      });
+      // A command on the computer changes files, not what a page already showed (t1f1).
+      await done(await queue(t, { action: "run", command: "python3 .jarvis/make_pdf.py" }));
+      await done(await queue(t, { action: "file_read", path: "notes.txt" }), {
+        status: "done",
+        detail: { content: "made" },
       });
       const finish = (result: string) =>
         changeTask(rest() as never, rest() as never, A, { id: t, status: "completed", result });

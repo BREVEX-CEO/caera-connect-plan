@@ -460,7 +460,10 @@ function claimGap(all: ActionRow[], claim: string): string | null {
       if (row.status === "done") latest.set(`source:${at}`, row);
     } else if (!readsBack(row.action)) {
       if (pathless(row)) {
-        for (const key of latest.keys()) if (!key.startsWith("source:")) latest.delete(key);
+        // A command or an app may change any file or window, not what a web page already showed.
+        for (const key of latest.keys()) {
+          if (!key.startsWith("source:") && !key.startsWith("screen:")) latest.delete(key);
+        }
       } else {
         for (const target of [path, row.action?.to]) {
           if (typeof target !== "string") continue;
@@ -474,7 +477,7 @@ function claimGap(all: ActionRow[], claim: string): string | null {
               latest.delete(key);
           }
         }
-        for (const key of latest.keys()) if (key.startsWith("screen")) latest.delete(key);
+        latest.delete("screen");
       }
     } else if (row.status === "done") {
       latest.set(typeof path === "string" ? `file:${normalPath(path)}` : "screen", row);
