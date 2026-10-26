@@ -1,6 +1,6 @@
 {
   "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "eslint.config.js"],
-  "exclude": ["src/deepseek/upstream", "src/deepseek/.types"],
+  "exclude": ["src/deepseek/.types"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",

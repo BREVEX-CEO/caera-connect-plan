@@ -52,6 +52,7 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || inputs.source_ref }}
           persist-credentials: false
+          submodules: true
 
       - name: Prepare Python for APK packaging
         uses: actions/setup-python@v5

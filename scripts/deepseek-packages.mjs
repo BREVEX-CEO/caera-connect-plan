@@ -1,7 +1,7 @@
 /**
  * The DeepSeek Harness workspace's own package resolution, read from its package manifests:
  * `@deepseek-ai/x[/sub]` → the `src/` file that package exports for that subpath.
- * Shared by scripts/deepseek-vendor.mjs and the dev-only upstream-spec run (vitest.deepseek.config.ts).
+ * Shared by scripts/deepseek-link.mjs and the dev-only upstream-spec run (vitest.deepseek.config.ts).
  */
 import fs from "node:fs";
 import path from "node:path";

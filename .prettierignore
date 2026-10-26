@@ -7,8 +7,7 @@ routeTree.gen.ts
 # so a regeneration stays a reviewable diff.
 src/integrations/supabase/types.ts
 
-# DeepSeek Harness source, vendored byte-for-byte (scripts/deepseek-vendor.mjs --check).
-src/deepseek/upstream/
+# Declarations emitted from the pinned DeepSeek Harness submodule (npm run deepseek:types).
 src/deepseek/.types/
 
 # Authority documents, held exactly as authored.
@@ -34,3 +33,6 @@ OCADE_SYSTEM_PROMPT_REDESIGNED.md
 
 # Pinned upstream source (DeepSeek Harness), kept byte-for-byte.
 external/deepseek-harness/upstream/
+
+# Raw benchmark evidence, kept exactly as the runs wrote it.
+experiments/benchmarks/*/results/

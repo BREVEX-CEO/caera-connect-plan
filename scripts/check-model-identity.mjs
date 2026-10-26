@@ -62,6 +62,9 @@ const SEARCHED = [
  * `CLAUDE.md` is the owner's instruction file for coding agents. It names the
  * command that launches a desktop-control test tool, whose package name
  * contains one of these words; it is never built, bundled or served.
+ *
+ * `plan.md` is the owner's own plan. It names the release model's file format
+ * when it says what is still untested; it is never built, bundled or served.
  */
 const ALLOWED = new Set([
   "scripts/check-model-identity.mjs",
@@ -69,6 +72,7 @@ const ALLOWED = new Set([
   "scripts/prove-offline-artifact.mjs",
   "docs/MEMORY.md",
   "CLAUDE.md",
+  "plan.md",
   "package-lock.json",
 ]);
 

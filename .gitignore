@@ -45,5 +45,5 @@ __pycache__/
 external/deepseek-harness/unpacked/
 external/deepseek-harness/.extract-*/
 
-# Declarations emitted from the vendored DeepSeek source (npm run deepseek:types)
+# Declarations emitted from the pinned DeepSeek submodule (npm run deepseek:types)
 src/deepseek/.types/

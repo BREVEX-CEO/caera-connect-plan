@@ -1,6 +1,6 @@
 /**
- * A JARVIS turn run by DeepSeek Harness's own agent loop, vendored verbatim in
- * src/deepseek/upstream (https://github.com/deepseek-ai/deepseek-harness at
+ * A JARVIS turn run by DeepSeek Harness's own agent loop, compiled from the pinned submodule
+ * external/deepseek-harness/upstream (https://github.com/deepseek-ai/deepseek-harness at
  * 687f282e8625c6b8d11ff58211a90524be2e4317, MIT; see src/jarvis/THIRD_PARTY_NOTICES.md).
  *
  * The upstream loop owns the turn's mechanics: its event log, the step lifecycle, model-ordered

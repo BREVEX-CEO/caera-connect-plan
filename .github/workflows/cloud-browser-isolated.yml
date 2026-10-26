@@ -53,6 +53,7 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || inputs.source_ref }}
           persist-credentials: false
+          submodules: true
 
       - name: Use project Node version
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0

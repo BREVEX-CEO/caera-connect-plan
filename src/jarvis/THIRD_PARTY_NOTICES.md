@@ -6,9 +6,9 @@
 - Pinned commit: `687f282e8625c6b8d11ff58211a90524be2e4317` (also the gitlink at `external/deepseek-harness/upstream`)
 - License: MIT (below). Upstream `SAFETY.md` describes a developer-preview security posture; nothing here relies on it for OCADE's safety.
 
-### Vendored verbatim: `src/deepseek/upstream/`
+### Compiled from the pinned submodule: `external/deepseek-harness/upstream`
 
-121 source files from 27 upstream packages (the runtime and type closure of `@deepseek-ai/dsh-agent-loop`, including the vendored Cordis 4.0.5, cosmokit and schemastery by Shigma, MIT), byte-identical to the pin. Upstream's `LICENSE`, `THIRD_PARTY_NOTICES.md`, each package's `package.json` and the Cordis/cosmokit/schemastery `LICENSE` files are copied beside them. `npm run deepseek:check` (part of `verify:full`) proves every file matches its pinned git blob; `scripts/deepseek-vendor.mjs` regenerates the set. They are never edited: OCADE's runtime needs are met outside them (`src/deepseek/resolve.ts` lowers decorators and `using` with esbuild and points Node built-ins at `src/deepseek/shims/` in the browser). `src/jarvis/upstream-turn.ts` runs them: the upstream `AgentLoop` drives every foreground JARVIS turn.
+OCADE builds upstream's own source files directly from the submodule; there is no copy. `src/deepseek/closure.json` lists them: the runtime and type closure of the entry packages (121 source files from 27 packages at this commit, including the vendored Cordis 4.0.5, cosmokit and schemastery by Shigma, MIT). Upstream's `LICENSE` and `THIRD_PARTY_NOTICES.md` are in the submodule root. `npm run deepseek:check` (part of `verify:full`) fails unless the submodule is checked out at the pin with every closure file unmodified. The files are never edited: OCADE's runtime needs are met outside them (`src/deepseek/resolve.ts` lowers decorators and `using` with esbuild and points Node built-ins at `src/deepseek/shims/` in the browser). `src/jarvis/upstream-turn.ts` runs them: the upstream `AgentLoop` drives every foreground JARVIS turn.
 
 ### Adapted
 

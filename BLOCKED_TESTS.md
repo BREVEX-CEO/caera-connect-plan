@@ -9,7 +9,7 @@
 > **Measured:**
 >
 > - **Customer benchmarks** ([evidence](experiments/benchmarks/20261025/README.md)), judged by independent oracles from the files alone: Excel, Word, images, video (after VIDEO-25-01), browser research, order form, STOP-then-continue order (exactly one submission), refusal — each PASS on its final run. 7 of the 8 real-model runs that reached an end passed (88 %, below the 90 % bar); 3 more were cut short by the runner's own permit pool and are not counted.
-> - **Offline (B7)**: `offline-real-journey` 10/10 with a **stand-in** GGUF (install, resume 20 %→22 %, two answers offline, reopen offline, Remove). The real release model is **UNTESTED**.
+> - **Offline (B7)**: `offline-real-journey` 10/10 with a **stand-in** model file (install, resume 20 %→22 %, two answers offline, reopen offline, Remove). The real release model is **UNTESTED**.
 > - **Unit:** Vitest 1,586 PASS (127 files). `deepseek:specs` unchanged at core/agent-loop 339/344. Typecheck, `deepseek:check`, build PASS.
 > - **Journeys (zod 4 build):** 23 journeys, 792 checks PASS. Admin passed on rerun after one contention failure; jarvis "the second one asks again" failed once under the same contention (passed in 7 other runs).
 >

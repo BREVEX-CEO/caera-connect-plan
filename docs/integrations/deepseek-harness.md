@@ -1,6 +1,6 @@
 # DeepSeek Harness → OCADE integration contract
 
-**State (25 October 2026, branch `ocade/p00-p22-implementation`):** DeepSeek Harness's own agent loop drives every foreground JARVIS turn (workspace and bubble). Its source is vendored **verbatim** from the pinned submodule (`external/deepseek-harness/upstream` at `687f282`) into [`src/deepseek/upstream/`](../../src/deepseek/upstream/): 121 source files from 27 packages, byte-identical to the pin (`npm run deepseek:check`, part of `verify:full`), regenerated only by [`scripts/deepseek-vendor.mjs`](../../scripts/deepseek-vendor.mjs). OCADE keeps every authority; upstream owns the turn's mechanics.
+**State (26 October 2026, branch `ocade/p00-p22-implementation`):** DeepSeek Harness's own agent loop drives every foreground JARVIS turn (workspace and bubble). OCADE compiles it **directly from the pinned submodule** (`external/deepseek-harness/upstream` at `687f282`); there is no copy. [`scripts/deepseek-link.mjs`](../../scripts/deepseek-link.mjs) walks the closure of the entry packages and writes the resolution Vite, Vitest and tsc read ([`src/deepseek/closure.json`](../../src/deepseek/closure.json): 121 source files from 27 packages). `npm run deepseek:check` (part of `verify:full`) fails unless the submodule is checked out at the pin with every closure file unmodified; every CI workflow that builds checks the submodule out. OCADE keeps every authority; upstream owns the turn's mechanics.
 
 ### What runs, and who owns what
 

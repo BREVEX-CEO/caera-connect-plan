@@ -4,9 +4,9 @@ import type { Plugin } from "vite";
 import aliases from "./aliases.json";
 
 const ROOT = resolve(import.meta.dirname, "../..");
-const UPSTREAM = resolve(import.meta.dirname, "upstream");
+const UPSTREAM = resolve(ROOT, "external/deepseek-harness/upstream");
 const SHIMS = resolve(import.meta.dirname, "shims");
-/** Node built-ins the vendored source imports, and the browser stand-in for each. */
+/** Node built-ins the upstream source imports, and the browser stand-in for each. */
 const BROWSER_SHIMS: Record<string, string> = {
   "node:async_hooks": "async_hooks.ts",
   "node:buffer": "buffer.ts",
@@ -19,7 +19,7 @@ const BROWSER_SHIMS: Record<string, string> = {
 };
 
 /**
- * One vendored DeepSeek file as OCADE runs it. Its standard decorators and `using` declarations
+ * One upstream DeepSeek file as OCADE runs it. Its standard decorators and `using` declarations
  * are lowered (Vite 8's own transformer leaves decorators as written, and no shipped runtime
  * parses them). Its Node built-ins become the stand-ins in src/deepseek/shims: always
  * `node:module` (it only reads upstream's own version, which a Worker cannot read from disk),
@@ -48,8 +48,8 @@ export async function lowerVendored(
 }
 
 /**
- * Runs the vendored DeepSeek Harness source (scripts/deepseek-vendor.mjs) in Vite and Vitest:
- * its package names resolve to the vendored files. `browser` gives every environment the browser's stand-ins, so
+ * Runs the pinned DeepSeek Harness submodule's own source in Vite and Vitest
+ * (scripts/deepseek-link.mjs): its package names resolve to the files in the submodule. `browser` gives every environment the browser's stand-ins, so
  * Vitest can prove the source under the browser's semantics; otherwise only Vite's client does.
  */
 export function deepseekUpstream(options: { browser?: boolean } = {}): Plugin {

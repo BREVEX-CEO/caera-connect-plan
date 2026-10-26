@@ -24,8 +24,7 @@ export default tseslint.config(
       ".playwright-mcp/**",
       // The pinned DeepSeek Harness source is an immutable upstream reference, linted upstream.
       "external/**",
-      // The same source vendored verbatim (scripts/deepseek-vendor.mjs), and its emitted declarations.
-      "src/deepseek/upstream/**",
+      // Declarations emitted from that source (npm run deepseek:types).
       "src/deepseek/.types/**",
       "dist",
       // The E2E harnesses build the product with the node preset so they can
