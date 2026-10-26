@@ -23,6 +23,7 @@ import {
   UNIFIED_JARVIS,
   promptVariant,
 } from "@/lib/intelligence/system-prompt";
+import type { AskUserQuestionAnswer, AskUserQuestionItem } from "@deepseek-ai/dsh-user-questions";
 import type {
   NormalizedAttachment,
   NormalizedAssistantPart,
@@ -201,6 +202,11 @@ export interface AgentHooks {
   onActivity(): void;
   /** Resolves true only when the person confirms. */
   confirm(summary: string): Promise<boolean>;
+  /**
+   * The person answers the model's questions (upstream `ask_user_question`): with this the
+   * tool is offered, without it (the bubble) it is not.
+   */
+  ask?(questions: AskUserQuestionItem[]): Promise<AskUserQuestionAnswer>;
   /** Resolves when the person resumes or stops after taking over. */
   takeOver(reason: string): Promise<"resume" | "stop">;
   /** Work was asked for, but no computer or browser can do it right now. */
@@ -1045,6 +1051,9 @@ export async function runJarvisTurn(
         onTodos: (todos) => {
           planned = todos;
         },
+        ...(hooks.ask
+          ? { ask: (questions, signal) => untilAborted(hooks.ask!(questions), signal) }
+          : {}),
         readOnly: (name) => READ_ONLY.has(name),
         async model(sent, tools) {
           modelCalls += 1;

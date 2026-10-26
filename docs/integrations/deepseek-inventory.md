@@ -4,8 +4,8 @@ Every package manifest under `packages/` of the pinned submodule (`external/deep
 
 | Disposition             | Packages |
 | ----------------------- | -------: |
-| DIRECT CONNECTED        |       26 |
-| DIRECT PENDING          |       32 |
+| DIRECT CONNECTED        |       28 |
+| DIRECT PENDING          |       30 |
 | ADAPTER REQUIRED        |       44 |
 | FUNCTIONALLY SUPERSEDED |       29 |
 | OUT OF OCADE SCOPE      |      158 |
@@ -24,7 +24,9 @@ Every package manifest under `packages/` of the pinned submodule (`external/deep
 | `core/system-prompt`             | `@deepseek-ai/dsh-system-prompt`          |            1 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
 | `core/tools`                     | `@deepseek-ai/dsh-tools`                  |           10 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
 | `fs/fs`                          | `@deepseek-ai/dsh-fs`                     |            2 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `interaction/tool-ask-user`      | `@deepseek-ai/dsh-tool-ask-user`          |            2 | ask_user_question offered in every JARVIS workspace turn; the person answers in OCADE own question card (QuestionCard); STOP rejects the wait.                                  |
 | `interaction/user-approval`      | `@deepseek-ai/dsh-user-approval`          |            2 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `interaction/user-questions`     | `@deepseek-ai/dsh-user-questions`         |            4 | ctx.userQuestions service with OCADE answerer on its user-questions/request waterfall.                                                                                          |
 | `llm/llm`                        | `@deepseek-ai/dsh-llm`                    |           13 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
 | `ptc-runtime/ptc-runtime`        | `@deepseek-ai/dsh-ptc-runtime`            |            2 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
 | `sandbox/sandbox`                | `@deepseek-ai/dsh-sandbox`                |            4 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
@@ -58,8 +60,6 @@ Every package manifest under `packages/` of the pinned submodule (`external/deep
 | `deliverables/tool-present`                | `@deepseek-ai/dsh-tool-present`                  |            2 | Explicit file delivery declarations; overlaps OCADE file_deliver/finish_task checks.                                                                                     |
 | `guard/repeat-tool-reminder`               | `@deepseek-ai/dsh-repeat-tool-reminder`          |            1 | Pure tools/execute wrappers for the same loop; complement OCADE loopRefusal and per-action device timeouts.                                                              |
 | `guard/timeout-policy`                     | `@deepseek-ai/dsh-tool-call-timeout-policy`      |            1 | Pure tools/execute wrappers for the same loop; complement OCADE loopRefusal and per-action device timeouts.                                                              |
-| `interaction/tool-ask-user`                | `@deepseek-ai/dsh-tool-ask-user`                 |            2 | Model-facing plan/checklist and ask-user over event-sourced session state; need an OCADE task-card presentation and server-owned answers.                                |
-| `interaction/user-questions`               | `@deepseek-ai/dsh-user-questions`                |            4 | Model-facing plan/checklist and ask-user over event-sourced session state; need an OCADE task-card presentation and server-owned answers.                                |
 | `llm/llm-retry`                            | `@deepseek-ai/dsh-llm-retry`                     |            3 | Typed, bounded provider retry; must replace (not stack on) OCADE busy-wait so one retry system remains.                                                                  |
 | `llm/token-meter`                          | `@deepseek-ai/dsh-token-meter`                   |           11 | Upstream replay-safe pruning and pressure compaction for long turns; replaces OCADE pruneOlderResults/pruneText (an adapted copy). Browser-safe (crypto/util stand-ins). |
 | `mcp/mcp-client`                           | `@deepseek-ai/dsh-mcp-client`                    |            5 | (see above)                                                                                                                                                              |

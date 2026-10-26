@@ -4,6 +4,7 @@ import { useIntelligenceQuality } from "@/lib/intelligence/use-intelligence-qual
  * The OCADE JARVIS workspace: a compact rail, the conversation, and the task,
  * browser and voice controls that appear only when they apply.
  */
+import type { AskUserQuestionAnswer, AskUserQuestionItem } from "@deepseek-ai/dsh-user-questions";
 import type { NormalizedMessage } from "@/lib/intelligence/contract";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -56,7 +57,14 @@ import {
   type JarvisTaskRow,
 } from "./jarvis.functions";
 import { ConnectDevice, ScopeToggle, SectionPanel, type Section } from "./JarvisPanels";
-import { BrowserPanel, ConfirmBanner, TaskCard, TakeOverBanner, VoiceBar } from "./JarvisTask";
+import {
+  BrowserPanel,
+  ConfirmBanner,
+  QuestionCard,
+  TaskCard,
+  TakeOverBanner,
+  VoiceBar,
+} from "./JarvisTask";
 import { takeHandOff } from "./bubble-state";
 
 const JARVIS_STATE_KEY = ["jarvis", "state"] as const;
@@ -196,6 +204,10 @@ export function JarvisWorkspace({
     summary: string;
     resolve: (ok: boolean) => void;
   } | null>(null);
+  const [question, setQuestion] = useState<{
+    questions: AskUserQuestionItem[];
+    resolve: (answer: AskUserQuestionAnswer) => void;
+  } | null>(null);
   const [takeover, setTakeover] = useState<{
     reason: string;
     resolve: (choice: "resume" | "stop") => void;
@@ -266,6 +278,7 @@ export function JarvisWorkspace({
     confirmAsk?.resolve(false);
     takeover?.resolve("stop");
     setConfirmAsk(null);
+    setQuestion(null);
     setTakeover(null);
     setRunning(false);
     setTurns([]);
@@ -527,6 +540,17 @@ export function JarvisWorkspace({
             mine()
               ? new Promise((resolve) => setTakeover({ reason, resolve }))
               : Promise.resolve("stop" as const),
+          // A question from a conversation no longer on screen is answered as unanswered.
+          ask: (questions) =>
+            mine()
+              ? new Promise((resolve) => setQuestion({ questions, resolve }))
+              : Promise.resolve({
+                  answers: questions.map((q) => ({
+                    id: q.id,
+                    selected: [],
+                    custom: "The person is not here to answer.",
+                  })),
+                }),
         },
         liveDeps(id, user?.id ?? ""),
       );
@@ -595,6 +619,7 @@ export function JarvisWorkspace({
         setLiveAnswer(null);
         setRunning(false);
         setConfirmAsk(null);
+        setQuestion(null);
         setTakeover(null);
       }
       if (abort.current === controller) abort.current = null;
@@ -1192,6 +1217,15 @@ export function JarvisWorkspace({
                   onDecide={(ok) => {
                     confirmAsk.resolve(ok);
                     setConfirmAsk(null);
+                  }}
+                />
+              ) : null}
+              {question ? (
+                <QuestionCard
+                  questions={question.questions}
+                  onAnswer={(answer) => {
+                    question.resolve(answer);
+                    setQuestion(null);
                   }}
                 />
               ) : null}

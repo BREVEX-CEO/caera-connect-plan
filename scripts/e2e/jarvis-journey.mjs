@@ -313,6 +313,50 @@ try {
     refusedTurn.slice(-300).replace(/\s+/g, " "),
   );
 
+  /* --- JARVIS asks, the person answers (upstream ask_user_question) ------------ */
+  await script("ask-check", [
+    {
+      tool: "ask_user_question",
+      args: {
+        questions: [
+          {
+            id: "length",
+            question: "How long should the summary be?",
+            options: [{ label: "Short" }, { label: "Detailed" }],
+          },
+        ],
+      },
+    },
+    { text: "A short summary it is." },
+  ]);
+  await say("ask-check write me a summary");
+  const asks = page.getByRole("dialog", { name: "JARVIS asks" });
+  check(
+    "JARVIS asks with choices, and the model was offered upstream's tools",
+    await until(async () => (await asks.count()) === 1, 15_000).then(
+      async (shown) =>
+        shown &&
+        (await asks.getByRole("button", { name: "Short" }).count()) === 1 &&
+        (await boundary()).tools.includes("ask_user_question") &&
+        (await boundary()).tools.includes("todo_write"),
+    ),
+    JSON.stringify((await boundary()).tools),
+  );
+  check(
+    "nothing is answered until the person chooses",
+    await asks.getByRole("button", { name: "Answer" }).isDisabled(),
+  );
+  await asks.getByRole("button", { name: "Short" }).click();
+  await asks.getByRole("button", { name: "Answer" }).click();
+  await idle();
+  const answeredTurn = (await boundary()).turns.map((t) => t.content).join("\n");
+  check(
+    "the model reads exactly the person's choice, and JARVIS goes on",
+    answeredTurn.includes('"selected":["Short"]') &&
+      (await page.getByText("A short summary it is.").count()) >= 1,
+    answeredTurn.slice(-300).replace(/\s+/g, " "),
+  );
+
   if (!pythonReady) {
     blocked(
       "device journeys",

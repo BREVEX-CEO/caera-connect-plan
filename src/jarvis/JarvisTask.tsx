@@ -6,6 +6,7 @@ import { FINISHED, plainStep, TASK_STATUS } from "./protocol";
 import { readJarvisFrame, type JarvisState, type JarvisTaskRow } from "./jarvis.functions";
 import { signLibraryItem } from "@/lib/library/library.functions";
 import type { JarvisVoice } from "./use-voice";
+import type { AskUserQuestionAnswer, AskUserQuestionItem } from "@deepseek-ai/dsh-user-questions";
 
 function Controls({
   task,
@@ -420,6 +421,94 @@ export function ConfirmBanner({
           Decline
         </button>
       </div>
+    </section>
+  );
+}
+
+/**
+ * JARVIS's questions (upstream `ask_user_question`): a choice per question, or the person's own
+ * words. Their answer is all JARVIS reads; nothing is chosen for them.
+ */
+export function QuestionCard({
+  questions,
+  onAnswer,
+}: {
+  questions: AskUserQuestionItem[];
+  onAnswer: (answer: AskUserQuestionAnswer) => void;
+}) {
+  const [selected, setSelected] = useState<Record<string, string[]>>({});
+  const [custom, setCustom] = useState<Record<string, string>>({});
+  const answered = (q: AskUserQuestionItem) =>
+    (selected[q.id]?.length ?? 0) > 0 || Boolean(custom[q.id]?.trim());
+  const pick = (q: AskUserQuestionItem, label: string) =>
+    setSelected((all) => {
+      const now = all[q.id] ?? [];
+      const next = now.includes(label)
+        ? now.filter((value) => value !== label)
+        : q.multiSelect
+          ? [...now, label]
+          : [label];
+      return { ...all, [q.id]: next };
+    });
+  return (
+    <section
+      role="dialog"
+      aria-label="JARVIS asks"
+      className="ocade-pop space-y-3 rounded-xl border border-foreground/40 bg-background p-3 shadow-lg"
+    >
+      {questions.map((q) => (
+        <fieldset key={q.id} className="space-y-2">
+          <legend className="text-sm [overflow-wrap:anywhere]">
+            {q.header ? <span className="mr-1 font-medium">{q.header}:</span> : null}
+            {q.question}
+          </legend>
+          {q.options?.length ? (
+            <div className="flex flex-wrap gap-2">
+              {q.options.map((option) => (
+                <button
+                  key={option.label}
+                  type="button"
+                  aria-pressed={selected[q.id]?.includes(option.label) ?? false}
+                  title={option.description}
+                  onClick={() => pick(q, option.label)}
+                  className={cn(
+                    "rounded-md border px-3 py-1.5 text-xs",
+                    selected[q.id]?.includes(option.label)
+                      ? "border-foreground bg-foreground text-background"
+                      : "border-border",
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <input
+            aria-label={`Your answer: ${q.question}`}
+            placeholder={q.options?.length ? "Or say something else" : "Your answer"}
+            value={custom[q.id] ?? ""}
+            onChange={(event) => setCustom((all) => ({ ...all, [q.id]: event.target.value }))}
+            maxLength={2000}
+            className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+          />
+        </fieldset>
+      ))}
+      <button
+        type="button"
+        disabled={!questions.every(answered)}
+        onClick={() =>
+          onAnswer({
+            answers: questions.map((q) => ({
+              id: q.id,
+              selected: selected[q.id] ?? [],
+              ...(custom[q.id]?.trim() ? { custom: custom[q.id]!.trim() } : {}),
+            })),
+          })
+        }
+        className="rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background disabled:opacity-40"
+      >
+        Answer
+      </button>
     </section>
   );
 }

@@ -26,8 +26,13 @@ import LlmRuntime, {
 import SessionStore, { SessionId } from "@deepseek-ai/dsh-session";
 import SessionProjectionRegistry from "@deepseek-ai/dsh-session-projection";
 import SystemPrompt from "@deepseek-ai/dsh-system-prompt";
+import * as ToolAskUser from "@deepseek-ai/dsh-tool-ask-user";
 import * as ToolTodo from "@deepseek-ai/dsh-tool-todo";
 import ToolRuntime, { type ToolDefinition } from "@deepseek-ai/dsh-tools";
+import UserQuestions, {
+  type AskUserQuestionAnswer,
+  type AskUserQuestionItem,
+} from "@deepseek-ai/dsh-user-questions";
 import type {
   NormalizedAssistantPart,
   NormalizedMessage,
@@ -63,6 +68,11 @@ export interface UpstreamTurnIO {
   upstreamTools?: boolean;
   /** The checklist as the model last wrote it with `todo_write`. */
   onTodos?(todos: readonly ToolTodo.TodoItem[]): void;
+  /**
+   * The person answers the model's `ask_user_question` (@deepseek-ai/dsh-tool-ask-user) here.
+   * Without it the tool is not offered. Rejects when the turn is stopped.
+   */
+  ask?(questions: AskUserQuestionItem[], signal: AbortSignal): Promise<AskUserQuestionAnswer>;
   /** OCADE's tool authority. A throw ends the turn once the started calls settle. */
   runTool(call: NormalizedToolCall): Promise<unknown>;
   /** Whether this result ends the turn with no further model call (a recorded finish). */
@@ -151,6 +161,18 @@ export class UpstreamTurn {
     await ctx.plugin(AgentRegistry);
     await ctx.plugin(AgentLoop, { agents: [], maxParallelToolCalls: TURN_BUDGET.parallelReads });
     if (io.upstreamTools) await ctx.plugin(ToolTodo, { allowParallelInProgress: false });
+    const ask = io.upstreamTools ? io.ask : undefined;
+    if (ask) {
+      await ctx.plugin(UserQuestions);
+      await ctx.plugin(ToolAskUser);
+      ctx.on(
+        "user-questions/request",
+        (request) => ask(request.questions, request.signal ?? signal),
+        {
+          global: true,
+        },
+      );
+    }
     ctx.llm.registerAdapter(["ocade"], new OcadeModel(turn));
     for (const name of io.tools) ctx.tools.register(turn.tool(name));
     ctx.on("agent/pre-step", async ({ step }, next) => {
@@ -303,7 +325,7 @@ export class UpstreamTurn {
         if (call) {
           // Upstream's own tools answer in the log; OCADE's answers are its own (valueOf).
           const value = this.upstream(call.name)
-            ? textOf(message.content)
+            ? parsed(textOf(message.content))
             : this.valueOf(message.toolCallId);
           entries.push({ kind: "tool", call, value });
         }
@@ -327,6 +349,8 @@ export class UpstreamTurn {
     const rendered = entries.map((entry, index): NormalizedMessage => {
       if (entry.kind === "user") return { role: "user", content: entry.text };
       if (entry.kind === "tool") {
+        if (this.upstream(entry.call.name))
+          return toolResultMessage(entry.call, entry.value, "tool");
         const old = index < newest && this.io.observes(entry.value);
         return toolResultMessage(entry.call, old ? this.io.supersede(entry.value) : entry.value);
       }
@@ -433,6 +457,15 @@ export function routeSchema(schema: unknown): Record<string, unknown> {
     );
   }
   return out;
+}
+
+/** An upstream tool's rendered result: its JSON as a value, other text as it is. */
+function parsed(text: string): unknown {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
+  }
 }
 
 function textOf(content: readonly ContentBlock[]): string {

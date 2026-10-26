@@ -2827,6 +2827,8 @@ const server = createServer((request, response) => {
           text: typeof attachment?.text === "string" ? attachment.text.slice(0, 200) : null,
         })),
         research: parsed.research === true,
+        // The tools the model was offered, by name.
+        tools: (parsed.tools ?? []).map((tool) => tool?.name ?? null),
         systemPrompts: (parsed.messages ?? [])
           .filter((message) => message?.role === "system")
           .map((message) => String(message.content).slice(0, 200)),
