@@ -1,5 +1,7 @@
 # Appendix D checklist status (D1.1–D13.20)
 
+Appendix C Supplements A–J are the same lists: A = D1, B = D2, C = D3, D = D5, E = D6, F = D7, G = D9, H = D10, I = D11, J = D12; their status is the D row.
+
 Every entry of plan.md Appendix D with its status and evidence, as of 27 October 2026 on `ocade/p00-p22-implementation`. Lists 4 and 13 repeat lists 3 and 7 and point to them, so shared work is counted once. Statuses follow plan.md: `VERIFIED PASS` was checked this cycle with the evidence named; `ALREADY VERIFIED` holds from existing code and gates; `EXTERNAL BLOCKED` needs the owner (a setting, content, credential or device); `NOT APPLICABLE` and `PAYMENTS DEFERRED` say why.
 
 Unique entries (lists 4 and 13 excluded): ALREADY VERIFIED 108, CODE DONE — TEST PENDING 1, EXTERNAL BLOCKED 17, NOT APPLICABLE 22, PAYMENTS DEFERRED 5, VERIFIED PASS 63 — 216 in all; 266 source lines.
