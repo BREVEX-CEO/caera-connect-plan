@@ -1,6 +1,18 @@
 # Blocked, failed and untested checks
 
-> **Current — 26 October 2026, direct DeepSeek source and wider adoption (plan.md D0–D3).** Cloud Linux container; stub Supabase for journeys; no real model this block; no production change, deploy, migration or payments. **Shipped:**
+> **Current — 26 October 2026 (later), T1 real-model campaign.** Cloud Linux container; staging Supabase `auyapercxxptziyngycx` with the real staging model for benchmarks, stub Supabase for journeys; no production change, deploy, migration or payments. **Fixed from real-model evidence (each with a regression test that fails without it):**
+>
+> - Later steps of one reply naming the page the model saw follow the same element instead of being refused as stale (`08d6ade`).
+> - Finish checks: browser steps never unread a file read (`d3088d5`); web pages are read per address, what a browser step returns counts as a read of its page, only an interaction with a page drops its reads, and commands or file actions keep what pages showed (`f9510c4`, `f6841d1`).
+> - Device: after a click, type or select the page settles (0.8 s with no new visible control, at most 3 s), so fields a choice reveals are in what the step returns. Measured cost: click ~410 → ~1,250 ms, type ~130 → ~970 ms, select ~95 → ~1,560 ms.
+> - Prompt: no copy, conversion or extra format of a result, and checks never name a file the person did not ask for.
+> - JOURNEY-26-01 (admin hand-over check, 1 FAIL in the sweep): the journey waited for the address the reload keeps, then opened Staff on the page the reload replaced. It now waits for the load itself; 3/3 after, 3/3 before (intermittent).
+>
+> **Measured:** Vitest 1,598/1,598; tsc, ESLint, Prettier clean; jarvis-runtime under Xvfb 253 PASS / 4 FAIL (the same 4 environmental failures without these changes: existing-browser attach ×3, egress proxy); full journey sweep 943 PASS / 1 FAIL (JOURNEY-26-01, fixed above) / 6 BLOCKED (speech, Firefox, WebKit ×3, Office app, push, live key, offline-real release). Real model: [benchmark README](experiments/benchmarks/20261025/README.md#t1-real-model-campaign-26-october) — every family passed each run (2–2 per family); b6-order 7/13 complete, 13/13 with the order sent exactly once.
+>
+> **Open:** the regression round on the final build (`f6841d1`) is **UNTESTED**: the staging provider's daily quota ran out at ~12:25 UTC (it named a wait to ~07:00 UTC); a check-in resumes it. Two to thirteen runs per family is not the sample a ≥ 95 % claim needs. JOURNEY-23-01 not reproduced this sweep.
+
+> **Earlier — 26 October 2026, direct DeepSeek source and wider adoption (plan.md D0–D3).** Cloud Linux container; stub Supabase for journeys; no real model this block; no production change, deploy, migration or payments. **Shipped:**
 >
 > - **Direct source (D2):** the 121-file mirror `src/deepseek/upstream/` is deleted (−34,778 lines). Vite, Vitest and tsc compile the pinned submodule itself through `scripts/deepseek-link.mjs`; `deepseek:check` fails closed when the submodule is missing, at another commit or edited (proved on a clean clone); every building CI workflow checks the submodule out.
 > - **Review (D1):** all 344 upstream package manifests have a disposition and reason ([inventory](docs/integrations/deepseek-inventory.md)): 28 connected, 30 queued, 44 adapter required, 29 superseded, 158 out of scope, 55 unsafe.

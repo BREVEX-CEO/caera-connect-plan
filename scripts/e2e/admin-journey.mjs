@@ -827,10 +827,11 @@ try {
   await heirMember.getByPlaceholder(/^Why/).fill("Planned hand-over to the new owner");
   check("handing over waits for an explicit confirmation", await handOver.isDisabled());
   await heirMember.getByText(/I understand/).click();
+  // The page reloads itself after the hand-over, at the address it is already on: wait for that
+  // load, not the address, or the Staff tab is opened on the page the reload then replaces.
+  const reloaded = owner.waitForEvent("load", { timeout: 20_000 }).catch(() => {});
   await handOver.click();
-  // The page reloads itself after the hand-over: wait for the console that reload opens.
-  await owner.waitForURL((url) => url.pathname === "/admin", { timeout: 20_000 }).catch(() => {});
-  await owner.waitForLoadState("load");
+  await reloaded;
   await tab(owner, "Staff").waitFor({ timeout: 20_000 });
   await tab(owner, "Staff").click();
   const ownerList = owner.getByRole("region", { name: "Staff", exact: true });
