@@ -20,7 +20,7 @@ fi
 (cd "$here/../../.." && xvfb-run -a /tmp/claude-0/venv/bin/python experiments/architectures/device_server.py "$ws" "$port" > "$out/device.log" 2>&1) & dev=$!
 for _ in $(seq 1 60); do curl -s "http://127.0.0.1:$port/stats" > /dev/null && break; sleep 1; done
 OCADE_FRAMES_DIR="$out/frames" timeout 1800 node /tmp/live.mjs A "$text_file" "$permits" "$out/run.json" "$port" > "$out/live.log" 2>&1
-extra=""; [ "$task" = b6-order ] && extra="$out/site.json"; [ "$task" = b8-refuse ] && extra="$out/run.json"
+extra=""; [ "$task" = b6-order ] && extra="$out/site.json"; [[ "$task" == b8* ]] && extra="$out/run.json"
 /tmp/claude-0/venv/bin/python "$here/oracle.py" "$task" "$ws" $extra > "$out/oracle.json" 2> "$out/oracle.err"
 mkdir -p "$out/outputs"
 (cd "$ws" && find . -type f ! -name '.task.json' -newer "$out/.started" -print0 | xargs -0 -I{} cp --parents {} "$out/outputs/" 2>/dev/null)

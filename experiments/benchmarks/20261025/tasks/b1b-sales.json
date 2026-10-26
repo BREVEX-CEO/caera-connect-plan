@@ -1,0 +1,4 @@
+{
+  "id": "b1b-sales",
+  "text": "Create Sales_2026.xlsx in my work folder with one sheet named Sales. Header row: Region, Q1, Q2, Q3, Q4, Total. Rows: North 120, 135, 150, 160; South 90, 95, 110, 105; East 75, 80, 85, 95. The Total column must be a SUM formula for each region. Add a last row named Grand total with a SUM formula under every quarter and under Total. Make the header row bold."
+}
