@@ -54,7 +54,7 @@ export function PublicPage({
         whatever the width; the desktop header is unchanged. The taller phone
         padding is the touch target the 13 px row did not have.
       */}
-      <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur print:hidden">
         <div
           className={`mx-auto flex ${column} flex-col gap-1 px-5 py-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:py-0`}
         >
@@ -86,7 +86,7 @@ export function PublicPage({
         <div className="mt-8">{children}</div>
       </main>
 
-      <footer className="border-t border-border/60">
+      <footer className="border-t border-border/60 print:hidden">
         <div
           className={`mx-auto flex ${column} flex-wrap items-center justify-between gap-3 px-5 py-6 text-[13px] text-muted-foreground`}
         >
@@ -122,7 +122,7 @@ function BackToTop() {
     <button
       type="button"
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className="glass fixed bottom-6 right-6 grid h-10 w-10 place-items-center rounded-full text-foreground transition-colors hover:bg-accent"
+      className="glass fixed bottom-6 right-6 grid h-10 w-10 place-items-center rounded-full text-foreground transition-colors hover:bg-accent print:hidden"
       aria-label="Back to top"
     >
       <ArrowUp className="h-4 w-4" aria-hidden />

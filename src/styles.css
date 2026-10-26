@@ -488,6 +488,16 @@
   text-decoration: none;
 }
 
+/* Printed (a legal page, an answer): black text on the paper, whatever the theme on screen. */
+@media print {
+  body,
+  body * {
+    color: #000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
 .skip-link:focus,
 .skip-link:focus-visible {
   left: 0.75rem;
