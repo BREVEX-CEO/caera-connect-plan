@@ -274,6 +274,26 @@ describe("carrying on", () => {
     }
   });
 
+  it("runs the reply's calls in the upstream loop: the first device call decides, the rest never run (DS-25-01)", async () => {
+    const t = await task();
+    const both = scripted({
+      text: "",
+      toolCalls: [
+        { id: "a", name: "research", arguments: { query: "x" } },
+        { id: "b", name: "computer", arguments: { action: "file_list", path: "." } },
+        { id: "c", name: "computer", arguments: { action: "file_list", path: "reports" } },
+      ],
+    });
+    expect(await carryOn(admin(), me(), t, both)).toEqual({ state: "queued" });
+    expect((await actionsOf(t)).map((row) => row.action)).toEqual([
+      { action: "file_list", path: "." },
+    ]);
+    expect(both.seen).toHaveLength(1);
+    // The loop starts with no words in the person's name: the model reads the task as it stands.
+    expect(both.seen[0]!.at(-1)).not.toMatch(/^user: $/);
+    expect(both.seen[0]!.filter((line) => line === "user: ")).toEqual([]);
+  });
+
   it("plans one step at a time through the same queue, and finishes the task", async () => {
     const t = await task();
     const first = scripted(call("computer", { action: "file_list", path: ".", step: 1 }));

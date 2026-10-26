@@ -25,7 +25,11 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import type { NormalizedAttachment, NormalizedMessage } from "@/lib/intelligence/contract";
+import type {
+  NormalizedAttachment,
+  NormalizedMessage,
+  NormalizedToolCall,
+} from "@/lib/intelligence/contract";
 import { compact, memoryMessage, systemPrompt, type ModelStep } from "./agent";
 import { executionDisabled, ORPHAN_MS } from "./device.server";
 import {
@@ -52,6 +56,7 @@ import {
 } from "./protocol";
 import { changeTask, permissionsOf, queueTaskAction } from "./task-authority.server";
 import { TASK_COLUMNS, type JarvisTaskRow } from "./task-row";
+import { UpstreamTurn } from "./upstream-turn";
 
 type Admin = SupabaseClient<Database>;
 
@@ -421,53 +426,25 @@ export async function carryOn(
           ]
         : [];
 
-    const reply = await deps.model({
-      quality: task.checkpoint?.intelligenceQuality ?? "standard",
-      userId,
-      conversationId: task.conversation_id,
-      taskId: task.id,
-      messages,
-      attachments,
-    });
-    if (!reply || reply === "unavailable") {
-      const kept = await change({
-        status: "waiting",
-        blocker: reply
-          ? "Waiting for OCADE JARVIS to be available again."
-          : "No JARVIS use was available just now. Resume to try again.",
-      });
-      return kept ? { state: "waiting" } : idle;
-    }
-
-    // Persist before any effect. A crash leaves either receipts under this controller or an
-    // explicitly unrun call; a failed journal write must never release work to the device.
-    // jarvis_activity already restricts writes to the service role and bounds result bytes.
-    if (reply.toolCalls.length || reply.parts?.length) {
-      const { error } = await admin.from("jarvis_activity").insert({
-        user_id: userId,
-        task_id: task.id,
-        device_id: device.id,
-        controller: loop,
-        status: "note",
-        summary: "Planning the next step",
-        result: { modelTurn: reply } as never,
-      });
-      if (error) {
-        const kept = await change({
-          status: "waiting",
-          blocker: "OCADE could not save the next step. Resume to try again.",
-        });
-        return kept ? { state: "waiting" } : idle;
-      }
-    }
-
     const trace: TraceStep[] = actions.flatMap((row) => {
       const kind = familyOf(row.action);
       return kind === "docs"
         ? []
         : [{ family: kind, args: row.action as Record<string, unknown>, result: row.result }];
     });
-    for (const call of reply.toolCalls) {
+
+    /*
+     * ONE STEP OF THE SAME UPSTREAM LOOP THE FOREGROUND RUNS (DS-25-01). DeepSeek Harness's own
+     * AgentLoop takes the model's reply and runs its calls in the model's order, as a tab's turn
+     * does. A Worker request cannot wait minutes for a computer, so the turn ends as soon as one
+     * call has decided this exchange: a step queued for the computer, a finish, a document read,
+     * or a reason to wait for the person. The calls after it are not run, and the next request
+     * plans from the real results. Every call is still decided here, by OCADE.
+     */
+    let reply: ModelStep | null = null;
+    let halted: { state: StepState } | null = null;
+    let decided: { state: StepState } | null = null;
+    const decide = async (call: NormalizedToolCall): Promise<{ state: StepState } | null> => {
       const given = (call.arguments ?? {}) as Record<string, unknown>;
       // finish_task and docs take the first action of a sequence; a device call takes them all (below).
       const first = Array.isArray(given.sequence) ? given.sequence[0] : null;
@@ -502,7 +479,7 @@ export async function carryOn(
         }
         return { state: "queued" };
       }
-      if (call.name !== "browser" && call.name !== "computer") continue;
+      if (call.name !== "browser" && call.name !== "computer") return null;
       /*
        * A SEQUENCE RUNS HERE AS IT DOES IN THE FOREGROUND (PLAN Phase 05 V08). Only its first step
        * used to be queued and the rest silently dropped. Now the steps that need no fresh
@@ -576,14 +553,93 @@ export async function carryOn(
         }
       }
       return { state: "queued" };
-    }
+    };
 
+    const turn = await UpstreamTurn.open(
+      messages,
+      {
+        tools: ["browser", "computer", "docs", "finish_task"],
+        // In the model's order, one at a time: the first call that decides the exchange ends it.
+        readOnly: () => false,
+        model: async (request) => {
+          const step = await deps.model({
+            quality: task.checkpoint?.intelligenceQuality ?? "standard",
+            userId,
+            conversationId: task.conversation_id,
+            taskId: task.id,
+            messages: request,
+            attachments,
+          });
+          if (!step || step === "unavailable") {
+            const kept = await change({
+              status: "waiting",
+              blocker: step
+                ? "Waiting for OCADE JARVIS to be available again."
+                : "No JARVIS use was available just now. Resume to try again.",
+            });
+            halted = kept ? { state: "waiting" } : idle;
+            return null;
+          }
+          // Persist before any effect. A crash leaves either receipts under this controller or
+          // an explicitly unrun call; a failed journal write must never release work to the
+          // device. jarvis_activity already restricts writes to the service role and bounds
+          // result bytes.
+          if (step.toolCalls.length || step.parts?.length) {
+            const { error } = await admin.from("jarvis_activity").insert({
+              user_id: userId,
+              task_id: task.id,
+              device_id: device.id,
+              controller: loop,
+              status: "note",
+              summary: "Planning the next step",
+              result: { modelTurn: step } as never,
+            });
+            if (error) {
+              const kept = await change({
+                status: "waiting",
+                blocker: "OCADE could not save the next step. Resume to try again.",
+              });
+              halted = kept ? { state: "waiting" } : idle;
+              return null;
+            }
+          }
+          reply = step;
+          return step;
+        },
+        runTool: async (call) => {
+          if (decided) return NOT_RUN;
+          decided = await decide(call);
+          return decided ? { status: decided.state } : NOT_CARRIED;
+        },
+        concludes: () => decided !== null,
+        // One model step per request.
+        beforeStep: async () => (reply || halted ? "end" : null),
+        afterTools: () => {},
+        supersede: (result) => result,
+        observes: () => false,
+      },
+      new AbortController().signal,
+    );
+    try {
+      // No new words from the person: the step continues the task as it stands.
+      await turn.run(null);
+    } finally {
+      await turn.close();
+    }
+    if (halted) return halted;
+    if (decided) return decided;
+    if (!reply) return idle;
     // Words and no step: a question for the person, kept in the conversation. A question that
     // could not be saved is asked again by the next request, never waited on unseen.
-    if (!(await say(reply.text))) return idle;
+    if (!(await say((reply as ModelStep).text))) return idle;
     return needsPerson("waiting", "JARVIS needs your answer to continue.", `say-${actions.length}`);
   }
 }
+
+/** A call after the one that decided this exchange: planned again from the real results. */
+const NOT_RUN = { status: "not_run", summary: "Not run: an earlier call in this step ran first." };
+/** A tool the computer cannot use while carrying on (research, memory): nothing ran. */
+const NOT_CARRIED = { status: "not_run", summary: "Not available while the computer carries on." };
 
 /** Which tool family a recorded action belongs to. */
 const familyOf = (action: unknown) =>

@@ -209,13 +209,17 @@ export class UpstreamTurn {
   }
 
   /**
-   * Run one person-side message through the loop until it is idle again. Throws what OCADE's
-   * model call or a tool threw, after the work so far reached `afterTools`.
+   * Run one person-side message through the loop until it is idle again; null continues the work
+   * with no new words (the computer carrying on), and the model reads nothing in their name.
+   * Throws what OCADE's model call or a tool threw, after the work so far reached `afterTools`.
    */
-  async run(text: string): Promise<TurnEnd> {
+  async run(text: string | null): Promise<TurnEnd> {
     this.ended = this.concluded = this.noUse = false;
     this.agent.followup(
-      createUserMessage({ content: [{ type: "text", text }], source: { kind: "user" } }),
+      createUserMessage({
+        content: [{ type: "text", text: text ?? "" }],
+        source: { kind: "user" },
+      }),
     );
     await this.agent.whenIdle();
     if (this.failure) throw this.failure.error;
@@ -266,7 +270,8 @@ export class UpstreamTurn {
     const entries: Entry[] = [];
     for (const message of messages) {
       if (message.role === "user") {
-        entries.push({ kind: "user", text: textOf(message.content) });
+        const text = textOf(message.content);
+        if (text) entries.push({ kind: "user", text });
       } else if (message.role === "assistant") {
         const replay = (message.source.replayState as { response?: Replay } | undefined)?.response;
         if (replay) entries.push({ kind: "assistant", reply: replay.reply });
