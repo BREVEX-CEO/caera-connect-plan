@@ -374,7 +374,7 @@ function AuthPage() {
           setError(null);
           setHint(null);
         }}
-        className="mt-3 w-full text-center text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        className="mt-3 min-h-6 w-full text-center text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
       >
         {usePassword ? "Use an email code instead" : "Use a password instead"}
       </button>

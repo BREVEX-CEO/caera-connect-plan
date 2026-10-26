@@ -3,6 +3,7 @@ import { ChatWorkspace } from "@/components/chat/ChatWorkspace";
 
 export const Route = createFileRoute("/")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://ocade.in/" }],
     meta: [
       { title: "OCADE" },
       {

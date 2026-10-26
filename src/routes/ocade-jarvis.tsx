@@ -24,6 +24,7 @@ export const Route = createFileRoute("/ocade-jarvis")({
     from: z.string().uuid().optional().catch(undefined),
   }),
   head: () => ({
+    links: [{ rel: "canonical", href: "https://ocade.in/ocade-jarvis" }],
     meta: [
       { title: "OCADE JARVIS" },
       {

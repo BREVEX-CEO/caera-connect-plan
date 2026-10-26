@@ -42,13 +42,22 @@ export function AuthShell({
       </main>
 
       <footer className="flex flex-wrap items-center justify-center gap-4 border-t border-border/60 px-5 py-4 text-[13px] text-muted-foreground">
-        <Link to="/terms" className="transition-colors hover:text-foreground">
+        <Link
+          to="/terms"
+          className="inline-flex min-h-6 items-center transition-colors hover:text-foreground"
+        >
           Terms
         </Link>
-        <Link to="/privacy" className="transition-colors hover:text-foreground">
+        <Link
+          to="/privacy"
+          className="inline-flex min-h-6 items-center transition-colors hover:text-foreground"
+        >
           Privacy
         </Link>
-        <Link to="/help" className="transition-colors hover:text-foreground">
+        <Link
+          to="/help"
+          className="inline-flex min-h-6 items-center transition-colors hover:text-foreground"
+        >
           Help
         </Link>
       </footer>

@@ -23,6 +23,7 @@ const PUBLIC_LINKS = [
 export function PublicPage({
   title,
   intro,
+  updated,
   children,
   /** Long legal and help pages get the control; About does not need it. */
   backToTop = false,
@@ -31,6 +32,8 @@ export function PublicPage({
 }: {
   title: string;
   intro?: string;
+  /** When a legal document took effect and was last changed. */
+  updated?: string;
   children: ReactNode;
   backToTop?: boolean;
   wide?: boolean;
@@ -78,6 +81,7 @@ export function PublicPage({
 
       <main id="content" className={`mx-auto ${column} px-5 py-12`}>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
+        {updated ? <p className="mt-2 text-xs text-muted-foreground">{updated}</p> : null}
         {intro ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{intro}</p> : null}
         <div className="mt-8">{children}</div>
       </main>
@@ -87,7 +91,10 @@ export function PublicPage({
           className={`mx-auto flex ${column} flex-wrap items-center justify-between gap-3 px-5 py-6 text-[13px] text-muted-foreground`}
         >
           <span>OCADE by CARCC</span>
-          <Link to="/" className="transition-colors hover:text-foreground">
+          <Link
+            to="/"
+            className="inline-flex min-h-6 items-center transition-colors hover:text-foreground"
+          >
             Open Chat
           </Link>
         </div>

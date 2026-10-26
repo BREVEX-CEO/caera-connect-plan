@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://ocade.in/pricing" }],
     meta: [
       { title: "Pricing — OCADE" },
       {

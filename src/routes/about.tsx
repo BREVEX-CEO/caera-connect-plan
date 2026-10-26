@@ -4,6 +4,7 @@ import { FOUNDER_STRUCTURED_DATA, PUBLIC_IDENTITY } from "@/lib/public-identity"
 
 export const Route = createFileRoute("/about")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://ocade.in/about" }],
     meta: [
       { title: "About the founder — OCADE" },
       {
