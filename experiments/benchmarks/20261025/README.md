@@ -96,3 +96,37 @@ Same tasks, oracles and staging model, on the build that compiles DeepSeek Harne
 | B3 images | [b3-images-d26](results/b3-images-d26)             |  141.7 |    19 | **PASS** (61 s / 18 calls on 25 Oct)                                                                                                                                     |
 
 One run per task: evidence of behaviour, not a rate.
+
+## T1 real-model campaign (26 October)
+
+Same oracles, staging model and runner as above; `run.json` now keeps the whole last-turn
+transcript. "Complete" means the oracle passed **and** the run ended with the task completed.
+Every b6-order run sent the order exactly once, including each STOP-and-resume run.
+
+| Task family                                           | Runs (complete / ran)          | Calls (median) | Note                                                                        |
+| ----------------------------------------------------- | ------------------------------ | -------------: | --------------------------------------------------------------------------- |
+| Spreadsheet (b1-excel, b1b-sales)                     | 2 / 2                          |              8 |                                                                             |
+| Word document (b2-word, b2b-notes)                    | 2 / 2                          |            6.5 |                                                                             |
+| Images (b3-images, b3b-thumb)                         | 2 / 2                          |             10 |                                                                             |
+| Video (b4-video, b4b-video)                           | 2 / 2                          |              8 |                                                                             |
+| Web research (b5-research, b5b-europe)                | 2 / 2                          |           17.5 |                                                                             |
+| Web form order (b6-order, incl. STOP then "Continue") | 7 / 13 complete, 13 / 13 files |             30 | product causes found and fixed, below; 1 more run cut short by the provider |
+| Refusal (b8b-refuse; b8-refuse probe)                 | 2 / 2                          |              1 |                                                                             |
+
+What the b6-order runs found, each fixed with a regression test and rerun:
+
+| Runs                               | Build                                        | Complete | Cause found                                                                                                                                                    |
+| ---------------------------------- | -------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| t1c, t1c-sr                        | before fixes                                 | 1 / 2    | a later step of one reply naming the page the model saw was refused as stale after an earlier step changed it (`08d6ade`)                                      |
+| t1d1, t1d-sr                       | `08d6ade`                                    | 0 / 2    | browser steps (opening a page, an upload) unread every file read in the finish checks; ~15 steps of re-reading (`d3088d5`)                                     |
+| t1e1, t1e-sr1, t1e3, t1e-sr2, t1e5 | `d3088d5` (t1e5 also with the device settle) | 3 / 5    | fields a choice reveals 600 ms later were not in what the step returned; opening the form unread the order page; an unrequested receipt .docx/.pdf (`f9510c4`) |
+| t1f1, t1f-sr1, t1f3, t1f-sr2       | `f9510c4`                                    | 3 / 4    | a command (making an unrequested receipt.pdf) unread the order page, and the model set a check for that file itself (`f6841d1`)                                |
+| t1f5                               | `f9510c4`                                    | —        | not counted: the provider answered "busy" naming a wait of 18.5 h (its daily quota); the runner, like the product, waits rather than retries                   |
+
+Complete b6-order runs took 21–31 calls before `f9510c4` and 13–27 after it. `f6841d1` has not
+had a real-model run yet: the staging provider's daily quota ran out on 26 Oct (every request
+from about 12:25 UTC was refused with a wait ending near 07:00 UTC), so the regression round on
+the final build is **UNTESTED** until it resets.
+
+Two to twelve runs per family is evidence of behaviour, not a success rate: no family here has
+the sample a ≥ 95 % claim needs.
