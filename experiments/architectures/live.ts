@@ -485,7 +485,10 @@ writeFileSync(
       permitsLeft: permits.length,
       programs,
       delivered,
-      transcriptTail: transcript.slice(-8).map((m) => JSON.stringify(m).slice(0, 700)),
+      // The last turn's whole conversation as the model got it; thought signatures left out.
+      transcript: transcript.map((m) =>
+        JSON.stringify(m, (key, value) => (key === "signature" ? undefined : value)).slice(0, 1500),
+      ),
     },
     null,
     1,
