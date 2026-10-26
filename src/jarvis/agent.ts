@@ -511,6 +511,8 @@ export async function runJarvisTurn(
   let attachments: NormalizedAttachment[] = [];
   /** The last page or screen the model was shown: what a sequence's later steps were planned on. */
   let seen: Seen | null = null;
+  /** The newest page or screen any device step returned, which may be newer than `seen`. */
+  let current: Seen | null = null;
   /** This turn's device calls and their results: what the loop guards read (loopRefusal). */
   const trace: TraceStep[] = [];
   // Once page content has been read this turn, nothing may be written to memory.
@@ -692,8 +694,22 @@ export async function runJarvisTurn(
     args: Record<string, unknown>,
     afterHandover = false,
   ): Promise<unknown> {
+    // A later call of one reply names the page the model saw; an earlier call already changed
+    // it. The same element by ref and name follows, as a sequence's "latest" step does.
+    if (
+      family === "browser" &&
+      seen &&
+      current &&
+      args.observationId === seen.observationId &&
+      current.observationId !== seen.observationId &&
+      !continuity(family, args, seen, current)
+    ) {
+      args = { ...args, observationId: current.observationId };
+    }
     const queued = await queueStep(family, args);
-    return "result" in queued ? queued.result : settleStep(queued, afterHandover);
+    const result = "result" in queued ? queued.result : await settleStep(queued, afterHandover);
+    current = observationOf(result) ?? current;
+    return result;
   }
 
   /**
@@ -708,6 +724,15 @@ export async function runJarvisTurn(
       return { error: `A sequence holds 1 to ${MAX_SEQUENCE} actions.` };
     }
     const base = seen;
+    // A later step naming the page the sequence started on means what the previous step left.
+    steps = steps.map((step, index) =>
+      family === "browser" &&
+      index > 0 &&
+      base &&
+      (step as { observationId?: unknown } | null)?.observationId === base.observationId
+        ? { ...(step as object), observationId: "latest" }
+        : step,
+    );
     const ran: { action: string; status: unknown; summary: unknown }[] = [];
     let last: unknown = null;
     const record = (action: unknown, outcome: unknown) => {
@@ -749,6 +774,7 @@ export async function runJarvisTurn(
       }
       for (const [index, step] of queued.entries()) {
         last = await settleStep(step);
+        current = observationOf(last) ?? current;
         if (!record(step.action.action, last)) {
           for (const rest of queued.slice(index + 1)) await deps.cancelAction?.(rest.id);
           return { sequence: ran, stoppedAfter: ran.length, last };

@@ -1273,6 +1273,63 @@ describe("a sequence: several known actions, one model step", () => {
     expect(h.queued).toEqual([{ action: "observe" }, { action: "scroll", direction: "down" }]);
     expect(JSON.stringify(h.seen[3])).toContain("changed or is gone");
   });
+
+  it("lets later steps of one reply that name the page the model saw follow the same element", async () => {
+    const form = (id: string, total = "Order total") => ({
+      observationId: id,
+      elements: [
+        { ref: "e4", role: "textbox", name: total },
+        { ref: "e5", role: "textbox", name: "Attachment" },
+      ],
+    });
+    const h = harness(
+      [
+        {
+          text: "",
+          toolCalls: [call("start_task", { title: "Order", where: "browser", steps: ["s"] })],
+        },
+        { text: "", toolCalls: [call("browser", { action: "observe" })] },
+        {
+          text: "",
+          toolCalls: [
+            call("browser", {
+              sequence: [
+                { action: "type", ref: "e4", observationId: "o1", text: "1562.00" },
+                { action: "upload", ref: "e5", observationId: "o1", path: "order.txt" },
+              ],
+            }),
+          ],
+        },
+        {
+          text: "",
+          toolCalls: [
+            call("browser", { action: "type", ref: "e4", observationId: "o3", text: "1" }),
+            call("browser", { action: "upload", ref: "e5", observationId: "o3", path: "a.txt" }),
+            call("browser", { action: "type", ref: "e4", observationId: "o3", text: "2" }),
+          ],
+        },
+      ],
+      {
+        a: [
+          { status: "done", result: { observation: form("o1") } },
+          { status: "done", result: { observation: form("o2") } },
+          { status: "done", result: { observation: form("o3") } },
+          { status: "done", result: { observation: form("o4") } },
+          { status: "done", result: { observation: form("o5", "Coupon") } },
+          { status: "done", result: { observation: form("o6") } },
+        ],
+      },
+    );
+    await runJarvisTurn(h.input, h.hooks, h.deps);
+    expect(h.queued.map((a) => (a as { observationId?: string }).observationId)).toEqual([
+      undefined,
+      "o1",
+      "o2", // the sequence's second step, on what the first left
+      "o3",
+      "o4", // a later call of the same reply, on what the earlier call left
+      "o3", // e4 is no longer the same field: left as named, so the device refuses it
+    ]);
+  });
 });
 
 describe("STOP between the calls of one reply", () => {
