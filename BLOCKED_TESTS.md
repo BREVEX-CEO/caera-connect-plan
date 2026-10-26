@@ -1,5 +1,16 @@
 # Blocked, failed and untested checks
 
+> **Current — 26 October 2026, direct DeepSeek source and wider adoption (plan.md D0–D3).** Cloud Linux container; stub Supabase for journeys; no real model this block; no production change, deploy, migration or payments. **Shipped:**
+>
+> - **Direct source (D2):** the 121-file mirror `src/deepseek/upstream/` is deleted (−34,778 lines). Vite, Vitest and tsc compile the pinned submodule itself through `scripts/deepseek-link.mjs`; `deepseek:check` fails closed when the submodule is missing, at another commit or edited (proved on a clean clone); every building CI workflow checks the submodule out.
+> - **Review (D1):** all 344 upstream package manifests have a disposition and reason ([inventory](docs/integrations/deepseek-inventory.md)): 28 connected, 30 queued, 44 adapter required, 29 superseded, 158 out of scope, 55 unsafe.
+> - **DS-25-01 CLOSED (code):** the computer carrying on runs the same upstream `AgentLoop` as the foreground, one model step per Worker request; the first call that decides the exchange concludes the turn.
+> - **Upstream tools in OCADE turns:** `todo_write` (dsh-tool-todo) drives the task card's checklist; `ask_user_question` (dsh-user-questions + dsh-tool-ask-user) asks the person through OCADE's question card, and STOP rejects the wait. Closure now 129 files from 30 packages.
+>
+> **Measured:** verify:full 16/16 (Vitest 1,593 before the ask-user tests; jarvis/deepseek suites 377); upstream specs unchanged (agent-loop 339/344); carry-on unit 36/36 on PostgreSQL; journeys on workerd: carry-on 34/34, jarvis + bubble 171 PASS / 0 FAIL (speech BLOCKED), including the question card answered in a real browser.
+>
+> **Open:** JOURNEY-23-01 (signed-out composer flake: under repeated reruns with the new diagnostics); compaction/token-meter, llm-retry, skills, MCP and the other queued packages (reasons per package in the inventory); the real Offline release model; T1 real-model and cross-platform qualification.
+
 > **Current — 25 October 2026 (night), real-model customer benchmarks.** Cloud Linux container. Real model: staging Online boundary (`ocade-intelligence` on staging Supabase, `gemini-3.5-flash-lite`) with a disposable staging account; journeys still on the stub. No production change, no deploy, no migration applied, no payments. **Shipped:**
 >
 > - **DEP-25-01 FIXED** (`f014238`): zod 4.6.7 across the app, upstream's zod/v4 redirect removed. Vitest `4.1.12` (`67a308c`) clears the `@vitest/mocker` advisories. `npm audit --omit=dev`: 0.
