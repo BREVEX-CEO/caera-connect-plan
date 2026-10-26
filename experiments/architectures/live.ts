@@ -31,6 +31,7 @@ import {
   type ActionRow,
 } from "../../src/jarvis/task-authority.server";
 import { createOnlineIntelligenceTransport } from "../../src/lib/intelligence/online-client";
+import { HIGH_WARNING_VERSION } from "../../src/lib/intelligence/quality";
 import type {
   NormalizedAssistantPart,
   NormalizedMessage,
@@ -215,7 +216,9 @@ async function askOnce(
     idempotencyKey: permit.key,
     surface: "jarvis",
     mode: "online",
-    quality: "standard",
+    // OCADE_QUALITY=high: the explicit High route (Gemma on Cloudflare), acknowledged as the product does.
+    quality: process.env.OCADE_QUALITY === "high" ? "high" : "standard",
+    ...(process.env.OCADE_QUALITY === "high" ? { highModeAcknowledged: HIGH_WARNING_VERSION } : {}),
     messages,
     tools,
     attachments: [],
