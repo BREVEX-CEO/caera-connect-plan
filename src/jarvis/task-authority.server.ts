@@ -890,6 +890,8 @@ export interface TaskChange {
   /** Compare-and-set admission: a stale resume cannot overwrite STOP or a newer state. */
   expectedStatus?: TaskStatus;
   currentStep?: number;
+  /** The plan as the model last wrote it (its todo list): what the task card shows. */
+  plan?: string[];
   result?: string | null;
   blocker?: string | null;
   /** Claim the task for this planning loop; any other loop stops queueing. */
@@ -957,6 +959,7 @@ export async function changeTask(
   }
   if (data.status !== undefined) patch.status = data.status;
   if (data.currentStep !== undefined) patch.current_step = data.currentStep;
+  if (data.plan !== undefined) patch.plan = data.plan;
   if (data.result !== undefined) patch.result = data.result;
   if (data.blocker !== undefined) patch.blocker = data.blocker;
   // Only the server records completed, after the check above: the database refuses it from

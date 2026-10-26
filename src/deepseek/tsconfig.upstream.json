@@ -97,6 +97,8 @@
     "../../external/deepseek-harness/upstream/packages/storage/storage/src/error.ts",
     "../../external/deepseek-harness/upstream/packages/storage/storage/src/index.ts",
     "../../external/deepseek-harness/upstream/packages/storage/storage/src/registry.ts",
+    "../../external/deepseek-harness/upstream/packages/todo/tool-todo/src/index.ts",
+    "../../external/deepseek-harness/upstream/packages/todo/tool-todo/src/types.ts",
     "../../external/deepseek-harness/upstream/packages/typert/protocol/src/index.ts",
     "../../external/deepseek-harness/upstream/packages/typert/protocol/src/json-value.ts",
     "../../external/deepseek-harness/upstream/packages/typert/protocol/src/owned-value.ts",

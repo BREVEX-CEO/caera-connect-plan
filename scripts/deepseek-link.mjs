@@ -21,7 +21,7 @@ import path from "node:path";
 import { firstFile, upstreamResolver } from "./deepseek-packages.mjs";
 
 const PIN = "687f282e8625c6b8d11ff58211a90524be2e4317";
-const ENTRIES = ["@deepseek-ai/dsh-agent-loop"];
+const ENTRIES = ["@deepseek-ai/dsh-agent-loop", "@deepseek-ai/dsh-tool-todo"];
 const ROOT = process.cwd();
 const SUBMODULE = "external/deepseek-harness/upstream";
 const UPSTREAM = path.join(ROOT, SUBMODULE);

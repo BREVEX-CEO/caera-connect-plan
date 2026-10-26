@@ -4,8 +4,8 @@ Every package manifest under `packages/` of the pinned submodule (`external/deep
 
 | Disposition             | Packages |
 | ----------------------- | -------: |
-| DIRECT CONNECTED        |       25 |
-| DIRECT PENDING          |       33 |
+| DIRECT CONNECTED        |       26 |
+| DIRECT PENDING          |       32 |
 | ADAPTER REQUIRED        |       44 |
 | FUNCTIONALLY SUPERSEDED |       29 |
 | OUT OF OCADE SCOPE      |      158 |
@@ -14,33 +14,34 @@ Every package manifest under `packages/` of the pinned submodule (`external/deep
 
 ## DIRECT CONNECTED
 
-| Package path                     | Name                                      | Source files | Reason                                                                                               |
-| -------------------------------- | ----------------------------------------- | -----------: | ---------------------------------------------------------------------------------------------------- |
-| `attachment/attachment`          | `@deepseek-ai/dsh-attachment`             |            6 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `core/agent`                     | `@deepseek-ai/dsh-agent`                  |            8 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `core/agent-loop`                | `@deepseek-ai/dsh-agent-loop`             |            7 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `core/scope`                     | `@deepseek-ai/dsh-scope`                  |            2 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `core/session`                   | `@deepseek-ai/dsh-session`                |           10 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `core/system-prompt`             | `@deepseek-ai/dsh-system-prompt`          |            1 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `core/tools`                     | `@deepseek-ai/dsh-tools`                  |           10 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `fs/fs`                          | `@deepseek-ai/dsh-fs`                     |            2 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `interaction/user-approval`      | `@deepseek-ai/dsh-user-approval`          |            2 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `llm/llm`                        | `@deepseek-ai/dsh-llm`                    |           13 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `ptc-runtime/ptc-runtime`        | `@deepseek-ai/dsh-ptc-runtime`            |            2 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `sandbox/sandbox`                | `@deepseek-ai/dsh-sandbox`                |            4 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `sandbox/sandbox-policy`         | `@deepseek-ai/dsh-sandbox-policy`         |            2 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `session/session-persistence`    | `@deepseek-ai/dsh-session-persistence`    |            5 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `session/session-projection`     | `@deepseek-ai/dsh-session-projection`     |            2 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `session/tool-working-directory` | `@deepseek-ai/dsh-tool-working-directory` |            1 | working-directory is in the closure (session context type); the tool is out of scope (no shell cwd). |
-| `session/working-directory`      | `@deepseek-ai/dsh-working-directory`      |            1 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `storage/storage`                | `@deepseek-ai/dsh-storage`                |            4 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `storage/storage-domain`         | `@deepseek-ai/dsh-storage-domain`         |            5 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `typert/protocol`                | `@deepseek-ai/dsh-typert-protocol`        |            8 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `util/brand`                     | `@deepseek-ai/dsh-brand`                  |            1 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `util/crypto`                    | `@deepseek-ai/dsh-util-crypto`            |            1 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `util/timeout`                   | `@deepseek-ai/dsh-timeout`                |            1 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `util/values`                    | `@deepseek-ai/dsh-util-values`            |            2 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
-| `workspace/workspace`            | `@deepseek-ai/dsh-workspace`              |            5 | In the agent-loop closure; compiled from the submodule and executed by every foreground JARVIS turn. |
+| Package path                     | Name                                      | Source files | Reason                                                                                                                                                                          |
+| -------------------------------- | ----------------------------------------- | -----------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `attachment/attachment`          | `@deepseek-ai/dsh-attachment`             |            6 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `core/agent`                     | `@deepseek-ai/dsh-agent`                  |            8 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `core/agent-loop`                | `@deepseek-ai/dsh-agent-loop`             |            7 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `core/scope`                     | `@deepseek-ai/dsh-scope`                  |            2 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `core/session`                   | `@deepseek-ai/dsh-session`                |           10 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `core/system-prompt`             | `@deepseek-ai/dsh-system-prompt`          |            1 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `core/tools`                     | `@deepseek-ai/dsh-tools`                  |           10 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `fs/fs`                          | `@deepseek-ai/dsh-fs`                     |            2 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `interaction/user-approval`      | `@deepseek-ai/dsh-user-approval`          |            2 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `llm/llm`                        | `@deepseek-ai/dsh-llm`                    |           13 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `ptc-runtime/ptc-runtime`        | `@deepseek-ai/dsh-ptc-runtime`            |            2 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `sandbox/sandbox`                | `@deepseek-ai/dsh-sandbox`                |            4 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `sandbox/sandbox-policy`         | `@deepseek-ai/dsh-sandbox-policy`         |            2 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `session/session-persistence`    | `@deepseek-ai/dsh-session-persistence`    |            5 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `session/session-projection`     | `@deepseek-ai/dsh-session-projection`     |            2 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `session/tool-working-directory` | `@deepseek-ai/dsh-tool-working-directory` |            1 | working-directory is in the closure (session context type); the tool is out of scope (no shell cwd).                                                                            |
+| `session/working-directory`      | `@deepseek-ai/dsh-working-directory`      |            1 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `storage/storage`                | `@deepseek-ai/dsh-storage`                |            4 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `storage/storage-domain`         | `@deepseek-ai/dsh-storage-domain`         |            5 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `todo/tool-todo`                 | `@deepseek-ai/dsh-tool-todo`              |            3 | todo_write offered to the model in every foreground JARVIS turn and run by upstream registry; the checklist becomes the task card plan (src/jarvis/upstream-turn.ts, agent.ts). |
+| `typert/protocol`                | `@deepseek-ai/dsh-typert-protocol`        |            8 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `util/brand`                     | `@deepseek-ai/dsh-brand`                  |            1 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `util/crypto`                    | `@deepseek-ai/dsh-util-crypto`            |            1 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `util/timeout`                   | `@deepseek-ai/dsh-timeout`                |            1 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `util/values`                    | `@deepseek-ai/dsh-util-values`            |            2 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
+| `workspace/workspace`            | `@deepseek-ai/dsh-workspace`              |            5 | In the agent-loop closure; compiled from the submodule and executed by every JARVIS turn (foreground and the computer carrying on).                                             |
 
 ## DIRECT PENDING
 
@@ -71,7 +72,6 @@ Every package manifest under `packages/` of the pinned submodule (`external/deep
 | `skill/tool-skill`                         | `@deepseek-ai/dsh-tool-skill`                    |            1 | Skill registry and model-facing skill loading; needs an OCADE-owned provider (no filesystem skills in a browser).                                                        |
 | `spill/spill`                              | `@deepseek-ai/dsh-spill`                         |            2 | Token-budgeted tool-result retention with recoverable text; needs an OCADE spill store (Supabase/R2) instead of spill-local.                                             |
 | `spill/spill-policy`                       | `@deepseek-ai/dsh-spill-policy`                  |            4 | Token-budgeted tool-result retention with recoverable text; needs an OCADE spill store (Supabase/R2) instead of spill-local.                                             |
-| `todo/tool-todo`                           | `@deepseek-ai/dsh-tool-todo`                     |            3 | Model-facing plan/checklist and ask-user over event-sourced session state; need an OCADE task-card presentation and server-owned answers.                                |
 | `util/chunked-list`                        | `@deepseek-ai/dsh-chunked-list`                  |            1 | Pure helpers; adopted when a connected package needs them (no standalone value).                                                                                         |
 | `util/code-language`                       | `@deepseek-ai/dsh-util-code-language`            |            1 | Pure helpers; adopted when a connected package needs them (no standalone value).                                                                                         |
 | `util/deque`                               | `@deepseek-ai/dsh-deque`                         |            1 | Pure helpers; adopted when a connected package needs them (no standalone value).                                                                                         |

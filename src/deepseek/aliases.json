@@ -23,6 +23,7 @@
   "@deepseek-ai/dsh-storage-domain": "external/deepseek-harness/upstream/packages/storage/storage-domain/src/index.ts",
   "@deepseek-ai/dsh-system-prompt": "external/deepseek-harness/upstream/packages/core/system-prompt/src/index.ts",
   "@deepseek-ai/dsh-timeout": "external/deepseek-harness/upstream/packages/util/timeout/src/index.ts",
+  "@deepseek-ai/dsh-tool-todo": "external/deepseek-harness/upstream/packages/todo/tool-todo/src/index.ts",
   "@deepseek-ai/dsh-tools": "external/deepseek-harness/upstream/packages/core/tools/src/index.ts",
   "@deepseek-ai/dsh-typert-protocol": "external/deepseek-harness/upstream/packages/typert/protocol/src/index.ts",
   "@deepseek-ai/dsh-user-approval": "external/deepseek-harness/upstream/packages/interaction/user-approval/src/index.ts",

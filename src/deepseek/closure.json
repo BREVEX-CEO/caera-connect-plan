@@ -1,6 +1,6 @@
 {
   "pin": "687f282e8625c6b8d11ff58211a90524be2e4317",
-  "entries": ["@deepseek-ai/dsh-agent-loop"],
+  "entries": ["@deepseek-ai/dsh-agent-loop", "@deepseek-ai/dsh-tool-todo"],
   "packages": [
     "@deepseek-ai/cordis",
     "@deepseek-ai/cosmokit",
@@ -21,6 +21,7 @@
     "@deepseek-ai/dsh-storage-domain",
     "@deepseek-ai/dsh-system-prompt",
     "@deepseek-ai/dsh-timeout",
+    "@deepseek-ai/dsh-tool-todo",
     "@deepseek-ai/dsh-tools",
     "@deepseek-ai/dsh-typert-protocol",
     "@deepseek-ai/dsh-user-approval",
@@ -118,6 +119,8 @@
     "packages/storage/storage/src/error.ts",
     "packages/storage/storage/src/index.ts",
     "packages/storage/storage/src/registry.ts",
+    "packages/todo/tool-todo/src/index.ts",
+    "packages/todo/tool-todo/src/types.ts",
     "packages/typert/protocol/src/index.ts",
     "packages/typert/protocol/src/json-value.ts",
     "packages/typert/protocol/src/owned-value.ts",

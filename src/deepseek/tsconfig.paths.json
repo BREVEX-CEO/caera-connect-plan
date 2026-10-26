@@ -73,6 +73,9 @@
       "@deepseek-ai/dsh-timeout": [
         "../../external/deepseek-harness/upstream/packages/util/timeout/src/index.ts"
       ],
+      "@deepseek-ai/dsh-tool-todo": [
+        "../../external/deepseek-harness/upstream/packages/todo/tool-todo/src/index.ts"
+      ],
       "@deepseek-ai/dsh-tools": [
         "../../external/deepseek-harness/upstream/packages/core/tools/src/index.ts"
       ],

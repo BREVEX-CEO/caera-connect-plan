@@ -28,6 +28,7 @@ import type {
   NormalizedAssistantPart,
   NormalizedMessage,
   NormalizedToolCall,
+  NormalizedToolDefinition,
 } from "@/lib/intelligence/contract";
 import {
   browserAction,
@@ -116,6 +117,8 @@ export interface AgentDeps {
   model(input: {
     quality?: IntelligenceQuality;
     messages: NormalizedMessage[];
+    /** Upstream DeepSeek tools offered beside OCADE's own (upstream-turn.ts `upstreamTools`). */
+    tools?: NormalizedToolDefinition[];
     memory: boolean;
     attachments: NormalizedAttachment[];
     signal: AbortSignal;
@@ -144,6 +147,7 @@ export interface AgentDeps {
     status?: TaskStatus;
     expectedStatus?: TaskStatus;
     currentStep?: number;
+    plan?: string[];
     result?: string | null;
     blocker?: string | null;
     controller?: string;
@@ -988,12 +992,17 @@ export async function runJarvisTurn(
   }
 
   /** One model step: OCADE's own call, with a call written as text read as that call. */
-  async function askModel(sent: NormalizedMessage[], answer: string): Promise<ModelStep | null> {
+  async function askModel(
+    sent: NormalizedMessage[],
+    answer: string,
+    tools: NormalizedToolDefinition[],
+  ): Promise<ModelStep | null> {
     let reply: ModelStep | null;
     try {
       reply = await deps.model({
         quality: qualityFor(task),
         messages: sent,
+        ...(tools.length ? { tools } : {}),
         memory: input.memoryEnabled,
         attachments,
         signal: hooks.signal,
@@ -1026,14 +1035,20 @@ export async function runJarvisTurn(
     let finishedWith: string | null = null;
     let modelCalls = 0;
     let endedBy: "steps" | "refusals" | null = null;
+    /** The model's newest checklist (todo_write), written to the task before its next step. */
+    let planned: readonly { content: string; status: string }[] | null = null;
     const turn = await UpstreamTurn.open(
       prefix,
       {
         tools: OCADE_TOOLS,
+        upstreamTools: true,
+        onTodos: (todos) => {
+          planned = todos;
+        },
         readOnly: (name) => READ_ONLY.has(name),
-        async model(sent) {
+        async model(sent, tools) {
           modelCalls += 1;
-          const reply = await askModel(sent, answer);
+          const reply = await askModel(sent, answer, tools);
           if (reply?.text) {
             answer = reply.text;
             hooks.onText(answer);
@@ -1065,6 +1080,19 @@ export async function runJarvisTurn(
           if (modelCalls >= MAX_MODEL_STEPS) {
             endedBy = "steps";
             return "end";
+          }
+          // The open task's card shows the model's own checklist: its steps, and the one it is on.
+          if (planned?.length && task && !FINISHED.includes(task.status)) {
+            const todos = planned.slice(0, 12);
+            const at = todos.findIndex((todo) => todo.status !== "completed");
+            planned = null;
+            setTask(
+              await update({
+                id: task.id,
+                plan: todos.map((todo) => todo.content.slice(0, 200)),
+                currentStep: at < 0 ? todos.length - 1 : at,
+              }),
+            );
           }
           await hooks.live?.waitIfPaused(hooks.signal);
           stopIfAsked();

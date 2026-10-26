@@ -223,6 +223,7 @@ const FINAL_REFUSALS = [
 async function askOnce(
   {
     messages,
+    tools: upstream = [],
     memory,
     attachments,
     signal,
@@ -251,7 +252,10 @@ async function askOnce(
       quality,
       ...(quality === "high" ? { highModeAcknowledged: HIGH_WARNING_VERSION } : {}),
       messages,
-      tools: jarvisTools(memory, true, webSearchOffered(accountId) && quality !== "high"),
+      tools: [
+        ...jarvisTools(memory, true, webSearchOffered(accountId) && quality !== "high"),
+        ...upstream,
+      ],
       attachments,
       privacy: { onlineInferenceConsented: true, sealed: false },
       conversationId,

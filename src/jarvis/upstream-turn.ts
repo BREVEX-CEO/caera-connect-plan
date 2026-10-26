@@ -26,11 +26,13 @@ import LlmRuntime, {
 import SessionStore, { SessionId } from "@deepseek-ai/dsh-session";
 import SessionProjectionRegistry from "@deepseek-ai/dsh-session-projection";
 import SystemPrompt from "@deepseek-ai/dsh-system-prompt";
+import * as ToolTodo from "@deepseek-ai/dsh-tool-todo";
 import ToolRuntime, { type ToolDefinition } from "@deepseek-ai/dsh-tools";
 import type {
   NormalizedAssistantPart,
   NormalizedMessage,
   NormalizedToolCall,
+  NormalizedToolDefinition,
 } from "@/lib/intelligence/contract";
 import { pruneOlderResults, TURN_BUDGET, toolResultMessage } from "./engine";
 
@@ -46,8 +48,21 @@ export interface UpstreamTurnIO {
   tools: readonly string[];
   /** Calls that only read and may run beside each other. */
   readOnly(name: string): boolean;
-  /** OCADE's model call for exactly these messages; null when no use was available. */
-  model(messages: NormalizedMessage[]): Promise<UpstreamStep | null>;
+  /**
+   * OCADE's model call for exactly these messages, also offering `tools`: upstream's own tools
+   * (`upstreamTools`), in the model route's schema. null when no use was available.
+   */
+  model(
+    messages: NormalizedMessage[],
+    tools: NormalizedToolDefinition[],
+  ): Promise<UpstreamStep | null>;
+  /**
+   * Offer upstream's own model-facing tools, run by upstream's registry: `todo_write`
+   * (@deepseek-ai/dsh-tool-todo), the model's checklist for the work.
+   */
+  upstreamTools?: boolean;
+  /** The checklist as the model last wrote it with `todo_write`. */
+  onTodos?(todos: readonly ToolTodo.TodoItem[]): void;
   /** OCADE's tool authority. A throw ends the turn once the started calls settle. */
   runTool(call: NormalizedToolCall): Promise<unknown>;
   /** Whether this result ends the turn with no further model call (a recorded finish). */
@@ -135,6 +150,7 @@ export class UpstreamTurn {
     await ctx.plugin(ToolRuntime);
     await ctx.plugin(AgentRegistry);
     await ctx.plugin(AgentLoop, { agents: [], maxParallelToolCalls: TURN_BUDGET.parallelReads });
+    if (io.upstreamTools) await ctx.plugin(ToolTodo, { allowParallelInProgress: false });
     ctx.llm.registerAdapter(["ocade"], new OcadeModel(turn));
     for (const name of io.tools) ctx.tools.register(turn.tool(name));
     ctx.on("agent/pre-step", async ({ step }, next) => {
@@ -159,7 +175,9 @@ export class UpstreamTurn {
       return { ...decision, messages: [...decision.messages, message] };
     });
     ctx.on("session/event", (session, event) => {
-      if (session !== turn.agent?.session || event.type !== "step/end") return;
+      if (session !== turn.agent?.session) return;
+      if (event.type === "todo/write") io.onTodos?.(event.data.todos);
+      if (event.type !== "step/end") return;
       const work = turn.work();
       if (work.some((message) => message.toolResult)) io.afterTools(work);
     });
@@ -260,6 +278,11 @@ export class UpstreamTurn {
     );
   }
 
+  /** A tool upstream's registry runs itself (`upstreamTools`), not one of OCADE's. */
+  private upstream(name: string): boolean {
+    return !this.io.tools.includes(name) && this.ctx.tools.get(name) !== undefined;
+  }
+
   /** OCADE's answer to one logged call, or why it never ran (the loop's own placeholder). */
   private valueOf(id: string): unknown {
     if (this.answers.has(id)) return this.answers.get(id);
@@ -278,7 +301,11 @@ export class UpstreamTurn {
       } else if (message.role === "tool") {
         const call = this.calls.get(message.toolCallId);
         if (call) {
-          entries.push({ kind: "tool", call, value: this.valueOf(message.toolCallId) });
+          // Upstream's own tools answer in the log; OCADE's answers are its own (valueOf).
+          const value = this.upstream(call.name)
+            ? textOf(message.content)
+            : this.valueOf(message.toolCallId);
+          entries.push({ kind: "tool", call, value });
         }
       }
     }
@@ -328,7 +355,15 @@ export class UpstreamTurn {
   async step(options: GenerateOptions): Promise<StreamChunk[]> {
     let reply: UpstreamStep | null;
     try {
-      reply = await this.io.model(this.messagesFor(options.messages));
+      // Upstream's own tools as the loop offers them; OCADE's are declared by OCADE's call.
+      const offered = (options.tools ?? [])
+        .filter((tool) => this.upstream(tool.name))
+        .map((tool) => ({
+          name: tool.name,
+          description: tool.description,
+          inputSchema: routeSchema(tool.parameters),
+        }));
+      reply = await this.io.model(this.messagesFor(options.messages), offered);
     } catch (error) {
       this.fail(error);
       throw error;
@@ -348,8 +383,10 @@ export class UpstreamTurn {
       const id = ToolCallId(`ocade-call-${(this.serial += 1)}`);
       const index = chunks.length / 2;
       this.calls.set(id, call);
-      // The registry never runs a name OCADE does not offer: OCADE still answers it, its way.
-      if (!this.io.tools.includes(call.name)) this.answers.set(id, await this.io.runTool(call));
+      // The registry never runs a name nobody offers: OCADE still answers it, its way.
+      if (!this.io.tools.includes(call.name) && !this.upstream(call.name)) {
+        this.answers.set(id, await this.io.runTool(call));
+      }
       chunks.push(
         { type: "block-start", index, blockType: "tool-call" },
         {
@@ -376,6 +413,26 @@ export class UpstreamTurn {
     );
     return chunks;
   }
+}
+
+/**
+ * An upstream tool's JSON Schema in the model route's own schema dialect (src/jarvis/protocol.ts
+ * `obj`): upper-case types, and only the keywords that dialect has.
+ */
+export function routeSchema(schema: unknown): Record<string, unknown> {
+  const node = (schema ?? {}) as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  if (typeof node.type === "string") out.type = node.type.toUpperCase();
+  if (typeof node.description === "string") out.description = node.description;
+  if (Array.isArray(node.enum)) out.enum = node.enum;
+  if (Array.isArray(node.required) && node.required.length) out.required = node.required;
+  if (node.items) out.items = routeSchema(node.items);
+  if (node.properties && typeof node.properties === "object") {
+    out.properties = Object.fromEntries(
+      Object.entries(node.properties).map(([key, value]) => [key, routeSchema(value)]),
+    );
+  }
+  return out;
 }
 
 function textOf(content: readonly ContentBlock[]): string {

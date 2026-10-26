@@ -103,6 +103,31 @@ function harness(
 }
 
 describe("a JARVIS turn", () => {
+  it("offers upstream's todo_write, and the task card shows the model's checklist (DeepSeek tool-todo)", async () => {
+    const todos = [
+      { content: "Open the sheet", status: "completed" },
+      { content: "Fill in the totals", status: "in_progress" },
+      { content: "Save it", status: "pending" },
+    ];
+    const h = harness([
+      { text: "", toolCalls: [call("todo_write", { todos })] },
+      { text: "Working on the totals.", toolCalls: [] },
+    ]);
+    await runJarvisTurn({ ...h.input, task: { ...TASK } }, h.hooks, h.deps);
+    expect(h.deps.model).toHaveBeenCalledWith(
+      expect.objectContaining({ tools: [expect.objectContaining({ name: "todo_write" })] }),
+    );
+    expect(h.deps.updateTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: TASK.id,
+        plan: ["Open the sheet", "Fill in the totals", "Save it"],
+        currentStep: 1,
+      }),
+    );
+    // Upstream's registry answered it; OCADE queued nothing for the device.
+    expect(h.queued).toEqual([]);
+  });
+
   it("resumes with the saved High choice even when this tab selected Standard", async () => {
     const h = harness([{ text: "done", toolCalls: [] }]);
     await runJarvisTurn(

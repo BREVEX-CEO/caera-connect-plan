@@ -4,7 +4,7 @@ import { TURN_BUDGET } from "../engine";
 import { UpstreamTurn, type UpstreamStep, type UpstreamTurnIO } from "../upstream-turn";
 
 /**
- * The vendored DeepSeek Harness agent loop driving a turn, with OCADE's side scripted: these
+ * DeepSeek Harness's own agent loop (compiled from the pinned submodule) driving a turn, with OCADE's side scripted: these
  * prove the upstream machinery itself runs (its log, its scheduler, its cancellation), not a copy.
  */
 function io(replies: (UpstreamStep | null)[], overrides: Partial<UpstreamTurnIO> = {}) {
@@ -39,7 +39,77 @@ const call = (id: string, name = "browser", args: Record<string, unknown> = {}) 
   arguments: args,
 });
 
-describe("a turn on the vendored DeepSeek agent loop", () => {
+describe("upstream's own tools in an OCADE turn", () => {
+  it("offers todo_write, runs it in upstream's registry, and hands OCADE the checklist", async () => {
+    const lists: unknown[] = [];
+    const offered: string[][] = [];
+    const todos = [
+      { content: "Open the report", status: "completed" },
+      { content: "Fill the totals", status: "in_progress" },
+    ];
+    const h = io([{ text: "", toolCalls: [call("t1", "todo_write", { todos })] }], {
+      upstreamTools: true,
+      onTodos: (list) => lists.push(list),
+    });
+    const model = h.io.model;
+    h.io.model = async (messages, tools) => {
+      offered.push(tools.map((tool) => tool.name));
+      return model(messages, tools);
+    };
+    const turn = await UpstreamTurn.open(PREFIX, h.io, new AbortController().signal);
+    expect(await turn.run("do the report")).toBe("answered");
+    await turn.close();
+    expect(offered[0]).toEqual(["todo_write"]);
+    // Upstream ran it, not OCADE's tool authority, and logged the list it wrote.
+    expect(h.ran).toEqual([]);
+    expect(lists).toEqual([todos]);
+    expect(h.sent[1]!.at(-1)).toMatchObject({
+      content: expect.stringContaining("Updated todo list: 0 pending, 1 in progress, 1 completed."),
+      toolResult: { callId: "t1", name: "todo_write" },
+    });
+  });
+
+  it("refuses a list upstream's own rules reject, and the model reads why", async () => {
+    const h = io(
+      [
+        {
+          text: "",
+          toolCalls: [
+            call("t1", "todo_write", {
+              todos: [
+                { content: "A", status: "in_progress" },
+                { content: "B", status: "in_progress" },
+              ],
+            }),
+          ],
+        },
+      ],
+      { upstreamTools: true, onTodos: () => expect.unreachable() },
+    );
+    const turn = await UpstreamTurn.open(PREFIX, h.io, new AbortController().signal);
+    await turn.run("go");
+    await turn.close();
+    expect(String(h.sent[1]!.at(-1)!.content)).toContain("at most one task may be in_progress");
+  });
+
+  it("offers nothing of upstream's unless asked (the computer carrying on)", async () => {
+    const offered: string[][] = [];
+    const h = io([{ text: "", toolCalls: [call("t1", "todo_write", { todos: [] })] }]);
+    const model = h.io.model;
+    h.io.model = async (messages, tools) => {
+      offered.push(tools.map((tool) => tool.name));
+      return model(messages, tools);
+    };
+    const turn = await UpstreamTurn.open(PREFIX, h.io, new AbortController().signal);
+    await turn.run("go");
+    await turn.close();
+    expect(offered[0]).toEqual([]);
+    // A name nobody offered is answered by OCADE, its way.
+    expect(h.ran).toEqual(["t1"]);
+  });
+});
+
+describe("a turn on DeepSeek Harness's own agent loop", () => {
   it("feeds the model OCADE's prefix, the person's text, the reply and each result", async () => {
     const h = io([{ text: "looking", toolCalls: [call("c1")] }]);
     const turn = await UpstreamTurn.open(PREFIX, h.io, new AbortController().signal);

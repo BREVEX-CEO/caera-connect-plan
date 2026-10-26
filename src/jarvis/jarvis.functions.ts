@@ -473,6 +473,7 @@ export const updateJarvisTask = createServerFn({ method: "POST" })
         status: z.enum(TASK_STATUSES).optional(),
         expectedStatus: z.enum(TASK_STATUSES).optional(),
         currentStep: z.number().int().min(0).max(12).optional(),
+        plan: z.array(z.string().trim().min(1).max(200)).min(1).max(12).optional(),
         result: z.string().max(8000).nullable().optional(),
         blocker: z.string().max(300).nullable().optional(),
         /** Claim the task for this planning loop; any other loop stops queueing. */
