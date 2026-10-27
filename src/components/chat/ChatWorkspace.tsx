@@ -1,4 +1,4 @@
-import { QualityControl } from "@/lib/intelligence/QualityControl";
+import { HighConfirm, QualityControl } from "@/lib/intelligence/QualityControl";
 import { useIntelligenceQuality } from "@/lib/intelligence/use-intelligence-quality";
 /**
  * THE PRODUCT HOME.
@@ -95,6 +95,8 @@ export function ChatWorkspace() {
   const [choice, setChoice] = useState<IntelligenceChoice>("auto");
   const online = useOnline();
   const { quality, selectQuality } = useIntelligenceQuality(`${user?.id ?? ""}:${choice}`);
+  // Standard was busy: High is offered once the person asks for it, and used only after its warning.
+  const [offeringHigh, setOfferingHigh] = useState(false);
   const [thinking, setThinking] = useState(false);
   /*
    * OFFERED ONLY WHERE IT CAN BE KEPT.
@@ -735,24 +737,50 @@ export function ChatWorkspace() {
               who has not managed to do one thing yet.
             */}
             {chat.problem ? (
-              <p className="mt-3 text-center text-[13px] text-foreground" role="alert">
-                {chat.problem}{" "}
-                {/*
+              <>
+                <p className="mt-3 text-center text-[13px] text-foreground" role="alert">
+                  {chat.problem}{" "}
+                  {/*
                   RETRY IS REGENERATE ON THE LAST QUESTION. A failed generation
                   leaves the question in the transcript and no answer under it,
                   so the thing to try again is already identified.
                 */}
-                {lastQuestionId ? (
-                  <button
-                    type="button"
-                    disabled={chat.busy}
-                    onClick={() => void chat.resend(lastQuestionId, choice, undefined, quality)}
-                    className="text-foreground underline underline-offset-2 disabled:opacity-40"
-                  >
-                    Try again
-                  </button>
+                  {lastQuestionId ? (
+                    <button
+                      type="button"
+                      disabled={chat.busy}
+                      onClick={() => void chat.resend(lastQuestionId, choice, undefined, quality)}
+                      className="text-foreground underline underline-offset-2 disabled:opacity-40"
+                    >
+                      Try again
+                    </button>
+                  ) : null}
+                  {chat.standardBusy && lastQuestionId && !offeringHigh ? (
+                    <>
+                      {" "}
+                      <button
+                        type="button"
+                        disabled={chat.busy}
+                        onClick={() => setOfferingHigh(true)}
+                        className="text-foreground underline underline-offset-2 disabled:opacity-40"
+                      >
+                        Try with High
+                      </button>
+                    </>
+                  ) : null}
+                </p>
+                {chat.standardBusy && lastQuestionId && offeringHigh ? (
+                  <HighConfirm
+                    label="Use High and try again"
+                    onConfirm={() => {
+                      setOfferingHigh(false);
+                      selectQuality("high");
+                      void chat.resend(lastQuestionId, choice, undefined, "high");
+                    }}
+                    onCancel={() => setOfferingHigh(false)}
+                  />
                 ) : null}
-              </p>
+              </>
             ) : rejected ? (
               <p className="mt-3 text-center text-[13px] text-muted-foreground" role="status">
                 {rejected.name}: {rejected.reason}

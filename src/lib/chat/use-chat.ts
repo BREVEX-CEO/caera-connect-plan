@@ -110,6 +110,8 @@ export interface ChatState {
   busy: boolean;
   /** One line, already in OCADE's words. Never a provider's. */
   problem: string | null;
+  /** The problem is Standard being busy or unavailable: High may be offered, never chosen for them. */
+  standardBusy: boolean;
   loadingConversations: boolean;
   /** The history read failed. Not the same as an account with no history. */
   conversationsFailed: boolean;
@@ -204,6 +206,7 @@ export function useChat(): ChatState & ChatActions {
   const [streaming, setStreaming] = useState("");
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const [busyProblem, setBusyProblem] = useState<string | null>(null);
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [conversationsFailed, setConversationsFailed] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -646,6 +649,7 @@ export function useChat(): ChatState & ChatActions {
         /** What the person actually saw. Only this is charged and kept. */
         let shown = "";
         let refusal: string | null = null;
+        let refusalCode: string | null = null;
 
         try {
           for await (const event of ocadeIntelligence().stream({
@@ -683,6 +687,7 @@ export function useChat(): ChatState & ChatActions {
               }
             } else if (event.type === "refusal") {
               refusal = event.reason;
+              refusalCode = event.code;
             }
           }
         } catch (cause) {
@@ -727,7 +732,11 @@ export function useChat(): ChatState & ChatActions {
           // before anything arrived does not need to be told OCADE could not
           // answer. A refusal or a genuine empty answer still says so.
           if (!controller.signal.aborted) {
-            setProblem(refusal ?? "OCADE could not answer that. Try again.");
+            const said = refusal ?? "OCADE could not answer that. Try again.";
+            setProblem(said);
+            const busy =
+              refusalCode === "provider_rate_limited" || refusalCode === "online_unavailable";
+            setBusyProblem(busy && choice === "online" && quality === "standard" ? said : null);
           }
           // Accepted: the question is in the transcript, and Retry re-asks it
           // from there. Returning it to the composer would make two of it.
@@ -1084,6 +1093,7 @@ export function useChat(): ChatState & ChatActions {
       streaming,
       busy,
       problem,
+      standardBusy: problem !== null && problem === busyProblem,
       loadingConversations,
       conversationsFailed,
       loadingMessages,
@@ -1114,6 +1124,7 @@ export function useChat(): ChatState & ChatActions {
       streaming,
       busy,
       problem,
+      busyProblem,
       loadingConversations,
       conversationsFailed,
       loadingMessages,

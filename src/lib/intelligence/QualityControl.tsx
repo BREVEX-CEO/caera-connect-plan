@@ -52,22 +52,14 @@ export function QualityControl({
         ))}
       </div>
       {asking && !disabled ? (
-        <div role="alert" className="mt-2 space-y-2">
-          <p>{HIGH_USAGE_WARNING} Availability must be verified before anything is sent.</p>
-          <button
-            type="button"
-            className="h-7 rounded-full border border-border px-3"
-            onClick={() => {
-              setAsking(false);
-              onChange("high");
-            }}
-          >
-            Enable High
-          </button>{" "}
-          <button type="button" onClick={() => setAsking(false)}>
-            Cancel
-          </button>
-        </div>
+        <HighConfirm
+          label="Enable High"
+          onConfirm={() => {
+            setAsking(false);
+            onChange("high");
+          }}
+          onCancel={() => setAsking(false)}
+        />
       ) : null}
       {value === "high" ? (
         <p role="status" className="mt-2">
@@ -75,6 +67,33 @@ export function QualityControl({
           {disabled ? " This task keeps its selected mode until it ends." : ""}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+/** The one acknowledgement High needs before it is used: its warning, then the person's own yes. */
+export function HighConfirm({
+  label,
+  onConfirm,
+  onCancel,
+}: {
+  label: string;
+  onConfirm(): void;
+  onCancel(): void;
+}) {
+  return (
+    <div role="alert" className="mt-2 space-y-2">
+      <p>{HIGH_USAGE_WARNING} Availability must be verified before anything is sent.</p>
+      <button
+        type="button"
+        className="h-7 rounded-full border border-border px-3"
+        onClick={onConfirm}
+      >
+        {label}
+      </button>{" "}
+      <button type="button" onClick={onCancel}>
+        Cancel
+      </button>
     </div>
   );
 }

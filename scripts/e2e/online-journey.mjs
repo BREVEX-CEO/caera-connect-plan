@@ -235,6 +235,31 @@ try {
   );
 
   /*
+   * STANDARD COULD NOT ANSWER: HIGH IS OFFERED, NEVER CHOSEN FOR THE PERSON. Its warning comes
+   * first and only their yes sends the question again with High. The boundary is still
+   * refusing, so the meter checks below also prove the High retry cost nothing.
+   */
+  const offerHigh = page.getByRole("button", { name: "Try with High" });
+  check("High is offered when Standard cannot answer", await offerHigh.isVisible());
+  const askedBefore = JSON.stringify(await lastBoundaryRequest());
+  await offerHigh.click();
+  check(
+    "High shows its warning, and nothing is sent before the person agrees",
+    (await page
+      .getByText(/High mode can consume/)
+      .first()
+      .isVisible()) && JSON.stringify(await lastBoundaryRequest()) === askedBefore,
+  );
+  await page.getByRole("button", { name: "Use High and try again" }).click();
+  await page.waitForTimeout(3000);
+  const retried = await lastBoundaryRequest();
+  check(
+    "the person's yes sends the same question again with High, its warning acknowledged",
+    retried.quality === "high" && retried.highAcknowledged === true,
+    JSON.stringify({ quality: retried.quality, acknowledged: retried.highAcknowledged }),
+  );
+
+  /*
    * THE METER BESIDE THE COMPOSER, WHICH NOTHING REMOUNTED.
    *
    * Settings refetches when it opens, so the check below reads the settled

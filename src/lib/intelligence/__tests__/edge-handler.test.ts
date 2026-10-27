@@ -1091,6 +1091,37 @@ describe("capacity failures that must not look like each other", () => {
     });
   });
 
+  it("spends no permit or provider call inside a quota wait the provider already named", async () => {
+    let now = 1_000_000;
+    const spent = () =>
+      new Response(JSON.stringify({ error: { details: [{ retryDelay: "60s" }] } }), {
+        status: 429,
+      });
+    const quotaReturnsAt = new Map();
+    const callProvider = vi.fn(async () => spent());
+    const claimPermit = vi.fn(async () => ({ ok: true as const }));
+    const deps = () => dependencies({ callProvider, claimPermit, quotaReturnsAt, now: () => now });
+    expect((await handleOnlineIntelligence(request(), deps())).status).toBe(429);
+    expect(callProvider).toHaveBeenCalledTimes(1);
+
+    now += 20_000;
+    const inside = await handleOnlineIntelligence(request(), deps());
+    expect(inside.status).toBe(429);
+    expect(await inside.json()).toEqual({ error: "provider_unavailable", retryAfterSeconds: 40 });
+    expect(callProvider).toHaveBeenCalledTimes(1);
+    expect(claimPermit).toHaveBeenCalledTimes(1);
+
+    // Once the named wait is over the provider is asked again.
+    now += 41_000;
+    callProvider.mockImplementation(async () =>
+      provider([{ candidates: [{ content: { parts: [{ text: "ok" }] }, finishReason: "STOP" }] }]),
+    );
+    const after = await handleOnlineIntelligence(request(), deps());
+    expect(after.status).toBe(200);
+    await after.text();
+    expect(callProvider).toHaveBeenCalledTimes(2);
+  });
+
   it("says once that a web search is not in the plan, instead of retrying it as busy", async () => {
     // What the free tier answers to grounding with Google Search: a 429 with no time to wait.
     const refused = () =>

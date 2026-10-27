@@ -169,6 +169,7 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
     CONFIGURED_SLOTS.length > 0,
   ),
   providerSlots: CONFIGURED_SLOTS,
+  quotaReturnsAt: new Map(),
   highAvailable: (signal) => highIncluded(CF_ACCOUNT, CF_TOKEN, signal),
   observe,
   model: GEMINI_MODEL,

@@ -147,6 +147,12 @@ export interface OnlineHandlerDependencies {
    * empty means the caller has not said, and one primary attempt is made.
    */
   providerSlots?: readonly ProviderKeySlot[];
+  /**
+   * When each model's project quota returns, as the provider last named it (ms since epoch).
+   * The deployment holds one for its instance, so a request inside a named wait is answered
+   * at once: no permit claimed, no provider call spent against a quota already known spent.
+   */
+  quotaReturnsAt?: Map<OnlineModelId, number>;
   callProvider(input: {
     model: OnlineModelId;
     body: Record<string, unknown>;
@@ -937,6 +943,11 @@ async function runOnlineIntelligence(
   if (deps.consented && !(await deps.consented(identity.userId))) {
     return json(403, { error: "online_not_consented" }, origin);
   }
+  const spentFor = (deps.quotaReturnsAt?.get(configured) ?? 0) - (deps.now ?? Date.now)();
+  if (spentFor > 0) {
+    const retryAfterSeconds = Math.ceil(spentFor / 1_000);
+    return json(429, { error: "provider_unavailable", retryAfterSeconds }, origin);
+  }
   const claimed = await deps.claimPermit({ userId: identity.userId, permit: body.permit });
   if (!claimed.ok) return json(409, { error: "permit_refused", reason: claimed.reason }, origin);
 
@@ -1077,6 +1088,7 @@ async function runOnlineIntelligence(
         // provider asks for that is longer than a moment is not slept here, and never cut short.
         if (wait !== undefined && wait > MAX_INLINE_WAIT_MS) {
           capacityReturnsIn = Math.ceil(wait / 1_000);
+          deps.quotaReturnsAt?.set(configured, (deps.now ?? Date.now)() + wait);
           break;
         }
         if (last) break;

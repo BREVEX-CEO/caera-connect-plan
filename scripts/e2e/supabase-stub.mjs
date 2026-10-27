@@ -2827,6 +2827,9 @@ const server = createServer((request, response) => {
           text: typeof attachment?.text === "string" ? attachment.text.slice(0, 200) : null,
         })),
         research: parsed.research === true,
+        // The answer quality asked for, and whether High's warning was acknowledged.
+        quality: parsed.quality ?? null,
+        highAcknowledged: typeof parsed.highModeAcknowledged === "string",
         // The tools the model was offered, by name.
         tools: (parsed.tools ?? []).map((tool) => tool?.name ?? null),
         systemPrompts: (parsed.messages ?? [])
