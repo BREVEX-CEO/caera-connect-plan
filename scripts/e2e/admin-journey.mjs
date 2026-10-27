@@ -155,7 +155,9 @@ const tab = (page, name) =>
 const sidebarEntry = (page, name) =>
   page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name, exact: true });
 async function consoleOf(page, heading) {
-  await page.goto(`${SITE}/`, { waitUntil: "load" });
+  // Settled, not just loaded: a menu button tapped before the page is live opens nothing
+  // (JOURNEY-27-02, the phone-sized Admin), as the shell journey already waits.
+  await page.goto(`${SITE}/`, { waitUntil: "networkidle" });
   // On a phone the sidebar is a drawer behind the menu button.
   const drawer = page.getByRole("button", { name: "Open navigation" });
   if (await seen(drawer, 5_000)) await drawer.click();
