@@ -1486,10 +1486,15 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
     const ledger = await fetch(`${SUPABASE}/__fixture/usage?user=${session.user.id}`).then((r) =>
       r.json(),
     );
-    const spent =
-      (ledger.usage.find((row) => row.kind === "jarvis_session")?.usedHundredths ?? 0) / 100;
+    // A session window can end during the journey (JOURNEY-27-03, 10:04 UTC): the account's
+    // spend is every window it used, and the meter shows the window it is in now.
+    const windows = ledger.usage
+      .filter((row) => row.kind === "jarvis_session")
+      .sort((a, b) => a.startsAt - b.startsAt);
+    const spent = windows.reduce((sum, row) => sum + row.usedHundredths, 0) / 100;
+    const now = (windows.at(-1)?.usedHundredths ?? 0) / 100;
     await until(
-      async () => startUses - Number((await meter.innerText()).split(" ")[0]) === spent,
+      async () => startUses - Number((await meter.innerText()).split(" ")[0]) === now,
       15_000,
     );
     const afterUses = Number((await meter.innerText()).split(" ")[0]);
@@ -1502,8 +1507,8 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
     );
     check(
       "the JARVIS meter shows exactly what was charged: the answers and the completed tasks",
-      startUses - afterUses === spent && spent >= 1 + completed.length,
-      `${startUses} → ${afterUses}, ledger ${spent}`,
+      startUses - afterUses === now && spent >= 1 + completed.length,
+      `${startUses} → ${afterUses}, this window ${now}, ledger ${spent} over ${windows.length}`,
     );
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
     await page.waitForSelector("text=of 28 left", { timeout: 15_000 });
