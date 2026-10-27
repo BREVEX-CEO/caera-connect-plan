@@ -360,6 +360,20 @@ def installed_apps() -> list[dict]:
     return sorted(usable, key=lambda a: a["name"].lower())[:MOST_APPS]
 
 
+def office_converter() -> str | None:
+    """A program here that saves office files as PDF without a window (`soffice --convert-to`):
+    on the path, or behind one of the apps found on this device, never a fixed install folder."""
+    if found := shutil.which("soffice") or shutil.which("libreoffice"):
+        return found
+    from ocade_discovery import _program
+    for app in installed_apps():
+        launch = Path(str(app["launch"]))
+        program = launch / "Contents/MacOS/soffice" if launch.suffix == ".app" else Path(_program(app) or "")
+        if program.stem.lower() == "soffice" and program.is_file():
+            return str(program)
+    return None
+
+
 def _start_apps() -> list[dict]:
     """Windows' own list of Start apps (Get-StartApps): name and AppsFolder id."""
     try:
@@ -1122,10 +1136,7 @@ class Computer:
             return {"status": "failed", "summary": "Give an existing .docx, .xlsx or .pptx in the work folder"}
         if path.suffix.lower() != ".pdf" or path.exists():
             return {"status": "failed", "summary": f"{rel} must be a new .pdf name (nothing is overwritten)"}
-        program = shutil.which("soffice") or shutil.which("libreoffice") or next(
-            (p for p in (r"C:\Program Files\LibreOffice\program\soffice.exe",
-                         "/Applications/LibreOffice.app/Contents/MacOS/soffice") if Path(p).is_file()), None)
-        if not program:
+        if not (program := office_converter()):
             return {"status": "failed", "summary": "No app that saves PDFs is installed here (LibreOffice)"}
         with tempfile.TemporaryDirectory() as work:
             extra = ({"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)} if SYSTEM == "Windows"

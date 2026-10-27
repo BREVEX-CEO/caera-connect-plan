@@ -506,6 +506,20 @@ class AppsTest(unittest.TestCase):
         apps = ocade_computer.installed_apps()
         self.assertTrue(any(a.get("aumid") and "!" in a["launch"] for a in apps))
 
+    def test_the_pdf_converter_is_found_behind_an_app_this_device_lists(self):
+        bundle = Path(tempfile.mkdtemp(), "Office Suite.app")
+        program = bundle / "Contents/MacOS/soffice"
+        program.parent.mkdir(parents=True)
+        program.write_text("")
+        with unittest.mock.patch.object(ocade_computer.shutil, "which", return_value=None), \
+                unittest.mock.patch.object(ocade_computer, "installed_apps", return_value=[
+                    {"name": "Notes", "launch": str(bundle.parent / "Notes.app")},
+                    {"name": "Office Suite", "launch": str(bundle)}]):
+            self.assertEqual(ocade_computer.office_converter(), str(program))
+        with unittest.mock.patch.object(ocade_computer.shutil, "which", return_value=None), \
+                unittest.mock.patch.object(ocade_computer, "installed_apps", return_value=[]):
+            self.assertIsNone(ocade_computer.office_converter())
+
     @unittest.skipUnless(sys.platform.startswith("linux"), "Linux .desktop entries")
     def test_finds_installed_apps_and_launches_only_those(self):
         data = Path(tempfile.mkdtemp())
