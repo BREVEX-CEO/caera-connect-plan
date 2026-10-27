@@ -935,14 +935,23 @@ print(json.dumps({"formula": s["B4"].value, "sum": sum(s.cell(r, 2).value for r 
       await page.locator("#jarvis-composer").fill(text);
       await page.getByRole("button", { name: "Send to JARVIS while it works" }).click();
     };
+    // Saving the exchange is slow here on purpose: the answer needs no save and no model.
+    const slowSaves = (ms) =>
+      fetch(`${SUPABASE}/__fixture/slow-writes`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(ms ? { table: "ocade_messages", ms } : {}),
+      });
+    await slowSaves(6_000);
     await interject("OCADE what are you doing?");
     check(
-      "“what are you doing?” is answered at once from the real task",
+      "“what are you doing?” is answered at once from the real task, even while saving is slow",
       await until(
         async () => (await page.getByText(/I'm working on “Tidy the notes”/).count()) >= 1,
-        5_000,
+        3_000,
       ),
     );
+    await slowSaves(0);
     await interject("wait");
     check(
       "“wait” pauses the work",

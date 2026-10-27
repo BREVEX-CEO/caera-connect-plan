@@ -1909,6 +1909,8 @@ const OTP_CODE = "123456";
 
 /** One write the stub has been told to refuse. `/__fixture/refuse` sets it. */
 const refusals = { table: null, method: null };
+/** Writes to one table answered late, as on a slow network: the row is kept at once. */
+const slowWrites = { table: null, ms: 0 };
 
 /** What `/auth/v1/settings` reports. `/__fixture/auth-providers` changes it. */
 const authProviders = { google: true, email: true };
@@ -1937,7 +1939,15 @@ const server = createServer((request, response) => {
   });
   request.on("end", () => {
     const rawBody = Buffer.concat(pieces);
+    const late =
+      slowWrites.ms > 0 &&
+      request.method === "POST" &&
+      url.pathname === `/rest/v1/${slowWrites.table}`;
     const send = (status, payload, headers = {}) => {
+      if (late) return void setTimeout(() => answer(status, payload, headers), slowWrites.ms);
+      answer(status, payload, headers);
+    };
+    const answer = (status, payload, headers) => {
       const text = payload === undefined ? "" : JSON.stringify(payload);
       response.writeHead(status, {
         "content-type": "application/json",
@@ -2102,6 +2112,14 @@ const server = createServer((request, response) => {
       refusals.table = next.table ?? null;
       refusals.method = next.method ?? null;
       return send(200, { ok: true, refusing: refusals.table });
+    }
+
+    if (url.pathname === "/__fixture/slow-writes") {
+      // POST {"table":"ocade_messages","ms":6000}: saving there answers that much later; {} clears.
+      const next = JSON.parse(body || "{}");
+      slowWrites.table = next.table ?? null;
+      slowWrites.ms = Number(next.ms) || 0;
+      return send(200, { ok: true, ...slowWrites });
     }
 
     if (url.pathname === "/__fixture/slow-settlement") {

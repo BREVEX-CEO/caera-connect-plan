@@ -677,24 +677,20 @@ export function JarvisWorkspace({
 
   /** What the person said and OCADE's own answer to it (no model): shown, kept and spoken. */
   const record = async (id: string, text: string, reply: string, fromVoice: boolean) => {
-    const owner = ownerRef.current;
-    const add = (role: Turn["role"], content: string, saved: string) =>
-      ownerRef.current === owner && setTurns((list) => [...list, { id: saved, role, content }]);
-    try {
-      const asked = await persistChatMessage({ conversationId: id, role: "user", content: text });
-      add("user", text, asked.record.id);
-      const answered = await persistChatMessage({
-        conversationId: id,
-        role: "assistant",
-        content: reply,
-      });
-      add("assistant", reply, answered.record.id);
-    } catch {
-      // The reply still reaches the person; only the record failed.
-      add("user", text, crypto.randomUUID());
-      add("assistant", reply, crypto.randomUUID());
-    }
+    // Answered at once, then kept: two saves in a row once held the answer back past 5 s
+    // under load (JOURNEY-27-01), though nothing waits on a model.
+    setTurns((list) => [
+      ...list,
+      { id: crypto.randomUUID(), role: "user", content: text },
+      { id: crypto.randomUUID(), role: "assistant", content: reply },
+    ]);
     if (prefs.speak && (fromVoice || voice.state !== "off")) voice.speak(reply);
+    try {
+      await persistChatMessage({ conversationId: id, role: "user", content: text });
+      await persistChatMessage({ conversationId: id, role: "assistant", content: reply });
+    } catch {
+      // The reply already reached the person; only the record failed.
+    }
   };
 
   const lastActivityOf = (task: JarvisTaskRow | null) =>
