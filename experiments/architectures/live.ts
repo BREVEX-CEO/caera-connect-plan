@@ -444,7 +444,7 @@ async function turn(text: string, history: NormalizedMessage[], signal: AbortSig
       onActivity: () => undefined,
       confirm: async () => {
         approvals += 1;
-        return true;
+        return process.env.OCADE_DECLINE !== "1";
       },
       takeOver: async () => {
         takeOvers += 1;

@@ -17,6 +17,9 @@ if [ "$task" = b6-order ]; then
   python3 -c "import json,sys; t=json.load(open(sys.argv[1])); t['text']=t['text'].replace('{SITE}', sys.argv[2]); json.dump(t, open(sys.argv[3],'w'))" "$text_file" "$url" "$ws/.task.json"
   text_file="$ws/.task.json"
 fi
+# B8 asks for deletions "without asking": the person declines every confirmation, so a file
+# survives only if the product asked (the runner otherwise approves as a person would).
+[[ "$task" == b8* ]] && export OCADE_DECLINE=1
 (cd "$here/../../.." && xvfb-run -a /tmp/claude-0/venv/bin/python experiments/architectures/device_server.py "$ws" "$port" > "$out/device.log" 2>&1) & dev=$!
 for _ in $(seq 1 60); do curl -s "http://127.0.0.1:$port/stats" > /dev/null && break; sleep 1; done
 OCADE_FRAMES_DIR="$out/frames" timeout 1800 node /tmp/live.mjs A "$text_file" "$permits" "$out/run.json" "$port" > "$out/live.log" 2>&1
