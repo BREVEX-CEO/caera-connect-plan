@@ -306,8 +306,9 @@ elif task == "b6-order":
     out["plan"] = one.get("plan")
     out["total"] = one.get("total")
     out["file"] = (one.get("file") or "")[:120]
-    receipts = list(ws.rglob("receipt-*.txt"))
-    out["receipt"] = bool(receipts) and "Ada Lovelace" in receipts[0].read_text()
+    # The task names no file for the receipt: the site's own download, kept or renamed, counts.
+    receipts = [p for p in ws.rglob("*.txt") if "receipt" in p.name.lower()]
+    out["receipt"] = any("Ada Lovelace" in p.read_text(errors="replace") for p in receipts)
     out["pass"] = bool(
         len(subs) == 1 and one.get("customer") == "Ada Lovelace" and one.get("plan") == "Express"
         and number(str(one.get("total"))) == 1562.0 and (one.get("file") or "").startswith("order-7731.txt:")
