@@ -370,7 +370,7 @@ class _BrowserSession:
             except Exception:
                 title = ""
             # A query or fragment can carry a session token; the active page's own url stays whole.
-            tabs.append({"index": i, "title": title[:80], "url": re.split(r"[?#]", p.url, 1)[0][:300],
+            tabs.append({"index": i, "title": title[:80], "url": re.split(r"[?#]", p.url, maxsplit=1)[0][:300],
                          "active": p is page})
         out = {"observationId": obs_id, "url": page.url, "title": (await page.title())[:120],
                "tabs": tabs, "viewport": {k: geo.get(k) for k in ("w", "h", "dpr", "zoom", "sx", "sy")},
