@@ -12,6 +12,8 @@ Every package manifest under `packages/` of the pinned submodule (`external/deep
 | INCOMPATIBLE OR UNSAFE  |       56 |
 | **Total reviewed**      |  **344** |
 
+**Re-reviewed 27 October 2026 against the T1 real-model runs.** No row's reason has changed. The compaction, token-meter and spill rows still rest on measurement: across 26 T1 runs the largest single model call was 25.6k input tokens (b5-research-t1c, 22 calls) on a 1M-token model, and OCADE already keeps superseded observations as ids; compaction would add billed summary calls for no gain. Subagents still fail 11 upstream overlap/child specs under the browser async-context shim. Goals, jobs and plan mode would each be a second authority beside the task record, and the remaining adapter rows need a product surface or provider decision named in their reason.
+
 ## DIRECT CONNECTED
 
 | Package path                     | Name                                      | Source files | Reason                                                                                                                                                                          |
