@@ -4,7 +4,7 @@ Appendix C Supplements A–J are the same lists: A = D1, B = D2, C = D3, D = D5,
 
 Every entry of plan.md Appendix D with its status and evidence, as of 27 October 2026 on `ocade/p00-p22-implementation`. Lists 4 and 13 repeat lists 3 and 7 and point to them, so shared work is counted once. Statuses follow plan.md: `VERIFIED PASS` was checked this cycle with the evidence named; `ALREADY VERIFIED` holds from existing code and gates; `EXTERNAL BLOCKED` needs the owner (a setting, content, credential or device); `NOT APPLICABLE` and `PAYMENTS DEFERRED` say why.
 
-Unique entries (lists 4 and 13 excluded): ALREADY VERIFIED 108, CODE DONE — TEST PENDING 1, EXTERNAL BLOCKED 17, NOT APPLICABLE 22, PAYMENTS DEFERRED 5, VERIFIED PASS 63 — 216 in all; 266 source lines.
+Unique entries (lists 4 and 13 excluded): ALREADY VERIFIED 108, EXTERNAL BLOCKED 17, NOT APPLICABLE 22, PAYMENTS DEFERRED 5, VERIFIED PASS 64 — 216 in all; 266 source lines.
 
 ## D1. 16 API Key Leaks to Fix on Your Vibe-Coded AI Chatbot
 
@@ -244,23 +244,23 @@ Unique entries (lists 4 and 13 excluded): ALREADY VERIFIED 108, CODE DONE — TE
 
 ## D10. Systems Check / Launch Poll (03/15 Systems Check)
 
-| ID     | Entry                 | Status                   | Evidence                                                                                                |
-| ------ | --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------- |
-| D10.1  | Mobile tested         | VERIFIED PASS            | Mobile journeys at 360/375; Android device BLOCKED                                                      |
-| D10.2  | All links             | VERIFIED PASS            | See D7.2                                                                                                |
-| D10.3  | Contact form          | NOT APPLICABLE           | No contact form                                                                                         |
-| D10.4  | Loads < 3s            | VERIFIED PASS            | Local build: LCP ≤0.43 s desktop, ≤1.6 s on throttled 4G + 4× CPU (27 Oct); production CDN timing is T1 |
-| D10.5  | Images                | ALREADY VERIFIED         | See D7.10                                                                                               |
-| D10.6  | HTTPS                 | ALREADY VERIFIED         | See D2.8                                                                                                |
-| D10.7  | Chrome + Safari check | EXTERNAL BLOCKED         | Chrome PASS; Safari/WebKit not installable in this environment                                          |
-| D10.8  | No typos              | CODE DONE — TEST PENDING | Copy proof-read during reviews; a final spelling pass is part of T1                                     |
-| D10.9  | WhatsApp button       | NOT APPLICABLE           | No WhatsApp button                                                                                      |
-| D10.10 | Domain email          | EXTERNAL BLOCKED         | See D7.19                                                                                               |
-| D10.11 | Analytics             | NOT APPLICABLE           | No analytics by privacy design                                                                          |
-| D10.12 | Google index          | ALREADY VERIFIED         | `robots.txt` and `sitemap.xml` served; indexing is external                                             |
-| D10.13 | Link preview          | VERIFIED PASS            | Open Graph and Twitter card on every page with a 1200×630 image                                         |
-| D10.14 | Backups               | EXTERNAL BLOCKED         | Database backups/PITR are a Supabase project setting (owner)                                            |
-| D10.15 | Payments              | PAYMENTS DEFERRED        | Payments deferred                                                                                       |
+| ID     | Entry                 | Status            | Evidence                                                                                                                                                                              |
+| ------ | --------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D10.1  | Mobile tested         | VERIFIED PASS     | Mobile journeys at 360/375; Android device BLOCKED                                                                                                                                    |
+| D10.2  | All links             | VERIFIED PASS     | See D7.2                                                                                                                                                                              |
+| D10.3  | Contact form          | NOT APPLICABLE    | No contact form                                                                                                                                                                       |
+| D10.4  | Loads < 3s            | VERIFIED PASS     | Local build: LCP ≤0.43 s desktop, ≤1.6 s on throttled 4G + 4× CPU (27 Oct); production CDN timing is T1                                                                               |
+| D10.5  | Images                | ALREADY VERIFIED  | See D7.10                                                                                                                                                                             |
+| D10.6  | HTTPS                 | ALREADY VERIFIED  | See D2.8                                                                                                                                                                              |
+| D10.7  | Chrome + Safari check | EXTERNAL BLOCKED  | Chrome PASS; Safari/WebKit not installable in this environment                                                                                                                        |
+| D10.8  | No typos              | VERIFIED PASS     | codespell 2.4.3, 27 Oct, over src/components, src/routes, src/jarvis UI, src/lib, jarvis-runtime and public: 0 typos (16 hits, all code names, regexes or the MLT "shotcut" property) |
+| D10.9  | WhatsApp button       | NOT APPLICABLE    | No WhatsApp button                                                                                                                                                                    |
+| D10.10 | Domain email          | EXTERNAL BLOCKED  | See D7.19                                                                                                                                                                             |
+| D10.11 | Analytics             | NOT APPLICABLE    | No analytics by privacy design                                                                                                                                                        |
+| D10.12 | Google index          | ALREADY VERIFIED  | `robots.txt` and `sitemap.xml` served; indexing is external                                                                                                                           |
+| D10.13 | Link preview          | VERIFIED PASS     | Open Graph and Twitter card on every page with a 1200×630 image                                                                                                                       |
+| D10.14 | Backups               | EXTERNAL BLOCKED  | Database backups/PITR are a Supabase project setting (owner)                                                                                                                          |
+| D10.15 | Payments              | PAYMENTS DEFERRED | Payments deferred                                                                                                                                                                     |
 
 ## D11. 20 Things to Have Claude Do So Your App Doesn't Get Sued
 
