@@ -39,6 +39,18 @@ class WorkspaceTest(unittest.TestCase):
         (self.root / "link").symlink_to(self.outside)
         self.pc = Computer(str(self.root))
 
+    def test_file_info_measures_a_picture_as_it_is_shown(self):
+        # b3b-thumb, real model, 27 Oct: a 256x256 check could never be met, nothing measured it.
+        from PIL import Image
+        Image.new("RGB", (256, 128)).save(self.root / "thumb.png")
+        photo = Image.new("RGB", (40, 30))
+        exif = photo.getexif()
+        exif[0x0112] = 6  # the camera marked it turned a quarter
+        photo.save(self.root / "turned.jpg", exif=exif)
+        size = lambda name: self.pc.run({"action": "file_info", "path": name})["info"]["properties"]  # noqa: E731
+        self.assertEqual(size("thumb.png"), {"width": 256, "height": 128})
+        self.assertEqual(size("turned.jpg"), {"width": 30, "height": 40})
+
     def test_paths_never_leave_the_workspace(self):
         for path in ("../secret.txt", str(self.outside), "link", "sub/../../secret.txt"):
             out = self.pc.run({"action": "file_read", "path": path})

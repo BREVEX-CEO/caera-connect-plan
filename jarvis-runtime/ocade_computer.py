@@ -249,6 +249,24 @@ def _media_properties(path: Path, audio: bool = False) -> dict:
     return {k: v for k, v in found.items() if v is not None}
 
 
+IMAGE_SUFFIXES = frozenset(".png .jpg .jpeg .gif .webp .bmp .tif .tiff".split())
+
+
+def _image_properties(path: Path) -> dict:
+    """A picture's width and height in pixels as it is shown: a photo its camera marked as
+    turned (EXIF orientation 5–8) is reported turned."""
+    if path.suffix.lower() not in IMAGE_SUFFIXES:
+        return {}
+    try:
+        from PIL import Image
+        with Image.open(path) as image:
+            width, height = image.size
+            turned = image.getexif().get(0x0112) in (5, 6, 7, 8)
+    except Exception:  # not a readable picture: no properties, never a failed look
+        return {}
+    return {"width": height, "height": width} if turned else {"width": width, "height": height}
+
+
 def _model_properties(path: Path) -> dict:
     """An STL model's triangle count: 0 is an empty model, whatever its size (CAD-22-01)."""
     if path.suffix.lower() != ".stl":
@@ -273,6 +291,8 @@ def file_properties(path: Path, audio: bool = False) -> dict:
         return {}
     if model := _model_properties(path):
         return model
+    if image := _image_properties(path):
+        return image
     if SYSTEM != "Windows":
         return _media_properties(path, audio)
     # Windows: the shell's own properties, and the measured audio when asked (with ffmpeg).
