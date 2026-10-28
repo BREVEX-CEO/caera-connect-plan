@@ -1,5 +1,10 @@
 # OCADE launch repair handoff
 
+## Current cloud repair checkpoint — 28 October 2026
+
+The latest owner instruction authorizes coding/cloud-only testing and branch commits; older STOP/Chrome-only handoffs below remain history. RC01/04/05/06/10 and partial RC17 repairs now exist; [canonical continuation](BLOCKED_TESTS.md#cloud-safety-continuation--28-october-2026) records exact evidence and unresolved work. Adapted remote checks pass, but Python/PostgreSQL/native/full build gates are unrun. **Do not call this coding-complete or launch-ready: vulnerable parser pins, upload cancellation, operation health, semantic verification and Windows isolation remain unresolved.** Read [test evidence](docs/audits/TEST_EVIDENCE.md) before reusing any historical PASS.
+
+
 > **CURRENT — Claude implementation continuation, 20 October 2026.** The owner's later instruction the same day authorised implementation, debloating and disposable-cloud testing on `ocade/p00-p22-implementation` (see [AGENTS](AGENTS.md)). Start at [the continuation record](#claude-implementation-continuation--20-october-2026). The Codex STOP contract below is history.
 >
 > **Earlier the same day — owner STOP instruction to the Codex session (history).** All OCADE/JARVIS/Offline Chat tests and implementation in this Codex session are stopped. This session performs public research, read-only architecture diagnosis, documentation review and an implementation-branch-only documentation commit/push. It does not authorize another PC task, repair, prototype, runner, production operation, cost or scheduled continuation. The earlier browser-only restriction is lifted for research and **future manually initiated isolated benchmarking by Claude**. Historical instructions below are retained as evidence and do not override this instruction.

@@ -65,6 +65,8 @@ const PROVIDER_KEYS: Record<ProviderKeySlot, string> = {
 const CONFIGURED_SLOTS = PROVIDER_KEY_SLOTS.filter((slot) => PROVIDER_KEYS[slot].length > 0);
 const CF_ACCOUNT = Deno.env.get("CLOUDFLARE_ACCOUNT_ID") ?? "";
 const CF_TOKEN = Deno.env.get("CLOUDFLARE_WORKERS_AI_TOKEN") ?? "";
+// Billing eligibility and inference use separately scoped credentials; neither substitutes for the other.
+const CF_BILLING_TOKEN = Deno.env.get("CLOUDFLARE_BILLING_READ_TOKEN") ?? "";
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? DEFAULT_ONLINE_MODEL;
 const allowedOrigins = new Set(
   (Deno.env.get("OCADE_ALLOWED_ORIGINS") ?? "")
@@ -170,7 +172,8 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
   ),
   providerSlots: CONFIGURED_SLOTS,
   quotaReturnsAt: new Map(),
-  highAvailable: (signal) => highIncluded(CF_ACCOUNT, CF_TOKEN, signal),
+  highAvailable: async (signal) =>
+    Boolean(CF_TOKEN) && (await highIncluded(CF_ACCOUNT, CF_BILLING_TOKEN, signal)),
   observe,
   model: GEMINI_MODEL,
   async consented(userId) {
@@ -253,7 +256,7 @@ export const boundary: Omit<OnlineHandlerDependencies, "verifyJwt" | "verifyServ
   async callProvider({ model, body, signal, slot }) {
     if (model === HIGH_ONLINE_MODEL) {
       // Recheck immediately before every dispatch, including retries. Never trust browser flags.
-      if (!(await highIncluded(CF_ACCOUNT, CF_TOKEN, signal))) {
+      if (!CF_TOKEN || !(await highIncluded(CF_ACCOUNT, CF_BILLING_TOKEN, signal))) {
         return new Response(null, { status: 412 });
       }
       return fetch(

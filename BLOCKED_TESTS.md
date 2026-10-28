@@ -1,5 +1,24 @@
 # Blocked, failed and untested checks
 
+## Cloud safety continuation — 28 October 2026
+
+**Current owner authority:** implementation, isolated cloud development/testing and implementation-branch commits are authorized; all older Codex STOP/Chrome-only restrictions below are historical where they conflict. No personal-PC product work, production/staging/infrastructure mutation, secret change, spending, payment activation, main merge, deployment or scheduled continuation is authorized.
+
+**Starting HEAD:** `71e8b637a5f723a33593a39f73d6cccd3573e945`; source inventory: 2,158 tracked blobs/submodule objects, 21 generated full routes from 23 route files. This is metadata coverage, **not a completed semantic audit of the entire codebase**. [Evidence](docs/audits/TEST_EVIDENCE.md), [17-root-cause register](docs/audits/DEFECT_REGISTER.md), [200 + 561 + 190 source-item dispositions](docs/audits/SOURCE_CROSSWALK.md).
+
+**Implemented in this change:** RC01 count/encoded-size-bounded durable results, sent-only exact ACKs, result-free priority controls, server backlog/control admission guard; RC17 duplicate-title refusal, unique close, nonzero HWND/focus/stale-screen guard; RC04/05 Windows path boundary/shim normalization and local Node/Prettier launcher; RC06 dedicated billing-read token with separate inference token and fail-closed missing credentials; RC10 exact `/auth` no-cache and shell-cache invalidation. No new dependency or parallel executor.
+
+**Measured cloud checks:** RC04/05 adapted JavaScript 135/135; RC10 exact service-worker source with mocked browser APIs 20/20; RC06 adapted boundary/eligibility 13/13. These are contract assertions, **not customer workflow trials or native qualification**. Independent source reviews caught and repaired a Resume command-discard race and a missing-HWND fail-open. Python, PostgreSQL, standard Vitest/typecheck/lint/format/build and real native/browser gates are **UNRUN/BLOCKED** for this change.
+
+**Critical unresolved:** RC02/03 known vulnerable parser pins (upstream patched Pillow 13.0.0 and pypdf 6.21.3; compatibility/hostile-file tests required), RC08 blocking uncancellable upload, RC12 exact operation health, RC13 semantic oracles, RC15 Windows OS isolation, full RC17 identity leases/races and all native qualification. One oversized/schema-invalid result remains durable and blocks work; malformed-journal/mixed-version/claim-expiry behavior needs tests. Compatible server-first rollout is mandatory and is not authorized here.
+
+**External blockers:** no connected authorized CPython/Node/PostgreSQL/native cloud runner with verified free allowance; Actions has no current-head runs and recent jobs did not start, with historical billing refusal recorded under CI-00-01. Remote JS cannot execute Wasm/Python. Supabase leaked-password protection remains disabled in both environments; settings unchanged. Real provider/Offline artifact, legal/support/security review, licensed native platforms, five consenting pilots and launch/rollback approvals remain unavailable.
+
+**Next dependency-ready work:** run the added RC01 and RC17 targeted suites in a free authorized cloud runner, repair any failures, then run regression/real STOP fault tests; reproduce and repair RC08, patch/isolate parsers with compatibility proof, and continue Phase 02 only after critical dependencies qualify. Preserve original receipts, scoped files, concurrent changes and truthful effect-unknown outcomes. Do not auto-continue or create schedules.
+
+**Commercial qualification:** 0/10 gates PASS, **0/100 binary commercial-gate index**. Current task success/recovery, p50/p95, cost and competitor benchmarks are NOT MEASURED. Historical reports do not change this status.
+
+
 > **Current — 27 October 2026, coding completion and final verification.** Same container and staging project; no production change, deploy, migration, payments or spending. **Shipped:**
 >
 > - **No hardcoded apps:** the PDF converter is found among the device's own listed apps instead of two fixed install folders; an audit of `src/jarvis` and `jarvis-runtime` found no other app list, app-specific branch or benchmark-only code.

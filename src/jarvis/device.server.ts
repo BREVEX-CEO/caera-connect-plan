@@ -528,6 +528,8 @@ export const exchangeInput = z.object({
       count: z.number().int().min(1).max(100),
     })
     .optional(),
+  /** More durable results exist outside this bounded batch; absence is not lost intent. */
+  hasMoreResults: z.boolean().optional(),
   /** The action the device is executing now and the segment steps still to come; the reply says which to cancel. */
   running: z.array(z.string().uuid()).max(MAX_SEGMENT).optional(),
   /** STOP JARVIS from the computer's own tray. */
@@ -652,7 +654,8 @@ export async function exchange(
   // A task nobody drives waits at its checkpoint, unless this computer may
   // carry on with it (Background Mode): then it is told to ask for the next step.
   const { taskToCarryOn } = await import("./background.server");
-  const carry = await taskToCarryOn(admin, device);
+  const control = input.stop || input.pause || input.resume;
+  const carry = input.hasMoreResults || control ? null : await taskToCarryOn(admin, device);
   if (!carry) await pauseOrphanedTasks(admin, { deviceId: device.id });
   const [{ data: open }, { data: self }] = await Promise.all([
     admin
@@ -799,14 +802,18 @@ export async function exchange(
   // A step handed out earlier that the device neither runs nor reports did not reach it, or
   // was lost with it (the app killed before recording it): settled now as unknown, not left
   // claimed for minutes. Every agent lists what it runs and reports what it ran.
-  const known = [...(input.running ?? []), ...input.results.map((result) => result.id)];
-  let lost = admin
-    .from("jarvis_activity")
-    .update({ status: "failed", completed_at: now, result: { status: "unknown" } })
-    .eq("device_id", device.id)
-    .eq("status", "claimed");
-  if (known.length) lost = lost.not("id", "in", `(${known.join(",")})`);
-  await lost;
+  // An unsent result still has a durable owner on the device. Do not mark its
+  // claimed action lost merely because an earlier batch or control envelope came first.
+  if (!input.hasMoreResults) {
+    const known = [...(input.running ?? []), ...input.results.map((result) => result.id)];
+    let lost = admin
+      .from("jarvis_activity")
+      .update({ status: "failed", completed_at: now, result: { status: "unknown" } })
+      .eq("device_id", device.id)
+      .eq("status", "claimed");
+    if (known.length) lost = lost.not("id", "in", `(${known.join(",")})`);
+    await lost;
+  }
 
   // The action the device runs now continues only while it is still claimed
   // and its task still running; anything else (STOP, Take Over, the task
@@ -881,6 +888,12 @@ export async function exchange(
       }
     }
     // One action at a time owns the device: nothing new while one runs.
+    return { ...envelope, commands: [], cancel, rotated };
+  }
+
+  // Drain the durable outbox before admitting another effect or background continuation.
+  // Running-action cancellation above still works while an older result waits to be sent.
+  if (control || input.hasMoreResults || acks.some((ack) => ack.outcome === "retry")) {
     return { ...envelope, commands: [], cancel, rotated };
   }
 

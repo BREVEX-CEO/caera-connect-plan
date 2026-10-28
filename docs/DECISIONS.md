@@ -1,5 +1,12 @@
 # OCADE decisions and historical provenance
 
+## Current owner authority and evidence boundary — 28 October 2026
+
+The owner's current manually initiated mission authorizes implementation and cloud-only development/testing on `ocade/p00-p22-implementation`, with branch commits and preservation of concurrent work. It supersedes older Codex STOP/Chrome-only instructions retained below as history. Personal-PC testing, production/staging/infrastructure changes, production secrets, payments, spending, main merge, deployment and scheduled continuation remain prohibited without the required explicit approval.
+
+Remote adapted JavaScript checks and separate-agent source reviews are separate from CPython/PostgreSQL/full-build/native/browser execution, external security review and five consenting pilots. Missing cloud runners or approvals remain BLOCKED. [Current evidence](audits/TEST_EVIDENCE.md) and [canonical continuation](../BLOCKED_TESTS.md#cloud-safety-continuation--28-october-2026) supersede historical coding-complete or release-ready aggregates. No public launch is authorized.
+
+
 ## Final owner STOP and research handoff — 20 October 2026 (supersedes session scope below)
 
 Stop all OCADE tests, fixes and implementation immediately. Finish an architecture-wide static diagnosis and global primary-source research in [TOFIX.md](../TOFIX.md#claude-execution-contract--20-october-2026-final-stop-and-research-handoff), independently review that execution contract, then commit and push documentation only to `ocade/p00-p22-implementation`. Compare four distinct PC-control architectures and require Claude Opus 5.5, or the latest actually available Opus, to devise and fairly benchmark an independent fifth design. Do not assume a model alias exists or a design wins.

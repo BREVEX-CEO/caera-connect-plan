@@ -118,10 +118,8 @@ class _Ambiguous(Exception):
 def _pick(windows: list, wanted: str):
     """The window titled exactly that, else the only one whose title contains it; several: refused."""
     exact = [w for w in windows if w.Name.strip().lower() == wanted]
-    if exact:
-        return exact[0]
-    matches = [w for w in windows if wanted in w.Name.lower()]
-    if len({w.Name.strip().lower() for w in matches}) > 1:
+    matches = exact or [w for w in windows if wanted in w.Name.lower()]
+    if len(matches) > 1:
         raise _Ambiguous([w.Name for w in matches][:10])
     return matches[0] if matches else None
 
@@ -183,7 +181,7 @@ def inspect(title: str | None = None, find: str | None = None, cancel=None) -> d
         try:
             window = _window(title)
         except _Ambiguous as several:
-            return {"status": "failed", "summary": "Several windows match; use the full title",
+            return {"status": "failed", "summary": "Several windows match; select a unique window first",
                     "windows": several.names}
         if window is None:
             return {"status": "failed", "summary": "No such window is open"}

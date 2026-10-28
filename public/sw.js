@@ -23,7 +23,7 @@
  */
 
 const SHELL_CACHE_PREFIX = "ocade-shell-v";
-const VERSION = `${SHELL_CACHE_PREFIX}17`;
+const VERSION = `${SHELL_CACHE_PREFIX}18`;
 const OFFLINE_URL = "/offline.html";
 
 /*
@@ -169,6 +169,7 @@ function isNeverCached(url) {
   return (
     url.pathname.startsWith("/api/") ||
     url.pathname.startsWith("/_serverFn/") ||
+    url.pathname === "/auth" ||
     url.pathname.startsWith("/auth/")
   );
 }

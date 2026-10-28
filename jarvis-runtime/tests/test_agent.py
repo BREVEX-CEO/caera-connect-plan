@@ -348,6 +348,194 @@ class LifecycleTest(unittest.TestCase):
         kept = json.loads((self.home / "unreported-results.json").read_text())
         self.assertEqual([r["id"] for r in kept], ["a1"])
 
+    def _run_outbox_fast(self, agent):
+        # The real exchange loop and journals run; installed-app discovery and polling
+        # delays are unrelated to this transport regression and never touch a desktop.
+        with unittest.mock.patch.object(ocade_device, "POLL_IDLE_SECONDS", 0), \
+                unittest.mock.patch.dict(ocade_device._APPS, {"at": float("inf"), "list": []}), \
+                unittest.mock.patch.object(agent.stop, "wait", return_value=False):
+            return agent.run()
+
+    @staticmethod
+    def _outcomes(count, **extra):
+        return [{"id": f"00000000-0000-4000-8000-{i:012d}", "status": "done",
+                 "receipt": f"r-{i}", **extra} for i in range(count)]
+
+    def test_recovered_outboxes_drain_within_the_server_batch_limit(self):
+        for count in (0, 1, 20, 21, 100, 1000):
+            with self.subTest(count=count):
+                agent, identity = self._agent([])
+                results = self._outcomes(count)
+                self.assertTrue(agent._keep_pending(results))
+                expected = {r["id"] for r in results}
+                accepted = set()
+
+                def exchange(body):
+                    identity.bodies.append(json.loads(json.dumps(body)))
+                    batch = body["results"]
+                    self.assertLessEqual(len(batch), 20)
+                    self.assertEqual(body["hasMoreResults"],
+                                     len(expected - accepted) > len(batch))
+                    self.assertTrue(all(r["id"] not in accepted for r in batch))
+                    accepted.update(r["id"] for r in batch)
+                    if accepted == expected:
+                        agent.stop.set()
+                    return {"commands": [], "busy": False,
+                            "acks": [{**r, "outcome": "accepted"} for r in batch]}
+
+                identity.exchange = exchange
+                self.assertEqual(self._run_outbox_fast(agent), 0)
+                self.assertEqual(accepted, expected)
+                self.assertEqual(agent._read(agent.pending_path), [])
+                self.assertEqual(len(identity.bodies), max(1, (count + 19) // 20))
+
+    def test_lost_partial_and_unsolicited_answers_never_retire_unsent_results(self):
+        agent, identity = self._agent([])
+        results = self._outcomes(21)
+        self.assertTrue(agent._keep_pending(results))
+
+        def exchange(body):
+            identity.bodies.append(json.loads(json.dumps(body)))
+            self.assertLessEqual(len(body["results"]), 20)
+            call = len(identity.bodies)
+            if call == 1:
+                raise urllib.error.URLError("reply lost")
+            if call == 2:
+                self.assertEqual(body["results"], identity.bodies[0]["results"])
+                return {"commands": [], "busy": False, "acks": [
+                    {"id": results[0]["id"], "receipt": "r-0", "outcome": "accepted"},
+                    # This one was never transmitted in either exchange.
+                    {"id": results[20]["id"], "receipt": "r-20", "outcome": "accepted"},
+                    {"id": results[1]["id"], "receipt": "different", "outcome": "accepted"},
+                    {"id": results[2]["id"], "receipt": "r-2", "outcome": "retry"},
+                    {"id": [results[3]["id"]], "receipt": "r-3", "outcome": "accepted"},
+                    {"id": results[4]["id"], "receipt": "r-4", "outcome": ["accepted"]},
+                ]}
+            self.assertEqual(call, 3)
+            self.assertEqual(body["results"], results[1:])
+            self.assertIn(results[20], agent._read(agent.pending_path))
+            agent.stop.set()
+            return {"commands": [], "busy": False, "acks": [
+                {"id": r["id"], "receipt": r["receipt"], "outcome": "accepted"}
+                for r in body["results"]]}
+
+        identity.exchange = exchange
+        self.assertEqual(self._run_outbox_fast(agent), 0)
+        self.assertEqual(agent._read(agent.pending_path), [])
+
+    def test_control_has_an_independent_small_envelope_even_with_an_oversized_result(self):
+        for control, event in (("stop", "stop_all"), ("pause", "pause_asked"),
+                               ("resume", "resume_asked")):
+            with self.subTest(control=control):
+                agent, identity = self._agent([])
+                results = self._outcomes(21, detail="x" * 40_000)
+                results[0]["detail"] = "x" * 700_000
+                self.assertTrue(agent._keep_pending(results))
+                getattr(agent, event).set()
+
+                def exchange(body):
+                    identity.bodies.append(json.loads(json.dumps(body)))
+                    self.assertEqual(body, {"results": [], "running": [],
+                                            "hasMoreResults": True, control: True})
+                    agent.stop.set()
+                    # Even a matching ACK cannot retire a result that control never sent.
+                    return {"commands": [], "busy": False, "acks": [
+                        {"id": r["id"], "receipt": r["receipt"], "outcome": "accepted"}
+                        for r in results]}
+
+                identity.exchange = exchange
+                with unittest.mock.patch.object(agent.browsers, "capabilities",
+                                                side_effect=AssertionError("control queried telemetry")):
+                    self.assertEqual(self._run_outbox_fast(agent), 0)
+                self.assertEqual(agent._read(agent.pending_path), results)
+
+    def test_shutdown_stop_retains_the_complete_outbox_and_ignores_unsent_acks(self):
+        agent, identity = self._agent([])
+        results = self._outcomes(1000)
+        self.assertTrue(agent._keep_pending(results))
+        agent.stop_all.set()
+        agent.stop.set()
+
+        def exchange(body):
+            identity.bodies.append(json.loads(json.dumps(body)))
+            self.assertEqual(body, {"results": [], "running": [], "stop": True,
+                                    "hasMoreResults": True})
+            return {"acks": [{"id": r["id"], "receipt": r["receipt"], "outcome": "accepted"}
+                             for r in results]}
+
+        identity.exchange = exchange
+        self.assertEqual(self._run_outbox_fast(agent), 0)
+        self.assertEqual(len(identity.bodies), 1)
+        self.assertEqual(agent._read(agent.pending_path), results)
+        again, _ = self._agent([])
+        self.assertEqual(again._load_pending(), results)
+
+    def test_partially_drained_journal_restarts_with_the_same_receipts(self):
+        agent, identity = self._agent([])
+        results = self._outcomes(21)
+        self.assertTrue(agent._keep_pending(results))
+
+        def first(body):
+            self.assertEqual(body["results"], results[:20])
+            agent.stop.set()
+            return {"commands": [], "busy": False, "acks": [
+                {"id": r["id"], "receipt": r["receipt"], "outcome": "accepted"}
+                for r in body["results"][:7]]}
+
+        identity.exchange = first
+        self.assertEqual(self._run_outbox_fast(agent), 0)
+        self.assertEqual(agent._read(agent.pending_path), results[7:])
+        again, identity = self._agent([])
+
+        def resumed(body):
+            self.assertEqual(body["results"], results[7:])
+            again.stop.set()
+            return {"commands": [], "busy": False, "acks": [
+                {"id": r["id"], "receipt": r["receipt"], "outcome": "accepted"}
+                for r in body["results"]]}
+
+        identity.exchange = resumed
+        self.assertEqual(self._run_outbox_fast(again), 0)
+        self.assertEqual(again._read(again.pending_path), [])
+
+    def test_complete_encoded_exchange_stays_within_the_server_text_limit(self):
+        agent, identity = self._agent([])
+        results = self._outcomes(3, detail="é" * 50_000)
+        self.assertTrue(agent._keep_pending(results))
+        accepted = set()
+
+        def exchange(body):
+            identity.bodies.append(json.loads(json.dumps(body)))
+            self.assertLessEqual(len(json.dumps(body)), 600_000)
+            self.assertEqual(len(body["results"]), 1)
+            accepted.update(r["id"] for r in body["results"])
+            if len(accepted) == 3:
+                agent.stop.set()
+            return {"commands": [], "busy": False, "acks": [
+                {"id": r["id"], "receipt": r["receipt"], "outcome": "accepted"}
+                for r in body["results"]]}
+
+        identity.exchange = exchange
+        self.assertEqual(self._run_outbox_fast(agent), 0)
+        self.assertEqual(accepted, {r["id"] for r in results})
+
+    def test_a_single_oversized_result_is_retained_and_never_claims_new_work(self):
+        agent, identity = self._agent([])
+        results = self._outcomes(1, detail="x" * 700_000)
+        self.assertTrue(agent._keep_pending(results))
+
+        def exchange(body):
+            self.assertLessEqual(len(json.dumps(body)), 600_000)
+            self.assertEqual(body["results"], [])
+            self.assertTrue(body["hasMoreResults"])
+            agent.stop.set()
+            return {"commands": [], "busy": False}
+
+        identity.exchange = exchange
+        self.assertEqual(self._run_outbox_fast(agent), 0)
+        self.assertTrue(agent.state["outbox_blocked"])
+        self.assertEqual(agent._read(agent.pending_path), results)
+
     def test_only_results_ocade_answered_for_leave_the_journal(self):
         """C07/V04: only an answer for that id AND receipt, saying OCADE holds it, retires a
         result. No answer, retry, an unknown answer, another receipt, or no answers at all: kept."""

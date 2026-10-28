@@ -117,6 +117,8 @@ HALT_JOIN_S = 10.0
 HOME = Path(os.environ.get("OCADE_JARVIS_HOME", Path.home() / ".ocade_jarvis"))
 POLL_IDLE_SECONDS = 1.0
 MAX_SEGMENT = 12
+MAX_RESULTS = 20  # exchangeInput's result ceiling; the durable outbox itself is never sliced
+MAX_EXCHANGE_CHARS = 600_000  # the signed request's JSON text budget in device.server.ts
 INTERRUPTED = "The agent stopped while this step ran, so what it did is unknown. Check before repeating it."
 NOT_RECORDED = "This computer could not record the step before running it, so it did not run it."
 # What OCADE answers for a result it holds (accepted), kept as stopped, or no longer has (unknown).
@@ -460,19 +462,26 @@ class Agent:
                     self._kept(self.intent_path, [])
                 if finished:
                     active = None
-            body = {"results": results, "frame": frame,
-                    "capabilities": {**self.browsers.capabilities(), **self.computer.capabilities(),
-                                     "segment_v1": True},
-                    "softwareVersion": SOFTWARE_VERSION,
-                    "running": list(active["left"]) if active else []}
-            if self.stop_all.is_set():
-                body["stop"] = True
-            elif self.pause_asked.is_set():
-                body["pause"] = True
-            elif self.resume_asked.is_set():
-                body["resume"] = True
+            # Control has its own small envelope: an oversized or malformed retained result
+            # cannot prevent STOP/Pause/Resume from reaching OCADE. Nothing is retired for
+            # this exchange unless that exact id+receipt was actually sent.
+            control = ("stop" if self.stop_all.is_set() else
+                       "pause" if self.pause_asked.is_set() else
+                       "resume" if self.resume_asked.is_set() else None)
+            sent = [] if control else results[:MAX_RESULTS]
+            body = {"results": sent, "running": list(active["left"]) if active else [],
+                    "hasMoreResults": len(results) > len(sent)}
+            if control:
+                body[control] = True
+            else:
+                body.update(frame=frame,
+                            capabilities={**self.browsers.capabilities(), **self.computer.capabilities(),
+                                          "segment_v1": True},
+                            softwareVersion=SOFTWARE_VERSION)
             due = not apps_sent or time.monotonic() - apps_sent > APPS_EVERY_S
-            if _APPS["at"] > apps_sent:
+            if control:
+                pass  # inventory and icons wait; they never enter the control envelope
+            elif _APPS["at"] > apps_sent:
                 # Just looked (the apps action, or an app opened after an install): OCADE learns
                 # of a new app now, not at the next hourly look (audit C08).
                 body["apps"] = [a["name"] for a in _APPS["list"]]
@@ -484,7 +493,24 @@ class Agent:
                     found.update(apps=[a["name"] for a in apps], icons=app_icons(apps))
                 finder = threading.Thread(target=look, daemon=True, name="ocade-apps")
                 finder.start()
-            icons.attach(body, found.get("icons"))
+            if not control:
+                icons.attach(body, found.get("icons"))
+            # json.dumps is also the encoder used by Identity.post (ASCII escapes included).
+            # Optional telemetry goes first, then the result batch shrinks; every omitted
+            # result remains in the durable outbox and prevents new effect admission.
+            for fields in (("frame",), ("appIcons", "appIconsBatch"), ("apps",)):
+                if len(json.dumps(body)) <= MAX_EXCHANGE_CHARS:
+                    break
+                for field in fields:
+                    body.pop(field, None)
+            while sent and len(json.dumps(body)) > MAX_EXCHANGE_CHARS:
+                sent.pop()
+                body["hasMoreResults"] = True
+            blocked = bool(results and not sent and not control)
+            if blocked and not self.state.get("outbox_blocked"):
+                print("A retained result exceeds the exchange size limit; it stays on this computer. "
+                      "New work is paused; STOP/Pause/Resume remain available.", flush=True)
+            self.state["outbox_blocked"] = blocked
             # The control-loss bound holds while the exchange itself is blocked, not only after it
             # fails: past it, the running action is cancelled whatever the network is doing.
             watch = threading.Timer(max(0.0, CONTROL_LOSS_S - (time.monotonic() - reached)),
@@ -541,7 +567,7 @@ class Agent:
                 self.resume_asked.clear()
             self.state.update(busy=bool(reply.get("busy")), background=bool(reply.get("background")),
                               task=reply.get("task"))
-            results, frame = self._unanswered(results, reply), None
+            results, frame = self._unanswered(results, reply, sent), None
             self._keep_pending(results)
             if active:
                 stopped = set(reply.get("cancel", []))
@@ -550,7 +576,7 @@ class Agent:
                     self.cancel.set()  # stopped in OCADE (web STOP, Take Over, task ended)
             # OCADE hands out work only while nothing runs; one segment at a time
             # owns this computer, and this loop keeps listening for STOP meanwhile.
-            commands = [] if active else reply.get("commands", [])
+            commands = [] if active or results or control else reply.get("commands", [])
             commands = (commands if isinstance(commands, list) else [])[:MAX_SEGMENT]
             # A step this computer cannot read never runs; one with an id is answered so OCADE
             # is not left waiting on it (BLOCKED_TESTS NET-03-01).
@@ -575,12 +601,12 @@ class Agent:
                     results.extend({"id": c["id"], "status": "failed", "summary": NOT_RECORDED}
                                    for c in commands)
                     self._keep_pending(results)
-            elif reply.get("continue") and not active and not self.stop.is_set():
+            elif reply.get("continue") and not active and not results and not control and not self.stop.is_set():
                 self._carry_on(str(reply["continue"]))
             if active:
                 active["thread"].join(POLL_IDLE_SECONDS)  # returns as soon as the action ends
             else:
-                self.stop.wait(POLL_IDLE_SECONDS if self.state["busy"] else self.DORMANT_S)
+                self.stop.wait(POLL_IDLE_SECONDS if self.state["busy"] or results else self.DORMANT_S)
         self._halt(active)
         if self.stop_all.is_set():
             # Exit with a task open: OCADE hears the STOP before the agent ends, best effort;
@@ -588,24 +614,31 @@ class Agent:
             results += [outcome for outcome, _live in (active or {}).get("done", [])]
             self._keep_pending(results)  # kept, with receipts, before it is sent
             try:
-                reply = self.identity.exchange({"results": results, "stop": True, "running": []})
-                results = self._unanswered(results, reply)
+                reply = self.identity.exchange({"results": [], "stop": True, "running": [],
+                                                "hasMoreResults": bool(results)})
+                results = self._unanswered(results, reply, [])
             except Exception:
                 pass
             self._keep_pending(results)
         return 0
 
     @staticmethod
-    def _unanswered(results: list[dict], reply: dict) -> list[dict]:
-        """Only a result OCADE answered for, by its id and receipt, with an answer that says it
-        holds it, leaves the journal. No answer, "retry", an answer this agent does not know, one
-        for another receipt, or a reply without answers at all: the result stays and goes again."""
+    def _unanswered(results: list[dict], reply: dict, sent: list[dict] | None = None) -> list[dict]:
+        """Retire only an acknowledged id+receipt in this exchange's transmitted batch.
+        Unsent results, retry/unrecognized answers, wrong receipts and malformed ACKs stay durable."""
         acks = reply.get("acks")
         if not isinstance(acks, list):
             return list(results)
-        done = {(a.get("id"), a.get("receipt")) for a in acks
-                if isinstance(a, dict) and a.get("outcome") in ACKED}
-        return [r for r in results if (r.get("id"), r.get("receipt")) not in done]
+        def key(item):
+            if not isinstance(item, dict):
+                return None
+            ident, receipt = item.get("id"), item.get("receipt")
+            return (ident, receipt) if isinstance(ident, str) and isinstance(receipt, str) else None
+        offered = {pair for result in (results if sent is None else sent) if (pair := key(result))}
+        done = {pair for ack in acks
+                if isinstance(ack, dict) and isinstance(ack.get("outcome"), str)
+                and ack["outcome"] in ACKED and (pair := key(ack)) in offered}
+        return [r for r in results if key(r) not in done]
 
     def _start(self, commands: list[dict]) -> dict | None:
         """Run a segment in order, one action at a time. After a step that did not finish, or a

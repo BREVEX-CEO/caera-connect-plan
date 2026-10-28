@@ -17,6 +17,7 @@
  */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { firstFile, upstreamResolver } from "./deepseek-packages.mjs";
 
@@ -27,6 +28,7 @@ const ENTRIES = [
   "@deepseek-ai/dsh-tool-ask-user",
 ];
 const ROOT = process.cwd();
+const require = createRequire(import.meta.url);
 const SUBMODULE = "external/deepseek-harness/upstream";
 const UPSTREAM = path.join(ROOT, SUBMODULE);
 const DEEPSEEK = path.join(ROOT, "src/deepseek");
@@ -165,8 +167,14 @@ fs.writeFileSync(
 
 // Generated configs in the repository's own format.
 execFileSync(
-  "npx",
-  ["prettier", "--write", "--log-level=warn", "tsconfig.json", "src/deepseek/*.json"],
+  process.execPath,
+  [
+    require.resolve("prettier/bin/prettier.cjs"),
+    "--write",
+    "--log-level=warn",
+    "tsconfig.json",
+    "src/deepseek/*.json",
+  ],
   { stdio: "inherit" },
 );
 

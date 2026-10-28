@@ -1,5 +1,10 @@
 # phases.md status — Task 1 (200 items)
 
+## Current safety audit correction — 28 October 2026
+
+The earlier **CODE OPEN 0 / qualification only** aggregate is historical and is contradicted by current source-confirmed RC01/08/12/15/17 defects and parser advisory exposure. This change repairs RC01, RC04/05, RC06, RC10 and part of RC17; standard Python/PostgreSQL/native/full-build regressions are unrun. The changed candidate has **0/10 commercial gates PASS**. [Every original ID and research/supplement disposition](audits/SOURCE_CROSSWALK.md) is explicitly FAIL or BLOCKED; none inherits an old PASS without requalification. [Evidence and limits](audits/TEST_EVIDENCE.md); [canonical open work](../BLOCKED_TESTS.md#cloud-safety-continuation--28-october-2026).
+
+
 ## C1 coding-completeness disposition — 27 October 2026
 
 Mapped to plan.md's status words, on `ocade/p00-p22-implementation` after the direct DeepSeek work (`0403d41`…`1156400`). The rows below keep their 22 October evidence; the changes since are listed here.

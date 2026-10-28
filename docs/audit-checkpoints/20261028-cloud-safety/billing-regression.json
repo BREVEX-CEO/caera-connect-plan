@@ -1,0 +1,177 @@
+{
+  "observedAt": "2026-10-28T16:40:47.565Z",
+  "classification": "REMOTE ADAPTED JS BOUNDARY/ELIGIBILITY CONTRACT TEST",
+  "casesPerVersion": 13,
+  "before": {
+    "passed": 9,
+    "failed": 4
+  },
+  "after": {
+    "passed": 13,
+    "failed": 0
+  },
+  "sourceBlobs": [
+    {
+      "name": "boundaryBefore",
+      "expected": "08e7b6e91803cce15a64bcccac4a93810a5ae4c1",
+      "actual": "08e7b6e91803cce15a64bcccac4a93810a5ae4c1"
+    },
+    {
+      "name": "boundaryAfter",
+      "expected": null,
+      "actual": "b5bba4c2a50d59f27c5fcec0e68497a697353103"
+    },
+    {
+      "name": "eligibility",
+      "expected": "b90a333e389981827fee2ffaf35c56c2c4401884",
+      "actual": "b90a333e389981827fee2ffaf35c56c2c4401884"
+    },
+    {
+      "name": "vitest",
+      "expected": null,
+      "actual": "7f254b25f1cf9e600b880e274309f2aec770be5d"
+    }
+  ],
+  "results": [
+    {
+      "version": "before",
+      "name": "availability uses billing only",
+      "pass": false,
+      "error": "Error: availability; actual=false expected=true"
+    },
+    {
+      "version": "before",
+      "name": "dispatch credential isolation",
+      "pass": false,
+      "error": "Error: provider status; actual=412 expected=200"
+    },
+    {
+      "version": "before",
+      "name": "billing HTTP 403 blocks provider",
+      "pass": true
+    },
+    {
+      "version": "before",
+      "name": "billing HTTP 500 blocks provider",
+      "pass": true
+    },
+    {
+      "version": "before",
+      "name": "missing dedicated billing token never falls back",
+      "pass": false,
+      "error": "Error: missing dedicated token; actual=true expected=false"
+    },
+    {
+      "version": "before",
+      "name": "missing inference token blocks readiness",
+      "pass": true
+    },
+    {
+      "version": "before",
+      "name": "both tokens absent blocks",
+      "pass": true
+    },
+    {
+      "version": "before",
+      "name": "paid subscription blocks inference",
+      "pass": true
+    },
+    {
+      "version": "before",
+      "name": "permission rechecked after availability",
+      "pass": false,
+      "error": "Error: initial eligibility; actual=false expected=true"
+    },
+    {
+      "version": "before",
+      "name": "cancelled request blocks inference",
+      "pass": true
+    },
+    {
+      "version": "before",
+      "name": "invalid account blocks HTTP",
+      "pass": true
+    },
+    {
+      "version": "before",
+      "name": "Standard independent of billing",
+      "pass": true
+    },
+    {
+      "version": "before",
+      "name": "unknown model blocked",
+      "pass": true
+    },
+    {
+      "version": "after",
+      "name": "availability uses billing only",
+      "pass": true
+    },
+    {
+      "version": "after",
+      "name": "dispatch credential isolation",
+      "pass": true
+    },
+    {
+      "version": "after",
+      "name": "billing HTTP 403 blocks provider",
+      "pass": true
+    },
+    {
+      "version": "after",
+      "name": "billing HTTP 500 blocks provider",
+      "pass": true
+    },
+    {
+      "version": "after",
+      "name": "missing dedicated billing token never falls back",
+      "pass": true
+    },
+    {
+      "version": "after",
+      "name": "missing inference token blocks readiness",
+      "pass": true
+    },
+    {
+      "version": "after",
+      "name": "both tokens absent blocks",
+      "pass": true
+    },
+    {
+      "version": "after",
+      "name": "paid subscription blocks inference",
+      "pass": true
+    },
+    {
+      "version": "after",
+      "name": "permission rechecked after availability",
+      "pass": true
+    },
+    {
+      "version": "after",
+      "name": "cancelled request blocks inference",
+      "pass": true
+    },
+    {
+      "version": "after",
+      "name": "invalid account blocks HTTP",
+      "pass": true
+    },
+    {
+      "version": "after",
+      "name": "Standard independent of billing",
+      "pass": true
+    },
+    {
+      "version": "after",
+      "name": "unknown model blocked",
+      "pass": true
+    }
+  ],
+  "limits": [
+    "No Deno runtime, Supabase deployment, real provider/billing, secrets or external request executed.",
+    "Eligibility logic adapted by eight explicit type-only removals; source method bodies and credential declarations unchanged.",
+    "Contract cases are not customer workflow success rates, product latency or launch qualification.",
+    "New Vitest file was source-reviewed but full Node/Vitest/typecheck/format gates are blocked by unavailable authorized cloud runtime."
+  ]
+}

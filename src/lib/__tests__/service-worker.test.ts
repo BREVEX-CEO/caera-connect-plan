@@ -94,6 +94,16 @@ function worker(options: { putFails?: boolean; failAsset?: string; shell?: strin
 }
 
 describe("the service worker", () => {
+  it("never intercepts authentication documents, including the exact /auth path (RC10)", async () => {
+    const sw = worker({});
+    await sw.install();
+    for (const path of ["/auth", "/auth?next=%2Flibrary", "/auth/", "/auth/verify", "/auth/callback"]) {
+      expect(await sw.request(path, "navigate"), path).toBeUndefined();
+    }
+    // Path boundaries matter: unrelated public documents still use the offline shell policy.
+    expect((await sw.request("/author", "navigate")).status).toBe(200);
+  });
+
   it("delivers a fresh page and asset when the cache refuses to store them (F-191)", async () => {
     const sw = worker({ putFails: true });
     const page = await sw.request("/chat", "navigate");

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { normalizePath } from "vite";
 import { defineConfig, type Plugin } from "vitest/config";
 import { lowerVendored } from "./src/deepseek/resolve";
 // @ts-expect-error -- a plain ESM script shared with scripts/deepseek-link.mjs, without types.
@@ -15,11 +16,11 @@ import { upstreamResolver } from "./scripts/deepseek-packages.mjs";
  * that passes here is upstream's contract holding for the code OCADE ships to the browser.
  */
 const ROOT = import.meta.dirname;
-const UPSTREAM = path.join(ROOT, "external/deepseek-harness/upstream");
+const UPSTREAM = normalizePath(path.join(ROOT, "external/deepseek-harness/upstream"));
 const closure = JSON.parse(
   fs.readFileSync(path.join(ROOT, "src/deepseek/closure.json"), "utf8"),
 ) as { files: string[] };
-const shipped = new Set(closure.files.map((file) => path.join(UPSTREAM, file)));
+const shipped = new Set(closure.files.map((file) => normalizePath(path.join(UPSTREAM, file))));
 
 function upstreamSpecs(): Plugin {
   const { resolveSpecifier } = upstreamResolver(UPSTREAM) as {
@@ -32,7 +33,8 @@ function upstreamSpecs(): Plugin {
       return source.startsWith("@deepseek-ai/") ? (resolveSpecifier(source) ?? null) : null;
     },
     transform(code, id) {
-      if (!id.startsWith(UPSTREAM) || !id.endsWith(".ts")) return null;
+      id = normalizePath(id);
+      if (!id.startsWith(`${UPSTREAM}/`) || !id.endsWith(".ts")) return null;
       // DEEPSEEK_NATIVE=1: the same run on Node's own built-ins, to tell a stand-in failure from any other.
       const browser = shipped.has(id) && !process.env.DEEPSEEK_NATIVE;
       return lowerVendored(code, id, browser ? "browser" : "none");

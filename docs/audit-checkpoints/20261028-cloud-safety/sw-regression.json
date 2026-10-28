@@ -1,0 +1,182 @@
+{
+  "sourceHead": "71e8b637a5f723a33593a39f73d6cccd3573e945",
+  "sourceBlob": "fbe7907e69cf93c6a12a8cd1389c11d01fb23401",
+  "candidateBlob": "49e998ed501d0cd0dc62beb3884b03959680aa5f",
+  "recordedDate": "2026-10-28",
+  "environment": "Cloudflare remote JS sandbox",
+  "evidenceClass": "Exact service-worker source with simulated Cache Storage/network/event dispatch",
+  "before": {
+    "rows": [
+      {
+        "id": "online:/auth",
+        "pass": false
+      },
+      {
+        "id": "online:/auth?next=%2Flibrary",
+        "pass": false
+      },
+      {
+        "id": "online:/auth/",
+        "pass": true
+      },
+      {
+        "id": "online:/auth/verify",
+        "pass": true
+      },
+      {
+        "id": "online:/auth/callback",
+        "pass": true
+      },
+      {
+        "id": "online:/auth/challenge",
+        "pass": true
+      },
+      {
+        "id": "offline:/auth",
+        "pass": false
+      },
+      {
+        "id": "offline:/auth?next=%2Flibrary",
+        "pass": false
+      },
+      {
+        "id": "offline:/auth/",
+        "pass": true
+      },
+      {
+        "id": "offline:/auth/verify",
+        "pass": true
+      },
+      {
+        "id": "offline:/auth/callback",
+        "pass": true
+      },
+      {
+        "id": "offline:/auth/challenge",
+        "pass": true
+      },
+      {
+        "id": "public:/author",
+        "pass": true
+      },
+      {
+        "id": "public:/authentication",
+        "pass": true
+      },
+      {
+        "id": "public:/",
+        "pass": true
+      },
+      {
+        "id": "public:/help",
+        "pass": true
+      },
+      {
+        "id": "private:/api/jarvis/device",
+        "pass": true
+      },
+      {
+        "id": "private:/_serverFn/id",
+        "pass": true
+      },
+      {
+        "id": "upgrade:old-auth-cache-removed",
+        "pass": false
+      },
+      {
+        "id": "upgrade:assets-kept",
+        "pass": true
+      }
+    ],
+    "pass": 15,
+    "fail": 5
+  },
+  "after": {
+    "rows": [
+      {
+        "id": "online:/auth",
+        "pass": true
+      },
+      {
+        "id": "online:/auth?next=%2Flibrary",
+        "pass": true
+      },
+      {
+        "id": "online:/auth/",
+        "pass": true
+      },
+      {
+        "id": "online:/auth/verify",
+        "pass": true
+      },
+      {
+        "id": "online:/auth/callback",
+        "pass": true
+      },
+      {
+        "id": "online:/auth/challenge",
+        "pass": true
+      },
+      {
+        "id": "offline:/auth",
+        "pass": true
+      },
+      {
+        "id": "offline:/auth?next=%2Flibrary",
+        "pass": true
+      },
+      {
+        "id": "offline:/auth/",
+        "pass": true
+      },
+      {
+        "id": "offline:/auth/verify",
+        "pass": true
+      },
+      {
+        "id": "offline:/auth/callback",
+        "pass": true
+      },
+      {
+        "id": "offline:/auth/challenge",
+        "pass": true
+      },
+      {
+        "id": "public:/author",
+        "pass": true
+      },
+      {
+        "id": "public:/authentication",
+        "pass": true
+      },
+      {
+        "id": "public:/",
+        "pass": true
+      },
+      {
+        "id": "public:/help",
+        "pass": true
+      },
+      {
+        "id": "private:/api/jarvis/device",
+        "pass": true
+      },
+      {
+        "id": "private:/_serverFn/id",
+        "pass": true
+      },
+      {
+        "id": "upgrade:old-auth-cache-removed",
+        "pass": true
+      },
+      {
+        "id": "upgrade:assets-kept",
+        "pass": true
+      }
+    ],
+    "pass": 20,
+    "fail": 0
+  },
+  "realBrowser": false,
+  "cloudflareApiCalls": 0
+}

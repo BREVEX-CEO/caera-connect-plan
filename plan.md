@@ -10,6 +10,12 @@
 
 **Canonical authority precedence:** newest explicit owner decisions > independently observed current branch > current `docs/DECISIONS.md` + `AGENTS.md` > reproduction/evidence in `OCADE_DEEP_AUDIT.md` and `BLOCKED_TESTS.md` > historical status ledgers > prior research/hypotheses. Model names, provider quotas, benchmarks and vulnerabilities require fresh verification before implementation decisions. Never mistake historical PASS or proposed architecture for working code.
 
+## Implementation checkpoint — 28 October 2026 (source repair; qualification incomplete)
+
+Starting HEAD `71e8b637a5f723a33593a39f73d6cccd3573e945`. RC01, RC04/05, RC06, RC10 and partial RC17 changes are recorded with exact candidate blobs in [TEST_EVIDENCE](docs/audits/TEST_EVIDENCE.md). Adapted remote JavaScript checks pass (135 path/launcher, 20 exact service-worker mocked events, 13 credential/eligibility), while the added standard Python/PostgreSQL/Vitest, full build and real platform gates remain **UNRUN/BLOCKED**. This is not commercial qualification.
+
+The inventory records 2,158 starting Git objects and 21 generated full routes, **not a full semantic code/control audit**. [All 200 original IDs, 561 research IDs and 190 supplied supplement rows](docs/audits/SOURCE_CROSSWALK.md) have explicit current FAIL/BLOCKED dispositions; full source-to-test mapping remains incomplete. [Root causes](docs/audits/DEFECT_REGISTER.md), [canonical continuation](BLOCKED_TESTS.md#cloud-safety-continuation--28-october-2026). Known parser vulnerabilities, upload cancellation, operation health, semantic oracles, Windows isolation and native target leases remain. **0/10 release gates PASS; 0/100 binary gate index.** No deployment, production/staging mutation, personal-PC product work, spending or scheduled continuation.
+
 ## Fast index
 
 | Phase | Order / workstream | Release-quality result |

@@ -1,10 +1,10 @@
 import { transform } from "esbuild";
 import { resolve } from "node:path";
-import type { Plugin } from "vite";
+import { normalizePath, type Plugin } from "vite";
 import aliases from "./aliases.json";
 
 const ROOT = resolve(import.meta.dirname, "../..");
-const UPSTREAM = resolve(ROOT, "external/deepseek-harness/upstream");
+const UPSTREAM = normalizePath(resolve(ROOT, "external/deepseek-harness/upstream"));
 const SHIMS = resolve(import.meta.dirname, "shims");
 /** Node built-ins the upstream source imports, and the browser stand-in for each. */
 const BROWSER_SHIMS: Record<string, string> = {
@@ -42,7 +42,7 @@ export async function lowerVendored(
   const shimmed = lowered.code.replace(/(from |import )"(node:[\w/]+)"/g, (whole, lead, name) => {
     const shim = BROWSER_SHIMS[name];
     const wanted = runtime === "browser" || (runtime === "server" && name === "node:module");
-    return shim && wanted ? `${lead}${JSON.stringify(resolve(SHIMS, shim))}` : whole;
+    return shim && wanted ? `${lead}${JSON.stringify(normalizePath(resolve(SHIMS, shim)))}` : whole;
   });
   return { code: shimmed, map: lowered.map };
 }
@@ -61,7 +61,8 @@ export function deepseekUpstream(options: { browser?: boolean } = {}): Plugin {
       return source in entries ? resolve(ROOT, entries[source]!) : null;
     },
     transform(code, id) {
-      if (!id.startsWith(UPSTREAM) || !id.endsWith(".ts")) return null;
+      id = normalizePath(id);
+      if (!id.startsWith(`${UPSTREAM}/`) || !id.endsWith(".ts")) return null;
       const browser = options.browser || this.environment?.config.consumer === "client";
       return lowerVendored(code, id, browser ? "browser" : "server");
     },

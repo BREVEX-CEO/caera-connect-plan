@@ -2021,6 +2021,97 @@ describe("a step the device lost (killed before recording it)", () => {
   });
 });
 
+describe("a bounded durable result outbox (RC01)", () => {
+  it("keeps the 20-result contract and validates the optional backlog signal", () => {
+    const result = {
+      id: "0276ec3b-3462-468d-864b-bd218fd7d28e",
+      status: "done",
+      receipt: "r-1",
+    };
+    for (const count of [0, 1, 20, 21, 100, 1000]) {
+      expect(
+        exchangeInput.safeParse({
+          results: Array.from({ length: count }, () => result),
+          hasMoreResults: count > 20,
+        }).success,
+      ).toBe(count <= 20);
+    }
+    expect(exchangeInput.safeParse({ results: [], hasMoreResults: "true" }).success).toBe(false);
+    expect(exchangeInput.safeParse({ results: [] }).success).toBe(true);
+  });
+
+  it("does not declare an unsent result lost or claim later work while draining", async () => {
+    const t = await task();
+    await permit("files", true);
+    const first = await queue(t, { action: "file_list", path: "." });
+    expect((await run({ results: [] })).commands.map((c) => c.id)).toEqual([first]);
+    const later = await queue(t, { action: "file_list", path: "later" });
+    const draining = await run({ results: [], running: [], hasMoreResults: true });
+    expect(draining.commands).toEqual([]);
+    expect(draining.continue).toBeUndefined();
+    expect((await status(first)).status).toBe("claimed");
+    expect((await status(later)).status).toBe("queued");
+
+    const settled = await run({
+      results: [{ id: first, status: "done", receipt: "retained-receipt" }],
+      hasMoreResults: false,
+    });
+    expect(settled.acks).toEqual([
+      { id: first, receipt: "retained-receipt", outcome: "accepted" },
+    ]);
+    expect((await status(first)).status).toBe("done");
+    expect(settled.commands.map((c) => c.id)).toEqual([later]);
+  });
+
+  it("still propagates STOP and cancellation while the outbox is waiting", async () => {
+    const t = await task();
+    await permit("files", true);
+    const id = await queue(t, { action: "file_list", path: "." });
+    await run({ results: [] });
+    const reply = await run({
+      results: [],
+      running: [id],
+      hasMoreResults: true,
+      stop: true,
+    });
+    expect(reply.commands).toEqual([]);
+    expect(reply.continue).toBeUndefined();
+    expect(reply.cancel).toEqual([id]);
+    expect((await status(id)).status).toBe("cancelled");
+    const [row] = await twin.asServiceRole<{ status: string }>(
+      `select status from public.jarvis_tasks where id = '${t}'`,
+    );
+    expect(row!.status).toBe("stopped");
+  });
+
+  it("resumes an empty-outbox task without claiming work in the control reply", async () => {
+    const t = await task();
+    await permit("files", true);
+    const id = await queue(t, { action: "file_list", path: "." });
+    const paused = await run({ results: [], pause: true, hasMoreResults: false });
+    expect(paused.commands).toEqual([]);
+    expect((await status(id)).status).toBe("queued");
+    const resumed = await run({ results: [], resume: true, hasMoreResults: false });
+    expect(resumed.commands).toEqual([]);
+    expect(resumed.continue).toBeUndefined();
+    expect((await status(id)).status).toBe("queued");
+    const ordinary = await run({ results: [], hasMoreResults: false });
+    expect(ordinary.commands.map((c) => c.id)).toEqual([id]);
+    expect((await status(id)).status).toBe("claimed");
+  });
+
+  it("reconciles genuinely lost intent as soon as the durable outbox is empty", async () => {
+    const t = await task();
+    await permit("files", true);
+    const id = await queue(t, { action: "file_list", path: "." });
+    await run({ results: [] });
+    await run({ results: [], running: [], hasMoreResults: true });
+    expect((await status(id)).status).toBe("claimed");
+    await run({ results: [], running: [], hasMoreResults: false });
+    expect(await status(id)).toMatchObject({ status: "failed", result: { status: "unknown" } });
+  });
+});
+
 describe("results (JARVIS-027)", () => {
   it("answers every reported result: kept, stopped, or unknown", async () => {
     const t = await task();

@@ -1540,12 +1540,13 @@ class Computer:
         try:  # the same GUI that types reports the window it would type into
             front = gui.getActiveWindow() if gui is not None else None
             window = front.title if front else None
+            handle = getattr(front, "_hWnd", None)
             # Where it is too: a window moved or resized under the same title moves its controls.
             box = tuple(getattr(front, k, None) for k in ("left", "top", "width", "height")) if front else None
         except Exception:
-            window, box = None, None
+            window, handle, box = None, None, None
         return {"x": desk["left"], "y": desk["top"], "w": desk["width"], "h": desk["height"],
-                "monitors": monitors, "window": window, "box": box}
+                "monitors": monitors, "window": window, "windowHandle": handle, "box": box}
 
     def observe(self) -> dict:
         import mss
@@ -1615,12 +1616,15 @@ class Computer:
         if not wanted or not matches:
             return {"status": "failed", "summary": "No open window has that title",
                     "windows": _windows()}
-        # Store apps show the same title twice (frame and content): one app, one window.
-        distinct = {w.title.strip().lower() for w in (exact or matches)}
-        if len(distinct) > 1:
-            return {"status": "failed", "summary": "Several windows match; use the full title",
-                    "windows": [w.title for w in matches][:10]}
-        window = max(exact or matches, key=lambda w: (w.visible, w.width * w.height))
+        candidates = exact or matches
+        # Equal titles do not prove equal windows or documents. Never guess by size or visibility.
+        if len(candidates) != 1:
+            return {"status": "failed", "summary": "Several windows match; select a unique window first",
+                    "windows": [w.title for w in candidates][:10]}
+        window = candidates[0]
+        handle = getattr(window, "_hWnd", None)
+        if not handle:
+            return {"status": "failed", "summary": "That window's identity is unavailable; read it again first"}
         if refused := self._never_refusal(_window_program(window)):
             return refused
         title = window.title  # read now: a closed window has no title left to report
@@ -1637,8 +1641,7 @@ class Computer:
         elif state == "restore":
             window.restore()
         elif state == "close":
-            for same in exact or [window]:  # a Store app's frame and content close together
-                same.close()
+            window.close()
         else:
             if window.isMinimized:
                 window.restore()
@@ -1648,7 +1651,8 @@ class Computer:
                 window.minimize()
                 window.restore()
             time.sleep(0.4)
-            if _front_window_title() != window.title:
+            front = pygetwindow.getActiveWindow()
+            if not front or getattr(front, "_hWnd", None) != handle or front.title != window.title:
                 return {"status": "failed", "summary": f"Windows did not bring “{window.title[:80]}” to the front",
                         "observation": self.observe()}
         time.sleep(0.3)
@@ -1662,10 +1666,13 @@ class Computer:
         if time.monotonic() - held["at"] > 60:
             return "That screen observation is too old."
         now = self._geometry()
+        if SYSTEM == "Windows" and (not now.get("windowHandle") or not held["geometry"].get("windowHandle")):
+            return "The window identity is unavailable. Read the screen again first."
         for key, label in (("w", "the screen size changed"), ("h", "the screen size changed"),
                            ("x", "a monitor changed"), ("y", "a monitor changed"),
                            ("monitors", "a monitor was added or removed"),
                            ("window", "a different window is in front"),
+                            ("windowHandle", "a different window is in front"),
                            ("box", "the window in front moved or changed size")):
             if now.get(key) != held["geometry"].get(key):
                 return f"The screen changed: {label}."
