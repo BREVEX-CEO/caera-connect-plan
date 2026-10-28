@@ -772,3 +772,677 @@ The original attachment's elite work policy, competitive proof clauses and bench
 
 **Final invariant:** No source document, original ID, supplement, route, action or release gate can be implicitly assumed complete; record the unresolved work rather than deleting it. Commercial readiness is an evidence-backed approval decision, never a plan-file checkbox.
 
+## Appendix F — Research Micro-Specification: actionable detail below Phases 00–13
+
+This is a binding **engineering clarification**, not evidence of tests passing. It consolidates the latest useful recommendations from seven distinct Deep Research files. Repeated uploads are not independent evidence. The 200 original requirements and all ten original supplements in Appendices C–D remain authoritative for coverage, but recurring work gets one code owner and one canonical implementation/test. The source-derived microdetail register in Appendix G must be classified by an implementing agent as CONFIRMED, REPRODUCED, FIXED, TESTED, DUPLICATE, DEFERRED, UNSUPPORTED or N/A with a reason; generic research ideas are not automatically live bugs.
+
+### F1. Exact action and authority lifecycle — Phase 01/02/03/06
+
+For any action store task, tenant, device, account, actor, milestone, subgoal, action ID, sequence, idempotency key, source trust level, tool capability ID/version/health revision, target identity, authorized path/origin, expected inputs/outputs, precondition, effect type, time/resource limit, cancellation token, verifier, retry policy, trace ID, output hash and acknowledgement. Treat LLM-generated fields as suggestions until independently checked by server/device policy.
+
+Distinguish PLANNED, AUTHORIZED, QUEUED, IN_FLIGHT, EFFECT_UNKNOWN, EFFECT_OBSERVED, VERIFYING, VERIFIED, FAILED, PARTIAL, BLOCKED, STOP_REQUESTED, CANCELLED and COMPLETED; retain actual existing enum names where semantically equivalent. A tool returning success or a file existing is not proof the requested business outcome was achieved. Verify both allowed target and result before marking complete.
+
+Revalidate permissions and target identity before each consequential effect, after navigation, app restart, dialog change, focus theft, browser tab switch, display/DPI change and user takeover. Approval for one account/recipient/amount/file is not approval for changed arguments. Only one active writer per exact document, tab, window or remote effect.
+
+### F2. Exact operation health; installation and dependencies — Phase 02
+
+Registry entry must include typed operation, supported platforms/formats/codecs, absolute binary path, pinned version and package hash, prerequisite graph, last bounded self-test, health expiry, authorization, cost/latency class, cancellation ability, fallback and independent verifier. Separate installed / reachable / authorized / permitted / operation-healthy / target-compatible. UNKNOWN is not HEALTHY. Invalidate after environment, dependency, permission, device, browser-profile or model-quota changes.
+
+Probe separately: PDF create/read/render/page extraction; DOCX create/Word export; XLSX formula write/recalculation/value verification; PPTX rendering; video/audio decode, H.264 encoder, ffprobe, subtitle filter and codec; Python interpreter/import (detect Windows Store alias), Node/npm launcher, LibreOffice headless, signed browser binary, Playwright/CDP, UIA inspect/invoke/value/selection, native app object model, screen capture, disk permissions, filenames/fonts, upload abort and quota headroom.
+
+Use signed/hashed and approved dependency manifests; do not trust arbitrary PATH or AI-invented package IDs; do not silently install, elevate privilege or spend. Remove every known-unhealthy operation from the planner's exposed tools before the task begins. Test each dependency removed, outdated, denied, corrupted, blocked by PATH, failing probe and disappearing mid-task. Verified substitute only if same permission, fidelity, side effects and quality standards.
+
+### F3. Browser semantic control and user-profile grants — Phase 03/09
+
+A browser grant binds authorized account/device, executable/profile/session/tab/target/frame and allowed origins, task ID, read/write/upload/download/submit permissions, issue/expiry/revocation times. Distinguish isolated agent browser from explicit control of the customer's already-authenticated browser; never attach to unrelated sessions. A proposed extension/native-message bridge must verify permitted extension origin/ID; powerful debugger or CDP permission requires clear consent and is never silently enabled. Existing OCADE browser implementations must be inspected before adding another controller.
+
+DOM/accessibility first: roles, names, labels, text and stable scoped selectors; test element visible/enabled/editable/not obstructed/still attached. Include links, buttons, text/password/email/number/date inputs, contenteditable, radio, checkbox, tri-state, range, select/autocomplete/combobox, modal, context menu, iframe/shadow DOM, SPA route changes, tab/windows, file picker, drag/drop, downloads/uploads, progress, virtualized lists, consent/login/MFA, scroll and DOM mutation. On canvas or custom inaccessible controls, ground a *fresh* visual observation with DPI, zoom, scroll and bounds, then verify changed state. Return to semantic control when possible.
+
+Adversarial matrix: duplicate tab titles, different Chrome/Edge profiles, tab closed mid-action, origin redirect, stale locator, hidden/covered element, popup focus, cookie expiry, cross-origin iframe, failed download, upload abort, user typing during batch, revoked grant, malicious webpage instructions, 429/500 and unknown external form submission. Never bypass CAPTCHA, login or site restrictions.
+
+### F4. Exact Windows window/document identity — Phase 03/10
+
+Bind device ID, Windows user session, executable/process PID **plus start time**, HWND, UIA root/runtime identity, document path/hash or unsaved document identity, owner dialog, foreground/monitor, display resolution and scale. A title is only a human-readable hint: if two exact titles match, stop before writing. Verify target identity again just before any file/app/clipboard mutation; do not act based solely on currently focused window.
+
+Query supported UIA patterns dynamically: Invoke, Value, Text/TextEdit, Selection/SelectionItem, Toggle, ExpandCollapse, RangeValue, Grid/Table/SpreadsheetItem, Scroll, Window; support keyboard fallback where semantic pattern unavailable. Include menu/ribbon/toolbar, font/size/style, list/grid/tree, native save/open dialog, file conflict, checkbox, zoom, slider, drag/drop, modal, app-not-responding, unsaved edits and external human changes. UIA events when available; bounded state polling otherwise. Test multiple monitors, 100/125/150/200% scaling, minimized/occluded/overlapped windows, process restart, nested dialogs, clipboard/IME and virtual desktops. Treat UAC secure desktop, locked screen and protected app boundaries as restrictions, never something to bypass.
+
+Visual fallback requires fresh screenshot timestamp, verified monitor and crop, current coordinates, DPI/zoom calibration, occlusion and animation check, plus post-action observation. Don't repeat blind same-coordinate clicks or take screenshots after each typed character. Raw mouse/keyboard is last, not normal app control.
+
+### F5. Protocol, durable receipts and STOP — Phase 01/06
+
+The audited desktop agent can retain more than the server's twenty-results-per-exchange maximum. Bound both count **and bytes**, maintain unsent journal, exact action ID/receipt/outcome acknowledgement, transactionally deduplicate receipts and retry receipt transmission, not user effect. Test 0/1/19/20/21/40/100/1000 results; duplicate/stale/reordered/malformed/wrong ACK, agent/server restart, partial acknowledgement, huge tool output, disk full, transport timeout, old protocol, reconnection and concurrent exchange.
+
+Send STOP/Pause/revoke through a priority control lane independent of result backlog. STOP immediately fences new authorization; cancellation propagates through active transfer, parser, render, subprocess tree, browser navigation and UI wait where safe. Distinguish STOP-request accepted from actual in-flight operations halted. Report any committed or unknown effect and reconcile external status before resume or retry. A cancellation cannot undo already sent email, order, payment or published change. After timeout on a non-idempotent action, query authoritative external state; never blindly submit twice. Resume and Take Over require new capability, target and authorization checks.
+
+### F6. Dynamic planning and reason-aware repair — Phase 04
+
+Make a 3-level living plan: user outcome/quality contract, visible stable milestones, evolving micro-actions with exact pre/postconditions. There is no fixed ten-step execution cap. Replan only affected subtree when new evidence, conditional branch, unexpected dialog, contradictory research, bad export, missing font, changed file or target appears. Preserve proven work, original files and user edits. Batch safe local actions when no new observation is required, call a model only for genuine planning uncertainty. Bounded time, tool, model, retry, recursion, provider quota and cost budgets; ask for authority only when materially required.
+
+Classify TOOL_MISSING, TARGET_MOVED/AMBIGUOUS, ELEMENT_STALE, AUTH_EXPIRED, PERMISSION_DENIED, RATE_LIMIT, NETWORK, PROVIDER_ERROR, APPLICATION_CRASH, INVALID_OUTPUT, SEMANTIC_MISMATCH, VISUAL_DEFECT, RESOURCE_EXHAUSTED, EFFECT_UNKNOWN and STOP/TAKEOVER. One rational verified alternative after changed evidence beats repeated speculative failures. Unknown high-impact external effect -> reconciliation and blocked status, never automatic duplicate.
+
+### F7. Independent professional-quality verification — Phase 05
+
+Verify at separate layers: (1) explicit and appropriate implicit requirements, (2) factual/semantic accuracy, (3) structure and order, (4) rendered appearance or audiovisual quality, (5) openable technical file/state and (6) provenance/consistency. The executor/model must not act as sole judge. A wrong spreadsheet number in a wrong row fails even if desired number appears somewhere. For subjective quality use an independent rubric and reviewer, not an invented deterministic perfect score.
+
+Professional PDF/Word: current primary citations, title/date/summary, heading hierarchy, fonts, size/spacing, margins, page numbering/header/footer, widows/orphans, page and section breaks, TOC when useful, captions, chart sources, table pagination, hyperlink destinations, metadata, accessible reading order, Unicode/font embedding, rendered-page visual inspection and repair only affected pages.
+
+Spreadsheet/accounting: source-row identity, numeric type/locale/currency, cross-sheet references, formula strings **and computed values**, filters/hidden sheets, chart ranges, rounding, reconciliation totals/exceptions, recalculation, correct destination and preservation of source workbook.
+
+Presentation: slide order/ratio, text overflow, alignment, source-accurate chart and image, hierarchy, contrast, speaker context, native editable original and rendered slide inspection.
+
+Video/audio: actual input media, frame timing/FPS, resolution/aspect, cuts/transitions, caption timing and safe placement, clip audio balance/loudness/noise, clipping/synchronization, missing/black frames, codec, final playable export plus editable project where requested. Check with independent ffprobe and actual frame/audio decode.
+
+Image/photo: edit supplied image rather than silently generate a different one, respect source crop/orientation/EXIF, format/dimensions, avoid artifacts, preserve unedited areas, compare original and output visually, save editable source where requested.
+
+Browser/desktop/email: exact correct account/window/tab/destination and observed remote persisted effect, correct file hashes, no unrelated changes. Code/CAD/unknown apps: qualified domain verifier, geometry/unit/build check and honest unsupported status.
+
+### F8. Full UI/UX control census and commercial product — Phase 07–11
+
+Current source routes include Chat home, JARVIS, authenticated Library, staff Admin, Auth/Verify/Challenge/Callback, password reset, Pricing, About, Help, Privacy, Terms, agent distribution and API endpoints. **Settings is an account panel**, not a collection of former routes; Devices & Access is in JARVIS/settings. Never reintroduce retired pages merely because historical documents mention them.
+
+Every actual link/button/menu/modal/icon/keyboard shortcut/file picker/voice permission/selector/STOP/approval action needs test cases for visible, focus, hover, selected, busy, disabled, empty, success, error, auth expired, permission refused, network/offline, retry, cancellation and accessible announcement when applicable. Test 320/375/768/1024/1440 widths, dark/light/high contrast, 200–400% zoom, RTL/Indian language if supported, focus order/trap and return, screen readers, touch and reduced motion. Every active control must have a real effect or be removed. Audit page-specific copy, inaccurate claims, downloads, pricing/usage agreement, settings persistence, bad links, form validation and device permissions.
+
+Security: tenant RLS, account switching, JWT/session expiry/revoke, MFA/owner roles, least-privileged local PC grants, path traversal, SSRF/XSS/CSRF/IDOR, prompt injection from web/documents, safe upload/malware/parser limits, frontend bundle and log secrets, credential rotation under owner approval, authorized billing and retention/export/delete, backups and rollback. User cannot be exposed to stack traces; internal diagnostics must retain exact error/effect data securely.
+
+### F9. Cloud-only test evidence, performance and launch gates — Phase 12–13
+
+Cloud simulation does not prove real Windows UIA. Require disposable **interactive Windows desktop VMs** with correct licensing, real agent and application processes, browser, UIA, display state, accessibility, real generated files, visual checker and independent user pilot. Linux/browser CI remains valuable but separate. Android emulator late; iOS hosted WebKit/simulator cannot prove physical/native control; macOS requires actual hosted native environment. Do not spend or use owner's PC without approval.
+
+Build exact artifact attestation: web SHA, server/function digest, agent binary/hash, protocol/schema, model/provider identity, tool registry and runtime manifest, OS/browser/app build, dataset and suite seed. Capture video/screenshots, receipts, hashes, independent verifiers, machine specs, p50/p95/p99 total latency, AI turns/tokens, retries, total cost and supported configuration. Fault-inject missing runtime, duplicate window, focus theft, bad popup, stale element, lost ACK, 1000-result backlog, STOP during upload/render, process/network outage, token revoke, malicious input, malformed PDF/image, full disk, partial export and mismatched staging. Re-run affected suite on frozen exact candidate.
+
+Targets only—not claimed results: zero known critical security issues/wrong-target writes/false VERIFICATION SUCCESS in qualification corpus; 100% pass on defined STOP/permissions/irreversible-action safety matrix; at least 95% independently verified first-run success for each advertised task family, stretch 99% within bounded recovery where statistically supportable; real measurable p50/p95 latency and cost with confidence intervals; all 10 release gates and at least five consenting independent pilot users. Commercial approval cannot be proven by code and cloud simulation alone. Release/support claims limited to configurations actually qualified.
+
+### F10. Tool architecture and conflicts resolved — Phase 02/12
+
+One OCADE authority with many adapters, not overlapping autonomous brains. Preserve existing Playwright/DOM, UIA, direct files/media, signed device transport and checkpoint mechanisms; fix their weak contracts before adding frameworks. MCP exposes task-scoped approved tools; MCP is not a security boundary. Dynamic provider interfaces are replaceable while OS execution authority is not. Playwright MCP/CDP, Chrome DevTools MCP, native messaging, pywinauto, local micro-model, TinyFish, Skyvern, Browser Use, Stagehand, UI-TARS, Agent S and Microsoft UFO are *reference/optional scoped adapters* only where the current system lacks proved functionality and A/B shows gains. Pin compatible licenses and provenance. Never hardcode brand-specific app paths, prompt-only routing, unapproved expense, hidden model fallback or speculative unsafe actions.
+
+**Conflicts:** one research recommends offline JARVIS, but the current approved rule is online-planned JARVIS and separately functioning offline Chat. Some older reports inaccurately say Playwright/UIA are missing: newer source confirms they already exist. Some provider names/quotas/specifications disagree among reports; current official documentation and current source must decide. The original 200 items and 10 supplements remain mapped, with historical status never confused with current qualification.
+
+
+## Appendix G — All-report small-detail audit register
+
+This is a source-derived audit queue, not independent evidence that code is defective. 561 textually unique detailed bullet/numbered/table observations were extracted from the seven distinct research reports. Each R-ID must be mapped to an existing Phase 00–13 task/test or classified DUPLICATE, DEFERRED, HISTORICAL, N/A or UNSUPPORTED with reason. Do not install tools merely because a research table named them. The current repo and newest owner decisions supersede conflicting recommendations. This section preserves tiny details that might otherwise be missed, while the harmonized Appendix F is the executable specification.
+
+### R1: Adaptive microplanning and quality (15 distinct source details)
+
+- **R1-001** [Why the current “AI makes a plan” approach is not enough] whether the information is current;
+- **R1-002** [Why the current “AI makes a plan” approach is not enough] a heading appearing alone at the bottom of a page;
+- **R1-003** [Why the current “AI makes a plan” approach is not enough] the PDF looking different after export?
+- **R1-004** [The solution is not “make a 100-step plan”] \| **Milestones** \| What large pieces must be completed? \|
+- **R1-005** [The solution is not “make a 100-step plan”] \| **Micro-actions** \| What exactly should I do *right now* based on the current situation? \|
+- **R1-006** [The video example and every other task] \| Word document \| formatting, broken page, inconsistent heading \|
+- **R1-007** [The video example and every other task] \| Excel \| formula error, missing data, incorrect number type \|
+- **R1-008** [The video example and every other task] \| PowerPoint \| overcrowded slide, bad image, inconsistent layout \|
+- **R1-009** [The video example and every other task] \| PDF \| page overflow, missing page number, bad render \|
+- **R1-010** [The video example and every other task] \| Video \| audio problem, caption collision, rendering issue \|
+- **R1-011** [The video example and every other task] \| Image \| wrong crop, artefact, inconsistent dimensions \|
+- **R1-012** [The video example and every other task] \| Browser \| pop-up, authentication, changed page layout \|
+- **R1-013** [The video example and every other task] \| Software install \| restart needed, missing dependency \|
+- **R1-014** [The video example and every other task] \| Research \| conflicting evidence, missing source \|
+- **R1-015** [The video example and every other task] \| Email workflow \| missing attachment, recipient ambiguity \|
+
+### R2: Existing hybrid controls and audit (111 distinct source details)
+
+- **R2-001** [Executive summary] \| Is current OCADE screenshot-only? \| **No.** It is already hybrid. \|
+- **R2-002** [Executive summary] \| Is Playwright missing? \| **No.** Already implemented. \|
+- **R2-003** [Executive summary] \| Is Windows UI Automation missing? \| **No.** Already implemented. \|
+- **R2-004** [Executive summary] \| Is direct file/document control missing? \| **No.** Considerable support already exists. \|
+- **R2-005** [Executive summary] \| Is vision fallback missing? \| No; screen control exists. \|
+- **R2-006** [Executive summary] \| Should OCADE be completely rewritten? \| **No.** Strengthen the execution layer. \|
+- **R2-007** [Executive summary] \| Stronger than simple hybrid? \| **Yes: verifier-gated hierarchical hybrid with capability health, durable state and reason-aware recovery.** \|
+- **R2-008** [Executive summary] \| Can it honestly guarantee 100% arbitrary PC control? \| **No.** Neither OCADE nor a competitor can guarantee that for arbitrary software, websites, crashes, permissions and external services. \|
+- **R2-009** [Executive summary] \| Has OCADE beaten competitors today? \| **No benchmark evidence yet.** The latest audit qualified **0/10 release gates** and ran no fresh native Windows workflow.  \|
+- **R2-010** [The current control stack] \| Layer \| Current OCADE implementation \| What it does \|
+- **R2-011** [The current control stack] \| AI planner \| `src/jarvis/agent.ts` \| Sends context/tools to the model, manages tasks, actions, checkpoints and results.  \|
+- **R2-012** [The current control stack] \| Control policy/tool contract \| `src/jarvis/protocol.ts` \| Defines browser/computer actions, capabilities, outcome checks and tool schemas.  \|
+- **R2-013** [The current control stack] \| Routing instructions \| `JARVIS_SYSTEM_PROMPT` in `src/jarvis/protocol.ts` \| Tells JARVIS to prefer app automation/scripts → files → UIA → screen and to batch predictable actions.  \|
+- **R2-014** [The current control stack] \| PC executor \| `jarvis-runtime/ocade_computer.py`, `Computer.run()` \| Dispatches files, Office-like documents, video, PDF, apps, commands, screen, settings and UIA actions.  \|
+- **R2-015** [The current control stack] \| Capability reporting \| `Computer.capabilities()` \| Reports broad booleans such as files, terminal, screen, computer control and Windows accessibility.  \|
+- **R2-016** [The current control stack] \| Browser executor \| `jarvis-runtime/actions/browser_control.py`, `_BrowserSession` \| Playwright, DOM/accessibility snapshots, tabs, downloads, real/isolated browser contexts and visual fallback.  \|
+- **R2-017** [The current control stack] \| Windows semantic control \| `jarvis-runtime/ocade_accessibility.py`, `inspect()` / `act()` \| Reads Windows UI Automation controls and invokes/sets/selects semantic controls without moving the mouse where possible.  \|
+- **R2-018** [The current control stack] \| Screen fallback \| `ocade_computer.py` screen actions \| Fresh screenshot plus guarded mouse/keyboard operations.  \|
+- **R2-019** [The current control stack] \| Device transport \| `jarvis-runtime/ocade_device.py`, `_exchange_loop()` \| Exchanges commands/results between the desktop agent and OCADE server.  \|
+- **R2-020** [The current control stack] \| Server transport \| `src/jarvis/device.server.ts`, `exchange()` \| Validates device exchange, queues commands, acknowledgements and STOP/Pause information.  \|
+- **R2-021** [The current control stack] \| Result checks \| `outcomeCheck`, `READS_BACK`, task-authority verification \| Requires read-backs for completion and supports file/cell/text/measure checks.  \|
+- **R2-022** [Side-by-side] \| User request \| Model interprets request \| Outcome compiler identifies requested result and proof required \|
+- **R2-023** [Side-by-side] \| Browser vs PC \| Model calls `start_task` with browser/computer \| Runtime classifier also verifies which execution domain is actually needed \|
+- **R2-024** [Side-by-side] \| Tool availability \| Broad capability flags \| Exact operation health registry \|
+- **R2-025** [Side-by-side] \| Tool exposure \| Large browser/computer capability surface \| Only healthy, relevant tools exposed \|
+- **R2-026** [Side-by-side] \| App discovery \| `app_info` during workflow \| Cache app capabilities and preflight exact required operations \|
+- **R2-027** [Side-by-side] \| Browser \| Structured Playwright first, visual fallback \| Keep this; strengthen with deterministic browser routing \|
+- **R2-028** [Side-by-side] \| Desktop \| UIA plus direct operations plus screen \| Keep this; bind exact process/window/document identity \|
+- **R2-029** [Side-by-side] \| File work \| Dedicated file/document actions \| Keep and expand deterministic adapters \|
+- **R2-030** [Side-by-side] \| Media \| Dedicated video operations; may discover dependency at runtime \| Preflight FFmpeg/ffprobe before planning \|
+- **R2-031** [Side-by-side] \| PDF \| `pdf_export`; dependency may be discovered during execution \| Select a known healthy PDF route before task begins \|
+- **R2-032** [Side-by-side] \| AI calls \| Model may re-enter loop after tool failures \| Local runtime batches safe deterministic steps \|
+- **R2-033** [Side-by-side] \| Waiting \| Some fixed settling/polling \| Prefer events and actionability checks \|
+- **R2-034** [Side-by-side] \| Failure \| Model receives failure and chooses another route \| Reason-aware fallback ladder from known healthy routes \|
+- **R2-035** [Side-by-side] \| Transport \| Results accumulated for exchange \| Count/byte-bounded durable result stream \|
+- **R2-036** [Side-by-side] \| STOP \| Shares exchange path \| Priority control channel/independent deliverability \|
+- **R2-037** [Side-by-side] \| Verification \| Read-back + outcome checks \| Workflow-specific independent verifier \|
+- **R2-038** [Side-by-side] \| Completion \| Server already tries to prevent unsupported completion \| **Hard rule:** completion impossible without verifier evidence \|
+- **R2-039** [Side-by-side] \| Recovery \| Checkpoints exist \| Idempotent actions + unknown-effect reconciliation + checkpoints \|
+- **R2-040** [Side-by-side] \| Long task \| Agent/model loops \| Local execution graph executes predictable sections without model round-trip \|
+- **R2-041** [The strongest version is actually beyond “Direct + Vision”] whether it works with this version of the application;
+- **R2-042** [The strongest version is actually beyond “Direct + Vision”] whether this is the exact intended document;
+- **R2-043** [The strongest version is actually beyond “Direct + Vision”] whether the action executed once or twice;
+- **R2-044** [The strongest version is actually beyond “Direct + Vision”] whether a network acknowledgement was lost;
+- **R2-045** [The strongest version is actually beyond “Direct + Vision”] whether the output is actually correct;
+- **R2-046** [The strongest version is actually beyond “Direct + Vision”] whether an alternative route should be tried.
+- **R2-047** [Publicly documented patterns] \| Competitor / system \| Publicly documented approach \| Best lesson for OCADE \|
+- **R2-048** [Publicly documented patterns] \| **OpenAI / computer use** \| Separate structured browser and general computer drivers; environment remains application-controlled; actions/results form a tool loop.  \| Make browser vs desktop an explicit runtime routing decision. \|
+- **R2-049** [Publicly documented patterns] \| **OpenAI hosted agent browser** \| Durable session identity and recovery; after a connection loss, retrieve the existing state instead of blindly resending work.  \| Treat unknown acknowledgement as unknown effect, not permission to repeat. \|
+- **R2-050** [Publicly documented patterns] \| **Claude Browser Use** \| Accessibility tree/elements/forms/tabs plus screenshots and coordinates; refs preferred when structure exists.  \| Structured browser references first; pixels only when structure cannot represent the target. \|
+- **R2-051** [Publicly documented patterns] \| **Claude Computer Use** \| Screenshot + mouse/keyboard desktop toolset; can batch several operations in one model turn.  \| Keep visual desktop control as universal fallback, not first choice. \|
+- **R2-052** [Publicly documented patterns] \| **Gemini Computer Use** \| Screenshot-driven browser/mobile/desktop actions; developer provides the client executor; configurable safety and prompt-injection detection are documented.  \| Separate model prediction from trusted execution and add dedicated screen-injection defences. \|
+- **R2-053** [Publicly documented patterns] \| **OpenClaw** \| Isolated managed Chromium is the default; deterministic tab control; optional existing signed-in Chrome session through Chrome DevTools MCP.  \| Have a safe isolated default and a separately authorised “real browser” mode. \|
+- **R2-054** [Publicly documented patterns] \| **Playwright** \| Locators are built around retryability and live element resolution.  \| Do not manually recreate reliable locator semantics with pixel clicks. \|
+- **R2-055** [Publicly documented patterns] \| **Windows UI Automation** \| Exposes elements, properties, control patterns and events for semantic programmatic interaction with Windows applications.  \| Invoke controls directly instead of visually clicking them whenever possible. \|
+- **R2-056** [P0 — make the existing engine trustworthy] \| P0 change \| What changes in non-coding terms \| Why \|
+- **R2-057** [P0 — make the existing engine trustworthy] \| **Operation-level Capability Registry** \| Before doing a job, OCADE knows exactly what operations work on this PC. \| Fixes the biggest architectural fault, RC12.  \|
+- **R2-058** [P0 — make the existing engine trustworthy] \| **Task-specific preflight** \| Check everything required for this particular job before starting it. \| Stops “discovering FFmpeg/LibreOffice/etc. is unavailable halfway through”. \|
+- **R2-059** [P0 — make the existing engine trustworthy] \| **Fix result batching** \| Never send more results than the server allows; keep the rest queued. \| Fixes RC01 and long-task synchronisation.   \|
+- **R2-060** [P0 — make the existing engine trustworthy] \| **Priority STOP/control delivery** \| STOP must remain deliverable even when result reporting is unhealthy. \| Safety and responsiveness. \|
+- **R2-061** [P0 — make the existing engine trustworthy] \| **Unique window/document identity** \| Track process + window + document, rather than title alone. \| Fixes RC17 wrong-target risk.  \|
+- **R2-062** [P0 — make the existing engine trustworthy] \| **Cancellable uploads/long jobs** \| Every long operation obeys STOP. \| Fixes RC08.  \|
+- **R2-063** [P0 — make the existing engine trustworthy] \| **Patch unsafe parser dependencies** \| Upgrade affected Pillow/pypdf versions after compatibility qualification and isolate untrusted parsing. \| Audit marks both as P0 dependency risks.  \|
+- **R2-064** [P0 — make the existing engine trustworthy] \| **Independent final verifier** \| A separate component proves the requested result rather than trusting the planner. \| Fixes RC13's semantic-verification gap.  \|
+- **R2-065** [P0 — make the existing engine trustworthy] \| **Windows build/path fixes** \| Qualify Windows path and process-launch behaviour. \| The audit records Windows-specific build/launch problems.  \|
+- **R2-066** [Which MCPs and tools I would actually add] \| Tool / service \| Recommendation \| Wiring role \|
+- **R2-067** [Which MCPs and tools I would actually add] \| **Existing Playwright** \| **KEEP — P0** \| Primary browser executor. OCADE already has it. \|
+- **R2-068** [Which MCPs and tools I would actually add] \| **Playwright MCP** \| **OPTIONAL P1** \| Useful if OCADE wants a standard MCP exposure layer; don't run a second competing controller against the same tab. \|
+- **R2-069** [Which MCPs and tools I would actually add] \| **Chrome DevTools MCP** \| **ADD OPTIONAL P1** \| Authorised attachment to the customer's existing Chrome session when login state is required. Chrome officially supports agent attachment to active browser sessions.  \|
+- **R2-070** [Which MCPs and tools I would actually add] \| **Windows UI Automation** \| **KEEP + STRENGTHEN P0** \| Primary semantic desktop control. No reason to replace it with screenshot clicking. \|
+- **R2-071** [Which MCPs and tools I would actually add] \| **FFmpeg** \| **MANAGED DEPENDENCY P0** \| Video/audio transformation. \|
+- **R2-072** [Which MCPs and tools I would actually add] \| **ffprobe** \| **MANAGED VERIFIER P0** \| Independently inspect duration, streams, dimensions and container data; its output is designed to be machine readable.  \|
+- **R2-073** [Which MCPs and tools I would actually add] \| **LibreOffice headless** \| **ADD/PREFLIGHT P0 where required** \| Reliable DOC/ODT/XLS/PPT conversion/export path. LibreOffice officially supports headless/programmatic operation and `--convert-to`, including PDF conversion.  \|
+- **R2-074** [Which MCPs and tools I would actually add] \| **Capability Registry** \| **BUILD INTERNAL P0** \| Central truth of what actually works. This matters more than another AI model. \|
+- **R2-075** [Which MCPs and tools I would actually add] \| **Independent Result Verifier** \| **BUILD INTERNAL P0** \| Determines whether “Completed” is legally allowed. \|
+- **R2-076** [Which MCPs and tools I would actually add] \| **MCP Host / Gateway** \| **P1** \| Connect curated external capabilities under one schema/auth/policy layer. \|
+- **R2-077** [Which MCPs and tools I would actually add] \| **TinyFish** \| **OPTIONAL P2** \| Cloud web automation/search fallback, not core Windows control. Its MCP server exposes web search, extraction, browser automation, remote browser sessions/profiles and monitoring.  \|
+- **R2-078** [Which MCPs and tools I would actually add] \| **Local SLM/VLM** \| **EXPERIMENT P2** \| Fast routing, error classification or visual grounding when benchmarked beneficially. \|
+- **R2-079** [Which MCPs and tools I would actually add] \| **Vision computer-use model** \| **KEEP AS FALLBACK** \| Canvas, games, custom-rendered apps and inaccessible UI. \|
+- **R2-080** [Which MCPs and tools I would actually add] \| **Raw mouse/keyboard** \| **LAST RESORT** \| Act only from fresh visual/identity evidence. \|
+- **R2-081** [Proposed performance gates] \| Wrong-target destructive writes \| **0** \| Duplicate-title/document stress suite \|
+- **R2-082** [Proposed performance gates] \| False “Completed” results \| **0** in qualification campaign \| Independent verifier vs actual artefact \|
+- **R2-083** [Proposed performance gates] \| Supported deterministic/browser workflow success \| **≥99%** \| Minimum 1,000 repeat runs across fixed benchmark \|
+- **R2-084** [Proposed performance gates] \| Mixed Windows GUI workflow success \| **≥97%** \| Large Windows application benchmark \|
+- **R2-085** [Proposed performance gates] \| Exact capability preflight \| **100% before mutation** \| Instrument every task \|
+- **R2-086** [Proposed performance gates] \| Warm route-selection/preflight p95 \| **<500 ms** \| Local tracing \|
+- **R2-087** [Proposed performance gates] \| Cold preflight p95 \| **<2 s** \| Clean-start measurements \|
+- **R2-088** [Proposed performance gates] \| Structured browser action overhead p95 \| **<500 ms**, excluding website/network wait \| Playwright trace \|
+- **R2-089** [Proposed performance gates] \| UIA action overhead p95 \| **<750 ms**, excluding application processing \| Device trace \|
+- **R2-090** [Proposed performance gates] \| STOP acknowledgement locally \| **<1 s p95** \| Forced long-operation tests \|
+- **R2-091** [Proposed performance gates] \| Network STOP/cancel \| **<2 s p95** under qualified network conditions \| Fault-injection tests \|
+- **R2-092** [Proposed performance gates] \| Result journal backlog \| **1,000 results with zero loss/duplication** \| Protocol stress \|
+- **R2-093** [Proposed performance gates] \| Duplicate side effects after lost ACK \| **0** \| Kill/reconnect/replay campaign \|
+- **R2-094** [Proposed performance gates] \| Model round-trips \| **≥40% fewer than current baseline** on deterministic workflows \| Current-vs-new A/B \|
+- **R2-095** [Proposed performance gates] \| Vision fallback rate in supported structured apps \| **<10%** \| Route telemetry \|
+- **R2-096** [Proposed performance gates] \| Unrecoverable-loop incidents \| **0** \| Long-task and fault-injection suite \|
+- **R2-097** [P0 protocol and execution tests] Result queues of 20, 21, 100 and 1,000.
+- **R2-098** [P0 protocol and execution tests] Lost/delayed/duplicate acknowledgements.
+- **R2-099** [P0 protocol and execution tests] STOP while a result backlog exists.
+- **R2-100** [P0 protocol and execution tests] STOP during upload, conversion, video render and script execution.
+- **R2-101** [P0 protocol and execution tests] Dependency exists / missing / corrupt / wrong version.
+- **R2-102** [P0 protocol and execution tests] Duplicate window names and duplicate document basenames.
+- **R2-103** [P0 protocol and execution tests] Window changes document between observation and write.
+- **R2-104** [P0 protocol and execution tests] Browser navigation makes an old reference stale.
+- **R2-105** [P0 protocol and execution tests] Browser page moves an element after observation.
+- **R2-106** [P0 protocol and execution tests] Application crashes after mutation but before acknowledgement.
+- **R2-107** [P0 protocol and execution tests] Network drops immediately before and after a consequential action.
+- **R2-108** [P0 protocol and execution tests] Task resumes after process/server restart.
+- **R2-109** [P0 protocol and execution tests] Path traversal/workspace escape attempts.
+- **R2-110** [P0 protocol and execution tests] Prompt-injection page attempting to override task permissions.
+- **R2-111** [P2 competitive and endurance qualification] hundreds of intermediate results.
+
+### R3: Execution root causes and competitors (84 distinct source details)
+
+- **R3-001** [The root causes in the current audit] \| **RC01** \| Desktop result journal may contain more than the server's maximum 20-result envelope. \| Long jobs can fail synchronisation; control/STOP traffic can become entangled with backlog delivery. \| **P0** \|
+- **R3-002** [The root causes in the current audit] \| **RC02** \| Pinned Pillow `12.3.0` matches upstream security advisories, including a serious memory-corruption class issue. OCADE exploitability was not demonstrated. \| Untrusted images carry unnecessary parser risk. \| **P0** \|
+- **R3-003** [The root causes in the current audit] \| **RC03** \| `pypdf 6.19.0` is in an affected range and PDF parsing begins before OCADE's output-text limit can protect the process. \| Malformed PDFs can consume resources before the normal limit is reached. \| **P0** \|
+- **R3-004** [The root causes in the current audit] \| **RC04** \| DeepSeek/Vite path checking mixes Windows-native and Vite-normalised paths and has a sibling-prefix issue. \| Required transformations can be skipped or applied to the wrong path on Windows. \| **P0** \|
+- **R3-005** [The root causes in the current audit] \| **RC05** \| Build tooling directly invokes bare `npx`, which is a portability risk on Windows. Fresh native reproduction remains blocked. \| Build/link process can behave differently across platforms. \| **P1** \|
+- **R3-006** [The root causes in the current audit] \| **RC06** \| The dedicated Cloudflare Billing Read credential is not consumed as intended; HIGH checks use the existing token path. \| HIGH availability can fail even though a separate billing credential was configured. \| **P0** \|
+- **R3-007** [The root causes in the current audit] \| **RC07** \| Staging intelligence code does not match the candidate implementation. \| A staging PASS would not qualify the actual candidate. \| **P0** \|
+- **R3-008** [The root causes in the current audit] \| **RC08** \| File delivery/upload uses blocking I/O without task cancellation propagated into it. \| STOP can be requested while the upload continues. \| **P0** \|
+- **R3-009** [The root causes in the current audit] \| **RC09** \| Supabase staging leaked-password protection was disabled. \| Weaker account protection than intended. \| **P1** \|
+- **R3-010** [The root causes in the current audit] \| **RC10** \| Exact `/auth` is not included in the service worker's intended unconditional no-cache matcher. \| Authentication navigation relies more heavily on response headers than intended. No disclosure was demonstrated. \| **P1** \|
+- **R3-011** [The root causes in the current audit] \| **RC11** \| Raw command text is scanned for shell characters before arguments are properly understood. \| Legitimate quoted values can be rejected, causing unnecessary retries. \| **P1** \|
+- **R3-012** [The root causes in the current audit] \| **RC12** \| Broad capabilities are treated as though individual operations are healthy. \| JARVIS discovers missing Python/FFmpeg/LibreOffice/etc. after starting work. \| **P0 — central architecture issue** \|
+- **R3-013** [The root causes in the current audit] \| **RC13** \| Verification can confirm existence and matching words/numbers without proving complete business correctness. \| A wrong value in the wrong spreadsheet row could potentially satisfy a weak check. \| **P0** \|
+- **R3-014** [The root causes in the current audit] \| **RC14** \| XLSX fallback can write formula expressions but does not itself calculate them. \| A spreadsheet can look structurally correct while calculated values remain stale/unavailable. \| **P1** \|
+- **R3-015** [The root causes in the current audit] \| **RC15** \| Windows direct command execution does not have the same OS sandbox used by the Linux route. \| Arbitrary authorised code requires a stronger Windows isolation story. \| **P1** \|
+- **R3-016** [The root causes in the current audit] \| **RC16** \| FFmpeg subtitle-filter escaping may break for Windows paths containing special characters. \| Possible media-render failure; this remains a hypothesis requiring Windows reproduction. \| **P2 / unresolved** \|
+- **R3-017** [The root causes in the current audit] \| **RC17** \| Duplicate exact window titles can lead to first-match selection instead of recognising ambiguity. \| JARVIS could operate on the wrong same-named document. \| **P0** \|
+- **R3-018** [API/UI-tree first versus screenshot/VLM first] \| Target identity \| Semantic element/app/document identity \| Coordinates or visually inferred object \|
+- **R3-019** [API/UI-tree first versus screenshot/VLM first] \| Speed \| Usually much faster for ordinary actions \| Requires image capture/model inference frequently \|
+- **R3-020** [API/UI-tree first versus screenshot/VLM first] \| Token/bandwidth cost \| Small structured observations \| Potentially large image payloads \|
+- **R3-021** [API/UI-tree first versus screenshot/VLM first] \| Resilience to moved windows/layout \| Strong when semantic identity remains stable \| Coordinates can shift \|
+- **R3-022** [API/UI-tree first versus screenshot/VLM first] \| Form filling \| Excellent \| Works but inefficient \|
+- **R3-023** [API/UI-tree first versus screenshot/VLM first] \| Complex canvas/game \| Often unavailable \| **Excellent fallback** \|
+- **R3-024** [API/UI-tree first versus screenshot/VLM first] \| Legacy/custom UI \| Sometimes inaccessible \| Often still usable \|
+- **R3-025** [API/UI-tree first versus screenshot/VLM first] \| Verification \| Can inspect exact DOM/UI state \| Often needs additional visual inference \|
+- **R3-026** [API/UI-tree first versus screenshot/VLM first] \| Best OCADE role \| **Primary** \| **Fallback** \|
+- **R3-027** [Task routing must happen before computer control] \| “Research five suppliers.” \| Search/research/browser \|
+- **R3-028** [Task routing must happen before computer control] \| “Download my invoice.” \| Browser DOM → filesystem \|
+- **R3-029** [Task routing must happen before computer control] \| “Create an Excel spreadsheet from this PDF.” \| PDF parser → spreadsheet API → verifier \|
+- **R3-030** [Task routing must happen before computer control] \| “Create a professional PDF.” \| Document/PDF renderer \|
+- **R3-031** [Task routing must happen before computer control] \| “Edit the Excel workbook I currently have open.” \| Excel/app adapter or UIA \|
+- **R3-032** [Task routing must happen before computer control] \| “Turn these clips into a video.” \| Media pipeline/FFmpeg \|
+- **R3-033** [Task routing must happen before computer control] \| “Change this Windows setting.” \| Windows UIA \|
+- **R3-034** [Task routing must happen before computer control] \| “Play BoldChess.” \| Browser structure if available → canvas/VLM fallback \|
+- **R3-035** [Task routing must happen before computer control] \| “Use Photoshop on my currently open project.” \| App adapter/API if available → UIA → vision \|
+- **R3-036** [Task routing must happen before computer control] \| “Download invoices and enter totals into desktop accounting software.” \| Browser → parser → desktop app adapter/UIA \|
+- **R3-037** [Use a local small model, but only where it helps] deciding whether a new large-model call is necessary;
+- **R3-038** [Use a local small model, but only where it helps] small visual-grounding fallback;
+- **R3-039** [Use a local small model, but only where it helps] continuing very predictable micro-steps.
+- **R3-040** [Use a local small model, but only where it helps] inventing capabilities that preflight says are unavailable.
+- **R3-041** [Independent verification] \| TXT \| reopen file, compare expected content \|
+- **R3-042** [Independent verification] \| DOCX \| independently parse package, check required headings/tables/content \|
+- **R3-043** [Independent verification] \| PDF \| reopen with separate parser/render route, confirm pages/content \|
+- **R3-044** [Independent verification] \| XLSX \| check sheets/cells/formulas **and calculated values when required** \|
+- **R3-045** [Independent verification] \| Image \| independently decode, dimensions, requested edit evidence, original preserved \|
+- **R3-046** [Independent verification] \| Video \| `ffprobe` duration/resolution/streams + decode representative frames \|
+- **R3-047** [Independent verification] \| Browser form \| inspect resulting DOM/server state \|
+- **R3-048** [Independent verification] \| File download \| signature/MIME/hash + expected content \|
+- **R3-049** [Independent verification] \| Windows application \| re-read UIA/app state and resulting persisted artefact \|
+- **R3-050** [Independent verification] \| Accounting \| exact balances, row provenance, unmatched items, recalculation \|
+- **R3-051** [Independent verification] \| Order tracking \| actual status + source/time + missing records clearly marked \|
+- **R3-052** [Recommended tool stack] \| **Playwright / Playwright MCP** \| Primary browser automation \| **Core.** Use semantic DOM/accessibility snapshots and stable references.  \|
+- **R3-053** [Recommended tool stack] \| **Chrome DevTools Protocol / Chrome DevTools MCP** \| Authorised control of an existing Chrome session, debugging/network/page data \| **Core for existing-browser mode**, under explicit customer permission. Chrome DevTools tooling can reuse active browser context.  \|
+- **R3-054** [Recommended tool stack] \| **Puppeteer** \| Alternative Chromium/Firefox automation through CDP/WebDriver BiDi \| **Not a second primary engine.** Keep as compatibility/test option if there is a concrete gap; Playwright should remain the normal browser runtime.  \|
+- **R3-055** [Recommended tool stack] \| **Windows UI Automation** \| Native Windows semantic controls \| **Core.** This should be the normal desktop interaction mechanism before vision.  \|
+- **R3-056** [Recommended tool stack] \| **pywinauto** \| Python abstraction over Win32/UIA for particular native-app automation \| Useful implementation/compatibility layer where it simplifies existing code, not another independent “brain”.  \|
+- **R3-057** [Recommended tool stack] \| **WinAppDriver** \| WebDriver-style Windows application automation \| Better suited as **testing/compatibility infrastructure** than OCADE's universal production controller.  \|
+- **R3-058** [Recommended tool stack] \| **OCADE Browser MCP** \| OCADE-owned semantic browser actions \| Build on Playwright/CDP; expose `navigate`, `find`, `fill`, `click`, `download`, `upload`, `verify`. \|
+- **R3-059** [Recommended tool stack] \| **OCADE Windows MCP/service** \| Stable Windows capabilities \| First-party wrapper around UIA/app identity, with visual fallback; do not expose arbitrary raw coordinates by default. \|
+- **R3-060** [Recommended tool stack] \| **OCADE Files MCP/service** \| File list/read/write/move/copy/hash \| First-party and permission-scoped. Routine file operations should not require shell commands. \|
+- **R3-061** [Recommended tool stack] \| **OCADE Documents service** \| DOCX/XLSX/PPTX/PDF operations \| First-party typed operations plus independent verifiers. \|
+- **R3-062** [Recommended tool stack] \| **FFmpeg + ffprobe** \| Video/audio creation and verification \| **Bundle/pin/health-check**, rather than relying on arbitrary customer PATH configuration.  \|
+- **R3-063** [Recommended tool stack] \| **LibreOffice headless** \| Repeatable Office→PDF conversion/calculation fallback \| Optional but useful; bundle/qualify deliberately rather than searching for it during a job.  \|
+- **R3-064** [Recommended tool stack] \| **Python environment manager such as `uv`** \| Known Python runtime/environment \| Prefer a pinned managed runtime over calling whatever `python` happens to mean on Windows. `uv` supports managed Python environments and Windows.  \|
+- **R3-065** [Recommended tool stack] \| **Local model runtime** \| Optional SLM/VLM micro-controller \| P1 optimisation; use a pinned, supported runtime. Hermes currently demonstrates one practical local-model approach.  \|
+- **R3-066** [Recommended tool stack] \| **MCP gateway/tool registry** \| Expose only relevant tools \| Core integration abstraction, but behind OCADE permissions—not in place of them. \|
+- **R3-067** [Recommended tool stack] \| **TinyFish / specialist web agents** \| Difficult external websites \| Optional fallback, not the default browser engine and not evidence of Windows support. \|
+- **R3-068** [Recommended tool stack] \| **GitHub Actions Windows / disposable Windows runner** \| Continuous Windows qualification \| Essential testing lane. Exact pricing/free eligibility depends on account and runner configuration and is therefore **unspecified here**. \|
+- **R3-069** [Recommended tool stack] \| **Cloud Windows VM runner** \| Full UIA/agent qualification without using the owner's PC \| Required for repeatable disposable native testing when CI runners cannot provide interactive desktop requirements. Exact vendor/cost remains **unspecified**. \|
+- **R3-070** [Acceptance criteria before public launch] \| **Protocol** \| 21/100/1,000 retained results drain without loss or duplicate effect; dropped/reordered/duplicate ACKs handled correctly. \|
+- **R3-071** [Acceptance criteria before public launch] \| **STOP** \| STOP remains deliverable during result backlog and long I/O; no new action admitted after the measured STOP boundary; ongoing effect reconciled honestly. \|
+- **R3-072** [Acceptance criteria before public launch] \| **Targeting** \| Zero writes to the wrong document across duplicate filenames/titles, focus theft, enumeration changes and process restarts in the release corpus. \|
+- **R3-073** [Acceptance criteria before public launch] \| **Preflight** \| Remove each dependency individually; planner never selects an unavailable operation. \|
+- **R3-074** [Acceptance criteria before public launch] \| **Browser** \| DOM/accessibility is primary; vision only where structured targets genuinely fail; hostile-page/popup/iframe/download/upload tests included. \|
+- **R3-075** [Acceptance criteria before public launch] \| **Windows** \| Disposable Windows tests for Notepad, multi-window identity, unknown applications, native dialogs and UIA fallback. \|
+- **R3-076** [Acceptance criteria before public launch] \| **Documents** \| DOCX/PDF/XLSX/PPTX outputs independently reopen and satisfy semantic assertions. \|
+- **R3-077** [Acceptance criteria before public launch] \| **Spreadsheet** \| Formula strings **and calculated results** independently verified where calculation is requested. \|
+- **R3-078** [Acceptance criteria before public launch] \| **Media** \| ffprobe plus actual decode/frame/audio checks after render. \|
+- **R3-079** [Acceptance criteria before public launch] \| **Security** \| Patched dependency set; malicious/malformed parser fixtures cannot hang the long-lived agent; resource ceilings verified. \|
+- **R3-080** [Acceptance criteria before public launch] \| **Deployment** \| Candidate SHA/digests/agent/schema/capability versions exactly match the tested target. \|
+- **R3-081** [Acceptance criteria before public launch] \| **False completion** \| **Zero false VERIFIED results** in the qualification corpus. \|
+- **R3-082** [Acceptance criteria before public launch] \| **Held-out professional work** \| Execute the planned 30 reconciliation + 30 client-document + 30 order-status cases using the real current model/tool path. \|
+- **R3-083** [Acceptance criteria before public launch] \| **Elite tasks** \| Execute the five planned elite benchmarks: professional video, BoldChess, photo editing, vehicle CAD and failure/recovery. \|
+- **R3-084** [Acceptance criteria before public launch] \| **Release gates** \| **10/10 qualified**, replacing today's 0/10. \|
+
+### R4: Provider-neutral execution architecture (117 distinct source details)
+
+- **R4-001** [What is actually wrong inside OCADE] \| Coarse capability admission \| JARVIS starts a task and discovers halfway through that FFmpeg/Python/LibreOffice is unavailable \| “Computer/media available” is confused with “this exact operation is healthy now” \| **P0** \|
+- **R4-002** [What is actually wrong inside OCADE] \| Result transport >20 \| A long-running task can accumulate enough results that the exchange becomes invalid \| Local journal and server envelope have incompatible batching contracts \| **P0** \|
+- **R4-003** [What is actually wrong inside OCADE] \| STOP shares the work path \| Stopping work can become unreliable while the normal result path is blocked \| Safety/control traffic is not sufficiently independent \| **P0** \|
+- **R4-004** [What is actually wrong inside OCADE] \| Duplicate window titles \| JARVIS can operate on the wrong same-named document/window \| Target identity is based too heavily on first matching title \| **P0** \|
+- **R4-005** [What is actually wrong inside OCADE] \| Uncancellable upload \| STOP can occur but an in-progress upload may continue \| Blocking I/O does not receive task cancellation \| **P0** \|
+- **R4-006** [What is actually wrong inside OCADE] \| Weak semantic completion check \| A requested number may exist in the output but be in the wrong place \| Verification proves presence/state, not complete business correctness \| **P0** \|
+- **R4-007** [What is actually wrong inside OCADE] \| Staging/source mismatch \| A test may actually exercise different AI code than the branch under review \| No immutable end-to-end deployment attestation \| **P0** \|
+- **R4-008** [What is actually wrong inside OCADE] \| Windows Vite path issue \| Code behaves differently on Windows paths \| Normalised and native path representations are mixed \| **P0** \|
+- **R4-009** [What is actually wrong inside OCADE] \| HIGH billing credential wiring \| HIGH mode eligibility can break independently of model functionality \| Correct scoped credential is not consumed where expected \| **P0** \|
+- **R4-010** [What is actually wrong inside OCADE] \| Pillow/pypdf issues \| Hostile image/PDF input can expose parser risk \| Vulnerable/unbounded parsing occurs in the agent process \| **P0** \|
+- **R4-011** [What is actually wrong inside OCADE] \| XLSX recalculation limitation \| Spreadsheet can contain formulas without independently proven calculated values \| File generation is mistaken for native spreadsheet execution \| **P1** \|
+- **R4-012** [What is actually wrong inside OCADE] \| Raw command filtering \| Benign quoted content may be rejected \| Security policy analyses string syntax rather than a typed operation \| **P1** \|
+- **R4-013** [What is actually wrong inside OCADE] \| `/auth` service-worker edge \| Authentication state can interact incorrectly with cache rules \| Exact route isn't covered by the intended exclusion \| **P1** \|
+- **R4-014** [What is actually wrong inside OCADE] \| Bare `npx` invocation \| Windows build/tool setup can be brittle \| Process launching assumes Unix-like executable behaviour \| **P1** \|
+- **R4-015** [What the leading competitors are actually doing] \| **ChatGPT / OpenAI Computer Use** \| OpenAI separates browser-oriented and full computer tooling, while applications may also expose their existing deterministic operations as normal function tools. \| Do not send every task through screenshot control. \|
+- **R4-016** [What the leading competitors are actually doing] \| **OpenAI Dots** \| Dots have their own cloud computers and connect to thousands of applications through a plugin ecosystem; users remain able to pause/control the agent. \| Give the planner a governed capability ecosystem rather than hard-wiring every integration. \|
+- **R4-017** [What the leading competitors are actually doing] \| **Codex** \| Uses a reusable agent harness with managed context, tool use, controlled environments and long-running work; cloud coding tasks use isolated sandboxes. \| Long tasks need a runtime/harness, not a gigantic prompt. \|
+- **R4-018** [What the leading competitors are actually doing] \| **Claude Browser Use** \| Uses accessibility/page structure, forms, tabs and screenshots within a browser-specific toolset. \| Browser tasks should use structural browser state first. \|
+- **R4-019** [What the leading competitors are actually doing] \| **Claude Computer Use** \| Full-desktop tasks use screenshot/mouse/keyboard tools; multiple actions can be returned in one model turn. \| Use visual desktop control only when the task genuinely leaves structured surfaces; batch safe actions. \|
+- **R4-020** [What the leading competitors are actually doing] \| **Gemini 4 Argon** \| Computer Use produces UI actions from screenshots while the developer owns the execution environment; Gemini also supports function calling and computer use. \| Keep model intelligence separate from local authority/execution. \|
+- **R4-021** [What the leading competitors are actually doing] \| **Meta Muse** \| Muse selects built-in skills, can browse/use connected apps and operates subject to permissions and approvals. Meta is also developing on-device agentic models. \| Route to skills/connectors before GUI improvisation. \|
+- **R4-022** [What the leading competitors are actually doing] \| **OpenClaw** \| Separates an isolated agent-only browser from an optional authenticated user's Chrome session; browser control exposes deterministic tab/action/snapshot operations. \| Explicit browser profiles and session identity are better than “find some Chrome window”. \|
+- **R4-023** [What the leading competitors are actually doing] \| **Manus** \| Connectors unify external services and MCP servers under permission/cost controls. \| MCP should feed a controlled integration layer, not bypass OCADE authority. \|
+- **R4-024** [What the leading competitors are actually doing] \| **Hermes** \| Discovers registered MCP tools and lets operators filter what each server exposes. \| Tool discovery needs filtering, not “show the model every tool”. \|
+- **R4-025** [What the leading competitors are actually doing] \| **xAI/Grok** \| xAI's current API supports built-in tools, custom function calling and remote MCP servers; its docs explicitly recommend `allowed_tools` to reduce both context overhead and risk. \| Expose a small task-specific tool subset. \|
+- **R4-026** [What the leading competitors are actually doing] \| **Microsoft UFO** \| Separates an application-selecting HostAgent, an application-level agent and an Application Automator that can use UI controls/native APIs/tools. \| App selection and app execution should be different responsibilities. \|
+- **R4-027** [What the leading competitors are actually doing] \| **Agent S** \| Combines a main planner, separate GUI grounding and optionally a code environment; current project documentation also describes reflection/recovery. \| A dedicated grounding/executor layer can outperform asking one huge model to do everything. \|
+- **R4-028** [What the leading competitors are actually doing] \| **UI-TARS / Agent TARS** \| Supports GUI control, browser DOM/hybrid strategies, MCP and an event-stream architecture. \| Hybrid browser control and structured event history are stronger than pure pixels. \|
+- **R4-029** [What the leading competitors are actually doing] \| **Perplexity** \| Its Agent API combines search, URL retrieval, code execution, MCP and model routing in a managed runtime. \| Use a dedicated research pipeline for research instead of teaching desktop JARVIS to scrape the web manually. \|
+- **R4-030** [How OCADE should decide browser versus full PC] \| “Search the web for suppliers” \| Research/browser \|
+- **R4-031** [How OCADE should decide browser versus full PC] \| “Book this through the website” \| Browser DOM + approval \|
+- **R4-032** [How OCADE should decide browser versus full PC] \| “Create an Excel workbook from this PDF” \| PDF parser → spreadsheet API; **no GUI unless required** \|
+- **R4-033** [How OCADE should decide browser versus full PC] \| “Create a professional PDF” \| Document/PDF tools; **no browser or desktop first** \|
+- **R4-034** [How OCADE should decide browser versus full PC] \| “Edit the workbook I currently have open in Excel” \| Excel/native automation or UIA \|
+- **R4-035** [How OCADE should decide browser versus full PC] \| “Turn these clips into a video” \| Media pipeline/FFmpeg, not screen clicking \|
+- **R4-036** [How OCADE should decide browser versus full PC] \| “Play BoldChess in the browser” \| Browser DOM/vision depending on canvas \|
+- **R4-037** [How OCADE should decide browser versus full PC] \| “Use Photoshop to edit this open project” \| App-specific/native route → UIA → vision \|
+- **R4-038** [How OCADE should decide browser versus full PC] \| “Download a report and enter its total into desktop accounting software” \| Browser subtask → file/parser → full-PC subtask \|
+- **R4-039** [The micro-loop for every task] Parse the user's requested deliverables and constraints.
+- **R4-040** [The micro-loop for every task] Convert them into typed operations, not vague prose.
+- **R4-041** [The micro-loop for every task] Determine whether each operation belongs to research, browser, direct-file, native-app or full-desktop control.
+- **R4-042** [The micro-loop for every task] Query operation-level capability health.
+- **R4-043** [The micro-loop for every task] Remove every unavailable or unauthorised tool **before** the model sees its action options.
+- **R4-044** [The micro-loop for every task] Bind the target: account, device, application process, window, document, browser profile and tab.
+- **R4-045** [The micro-loop for every task] Generate a short plan containing expected postconditions.
+- **R4-046** [The micro-loop for every task] Batch deterministic low-risk actions when no new observation is required.
+- **R4-047** [The micro-loop for every task] Observe only the state that changed.
+- **R4-048** [The micro-loop for every task] Check the expected postcondition.
+- **R4-049** [The micro-loop for every task] If it failed, return a **typed machine error**, not a giant stack trace.
+- **R4-050** [The micro-loop for every task] Choose a different known-supported route if one exists.
+- **R4-051** [The micro-loop for every task] Limit retries by cause, not by arbitrary iteration count.
+- **R4-052** [The micro-loop for every task] Independently verify the final artifact/state.
+- **R4-053** [Recommended stack] \| Capability \| Recommendation \| Priority \| Why \|
+- **R4-054** [Recommended stack] \| **Existing OCADE Playwright controller** \| **KEEP and strengthen** \| P0 \| Already implemented; should remain primary browser writer \|
+- **R4-055** [Recommended stack] \| **Existing Windows UIA** \| **KEEP and strengthen** \| P0 \| Already implemented; add target identity, health and event waits \|
+- **R4-056** [Recommended stack] \| **Existing typed file/document/sheet/media modules** \| **KEEP** \| P0 \| Much faster and safer than GUI editing \|
+- **R4-057** [Recommended stack] \| **Operation Health Registry** \| **BUILD** \| P0 \| Main missing execution contract \|
+- **R4-058** [Recommended stack] \| **Target Identity Resolver** \| **BUILD** \| P0 \| Fixes wrong-window/document risk \|
+- **R4-059** [Recommended stack] \| **Independent workflow verifiers** \| **BUILD** \| P0 \| Prevents false completion \|
+- **R4-060** [Recommended stack] \| **Bounded result transport** \| **FIX** \| P0 \| Solves 20-result failure \|
+- **R4-061** [Recommended stack] \| **Independent STOP/control channel** \| **FIX** \| P0 \| STOP must work even under backlog \|
+- **R4-062** [Recommended stack] \| **Cancellable transfer layer** \| **BUILD/FIX** \| P0 \| Removes uncancellable uploads \|
+- **R4-063** [Recommended stack] \| **Pinned runtime manager** \| **BUILD** \| P0 \| FFmpeg/PDF/Office dependencies become known capabilities \|
+- **R4-064** [Recommended stack] \| **Dynamic tool projection/search** \| **BUILD** \| P0 \| Model sees only relevant healthy tools \|
+- **R4-065** [Recommended stack] \| **MCP 2026-07-28 gateway** \| **ADD cautiously** \| P1 \| Standard connector/tool interoperability \|
+- **R4-066** [Recommended stack] \| **Playwright MCP** \| **Adapter/test/reference**, not second executor \| P1 \| Structured browser interface and interoperability \|
+- **R4-067** [Recommended stack] \| **Chrome DevTools MCP** \| **Optional authenticated-browser adapter** \| P1 \| Good for explicitly authorised existing sessions \|
+- **R4-068** [Recommended stack] \| **FFmpeg + ffprobe** \| **Package/pin/health-test** \| P1 \| Reliable media operations and verification \|
+- **R4-069** [Recommended stack] \| **LibreOffice headless** \| **Optional qualified converter** \| P1 \| Useful PDF/office fallback, not mandatory for every task \|
+- **R4-070** [Recommended stack] \| **Office native automation** \| **First-party adapter** \| P1 \| Needed for native recalculation/macros/open unsaved documents \|
+- **R4-071** [Recommended stack] \| **Browser Use** \| **Benchmark/optional managed-browser adapter** \| P1/P2 \| Strong external browser-agent stack \|
+- **R4-072** [Recommended stack] \| **Stagehand** \| **Evaluate as fallback/self-healing layer** \| P2 \| Useful browser abstractions, but avoid second uncontrolled writer \|
+- **R4-073** [Recommended stack] \| **Skyvern** \| **Benchmark/optional specialised workflow adapter** \| P2 \| Good vision+Playwright reference \|
+- **R4-074** [Recommended stack] \| **UI-TARS grounding** \| **Research fallback** \| P2 \| Useful for structurally opaque GUI regions \|
+- **R4-075** [Recommended stack] \| **Agent S ideas** \| **Research architecture/benchmark** \| P2 \| Strong planner/grounder separation \|
+- **R4-076** [Recommended stack] \| **Microsoft UFO concepts** \| **Borrow architecture, don't embed wholesale** \| P2 \| Application routing pattern fits OCADE \|
+- **R4-077** [Recommended stack] \| **OpenAdapt** \| **Evaluate for repeated workflows** \| P2 \| Demonstration → deterministic replay → independent verification \|
+- **R4-078** [Recommended stack] \| **TinyFish-style managed web runner** \| **Optional cloud adapter** \| P2 \| Useful when OCADE needs an external isolated browser, not the local control core \|
+- **R4-079** [Recommended stack] \| **Hermes/Manus MCP catalogues** \| **Study UX/governance pattern** \| P2 \| Good connector discovery and filtering models \|
+- **R4-080** [The cloud test matrix] \| Linux browser runner \| Website routes, Playwright, auth UI, forms, accessibility, browser task suite \|
+- **R4-081** [The cloud test matrix] \| Windows clean VM \| Agent install, service startup, pairing, UIA, Notepad, Explorer, native dialogs \|
+- **R4-082** [The cloud test matrix] \| Windows Office VM \| Word, Excel, PowerPoint, recalculation, PDF export, reopen/verify \|
+- **R4-083** [The cloud test matrix] \| Windows media VM \| FFmpeg, images, audio/video, codec failures, cancellation \|
+- **R4-084** [The cloud test matrix] \| Windows “missing tools” VM \| Deliberately remove each dependency and verify preflight blocks bad plans \|
+- **R4-085** [The cloud test matrix] \| Browser matrix \| Chrome, Edge and supported Chromium paths; isolated and explicitly attached sessions \|
+- **R4-086** [The cloud test matrix] \| Security/fuzz runner \| PDF/image parser abuse, malformed files, oversized inputs, auth boundaries \|
+- **R4-087** [The cloud test matrix] \| Network-fault runner \| Offline transition, packet loss, latency, server 500s, upload interruption \|
+- **R4-088** [The cloud test matrix] \| Transport stress runner \| 0/1/20/21/100/1,000 result backlogs, lost ACKs, duplicate receipts \|
+- **R4-089** [The cloud test matrix] \| Long-task runner \| Hours-long tasks, checkpoints, restart/reconnect, resumed execution \|
+- **R4-090** [The cloud test matrix] \| Wrong-target runner \| Same file names, same window titles, focus stealing, pop-ups, multiple documents \|
+- **R4-091** [The cloud test matrix] \| Benchmark runners \| OSWorld-style desktop tasks, WindowsAgentArena-style tasks, browser benchmark tasks and OCADE's held-out corpus \|
+- **R4-092** [Commercial model] \| **Free / Starter** \| Chat, limited research, limited browser automation, local deterministic tools \|
+- **R4-093** [Commercial model] \| **Pro** \| Full JARVIS PC control, larger usage allowance, offline/local options, advanced models \|
+- **R4-094** [Commercial model] \| **Business** \| Managed devices, team connectors, permissions, audit trails, admin policies \|
+- **R4-095** [Commercial model] \| **Enterprise** \| SSO, device fleets, data residency controls, private model/provider options, policy enforcement \|
+- **R4-096** [Commercial model] \| **Heavy compute add-on** \| Cloud browsers, long-running agents, premium models, large media workloads \|
+- **R4-097** [The revised priority order] \| **P0** \| Fix 20-result batching and separate STOP/control delivery \|
+- **R4-098** [The revised priority order] \| **P0** \| Add operation-level dependency health/preflight \|
+- **R4-099** [The revised priority order] \| **P0** \| Fix unique window/process/document targeting \|
+- **R4-100** [The revised priority order] \| **P0** \| Make uploads and all long I/O genuinely cancellable \|
+- **R4-101** [The revised priority order] \| **P0** \| Patch/isolate Pillow and PDF parsers \|
+- **R4-102** [The revised priority order] \| **P0** \| Fix Windows path/build portability \|
+- **R4-103** [The revised priority order] \| **P0** \| Attest exact web/server/agent/model/runtime versions \|
+- **R4-104** [The revised priority order] \| **P0** \| Fix HIGH/billing credential boundary \|
+- **R4-105** [The revised priority order] \| **P0** \| Build task-family semantic verification \|
+- **R4-106** [The revised priority order] \| **P0** \| Run exact-candidate disposable Windows qualification \|
+- **R4-107** [The revised priority order] \| **P1** \| Optimise browser control around DOM/accessibility and action batches \|
+- **R4-108** [The revised priority order] \| **P1** \| Strengthen UIA identity and event-driven waits \|
+- **R4-109** [The revised priority order] \| **P1** \| Pin/qualify FFmpeg, Office/PDF converters and runtime dependencies \|
+- **R4-110** [The revised priority order] \| **P1** \| Implement health-filtered dynamic tool projection \|
+- **R4-111** [The revised priority order] \| **P1** \| Build true offline-JARVIS provider routing over the same executor \|
+- **R4-112** [The revised priority order] \| **P1** \| Build long-task durable checkpoints/recovery \|
+- **R4-113** [The revised priority order] \| **P1** \| Simplify the customer-facing progress UI \|
+- **R4-114** [The revised priority order] \| **P2** \| Evaluate Playwright MCP, Chrome DevTools MCP, Browser Use, Stagehand and Skyvern as measured adapters \|
+- **R4-115** [The revised priority order] \| **P2** \| Evaluate specialised local GUI grounding such as UI-TARS-style models \|
+- **R4-116** [The revised priority order] \| **P2** \| Explore “demonstrate once → compile workflow” automation \|
+- **R4-117** [The revised priority order] \| **P2** \| Expand the connector/plugin marketplace after the core executor is proven \|
+
+### R5: Runtime tools and commercial launch (41 distinct source details)
+
+- **R5-001** [Executive conclusion] Video task → JARVIS eventually discovers FFmpeg is unavailable.
+- **R5-002** [Executive conclusion] Image task → JARVIS discovers Python is not correctly available through its execution environment.
+- **R5-003** [Executive conclusion] DOCX → PDF → JARVIS discovers LibreOffice is unavailable only after starting.
+- **R5-004** [Executive conclusion] Windows build → DeepSeek integration mishandles Windows path separators.
+- **R5-005** [Executive conclusion] Agent communication → retained results can exceed what the server accepts.
+- **R5-006** [Executive conclusion] New agent versus old server → acknowledgement contract can differ.
+- **R5-007** [Executive conclusion] Browser/local inference → CSP/routing problems appear only after execution starts.
+- **R5-008** [Executive conclusion] Tasks can spend many AI calls exploring the computer rather than doing the work.
+- **R5-009** [Executive conclusion] The latest audit still has **0/10 release gates satisfied** and no complete current-version JARVIS workflow campaign.
+- **R5-010** [JARVIS should first classify the task] \| “Open my local Excel workbook” \| Full PC / Office \|
+- **R5-011** [JARVIS should first classify the task] \| “Create an XLSX from this PDF” \| File/document tools first \|
+- **R5-012** [JARVIS should first classify the task] \| “Change this setting in Photoshop” \| Windows UI \|
+- **R5-013** [JARVIS should first classify the task] \| “Send this through a website” \| Browser + approval if required \|
+- **R5-014** [Full-PC task] interaction across multiple native applications.
+- **R5-015** [Then eliminate the already-known defects] \| Retained-result/server batch mismatch \| Negotiated bounded batching + acknowledgement/backpressure \|
+- **R5-016** [Then eliminate the already-known defects] \| Old/new protocol mismatch \| Versioned handshake + compatibility enforcement \|
+- **R5-017** [Then eliminate the already-known defects] \| Windows DeepSeek path bug \| Platform-independent canonical path handling \|
+- **R5-018** [Then eliminate the already-known defects] \| Bare `npx` portability problem \| Resolve known executable through Node/package runtime \|
+- **R5-019** [Then eliminate the already-known defects] \| Staging intelligence older than candidate \| Pin/deploy identical artefact/version \|
+- **R5-020** [Then eliminate the already-known defects] \| Pillow security advisories \| Upgrade/replace and regression-test affected image flows \|
+- **R5-021** [Then eliminate the already-known defects] \| pypdf advisories \| Upgrade/replace, parser limits and hostile-file tests \|
+- **R5-022** [Then eliminate the already-known defects] \| Leaked-password protection disabled \| Enable and test staging/production configuration \|
+- **R5-023** [Then eliminate the already-known defects] \| Service-worker `/auth` exclusion problem \| Correct routing/cache rules and regression-test \|
+- **R5-024** [Then eliminate the already-known defects] \| Library cancellation gap \| Cancellation-aware upload lifecycle \|
+- **R5-025** [Backend actually does this] select document/presentation capability
+- **R5-026** [Backend actually does this] request approval if policy requires
+- **R5-027** [The most important additions, in priority order] \| **Critical** \| Capability Registry \| Stops Python/FFmpeg/LibreOffice-style surprise failures \|
+- **R5-028** [The most important additions, in priority order] \| **Critical** \| Versioned agent/server protocol \| Stops incompatible PC-control sessions \|
+- **R5-029** [The most important additions, in priority order] \| **Critical** \| Bounded result queue + acknowledgements \| Prevents result backlog/synchronisation failures \|
+- **R5-030** [The most important additions, in priority order] \| **Critical** \| Independent verifier \| Prevents false “Done” results \|
+- **R5-031** [The most important additions, in priority order] \| **Critical** \| Windows UI Automation executor \| Makes native control semantic instead of coordinate-driven \|
+- **R5-032** [The most important additions, in priority order] \| **Critical** \| Playwright browser executor \| Makes websites fast and structured \|
+- **R5-033** [The most important additions, in priority order] \| **High** \| File/document/PDF adapters \| Avoids unnecessary GUI control \|
+- **R5-034** [The most important additions, in priority order] \| **High** \| Packaged media executor \| Stops dependency hunting \|
+- **R5-035** [The most important additions, in priority order] \| **High** \| Durable workflow engine \| Makes long tasks resumable \|
+- **R5-036** [The most important additions, in priority order] \| **High** \| Typed recovery engine \| Makes failures predictable and recoverable \|
+- **R5-037** [The most important additions, in priority order] \| **High** \| Skills library \| Encodes proven workflows rather than rediscovering them \|
+- **R5-038** [The most important additions, in priority order] \| **High** \| Cloud Windows test farm \| Tests PC behaviour without using your personal PC \|
+- **R5-039** [The most important additions, in priority order] \| **High** \| Security/tool gateway \| Prevents MCP/tool access becoming a new attack surface \|
+- **R5-040** [The most important additions, in priority order] \| **Medium** \| Specialist web-agent fallback such as TinyFish \| Useful for difficult web workflows, but should not replace OCADE's core browser engine \|
+- **R5-041** [The most important additions, in priority order] \| **Development only** \| GitHub/Supabase/Cloudflare MCPs \| Excellent for building OCADE; should not automatically be exposed to customer JARVIS \|
+
+### R6: Windows/MCP/receipts exact controls (151 distinct source details)
+
+- **R6-001** [What OCADE needs to change first] \| Runtime availability is uncertain \| JARVIS spends minutes looking for Python, FFmpeg or conversion tools \| No authoritative capability/preflight registry before planning; previous trials found Python command discovery, FFmpeg and LibreOffice problems.  \| **P0** \|
+- **R6-002** [What OCADE needs to change first] \| Result backlog can exceed 20 \| Long-running sessions can stop synchronising correctly \| Candidate agent sends its retained result journal wholesale while server input caps results at 20.  \| **P0** \|
+- **R6-003** [What OCADE needs to change first] \| GUI control is overused \| Typing/clicking becomes slow or targets the wrong state \| Visual computer control is inherently less structured than UI Automation or DOM control; Microsoft exposes deterministic UIA controls specifically for programmatic interaction.  \| **P0** \|
+- **R6-004** [What OCADE needs to change first] \| Browser automation is not one coherent capability \| Web tasks hang or use screen clicking unnecessarily \| OCADE needs DOM/accessibility control for browser tasks and a separate approved browser-session bridge. Playwright provides structured page automation; Chrome also provides an explicit authorised DevTools connection mechanism.  \| **P0** \|
+- **R6-005** [What OCADE needs to change first] \| Dependency checks happen during work \| JARVIS tries one unavailable program after another \| Discovery should happen at agent startup and before planning, not halfway through the task \| **P0** \|
+- **R6-006** [What OCADE needs to change first] \| Completion and execution are too closely coupled \| The model may believe something is finished before the artefact is correct \| Verification must be a separate deterministic stage \| **P0** \|
+- **R6-007** [What OCADE needs to change first] \| Windows path handling has a known problem \| New builds can work differently on Windows \| The audited DeepSeek path predicate mishandles Windows-style/path-normalised separators and sibling prefixes.  \| **P0** \|
+- **R6-008** [What OCADE needs to change first] \| `npx` invocation is not fully portable \| A Windows machine can fail to launch a JS tool even though Node exists \| The audit still identifies bare `npx` execution as a Windows portability risk.  \| **P1** \|
+- **R6-009** [What OCADE needs to change first] \| Document/image dependencies need attention \| Some file jobs may be unsafe or hang on malformed input \| The audited candidate pins Pillow 12.3.0 and pypdf 6.19.0 versions covered by current advisories.  \| **P0 security** \|
+- **R6-010** [The local execution controller] Validate the task and permissions.
+- **R6-011** [The local execution controller] Validate that the path is within the customer's authorised workspace.
+- **R6-012** [The local execution controller] Resolve `documents.pdf_from_docx` through the capability registry.
+- **R6-013** [The local execution controller] Check that its dependency is actually healthy.
+- **R6-014** [The local execution controller] Record `action_id` durably **before** executing anything.
+- **R6-015** [The local execution controller] Invoke the independent verifier.
+- **R6-016** [The local execution controller] Retry the *transmission*, not the side effect, if the network acknowledgement is lost.
+- **R6-017** [Windows UI Automation before screen clicking] Record its PID, process start time and top-level window handle.
+- **R6-018** [Windows UI Automation before screen clicking] Find the expected top-level UIA element.
+- **R6-019** [Windows UI Automation before screen clicking] Find a child by semantic criteria: control type + automation ID + accessible name.
+- **R6-020** [Windows UI Automation before screen clicking] Check that the element still belongs to the expected application/window.
+- **R6-021** [Windows UI Automation before screen clicking] Call `Invoke`, `SetValue`, `Select`, etc.
+- **R6-022** [Windows UI Automation before screen clicking] Wait for a relevant UIA event or state change.
+- **R6-023** [Windows UI Automation before screen clicking] Only fall back to a screenshot/coordinate action if no reliable UIA representation exists.
+- **R6-024** [Native file formats] \| Job \| First choice \| Secondary \| Last resort \|
+- **R6-025** [Native file formats] \| Create/edit `.docx` \| Open XML document API \| LibreOffice/Word automation \| visual UI \|
+- **R6-026** [Native file formats] \| Create/edit `.xlsx` structure/formulas \| Open XML spreadsheet API \| Excel/LibreOffice calculation/application interface \| visual UI \|
+- **R6-027** [Native file formats] \| Create/edit `.pptx` \| Open XML presentation API \| PowerPoint/LibreOffice \| visual UI \|
+- **R6-028** [Native file formats] \| Convert Office file to PDF \| verified LibreOffice headless/native Office exporter \| other approved converter \| visual Save As \|
+- **R6-029** [Native file formats] \| Read PDF \| patched parser in isolated worker \| rendering/text extraction alternative \| GUI \|
+- **R6-030** [Native file formats] \| Create simple PDF \| native PDF-generation component \| document → LibreOffice PDF \| GUI \|
+- **R6-031** [Native file formats] \| Video/audio \| FFmpeg \| known installed editor integration \| visual UI \|
+- **R6-032** [Native file formats] \| Media verification \| `ffprobe` \| second decoder/probe \| visual inspection \|
+- **R6-033** [Durable acknowledgements and batching] Server assigns `task_id`, `action_id` and idempotency key.
+- **R6-034** [Durable acknowledgements and batching] Agent persists action before performing it.
+- **R6-035** [Durable acknowledgements and batching] Agent executes at most once for that idempotency key.
+- **R6-036** [Durable acknowledgements and batching] Result receives a unique `receipt`.
+- **R6-037** [Durable acknowledgements and batching] Result body gets a content hash.
+- **R6-038** [Durable acknowledgements and batching] Agent writes result to a durable outbox.
+- **R6-039** [Durable acknowledgements and batching] Exchange sends at most the server-advertised batch size.
+- **R6-040** [Durable acknowledgements and batching] With the audited current contract, never send more than **20 results** in one exchange.
+- **R6-041** [Durable acknowledgements and batching] Server transactionally persists the result.
+- **R6-042** [Durable acknowledgements and batching] Server returns `action_id + receipt + outcome`.
+- **R6-043** [Durable acknowledgements and batching] Agent removes an entry only when the returned receipt exactly matches the stored receipt.
+- **R6-044** [Durable acknowledgements and batching] Lost acknowledgement causes the *same receipt* to be transmitted again.
+- **R6-045** [Durable acknowledgements and batching] Server deduplicates the receipt instead of executing work again.
+- **R6-046** [Durable acknowledgements and batching] STOP/Pause/control messages get a separate high-priority path so a giant result backlog cannot delay STOP.
+- **R6-047** [Durable acknowledgements and batching] Exponential backoff with jitter is used for transient transport failure.
+- **R6-048** [Durable acknowledgements and batching] Non-transient failures move to a dead-letter/error state rather than retrying forever.
+- **R6-049** [Independent verification] \| TXT \| reopen from disk; exact/semantic text comparison; hash \|
+- **R6-050** [Independent verification] \| DOCX \| parse package independently; confirm headings/tables/content; optionally render \|
+- **R6-051** [Independent verification] \| XLSX \| reopen workbook package; confirm sheets/cells/formulas; use a calculation engine when calculated values matter \|
+- **R6-052** [Independent verification] \| PDF \| parser confirms format/pages/text; render representative pages \|
+- **R6-053** [Independent verification] \| Image \| independent decode; dimensions; expected changes; preserve original \|
+- **R6-054** [Independent verification] \| Video \| `ffprobe` duration/resolution/streams; decode sample frames; confirm audio exists where required \|
+- **R6-055** [Independent verification] \| Browser form \| independently query resulting DOM/server state \|
+- **R6-056** [Independent verification] \| Windows app \| re-query UIA state and resulting filesystem/application state \|
+- **R6-057** [Independent verification] \| Download \| MIME/signature/hash plus requested filename/content \|
+- **R6-058** [MCPs, plugins and Windows runtimes to add] \| **`ocade.capabilities`** \| OCADE MCP: `search`, `get`, `health`, `refresh` \| Single source of truth for what this PC can actually do \| **P0** \| Local agent only; no admin required \|
+- **R6-059** [MCPs, plugins and Windows runtimes to add] \| **`ocade.runtime`** \| Internal service/MCP read surface: `probe`, `versions`, `self_test` \| Detect Python, Node, FFmpeg, LibreOffice, browsers, Office and app capabilities *before* planning \| **P0** \| Absolute executable paths and pinned manifests \|
+- **R6-060** [MCPs, plugins and Windows runtimes to add] \| **`ocade.files`** \| OCADE MCP: `list`, `read`, `write_atomic`, `copy`, `move`, `hash`, `stat` \| Reliable scoped file operations without GUI \| **P0** \| No broad disk access; workspace-root enforcement \|
+- **R6-061** [MCPs, plugins and Windows runtimes to add] \| **`ocade.documents`** \| OCADE MCP over Open XML/document libraries \| Create/inspect DOCX, XLSX, PPTX directly \| **P0** \| Recommended .NET/Open XML or another pinned local implementation; exact runtime version unspecified. Microsoft's SDK is intended for Word/Excel/PowerPoint Open XML packages.  \|
+- **R6-062** [MCPs, plugins and Windows runtimes to add] \| **`ocade.pdf`** \| OCADE MCP: `convert`, `inspect`, `render`, `verify` \| PDF creation/conversion/inspection \| **P0** \| LibreOffice headless where conversion is needed; patched PDF parser. LibreOffice exposes headless programmatic operation.  \|
+- **R6-063** [MCPs, plugins and Windows runtimes to add] \| **`ocade.windows.uia`** \| OCADE MCP/client tools: `windows`, `find_element`, `invoke`, `set_value`, `select`, `wait_for`, `get_text` \| Reliable Windows application control \| **P0** \| Windows UI Automation through .NET/COM; no Python GUI package should be the only implementation.  \|
+- **R6-064** [MCPs, plugins and Windows runtimes to add] \| **Playwright MCP / `ocade.browser`** \| Official `@playwright/mcp`; DOM/accessibility snapshots \| Primary web-page control \| **P0** \| Node.js **20+** for current Playwright MCP; compatible Chromium/Edge.  \|
+- **R6-065** [MCPs, plugins and Windows runtimes to add] \| **OCADE Chrome/Edge Bridge** \| Manifest V3 extension + native messaging \| Securely associate an authorised browser/tab with the local agent \| **P0** \| Installed extension + native-messaging host; Edge and Chrome support native-app messaging.  \|
+- **R6-066** [MCPs, plugins and Windows runtimes to add] \| **Chrome DevTools MCP** \| Official Chrome DevTools MCP, advanced mode \| Attach to an explicitly authorised existing Chrome debugging session \| **P1** \| Chrome's remote debugging must be enabled and connection authorised by the user.  \|
+- **R6-067** [MCPs, plugins and Windows runtimes to add] \| **`ocade.media`** \| OCADE MCP wrapping FFmpeg/ffprobe and patched image library \| Video/audio/image transformations \| **P1** \| Pinned FFmpeg/ffprobe; patched image library. ffprobe provides machine-readable media inspection.  \|
+- **R6-068** [MCPs, plugins and Windows runtimes to add] \| **`ocade.visual`** \| Provider-specific computer-use adapter \| Screenshot/mouse/keyboard fallback \| **P1 fallback only** \| Existing Windows input/screenshot layer; foreground-target verification \|
+- **R6-069** [MCPs, plugins and Windows runtimes to add] \| **`ocade.verify`** \| OCADE MCP/internal service \| Independent artefact and final-state validation \| **P0** \| Parsers/renderers independent from the executor where practical \|
+- **R6-070** [MCPs, plugins and Windows runtimes to add] \| **`ocade.transport`** \| Internal, **not exposed to model** \| Durable actions, receipts, idempotency, batching, STOP \| **P0** \| Persistent local DB/journal \|
+- **R6-071** [MCPs, plugins and Windows runtimes to add] \| **`ocade.cloud-simulator`** \| Test-only MCP \| Deterministic fake filesystem/UI/browser/errors for provider testing \| **P2/test** \| No customer PC access \|
+- **R6-072** [Runtime policy] Load OCADE's signed dependency manifest.
+- **R6-073** [Runtime policy] Locate each dependency through configured absolute path.
+- **R6-074** [Runtime policy] Verify executable signature/hash where OCADE packages it.
+- **R6-075** [Runtime policy] Run a bounded `--version`/health probe.
+- **R6-076** [Runtime policy] Record exact version and capability.
+- **R6-077** [Runtime policy] Check minimum/maximum supported range.
+- **R6-078** [Runtime policy] Record `AVAILABLE`, `DEGRADED` or `MISSING`.
+- **R6-079** [Runtime policy] Expose that status to the capability registry.
+- **R6-080** [Runtime policy] Never let the model select an unavailable capability.
+- **R6-081** [Runtime policy] Offer a normal installer/update flow to the customer if a required component is genuinely missing.
+- **R6-082** [Runtime policy] Never automatically elevate to Administrator because a model decided to.
+- **R6-083** [Runtime policy] Refresh registry after an installation/update.
+- **R6-084** [Task intake → plan → capability → execute → verify → acknowledge] **Receive the customer's request.**
+- **R6-085** [Task intake → plan → capability → execute → verify → acknowledge] Resolve current user permissions.
+- **R6-086** [Task intake → plan → capability → execute → verify → acknowledge] Classify requested side effects: read, write, browser action, app control, external submission, destructive action.
+- **R6-087** [Task intake → plan → capability → execute → verify → acknowledge] Define machine-verifiable completion conditions.
+- **R6-088** [Task intake → plan → capability → execute → verify → acknowledge] Snapshot the current capability registry.
+- **R6-089** [Task intake → plan → capability → execute → verify → acknowledge] Remove unavailable or unauthorised tools.
+- **R6-090** [Task intake → plan → capability → execute → verify → acknowledge] Send the AI the goal + available capability descriptions, not arbitrary access to the machine.
+- **R6-091** [Task intake → plan → capability → execute → verify → acknowledge] For large catalogs, let the provider's tool-discovery mechanism find only relevant tools.
+- **R6-092** [Task intake → plan → capability → execute → verify → acknowledge] Ask for a **structured execution plan**, not private chain-of-thought.
+- **R6-093** [Task intake → plan → capability → execute → verify → acknowledge] Resolve every planned capability to one actual local implementation.
+- **R6-094** [Task intake → plan → capability → execute → verify → acknowledge] Persist action before execution.
+- **R6-095** [Task intake → plan → capability → execute → verify → acknowledge] Execute using the highest-quality control layer.
+- **R6-096** [Task intake → plan → capability → execute → verify → acknowledge] Capture structured observations.
+- **R6-097** [Task intake → plan → capability → execute → verify → acknowledge] Re-check target identity after state-changing actions.
+- **R6-098** [Task intake → plan → capability → execute → verify → acknowledge] If action fails, return a typed error.
+- **R6-099** [Task intake → plan → capability → execute → verify → acknowledge] Let the planner choose only an allowed fallback.
+- **R6-100** [Task intake → plan → capability → execute → verify → acknowledge] Limit retries by step, time and cost.
+- **R6-101** [Task intake → plan → capability → execute → verify → acknowledge] After artefacts exist, invoke `ocade.verify`.
+- **R6-102** [Task intake → plan → capability → execute → verify → acknowledge] Verification must use independent observations.
+- **R6-103** [Task intake → plan → capability → execute → verify → acknowledge] If verification fails, task returns to bounded recovery.
+- **R6-104** [Task intake → plan → capability → execute → verify → acknowledge] If verification passes, write immutable verification evidence.
+- **R6-105** [Task intake → plan → capability → execute → verify → acknowledge] Persist the result receipt locally.
+- **R6-106** [Task intake → plan → capability → execute → verify → acknowledge] Send results in bounded batches—currently no more than 20 for the audited OCADE exchange contract.
+- **R6-107** [Task intake → plan → capability → execute → verify → acknowledge] Server persists and returns exact receipt acknowledgement.
+- **R6-108** [Task intake → plan → capability → execute → verify → acknowledge] Agent clears only exactly acknowledged receipts.
+- **R6-109** [Task intake → plan → capability → execute → verify → acknowledge] PWA changes status to **Verified Complete**.
+- **R6-110** [Task intake → plan → capability → execute → verify → acknowledge] User sees the artefacts and verification result.
+- **R6-111** [Cloud-only simulation] Build the same OCADE local controller as a replaceable interface.
+- **R6-112** [Cloud-only simulation] Implement a deterministic `FakeWindowsController`.
+- **R6-113** [Cloud-only simulation] Implement fake browser, filesystem, document and media MCP servers.
+- **R6-114** [Cloud-only simulation] Give them realistic state machines.
+- **R6-115** [Cloud-only simulation] Inject errors such as missing FFmpeg, stale element, timeout, duplicated ACK, disconnected network and permission denial.
+- **R6-116** [Cloud-only simulation] Run every provider against exactly the same task corpus.
+- **R6-117** [Cloud-only simulation] Compare which tools each provider chooses.
+- **R6-118** [Cloud-only simulation] Confirm no provider can bypass capability permissions.
+- **R6-119** [Cloud-only simulation] Run browser workflows in isolated Playwright Chromium/Edge environments.
+- **R6-120** [Cloud-only simulation] For genuine UI Automation tests, use an isolated **Windows** runner/VM; a Linux container cannot prove Windows UIA behaviour.
+- **R6-121** [Cloud-only simulation] Test native file creation and verification in the runner.
+- **R6-122** [Cloud-only simulation] Simulate agent/server disconnect immediately before and after a side effect.
+- **R6-123** [Cloud-only simulation] Simulate lost acknowledgement and prove no duplicate execution.
+- **R6-124** [Cloud-only simulation] Simulate STOP with a large outbox backlog.
+- **R6-125** [Cloud-only simulation] Capture tool traces and timings.
+- **R6-126** [Cloud-only simulation] Mark these results **CLOUD/SIMULATION PASS**.
+- **R6-127** [Cloud-only simulation] Never convert that result into **REAL WINDOWS PASS** until the same scenario succeeds on an authorised physical/Windows environment.
+- **R6-128** [Missing or unqualified OCADE pieces] \| **Reliable Python runtime resolution** \| Real task environment could not reliably invoke Python; Windows Store alias/`py` availability caused failure.  \| Bundle/register a known interpreter or absolute path; expose it through capability registry \|
+- **R6-129** [Missing or unqualified OCADE pieces] \| **FFmpeg / ffprobe** \| Video attempt failed because FFmpeg was unavailable.  \| Package or require a pinned runtime; self-test at startup; add `ocade.media` \|
+- **R6-130** [Missing or unqualified OCADE pieces] \| **LibreOffice converter** \| DOCX succeeded but PDF conversion failed because LibreOffice was absent.  \| Add explicit PDF conversion capability or another approved deterministic exporter \|
+- **R6-131** [Missing or unqualified OCADE pieces] \| **Result batching** \| Candidate can send >20 retained results to a server schema capped at 20.  \| Bounded batches + replay/idempotency tests \|
+- **R6-132** [Missing or unqualified OCADE pieces] \| **Durable receipt lifecycle** \| Receipt retention exists, but the backlog contract is unsafe at >20.  \| Transactional outbox and exact receipt ACK \|
+- **R6-133** [Missing or unqualified OCADE pieces] \| **Windows DeepSeek path normalisation** \| Audited predicate fails Windows separator and sibling-boundary cases.  \| Normalise path representation and enforce segment boundaries \|
+- **R6-134** [Missing or unqualified OCADE pieces] \| **Node/`npx` launcher** \| Bare `npx` Windows portability remains a partial finding.  \| Resolve Node/tool entry point via known absolute executable rather than shell lookup \|
+- **R6-135** [Missing or unqualified OCADE pieces] \| **Pillow dependency** \| Audited `pillow==12.3.0` falls in current advisory ranges.  \| Select a supported patched release; exact replacement version not specified here \|
+- **R6-136** [Missing or unqualified OCADE pieces] \| **pypdf dependency** \| Audited `pypdf==6.19.0` falls in current parser/resource advisories.  \| Patch and sandbox parsing with time/memory bounds \|
+- **R6-137** [Missing or unqualified OCADE pieces] \| **Playwright MCP production integration** \| Real browser reliability remains unqualified in the plan.  \| Add dedicated structured browser capability and tests \|
+- **R6-138** [Missing or unqualified OCADE pieces] \| **Chrome/Edge authorised bridge** \| Full existing-session control not release-qualified.  \| Signed extension/native-messaging bridge or explicitly approved DevTools connection \|
+- **R6-139** [Missing or unqualified OCADE pieces] \| **Windows UI Automation layer** \| Real desktop control remains a release qualification target rather than established customer reliability.  \| Build target-aware UIA service \|
+- **R6-140** [Missing or unqualified OCADE pieces] \| **Capability registry** \| Previous tasks discovered unavailable dependencies after execution had begun.  \| Central preflight registry \|
+- **R6-141** [Missing or unqualified OCADE pieces] \| **Independent verifier coverage** \| Plan explicitly requires independently checked results; workflow qualification remains incomplete.  \| Separate verifier for every output family \|
+- **R6-142** [Missing or unqualified OCADE pieces] \| **Candidate-vs-staging AI parity** \| Audit found available staging intelligence older than candidate source.  \| Version/health handshake before claiming candidate testing \|
+- **R6-143** [Missing or unqualified OCADE pieces] \| **Offline model qualification** \| Plan/report evidence does not establish full real offline-inference qualification.  \| Separate offline download, integrity, inference, fallback and deletion tests \|
+- **R6-144** [Integration tests developers should require] connection failure before upload;
+- **R6-145** [Integration tests developers should require] failure after server persist but before agent receives ACK;
+- **R6-146** [Integration tests developers should require] \| Tool-selection accuracy \| Did it pick the correct OCADE capability? \|
+- **R6-147** [Integration tests developers should require] \| Unnecessary calls \| How many model/tool calls were wasted? \|
+- **R6-148** [Integration tests developers should require] \| Fallback quality \| Did it select a sensible alternative? \|
+- **R6-149** [Integration tests developers should require] \| Permission compliance \| Did it stay inside authorised tools? \|
+- **R6-150** [Integration tests developers should require] \| False completion \| Did it ever say finished before verifier passed? \|
+- **R6-151** [Integration tests developers should require] \| Model independence \| Does changing provider leave local execution behaviour unchanged? \|
+
+### R7: Latest combined commercial synthesis (42 distinct source details)
+
+- **R7-001** [What is wrong with the current OCADE] \| Current weakness \| What it means in practice \| Commercial consequence \|
+- **R7-002** [What is wrong with the current OCADE] \| **Capability checking is too broad** \| OCADE may know “documents are supported” without knowing whether the exact PDF/video/spreadsheet operation is healthy right now. \| Failures appear halfway through tasks. \|
+- **R7-003** [What is wrong with the current OCADE] \| **Routing is not deterministic enough** \| The model is encouraged to prefer better tools, but the runtime does not always strictly enforce the optimal route. \| Same request can take a slower or less reliable path. \|
+- **R7-004** [What is wrong with the current OCADE] \| **Plans are too static conceptually** \| An initial plan cannot predict every formatting correction, popup, missing fact or broken output. \| Complex work ends incomplete. \|
+- **R7-005** [What is wrong with the current OCADE] \| **Verification is too weak in places** \| “File exists” can be mistaken for “user's requested result is correct.” \| False completion. \|
+- **R7-006** [What is wrong with the current OCADE] \| **Window/document identity can be ambiguous** \| Similar window titles can cause the wrong target to be selected. \| Potentially serious wrong-document edits. \|
+- **R7-007** [What is wrong with the current OCADE] \| **Long-task communication has a known mismatch** \| The audit found the device can accumulate more results than the server accepts in one exchange. \| Delays, stuck work and control-message problems. \|
+- **R7-008** [What is wrong with the current OCADE] \| **STOP is not completely independent of work execution** \| Some blocking operations can make cancellation slow. \| Poor user control and safety. \|
+- **R7-009** [What is wrong with the current OCADE] \| **Repeated AI/screenshot loops cost time** \| Tiny deterministic actions can unnecessarily require another model round trip. \| Slow control and higher cost. \|
+- **R7-010** [What is wrong with the current OCADE] \| **Security defects remain** \| The audit identified vulnerable dependencies and other security/configuration problems. \| Launch blocker. \|
+- **R7-011** [What is wrong with the current OCADE] \| **Production parity is not proven** \| The audit found environment/version drift and incomplete native Windows validation. \| A passing test may not represent the shipping product. \|
+- **R7-012** [The commercial build plan] \| Order \| Workstream \| What must be completed before moving on \|
+- **R7-013** [The commercial build plan] \| **Foundation** \| Remove known critical bugs, dependency vulnerabilities, environment drift and transport defects. \| Clean security/dependency checks; result transport stable; exact candidate build identifiable. \|
+- **R7-014** [The commercial build plan] \| **Execution core** \| Implement outcome contracts, operation-level capability health, deterministic routing, exact target identity and independent verification. \| Same task repeatedly chooses the correct control method and target. \|
+- **R7-015** [The commercial build plan] \| **Adaptive autonomy** \| Dynamic milestones, microstep creation, targeted repair, bounded retries, checkpoints and recovery. \| Unexpected conditions no longer require restarting whole tasks. \|
+- **R7-016** [The commercial build plan] \| **Fast PC control** \| Direct operations, Playwright/browser control, Windows UIA, vision fallback, action batching and state-diff observation. \| Supported task families meet latency and reliability targets. \|
+- **R7-017** [The commercial build plan] \| **Long-task engine** \| Durable task state, STOP/Pause/Resume/Take Over, cancellation, retries and crash/network recovery. \| Power/network/provider interruption tests pass without duplicate side effects. \|
+- **R7-018** [The commercial build plan] \| **Professional outputs** \| Domain-specific quality profiles for PDF, Word, spreadsheet, presentation, image, video, browser and general desktop work. \| Outputs satisfy semantic and visual acceptance checks. \|
+- **R7-019** [The commercial build plan] \| **Product experience** \| Simplify Chat/JARVIS, Files, Devices, Settings, authentication, onboarding, billing and progress UX. \| No dead controls, confusing states or inaccessible critical workflows. \|
+- **R7-020** [The commercial build plan] \| **Security and privacy** \| Tenant isolation, permissions, secrets, file safety, prompt-injection defence, confirmation boundaries, audit logs and deletion/export. \| Security gate and adversarial tests pass. \|
+- **R7-021** [The commercial build plan] \| **Commercial systems** \| Billing, entitlements, usage metering, support, analytics, privacy/legal material and operational controls. \| Failed/stopped work is not incorrectly charged; customer/account lifecycle works. \|
+- **R7-022** [The commercial build plan] \| **Release proof** \| Full cloud browser + cloud Windows matrix, performance, accessibility, security, endurance and competitive benchmark. \| Every mandatory gate passes on the exact release candidate. \|
+- **R7-023** [Every major page family] \| **Chat/JARVIS** \| One obvious input; attachments; mode selection when genuinely necessary; STOP prominent while working; clear result delivery. \|
+- **R7-024** [Every major page family] \| **Task progress** \| Show simple states such as **Planning → Opening → Working → Checking → Fixing → Waiting for you → Completed**. \|
+- **R7-025** [Every major page family] \| **Files/results** \| Preview, open and download the actual generated artefact; identify version and completion status. \|
+- **R7-026** [Every major page family] \| **Devices** \| Clear paired-device state, permissions, revoke, reconnect, last-seen and capability health. \|
+- **R7-027** [Every major page family] \| **Settings** \| Grouped, understandable options rather than exposing implementation complexity. \|
+- **R7-028** [Every major page family] \| **Authentication** \| Reliable sign-in, recovery and session handling without confusing loops. \|
+- **R7-029** [Every major page family] \| **Onboarding** \| Explain what JARVIS can control, what permissions it requires and when confirmation is required. \|
+- **R7-030** [Every major page family] \| **Billing** \| Plan, limits, usage, invoices and entitlement state should be understandable before a user pays. \|
+- **R7-031** [Every major page family] \| **Offline mode** \| Clearly communicate which capabilities remain available without cloud services. \|
+- **R7-032** [Every major page family] \| **Admin/operations** \| Health, failures, releases, security events, usage and support tooling must be available to authorised staff only. \|
+- **R7-033** [Mandatory launch benchmarks] \| **Professional document** \| Research → structured document → visual quality → correct PDF → citations/content independently checked. \|
+- **R7-034** [Mandatory launch benchmarks] \| **Spreadsheet** \| Import/edit/formulas/recalculation/charts/export; numerical results independently recomputed. \|
+- **R7-035** [Mandatory launch benchmarks] \| **Video** \| Inspect media → discover defects → edit → audio/subtitles/layout → export → inspect finished render. \|
+- **R7-036** [Mandatory launch benchmarks] \| **Browser** \| Multi-page authenticated workflow, dynamic UI, downloads/uploads, popups and recovery. \|
+- **R7-037** [Mandatory launch benchmarks] \| **Desktop applications** \| Correct application/window/document selected across multiple simultaneous windows. \|
+- **R7-038** [Mandatory launch benchmarks] \| **Unknown software** \| UIA first, vision fallback where necessary, without app-specific hard-coded instructions. \|
+- **R7-039** [Mandatory launch benchmarks] \| **Long-running task** \| Pause/resume/network interruption/provider failure/restart without duplicated irreversible actions. \|
+- **R7-040** [Mandatory launch benchmarks] \| **STOP** \| Control request interrupts promptly even under load or a failing worker. \|
+- **R7-041** [Mandatory launch benchmarks] \| **Adversarial content** \| Malicious webpage/document attempts to redirect the agent outside the user's authority. \|
+- **R7-042** [Mandatory launch benchmarks] \| **Failure-repair** \| Deliberately introduce a defect; agent detects it, diagnoses it, repairs only affected work and verifies again. \|
+
+**Final audit:** Every R-ID, every RC01–RC17, original requirement #1–200, supplements A–J, and each discovered page/control/action must have one canonical task, owner, test, evidence path and unresolved status. Automated cloud tests do not grant permission to deploy, spend, access production secrets, contact users or bypass customer consent.
