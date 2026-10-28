@@ -526,230 +526,241 @@ This is a **deduplicated exact-text preservation** of the first uniquely numbere
 **Coverage invariant:** all 200 original IDs appear exactly once here; no original item is dropped because its work is duplicated in another phase. Status history remains in `docs/PHASES_STATUS.md`; audit/implementation evidence wins.
 
 
-## Appendix D — All ten original supplements, retained without turning them into extra arbitrary phases
+## Appendix D — Complete source-numbered supplements A–J and explicit gaps
 
-Each of the ten user-provided supplements is preserved below as an item-level acceptance source. Its work maps to Security (09), UI/UX (08), Commercial/Legal (11), Cloud Tests (12) and Launch (13). Duplicate concepts must be **implemented once** with tests re-used across mapped sources; retain supplement item labels to avoid silent omission.
+Original supplement numbers are preserved exactly rather than renumbered. Duplicate substantive work is implemented once under Phase 08 (UI), 09 (security), 11 (commercial/legal), or 12–13 (test/launch), but each original source item below retains its identity. **Missing numbers in the uploaded source are recorded as missing, not invented or silently called completed.** Non-checklist implementation notes are retained.
 
-### Supplement A — 16 API Key Leaks to Fix on Your Vibe-Coded AI Chatbot (maps to 09)
+### Supplement A — 16 API Key Leaks to Fix on Your Vibe-Coded AI Chatbot → Phase 09
 
-- [ ] **A-01** 1. Keys in env variables
-- [ ] **A-02** 2. .env in gitignore
-- [ ] **A-03** 3. Secret keys off frontend
-- [ ] **A-04** 4. Check public env vars
-- [ ] **A-05** 5. Hide service role key
-- [ ] **A-06** 6. Scan your git history
-- [ ] **A-07** 7. Rotate leaked keys
-- [ ] **A-08** 8. Secret scanning on
-- [ ] **A-09** 9. Secrets in host dashboard
-- [ ] **A-10** 10. Restrict key permissions
-- [ ] **A-11** 11. Proxy calls via server
-- [ ] **A-12** 12. Check screenshots, demos
-- [ ] **A-13** 13. Don't log secrets
-- [ ] **A-14** 14. Separate dev, prod keys
-- [ ] **A-15** 15. Spending limits on keys
-- [ ] **A-16** 16. Never paste keys in chat
+- [ ] **A-01** Keys in env variables
+- [ ] **A-02** .env in gitignore
+- [ ] **A-03** Secret keys off frontend
+- [ ] **A-04** Check public env vars
+- [ ] **A-05** Hide service role key
+- [ ] **A-06** Scan your git history
+- [ ] **A-07** Rotate leaked keys
+- [ ] **A-08** Secret scanning on
+- [ ] **A-09** Secrets in host dashboard
+- [ ] **A-10** Restrict key permissions
+- [ ] **A-11** Proxy calls via server
+- [ ] **A-12** Check screenshots, demos
+- [ ] **A-13** Don't log secrets
+- [ ] **A-14** Separate dev, prod keys
+- [ ] **A-15** Spending limits on keys
+- [ ] **A-16** Never paste keys in chat
 
-### Supplement B — 19 Security Holes to Close on Your Vibe-Coded SaaS App (maps to 09)
+### Supplement B — 19 Security Holes to Close on Your Vibe-Coded SaaS App → Phase 09
 
-- [ ] **B-01** 1. Row level security
-- [ ] **B-02** 2. Auth on every API route
-- [ ] **B-03** 3. Never trust the frontend
-- [ ] **B-04** 4. Rate limiting
-- [ ] **B-05** 5. Sanitize user input
-- [ ] **B-06** 6. Parameterized queries
-- [ ] **B-07** 7. Lock down CORS
-- [ ] **B-08** 8. HTTPS everywhere
-- [ ] **B-09** 9. Stop IDOR bugs
-- [ ] **B-10** 10. Debug mode off in prod
-- [ ] **B-11** 11. CAPTCHA on public forms
-- [ ] **B-12** 12. Log admin actions
-- [ ] **B-13** 13. Private storage buckets
-- [ ] **B-14** 14. Hide admin pages properly
-- [ ] **B-15** 15. Update vulnerable packages
-- [ ] **B-16** 16. Check file upload types
-- [ ] **B-17** 17. Claude security review
-- [ ] **B-18** 18. Security headers
-- [ ] **B-19** 19. Verify webhook signatures
+- [ ] **B-01** Row level security
+- [ ] **B-02** Auth on every API route
+- [ ] **B-03** Never trust the frontend
+- [ ] **B-04** Rate limiting
+- [ ] **B-05** Sanitize user input
+- [ ] **B-06** Parameterized queries
+- [ ] **B-07** Lock down CORS
+- [ ] **B-08** HTTPS everywhere
+- [ ] **B-09** Stop IDOR bugs
+- [ ] **B-10** Debug mode off in prod
+- [ ] **B-11** CAPTCHA on public forms
+- [ ] **B-12** Log admin actions
+- [ ] **B-13** Private storage buckets
+- [ ] **B-14** Hide admin pages properly
+- [ ] **B-15** Update vulnerable packages
+- [ ] **B-16** Check file upload types
+- [ ] **B-17** Claude security review
+- [ ] **B-18** Security headers
+- [ ] **B-19** Verify webhook signatures
 
-### Supplement C — 30 Reasons Your Site Looks Vibecoded (Part 1) (maps to 08)
+**Required implementation standard for A/B:** A key in an environment variable is not automatically safe if that variable is public, logged or exposed to a browser. Store all true secrets only in approved secret managers; scan every reachable branch/history/artifact/recording, revoke and rotate confirmed leaks, enforce least privilege, and use independent adversarial checks. Fail closed on missing authorization and never claim that hiding an admin link provides authorization.
 
-- [ ] **C-01** 1. Harsh gradients
-- [ ] **C-02** 2. Lucide icons
-- [ ] **C-03** 3. Pure white background
-- [ ] **C-04** 4. Rainbow coloring
-- [ ] **C-05** 5. Drop shadows
-- [ ] **C-06** 6. 3 feature cards in a row
-- [ ] **C-07** 7. Emojis
-- [ ] **C-08** 8. Liquid glass
-- [ ] **C-09** 9. Em dashes
-- [ ] **C-10** 10. Inter/geist/space grotesk
-- [ ] **C-11** 11. Colored left stripe
-- [ ] **C-12** 12. Fake testimonials
-- [ ] **C-13** 13. Bento grids
-- [ ] **C-14** 14. Terminal window
-- [ ] **C-15** 15. "It's not x, it's y"
-- [ ] **C-16** 16. Checkmark bullets
-- [ ] **C-17** 17. 3 pricing tiers
-- [ ] **C-18** 18. No real product demos
-- [ ] **C-19** 21. No skeleton loaders-skeleton loaders are required
-- [ ] **C-20** 22. Radial orbs
-- [ ] **C-21** 23. Dot grids
-- [ ] **C-22** 24. Sparkle icons
-- [ ] **C-23** 25. Animated arrows
-- [ ] **C-24** 26. No TOS
-- [ ] **C-25** 27. No privacy policy
-- [ ] **C-26** 28. Hover animations
-- [ ] **C-27** 29. Neon colors
-- [ ] **C-28** 30. Basic pastel colors
+### Supplement C — 30 Reasons Your Site Looks Vibecoded (Part 1) → Phase 08
 
-### Supplement D — 20 Reasons Why Your App Looks Vibecoded (maps to 08)
+- [ ] **C-01** Harsh gradients
+- [ ] **C-02** Lucide icons
+- [ ] **C-03** Pure white background
+- [ ] **C-04** Rainbow coloring
+- [ ] **C-05** Drop shadows
+- [ ] **C-06** 3 feature cards in a row
+- [ ] **C-07** Emojis
+- [ ] **C-08** Liquid glass
+- [ ] **C-09** Em dashes
+- [ ] **C-10** Inter/geist/space grotesk
+- [ ] **C-11** Colored left stripe
+- [ ] **C-12** Fake testimonials
+- [ ] **C-13** Bento grids
+- [ ] **C-14** Terminal window
+- [ ] **C-15** "It's not x, it's y"
+- [ ] **C-16** Checkmark bullets
+- [ ] **C-17** 3 pricing tiers
+- [ ] **C-18** No real product demos
+- [ ] **C-21** No skeleton loaders-skeleton loaders are required
+- [ ] **C-22** Radial orbs
+- [ ] **C-23** Dot grids
+- [ ] **C-24** Sparkle icons
+- [ ] **C-25** Animated arrows
+- [ ] **C-26** No TOS
+- [ ] **C-27** No privacy policy
+- [ ] **C-28** Hover animations
+- [ ] **C-29** Neon colors
+- [ ] **C-30** Basic pastel colors
 
-- [ ] **D-01** 1. Purple to blue gradient
-- [ ] **D-02** 2. Gradient hero text
-- [ ] **D-03** 3. A badge above the headline
-- [ ] **D-04** 4. Three icon boxes in a row
-- [ ] **D-05** 5. Emojis in your headings
-- [ ] **D-06** 6. Color left border cards
-- [ ] **D-07** 8. Untouched shadcn components
-- [ ] **D-08** 9. Lucide icons everywhere
-- [ ] **D-09** 10. Inter font everywhere
-- [ ] **D-10** 11. Space Grotesk plus Instrumental Serif
-- [ ] **D-11** 12. Serif italics for accent words
-- [ ] **D-12** 13. Em dashes everywhere
-- [ ] **D-13** 14. Generic buzzwords
-- [ ] **D-14** 16. Cursor following line
-- [ ] **D-15** 18. Low contrast dark mode
-- [ ] **D-16** 19. Inconsistent spacing
-- [ ] **D-17** 20. Grain texture
+**Source gaps (not tasks inferred):** C-19, C-20 do not occur in the uploaded `phases.md`. Do not fabricate their text; confirm with owner only if full external checklist parity is ever necessary. All actually supplied text is retained.
 
-### Supplement E — 20 Things You Can Tell Claude to Add to Your Website Right Now Pt.3 (maps to 08)
+### Supplement D — 20 Reasons Why Your App Looks Vibecoded → Phase 08
 
-- [ ] **E-01** 1. Dark mode toggle
-- [ ] **E-02** 2. Simple cookie banner
-- [ ] **E-03** 3. Site search
-- [ ] **E-04** 4. Back to top button
-- [ ] **E-05** 5. Mobile menu
-- [ ] **E-06** 6. Loading animations
-- [ ] **E-07** 7. Hover states
-- [ ] **E-08** 8. Scroll progress bar
-- [ ] **E-09** 9. Copy button
-- [ ] **E-10** 10. Print stylesheet
-- [ ] **E-11** 11. Sticky headers
-- [ ] **E-12** 12. Skip to content
-- [ ] **E-13** 13. Password visibility toggle
-- [ ] **E-14** 14. UTM tracking
-- [ ] **E-15** 15. Form success state
-- [ ] **E-16** 16. Form error state
-- [ ] **E-17** 17. Confirmation modals
-- [ ] **E-18** 18. Last updated date
-- [ ] **E-19** 19. Expandable FAQ
-- [ ] **E-20** 20. Floating contact button
+- [ ] **D-01** Purple to blue gradient
+- [ ] **D-02** Gradient hero text
+- [ ] **D-03** A badge above the headline
+- [ ] **D-04** Three icon boxes in a row
+- [ ] **D-05** Emojis in your headings
+- [ ] **D-06** Color left border cards
+- [ ] **D-08** Untouched shadcn components
+- [ ] **D-09** Lucide icons everywhere
+- [ ] **D-10** Inter font everywhere
+- [ ] **D-11** Space Grotesk plus Instrumental Serif
+- [ ] **D-12** Serif italics for accent words
+- [ ] **D-13** Em dashes everywhere
+- [ ] **D-14** Generic buzzwords
+- [ ] **D-16** Cursor following line
+- [ ] **D-18** Low contrast dark mode
+- [ ] **D-19** Inconsistent spacing
+- [ ] **D-20** Grain texture
 
-### Supplement F — 20 Things to Tell Claude to Fix on Your Vibecoded Website (Image 1) (maps to 08)
+**Source gaps (not tasks inferred):** D-07, D-15, D-17 do not occur in the uploaded `phases.md`. Do not fabricate their text; confirm with owner only if full external checklist parity is ever necessary. All actually supplied text is retained.
 
-- [ ] **F-01** 1. Remove horizontal scrolling
-- [ ] **F-02** 2. Find broken links
-- [ ] **F-03** 3. Add a mobile menu
-- [ ] **F-04** 4. Add a favicon
-- [ ] **F-05** 5. Fix page titles
-- [ ] **F-06** 6. Add meta descriptions
-- [ ] **F-07** 7. Fix footer links
-- [ ] **F-08** 8. Add a custom 404 page
-- [ ] **F-09** 9. Fix the copyright year
-- [ ] **F-10** 10. Compress images
-- [ ] **F-11** 11. Fix broken buttons
-- [ ] **F-12** 12. Add success messages
-- [ ] **F-13** 13. Add error messages
-- [ ] **F-14** 14. Remove placeholder text
-- [ ] **F-15** 15. Remove unused navigation
-- [ ] **F-16** 16. Fix mobile overflow
-- [ ] **F-17** 17. Make the logo clickable
-- [ ] **F-18** 19. Make the email clickable
-- [ ] **F-19** 20. Make every page mobile optimized
+### Supplement E — 20 Things You Can Tell Claude to Add to Your Website Right Now Pt.3 → Phase 08
 
-### Supplement G — Website Redesign Checklist (Feels Expensive) (maps to 08)
+- [ ] **E-01** Dark mode toggle
+- [ ] **E-02** Simple cookie banner
+- [ ] **E-03** Site search
+- [ ] **E-04** Back to top button
+- [ ] **E-05** Mobile menu
+- [ ] **E-06** Loading animations
+- [ ] **E-07** Hover states
+- [ ] **E-08** Scroll progress bar
+- [ ] **E-09** Copy button
+- [ ] **E-10** Print stylesheet
+- [ ] **E-11** Sticky headers
+- [ ] **E-12** Skip to content
+- [ ] **E-13** Password visibility toggle
+- [ ] **E-14** UTM tracking
+- [ ] **E-15** Form success state
+- [ ] **E-16** Form error state
+- [ ] **E-17** Confirmation modals
+- [ ] **E-18** Last updated date
+- [ ] **E-19** Expandable FAQ
+- [ ] **E-20** Floating contact button
 
-- [ ] **G-01** 1. One font pair
-- [ ] **G-02** 2. Two brand colours
-- [ ] **G-03** 3. More white space
-- [ ] **G-04** 4. Bigger headlines
-- [ ] **G-05** 5. Real photos
-- [ ] **G-06** 6. Consistent spacing
-- [ ] **G-07** 7. Grid alignment
-- [ ] **G-08** 8. One CTA per section
-- [ ] **G-09** 9. Consistent buttons
-- [ ] **G-10** 10. One icon set
-- [ ] **G-11** 11. Real testimonials
-- [ ] **G-12** 12. Shorter paragraphs
-- [ ] **G-13** 13. 5-link menu
-- [ ] **G-14** 14. Darker text
-- [ ] **G-15** 15. Mobile layout fixed
-- [ ] **G-16** 16. Feels expensive
+**Fit-to-product check:** Do not add floating contact controls, scroll bars, marketing animations or cookie banners inside a task workspace merely to check a box. Implement where genuinely useful and legally required, and document N/A decisions.
 
-### Supplement H — Systems Check / Launch Poll (maps to 12/13)
+### Supplement F — 20 Things to Tell Claude to Fix on Your Vibecoded Website (Image 1) → Phase 08
 
-- [ ] **H-01** 1. Mobile tested
-- [ ] **H-02** 2. All links
-- [ ] **H-03** 3. Contact form
-- [ ] **H-04** 4. Loads < 3s
-- [ ] **H-05** 5. Images
-- [ ] **H-06** 6. HTTPS
-- [ ] **H-07** 7. Chrome + Safari check
-- [ ] **H-08** 8. No typos
-- [ ] **H-09** 9. WhatsApp button
-- [ ] **H-10** 10. Domain email
-- [ ] **H-11** 11. Analytics
-- [ ] **H-12** 12. Google index
-- [ ] **H-13** 13. Link preview
-- [ ] **H-14** 14. Backups
-- [ ] **H-15** 15. Payments
+- [ ] **F-01** Remove horizontal scrolling
+- [ ] **F-02** Find broken links
+- [ ] **F-03** Add a mobile menu
+- [ ] **F-04** Add a favicon
+- [ ] **F-05** Fix page titles
+- [ ] **F-06** Add meta descriptions
+- [ ] **F-07** Fix footer links
+- [ ] **F-08** Add a custom 404 page
+- [ ] **F-09** Fix the copyright year
+- [ ] **F-10** Compress images
+- [ ] **F-11** Fix broken buttons
+- [ ] **F-12** Add success messages
+- [ ] **F-13** Add error messages
+- [ ] **F-14** Remove placeholder text
+- [ ] **F-15** Remove unused navigation
+- [ ] **F-16** Fix mobile overflow
+- [ ] **F-17** Make the logo clickable
+- [ ] **F-19** Make the email clickable
+- [ ] **F-20** Make every page mobile optimized
 
-### Supplement I — 20 Things to Have Claude Do So Your App Doesn't Get Sued (maps to 11)
+**Source gaps (not tasks inferred):** F-18 do not occur in the uploaded `phases.md`. Do not fabricate their text; confirm with owner only if full external checklist parity is ever necessary. All actually supplied text is retained.
 
-- [ ] **I-01** 1. Add a privacy policy
-- [ ] **I-02** 2. Add terms of service
-- [ ] **I-03** 3. Add a refund policy
-- [ ] **I-04** 4. Add a cookie policy
-- [ ] **I-05** 5. Add a cookie consent banner
-- [ ] **I-06** 6. Check your form consents
-- [ ] **I-07** 7. Don't collect unnecessary data
-- [ ] **I-08** 8. Audit your third-party SDKs
-- [ ] **I-09** 9. Remove dark patterns
-- [ ] **I-10** 10. Remove hidden fees
-- [ ] **I-11** 11. Remove fake reviews
-- [ ] **I-12** 12. Remove unsupported claims
-- [ ] **I-13** 13. Add accessibility alt text
-- [ ] **I-14** 14. Fix your color contrast ratio
-- [ ] **I-15** 15. Add keyboard navigation
-- [ ] **I-16** 16. Add your business details
-- [ ] **I-17** 17. Get age consent if you collect kids' data
-- [ ] **I-18** 18. Add an unsubscribe link to your emails
-- [ ] **I-19** 19. License any fonts and images you use
-- [ ] **I-20** 20. Add a data deletion request option
+### Supplement G — Website Redesign Checklist (Feels Expensive) → Phase 08
 
-### Supplement J — 20 Things to Have Claude Do Before Launching Your Website (maps to 13)
+- [ ] **G-01** One font pair
+- [ ] **G-02** Two brand colours
+- [ ] **G-03** More white space
+- [ ] **G-04** Bigger headlines
+- [ ] **G-05** Real photos
+- [ ] **G-06** Consistent spacing
+- [ ] **G-07** Grid alignment
+- [ ] **G-08** One CTA per section
+- [ ] **G-09** Consistent buttons
+- [ ] **G-10** One icon set
+- [ ] **G-11** Real testimonials
+- [ ] **G-12** Shorter paragraphs
+- [ ] **G-13** 5-link menu
+- [ ] **G-14** Darker text
+- [ ] **G-15** Mobile layout fixed
+- [ ] **G-16** Feels expensive
 
-- [ ] **J-01** 1. Add a privacy policy page
-- [ ] **J-02** 2. Add a terms and conditions page
-- [ ] **J-03** 3. Get your secrets off the front end
-- [ ] **J-04** 4. Force HTTPS
-- [ ] **J-05** 5. Add a cookie consent banner
-- [ ] **J-06** 6. Add meta titles and descriptions
-- [ ] **J-07** 7. Add a social preview image
-- [ ] **J-08** 8. Add a favicon
-- [ ] **J-09** 9. Generate a sitemap and robots.txt
-- [ ] **J-10** 10. Add alt text to your images
-- [ ] **J-11** 11. Compress your images
-- [ ] **J-12** 12. Check your page load speed
-- [ ] **J-13** 13. Fix your color contrast
-- [ ] **J-14** 14. Make it mobile friendly
-- [ ] **J-15** 15. Add a custom 404 page
-- [ ] **J-16** 16. Fix any broken links
-- [ ] **J-17** 17. Add form validation
-- [ ] **J-18** 18. Add spam/bot protection
-- [ ] **J-19** 19. Set up analytics
-- [ ] **J-20** 20. Add one clear call to action
+### Supplement H — Systems Check / Launch Poll → Phase 12–13
 
+- [ ] **H-01** Mobile tested
+- [ ] **H-02** All links
+- [ ] **H-03** Contact form
+- [ ] **H-04** Loads < 3s
+- [ ] **H-05** Images
+- [ ] **H-06** HTTPS
+- [ ] **H-07** Chrome + Safari check
+- [ ] **H-08** No typos
+- [ ] **H-09** WhatsApp button
+- [ ] **H-10** Domain email
+- [ ] **H-11** Analytics
+- [ ] **H-12** Google index
+- [ ] **H-13** Link preview
+- [ ] **H-14** Backups
+- [ ] **H-15** Payments
+
+**Launch applicability:** Under three seconds is a measured performance target for the relevant page/network/device, not an invented result. WhatsApp/domain email are support/channel choices and need owner consent. Payments remain sandbox-only until authorized; don't count live payment activation as approved.
+
+### Supplement I — 20 Things to Have Claude Do So Your App Doesn't Get Sued → Phase 11
+
+- [ ] **I-01** Add a privacy policy
+- [ ] **I-02** Add terms of service
+- [ ] **I-03** Add a refund policy
+- [ ] **I-04** Add a cookie policy
+- [ ] **I-05** Add a cookie consent banner
+- [ ] **I-06** Check your form consents
+- [ ] **I-07** Don't collect unnecessary data
+- [ ] **I-08** Audit your third-party SDKs
+- [ ] **I-09** Remove dark patterns
+- [ ] **I-10** Remove hidden fees
+- [ ] **I-11** Remove fake reviews
+- [ ] **I-12** Remove unsupported claims
+- [ ] **I-13** Add accessibility alt text
+- [ ] **I-14** Fix your color contrast ratio
+- [ ] **I-15** Add keyboard navigation
+- [ ] **I-16** Add your business details
+- [ ] **I-17** Get age consent if you collect kids' data
+- [ ] **I-18** Add an unsubscribe link to your emails
+- [ ] **I-19** License any fonts and images you use
+- [ ] **I-20** Add a data deletion request option
+
+### Supplement J — 20 Things to Have Claude Do Before Launching Your Website → Phase 13
+
+- [ ] **J-01** Add a privacy policy page
+- [ ] **J-02** Add a terms and conditions page
+- [ ] **J-03** Get your secrets off the front end
+- [ ] **J-04** Force HTTPS
+- [ ] **J-05** Add a cookie consent banner
+- [ ] **J-06** Add meta titles and descriptions
+- [ ] **J-07** Add a social preview image
+- [ ] **J-08** Add a favicon
+- [ ] **J-09** Generate a sitemap and robots.txt
+- [ ] **J-10** Add alt text to your images
+- [ ] **J-11** Compress your images
+- [ ] **J-12** Check your page load speed
+- [ ] **J-13** Fix your color contrast
+- [ ] **J-14** Make it mobile friendly
+- [ ] **J-15** Add a custom 404 page
+- [ ] **J-16** Fix any broken links
+- [ ] **J-17** Add form validation
+- [ ] **J-18** Add spam/bot protection
+- [ ] **J-19** Set up analytics
+- [ ] **J-20** Add one clear call to action
 
 ## Appendix E — Special owner tests, advanced benchmarks and source integrity
 
