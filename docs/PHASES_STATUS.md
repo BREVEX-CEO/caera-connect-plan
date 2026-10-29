@@ -1,5 +1,11 @@
 # phases.md status — Task 1 (200 items)
 
+## Working checkpoint correction — 29 October 2026
+
+The full [master plan](../plan.md) remains active. [All 951 source dispositions](audits/SOURCE_CROSSWALK.md) are preserved: 903 FAIL/open mapping/engineering, 48 genuine external BLOCKED, zero whole-item PASS/N/A. These are not 903 demonstrated bugs. Unavailable execution stays blocked as the owner requested.
+
+RC13 controlled extracted-source fixtures pass 71/71 versus 30/71 before; 93 full Vitest cases are UNRUN. Prepared Python/dependency/transport proposals are not part of this working checkpoint. [Evidence and limitations](audits/TEST_EVIDENCE.md). Browser production readiness is separately unproved; **0/10 commercial gates PASS / 0/100 binary gate index**. Older “CODE OPEN 0” and “qualification only” aggregates do not qualify this candidate.
+
 ## Current safety audit correction — 28 October 2026
 
 The earlier **CODE OPEN 0 / qualification only** aggregate is historical and is contradicted by current source-confirmed RC01/08/12/15/17 defects and parser advisory exposure. This change repairs RC01, RC04/05, RC06, RC10 and part of RC17; standard Python/PostgreSQL/native/full-build regressions are unrun. The changed candidate has **0/10 commercial gates PASS**. [Every original ID and research/supplement disposition](audits/SOURCE_CROSSWALK.md) is explicitly FAIL or BLOCKED; none inherits an old PASS without requalification. [Evidence and limits](audits/TEST_EVIDENCE.md); [canonical open work](../BLOCKED_TESTS.md#cloud-safety-continuation--28-october-2026).

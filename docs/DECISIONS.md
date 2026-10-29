@@ -1,5 +1,11 @@
 # OCADE decisions and historical provenance
 
+## Owner working checkpoint and cleanup request — 29 October 2026
+
+The owner kept unavailable execution tests BLOCKED, then requested committing the latest working changes before multiple-agent safe debloating under KISS, YAGNI and low-coupling DRY/WET, followed by a cleanup commit and total file/LOC counts. This changes priority, not deployment/spending/PC permissions. Retain the full plan.md mission and all original requirements; no public launch is authorized.
+
+Only scoped, evidence-backed changes belong in the working checkpoint. Prepared safety proposals with unresolved integration stay outside it. Controlled remote JavaScript and separate-agent source reviews remain different from full Vitest/typecheck/build, actual browser/native workflows and consenting-user pilots. [Current evidence](audits/TEST_EVIDENCE.md), [source dispositions](audits/SOURCE_CROSSWALK.md), [canonical continuation](../BLOCKED_TESTS.md#working-checkpoint-and-safe-cleanup--29-october-2026).
+
 ## Current owner authority and evidence boundary — 28 October 2026
 
 The owner's current manually initiated mission authorizes implementation and cloud-only development/testing on `ocade/p00-p22-implementation`, with branch commits and preservation of concurrent work. It supersedes older Codex STOP/Chrome-only instructions retained below as history. Personal-PC testing, production/staging/infrastructure changes, production secrets, payments, spending, main merge, deployment and scheduled continuation remain prohibited without the required explicit approval.

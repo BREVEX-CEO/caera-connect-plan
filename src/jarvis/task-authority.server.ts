@@ -574,9 +574,13 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
     const media = after
       .filter((row) => row.action?.action === "media")
       .map((row) => row.result?.detail?.media)
-      .filter(Boolean)
       .at(-1);
-    if (!media || typeof media.currentTime !== "number") {
+    if (
+      !media ||
+      typeof media.currentTime !== "number" ||
+      !Number.isFinite(media.currentTime) ||
+      media.currentTime < 0
+    ) {
       return "the page's video was not read with media state after its last change. Read it, then finish.";
     }
     if (media.paused !== true || Math.abs(media.currentTime - check.pausedAt) > 0.5) {
@@ -586,9 +590,41 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
   }
   if (check.cell !== undefined) {
     const cell = check.cell.toUpperCase();
-    const shows = after
-      .filter((row) => row.action?.action === "sheet_inspect")
-      .map((row) => cellIn(row.result?.detail?.workbook, check.sheet, cell))
+    const inspections = after.filter((row) => row.action?.action === "sheet_inspect");
+    const latestBook = inspections.at(-1)?.result?.detail?.workbook as
+      | { sheets?: { name?: string }[] }
+      | undefined;
+    if (!Array.isArray(latestBook?.sheets)) {
+      return `${target} has no current sheet inventory. Read it with sheet_inspect, then finish.`;
+    }
+    const wanted = check.sheet ?? latestBook.sheets[0]?.name;
+    if (
+      typeof wanted !== "string" ||
+      !wanted ||
+      !latestBook.sheets.some((sheet) => typeof sheet?.name === "string" && sheet.name.toLowerCase() === wanted.toLowerCase())
+    ) {
+      return `${target} has no sheet named ${wanted ?? "(first sheet)"}. Read the correct workbook, or finish as failed.`;
+    }
+    // A name reappearing after deletion does not resurrect proof from its old sheet.
+    // Preserve cross-sheet reads only while the inventory continuously retains this identity.
+    const invalidated = inspections.reduce((lastInvalidated, row, index) => {
+      const book = row.result?.detail?.workbook as
+        | { sheets?: { name?: string }[] }
+        | undefined;
+      const first = Array.isArray(book?.sheets) ? book.sheets[0]?.name : undefined;
+      const stale =
+        !Array.isArray(book?.sheets) ||
+        !book.sheets.some(
+          (sheet) =>
+            typeof sheet?.name === "string" && sheet.name.toLowerCase() === wanted.toLowerCase(),
+        ) ||
+        (check.sheet === undefined &&
+          (typeof first !== "string" || first.toLowerCase() !== wanted.toLowerCase()));
+      return stale ? index : lastInvalidated;
+    }, -1);
+    const shows = inspections
+      .slice(invalidated + 1)
+      .map((row) => cellIn(row.result?.detail?.workbook, wanted, cell))
       .filter((found) => found !== undefined);
     const latest = shows[shows.length - 1];
     if (!latest) {
@@ -605,12 +641,13 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
     const book = after
       .filter((row) => row.action?.action === "sheet_inspect")
       .map((row) => row.result?.detail?.workbook as { sheets?: SheetRead[] })
-      .filter(Boolean)
       .at(-1);
-    if (!book) {
+    if (!book || !Array.isArray(book.sheets)) {
       return `${target} was not read with sheet_inspect after its last change. Read it, then finish.`;
     }
-    const found = book.sheets?.find((s) => normal(String(s.name ?? "")) === normal(sheet));
+    const found = book.sheets?.find(
+      (s) => typeof s?.name === "string" && s.name.toLowerCase() === sheet.toLowerCase(),
+    );
     if (!found) return `${target} has no sheet named ${sheet}. Add it, or finish as failed.`;
     return sheetDataGap(found, target);
   }
@@ -621,13 +658,15 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
     const counted =
       typeof detail?.bodyWords === "number"
         ? detail.bodyWords
-        : detail?.truncated || /\.(docx|docm|dotx|odt)$/i.test(path)
+        : detail?.truncated ||
+            typeof detail?.content !== "string" ||
+            /\.(docx|docm|dotx|odt)$/i.test(path)
           ? undefined
           : textOf(detail?.content).split(/\s+/).filter(Boolean).length;
-    if (!read || counted === undefined) {
+    if (!read || !Number.isSafeInteger(counted) || counted! < 0) {
       return `${target} was not read for its word count after its last change. Read it with file_extract (on an up-to-date connected device), then finish.`;
     }
-    if (counted < (check.minWords ?? 0) || counted > (check.maxWords ?? Infinity)) {
+    if (counted! < (check.minWords ?? 0) || counted! > (check.maxWords ?? Infinity)) {
       return `${target} holds ${counted} body words, not ${check.maxWords === undefined ? `at least ${check.minWords}` : check.minWords === undefined ? `at most ${check.maxWords}` : `${check.minWords} to ${check.maxWords}`}. Fix it, or finish as failed and say what differs.`;
     }
     if (!check.contains?.length) return null;
@@ -640,19 +679,31 @@ function checkGap(rows: ActionRow[], check: OutcomeCheck): string | null {
       (row) =>
         row.result?.detail?.info as {
           size?: unknown;
+          folder?: unknown;
           properties?: { triangles?: unknown; [name: string]: unknown };
         },
     )
-    .filter(Boolean)
     .at(-1);
-  if (path && shape && (shape.size === 0 || shape.properties?.triangles === 0)) {
+  if (
+    path &&
+    after.at(-1)?.action?.action === "file_info" &&
+    (!shape ||
+      typeof shape !== "object" ||
+      Array.isArray(shape) ||
+      typeof shape.size !== "number" ||
+      !Number.isSafeInteger(shape.size) ||
+      shape.size < 0)
+  ) {
+    return `${target} did not report valid file metadata. Read it with file_info, then finish.`;
+  }
+  if (path && shape && ((shape.folder !== true && shape.size === 0) || shape.properties?.triangles === 0)) {
     return `${target} is empty. Make it again, or finish as failed and say why.`;
   }
   // What the device measured in the saved file (length, frame size, loudness, true peak):
   // a requested property is checked in the result, never taken from the model's word.
   for (const { name, ...range } of check.measures ?? []) {
     const value = (shape?.properties as Record<string, unknown> | undefined)?.[name];
-    if (typeof value !== "number") {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
       return `${target} was not measured for ${name} after its last change. Read it with file_info${/loudness|peak/i.test(name) ? " (audio: true)" : ""}, then finish.`;
     }
     if (value < (range.min ?? -Infinity) || value > (range.max ?? Infinity)) {
@@ -815,16 +866,34 @@ function cellIn(
     cells?: { cell?: string; value?: unknown; formula?: unknown }[][];
   } | null;
   const wanted = sheet ?? book?.sheets?.[0]?.name;
-  if (!book || !wanted || normal(String(book.sheet ?? "")) !== normal(wanted)) return undefined;
-  for (const row of book.cells ?? []) {
-    const found = row.find((item) => String(item.cell ?? "").toUpperCase() === cell);
-    if (found) return found;
+  if (!book || !wanted || typeof book.sheet !== "string" || !book.sheet) return {};
+  if (
+    !Array.isArray(book.sheets) ||
+    !book.sheets.some(
+      (entry) => typeof entry?.name === "string" && entry.name.toLowerCase() === book.sheet!.toLowerCase(),
+    )
+  ) return {};
+  if (book.sheet.toLowerCase() !== wanted.toLowerCase()) return undefined;
+  // Malformed evidence for the requested sheet invalidates older proof; only an
+  // explicit different selected sheet is irrelevant to this cell.
+  if (!Array.isArray(book.cells)) return {};
+  let found: { value?: unknown; formula?: unknown } | undefined;
+  for (const row of book.cells) {
+    if (!Array.isArray(row)) return {};
+    for (const item of row) {
+      if (!item || typeof item.cell !== "string") return {};
+      if (item.cell.toUpperCase() !== cell) continue;
+      if (found) return {}; // duplicate coordinates cannot select the first value
+      found = item;
+    }
   }
-  return {}; // read, and empty
+  return found ?? {}; // read, and empty
 }
 
 /** Numbers by value, anything else as words. */
 function sameValue(actual: unknown, wanted: string): boolean {
+  if (typeof actual === "number" && !Number.isFinite(actual)) return false;
+  if (actual != null && !["string", "number", "boolean"].includes(typeof actual)) return false;
   if (actual === undefined || actual === null || typeof actual === "boolean") {
     return actual != null && normal(String(actual)) === normal(wanted);
   }

@@ -1,5 +1,11 @@
 # OCADE launch repair handoff
 
+## Current working checkpoint — 29 October 2026
+
+[plan.md](plan.md) remains the full master list. [Canonical continuation](BLOCKED_TESTS.md#working-checkpoint-and-safe-cleanup--29-october-2026) records the owner's current commit → parallel safe debloat → commit/counts sequence. RC13 source fixes pass 71 controlled extracted-source fixtures; 93 full Vitest cases remain UNRUN. [Exact evidence](docs/audits/TEST_EVIDENCE.md). Prepared Python safety/dependency/transport proposals have not entered the working checkpoint; their known integration and execution gaps remain open.
+
+The [complete crosswalk](docs/audits/SOURCE_CROSSWALK.md) preserves all 951 source items: 903 FAIL/open and 48 genuine external BLOCKED; no whole-item PASS/N/A. Keep unavailable execution tests blocked as requested, without re-requesting access. No coding-complete or launch-ready claim: browser readiness is separately unproved and 0/10 commercial gates pass.
+
 ## Current cloud repair checkpoint — 28 October 2026
 
 The latest owner instruction authorizes coding/cloud-only testing and branch commits; older STOP/Chrome-only handoffs below remain history. RC01/04/05/06/10 and partial RC17 repairs now exist; [canonical continuation](BLOCKED_TESTS.md#cloud-safety-continuation--28-october-2026) records exact evidence and unresolved work. Adapted remote checks pass, but Python/PostgreSQL/native/full build gates are unrun. **Do not call this coding-complete or launch-ready: vulnerable parser pins, upload cancellation, operation health, semantic verification and Windows isolation remain unresolved.** Read [test evidence](docs/audits/TEST_EVIDENCE.md) before reusing any historical PASS.

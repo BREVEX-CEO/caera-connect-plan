@@ -16,7 +16,7 @@ Starting source `71e8b637a5f723a33593a39f73d6cccd3573e945`. This is a derived re
 | RC10 | EXACT SOURCE MOCK PASS; BROWSER BLOCKED | Exact/auth and descendants bypass cache; cache version18 clears old shell. 20 mocked-event cloud cases pass, including offline/online and boundary controls. Real service-worker lifecycle UNRUN. |
 | RC11 | SOURCE RISK; BLOCKED | Quoted-data command filter needs structured parsing with injection/escape tests before changing its security contract. |
 | RC12 | FAIL SOURCE CONTRACT; BLOCKED | Computer.capabilities reports broad booleans; no proven operation-health admission across requested conversions/recalculation/codecs. No new speculative registry added. |
-| RC13 | BLOCKED | Existing presence/read-back checks do not independently qualify full customer semantics/quality. Exact wrong-row/target negative suite not run. |
+| RC13 | FAIL overall; extracted-source checks PASS; full execution BLOCKED | 71 controlled fixtures pass vs30/71 baseline: exact sheet identity, stale/recreated proof, malformed latest receipts, finite measurements/counts and valid file metadata.93 full verificationGap Vitest cases UNRUN. General semantic/visual/customer-oracle qualification remains open. |
 | RC14 | BLOCKED | Formula expressions alone are not recalculated values. Native/calculation-engine and independent numerical oracle tests unavailable. |
 | RC15 | FAIL SOURCE CONTRACT; NATIVE BLOCKED | Windows workspace mode checks argv paths but task scripts execute with user process access; Linux OS confinement parity is absent. Existing scripts can run without per-command confirmation. No exploit run. |
 | RC16 | HYPOTHESIS; BLOCKED | No native Windows special-path FFmpeg subtitle reproduction; no speculative escape patch. |

@@ -1,5 +1,15 @@
 # Blocked, failed and untested checks
 
+## Working checkpoint and safe cleanup — 29 October 2026
+
+[plan.md](plan.md) remains the complete master task list. The owner instructed **“Keep those execution tests blocked”** and then requested: commit the latest working changes, run multiple agents for safe KISS/YAGNI/DRY-WET cleanup, commit the cleanup and report total files/LOC. Do not repeat the runtime-access request or substitute personal-PC execution/spending.
+
+This checkpoint applies only the scoped RC13 proof fixes: 71/71 controlled extracted-source fixtures pass versus 30/71 baseline; 93 full verificationGap Vitest cases are UNRUN. [Evidence](docs/audits/TEST_EVIDENCE.md). Prepared Python/dependency/transport changes remain outside the working tree until their uncertainty/STOP integration is reviewable and validated; no affected safety gate is closed. Continue the master plan after the requested cleanup.
+
+The [951-row source crosswalk](docs/audits/SOURCE_CROSSWALK.md) corrects the old blanket BLOCKED default: 903 FAIL/open source/owner/test mapping or engineering, 48 actual external blockers, zero whole-item PASS/N/A. Unmapped research/applicability work is NOT_MAPPED, not native-blocked. All original source text is preserved. Known unavailable Node/CPython/PostgreSQL/browser/native/mobile/frozen/full-build suites remain BLOCKED/UNRUN.
+
+Dependency-ready safety engineering remains open: parser isolation and patched dependency qualification, upload unknown-effect reconciliation/duplicate prevention, command STOP ownership, exact target leases, Windows confinement, measured operation health and general semantic/visual/recalculation oracles. UI/control/a11y coverage remains incomplete. The five browser benchmark families are all UNRUN; browser readiness is separately unproved. **0/10 commercial gates PASS / 0/100 binary gate index.** No deployment, infrastructure/secret change, spending, pilot contact or personal-PC product work occurred.
+
 ## Cloud safety continuation — 28 October 2026
 
 **Current owner authority:** implementation, isolated cloud development/testing and implementation-branch commits are authorized; all older Codex STOP/Chrome-only restrictions below are historical where they conflict. No personal-PC product work, production/staging/infrastructure mutation, secret change, spending, payment activation, main merge, deployment or scheduled continuation is authorized.

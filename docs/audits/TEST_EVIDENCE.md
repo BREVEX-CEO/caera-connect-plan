@@ -1,5 +1,19 @@
 # Cloud safety evidence — 28 October 2026
 
+## Working checkpoint — 29 October 2026
+
+Parent `07f8fb81bf4fc97f94c809ec6e510c460b6cf87e`; implementation branch only. RC13 source `9381a8a8e6bd4eaef194e6585e8dabde8c187101` passes **71/71 controlled extracted-source fixtures**, versus **30/71** baseline. [Adapter](../audit-checkpoints/20261029-browser-continuation/remote-sheet-verification.mjs), [results](../audit-checkpoints/20261029-browser-continuation/sheet-verification.json). Exact checkGap/sheet helpers use explicit type-only erasure and controlled read/path/content fixtures. This is not full verificationGap/protocol/database execution, actual browser/native/file output or a customer success rate. **93 full Vitest cases are authored and UNRUN**; typecheck, lint, formatting, build and real workflows remain UNRUN/BLOCKED.
+
+The source fixes preserve exact sheet whitespace identity, invalidate deleted/recreated/default-first targets and malformed latest receipts, reject duplicate coordinates/non-scalar values/nonfinite measurements/invalid body counts, and require valid latest file metadata. Valid empty folders are distinct from empty file deliverables. Scope is bounded; general semantic/visual oracles remain open.
+
+[Crosswalk](SOURCE_CROSSWALK.md): 951 unique IDs, all exact source texts retained in plan.md; 903 FAIL/open mapping or engineering,48 actual external BLOCKED,0 whole-item PASS/N/A. Independent remote document-integrity check:115875 canonical UTF-8 bytes, SHA256 `2640cfa4b9edd468f4b274d5d032a6e5ab64d0d6a4bcf268d330447e616eceaf`. These source checks are not product qualification. [Disposition metadata](../audit-checkpoints/20261029-browser-continuation/crosswalk-integrity.json).
+
+The owner said **“Keep those execution tests blocked”**. No further runtime access was requested. Prepared Python safety, parser dependency, STOP and upload uncertainty proposals remain outside this working checkpoint because integration/execution evidence is incomplete. Their original defects remain open. No source-only proposal is claimed implemented or commercially PASS here.
+
+Browser benchmarks A–E and exhaustive page/control/a11y/responsive journeys remain UNRUN; browser production readiness is separately unproved. **0/10 full release gates PASS / 0/100 binary gate index**, not coding completion. Customer success/recovery, wrong-target/false-completion rates,p50/p95,AI calls,retries,cost and competitors are NOT MEASURED.
+
+Cloudflare push isolation rechecked read-only: nonproduction excludes main and this implementation branch; production includes main only. Main remains `e53725a25a48508b990135b93c0a6bfa555bb87e`. No deployment,production/staging/infrastructure/secret change,personal-PC product execution,spending,provider generation,pilot contact or scheduling occurred. The commit uses `[skip ci]` to avoid starting jobs with unverified free capacity; no CI PASS is inferred. Local reads were limited to skills and the user-provided attachment.
+
 **Result: NOT commercially qualified.** Starting implementation HEAD `71e8b637a5f723a33593a39f73d6cccd3573e945`; observed main `e53725a25a48508b990135b93c0a6bfa555bb87e`. Exact candidate source objects below bind this evidence; the final commit is identified by Git history. No self-referential commit placeholder is used.
 
 Development used GitHub content-addressed blobs and remote tool memory. No repository checkout, product runtime or tests ran on the owner's PC. Local reads were limited to the provided skill instructions. No deployment, production/staging mutation, secret read/change, provider generation, payment, paid VM, scheduled continuation or force-push occurred.

@@ -16,6 +16,16 @@ Starting HEAD `71e8b637a5f723a33593a39f73d6cccd3573e945`. RC01, RC04/05, RC06, R
 
 The inventory records 2,158 starting Git objects and 21 generated full routes, **not a full semantic code/control audit**. [All 200 original IDs, 561 research IDs and 190 supplied supplement rows](docs/audits/SOURCE_CROSSWALK.md) have explicit current FAIL/BLOCKED dispositions; full source-to-test mapping remains incomplete. [Root causes](docs/audits/DEFECT_REGISTER.md), [canonical continuation](BLOCKED_TESTS.md#cloud-safety-continuation--28-october-2026). Known parser vulnerabilities, upload cancellation, operation health, semantic oracles, Windows isolation and native target leases remain. **0/10 release gates PASS; 0/100 binary gate index.** No deployment, production/staging mutation, personal-PC product work, spending or scheduled continuation.
 
+## Working checkpoint — 29 October 2026 (qualification incomplete)
+
+Continued from `07f8fb81bf4fc97f94c809ec6e510c460b6cf87e` on the implementation branch only. RC13 source now rejects stale/recreated/wrong-sheet proof, malformed latest evidence, invalid numeric measurements/counts and malformed file metadata. **71/71 controlled extracted-source fixtures pass versus 30/71 before**; 93 full verificationGap Vitest cases are authored but UNRUN. Valid empty folders remain distinct from empty file deliverables. [Exact evidence](docs/audits/TEST_EVIDENCE.md).
+
+The [complete crosswalk](docs/audits/SOURCE_CROSSWALK.md) preserves all 200 original requirements, 190 supplied supplement rows and 561 research details: **903 FAIL/open mapping or engineering, 48 genuine external BLOCKED, 0 whole-item PASS/N/A**. These are not 903 demonstrated bugs. Known unavailable execution tests remain blocked as the owner requested. The master phases and appendices remain intact; the five browser examples do not replace them.
+
+Prepared Python safety, dependency and transport changes have not entered this working checkpoint: integration and execution evidence remains incomplete. Existing parser, STOP/upload, operation-health, Windows isolation and exact-target work stays open. Browser production readiness remains separately unproved; **0/10 full release gates PASS / 0/100 binary gate index**, not a coding-completion percentage. Customer success, time, AI cost and competitor metrics are NOT MEASURED for this candidate.
+
+The owner's next requested sequence is a working commit followed by parallel, proof-based KISS/YAGNI/DRY-WET debloating, then another commit and exact file/LOC counts. Preserve good architecture and safeguards. No deployment, production/staging/infrastructure/secret changes, personal-PC execution, spending, pilot contact or scheduled continuation is authorized.
+
 ## Fast index
 
 | Phase | Order / workstream | Release-quality result |
