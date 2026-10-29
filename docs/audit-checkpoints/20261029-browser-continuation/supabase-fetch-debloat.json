@@ -1,0 +1,132 @@
+{
+  "scope": "DEB-SB-01: identical Supabase API-key adapter extraction into existing cheap configuration module",
+  "sourceHead": "a53f5ba4a80dc3b126894bd8c2f1d34cd4c2e12b",
+  "supersedes": "Initial standalone api-key-fetch.ts candidate rejected by independent review because Vite would claim it into vendor-supabase; that file must not be integrated.",
+  "classification": "independent source review plus adapted cloud JavaScript contract assertions; not Vitest/build/deployment qualification",
+  "changes": [
+    {
+      "path": "src/integrations/supabase/configuration.ts",
+      "originalSha": "eba2edadf2cd183f056dd9e74a3f316985cc0eda",
+      "sha": "e82a43ffa8db217e800796f6ee87cdbbbb4a7164",
+      "error": false
+    },
+    {
+      "path": "src/integrations/supabase/auth-middleware.ts",
+      "originalSha": "99ed790c94482b8c6bf58ffafe6de30a5bf82c3a",
+      "sha": "99d36228adcee8be201ee058fd6c64606086fdb3",
+      "error": false
+    },
+    {
+      "path": "src/integrations/supabase/client.server.ts",
+      "originalSha": "7d771eb0402a1de091827ebce4f8d4f6f08101aa",
+      "sha": "fcf2d3f9745b6f4ec4cfadb6b1188b10a3e10a99",
+      "error": false
+    },
+    {
+      "path": "src/integrations/supabase/client.ts",
+      "originalSha": "3567cc166f8af1e2ea944709bc13721e06c3e7b8",
+      "sha": "2cd8f71e420b445467f90a7b8854b230585b7276",
+      "error": false
+    },
+    {
+      "path": "src/integrations/supabase/__tests__/api-key-fetch.test.ts",
+      "originalSha": null,
+      "sha": "8bc00d21e95c0d7ae0c9f462cc59d7147ec92b70",
+      "error": false
+    }
+  ],
+  "metrics": [
+    {
+      "path": "src/integrations/supabase/auth-middleware.ts",
+      "originalSha": "99ed790c94482b8c6bf58ffafe6de30a5bf82c3a",
+      "beforeLines": 120,
+      "afterLines": 94,
+      "beforeChars": 3941,
+      "afterChars": 3186
+    },
+    {
+      "path": "src/integrations/supabase/client.server.ts",
+      "originalSha": "7d771eb0402a1de091827ebce4f8d4f6f08101aa",
+      "beforeLines": 73,
+      "afterLines": 47,
+      "beforeChars": 2788,
+      "afterChars": 2033
+    },
+    {
+      "path": "src/integrations/supabase/client.ts",
+      "originalSha": "3567cc166f8af1e2ea944709bc13721e06c3e7b8",
+      "beforeLines": 106,
+      "afterLines": 80,
+      "beforeChars": 3825,
+      "afterChars": 3038
+    },
+    {
+      "path": "src/integrations/supabase/configuration.ts",
+      "originalSha": "eba2edadf2cd183f056dd9e74a3f316985cc0eda",
+      "beforeLines": 52,
+      "afterLines": 80,
+      "beforeChars": 2207,
+      "afterChars": 3114
+    }
+  ],
+  "productionLineDelta": -50,
+  "productionCharacterDelta": -1390,
+  "packageDelta": 0,
+  "newProductModules": 0,
+  "testLines": 119,
+  "realNetworkRequests": 0,
+  "resourceMutations": 0,
+  "cloudResult": [
+    {
+      "type": "text",
+      "text": "{\n  \"status\": \"PASS\",\n  \"scope\": \"network-free adapted JavaScript parity using real Web APIs\",\n  \"implementations\": [\n    \"auth-middleware\",\n    \"client.server\",\n    \"client\",\n    \"shared\"\n  ],\n  \"cases\": 84,\n  \"assertions\": 808,\n  \"resourceMutations\": 0,\n  \"networkRequests\": 0,\n  \"typescriptBuild\": \"UNRUN\",\n  \"vitest\": \"UNRUN\"\n}"
+    }
+  ],
+  "cloudCode": "async () => {\n  const records = [];\n  const response = new Response(null, {status:204});\n  let failWith = null;\n  const fetch = (input, init) => { records.push({input, init}); return failWith ? Promise.reject(failWith) : Promise.resolve(response); };\n  const factories = {\"auth-middleware\": (() => { function isNewSupabaseApiKey(value) {\n  return value.startsWith(\"sb_publishable_\") || value.startsWith(\"sb_secret_\");\n}\n\nfunction createSupabaseFetch(supabaseKey) {\n  return (input, init) => {\n    const headers = new Headers(\n      typeof Request !== \"undefined\" && input instanceof Request ? input.headers : undefined,\n    );\n\n    if (init?.headers) {\n      new Headers(init.headers).forEach((value, key) => headers.set(key, value));\n    }\n\n    // New Supabase API keys are opaque strings, not bearer JWTs.\n    if (\n      isNewSupabaseApiKey(supabaseKey) &&\n      headers.get(\"Authorization\") === `Bearer ${supabaseKey}`\n    ) {\n      headers.delete(\"Authorization\");\n    }\n\n    headers.set(\"apikey\", supabaseKey);\n    return fetch(input, { ...init, headers });\n  };\n}\n; return createSupabaseFetch; })(),\n\"client.server\": (() => { function isNewSupabaseApiKey(value) {\n  return value.startsWith(\"sb_publishable_\") || value.startsWith(\"sb_secret_\");\n}\n\nfunction createSupabaseFetch(supabaseKey) {\n  return (input, init) => {\n    const headers = new Headers(\n      typeof Request !== \"undefined\" && input instanceof Request ? input.headers : undefined,\n    );\n\n    if (init?.headers) {\n      new Headers(init.headers).forEach((value, key) => headers.set(key, value));\n    }\n\n    // New Supabase API keys are opaque strings, not bearer JWTs.\n    if (\n      isNewSupabaseApiKey(supabaseKey) &&\n      headers.get(\"Authorization\") === `Bearer ${supabaseKey}`\n    ) {\n      headers.delete(\"Authorization\");\n    }\n\n    headers.set(\"apikey\", supabaseKey);\n    return fetch(input, { ...init, headers });\n  };\n}\n; return createSupabaseFetch; })(),\n\"client\": (() => { function isNewSupabaseApiKey(value) {\n  return value.startsWith(\"sb_publishable_\") || value.startsWith(\"sb_secret_\");\n}\n\nfunction createSupabaseFetch(supabaseKey) {\n  return (input, init) => {\n    const headers = new Headers(\n      typeof Request !== \"undefined\" && input instanceof Request ? input.headers : undefined,\n    );\n\n    if (init?.headers) {\n      new Headers(init.headers).forEach((value, key) => headers.set(key, value));\n    }\n\n    // New Supabase API keys are opaque strings, not bearer JWTs.\n    if (\n      isNewSupabaseApiKey(supabaseKey) &&\n      headers.get(\"Authorization\") === `Bearer ${supabaseKey}`\n    ) {\n      headers.delete(\"Authorization\");\n    }\n\n    headers.set(\"apikey\", supabaseKey);\n    return fetch(input, { ...init, headers });\n  };\n}\n; return createSupabaseFetch; })(),\n\"shared\": (() => { /** The same API-key header contract for browser, caller-scoped and admin clients. */\nfunction isNewSupabaseApiKey(value) {\n  return value.startsWith(\"sb_publishable_\") || value.startsWith(\"sb_secret_\");\n}\n\nfunction createSupabaseFetch(supabaseKey) {\n  return (input, init) => {\n    const headers = new Headers(\n      typeof Request !== \"undefined\" && input instanceof Request ? input.headers : undefined,\n    );\n\n    if (init?.headers) {\n      new Headers(init.headers).forEach((value, key) => headers.set(key, value));\n    }\n\n    // New Supabase API keys are opaque strings, not bearer JWTs.\n    if (\n      isNewSupabaseApiKey(supabaseKey) &&\n      headers.get(\"Authorization\") === `Bearer ${supabaseKey}`\n    ) {\n      headers.delete(\"Authorization\");\n    }\n\n    headers.set(\"apikey\", supabaseKey);\n    return fetch(input, { ...init, headers });\n  };\n}\n\n; return createSupabaseFetch; })()};\n  let cases = 0, assertions = 0;\n  const ensure = (condition, label) => { assertions++; if (!condition) throw new Error(label); };\n  const headersText = headers => JSON.stringify([...new Headers(headers).entries()]);\n  for (const [name, factory] of Object.entries(factories)) {\n    for (const key of [\"sb_publishable_test_fixture\",\"sb_secret_test_fixture\",\"legacy.api.jwt\"]) {\n      for (const asRequest of [false,true]) {\n        for (const authKind of [\"self\",\"user\",\"none\"]) {\n          records.length = 0;\n          const auth = authKind === \"self\" ? \"Bearer \"+key : authKind === \"user\" ? \"Bearer user.session.jwt\" : null;\n          const initial = new Headers({\"x-kept\":\"original\",\"x-choice\":\"old\"});\n          if (auth) initial.set(\"Authorization\",auth);\n          const input = asRequest ? new Request(\"https://project.invalid/rest/v1/items\",{headers:initial}) : \"https://project.invalid/rest/v1/items\";\n          const overrides = new Headers(asRequest ? {\"x-choice\":\"new\",apikey:\"untrusted\"} : initial);\n          if (!asRequest) { overrides.set(\"x-choice\",\"new\"); overrides.set(\"apikey\",\"untrusted\"); }\n          const inputBefore = asRequest ? headersText(input.headers) : null;\n          const overrideBefore = headersText(overrides);\n          const controller = new AbortController();\n          const out = await factory(key)(input,{headers:overrides,method:\"POST\",body:\"payload\",credentials:\"omit\",signal:controller.signal});\n          ensure(records.length===1,name+\" transport count\");\n          const delivered=records[0], headers=new Headers(delivered.init.headers);\n          const opaque=key.startsWith(\"sb_publishable_\")||key.startsWith(\"sb_secret_\");\n          const expectedAuth=opaque && authKind===\"self\" ? null : auth;\n          ensure(headers.get(\"authorization\")===expectedAuth,name+\" caller authorization\");\n          ensure(headers.get(\"apikey\")===key,name+\" API key\");\n          ensure(headers.get(\"x-kept\")===\"original\",name+\" inherited header\");\n          ensure(headers.get(\"x-choice\")===\"new\",name+\" init precedence\");\n          ensure(delivered.input===input,name+\" request identity\");\n          ensure(delivered.init.signal===controller.signal,name+\" cancellation identity\");\n          ensure(delivered.init.method===\"POST\"&&delivered.init.body===\"payload\"&&delivered.init.credentials===\"omit\",name+\" init preserved\");\n          ensure(out===response,name+\" response identity\");\n          ensure(headersText(overrides)===overrideBefore,name+\" init immutable\");\n          ensure(!asRequest || headersText(input.headers)===inputBefore,name+\" input immutable\");\n          cases++;\n        }\n      }\n    }\n    records.length=0;\n    const key=\"sb_publishable_test_fixture\";\n    const input=new Request(\"https://project.invalid/rest/v1/items\",{headers:{Authorization:\"Bearer \"+key}});\n    await factory(key)(input,{headers:{Authorization:\"Bearer replacement.session.jwt\"}});\n    ensure(new Headers(records[0].init.headers).get(\"authorization\")===\"Bearer replacement.session.jwt\",name+\" user override wins\");\n    cases++;\n    records.length=0;\n    await factory(key)(\"https://project.invalid/rest/v1/items\");\n    ensure(new Headers(records[0].init.headers).get(\"authorization\")===null,name+\" no invented bearer\");\n    ensure(new Headers(records[0].init.headers).get(\"apikey\")===key,name+\" default API key\");\n    cases++;\n    records.length=0;\n    failWith=new Error(\"transport refused\");\n    let caught=null;try {await factory(key)(\"https://project.invalid/rest/v1/items\");}catch(e){caught=e;}\n    ensure(caught===failWith && records.length===1,name+\" refusal propagated once\");\n    failWith=null;cases++;\n  }\n  return {status:\"PASS\",scope:\"network-free adapted JavaScript parity using real Web APIs\",implementations:Object.keys(factories),cases,assertions,resourceMutations:0,networkRequests:0,typescriptBuild:\"UNRUN\",vitest:\"UNRUN\"};\n}",
+  "entryBoundary": "Unchanged Vite supabase-configuration group priority70 claims existing configuration.ts above vendor-supabase priority60. Dependency-free helper is defined in the already-correct module; no SDK/env import or top-level effect added. Built graph is UNRUN.",
+  "independentReview": "platform_audit reviewed exact replacement blobs and found no blocking source issue; only trailing blankline corrected after review.",
+  "remainingChecks": [
+    "targeted Vitest api-key-fetch and auth-middleware suites",
+    "typecheck",
+    "lint/format",
+    "reachability",
+    "built no-eager-supabase graph and bundle-secret checks",
+    "build",
+    "real auth/browser smoke on approved environment"
+  ],
+  "docs": "https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys",
+  "historicalEvidenceBlob": "2b50bf2ead0d7b7f0e40f4ff2b6cba5ea99766d6",
+  "countingCorrection": "Physical LF-delimited lines per scripts/measure-loc.mjs: the new test has119 lines; split('\\n').length120 counts an extra trailing empty item.",
+  "parallelReviews": [
+    {
+      "owner": "safety_audit",
+      "scope": "Four current source blobs, three identical factories, candidate helper, import/chunk boundary and fresh exact-factory cloud parity",
+      "result": "APPROVED;84 cases/808 assertions;0 requests/resource mutations; full build/Vitest/browser UNRUN"
+    },
+    {
+      "owner": "platform_audit",
+      "scope": "Eight helper modules plus12 pinned caller files",
+      "result": "NO_ADDITIONAL_SAFE_REMOVAL; preserve live recovery/accessibility/hydration/download/scroll/lazy-loading/visual variant roles",
+      "modules": [
+        "src/lib/utils.ts",
+        "src/lib/error-capture.ts",
+        "src/lib/error-page.ts",
+        "src/components/settings/rows.tsx",
+        "src/lib/use-follow-bottom.ts",
+        "src/lib/use-modal-focus.ts",
+        "src/components/shell/BrandMark.tsx",
+        "src/components/settings/settings-panel.tsx"
+      ]
+    },
+    {
+      "owner": "cloud_evidence",
+      "scope": "Scripts/config/direct dependency roles and independent count aggregation",
+      "result": "NO_SAFE_PACKAGE_REMOVAL;37 direct packages retain runtime/dev/peer/type/test roles; manifest/lock maps match;965 unique source paths and157752 physical lines independently summed"
+    }
+  ],
+  "userRulesApplied": {
+    "KISS": "One existing configuration owner, direct header merge, no new production module.",
+    "YAGNI": "No speculative cleanup, package churn or future framework.",
+    "DRY_WET": "Extract only the third identical live helper; preserve distinct caller lifecycles and low coupling."
+  }
+}

@@ -1,0 +1,5892 @@
+{
+  "schemaVersion": 1,
+  "repository": "BREVEX-CEO/caera-connect-plan",
+  "branch": "ocade/p00-p22-implementation",
+  "baselineCommit": "a53f5ba4a80dc3b126894bd8c2f1d34cd4c2e12b",
+  "candidateSourceBlobs": [
+    {
+      "path": "src/integrations/supabase/configuration.ts",
+      "beforeBlob": "eba2edadf2cd183f056dd9e74a3f316985cc0eda",
+      "afterBlob": "e82a43ffa8db217e800796f6ee87cdbbbb4a7164",
+      "beforeLines": 52,
+      "afterLines": 80
+    },
+    {
+      "path": "src/integrations/supabase/auth-middleware.ts",
+      "beforeBlob": "99ed790c94482b8c6bf58ffafe6de30a5bf82c3a",
+      "afterBlob": "99d36228adcee8be201ee058fd6c64606086fdb3",
+      "beforeLines": 120,
+      "afterLines": 94
+    },
+    {
+      "path": "src/integrations/supabase/client.server.ts",
+      "beforeBlob": "7d771eb0402a1de091827ebce4f8d4f6f08101aa",
+      "afterBlob": "fcf2d3f9745b6f4ec4cfadb6b1188b10a3e10a99",
+      "beforeLines": 73,
+      "afterLines": 47
+    },
+    {
+      "path": "src/integrations/supabase/client.ts",
+      "beforeBlob": "3567cc166f8af1e2ea944709bc13721e06c3e7b8",
+      "afterBlob": "2cd8f71e420b445467f90a7b8854b230585b7276",
+      "beforeLines": 106,
+      "afterLines": 80
+    }
+  ],
+  "method": "Exact scripts/measure-loc.mjs predicates and physical newline algorithm evaluated over GitHub Git blob contents, not a local Node/filesystem run",
+  "scriptBlob": "0b5863987ad087862365ce71c8d6fb88b33722c1",
+  "includes": "Blank/comment/test/experiment/migration lines are included. Source extension/path exclusions match repository script. JSON/Markdown/PS1/spec/lock/config files outside the script predicate do not count as source LOC.",
+  "trackedGitBlobFiles": {
+    "before": 2176,
+    "after": 2179,
+    "delta": 3
+  },
+  "gitlinks": {
+    "count": 1,
+    "path": "external/deepseek-harness/upstream",
+    "contentsExcluded": true
+  },
+  "sourceFiles": {
+    "before": 964,
+    "after": 965
+  },
+  "sourcePhysicalLines": {
+    "before": 157683,
+    "after": 157752,
+    "delta": 69
+  },
+  "productionPhysicalLineDelta": -50,
+  "productionCharacterDelta": -1390,
+  "newTestPhysicalLines": 119,
+  "readFailures": [],
+  "byDir": {
+    "android": {
+      "files": 11,
+      "physicalLines": 2461
+    },
+    "docs": {
+      "files": 6,
+      "physicalLines": 1775
+    },
+    ".": {
+      "files": 5,
+      "physicalLines": 668
+    },
+    "experiments": {
+      "files": 28,
+      "physicalLines": 3071
+    },
+    "jarvis-runtime": {
+      "files": 37,
+      "physicalLines": 14670
+    },
+    "public": {
+      "files": 2,
+      "physicalLines": 486
+    },
+    "scripts": {
+      "files": 57,
+      "physicalLines": 20822
+    },
+    "src": {
+      "files": 344,
+      "physicalLines": 80169
+    },
+    "supabase": {
+      "files": 475,
+      "physicalLines": 33630
+    }
+  },
+  "files": [
+    {
+      "path": "android/build.py",
+      "sha": "6c46c6dc6c895edf130f85f5b6fdc8a71442d8aa",
+      "gitBytes": 5697,
+      "physicalLines": 122
+    },
+    {
+      "path": "android/src/in/ocade/app/AgentService.java",
+      "sha": "e151881800f1692d2f17cec1b6e1142f3c10bb26",
+      "gitBytes": 20668,
+      "physicalLines": 428
+    },
+    {
+      "path": "android/src/in/ocade/app/Boot.java",
+      "sha": "b957d0266fffcd940715d31cbb95d03eaf53cd0b",
+      "gitBytes": 1825,
+      "physicalLines": 38
+    },
+    {
+      "path": "android/src/in/ocade/app/Bubble.java",
+      "sha": "df3c3a894831b558ec80491fc6bac8b8eb0761e5",
+      "gitBytes": 8298,
+      "physicalLines": 202
+    },
+    {
+      "path": "android/src/in/ocade/app/Control.java",
+      "sha": "003daab75742e28f601975044f94b744318f69b9",
+      "gitBytes": 28246,
+      "physicalLines": 539
+    },
+    {
+      "path": "android/src/in/ocade/app/Identity.java",
+      "sha": "8e4823f6ed4d1cf775376db218102109414654ad",
+      "gitBytes": 10478,
+      "physicalLines": 253
+    },
+    {
+      "path": "android/src/in/ocade/app/MainActivity.java",
+      "sha": "bae83a2434033f699846910c86dd72f2c07636bc",
+      "gitBytes": 17726,
+      "physicalLines": 399
+    },
+    {
+      "path": "android/src/in/ocade/app/OcadeAccessibility.java",
+      "sha": "4c04c29d61a8ba431e4a86973ebc9a8d0374c9e0",
+      "gitBytes": 1629,
+      "physicalLines": 47
+    },
+    {
+      "path": "android/src/in/ocade/app/WakeModel.java",
+      "sha": "e428872e5e58a84de0e2de97c696acdade78cf58",
+      "gitBytes": 9563,
+      "physicalLines": 217
+    },
+    {
+      "path": "android/src/in/ocade/app/WakeService.java",
+      "sha": "9aeb613eed0fcc81817ac9821bbef0558063245c",
+      "gitBytes": 7938,
+      "physicalLines": 191
+    },
+    {
+      "path": "android/test/WakeParity.java",
+      "sha": "aa17d73191d1b0c4440bc9bbe937848f8e261e4b",
+      "gitBytes": 1034,
+      "physicalLines": 25
+    },
+    {
+      "path": "docs/audit-checkpoints/20261028-cloud-safety/remote-billing-regression.mjs",
+      "sha": "458ecdafffaa21f57a134d512f769abce993a10a",
+      "gitBytes": 50261,
+      "physicalLines": 191
+    },
+    {
+      "path": "docs/audit-checkpoints/20261028-cloud-safety/remote-path-regression.mjs",
+      "sha": "026378652bb6d831d06d10c0c5f92196cea572fe",
+      "gitBytes": 44131,
+      "physicalLines": 168
+    },
+    {
+      "path": "docs/audit-checkpoints/20261028-cloud-safety/remote-sw-regression.mjs",
+      "sha": "fc9aae9f865ef0d9b0855f7166d06c82504850bb",
+      "gitBytes": 36891,
+      "physicalLines": 826
+    },
+    {
+      "path": "docs/audit-checkpoints/20261029-browser-continuation/remote-sheet-verification.mjs",
+      "sha": "76e5705cfca96a254e53284f76803c90149380cc",
+      "gitBytes": 36230,
+      "physicalLines": 551
+    },
+    {
+      "path": "docs/audit-checkpoints/architecture-benchmark/20261021-real-model/runs/paint-A-make_rocket.py",
+      "sha": "a5a0aeaaa39566cbf4c7b48fdbea32d78e436e13",
+      "gitBytes": 939,
+      "physicalLines": 27
+    },
+    {
+      "path": "docs/email/magic-link-or-otp.html",
+      "sha": "b2531f713a6539b01f78a144342fe598df50f4d4",
+      "gitBytes": 627,
+      "physicalLines": 12
+    },
+    {
+      "path": "eslint.config.js",
+      "sha": "c72da0c4d93d2994f8edb6f4d2a6e83e2b3ade30",
+      "gitBytes": 3507,
+      "physicalLines": 88
+    },
+    {
+      "path": "experiments/architectures/bench.py",
+      "sha": "3b5aa18c59b08f5f9361762816dc890f8f1456de",
+      "gitBytes": 44952,
+      "physicalLines": 909
+    },
+    {
+      "path": "experiments/architectures/build-live.mjs",
+      "sha": "b4f46f62d192630cf1f2333e33f75ff2ee22e22e",
+      "gitBytes": 1584,
+      "physicalLines": 44
+    },
+    {
+      "path": "experiments/architectures/device_server.py",
+      "sha": "4a5cc03bf6bce04fc19ad2e5236c7544f5d796d0",
+      "gitBytes": 4237,
+      "physicalLines": 99
+    },
+    {
+      "path": "experiments/architectures/engine-f.ts",
+      "sha": "05fa913706bf0120bea05e087e53fe93d598d085",
+      "gitBytes": 13482,
+      "physicalLines": 297
+    },
+    {
+      "path": "experiments/architectures/fixtures/order_site.py",
+      "sha": "8c920be95c8f82105ae9685c864952d2f6caa015",
+      "gitBytes": 4212,
+      "physicalLines": 90
+    },
+    {
+      "path": "experiments/architectures/live.ts",
+      "sha": "70cadd3219376db2e63e9a074395bb35fd2b3b89",
+      "gitBytes": 18750,
+      "physicalLines": 500
+    },
+    {
+      "path": "experiments/architectures/oracle_cad.py",
+      "sha": "732e7b3e8dcc50ff5ac82bed6ea0d2cc9272588b",
+      "gitBytes": 4757,
+      "physicalLines": 104
+    },
+    {
+      "path": "experiments/architectures/oracle_doc.py",
+      "sha": "9e003cd6a7a6664a2b05572ed7b0d6a094898494",
+      "gitBytes": 1050,
+      "physicalLines": 16
+    },
+    {
+      "path": "experiments/architectures/oracle_photo.py",
+      "sha": "adbf39330c2a5b6af17c56385f823eca9d28d773",
+      "gitBytes": 4548,
+      "physicalLines": 94
+    },
+    {
+      "path": "experiments/architectures/oracle_sheet.py",
+      "sha": "8b3c0252f4b25de0a7a66cdb17353bdfa42c61ff",
+      "gitBytes": 2798,
+      "physicalLines": 64
+    },
+    {
+      "path": "experiments/architectures/oracle_video.py",
+      "sha": "d39d8799fb87bd2bdfc6e5814e761d524152dca9",
+      "gitBytes": 7950,
+      "physicalLines": 147
+    },
+    {
+      "path": "experiments/benchmarks/20261025/bench.sh",
+      "sha": "c142a8ab5875a79f8720935eb1bba303bda15990",
+      "gitBytes": 2172,
+      "physicalLines": 31
+    },
+    {
+      "path": "experiments/benchmarks/20261025/oracle.py",
+      "sha": "db2a553d9185b174fd8a6524a93210c518940f0e",
+      "gitBytes": 17196,
+      "physicalLines": 327
+    },
+    {
+      "path": "experiments/benchmarks/20261025/results/b1-excel-d26/outputs/.jarvis/create_budget.py",
+      "sha": "f0aa4d3bc9204f2365db2682ba4bca666a6f463b",
+      "gitBytes": 1122,
+      "physicalLines": 45
+    },
+    {
+      "path": "experiments/benchmarks/20261025/results/b1-excel-r1/outputs/.jarvis/add_chart.py",
+      "sha": "08ae0a46ff0af0495fdba279d4033aaba1ddb272",
+      "gitBytes": 431,
+      "physicalLines": 16
+    },
+    {
+      "path": "experiments/benchmarks/20261025/results/b1-excel-t1b/outputs/.jarvis/add_chart.py",
+      "sha": "13fbeca85258f4aacd9856f459f1f4c6eca21e88",
+      "gitBytes": 542,
+      "physicalLines": 21
+    },
+    {
+      "path": "experiments/benchmarks/20261025/results/b1-excel-t1h/outputs/.jarvis/create_budget.py",
+      "sha": "10a6ce959abb4fd5291a79afcd27213d84456b4f",
+      "gitBytes": 1168,
+      "physicalLines": 48
+    },
+    {
+      "path": "experiments/benchmarks/20261025/results/b1b-sales-t1a/outputs/.jarvis/create_sales.py",
+      "sha": "ca208bd13db2be0598c237e9eaafb46ff9d25363",
+      "gitBytes": 514,
+      "physicalLines": 12
+    },
+    {
+      "path": "experiments/benchmarks/20261025/results/b2-word-r1/outputs/.jarvis/make_doc.py",
+      "sha": "4b1f115a23e55deab223c17084e766ac9fec282a",
+      "gitBytes": 1306,
+      "physicalLines": 42
+    },
+    {
+      "path": "experiments/benchmarks/20261025/results/b2-word-t1b/outputs/.jarvis/create_doc.py",
+      "sha": "9937ae42cee661ab5e4153c2146582257c4a980c",
+      "gitBytes": 1277,
+      "physicalLines": 35
+    },
+    {
+      "path": "experiments/benchmarks/20261025/results/b2b-notes-t1h/outputs/.jarvis/create_doc.py",
+      "sha": "a36e68460107f09d7f28743cc4ea7359b8f0a762",
+      "gitBytes": 931,
+      "physicalLines": 34
+    },
+    {
+      "path": "experiments/benchmarks/20261025/results/b3-images-d26/outputs/.jarvis/process.py",
+      "sha": "f580fbb7037d9960ca43f814607ccf6d20e4e0d5",
+      "gitBytes": 660,
+      "physicalLines": 20
+    },
+    {
+      "path": "experiments/benchmarks/20261025/results/b3-images-r1/outputs/.jarvis/process_images.py",
+      "sha": "cd377f31fc007196e435eac89d75b67bc84a54cb",
+      "gitBytes": 371,
+      "physicalLines": 14
+    },
+    {
+      "path": "experiments/benchmarks/20261025/results/b3-images-t1b/outputs/.jarvis/process_earth.py",
+      "sha": "a2faa10deded6ffe09de9db74dffe448e808ee9f",
+      "gitBytes": 331,
+      "physicalLines": 8
+    },
+    {
+      "path": "experiments/benchmarks/20261025/results/b3-images-t1h/outputs/.jarvis/process_images.py",
+      "sha": "19c87e29535a39eb3c331781c3b2bcb4c7bc341e",
+      "gitBytes": 516,
+      "physicalLines": 16
+    },
+    {
+      "path": "experiments/benchmarks/20261025/results/b6-order-t1f1/outputs/.jarvis/make_pdf.py",
+      "sha": "1d6c340985865ea1dd9217e85a3db6b31015b7cb",
+      "gitBytes": 301,
+      "physicalLines": 8
+    },
+    {
+      "path": "experiments/benchmarks/20261025/results/b6-order-t1i-sr/outputs/.jarvis/make_pdf.py",
+      "sha": "f33c1ab0d64f4e5968af292c589358ac2cb8009f",
+      "gitBytes": 370,
+      "physicalLines": 12
+    },
+    {
+      "path": "experiments/benchmarks/20261025/shop.py",
+      "sha": "dbd5b162e6e83a98d58da83d767b1441a4816660",
+      "gitBytes": 599,
+      "physicalLines": 18
+    },
+    {
+      "path": "jarvis-runtime/actions/browser_control.py",
+      "sha": "3791dd9685d02f5a0781d7b82528906a8d111a73",
+      "gitBytes": 36848,
+      "physicalLines": 723
+    },
+    {
+      "path": "jarvis-runtime/actions/ocade_page.js",
+      "sha": "4f74cc8dfa1c53f721e6f54db9509e66b96404d9",
+      "gitBytes": 14985,
+      "physicalLines": 265
+    },
+    {
+      "path": "jarvis-runtime/ocade_accessibility.py",
+      "sha": "c62da6952fb453cbddd1160c0ac2461008eb6af8",
+      "gitBytes": 21521,
+      "physicalLines": 445
+    },
+    {
+      "path": "jarvis-runtime/ocade_agent.py",
+      "sha": "cc64c1915da8edcd6269caebf5da0c4ac1c7c16f",
+      "gitBytes": 30671,
+      "physicalLines": 704
+    },
+    {
+      "path": "jarvis-runtime/ocade_computer.py",
+      "sha": "f3462f713fd2a8b79dd843d2d9ae50c3ed66c51c",
+      "gitBytes": 102768,
+      "physicalLines": 1952
+    },
+    {
+      "path": "jarvis-runtime/ocade_device.py",
+      "sha": "7bba430c5c0fed82c0a69aa1b3cd4d1f5a436614",
+      "gitBytes": 37733,
+      "physicalLines": 738
+    },
+    {
+      "path": "jarvis-runtime/ocade_discovery.py",
+      "sha": "0f57b5e59c443aa7cdb72bb8e1d7affbef7b564b",
+      "gitBytes": 21354,
+      "physicalLines": 445
+    },
+    {
+      "path": "jarvis-runtime/ocade_documents.py",
+      "sha": "a9e9ac52dfff806b782a8d5f3724298636cb6059",
+      "gitBytes": 27499,
+      "physicalLines": 553
+    },
+    {
+      "path": "jarvis-runtime/ocade_egress.py",
+      "sha": "b922afc2981e1b7b21d33dccf5e1364b39c99d73",
+      "gitBytes": 5800,
+      "physicalLines": 152
+    },
+    {
+      "path": "jarvis-runtime/ocade_existing_browser.py",
+      "sha": "7ad27c81db224c27b58221486bc386d07e670113",
+      "gitBytes": 6295,
+      "physicalLines": 153
+    },
+    {
+      "path": "jarvis-runtime/ocade_identity.py",
+      "sha": "0b785e153b4120d3c63855564d4414961abb1926",
+      "gitBytes": 11387,
+      "physicalLines": 246
+    },
+    {
+      "path": "jarvis-runtime/ocade_media.py",
+      "sha": "4bee497d128c2d65a36bfaf14f2ee096cb86058b",
+      "gitBytes": 16351,
+      "physicalLines": 280
+    },
+    {
+      "path": "jarvis-runtime/ocade_settings.py",
+      "sha": "747785eb06c2b01337ce6886f75b1b17e1e210d0",
+      "gitBytes": 8989,
+      "physicalLines": 211
+    },
+    {
+      "path": "jarvis-runtime/ocade_sheets.py",
+      "sha": "04995cfe9edeb2c8275fcbd826fc852249256437",
+      "gitBytes": 25073,
+      "physicalLines": 482
+    },
+    {
+      "path": "jarvis-runtime/ocade_update.py",
+      "sha": "514bf7a24e6958fbb3ae29c845adae77b58953cf",
+      "gitBytes": 12638,
+      "physicalLines": 287
+    },
+    {
+      "path": "jarvis-runtime/ocade_wake.py",
+      "sha": "243e15dea684cf58206b3ab1f0c89fe6a5d93fb2",
+      "gitBytes": 11032,
+      "physicalLines": 257
+    },
+    {
+      "path": "jarvis-runtime/packaging/macos/build.sh",
+      "sha": "edfeba0919b0c3de45d91cbeaca91299a8006ea9",
+      "gitBytes": 2334,
+      "physicalLines": 43
+    },
+    {
+      "path": "jarvis-runtime/packaging/release.py",
+      "sha": "397d2a161260447001742f512a1955c39e71ac7e",
+      "gitBytes": 8416,
+      "physicalLines": 168
+    },
+    {
+      "path": "jarvis-runtime/tests/conftest.py",
+      "sha": "1c6d548ff4979b25b9b4aec98f50d328a788b7d9",
+      "gitBytes": 1139,
+      "physicalLines": 31
+    },
+    {
+      "path": "jarvis-runtime/tests/manual_existing_chrome.py",
+      "sha": "67f056ac6b5979b60fbb54b267da787aae5b212c",
+      "gitBytes": 1982,
+      "physicalLines": 44
+    },
+    {
+      "path": "jarvis-runtime/tests/manual_feed_update.py",
+      "sha": "d91d55f491688e60a8caf8453da34dad4951635b",
+      "gitBytes": 4641,
+      "physicalLines": 100
+    },
+    {
+      "path": "jarvis-runtime/tests/manual_installed_lifecycle.py",
+      "sha": "d199f19534c3a9a5aab11c848ad4d59296f03ee7",
+      "gitBytes": 12169,
+      "physicalLines": 240
+    },
+    {
+      "path": "jarvis-runtime/tests/manual_real_update.py",
+      "sha": "06ddf17b8e3b650e49ee24050fe6c6d12950c97b",
+      "gitBytes": 7210,
+      "physicalLines": 154
+    },
+    {
+      "path": "jarvis-runtime/tests/manual_tray_probe.py",
+      "sha": "b23d68a1a4f352a7405eecadd34bde17008a2195",
+      "gitBytes": 2049,
+      "physicalLines": 68
+    },
+    {
+      "path": "jarvis-runtime/tests/test_agent.py",
+      "sha": "3ebf23a2117af5e4f2918de88f36ff1b05c6e9a3",
+      "gitBytes": 42075,
+      "physicalLines": 873
+    },
+    {
+      "path": "jarvis-runtime/tests/test_browser_control.py",
+      "sha": "14df7bdb07341b94505bb7c5a12e862ed197c1d1",
+      "gitBytes": 33701,
+      "physicalLines": 590
+    },
+    {
+      "path": "jarvis-runtime/tests/test_computer.py",
+      "sha": "e1696dc4ed4e55e6dd6aa8adbafbc3705891f056",
+      "gitBytes": 61162,
+      "physicalLines": 1085
+    },
+    {
+      "path": "jarvis-runtime/tests/test_discovery.py",
+      "sha": "0b555f6dd44d1b92b4dc898ffdf88eb81a8e0809",
+      "gitBytes": 17821,
+      "physicalLines": 305
+    },
+    {
+      "path": "jarvis-runtime/tests/test_existing_browser.py",
+      "sha": "fed4acbb927d8b87382419bbf9e7a1ab9e8fb332",
+      "gitBytes": 10678,
+      "physicalLines": 226
+    },
+    {
+      "path": "jarvis-runtime/tests/test_files_documents.py",
+      "sha": "97cbc1d8e9596ba74854c77d1460105e2e0f4ae6",
+      "gitBytes": 24158,
+      "physicalLines": 452
+    },
+    {
+      "path": "jarvis-runtime/tests/test_independent_reopen.py",
+      "sha": "dc62a9088e12c9cf6621651c62db82cdc8710949",
+      "gitBytes": 6971,
+      "physicalLines": 129
+    },
+    {
+      "path": "jarvis-runtime/tests/test_safety.py",
+      "sha": "e93d0758f67809d3c87ebad6679b3592959b9c37",
+      "gitBytes": 36632,
+      "physicalLines": 816
+    },
+    {
+      "path": "jarvis-runtime/tests/test_sheets.py",
+      "sha": "6ab127ab8e3a71e9756becefa109b829c953c57d",
+      "gitBytes": 20263,
+      "physicalLines": 360
+    },
+    {
+      "path": "jarvis-runtime/tests/test_ui_act.py",
+      "sha": "c8627828f2c6d461780ff2a2e4a098fc26ce8837",
+      "gitBytes": 17286,
+      "physicalLines": 307
+    },
+    {
+      "path": "jarvis-runtime/tests/test_update.py",
+      "sha": "34c396af52b369db8df06b12319a4a07f1290290",
+      "gitBytes": 23308,
+      "physicalLines": 482
+    },
+    {
+      "path": "jarvis-runtime/tests/test_wake.py",
+      "sha": "230723de75f404f3952227a0202723c6121c02a0",
+      "gitBytes": 7363,
+      "physicalLines": 154
+    },
+    {
+      "path": "jarvis-runtime/tests/test_window_identity.py",
+      "sha": "2d7d00b082c60cebf1928526b9e5933c23ac551a",
+      "gitBytes": 7611,
+      "physicalLines": 150
+    },
+    {
+      "path": "nitro.config.ts",
+      "sha": "bd88f49b31639dbb99d739a2f1f586baf099f316",
+      "gitBytes": 1371,
+      "physicalLines": 28
+    },
+    {
+      "path": "public/offline.html",
+      "sha": "e6febc8580fa5cbdf305e0267527a240b495eefc",
+      "gitBytes": 3158,
+      "physicalLines": 103
+    },
+    {
+      "path": "public/sw.js",
+      "sha": "49e998ed501d0cd0dc62beb3884b03959680aa5f",
+      "gitBytes": 16546,
+      "physicalLines": 383
+    },
+    {
+      "path": "scripts/build-offline-artifact.mjs",
+      "sha": "4f0cc47f19d7d3c30f4a5899db48f66fff98abfa",
+      "gitBytes": 8131,
+      "physicalLines": 215
+    },
+    {
+      "path": "scripts/check-accessibility.mjs",
+      "sha": "405824e71953da009dccb20c1155ab10c955f959",
+      "gitBytes": 15144,
+      "physicalLines": 400
+    },
+    {
+      "path": "scripts/check-bounded-reads.mjs",
+      "sha": "237b360f72ad2824f6c85c821dac041e2f37d58f",
+      "gitBytes": 4865,
+      "physicalLines": 123
+    },
+    {
+      "path": "scripts/check-content-storage.mjs",
+      "sha": "3f9e8984d9ebe4022f490b3b32dfd1c1c691aca4",
+      "gitBytes": 7869,
+      "physicalLines": 187
+    },
+    {
+      "path": "scripts/check-dead-controls.mjs",
+      "sha": "ad4553c220cc9e442fe4b89c113b00df345242da",
+      "gitBytes": 12735,
+      "physicalLines": 320
+    },
+    {
+      "path": "scripts/check-generated-stability.mjs",
+      "sha": "ab4bc2c4e1e1837abbfb8df4c894e93693dec7fc",
+      "gitBytes": 1372,
+      "physicalLines": 31
+    },
+    {
+      "path": "scripts/check-model-identity.mjs",
+      "sha": "0a73932e45178945d883d779283721ca90a93ce7",
+      "gitBytes": 4000,
+      "physicalLines": 110
+    },
+    {
+      "path": "scripts/check-monochrome.mjs",
+      "sha": "be48a8144972bcfe41a986ee7389c751b5c7281e",
+      "gitBytes": 4167,
+      "physicalLines": 102
+    },
+    {
+      "path": "scripts/check-reachability.mjs",
+      "sha": "3fe63b92c6428ba374c3e0a5be0bca85c1629e88",
+      "gitBytes": 9178,
+      "physicalLines": 216
+    },
+    {
+      "path": "scripts/check-supabase-types.mjs",
+      "sha": "382214842c66047e496469453fe5662c17f2a599",
+      "gitBytes": 9882,
+      "physicalLines": 247
+    },
+    {
+      "path": "scripts/db-twin.mts",
+      "sha": "829402f88c340656788b2f38e16ae1884b10cb7b",
+      "gitBytes": 21745,
+      "physicalLines": 538
+    },
+    {
+      "path": "scripts/deepseek_import.py",
+      "sha": "2f5eca5202faadedde58c633f443849c6914f5b2",
+      "gitBytes": 5489,
+      "physicalLines": 108
+    },
+    {
+      "path": "scripts/deepseek-link.mjs",
+      "sha": "585d1e7a4333dd9cb6232b72a1625a287b28cf59",
+      "gitBytes": 7523,
+      "physicalLines": 183
+    },
+    {
+      "path": "scripts/deepseek-packages.mjs",
+      "sha": "10291f1b45b6983a5f2810c63bc9745f9179d03a",
+      "gitBytes": 2227,
+      "physicalLines": 60
+    },
+    {
+      "path": "scripts/deploy.d.mts",
+      "sha": "ccf503b725909388af7ae88ed0d00a48cb8af056",
+      "gitBytes": 1543,
+      "physicalLines": 48
+    },
+    {
+      "path": "scripts/deploy.mjs",
+      "sha": "918bae3ba814faa2dadab5a6d46475696ecce90a",
+      "gitBytes": 23537,
+      "physicalLines": 697
+    },
+    {
+      "path": "scripts/e2e/admin-journey.mjs",
+      "sha": "31519f8a900d6b30b7ecc606d271e30a920777e9",
+      "gitBytes": 44530,
+      "physicalLines": 998
+    },
+    {
+      "path": "scripts/e2e/android-journey.mjs",
+      "sha": "aae249a377dc414b6cbf40dbe7f4cfffe8bb2d46",
+      "gitBytes": 37614,
+      "physicalLines": 888
+    },
+    {
+      "path": "scripts/e2e/approve-device.mjs",
+      "sha": "f7e3ca72f5f98afbd2936f274e49446bc9ad8fe6",
+      "gitBytes": 2287,
+      "physicalLines": 64
+    },
+    {
+      "path": "scripts/e2e/auth-journey.mjs",
+      "sha": "1b520f99985288ec47f4c8ad0cc25d283759124d",
+      "gitBytes": 10918,
+      "physicalLines": 253
+    },
+    {
+      "path": "scripts/e2e/browsers-journey.mjs",
+      "sha": "9c4d6021a30f2d9cf29f580874902f004d570140",
+      "gitBytes": 6642,
+      "physicalLines": 169
+    },
+    {
+      "path": "scripts/e2e/bubble-journey.mjs",
+      "sha": "311e9c1e7b2db1de16b54f1333dfe0dca71da4ba",
+      "gitBytes": 10721,
+      "physicalLines": 276
+    },
+    {
+      "path": "scripts/e2e/carry-on-journey.mjs",
+      "sha": "b1741bf6c1b6c9f46a85db012d9cd017ffa2953c",
+      "gitBytes": 25903,
+      "physicalLines": 631
+    },
+    {
+      "path": "scripts/e2e/chat-journey.mjs",
+      "sha": "e05224d6a7bf38588c5d6eac93f6597fb510199e",
+      "gitBytes": 29209,
+      "physicalLines": 714
+    },
+    {
+      "path": "scripts/e2e/common.mjs",
+      "sha": "81db015f5bf8bd05cd1bc03d19b56d07d7822a23",
+      "gitBytes": 477,
+      "physicalLines": 8
+    },
+    {
+      "path": "scripts/e2e/controls-journey.mjs",
+      "sha": "a2dc1cd325a748efe4b578cf4ff1a7119f681fd1",
+      "gitBytes": 10603,
+      "physicalLines": 260
+    },
+    {
+      "path": "scripts/e2e/final-journey.mjs",
+      "sha": "b4f9a4b3146f666401ee4a142e7c777a19ca4f3e",
+      "gitBytes": 7453,
+      "physicalLines": 177
+    },
+    {
+      "path": "scripts/e2e/gemini-contract.mjs",
+      "sha": "ada3b44416d783a3866c1d9c93e549a67296e4d5",
+      "gitBytes": 14359,
+      "physicalLines": 430
+    },
+    {
+      "path": "scripts/e2e/harness.mjs",
+      "sha": "62114e94d18fc7924b0a6c7abce7cfcdd2d9faec",
+      "gitBytes": 12659,
+      "physicalLines": 356
+    },
+    {
+      "path": "scripts/e2e/jarvis-journey.mjs",
+      "sha": "a3113e4a728465df33b9afb1f4506c3abc921e24",
+      "gitBytes": 85157,
+      "physicalLines": 1995
+    },
+    {
+      "path": "scripts/e2e/library-journey.mjs",
+      "sha": "0be1eaf3ba753049fb8b601b47346c4fe73b5250",
+      "gitBytes": 8027,
+      "physicalLines": 191
+    },
+    {
+      "path": "scripts/e2e/live-journey.mjs",
+      "sha": "b4b83c27d34a1d26af7e951ef0b0dd274f843a00",
+      "gitBytes": 25098,
+      "physicalLines": 556
+    },
+    {
+      "path": "scripts/e2e/live-usage-journey.mjs",
+      "sha": "03ec342ea31bf2a44cedea9d20ae827bd41aa763",
+      "gitBytes": 12098,
+      "physicalLines": 279
+    },
+    {
+      "path": "scripts/e2e/mfa-journey.mjs",
+      "sha": "7afb6d31dccaa0198ef3b6adf3dee7b3c0621b02",
+      "gitBytes": 18432,
+      "physicalLines": 400
+    },
+    {
+      "path": "scripts/e2e/office-journey.mjs",
+      "sha": "2449ad51f4539ec9d6ff1026f81a48c0978e6188",
+      "gitBytes": 21192,
+      "physicalLines": 532
+    },
+    {
+      "path": "scripts/e2e/offline-journey.mjs",
+      "sha": "03ceafb4bc0230f79206c239df5b61fbaf53e0b2",
+      "gitBytes": 12923,
+      "physicalLines": 314
+    },
+    {
+      "path": "scripts/e2e/offline-real-journey.mjs",
+      "sha": "2b758c0e5f78d9ffebdbbee1d8f462fd4a7f51aa",
+      "gitBytes": 12414,
+      "physicalLines": 268
+    },
+    {
+      "path": "scripts/e2e/online-journey.mjs",
+      "sha": "f7610b9430634136f23f158a6349fa397454dd3a",
+      "gitBytes": 16977,
+      "physicalLines": 419
+    },
+    {
+      "path": "scripts/e2e/polish-journey.mjs",
+      "sha": "59d7853e261fa73f6b5839dc1085b21cf05cb169",
+      "gitBytes": 15755,
+      "physicalLines": 402
+    },
+    {
+      "path": "scripts/e2e/pricing-journey.mjs",
+      "sha": "645bfa7e2f7d4e49a7787c7fefe815e762aa72f6",
+      "gitBytes": 6561,
+      "physicalLines": 150
+    },
+    {
+      "path": "scripts/e2e/push-journey.mjs",
+      "sha": "173a39e673655d0be800e0c610e812c09b6c2055",
+      "gitBytes": 12500,
+      "physicalLines": 314
+    },
+    {
+      "path": "scripts/e2e/settings-journey.mjs",
+      "sha": "a9eab796b1b19a1367c3e6b917ec72a7f101d056",
+      "gitBytes": 11681,
+      "physicalLines": 285
+    },
+    {
+      "path": "scripts/e2e/shell-journey.mjs",
+      "sha": "86e6b47260434858786592142a39dbbfc1fa2f6a",
+      "gitBytes": 9137,
+      "physicalLines": 229
+    },
+    {
+      "path": "scripts/e2e/supabase-stub.mjs",
+      "sha": "7f70a3f939fb54f3ab02bd4246160729958c5dfb",
+      "gitBytes": 128489,
+      "physicalLines": 3127
+    },
+    {
+      "path": "scripts/e2e/timings.mjs",
+      "sha": "14809b3caacffb04fcbf6ae331858a8d4103c137",
+      "gitBytes": 3284,
+      "physicalLines": 72
+    },
+    {
+      "path": "scripts/e2e/usage-journey.mjs",
+      "sha": "9851caa1f8206ee8104da7d7a9dcc63ff5a791c9",
+      "gitBytes": 15739,
+      "physicalLines": 371
+    },
+    {
+      "path": "scripts/e2e/visual-journey.mjs",
+      "sha": "b0f96a610afb33b39ab26409adce0c723b35d31a",
+      "gitBytes": 6822,
+      "physicalLines": 172
+    },
+    {
+      "path": "scripts/e2e/workers-ai-contract.mjs",
+      "sha": "41a45e68fbc8c46847bb31fd5a03ea86e3a45b58",
+      "gitBytes": 5329,
+      "physicalLines": 149
+    },
+    {
+      "path": "scripts/e2e/workflow_cases.py",
+      "sha": "03a6739861e6543ed2ddc76c1812dca2e3b576c5",
+      "gitBytes": 12666,
+      "physicalLines": 233
+    },
+    {
+      "path": "scripts/generate-routes.mjs",
+      "sha": "c47864ac6b7bb85f33d7aa2a8cffa11c6fddc81e",
+      "gitBytes": 1526,
+      "physicalLines": 32
+    },
+    {
+      "path": "scripts/measure-loc.mjs",
+      "sha": "0b5863987ad087862365ce71c8d6fb88b33722c1",
+      "gitBytes": 3681,
+      "physicalLines": 125
+    },
+    {
+      "path": "scripts/prove-offline-artifact.mjs",
+      "sha": "e79d79793ff92fde339e4bc315e4061d0f019452",
+      "gitBytes": 19050,
+      "physicalLines": 531
+    },
+    {
+      "path": "scripts/scan-bundle-secrets.mjs",
+      "sha": "c33e61dd20e26ecad2e20bf2310a20dba06695ef",
+      "gitBytes": 4429,
+      "physicalLines": 124
+    },
+    {
+      "path": "scripts/verify-full.mjs",
+      "sha": "3984e208a4a1d93b8481532e9fee3d65bc7fc905",
+      "gitBytes": 1632,
+      "physicalLines": 58
+    },
+    {
+      "path": "scripts/wake/make_data.py",
+      "sha": "eb55dd439610a140e6d1d9afe14b9b26fa08c71a",
+      "gitBytes": 8256,
+      "physicalLines": 142
+    },
+    {
+      "path": "scripts/wake/sign_manifest.py",
+      "sha": "d86489ba7b598867ee28046dc32e8212f41d9a85",
+      "gitBytes": 1445,
+      "physicalLines": 34
+    },
+    {
+      "path": "scripts/wake/train.py",
+      "sha": "6bf191ceb6721f7ea5224ed2a869a416bbdec327",
+      "gitBytes": 23291,
+      "physicalLines": 509
+    },
+    {
+      "path": "src/cloudflare-entry.ts",
+      "sha": "751f14650035ee02906cded6b5968b6fe3f22642",
+      "gitBytes": 6899,
+      "physicalLines": 194
+    },
+    {
+      "path": "src/components/admin/ConsoleModules.tsx",
+      "sha": "22f2cd36398584bad7d017c3d8c4c359e0d2276f",
+      "gitBytes": 36579,
+      "physicalLines": 999
+    },
+    {
+      "path": "src/components/chat/ChatWorkspace.tsx",
+      "sha": "0825703c3286b0ff5f36f8838f5b094fa1794c3b",
+      "gitBytes": 37896,
+      "physicalLines": 942
+    },
+    {
+      "path": "src/components/chat/ConversationList.tsx",
+      "sha": "9f336aae898583e951c02c2a0067fd39df79e613",
+      "gitBytes": 16121,
+      "physicalLines": 426
+    },
+    {
+      "path": "src/components/chat/MessageList.tsx",
+      "sha": "7c585969612f86fbda1e3d331ed10a3cd4e005b7",
+      "gitBytes": 14133,
+      "physicalLines": 383
+    },
+    {
+      "path": "src/components/legal/legal-document-meta.ts",
+      "sha": "1656ce8f6b32fae37e5c36b6041d1d7f8ef6bfff",
+      "gitBytes": 872,
+      "physicalLines": 19
+    },
+    {
+      "path": "src/components/legal/LegalContent.tsx",
+      "sha": "8dc317b388f332a7e7d07f778388000bcd4d5323",
+      "gitBytes": 29838,
+      "physicalLines": 567
+    },
+    {
+      "path": "src/components/security/ConfirmIdentity.tsx",
+      "sha": "0de7cc00e0c28f4e98719dc98a9ed6eef70b28eb",
+      "gitBytes": 8747,
+      "physicalLines": 214
+    },
+    {
+      "path": "src/components/settings/AdvancedSection.tsx",
+      "sha": "4dc3513b7110eec0fcc6239a40713d52bfb92148",
+      "gitBytes": 4467,
+      "physicalLines": 123
+    },
+    {
+      "path": "src/components/settings/BillingSection.tsx",
+      "sha": "d58ddb578367689b382db53c3e70e78f358a547a",
+      "gitBytes": 2960,
+      "physicalLines": 84
+    },
+    {
+      "path": "src/components/settings/DataControlsSection.tsx",
+      "sha": "d85e0c5450ed211c8ee46859f51979cf260b3eb2",
+      "gitBytes": 12211,
+      "physicalLines": 344
+    },
+    {
+      "path": "src/components/settings/NotificationsSection.tsx",
+      "sha": "ea3780a82b6c43931d87264eeb642c9db9fbe21e",
+      "gitBytes": 8496,
+      "physicalLines": 233
+    },
+    {
+      "path": "src/components/settings/rows.tsx",
+      "sha": "5ee13ff4e4ad7042d5a9faf06f7c4e2449398cfc",
+      "gitBytes": 5451,
+      "physicalLines": 184
+    },
+    {
+      "path": "src/components/settings/settings-dialog.tsx",
+      "sha": "e18e0f57bad215d1da401c1d9f38e9ff3a44bab7",
+      "gitBytes": 15080,
+      "physicalLines": 401
+    },
+    {
+      "path": "src/components/settings/settings-panel.tsx",
+      "sha": "9bc324dc29914a3c71bb9c9f4d4385936a252781",
+      "gitBytes": 3633,
+      "physicalLines": 100
+    },
+    {
+      "path": "src/components/settings/SignInMethods.tsx",
+      "sha": "89005f10243bdb062b58d5741add94a0f532b822",
+      "gitBytes": 5939,
+      "physicalLines": 161
+    },
+    {
+      "path": "src/components/settings/TwoStep.tsx",
+      "sha": "a07cd2faca5ec6761123c5143e460356c2e5801b",
+      "gitBytes": 13716,
+      "physicalLines": 374
+    },
+    {
+      "path": "src/components/settings/UsageSection.tsx",
+      "sha": "6c8d05e6116f6968f609cd257ad4696eba49d1dc",
+      "gitBytes": 7941,
+      "physicalLines": 213
+    },
+    {
+      "path": "src/components/shell/AppShell.tsx",
+      "sha": "da53714ba1653212fb62f8d261274fb874fa206f",
+      "gitBytes": 13959,
+      "physicalLines": 395
+    },
+    {
+      "path": "src/components/shell/AuthShell.tsx",
+      "sha": "30a1e7c81af28488beb888b92be3e669514420b1",
+      "gitBytes": 2233,
+      "physicalLines": 66
+    },
+    {
+      "path": "src/components/shell/BrandMark.tsx",
+      "sha": "de3950fa02f66b7008b81b143cba30c84a87730e",
+      "gitBytes": 800,
+      "physicalLines": 26
+    },
+    {
+      "path": "src/components/shell/ErrorBoundary.tsx",
+      "sha": "08dca1d0967b31279b4cdd3dc9717d1e1c59e97a",
+      "gitBytes": 3439,
+      "physicalLines": 95
+    },
+    {
+      "path": "src/components/shell/PublicPage.tsx",
+      "sha": "45190f7662079c8bd2fba0ffd136767a1d36e415",
+      "gitBytes": 5202,
+      "physicalLines": 149
+    },
+    {
+      "path": "src/config/company-facts.ts",
+      "sha": "c1a805d9f51ed0310a6c92ef1cb82e1d1807ed79",
+      "gitBytes": 705,
+      "physicalLines": 22
+    },
+    {
+      "path": "src/deepseek/__tests__/resolve.test.ts",
+      "sha": "9a9691f5cac8eb732c2236a58e04db8ce0d15ef5",
+      "gitBytes": 2995,
+      "physicalLines": 69
+    },
+    {
+      "path": "src/deepseek/resolve.ts",
+      "sha": "7efc82ba6f810a61791777d0ae611420e6dca169",
+      "gitBytes": 2986,
+      "physicalLines": 70
+    },
+    {
+      "path": "src/deepseek/shims/async_hooks.ts",
+      "sha": "aa229d70a1947b8af2a1948506cd3d4c1c92d00c",
+      "gitBytes": 1739,
+      "physicalLines": 48
+    },
+    {
+      "path": "src/deepseek/shims/buffer.ts",
+      "sha": "3374c095cc9f6b797fb02c17839aa4e2ef04d9d4",
+      "gitBytes": 812,
+      "physicalLines": 25
+    },
+    {
+      "path": "src/deepseek/shims/crypto.ts",
+      "sha": "359dc913521c33a213b70ceb15332fc055d7bcb6",
+      "gitBytes": 155,
+      "physicalLines": 2
+    },
+    {
+      "path": "src/deepseek/shims/fs.ts",
+      "sha": "33c78ee000f438cac98a39a4e13b5c2a16b5039c",
+      "gitBytes": 478,
+      "physicalLines": 11
+    },
+    {
+      "path": "src/deepseek/shims/module.ts",
+      "sha": "a9a5f78726445bcba6502e4ae626a716ca3782f3",
+      "gitBytes": 183,
+      "physicalLines": 4
+    },
+    {
+      "path": "src/deepseek/shims/os.ts",
+      "sha": "793fe1c3f680521886f63f87111e70ea70c28550",
+      "gitBytes": 118,
+      "physicalLines": 2
+    },
+    {
+      "path": "src/deepseek/shims/path.ts",
+      "sha": "7fef0be0a2acb356564d721a11be6a868fbb3e16",
+      "gitBytes": 212,
+      "physicalLines": 3
+    },
+    {
+      "path": "src/deepseek/shims/util-types.ts",
+      "sha": "4505c2a4f6fc224be25d7f7c364daf659382883a",
+      "gitBytes": 189,
+      "physicalLines": 2
+    },
+    {
+      "path": "src/integrations/supabase/__tests__/api-key-fetch.test.ts",
+      "sha": "8bc00d21e95c0d7ae0c9f462cc59d7147ec92b70",
+      "gitBytes": 5058,
+      "physicalLines": 119
+    },
+    {
+      "path": "src/integrations/supabase/auth-attacher.ts",
+      "sha": "df792ee5ad7e40fb37c33ebef474e632559992b6",
+      "gitBytes": 2996,
+      "physicalLines": 63
+    },
+    {
+      "path": "src/integrations/supabase/auth-middleware.ts",
+      "sha": "99d36228adcee8be201ee058fd6c64606086fdb3",
+      "gitBytes": 3188,
+      "physicalLines": 94
+    },
+    {
+      "path": "src/integrations/supabase/client.server.ts",
+      "sha": "fcf2d3f9745b6f4ec4cfadb6b1188b10a3e10a99",
+      "gitBytes": 2033,
+      "physicalLines": 47
+    },
+    {
+      "path": "src/integrations/supabase/client.ts",
+      "sha": "2cd8f71e420b445467f90a7b8854b230585b7276",
+      "gitBytes": 3044,
+      "physicalLines": 80
+    },
+    {
+      "path": "src/integrations/supabase/configuration-message.ts",
+      "sha": "69f3a0b43f6cd8309b151e96f4b053a13191f649",
+      "gitBytes": 1203,
+      "physicalLines": 25
+    },
+    {
+      "path": "src/integrations/supabase/configuration.ts",
+      "sha": "e82a43ffa8db217e800796f6ee87cdbbbb4a7164",
+      "gitBytes": 3120,
+      "physicalLines": 80
+    },
+    {
+      "path": "src/integrations/supabase/on-demand.ts",
+      "sha": "4fcb60b5066db16b5e4635b15dd2ccb9d51ba8ab",
+      "gitBytes": 2037,
+      "physicalLines": 40
+    },
+    {
+      "path": "src/jarvis/__tests__/agent.test.ts",
+      "sha": "f790f8085cccefce9b82e9a7cf4f589c51558927",
+      "gitBytes": 57568,
+      "physicalLines": 1434
+    },
+    {
+      "path": "src/jarvis/__tests__/busy-model.test.ts",
+      "sha": "7bcdd89d59998bc29ef62cfa6469e0ff285c7304",
+      "gitBytes": 8351,
+      "physicalLines": 213
+    },
+    {
+      "path": "src/jarvis/__tests__/carry-on.test.ts",
+      "sha": "b239262af81ba7996e82145e61b972f182c33ce6",
+      "gitBytes": 40664,
+      "physicalLines": 897
+    },
+    {
+      "path": "src/jarvis/__tests__/device-exchange.test.ts",
+      "sha": "c67950334454907665f8b35a4a4bb6814e23ee7e",
+      "gitBytes": 95381,
+      "physicalLines": 2156
+    },
+    {
+      "path": "src/jarvis/__tests__/device-protocol.test.ts",
+      "sha": "093ebfc0348d911c09b2e6aec2721915c66fba8f",
+      "gitBytes": 7685,
+      "physicalLines": 203
+    },
+    {
+      "path": "src/jarvis/__tests__/docs.test.ts",
+      "sha": "6407f609baefb3a2c13f2bc982a6b0898ae8caa3",
+      "gitBytes": 2558,
+      "physicalLines": 53
+    },
+    {
+      "path": "src/jarvis/__tests__/engine.test.ts",
+      "sha": "43de0ae4d960ef376634470c7771bcd2e75d1fcb",
+      "gitBytes": 5593,
+      "physicalLines": 140
+    },
+    {
+      "path": "src/jarvis/__tests__/execution-controls.test.ts",
+      "sha": "2acc79fada0cab2292f5c4970ac37e31adce4f40",
+      "gitBytes": 2267,
+      "physicalLines": 68
+    },
+    {
+      "path": "src/jarvis/__tests__/jarvis-rules.test.ts",
+      "sha": "ab6dd2e465fc3045d7f3573f2a7d65cfda19cbc6",
+      "gitBytes": 30016,
+      "physicalLines": 743
+    },
+    {
+      "path": "src/jarvis/__tests__/jarvis-schema-against-postgres.test.ts",
+      "sha": "f2cc8e1cdf791cae72ab0c08d4648214b8645c45",
+      "gitBytes": 14757,
+      "physicalLines": 386
+    },
+    {
+      "path": "src/jarvis/__tests__/live-control.test.ts",
+      "sha": "e6875acdd9eaeb504e7c3d1c75dbd5d31b6315ba",
+      "gitBytes": 11748,
+      "physicalLines": 358
+    },
+    {
+      "path": "src/jarvis/__tests__/mention.test.ts",
+      "sha": "120e8b6b8dffa803baf1727ba8c581fde0fbe665",
+      "gitBytes": 3132,
+      "physicalLines": 69
+    },
+    {
+      "path": "src/jarvis/__tests__/no-donor-runtime.test.ts",
+      "sha": "3d023274105d15a5e0545c418fc16b46d7414c95",
+      "gitBytes": 2867,
+      "physicalLines": 82
+    },
+    {
+      "path": "src/jarvis/__tests__/rest-adapter.ts",
+      "sha": "48cec39d0a91eb6708352f90915abe3078e09fa9",
+      "gitBytes": 7673,
+      "physicalLines": 192
+    },
+    {
+      "path": "src/jarvis/__tests__/schedule-time.test.ts",
+      "sha": "a1e6d8b181ce710a0df37b4d2742b8152b6e46d9",
+      "gitBytes": 1854,
+      "physicalLines": 43
+    },
+    {
+      "path": "src/jarvis/__tests__/schedules.test.ts",
+      "sha": "97470f4d0e3744466b6b5a6840045edaf749d5f7",
+      "gitBytes": 14502,
+      "physicalLines": 314
+    },
+    {
+      "path": "src/jarvis/__tests__/sheet-verification.test.ts",
+      "sha": "9854b418a912aee7f676c1edbedc373e77c15208",
+      "gitBytes": 17779,
+      "physicalLines": 737
+    },
+    {
+      "path": "src/jarvis/__tests__/upstream-turn.test.ts",
+      "sha": "9f73b51bcc7d07469924b8c1128a7b2fb43327fa",
+      "gitBytes": 13975,
+      "physicalLines": 350
+    },
+    {
+      "path": "src/jarvis/agent.ts",
+      "sha": "e539ae9e0c0e49f733b2d8c9ec50f5adb95ba117",
+      "gitBytes": 49964,
+      "physicalLines": 1217
+    },
+    {
+      "path": "src/jarvis/background-model.server.ts",
+      "sha": "0e43e16af302a04c7a4a3157076f9e01ad59232b",
+      "gitBytes": 4856,
+      "physicalLines": 122
+    },
+    {
+      "path": "src/jarvis/background.server.ts",
+      "sha": "4059ebb24230d0eef566f7d61a6568741d6d3251",
+      "gitBytes": 31120,
+      "physicalLines": 743
+    },
+    {
+      "path": "src/jarvis/bubble-state.ts",
+      "sha": "05e06cef68232d790fe0d395056cde5627c8ccde",
+      "gitBytes": 2242,
+      "physicalLines": 72
+    },
+    {
+      "path": "src/jarvis/changes.ts",
+      "sha": "91a112ae2f5c97bd0949e848940326b2ef1e3b89",
+      "gitBytes": 4063,
+      "physicalLines": 119
+    },
+    {
+      "path": "src/jarvis/device.server.ts",
+      "sha": "4c44172ffc0b3e5ae4fa298fdcc2a5c8adc2e3ee",
+      "gitBytes": 39201,
+      "physicalLines": 1012
+    },
+    {
+      "path": "src/jarvis/docs.server.ts",
+      "sha": "03b124bcb0e8bab83c82670b95e3add7ef08c282",
+      "gitBytes": 6282,
+      "physicalLines": 173
+    },
+    {
+      "path": "src/jarvis/engine.ts",
+      "sha": "4bf067dd1f28f605fda8a67b4b78995ffa8869ee",
+      "gitBytes": 10458,
+      "physicalLines": 244
+    },
+    {
+      "path": "src/jarvis/jarvis.functions.ts",
+      "sha": "b6825cd5c1669e2df719b63e5573986089c3fa96",
+      "gitBytes": 44356,
+      "physicalLines": 1137
+    },
+    {
+      "path": "src/jarvis/JarvisBubble.tsx",
+      "sha": "39973ac16b68cac76f90011efc9cdf2dede7b3b1",
+      "gitBytes": 23217,
+      "physicalLines": 610
+    },
+    {
+      "path": "src/jarvis/JarvisBubbleGate.tsx",
+      "sha": "e9fac5cb699281d458a63f6995266360e159fefb",
+      "gitBytes": 1554,
+      "physicalLines": 41
+    },
+    {
+      "path": "src/jarvis/JarvisPanels.tsx",
+      "sha": "eb30a860e4a8da17497cc9949a5f7806a0c7fe60",
+      "gitBytes": 34169,
+      "physicalLines": 921
+    },
+    {
+      "path": "src/jarvis/JarvisTask.tsx",
+      "sha": "25b551a50e7ef529346e268b995383699b985903",
+      "gitBytes": 21547,
+      "physicalLines": 645
+    },
+    {
+      "path": "src/jarvis/JarvisWorkspace.tsx",
+      "sha": "30dc53cb072e39a812950c521bb214d8664f2552",
+      "gitBytes": 60319,
+      "physicalLines": 1496
+    },
+    {
+      "path": "src/jarvis/live-control.ts",
+      "sha": "a2857d7cf59f121163ea605584afdd08d41051c8",
+      "gitBytes": 4538,
+      "physicalLines": 128
+    },
+    {
+      "path": "src/jarvis/live-deps.ts",
+      "sha": "12e3cca6de99ad06b89e5a976a044c2c5eaa8820",
+      "gitBytes": 10575,
+      "physicalLines": 291
+    },
+    {
+      "path": "src/jarvis/mention.tsx",
+      "sha": "96a54bbaa227620665f6618610e314bec9a8c17b",
+      "gitBytes": 10079,
+      "physicalLines": 258
+    },
+    {
+      "path": "src/jarvis/permissions.ts",
+      "sha": "5ee62dff3dd4f23524d1c59dd480f02a2bccfc7a",
+      "gitBytes": 11462,
+      "physicalLines": 304
+    },
+    {
+      "path": "src/jarvis/preferences.ts",
+      "sha": "da52173737f74b7ceefdc75b91edb5c62d1195c6",
+      "gitBytes": 2134,
+      "physicalLines": 61
+    },
+    {
+      "path": "src/jarvis/protocol.ts",
+      "sha": "7ba8409fd839b36325fbbf1c0e43a749d20f5018",
+      "gitBytes": 72735,
+      "physicalLines": 1485
+    },
+    {
+      "path": "src/jarvis/schedule-time.ts",
+      "sha": "137dbd5107a10dbf745e96be3fd92c6b5eb21e27",
+      "gitBytes": 3142,
+      "physicalLines": 94
+    },
+    {
+      "path": "src/jarvis/schedules.server.ts",
+      "sha": "38b316161910c721b7cfba692eabfb01e2d6fa2f",
+      "gitBytes": 10031,
+      "physicalLines": 253
+    },
+    {
+      "path": "src/jarvis/stop-everywhere.ts",
+      "sha": "ec936a64c4b565261396e67375a4ced4f62702e5",
+      "gitBytes": 1812,
+      "physicalLines": 47
+    },
+    {
+      "path": "src/jarvis/task-authority.server.ts",
+      "sha": "9381a8a8e6bd4eaef194e6585e8dabde8c187101",
+      "gitBytes": 56409,
+      "physicalLines": 1333
+    },
+    {
+      "path": "src/jarvis/task-row.ts",
+      "sha": "569576d95fb452393c0ab468c2e05de61816b27d",
+      "gitBytes": 889,
+      "physicalLines": 29
+    },
+    {
+      "path": "src/jarvis/upstream-turn.ts",
+      "sha": "b2e684ef6557c6be22ea0cbbe1cd8500ce3fdf9e",
+      "gitBytes": 19326,
+      "physicalLines": 488
+    },
+    {
+      "path": "src/jarvis/use-voice.ts",
+      "sha": "ef94d417709daad1c7368afeb224f31446c6b22b",
+      "gitBytes": 13869,
+      "physicalLines": 376
+    },
+    {
+      "path": "src/lib/__tests__/a-failed-server-function-reaches-its-caller.test.ts",
+      "sha": "fc454b6e41e5b7a3ba35c55e7ed056f39de810e5",
+      "gitBytes": 2294,
+      "physicalLines": 53
+    },
+    {
+      "path": "src/lib/__tests__/auth-middleware.test.ts",
+      "sha": "0f19ce4488fcb9306f75cf99ab220cb9c22c7884",
+      "gitBytes": 8132,
+      "physicalLines": 204
+    },
+    {
+      "path": "src/lib/__tests__/auth-provider-availability.test.ts",
+      "sha": "b0bda67ef098c69f96e321752dd8fae5a2699b06",
+      "gitBytes": 3381,
+      "physicalLines": 84
+    },
+    {
+      "path": "src/lib/__tests__/browser-label.test.ts",
+      "sha": "b012bd7e0fc055f3e107c9a7eca6dfbd5f415059",
+      "gitBytes": 1387,
+      "physicalLines": 40
+    },
+    {
+      "path": "src/lib/__tests__/closed-paths-against-postgres.test.ts",
+      "sha": "a0dc96a66fb881c3ccf2561235145083f50d5821",
+      "gitBytes": 7130,
+      "physicalLines": 185
+    },
+    {
+      "path": "src/lib/__tests__/content-security-policy.test.ts",
+      "sha": "13e427401024c0826560c4252660c7d5a397c9a5",
+      "gitBytes": 5834,
+      "physicalLines": 140
+    },
+    {
+      "path": "src/lib/__tests__/content-storage-gate.test.ts",
+      "sha": "d59b02e8f19b609885624e5586afbc01b1763baf",
+      "gitBytes": 5711,
+      "physicalLines": 147
+    },
+    {
+      "path": "src/lib/__tests__/database-suites-are-serialised.test.ts",
+      "sha": "0f0f4296e87fe509fac57c06bd81f6e8222637de",
+      "gitBytes": 1827,
+      "physicalLines": 41
+    },
+    {
+      "path": "src/lib/__tests__/deploy-workflow-agrees-with-controller.test.ts",
+      "sha": "9aace803e09f6731b9119dfbccf24921e2c7fb19",
+      "gitBytes": 2338,
+      "physicalLines": 56
+    },
+    {
+      "path": "src/lib/__tests__/ocade-is-a-website.test.ts",
+      "sha": "9bd356aa9652087643ce7647f2732bbca62aaa4d",
+      "gitBytes": 3902,
+      "physicalLines": 88
+    },
+    {
+      "path": "src/lib/__tests__/one-account-cannot-see-another.test.ts",
+      "sha": "6edcf59a2729010d571c70795571e02a4306232e",
+      "gitBytes": 8356,
+      "physicalLines": 209
+    },
+    {
+      "path": "src/lib/__tests__/one-canonical-origin.test.ts",
+      "sha": "c851dd9083af3f20245bb57fb68b1bdd2dd99b3e",
+      "gitBytes": 6001,
+      "physicalLines": 132
+    },
+    {
+      "path": "src/lib/__tests__/public-response-security.test.ts",
+      "sha": "28f0645c952cc449b297ecfc3ee3c4a5c11ee46d",
+      "gitBytes": 2635,
+      "physicalLines": 58
+    },
+    {
+      "path": "src/lib/__tests__/release-configuration-gate.test.ts",
+      "sha": "c5578e50299e4e85ed97f4467f23b96e7bba1a0a",
+      "gitBytes": 4547,
+      "physicalLines": 95
+    },
+    {
+      "path": "src/lib/__tests__/route-parents-render-children.test.ts",
+      "sha": "65684cc02002e330670720a7d3f86564dc8e3ec1",
+      "gitBytes": 2472,
+      "physicalLines": 60
+    },
+    {
+      "path": "src/lib/__tests__/security-definer.test.ts",
+      "sha": "a8c231d65e67657eef6fb7838f9a810c40da38ed",
+      "gitBytes": 12512,
+      "physicalLines": 290
+    },
+    {
+      "path": "src/lib/__tests__/service-only-tables-stay-closed.test.ts",
+      "sha": "f3edda07acc013f53a9ad91010accdec12c4dfb3",
+      "gitBytes": 2524,
+      "physicalLines": 63
+    },
+    {
+      "path": "src/lib/__tests__/service-worker.test.ts",
+      "sha": "a07d0bbed71362ab5ab4d9de1524913c14328b20",
+      "gitBytes": 4995,
+      "physicalLines": 129
+    },
+    {
+      "path": "src/lib/__tests__/sitemap-lists-only-real-pages.test.ts",
+      "sha": "76c65396fdf69f58acc05f10c1639d11e60fca6a",
+      "gitBytes": 2709,
+      "physicalLines": 63
+    },
+    {
+      "path": "src/lib/__tests__/supabase-configuration.test.ts",
+      "sha": "828713fa4250feebe109bad1b694e4e5e1c142a7",
+      "gitBytes": 885,
+      "physicalLines": 27
+    },
+    {
+      "path": "src/lib/__tests__/supabase-live-hardening-sql.test.ts",
+      "sha": "13b32f8904c9a567b1396e84ec0a7554342eda0a",
+      "gitBytes": 2769,
+      "physicalLines": 59
+    },
+    {
+      "path": "src/lib/__tests__/supabase-sql-discipline.test.ts",
+      "sha": "cb4a82bd0fd0b937059c50f874b623456497c54f",
+      "gitBytes": 7438,
+      "physicalLines": 193
+    },
+    {
+      "path": "src/lib/__tests__/the-product-says-what-it-does.test.ts",
+      "sha": "eb2a9cf77aab39bbb7bc3efa13679ab242ab129b",
+      "gitBytes": 3247,
+      "physicalLines": 73
+    },
+    {
+      "path": "src/lib/account-data.functions.ts",
+      "sha": "4c66957704c7eecabcbe1ffd4192fc8b534e9478",
+      "gitBytes": 2184,
+      "physicalLines": 42
+    },
+    {
+      "path": "src/lib/account.functions.ts",
+      "sha": "89c5800e194c1f9cf4b49904bcb736aa406d795a",
+      "gitBytes": 9759,
+      "physicalLines": 236
+    },
+    {
+      "path": "src/lib/account/__tests__/a-deletion-leaves-a-record.test.ts",
+      "sha": "fd5c13e5047383d49dfe010945ef85cdaf2af138",
+      "gitBytes": 3113,
+      "physicalLines": 73
+    },
+    {
+      "path": "src/lib/account/__tests__/data-rights-map.test.ts",
+      "sha": "bfc529b598e2f52e27f6fb2fa94cc7e32cc2c33c",
+      "gitBytes": 10847,
+      "physicalLines": 252
+    },
+    {
+      "path": "src/lib/account/__tests__/data-rights.test.ts",
+      "sha": "8ca844f1d076b0f3497b7bbcba8f9e329968c05f",
+      "gitBytes": 10616,
+      "physicalLines": 275
+    },
+    {
+      "path": "src/lib/account/__tests__/deletion-checks-every-step.test.ts",
+      "sha": "25bc0ca7e8cf41eb179c3f04cf9002c65c00dd84",
+      "gitBytes": 7170,
+      "physicalLines": 187
+    },
+    {
+      "path": "src/lib/account/data-classes.ts",
+      "sha": "a8fcc53628425af748a4e48c5df28ddc6afb2408",
+      "gitBytes": 10242,
+      "physicalLines": 246
+    },
+    {
+      "path": "src/lib/account/data-rights.ts",
+      "sha": "91266b16cd39a53fd29f51995ecaddbbd078781d",
+      "gitBytes": 12248,
+      "physicalLines": 302
+    },
+    {
+      "path": "src/lib/account/erase.server.ts",
+      "sha": "b5bec7440f45e0c5d04336913c05061acb49a379",
+      "gitBytes": 2309,
+      "physicalLines": 44
+    },
+    {
+      "path": "src/lib/admin/__tests__/admin-device-removal.test.ts",
+      "sha": "83d5cec05a08ee9cc065b6f896f18567790ff0eb",
+      "gitBytes": 4033,
+      "physicalLines": 92
+    },
+    {
+      "path": "src/lib/admin/__tests__/admin-operations-schema.test.ts",
+      "sha": "9f8e55f268e845cc037bbdc322e0c146e1e51fa0",
+      "gitBytes": 4974,
+      "physicalLines": 129
+    },
+    {
+      "path": "src/lib/admin/__tests__/an-operator-can-act.test.ts",
+      "sha": "554bddff5772b1e9f53dd23fc212700187d71403",
+      "gitBytes": 3143,
+      "physicalLines": 63
+    },
+    {
+      "path": "src/lib/admin/__tests__/customer-detail-outage.test.ts",
+      "sha": "910736de2eeadfd21027e0ce50d85395ab03b8dd",
+      "gitBytes": 2344,
+      "physicalLines": 73
+    },
+    {
+      "path": "src/lib/admin/__tests__/customer-operations.test.ts",
+      "sha": "7a281d222ea4d5112eac38d7b62be2e33424ca30",
+      "gitBytes": 15717,
+      "physicalLines": 356
+    },
+    {
+      "path": "src/lib/admin/__tests__/jarvis-execution-control.test.ts",
+      "sha": "a64c3c85ef4cc80f746230de02d39b04bff9ae39",
+      "gitBytes": 5548,
+      "physicalLines": 135
+    },
+    {
+      "path": "src/lib/admin/__tests__/owner-staff-on-site.test.ts",
+      "sha": "bf6704d0f1f22dabdba13e085167586fe1a7db79",
+      "gitBytes": 15660,
+      "physicalLines": 377
+    },
+    {
+      "path": "src/lib/admin/__tests__/proof-names.test.ts",
+      "sha": "2331535e9115690b32b63e4804eabcee8796136e",
+      "gitBytes": 2889,
+      "physicalLines": 75
+    },
+    {
+      "path": "src/lib/admin/__tests__/staff-authority.test.ts",
+      "sha": "f11729796d07f051536995294dd8fdc181e4fe72",
+      "gitBytes": 56411,
+      "physicalLines": 1362
+    },
+    {
+      "path": "src/lib/admin/access.functions.ts",
+      "sha": "d5cd14e0da07deefaee4ae94ce764e74e7238e5a",
+      "gitBytes": 16138,
+      "physicalLines": 409
+    },
+    {
+      "path": "src/lib/admin/route-gate.ts",
+      "sha": "e4e8b3858ff1451c22c4502cfa4aca17a6848ee9",
+      "gitBytes": 1027,
+      "physicalLines": 23
+    },
+    {
+      "path": "src/lib/admin/staff.functions.ts",
+      "sha": "80004c079fc459292b6d1183730525f8c2d38844",
+      "gitBytes": 35005,
+      "physicalLines": 854
+    },
+    {
+      "path": "src/lib/after-hydration.ts",
+      "sha": "00e2377fa9b4358e24637c26dba9a255b19af0c4",
+      "gitBytes": 800,
+      "physicalLines": 24
+    },
+    {
+      "path": "src/lib/agent/__tests__/release.test.ts",
+      "sha": "2dfd3bc84c2bc3a57a3a044d499cd2b844881cee",
+      "gitBytes": 2372,
+      "physicalLines": 67
+    },
+    {
+      "path": "src/lib/agent/release.functions.ts",
+      "sha": "412d911e34a3cafe7ec5edadee092c43ee7b36db",
+      "gitBytes": 783,
+      "physicalLines": 18
+    },
+    {
+      "path": "src/lib/agent/release.ts",
+      "sha": "ba55e65748482b96df7d3ec2d9b22589f0f9689e",
+      "gitBytes": 2558,
+      "physicalLines": 57
+    },
+    {
+      "path": "src/lib/appearance.tsx",
+      "sha": "5568759382f781fb6a17a51002978b8480e0f8bb",
+      "gitBytes": 8496,
+      "physicalLines": 232
+    },
+    {
+      "path": "src/lib/auth/__tests__/auth-surfaces.test.ts",
+      "sha": "c0d268ce560632f03f8efc702488bd750f7080c6",
+      "gitBytes": 5514,
+      "physicalLines": 132
+    },
+    {
+      "path": "src/lib/auth/__tests__/safe-next.test.ts",
+      "sha": "ad2f32329e2a42e3285584493ebd729833dafc0e",
+      "gitBytes": 3605,
+      "physicalLines": 92
+    },
+    {
+      "path": "src/lib/auth/__tests__/session-failure.test.ts",
+      "sha": "1e62299998c1c07064164132b0f75b55bc4be212",
+      "gitBytes": 3275,
+      "physicalLines": 68
+    },
+    {
+      "path": "src/lib/auth/__tests__/throttle.test.ts",
+      "sha": "6dfa44739c08e90b400dce4a4f3e95e9928fef1e",
+      "gitBytes": 5520,
+      "physicalLines": 163
+    },
+    {
+      "path": "src/lib/auth/oauth-errors.ts",
+      "sha": "7524bc646d90f8ef07f8c9257240f3af1e72b8cd",
+      "gitBytes": 4069,
+      "physicalLines": 129
+    },
+    {
+      "path": "src/lib/auth/otp.ts",
+      "sha": "2f53899e084c2c6237a0fe48e73628509015caef",
+      "gitBytes": 3590,
+      "physicalLines": 86
+    },
+    {
+      "path": "src/lib/auth/provider-availability.ts",
+      "sha": "a3ae5dc46649b4fe8773e6c6738793804f3d9deb",
+      "gitBytes": 3520,
+      "physicalLines": 84
+    },
+    {
+      "path": "src/lib/auth/recovery-link.ts",
+      "sha": "496888169db32e6c970285c7588fc925ea0c4875",
+      "gitBytes": 3822,
+      "physicalLines": 90
+    },
+    {
+      "path": "src/lib/auth/safe-next.ts",
+      "sha": "77b3ec05cac9aaba8b862e6e7a1c20de08a5d0fb",
+      "gitBytes": 4279,
+      "physicalLines": 107
+    },
+    {
+      "path": "src/lib/auth/session-failure.ts",
+      "sha": "d40244516ec25c40dff5819f93ef557e76943bb8",
+      "gitBytes": 5138,
+      "physicalLines": 137
+    },
+    {
+      "path": "src/lib/auth/throttle.ts",
+      "sha": "4e273b75989430e601642ca7b9aa7ff011d6ad87",
+      "gitBytes": 6173,
+      "physicalLines": 165
+    },
+    {
+      "path": "src/lib/brain/__tests__/a-model-already-here-needs-no-room.test.ts",
+      "sha": "9aea5c9b0ce1dcd830d05238b22ee5b88cc153e5",
+      "gitBytes": 1341,
+      "physicalLines": 33
+    },
+    {
+      "path": "src/lib/brain/__tests__/a-phone-that-cannot-hold-the-model.test.ts",
+      "sha": "90258e441e49cdc22463abb36d66b9231107dc83",
+      "gitBytes": 971,
+      "physicalLines": 22
+    },
+    {
+      "path": "src/lib/brain/__tests__/a-question-waits-for-the-engine.test.ts",
+      "sha": "f6ece3c1ea4c5e4616e2f9d69b8e6d8fc1d53814",
+      "gitBytes": 3168,
+      "physicalLines": 80
+    },
+    {
+      "path": "src/lib/brain/__tests__/a-refused-browser-prepares-nothing.test.ts",
+      "sha": "41295ce9c28cb7810c54926bcff4d03c9bb5e0ad",
+      "gitBytes": 1410,
+      "physicalLines": 39
+    },
+    {
+      "path": "src/lib/brain/__tests__/a-verified-model-survives.test.ts",
+      "sha": "a950b9cb5f0704212f44ff06b89d7ee43742ea9c",
+      "gitBytes": 7650,
+      "physicalLines": 171
+    },
+    {
+      "path": "src/lib/brain/__tests__/an-update-does-not-redownload.test.ts",
+      "sha": "f98e41a62df2d80d6e76134f30021650aadc33b7",
+      "gitBytes": 8503,
+      "physicalLines": 191
+    },
+    {
+      "path": "src/lib/brain/__tests__/delivery-signature.test.ts",
+      "sha": "d187d74dff70092b75620b6eb2a13a2798360506",
+      "gitBytes": 4823,
+      "physicalLines": 128
+    },
+    {
+      "path": "src/lib/brain/__tests__/download-plan.test.ts",
+      "sha": "f7bc7615b260be53f9e0f0f20a1799e9acc67dc1",
+      "gitBytes": 9682,
+      "physicalLines": 238
+    },
+    {
+      "path": "src/lib/brain/__tests__/install-once.test.ts",
+      "sha": "c544b58dc634762980f129a49c4567328a2f3816",
+      "gitBytes": 21229,
+      "physicalLines": 587
+    },
+    {
+      "path": "src/lib/brain/__tests__/model-vault.test.ts",
+      "sha": "e4971019a07b3e4c54c92a6cb4c15fa12234f0bd",
+      "gitBytes": 16798,
+      "physicalLines": 443
+    },
+    {
+      "path": "src/lib/brain/__tests__/offline-release.test.ts",
+      "sha": "c8ec1a8a558bc72ca0ac1d0c6817bad325bd6bf2",
+      "gitBytes": 4378,
+      "physicalLines": 104
+    },
+    {
+      "path": "src/lib/brain/__tests__/one-chat-never-hears-another.test.ts",
+      "sha": "72eda29f786057ecf8c910c7a2258a0e8f9a5364",
+      "gitBytes": 6291,
+      "physicalLines": 169
+    },
+    {
+      "path": "src/lib/brain/__tests__/reasoning-filter.test.ts",
+      "sha": "b859625b5522104f547adae65cf2f42e21e37979",
+      "gitBytes": 2202,
+      "physicalLines": 52
+    },
+    {
+      "path": "src/lib/brain/__tests__/removal-is-permanent.test.ts",
+      "sha": "12075bf4e970af1b11d53ff828ae7886992ea577",
+      "gitBytes": 2458,
+      "physicalLines": 60
+    },
+    {
+      "path": "src/lib/brain/__tests__/removal-says-what-happened.test.ts",
+      "sha": "aa97f76f31140f176ebb4350f4e53c9daa8e4d68",
+      "gitBytes": 4459,
+      "physicalLines": 125
+    },
+    {
+      "path": "src/lib/brain/__tests__/streaming-digest.test.ts",
+      "sha": "7d8208b4ee52969f30735820d0ffdebf8cc52d5d",
+      "gitBytes": 7683,
+      "physicalLines": 210
+    },
+    {
+      "path": "src/lib/brain/__tests__/wasm-threads.test.ts",
+      "sha": "014ef64292ddb1d31808fc09b2ad3eabf6862f57",
+      "gitBytes": 6982,
+      "physicalLines": 158
+    },
+    {
+      "path": "src/lib/brain/adapter.ts",
+      "sha": "59394dc26a65e19a1eecd1fcf9ce2d1d47544f72",
+      "gitBytes": 3841,
+      "physicalLines": 101
+    },
+    {
+      "path": "src/lib/brain/adapters/browser-wasm.ts",
+      "sha": "9b5e7cb2fb435b6db8e5e08a740188370d0695b8",
+      "gitBytes": 28718,
+      "physicalLines": 688
+    },
+    {
+      "path": "src/lib/brain/delivery-signature.ts",
+      "sha": "156f59af1f147cb4817c04af15de6d8b3c695ae6",
+      "gitBytes": 4081,
+      "physicalLines": 95
+    },
+    {
+      "path": "src/lib/brain/download-plan.ts",
+      "sha": "855667e219ae9c6542be36edaa5d992d86fb0e76",
+      "gitBytes": 16368,
+      "physicalLines": 401
+    },
+    {
+      "path": "src/lib/brain/install-telemetry.ts",
+      "sha": "482fed507574e4bd3df441be0c9765bbd6c44c07",
+      "gitBytes": 2237,
+      "physicalLines": 49
+    },
+    {
+      "path": "src/lib/brain/installation-authority.ts",
+      "sha": "f3cc833caa2d8308fef4c7b41527047745fe7bcd",
+      "gitBytes": 46399,
+      "physicalLines": 1185
+    },
+    {
+      "path": "src/lib/brain/installation-browser.ts",
+      "sha": "1f89ccc25368ebbf1bf3c3bbed1cab75f7bc00e4",
+      "gitBytes": 12054,
+      "physicalLines": 299
+    },
+    {
+      "path": "src/lib/brain/installation-state.ts",
+      "sha": "abf516cb72e75e7c01cafee101fcc8d90f24332f",
+      "gitBytes": 5683,
+      "physicalLines": 148
+    },
+    {
+      "path": "src/lib/brain/model-store.ts",
+      "sha": "fc893752b0856e55020137b727eed45d4b843159",
+      "gitBytes": 12300,
+      "physicalLines": 376
+    },
+    {
+      "path": "src/lib/brain/model-transfer.ts",
+      "sha": "aa3e38dbe8a9bd0200719b1823c896b16c8f62d3",
+      "gitBytes": 38441,
+      "physicalLines": 1068
+    },
+    {
+      "path": "src/lib/brain/model-vault.ts",
+      "sha": "1707e417bec2a15029c995da7cc39a6ea0ff84d6",
+      "gitBytes": 23029,
+      "physicalLines": 598
+    },
+    {
+      "path": "src/lib/brain/offline-release.functions.ts",
+      "sha": "db4303a10c26606a1b19db3dac9aa1855990ee51",
+      "gitBytes": 1544,
+      "physicalLines": 35
+    },
+    {
+      "path": "src/lib/brain/offline-release.ts",
+      "sha": "5fe0dea6181140e3efff1269947c03bab66b4940",
+      "gitBytes": 3419,
+      "physicalLines": 79
+    },
+    {
+      "path": "src/lib/brain/runtime-activation.ts",
+      "sha": "395785549e7de85e3a11503eca7c2d87852eea90",
+      "gitBytes": 7362,
+      "physicalLines": 192
+    },
+    {
+      "path": "src/lib/brain/sampler-settings.ts",
+      "sha": "f13beb68f15579494360174d16200a61bd0e94dc",
+      "gitBytes": 935,
+      "physicalLines": 21
+    },
+    {
+      "path": "src/lib/brain/streaming-digest.ts",
+      "sha": "bafea7ebc21ef7172e2ddf6899a2dbba506f205f",
+      "gitBytes": 12158,
+      "physicalLines": 308
+    },
+    {
+      "path": "src/lib/brain/use-installation.ts",
+      "sha": "af06ae00fc635404527bb23a7eaefcb7273a7715",
+      "gitBytes": 9151,
+      "physicalLines": 234
+    },
+    {
+      "path": "src/lib/brain/wasm-threads.ts",
+      "sha": "2f79eeb5cf243761ce8410edb11d163da557a7ad",
+      "gitBytes": 6980,
+      "physicalLines": 180
+    },
+    {
+      "path": "src/lib/browser-install-id.ts",
+      "sha": "54d602580d8347749042b34bf21a1b3f28c2469e",
+      "gitBytes": 1951,
+      "physicalLines": 53
+    },
+    {
+      "path": "src/lib/chat/__tests__/a-send-belongs-to-one-screen.test.ts",
+      "sha": "7ca800aa379cd26fe6af237cb08260ceddbdac53",
+      "gitBytes": 6010,
+      "physicalLines": 125
+    },
+    {
+      "path": "src/lib/chat/__tests__/attachments.test.ts",
+      "sha": "29c9a3d09dfbdc92663d57ba9876501c59c255c6",
+      "gitBytes": 7689,
+      "physicalLines": 199
+    },
+    {
+      "path": "src/lib/chat/__tests__/offline-turns-reach-the-account.test.ts",
+      "sha": "6607dce11e3f6855ab2a9d852e713bad83f3c65e",
+      "gitBytes": 9112,
+      "physicalLines": 266
+    },
+    {
+      "path": "src/lib/chat/__tests__/regenerate-drops-turns-atomically.test.ts",
+      "sha": "f6cc10c323db3764598f339d8e5afdd605f3cf55",
+      "gitBytes": 5465,
+      "physicalLines": 138
+    },
+    {
+      "path": "src/lib/chat/attachments.ts",
+      "sha": "90213efcb4b9de293300e918b125183f9f4a8ca6",
+      "gitBytes": 9830,
+      "physicalLines": 238
+    },
+    {
+      "path": "src/lib/chat/unsynced-turns.ts",
+      "sha": "078c8fdff5add39724f1ba33557a1e1406366456",
+      "gitBytes": 7763,
+      "physicalLines": 211
+    },
+    {
+      "path": "src/lib/chat/use-chat.ts",
+      "sha": "3fa84833fab3082d15da019aab1f7d595ddc00ba",
+      "gitBytes": 46206,
+      "physicalLines": 1149
+    },
+    {
+      "path": "src/lib/chat/use-dictation.ts",
+      "sha": "1cbf33f03d15b68078ee4c3d3bf8e7886ddab384",
+      "gitBytes": 3817,
+      "physicalLines": 113
+    },
+    {
+      "path": "src/lib/chat/use-shortcuts.ts",
+      "sha": "a6aa18d3f8d93b7fcc0fa501ab5a3b8199109c72",
+      "gitBytes": 2294,
+      "physicalLines": 62
+    },
+    {
+      "path": "src/lib/commercial/__tests__/device-identity.test.ts",
+      "sha": "b91f2f86fbe314c01beb4fe5c5b3b6a25a755ef6",
+      "gitBytes": 5706,
+      "physicalLines": 137
+    },
+    {
+      "path": "src/lib/commercial/__tests__/device-registration-against-postgres.test.ts",
+      "sha": "0bfcd738ddb7d328e0952355da3d8d618e4cf329",
+      "gitBytes": 10013,
+      "physicalLines": 226
+    },
+    {
+      "path": "src/lib/commercial/__tests__/entitlement-resolver.test.ts",
+      "sha": "959130c34a12a084b375cfc40c99a734880c883d",
+      "gitBytes": 3712,
+      "physicalLines": 100
+    },
+    {
+      "path": "src/lib/commercial/__tests__/every-ai-surface-is-gated.test.ts",
+      "sha": "5a08efa7b67bee64fe6d0e01b762abf31bbde2e7",
+      "gitBytes": 6473,
+      "physicalLines": 151
+    },
+    {
+      "path": "src/lib/commercial/__tests__/gate-against-postgres.test.ts",
+      "sha": "464e0be3be0608e6591e135c84176cc3f019abee",
+      "gitBytes": 10640,
+      "physicalLines": 289
+    },
+    {
+      "path": "src/lib/commercial/__tests__/generation-gate.test.ts",
+      "sha": "8604cc72943335b2ae504707fa237672dac0e2b2",
+      "gitBytes": 15621,
+      "physicalLines": 394
+    },
+    {
+      "path": "src/lib/commercial/__tests__/jarvis-task-is-one-use.test.ts",
+      "sha": "cec32cad95f9795d977b242fb874666607ca2c00",
+      "gitBytes": 10721,
+      "physicalLines": 252
+    },
+    {
+      "path": "src/lib/commercial/__tests__/ledger-against-postgres.test.ts",
+      "sha": "9aed62d7f1868fb502e8829b97410c6d9a9cb40b",
+      "gitBytes": 19983,
+      "physicalLines": 525
+    },
+    {
+      "path": "src/lib/commercial/__tests__/offline-allowance.test.ts",
+      "sha": "9e44bfe8155017cd18e42d3e3ae99324a9968189",
+      "gitBytes": 5201,
+      "physicalLines": 140
+    },
+    {
+      "path": "src/lib/commercial/__tests__/offline-capacity-against-postgres.test.ts",
+      "sha": "4649720462a1ef8f25ac71051425bbab26bcaadd",
+      "gitBytes": 19768,
+      "physicalLines": 493
+    },
+    {
+      "path": "src/lib/commercial/__tests__/offline-closure.test.ts",
+      "sha": "6940b93b3443c4e6b8c49c5668b05295d416d376",
+      "gitBytes": 2078,
+      "physicalLines": 51
+    },
+    {
+      "path": "src/lib/commercial/__tests__/offline-counter.test.ts",
+      "sha": "4324ef3be1818776dbbb0ed23f3f22e51762b36a",
+      "gitBytes": 11990,
+      "physicalLines": 358
+    },
+    {
+      "path": "src/lib/commercial/__tests__/offline-lease.test.ts",
+      "sha": "9cc2f3e4286e81a3f5b12ee9c2e95d35e82940f1",
+      "gitBytes": 10047,
+      "physicalLines": 302
+    },
+    {
+      "path": "src/lib/commercial/__tests__/service-role-authority.test.ts",
+      "sha": "44c09abfbad200efcb8b0231ff68467f2496c619",
+      "gitBytes": 2783,
+      "physicalLines": 65
+    },
+    {
+      "path": "src/lib/commercial/__tests__/supabase-ledger.test.ts",
+      "sha": "ae6a587b2541061294fc4ca924a64d206928cfc2",
+      "gitBytes": 12892,
+      "physicalLines": 369
+    },
+    {
+      "path": "src/lib/commercial/__tests__/usage-policy.test.ts",
+      "sha": "019bd67f542d6c0ffd9c3bc852f5b848c8a7a688",
+      "gitBytes": 7968,
+      "physicalLines": 207
+    },
+    {
+      "path": "src/lib/commercial/__tests__/use-generation-permit.test.ts",
+      "sha": "9de5ecdbb622c6b1b80552950adfd4a11bf0f8fd",
+      "gitBytes": 13644,
+      "physicalLines": 381
+    },
+    {
+      "path": "src/lib/commercial/device-identity.ts",
+      "sha": "c9962001ef76ff122c58839233482e85e320f0e3",
+      "gitBytes": 7576,
+      "physicalLines": 209
+    },
+    {
+      "path": "src/lib/commercial/entitlement-resolver.ts",
+      "sha": "734a6ceef467029740971d59833aa5b234c5869e",
+      "gitBytes": 2730,
+      "physicalLines": 63
+    },
+    {
+      "path": "src/lib/commercial/generation-gate.ts",
+      "sha": "3b05059dc4f0798eb0bd9ba2bcf69c113972babf",
+      "gitBytes": 16046,
+      "physicalLines": 471
+    },
+    {
+      "path": "src/lib/commercial/offline-allowance.ts",
+      "sha": "8b7c27a2657e4eb6a3a3e2c70ba84f5872379d18",
+      "gitBytes": 6358,
+      "physicalLines": 154
+    },
+    {
+      "path": "src/lib/commercial/offline-counter.ts",
+      "sha": "d7c97703b145ca6082ff4ee19e0216aac28f48fb",
+      "gitBytes": 19941,
+      "physicalLines": 589
+    },
+    {
+      "path": "src/lib/commercial/offline-devices.ts",
+      "sha": "70357b692474a990c0cfedfe7107a0aa76e5b922",
+      "gitBytes": 4654,
+      "physicalLines": 108
+    },
+    {
+      "path": "src/lib/commercial/offline-lease.server.ts",
+      "sha": "66a13cb5dc1e26baf085a1d38e9f2d946fbfa2ad",
+      "gitBytes": 8095,
+      "physicalLines": 227
+    },
+    {
+      "path": "src/lib/commercial/offline-lease.ts",
+      "sha": "8b3e258e071d5462c3fc87185f91598a27767a4a",
+      "gitBytes": 10324,
+      "physicalLines": 310
+    },
+    {
+      "path": "src/lib/commercial/offline-usage.functions.ts",
+      "sha": "571b251617addc5a512c361705988316d05f1dfd",
+      "gitBytes": 12028,
+      "physicalLines": 303
+    },
+    {
+      "path": "src/lib/commercial/supabase-ledger.ts",
+      "sha": "dfde86ffabab870317f36cd7077c46e8535db598",
+      "gitBytes": 7880,
+      "physicalLines": 199
+    },
+    {
+      "path": "src/lib/commercial/usage-policy.ts",
+      "sha": "4e124da6e475c3a6d1a33d02fc19d151ca10106f",
+      "gitBytes": 7729,
+      "physicalLines": 196
+    },
+    {
+      "path": "src/lib/commercial/usage.functions.ts",
+      "sha": "88627b105d79f6585d598210625253cb11683350",
+      "gitBytes": 8682,
+      "physicalLines": 243
+    },
+    {
+      "path": "src/lib/commercial/use-commercial-usage.ts",
+      "sha": "afc7a034f9a7e63046e77b29d3c880b270f115d1",
+      "gitBytes": 1997,
+      "physicalLines": 51
+    },
+    {
+      "path": "src/lib/commercial/use-generation-permit.ts",
+      "sha": "259435e57b7ad2e22c5e25e5927513d326b661d2",
+      "gitBytes": 14687,
+      "physicalLines": 399
+    },
+    {
+      "path": "src/lib/error-capture.ts",
+      "sha": "171c9b5800c5b17efc0598eae4c760b3778021e6",
+      "gitBytes": 906,
+      "physicalLines": 27
+    },
+    {
+      "path": "src/lib/error-page.ts",
+      "sha": "90b8ba30e959b7c9b5c11fda30be89d4ca311865",
+      "gitBytes": 1386,
+      "physicalLines": 30
+    },
+    {
+      "path": "src/lib/health.ts",
+      "sha": "b0c3c5e72f9717e0e590a99617d69a2e8d640dab",
+      "gitBytes": 5543,
+      "physicalLines": 146
+    },
+    {
+      "path": "src/lib/intelligence/__tests__/boundary-credentials.test.ts",
+      "sha": "7f254b25f1cf9e600b880e274309f2aec770be5d",
+      "gitBytes": 8550,
+      "physicalLines": 229
+    },
+    {
+      "path": "src/lib/intelligence/__tests__/edge-handler.test.ts",
+      "sha": "a485d1458dec2b7aba894dcc83390379e0d21a4c",
+      "gitBytes": 63199,
+      "physicalLines": 1619
+    },
+    {
+      "path": "src/lib/intelligence/__tests__/offline-transport.test.ts",
+      "sha": "ed793827d4b02dc93a16d25a2aefd1f74b48bba0",
+      "gitBytes": 1104,
+      "physicalLines": 25
+    },
+    {
+      "path": "src/lib/intelligence/__tests__/online-boundary.test.ts",
+      "sha": "031fc4233ab685219cb77eac8254185777b3d18b",
+      "gitBytes": 4682,
+      "physicalLines": 117
+    },
+    {
+      "path": "src/lib/intelligence/__tests__/online-client.test.ts",
+      "sha": "5063e934b52025ad46248efb5170aa75687d7837",
+      "gitBytes": 10246,
+      "physicalLines": 268
+    },
+    {
+      "path": "src/lib/intelligence/__tests__/online-consent-ask.test.ts",
+      "sha": "f282666d92921bc5db56f036da86fe9396aa915e",
+      "gitBytes": 1178,
+      "physicalLines": 35
+    },
+    {
+      "path": "src/lib/intelligence/__tests__/pinned-model.test.ts",
+      "sha": "6c1081587e12a137475ce0ca5aec6a4d7322b062",
+      "gitBytes": 2081,
+      "physicalLines": 47
+    },
+    {
+      "path": "src/lib/intelligence/__tests__/quality-routing.test.ts",
+      "sha": "c0a915899ec5c9e33d09e18d512f61ef220255e7",
+      "gitBytes": 7556,
+      "physicalLines": 189
+    },
+    {
+      "path": "src/lib/intelligence/__tests__/router.test.ts",
+      "sha": "151266fa35d00a916d7607edd845c599a6d5162e",
+      "gitBytes": 7751,
+      "physicalLines": 206
+    },
+    {
+      "path": "src/lib/intelligence/__tests__/sse-data.test.ts",
+      "sha": "cc7638e51e2bf35c2733cc2e8737eb64d7595e5f",
+      "gitBytes": 1502,
+      "physicalLines": 40
+    },
+    {
+      "path": "src/lib/intelligence/__tests__/system-prompt.test.ts",
+      "sha": "3a8aa5ffe2ce00e4add81d7ca7200e0db437a576",
+      "gitBytes": 3757,
+      "physicalLines": 70
+    },
+    {
+      "path": "src/lib/intelligence/__tests__/workers-ai.test.ts",
+      "sha": "55ca490224767a783e205503cc0b53a774754f8c",
+      "gitBytes": 7687,
+      "physicalLines": 185
+    },
+    {
+      "path": "src/lib/intelligence/contract.ts",
+      "sha": "25c0e8397590bcc882dfec9e2bb1c8881aa53e5b",
+      "gitBytes": 10574,
+      "physicalLines": 304
+    },
+    {
+      "path": "src/lib/intelligence/edge-handler.ts",
+      "sha": "941b2d0e94dbfbab22f79cced5896d8f105cb441",
+      "gitBytes": 48217,
+      "physicalLines": 1196
+    },
+    {
+      "path": "src/lib/intelligence/ocade-intelligence.ts",
+      "sha": "cf8ee809daf147e2b6634b43bdbe7616129f4418",
+      "gitBytes": 1125,
+      "physicalLines": 27
+    },
+    {
+      "path": "src/lib/intelligence/offline-transport.ts",
+      "sha": "197dbb0365a98a0bd54ca9a4ed25e39144b3431e",
+      "gitBytes": 6084,
+      "physicalLines": 182
+    },
+    {
+      "path": "src/lib/intelligence/online-client.ts",
+      "sha": "800fd8426ffb60ebf656e7199e42759b34ca4d19",
+      "gitBytes": 11276,
+      "physicalLines": 286
+    },
+    {
+      "path": "src/lib/intelligence/online-consent-ask.ts",
+      "sha": "619a4368b739b61264f26d277c747ec4643d5644",
+      "gitBytes": 765,
+      "physicalLines": 21
+    },
+    {
+      "path": "src/lib/intelligence/online-consent-version.ts",
+      "sha": "abb41c93a8564e9258f851e7b914a38003538ad4",
+      "gitBytes": 146,
+      "physicalLines": 2
+    },
+    {
+      "path": "src/lib/intelligence/online-consent.functions.ts",
+      "sha": "eebb5078c71f0f607f909c68edc3a9a27ebab2d4",
+      "gitBytes": 1608,
+      "physicalLines": 40
+    },
+    {
+      "path": "src/lib/intelligence/online-models.ts",
+      "sha": "917357e9c856051fd6500086ec6e5f7000f7e750",
+      "gitBytes": 1401,
+      "physicalLines": 28
+    },
+    {
+      "path": "src/lib/intelligence/OnlineConsent.tsx",
+      "sha": "edca7e670015aa7a246b8ae3ad82b95a4f1f6574",
+      "gitBytes": 4711,
+      "physicalLines": 132
+    },
+    {
+      "path": "src/lib/intelligence/quality.ts",
+      "sha": "ae0f7bae4761a5b786f7cf902de8c1c4fb0c8087",
+      "gitBytes": 452,
+      "physicalLines": 6
+    },
+    {
+      "path": "src/lib/intelligence/QualityControl.tsx",
+      "sha": "65388343ea88c45e2b36738ac73649e9be145d14",
+      "gitBytes": 2937,
+      "physicalLines": 99
+    },
+    {
+      "path": "src/lib/intelligence/router.ts",
+      "sha": "f9c58e8bf39c001c75c3a4ae40795b7b15b0724a",
+      "gitBytes": 9228,
+      "physicalLines": 265
+    },
+    {
+      "path": "src/lib/intelligence/system-prompt.ts",
+      "sha": "06a9fbf48fa65faca3479ba793b4d11df1586013",
+      "gitBytes": 19282,
+      "physicalLines": 152
+    },
+    {
+      "path": "src/lib/intelligence/use-intelligence-quality.ts",
+      "sha": "7f94ab7fa9bcc9f5369b3c1ae0532ee711a87d3a",
+      "gitBytes": 580,
+      "physicalLines": 15
+    },
+    {
+      "path": "src/lib/intelligence/workers-ai.ts",
+      "sha": "d10a4be916d5d87518d4da84b78094730628c361",
+      "gitBytes": 9054,
+      "physicalLines": 240
+    },
+    {
+      "path": "src/lib/library/__tests__/an-upload-is-hostile-input.test.ts",
+      "sha": "fb912664281166fe43573eeb06ebb3041fa6532a",
+      "gitBytes": 4258,
+      "physicalLines": 89
+    },
+    {
+      "path": "src/lib/library/__tests__/library-schema.test.ts",
+      "sha": "d422e85c65bd6dd6fe4c3cce21adbefc8eaae7e9",
+      "gitBytes": 9269,
+      "physicalLines": 237
+    },
+    {
+      "path": "src/lib/library/library.functions.ts",
+      "sha": "c89dbc8eeba2732b3d719a797989bffcfd736906",
+      "gitBytes": 10277,
+      "physicalLines": 243
+    },
+    {
+      "path": "src/lib/library/tombstones.server.ts",
+      "sha": "248cb08780cfcbd0cc7c6ecf8804b8779594247f",
+      "gitBytes": 4310,
+      "physicalLines": 103
+    },
+    {
+      "path": "src/lib/media-type.ts",
+      "sha": "0583635a2b3cf0a8c98e14aaabae8347391dd86a",
+      "gitBytes": 1649,
+      "physicalLines": 42
+    },
+    {
+      "path": "src/lib/notifications/__tests__/delivery-state.test.ts",
+      "sha": "e775050a2096863dc8eb73e49adcf6f1826f1b1d",
+      "gitBytes": 3686,
+      "physicalLines": 83
+    },
+    {
+      "path": "src/lib/notifications/__tests__/notification-preferences.test.ts",
+      "sha": "098224aa5f4d7d939236c55c53f88215811e3641",
+      "gitBytes": 10737,
+      "physicalLines": 289
+    },
+    {
+      "path": "src/lib/notifications/__tests__/notification-schema.test.ts",
+      "sha": "3f6d600017c63f4030fa2c72228ad32914c29f92",
+      "gitBytes": 10622,
+      "physicalLines": 264
+    },
+    {
+      "path": "src/lib/notifications/__tests__/notification-senders.test.ts",
+      "sha": "767e0bd71b11b9d5f9c8a398addf7e5ea0976b25",
+      "gitBytes": 7588,
+      "physicalLines": 177
+    },
+    {
+      "path": "src/lib/notifications/__tests__/preference-sync.test.ts",
+      "sha": "021e33ddb8f3b60a06a3b503210137dd8aab11f5",
+      "gitBytes": 8415,
+      "physicalLines": 208
+    },
+    {
+      "path": "src/lib/notifications/__tests__/push-subscriptions.test.ts",
+      "sha": "601343c5f9f66b3a10e7081d6504248340059006",
+      "gitBytes": 7013,
+      "physicalLines": 173
+    },
+    {
+      "path": "src/lib/notifications/__tests__/web-push.test.ts",
+      "sha": "212268be0e7d0b711f987b48bd809af4b7ba3438",
+      "gitBytes": 7373,
+      "physicalLines": 178
+    },
+    {
+      "path": "src/lib/notifications/categories.ts",
+      "sha": "e2b70af01dbb2b0727abb8db8947a3d05086478c",
+      "gitBytes": 4317,
+      "physicalLines": 118
+    },
+    {
+      "path": "src/lib/notifications/channels.ts",
+      "sha": "e5074fba3a90af77c4043edc83afe84e9f6938a2",
+      "gitBytes": 3369,
+      "physicalLines": 91
+    },
+    {
+      "path": "src/lib/notifications/delivery.ts",
+      "sha": "e073788e9cf17df3d7a7cdb7666b289b75755c97",
+      "gitBytes": 3797,
+      "physicalLines": 83
+    },
+    {
+      "path": "src/lib/notifications/history.ts",
+      "sha": "cfe4367d023b753079486d7f9eb5f796c3bc4ef7",
+      "gitBytes": 3451,
+      "physicalLines": 93
+    },
+    {
+      "path": "src/lib/notifications/preference-sync.ts",
+      "sha": "6108ebbfd1be43c8833f0b4fdd5911b0b0652a8b",
+      "gitBytes": 5050,
+      "physicalLines": 132
+    },
+    {
+      "path": "src/lib/notifications/preferences.ts",
+      "sha": "8fa7f9618d467aea67cb82594ed039dc79d92235",
+      "gitBytes": 10259,
+      "physicalLines": 277
+    },
+    {
+      "path": "src/lib/notifications/push-device.ts",
+      "sha": "2fdd271493170a4f9c1467f9a6cc05f721dd3af8",
+      "gitBytes": 5625,
+      "physicalLines": 132
+    },
+    {
+      "path": "src/lib/notifications/send.server.ts",
+      "sha": "91f275b5480ab43744217af702fc5baa9adf9621",
+      "gitBytes": 9316,
+      "physicalLines": 220
+    },
+    {
+      "path": "src/lib/notifications/supabase-backend.ts",
+      "sha": "c174ba534d983a2eeb81e21bba56db4c183a86d0",
+      "gitBytes": 3398,
+      "physicalLines": 80
+    },
+    {
+      "path": "src/lib/notifications/web-push.ts",
+      "sha": "a3d4a24fe7e6cf9adea96eaf4e8ab78a25ef74cf",
+      "gitBytes": 8766,
+      "physicalLines": 235
+    },
+    {
+      "path": "src/lib/ocade-chat-store.ts",
+      "sha": "f04e26a9e3b57313ac90c3cc0b77a79777a62566",
+      "gitBytes": 9425,
+      "physicalLines": 255
+    },
+    {
+      "path": "src/lib/ocade.functions.ts",
+      "sha": "861cd6f6e43d04f96332c19694bee779f398e657",
+      "gitBytes": 14141,
+      "physicalLines": 375
+    },
+    {
+      "path": "src/lib/payments/__tests__/pricing.test.ts",
+      "sha": "cf62ea300feabe3f00652dc089e6aad4472768f8",
+      "gitBytes": 4015,
+      "physicalLines": 108
+    },
+    {
+      "path": "src/lib/payments/pricing.ts",
+      "sha": "0c761ad9479cdc47ec2b78df59fb476fb2bacfca",
+      "gitBytes": 8146,
+      "physicalLines": 244
+    },
+    {
+      "path": "src/lib/public-identity.ts",
+      "sha": "5e20c9a0428d018ec996d55a1f262bf30eb6e14f",
+      "gitBytes": 1151,
+      "physicalLines": 34
+    },
+    {
+      "path": "src/lib/read-bounded-request.ts",
+      "sha": "3bbd6bba12b2f581abb357f8ff595d2c9ab61ac8",
+      "gitBytes": 1170,
+      "physicalLines": 33
+    },
+    {
+      "path": "src/lib/release.ts",
+      "sha": "f23921c722df3aef490eb1a188cb046e1bbcda5f",
+      "gitBytes": 445,
+      "physicalLines": 11
+    },
+    {
+      "path": "src/lib/security/__tests__/assurance.test.ts",
+      "sha": "ed26ab4e94719fe7868cbdea9df62bba33ee6cdc",
+      "gitBytes": 11827,
+      "physicalLines": 308
+    },
+    {
+      "path": "src/lib/security/__tests__/caller-scoped-functions.test.ts",
+      "sha": "5f9bf01d40c4c9bb993466e052db051d82838a02",
+      "gitBytes": 3757,
+      "physicalLines": 100
+    },
+    {
+      "path": "src/lib/security/__tests__/identity.test.ts",
+      "sha": "04efb123d6c20bd18584dcc1e5b0f771ca750cf1",
+      "gitBytes": 7058,
+      "physicalLines": 192
+    },
+    {
+      "path": "src/lib/security/__tests__/mfa.test.ts",
+      "sha": "f1b6cb3988b3b624a1ba52b3cda6ba39d2a82d5b",
+      "gitBytes": 14859,
+      "physicalLines": 359
+    },
+    {
+      "path": "src/lib/security/__tests__/reauthentication.test.ts",
+      "sha": "b2c81670b657ded2f34331fb07d081b031e15207",
+      "gitBytes": 6126,
+      "physicalLines": 153
+    },
+    {
+      "path": "src/lib/security/__tests__/recovery-codes.test.ts",
+      "sha": "8193c9d73d4e793d37ea8592916bc12d2d2e0636",
+      "gitBytes": 8765,
+      "physicalLines": 213
+    },
+    {
+      "path": "src/lib/security/__tests__/recovery-functions.test.ts",
+      "sha": "869ab989d5259b2795b04518a307357f4491be72",
+      "gitBytes": 11326,
+      "physicalLines": 293
+    },
+    {
+      "path": "src/lib/security/__tests__/recovery-operation-sql.test.ts",
+      "sha": "9b5b2c8d7a4090108f5e5a41d5fe5bb391738885",
+      "gitBytes": 2991,
+      "physicalLines": 69
+    },
+    {
+      "path": "src/lib/security/__tests__/second-factor-enforced.test.ts",
+      "sha": "6df42a429bedced9625115959b7e902c8f3d36fe",
+      "gitBytes": 5296,
+      "physicalLines": 133
+    },
+    {
+      "path": "src/lib/security/__tests__/user-agent.test.ts",
+      "sha": "55ae74da3d9690aae7d2a8205eeb992737d2301d",
+      "gitBytes": 4373,
+      "physicalLines": 110
+    },
+    {
+      "path": "src/lib/security/assurance-middleware.ts",
+      "sha": "54d7218022d6edf0d1db893c54a368290c4f4166",
+      "gitBytes": 7398,
+      "physicalLines": 181
+    },
+    {
+      "path": "src/lib/security/assurance.ts",
+      "sha": "c0d6aaffc67759582a93b8545e77a7ba981839c8",
+      "gitBytes": 8093,
+      "physicalLines": 199
+    },
+    {
+      "path": "src/lib/security/caller-scoped-functions.ts",
+      "sha": "ab219910973c43d443f10de2039b653bc962cb00",
+      "gitBytes": 4383,
+      "physicalLines": 100
+    },
+    {
+      "path": "src/lib/security/identity.ts",
+      "sha": "c91dc4aefc537269dcfd09429594aa67d7fe69c6",
+      "gitBytes": 6314,
+      "physicalLines": 144
+    },
+    {
+      "path": "src/lib/security/isolation-upgrade.ts",
+      "sha": "d2bffae16cdfbdef83af47547c0e8b9573c09ba1",
+      "gitBytes": 5841,
+      "physicalLines": 148
+    },
+    {
+      "path": "src/lib/security/isolation.ts",
+      "sha": "93ecb1b01dddda4ee5f258836a1703a4c5135b71",
+      "gitBytes": 9624,
+      "physicalLines": 218
+    },
+    {
+      "path": "src/lib/security/mfa.ts",
+      "sha": "0ee9fb47aa74299e0c5ae8a56266986c9f0f8a0b",
+      "gitBytes": 11454,
+      "physicalLines": 283
+    },
+    {
+      "path": "src/lib/security/public-response.ts",
+      "sha": "4eeb0c8fd074a5b7e277c05c4c5a89656b70b894",
+      "gitBytes": 12794,
+      "physicalLines": 280
+    },
+    {
+      "path": "src/lib/security/reauthentication.ts",
+      "sha": "d1154e73367993d784cb11e9cd9f4742b7c20d89",
+      "gitBytes": 4654,
+      "physicalLines": 105
+    },
+    {
+      "path": "src/lib/security/recovery-codes.ts",
+      "sha": "c7b55aeaddfb725f3e63bb15f6d2254e1f7e060e",
+      "gitBytes": 6275,
+      "physicalLines": 146
+    },
+    {
+      "path": "src/lib/security/recovery.functions.ts",
+      "sha": "dc1eba72b56a3d936e0141c835cc9d61982a88e9",
+      "gitBytes": 10085,
+      "physicalLines": 225
+    },
+    {
+      "path": "src/lib/security/session-middleware.ts",
+      "sha": "7019c39ac8552bf0faa86cad361c02c9004fb7d5",
+      "gitBytes": 3681,
+      "physicalLines": 78
+    },
+    {
+      "path": "src/lib/security/sessions.functions.ts",
+      "sha": "07fd3952c2d17b11cc9934cdc114fc35b29ab8c1",
+      "gitBytes": 11554,
+      "physicalLines": 273
+    },
+    {
+      "path": "src/lib/security/user-agent.ts",
+      "sha": "c687ed323ddd07b893dd85c1068922335386ed44",
+      "gitBytes": 2919,
+      "physicalLines": 63
+    },
+    {
+      "path": "src/lib/session.ts",
+      "sha": "e2317d85c102877c27edd8c9a0d96b3d6a09b9bc",
+      "gitBytes": 3935,
+      "physicalLines": 102
+    },
+    {
+      "path": "src/lib/supabase/read-all.ts",
+      "sha": "c59f560287bddda90c26adc4bfae3da2c753292d",
+      "gitBytes": 2882,
+      "physicalLines": 68
+    },
+    {
+      "path": "src/lib/supabase/rpc-null.ts",
+      "sha": "df767fc448e5dffae2fc58796c786bc4df531b64",
+      "gitBytes": 1538,
+      "physicalLines": 29
+    },
+    {
+      "path": "src/lib/telemetry/operation-health.ts",
+      "sha": "fc65ed907a48a741b2867562ad69d3df479f7578",
+      "gitBytes": 6194,
+      "physicalLines": 171
+    },
+    {
+      "path": "src/lib/time/__tests__/trusted-clock.test.ts",
+      "sha": "124b0b35d373486b7c399de98681825d1d1065fc",
+      "gitBytes": 3790,
+      "physicalLines": 96
+    },
+    {
+      "path": "src/lib/time/trusted-clock.ts",
+      "sha": "3260f4d384fd98ff041cbc76c48eb4a2b83d8d63",
+      "gitBytes": 4048,
+      "physicalLines": 112
+    },
+    {
+      "path": "src/lib/use-follow-bottom.ts",
+      "sha": "13b3fda18ab9d3887370234238a69ba0cbc9658f",
+      "gitBytes": 1107,
+      "physicalLines": 29
+    },
+    {
+      "path": "src/lib/use-modal-focus.ts",
+      "sha": "cdabdc7cdcdd4c20c781771df56093b686f5f99a",
+      "gitBytes": 1604,
+      "physicalLines": 40
+    },
+    {
+      "path": "src/lib/utils.ts",
+      "sha": "7f4f6a1984b89162223cb73c03f4232f70e60445",
+      "gitBytes": 1403,
+      "physicalLines": 39
+    },
+    {
+      "path": "src/router.tsx",
+      "sha": "3423d598036579e62f42faec438f868b4bb0bb17",
+      "gitBytes": 394,
+      "physicalLines": 16
+    },
+    {
+      "path": "src/routes/__root.tsx",
+      "sha": "b7e49429e8c6d70452eb9c5a77f3d514f4b2c540",
+      "gitBytes": 19174,
+      "physicalLines": 454
+    },
+    {
+      "path": "src/routes/_authenticated/admin.tsx",
+      "sha": "df2d68d5d3f912bb4a3ed355fed35fdbf23083d4",
+      "gitBytes": 38720,
+      "physicalLines": 1002
+    },
+    {
+      "path": "src/routes/_authenticated/library.tsx",
+      "sha": "864cff1c44d29813df17872794cd9509a8e8008f",
+      "gitBytes": 11265,
+      "physicalLines": 290
+    },
+    {
+      "path": "src/routes/_authenticated/route.tsx",
+      "sha": "53e666b4d25ccae922fac70a1b3b140d970f5e1f",
+      "gitBytes": 7401,
+      "physicalLines": 180
+    },
+    {
+      "path": "src/routes/about.tsx",
+      "sha": "c745afae233af3fdf1b94a3e0a07c2e74a901df3",
+      "gitBytes": 3733,
+      "physicalLines": 96
+    },
+    {
+      "path": "src/routes/agent.$file.ts",
+      "sha": "bec610d29551162a43020f77199510b673fd84ee",
+      "gitBytes": 1652,
+      "physicalLines": 48
+    },
+    {
+      "path": "src/routes/api/jarvis/continue.ts",
+      "sha": "bad89ad91b4d861759d251e0738efea1d2419b5d",
+      "gitBytes": 1537,
+      "physicalLines": 35
+    },
+    {
+      "path": "src/routes/api/jarvis/device.ts",
+      "sha": "28f414f81c1930baf1193dc6f0f5486579fc1b6d",
+      "gitBytes": 1311,
+      "physicalLines": 30
+    },
+    {
+      "path": "src/routes/api/jarvis/enroll.ts",
+      "sha": "ce42c38a1c72a0aa6063b592539d2b39b34d9f6e",
+      "gitBytes": 878,
+      "physicalLines": 21
+    },
+    {
+      "path": "src/routes/api/offline/bytes.$release.ts",
+      "sha": "f258341d8f62ac9b6f880754ea902a842d93138f",
+      "gitBytes": 5592,
+      "physicalLines": 139
+    },
+    {
+      "path": "src/routes/auth.callback.tsx",
+      "sha": "2f883d7957da2d12236a95e1d8944b7e7abf2fc0",
+      "gitBytes": 6715,
+      "physicalLines": 180
+    },
+    {
+      "path": "src/routes/auth.challenge.tsx",
+      "sha": "5f5ed8d93b4fd03e53e40169bc33298de99a779e",
+      "gitBytes": 11425,
+      "physicalLines": 284
+    },
+    {
+      "path": "src/routes/auth.index.tsx",
+      "sha": "692b9b849c0a4160ef6d9f0c8dd8c4790635c697",
+      "gitBytes": 15555,
+      "physicalLines": 407
+    },
+    {
+      "path": "src/routes/auth.verify.tsx",
+      "sha": "61f033f6e0ace5f034b5b5edbdd310f9fdf4869f",
+      "gitBytes": 10668,
+      "physicalLines": 280
+    },
+    {
+      "path": "src/routes/help.tsx",
+      "sha": "f93a98a646e2b2a3f6f7c3d9b2a94e8efaacf044",
+      "gitBytes": 19180,
+      "physicalLines": 497
+    },
+    {
+      "path": "src/routes/index.tsx",
+      "sha": "d1a80e77253cc9c825d4295ba124c69b2ba9a6ef",
+      "gitBytes": 916,
+      "physicalLines": 29
+    },
+    {
+      "path": "src/routes/ocade-jarvis.tsx",
+      "sha": "cc4c01d051957b6020f3bb656f4e12d985aae962",
+      "gitBytes": 1717,
+      "physicalLines": 50
+    },
+    {
+      "path": "src/routes/pricing.tsx",
+      "sha": "898f942b8d1b5d43e2807ed0c13a5dcf488847d8",
+      "gitBytes": 8710,
+      "physicalLines": 265
+    },
+    {
+      "path": "src/routes/privacy.tsx",
+      "sha": "72c9d7851f987298c291b614fadbc071c40fc991",
+      "gitBytes": 1127,
+      "physicalLines": 33
+    },
+    {
+      "path": "src/routes/reset-password.tsx",
+      "sha": "ba48eb90bd4de4b93d390c7ec8019fc33b771e79",
+      "gitBytes": 11224,
+      "physicalLines": 286
+    },
+    {
+      "path": "src/routes/robots[.]txt.ts",
+      "sha": "ab31aeb347ff5226659318807d1b295944725236",
+      "gitBytes": 1479,
+      "physicalLines": 41
+    },
+    {
+      "path": "src/routes/sitemap[.]xml.ts",
+      "sha": "f77d4b28d65bf65d86b3def56c52f1d49ce26fd5",
+      "gitBytes": 1943,
+      "physicalLines": 58
+    },
+    {
+      "path": "src/routes/terms.tsx",
+      "sha": "034ac3a9f8dee50dc9db5e015306c7c3b8fb5119",
+      "gitBytes": 1105,
+      "physicalLines": 33
+    },
+    {
+      "path": "src/server.ts",
+      "sha": "00d9744c6d47506b4e5501832a3069629fcfd573",
+      "gitBytes": 3726,
+      "physicalLines": 103
+    },
+    {
+      "path": "src/shared/ui/tokens/monochrome.css",
+      "sha": "8fddd73f67e6234dcbd500b0f717ef2560355054",
+      "gitBytes": 592,
+      "physicalLines": 17
+    },
+    {
+      "path": "src/start.ts",
+      "sha": "c8d486dceb24849f7edc426477f9f702ff057139",
+      "gitBytes": 887,
+      "physicalLines": 28
+    },
+    {
+      "path": "src/styles.css",
+      "sha": "1999f50fac6df6235e12657c2239a2dc830b38fa",
+      "gitBytes": 21919,
+      "physicalLines": 610
+    },
+    {
+      "path": "supabase/functions/_shared/boundary.ts",
+      "sha": "b5bba4c2a50d59f27c5fcec0e68497a697353103",
+      "gitBytes": 11713,
+      "physicalLines": 287
+    },
+    {
+      "path": "supabase/functions/_shared/workers-ai.ts",
+      "sha": "b90a333e389981827fee2ffaf35c56c2c4401884",
+      "gitBytes": 2696,
+      "physicalLines": 77
+    },
+    {
+      "path": "supabase/functions/ocade-intelligence-service/index.ts",
+      "sha": "b48856156427965251fd4e43ea33733b970837b3",
+      "gitBytes": 678,
+      "physicalLines": 17
+    },
+    {
+      "path": "supabase/functions/ocade-intelligence/index.ts",
+      "sha": "7cf41616fee00db25d04e05172e0575a7867d8fc",
+      "gitBytes": 436,
+      "physicalLines": 10
+    },
+    {
+      "path": "supabase/migrations/20260720120222_c726faf2-f6d1-4d0c-9e47-9673aa43118b.sql",
+      "sha": "81943b22ea56feff0ad4637a4d33229a6277e22a",
+      "gitBytes": 12077,
+      "physicalLines": 323
+    },
+    {
+      "path": "supabase/migrations/20260720120249_bdd4f1d3-d4c4-4c34-b081-2d6c4097ba27.sql",
+      "sha": "0a137815401f0acf8baa2634e687293f8558b065",
+      "gitBytes": 1032,
+      "physicalLines": 14
+    },
+    {
+      "path": "supabase/migrations/20260721133830_b2cbc094-c460-48f3-b83d-6bf036acccc9.sql",
+      "sha": "657a00c939d6fd48f47cd2f0c7199bb7ea2d67ca",
+      "gitBytes": 5025,
+      "physicalLines": 122
+    },
+    {
+      "path": "supabase/migrations/20260721134240_2c1ea44a-fced-47ea-bcfd-35f528884460.sql",
+      "sha": "61629c7037e8532ac0a06ad5c2d2c2beb12b69da",
+      "gitBytes": 864,
+      "physicalLines": 21
+    },
+    {
+      "path": "supabase/migrations/20260721134445_4eb84b03-6a68-40d0-9807-4579160d5272.sql",
+      "sha": "fcabe1b5087217fa714e7a2d2bf077fe932175f0",
+      "gitBytes": 373,
+      "physicalLines": 5
+    },
+    {
+      "path": "supabase/migrations/20260721134651_2bb0cf70-367a-4f56-b3f1-316e2169dee8.sql",
+      "sha": "40db9a303555c32b4d52862cef1a4c0a5ebeb835",
+      "gitBytes": 760,
+      "physicalLines": 15
+    },
+    {
+      "path": "supabase/migrations/20260721135143_0b16767c-014b-4e5c-8b9e-12375fdee710.sql",
+      "sha": "ee0c9ccc3c3981e22245b59ba4e29d672a2cb805",
+      "gitBytes": 3345,
+      "physicalLines": 68
+    },
+    {
+      "path": "supabase/migrations/20260721135426_7ca3c6c6-09f8-4e19-aef2-ef225349c77b.sql",
+      "sha": "1e7324f3182d042dcfdba4e832be7337b5022205",
+      "gitBytes": 843,
+      "physicalLines": 18
+    },
+    {
+      "path": "supabase/migrations/20260721135930_79977e44-6466-46ea-af1e-3e10bb1cc131.sql",
+      "sha": "d8b160bf8a52a1aaf8e57b2f96fffd5257c9480a",
+      "gitBytes": 183,
+      "physicalLines": 5
+    },
+    {
+      "path": "supabase/migrations/20260721141946_382eee61-77fa-42d8-9b79-9c9c9b3195a3.sql",
+      "sha": "5e38b30f2df28f75515f4d8156c4211c75b01442",
+      "gitBytes": 6793,
+      "physicalLines": 138
+    },
+    {
+      "path": "supabase/migrations/20260721142438_03071f4a-d755-4453-beea-10cd60c22e02.sql",
+      "sha": "db7df108075ea68b51c3ed538dc1eb059ad1f6f2",
+      "gitBytes": 1882,
+      "physicalLines": 41
+    },
+    {
+      "path": "supabase/migrations/20260721143021_71e195af-3680-4c89-be7c-b2d308c7ffcd.sql",
+      "sha": "c511e2f89fdca8b73ca56df368779b16805e41b7",
+      "gitBytes": 2275,
+      "physicalLines": 41
+    },
+    {
+      "path": "supabase/migrations/20260721143529_267f9320-a8a8-4201-b074-064407905a75.sql",
+      "sha": "f2eecd7053ef5af560b405adde6d1967944df014",
+      "gitBytes": 2554,
+      "physicalLines": 54
+    },
+    {
+      "path": "supabase/migrations/20260721144246_5e085aff-3cc9-4e69-a5cd-340b3e874977.sql",
+      "sha": "2c52764616816e67e9e3a36a5553fd0c1db0fe1d",
+      "gitBytes": 3709,
+      "physicalLines": 91
+    },
+    {
+      "path": "supabase/migrations/20260721144308_04ad5189-98bd-4055-987a-7d896a04cdd8.sql",
+      "sha": "4f3077935e8affc4a96d896cf54f02d72e81d532",
+      "gitBytes": 194,
+      "physicalLines": 3
+    },
+    {
+      "path": "supabase/migrations/20260721145409_97b93532-2d8c-4c35-a0ab-5d247f340a7a.sql",
+      "sha": "b5b13800cb1a17d2bbfc3d0c3d295a119ed78a0d",
+      "gitBytes": 18327,
+      "physicalLines": 318
+    },
+    {
+      "path": "supabase/migrations/20260721145434_8280eace-1160-442d-88f7-1684c92485be.sql",
+      "sha": "7215f9d8b49909f82af6fd9bf1f39c262182ff30",
+      "gitBytes": 90,
+      "physicalLines": 1
+    },
+    {
+      "path": "supabase/migrations/20260721150351_1689e8de-f040-4796-bcd0-4976fea56113.sql",
+      "sha": "c05e8eccf6d2e3e2ea26cd05e190a60564844f5a",
+      "gitBytes": 7880,
+      "physicalLines": 174
+    },
+    {
+      "path": "supabase/migrations/20260721150416_6c740641-3749-4958-8ca7-a5393e3feaf7.sql",
+      "sha": "89752d22977eeff05876d9d7b6586b34f45a272e",
+      "gitBytes": 555,
+      "physicalLines": 6
+    },
+    {
+      "path": "supabase/migrations/20260721150450_7b63e109-84a8-4afe-94b1-e6420072c5f5.sql",
+      "sha": "8a3d8942eb2092a540a920f126e701890d85153c",
+      "gitBytes": 2766,
+      "physicalLines": 66
+    },
+    {
+      "path": "supabase/migrations/20260721151128_8b196716-a97b-49aa-b37b-1e8b09d89101.sql",
+      "sha": "67cdbc1b72d90ea49c362c46925a3c98e4ac8089",
+      "gitBytes": 22081,
+      "physicalLines": 367
+    },
+    {
+      "path": "supabase/migrations/20260721151159_0c408ff6-94e9-427b-accf-8a37f4396eb6.sql",
+      "sha": "84087f3849f29eb47b316594a540a27ddcd5fe01",
+      "gitBytes": 336,
+      "physicalLines": 7
+    },
+    {
+      "path": "supabase/migrations/20260721151224_c158c078-599f-4d26-8144-6221fddac054.sql",
+      "sha": "723597fe1ce69573769e57ea59f690f9144f2e7f",
+      "gitBytes": 385,
+      "physicalLines": 5
+    },
+    {
+      "path": "supabase/migrations/20260721152101_c4b8b4e6-6d39-478f-a986-7da88cc3431f.sql",
+      "sha": "8b90fba1c80e4fa2a365ffc7d69a759d557040ca",
+      "gitBytes": 18824,
+      "physicalLines": 355
+    },
+    {
+      "path": "supabase/migrations/20260721152140_8be97c93-e5a2-494b-bf54-f83f9ae0f6e9.sql",
+      "sha": "e62afdb60a425d3293a85fa30b338a716f933973",
+      "gitBytes": 706,
+      "physicalLines": 26
+    },
+    {
+      "path": "supabase/migrations/20260721153321_92abb662-0ac2-4900-a2b6-5724104dd1bb.sql",
+      "sha": "75916125d50b65c38d35d802a6599d2263d736b3",
+      "gitBytes": 1950,
+      "physicalLines": 41
+    },
+    {
+      "path": "supabase/migrations/20260721160854_4e78525e-e484-4a81-b704-7df889e6d4e5.sql",
+      "sha": "a6d5fc63a71d6de826f6ec81cfc91d8b9ea9b49a",
+      "gitBytes": 215,
+      "physicalLines": 5
+    },
+    {
+      "path": "supabase/migrations/20260722090000_ocade_projects_outputs_memory.sql",
+      "sha": "00693c4aa0e3876cbe74fc569a940b6a1a54fecc",
+      "gitBytes": 9813,
+      "physicalLines": 251
+    },
+    {
+      "path": "supabase/migrations/20260722100000_ocade_subscriptions_usage.sql",
+      "sha": "b9ad213dc487a50fa44d817b82491240b8d01df8",
+      "gitBytes": 4722,
+      "physicalLines": 111
+    },
+    {
+      "path": "supabase/migrations/20260722110000_ocade_automations.sql",
+      "sha": "6fbdeddb48fb772a74dbf8d9441606ab7522c76a",
+      "gitBytes": 6231,
+      "physicalLines": 133
+    },
+    {
+      "path": "supabase/migrations/20260724211500_ocade_automation_worker.sql",
+      "sha": "ace3cb40e86155eb79c7881fa028a898ebf4fa0c",
+      "gitBytes": 30051,
+      "physicalLines": 880
+    },
+    {
+      "path": "supabase/migrations/20260730190000_ocade_controlled_rollout_gates.sql",
+      "sha": "5053597caa7510eba905d52adb8be9e16355d648",
+      "gitBytes": 7537,
+      "physicalLines": 189
+    },
+    {
+      "path": "supabase/migrations/20260803172048_07f01536-9981-4240-abe2-06d98cc07387.sql",
+      "sha": "9e1be67e67a9cd22b08a241f1efe32f991babc33",
+      "gitBytes": 2675,
+      "physicalLines": 61
+    },
+    {
+      "path": "supabase/migrations/20260806120000_ocade_attachment_deletion.sql",
+      "sha": "736428708db2cfadecf80f6f84656d9154347a8b",
+      "gitBytes": 6354,
+      "physicalLines": 137
+    },
+    {
+      "path": "supabase/migrations/20260815123219_b6afc017-4c53-405f-b498-96cb9cfb16f3.sql",
+      "sha": "ac484b82458933c702f467b6694e38faba02de7b",
+      "gitBytes": 8257,
+      "physicalLines": 228
+    },
+    {
+      "path": "supabase/migrations/20260815123309_e4ac318c-6878-44d5-99d8-3aa45bab8f57.sql",
+      "sha": "b080bd4ad6ffcec9aac085e7ca12c03ea965de30",
+      "gitBytes": 4721,
+      "physicalLines": 111
+    },
+    {
+      "path": "supabase/migrations/20260815123358_a5f5c31d-c096-4e93-a7db-8a0912f4566c.sql",
+      "sha": "3dc006389a4e04f440df7a4e0a6a61e4d071ff56",
+      "gitBytes": 5680,
+      "physicalLines": 123
+    },
+    {
+      "path": "supabase/migrations/20260815123622_6d8f7052-38cb-4117-a197-5e7a74161b69.sql",
+      "sha": "59839930e00cf19a2a1ebff09f1b3f6f70a2dcb2",
+      "gitBytes": 29054,
+      "physicalLines": 865
+    },
+    {
+      "path": "supabase/migrations/20260815193752_harden_security_definer_execute.sql",
+      "sha": "b7c5166acc2a13085bb47c56005ff6236f25cb47",
+      "gitBytes": 1759,
+      "physicalLines": 43
+    },
+    {
+      "path": "supabase/migrations/20260815213627_ocade_billing_support_ledger.sql",
+      "sha": "882845309ef29c821bc77808e32dde18bc3a182b",
+      "gitBytes": 10267,
+      "physicalLines": 211
+    },
+    {
+      "path": "supabase/migrations/20260815215000_ocade_billing_support_privilege_hardening.sql",
+      "sha": "73c09bf6019b53a36d4d5e928c5cd6fd83788112",
+      "gitBytes": 861,
+      "physicalLines": 32
+    },
+    {
+      "path": "supabase/migrations/20260816082730_5e025ed8-1236-4e91-a86b-01fc1d248b99.sql",
+      "sha": "fdac2fb1aeaed07d91016b31a2447b4a4e32b151",
+      "gitBytes": 1883,
+      "physicalLines": 53
+    },
+    {
+      "path": "supabase/migrations/20260816091131_cf164c67-50c9-4dff-96ac-9035b8f7bdb8.sql",
+      "sha": "a173cf8afec2d92f0e968e66457d013ba17f7b28",
+      "gitBytes": 433,
+      "physicalLines": 10
+    },
+    {
+      "path": "supabase/migrations/20260816094050_f439d6e0-528d-45e2-a4f5-7914e07c7b2f.sql",
+      "sha": "491269702a4fa76a4a01aae92be0591f6fde56fe",
+      "gitBytes": 1428,
+      "physicalLines": 49
+    },
+    {
+      "path": "supabase/migrations/20260817153000_atomic_device_revocation.sql",
+      "sha": "3ba21437ff3d7da39028cf2dbaf063a713f757b5",
+      "gitBytes": 1069,
+      "physicalLines": 38
+    },
+    {
+      "path": "supabase/migrations/20260823090000_payment_webhook_audit.sql",
+      "sha": "b19a61a8e21ee60d80be592e8b6a6ec878fb540a",
+      "gitBytes": 3712,
+      "physicalLines": 72
+    },
+    {
+      "path": "supabase/migrations/20260823110000_atomic_payment_webhook_state.sql",
+      "sha": "89e59f0ef98b3df403e6e067280d9ebba64ca849",
+      "gitBytes": 5345,
+      "physicalLines": 139
+    },
+    {
+      "path": "supabase/migrations/20260823111000_payment_entitlement_invoker.sql",
+      "sha": "a5a15cc8953f34d22838461b9264f5e9ab8dd937",
+      "gitBytes": 1107,
+      "physicalLines": 29
+    },
+    {
+      "path": "supabase/migrations/20260823140000_legal_consent_receipts.sql",
+      "sha": "a467e6512c1d019ac69fab774950f7926abfd769",
+      "gitBytes": 4475,
+      "physicalLines": 88
+    },
+    {
+      "path": "supabase/migrations/20260824112227_live_supabase_security_hardening.sql",
+      "sha": "f059f154297582fa8ab29dfe519ab5026ef31713",
+      "gitBytes": 5916,
+      "physicalLines": 131
+    },
+    {
+      "path": "supabase/migrations/20260824112646_rls_and_foreign_key_performance.sql",
+      "sha": "eb00d4c2de426dc9703f60b7a49e8ce9c167907c",
+      "gitBytes": 4512,
+      "physicalLines": 137
+    },
+    {
+      "path": "supabase/migrations/20260824112850_consolidate_permissive_rls_policies.sql",
+      "sha": "a335fc2977cfc7866b449828538bdf7dc7e916e8",
+      "gitBytes": 4063,
+      "physicalLines": 133
+    },
+    {
+      "path": "supabase/migrations/20260824113306_fix_automation_enqueue_ambiguity.sql",
+      "sha": "035679e76efba270e45e40dc2f85ffe141047e50",
+      "gitBytes": 3853,
+      "physicalLines": 135
+    },
+    {
+      "path": "supabase/migrations/20260824114319_provision_messenger_storage_bucket.sql",
+      "sha": "0472cc95e0a593b816963b57957ea3aba994d270",
+      "gitBytes": 1494,
+      "physicalLines": 59
+    },
+    {
+      "path": "supabase/migrations/20260824184500_restore_has_role_authenticated_execute.sql",
+      "sha": "b495ff73cde636d0b89d9221e4dc90800996fb40",
+      "gitBytes": 837,
+      "physicalLines": 22
+    },
+    {
+      "path": "supabase/migrations/20260825180000_expand_support_ticket_categories.sql",
+      "sha": "8e122694f51c480d7822b34b337f16a2e16860d6",
+      "gitBytes": 749,
+      "physicalLines": 28
+    },
+    {
+      "path": "supabase/migrations/20260826023255_a405ac19-3482-43c6-b2de-ce2af897b3bd.sql",
+      "sha": "6dfc473e0d7868a4de14e99d83b87650a9c6acaf",
+      "gitBytes": 1258,
+      "physicalLines": 28
+    },
+    {
+      "path": "supabase/migrations/20260827120000_has_role_answers_only_about_the_caller.sql",
+      "sha": "40b9d0afe87142708ccfc40491c657cd7a234cee",
+      "gitBytes": 2130,
+      "physicalLines": 47
+    },
+    {
+      "path": "supabase/migrations/20260827170000_record_demo_consumed_on_the_account.sql",
+      "sha": "20b0660c94eb1753dc7ec9eacbaa5bf65e22b885",
+      "gitBytes": 1281,
+      "physicalLines": 26
+    },
+    {
+      "path": "supabase/migrations/20260827180000_the_consent_table_was_built_twice.sql",
+      "sha": "451379defbb76bab29d0968f8dcbbeca86433e91",
+      "gitBytes": 2087,
+      "physicalLines": 43
+    },
+    {
+      "path": "supabase/migrations/20260902090000_retire_demo_consumed_marker.sql",
+      "sha": "758ebef377f095932deca029f9e797d20c2846b0",
+      "gitBytes": 1280,
+      "physicalLines": 25
+    },
+    {
+      "path": "supabase/migrations/20260902100000_free_pro_max_catalogue.sql",
+      "sha": "3f14f3768143e82f9d118b79b9fc4b46b0cebb6b",
+      "gitBytes": 4062,
+      "physicalLines": 83
+    },
+    {
+      "path": "supabase/migrations/20260902110000_commercial_usage_windows.sql",
+      "sha": "d44d78e20ef524bdcb4ffe497aacf2dc9ad093fd",
+      "gitBytes": 7312,
+      "physicalLines": 179
+    },
+    {
+      "path": "supabase/migrations/20260902120000_mfa_recovery_credentials.sql",
+      "sha": "83f6a3dd6e8cc94072c0f5cb91878be21f477c8a",
+      "gitBytes": 10199,
+      "physicalLines": 251
+    },
+    {
+      "path": "supabase/migrations/20260902130000_account_session_authority.sql",
+      "sha": "a386c770ba08c233690e3a384e10dbf23c310097",
+      "gitBytes": 6773,
+      "physicalLines": 178
+    },
+    {
+      "path": "supabase/migrations/20260904090000_notification_preferences_and_history.sql",
+      "sha": "eec97479b7260d3ce499c04b68381f82dce7079a",
+      "gitBytes": 15078,
+      "physicalLines": 354
+    },
+    {
+      "path": "supabase/migrations/20260904120000_ocade_organizations_and_membership.sql",
+      "sha": "3c0fb19a4a82e1d348e93165cea51b1747885357",
+      "gitBytes": 43794,
+      "physicalLines": 1116
+    },
+    {
+      "path": "supabase/migrations/20260904130000_revoke_default_privilege_writes.sql",
+      "sha": "7ac23b35fbc3aab2406de0ecfb65cf50876f7e9b",
+      "gitBytes": 4399,
+      "physicalLines": 75
+    },
+    {
+      "path": "supabase/migrations/20260904140000_organization_ownership_before_account_deletion.sql",
+      "sha": "99f27e3872bb6fc731db45d008df1e850e87dafc",
+      "gitBytes": 7292,
+      "physicalLines": 182
+    },
+    {
+      "path": "supabase/migrations/20260904150000_high_risk_organization_actions_require_recent_strong_auth.sql",
+      "sha": "9e600cb6437aebbd583fdbd3f393844113d1a33c",
+      "gitBytes": 13473,
+      "physicalLines": 343
+    },
+    {
+      "path": "supabase/migrations/20260904160000_organization_capability_and_tool_policies.sql",
+      "sha": "a75d455b8912f322d1df4c43708079a7e289b3a3",
+      "gitBytes": 7902,
+      "physicalLines": 191
+    },
+    {
+      "path": "supabase/migrations/20260904170000_admin_operations_read_surfaces.sql",
+      "sha": "a943494a794668a5fc0b1210d80a570f626dc11a",
+      "gitBytes": 5459,
+      "physicalLines": 123
+    },
+    {
+      "path": "supabase/migrations/20260904180000_status_incidents_and_maintenance.sql",
+      "sha": "d31539646aac1194adce30fe0921dbecd25ec105",
+      "gitBytes": 11223,
+      "physicalLines": 263
+    },
+    {
+      "path": "supabase/migrations/20260904190000_support_article_publishing.sql",
+      "sha": "1bfab0d63f04b8e9c9e6eaa88cf0f019e2d84ab3",
+      "gitBytes": 8259,
+      "physicalLines": 184
+    },
+    {
+      "path": "supabase/migrations/20260905090000_conversation_share_links.sql",
+      "sha": "2b21b09bdcf74e3a51ea4700b8b03fcb533b45d5",
+      "gitBytes": 11935,
+      "physicalLines": 316
+    },
+    {
+      "path": "supabase/migrations/20260907003328_commercial_generation_permits.sql",
+      "sha": "a0b79ecf2f2bbbd437a992010771eb67e6dce9cf",
+      "gitBytes": 18558,
+      "physicalLines": 521
+    },
+    {
+      "path": "supabase/migrations/20260907011350_offline_usage_leases.sql",
+      "sha": "7a2433a3da181480ca8dffec9fab5255035a9369",
+      "gitBytes": 24049,
+      "physicalLines": 583
+    },
+    {
+      "path": "supabase/migrations/20260907073536_claim_generation_transport.sql",
+      "sha": "305cba75978f2c6efdd64c41974f4a91c4730d71",
+      "gitBytes": 2274,
+      "physicalLines": 75
+    },
+    {
+      "path": "supabase/migrations/20260909120000_ocade_message_client_key.sql",
+      "sha": "08faafd5333309ef5ac1d88a23650fa04e873ff8",
+      "gitBytes": 1535,
+      "physicalLines": 32
+    },
+    {
+      "path": "supabase/migrations/20260909130000_ocade_side_conversations.sql",
+      "sha": "bbeedabe5319066ba31ca78c4224f7cc3503f938",
+      "gitBytes": 1805,
+      "physicalLines": 38
+    },
+    {
+      "path": "supabase/migrations/20260909140000_ocade_project_files_and_folders.sql",
+      "sha": "e5b3135b05b6845f965610793a379784a66f028b",
+      "gitBytes": 3606,
+      "physicalLines": 68
+    },
+    {
+      "path": "supabase/migrations/20260909150000_ocade_output_provenance.sql",
+      "sha": "6304b54c274df8542cdd771b24a56aaffff31f1d",
+      "gitBytes": 3131,
+      "physicalLines": 54
+    },
+    {
+      "path": "supabase/migrations/20260909160000_ocade_message_citations_and_reactions.sql",
+      "sha": "479ceaaa46e4712c6abd8c0c48c40294dbacf110",
+      "gitBytes": 1958,
+      "physicalLines": 37
+    },
+    {
+      "path": "supabase/migrations/20260909170000_devices_platform.sql",
+      "sha": "2954d9ff67bbcb88c70a5aede3b67e61fa32de10",
+      "gitBytes": 1523,
+      "physicalLines": 32
+    },
+    {
+      "path": "supabase/migrations/20260909180000_ocade_approvals.sql",
+      "sha": "60ac65bef81c80f524b04b7f2ffc76950b0fa793",
+      "gitBytes": 5543,
+      "physicalLines": 132
+    },
+    {
+      "path": "supabase/migrations/20260909190000_ocade_tasks_and_comments.sql",
+      "sha": "2f2ca62971751275f1ba138e097f4e72d27027a0",
+      "gitBytes": 5113,
+      "physicalLines": 100
+    },
+    {
+      "path": "supabase/migrations/20260909200000_ocade_monitors_and_browser_policy.sql",
+      "sha": "1e714ddc55cf3d02772fccf1b618abd1d261e2f4",
+      "gitBytes": 4014,
+      "physicalLines": 78
+    },
+    {
+      "path": "supabase/migrations/20260910090000_policy_capability_account_storage.sql",
+      "sha": "542b63fcbc764f342050b16789d4342c5968b6b5",
+      "gitBytes": 1730,
+      "physicalLines": 39
+    },
+    {
+      "path": "supabase/migrations/20260910100000_conversation_storage_is_the_account.sql",
+      "sha": "e1e55d81a22f423c6059278e0f3a0819a19389e3",
+      "gitBytes": 3941,
+      "physicalLines": 121
+    },
+    {
+      "path": "supabase/migrations/20260910110000_one_read_policy_per_role.sql",
+      "sha": "91743374512cff567d636e81ede453ae5ac37a57",
+      "gitBytes": 3693,
+      "physicalLines": 76
+    },
+    {
+      "path": "supabase/migrations/20260910120000_index_every_cascade_path.sql",
+      "sha": "51cbffb11d14856a19789320ee1a6b01e80ddf7a",
+      "gitBytes": 4163,
+      "physicalLines": 79
+    },
+    {
+      "path": "supabase/migrations/20260910130000_confirm_before_granting_workspace_access.sql",
+      "sha": "fa391e0b19934e0cfb6555d1b0f551bf019bd370",
+      "gitBytes": 7215,
+      "physicalLines": 193
+    },
+    {
+      "path": "supabase/migrations/20260910140000_conversation_trash_and_restore.sql",
+      "sha": "a211763c39cde461a2b8d4cfc71f50ad6afc437a",
+      "gitBytes": 4039,
+      "physicalLines": 95
+    },
+    {
+      "path": "supabase/migrations/20260910150000_a_task_can_belong_to_a_project.sql",
+      "sha": "9e383adef8d25a72acc448163424b398c120fdf5",
+      "gitBytes": 1903,
+      "physicalLines": 39
+    },
+    {
+      "path": "supabase/migrations/20260910160000_support_content_needs_a_case_grant.sql",
+      "sha": "ce2913dbc12476d4b206d31d9fb208a6f1245aa6",
+      "gitBytes": 13388,
+      "physicalLines": 291
+    },
+    {
+      "path": "supabase/migrations/20260910170000_index_the_support_access_foreign_key.sql",
+      "sha": "4f3d6131393c04bc5183775a2198273552935e45",
+      "gitBytes": 1050,
+      "physicalLines": 24
+    },
+    {
+      "path": "supabase/migrations/20260911090000_one_entitlement_authority_and_admin_grants.sql",
+      "sha": "31f530651d690303962f8af939f3ba1466f33115",
+      "gitBytes": 16639,
+      "physicalLines": 368
+    },
+    {
+      "path": "supabase/migrations/20260911120000_a_plan_change_reaches_the_subscription_row.sql",
+      "sha": "fbc392c35f6d3192b6cba643dd9fa4e56b9a30e8",
+      "gitBytes": 5579,
+      "physicalLines": 146
+    },
+    {
+      "path": "supabase/migrations/20260912090000_one_library_for_everything_a_person_keeps.sql",
+      "sha": "49a468dcb8bae7f58b2cd3811beb1a6e55053187",
+      "gitBytes": 9237,
+      "physicalLines": 192
+    },
+    {
+      "path": "supabase/migrations/20260912120000_remove_the_database_of_the_products_ocade_is_not.sql",
+      "sha": "99b1087fc33cccb41e114fae5e5f6c405b7e38b3",
+      "gitBytes": 17167,
+      "physicalLines": 253
+    },
+    {
+      "path": "supabase/migrations/20260913050000_two_organization_helpers_outlived_their_product.sql",
+      "sha": "1249acbf4bff7c05acd83ec3bbcba9d938d5b059",
+      "gitBytes": 1347,
+      "physicalLines": 26
+    },
+    {
+      "path": "supabase/migrations/20260918081533_profiles_usage_authority.sql",
+      "sha": "78049c59063b670c530539a35f5b0f9fbbdb98e7",
+      "gitBytes": 23603,
+      "physicalLines": 645
+    },
+    {
+      "path": "supabase/migrations/20260918132426_offline_signing_retry.sql",
+      "sha": "56995645a1cd410d1d7c36e0ae3f5bb480e53201",
+      "gitBytes": 3012,
+      "physicalLines": 69
+    },
+    {
+      "path": "supabase/migrations/20260919090000_atomic_browser_device_registration.sql",
+      "sha": "bc75e5a153d303450d5552526951754103db546c",
+      "gitBytes": 3873,
+      "physicalLines": 95
+    },
+    {
+      "path": "supabase/migrations/20260920090000_device_revocation_is_not_client_writable.sql",
+      "sha": "8bf12c886cefff4597c4f220bf05b8ce1fd4fb6e",
+      "gitBytes": 5303,
+      "physicalLines": 120
+    },
+    {
+      "path": "supabase/migrations/20260920100000_an_operator_can_find_any_account.sql",
+      "sha": "57acca7580f608371149d69f296bc8fc487fce4d",
+      "gitBytes": 1201,
+      "physicalLines": 26
+    },
+    {
+      "path": "supabase/migrations/20260920110000_regenerate_drops_turns_atomically.sql",
+      "sha": "96a2cfa1706998e2c13af39e711a8e1b6143c76e",
+      "gitBytes": 2446,
+      "physicalLines": 59
+    },
+    {
+      "path": "supabase/migrations/20260923090000_close_client_write_paths.sql",
+      "sha": "cff6405459e144544a6f46a186dee6db3f676795",
+      "gitBytes": 2285,
+      "physicalLines": 48
+    },
+    {
+      "path": "supabase/migrations/20260923100000_retire_trash_payments_and_side_threads.sql",
+      "sha": "af7138674abc9ac19254cb79c766ac0cbd63594f",
+      "gitBytes": 2763,
+      "physicalLines": 82
+    },
+    {
+      "path": "supabase/migrations/20260925140000_drop_orphan_enums.sql",
+      "sha": "0e291f14c82d8488779927d0f8f75fb045f9a66d",
+      "gitBytes": 732,
+      "physicalLines": 22
+    },
+    {
+      "path": "supabase/migrations/20260926090000_ocade_jarvis_web.sql",
+      "sha": "4affa2ba5e117d2cc1cc86a8b299e970a7a1723e",
+      "gitBytes": 28464,
+      "physicalLines": 683
+    },
+    {
+      "path": "supabase/migrations/20260927090000_jarvis_device_identity.sql",
+      "sha": "0896db7e7453f7b316c36dcbe54a550a8f7466a9",
+      "gitBytes": 5853,
+      "physicalLines": 105
+    },
+    {
+      "path": "supabase/migrations/20260929090000_jarvis_execution_control.sql",
+      "sha": "fbcca130d378319301127fb6315d49ce54553332",
+      "gitBytes": 4133,
+      "physicalLines": 93
+    },
+    {
+      "path": "supabase/migrations/20260929100000_admin_device_removal.sql",
+      "sha": "ce48033189caef890fbe8a54403ccd0e3694b7ad",
+      "gitBytes": 3136,
+      "physicalLines": 69
+    },
+    {
+      "path": "supabase/migrations/20260929110000_scoped_jarvis_controls.sql",
+      "sha": "10f7f14e4e3b92f9830238853090ab6f39eb017d",
+      "gitBytes": 644,
+      "physicalLines": 16
+    },
+    {
+      "path": "supabase/migrations/20260930090000_enrolled_accounts_need_their_second_factor.sql",
+      "sha": "1f511235920e6e4100f1ec72d49e65487956b532",
+      "gitBytes": 3249,
+      "physicalLines": 85
+    },
+    {
+      "path": "supabase/migrations/20260930091000_admin_changes_need_a_recent_second_factor.sql",
+      "sha": "09c593eba0c4ac22734cac3d970fc87e36ff9d81",
+      "gitBytes": 6085,
+      "physicalLines": 157
+    },
+    {
+      "path": "supabase/migrations/20260930092000_enrollment_cap_per_source.sql",
+      "sha": "30dcb0fe77642ca41cee4fa05b2881c8ca48c2d9",
+      "gitBytes": 807,
+      "physicalLines": 16
+    },
+    {
+      "path": "supabase/migrations/20260930092500_an_ended_session_stops_at_once.sql",
+      "sha": "975b1343858febb7ebca4a8098ed47eb3c6a5d2c",
+      "gitBytes": 2465,
+      "physicalLines": 64
+    },
+    {
+      "path": "supabase/migrations/20260930093000_one_staff_authority.sql",
+      "sha": "22c3f7a3c964d1de47a1176c33c2667d389b712e",
+      "gitBytes": 36883,
+      "physicalLines": 848
+    },
+    {
+      "path": "supabase/migrations/20260930093500_a_staff_refusal_reads_correctly.sql",
+      "sha": "802dd809ac8b05d9be0386e4d0509536a5638114",
+      "gitBytes": 967,
+      "physicalLines": 26
+    },
+    {
+      "path": "supabase/migrations/20260930094000_staff_can_turn_off_a_lost_second_factor.sql",
+      "sha": "17bd4aeb5d2bdfa0dfb244e7e8a2e58a326be251",
+      "gitBytes": 2480,
+      "physicalLines": 49
+    },
+    {
+      "path": "supabase/migrations/20260930095000_jarvis_schedules.sql",
+      "sha": "8c53308347afdedab504664cc89085502f7e753a",
+      "gitBytes": 2964,
+      "physicalLines": 51
+    },
+    {
+      "path": "supabase/migrations/20260930096000_android_devices.sql",
+      "sha": "c822b08fb241a918477ffbc49c165ec57e20de2f",
+      "gitBytes": 365,
+      "physicalLines": 5
+    },
+    {
+      "path": "supabase/migrations/20261001090000_staff_authority_only_in_the_console.sql",
+      "sha": "023b3de04b8ee4e3e6f127d18ee5009b62f23efc",
+      "gitBytes": 4243,
+      "physicalLines": 100
+    },
+    {
+      "path": "supabase/migrations/20261001091000_web_push_subscriptions.sql",
+      "sha": "fa397abb0188aeaca02cfb6602abfef8498fa52e",
+      "gitBytes": 3921,
+      "physicalLines": 90
+    },
+    {
+      "path": "supabase/migrations/20261001092000_retire_browser_extension.sql",
+      "sha": "ca1d0db9eecc6187a6ce7d967726ce36770cdad9",
+      "gitBytes": 1149,
+      "physicalLines": 23
+    },
+    {
+      "path": "supabase/migrations/20261001093000_push_follows_the_session.sql",
+      "sha": "b245d99f1124c5b5d0f462988718bb479f5badf6",
+      "gitBytes": 2804,
+      "physicalLines": 59
+    },
+    {
+      "path": "supabase/migrations/20261001094000_a_claimed_permit_is_settled_by_the_server.sql",
+      "sha": "d8af224defc9467a7b6ad318a99d9d539349963b",
+      "gitBytes": 2178,
+      "physicalLines": 61
+    },
+    {
+      "path": "supabase/migrations/20261001095000_a_factor_added_after_signing_in_needs_a_new_sign_in.sql",
+      "sha": "bd8c07d6406619545e0e77643477e67d17ae1c47",
+      "gitBytes": 3361,
+      "physicalLines": 81
+    },
+    {
+      "path": "supabase/migrations/20261001095100_the_console_needs_a_sign_in_after_a_new_factor.sql",
+      "sha": "4e0692548735ee48d3062ac65ea7da9fb5dd5358",
+      "gitBytes": 1077,
+      "physicalLines": 26
+    },
+    {
+      "path": "supabase/migrations/20261001095200_two_step_set_up_in_this_sign_in.sql",
+      "sha": "cfd00edec4d1748464b6aef2b9b246bb94ccc049",
+      "gitBytes": 1541,
+      "physicalLines": 37
+    },
+    {
+      "path": "supabase/migrations/20261001096000_staff_act_within_their_own_reach.sql",
+      "sha": "0dab059e5e0d5089e51ca05c671a5268c150f2f3",
+      "gitBytes": 7730,
+      "physicalLines": 183
+    },
+    {
+      "path": "supabase/migrations/20261001096100_a_profile_address_is_the_sign_in_address.sql",
+      "sha": "a79c60b95dc9121003fe93538b5dd2dcfd882d5d",
+      "gitBytes": 1436,
+      "physicalLines": 40
+    },
+    {
+      "path": "supabase/migrations/20261002090000_owner_customer_operations.sql",
+      "sha": "4a5fb9911d1be5389e8c78ffdeffa801325ea04d",
+      "gitBytes": 12128,
+      "physicalLines": 218
+    },
+    {
+      "path": "supabase/migrations/20261003090000_owner_and_staff_consoles_on_ocade_in.sql",
+      "sha": "2eb7032df5bb2b5956b18d0f72345ec27aa3a1b7",
+      "gitBytes": 13642,
+      "physicalLines": 312
+    },
+    {
+      "path": "supabase/migrations/20261006090000_cases_name_their_reader_and_conversation.sql",
+      "sha": "2d6f8e6543207398cdbc3b25ecacc2b4b91b3440",
+      "gitBytes": 9995,
+      "physicalLines": 236
+    },
+    {
+      "path": "supabase/migrations/20261007090000_action_results_are_events.sql",
+      "sha": "3fab718ec429468b65fbefe6422d174ffa8b251a",
+      "gitBytes": 941,
+      "physicalLines": 21
+    },
+    {
+      "path": "supabase/migrations/20261011090000_ownership_transfer_locks_both_owners.sql",
+      "sha": "e3196701ee4cfe3533e02777e0ffb7224c26dc56",
+      "gitBytes": 2976,
+      "physicalLines": 56
+    },
+    {
+      "path": "supabase/migrations/20261011100000_one_proof_one_action.sql",
+      "sha": "1cb7b143a57f89b6e25216d28f88c7959b150a16",
+      "gitBytes": 2115,
+      "physicalLines": 51
+    },
+    {
+      "path": "supabase/migrations/20261011110000_live_frame_capture_time.sql",
+      "sha": "d4f12b7d8e3d3b2e2f423d95b407bc1c5749c641",
+      "gitBytes": 199,
+      "physicalLines": 4
+    },
+    {
+      "path": "supabase/migrations/20261012090000_completion_is_the_servers.sql",
+      "sha": "90afd2cfee00de2d6131dd865b15a524b0e719f0",
+      "gitBytes": 2173,
+      "physicalLines": 51
+    },
+    {
+      "path": "supabase/migrations/20261012091000_one_proof_one_staff_change.sql",
+      "sha": "dfdbb05eb16dcd6689b7c0f8ac76013e03d694af",
+      "gitBytes": 3999,
+      "physicalLines": 95
+    },
+    {
+      "path": "supabase/migrations/20261012092000_staff_reads_follow_granular_rights.sql",
+      "sha": "2800e65e8b8a3a20f2904ea52017dbbb30fc213f",
+      "gitBytes": 1472,
+      "physicalLines": 28
+    },
+    {
+      "path": "supabase/migrations/20261012093000_app_names_in_any_script.sql",
+      "sha": "4a9457d237c18a8ac0781d4604eff0deea24a90a",
+      "gitBytes": 853,
+      "physicalLines": 16
+    },
+    {
+      "path": "supabase/migrations/20261013090000_one_verified_task_one_use.sql",
+      "sha": "d0158b806d944818aa3721012dffc3071431e077",
+      "gitBytes": 7680,
+      "physicalLines": 189
+    },
+    {
+      "path": "supabase/migrations/20261013091000_online_ai_consent.sql",
+      "sha": "f59989680ac3a35fc1f870fa8e82c86fba5245d2",
+      "gitBytes": 1672,
+      "physicalLines": 39
+    },
+    {
+      "path": "supabase/migrations/20261016090000_task_bound_turns_and_checked_outcomes.sql",
+      "sha": "4c49f11b7d488e78c5fabffc425556a6d1597ba3",
+      "gitBytes": 10557,
+      "physicalLines": 267
+    },
+    {
+      "path": "supabase/migrations/20261016100000_queue_admission_holds_the_task.sql",
+      "sha": "8e8b94719c4b114940b1647175e44c646d24471d",
+      "gitBytes": 1813,
+      "physicalLines": 43
+    },
+    {
+      "path": "supabase/migrations/20261017090000_schedule_occurrence_claims.sql",
+      "sha": "6aabf75b3983a609cc9026165525cb1f9f2772ff",
+      "gitBytes": 1312,
+      "physicalLines": 23
+    },
+    {
+      "path": "supabase/migrations/20261017100000_a_spent_proof_names_its_change.sql",
+      "sha": "90ad6460b5a6b4112e29f101531a10c854b94287",
+      "gitBytes": 2381,
+      "physicalLines": 51
+    },
+    {
+      "path": "supabase/migrations/20261017110000_a_recovery_finishes_what_its_code_started.sql",
+      "sha": "ba0aaf72d3035ebbf0606598600d329f8e3ff81c",
+      "gitBytes": 2891,
+      "physicalLines": 69
+    },
+    {
+      "path": "supabase/migrations/20261017120000_support_reads_only_what_the_customer_shared.sql",
+      "sha": "0b0ff031ac674826e46da02abbb6b08de8fa2769",
+      "gitBytes": 7844,
+      "physicalLines": 176
+    },
+    {
+      "path": "supabase/migrations/20261018090000_a_staff_proof_names_its_target.sql",
+      "sha": "1564d611cd7ea5f2395dca79224b394bdd884c67",
+      "gitBytes": 7889,
+      "physicalLines": 181
+    },
+    {
+      "path": "supabase/migrations/20261018163814_customer_proofs_bind_the_account.sql",
+      "sha": "54d0f54b23b4083ed544cd8a782fb0a7559620f8",
+      "gitBytes": 9632,
+      "physicalLines": 201
+    },
+    {
+      "path": "supabase/migrations/20261019104555_completion_cannot_revive_a_stopped_task.sql",
+      "sha": "76d956a8a64b54992378f851226c8ff1758e33f6",
+      "gitBytes": 777,
+      "physicalLines": 23
+    },
+    {
+      "path": "supabase/migrations/20261023120000_a_device_shows_its_apps_own_icons.sql",
+      "sha": "8126cfd4ca8f68a42fa6c54bf9bdd95cc71679ae",
+      "gitBytes": 723,
+      "physicalLines": 13
+    },
+    {
+      "path": "supabase/rollback/20260720120222_c726faf2-f6d1-4d0c-9e47-9673aa43118b_rollback.sql",
+      "sha": "a21cf18104c8d5c51c1018c6c8b27a8fe8528d89",
+      "gitBytes": 1951,
+      "physicalLines": 44
+    },
+    {
+      "path": "supabase/rollback/20260720120249_bdd4f1d3-d4c4-4c34-b081-2d6c4097ba27_rollback.sql",
+      "sha": "c16cd08e0288f4b646058af62468fd1100c168ae",
+      "gitBytes": 555,
+      "physicalLines": 7
+    },
+    {
+      "path": "supabase/rollback/20260721133830_b2cbc094-c460-48f3-b83d-6bf036acccc9_rollback.sql",
+      "sha": "cc82a44d77d62a0029cb114966c0b6ea7485ad6c",
+      "gitBytes": 3100,
+      "physicalLines": 72
+    },
+    {
+      "path": "supabase/rollback/20260721134240_2c1ea44a-fced-47ea-bcfd-35f528884460_rollback.sql",
+      "sha": "99bfa37524d110c899d410496db8589e89d424bb",
+      "gitBytes": 700,
+      "physicalLines": 11
+    },
+    {
+      "path": "supabase/rollback/20260721134445_4eb84b03-6a68-40d0-9807-4579160d5272_rollback.sql",
+      "sha": "4436ddca13e727696ca01440f211a15b0e11f157",
+      "gitBytes": 521,
+      "physicalLines": 7
+    },
+    {
+      "path": "supabase/rollback/20260721134651_2bb0cf70-367a-4f56-b3f1-316e2169dee8_rollback.sql",
+      "sha": "af26e66409d1901c4b8818f0ac15c819d10dc086",
+      "gitBytes": 580,
+      "physicalLines": 11
+    },
+    {
+      "path": "supabase/rollback/20260721135143_0b16767c-014b-4e5c-8b9e-12375fdee710_rollback.sql",
+      "sha": "0a26fd646dd037de8aec37adf7355291cfbf1ee2",
+      "gitBytes": 251,
+      "physicalLines": 6
+    },
+    {
+      "path": "supabase/rollback/20260721135426_7ca3c6c6-09f8-4e19-aef2-ef225349c77b_rollback.sql",
+      "sha": "662e81255cb2c13e70d9a43d19af4211ac641e6a",
+      "gitBytes": 175,
+      "physicalLines": 5
+    },
+    {
+      "path": "supabase/rollback/20260721135930_79977e44-6466-46ea-af1e-3e10bb1cc131_rollback.sql",
+      "sha": "74a464d670eb1bb824be2f3d8cfc4c80384fc8ff",
+      "gitBytes": 177,
+      "physicalLines": 4
+    },
+    {
+      "path": "supabase/rollback/20260721141946_382eee61-77fa-42d8-9b79-9c9c9b3195a3_rollback.sql",
+      "sha": "ecc65da16610e99ea1fd81beaa0c50b5b62ea8c1",
+      "gitBytes": 1578,
+      "physicalLines": 35
+    },
+    {
+      "path": "supabase/rollback/20260721142438_03071f4a-d755-4453-beea-10cd60c22e02_rollback.sql",
+      "sha": "e260b1e6a976d18a6c4e789530ab11b397be9fc8",
+      "gitBytes": 464,
+      "physicalLines": 8
+    },
+    {
+      "path": "supabase/rollback/20260721143021_71e195af-3680-4c89-be7c-b2d308c7ffcd_rollback.sql",
+      "sha": "b1c523d3a14c14245245737820ad445f20869762",
+      "gitBytes": 267,
+      "physicalLines": 6
+    },
+    {
+      "path": "supabase/rollback/20260721143529_267f9320-a8a8-4201-b074-064407905a75_rollback.sql",
+      "sha": "e265072ee2ef1cbd3f3d50b37a28d79b2e5f5b0c",
+      "gitBytes": 301,
+      "physicalLines": 7
+    },
+    {
+      "path": "supabase/rollback/20260721144246_5e085aff-3cc9-4e69-a5cd-340b3e874977_rollback.sql",
+      "sha": "05e2021eb30fd07a05318829305d48fa8ae9e604",
+      "gitBytes": 456,
+      "physicalLines": 8
+    },
+    {
+      "path": "supabase/rollback/20260721144308_04ad5189-98bd-4055-987a-7d896a04cdd8_rollback.sql",
+      "sha": "732668f3ba8c046ffa96c64c635dc492a610498f",
+      "gitBytes": 538,
+      "physicalLines": 7
+    },
+    {
+      "path": "supabase/rollback/20260721145409_97b93532-2d8c-4c35-a0ab-5d247f340a7a_rollback.sql",
+      "sha": "d141792e161b563481eca212e45547d0cf53020c",
+      "gitBytes": 710,
+      "physicalLines": 13
+    },
+    {
+      "path": "supabase/rollback/20260721145434_8280eace-1160-442d-88f7-1684c92485be_rollback.sql",
+      "sha": "6f12ae56e5e85746f03812f502613716d7b37648",
+      "gitBytes": 240,
+      "physicalLines": 4
+    },
+    {
+      "path": "supabase/rollback/20260721150351_1689e8de-f040-4796-bcd0-4976fea56113_rollback.sql",
+      "sha": "891390dc3be55afea24f0b1d195ada19a42e4a3f",
+      "gitBytes": 719,
+      "physicalLines": 11
+    },
+    {
+      "path": "supabase/rollback/20260721150416_6c740641-3749-4958-8ca7-a5393e3feaf7_rollback.sql",
+      "sha": "b7e8f6327053449e7d3a00f317a7145606e8aa46",
+      "gitBytes": 531,
+      "physicalLines": 7
+    },
+    {
+      "path": "supabase/rollback/20260721150450_7b63e109-84a8-4afe-94b1-e6420072c5f5_rollback.sql",
+      "sha": "1cbbcbe49a470b63041110e2cf7199a64575f716",
+      "gitBytes": 325,
+      "physicalLines": 6
+    },
+    {
+      "path": "supabase/rollback/20260721151128_8b196716-a97b-49aa-b37b-1e8b09d89101_rollback.sql",
+      "sha": "0bfeec2b76b20161199311a17916caff33f1df69",
+      "gitBytes": 1302,
+      "physicalLines": 24
+    },
+    {
+      "path": "supabase/rollback/20260721151159_0c408ff6-94e9-427b-accf-8a37f4396eb6_rollback.sql",
+      "sha": "21c0054eaf0e60dd0e627bbdd4d2592f85c43041",
+      "gitBytes": 537,
+      "physicalLines": 7
+    },
+    {
+      "path": "supabase/rollback/20260721151224_c158c078-599f-4d26-8144-6221fddac054_rollback.sql",
+      "sha": "254b432a6ad5d6482bd30e4acef70ecb8469edcc",
+      "gitBytes": 542,
+      "physicalLines": 7
+    },
+    {
+      "path": "supabase/rollback/20260721152101_c4b8b4e6-6d39-478f-a986-7da88cc3431f_rollback.sql",
+      "sha": "3df5865b9fac4042c3e1140e64463f742807ac0a",
+      "gitBytes": 1496,
+      "physicalLines": 28
+    },
+    {
+      "path": "supabase/rollback/20260721152140_8be97c93-e5a2-494b-bf54-f83f9ae0f6e9_rollback.sql",
+      "sha": "f91390c8076bb3c1502d221619a6a1088de69768",
+      "gitBytes": 328,
+      "physicalLines": 7
+    },
+    {
+      "path": "supabase/rollback/20260721153321_92abb662-0ac2-4900-a2b6-5724104dd1bb_rollback.sql",
+      "sha": "c4d0c1c34415ca751ff4053bcb2d76002e18a665",
+      "gitBytes": 240,
+      "physicalLines": 4
+    },
+    {
+      "path": "supabase/rollback/20260721160854_4e78525e-e484-4a81-b704-7df889e6d4e5_rollback.sql",
+      "sha": "cff2f842dcff47378146d46c38afc67529116cfe",
+      "gitBytes": 310,
+      "physicalLines": 8
+    },
+    {
+      "path": "supabase/rollback/20260722090000_ocade_projects_outputs_memory_rollback.sql",
+      "sha": "0431cd0848dde64818c6d187197f166e6a0db65d",
+      "gitBytes": 1499,
+      "physicalLines": 41
+    },
+    {
+      "path": "supabase/rollback/20260722100000_ocade_subscriptions_usage_rollback.sql",
+      "sha": "49539e7ae586ab04f570befd3affab76a3d49510",
+      "gitBytes": 571,
+      "physicalLines": 16
+    },
+    {
+      "path": "supabase/rollback/20260722110000_ocade_automations_rollback.sql",
+      "sha": "e7d83ceacddbaf001afcffa762d65bfc1e3f548c",
+      "gitBytes": 674,
+      "physicalLines": 18
+    },
+    {
+      "path": "supabase/rollback/20260724211500_ocade_automation_worker_rollback.sql",
+      "sha": "d105685409464be646ee821f8e848a9ab216d698",
+      "gitBytes": 2899,
+      "physicalLines": 64
+    },
+    {
+      "path": "supabase/rollback/20260730190000_ocade_controlled_rollout_gates_rollback.sql",
+      "sha": "3cd762cd97dc7a670dac06ad3435beb0c783cd77",
+      "gitBytes": 1193,
+      "physicalLines": 40
+    },
+    {
+      "path": "supabase/rollback/20260803172048_07f01536-9981-4240-abe2-06d98cc07387_rollback.sql",
+      "sha": "19b46ddd4c78403f78cde5eb037a2352e7426d4d",
+      "gitBytes": 1290,
+      "physicalLines": 48
+    },
+    {
+      "path": "supabase/rollback/20260806120000_ocade_attachment_deletion_rollback.sql",
+      "sha": "148a22e2f30328b74aa5ac617d7f51a5ac74e435",
+      "gitBytes": 1044,
+      "physicalLines": 25
+    },
+    {
+      "path": "supabase/rollback/20260815123219_b6afc017-4c53-405f-b498-96cb9cfb16f3_rollback.sql",
+      "sha": "58d5adf8be7d6402733574604a4a1a3299756a27",
+      "gitBytes": 174,
+      "physicalLines": 4
+    },
+    {
+      "path": "supabase/rollback/20260815123309_e4ac318c-6878-44d5-99d8-3aa45bab8f57_rollback.sql",
+      "sha": "f09871a5b69ad68d6496bafa2026563d15b3a595",
+      "gitBytes": 168,
+      "physicalLines": 4
+    },
+    {
+      "path": "supabase/rollback/20260815123358_a5f5c31d-c096-4e93-a7db-8a0912f4566c_rollback.sql",
+      "sha": "f51f9e62949e5710ecdcbe7c54148456b30331f0",
+      "gitBytes": 156,
+      "physicalLines": 4
+    },
+    {
+      "path": "supabase/rollback/20260815123622_6d8f7052-38cb-4117-a197-5e7a74161b69_rollback.sql",
+      "sha": "18ad435ebf3bd14a20834d2e7e8510b110a514e7",
+      "gitBytes": 166,
+      "physicalLines": 4
+    },
+    {
+      "path": "supabase/rollback/20260815193752_harden_security_definer_execute_rollback.sql",
+      "sha": "5d09794896adee21d14e54b12819ede61097b9e3",
+      "gitBytes": 777,
+      "physicalLines": 26
+    },
+    {
+      "path": "supabase/rollback/20260815213627_ocade_billing_support_ledger_rollback.sql",
+      "sha": "b16edd8cce441b8796dd192e7a96decd9863aee9",
+      "gitBytes": 581,
+      "physicalLines": 11
+    },
+    {
+      "path": "supabase/rollback/20260815215000_ocade_billing_support_privilege_hardening_rollback.sql",
+      "sha": "af29f250c45779461ec31c0f9f0d26c307c0329b",
+      "gitBytes": 772,
+      "physicalLines": 25
+    },
+    {
+      "path": "supabase/rollback/20260816082730_5e025ed8-1236-4e91-a86b-01fc1d248b99_rollback.sql",
+      "sha": "b99764559043de9da12c2753c4019677869513b6",
+      "gitBytes": 702,
+      "physicalLines": 19
+    },
+    {
+      "path": "supabase/rollback/20260816091131_cf164c67-50c9-4dff-96ac-9035b8f7bdb8_rollback.sql",
+      "sha": "b71184721db7e90939ff3ac3f96a9783bef9639d",
+      "gitBytes": 536,
+      "physicalLines": 16
+    },
+    {
+      "path": "supabase/rollback/20260816094050_f439d6e0-528d-45e2-a4f5-7914e07c7b2f_rollback.sql",
+      "sha": "084e4a396959823c54af3fdae987d35adfc785d3",
+      "gitBytes": 716,
+      "physicalLines": 18
+    },
+    {
+      "path": "supabase/rollback/20260817153000_atomic_device_revocation_rollback.sql",
+      "sha": "db02cc4594e68b97c653b39f1f168045b6ea5d6c",
+      "gitBytes": 462,
+      "physicalLines": 13
+    },
+    {
+      "path": "supabase/rollback/20260823090000_payment_webhook_audit_rollback.sql",
+      "sha": "7a6afc3450478569f1368991da2995134100ddd3",
+      "gitBytes": 861,
+      "physicalLines": 20
+    },
+    {
+      "path": "supabase/rollback/20260823110000_atomic_payment_webhook_state_rollback.sql",
+      "sha": "fb605a8b97606dd51dc0fa6b2c4bda7002df8639",
+      "gitBytes": 358,
+      "physicalLines": 10
+    },
+    {
+      "path": "supabase/rollback/20260823111000_payment_entitlement_invoker_rollback.sql",
+      "sha": "c92c8dfcc7e162ba62c268607adca9b6908ce154",
+      "gitBytes": 685,
+      "physicalLines": 26
+    },
+    {
+      "path": "supabase/rollback/20260823140000_legal_consent_receipts_rollback.sql",
+      "sha": "794949e3890a6602632328ee65f6b0e6e5416969",
+      "gitBytes": 626,
+      "physicalLines": 16
+    },
+    {
+      "path": "supabase/rollback/20260824112227_live_supabase_security_hardening_rollback.sql",
+      "sha": "8bae86da7f97e028f22f3b68dcb1d39902a6e00f",
+      "gitBytes": 428,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/rollback/20260824112646_rls_and_foreign_key_performance_rollback.sql",
+      "sha": "23365c53a53a6bdc3b5fced6fd56990af888afd5",
+      "gitBytes": 388,
+      "physicalLines": 8
+    },
+    {
+      "path": "supabase/rollback/20260824112850_consolidate_permissive_rls_policies_rollback.sql",
+      "sha": "333a501c7a6cdbd07aeb62820ff532769f7dee8b",
+      "gitBytes": 389,
+      "physicalLines": 8
+    },
+    {
+      "path": "supabase/rollback/20260824113306_fix_automation_enqueue_ambiguity_rollback.sql",
+      "sha": "25fadf79a31a70deb6c4dbdf071602a5acba1f94",
+      "gitBytes": 373,
+      "physicalLines": 8
+    },
+    {
+      "path": "supabase/rollback/20260824114319_provision_messenger_storage_bucket_rollback.sql",
+      "sha": "fabac7245ed3e500027caf2ffb8d364448b2eefb",
+      "gitBytes": 366,
+      "physicalLines": 8
+    },
+    {
+      "path": "supabase/rollback/20260824184500_restore_has_role_authenticated_execute_rollback.sql",
+      "sha": "04ea68d5174907526024286406bfcd0476795c17",
+      "gitBytes": 465,
+      "physicalLines": 10
+    },
+    {
+      "path": "supabase/rollback/20260825180000_expand_support_ticket_categories_rollback.sql",
+      "sha": "aa7cf5557187cd6fd582f1452e7fc0c77b77e054",
+      "gitBytes": 696,
+      "physicalLines": 19
+    },
+    {
+      "path": "supabase/rollback/20260826023255_a405ac19-3482-43c6-b2de-ce2af897b3bd_rollback.sql",
+      "sha": "b9a169e536c3c4b3508535b3ceb66f7d43b58efe",
+      "gitBytes": 675,
+      "physicalLines": 15
+    },
+    {
+      "path": "supabase/rollback/20260827120000_has_role_answers_only_about_the_caller_rollback.sql",
+      "sha": "e2efc778039c9d29d8d6f90acf0eaa1d30354741",
+      "gitBytes": 800,
+      "physicalLines": 26
+    },
+    {
+      "path": "supabase/rollback/20260827170000_record_demo_consumed_on_the_account_rollback.sql",
+      "sha": "d26d23d0ce4c5a038a5b8a162e4a82fa75b2d810",
+      "gitBytes": 363,
+      "physicalLines": 11
+    },
+    {
+      "path": "supabase/rollback/20260827180000_the_consent_table_was_built_twice_rollback.sql",
+      "sha": "02e4d33a2136e30e3a819778aed598d6ecfa4a36",
+      "gitBytes": 957,
+      "physicalLines": 27
+    },
+    {
+      "path": "supabase/rollback/20260902090000_retire_demo_consumed_marker_rollback.sql",
+      "sha": "9496c7856429d1d23c21c539f277f4a5b9e2edfa",
+      "gitBytes": 627,
+      "physicalLines": 16
+    },
+    {
+      "path": "supabase/rollback/20260902100000_free_pro_max_catalogue_rollback.sql",
+      "sha": "2f24d3768cdd5573fec1b67869d12de68b5e9d34",
+      "gitBytes": 1476,
+      "physicalLines": 34
+    },
+    {
+      "path": "supabase/rollback/20260902110000_commercial_usage_windows_rollback.sql",
+      "sha": "eb465c5d0db3201afbd50241c6cb1e5096943ffc",
+      "gitBytes": 3104,
+      "physicalLines": 81
+    },
+    {
+      "path": "supabase/rollback/20260902120000_mfa_recovery_credentials_rollback.sql",
+      "sha": "9252797031a79245301a04da6c723807a74b2477",
+      "gitBytes": 1111,
+      "physicalLines": 24
+    },
+    {
+      "path": "supabase/rollback/20260902130000_account_session_authority_rollback.sql",
+      "sha": "59b95c99de0995f60a4f9b8d844fcd330649270e",
+      "gitBytes": 874,
+      "physicalLines": 20
+    },
+    {
+      "path": "supabase/rollback/20260904090000_notification_preferences_and_history_rollback.sql",
+      "sha": "f7673142708aa02e3ee912e6552758a7ccfa88c1",
+      "gitBytes": 1106,
+      "physicalLines": 23
+    },
+    {
+      "path": "supabase/rollback/20260904120000_ocade_organizations_and_membership_rollback.sql",
+      "sha": "b5d5b46de8924365908a38a97b43163a35b70cf6",
+      "gitBytes": 2637,
+      "physicalLines": 46
+    },
+    {
+      "path": "supabase/rollback/20260904130000_revoke_default_privilege_writes_rollback.sql",
+      "sha": "e7b397b8b5ced0f7dad6f064f8f9f0ee73d5db42",
+      "gitBytes": 1130,
+      "physicalLines": 24
+    },
+    {
+      "path": "supabase/rollback/20260904140000_organization_ownership_before_account_deletion_rollback.sql",
+      "sha": "c3c78fa128bc522d453393545a2d47134820c1ba",
+      "gitBytes": 1689,
+      "physicalLines": 39
+    },
+    {
+      "path": "supabase/rollback/20260904150000_high_risk_organization_actions_require_recent_strong_auth_rollback.sql",
+      "sha": "3aaa3b8edcc0cb5ade533ae8661137ba69883e5f",
+      "gitBytes": 5830,
+      "physicalLines": 170
+    },
+    {
+      "path": "supabase/rollback/20260904160000_organization_capability_and_tool_policies_rollback.sql",
+      "sha": "d8a8556369fe7614d2ba91b3d26e88bcecab30f9",
+      "gitBytes": 1413,
+      "physicalLines": 41
+    },
+    {
+      "path": "supabase/rollback/20260904170000_admin_operations_read_surfaces_rollback.sql",
+      "sha": "915210cfdd7ba19ecd3e88a7f69d1767cee9c348",
+      "gitBytes": 743,
+      "physicalLines": 16
+    },
+    {
+      "path": "supabase/rollback/20260904180000_status_incidents_and_maintenance_rollback.sql",
+      "sha": "706e83a6b4f0ec335a85d8abf900f29e0700c897",
+      "gitBytes": 889,
+      "physicalLines": 20
+    },
+    {
+      "path": "supabase/rollback/20260904190000_support_article_publishing_rollback.sql",
+      "sha": "48f5c65dc328bc3b61a73e83dec16e4dce1c3873",
+      "gitBytes": 899,
+      "physicalLines": 21
+    },
+    {
+      "path": "supabase/rollback/20260905090000_conversation_share_links_rollback.sql",
+      "sha": "e331943de383e95a7a2c97e128d36e68a216a9df",
+      "gitBytes": 942,
+      "physicalLines": 20
+    },
+    {
+      "path": "supabase/rollback/20260907003328_commercial_generation_permits_rollback.sql",
+      "sha": "4dbc696d4ba7ce29a418bbf8843d8841531b2f7b",
+      "gitBytes": 1099,
+      "physicalLines": 23
+    },
+    {
+      "path": "supabase/rollback/20260907011350_offline_usage_leases_rollback.sql",
+      "sha": "92aea1560468cf4308982ee39f07fa4a4660ba36",
+      "gitBytes": 970,
+      "physicalLines": 24
+    },
+    {
+      "path": "supabase/rollback/20260907073536_claim_generation_transport_rollback.sql",
+      "sha": "ffcacda71a13a9a74402703aec878471ed38cea9",
+      "gitBytes": 468,
+      "physicalLines": 14
+    },
+    {
+      "path": "supabase/rollback/20260909120000_ocade_message_client_key_rollback.sql",
+      "sha": "cd1d8ec75942961e0b4f35a11df391749549b6cb",
+      "gitBytes": 544,
+      "physicalLines": 14
+    },
+    {
+      "path": "supabase/rollback/20260909130000_ocade_side_conversations_rollback.sql",
+      "sha": "35d63fadce9d56a3167963ee7d4e4c6903221165",
+      "gitBytes": 574,
+      "physicalLines": 14
+    },
+    {
+      "path": "supabase/rollback/20260909140000_ocade_project_files_and_folders_rollback.sql",
+      "sha": "4c31204a79cf46d5683534bbf3f625de926788a0",
+      "gitBytes": 337,
+      "physicalLines": 11
+    },
+    {
+      "path": "supabase/rollback/20260909150000_ocade_output_provenance_rollback.sql",
+      "sha": "fdccc145d6c6f40dfb3c762d16967c02b69e6809",
+      "gitBytes": 610,
+      "physicalLines": 18
+    },
+    {
+      "path": "supabase/rollback/20260909160000_ocade_message_citations_and_reactions_rollback.sql",
+      "sha": "2118ddad867343407b82c9190b88ce5f0db20fd6",
+      "gitBytes": 461,
+      "physicalLines": 14
+    },
+    {
+      "path": "supabase/rollback/20260909170000_devices_platform_rollback.sql",
+      "sha": "3efd463f9b8216b9b0e5cc6f5e1b8fb468a4e7d7",
+      "gitBytes": 384,
+      "physicalLines": 14
+    },
+    {
+      "path": "supabase/rollback/20260909180000_ocade_approvals_rollback.sql",
+      "sha": "636e37e76ff5eef340dfccd4acf005cf05006529",
+      "gitBytes": 481,
+      "physicalLines": 13
+    },
+    {
+      "path": "supabase/rollback/20260909190000_ocade_tasks_and_comments_rollback.sql",
+      "sha": "59f8c50d727c5dfe20b98353babbd0cdc0ee21b6",
+      "gitBytes": 389,
+      "physicalLines": 12
+    },
+    {
+      "path": "supabase/rollback/20260909200000_ocade_monitors_and_browser_policy_rollback.sql",
+      "sha": "df0c1831a053ff36e6b327b940c3ce256ca20054",
+      "gitBytes": 472,
+      "physicalLines": 13
+    },
+    {
+      "path": "supabase/rollback/20260910090000_policy_capability_account_storage_rollback.sql",
+      "sha": "4b50f3b8fecb3cb78a78a13b9ac1556d64b81751",
+      "gitBytes": 901,
+      "physicalLines": 25
+    },
+    {
+      "path": "supabase/rollback/20260910100000_conversation_storage_is_the_account_rollback.sql",
+      "sha": "eb28c52449420a747da9a657319e796d89bdd821",
+      "gitBytes": 3041,
+      "physicalLines": 101
+    },
+    {
+      "path": "supabase/rollback/20260910110000_one_read_policy_per_role_rollback.sql",
+      "sha": "d616ce7b660e70a00721cec48557283b8afba0fa",
+      "gitBytes": 2105,
+      "physicalLines": 44
+    },
+    {
+      "path": "supabase/rollback/20260910120000_index_every_cascade_path_rollback.sql",
+      "sha": "e0c729ab3b9a6a0e2a254a95686686efea353b58",
+      "gitBytes": 1778,
+      "physicalLines": 32
+    },
+    {
+      "path": "supabase/rollback/20260910130000_confirm_before_granting_workspace_access_rollback.sql",
+      "sha": "6a8581146edc358cf099e6382ff326aef4b0d3b3",
+      "gitBytes": 4916,
+      "physicalLines": 155
+    },
+    {
+      "path": "supabase/rollback/20260910140000_conversation_trash_and_restore_rollback.sql",
+      "sha": "defaccece1911cfaa8e241d709a88598a4363b18",
+      "gitBytes": 827,
+      "physicalLines": 18
+    },
+    {
+      "path": "supabase/rollback/20260910150000_a_task_can_belong_to_a_project_rollback.sql",
+      "sha": "4cc9b837206ea7fc1bf1d756fa80f735d0ae3898",
+      "gitBytes": 774,
+      "physicalLines": 21
+    },
+    {
+      "path": "supabase/rollback/20260910160000_support_content_needs_a_case_grant_rollback.sql",
+      "sha": "ba2319c4767c1b77a18a9502f1058a2b443db9e5",
+      "gitBytes": 2612,
+      "physicalLines": 59
+    },
+    {
+      "path": "supabase/rollback/20260910170000_index_the_support_access_foreign_key_rollback.sql",
+      "sha": "fb1e2a3f58402aef94c1fb9e072c499f87f2f6a1",
+      "gitBytes": 319,
+      "physicalLines": 10
+    },
+    {
+      "path": "supabase/rollback/20260911090000_one_entitlement_authority_and_admin_grants_rollback.sql",
+      "sha": "be7b35d416b02e7b96d49b6a32ecfc48afb28fc6",
+      "gitBytes": 2856,
+      "physicalLines": 59
+    },
+    {
+      "path": "supabase/rollback/20260911120000_a_plan_change_reaches_the_subscription_row_rollback.sql",
+      "sha": "f69f573eb2a569db4a1734c12914ca4c924734c0",
+      "gitBytes": 4777,
+      "physicalLines": 133
+    },
+    {
+      "path": "supabase/rollback/20260912090000_one_library_for_everything_a_person_keeps_rollback.sql",
+      "sha": "0cb2602119f46dd341bcb82d9d69b78be5ed6599",
+      "gitBytes": 2788,
+      "physicalLines": 70
+    },
+    {
+      "path": "supabase/rollback/20260912120000_remove_the_database_of_the_products_ocade_is_not_rollback.sql",
+      "sha": "742fdf387e684e8abf4a839343793c37482fa7d0",
+      "gitBytes": 2307,
+      "physicalLines": 56
+    },
+    {
+      "path": "supabase/rollback/20260913050000_two_organization_helpers_outlived_their_product_rollback.sql",
+      "sha": "a846cfc31b4c64c67233f9ad3e760c0a81b9a7d4",
+      "gitBytes": 1364,
+      "physicalLines": 37
+    },
+    {
+      "path": "supabase/rollback/20260918081533_profiles_usage_authority_rollback.sql",
+      "sha": "cf349dcdfe209a368f822306288373720ef8375d",
+      "gitBytes": 310,
+      "physicalLines": 5
+    },
+    {
+      "path": "supabase/rollback/20260918132426_offline_signing_retry_rollback.sql",
+      "sha": "ed26616e98a94af151c6675c6a6c0995c9ad2844",
+      "gitBytes": 176,
+      "physicalLines": 4
+    },
+    {
+      "path": "supabase/rollback/20260919090000_atomic_browser_device_registration_rollback.sql",
+      "sha": "659e8d2633d8bcaf42e8fe9bb9db342c4482a0a6",
+      "gitBytes": 506,
+      "physicalLines": 13
+    },
+    {
+      "path": "supabase/rollback/20260920090000_device_revocation_is_not_client_writable_rollback.sql",
+      "sha": "0068c84afb7cd58a07d2b4edac6920e7ba2c9bfe",
+      "gitBytes": 3137,
+      "physicalLines": 84
+    },
+    {
+      "path": "supabase/rollback/20260920100000_an_operator_can_find_any_account_rollback.sql",
+      "sha": "2ac3431ec49a26a631f805a54c8e1c89fdc8b456",
+      "gitBytes": 360,
+      "physicalLines": 10
+    },
+    {
+      "path": "supabase/rollback/20260920110000_regenerate_drops_turns_atomically_rollback.sql",
+      "sha": "94a622c0e92771ddc7c865ade8d0afb2bc7d3265",
+      "gitBytes": 338,
+      "physicalLines": 10
+    },
+    {
+      "path": "supabase/rollback/20260923090000_close_client_write_paths_rollback.sql",
+      "sha": "ab6e18015704dadf415a74d38308a2ad719ffe1b",
+      "gitBytes": 1016,
+      "physicalLines": 24
+    },
+    {
+      "path": "supabase/rollback/20260923100000_retire_trash_payments_and_side_threads_rollback.sql",
+      "sha": "7a0fb245c09d25f80d36bfd2aa4cdda61eb23cef",
+      "gitBytes": 443,
+      "physicalLines": 12
+    },
+    {
+      "path": "supabase/rollback/20260925140000_drop_orphan_enums_rollback.sql",
+      "sha": "cde2822dbed4505fc847e2ffc52a19fa3a3dfb17",
+      "gitBytes": 350,
+      "physicalLines": 11
+    },
+    {
+      "path": "supabase/rollback/20260926090000_ocade_jarvis_web_rollback.sql",
+      "sha": "4125be21630ff88fde2b9660694335ca72bef7d3",
+      "gitBytes": 1838,
+      "physicalLines": 33
+    },
+    {
+      "path": "supabase/rollback/20260927090000_jarvis_device_identity_rollback.sql",
+      "sha": "dbd71f17075c0bb8bef2c4d96c90e90c16cc1649",
+      "gitBytes": 2504,
+      "physicalLines": 50
+    },
+    {
+      "path": "supabase/rollback/20260929090000_jarvis_execution_control_rollback.sql",
+      "sha": "0332b358911635a67373b175c1bdbcd573d5a5bf",
+      "gitBytes": 355,
+      "physicalLines": 7
+    },
+    {
+      "path": "supabase/rollback/20260929100000_admin_device_removal_rollback.sql",
+      "sha": "42bb4c0f29afca966b59cf45cbf319e2d5a647b6",
+      "gitBytes": 215,
+      "physicalLines": 5
+    },
+    {
+      "path": "supabase/rollback/20260929110000_scoped_jarvis_controls_rollback.sql",
+      "sha": "09bf7c08320f109d852ecbad403b6dad21c4f29d",
+      "gitBytes": 369,
+      "physicalLines": 7
+    },
+    {
+      "path": "supabase/rollback/20260930090000_enrolled_accounts_need_their_second_factor_rollback.sql",
+      "sha": "cedefc526ae8aca0b3c59f4b28e0a7e8689cc5ff",
+      "gitBytes": 573,
+      "physicalLines": 16
+    },
+    {
+      "path": "supabase/rollback/20260930091000_admin_changes_need_a_recent_second_factor_rollback.sql",
+      "sha": "f2847648144caad16a28fbe2a0b16aecb5e0b994",
+      "gitBytes": 5559,
+      "physicalLines": 150
+    },
+    {
+      "path": "supabase/rollback/20260930092000_enrollment_cap_per_source_rollback.sql",
+      "sha": "1c43075320d00f2a94beee8c92247a280e89134d",
+      "gitBytes": 415,
+      "physicalLines": 7
+    },
+    {
+      "path": "supabase/rollback/20260930092500_an_ended_session_stops_at_once_rollback.sql",
+      "sha": "0735db461282f9fe1460e72e3da0637d8d5573e5",
+      "gitBytes": 896,
+      "physicalLines": 33
+    },
+    {
+      "path": "supabase/rollback/20260930093000_one_staff_authority_rollback.sql",
+      "sha": "3172c3b46961cc3f62094995645069130a96ce09",
+      "gitBytes": 9272,
+      "physicalLines": 237
+    },
+    {
+      "path": "supabase/rollback/20260930093500_a_staff_refusal_reads_correctly_rollback.sql",
+      "sha": "81a58988cb12e2d778af52c98eee82bb055a5ac4",
+      "gitBytes": 713,
+      "physicalLines": 23
+    },
+    {
+      "path": "supabase/rollback/20260930094000_staff_can_turn_off_a_lost_second_factor_rollback.sql",
+      "sha": "3e60a05b500348742f5ab16db83792fa2c0faedf",
+      "gitBytes": 246,
+      "physicalLines": 5
+    },
+    {
+      "path": "supabase/rollback/20260930095000_jarvis_schedules_rollback.sql",
+      "sha": "6eacbb0f08479094cb3fe74a0f815c14e2816678",
+      "gitBytes": 204,
+      "physicalLines": 5
+    },
+    {
+      "path": "supabase/rollback/20260930096000_android_devices_rollback.sql",
+      "sha": "9dd3e1bd9c82f493e8b1e61a2f30299869f21669",
+      "gitBytes": 404,
+      "physicalLines": 8
+    },
+    {
+      "path": "supabase/rollback/20261001090000_staff_authority_only_in_the_console_rollback.sql",
+      "sha": "1a0b5056b93277e8e718220a14a060c4e927b5a0",
+      "gitBytes": 1852,
+      "physicalLines": 60
+    },
+    {
+      "path": "supabase/rollback/20261001091000_web_push_subscriptions_rollback.sql",
+      "sha": "ed496f1a7b576a10524cda847007760953fae64d",
+      "gitBytes": 413,
+      "physicalLines": 8
+    },
+    {
+      "path": "supabase/rollback/20261001092000_retire_browser_extension_rollback.sql",
+      "sha": "c405c6581448f85b5c4be5b73e94cb6626182e99",
+      "gitBytes": 862,
+      "physicalLines": 16
+    },
+    {
+      "path": "supabase/rollback/20261001093000_push_follows_the_session_rollback.sql",
+      "sha": "caa7634334bb0caae457102e9c3c4dd7370367ac",
+      "gitBytes": 1452,
+      "physicalLines": 34
+    },
+    {
+      "path": "supabase/rollback/20261001094000_a_claimed_permit_is_settled_by_the_server_rollback.sql",
+      "sha": "c2ddfd3808059fc3836eab802c4e5ac42621a378",
+      "gitBytes": 1458,
+      "physicalLines": 46
+    },
+    {
+      "path": "supabase/rollback/20261001095000_a_factor_added_after_signing_in_needs_a_new_sign_in_rollback.sql",
+      "sha": "00a1860fa238d2248d30e82f7dd4bb6c8c6a0235",
+      "gitBytes": 1377,
+      "physicalLines": 37
+    },
+    {
+      "path": "supabase/rollback/20261001095100_the_console_needs_a_sign_in_after_a_new_factor_rollback.sql",
+      "sha": "37e71545d2b9bf4a352f4cef9cc19ff819c7d1c4",
+      "gitBytes": 495,
+      "physicalLines": 15
+    },
+    {
+      "path": "supabase/rollback/20261001095200_two_step_set_up_in_this_sign_in_rollback.sql",
+      "sha": "97137491314cf627559ed3189c198f27c280d629",
+      "gitBytes": 154,
+      "physicalLines": 4
+    },
+    {
+      "path": "supabase/rollback/20261001096000_staff_act_within_their_own_reach_rollback.sql",
+      "sha": "54cfa338d8dcad2ceb0da26bd5d5a5f72b9c706a",
+      "gitBytes": 5925,
+      "physicalLines": 155
+    },
+    {
+      "path": "supabase/rollback/20261001096100_a_profile_address_is_the_sign_in_address_rollback.sql",
+      "sha": "5e409315e45af396a6faee31d4530e22956fa136",
+      "gitBytes": 288,
+      "physicalLines": 6
+    },
+    {
+      "path": "supabase/rollback/20261002090000_owner_customer_operations_rollback.sql",
+      "sha": "2170ad4c07f748bd37913065651cd3680a86903a",
+      "gitBytes": 2361,
+      "physicalLines": 41
+    },
+    {
+      "path": "supabase/rollback/20261003090000_owner_and_staff_consoles_on_ocade_in_rollback.sql",
+      "sha": "f73ae91fcbfdfc0a5cc9f04d30f1d071ed77fde1",
+      "gitBytes": 4795,
+      "physicalLines": 131
+    },
+    {
+      "path": "supabase/rollback/20261006090000_cases_name_their_reader_and_conversation_rollback.sql",
+      "sha": "ab2536cf1b1c6f7a98879d0560f524bf50a65a3c",
+      "gitBytes": 5665,
+      "physicalLines": 143
+    },
+    {
+      "path": "supabase/rollback/20261007090000_action_results_are_events_rollback.sql",
+      "sha": "e12419665d39c02a37b0004f6c9e3207f74577f4",
+      "gitBytes": 345,
+      "physicalLines": 16
+    },
+    {
+      "path": "supabase/rollback/20261011090000_ownership_transfer_locks_both_owners_rollback.sql",
+      "sha": "bd512e5fb433aa5eb162494a260aa285e753d4f0",
+      "gitBytes": 1590,
+      "physicalLines": 37
+    },
+    {
+      "path": "supabase/rollback/20261011100000_one_proof_one_action_rollback.sql",
+      "sha": "086098374d78d4863ecf84ab716ae29b8bda7ad0",
+      "gitBytes": 202,
+      "physicalLines": 5
+    },
+    {
+      "path": "supabase/rollback/20261011110000_live_frame_capture_time_rollback.sql",
+      "sha": "d0c77de1c17b977664dce06af254bffb4e450504",
+      "gitBytes": 131,
+      "physicalLines": 4
+    },
+    {
+      "path": "supabase/rollback/20261012090000_completion_is_the_servers_rollback.sql",
+      "sha": "00c3b136b854e6973b0f7511a89ffa35e264e954",
+      "gitBytes": 428,
+      "physicalLines": 7
+    },
+    {
+      "path": "supabase/rollback/20261012091000_one_proof_one_staff_change_rollback.sql",
+      "sha": "7257c9b21ececc614b7a95be8b6936799b25c79d",
+      "gitBytes": 496,
+      "physicalLines": 15
+    },
+    {
+      "path": "supabase/rollback/20261012092000_staff_reads_follow_granular_rights_rollback.sql",
+      "sha": "52cf0dbd14b63ac6cb0bce424a1a055462457dfa",
+      "gitBytes": 1166,
+      "physicalLines": 15
+    },
+    {
+      "path": "supabase/rollback/20261012093000_app_names_in_any_script_rollback.sql",
+      "sha": "52e80872bdcf02de809a23b6a404ebd56d45f8fc",
+      "gitBytes": 627,
+      "physicalLines": 11
+    },
+    {
+      "path": "supabase/rollback/20261013090000_one_verified_task_one_use_rollback.sql",
+      "sha": "6953fe8892319231266fd9432a74634beef4f4a9",
+      "gitBytes": 3205,
+      "physicalLines": 86
+    },
+    {
+      "path": "supabase/rollback/20261013091000_online_ai_consent_rollback.sql",
+      "sha": "8cb92fc1e6227c2c713a948442b8e32ffee82ce5",
+      "gitBytes": 320,
+      "physicalLines": 6
+    },
+    {
+      "path": "supabase/rollback/20261016090000_task_bound_turns_and_checked_outcomes_rollback.sql",
+      "sha": "fd6c16b1df356007d504724e33ca81e581343ac6",
+      "gitBytes": 4757,
+      "physicalLines": 117
+    },
+    {
+      "path": "supabase/rollback/20261016100000_queue_admission_holds_the_task_rollback.sql",
+      "sha": "3aa1f75f66908b840061931ced417b6c9a391b65",
+      "gitBytes": 812,
+      "physicalLines": 24
+    },
+    {
+      "path": "supabase/rollback/20261017090000_schedule_occurrence_claims_rollback.sql",
+      "sha": "fdc3fd6a70bc200c97c286db97431019a48ca2bc",
+      "gitBytes": 560,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/rollback/20261017100000_a_spent_proof_names_its_change_rollback.sql",
+      "sha": "ba1e312aef0209f82eb84168f47164018a21fde9",
+      "gitBytes": 1772,
+      "physicalLines": 42
+    },
+    {
+      "path": "supabase/rollback/20261017110000_a_recovery_finishes_what_its_code_started_rollback.sql",
+      "sha": "ff6c4060d9cbb1778e4196e7316efd08a02824d3",
+      "gitBytes": 426,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/rollback/20261017120000_support_reads_only_what_the_customer_shared_rollback.sql",
+      "sha": "97c98986afc9cf4b3baf999def4739d62f54f660",
+      "gitBytes": 3917,
+      "physicalLines": 94
+    },
+    {
+      "path": "supabase/rollback/20261018090000_a_staff_proof_names_its_target_rollback.sql",
+      "sha": "3c1f96eb7898335294424f69a04ec37ebb964af8",
+      "gitBytes": 7182,
+      "physicalLines": 174
+    },
+    {
+      "path": "supabase/rollback/20261018163814_customer_proofs_bind_the_account_rollback.sql",
+      "sha": "b6931fb4ff2b855f21e56c772174e26fd99c0227",
+      "gitBytes": 9218,
+      "physicalLines": 196
+    },
+    {
+      "path": "supabase/rollback/20261019104555_completion_cannot_revive_a_stopped_task_rollback.sql",
+      "sha": "9f54a6293e406ef225954a3d2c5514bb85f336f8",
+      "gitBytes": 342,
+      "physicalLines": 6
+    },
+    {
+      "path": "supabase/rollback/20261023120000_a_device_shows_its_apps_own_icons_rollback.sql",
+      "sha": "9f784661c4263f9acb761c6e609f3a5cd6622a8e",
+      "gitBytes": 442,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/verification/20260720120222_c726faf2-f6d1-4d0c-9e47-9673aa43118b_verify.sql",
+      "sha": "788aaf38b3465280806f76733d5e8b69d8f93097",
+      "gitBytes": 3665,
+      "physicalLines": 54
+    },
+    {
+      "path": "supabase/verification/20260720120249_bdd4f1d3-d4c4-4c34-b081-2d6c4097ba27_verify.sql",
+      "sha": "aaaa9b84913e59d92031b72ab22b0d34a32f8bfc",
+      "gitBytes": 494,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/verification/20260721133830_b2cbc094-c460-48f3-b83d-6bf036acccc9_verify.sql",
+      "sha": "0cfd5cc5f6c1d7d4f7aa09c7c5077a1b12e075b8",
+      "gitBytes": 1139,
+      "physicalLines": 20
+    },
+    {
+      "path": "supabase/verification/20260721134240_2c1ea44a-fced-47ea-bcfd-35f528884460_verify.sql",
+      "sha": "b540b36c705e94bca6158dd98a7ccead0f28cd10",
+      "gitBytes": 574,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/verification/20260721134445_4eb84b03-6a68-40d0-9807-4579160d5272_verify.sql",
+      "sha": "a318d778f34d6567db4436879adc81c0131820e2",
+      "gitBytes": 461,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/verification/20260721134651_2bb0cf70-367a-4f56-b3f1-316e2169dee8_verify.sql",
+      "sha": "6fa8c488ceebc7932f81a3bba3c70f6fb31cac9c",
+      "gitBytes": 572,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/verification/20260721135143_0b16767c-014b-4e5c-8b9e-12375fdee710_verify.sql",
+      "sha": "5d119e5e22c668294455189a063a75e383fdf1fc",
+      "gitBytes": 855,
+      "physicalLines": 14
+    },
+    {
+      "path": "supabase/verification/20260721135426_7ca3c6c6-09f8-4e19-aef2-ef225349c77b_verify.sql",
+      "sha": "b6a597dcb8b193a2cc39224f0f0af19bda983154",
+      "gitBytes": 699,
+      "physicalLines": 12
+    },
+    {
+      "path": "supabase/verification/20260721135930_79977e44-6466-46ea-af1e-3e10bb1cc131_verify.sql",
+      "sha": "7dc7026326baa0a5a88e6c128ed7c9f44c9744df",
+      "gitBytes": 375,
+      "physicalLines": 7
+    },
+    {
+      "path": "supabase/verification/20260721141946_382eee61-77fa-42d8-9b79-9c9c9b3195a3_verify.sql",
+      "sha": "e7c5dd5f0cdd567c6c7761951619d406e60a59bc",
+      "gitBytes": 1068,
+      "physicalLines": 15
+    },
+    {
+      "path": "supabase/verification/20260721142438_03071f4a-d755-4453-beea-10cd60c22e02_verify.sql",
+      "sha": "2812d94be0db70e01d7290e2c1b749fcfb2ceaed",
+      "gitBytes": 1059,
+      "physicalLines": 19
+    },
+    {
+      "path": "supabase/verification/20260721143021_71e195af-3680-4c89-be7c-b2d308c7ffcd_verify.sql",
+      "sha": "9a6ef6e8ec8d9e41e737726786f381813a213f7c",
+      "gitBytes": 882,
+      "physicalLines": 14
+    },
+    {
+      "path": "supabase/verification/20260721143529_267f9320-a8a8-4201-b074-064407905a75_verify.sql",
+      "sha": "207eb640db60b0be36136ea473ba8894f0c0d53a",
+      "gitBytes": 964,
+      "physicalLines": 15
+    },
+    {
+      "path": "supabase/verification/20260721144246_5e085aff-3cc9-4e69-a5cd-340b3e874977_verify.sql",
+      "sha": "45804d9b1bb1e1bd3daee84040608d6ee0bef2b6",
+      "gitBytes": 959,
+      "physicalLines": 12
+    },
+    {
+      "path": "supabase/verification/20260721144308_04ad5189-98bd-4055-987a-7d896a04cdd8_verify.sql",
+      "sha": "ef7be7373c55175b5cc422abc0896a31969b1c1a",
+      "gitBytes": 443,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/verification/20260721145409_97b93532-2d8c-4c35-a0ab-5d247f340a7a_verify.sql",
+      "sha": "a6242f05e5aa837520e601fd39ec3c0360d792a1",
+      "gitBytes": 771,
+      "physicalLines": 13
+    },
+    {
+      "path": "supabase/verification/20260721145434_8280eace-1160-442d-88f7-1684c92485be_verify.sql",
+      "sha": "897af5de2c1d170396b1c73455852af7f2915566",
+      "gitBytes": 1796,
+      "physicalLines": 40
+    },
+    {
+      "path": "supabase/verification/20260721150351_1689e8de-f040-4796-bcd0-4976fea56113_verify.sql",
+      "sha": "3109901d7d734a3a5b6e2e769d53724bd811cdcb",
+      "gitBytes": 995,
+      "physicalLines": 12
+    },
+    {
+      "path": "supabase/verification/20260721150416_6c740641-3749-4958-8ca7-a5393e3feaf7_verify.sql",
+      "sha": "bf5993b8526604993d1c73a5bb5226e256ff2362",
+      "gitBytes": 467,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/verification/20260721150450_7b63e109-84a8-4afe-94b1-e6420072c5f5_verify.sql",
+      "sha": "8ed98cca12eda8d868512283defbfaf0c5c9073d",
+      "gitBytes": 471,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/verification/20260721151128_8b196716-a97b-49aa-b37b-1e8b09d89101_verify.sql",
+      "sha": "f6fe85b312ea0a5acd1467658fb2943bf7a0e16d",
+      "gitBytes": 946,
+      "physicalLines": 15
+    },
+    {
+      "path": "supabase/verification/20260721151159_0c408ff6-94e9-427b-accf-8a37f4396eb6_verify.sql",
+      "sha": "4759eb66d2aacfe5178ea6679ae4fb86619d0398",
+      "gitBytes": 443,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/verification/20260721151224_c158c078-599f-4d26-8144-6221fddac054_verify.sql",
+      "sha": "02feb8ed6e907d6e5374feb397af9ebf7b8fb67b",
+      "gitBytes": 425,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/verification/20260721152101_c4b8b4e6-6d39-478f-a986-7da88cc3431f_verify.sql",
+      "sha": "f3a6f7f6c9ff9136597cb991f0ea94585a765950",
+      "gitBytes": 937,
+      "physicalLines": 15
+    },
+    {
+      "path": "supabase/verification/20260721152140_8be97c93-e5a2-494b-bf54-f83f9ae0f6e9_verify.sql",
+      "sha": "c3e23c0197633be34ea38d5b5d70b4b006721c67",
+      "gitBytes": 746,
+      "physicalLines": 11
+    },
+    {
+      "path": "supabase/verification/20260721153321_92abb662-0ac2-4900-a2b6-5724104dd1bb_verify.sql",
+      "sha": "db1bcc559aa0908bd9bcc3e07fdd03b7df80cd5e",
+      "gitBytes": 1418,
+      "physicalLines": 31
+    },
+    {
+      "path": "supabase/verification/20260721160854_4e78525e-e484-4a81-b704-7df889e6d4e5_verify.sql",
+      "sha": "bc215e42f18f10624cd65c78c36067f67457dc2a",
+      "gitBytes": 457,
+      "physicalLines": 10
+    },
+    {
+      "path": "supabase/verification/20260722090000_ocade_projects_outputs_memory_verify.sql",
+      "sha": "1170237815101bc3dbe44a610e0f08bdffb3310a",
+      "gitBytes": 5514,
+      "physicalLines": 152
+    },
+    {
+      "path": "supabase/verification/20260722100000_ocade_subscriptions_usage_verify.sql",
+      "sha": "cecd64514024c493d7c25634785c4ff12436e926",
+      "gitBytes": 4066,
+      "physicalLines": 103
+    },
+    {
+      "path": "supabase/verification/20260722110000_ocade_automations_verify.sql",
+      "sha": "7b0c106e5cec09ff51ad56ffe6a346564465dcd7",
+      "gitBytes": 5602,
+      "physicalLines": 134
+    },
+    {
+      "path": "supabase/verification/20260724211500_ocade_automation_worker_verify.sql",
+      "sha": "def8773828ed759d7ad603e0e52b281b2a4c5c1f",
+      "gitBytes": 7362,
+      "physicalLines": 200
+    },
+    {
+      "path": "supabase/verification/20260730190000_ocade_controlled_rollout_gates_verify.sql",
+      "sha": "e2d34d0ac6a45a1508e0e38dc3a3232d7cbc80e7",
+      "gitBytes": 1372,
+      "physicalLines": 46
+    },
+    {
+      "path": "supabase/verification/20260803172048_07f01536-9981-4240-abe2-06d98cc07387_verify.sql",
+      "sha": "119ed8e4a0269d9332a71508819bc23d437d9e22",
+      "gitBytes": 2506,
+      "physicalLines": 74
+    },
+    {
+      "path": "supabase/verification/20260806120000_ocade_attachment_deletion_verify.sql",
+      "sha": "9d4ab7675cab2627511dab6250457512fe7aeb53",
+      "gitBytes": 4209,
+      "physicalLines": 103
+    },
+    {
+      "path": "supabase/verification/20260815123219_b6afc017-4c53-405f-b498-96cb9cfb16f3_verify.sql",
+      "sha": "d23e8fbef857dcf24874615a7cac7a52a3873aee",
+      "gitBytes": 1011,
+      "physicalLines": 30
+    },
+    {
+      "path": "supabase/verification/20260815123309_e4ac318c-6878-44d5-99d8-3aa45bab8f57_verify.sql",
+      "sha": "2999c403c9d0f1f23333f3f7b8fa18b9fb1da14c",
+      "gitBytes": 776,
+      "physicalLines": 24
+    },
+    {
+      "path": "supabase/verification/20260815123358_a5f5c31d-c096-4e93-a7db-8a0912f4566c_verify.sql",
+      "sha": "09f273670451cc557eb88ac450e4fda533f34c7d",
+      "gitBytes": 728,
+      "physicalLines": 24
+    },
+    {
+      "path": "supabase/verification/20260815123622_6d8f7052-38cb-4117-a197-5e7a74161b69_verify.sql",
+      "sha": "edba16ab4e0fc4b30170bdcbf2c96581bc329a8f",
+      "gitBytes": 1149,
+      "physicalLines": 38
+    },
+    {
+      "path": "supabase/verification/20260815193752_harden_security_definer_execute_verify.sql",
+      "sha": "bcd0cefa3c0ff84d09670c7127f11cc6f96fa42f",
+      "gitBytes": 2002,
+      "physicalLines": 64
+    },
+    {
+      "path": "supabase/verification/20260815213627_ocade_billing_support_ledger_verify.sql",
+      "sha": "76acc2a6b0352d4ec18b0ea038d18d2bdfe87af5",
+      "gitBytes": 1536,
+      "physicalLines": 37
+    },
+    {
+      "path": "supabase/verification/20260815215000_ocade_billing_support_privilege_hardening_verify.sql",
+      "sha": "61e81d3826fad39b4037b6764630a07d537526f4",
+      "gitBytes": 2206,
+      "physicalLines": 40
+    },
+    {
+      "path": "supabase/verification/20260816082730_5e025ed8-1236-4e91-a86b-01fc1d248b99_verify.sql",
+      "sha": "1ebcabb46358ed2349e875dc2e16dc39f905fedf",
+      "gitBytes": 1477,
+      "physicalLines": 43
+    },
+    {
+      "path": "supabase/verification/20260816091131_cf164c67-50c9-4dff-96ac-9035b8f7bdb8_verify.sql",
+      "sha": "a80840ce38d6422271930b1b27bb53626baeaa03",
+      "gitBytes": 906,
+      "physicalLines": 31
+    },
+    {
+      "path": "supabase/verification/20260816094050_f439d6e0-528d-45e2-a4f5-7914e07c7b2f_verify.sql",
+      "sha": "9b6fc860e771af7b795a21086e1853b9914639a3",
+      "gitBytes": 1324,
+      "physicalLines": 46
+    },
+    {
+      "path": "supabase/verification/20260817153000_atomic_device_revocation_verify.sql",
+      "sha": "9038811b4c74bebd38a8e7af8ba365b679676fd4",
+      "gitBytes": 1018,
+      "physicalLines": 33
+    },
+    {
+      "path": "supabase/verification/20260823090000_payment_webhook_audit_verify.sql",
+      "sha": "d52b07f65452c03c5e737f39215520a50ed970e1",
+      "gitBytes": 4315,
+      "physicalLines": 113
+    },
+    {
+      "path": "supabase/verification/20260823110000_atomic_payment_webhook_state_verify.sql",
+      "sha": "3cbd796728210806697d56df5f63ec40d26e3fb4",
+      "gitBytes": 1419,
+      "physicalLines": 42
+    },
+    {
+      "path": "supabase/verification/20260823111000_payment_entitlement_invoker_verify.sql",
+      "sha": "5ad95f8267328d857a35e204b0715bd2914513f3",
+      "gitBytes": 1085,
+      "physicalLines": 29
+    },
+    {
+      "path": "supabase/verification/20260823140000_legal_consent_receipts_verify.sql",
+      "sha": "8c2e1aed23e5cbb6693e125e5b238a82530efe28",
+      "gitBytes": 3071,
+      "physicalLines": 84
+    },
+    {
+      "path": "supabase/verification/20260824112227_live_supabase_security_hardening_verify.sql",
+      "sha": "a97ec73293410c142b198e935332c250b1653223",
+      "gitBytes": 1257,
+      "physicalLines": 43
+    },
+    {
+      "path": "supabase/verification/20260824112646_rls_and_foreign_key_performance_verify.sql",
+      "sha": "d6662c1722858a785e8d67ed1afe10398a33ebb8",
+      "gitBytes": 1486,
+      "physicalLines": 39
+    },
+    {
+      "path": "supabase/verification/20260824112850_consolidate_permissive_rls_policies_verify.sql",
+      "sha": "a8fd5a4e3ad2001ae663d7fd134eef5eaec44f97",
+      "gitBytes": 800,
+      "physicalLines": 25
+    },
+    {
+      "path": "supabase/verification/20260824113306_fix_automation_enqueue_ambiguity_verify.sql",
+      "sha": "ecd77483d0e1c18a57b18131f584a7fa31316d18",
+      "gitBytes": 1017,
+      "physicalLines": 24
+    },
+    {
+      "path": "supabase/verification/20260824114319_provision_messenger_storage_bucket_verify.sql",
+      "sha": "834784d6d9f5eed3d413379a9cb5efa4810e5d30",
+      "gitBytes": 792,
+      "physicalLines": 29
+    },
+    {
+      "path": "supabase/verification/20260824184500_restore_has_role_authenticated_execute_verify.sql",
+      "sha": "4f226c438b629a60ba30f1ccb24e85dc0b9e5af5",
+      "gitBytes": 733,
+      "physicalLines": 18
+    },
+    {
+      "path": "supabase/verification/20260825180000_expand_support_ticket_categories_verify.sql",
+      "sha": "a0e6b2d2673a8f1245572ef2b895ccfdb3e4983b",
+      "gitBytes": 866,
+      "physicalLines": 28
+    },
+    {
+      "path": "supabase/verification/20260826023255_a405ac19-3482-43c6-b2de-ce2af897b3bd_verify.sql",
+      "sha": "11c5b5c23da988a1f6a719a926300b08cc3d6f9b",
+      "gitBytes": 1440,
+      "physicalLines": 39
+    },
+    {
+      "path": "supabase/verification/20260827120000_has_role_answers_only_about_the_caller_verify.sql",
+      "sha": "4db8a47b10bdb693f8c4d6888aea395b2f8730b2",
+      "gitBytes": 1367,
+      "physicalLines": 33
+    },
+    {
+      "path": "supabase/verification/20260827170000_record_demo_consumed_on_the_account_verify.sql",
+      "sha": "49ba8a8606ba6b4573ffd2884901842c0384d17b",
+      "gitBytes": 978,
+      "physicalLines": 30
+    },
+    {
+      "path": "supabase/verification/20260827180000_the_consent_table_was_built_twice_verify.sql",
+      "sha": "7f77794ddf3880a156727c342312896dd4e355b1",
+      "gitBytes": 1904,
+      "physicalLines": 53
+    },
+    {
+      "path": "supabase/verification/20260902090000_retire_demo_consumed_marker_verify.sql",
+      "sha": "55b75ce75a9ff7c24a4f7bcadde1caebc8bc2522",
+      "gitBytes": 1016,
+      "physicalLines": 30
+    },
+    {
+      "path": "supabase/verification/20260902100000_free_pro_max_catalogue_verify.sql",
+      "sha": "48a23b1f79c78a6e2074401fb260277cce99ec6d",
+      "gitBytes": 3630,
+      "physicalLines": 88
+    },
+    {
+      "path": "supabase/verification/20260902110000_commercial_usage_windows_verify.sql",
+      "sha": "c082e1629dfeccad769ba56915ce85c802bd972f",
+      "gitBytes": 4535,
+      "physicalLines": 101
+    },
+    {
+      "path": "supabase/verification/20260902120000_mfa_recovery_credentials_verify.sql",
+      "sha": "3fde207fbf0984d05a2db0fb02465626768f54cd",
+      "gitBytes": 7337,
+      "physicalLines": 168
+    },
+    {
+      "path": "supabase/verification/20260902130000_account_session_authority_verify.sql",
+      "sha": "222be3a5545cd22a5195f36361aa3e80839f8958",
+      "gitBytes": 6414,
+      "physicalLines": 143
+    },
+    {
+      "path": "supabase/verification/20260904090000_notification_preferences_and_history_verify.sql",
+      "sha": "f4ac1639010c189a61309f926242ea3212566d19",
+      "gitBytes": 3416,
+      "physicalLines": 109
+    },
+    {
+      "path": "supabase/verification/20260904120000_ocade_organizations_and_membership_verify.sql",
+      "sha": "3f5ccb26514ac53df81d04281d56f251e7c95a7c",
+      "gitBytes": 5536,
+      "physicalLines": 161
+    },
+    {
+      "path": "supabase/verification/20260904130000_revoke_default_privilege_writes_verify.sql",
+      "sha": "334358b84c04eaf58045ca98b251fc144b2ce95c",
+      "gitBytes": 3957,
+      "physicalLines": 100
+    },
+    {
+      "path": "supabase/verification/20260904140000_organization_ownership_before_account_deletion_verify.sql",
+      "sha": "6365bc62a1b8da0d7c353aa68b9b1d7043413608",
+      "gitBytes": 2094,
+      "physicalLines": 58
+    },
+    {
+      "path": "supabase/verification/20260904150000_high_risk_organization_actions_require_recent_strong_auth_verify.sql",
+      "sha": "89cb87e22dca074b412efb9a562ae6c5c317d387",
+      "gitBytes": 2908,
+      "physicalLines": 87
+    },
+    {
+      "path": "supabase/verification/20260904160000_organization_capability_and_tool_policies_verify.sql",
+      "sha": "11c2519a215d1a548bfa2da20a9ccb0ae72a8450",
+      "gitBytes": 5053,
+      "physicalLines": 130
+    },
+    {
+      "path": "supabase/verification/20260904170000_admin_operations_read_surfaces_verify.sql",
+      "sha": "46a54fcaf339d4424e4258ecbe97183d735f486c",
+      "gitBytes": 3310,
+      "physicalLines": 86
+    },
+    {
+      "path": "supabase/verification/20260904180000_status_incidents_and_maintenance_verify.sql",
+      "sha": "ede3dab0c41eb387a93d1eb2978958cb330f2041",
+      "gitBytes": 4683,
+      "physicalLines": 131
+    },
+    {
+      "path": "supabase/verification/20260904190000_support_article_publishing_verify.sql",
+      "sha": "535a728700fba68ccab60687ace5df2203824237",
+      "gitBytes": 4419,
+      "physicalLines": 115
+    },
+    {
+      "path": "supabase/verification/20260905090000_conversation_share_links_verify.sql",
+      "sha": "4c3a71b844a9c99a4f5a0d3ff3971974f1e22a0c",
+      "gitBytes": 4264,
+      "physicalLines": 113
+    },
+    {
+      "path": "supabase/verification/20260907003328_commercial_generation_permits_verify.sql",
+      "sha": "06ee0a9f48e0b8b152faac339d47051ebf00c5f8",
+      "gitBytes": 8660,
+      "physicalLines": 229
+    },
+    {
+      "path": "supabase/verification/20260907011350_offline_usage_leases_verify.sql",
+      "sha": "b4b1519ae9153d68f34260061693fef3d6a7125b",
+      "gitBytes": 11627,
+      "physicalLines": 236
+    },
+    {
+      "path": "supabase/verification/20260907073536_claim_generation_transport_verify.sql",
+      "sha": "cfae75e8ae4ee1be08ecf639a8f67df56d99c3d1",
+      "gitBytes": 2860,
+      "physicalLines": 113
+    },
+    {
+      "path": "supabase/verification/20260909120000_ocade_message_client_key_verify.sql",
+      "sha": "33109f9da9803a236308ae58fdcdee2dd6cf0d02",
+      "gitBytes": 1837,
+      "physicalLines": 52
+    },
+    {
+      "path": "supabase/verification/20260909130000_ocade_side_conversations_verify.sql",
+      "sha": "01377076853b946242ded4eeefe43317bcef1658",
+      "gitBytes": 1147,
+      "physicalLines": 38
+    },
+    {
+      "path": "supabase/verification/20260909140000_ocade_project_files_and_folders_verify.sql",
+      "sha": "d25198278d918550aee454825783a82baa4079cd",
+      "gitBytes": 847,
+      "physicalLines": 26
+    },
+    {
+      "path": "supabase/verification/20260909150000_ocade_output_provenance_verify.sql",
+      "sha": "2011a6ba96acdc5695fd11b71b31731d84e0a9a0",
+      "gitBytes": 1542,
+      "physicalLines": 41
+    },
+    {
+      "path": "supabase/verification/20260909160000_ocade_message_citations_and_reactions_verify.sql",
+      "sha": "640dc380931e24a67faf60a66389676a32a60dc2",
+      "gitBytes": 886,
+      "physicalLines": 26
+    },
+    {
+      "path": "supabase/verification/20260909170000_devices_platform_verify.sql",
+      "sha": "ee5ce4998210cdcc4bcd5c7605f5e2be65db571e",
+      "gitBytes": 1004,
+      "physicalLines": 27
+    },
+    {
+      "path": "supabase/verification/20260909180000_ocade_approvals_verify.sql",
+      "sha": "7766b2ea79db53cea0fa3866d7aaaebef44f1dc6",
+      "gitBytes": 1708,
+      "physicalLines": 48
+    },
+    {
+      "path": "supabase/verification/20260909190000_ocade_tasks_and_comments_verify.sql",
+      "sha": "e11b52fa92a0c48f8c234d5753584085d6132269",
+      "gitBytes": 1627,
+      "physicalLines": 49
+    },
+    {
+      "path": "supabase/verification/20260909200000_ocade_monitors_and_browser_policy_verify.sql",
+      "sha": "b24570d0cf95f66d91b582b37664aba1a34b7a4a",
+      "gitBytes": 2697,
+      "physicalLines": 68
+    },
+    {
+      "path": "supabase/verification/20260910090000_policy_capability_account_storage_verify.sql",
+      "sha": "f57f7ac920bf6d68c370977550a0549749c60f32",
+      "gitBytes": 858,
+      "physicalLines": 23
+    },
+    {
+      "path": "supabase/verification/20260910100000_conversation_storage_is_the_account_verify.sql",
+      "sha": "157e5d10305093b680ad2e6c3d888a59e4829d53",
+      "gitBytes": 1180,
+      "physicalLines": 36
+    },
+    {
+      "path": "supabase/verification/20260910110000_one_read_policy_per_role_verify.sql",
+      "sha": "30a53ffdabf2e8fec7fd81a84b66d9467ae8944f",
+      "gitBytes": 3654,
+      "physicalLines": 97
+    },
+    {
+      "path": "supabase/verification/20260910120000_index_every_cascade_path_verify.sql",
+      "sha": "9f32de357f0f7d3007b0c6b87554c5b0ccd6c454",
+      "gitBytes": 1182,
+      "physicalLines": 32
+    },
+    {
+      "path": "supabase/verification/20260910130000_confirm_before_granting_workspace_access_verify.sql",
+      "sha": "963dbceb4a3d610fc02efa7c75cb59d315b5533d",
+      "gitBytes": 2219,
+      "physicalLines": 54
+    },
+    {
+      "path": "supabase/verification/20260910140000_conversation_trash_and_restore_verify.sql",
+      "sha": "170cee904a28bdbd5d5d10d2b82ab7c5aa749e0f",
+      "gitBytes": 3853,
+      "physicalLines": 83
+    },
+    {
+      "path": "supabase/verification/20260910150000_a_task_can_belong_to_a_project_verify.sql",
+      "sha": "65f0c0a3ebaa7043d7637c9de236001c9cac7c81",
+      "gitBytes": 2154,
+      "physicalLines": 62
+    },
+    {
+      "path": "supabase/verification/20260910160000_support_content_needs_a_case_grant_verify.sql",
+      "sha": "7e2a7f16919b22ce4076f4fffddc3efc14d980de",
+      "gitBytes": 7255,
+      "physicalLines": 173
+    },
+    {
+      "path": "supabase/verification/20260910170000_index_the_support_access_foreign_key_verify.sql",
+      "sha": "cac03be53c86f30a0fdc1cae86f7a503d3f8adc3",
+      "gitBytes": 1008,
+      "physicalLines": 30
+    },
+    {
+      "path": "supabase/verification/20260911090000_one_entitlement_authority_and_admin_grants_verify.sql",
+      "sha": "8bff99c1d6af5203b227f0777227687cac755892",
+      "gitBytes": 6048,
+      "physicalLines": 154
+    },
+    {
+      "path": "supabase/verification/20260911120000_a_plan_change_reaches_the_subscription_row_verify.sql",
+      "sha": "34e6f0f5c61dd4bb39dd5038d64363e8f9c5496f",
+      "gitBytes": 3608,
+      "physicalLines": 74
+    },
+    {
+      "path": "supabase/verification/20260912090000_one_library_for_everything_a_person_keeps_verify.sql",
+      "sha": "55b424a83bf0ca79bc7aed53a1dcb6482a62e149",
+      "gitBytes": 4081,
+      "physicalLines": 90
+    },
+    {
+      "path": "supabase/verification/20260912120000_remove_the_database_of_the_products_ocade_is_not_verify.sql",
+      "sha": "d4e2c9a51990b256231e4a403cbbdcf977e635f8",
+      "gitBytes": 5903,
+      "physicalLines": 151
+    },
+    {
+      "path": "supabase/verification/20260913050000_two_organization_helpers_outlived_their_product_verify.sql",
+      "sha": "4fe81dfc12d0750590a9e242aba7ca45ec062236",
+      "gitBytes": 2110,
+      "physicalLines": 48
+    },
+    {
+      "path": "supabase/verification/20260918081533_profiles_usage_authority_verify.sql",
+      "sha": "efd20968c2340db9738300322b92372912d35872",
+      "gitBytes": 9816,
+      "physicalLines": 159
+    },
+    {
+      "path": "supabase/verification/20260918132426_offline_signing_retry_verify.sql",
+      "sha": "928144f7aa340a29daba1a25ae1126ce10fd5c23",
+      "gitBytes": 4204,
+      "physicalLines": 64
+    },
+    {
+      "path": "supabase/verification/20260919090000_atomic_browser_device_registration_verify.sql",
+      "sha": "7dbe6447cef768f7bdb79306f008d3cb2fb54b11",
+      "gitBytes": 1703,
+      "physicalLines": 45
+    },
+    {
+      "path": "supabase/verification/20260920090000_device_revocation_is_not_client_writable_verify.sql",
+      "sha": "829fa0e66b996de2906e1d71a9bf73a3fef48c90",
+      "gitBytes": 2223,
+      "physicalLines": 47
+    },
+    {
+      "path": "supabase/verification/20260920100000_an_operator_can_find_any_account_verify.sql",
+      "sha": "903bede5930f65bd45e84ddcb3956ed96229a2a9",
+      "gitBytes": 526,
+      "physicalLines": 12
+    },
+    {
+      "path": "supabase/verification/20260920110000_regenerate_drops_turns_atomically_verify.sql",
+      "sha": "c3dab7e2c04c224fc14cfac8b9612b02d8ea21cb",
+      "gitBytes": 883,
+      "physicalLines": 21
+    },
+    {
+      "path": "supabase/verification/20260923090000_close_client_write_paths_verify.sql",
+      "sha": "1df26a745b4116cb604f69e5e46ebbf03ceb6660",
+      "gitBytes": 1802,
+      "physicalLines": 35
+    },
+    {
+      "path": "supabase/verification/20260923100000_retire_trash_payments_and_side_threads_verify.sql",
+      "sha": "033078382f900d72efe47d3b7926907d4c23aaa3",
+      "gitBytes": 1577,
+      "physicalLines": 30
+    },
+    {
+      "path": "supabase/verification/20260925140000_drop_orphan_enums_verify.sql",
+      "sha": "347cf29470016878db9aec862c6db9b2f5d8b350",
+      "gitBytes": 1126,
+      "physicalLines": 19
+    },
+    {
+      "path": "supabase/verification/20260926090000_ocade_jarvis_web_verify.sql",
+      "sha": "bbb234cf72c4e31e445cae622cb4e42bcbef75e1",
+      "gitBytes": 2470,
+      "physicalLines": 45
+    },
+    {
+      "path": "supabase/verification/20260927090000_jarvis_device_identity_verify.sql",
+      "sha": "9b25bc718f5e515d453c04356a633326e767650e",
+      "gitBytes": 1584,
+      "physicalLines": 28
+    },
+    {
+      "path": "supabase/verification/20260929090000_jarvis_execution_control_verify.sql",
+      "sha": "9edbe77885f613e4b3e34af80e3bf9b8ba76772d",
+      "gitBytes": 958,
+      "physicalLines": 18
+    },
+    {
+      "path": "supabase/verification/20260929100000_admin_device_removal_verify.sql",
+      "sha": "74939596a0491e0bb0bdfd45d3163d135772fb88",
+      "gitBytes": 790,
+      "physicalLines": 16
+    },
+    {
+      "path": "supabase/verification/20260929110000_scoped_jarvis_controls_verify.sql",
+      "sha": "62064ce54b207c62689416062b6aa26d68236aa0",
+      "gitBytes": 694,
+      "physicalLines": 17
+    },
+    {
+      "path": "supabase/verification/20260930090000_enrolled_accounts_need_their_second_factor_verify.sql",
+      "sha": "331a15a7abfc1f984f8ea1661df730ce321e0db5",
+      "gitBytes": 1212,
+      "physicalLines": 24
+    },
+    {
+      "path": "supabase/verification/20260930091000_admin_changes_need_a_recent_second_factor_verify.sql",
+      "sha": "fd4619776465ab4b68db48b76e61ce0bb58f4ad0",
+      "gitBytes": 640,
+      "physicalLines": 17
+    },
+    {
+      "path": "supabase/verification/20260930092000_enrollment_cap_per_source_verify.sql",
+      "sha": "08c0ec80d47df400ea180d9cf9e81e1da190c9c5",
+      "gitBytes": 690,
+      "physicalLines": 17
+    },
+    {
+      "path": "supabase/verification/20260930092500_an_ended_session_stops_at_once_verify.sql",
+      "sha": "fbb92cad20659720f266bbbe5efca6729523ff71",
+      "gitBytes": 1074,
+      "physicalLines": 24
+    },
+    {
+      "path": "supabase/verification/20260930093000_one_staff_authority_verify.sql",
+      "sha": "da80dbd749b0acdf7766321c77f23d8ab670f6ff",
+      "gitBytes": 3000,
+      "physicalLines": 64
+    },
+    {
+      "path": "supabase/verification/20260930093500_a_staff_refusal_reads_correctly_verify.sql",
+      "sha": "c8c80638c5d0db6afe597c84a1fe54a9dc3ff5c4",
+      "gitBytes": 599,
+      "physicalLines": 15
+    },
+    {
+      "path": "supabase/verification/20260930094000_staff_can_turn_off_a_lost_second_factor_verify.sql",
+      "sha": "263c188db5a3e880a06dfe025719f277cd57bf84",
+      "gitBytes": 857,
+      "physicalLines": 20
+    },
+    {
+      "path": "supabase/verification/20260930095000_jarvis_schedules_verify.sql",
+      "sha": "9a705d3cd0367fd3b06bf5cc54893a19c7adabfc",
+      "gitBytes": 1107,
+      "physicalLines": 24
+    },
+    {
+      "path": "supabase/verification/20260930096000_android_devices_verify.sql",
+      "sha": "19dab5c994e51ff99b0896365a1ff181fd4e6592",
+      "gitBytes": 255,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/verification/20261001090000_staff_authority_only_in_the_console_verify.sql",
+      "sha": "b8f6ec8460d5fbee4cb33fe16e61e048f352ecf1",
+      "gitBytes": 965,
+      "physicalLines": 22
+    },
+    {
+      "path": "supabase/verification/20261001091000_web_push_subscriptions_verify.sql",
+      "sha": "0320cd5d08f5d0112933cecc516d340f18a52d6f",
+      "gitBytes": 1053,
+      "physicalLines": 20
+    },
+    {
+      "path": "supabase/verification/20261001092000_retire_browser_extension_verify.sql",
+      "sha": "82088c99ea11ea995dd1be594981174f83ba0b8a",
+      "gitBytes": 718,
+      "physicalLines": 16
+    },
+    {
+      "path": "supabase/verification/20261001093000_push_follows_the_session_verify.sql",
+      "sha": "8589da843299fd9dc81ca7af02161980e5f31406",
+      "gitBytes": 558,
+      "physicalLines": 15
+    },
+    {
+      "path": "supabase/verification/20261001094000_a_claimed_permit_is_settled_by_the_server_verify.sql",
+      "sha": "0891687975a423c7a7363dcbb90dbf9369721e68",
+      "gitBytes": 699,
+      "physicalLines": 14
+    },
+    {
+      "path": "supabase/verification/20261001095000_a_factor_added_after_signing_in_needs_a_new_sign_in_verify.sql",
+      "sha": "5897eaea529cdb9a6ab165d91912a34d6b18e04e",
+      "gitBytes": 671,
+      "physicalLines": 15
+    },
+    {
+      "path": "supabase/verification/20261001095100_the_console_needs_a_sign_in_after_a_new_factor_verify.sql",
+      "sha": "9c874da815b7798edc103cbf95f609d7cf0d55b0",
+      "gitBytes": 599,
+      "physicalLines": 13
+    },
+    {
+      "path": "supabase/verification/20261001095200_two_step_set_up_in_this_sign_in_verify.sql",
+      "sha": "5240766ff7e1ff06253ad98aa4f90c2fe6b76e9a",
+      "gitBytes": 470,
+      "physicalLines": 12
+    },
+    {
+      "path": "supabase/verification/20261001096000_staff_act_within_their_own_reach_verify.sql",
+      "sha": "351fb4760b18c9600ce1aac1d25abd9f41dcb0e2",
+      "gitBytes": 930,
+      "physicalLines": 16
+    },
+    {
+      "path": "supabase/verification/20261001096100_a_profile_address_is_the_sign_in_address_verify.sql",
+      "sha": "805c6dd2d632216db82f102052f09a636a785a87",
+      "gitBytes": 818,
+      "physicalLines": 17
+    },
+    {
+      "path": "supabase/verification/20261002090000_owner_customer_operations_verify.sql",
+      "sha": "4d7801db0e3fb93fc12b7cb7bc7e2aaca1f66433",
+      "gitBytes": 1887,
+      "physicalLines": 35
+    },
+    {
+      "path": "supabase/verification/20261003090000_owner_and_staff_consoles_on_ocade_in_verify.sql",
+      "sha": "0334aada9004783711d29cf72d2996934a24cb0d",
+      "gitBytes": 2804,
+      "physicalLines": 51
+    },
+    {
+      "path": "supabase/verification/20261006090000_cases_name_their_reader_and_conversation_verify.sql",
+      "sha": "d1feba7c024a26dff437902063d58b4a449dda0b",
+      "gitBytes": 1980,
+      "physicalLines": 31
+    },
+    {
+      "path": "supabase/verification/20261007090000_action_results_are_events_verify.sql",
+      "sha": "e8d3029f83ac6d1d5725d557806f69f3e58416a7",
+      "gitBytes": 749,
+      "physicalLines": 21
+    },
+    {
+      "path": "supabase/verification/20261011090000_ownership_transfer_locks_both_owners_verify.sql",
+      "sha": "75713c4b9c8ef64277b86a5844391fca92c65c8c",
+      "gitBytes": 662,
+      "physicalLines": 16
+    },
+    {
+      "path": "supabase/verification/20261011100000_one_proof_one_action_verify.sql",
+      "sha": "74ef63d3d50441bfc86a9a0d9c3b4ea51757988e",
+      "gitBytes": 637,
+      "physicalLines": 15
+    },
+    {
+      "path": "supabase/verification/20261011110000_live_frame_capture_time_verify.sql",
+      "sha": "35e49fad955be95879e9ebaa3e8d9c4f813e0cb5",
+      "gitBytes": 331,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/verification/20261012090000_completion_is_the_servers_verify.sql",
+      "sha": "503efaa10fdfaddbb0836cd512a31e4105ca0e44",
+      "gitBytes": 430,
+      "physicalLines": 11
+    },
+    {
+      "path": "supabase/verification/20261012091000_one_proof_one_staff_change_verify.sql",
+      "sha": "6eb6ba6fd53063e9b909017b09f8b2f400ae5f5f",
+      "gitBytes": 716,
+      "physicalLines": 15
+    },
+    {
+      "path": "supabase/verification/20261012092000_staff_reads_follow_granular_rights_verify.sql",
+      "sha": "8cc12661a804224a600f1b08a1563c0a69a89f5f",
+      "gitBytes": 305,
+      "physicalLines": 9
+    },
+    {
+      "path": "supabase/verification/20261012093000_app_names_in_any_script_verify.sql",
+      "sha": "25bb0926635ff2d33b822f9534e55c27e1041fbd",
+      "gitBytes": 517,
+      "physicalLines": 12
+    },
+    {
+      "path": "supabase/verification/20261013090000_one_verified_task_one_use_verify.sql",
+      "sha": "2beacf8910d9f1da663fcd7d68089dd82504828f",
+      "gitBytes": 657,
+      "physicalLines": 15
+    },
+    {
+      "path": "supabase/verification/20261013091000_online_ai_consent_verify.sql",
+      "sha": "33c56c5cd38a288fded486fc4c41e506aaea9608",
+      "gitBytes": 469,
+      "physicalLines": 12
+    },
+    {
+      "path": "supabase/verification/20261016090000_task_bound_turns_and_checked_outcomes_verify.sql",
+      "sha": "8330f9d86fd0a37e84e7cd730968abd8c81708ef",
+      "gitBytes": 803,
+      "physicalLines": 17
+    },
+    {
+      "path": "supabase/verification/20261016100000_queue_admission_holds_the_task_verify.sql",
+      "sha": "88cc687ec42726f5ff339ee825688f8193ba59e5",
+      "gitBytes": 573,
+      "physicalLines": 13
+    },
+    {
+      "path": "supabase/verification/20261017090000_schedule_occurrence_claims_verify.sql",
+      "sha": "a3d47eca533af752959c147c10261e35ee5d8d78",
+      "gitBytes": 562,
+      "physicalLines": 13
+    },
+    {
+      "path": "supabase/verification/20261017100000_a_spent_proof_names_its_change_verify.sql",
+      "sha": "eca6a79d2c917e3d9da46492df299fc147e8c104",
+      "gitBytes": 479,
+      "physicalLines": 12
+    },
+    {
+      "path": "supabase/verification/20261017110000_a_recovery_finishes_what_its_code_started_verify.sql",
+      "sha": "7bdfd82b6b940f43f9f3f92db5d5b4bd1089da57",
+      "gitBytes": 485,
+      "physicalLines": 11
+    },
+    {
+      "path": "supabase/verification/20261017120000_support_reads_only_what_the_customer_shared_verify.sql",
+      "sha": "1477a74715ea6da72012b7725167251b82349be8",
+      "gitBytes": 710,
+      "physicalLines": 13
+    },
+    {
+      "path": "supabase/verification/20261018090000_a_staff_proof_names_its_target_verify.sql",
+      "sha": "6254fe922f52d5e35b3d1c76f7324c6d2dfcd896",
+      "gitBytes": 669,
+      "physicalLines": 19
+    },
+    {
+      "path": "supabase/verification/20261018163814_customer_proofs_bind_the_account_verify.sql",
+      "sha": "a2c818239fac2061cfa98ec4a70c84d6d7af4dfb",
+      "gitBytes": 1247,
+      "physicalLines": 29
+    },
+    {
+      "path": "supabase/verification/20261019104555_completion_cannot_revive_a_stopped_task_verify.sql",
+      "sha": "fdc0b3a3cae382a77d03af5e89fe97657c0856a2",
+      "gitBytes": 1212,
+      "physicalLines": 26
+    },
+    {
+      "path": "supabase/verification/20261023120000_a_device_shows_its_apps_own_icons_verify.sql",
+      "sha": "8d824a0c48795048087165c3c15dbdb074c71634",
+      "gitBytes": 1040,
+      "physicalLines": 23
+    },
+    {
+      "path": "vite.config.ts",
+      "sha": "916a57e10748962ba3a67cf02b93d588b0ec7c03",
+      "gitBytes": 19827,
+      "physicalLines": 388
+    },
+    {
+      "path": "vitest.config.ts",
+      "sha": "36769c8e565509e703e9008dfe9d4f35811dd479",
+      "gitBytes": 4615,
+      "physicalLines": 111
+    },
+    {
+      "path": "vitest.deepseek.config.ts",
+      "sha": "4d243d62bd55fda4441abc7e75f36a7b13172a80",
+      "gitBytes": 2272,
+      "physicalLines": 53
+    }
+  ]
+}

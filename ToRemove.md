@@ -1,5 +1,11 @@
 # OCADE retirement manifest
 
+## Proven fetch duplication removed — 29 October 2026
+
+After working checkpoint `a53f5ba4a80dc3b126894bd8c2f1d34cd4c2e12b`, three parallel agents reviewed KISS/YAGNI/DRY-WET cleanup. Removed the third copy of the same live Supabase fetch adapter by reusing the existing lightweight configuration module. No new product module/package; preserve lazy SDK, exact caller JWT/header handling and existing security/lifecycle boundaries. Fresh network-free parity84cases/808assertionsPASS. Full build/Vitest/browser UNRUN/BLOCKED.
+
+Production physical delta−50lines/−1,390characters; regression test+119physical lines. [Proof/review](docs/audit-checkpoints/20261029-browser-continuation/supabase-fetch-debloat.json), [all source counts](docs/audit-checkpoints/20261029-browser-continuation/source-loc.json). Eight reviewed live UI/helper modules and37direct dependencies were retained: removal was not proven safe. No safety/accessibility/recovery/test feature was removed for a line target. No runtime performance claim is made.
+
 This is a proof-gated retirement list, not another implementation plan or deployment runbook. [Open work](BLOCKED_TESTS.md) orders unresolved implementation and verification; [Testing](docs/TESTING.md) owns release operations. Baseline: f521e23529542d709a9627181341b0e904a8b0c3. No product code was removed during the documentation mission.
 
 ## Required proof before every removal

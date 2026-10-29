@@ -1,5 +1,15 @@
 # Cloud safety evidence — 28 October 2026
 
+## Safe debloat proof — 29 October 2026
+
+Working checkpoint `a53f5ba4a80dc3b126894bd8c2f1d34cd4c2e12b` was committed first. Three independent parallel scopes then reviewed Supabase fetch duplication, eight UI/helper modules and12callers, and scripts/config/direct dependency roles/count methodology. Only the three identical fetch adapters were consolidated, in the existing configuration owner. No new product module/dependency or removed safety/test/accessibility behavior. Distinct live helpers and all37direct package roles were retained.
+
+Fresh extracted factory parity using real Web APIs/injected transport: **84cases/808assertions PASS**, zero network/resource changes. Current baseline hashes match; non-helper source is preserved except imports/removal spacing. Lazy SDK and configuration/vendor entry boundaries are preserved by source review, not a new bundle benchmark. [Reproducible code/review](../audit-checkpoints/20261029-browser-continuation/supabase-fetch-debloat.json). Full Vitest/typecheck/lint/format/build/browser remains UNRUN/BLOCKED; no runtime speed/memory/cost claim.
+
+[Fail-closed source count](../audit-checkpoints/20261029-browser-continuation/source-loc.json):964baseline blobs read successfully, zero read failures, exact existing scripts/measure-loc.mjs extension/path/newline rules. Four candidate production blobs and one119-line test yield **965source files /157,752physical lines**, net+69; **−50production lines /−1,390characters**. Total final tracked Gitblob files:2,179; one upstream gitlink is separate and its contents are not counted. Includes blank/comment/test/experiment/migration lines; excludes generated/vendor paths listed in the script. Independent aggregation checked965unique paths, all source hashes and9directory totals; it did not repeat all964reads. Prior120test-lines figure was an extra trailing split item; physical count is119.
+
+No deployment, main merge, production/staging/infrastructure/secret change, spending, personal-PC product execution or scheduling. The cleanup commit uses [skip ci] while execution tests remain blocked. Browser readiness and 0/10 commercial release gates are unchanged. All plan.md requirements remain preserved and open where unverified.
+
 ## Working checkpoint — 29 October 2026
 
 Parent `07f8fb81bf4fc97f94c809ec6e510c460b6cf87e`; implementation branch only. RC13 source `9381a8a8e6bd4eaef194e6585e8dabde8c187101` passes **71/71 controlled extracted-source fixtures**, versus **30/71** baseline. [Adapter](../audit-checkpoints/20261029-browser-continuation/remote-sheet-verification.mjs), [results](../audit-checkpoints/20261029-browser-continuation/sheet-verification.json). Exact checkGap/sheet helpers use explicit type-only erasure and controlled read/path/content fixtures. This is not full verificationGap/protocol/database execution, actual browser/native/file output or a customer success rate. **93 full Vitest cases are authored and UNRUN**; typecheck, lint, formatting, build and real workflows remain UNRUN/BLOCKED.

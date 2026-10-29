@@ -1,5 +1,11 @@
 # OCADE decisions and historical provenance
 
+## Safe cleanup executed — 29 October 2026
+
+The owner's requested sequence was followed: working checkpoint `a53f5ba4a80dc3b126894bd8c2f1d34cd4c2e12b`, then three parallel KISS/YAGNI/low-coupling DRY-WET reviews, then one proof-based fetch-adapter consolidation. Existing configuration owner is reused; SDK/client lifecycle boundaries remain. All other reviewed live helpers/dependencies are retained. No speculative abstraction, new product module/package or runtime performance claim.
+
+[Evidence](audit-checkpoints/20261029-browser-continuation/supabase-fetch-debloat.json), [count method and per-file hashes](audit-checkpoints/20261029-browser-continuation/source-loc.json). −50production physical lines,119test lines added; total157,752 source lines across965selected files and2,179tracked Gitblob files. Full build/Vitest/browser remains UNRUN/BLOCKED; no release gate or master requirement is completed merely by cleanup. The complete plan.md mission remains active.
+
 ## Owner working checkpoint and cleanup request — 29 October 2026
 
 The owner kept unavailable execution tests BLOCKED, then requested committing the latest working changes before multiple-agent safe debloating under KISS, YAGNI and low-coupling DRY/WET, followed by a cleanup commit and total file/LOC counts. This changes priority, not deployment/spending/PC permissions. Retain the full plan.md mission and all original requirements; no public launch is authorized.

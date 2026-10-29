@@ -1,5 +1,11 @@
 # Blocked, failed and untested checks
 
+## Safe cleanup result — 29 October 2026
+
+The requested working commit `a53f5ba4a80dc3b126894bd8c2f1d34cd4c2e12b` preceded three parallel cleanup reviews. The only proven removal is the third-copy Supabase fetch adapter consolidation into its existing lightweight configuration owner. Controlled cloud parity84cases/808assertionsPASS; zero network/resource changes. UI accessibility/recovery/lifecycle helpers and all37 direct dependency roles were retained because no safe removal was established. Full runners remain BLOCKED/UNRUN as requested.
+
+[Cleanup proof](docs/audit-checkpoints/20261029-browser-continuation/supabase-fetch-debloat.json), [counted source manifest](docs/audit-checkpoints/20261029-browser-continuation/source-loc.json):2,179 tracked Gitblob files plus1 upstream gitlink;965 selected source files;157,752 physical source lines. Production−50 lines/−1,390characters;119 new test lines; net source+69. Counts include comments/blanks/tests/experiments/migrations under the existing script, not executable-only LOC. [plan.md](plan.md) remains the complete master list; no unfinished item or release gate was marked PASS.
+
 ## Working checkpoint and safe cleanup — 29 October 2026
 
 [plan.md](plan.md) remains the complete master task list. The owner instructed **“Keep those execution tests blocked”** and then requested: commit the latest working changes, run multiple agents for safe KISS/YAGNI/DRY-WET cleanup, commit the cleanup and report total files/LOC. Do not repeat the runtime-access request or substitute personal-PC execution/spending.

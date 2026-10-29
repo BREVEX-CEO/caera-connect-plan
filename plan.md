@@ -26,6 +26,12 @@ Prepared Python safety, dependency and transport changes have not entered this w
 
 The owner's next requested sequence is a working commit followed by parallel, proof-based KISS/YAGNI/DRY-WET debloating, then another commit and exact file/LOC counts. Preserve good architecture and safeguards. No deployment, production/staging/infrastructure/secret changes, personal-PC execution, spending, pilot contact or scheduled continuation is authorized.
 
+## Safe debloat milestone — 29 October 2026
+
+After working checkpoint `a53f5ba4a80dc3b126894bd8c2f1d34cd4c2e12b`, three parallel agents reviewed fetch duplication, UI/helper callers and scripts/config/dependencies under the owner's KISS/YAGNI/DRY-WET rules. Three byte-identical Supabase fetch adapters now use the existing lightweight configuration owner. Lazy SDK imports, header/JWT behavior and caller lifecycles are preserved; zero new product modules/packages. Fresh cloud parity: **84 cases / 808 assertions PASS**, zero network/resource changes. Full Vitest/typecheck/build/browser execution remains UNRUN/BLOCKED.
+
+Measured cleanup: **-50 production physical lines / -1,390 characters**, plus119 regression-test lines. Repository-script source count: **965 source files / 157,752 physical lines** (including tests/comments/blanks/experiments/migrations); **2,179 tracked Git blob files**, plus one upstream gitlink whose contents are excluded. Net total source delta +69 because of regression coverage. [Exact counts](docs/audit-checkpoints/20261029-browser-continuation/source-loc.json), [proof and independent review](docs/audit-checkpoints/20261029-browser-continuation/supabase-fetch-debloat.json). No other removal was proven safe. All master requirements and unresolved safety/qualification work remain active; no release gate is closed by this cleanup.
+
 ## Fast index
 
 | Phase | Order / workstream | Release-quality result |
