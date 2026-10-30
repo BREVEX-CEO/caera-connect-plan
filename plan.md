@@ -410,6 +410,289 @@ A capability is supported only for explicitly qualified platform/app versions, p
 
 **Winning criterion:** OCADE reliably performs meaningful work on a customer's authorized computer, requires little customer effort, respects security and STOP, and proves the outcome. Marketing superlatives, large tool catalogs and short source files are not substitutes for this result.
 
+
+## 21. Build-ready implementation delta — explicit decisions from the second audit
+
+This section turns the research architecture into a **coding contract**. It corrects ambiguities identified by cross-checking the complete source-heading/concept index, the current `plan.md`, the live branch and the existing database migrations. Sections 0–20 and Annexes A–C remain authoritative for product requirements and source traceability; Sections 21–29 define the missing executable detail.
+
+### 21.1 Source coverage and three easily confused technologies
+
+- **pywinauto:** Windows Python automation library with `uia` and `win32` backends. It discovers real application windows, reads accessibility properties and invokes supported control patterns. A UIA element is not an immutable address. Prefer it over pixel input when native app APIs are unavailable.
+- **PyAutoGUI:** optional Python library for **visible, interactive desktop** mouse/keyboard and screenshots. It is **not** an MCP server, a Windows UIA substitute, a background-input engine, or a permission bypass. Use it only for an explicitly authorized, freshly targeted foreground GUI action when native API, DOM, UIA and verified shortcuts cannot achieve the goal. Preserve its fail-safe; detect user interference; never hide or steal input silently. Optional `pynput`/Win32 input APIs are not automatically required; choose one tested mechanism.
+- **stdio:** operating-system standard input and output streams, commonly used for local MCP client/server JSON-RPC message exchange. It is **transport**, not intelligence or computer control. MCP SDK must implement framing, initialization, request/response IDs, schema validation, progress, cancellation and errors. Protocol stdout is not a debug log; emit redacted diagnostics to stderr. Never assume stdio provides a security sandbox or zero delay.
+- **MCP:** tool exposure and lifecycle protocol. **pywinauto, PyAutoGUI, PowerShell, Playwright, COM, OpenCV and filesystem operations are the underlying capabilities** that a trusted gateway may wrap. Avoid installing a redundant MCP package when the same verified capability is already provided.
+- The original source emphasizes pywinauto/UIA, stdio and OpenCV/coordinate fallback; **PyAutoGUI is an explicit engineering choice added here**, not falsely attributed as an original named source heading.
+
+### 21.2 Verified source-versus-code boundary
+
+As inspected, `src/jarvis/JarvisWorkspace.tsx` and `src/jarvis/JarvisPanels.tsx` intentionally disable sending and device control. `src/routes/ocade-jarvis.tsx` still mounts the UI. `src/routes/api` currently contains the offline route family, not a JARVIS execution API. `supabase/functions/ocade-intelligence/index.ts` is the existing online intelligence edge entry. The Cloudflare/TanStack application is request-driven and **must not be treated as a permanent local process supervisor**. The old `jarvis-runtime` and old server JARVIS modules are retired.
+
+**Already-existing schema owners that must be inspected before migrations:** `public.jarvis_devices`, `jarvis_permissions`, `jarvis_tasks`, `jarvis_activity`, `jarvis_memories`, `ocade_conversations.surface`, `ocade_generation_permits` and `ocade_service_controls`. Existing migrations add device P-256 identity, device/app inventory, task controller/checkpoints, immutable outcome checks, action queue admission, server-only completion, proof/action binding, STOP-vs-completion protection and Realtime wake hints. Preserve these safeguards; do not build a second task system.
+
+**New code is NOT present yet.** The module paths below are *target ownership proposals*, not claims that they exist. Each new file is justified only when its first real contract test needs it. A completed plan is not a completed implementation.
+
+## 22. Concrete runtime topology and code ownership
+
+### 22.1 One practical language/runtime decision
+
+**Default implementation choice:** keep website, server authority and account integration in the repository's existing TypeScript/React/Cloudflare stack; build **one self-contained Python Windows per-user companion** for native execution, using a pinned supported Python runtime bundled inside its installer. Python is selected for mature Windows UIA/COM/file integrations and official Python MCP SDK support; it is not installed separately by the customer.
+
+The companion runs **in the signed-in interactive user's session** (tray/agent process), not a Session 0 service pretending to control the interactive desktop. A privileged updater/helper is not a general-purpose executor and is added only if Windows installation requirements prove it necessary. All privileged actions still use official human-approved UAC. The companion makes authenticated **outbound TLS** requests; do not open an inbound LAN control port by default.
+
+The Windows agent owns local MCP workers, OS actions, leases and durable local receipts. The Cloudflare server owns user/task authority and online planning, but **cannot spawn or hold Windows stdio workers**. The model never receives a device secret or a raw unrestricted OS command tool.
+
+**Allowed exception:** if packaging or tested Windows dependencies demonstrate that a single Python runtime is not maintainable, document the measured limitation and choose the smallest alternative. Do not prebuild a TypeScript desktop agent, Rust daemon, Electron shell and Python worker simultaneously.
+
+### 22.2 Suggested files and interfaces — add only as tests require
+
+| Owner | Existing or proposed location | Responsibilities / contract |
+| --- | --- | --- |
+| Current JARVIS surface | `src/jarvis/JarvisWorkspace.tsx`, `JarvisPanels.tsx`, `src/routes/ocade-jarvis.tsx` | Existing shell, signed-in history, task composer, STOP, activity, verified links; no browser OS privileges |
+| Current conversation/session | `src/lib/ocade.functions.ts`, `src/lib/ocade-chat-store.ts`, `src/lib/security/session-middleware.ts` | Reuse account/session, JARVIS surface isolation and conversation persistence |
+| Shared protocol | `src/lib/jarvis/contracts.ts` (new) plus generated JSON Schema | Task, capability, grant, device, action, receipt, verification, artifact, error and event versions |
+| Customer server functions | `src/lib/jarvis/functions.ts` (new) | Authenticated create/read/STOP/permission/device/artifact operations; Zod validation; CSRF/origin protection where required |
+| Server task authority | `src/lib/jarvis/authority.server.ts` (new) | DB transactions, ownership, controller epochs, state mapping, STOP, idempotent queue admission and settlement |
+| Signed device exchange | `src/lib/jarvis/device-exchange.server.ts` and minimal device-only endpoint (new) | Verify device signature/nonce/epoch, claim action, accept receipts, revoke/heartbeat; no browser bearer impersonation |
+| Online supervisor | `src/lib/jarvis/supervisor.server.ts` (new) | Short bounded online model turns, milestones, relevant tool selection, task-bound permit handling |
+| Policy and verifier | `src/lib/jarvis/policy.server.ts`, `verifier.server.ts` (new only if distinct ownership is proven) | Risk/scope checks, independent evidence validation, final server-side settlement |
+| Customer-safe events | `src/lib/jarvis/events.server.ts` (new if needed) | Redacted status, authoritative reads after wake hints; reuse `jarvis_activity` |
+| Windows companion | `device-agent/windows/ocade_agent/` (new after P03/P04) | Per-user process, enrollment, outbound exchange, local journal, gateway, native capability workers |
+| Local capability modules | `device-agent/windows/ocade_agent/workers/` (new incrementally) | `sys_core`, `fs_sandbox`, `ui_bridge`, `web_automation`, each with scoped typed operations |
+| Packaging | `device-agent/windows/packaging/` (new after first agent smoke test) | Installer, bundled runtime, manifest, signature validation, upgrade, rollback, uninstall |
+| Contract/security tests | `tests/jarvis/` and `device-agent/windows/tests/` (new when corresponding behavior exists) | Shared fixtures, fake MCP, database, Windows/UIA, browser, crash, STOP and output oracle tests |
+
+This is an **ownership map, not an instruction to create every file now**. Keep existing conventions, naming and project structure where compatible. Python source stays outside React `src/`; never bundle privileged device code or service-role credentials into the browser. Avoid duplicating the existing intelligence provider, conversation store, Library or offline model.
+
+### 22.3 Cross-language schema source of truth
+
+Define versioned protocol objects once, export machine-readable JSON Schema from the TypeScript/Zod contract or another *single* canonical schema owner, and validate on both sides. Python may use `dataclasses` and a mature JSON Schema validator; add a model-validation dependency only if it materially reduces risk. Contract tests feed the same valid/invalid fixtures through both runtimes. Schema evolution: add optional fields compatibly, negotiate versions at handshake, reject unknown privileged operations, and require an explicit upgrade path for breaking changes.
+
+**Never rely on type annotations alone:** runtime validation is mandatory at every untrusted network/MCP boundary. Bound input sizes, JSON depth, filenames, Unicode normalization, action timeouts, evidence sizes and resource use; fail closed on unsupported versions.
+
+## 23. Exact cloud ↔ device ↔ MCP execution protocol
+
+### 23.1 Server/browser request contracts
+
+Implement these **operations**, using existing TanStack server functions or authenticated server endpoints according to real deployment compatibility. Names below are proposed contract names, not already-existing routes:
+
+| Operation | Caller and input | Server authority / output |
+| --- | --- | --- |
+| `createJarvisTask` | Signed-in browser: JARVIS conversation UUID, objective, constraints, requested device, client idempotency key | Verify session, conversation `surface='jarvis'`, account/device ownership, consent and service controls; return task ID and current state |
+| `getJarvisTask` / `listJarvisEvents` | Signed-in owner: task ID and cursor | Return only caller-owned task, bounded redacted events, verification state and artifact references |
+| `listJarvisDevices` | Signed-in account | Return approved device inventory/readiness; never return public-key private material or device secrets |
+| `startDeviceEnrollment` / `approveDeviceEnrollment` | Agent generates key; browser owner approves a short-lived challenge | Pending → approved account binding; single-use proof, expiry and audit; reject untrusted same-account auto-pair |
+| `grantJarvisScope` / `revokeJarvisScope` | Signed-in owner: exact device, capability, resource, risk, expiry | Server-side scoped policy, proof for sensitive changes, revocation epoch and audit |
+| `stopJarvisTask` / `takeOverJarvisTask` | Signed-in owner: task, expected epoch, idempotency key | Atomically fence further action claims; return STOP-requested/acknowledged status, not a false immediate success |
+| `getJarvisArtifacts` | Signed-in owner: completed or partial task | Authenticated manifest, safe short-lived download or Library reference; hash, MIME, name, provenance and verification status |
+
+**Task creation:** parse natural-language input into an outcome/checklist with explicit ambiguity handling. The server, not the browser, derives user/account from authenticated session. Reject a Chat conversation ID, stale task controller, revoked device or invalid permission even if the frontend displays it.
+
+### 23.2 Signed agent exchange (outbound only)
+
+Define a small versioned device-only HTTPS exchange for `enroll/hello`, `heartbeat`, `claim-next`, `ack-start`, `submit-receipt`, `upload-evidence`, `observe-stop` and `capabilities`. Device requests include device ID, protocol version, UTC timestamp, unique nonce, canonical method/path/body digest, current task/epoch when applicable, and a P-256 signature made by the device-held private key. Server verifies canonical bytes, freshness, nonce replay, device public key, approval/revocation, account ownership, service controls, scope and rate limits **before** reading or mutating task state.
+
+Existing `jarvis_devices` already has P-256 identity fields and replay-related state; extend only when tests show an actual missing nonce/sequence requirement. Use Windows CNG/DPAPI-backed key protection where compatible; never store an exportable private key in a plaintext config. Require TLS; reject unsigned or cross-account messages. Device never accepts a command just because it appears in an MCP result or webpage.
+
+**Atomic claim:** lock the task/action rows, validate task `running`, controller/epoch, device and permission, and claim one queued action with an expiring lease. A repeated claim returns the same action/receipt status or no work; it must not create a second effect. All actions have a stable ID, idempotency key, target identity, expected precondition, deadline, policy scope and expected verifier predicates. Sensitive side effects are not retried until reconciled.
+
+**Receipt:** device returns one of `observed`, `not_applied` or `unknown/maybe_changed` plus bounded typed evidence, error class and observation time. Never use the actor's free-form “success” as completion. Persist the receipt before the supervisor chooses another mutation. For lost acknowledgements, read back actual target state first.
+
+**Wake and recovery:** Supabase Realtime may notify that `jarvis_activity` changed, but it is **only a wake hint**; fetch authoritative server state after every hint. Use bounded jittered HTTPS polling as fallback, not constant rapid polling. If no durable wake mechanism can drive the next short planning step, record a BLOCKED architecture dependency; **do not silently add a cron, scheduled automation or permanent Cloudflare loop**. The companion may continue already-authorized deterministic work during temporary connectivity loss only within the precise offline-safe task grant; never invent new cloud-model decisions while disconnected.
+
+### 23.3 Cloudflare request lifecycle and online planner
+
+Each online planning invocation is a **short, bounded, authenticated request** that reads the task checkpoint, verifies task-bound usage authorization, proposes at most the next safe milestone/action batch, atomically queues it, then returns. A later receipt/user request causes another bounded turn. No unawaited Promise, in-memory global lock, single browser tab, or long-lived HTTP connection may be the only holder of task authority.
+
+Respect existing `ocade_generation_permits` and task-bound turn/settlement rules; do not accidentally consume Chat's usage or bypass current provider consent. On provider outage/quota, persist waiting state and return truthful status; **no forced Chat Offline planner**. Prevent concurrent planners using database-backed controller/lease/fencing and enforce a single winner for each task epoch.
+
+### 23.4 MCP stdio worker handshake and exact I/O discipline
+
+For a local stdio worker:
+
+1. Gateway launches a **pinned trusted executable** with a restricted working directory, sanitized environment, bounded resources and only required scopes. The server never sends raw shell commands directly to the worker's launcher.
+2. Use the **official compatible MCP Python SDK** for transport/framing and JSON-RPC correlation. Initialize and negotiate protocol capabilities/version; only after successful handshake call `tools/list` and validate names, provenance and schemas against the signed registry.
+3. MCP protocol frames use the SDK's prescribed stdio encoding/delimiters. **stdout carries only protocol frames**; all diagnostics go to sanitized stderr. Never insert `print()`, stack traces or progress banners into protocol stdout. A homemade `readline()` loop without full protocol semantics is not acceptable.
+4. Gateway validates every `tools/call` input, task/device/epoch/target lease, timeout and permission. Correlate response IDs; handle cancellation/progress, schema changes, malformed data, partial reads, EOF, deadlock and bounded output. A transport failure does **not** prove the action failed.
+5. Before restart/retry, mark in-flight mutation uncertain and inspect state. A crashed worker cannot independently approve a new permission or settle a task. Gateway owns process group and clean shutdown.
+6. Include contract tests for handshake refusal, invalid method, duplicate/late response, malformed frame, stdout contamination, stderr secret leakage, killed worker, cancellation, excessive output, schema mismatch and version negotiation.
+
+A single process may host several safe namespaces if no privilege or crash-isolation requirement demands separate workers; preserve namespaced policy even then. Do not build a custom multiplexer unless tests prove the SDK transport insufficient.
+
+## 24. Database and task-state compatibility — no accidental second backend
+
+### 24.1 Preserve existing migrations and constraints
+
+**Current migration evidence:** `20260926090000_ocade_jarvis_web.sql` creates `jarvis_devices`, `jarvis_permissions`, `jarvis_tasks`, `jarvis_activity` and `jarvis_memories`. `20260927090000_jarvis_device_identity.sql` adds per-device key, app inventory, controller and checkpoint. Later migrations add Realtime activity wake, server-only completion, immutable outcome checks, action queue controller locking, one-proof/one-action protections, STOP-versus-late-completion protection and device app icons. These migrations are history; never edit an applied migration. Add a narrowly scoped **forward migration** only when current database schema and tested invariants require it.
+
+**Reuse `jarvis_activity` as the canonical action queue and customer-safe event owner** unless a concrete limitation forces a separate receipts table. It already has action, status, result and task/device references. Do not overload `ocade_tasks` (the separate retired unified-task product) or create a parallel JARVIS queue. Keep bounded evidence references out of large raw database JSON fields.
+
+**Reuse `jarvis_tasks.outcome` as fixed goal checks and respect `verified_actions` completion guards.** No browser or device may directly set `completed`. Preserve existing per-device/per-conversation active-task uniqueness, account RLS and server-only service-control checks. Protect the owner emergency pause (`jarvis_execution` and `jarvis_agent`); do not enable retired browser-extension execution or resurrect `jarvis_extension`.
+
+### 24.2 Internal phases versus persisted statuses
+
+The Section 4 example `TaskStatus` is a **logical UI/supervisor phase model**, not a claim that all those strings fit the database. Existing `jarvis_tasks.status` accepts only `running`, `waiting`, `taken_over`, `stopped`, `blocked`, `failed` and `completed`. Map without silently breaking the constraint:
+
+| Logical phase | Existing persisted status / required handling |
+| --- | --- |
+| Draft before admission | No task row yet; draft lives in UI only |
+| Planning, running, verifying, stopping | `running` with bounded internal phase/checkpoint and STOP fencing; only permitted transitions |
+| Awaiting device, permission, model or reauthentication | `waiting` plus safe blocker/phase; no queued unauthorized action |
+| User takeover | `taken_over`; release UI lease |
+| User pause without takeover | `waiting` with explicit paused phase; no dispatch |
+| Unknown external effect | `waiting` with explicit reconciliation requirement; not `failed` or `completed` |
+| Blocked with no safe next step | `blocked` with partial evidence and exact blocker |
+| Failed | `failed` with error classification and preserved original |
+| STOP complete | `stopped` only after fencing and truthful in-flight-effect accounting |
+| Verified complete | `completed` **server only**, after immutable checks and exact action-set validation |
+| Partial terminal outcome | Use `blocked` with an explicit partial result/evidence field, **or** add a carefully tested `partial` status through a forward migration if the UI and database need a distinct terminal state |
+
+Before any migration, inspect the **latest** table definition, triggers, indexes, RLS and generated Supabase types; historical migration text alone is not the live deployed schema. Test concurrent queue/STOP/completion interleavings in a disposable database. An update that bypasses the old completion trigger is a critical regression.
+
+### 24.3 Durable side effects and artifact model
+
+Store action identity, controller/epoch, target, expected preconditions, risk, grant ID, idempotency key, claim/lease, receipt and reconciliation state in validated bounded records. Use existing `jarvis_activity.action/result` where appropriate; if database-level uniqueness or crash atomicity cannot be enforced there, add the **smallest** forward migration/index. For file deliverables, store an authenticated artifact manifest (task, owner, device, canonical path or Library object ID, MIME, size, hash, source lineage, verification status, retention and download permission). The UI must never fabricate a URL or expose a local absolute path as if a browser can open it remotely.
+
+Evidence objects can be local encrypted/ACL-protected files or authorized object storage with short-lived signed retrieval; never store raw screenshots indefinitely by default. Database holds hashes and references, not arbitrary user-file bytes. Account deletion, revocation and retention must clean or orphan-proof those references under existing product privacy contracts.
+
+## 25. Windows control stack — exact pywinauto, PyAutoGUI and stdio rules
+
+### 25.1 Mandatory action selection ladder
+
+**(1) Documented app-native API/COM/CLI/project format → (2) authorized web API/Playwright DOM → (3) pywinauto UIA/Win32 patterns → (4) verified target-specific shortcuts/menu commands → (5) PyAutoGUI or equivalent foreground input/vision.** Each step must declare capability, preconditions, user-visible impact, risk, evidence and fallback. Do not use PyAutoGUI simply because it is easy to script.
+
+### 25.2 pywinauto implementation contract (`ui_bridge`)
+
+- Enumerate top-level windows with PID, process start time, HWND, owner session, title/class and current document; resolve duplicate titles with additional evidence. Use `Desktop(backend="uia")` or the `win32` backend according to actual control coverage.
+- Inspect only a bounded subtree, with fresh observation generation and supported UIA control patterns. Prefer `Invoke`/`Value`/`Selection` over raw `click_input`; use the actual library's documented methods after version check.
+- Before every mutation revalidate target lease, user permission, window visibility, modal owner, focused document, controller epoch and changed UI tree. Reobserve after action and verify the specific effect.
+- On resized/moved window, DPI/multi-monitor change, modal popup or app restart, invalidate selectors/geometry. AutomationIds are contextual, not universal identifiers.
+- For minimized, hidden, virtualized, custom-rendered or secure-desktop controls, report unsupported state or choose a documented native API; do not promise a background UIA miracle.
+- Never interact with another account's Windows session or the secure UAC desktop. A foreground interaction requires explicit impact policy and user takeover detection.
+
+### 25.3 PyAutoGUI implementation contract (optional last-resort input)
+
+- Require an interactive unlocked Windows desktop, active task grant, exact current target lease, foreground window identity, stable DPI/geometry, explicit user-impact permission and a recent screenshot/anchor observation.
+- Use window-relative, freshly computed coordinates; validate on-screen bounds and confidence before action. A global coordinate is not a reusable selector. Use keyboard shortcuts only when bound to the correct app.
+- **Keep PyAutoGUI fail-safe enabled** and provide OCADE's own STOP fence. Do not disable fail-safe, hijack or suppress the user's mouse/keyboard, or attempt invisible background clicks. If the user moves the pointer/types or focus changes, abort or pause the affected action and re-observe.
+- Restore cursor position only on a best-effort basis when doing so will not conflict with user input; never promise no pointer movement. A UIA pattern may avoid cursor movement, but PyAutoGUI generally cannot.
+- Screenshots are ephemeral and redacted; do not send entire desktop captures to the model unless a scope-specific consent and data-minimization rule permits it.
+- Do not use on lock screen, UAC secure desktop, MFA/CAPTCHA challenges, unknown recipients, final purchases or unverified destructive controls. A low-confidence anchor yields BLOCKED or a legitimate human handoff.
+- Test fail-safe, focus loss, multi-monitor geometry, 100%/125%/150% scaling, animations, user takeover, modal overlays and interrupted click/typing. No claim of unattended success until real Windows tests pass.
+
+### 25.4 Native code and command safety
+
+`sys_core` may invoke reviewed Python stdlib, Windows COM, PowerShell or app scripting **only through typed allowlisted operations**. For shell commands, use argument arrays, explicit executable identity, validated paths and timeout/resource limits; never concatenate untrusted text into shell strings. Run without elevation unless a narrowly scoped, human-approved operation requires it. Never execute arbitrary model-authored Python or PowerShell as the default tool. Where dynamic code is truly required, treat it as untrusted, enforce real OS sandbox/network boundaries and require an independent approval gate.
+
+`fs_sandbox` must resolve Windows path aliases, junctions, symlinks, UNC paths, alternate data streams and device paths; reject escapes and ambiguous destinations. Use atomic staging, hashes, ACLs, safe originals and Recycle Bin when applicable. On network shares or non-atomic filesystems, state actual guarantees rather than assuming rename is atomic everywhere.
+
+### 25.5 Browser worker and external accounts
+
+`web_automation` uses a supported Playwright browser/context and official provider APIs. Avoid launching a separate uncontrolled browser if an approved user session is required; support a consented integration or a separately authenticated isolated context. Do not copy a live Chrome profile, extract cookies or expose remote debugging publicly. A Playwright install may require a managed browser binary; package it only for workflows that need it and qualify installer behavior on clean Windows. Prefer already-authorized API access when available. Browser challenge screens and user sign-in remain human-controlled.
+
+## 26. Security, installation and lifecycle deliverables
+
+**Installer:** build a reproducible Windows package from pinned, scanned dependencies; include the needed Python runtime, local MCP worker code, signatures, license notices and uninstall metadata. Validate on a clean non-admin Windows account. No customer-side `pip install`, `npm install`, command line, developer mode or MCP registry setup. Installer must clearly state requested permissions and what it will run; no silent persistence beyond the approved tray/agent.
+
+**Agent lifecycle:** start only after user consent, maintain one per-user session, handle logout/sleep/lock/unlock/network changes, version/protocol negotiation, key rotation and revocation, clean stop and uninstall. Reconnect without duplicating effects. Signed updates must verify manifest and binary, stage atomically, preserve last-known-good rollback and never execute unsigned downloaded code. Device offline/revoked/old-version states are visible to the user.
+
+**Supply chain:** pin package versions after compatibility tests; inspect transitive dependencies, maintain license inventory/SBOM, verify package hashes and build provenance, scan for secret exposure, and secure code-signing material outside the repo. The owner must separately authorize any actual publishing/deployment/signing-credential operation.
+
+**Privacy:** default no durable screenshot, microphone or full-desktop recording; capture minimum necessary UI evidence under scoped consent, redact and expire it. Keep customer files local unless an explicit output/cloud transfer is required. Log only IDs, safe event categories, timings and hashes; never raw passwords, cookies, tokens, arbitrary document contents or full screenshots. Apply account deletion, consent withdrawal, retention and support-access policies already in the product.
+
+**Safety:** device revoke, account logout, owner emergency pause and STOP must fence new actions at **both** server admission and local gateway dispatch. If a device is disconnected when revoked, its locally cached authorization expires quickly and cannot permit new unsafe effects. Security policy is enforced by code and OS boundaries, never solely by an LLM prompt.
+
+## 27. Real deliverables, verification contracts and first working product journey
+
+### 27.1 Three priority customer journeys (from the existing product requirements)
+
+1. **Weekly spreadsheet reconciliation → editable report:** input workbook in approved workspace → inspect sheets/schema → reconcile agreed columns → preserve original/formulas → save editable workbook → reopen/recalculate in installed Excel when available → independently verify totals/exceptions → produce editable Word document and PDF with page/layout proof → deliver real files and source references.
+2. **Client document/PDF pack:** ingest approved facts/templates → compose required editable documents → export PDFs → independently check sections, pagination, clipping, fonts and filenames → return authenticated artifact links. Sending to a client is a **separate** authorized effect.
+3. **Authorized browser status collection → local report:** authenticate through supported user flow → collect permitted records with account/source/time → deduplicate and reconcile missing entries → produce local report and source manifest → verify file and destination read-back. Never bypass site access restrictions.
+
+The first end-to-end coding gate remains **Journey 1** through the actual JARVIS route and real paired Windows agent. It is not complete if a test fixture, Claude session, developer script or mock tool directly creates the output outside the product pipeline.
+
+### 27.2 Verifier recipes as executable contracts
+
+Every workflow defines `goal_checks`, `allowed_side_effects`, `input_manifest`, `artifact_manifest`, `recovery_policy` and `verification_recipe` before execution. A verifier recipe specifies independent read method, expected property, tolerance, evidence reference and outcome if unobservable. The verifier must read back the final saved file or external record, not the actor's in-memory draft.
+
+**Example Journey 1 acceptance:** original workbook hash unchanged; every expected input row accounted for; discrepancy set correct; sums independently recomputed; formulas preserved and recalculated by a real spreadsheet engine; output workbook reopens; editable Word sections present; PDF renders without blank/clipped pages; output manifest points to real retrievable files; no unauthorized external sends; STOP/crash cases preserve originals and do not produce `completed`. Any unavailable installed Excel or renderer requirement is a transparent capability limitation, not a synthetic PASS.
+
+**Source-specific quality:** video needs project/render metadata and sampled visual/audio review; photo needs profile/dimensions and visual assessment; CAD needs units/topology/constraint validation; chess needs independently checked legal board transitions; SaaS needs destination read-back. Professional appearance requires explicit rubric and, where subjective, human review.
+
+### 27.3 Output and customer feedback
+
+A completed task returns a concise explanation, any exceptions, verification summary and only actual authorized artifact links. A blocked/partial/unknown task states which checks passed, which failed or were not checked, and which action the user can take. Never label an artifact “verified” merely because a file exists or the model generated a polished narrative.
+
+## 28. Test matrix and exact coding gates for Claude
+
+### 28.1 Deterministic developer test harness
+
+Create a **fake MCP stdio worker** with controlled delays, malformed messages, crash-after-effect, missing ACK, duplicate responses, invalid schemas and malicious descriptions. Create a **fake device exchange** with forged signature, replayed nonce, wrong account, expired grant, revoked device, changed epoch, concurrent claim and STOP races. Use a disposable local database/migration test environment for RLS/trigger tests. These fixtures may simulate tool outcomes but **must not count as real JARVIS output proof**.
+
+Use contract tests for TS/Python schema parity, client/server validation, protocol versions, auth scopes and idempotency. Use real Windows integration tests on disposable/owner-authorized machines for UIA, PyAutoGUI, Office COM, file sandbox, signed installer and agent lifecycle. Use a real permitted browser session for Playwright/account tests. Distinguish all evidence classes.
+
+### 28.2 Critical negative tests that must be coded
+
+| Test | Required result |
+| --- | --- |
+| Signed-in browser for account A names account B's device/task | Denied before dispatch, no data leak |
+| Malicious document or MCP tool description asks to run shell/delete files | Untrusted instruction ignored; no capability grant |
+| Device signature forged, stale, replayed or revoked | Denied; logged safe reason |
+| Two planners queue same task, or two tasks claim one UI window | One fenced winner; no duplicate effect |
+| STOP races with queued, claimed, unknown and verifying actions | No new dispatch; honest in-flight effects; no late completion |
+| Model/API outage during long task | Durable waiting checkpoint; no silent local-model substitution |
+| Worker crashes after file save or external send but before ACK | Reconcile read-back; never blind repeat |
+| UIA target PID/HWND reused, duplicate title or modal dialog appears | Fail closed/reobserve; no wrong-window mutation |
+| PyAutoGUI loses focus or user moves mouse | Pause/abort; do not type/click in other app |
+| Window resized, DPI changed, multiple monitors or minimized | Re-discover geometry or native fallback; truthful unsupported state |
+| Path traversal, junction escape, UNC alias or permission revocation | Denied; original preserved |
+| Chrome session expired, MFA/CAPTCHA, wrong account | Legitimate human reauth; no secret extraction |
+| Excel formula caches stale, malformed PDF, partial video render | Independent verifier rejects `completed` |
+| Browser/test harness directly writes final artifact | Does not count as agent execution |
+| Unapproved MCP download/update or unsigned installer | Refused; no code execution |
+| Cloudflare request ends while task continues | Durable next step; no lost in-memory-only state |
+| Customer logs out, device revoked or owner pauses service | Server and local admission fenced |
+| Account deletion/retention sweeps while task references evidence | No orphaned accessible secrets or cross-account artifacts |
+
+### 28.3 Verification commands and execution environments
+
+**Existing web checks:** `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run build`, `npm run audit:secrets`, `npm run routes:stable`, `npm run supabase:types-check` and `npm run verify:full` when compatible with the changed code and current environment. Add meaningful new test scripts only when corresponding test files exist; ensure zero discovered tests fails CI rather than returning a misleading PASS.
+
+**New companion checks:** pinned Python test runner (e.g. `pytest` if selected), formatter/linter/type checker as appropriate, JSON Schema parity, Windows integration fixtures, installer smoke test and code-signature validation. **Do not claim these commands currently exist.** Cloud/Linux tests do not qualify pywinauto/PyAutoGUI behavior on real Windows. Avoid testing on the owner's personal PC or live production account without separate authorization.
+
+**Evidence format:** task ID, commit SHA, test/fixture version, OS/app/model versions, account/device type (non-identifying), environment class, expected and observed effect, independent oracle, artifact hash, failure classification, user intervention count, STOP outcome and reproducible steps. Report PASS/FAIL/PARTIAL/BLOCKED/UNTESTED. A case blocked before device dispatch remains BLOCKED, not an attempted native execution failure.
+
+### 28.4 Package-specific closure additions
+
+- **P00:** audit latest migrations, current generated Supabase types, stale references to removed JARVIS code, actual Cloudflare request boundaries and all 236 indexed requirements; preserve source-only historical caveats.
+- **P01–P02:** freeze cross-language schemas and exact status mapping; prove existing RLS, server-only completion, immutable outcome and STOP guards before changing schema.
+- **P03–P04:** signed P-256 device enrollment, per-user Windows companion, outbound HTTPS and packaging on disposable Windows; no customer Python installation.
+- **P05–P06:** official MCP SDK and stdio handshake; namespace/policy enforcement; worker crash/unknown-effect tests.
+- **P07–P10:** Win32/MSIX discovery, exact target leases, scoped file/native commands, **pywinauto UIA first**, **PyAutoGUI optional last**; DPI/focus/user-takeover tests.
+- **P11–P12:** Playwright with legitimate session, vetted optional native/specialist MCP bridges, no unapproved self-install.
+- **P13–P17:** short durable online planning turns, resource locks, side-effect journal, independent verifier, STOP and restart; no server memory-only continuation.
+- **P18–P19:** wire the existing disabled UI to real server/device authority, complete the first actual Windows workbook → editable report → PDF journey, prove actual artifact provenance.
+- **P20–P22:** qualify three priority customer journeys and seven scenario families, adversarial/supply-chain tests, benchmark architecture choices, release handoff only with explicit owner approval.
+
+## 29. Final completeness gate — what “fully coded JARVIS” actually requires
+
+Claude may report **implementation complete** only when all of the following are backed by commit-bound evidence:
+
+1. A working authenticated JARVIS Send/STOP/history/permissions UI exists; signed-out and cross-account paths are safe.
+2. Real server task authority, online supervisor, action admission, independent verification and durable settlement are implemented, not placeholders.
+3. A signed/installable Windows per-user companion exists, pairs securely, discovers apps and reports exact readiness.
+4. The central trusted MCP gateway implements the negotiated stdio protocol, scoped four-role toolbox, worker lifecycle and bounded cancellation.
+5. Native-first Windows control includes tested pywinauto UIA and documented, safe PyAutoGUI/visual fallback where supported, with explicit foreground limitations.
+6. A supported Playwright/API path handles authorized browser work without extracting browser secrets.
+7. All side effects have scoped authority, exact targets, durable intents, idempotency/reconciliation and user takeover/STOP fences.
+8. At least the three priority customer journeys have real end-to-end evidence; seven broader scenario families are individually qualified or honestly marked unsupported/BLOCKED.
+9. Every delivered artifact is real, retrievable and independently verified; no simulated/test-generated output is credited as agent work.
+10. Security, crash/restart, wrong-target, prompt-injection, data-loss, permission and account-isolation gates pass in their actual required environments.
+11. The required benchmark success gate is measured with sample size and exclusions; no known critical defect is unresolved.
+12. Final evidence includes exact SHA, installed app/platform versions, executable tests, artifact hashes, rollback path, open limitations and explicit owner release decision. **No merge, deployment or owner-device operation is implied.**
+
+**Do not claim this gate is met by writing `plan.md`.** The plan is complete as a detailed engineering specification; implementation, real-device testing and release remain separate work.
+
 ---
 
 # Annex A — Source heading-by-heading traceability
@@ -558,7 +841,7 @@ This annex tracks **all 143 substantive source-heading occurrences in original o
 | A138 | 1397 | Omitted estimate at owner's direction | Excluded |
 | A139 | 1401 | Omitted estimate at owner's direction | Excluded |
 | A140 | 1422 | Omitted estimate at owner's direction | Excluded |
-| A141 | 1428 | Model selection and fallback (source heading normalized) | 2, 16 |
+| A141 | 1428 | Online model selection and fallback constraints (source section 7, wording adapted to owner's exclusions) | 2, 16, 23.3 |
 | A142 | 1449 | 8. Structural Code Reduction Strategy | 3, 19 |
 | A143 | 1457 | 9. The Winning Architecture Blueprint | 0, 4; source ends here |
 
@@ -571,7 +854,7 @@ Every item below has a disposition in the actual architecture; “candidate” n
 | B01 | Open Interpreter / local execution MCP | `sys_core` concept; restrict commands and permissions; no generic unrestricted executor. |
 | B02 | Filesystem MCP | `fs_sandbox`, canonical paths, ACLs, hashes, original safety. |
 | B03 | Playwright Browser MCP | `web_automation`, trusted DOM and account sessions. |
-| B04 | Windows Computer Use MCP / pywinauto | `ui_bridge`, exact target and fresh UIA state. |
+| B04 | Windows Computer Use MCP / pywinauto | `ui_bridge`, exact target and fresh UIA state; see 21.1 and 25.2. |
 | B05 | Peekaboo / macOS accessibility | Future separate macOS qualification, not Windows prerequisite. |
 | B06 | DaVinci Resolve MCP / scripting bridges | Optional version-verified native editor bridge. |
 | B07 | FireCut AI | Optional licensed creative workflow integration. |
@@ -586,14 +869,14 @@ Every item below has a disposition in the actual architecture; “candidate” n
 | B16 | fs_sandbox | Bundled bounded file operations and evidence. |
 | B17 | web_automation | Bundled Playwright DOM and authorized web operations. |
 | B18 | Capability registry / typed schemas | One authoritative registry, selective schema injection and validation. |
-| B19 | Async stdio subprocess multiplexer | SDK-backed lifecycle; do not reinvent protocol framing. |
+| B19 | Async stdio subprocess multiplexer | SDK-backed lifecycle, strict stdout/stderr discipline, crash/unknown-effect reconciliation; see 23.4. |
 | B20 | Task UUID, resource lock and idempotency key | Durable identity, mutation leases, reconciliation. |
 | B21 | Target state ψ, observed state Sₜ and delta Δ | Typed objective/postcondition metaphor, not universal numeric optimizer. |
 | B22 | Macro batching | Safe deterministic blocks with explicit boundaries. |
 | B23 | Domain-specific verification | Independent content, calculation, render, geometry and destination checks. |
 | B24 | Windows AppContainer / Job Objects / ACLs | Real tested isolation; none individually grants complete containment. |
 | B25 | Chrome profile / OAuth / MFA | Authorized session integration; no secret extraction or challenge bypass. |
-| B26 | Visual anchor matching / OpenCV | Last-resort scoped fallback with fresh geometry and confidence checks. |
+| B26 | Visual anchor matching / OpenCV | Last-resort scoped fallback; optional PyAutoGUI foreground input is an added implementation choice, not an original source name; see 25.3. |
 | B27 | Actor–critic / supervisor–pilot roles | Goal governor and immediate receding-horizon pilot, bounded. |
 | B28 | Five architectural components | Governor, registry, process manager, actuators, verifier. |
 | B29 | Seven production scenarios | Full Section 13 plus P20 qualification. |
@@ -672,5 +955,7 @@ These are later requirements/refinements, **not literal headings of the original
 ---
 
 ## Final Claude handoff instruction
+
+**Before writing code, read Sections 21–29 for concrete protocol, database, Windows and verification contracts.** Do not equate source traceability with implemented behavior.
 
 **Start at P00 on the inspected implementation branch.** Establish what actually exists now, implement only the next dependency-ready verified slice, and keep the product's account/security/offline boundaries intact. The source research and every index item have an explicit treatment above. The implementation wins only when real authorized workflows are safely completed and independently proven—not when a diagram, tool count, script or status message says they are.
